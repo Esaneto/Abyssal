@@ -4,54 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Abyssal — Ecos das Profundezas</title>
-  <style>
-    /* Estilo de emergência integrado para garantir que a tela nunca fique branca */
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; font-family: system-ui, -apple-system, sans-serif; }
-    body { background: #030b13; color: #e5ffff; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    #gameShell { position: relative; width: 100%; max-width: 800px; height: 100%; max-height: 500px; background: #06141f; border: 1px solid rgba(121,243,240,0.2); box-shadow: 0 0 40px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; }
-    canvas { display: block; width: 100%; height: 100%; background: #030b13; }
-    .screen { position: absolute; inset: 0; background: rgba(3,11,19,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
-    .screen[hidden] { display: none !important; }
-    .menu-panel { text-align: center; max-width: 420px; width: 100%; display: flex; flex-direction: column; gap: 14px; background: rgba(6,20,31,0.85); padding: 30px; border-radius: 12px; border: 1px solid rgba(121,243,240,0.3); box-shadow: 0 0 25px rgba(121,243,240,0.1); }
-    h1 { font-size: 36px; letter-spacing: 3px; color: #75f8ed; text-shadow: 0 0 15px rgba(117,248,237,0.4); }
-    h2 { font-size: 20px; color: #75f8ed; margin-bottom: 6px; }
-    p { font-size: 13px; color: #8ba6b8; }
-    button { cursor: pointer; border: none; border-radius: 6px; padding: 12px 18px; font-weight: 700; font-size: 13px; transition: all 0.2s ease; width: 100%; }
-    .main-btn { background: #75f8ed; color: #030b13; box-shadow: 0 0 15px rgba(117,248,237,0.3); }
-    .main-btn:hover { background: #9afff7; transform: translateY(-1px); }
-    .secondary-btn { background: rgba(121,243,240,0.1); color: #75f8ed; border: 1px solid rgba(121,243,240,0.3); }
-    .secondary-btn:hover { background: rgba(121,243,240,0.2); }
-    .online-btn { background: #bd91ff; color: #030b13; }
-    .real-money-btn { background: linear-gradient(135deg, #00f2fe, #4facfe) !important; color: #03131c !important; }
-    #hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; padding: 15px; display: flex; flex-direction: column; justify-content: space-between; }
-    .hud-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #75f8ed; text-shadow: 0 0 8px rgba(117,248,237,0.5); }
-    .hud-bars { display: flex; gap: 15px; }
-    .bar-wrap { flex: 1; display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: #8ba6b8; }
-    .bar { position: relative; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; border: 1px solid rgba(121,243,240,0.2); }
-    .fill { height: 100%; background: #75f8ed; width: 100%; transition: width 0.1s linear; }
-    #hpFill { background: #ff668d; }
-    #xpFill { background: #b8a7ff; }
-    .bar span { position: absolute; inset: 0; text-align: center; font-size: 8px; line-height: 8px; color: #fff; font-weight: bold; }
-    #pauseBtn { position: absolute; top: 15px; right: 15px; width: 36px; height: 36px; background: rgba(6,20,31,0.8); border: 1px solid rgba(121,243,240,0.3); color: #75f8ed; border-radius: 50%; z-index: 8; pointer-events: auto; }
-    #toast { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(6,20,31,0.95); border: 1px solid #75f8ed; color: #75f8ed; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; z-index: 20; box-shadow: 0 0 15px rgba(117,248,237,0.3); }
-    .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 220px; overflow-y: auto; width: 100%; margin: 10px 0; }
-    .shop-card { background: rgba(3,11,19,0.6); border: 1px solid rgba(121,243,240,0.2); border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
-    .shop-card.equipped { border-color: #75f8ed; box-shadow: 0 0 10px rgba(117,248,237,0.2); }
-    .shop-badge { font-size: 9px; background: rgba(121,243,240,0.15); color: #75f8ed; padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
-    .shop-preview { height: 40px; display: flex; align-items: center; justify-content: center; }
-    .skin-orb { width: 28px; height: 28px; border-radius: 50%; }
-    .shop-info strong { font-size: 11px; color: #e5ffff; display: block; }
-    .shop-info p { font-size: 9px; color: #8ba6b8; }
-    input { width: 100%; padding: 10px; background: rgba(3,11,19,0.8); border: 1px solid rgba(121,243,240,0.3); border-radius: 6px; color: #fff; font-size: 13px; outline: none; }
-    input:focus { border-color: #75f8ed; box-shadow: 0 0 8px rgba(117,248,237,0.3); }
-    .upgrade-grid { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-    .upgrade-card { background: rgba(3,11,19,0.7); border: 1px solid rgba(121,243,240,0.25); border-radius: 8px; padding: 10px; text-align: left; display: flex; align-items: center; gap: 10px; cursor: pointer; color: #fff; }
-    .upgrade-card:hover { border-color: #75f8ed; background: rgba(121,243,240,0.1); }
-    .upgrade-icon { font-size: 20px; color: #75f8ed; }
-    .wheel-container { position: relative; width: 220px; height: 220px; margin: 10px auto; display: flex; align-items: center; justify-content: center; }
-    .wheel-target { width: 180px; height: 180px; border-radius: 50%; border: 4px solid #75f8ed; background: conic-gradient(#75f8ed 0deg 90deg, #bd91ff 90deg 180deg, #ffb45e 180deg 270deg, #ff668d 270deg 360deg); transition: transform 3s cubic-bezier(0.15, 0.85, 0.15, 1); }
-    .wheel-pointer { position: absolute; top: 0; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 16px solid #fff; z-index: 5; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="gameShell">
