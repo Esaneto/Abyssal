@@ -51,13 +51,14 @@
         <div class="creature-tentacle t1"></div><div class="creature-tentacle t2"></div><div class="creature-tentacle t3"></div><div class="creature-tentacle t4"></div>
         <div class="glow"></div>
       </div>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 2.8.2</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 2.9.1</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
       <div class="hud-top">
-        <div class="hud-stat"><small>SOBREVIVÊNCIA</small><strong id="timeText">00:00</strong></div>
+        <div class="hud-stat"><small>TEMPO</small><strong id="timeText">00:00</strong></div>
         <div class="hud-stat center-stat"><small>NÍVEL</small><strong id="levelText">01</strong></div>
+        <div class="hud-stat center-stat"><small>BOSSES</small><strong id="bossKillsText">00</strong></div>
         <div class="hud-stat right-stat"><small>ENERGIA</small><strong id="scoreText">0</strong></div>
       </div>
       <div class="bars">
@@ -175,14 +176,14 @@
       <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. Sobrevivência mais longa vence.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
     <section id="toast" class="toast" hidden></section>
   </main>
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO GUARDA CADA MERGULHO</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="game.js"></script>
-<script src="online.js"></script>
+<script src="game.js?v=2.9.1"></script>
+<script src="online.js?v=2.9.1"></script>
 </body>
 </html>

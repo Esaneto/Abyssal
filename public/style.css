@@ -157,3 +157,15 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
  body.mobile-game-active .boss-alert strong{font-size:clamp(16px,5vw,24px)}
  body.mobile-game-active .hud{left:10px;right:10px}
 }
+
+
+/* v2.9.0 — HUD de bosses, escala de mundo unificada e ranking por entidades eliminadas. */
+.hud-top{gap:clamp(8px,2vw,28px)}
+.hud-stat{min-width:0;flex:1}
+.ranking-row .rank-time{white-space:nowrap;font-size:10px}
+@media(max-width:700px){
+ body.mobile-game-active .hud-top{gap:6px}
+ body.mobile-game-active .hud-stat{flex:1 1 0;min-width:0}
+ body.mobile-game-active .hud-stat small{font-size:6px;letter-spacing:.04em;white-space:nowrap}
+ body.mobile-game-active .hud-stat strong{font-size:15px}
+}

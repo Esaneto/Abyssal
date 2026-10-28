@@ -4,6 +4,8 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const rand = (min, max) => min + Math.random() * (max - min);
 
 const app = express();
 const server = http.createServer(app);
@@ -14,7 +16,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
-const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, settled: { day: '', week: '', month: '' } };
+const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, monthly: {}, settled: { day: '', week: '', month: '' } };
 let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));
 let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
 let pgPool = null;
@@ -64,9 +66,9 @@ async function initializePersistence() {
   await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('users',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(users)]);
  }
  if (stored.rankings && typeof stored.rankings === 'object' && !Array.isArray(stored.rankings)) {
-  rankings = { ...EMPTY_RANKINGS, ...stored.rankings, settled: { ...EMPTY_RANKINGS.settled, ...(stored.rankings.settled || {}) } };
+  rankings = { ...EMPTY_RANKINGS, ...stored.rankings, monthly: { ...(stored.rankings.monthly || {}) }, settled: { ...EMPTY_RANKINGS.settled, ...(stored.rankings.settled || {}) } };
  } else {
-  rankings = { ...EMPTY_RANKINGS, ...rankings, settled: { ...EMPTY_RANKINGS.settled, ...(rankings.settled || {}) } };
+  rankings = { ...EMPTY_RANKINGS, ...rankings, monthly: { ...(rankings.monthly || {}) }, settled: { ...EMPTY_RANKINGS.settled, ...(rankings.settled || {}) } };
   await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('rankings',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(rankings)]);
  }
  console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
@@ -78,20 +80,23 @@ function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
 function publicUser(u) { return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {} }; }
-function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => b.survival - a.survival || b.score - a.score).slice(0, 10); }
+function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
  const d = dayKey(), w = weekKey(), m = monthKey();
+ rankings.monthly ||= {};
  if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], 100, 'diário');
  if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], 1000, 'semanal');
- if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.eternal, 5000, 'global mensal');
+ if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], 5000, 'mensal');
+ rankings.daily[d] ||= {}; rankings.weekly[w] ||= {}; rankings.monthly[m] ||= {};
  rankings.settled = { day: d, week: w, month: m }; saveUsers(); saveRanks();
 }
 function onlineCount() { return io.engine.clientsCount; }
 function broadcastOnline() { io.emit('online-count', onlineCount()); }
-function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]) }; }
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount(), persistence: pgPool ? 'postgres' : 'local-ephemeral', rooms: rooms.size, maxPlayersPerRoom: MAX_PLAYERS_PER_ROOM, maxEnemiesPerRoom: MAX_ENEMIES_PER_ROOM }));
+function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
+app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
+app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount(), persistence: pgPool ? 'postgres' : 'local-ephemeral', rooms: rooms.size, maxPlayersPerRoom: MAX_PLAYERS_PER_ROOM, maxEnemiesPerRoom: MAX_ENEMIES_PER_ROOM, rankingMetric: 'bossesKilled', world: { width: WORLD_WIDTH, height: WORLD_HEIGHT } }));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 
 const rooms = new Map();
@@ -101,9 +106,13 @@ const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 50;
 const MAX_BOSSES_PER_ROOM = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
+const WORLD_WIDTH = 3600;
+const WORLD_HEIGHT = 2200;
+const SERVER_STARTED_AT = new Date().toISOString();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
+function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
 function makeWorldState(){return {initialized:false,elapsed:0,enemies:[],nextEnemyId:0,nextBossAt:60,bossSpawnCount:0,lastBossKind:null,lastBossMaxHp:0,lastBossDamage:0,lastBossSpeed:0,commonSpawnTimer:.15,lastTick:Date.now(),snapshotTimer:0,playerSnapshotTimer:0};}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6}={}){
  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
@@ -112,10 +121,10 @@ function makeRoom({id,name,isPrivate=false,password='',capacity=6}={}){
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
 function channelFor(room){return `abyss-room:${room.id}`;}
-function publicRoomInfo(room){return {id:room.id,code:room.id,name:room.name,isPrivate:room.isPrivate,playerCount:room.players.size,capacity:room.capacity};}
+function publicRoomInfo(room){return {id:room.id,code:room.id,name:room.name,isPrivate:room.isPrivate,playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity};}
 function roomList(){return [...rooms.values()].sort((a,b)=>{if(a.id===b.id)return 0;if(a.id===DEFAULT_ROOM_ID)return -1;if(b.id===DEFAULT_ROOM_ID)return 1;return b.players.size-a.players.size;}).map(publicRoomInfo);}
 function broadcastRooms(){io.emit('rooms-list',roomList());}
-app.get('/api/rooms', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,rooms:roomList()}));
+app.get('/api/rooms', (_req,res)=>res.set('Cache-Control','no-store, no-cache, must-revalidate').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT}));
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
@@ -129,21 +138,12 @@ function spawnWorldEnemy(room,type='common',initial=false){
  const bosses=w.enemies.filter(e=>isBossKind(e.kind));
  if(type==='boss'&&bosses.length>=MAX_BOSSES_PER_ROOM)return null;
  if(type!=='boss'&&w.enemies.filter(e=>!isBossKind(e.kind)).length>=MAX_COMMON_ENEMIES)return null;
- const side=Math.floor(Math.random()*4),lane=[.22,.5,.78][Math.floor(Math.random()*3)],jitter=(Math.random()-.5)*.12;let x=.5,y=.5;
- // Gerar na borda atualmente visível, junto às correntes, para que nenhum monstro fique escondido longe da câmera.
- const members=[...room.players.values()];const target=members.length?members[Math.floor(Math.random()*members.length)]:{x:.5,y:.5,viewportWidth:1200,viewportHeight:700,worldWidth:1200*1.7/.84,worldHeight:700*1.7/.84,worldZoom:.84};
- const zoom=Math.max(.45,Math.min(1.2,Number(target.worldZoom)||.84));
- const vW=Math.max(320,Number(target.viewportWidth)||1200),vH=Math.max(320,Number(target.viewportHeight)||700);
- const wW=Math.max(vW,Number(target.worldWidth)||vW*1.7/zoom),wH=Math.max(vH,Number(target.worldHeight)||vH*1.7/zoom);
- const halfX=Math.max(.12,Math.min(.43,vW/(wW*zoom)/2)),halfY=Math.max(.12,Math.min(.43,vH/(wH*zoom)/2));
- const marginX=24/(wW*zoom),marginY=24/(wH*zoom),jx=(Math.random()-.5)*.1,jy=(Math.random()-.5)*.1,tx=Number(target.x)||.5,ty=Number(target.y)||.5;
- const visibleFracX=2*halfX,visibleFracY=2*halfY;
- const laneX=Math.max(.035,Math.min(.965,tx+(lane-.5)*visibleFracX*.66+jitter));
- const laneY=Math.max(.035,Math.min(.965,ty+(lane-.5)*visibleFracY*.66+jitter));
- if(side===0){x=laneX;y=Math.max(.035,Math.min(.965,ty-halfY+marginY));}
- else if(side===1){x=Math.max(.035,Math.min(.965,tx+halfX-marginX));y=laneY;}
- else if(side===2){x=laneX;y=Math.max(.035,Math.min(.965,ty+halfY-marginY));}
- else{x=Math.max(.035,Math.min(.965,tx-halfX+marginX));y=laneY;}
+ // The logical world is identical on desktop and mobile. Fauna enters from four fixed deep-sea vortices.
+ const corner=Math.floor(Math.random()*4),insetX=rand(100,290),insetY=rand(90,250);
+ let worldX=corner===0?insetX:corner===1?WORLD_WIDTH-insetX:corner===2?insetX:WORLD_WIDTH-insetX;
+ let worldY=corner===0?insetY:corner===1?insetY:corner===2?WORLD_HEIGHT-insetY:WORLD_HEIGHT-insetY;
+ if(initial){ worldX=clamp(worldX,100,WORLD_WIDTH-100); worldY=clamp(worldY,100,WORLD_HEIGHT-100); }
+ let x=worldX/WORLD_WIDTH,y=worldY/WORLD_HEIGHT;
  const bossData={
   boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
   leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
@@ -172,13 +172,14 @@ function spawnWorldEnemy(room,type='common',initial=false){
   base.speed=Math.min(90,w.lastBossSpeed>0?Math.max(base.speed,w.lastBossSpeed*1.05):base.speed);
   w.lastBossMaxHp=base.hp;w.lastBossDamage=base.damage;w.lastBossSpeed=base.speed;w.bossSpawnCount++;
  }
- const enemy={id:++w.nextEnemyId,x,y,r:base.r/500,hp:base.hp,maxHp:base.hp,speed:base.speed,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind};
+ const enemy={id:++w.nextEnemyId,x,y,r:base.r,hp:base.hp,maxHp:base.hp,speed:base.speed,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind,threat:w.bossSpawnCount};
  w.enemies.push(enemy);
  return enemy;
 }
 function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
  for(const p of room.players.values()){
+  if(p.runStats&&!p.runStats.settled)p.runStats.bossesKilled=(Number(p.runStats.bossesKilled)||0)+1;
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
   u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
@@ -208,6 +209,29 @@ function processWorldDamage(socket,id,damage){
   io.to(channelFor(room)).emit('shared-xp-award',{value:Math.max(1,Math.round(enemy.value)),source:'kill'});
   if(boss)awardWorldBossCoins(room);
  }
+}
+async function finishRunForSocket(socket,payload={}){
+ const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
+ const room=socketRoom(socket),member=room?.players.get(socket.id),run=member?.runStats||socket.data.runStats||makeRunStats();
+ if(run.settled)return {ok:true,duplicate:true,earned:0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*100,totalRunCoins:0,account:publicUser(user),rankings:rankingPayload()};
+ const now=Date.now();
+ const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
+ const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
+ const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
+ const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
+ run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;
+ if(member)member.runStats=run;else socket.data.runStats=run;
+ settlePeriods();
+ const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
+ const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score)||0)||(score===(Number(old.score)||0)&&survival>(Number(old.survival)||0))));
+ const put=board=>{if(better(board[key]))board[key]=entry;};
+ rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
+ rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
+ put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
+ const earned=Math.min(50000,Math.max(5,Math.floor(score/35)+level*2));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ saveRanks();saveUsers();await flushPersistence();
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,account:publicUser(user),rankings:rankingPayload(),message:`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 function worldTick(){
  const now=Date.now();
@@ -239,11 +263,12 @@ function worldTick(){
   const players=[...room.players.values()];
   for(const e of w.enemies){
    e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
-   let target=null,best=Infinity;
-   for(const p of players){const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx*(p.viewportWidth||1200),dy*(p.viewportHeight||700));if(d<best){best=d;target=p;}}
-   if(target&&best>2){
-    const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700,zoom=target.worldZoom||.84,ww=target.worldWidth||vw*1.7/zoom,wh=target.worldHeight||vh*1.7/zoom,px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
-    const move=e.speed*dt;e.x=Math.max(.025,Math.min(.975,e.x+(px/dpx*move)/Math.max(320,ww*zoom)));e.y=Math.max(.025,Math.min(.975,e.y+(py/dpx*move)/Math.max(320,wh*zoom)));
+   let target=null,best=Infinity,dxWorld=0,dyWorld=0;
+   for(const p of players){const dx=(p.x-e.x)*WORLD_WIDTH,dy=(p.y-e.y)*WORLD_HEIGHT,d=Math.hypot(dx,dy);if(d<best){best=d;target=p;dxWorld=dx;dyWorld=dy;}}
+   // Authoritative pursuit in shared world-units. This stays consistent across PC and mobile and never depends on visibility.
+   if(target&&best>Math.max(8,Number(e.r)||8)){
+    const move=Math.min(best,e.speed*dt),nx=dxWorld/(best||1),ny=dyWorld/(best||1);e.angle=Math.atan2(dyWorld,dxWorld);
+    e.x=clamp(e.x+(nx*move)/WORLD_WIDTH,0.025,0.975);e.y=clamp(e.y+(ny*move)/WORLD_HEIGHT,0.025,0.975);
    }
   }
   w.snapshotTimer-=dt;
@@ -277,7 +302,7 @@ io.on('connection', socket => {
   user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; socket.data.nickname = user.nickname; socket.data.userKey = key;
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
  });
- socket.on('list-rooms', () => socket.emit('rooms-list',roomList()));
+ socket.on('list-rooms', () => { socket.emit('rooms-list',roomList()); });
  socket.on('create-room', payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-created',{ok:false,message:'Entre na sua conta antes de criar uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
@@ -288,7 +313,7 @@ io.on('connection', socket => {
   if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
   const id=randomRoomId(),room=makeRoom({id,name,isPrivate,password,capacity});rooms.set(id,room);
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
-  socket.emit('room-created',{ok:true,room:publicRoomInfo(room),message:`Sala criada. Código de convite: ${id}`});broadcastRooms();
+  socket.emit('room-created',{ok:true,room:publicRoomInfo(room),message:`Sala criada. Código de convite: ${id}`});broadcastRooms();io.to(socket.id).emit('rooms-list',roomList());
  });
  socket.on('join-room', payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
@@ -301,7 +326,7 @@ io.on('connection', socket => {
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
   socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const u=users[socket.data.userKey];
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:windowWidthSafe(payload.worldWidth,windowWidthSafe(payload.viewportWidth,1200)),worldHeight:windowWidthSafe(payload.worldHeight,windowWidthSafe(payload.viewportHeight,700)),worldZoom:Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||1)),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default'};
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||.78)),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length){for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);}
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));setTimeout(()=>{if(room.players.has(socket.id)){if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120); 
@@ -309,18 +334,21 @@ io.on('connection', socket => {
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);broadcastRooms();broadcastOnline();
  });
  socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
- socket.on('leave-world', () => removeFromRoom(socket,{announce:true,emitResult:true}));
+ socket.on('leave-world', async () => { if(socket.data.userKey&&socket.data.joined) { try { await finishRunForSocket(socket,{}); } catch(err) { console.error('[run] Falha ao finalizar mergulho ao sair:',err.message); } } removeFromRoom(socket,{announce:true,emitResult:true}); });
  socket.on('player-position', payload => {
   if(!socket.data.joined||!payload||typeof payload!=='object')return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return;
   p.x=Math.max(.01,Math.min(.99,Number(payload.x)||.5));p.y=Math.max(.01,Math.min(.99,Number(payload.y)||.5));
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
-  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=windowWidthSafe(payload.worldWidth,p.worldWidth||p.viewportWidth);p.worldHeight=windowWidthSafe(payload.worldHeight,p.worldHeight||p.viewportHeight);p.worldZoom=Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||p.worldZoom||1));
+  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.worldZoom=.78;
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
   const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
  });
  socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
  socket.on('request-world-snapshot',()=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;ensureWorld(room);if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));});
+ socket.on('begin-run',()=>{if(!socket.data.userKey)return;const room=socketRoom(socket),p=room?.players.get(socket.id);if(p){if(!p.runStats||p.runStats.settled)p.runStats=makeRunStats();}else socket.data.runStats=makeRunStats();});
+ socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));run.level=Math.max(1,Math.min(9999,Number(payload.level)||1));if(!p)run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
+ socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
@@ -355,15 +383,8 @@ io.on('connection', socket => {
   const roll=Math.random()*100;let reward=roll<40?20:roll<70?50:roll<88?100:roll<96?300:roll<99.9?600:1000;
   u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
  });
- socket.on('submit-run', payload => {
-  const key = socket.data.userKey, user = users[key]; if (!key || !user || !payload) return;
-  const survival = Math.max(0, Math.min(86400, Number(payload.survival) || 0)), score = Math.max(0, Math.min(1e9, Number(payload.score) || 0)), level = Math.max(1, Math.min(9999, Number(payload.level) || 1));
-  if (survival < 1) return; settlePeriods(); const entry = { key, nickname: user.nickname, survival: Math.round(survival), score: Math.round(score), level, updatedAt: new Date().toISOString() };
-  const put = board => { const old = board[key]; if (!old || survival > old.survival || (survival === old.survival && score > old.score)) board[key] = entry; };
-  rankings.eternal ||= {}; rankings.daily[dayKey()] ||= {}; rankings.weekly[weekKey()] ||= {}; put(rankings.eternal); put(rankings.daily[dayKey()]); put(rankings.weekly[weekKey()]); saveRanks();
-  const earned = Math.max(5, Math.floor(score / 35) + level * 2); user.coins = (user.coins || 0) + earned; saveUsers(); socket.emit('run-saved', { earned, account: publicUser(user), rankings: rankingPayload() }); io.emit('rankings-updated', rankingPayload());
- });
- socket.on('disconnect', () => { removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
+ socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
+ socket.on('disconnect', () => { if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 async function boot() {

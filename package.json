@@ -1,8 +1,8 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "2.8.2",
+  "version": "2.9.1",
   "private": true,
-  "description": "Abyssal: salas cooperativas, spawn próximo à câmera, bosses e controles mobile responsivos",
+  "description": "Abyssal: mundo multiplataforma compartilhado, vórtices de spawn e rankings por bosses",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

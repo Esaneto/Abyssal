@@ -1,4 +1,4 @@
-# Abyssal — Ecos das Profundezas (v2.8.0)
+# Abyssal — Ecos das Profundezas (v2.9.1)
 
 Jogo de sobrevivência em arena com criaturas abissais, modo solo e cooperativo online.
 
@@ -83,3 +83,44 @@ Para validar após deploy: `https://SEU-SERVICO.onrender.com/health` e `https://
 - Salas públicas e privadas são listadas para seleção. As privadas têm indicação de cadeado e exigem que o jogador informe a senha antes de entrar; segredos e hashes nunca fazem parte da resposta da lista.
 - Cabeçalho da lista atualizado para “EXPEDIÇÕES DISPONÍVEIS”.
 - A documentação reflete o zoom final de 0,52 em dispositivos móveis e 0,84 em desktop.
+
+
+## v2.9.0 — escala multiplataforma, vórtices fixos e rankings por bosses
+
+- O mapa usa dimensões lógicas compartilhadas (3600 × 2200) e zoom idêntico em PC e celular. A câmera continua seguindo o jogador; tamanho dos inimigos agora é expresso em unidades lógicas do mundo, em vez de depender da altura do dispositivo.
+- Correntes ambientais foram reposicionadas em quatro vórtices fixos nos cantos. Elas não seguem o jogador. Inimigos comuns e bosses surgem dessas fendas e o servidor os move continuamente em direção ao jogador ativo mais próximo, mesmo antes de aparecerem na tela.
+- A velocidade do servidor usa unidades de mundo compartilhadas, corrigindo a dependência anterior de resolução/viewport que podia tornar o movimento quase imperceptível em alguns aparelhos.
+- O relógio do HUD mede o mergulho atual do jogador; o relógio compartilhado do servidor controla a progressão dos bosses sem sobrescrever a duração individual ao entrar em uma sala já iniciada.
+- Rankings foram migrados logicamente para bosses derrotados por partida, com energia e tempo como desempate. O ranking mensal tem seu próprio quadro; as recompensas de top 10 são: diário 100, semanal 1.000 e mensal 5.000 moedas, pagas ao fechar cada período.
+- Ao encerrar o mergulho, o servidor finaliza a sessão, registra a marca e entrega o bônus de conclusão; as 100 moedas por boss continuam sendo creditadas no momento da derrota e não são duplicadas no encerramento. A finalização também tenta ocorrer numa saída inesperada.
+- As salas e rankings fazem polling com cache desativado, a lista combina a fonte HTTP com Socket.IO para não ser apagada por uma resposta transitória vazia, e os arquivos HTML/JS/CSS usam cache desativado para impedir que o navegador continue executando scripts antigos após o deploy.
+
+### Verificação de recompensas
+
+- `finish-run` é idempotente por sessão: chamadas repetidas no mesmo mergulho não entregam moedas de conclusão duas vezes.
+- Cada boss derrotado dá 100 moedas imediatamente aos jogadores elegíveis na sala e incrementa o contador de bosses desse mergulho.
+- No encerramento, o servidor grava a melhor marca por usuário em `eternal`, `daily`, `weekly` e `monthly`; a ordenação é `bossesKilled` (desc), energia/score (desc), tempo (desc).
+- As recompensas dos rankings são pagas quando o dia/semana/mês fecha, não imediatamente ao entrar no top 10. O servidor evita redistribuir o mesmo período através de `rankings.settled`.
+
+### Após atualizar
+
+1. Substitua os arquivos do projeto pelos arquivos deste pacote, faça `npm install` e envie o `package-lock.json` junto do código.
+2. Preserve `DATABASE_URL` e o grupo de ambiente do Neon no Render.
+3. Confirme `/health` (deve mostrar `rankingMetric: "bossesKilled"` e o tamanho lógico do mundo), e `/api/rooms`.
+4. Teste em duas sessões: entre na mesma sala, mova os jogadores em direções distintas, observe os inimigos aproximando-se, aguarde o relógio correr, elimine um boss e encerre o mergulho. Confira que a conta recebeu 100 moedas por boss mais uma única recompensa de conclusão e que o quadro diário/semanal/mensal mostra a quantidade de bosses.
+
+
+## v2.9.1 — correções de movimento, escala e conclusão de mergulho
+
+- Corrigida a inicialização das correntes e do mundo: `server.js` define os utilitários `clamp` e `rand` usados no spawn e perseguição. Sem eles, o tick podia falhar antes de os inimigos aparecerem ou se moverem.
+- Corrigida a conversão do raio dos inimigos no cliente: os valores de raio agora são convertidos de unidades lógicas para o zoom sem depender do tamanho da tela. Isso mantém a mesma escala visual e evita colisores gigantes.
+- O cronômetro do HUD agora mede o mergulho atual do jogador; o relógio global do servidor continua controlando o ciclo de bosses sem ser copiado para o cronômetro individual.
+- Em solo autenticado, a conclusão do mergulho credita também as moedas dos bosses reportados pelo jogo local, além do bônus de conclusão. Em sala online, as moedas de boss já são creditadas no momento da derrota e não são pagas novamente ao encerrar. A operação continua idempotente para evitar duplicação.
+- A resposta de encerramento inclui o total de moedas da expedição e a interface exibe o total; a tela de fim de jogo também recebe a confirmação do servidor. O progresso periódico do modo solo registra os bosses já abatidos para reduzir perda de ranking caso a conexão caia antes do fechamento normal.
+- O número da versão e os parâmetros de cache foram atualizados para 2.9.1.
+
+### Testes de fumaça v2.9.1
+
+- Teste simulado de duas sessões: inimigos iniciais criados, movimento observado entre snapshots, cronômetro autoritativo avançando, sala criada visível na lista de outro cliente e segundo jogador entrando com sucesso.
+- Teste de recompensa solo autenticada: 2 bosses + 350 pontos + nível 3 creditam 200 moedas de boss e 16 moedas de conclusão (216 no total), e uma segunda tentativa de finalizar a mesma sessão não paga novamente. O ranking passa a mostrar 2 bosses.
+- Essas verificações são testes simulados do servidor, não substituem teste manual no Render e navegador real.

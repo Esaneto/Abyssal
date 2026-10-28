@@ -10,7 +10,7 @@ const rand = (a,b)=>a+Math.random()*(b-a);
 const wrappedDelta=(a,b,size)=>a-b;
 const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-let W=800,H=500,viewW=800,viewH=500,worldZoom=1,mapFactor=1.4,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0;
+let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let snapshotClock=0,upgradeAutoTimer=null,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set();
@@ -43,8 +43,9 @@ function setMobileGameActive(active){const enabled=Boolean(active)&&isMobileDevi
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
 $('bestTime').textContent=fmtTime(bestTime);$('bestScore').textContent=bestScore.toLocaleString('pt-BR');
 
-function desiredWorldZoom(){return isMobileDevice()?0.52:0.84;}
-function desiredMapFactor(){return isMobileDevice()?2.05:1.7;}
+// Shared world scale: world dimensions and zoom are identical on PC and mobile. The camera, not the map, adapts to the viewport.
+function desiredWorldZoom(){return .78;}
+function desiredMapFactor(){return 1.7;}
 function updateCamera(){
  if(!player){cameraX=0;cameraY=0;return;}
  const visibleWorldW=viewW/worldZoom,visibleWorldH=viewH/worldZoom;
@@ -57,7 +58,7 @@ function resize(){
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  dpr=Math.min(window.devicePixelRatio||1,isMobileDevice()?1.25:1.8);
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
- W=Math.max(320,viewW/worldZoom*mapFactor);H=Math.max(300,viewH/worldZoom*mapFactor);
+ W=3600;H=2200;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1,rz=oldZoom>0?oldZoom/worldZoom:1;
  if(player){player.x*=sx;player.y*=sy;player.r*=rz;player.moveSpeed=150/worldZoom;player.x=clamp(player.x,24/worldZoom,W-24/worldZoom);player.y=clamp(player.y,24/worldZoom,H-24/worldZoom);}
  for(const list of [enemies,orbs,particles,projectiles])for(const o of list){if(Number.isFinite(o.x))o.x*=sx;if(Number.isFinite(o.y))o.y*=sy;if(Number.isFinite(o.x1))o.x1*=sx;if(Number.isFinite(o.x2))o.x2*=sx;if(Number.isFinite(o.y1))o.y1*=sy;if(Number.isFinite(o.y2))o.y2*=sy;if(Number.isFinite(o.r))o.r*=rz;if(Number.isFinite(o.vx))o.vx*=rz;if(Number.isFinite(o.vy))o.vy*=rz;if(Number.isFinite(o.speed))o.speed*=rz;if(Number.isFinite(o.interpFromX))o.interpFromX*=sx;if(Number.isFinite(o.interpFromY))o.interpFromY*=sy;if(Number.isFinite(o.interpTargetX))o.interpTargetX*=sx;if(Number.isFinite(o.interpTargetY))o.interpTargetY*=sy;}
@@ -116,14 +117,14 @@ function showBossAlert(kind,id=null,threat=0){
 function showScreen(id){screens.forEach(s=>$(s).hidden=s!==id);$('hud').hidden=id!=='gameScreen';}
 function startGame(){
  startAmbientMusic();
- elapsed=0;score=0;level=1;xp=0;xpNeed=10;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.max(0,Number(metaUpgrades.startShield)||0),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  enemies=[];orbs=[];particles=[];projectiles=[];effects=[];
  player={x:W*.5,y:H*.5,r:13/worldZoom,angle:0,moveSpeed:150/worldZoom,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0};updateCamera();
  gameState='playing';screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);window.AbyssalOnline?.beginRun?.();snapshotClock=0;
 }
 const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Seus disparos causam 50% mais dano por nível.',apply:()=>upgrades.power*=1.5},
@@ -161,12 +162,11 @@ function spawnEnemy(initial=false,type='common'){
  const bosses=BOSS_KINDS,bossCount=enemies.filter(e=>bosses.includes(e.kind)).length,commonCount=enemies.length-bossCount;
  if(type==='boss'&&(bossCount>=MAX_BOSSES||enemies.length>=MAX_ENEMIES))return null;
  if(type!=='boss'&&commonCount>=MAX_COMMON_ENEMIES)return null;
- const side=Math.floor(Math.random()*4),lane=[.22,.5,.78][Math.floor(Math.random()*3)],jitter=(Math.random()-.5)*.12,pad=30/worldZoom;let x,y;
- // As correntes trazem fauna das fendas para a borda VISÍVEL da câmera, em vez de a deixar escondida no extremo do mapa.
- updateCamera();const wall=52/worldZoom,viewLeft=cameraX+wall,viewRight=cameraX+viewW/worldZoom-wall,viewTop=cameraY+wall,viewBottom=cameraY+viewH/worldZoom-wall;
- const laneX=clamp(player.x+(lane-.5)*(viewW/worldZoom)*.66+rand(-48,48)/worldZoom,wall,W-wall);
- const laneY=clamp(player.y+(lane-.5)*(viewH/worldZoom)*.66+rand(-42,42)/worldZoom,wall,H-wall);
- if(side===0){x=laneX;y=clamp(viewTop+pad,wall,H-wall)}else if(side===1){x=clamp(viewRight-pad,wall,W-wall);y=laneY}else if(side===2){x=laneX;y=clamp(viewBottom-pad,wall,H-wall)}else{x=clamp(viewLeft+pad,wall,W-wall);y=laneY}
+ const corner=Math.floor(Math.random()*4),insetX=rand(100,290),insetY=rand(90,250);let x,y;
+ // A fauna always enters from one of four fixed current vortices at the map corners.
+ const wx=corner===0?insetX:corner===1?W-insetX:corner===2?insetX:W-insetX;
+ const wy=corner===0?insetY:corner===1?insetY:H-insetY;
+ x=clamp(wx,70/worldZoom,W-70/worldZoom);y=clamp(wy,70/worldZoom,H-70/worldZoom);
  const bossData={boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},maw:{r:45,hp:3750,speed:25,damage:31,color:'#c16cff',value:75},angler:{r:35,hp:3260,speed:30,damage:28,color:'#ffb45e',value:65}};
  let kind;
  if(type==='boss'){
@@ -218,7 +218,6 @@ function dealEnemyDamage(enemy, damage){
 }
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
- elapsed=Number(data.elapsed)||elapsed;
  const now=performance.now();
  const previousById=new Map(enemies.map(e=>[e.id,e]));
  const previousBossIds=new Set(enemies.filter(e=>['boss','leviathan','maw','angler'].includes(e.kind)).map(e=>e.id));
@@ -229,7 +228,7 @@ function applySharedSnapshot(data){
   const targetX=(Number.isFinite(Number(raw.x))?Number(raw.x):0)*W;
   const targetY=(Number.isFinite(Number(raw.y))?Number(raw.y):0)*H;
   const old=previousById.get(raw.id);
-  const radius=(Number(raw.r)||.015)*Math.min(viewW,viewH)/worldZoom;
+  const radius=Math.max(2,Number(raw.r)||12)/worldZoom;
   if(old){
    const fromX=Number.isFinite(old.x)?old.x:targetX,fromY=Number.isFinite(old.y)?old.y:targetY;
    return {...old,...e,x:fromX,y:fromY,r:radius,interpFromX:fromX,interpFromY:fromY,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:135};
@@ -248,6 +247,7 @@ function applySharedXp(data){
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
 function killEnemy(i){
  const e=enemies[i];
+ const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;updateHud();}
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');if(!codex.monsters.includes(e.kind))codex.monsters.push(e.kind);localStorage.setItem('abyssalCodex',JSON.stringify(codex));score+=e.value*10;if(onlineMode){if(onlineHost())window.AbyssalOnline?.shareXp(e.value,'kill');}else addOrb(e.x,e.y,e.value);burst(e.x,e.y,e.color,['boss','leviathan','maw','angler'].includes(e.kind)?100:e.kind==='brute'?22:12,['boss','leviathan','maw','angler'].includes(e.kind)?340:e.kind==='brute'?145:95);if(['boss','leviathan','maw','angler'].includes(e.kind)){score+=1400;coins+=100;showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);
 }
 function fire(){
@@ -271,7 +271,7 @@ function update(dt){
    const mag=Math.hypot(mx,my)||1; if(mx||my){const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt;const wall=52/worldZoom;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/(upgrades.rate||1))}
  }
- if(!onlineMode){elapsed+=dt;spawnTimer-=dt;}player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
+ elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.38,1.05-elapsed*.0015)}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
  if(upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25)hp=Math.min(maxHp,hp+1);
@@ -288,7 +288,7 @@ function update(dt){
  for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0)effects.splice(i,1)}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0)particles.splice(i,1)}
  if(particles.length>particleBudget())particles.splice(0,particles.length-particleBudget());if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
- if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x/W,y:player.y/H,angle:player.angle});sendWorldSnapshot(dt);}
+ if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x/W,y:player.y/H,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
  updateHud();
 }
 const metaShopItems=[
@@ -329,12 +329,13 @@ function updateAbilityButtons(){
  if(dash){dash.hidden=!(Number(metaUpgrades.dash)>0);dash.disabled=!player||player.dashCooldown>0;dash.textContent=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:'E · PASSO FANTASMA';}
 }
 function updateHud(){
- $('timeText').textContent=fmtTime(elapsed);$('levelText').textContent=String(level).padStart(2,'0');$('scoreText').textContent=score.toLocaleString('pt-BR');$('hpText').textContent=`${Math.ceil(Math.max(0,hp))} / ${maxHp}`;$('hpFill').style.width=`${clamp(hp/maxHp*100,0,100)}%`;$('xpText').textContent=`${Math.floor(xp)} / ${xpNeed}`;$('xpFill').style.width=`${clamp(xp/xpNeed*100,0,100)}%`;
+ $('timeText').textContent=fmtTime(elapsed);$('levelText').textContent=String(level).padStart(2,'0');$('bossKillsText').textContent=String(bossKillsThisRun).padStart(2,'0');$('scoreText').textContent=score.toLocaleString('pt-BR');$('hpText').textContent=`${Math.ceil(Math.max(0,hp))} / ${maxHp}`;$('hpFill').style.width=`${clamp(hp/maxHp*100,0,100)}%`;$('xpText').textContent=`${Math.floor(xp)} / ${xpNeed}`;$('xpFill').style.width=`${clamp(xp/xpNeed*100,0,100)}%`;
 }
 function endGame(){
- if(window.AbyssalOnline?.submitRun)window.AbyssalOnline.submitRun({survival:elapsed,score,level});
- coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();
- if(onlineMode)window.AbyssalOnline?.leaveWorld();
+ const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
+ if(authenticated&&window.AbyssalOnline?.finishRun)window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:onlineMode});
+ else { coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop(); }
+ if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  gameState='over';$('hud').hidden=true;$('pauseBtn').hidden=true;const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
@@ -501,31 +502,26 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 }
 
 function drawArenaTerrain(t){
- // Correntes luminosas levam a fauna das fendas externas até a caverna onde o mergulhador se encontra.
+ // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
- const spanX=viewW/worldZoom,spanY=viewH/worldZoom,cx=player?.x??W*.5,cy=player?.y??H*.5;
- const streamLeft=cameraX+20/worldZoom,streamRight=cameraX+spanX-20/worldZoom,streamTop=cameraY+20/worldZoom,streamBottom=cameraY+spanY-20/worldZoom;
- // Seis veios de corrente entram pelas bordas visíveis e convergem para a fenda onde o mergulhador está.
- const paths=[
-  [[streamLeft,cy-spanY*.31],[streamLeft+spanX*.22,cy-spanY*.28],[cx-spanX*.18,cy-spanY*.1],[cx,cy]],
-  [[streamRight,cy-spanY*.22],[streamRight-spanX*.2,cy-spanY*.22],[cx+spanX*.17,cy-spanY*.08],[cx,cy]],
-  [[cx-spanX*.31,streamTop],[cx-spanX*.3,streamTop+spanY*.23],[cx-spanX*.11,cy-spanY*.1],[cx,cy]],
-  [[cx+spanX*.29,streamBottom],[cx+spanX*.28,streamBottom-spanY*.22],[cx+spanX*.1,cy+spanY*.11],[cx,cy]],
-  [[streamLeft,cy+spanY*.25],[streamLeft+spanX*.2,cy+spanY*.24],[cx-spanX*.15,cy+spanY*.1],[cx,cy]],
-  [[streamRight,cy+spanY*.28],[streamRight-spanX*.21,cy+spanY*.24],[cx+spanX*.13,cy+spanY*.12],[cx,cy]]
+ const vortices=[
+  {x:138,y:138,label:'FENDA I',phase:0},
+  {x:W-138,y:138,label:'FENDA II',phase:1.2},
+  {x:138,y:H-138,label:'FENDA III',phase:2.4},
+  {x:W-138,y:H-138,label:'FENDA IV',phase:3.6}
  ];
- for(let i=0;i<paths.length;i++){
-  const p=paths[i];ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);ctx.bezierCurveTo(p[1][0],p[1][1],p[2][0],p[2][1],p[3][0],p[3][1]);
-  ctx.strokeStyle='rgba(44,147,166,.075)';ctx.lineWidth=35/worldZoom;ctx.shadowBlur=18/worldZoom;ctx.shadowColor='#37dce2';ctx.stroke();
-  ctx.strokeStyle='rgba(89,231,227,.13)';ctx.lineWidth=3/worldZoom;ctx.setLineDash([18/worldZoom,32/worldZoom]);ctx.lineDashOffset=-(t*.025*(i%2?1:-1));ctx.stroke();
+ for(const v of vortices){
+  const pulse=1+Math.sin(t*.0014+v.phase)*.08,r=58/worldZoom*pulse;
+  const glow=ctx.createRadialGradient(v.x,v.y,1,v.x,v.y,r*1.9);glow.addColorStop(0,'rgba(49,215,218,.18)');glow.addColorStop(.55,'rgba(43,135,164,.08)');glow.addColorStop(1,'rgba(10,35,52,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(v.x,v.y,r*1.9,0,Math.PI*2);ctx.fill();
+  for(let ring=0;ring<3;ring++){const rr=(18+ring*15+Math.sin(t*.0011+v.phase+ring)*3)/worldZoom;ctx.beginPath();ctx.ellipse(v.x,v.y,rr*1.08,rr*.72,t*.00018*(ring%2?-1:1)+v.phase,0,Math.PI*2);ctx.strokeStyle=`rgba(96,244,233,${.28-ring*.065})`;ctx.lineWidth=(2-ring*.35)/worldZoom;ctx.stroke();}
+  ctx.save();ctx.translate(v.x,v.y);ctx.rotate(-t*.00042-v.phase);ctx.beginPath();for(let a=0;a<=Math.PI*3.5;a+=.12){const rr=(4+a*2.3)/worldZoom;if(a===0)ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);else ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}ctx.strokeStyle='rgba(110,247,239,.64)';ctx.lineWidth=1.6/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#4de4df';ctx.stroke();ctx.restore();
+  ctx.fillStyle='rgba(160,242,237,.8)';ctx.font=`${9/worldZoom}px 'DM Mono',monospace`;ctx.textAlign='center';ctx.fillText(v.label,v.x,v.y+79/worldZoom);
  }
  ctx.setLineDash([]);ctx.shadowBlur=0;
- // The central cave: concentric shelf marks make the arena read as a deep-sea cavity.
- const caveX=player?.x??W*.5,caveY=player?.y??H*.5;for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(caveX,caveY,(88+i*25)/worldZoom,(52+i*17)/worldZoom,Math.sin(t*.00015+i)*.035,0,Math.PI*2);ctx.strokeStyle=`rgba(98,207,218,${.12-i*.017})`;ctx.lineWidth=1.5/worldZoom;ctx.stroke();}
- // Jagged rocky rim defines the playable seabed. Cull stones outside the camera view.
+ // The central abyssal cave is a fixed landmark in the map, not an effect attached to the player.
+ const caveX=W*.5,caveY=H*.5;for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(caveX,caveY,(88+i*25)/worldZoom,(52+i*17)/worldZoom,Math.sin(t*.00015+i)*.035,0,Math.PI*2);ctx.strokeStyle=`rgba(98,207,218,${.12-i*.017})`;ctx.lineWidth=1.5/worldZoom;ctx.stroke();}
  const left=cameraX-70/worldZoom,right=cameraX+viewW/worldZoom+70/worldZoom,top=cameraY-70/worldZoom,bottom=cameraY+viewH/worldZoom+70/worldZoom;
- for(const rock of arenaRocks){if(rock.x<left||rock.x>right||rock.y<top||rock.y>bottom)continue;ctx.save();ctx.translate(rock.x,rock.y);ctx.beginPath();rock.vertices.forEach(([vx,vy],i)=>{const x=vx*(rock.shade>.5?1.14:1),y=vy*(rock.shade>.5?.9:1.12);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.closePath();const g=ctx.createLinearGradient(-rock.r,-rock.r,rock.r,rock.r);g.addColorStop(0,'#244958');g.addColorStop(.45,'#102a38');g.addColorStop(1,'#06121c');ctx.fillStyle=g;ctx.strokeStyle='rgba(102,181,193,.45)';ctx.lineWidth=1.6/worldZoom;ctx.shadowBlur=8/worldZoom;ctx.shadowColor='rgba(35,145,162,.2)';ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-rock.r*.25,-rock.r*.15);ctx.lineTo(-rock.r*.04,-rock.r*.42);ctx.lineTo(rock.r*.18,-rock.r*.09);ctx.strokeStyle='rgba(141,224,229,.22)';ctx.lineWidth=1/worldZoom;ctx.stroke();ctx.restore();}
- // Thin seismic boundary line is visible at the far edge of the map.
+ for(const rock of arenaRocks){if(rock.x<left||rock.x>right||rock.y<top||rock.y>bottom)continue;ctx.save();ctx.translate(rock.x,rock.y);ctx.beginPath();rock.vertices.forEach(([vx,vy],i)=>{const x=vx*(rock.shade>.5?1.14:1),y=vy*(rock.shade>.5?.9:1.12);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.closePath();const gr=ctx.createLinearGradient(-rock.r,-rock.r,rock.r,rock.r);gr.addColorStop(0,'#244958');gr.addColorStop(.45,'#102a38');gr.addColorStop(1,'#06121c');ctx.fillStyle=gr;ctx.strokeStyle='rgba(102,181,193,.45)';ctx.lineWidth=1.6/worldZoom;ctx.shadowBlur=8/worldZoom;ctx.shadowColor='rgba(35,145,162,.2)';ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-rock.r*.25,-rock.r*.15);ctx.lineTo(-rock.r*.04,-rock.r*.42);ctx.lineTo(rock.r*.18,-rock.r*.09);ctx.strokeStyle='rgba(141,224,229,.22)';ctx.lineWidth=1/worldZoom;ctx.stroke();ctx.restore();}
  ctx.strokeStyle='rgba(108,215,222,.32)';ctx.lineWidth=2/worldZoom;ctx.setLineDash([9/worldZoom,13/worldZoom]);ctx.strokeRect(18/worldZoom,18/worldZoom,W-36/worldZoom,H-36/worldZoom);ctx.setLineDash([]);
  ctx.restore();
 }
@@ -585,7 +581,7 @@ window.AbyssalGameHooks={
  toast:message=>showToast(message),
  remoteHit:data=>{if(!player)return;const tx=data.x*W,ty=data.y*H;let nearest=null,bd=Infinity;for(const e of enemies){const d=Math.hypot(e.x-tx,e.y-ty);if(d<bd){bd=d;nearest=e}}if(nearest&&bd<100/worldZoom){effects.push({type:'beam',x1:tx,y1:ty,x2:nearest.x,y2:nearest.y,life:.14,maxLife:.14,color:'#bba8ff'});burst(nearest.x,nearest.y,'#bba8ff',5,60);}},
  applySnapshot:applySharedSnapshot,
- restoreHostState:data=>{if(!data||!Array.isArray(data.enemies))return;elapsed=Number(data.elapsed)||elapsed;enemies=data.enemies.map(e=>({...e,x:(Number(e.x)||0)*W,y:(Number(e.y)||0)*H,r:(Number(e.r)||.015)*Math.min(viewW,viewH)/worldZoom}));},
+ restoreHostState:data=>{if(!data||!Array.isArray(data.enemies))return;enemies=data.enemies.map(e=>({...e,x:(Number(e.x)||0)*W,y:(Number(e.y)||0)*H,r:Math.max(2,Number(e.r)||12)/worldZoom}));},
  sharedDamage:applySharedDamage,
  sharedXp:applySharedXp,
 };
@@ -609,7 +605,7 @@ $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true})
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
 $('testWheelBtn')?.addEventListener('click',()=>{if(wheelBusy)return;animateWheelToPrize(weightedWheelPrize(),false);});
 window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){coins=Number(d.coins)||coins;saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||20,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;score+=Number(e.value||0)*10;const bosses=['boss','leviathan','maw','angler'].includes(e.kind);if(bosses){score+=1400;showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');}const x=(Number(e.x)||.5)*W,y=(Number(e.y)||.5)*H;burst(x,y,e.color||'#8ffff4',bosses?90:14,bosses?300:100);audio(bosses?180:260,.08,'triangle',.025);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;score+=Number(e.value||0)*10;const bosses=['boss','leviathan','maw','angler'].includes(e.kind);if(bosses){bossKillsThisRun++;score+=1400;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=(Number(e.x)||.5)*W,y=(Number(e.y)||.5)*H;burst(x,y,e.color||'#8ffff4',bosses?90:14,bosses?300:100);audio(bosses?180:260,.08,'triangle',.025);});
 function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString('pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id;const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="Prévia real da skin ${skin.name}"></canvas></div><strong>${skin.name}</strong><p>${skin.desc}</p><button ${skin.paid?'disabled':''}>${equipped?'EQUIPADA':owned?'EQUIPAR':skin.paid?'EM BREVE · PREMIUM':`COMPRAR · ${skin.price.toLocaleString('pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!skin.paid&&!equipped)btn.addEventListener('click',()=>{if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN EQUIPADA');}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast('ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});
@@ -659,12 +655,18 @@ window.addEventListener('abyssal-room-action-error',ev=>{const m=$('roomsMessage
 function renderRoomList(rooms){const root=$('roomsList');if(!root)return;let list=Array.isArray(rooms)?rooms:[];if(!list.length)list=[{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,fallback:true}];root.innerHTML=list.map(r=>{const full=(Number(r.playerCount)||0)>=(Number(r.capacity)||6),privateRoom=Boolean(r.isPrivate),label=privateRoom?'PRIVADA · SENHA':(r.id==='MAR-ABERTO'?'SALA PÚBLICA PADRÃO':'PÚBLICA');return `<article class="room-row${privateRoom?' room-row-private':''}"><div><b>${privateRoom?'🔒 ':''}${escapeHtml(r.name||'Sala Abissal')}</b><small>${Number(r.playerCount)||0}/${Number(r.capacity)||6} mergulhadores · ${label}</small></div><button type="button" class="room-join-btn" data-room-id="${escapeHtml(r.id)}" data-private="${privateRoom?'1':'0'}" ${full?'disabled':''}>${full?'LOTADA':privateRoom?'SENHA':'ENTRAR'}</button></article>`}).join('');root.querySelectorAll('[data-room-id]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.roomId;const code=$('roomCodeInput'),password=$('roomJoinPasswordInput'),section=root.closest('.room-modal')?.querySelector('.room-join-code'),msg=$('roomsMessage');if(code)code.value=id;if(btn.dataset.private==='1'){if(msg)msg.textContent='EXPEDIÇÃO SELADA. Informe a senha para romper o lacre e entrar.';section?.scrollIntoView({behavior:'smooth',block:'nearest'});password?.focus();return;}window.AbyssalOnline?.joinRoom(id,'');}));}
 
 $('loginCancelBtn').addEventListener('click',()=>{$('loginScreen').hidden=true});
+window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
 window.addEventListener('abyssal-account-data',e=>{const a=e.detail;if(!a)return;coins=Number(a.coins)||0;ownedSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];equippedSkin=a.equippedSkin||'default';metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;saveCosmeticsLocalOnly();renderShop();updateAbilityButtons();});
 window.addEventListener('abyssal-purchase-result',e=>{const r=e.detail||{};showToast(r.message||'Compra processada');if(r.ok)audio(760,.15,'triangle',.035);});
 function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
 renderShop();resize();gameState='menu';requestAnimationFrame(loop);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
-endDiveButton.addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();onlineMode=false;setMobileGameActive(false);gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('upgradeScreen').hidden=true;$('pauseScreen').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;endDiveButton.style.display='none';showToast('Mergulho encerrado. Os outros jogadores continuam jogando.');});
+endDiveButton.addEventListener('click',()=>{
+ const wasOnline=onlineMode,authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
+ const returnToMenu=(result)=>{onlineMode=false;setMobileGameActive(false);gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('upgradeScreen').hidden=true;$('pauseScreen').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;endDiveButton.style.display='none';const earned=Number(result?.earned)||0;const kills=Number(result?.bossesKilled??bossKillsThisRun)||0;const total=Number(result?.totalRunCoins??(earned+(Number(result?.bossCoins)||0)))||0;showToast(`MERGULHO ENCERRADO · ${kills} BOSS(ES) · +${total} MOEDAS NA EXPEDIÇÃO`);};
+ if(authenticated&&window.AbyssalOnline?.finishRun){const sent=window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:wasOnline,onComplete:result=>returnToMenu(result)});if(sent){endDiveButton.disabled=true;endDiveButton.textContent='REGISTRANDO…';setTimeout(()=>{endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO'},12000);return;}}
+ if(!authenticated){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();if(wasOnline)window.AbyssalOnline?.leaveWorld();returnToMenu({earned:Math.max(5,Math.floor(score/35)+level*2),bossesKilled:bossKillsThisRun});}else returnToMenu({earned:0,bossesKilled:bossKillsThisRun});
+});
 
 })();

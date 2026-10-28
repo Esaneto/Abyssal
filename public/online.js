@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null;
+let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
@@ -13,7 +13,7 @@ function connect(){
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,timeout:8000});
  socket.on('connect',()=>{connected=true;localPlayerId=socket.id;if(account?.nickname)setMessage(`Servidor conectado. Entre com ${account.nickname}.`);else setMessage('Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
- socket.on('rooms-list',list=>window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:Array.isArray(list)?list:[]})));
+ socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];publishMergedRooms()});
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(result&&!result.ok)window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}))});
@@ -51,7 +51,13 @@ function authenticate(nickname,password,mode='login'){
  const send=()=>s.emit('authenticate',{nickname,password,mode});
  if(s.connected)send();else {s.once('connect',send);setTimeout(()=>{if(!s.connected)setMessage('O servidor não respondeu. Execute npm start na pasta do projeto.',true)},9000)}
 }
-function refreshRoomsHttp(){fetch('/api/rooms',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.rooms))window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:data.rooms}))}).catch(()=>{});}
+function publishMergedRooms(){
+ const merged=new Map();for(const r of [...(httpRoomsCache||[]),...(socketRoomsCache||[])])if(r&&r.id)merged.set(String(r.id),r);
+ if(!merged.has('MAR-ABERTO'))merged.set('MAR-ABERTO',{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true});
+ const list=[...merged.values()].sort((a,b)=>a.id==='MAR-ABERTO'?-1:b.id==='MAR-ABERTO'?1:(Number(b.playerCount)||0)-(Number(a.playerCount)||0));
+ window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:list}));
+}
+function refreshRoomsHttp(){fetch(`/api/rooms?_=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}).then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.rooms)){httpRoomsCache=data.rooms;publishMergedRooms()}}).catch(()=>{});}
 function startRoomPolling(){stopRoomPolling();roomPollTimer=setInterval(()=>{const screen=$('roomsScreen');if(!screen||screen.hidden){stopRoomPolling();return;}if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp()},3500)}
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
 function showRooms(){
@@ -90,13 +96,23 @@ function sendDamage(id,damage){if(socket?.connected&&authenticated)socket.emit('
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
-function submitRun(data){if(socket?.connected&&authenticated)socket.emit('submit-run',data)}
+function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run')}
+function sendRunProgress(data){if(socket?.connected&&authenticated)socket.volatile.emit('run-progress',data)}
+function finishRun(data,options={}){
+ if(!socket?.connected||!authenticated){if(typeof options.onComplete==='function')options.onComplete({ok:false,earned:0,bossesKilled:Number(data?.bossesKilled)||0,message:'Não foi possível conectar para salvar o mergulho.'});return false;}
+ const leaveAfter=Boolean(options.leaveAfter),onComplete=typeof options.onComplete==='function'?options.onComplete:null;
+ socket.timeout(12000).emit('finish-run',data||{},(err,result)=>{
+  if(err||!result){const failure={ok:false,earned:0,bossesKilled:Number(data?.bossesKilled)||0,message:'O servidor não confirmou o salvamento do mergulho.'};if(onComplete)onComplete(failure);if(leaveAfter&&socket?.connected)socket.emit('leave-world');return;}
+  if(leaveAfter&&socket?.connected)socket.emit('leave-world');if(onComplete)onComplete(result);
+ });return true;
+}
+function submitRun(data){return finishRun(data||{},{});}
 function loadRankings(){if(socket?.connected)socket.emit('get-rankings');else fetch('/api/rankings').then(r=>r.json()).then(renderRankings).catch(()=>{});}
 function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purchase-skin',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para comprar skins e salvar a compra nela.'}}));}
 function purchaseMeta(id){if(socket?.connected&&authenticated)socket.emit('purchase-meta',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para salvar melhorias persistentes.'}}));}
 function spinWheel(){if(socket?.connected&&authenticated)socket.emit('spin-wheel');else window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:{ok:false,message:'Entre em uma conta para receber moedas pela roleta.'}}));}
 function saveCosmetics(data){if(socket?.connected&&authenticated)socket.emit('save-cosmetics',data)}
-function renderRankings(data){const root=$('rankingContent');if(!root||!data)return;const sections=[['eternal','GLOBAL ETERNO','Top 10 mensal recebe 5.000 moedas abissais.'],['weekly','RANKING SEMANAL','Top 10 semanal recebe 1.000 moedas abissais.'],['daily','RANKING DIÁRIO','Top 10 diário recebe 100 moedas abissais.']];root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[];return `<section class="ranking-section"><h3>${title}</h3>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${formatTime(p.survival)}</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">—</span><span class="rank-name">Ainda sem registros</span><span class="rank-time">00:00</span></div>'}<p class="ranking-note">${note}</p></section>`}).join('')}
+function renderRankings(data){const root=$('rankingContent');if(!root||!data)return;const sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho.'],['monthly','RANKING MENSAL','Top 10 do mês recebe 5.000 moedas ao fechar o período.'],['weekly','RANKING SEMANAL','Top 10 da semana recebe 1.000 moedas ao fechar o período.'],['daily','RANKING DIÁRIO','Top 10 do dia recebe 100 moedas ao fechar o período.']];root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[];return `<section class="ranking-section"><h3>${title}</h3>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'}</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">—</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: energia e tempo de mergulho.</p></section>`}).join('')}
 function formatTime(s){s=Math.max(0,Math.floor(Number(s)||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getInterpolatedPeer(p,now=performance.now()){
@@ -116,5 +132,6 @@ function applyPlayerList(list){
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
 
 updateAccount();
-window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},submitRun,loadRankings,purchaseSkin,purchaseMeta,spinWheel,saveCosmetics,getAccount:()=>serverAccount};
+window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseMeta,spinWheel,saveCosmetics,getAccount:()=>serverAccount};
+window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
 })();
