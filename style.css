@@ -16,3 +16,19 @@
 .ad-banner{background:rgba(20,50,65,.8);border:1px dashed var(--cyan);padding:14px;border-radius:8px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
 .wheel-target{width:180px;height:180px;border-radius:50%;border:6px solid var(--cyan);margin:20px auto;background:conic-gradient(#ff315f 0deg 60deg, #ffb45e 60deg 120deg, #ffd078 120deg 180deg, #a7ff78 180deg 240deg, #79f3f0 240deg 300deg, #bd91ff 300deg 360deg);transition:transform 3s cubic-bezier(0.15, 0.85, 0.15, 1);box-shadow:0 0 30px rgba(121,243,240,.3)}
 .wheel-pointer{width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:20px solid #fff;margin:-10px auto 10px}
+
+/* Ajustes Mobile e Responsividade Perfeita */
+@media (max-width: 768px) {
+  #gameShell { width: 100vw; height: 75vh; border: none; border-radius: 0; }
+  .hud-top { padding: 8px 12px; font-size: 11px; }
+  .menu-panel { padding: 20px; width: 92vw; }
+}
+.real-money-btn {
+  background: linear-gradient(135deg, #00f2fe, #4facfe) !important;
+  color: #03131c !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 15px rgba(79,172,254,.3);
+}
+.real-money-btn:hover {
+  filter: brightness(1.2);
+}
