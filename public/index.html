@@ -21,6 +21,7 @@
         <div class="bar-wrap"><span>VIDA</span><div class="bar"><div id="hpFill" class="fill"></div><span id="hpText">100 / 100</span></div></div>
         <div class="bar-wrap"><span>EXPERIÊNCIA</span><div class="bar"><div id="xpFill" class="fill"></div><span id="xpText">0 / 10</span></div></div>
       </div>
+      <button id="endDiveBtn" class="secondary-btn" style="position:absolute;bottom:15px;right:15px;width:auto;padding:6px 12px;font-size:11px;display:none">SAIR DA SALA</button>
     </div>
 
     <button id="pauseBtn" hidden>⏸</button>
@@ -33,13 +34,18 @@
         <button id="playBtn" class="main-btn">ENTRAR NO ABISMO (SOLO)</button>
         <button id="onlineBtn" class="main-btn online-btn">MODO COOPERATIVO ONLINE</button>
         <button id="shopBtn" class="secondary-btn">LOJA DE SKINS & ROLETAS</button>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px">
+          <span>Recorde: <strong id="bestScore" style="color:var(--primary)">0</strong></span>
+          <span>Tempo máx: <strong id="bestTime" style="color:var(--primary)">00:00</strong></span>
+        </div>
       </div>
     </div>
 
-    <!-- Tela de Login -->
+    <!-- Tela de Login / Conta -->
     <div id="loginScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>IDENTIFICAÇÃO ABISSAL</h2>
+        <p>Conecte-se para salvar o seu progresso e jogar online</p>
         <input type="text" id="loginUser" placeholder="Nickname (3-18 caracteres)" maxlength="18">
         <input type="password" id="loginPass" placeholder="Senha (mínimo 8 caracteres)">
         <div style="display:flex;gap:10px;margin-top:14px">
@@ -58,7 +64,7 @@
       </div>
     </div>
 
-    <!-- Loja e Roleta de Anúncios -->
+    <!-- Loja de Skins e Roletas -->
     <div id="shopScreen" class="screen" hidden>
       <div class="menu-panel shop-modal">
         <h2>LOJA DE COLECIONÁVEIS</h2>
@@ -72,7 +78,7 @@
       </div>
     </div>
 
-    <!-- Roleta de Prêmios -->
+    <!-- Roleta de Prêmios com Anúncios -->
     <div id="wheelScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>ROLETA DA FORTUNA</h2>
@@ -86,6 +92,7 @@
       </div>
     </div>
 
+    <!-- Menu de Pausa -->
     <div id="pauseScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>MERGULHO PAUSADO</h2>
@@ -94,6 +101,7 @@
       </div>
     </div>
 
+    <!-- Fim de Jogo -->
     <div id="gameOverScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>FIM DA EXPEDIÇÃO</h2>
@@ -103,6 +111,7 @@
       </div>
     </div>
 
+    <!-- Mensagens flutuantes -->
     <div id="toast" hidden></div>
   </div>
 
