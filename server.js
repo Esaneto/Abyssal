@@ -91,28 +91,45 @@ function onlineCount() { return io.engine.clientsCount; }
 function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]) }; }
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount(), persistence: pgPool ? 'postgres' : 'local-ephemeral' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount(), persistence: pgPool ? 'postgres' : 'local-ephemeral', rooms: rooms.size, maxPlayersPerRoom: MAX_PLAYERS_PER_ROOM, maxEnemiesPerRoom: MAX_ENEMIES_PER_ROOM }));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 
-const worldPlayers = new Map();
+const rooms = new Map();
 const authAttempts = new Map();
 const BOSS_KINDS = new Set(['boss','leviathan','maw','angler']);
-const worldState = { initialized:false, elapsed:0, enemies:[], nextEnemyId:0, nextBossAt:60, bossSpawnCount:0, lastBossKind:null, lastBossMaxHp:0, spawnTimer:0, lastTick:Date.now(), snapshotTimer:0, playerSnapshotTimer:0 };
+const MAX_PLAYERS_PER_ROOM = 6;
+const MAX_ENEMIES_PER_ROOM = 50;
+const MAX_BOSSES_PER_ROOM = 4;
+const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
+const DEFAULT_ROOM_ID = 'MAR-ABERTO';
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
-function ensureWorld(){
- if(worldState.initialized)return;
- worldState.initialized=true;worldState.elapsed=0;worldState.nextBossAt=60;worldState.bossSpawnCount=0;worldState.lastBossKind=null;worldState.lastBossMaxHp=0;worldState.nextEnemyId=0;worldState.enemies=[];worldState.spawnTimer=.8;worldState.lastTick=Date.now();worldState.snapshotTimer=0;worldState.playerSnapshotTimer=0;
- for(let i=0;i<3;i++)spawnWorldEnemy(true);
+function makeWorldState(){return {initialized:false,elapsed:0,enemies:[],nextEnemyId:0,nextBossAt:60,bossSpawnCount:0,lastBossKind:null,lastBossMaxHp:0,lastBossDamage:0,lastBossSpeed:0,commonSpawnTimer:.8,lastTick:Date.now(),snapshotTimer:0,playerSnapshotTimer:0};}
+function makeRoom({id,name,isPrivate=false,password='',capacity=6}={}){
+ const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
+ return {id,name,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,createdAt:Date.now()};
 }
-function spawnWorldEnemy(initial=false){
- if(!worldState.initialized)return null;
- const bossAlive=worldState.enemies.some(e=>isBossKind(e.kind));if(bossAlive&&!initial)return null;
+rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
+function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
+function channelFor(room){return `abyss-room:${room.id}`;}
+function publicRoomInfo(room){return {id:room.id,code:room.id,name:room.name,isPrivate:room.isPrivate,playerCount:room.players.size,capacity:room.capacity};}
+function roomList(){return [...rooms.values()].filter(r=>!r.isPrivate).sort((a,b)=>{if(a.id===b.id)return 0;if(a.id===DEFAULT_ROOM_ID)return -1;if(b.id===DEFAULT_ROOM_ID)return 1;return b.players.size-a.players.size;}).map(publicRoomInfo);}
+function broadcastRooms(){io.emit('rooms-list',roomList());}
+function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
+function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
+function broadcastWorld(room){if(room?.world?.initialized)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
+function ensureWorld(room){
+ const w=room.world;if(w.initialized)return;
+ w.initialized=true;w.elapsed=0;w.nextBossAt=60;w.bossSpawnCount=0;w.lastBossKind=null;w.lastBossMaxHp=0;w.lastBossDamage=0;w.lastBossSpeed=0;w.nextEnemyId=0;w.enemies=[];w.commonSpawnTimer=.8;w.lastTick=Date.now();w.snapshotTimer=0;w.playerSnapshotTimer=0;
+ for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);
+}
+function spawnWorldEnemy(room,type='common',initial=false){
+ const w=room.world;if(!w.initialized||w.enemies.length>=MAX_ENEMIES_PER_ROOM)return null;
+ const bosses=w.enemies.filter(e=>isBossKind(e.kind));
+ if(type==='boss'&&bosses.length>=MAX_BOSSES_PER_ROOM)return null;
+ if(type!=='boss'&&w.enemies.filter(e=>!isBossKind(e.kind)).length>=MAX_COMMON_ENEMIES)return null;
  const side=Math.floor(Math.random()*4);let x=Math.random(),y=Math.random(),pad=.055;
  if(side===0)y=-pad;else if(side===1)x=1+pad;else if(side===2)y=1+pad;else x=-pad;
- const bossDue=!initial&&worldState.elapsed>=worldState.nextBossAt&&!bossAlive;
- let kind;
- if(bossDue){const options=[...BOSS_KINDS].filter(k=>k!==worldState.lastBossKind);kind=options[Math.floor(Math.random()*options.length)]||'boss';worldState.lastBossKind=kind;worldState.nextBossAt=worldState.elapsed+60;}
- else {const t=Math.random();kind=t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker';}
  const bossData={
   boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
   leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
@@ -125,70 +142,102 @@ function spawnWorldEnemy(initial=false){
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  };
- const data={...(bossData[kind]||commonData[kind]||commonData.drifter)};
- if(bossDue){
-  const tier=worldState.bossSpawnCount;
-  data.hp=worldState.lastBossMaxHp>0?worldState.lastBossMaxHp*1.5:data.hp;
-  data.damage=Math.min(95,Math.round(data.damage*Math.pow(1.12,tier)));
-  data.speed=Math.min(90,data.speed*Math.pow(1.055,tier));
-  worldState.lastBossMaxHp=data.hp;worldState.bossSpawnCount++;
+ let kind;
+ if(type==='boss'){
+  const available=[...BOSS_KINDS].filter(k=>!bosses.some(e=>e.kind===k));
+  if(!available.length)return null;
+  kind=available[Math.floor(Math.random()*available.length)];
+ }else{
+  const t=Math.random();kind=t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker';
  }
- const enemy={id:++worldState.nextEnemyId,x,y,r:data.r/500,hp:data.hp,maxHp:data.hp,speed:data.speed,damage:data.damage,color:data.color,value:data.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind};
- worldState.enemies.push(enemy);
- if(worldState.enemies.length>95)worldState.enemies.splice(0,worldState.enemies.length-95);
+ const base={...(bossData[kind]||commonData[kind]||commonData.drifter)};
+ if(type==='boss'){
+  // A vida cresce sempre 50% em relação ao boss mais recentemente criado, independentemente da espécie.
+  base.hp=w.lastBossMaxHp>0?w.lastBossMaxHp*1.5:base.hp;
+  base.damage=w.lastBossDamage>0?Math.max(base.damage,Math.round(w.lastBossDamage*1.12)):base.damage;
+  base.speed=Math.min(90,w.lastBossSpeed>0?Math.max(base.speed,w.lastBossSpeed*1.05):base.speed);
+  w.lastBossMaxHp=base.hp;w.lastBossDamage=base.damage;w.lastBossSpeed=base.speed;w.bossSpawnCount++;
+ }
+ const enemy={id:++w.nextEnemyId,x,y,r:base.r/500,hp:base.hp,maxHp:base.hp,speed:base.speed,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind};
+ w.enemies.push(enemy);
  return enemy;
 }
-function worldSnapshot(){return {elapsed:worldState.elapsed,enemies:worldState.enemies.slice(0,120).map(e=>({...e}))};}
-function broadcastWorld(){if(worldState.initialized)io.to('abyss').emit('game-snapshot',worldSnapshot());}
-function awardWorldBossCoins(){
+function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
- for(const p of worldPlayers.values()){
+ for(const p of room.players.values()){
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
   u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
  }
  if(changed)saveUsers();
 }
-function processWorldDamage(socket,id,damage){
- if(!socket.data.joined||!Number.isFinite(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return;
- const idx=worldState.enemies.findIndex(e=>e.id===id);if(idx<0)return;
- const enemy=worldState.enemies[idx];enemy.hp-=Math.min(250,damage);enemy.hit=.14;
- if(enemy.hp<=0){
-  worldState.enemies.splice(idx,1);const boss=isBossKind(enemy.kind);
-  io.to('abyss').emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
-  io.to('abyss').emit('shared-xp-award',{value:Math.max(1,Math.round(enemy.value)),source:'kill'});
-  if(boss){worldState.nextBossAt=worldState.elapsed+60;awardWorldBossCoins();}
+function removeFromRoom(socket,{announce=true,emitResult=true}={}){
+ const room=socketRoom(socket);if(!room){socket.data.joined=false;socket.data.roomId=null;return;}
+ room.players.delete(socket.id);socket.leave(channelFor(room));socket.data.joined=false;socket.data.roomId=null;
+ if(announce&&socket.data.nickname)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
+ socket.to(channelFor(room)).emit('player-left',socket.id);
+ io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));
+ if(emitResult)socket.emit('world-left');
+ if(room.isPrivate&&room.players.size===0){
+  if(room.cleanupTimer)clearTimeout(room.cleanupTimer);
+  room.cleanupTimer=setTimeout(()=>{if(room.players.size===0){rooms.delete(room.id);broadcastRooms();}},10*60*1000);room.cleanupTimer.unref?.();
  }
- // O próximo snapshot periódico (~12,5 Hz) inclui vida/remoção; não retransmitimos o mundo a cada projétil.
+ broadcastRooms();broadcastOnline();
+}
+function processWorldDamage(socket,id,damage){
+ const room=socketRoom(socket);if(!room||!socket.data.joined||!Number.isFinite(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return;
+ const w=room.world,idx=w.enemies.findIndex(e=>e.id===id);if(idx<0)return;
+ const enemy=w.enemies[idx];enemy.hp-=Math.min(250,damage);enemy.hit=.14;
+ if(enemy.hp<=0){
+  w.enemies.splice(idx,1);const boss=isBossKind(enemy.kind);
+  io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
+  io.to(channelFor(room)).emit('shared-xp-award',{value:Math.max(1,Math.round(enemy.value)),source:'kill'});
+  if(boss)awardWorldBossCoins(room);
+ }
 }
 function worldTick(){
- const now=Date.now(),dt=Math.max(0,Math.min(.1,(now-worldState.lastTick)/1000));worldState.lastTick=now;
- if(!worldState.initialized)return;
- worldState.elapsed+=dt;
- // O relógio do mundo pertence ao servidor e continua mesmo sem uma aba em primeiro plano.
- // Sem mergulhadores conectados, congelamos encontros para que o retorno não gere hordas artificiais.
- if(worldPlayers.size===0)return;
- worldState.playerSnapshotTimer-=dt;
- if(worldState.playerSnapshotTimer<=0){worldState.playerSnapshotTimer=.08;io.to('abyss').emit('world-players',[...worldPlayers.values()]);}
- worldState.spawnTimer-=dt;
- const activeBoss=worldState.enemies.some(e=>isBossKind(e.kind));
- if(worldState.spawnTimer<=0){if(!activeBoss)spawnWorldEnemy(false);worldState.spawnTimer=activeBoss ? .45 : Math.max(.35,1.02-worldState.elapsed*.003);}
- const players=[...worldPlayers.values()];
- for(const e of worldState.enemies){
-  e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
-  let target=null,best=Infinity;
-  for(const p of players){const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx*(p.viewportWidth||1200),dy*(p.viewportHeight||700));if(d<best){best=d;target=p;}}
-  if(target&&best>2){
-   const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700;
-   const px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
-   const move=e.speed*dt;e.x+=(px/dpx*move)/vw;e.y+=(py/dpx*move)/vh;
+ const now=Date.now();
+ for(const room of rooms.values()){
+  const w=room.world,dt=Math.max(0,Math.min(.1,(now-w.lastTick)/1000));w.lastTick=now;
+  if(!w.initialized||room.players.size===0)continue;
+  w.elapsed+=dt;
+  w.playerSnapshotTimer-=dt;
+  if(w.playerSnapshotTimer<=0){w.playerSnapshotTimer=.1;io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));}
+  // Fauna comum surge continuamente, inclusive enquanto bosses estão vivos. Reservamos 4 vagas para os colossos.
+  w.commonSpawnTimer-=dt;
+  const commonCount=w.enemies.filter(e=>!isBossKind(e.kind)).length;
+  if(w.commonSpawnTimer<=0){
+   if(commonCount<MAX_COMMON_ENEMIES&&w.enemies.length<MAX_ENEMIES_PER_ROOM)spawnWorldEnemy(room,'common');
+   w.commonSpawnTimer=commonCount<MAX_COMMON_ENEMIES?Math.max(.38,1.02-w.elapsed*.0015):.15;
   }
+  // Um boss por janela de 60 s até coexistirem os quatro tipos. Um mesmo tipo não pode coexistir com sua cópia.
+  if(w.elapsed>=w.nextBossAt){
+   const activeBossCount=w.enemies.filter(e=>isBossKind(e.kind)).length;
+   if(activeBossCount<MAX_BOSSES_PER_ROOM&&w.enemies.length<MAX_ENEMIES_PER_ROOM){
+    const spawned=spawnWorldEnemy(room,'boss');
+    if(spawned)io.to(channelFor(room)).emit('server-message',`⚠ ${spawned.kind.toUpperCase()} EMERGIU · AMEAÇA ${w.bossSpawnCount}`);
+   }
+   w.nextBossAt=w.elapsed+60;
+  }
+  const players=[...room.players.values()];
+  for(const e of w.enemies){
+   e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
+   let target=null,best=Infinity;
+   for(const p of players){const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx*(p.viewportWidth||1200),dy*(p.viewportHeight||700));if(d<best){best=d;target=p;}}
+   if(target&&best>2){
+    const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700,px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
+    const move=e.speed*dt;e.x+=(px/dpx*move)/vw;e.y+=(py/dpx*move)/vh;
+   }
+  }
+  w.snapshotTimer-=dt;
+  // 10 snapshots/s; volatile snapshots prefer current state over queued old coordinates.
+  if(w.snapshotTimer<=0){w.snapshotTimer=.1;broadcastWorld(room);}
  }
- worldState.snapshotTimer-=dt;if(worldState.snapshotTimer<=0){worldState.snapshotTimer=.08;broadcastWorld();}
 }
 setInterval(worldTick,50).unref();
+function windowWidthSafe(value,fallback){return Math.max(320,Math.min(3000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
- socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; broadcastOnline();
+ socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
  socket.emit('online-count', onlineCount());
  socket.on('authenticate', (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
@@ -211,37 +260,54 @@ io.on('connection', socket => {
   user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; socket.data.nickname = user.nickname; socket.data.userKey = key;
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
  });
- socket.on('join-world', () => {
-  if (!socket.data.nickname) return socket.emit('server-message', 'Entre com sua conta para participar do modo online.');
-  if (socket.data.joined) return;
-  ensureWorld();socket.data.joined = true; socket.join('abyss');
-  const p = { id: socket.id, nickname: socket.data.nickname, userKey:socket.data.userKey, x: .5, y: .5, angle: 0, viewportWidth:1200, viewportHeight:700, color: '#bd91ff', skinId: users[socket.data.userKey]?.equippedSkin || 'default' }; worldPlayers.set(socket.id, p);
-  socket.emit('world-players', [...worldPlayers.values()].filter(x=>x.id!==socket.id)); socket.to('abyss').emit('player-joined', p);
-  socket.emit('game-snapshot',worldSnapshot());io.to('abyss').emit('server-message', `${socket.data.nickname} entrou nas profundezas.`); broadcastOnline();
+ socket.on('list-rooms', () => socket.emit('rooms-list',roomList()));
+ socket.on('create-room', payload => {
+  if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-created',{ok:false,message:'Entre na sua conta antes de criar uma sala.'});
+  payload=payload&&typeof payload==='object'?payload:{};
+  const name=String(payload.name||'Expedição Abissal').trim().replace(/[<>]/g,'').slice(0,28)||'Expedição Abissal';
+  const capacity=Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Math.floor(Number(payload.capacity)||6)));
+  const isPrivate=Boolean(payload.isPrivate),password=String(payload.password||'');
+  if(isPrivate&&(password.length<4||password.length>64))return socket.emit('room-created',{ok:false,message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'});
+  if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
+  const id=randomRoomId(),room=makeRoom({id,name,isPrivate,password,capacity});rooms.set(id,room);
+  if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
+  socket.emit('room-created',{ok:true,room:publicRoomInfo(room),message:`Sala criada. Código de convite: ${id}`});broadcastRooms();
  });
- socket.on('leave-world', () => {
-  if (!socket.data.joined) return;
-  socket.data.joined = false;worldPlayers.delete(socket.id);socket.leave('abyss');
-  socket.to('abyss').emit('player-left', socket.id);io.to('abyss').emit('world-players', [...worldPlayers.values()]);
-  if (socket.data.nickname) io.to('abyss').emit('server-message', `${socket.data.nickname} encerrou o mergulho.`);
-  socket.emit('world-left');broadcastOnline();
+ socket.on('join-room', payload => {
+  if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
+  payload=payload&&typeof payload==='object'?payload:{};
+  const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase(),room=rooms.get(id);
+  if(!room)return socket.emit('room-join-result',{ok:false,message:'Sala não encontrada. Confira o código de convite.'});
+  if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
+  if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
+  if(socket.data.joined)removeFromRoom(socket,{announce:true,emitResult:false});
+  if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
+  ensureWorld(room);socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
+  const u=users[socket.data.userKey];
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default'};
+  room.players.set(socket.id,p);
+  socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,...x})=>x),snapshot:getRoomSnapshot(room)});
+  socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));
+  io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...x})=>x));
+  io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);broadcastRooms();broadcastOnline();
  });
+ socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
+ socket.on('leave-world', () => removeFromRoom(socket,{announce:true,emitResult:true}));
  socket.on('player-position', payload => {
-  if (!socket.data.joined || !payload || typeof payload !== 'object') return;
-  const p = worldPlayers.get(socket.id); if (!p) return;
-  p.x = Math.max(.02, Math.min(.98, Number(payload.x) || .5)); p.y = Math.max(.02, Math.min(.98, Number(payload.y) || .5));
-  p.angle = Math.max(-Math.PI * 2, Math.min(Math.PI * 2, Number(payload.angle) || 0));
-  p.viewportWidth = Math.max(320, Math.min(3000, Number(payload.viewportWidth) || p.viewportWidth || 1200));
-  p.viewportHeight = Math.max(320, Math.min(2200, Number(payload.viewportHeight) || p.viewportHeight || 700));
-  const color = String(payload.color || '#bd91ff'); p.color = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#bd91ff';
-  const skinId=String(payload.skinId||'default');p.skinId=new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']).has(skinId)?skinId:'default';
+  if(!socket.data.joined||!payload||typeof payload!=='object')return;
+  const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return;
+  p.x=Math.max(.01,Math.min(.99,Number(payload.x)||.5));p.y=Math.max(.01,Math.min(.99,Number(payload.y)||.5));
+  p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
+  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);
+  const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
+  const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
  });
- socket.on('player-hit', payload => { if (!socket.data.joined || !payload) return; const x = Number(payload.x), y = Number(payload.y), damage = Number(payload.damage); if (![x,y,damage].every(Number.isFinite) || x < 0 || x > 1 || y < 0 || y > 1 || damage < 0 || damage > 1000) return; socket.to('abyss').emit('remote-hit', { x, y, damage, from: socket.data.nickname }); });
- socket.on('game-snapshot', () => {}); // Clientes não publicam mais o estado autoritativo.
+ socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
+ socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
- socket.on('shared-shot', payload => { if (!socket.data.joined || !payload) return; const x=Number(payload.x), y=Number(payload.y), vx=Number(payload.vx), vy=Number(payload.vy); if (![x,y,vx,vy].every(Number.isFinite) || x<0 || x>1 || y<0 || y>1 || Math.abs(vx)>1500 || Math.abs(vy)>1500) return; io.to('abyss').emit('shared-shot', { x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff', damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)), special:['pierce','electric','ricochet'].includes(payload.special)?payload.special:null, from:socket.data.nickname, at:Date.now() }); });
- socket.on('shared-damage', payload => { if (!payload) return; processWorldDamage(socket,Number(payload.id),Number(payload.damage)); });
+ socket.on('shared-shot', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;io.to(channelFor(room)).volatile.emit('shared-shot',{x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet'].includes(payload.special)?payload.special:null,from:socket.data.nickname,at:Date.now()});});
+ socket.on('shared-damage', payload => {if(!payload)return;processWorldDamage(socket,Number(payload.id),Number(payload.damage));});
  socket.on('shared-xp-award', () => {}); // XP é concedido pelo servidor quando uma criatura é derrotada.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
@@ -279,7 +345,7 @@ io.on('connection', socket => {
   rankings.eternal ||= {}; rankings.daily[dayKey()] ||= {}; rankings.weekly[weekKey()] ||= {}; put(rankings.eternal); put(rankings.daily[dayKey()]); put(rankings.weekly[weekKey()]); saveRanks();
   const earned = Math.max(5, Math.floor(score / 35) + level * 2); user.coins = (user.coins || 0) + earned; saveUsers(); socket.emit('run-saved', { earned, account: publicUser(user), rankings: rankingPayload() }); io.emit('rankings-updated', rankingPayload());
  });
- socket.on('disconnect', () => { if (worldPlayers.has(socket.id)) { worldPlayers.delete(socket.id); socket.to('abyss').emit('player-left', socket.id);io.to('abyss').emit('world-players',[...worldPlayers.values()]);if(socket.data.nickname)io.to('abyss').emit('server-message',`${socket.data.nickname} deixou as profundezas.`); } broadcastOnline(); });
+ socket.on('disconnect', () => { removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 async function boot() {

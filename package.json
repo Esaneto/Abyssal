@@ -1,8 +1,8 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "private": true,
-  "description": "Abyssal: criaturas abissais, catálogo e loja corrigidos, multiplayer suavizado e contas persistentes via PostgreSQL",
+  "description": "Abyssal: salas cooperativas, hordas limitadas, bosses simultâneos e controles mobile",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

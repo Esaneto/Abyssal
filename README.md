@@ -1,54 +1,57 @@
-# Abyssal — Ecos das Profundezas (v2.6.0)
+# Abyssal — Ecos das Profundezas (v2.7.0)
 
 Jogo de sobrevivência em arena com criaturas abissais, modo solo e cooperativo online.
 
-## O que foi revisado nesta versão
+## Mudanças desta versão
 
-- Corrigido o CSS que deixava o canvas do jogo ocupar a tela mesmo dentro da loja e do catálogo. O canvas de gameplay e as miniaturas agora têm posicionamento independente.
-- Redesenho procedural de 14 skins e de cada classe de criatura, usando anatomia distinta: ctenóforo/medusa, peixe-ferrão, isópode blindado, enguia gulper, peixe-pescador, leviatã alongado e predador mandibular. As prévias são renderizadas pelo mesmo desenho usado em jogo.
-- Cooperativo sem eleição de host: a simulação dos inimigos e bosses é controlada pelo servidor. Os clientes enviam posições com eventos voláteis para descartar posição antiga durante picos de rede.
-- Movimento dos inimigos normalizado para o tamanho da tela do alvo e interpolação de snapshots no cliente. O servidor não retransmite o mapa inteiro a cada projétil; os estados completos são enviados em intervalo fixo.
-- O modo solo mantém movimento circular pelas bordas; o modo online usa limites do mundo compartilhado para não aparecer do outro lado da tela.
-- Cadência de tiro consistente entre solo e online, com tiro rápido dependente da habilidade de velocidade de disparo; perfuração aumenta alvos atravessados, não o dano por impacto.
-- Bosses a partir de 1 minuto; um de cada vez; espécies não se repetem consecutivamente; o próximo tem 50% mais vida máxima; dano e velocidade aumentam gradualmente, com velocidade limitada a 90 (abaixo da velocidade-base do jogador). A janela seguinte começa 60 segundos após a derrota. Cada conta online presente recebe 100 moedas por boss derrotado.
-- Roleta destacada no menu, catálogo ilustrado, prévias de skins equipadas e melhorias/ habilidades disponíveis na loja.
-- Gravação de contas e rankings em PostgreSQL quando `DATABASE_URL` está configurada; tentativa de gravação dos dados pendentes ao encerrar o servidor. O endpoint `/health` informa qual mecanismo está ativo.
+- Inimigos comuns continuam surgindo durante os encontros com bosses. O orçamento é de até **50 criaturas por arena**, com até **46 inimigos comuns e 4 bosses**.
+- Bosses surgem em janelas de 60 segundos, até coexistirem quatro bosses. Os quatro tipos são únicos enquanto estiverem vivos; a espécie só pode reaparecer depois que sua cópia anterior morrer. A vida máxima cresce 50% a cada boss gerado; dano e velocidade também escalam, com velocidade limitada a 90. A derrota concede 100 moedas abissais às contas elegíveis presentes na sala.
+- Cada sala tem seu próprio estado de mundo. Há uma sala pública padrão, criação de salas públicas ou privadas (senha de 4 a 64 caracteres), código de convite e limite configurável de 1 a 6 jogadores. Salas privadas vazias expiram após 10 minutos. O limite de criação simultânea é 60 salas para proteger o serviço.
+- Movimento e snapshot online são atualizados em intervalos definidos. Atualizações de posição e snapshots são voláteis, então estados antigos são descartados em vez de acumulados em períodos de conexão lenta. As posições dos jogadores são interpoladas no cliente.
+- O jogo limita partículas, projéteis, efeitos e orbes; os orçamentos são menores em celulares, e o canvas reduz a resolução de renderização móvel para diminuir carga gráfica.
+- Em telas móveis, a arena usa a tela inteira, com joystick virtual de movimento, controles de habilidade acessíveis e respeito às áreas de segurança de celulares. O joystick substitui o arraste com ponteiro no mobile.
+- A loja e catálogo usam prévias desenhadas pelo renderizador das criaturas; as 14 skins possuem silhuetas e cores próprias.
+- A simulação online é autoritativa no servidor e não depende de um navegador eleito host.
+- Contas e rankings usam PostgreSQL quando `DATABASE_URL` está configurada. A rota `/health` informa o estado da persistência e limites das salas.
 
-## Executar localmente
+## Instalar e executar localmente
 
-Requer Node.js 18 ou superior. Dentro da pasta do projeto: 
+Requer Node.js 18 ou superior. Na raiz do projeto: 
 
 ```bash
 npm install
 npm start
 ```
 
-Abra `http://localhost:3000`. Configure o comando de build do Render como `npm install` e o de start como `npm start`. Se você está atualizando um repositório antigo e o `package-lock.json` antigo não incluir `pg`, execute `npm install` e envie o `package-lock.json` regenerado junto com as alterações.
+Abra `http://localhost:3000`. O comando de build no Render deve ser `npm install` e o comando de start deve ser `npm start`. Recomenda-se enviar o `package-lock.json` gerado por `npm install` ao GitHub junto dos arquivos atualizados.
 
-## Muito importante: fazer as contas sobreviverem a redeploys
+## Configurar o PostgreSQL e proteger as contas
 
-O sistema só usa armazenamento durável quando `DATABASE_URL` estiver configurada. Sem ela, `/health` responde `"persistence":"local-ephemeral"` e as contas/records podem sumir; com banco configurado deve responder `"persistence":"postgres"`.
+1. Confirme que a variável `DATABASE_URL` está definida no serviço ou no grupo de ambiente vinculado no Render.
+2. Não coloque a string de conexão no código nem em commits públicos. Se ela foi compartilhada publicamente, redefina a senha no Neon e atualize a variável no Render.
+3. Depois do deploy, abra `https://SEU-SERVICO.onrender.com/health`. A persistência precisa mostrar `postgres`.
+4. Para conferir o número de contas sem expor os dados privados, use no Neon SQL Editor: 
 
-### Configuração recomendada usando PostgreSQL externo
+```sql
+SELECT state_key, jsonb_typeof(state_value) AS tipo,
+       (SELECT COUNT(*) FROM jsonb_object_keys(state_value)) AS quantidade_de_contas
+FROM abyssal_state
+WHERE state_key = 'users';
+```
 
-1. Crie um banco PostgreSQL persistente em um provedor como [Neon](https://neon.tech/).
-2. Copie a string de conexão PostgreSQL fornecida pelo provedor, incluindo a opção TLS/SSL requerida. Não compartilhe a string de conexão nem a senha publicamente.
-3. No painel do [Render](https://dashboard.render.com/), abra o Web Service do Abyssal → **Environment** → **Add Environment Variable**. Adicione `DATABASE_URL` com a string de conexão completa.
-4. Salve e faça um deploy. O servidor cria a tabela `abyssal_state` automaticamente. A primeira inicialização importa os JSONs locais existentes quando ainda estão disponíveis.
-5. Depois do deploy, abra `https://SEU-SERVICO.onrender.com/health`; confirme `"persistence":"postgres"`. Se continuar como `local-ephemeral`, não considere a persistência configurada.
+Se o banco já tiver contas, a inicialização carrega o registro `users` do PostgreSQL. Dados antigos que já tenham desaparecido do armazenamento temporário do Render só podem ser recuperados a partir de backup.
 
-**Contas que já desapareceram em um deploy antigo não podem ser reconstruídas pelo código se não houver cópia/backup dos dados.** Para evitar perder as contas que ainda existirem no servidor atual, configure e verifique o banco antes de fazer o próximo redeploy, ou exporte os arquivos antigos antes de substituí-los, se ainda estiverem acessíveis.
+## Limites de hospedagem
 
-O Render Free perde alterações no sistema de arquivos ao reiniciar, suspender ou fazer deploy, e pode suspender um web service após 15 minutos sem tráfego de entrada. Um banco externo mantém os dados, mas não mantém o servidor de jogo ativo por si só. Para execução verdadeiramente contínua, o servidor de jogo também precisa de uma hospedagem que não entre em suspensão.
+Render Free pode suspender serviços sem tráfego e o armazenamento local é efêmero. O Neon mantém as contas no banco mesmo após deploys, mas não impede o servidor gratuito de dormir. Quando todas as pessoas deixam uma sala, sua simulação para para não consumir CPU; ao entrar alguém de novo, ela continua a partir do estado em memória do processo. Um reinício do processo não preserva a simulação da sala, apenas os dados de contas/rankings gravados no banco.
 
-## Inspiração de design e balanceamento
+A lista de salas usa memória do processo. Para distribuir o jogo com múltiplas instâncias do servidor, seria necessário acrescentar adapter Socket.IO e armazenamento de salas compartilhados.
 
-A pesquisa de design usou como referências públicas *Vampire Survivors* (combate legível, coleta de recursos durante a run e melhorias persistentes entre partidas) e *Brotato* (ondas de inimigos, variedade de personagens/armas e compras entre ondas). O Abyssal mantém o tema original de exploração das fossas oceânicas e adapta essas ideias para encontros com bosses em intervalos curtos. Fontes: [Vampire Survivors — Steam](https://store.steampowered.com/app/1794680/Vampire_Survivors/) e [Brotato — Steam](https://store.steampowered.com/app/1942280/Brotato/).
+## Pesquisa de design e de rede
 
-## Roleta e anúncios
+O jogo toma como referência *Brotato*: auto-fire fácil de ler, runs de sobrevivência e muitas combinações de melhorias. O limite de entidades e os efeitos com orçamento fixo evitam que partículas cresçam indefinidamente. Em rede, eventos voláteis do Socket.IO são apropriados para posições porque a posição mais recente vale mais que uma longa fila de estados antigos. Fontes: [Brotato — Steam](https://store.steampowered.com/app/1942280/Brotato/) e [Socket.IO — emitting events](https://socket.io/docs/v4/emitting-events/).
 
-O menu e animação da roleta estão implementados. O pacote **não** inclui um publisher ID aprovado nem garante que anúncios reais sejam veiculados. O prêmio só deve ser habilitado quando o SDK de anúncio recompensado estiver carregado e confirmar a visualização. Sem ele, `Testar giro · sem prêmio` serve apenas como demonstração visual. Antes de distribuir recompensas de valor, integre/valide o SDK oficial e proteja o callback de fraude e replay.
+## Funcionalidades que continuam exigindo configuração
 
-## Compras reais
-
-As skins continuam compráveis por moedas abissais. Checkout em reais, webhooks de pagamento e repasse financeiro não estão configurados nesta versão. Não anuncie itens como compras em dinheiro antes de implementar e validar um provedor de pagamento no backend.
+- A roleta visual existe, mas anúncios recompensados reais exigem integração e aprovação do provedor. Não habilite moedas por mera animação; o servidor precisa validar a conclusão do anúncio.
+- As skins ainda são compradas com moedas abissais. Pagamentos reais, webhooks de pagamento e repasse financeiro não estão configurados nesta versão.

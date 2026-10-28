@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
@@ -20,6 +20,10 @@
 
   <main id="gameShell">
     <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
+    <button id="roomBadge" class="room-badge" type="button" hidden title="Copiar código de convite da sala"></button>
+    <div id="mobileJoystick" class="mobile-joystick" hidden aria-label="Joystick virtual de movimento">
+      <div class="joystick-base"><span id="joystickKnob" class="joystick-knob"></span></div><small>MOVER</small>
+    </div>
 
     <section id="menuScreen" class="screen">
       <div class="menu-content">
@@ -46,7 +50,7 @@
         <div class="creature-tentacle t1"></div><div class="creature-tentacle t2"></div><div class="creature-tentacle t3"></div><div class="creature-tentacle t4"></div>
         <div class="glow"></div>
       </div>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 2.6.0</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 2.7.0</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -137,6 +141,33 @@
         <div id="wheelMessage" class="wheel-message" aria-live="polite">Os giros premiados dependem da integração de anúncio recompensado.</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button><button id="testWheelBtn" class="secondary-btn">TESTAR GIRO · SEM PRÊMIO</button></div>
         <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="roomsScreen" class="screen modal-screen" hidden>
+      <div class="modal-card room-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> REDE DE MERGULHO · ATÉ 6 JOGADORES</div>
+        <h2>SALAS DO<br><em>ABISMO</em></h2>
+        <p>Escolha uma expedição pública ou crie uma sala privada para seus amigos. Cada sala possui seus próprios inimigos e bosses.</p>
+        <div id="roomsMessage" class="form-message" aria-live="polite">Carregando salas disponíveis…</div>
+        <div class="rooms-title-row"><h3>EXPEDIÇÕES PÚBLICAS</h3><button id="refreshRoomsBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+        <div id="roomsList" class="rooms-list"><p class="rooms-empty">Carregando…</p></div>
+        <div class="room-create-section">
+          <h3>CRIAR NOVA SALA</h3>
+          <label class="field-label" for="roomNameInput">NOME DA EXPEDIÇÃO</label>
+          <input id="roomNameInput" class="text-field" maxlength="28" placeholder="Ex.: A Fossa da Meia-Noite" value="Expedição Abissal">
+          <div class="room-form-row">
+            <div><label class="field-label" for="roomCapacityInput">LIMITE DE JOGADORES</label><select id="roomCapacityInput" class="text-field"><option value="1">1 jogador</option><option value="2">2 jogadores</option><option value="3">3 jogadores</option><option value="4">4 jogadores</option><option value="5">5 jogadores</option><option value="6" selected>6 jogadores</option></select></div>
+            <label class="room-private-toggle"><input id="roomPrivateCheck" type="checkbox"> <span>SALA PRIVADA<br><small>Somente com senha</small></span></label>
+          </div>
+          <div id="roomPasswordField" hidden><label class="field-label" for="roomPasswordInput">SENHA DA SALA (4–64 CARACTERES)</label><input id="roomPasswordInput" class="text-field" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="Defina a senha para convidados"></div>
+          <button id="createRoomBtn" class="primary-btn" type="button">CRIAR E MERGULHAR <span>↗</span></button>
+        </div>
+        <div class="room-join-code">
+          <h3>ENTRAR COM CÓDIGO</h3>
+          <div class="room-form-row"><div><label class="field-label" for="roomCodeInput">CÓDIGO DE CONVITE</label><input id="roomCodeInput" class="text-field" maxlength="12" placeholder="Ex.: A1B2C3 ou MAR-ABERTO"></div><div><label class="field-label" for="roomJoinPasswordInput">SENHA (SE EXIGIDA)</label><input id="roomJoinPasswordInput" class="text-field" type="password" maxlength="64" placeholder="Senha da sala"></div></div>
+          <button id="joinRoomCodeBtn" type="button" class="secondary-btn">ENTRAR NA SALA</button>
+        </div>
+        <button id="roomsCloseBtn" type="button" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
