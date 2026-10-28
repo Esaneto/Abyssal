@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='';
+let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
@@ -11,12 +11,13 @@ function connect(){
  if(socket?.connected)return socket;
  if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,timeout:8000});
- socket.on('connect',()=>{connected=true;localPlayerId=socket.id;if(account?.nickname)setMessage(`Servidor conectado. Entre com ${account.nickname}.`);else setMessage('Servidor conectado. Entre ou crie uma conta para jogar online.');});
+ socket.on('connect',()=>{connected=true;localPlayerId=socket.id;if(account?.nickname)setMessage(`Servidor conectado. Entre com ${account.nickname}.`);else setMessage('Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
  socket.on('rooms-list',list=>window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:Array.isArray(list)?list:[]})));
+ socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(result&&!result.ok)window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}))});
- socket.on('room-joined',data=>{if(!data?.ok)return;currentRoom=data.room||null;localPlayerId=socket.id;applyPlayerList(data.players||[]);window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:data}));});
+ socket.on('room-joined',data=>{if(!data?.ok)return;currentRoom=data.room||null;localPlayerId=socket.id;stopRoomPolling();applyPlayerList(data.players||[]);window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:data}));setTimeout(()=>socket?.connected&&socket.emit('request-world-snapshot'),180);});
  socket.on('world-left',()=>{currentRoom=null;players.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
  socket.on('account-data',data=>{serverAccount=data;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));});
@@ -50,11 +51,15 @@ function authenticate(nickname,password,mode='login'){
  const send=()=>s.emit('authenticate',{nickname,password,mode});
  if(s.connected)send();else {s.once('connect',send);setTimeout(()=>{if(!s.connected)setMessage('O servidor não respondeu. Execute npm start na pasta do projeto.',true)},9000)}
 }
+function refreshRoomsHttp(){fetch('/api/rooms',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.rooms))window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:data.rooms}))}).catch(()=>{});}
+function startRoomPolling(){stopRoomPolling();roomPollTimer=setInterval(()=>{const screen=$('roomsScreen');if(!screen||screen.hidden){stopRoomPolling();return;}if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp()},3500)}
+function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
 function showRooms(){
  const s=connect();if(!s)return;
  const screen=$('roomsScreen');if(screen)screen.hidden=false;
- const message=$('roomsMessage');if(message)message.textContent='Carregando salas disponíveis…';
- const request=()=>s.emit('list-rooms');if(s.connected)request();else s.once('connect',request);
+ const message=$('roomsMessage');if(message)message.textContent='Sondando expedições ativas…';
+ refreshRoomsHttp();
+ const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
 }
 function requestRooms(){if(!socket?.connected)return;socket.emit('list-rooms')}
 function connectAndJoin(){
@@ -66,20 +71,20 @@ function joinWorld(roomId='MAR-ABERTO',password=''){return joinRoom(roomId,passw
 function joinRoom(roomId='MAR-ABERTO',password=''){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Conecte-se à sua conta antes de entrar em uma sala.'}}));return false;}
  const id=String(roomId||'MAR-ABERTO').trim().toUpperCase();if(!id){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Informe o código da sala.'}}));return false;}
- socket.emit('join-room',{roomId:id,password:String(password||''),viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700});return true;
+ socket.emit('join-room',{roomId:id,password:String(password||''),viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldWidth:window.AbyssalGameHooks?.worldWidth?.()||window.innerWidth||1200,worldHeight:window.AbyssalGameHooks?.worldHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||1});return true;
 }
 function createRoom(data={}){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Entre na sua conta antes de criar uma sala.'}}));return false;}
  const isPrivate=Boolean(data.isPrivate),password=String(data.password||'');if(isPrivate&&(password.length<4||password.length>64)){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'}}));return false;}
  pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password});return true;
 }
-function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');players.clear();hostId=null;currentRoom=null;}
+function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}
 $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'login'));
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
 $('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')authenticate($('nicknameInput').value,$('passwordInput').value,'login')});
 $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('passwordInput').focus()});
-function sendPosition(player){if(!socket?.connected||!authenticated||!player)return;const now=performance.now();if(now-lastPositionAt<80)return;lastPositionAt=now;socket.volatile.emit('player-position',{x:player.x, y:player.y, angle:player.angle,viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default'})}
+function sendPosition(player){if(!socket?.connected||!authenticated||!player)return;const now=performance.now();if(now-lastPositionAt<80)return;lastPositionAt=now;socket.volatile.emit('player-position',{x:player.x, y:player.y, angle:player.angle,viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldWidth:window.AbyssalGameHooks?.worldWidth?.()||window.innerWidth||1200,worldHeight:window.AbyssalGameHooks?.worldHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||1,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default'})}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage){if(socket?.connected&&authenticated)socket.emit('shared-damage',{id,damage})}
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}

@@ -104,7 +104,7 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
-function makeWorldState(){return {initialized:false,elapsed:0,enemies:[],nextEnemyId:0,nextBossAt:60,bossSpawnCount:0,lastBossKind:null,lastBossMaxHp:0,lastBossDamage:0,lastBossSpeed:0,commonSpawnTimer:.8,lastTick:Date.now(),snapshotTimer:0,playerSnapshotTimer:0};}
+function makeWorldState(){return {initialized:false,elapsed:0,enemies:[],nextEnemyId:0,nextBossAt:60,bossSpawnCount:0,lastBossKind:null,lastBossMaxHp:0,lastBossDamage:0,lastBossSpeed:0,commonSpawnTimer:.15,lastTick:Date.now(),snapshotTimer:0,playerSnapshotTimer:0};}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6}={}){
  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
  return {id,name,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,createdAt:Date.now()};
@@ -113,8 +113,9 @@ rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacit
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
 function channelFor(room){return `abyss-room:${room.id}`;}
 function publicRoomInfo(room){return {id:room.id,code:room.id,name:room.name,isPrivate:room.isPrivate,playerCount:room.players.size,capacity:room.capacity};}
-function roomList(){return [...rooms.values()].filter(r=>!r.isPrivate).sort((a,b)=>{if(a.id===b.id)return 0;if(a.id===DEFAULT_ROOM_ID)return -1;if(b.id===DEFAULT_ROOM_ID)return 1;return b.players.size-a.players.size;}).map(publicRoomInfo);}
+function roomList(){return [...rooms.values()].sort((a,b)=>{if(a.id===b.id)return 0;if(a.id===DEFAULT_ROOM_ID)return -1;if(b.id===DEFAULT_ROOM_ID)return 1;return b.players.size-a.players.size;}).map(publicRoomInfo);}
 function broadcastRooms(){io.emit('rooms-list',roomList());}
+app.get('/api/rooms', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,rooms:roomList()}));
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
@@ -128,8 +129,21 @@ function spawnWorldEnemy(room,type='common',initial=false){
  const bosses=w.enemies.filter(e=>isBossKind(e.kind));
  if(type==='boss'&&bosses.length>=MAX_BOSSES_PER_ROOM)return null;
  if(type!=='boss'&&w.enemies.filter(e=>!isBossKind(e.kind)).length>=MAX_COMMON_ENEMIES)return null;
- const side=Math.floor(Math.random()*4);let x=Math.random(),y=Math.random(),pad=.055;
- if(side===0)y=-pad;else if(side===1)x=1+pad;else if(side===2)y=1+pad;else x=-pad;
+ const side=Math.floor(Math.random()*4),lane=[.22,.5,.78][Math.floor(Math.random()*3)],jitter=(Math.random()-.5)*.12;let x=.5,y=.5;
+ // Gerar na borda atualmente visível, junto às correntes, para que nenhum monstro fique escondido longe da câmera.
+ const members=[...room.players.values()];const target=members.length?members[Math.floor(Math.random()*members.length)]:{x:.5,y:.5,viewportWidth:1200,viewportHeight:700,worldWidth:1200*1.7/.84,worldHeight:700*1.7/.84,worldZoom:.84};
+ const zoom=Math.max(.45,Math.min(1.2,Number(target.worldZoom)||.84));
+ const vW=Math.max(320,Number(target.viewportWidth)||1200),vH=Math.max(320,Number(target.viewportHeight)||700);
+ const wW=Math.max(vW,Number(target.worldWidth)||vW*1.7/zoom),wH=Math.max(vH,Number(target.worldHeight)||vH*1.7/zoom);
+ const halfX=Math.max(.12,Math.min(.43,vW/(wW*zoom)/2)),halfY=Math.max(.12,Math.min(.43,vH/(wH*zoom)/2));
+ const marginX=24/(wW*zoom),marginY=24/(wH*zoom),jx=(Math.random()-.5)*.1,jy=(Math.random()-.5)*.1,tx=Number(target.x)||.5,ty=Number(target.y)||.5;
+ const visibleFracX=2*halfX,visibleFracY=2*halfY;
+ const laneX=Math.max(.035,Math.min(.965,tx+(lane-.5)*visibleFracX*.66+jitter));
+ const laneY=Math.max(.035,Math.min(.965,ty+(lane-.5)*visibleFracY*.66+jitter));
+ if(side===0){x=laneX;y=Math.max(.035,Math.min(.965,ty-halfY+marginY));}
+ else if(side===1){x=Math.max(.035,Math.min(.965,tx+halfX-marginX));y=laneY;}
+ else if(side===2){x=laneX;y=Math.max(.035,Math.min(.965,ty+halfY-marginY));}
+ else{x=Math.max(.035,Math.min(.965,tx-halfX+marginX));y=laneY;}
  const bossData={
   boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
   leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
@@ -199,13 +213,16 @@ function worldTick(){
  const now=Date.now();
  for(const room of rooms.values()){
   const w=room.world,dt=Math.max(0,Math.min(.1,(now-w.lastTick)/1000));w.lastTick=now;
-  if(!w.initialized||room.players.size===0)continue;
+  if(room.players.size===0)continue;
+  if(!w.initialized)ensureWorld(room);
   w.elapsed+=dt;
   w.playerSnapshotTimer-=dt;
   if(w.playerSnapshotTimer<=0){w.playerSnapshotTimer=.1;io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));}
   // Fauna comum surge continuamente, inclusive enquanto bosses estão vivos. Reservamos 4 vagas para os colossos.
   w.commonSpawnTimer-=dt;
-  const commonCount=w.enemies.filter(e=>!isBossKind(e.kind)).length;
+  let commonCount=w.enemies.filter(e=>!isBossKind(e.kind)).length;
+  // Watchdog de fauna: nenhum snapshot vazio por travamento de timer ou morte da horda inteira.
+  if(commonCount===0&&w.enemies.length<MAX_ENEMIES_PER_ROOM){spawnWorldEnemy(room,'common');commonCount=1;w.commonSpawnTimer=.6;}
   if(w.commonSpawnTimer<=0){
    if(commonCount<MAX_COMMON_ENEMIES&&w.enemies.length<MAX_ENEMIES_PER_ROOM)spawnWorldEnemy(room,'common');
    w.commonSpawnTimer=commonCount<MAX_COMMON_ENEMIES?Math.max(.38,1.02-w.elapsed*.0015):.15;
@@ -215,7 +232,7 @@ function worldTick(){
    const activeBossCount=w.enemies.filter(e=>isBossKind(e.kind)).length;
    if(activeBossCount<MAX_BOSSES_PER_ROOM&&w.enemies.length<MAX_ENEMIES_PER_ROOM){
     const spawned=spawnWorldEnemy(room,'boss');
-    if(spawned)io.to(channelFor(room)).emit('server-message',`⚠ ${spawned.kind.toUpperCase()} EMERGIU · AMEAÇA ${w.bossSpawnCount}`);
+    if(spawned)io.to(channelFor(room)).emit('boss-warning',{id:spawned.id,kind:spawned.kind,threat:w.bossSpawnCount});
    }
    w.nextBossAt=w.elapsed+60;
   }
@@ -225,8 +242,8 @@ function worldTick(){
    let target=null,best=Infinity;
    for(const p of players){const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx*(p.viewportWidth||1200),dy*(p.viewportHeight||700));if(d<best){best=d;target=p;}}
    if(target&&best>2){
-    const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700,px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
-    const move=e.speed*dt;e.x+=(px/dpx*move)/vw;e.y+=(py/dpx*move)/vh;
+    const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700,zoom=target.worldZoom||.84,ww=target.worldWidth||vw*1.7/zoom,wh=target.worldHeight||vh*1.7/zoom,px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
+    const move=e.speed*dt;e.x=Math.max(.025,Math.min(.975,e.x+(px/dpx*move)/Math.max(320,ww*zoom)));e.y=Math.max(.025,Math.min(.975,e.y+(py/dpx*move)/Math.max(320,wh*zoom)));
    }
   }
   w.snapshotTimer-=dt;
@@ -235,10 +252,10 @@ function worldTick(){
  }
 }
 setInterval(worldTick,50).unref();
-function windowWidthSafe(value,fallback){return Math.max(320,Math.min(3000,Number(value)||fallback||1200));}
+function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
- socket.emit('online-count', onlineCount());
+ socket.emit('online-count', onlineCount()); socket.emit('rooms-list',roomList());
  socket.on('authenticate', (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
@@ -282,12 +299,12 @@ io.on('connection', socket => {
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
   if(socket.data.joined)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
-  ensureWorld(room);socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
+  socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const u=users[socket.data.userKey];
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default'};
-  room.players.set(socket.id,p);
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:windowWidthSafe(payload.worldWidth,windowWidthSafe(payload.viewportWidth,1200)),worldHeight:windowWidthSafe(payload.worldHeight,windowWidthSafe(payload.viewportHeight,700)),worldZoom:Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||1)),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default'};
+  room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length){for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);}
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,...x})=>x),snapshot:getRoomSnapshot(room)});
-  socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));
+  socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));setTimeout(()=>{if(room.players.has(socket.id)){if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120); 
   io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...x})=>x));
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);broadcastRooms();broadcastOnline();
  });
@@ -298,11 +315,12 @@ io.on('connection', socket => {
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return;
   p.x=Math.max(.01,Math.min(.99,Number(payload.x)||.5));p.y=Math.max(.01,Math.min(.99,Number(payload.y)||.5));
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
-  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);
+  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=windowWidthSafe(payload.worldWidth,p.worldWidth||p.viewportWidth);p.worldHeight=windowWidthSafe(payload.worldHeight,p.worldHeight||p.viewportHeight);p.worldZoom=Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||p.worldZoom||1));
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
   const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
  });
  socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
+ socket.on('request-world-snapshot',()=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;ensureWorld(room);if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
