@@ -27,6 +27,9 @@
         <h1>O ABISMO<br><em>ESTÁ VIVO.</em></h1>
         <p class="intro">Uma pequena luz nas profundezas. Evolua, sobreviva e descubra até onde você consegue chegar.</p>
         <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
+        <button id="wheelBtn" class="wheel-cta" aria-label="Abrir roleta abissal">
+          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE ESSÊNCIAS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
+        </button>
         <div class="menu-secondary-actions">
           <button id="onlineBtn" class="secondary-btn menu-action">COOPERATIVO ONLINE <span>⌁</span></button>
           <button id="shopBtn" class="secondary-btn menu-action">LOJA DE SKINS <span>✦</span></button>
@@ -43,7 +46,7 @@
         <div class="creature-tentacle t1"></div><div class="creature-tentacle t2"></div><div class="creature-tentacle t3"></div><div class="creature-tentacle t4"></div>
         <div class="glow"></div>
       </div>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 1.6.0</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 2.4.0</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -59,6 +62,10 @@
         <div class="bar xp-bar"><div id="xpFill" class="bar-fill xp-fill"></div></div>
       </div>
       <div class="mobile-tip" id="mobileTip">Arraste para se mover. Seus poderes atacam automaticamente.</div>
+      <div class="active-abilities" id="activeAbilities">
+        <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
+        <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PASSO FANTASMA</button>
+      </div>
     </section>
 
     <section id="upgradeScreen" class="screen modal-screen" hidden>
@@ -113,11 +120,25 @@
       <div class="modal-card shop-modal">
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
         <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Skins cosméticas. Nenhuma concede vantagem de combate.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>ESSÊNCIAS</small></div></div>
+        <h3 class="shop-section-title">✦ FORMAS DE VIDA · PRÉVIA EM COMBATE</h3>
         <div id="skinGrid" class="skin-grid"></div>
+        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste essências para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
+        <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
         <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
 
+    <section id="wheelScreen" class="screen modal-screen" hidden>
+      <div class="modal-card wheel-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
+        <h2>ROLETA<br><em>ABISSAL</em></h2>
+        <p>Escolha sua sorte: prêmios de 20 a 1.000 moedas abissais. O prêmio raro tem chance de 0,1%.</p>
+        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas></div>
+        <div id="wheelMessage" class="wheel-message" aria-live="polite">Os giros premiados dependem da integração de anúncio recompensado.</div>
+        <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button><button id="testWheelBtn" class="secondary-btn">TESTAR GIRO · SEM PRÊMIO</button></div>
+        <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
