@@ -25,7 +25,7 @@
 
     <button id="pauseBtn" hidden>⏸</button>
 
-    <!-- Tela Inicial / Menu -->
+    <!-- Menu Principal -->
     <div id="menuScreen" class="screen">
       <div class="menu-panel">
         <h1>ABYSSAL</h1>
@@ -36,11 +36,10 @@
       </div>
     </div>
 
-    <!-- Tela de Login / Conta -->
+    <!-- Tela de Login -->
     <div id="loginScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>IDENTIFICAÇÃO ABISSAL</h2>
-        <p>Digite seus dados para salvar moedas e progresso na nuvem</p>
         <input type="text" id="loginUser" placeholder="Nickname (3-18 caracteres)" maxlength="18">
         <input type="password" id="loginPass" placeholder="Senha (mínimo 8 caracteres)">
         <div style="display:flex;gap:10px;margin-top:14px">
@@ -51,7 +50,7 @@
       </div>
     </div>
 
-    <!-- Tela de Evolução / Upgrades -->
+    <!-- Tela de Upgrades -->
     <div id="upgradeScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>✦ ESCOLHA UMA RESSONÂNCIA ✦</h2>
@@ -59,7 +58,7 @@
       </div>
     </div>
 
-    <!-- Loja de Skins e Microtransações -->
+    <!-- Loja e Roleta de Anúncios -->
     <div id="shopScreen" class="screen" hidden>
       <div class="menu-panel shop-modal">
         <h2>LOJA DE COLECIONÁVEIS</h2>
@@ -73,19 +72,18 @@
       </div>
     </div>
 
-    <!-- Roleta Diária -->
+    <!-- Roleta de Prêmios com Anúncios -->
     <div id="wheelScreen" class="screen" hidden>
-      <div class="menu-panel">
-        <h2>ROLETA ABISSAL</h2>
+      <div class="menu-panel wheel-container">
+        <h2>ROLETA DA FORTUNA</h2>
         <div class="wheel-pointer"></div>
         <div id="wheelSpinner" class="wheel-target"></div>
-        <p id="wheelResult">Gire para ganhar moedas!</p>
+        <p id="wheelResult">Gire para ganhar moedas (Prêmios de 20 a 1000)</p>
         <button id="spinWheelBtn" class="main-btn">GIRAR ROLETA</button>
         <button id="closeWheelBtn" class="secondary-btn">VOLTAR À LOJA</button>
       </div>
     </div>
 
-    <!-- Menu de Pausa -->
     <div id="pauseScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>MERGULHO PAUSADO</h2>
@@ -94,7 +92,6 @@
       </div>
     </div>
 
-    <!-- Fim de Jogo -->
     <div id="gameOverScreen" class="screen" hidden>
       <div class="menu-panel">
         <h2>FIM DA EXPEDIÇÃO</h2>
@@ -104,12 +101,11 @@
       </div>
     </div>
 
-    <!-- Mensagens flutuantes -->
     <div id="toast" hidden></div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/online.js"></script>
-  <script src="game.js"></script>
+  <script src="/game.js"></script>
 </body>
 </html>
