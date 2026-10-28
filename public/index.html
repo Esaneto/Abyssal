@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#06121d">
+<meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
+<title>Abyssal — Ecos das Profundezas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
+    <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
+      <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
+      <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
+    </div>
+  </header>
+
+  <main id="gameShell">
+    <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
+
+    <section id="menuScreen" class="screen">
+      <div class="menu-content">
+        <div class="eyebrow"><span class="pulse-dot"></span> SINAL DETECTADO · SETOR 07</div>
+        <h1>O ABISMO<br><em>ESTÁ VIVO.</em></h1>
+        <p class="intro">Uma pequena luz nas profundezas. Evolua, sobreviva e descubra até onde você consegue chegar.</p>
+        <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
+        <div class="menu-secondary-actions">
+          <button id="onlineBtn" class="secondary-btn menu-action">COOPERATIVO ONLINE <span>⌁</span></button>
+          <button id="shopBtn" class="secondary-btn menu-action">LOJA DE SKINS <span>✦</span></button>
+          <button id="catalogBtn" class="secondary-btn menu-action">CATÁLOGO <span>⌕</span></button>
+          <button id="rankingsBtn" class="secondary-btn menu-action">RANKINGS <span>♛</span></button>
+        </div>
+        <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
+        <div class="controls-hint"><span>WASD / SETAS</span><i>ou</i><span>TOQUE E ARRASTE</span></div>
+        <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
+      </div>
+      <div class="menu-creature" aria-hidden="true">
+        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+        <div class="creature-core"><span></span></div>
+        <div class="creature-tentacle t1"></div><div class="creature-tentacle t2"></div><div class="creature-tentacle t3"></div><div class="creature-tentacle t4"></div>
+        <div class="glow"></div>
+      </div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 1.6.0</span></div>
+    </section>
+
+    <section id="hud" class="hud" hidden>
+      <div class="hud-top">
+        <div class="hud-stat"><small>SOBREVIVÊNCIA</small><strong id="timeText">00:00</strong></div>
+        <div class="hud-stat center-stat"><small>NÍVEL</small><strong id="levelText">01</strong></div>
+        <div class="hud-stat right-stat"><small>ENERGIA</small><strong id="scoreText">0</strong></div>
+      </div>
+      <div class="bars">
+        <div class="bar-label"><span>VITALIDADE</span><span id="hpText">100 / 100</span></div>
+        <div class="bar"><div id="hpFill" class="bar-fill hp-fill"></div></div>
+        <div class="bar-label xp-label"><span>RESSONÂNCIA</span><span id="xpText">0 / 10</span></div>
+        <div class="bar xp-bar"><div id="xpFill" class="bar-fill xp-fill"></div></div>
+      </div>
+      <div class="mobile-tip" id="mobileTip">Arraste para se mover. Seus poderes atacam automaticamente.</div>
+    </section>
+
+    <section id="upgradeScreen" class="screen modal-screen" hidden>
+      <div class="modal-card">
+        <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
+        <h2>ESCOLHA SUA<br><em>RESSONÂNCIA</em></h2>
+        <p>O abismo lhe oferece uma nova adaptação.</p>
+        <div id="upgradeChoices" class="upgrade-choices"></div>
+      </div>
+    </section>
+
+    <section id="pauseScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow">SINAL SUSPENSO</div><h2>PAUSA NAS<br><em>PROFUNDEZAS</em></h2>
+        <p>Respire. O abismo pode esperar alguns segundos.</p>
+        <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
+        <button id="quitBtn" class="secondary-btn">ENCERRAR MERGULHO</button>
+      </div>
+    </section>
+
+    <section id="gameOverScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
+        <h2>O ABISMO<br><em>RECLAMA.</em></h2>
+        <p>Seu mergulho terminou. Mas as profundezas ainda guardam segredos.</p>
+        <div class="results">
+          <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
+          <div><small>ENERGIA</small><strong id="finalScore">0</strong></div>
+          <div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+        </div>
+        <button id="againBtn" class="primary-btn">MERGULHAR NOVAMENTE <span>↗</span></button>
+        <button id="menuBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="loginScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIFICAÇÃO DO MERGULHADOR</div>
+        <h2>ENTRE NO<br><em>ABISMO</em></h2>
+        <p>Crie sua conta com nickname e senha para salvar sua identidade e moedas no servidor.</p>
+        <label class="field-label" for="nicknameInput">NICKNAME</label>
+        <input id="nicknameInput" class="text-field" maxlength="18" autocomplete="username" placeholder="Seu nickname">
+        <label class="field-label" for="passwordInput">SENHA</label>
+        <input id="passwordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Mínimo de 8 caracteres">
+        <div id="loginMessage" class="form-message"></div>
+        <div class="auth-actions"><button id="loginSubmitBtn" class="primary-btn">ENTRAR <span>↗</span></button><button id="registerBtn" class="secondary-btn">CRIAR CONTA +</button></div>
+        <button id="loginCancelBtn" class="secondary-btn">VOLTAR</button>
+      </div>
+    </section>
+
+    <section id="shopScreen" class="screen modal-screen" hidden>
+      <div class="modal-card shop-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
+        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Skins cosméticas. Nenhuma concede vantagem de combate.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>ESSÊNCIAS</small></div></div>
+        <div id="skinGrid" class="skin-grid"></div>
+        <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="catalogScreen" class="screen modal-screen" hidden>
+      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+    </section>
+    <section id="rankingsScreen" class="screen modal-screen" hidden>
+      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. Sobrevivência mais longa vence.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+    </section>
+    <section id="toast" class="toast" hidden></section>
+  </main>
+  <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">PROGRESSO SALVO LOCALMENTE</span></footer>
+</div>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="game.js"></script>
+<script src="online.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "eternal": {
+    "mbapee": {
+      "key": "mbapee",
+      "nickname": "mbapee",
+      "survival": 320,
+      "score": 23799,
+      "level": 13,
+      "updatedAt": "2026-10-28T01:30:56.195Z"
+    },
+    "yamal": {
+      "key": "yamal",
+      "nickname": "yamal",
+      "survival": 171,
+      "score": 4651,
+      "level": 9,
+      "updatedAt": "2026-10-28T00:57:08.056Z"
+    },
+    "neymar": {
+      "key": "neymar",
+      "nickname": "neymar",
+      "survival": 197,
+      "score": 4429,
+      "level": 9,
+      "updatedAt": "2026-10-28T00:57:36.318Z"
+    }
+  },
+  "daily": {
+    "2026-10-28": {
+      "mbapee": {
+        "key": "mbapee",
+        "nickname": "mbapee",
+        "survival": 320,
+        "score": 23799,
+        "level": 13,
+        "updatedAt": "2026-10-28T01:30:56.195Z"
+      },
+      "yamal": {
+        "key": "yamal",
+        "nickname": "yamal",
+        "survival": 171,
+        "score": 4651,
+        "level": 9,
+        "updatedAt": "2026-10-28T00:57:08.056Z"
+      },
+      "neymar": {
+        "key": "neymar",
+        "nickname": "neymar",
+        "survival": 197,
+        "score": 4429,
+        "level": 9,
+        "updatedAt": "2026-10-28T00:57:36.318Z"
+      }
+    }
+  },
+  "weekly": {
+    "2026-W44": {
+      "mbapee": {
+        "key": "mbapee",
+        "nickname": "mbapee",
+        "survival": 320,
+        "score": 23799,
+        "level": 13,
+        "updatedAt": "2026-10-28T01:30:56.195Z"
+      },
+      "yamal": {
+        "key": "yamal",
+        "nickname": "yamal",
+        "survival": 171,
+        "score": 4651,
+        "level": 9,
+        "updatedAt": "2026-10-28T00:57:08.056Z"
+      },
+      "neymar": {
+        "key": "neymar",
+        "nickname": "neymar",
+        "survival": 197,
+        "score": 4429,
+        "level": 9,
+        "updatedAt": "2026-10-28T00:57:36.318Z"
+      }
+    }
+  },
+  "settled": {
+    "day": "2026-10-28",
+    "week": "2026-W44",
+    "month": "2026-10"
+  }
+}

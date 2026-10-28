@@ -1,0 +1,18 @@
+/* Loja de Skins Estilo AAA */
+.shop-modal{width:min(850px,95vw);max-height:90vh;overflow:auto;background:linear-gradient(145deg,rgba(10,25,38,.98),rgba(4,12,20,.98));border:1px solid rgba(121,243,240,.3)}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:20px 0}
+.shop-card{position:relative;background:rgba(14,35,48,.6);border:1px solid rgba(121,205,220,.2);border-radius:12px;padding:16px;text-align:center;overflow:hidden;transition:.3s}
+.shop-card:hover{border-color:var(--cyan);transform:translateY(-4px);box-shadow:0 10px 30px rgba(78,214,206,.15)}
+.shop-badge{position:absolute;top:10px;right:10px;font:8px 'DM Mono',monospace;background:rgba(3,15,24,.8);border:1px solid var(--cyan);color:var(--cyan);padding:3px 7px;border-radius:4px;letter-spacing:.1em}
+.shop-preview{height:90px;display:grid;place-items:center;margin:10px 0}
+.shop-card strong{display:block;font-size:14px;color:#e7ffff;margin-bottom:6px}
+.shop-card p{font-size:10px;color:#8aa8b7;line-height:1.4;height:32px;margin-bottom:12px}
+.shop-btn{width:100%;padding:10px;border:0;background:var(--cyan);color:#03131c;font:700 10px 'DM Mono',monospace;letter-spacing:.12em;border-radius:6px;cursor:pointer;transition:.2s}
+.paid-btn{background:linear-gradient(135deg,#ff78d0,#b39cff);color:#fff}
+.shop-btn:hover{filter:brightness(1.15)}
+
+/* Painel de Roleta e Anúncios */
+.wheel-container{text-align:center;padding:20px}
+.ad-banner{background:rgba(20,50,65,.8);border:1px dashed var(--cyan);padding:14px;border-radius:8px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.wheel-target{width:180px;height:180px;border-radius:50%;border:6px solid var(--cyan);margin:20px auto;background:conic-gradient(#ff315f 0deg 60deg, #ffb45e 60deg 120deg, #ffd078 120deg 180deg, #a7ff78 180deg 240deg, #79f3f0 240deg 300deg, #bd91ff 300deg 360deg);transition:transform 3s cubic-bezier(0.15, 0.85, 0.15, 1);box-shadow:0 0 30px rgba(121,243,240,.3)}
+.wheel-pointer{width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:20px solid #fff;margin:-10px auto 10px}

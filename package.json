@@ -1,0 +1,19 @@
+{
+  "name": "abyssal-ecos-das-profundezas",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Abyssal cooperative session lifecycle, independent dive exit and visual codex",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^6.0.1"
+  }
+}
