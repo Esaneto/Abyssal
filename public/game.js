@@ -166,8 +166,23 @@ function dealEnemyDamage(enemy, damage){
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  elapsed=Number(data.elapsed)||elapsed;
+ const now=performance.now();
+ const previousById=new Map(enemies.map(e=>[e.id,e]));
  const previousBossIds=new Set(enemies.filter(e=>['boss','leviathan','maw','angler'].includes(e.kind)).map(e=>e.id));
- enemies=data.enemies.map(e=>({...e,x:(Number(e.x)||0)*W,y:(Number(e.y)||0)*H,r:(Number(e.r)||.015)*Math.min(W,H)}));
+ // Keep each currently rendered position and interpolate toward the authoritative server snapshot.
+ // This avoids visible jumps at the 10 Hz network update rate and when packets arrive irregularly.
+ enemies=data.enemies.map(raw=>{
+  const e={...raw};
+  const targetX=(Number.isFinite(Number(raw.x))?Number(raw.x):0)*W;
+  const targetY=(Number.isFinite(Number(raw.y))?Number(raw.y):0)*H;
+  const old=previousById.get(raw.id);
+  const radius=(Number(raw.r)||.015)*Math.min(W,H);
+  if(old){
+   const fromX=Number.isFinite(old.x)?old.x:targetX,fromY=Number.isFinite(old.y)?old.y:targetY;
+   return {...old,...e,x:fromX,y:fromY,r:radius,interpFromX:fromX,interpFromY:fromY,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:135};
+  }
+  return {...e,x:targetX,y:targetY,r:radius,interpFromX:targetX,interpFromY:targetY,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:0};
+ });
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');let codexChanged=false;for(const e of enemies){if(!codex.monsters.includes(e.kind)){codex.monsters.push(e.kind);codexChanged=true;}}if(codexChanged)localStorage.setItem('abyssalCodex',JSON.stringify(codex));
  const newBoss=enemies.find(e=>['boss','leviathan','maw','angler'].includes(e.kind)&&!previousBossIds.has(e.id));
  if(newBoss){lastRemoteBossId=newBoss.id;const names={boss:'⚠ O CORAÇÃO PARTIDO DESPERTOU',leviathan:'⚠ O LEVIATÃ DAS FOSSAS DESPERTOU',maw:'⚠ A BOCA DO ABISMO SE ABRIU',angler:'⚠ A LANTERNA MORTAL SE APROXIMA'};showToast(names[newBoss.kind]||'⚠ UMA PRESENÇA COLOSSAL SE APROXIMA');playBossCry(newBoss.kind);burst(newBoss.x,newBoss.y,newBoss.color,90,270);}
@@ -199,7 +214,7 @@ function update(dt){
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(pointer.down){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){const dashMultiplier=player.dashTime>0?2.05:1;player.x=(player.x+mx/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt+W)%W;player.y=(player.y+my/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt+H)%H;player.angle=Math.atan2(my,mx);player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
+   const mag=Math.hypot(mx,my)||1; if(mx||my){const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt;if(onlineMode){player.x=clamp(nx,player.r,W-player.r);player.y=clamp(ny,player.r,H-player.r)}else{player.x=(nx+W)%W;player.y=(ny+H)%H}player.angle=Math.atan2(my,mx);player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/(upgrades.rate||1))}
  }
  if(!onlineMode){elapsed+=dt;spawnTimer-=dt;}player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
@@ -209,7 +224,7 @@ function update(dt){
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range){dealEnemyDamage(e,18*upgrades.nova);burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range,life:.75,maxLife:.75,color:'#72f5ff'});audio(120,.38,'sawtooth',.045)}}
  // Aliado IA: atua como um segundo jogador, deslocando-se por conta própria e disparando projéteis visíveis.
  const humanPeers=onlineMode&&window.AbyssalOnline?window.AbyssalOnline.getPlayers():[];
- for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];e.hit=Math.max(0,e.hit-dt);let targets=[{x:player.x,y:player.y,local:true}];if(onlineMode&&window.AbyssalOnline){for(const peer of window.AbyssalOnline.getPlayers()){targets.push({x:(Number(peer.x)||0)*W,y:(Number(peer.y)||0)*H,local:false,id:peer.id})}}let target=targets[0],td=Infinity;for(const candidate of targets){const dd=Math.hypot(wrappedDelta(e.x,candidate.x,W),wrappedDelta(e.y,candidate.y,H));if(dd<td){td=dd;target=candidate}}const dx=wrappedDelta(e.x,target.x,W)*-1,dy=wrappedDelta(e.y,target.y,H)*-1,d=Math.hypot(dx,dy)||1;if(!onlineMode){e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=(e.x+dx/d*e.speed*dt+W)%W;e.y=(e.y+dy/d*e.speed*dt+H)%H;}if(target.local&&td<e.r+player.r){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;if(!onlineMode){e.x=(e.x-dx/d*10+W)%W;e.y=(e.y-dy/d*10+H)%H;}}}}
+ for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];e.hit=Math.max(0,e.hit-dt);let targets=[{x:player.x,y:player.y,local:true}];if(onlineMode&&window.AbyssalOnline){for(const peer of window.AbyssalOnline.getPlayers()){targets.push({x:(Number(peer.x)||0)*W,y:(Number(peer.y)||0)*H,local:false,id:peer.id})}}let target=targets[0],td=Infinity;for(const candidate of targets){const dd=onlineMode?Math.hypot(e.x-candidate.x,e.y-candidate.y):Math.hypot(wrappedDelta(e.x,candidate.x,W),wrappedDelta(e.y,candidate.y,H));if(dd<td){td=dd;target=candidate}}const dx=(onlineMode?e.x-target.x:wrappedDelta(e.x,target.x,W))*-1,dy=(onlineMode?e.y-target.y:wrappedDelta(e.y,target.y,H))*-1,d=Math.hypot(dx,dy)||1;if(!onlineMode){e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=(e.x+dx/d*e.speed*dt+W)%W;e.y=(e.y+dy/d*e.speed*dt+H)%H;}if(target.local&&td<e.r+player.r){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;if(!onlineMode){e.x=(e.x-dx/d*10+W)%W;e.y=(e.y-dy/d*10+H)%H;}}}}
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];p.hitIds ||= [];if(!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage);e.hit=.12;burst(p.x,p.y,p.color,4,40);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08));next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
  if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(2,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.28,maxLife:.28,color:'#ffc47a'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
@@ -285,124 +300,147 @@ function drawBackground(t){
 }
 function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,renderContext=ctx,skinOverride=null){
  const c=renderContext;
- c.save();c.translate(x,y);c.rotate(angle||0);
- const wobble=Math.sin(t*.004+(x+y)*.01);
- // tentacles
- const skin=(playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null);const n=playerCreature?6:(['boss','leviathan','maw','angler'].includes(kind)?(kind==='leviathan'?22:kind==='maw'?18:14):kind==='brute'?7:4);
- for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2;c.save();c.rotate(a);const len=r*(playerCreature?1.45:(['boss','leviathan','maw','angler'].includes(kind)?(kind==='leviathan'?2.25:kind==='maw'?1.95:1.75):kind==='brute'?1.15:1.05));c.beginPath();c.moveTo(r*.55,0);c.bezierCurveTo(len*.5,Math.sin(t*.004+i*2)*r*.6,len*.8,Math.cos(t*.003+i)*r*.55,len+wobble*r*.2,Math.sin(t*.004+i)*r*.75);c.strokeStyle=color;c.lineWidth=Math.max(1.2,r*.12);c.lineCap='round';c.shadowBlur=playerCreature?14:8;c.shadowColor=color;c.stroke();c.restore()}
- const grad=c.createRadialGradient(-r*.3,-r*.35,1,0,0,r*1.2);grad.addColorStop(0,playerCreature?'#e5ffff':'#ffd5e1');grad.addColorStop(.22,hit>0?'#ffffff':color);grad.addColorStop(.72,playerCreature?'#176a85':'#532c64');grad.addColorStop(1,'#091629');
- c.fillStyle=grad;c.shadowBlur=playerCreature?22:16;c.shadowColor=color;c.beginPath();
- let bodyX=1+wobble*.04,bodyY=.9-wobble*.03;
- if(kind==='leviathan'||(playerCreature&&skin?.shape==='leviathan')){bodyX=1.42;bodyY=.62}
- if(kind==='maw'){bodyX=1.12;bodyY=1.05}
- if(kind==='angler'){bodyX=1.02;bodyY=.92}
- if(kind==='stinger'){bodyX=.78;bodyY=.7}
- if(kind==='brute'){bodyX=1.2;bodyY=1.12}
- if(kind==='lurker'){bodyX=1.38;bodyY=.68}
- if(playerCreature && ['shell','coral'].includes(skin?.shape)){bodyX=1.06;bodyY=1.05}
- if(playerCreature && skin?.shape==='horns'){
-   c.save();c.strokeStyle=color;c.lineWidth=Math.max(2,r*.16);c.lineCap='round';c.shadowBlur=18;c.shadowColor=color;
-   c.beginPath();c.moveTo(-r*.42,-r*.48);c.bezierCurveTo(-r*.95,-r*1.05,-r*.88,-r*1.32,-r*.62,-r*1.38);
-   c.moveTo(r*.42,-r*.48);c.bezierCurveTo(r*.95,-r*1.05,r*.88,-r*1.32,r*.62,-r*1.38);c.stroke();c.restore();
- }
- if(playerCreature && skin?.shape==='halo'){
-   c.save();c.rotate(Math.sin(t*.0015)*.08);c.strokeStyle='#fff0b8';c.lineWidth=Math.max(2,r*.10);c.shadowBlur=22;c.shadowColor='#fff0b8';
-   c.beginPath();c.ellipse(0,-r*1.02,r*.62,r*.19,0,0,Math.PI*2);c.stroke();
-   for(let k=0;k<8;k++){const a=k*Math.PI/4;c.fillStyle='#fff9d8';c.beginPath();c.arc(Math.cos(a)*r*.62,-r*1.02+Math.sin(a)*r*.19,Math.max(1.2,r*.045),0,Math.PI*2);c.fill()}c.restore();
- }
- if(playerCreature&&skin?.shape==='king'){bodyX=1.12;bodyY=1.02}
- c.ellipse(0,0,r*bodyX,r*bodyY,0,0,Math.PI*2);c.fill();c.shadowBlur=0;
- // Unique silhouette details: maw, angler lure, and the king's crown are visibly different.
- if(kind==='maw'){
-   c.save();c.rotate(Math.sin(t*.001)*.05);c.fillStyle='#100714';c.strokeStyle='#ff557f';c.lineWidth=Math.max(2,r*.09);c.shadowBlur=18;c.shadowColor='#ff315f';c.beginPath();c.ellipse(r*.32,0,r*.48,r*.58,0,0,Math.PI*2);c.fill();c.stroke();
-   c.fillStyle='#fff0d9';for(let tooth=0;tooth<9;tooth++){const a=tooth/9*Math.PI*2;const tx=r*.32+Math.cos(a)*r*.38,ty=Math.sin(a)*r*.47;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx-Math.cos(a)*r*.12,ty-Math.sin(a)*r*.12);c.lineTo(tx+Math.cos(a+1.1)*r*.05,ty+Math.sin(a+1.1)*r*.05);c.closePath();c.fill()}c.restore();
- }
- if(kind==='leviathan'){
-   c.save();c.fillStyle='#4ce0d1';c.strokeStyle='#c5fff8';c.shadowBlur=20;c.shadowColor='#4ce0d1';c.lineWidth=Math.max(2,r*.07);for(let fin=0;fin<7;fin++){const fx=-r*.65+fin*r*.22;c.beginPath();c.moveTo(fx,-r*.35);c.quadraticCurveTo(fx-r*.12,-r*1.0,fx+r*.18,-r*.82);c.lineTo(fx+r*.16,-r*.28);c.closePath();c.fill();c.stroke()}c.restore();
- }
- if(kind==='boss'){
-   c.save();c.strokeStyle='#ff315f';c.fillStyle='#ff315f';c.shadowBlur=25;c.shadowColor='#ff315f';c.lineWidth=Math.max(2,r*.1);c.beginPath();c.moveTo(-r*.55,-r*.6);c.lineTo(-r*.8,-r*1.55);c.lineTo(-r*.18,-r*.95);c.lineTo(r*.05,-r*1.75);c.lineTo(r*.35,-r*.95);c.lineTo(r*.85,-r*1.4);c.lineTo(r*.62,-r*.48);c.stroke();c.restore();
- }
- if(kind==='angler'){
-   c.save();c.strokeStyle='#ffbd72';c.lineWidth=Math.max(2,r*.09);c.shadowBlur=16;c.shadowColor='#ff9c55';c.beginPath();c.moveTo(r*.05,-r*.55);c.quadraticCurveTo(r*.35,-r*1.25,r*.72,-r*1.05);c.stroke();c.fillStyle='#fff1b0';c.beginPath();c.arc(r*.74,-r*1.05,r*.17*(1+Math.sin(t*.01)*.12),0,Math.PI*2);c.fill();c.restore();
- }
- if(playerCreature && skin?.shape==='horns'){
-   c.save();c.strokeStyle=color;c.lineWidth=Math.max(2,r*.16);c.lineCap='round';c.shadowBlur=18;c.shadowColor=color;
-   c.beginPath();c.moveTo(-r*.42,-r*.48);c.bezierCurveTo(-r*.95,-r*1.05,-r*.88,-r*1.32,-r*.62,-r*1.38);
-   c.moveTo(r*.42,-r*.48);c.bezierCurveTo(r*.95,-r*1.05,r*.88,-r*1.32,r*.62,-r*1.38);c.stroke();c.restore();
- }
- if(playerCreature && skin?.shape==='halo'){
-   c.save();c.rotate(Math.sin(t*.0015)*.08);c.strokeStyle='#fff0b8';c.lineWidth=Math.max(2,r*.10);c.shadowBlur=22;c.shadowColor='#fff0b8';
-   c.beginPath();c.ellipse(0,-r*1.02,r*.62,r*.19,0,0,Math.PI*2);c.stroke();
-   for(let k=0;k<8;k++){const a=k*Math.PI/4;c.fillStyle='#fff9d8';c.beginPath();c.arc(Math.cos(a)*r*.62,-r*1.02+Math.sin(a)*r*.19,Math.max(1.2,r*.045),0,Math.PI*2);c.fill()}c.restore();
- }
- if(playerCreature&&skin?.shape==='king'){
-   c.save();c.fillStyle='#d6c7ff';c.strokeStyle='#8b7cff';c.lineWidth=2;c.shadowBlur=18;c.shadowColor='#8b7cff';c.beginPath();c.moveTo(-r*.55,-r*.55);c.lineTo(-r*.48,-r*1.15);c.lineTo(-r*.12,-r*.78);c.lineTo(r*.05,-r*1.3);c.lineTo(r*.28,-r*.76);c.lineTo(r*.62,-r*1.08);c.lineTo(r*.55,-r*.45);c.closePath();c.fill();c.stroke();c.restore();
- }
+ const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
+ const id=skin?.id||'default';
+ const boss=['boss','leviathan','maw','angler'].includes(kind);
+ const glowScale=(playerCreature||boss)?1:(r<13?.18:r<22?.38:.68);
+ const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
+ c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=1;
+ const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
+ const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
+ const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){c.strokeStyle=strokeStyle;c.lineWidth=width;c.lineJoin='round';c.stroke()}c.restore()};
+ const body=(rx,ry,cy=0,base=color)=>fill(()=>c.ellipse(0,cy,r*rx*pulse,r*ry*pulse,0,0,Math.PI*2),bodyGrad(base),`rgba(224,255,255,.46)`,Math.max(1,r*.035),12);
+ const fin=(points,col=color,edge='rgba(225,255,255,.55)')=>fill(()=>{c.moveTo(points[0][0]*r,points[0][1]*r);for(let i=1;i<points.length;i++)c.lineTo(points[i][0]*r,points[i][1]*r);c.closePath()},`rgba(8,30,46,.9)`,col,Math.max(1,r*.035),8);
+ const tentacle=(sx,sy,c1x,c1y,c2x,c2y,ex,ey,w=1, suckers=false)=>{
+  stroke(()=>{c.moveTo(sx*r,sy*r);c.bezierCurveTo(c1x*r,c1y*r,c2x*r,c2y*r,ex*r,ey*r)},Math.max(.8,r*.045*w),color,9);
+  if(suckers){c.save();c.fillStyle='#d8fff9';c.shadowBlur=6*glowScale;c.shadowColor=color;for(let j=1;j<=4;j++){const q=j/5,px=(sx*(1-q)**3+3*c1x*q*(1-q)**2+3*c2x*q*q*(1-q)+ex*q**3)*r,py=(sy*(1-q)**3+3*c1y*q*(1-q)**2+3*c2y*q*q*(1-q)+ey*q**3)*r;c.beginPath();c.arc(px,py,Math.max(.7,r*.035),0,Math.PI*2);c.fill()}c.restore()}
+ };
+ const eye=(ex,ey,er=r*.09,iris='#e6ffff')=>{c.save();c.fillStyle='#020a12';c.beginPath();c.ellipse(ex*r,ey*r,er*1.3,er*1.65,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=12*glowScale;c.shadowColor=iris;c.beginPath();c.arc(ex*r+er*.2,ey*r-er*.18,er*.5,0,Math.PI*2);c.fill();c.restore()};
+ const teeth=(cx,cy,rx,ry,count=8,scale=1,reverse=false)=>{c.save();c.fillStyle='#f6fbec';c.shadowBlur=7*glowScale;c.shadowColor='#ffb4bb';for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2,tx=cx+Math.cos(a)*rx,ty=cy+Math.sin(a)*ry,innerX=cx+Math.cos(a)*rx*.68,innerY=cy+Math.sin(a)*ry*.68;c.beginPath();c.moveTo(tx*r,ty*r);c.lineTo((innerX+Math.cos(a+.2)*.09*scale)*r,(innerY+Math.sin(a+.2)*.09*scale)*r);c.lineTo((innerX+Math.cos(a-.2)*.09*scale)*r,(innerY+Math.sin(a-.2)*.09*scale)*r);c.closePath();c.fill()}c.restore()};
+ const gills=(x0=-.2,y0=-.28,count=3,side=1)=>{for(let i=0;i<count;i++){const xx=x0+i*.12;stroke(()=>{c.moveTo(xx*r,y0*r);c.quadraticCurveTo((xx-.12)*r,(y0+.13)*r,(xx-.06)*r,(y0+.22)*r)},Math.max(.7,r*.028),'rgba(194,255,248,.72)',4)}};
+ const finRay=(x0,y0,x1,y1,x2,y2,col=color)=>fin([[x0,y0],[x1,y1],[x2,y2]],col,'rgba(230,255,249,.48)');
 
- if(kind==='leviathan'){
-   // Pale skeletal crown resembling a skull emerging from the head.
-   c.save();c.translate(-r*.08,-r*.18);c.shadowBlur=20;c.shadowColor='#f5ffff';c.strokeStyle='#f4ffff';c.fillStyle='rgba(225,250,255,.82)';c.lineWidth=Math.max(2,r*.055);
-   c.beginPath();c.ellipse(0,-r*.53,r*.48,r*.34,0,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#07131d';c.beginPath();c.ellipse(-r*.18,-r*.54,r*.10,r*.13,0,0,Math.PI*2);c.ellipse(r*.18,-r*.54,r*.10,r*.13,0,0,Math.PI*2);c.fill();c.strokeStyle='#eaffff';c.beginPath();c.moveTo(-r*.24,-r*.27);c.lineTo(-r*.2,-r*.12);c.lineTo(-r*.1,-r*.25);c.lineTo(0,-r*.1);c.lineTo(r*.1,-r*.25);c.lineTo(r*.2,-r*.12);c.lineTo(r*.24,-r*.27);c.stroke();c.restore();
- }
- if(kind==='angler'){
-   // Long luminous lure and sharp jaw teeth.
-   c.save();c.strokeStyle='#fff2a8';c.lineWidth=Math.max(2,r*.07);c.shadowBlur=26;c.shadowColor='#ffb84e';c.beginPath();c.moveTo(r*.05,-r*.45);c.bezierCurveTo(r*.1,-r*1.1,r*.55,-r*1.65,r*.8,-r*1.45);c.stroke();c.fillStyle='#fffbd2';c.beginPath();c.arc(r*.82,-r*1.46,r*.2*(1+Math.sin(t*.012)*.12),0,Math.PI*2);c.fill();c.fillStyle='#faffdf';c.beginPath();c.ellipse(r*.55,r*.15,r*.38,r*.22,0,0,Math.PI*2);c.fill();for(let tooth=0;tooth<7;tooth++){const tx=r*.28+tooth*r*.09;c.beginPath();c.moveTo(tx,r*.02);c.lineTo(tx+r*.035,r*.17);c.lineTo(tx+r*.07,r*.03);c.fill()}c.restore();
- }
- if(kind==='maw'){
-   // Oversized abyssal maw with a second ring of teeth and long tendrils.
-   c.save();c.translate(r*.35,0);c.shadowBlur=26;c.shadowColor='#ff3c88';c.fillStyle='#03030b';c.strokeStyle='#ff5c9d';c.lineWidth=Math.max(2,r*.08);c.beginPath();c.ellipse(0,0,r*.62,r*.72,0,0,Math.PI*2);c.fill();c.stroke();for(let row=0;row<2;row++){const count=row?13:11;for(let tooth=0;tooth<count;tooth++){const a=tooth/count*Math.PI*2;const rr=row?r*.52:r*.43;const tx=Math.cos(a)*rr,ty=Math.sin(a)*rr;c.fillStyle=row?'#b9faff':'#fff4df';c.beginPath();c.moveTo(tx,ty);c.lineTo(tx-Math.cos(a)*r*.2,ty-Math.sin(a)*r*.2);c.lineTo(tx+Math.cos(a+1.15)*r*.08,ty+Math.sin(a+1.15)*r*.08);c.closePath();c.fill()}}c.restore();
- }
- if(kind==='boss'){
-   // Tall, branching horns with bony ridges.
-   c.save();c.strokeStyle='#ff476d';c.shadowBlur=28;c.shadowColor='#ff174d';c.lineWidth=Math.max(3,r*.12);for(const side of [-1,1]){c.beginPath();c.moveTo(side*r*.28,-r*.45);c.bezierCurveTo(side*r*.55,-r*.9,side*r*.95,-r*1.9,side*r*1.18,-r*1.55);c.bezierCurveTo(side*r*1.28,-r*1.35,side*r*.92,-r*1.2,side*r*.82,-r*.75);c.stroke();c.beginPath();c.moveTo(side*r*.48,-r*.62);c.lineTo(side*r*.75,-r*1.18);c.stroke()}c.restore();
- }
-
- // Silhuetas especiais das skins: cada compra muda a forma, não só a cor.
- if(playerCreature&&skin?.shape==='crystal'){
-  c.save();c.shadowBlur=20;c.shadowColor=color;for(let k=0;k<8;k++){const a=k*Math.PI/4,rr=r*1.05;c.save();c.rotate(a);c.fillStyle=k%2?'#e6fbff':color;c.strokeStyle='#efffff';c.lineWidth=1.2;c.beginPath();c.moveTo(r*.8,0);c.lineTo(r*1.42,-r*.18);c.lineTo(r*1.62,0);c.lineTo(r*1.42,r*.18);c.closePath();c.fill();c.stroke();c.restore()}c.restore();
- }
- if(playerCreature&&skin?.shape==='coral'){
-  c.save();c.strokeStyle='#ffe2f0';c.lineWidth=Math.max(2,r*.09);c.lineCap='round';c.shadowBlur=18;c.shadowColor=color;for(const side of [-1,1]){c.beginPath();c.moveTo(side*r*.24,-r*.55);c.lineTo(side*r*.42,-r*1.05);c.lineTo(side*r*.25,-r*1.22);c.moveTo(side*r*.42,-r*1.05);c.lineTo(side*r*.68,-r*1.16);c.moveTo(side*r*.1,-r*.68);c.lineTo(side*r*.05,-r*1.1);c.stroke()}for(let k=0;k<5;k++){c.fillStyle='#ffe6a8';c.beginPath();c.arc(Math.cos(k*1.25)*r*.95,Math.sin(k*1.25)*r*.95,r*.065,0,Math.PI*2);c.fill()}c.restore();
- }
- if(playerCreature&&skin?.shape==='wings'){
-  c.save();c.shadowBlur=22;c.shadowColor=color;c.fillStyle=color;c.strokeStyle='#e8ddff';c.lineWidth=1.4;for(const side of [-1,1]){c.beginPath();c.moveTo(-r*.25,0);c.bezierCurveTo(side*r*.65,-r*.9,side*r*1.6,-r*1.2,side*r*1.78,-r*.25);c.bezierCurveTo(side*r*1.25,r*.15,side*r*.7,r*.45,-r*.25,0);c.closePath();c.globalAlpha=.72;c.fill();c.globalAlpha=1;c.stroke();for(let feather=0;feather<3;feather++){c.beginPath();c.moveTo(side*r*.45,-r*.2+feather*r*.2);c.lineTo(side*r*(.95+feather*.18),-r*(.72-feather*.1));c.stroke()}}c.restore();
- }
- if(playerCreature&&skin?.shape==='fangs'){
-  c.save();c.fillStyle='#fff0e7';c.strokeStyle='#ff8caa';c.lineWidth=1.2;c.shadowBlur=16;c.shadowColor=color;for(let k=0;k<6;k++){const side=k%2?1:-1,xx=side*r*(.32+Math.floor(k/2)*.22),yy=(k%3-1)*r*.24;c.beginPath();c.moveTo(xx,yy);c.lineTo(xx+side*r*.06,yy+r*.36);c.lineTo(xx+side*r*.13,yy);c.closePath();c.fill();c.stroke()}c.restore();
- }
- if(playerCreature&&skin?.shape==='eye'){
-  c.save();c.shadowBlur=22;c.shadowColor=color;c.fillStyle='#07131d';c.strokeStyle='#c9ffff';c.lineWidth=Math.max(1.5,r*.08);c.beginPath();c.ellipse(r*.18,0,r*.53,r*.43,-.08,0,Math.PI*2);c.fill();c.stroke();const iris=c.createRadialGradient(r*.18,0,1,r*.18,0,r*.3);iris.addColorStop(0,'#fff8d0');iris.addColorStop(.25,color);iris.addColorStop(1,'#13243e');c.fillStyle=iris;c.beginPath();c.arc(r*.18,0,r*.3,0,Math.PI*2);c.fill();c.fillStyle='#02050b';c.beginPath();c.ellipse(r*.22,0,r*.07,r*.24,0,0,Math.PI*2);c.fill();for(let k=0;k<5;k++){const a=k*Math.PI*2/5;c.fillStyle='#e6ffff';c.beginPath();c.arc(Math.cos(a)*r*1.25,Math.sin(a)*r*1.25,r*.09,0,Math.PI*2);c.fill()}c.restore();
- }
- if(playerCreature&&skin?.shape==='shell'){
-  c.save();c.shadowBlur=15;c.shadowColor=color;c.fillStyle='#c3e2d7';c.strokeStyle=color;c.lineWidth=1.6;for(let k=0;k<3;k++){const xx=(-.68+k*.68)*r;c.beginPath();c.moveTo(xx-r*.24,-r*.42);c.lineTo(xx,-r*.9);c.lineTo(xx+r*.28,-r*.44);c.lineTo(xx+r*.2,r*.24);c.lineTo(xx-r*.2,r*.3);c.closePath();c.fill();c.stroke()}c.restore();
- }
- // Enemy-specific anatomy, shared by live combat and the codex portrait renderer.
- if(!playerCreature&&kind==='stinger'){
-  c.save();c.strokeStyle='#fff0cc';c.fillStyle='#ff9e60';c.lineWidth=Math.max(1.5,r*.12);c.shadowBlur=14;c.shadowColor=color;c.beginPath();c.moveTo(-r*.45,0);c.lineTo(-r*1.45,0);c.lineTo(-r*1.05,-r*.2);c.closePath();c.fill();c.stroke();for(let k=0;k<4;k++){const yy=(k-1.5)*r*.3;c.beginPath();c.moveTo(-r*.1,yy);c.lineTo(-r*.55,yy+Math.sign(yy||1)*r*.45);c.stroke()}c.restore();
- }
- if(!playerCreature&&kind==='brute'){
-  c.save();c.fillStyle='#655184';c.strokeStyle='#ead9ff';c.lineWidth=Math.max(1.5,r*.09);c.shadowBlur=12;c.shadowColor=color;for(let k=0;k<5;k++){const a=(k/5)*Math.PI*2;c.save();c.rotate(a);c.beginPath();c.moveTo(r*.5,0);c.lineTo(r*.94,-r*.32);c.lineTo(r*1.04,r*.08);c.lineTo(r*.58,r*.33);c.closePath();c.fill();c.stroke();c.restore()}c.strokeStyle='#f8e7ff';c.beginPath();c.moveTo(-r*.2,-r*.4);c.lineTo(-r*.06,-r*.08);c.lineTo(-r*.32,r*.18);c.stroke();c.restore();
- }
- if(!playerCreature&&kind==='lurker'){
-  c.save();c.strokeStyle='#9eb7ff';c.fillStyle='#dce8ff';c.shadowBlur=14;c.shadowColor=color;for(let k=0;k<4;k++){const xx=(-.55+k*.35)*r;c.beginPath();c.ellipse(xx,-r*.12,r*.07,r*.14,0,0,Math.PI*2);c.fill()}c.strokeStyle=color;c.lineWidth=Math.max(1.2,r*.05);c.beginPath();c.moveTo(-r*.2,r*.45);c.quadraticCurveTo(r*.8,r*.8,r*1.1,r*.35);c.stroke();c.restore();
- }
- // eyes face forward
- c.rotate(0);const eyeY=-r*.05,eyeX=r*.27;c.fillStyle='#04111b';c.beginPath();c.ellipse(eyeX,-r*.12,r*.12,r*.19,0,0,Math.PI*2);c.ellipse(eyeX,r*.19,r*.12,r*.16,0,0,Math.PI*2);c.fill();c.fillStyle=playerCreature?'#d5ffff':'#ffe4b9';c.beginPath();c.arc(eyeX+r*.025,-r*.15,r*.045,0,Math.PI*2);c.fill();
- if((playerCreature&&['horns','king','spikes'].includes(skin?.shape))||['boss','leviathan','maw','angler'].includes(kind)){c.save();c.strokeStyle=color;c.fillStyle=color;c.shadowBlur=22;c.shadowColor=color;c.lineWidth=Math.max(2,r*.12);for(let h=0;h<(['boss','leviathan','maw','angler'].includes(kind)?(kind==='leviathan'?8:kind==='maw'?3:5):skin?.shape==='king'?4:2);h++){const side=h%2===0?-1:1,baseX=['boss','leviathan','maw','angler'].includes(kind)?r*.25:0,baseY=side*r*.45;c.beginPath();c.moveTo(baseX,baseY);c.quadraticCurveTo(baseX+side*r*.8,baseY-side*r*.9,baseX+side*r*(kind==='leviathan'?2.1:['boss','maw','angler'].includes(kind)?1.7:1.2),baseY-side*r*(kind==='leviathan'?1.9:['boss','maw','angler'].includes(kind)?1.4:.95));c.stroke()}c.restore()}
- if(['boss','leviathan','maw','angler'].includes(kind)){c.strokeStyle=color;c.lineWidth=3;c.shadowBlur=20;c.shadowColor='#ff315f';c.beginPath();c.arc(0,0,r*(kind==='leviathan'?1.8:1.5),t*.001,t*.001+Math.PI*1.7);c.stroke();c.fillStyle='#fff0f5';c.beginPath();c.arc(r*.3,-r*.15,r*.1,0,Math.PI*2);c.arc(r*.3,r*.2,r*.1,0,Math.PI*2);c.fill()}
  if(playerCreature){
-   if(skin?.shape==='spikes'){
-     c.save();c.fillStyle='#fff0b5';c.strokeStyle=color;c.lineWidth=1.5;c.shadowBlur=14;c.shadowColor=color;
-     for(let k=0;k<7;k++){const a=-Math.PI*.85+k*(Math.PI*1.7/6);c.beginPath();c.moveTo(Math.cos(a)*r*.72,Math.sin(a)*r*.72);c.lineTo(Math.cos(a)*r*1.42,Math.sin(a)*r*1.42);c.lineTo(Math.cos(a+.16)*r*.65,Math.sin(a+.16)*r*.65);c.closePath();c.fill();c.stroke()}c.restore();
+  // Every skin has a readable, largely bilateral deep-sea silhouette.
+  if(id==='default'){
+   // Comb-jelly bell with six evenly spaced trailing cilia.
+   for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
+   fill(()=>{c.moveTo(-.84*r,-.02*r);c.bezierCurveTo(-.9*r,-.7*r,-.48*r,-.9*r,0,-.86*r);c.bezierCurveTo(.5*r,-.9*r,.9*r,-.56*r,.82*r,-.02*r);c.quadraticCurveTo(0,.24*r,-.82*r,-.02*r)},bodyGrad(color),'rgba(204,255,253,.75)',Math.max(1.2,r*.06),16);
+   stroke(()=>{c.moveTo(-.76*r,-.02*r);c.quadraticCurveTo(0,.28*r,.76*r,-.02*r)},Math.max(1,r*.06),'#dfffff',8);
+   for(let k=0;k<5;k++){const xx=(-.52+k*.26)*r;stroke(()=>{c.moveTo(xx,-.62*r);c.quadraticCurveTo(xx-.03*r,-.35*r,xx+.03*r,-.14*r)},Math.max(.7,r*.025),'rgba(218,255,255,.55)',3)}
+   eye(.24,-.25,r*.075);
+  } else if(id==='leviathan'){
+   // A long abyssal eel, ribbed armor, paired fins and a pale skull.
+   fill(()=>{c.moveTo(-2.15*r,0);c.quadraticCurveTo(-1.55*r,-.52*r,-.65*r,-.43*r);c.quadraticCurveTo(.1*r,-.32*r,.68*r,-.22*r);c.lineTo(.95*r,0);c.quadraticCurveTo(.36*r,.42*r,-.65*r,.34*r);c.quadraticCurveTo(-1.5*r,.37*r,-2.15*r,0)},bodyGrad(color),'rgba(223,255,250,.55)',Math.max(1,r*.04),14);
+   fin([[-1.92,0],[-2.5,-.25],[-2.28,.1],[-2.48,.27]],color);fin([[-.85,-.34],[-.52,-.88],[-.22,-.36]],color);fin([[-.15,-.28],[.12,-.72],[.34,-.22]],color);
+   for(let i=0;i<7;i++){const xx=(-1.4+i*.27)*r;stroke(()=>{c.moveTo(xx,-.3*r);c.quadraticCurveTo((xx-.16*r),0,xx,.29*r)},Math.max(1.2,r*.05),'rgba(221,255,251,.62)',6)}
+   fill(()=>{c.ellipse(.58*r,-.03*r,.25*r,.29*r,-.08,0,Math.PI*2)},'#c9e6dc','#f5ffff',Math.max(1,r*.04),9);eye(.69,-.12,r*.055,'#a2fff4');gills(.15,-.18,4);
+  } else if(id==='voidwing'){
+   // Manta ray: broad paired pectoral wings and a long tapering tail.
+   fill(()=>{c.moveTo(-.7*r,-.18*r);c.quadraticCurveTo(-.05*r,-.4*r,.48*r,-.2*r);c.lineTo(1.0*r,-.02*r);c.quadraticCurveTo(.56*r,.02*r,.34*r,.22*r);c.quadraticCurveTo(.08*r,.5*r,-.22*r,.28*r);c.lineTo(-1.32*r,.84*r);c.quadraticCurveTo(-1.05*r,.25*r,-.9*r,.08*r);c.lineTo(-1.32*r,-.82*r);c.quadraticCurveTo(-1.02*r,-.3*r,-.7*r,-.18*r);c.closePath()},bodyGrad(color),'rgba(230,255,255,.62)',Math.max(1,r*.04),14);
+   stroke(()=>{c.moveTo(-.7*r,0);c.quadraticCurveTo(-.2*r,.22*r,.56*r,.08*r)},Math.max(1,r*.045),'rgba(216,255,253,.75)',5);tentacle(-1.12,.0,-1.8,.06,-2.05,.08,-2.5,.12,.55);eye(.53,-.08,r*.06);
+  } else if(id==='deepwarden'||id==='abyssking'){
+   // Isopod/crab: paired legs, overlapping mineral plates and symmetric pincers.
+   for(let side of [-1,1])for(let i=0;i<4;i++){const xx=(-.62+i*.32);stroke(()=>{c.moveTo(xx*r,side*.22*r);c.quadraticCurveTo((xx-.18)*r,side*.55*r,(xx-.36)*r,side*.74*r)},Math.max(1.2,r*.065),color,8);stroke(()=>{c.moveTo((xx-.36)*r,side*.74*r);c.lineTo((xx-.54)*r,side*.78*r)},Math.max(1,r*.04),'rgba(235,255,247,.8)',5)}
+   fill(()=>{c.ellipse(-.05*r,0,.92*r,.63*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(221,255,248,.62)',Math.max(1,r*.05),12);
+   for(let i=0;i<5;i++){const xx=(-.72+i*.32)*r;fill(()=>{c.beginPath();c.moveTo(xx,-.48*r);c.lineTo((xx+.12*r),-.56*r);c.lineTo((xx+.2*r),.08*r);c.lineTo((xx+.1*r),.43*r);c.lineTo(xx,.48*r);c.closePath()},'rgba(4,24,37,.38)','rgba(230,255,255,.58)',Math.max(.7,r*.025),4)}
+   for(let side of [-1,1]){stroke(()=>{c.moveTo(.42*r,side*.2*r);c.quadraticCurveTo(.8*r,side*.25*r,.86*r,side*.49*r)},Math.max(1.8,r*.09),color,8);fin([[.78,side*.4],[1.18,side*.6],[1.03,side*.24],[.86,side*.18]],color)}
+   eye(.4,-.2,r*.06);eye(.4,.2,r*.06);if(id==='abyssking'){fill(()=>{c.moveTo(-.44*r,-.46*r);c.lineTo(-.38*r,-1.0*r);c.lineTo(-.12*r,-.65*r);c.lineTo(.03*r,-1.15*r);c.lineTo(.25*r,-.64*r);c.lineTo(.54*r,-.94*r);c.lineTo(.48*r,-.36*r);c.closePath()},'#d9e9ff',color,Math.max(1,r*.04),10)}
+  } else if(id==='abyssaleye'){
+   // Not a plain eyeball: a protected radial organism with a layered iris and tendrils.
+   for(let i=0;i<8;i++){const a=i*Math.PI/4,sx=Math.cos(a)*.68,sy=Math.sin(a)*.68,ex=Math.cos(a)*1.28,ey=Math.sin(a)*1.05;stroke(()=>{c.moveTo(sx*r,sy*r);c.quadraticCurveTo(Math.cos(a+.22)*r,Math.sin(a+.22)*r,ex*r,ey*r)},Math.max(1.4,r*.055),color,10);c.save();c.fillStyle='#d4ffff';c.shadowBlur=9;c.shadowColor=color;c.beginPath();c.arc(ex*r,ey*r,Math.max(1,r*.045),0,Math.PI*2);c.fill();c.restore()}
+   body(1,.92,0,color);c.save();c.fillStyle='#07131e';c.strokeStyle='#c8fffb';c.lineWidth=Math.max(1.2,r*.06);c.shadowBlur=18;c.shadowColor=color;c.beginPath();c.ellipse(.12*r,0,.53*r,.62*r,0,0,Math.PI*2);c.fill();c.stroke();c.fillStyle=color;c.beginPath();c.ellipse(.17*r,0,.32*r,.43*r,0,0,Math.PI*2);c.fill();c.fillStyle='#020a14';c.beginPath();c.ellipse(.25*r,0,.12*r,.3*r,0,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(.29*r,-.18*r,r*.07,0,Math.PI*2);c.fill();c.restore();
+  } else if(id==='glacier'){
+   // Geometric comb jelly with paired ice fins and fine luminous ribs.
+   fin([[-.65,0],[-1.25,-.62],[-.98,0],[-1.22,.62]] ,'#92d5ff');fin([[.12,-.48],[.32,-1.1],[.52,-.38]],'#d6f9ff');fin([[.12,.48],[.32,1.1],[.52,.38]],'#d6f9ff');
+   fill(()=>{c.moveTo(-.72*r,0);c.lineTo(-.4*r,-.55*r);c.lineTo(.2*r,-.58*r);c.lineTo(.78*r,-.1*r);c.lineTo(.55*r,.45*r);c.lineTo(-.2*r,.56*r);c.closePath()},bodyGrad(color),'#c3eeff',Math.max(1.2,r*.06),14);
+   for(let i=0;i<7;i++){const xx=(-.45+i*.16)*r;stroke(()=>{c.moveTo(xx,-.42*r);c.lineTo((xx+.08)*r,.42*r)},Math.max(.7,r*.026),'rgba(230,253,255,.75)',5)}eye(.38,-.08,r*.05,'#a7ecff');
+  } else if(id==='royal'){
+   for(let i=0;i<8;i++){const a=Math.PI+i*Math.PI/7,sx=Math.cos(a)*.5,sy=Math.sin(a)*.48;tentacle(sx,sy,sx-.1,sy+.28,sx+.2,sy+.7,sx+.05,1.18,.8)}
+   fill(()=>{c.moveTo(-.84*r,-.02*r);c.bezierCurveTo(-.85*r,-.62*r,-.44*r,-.88*r,0,-.82*r);c.bezierCurveTo(.47*r,-.88*r,.86*r,-.5*r,.84*r,-.02*r);c.quadraticCurveTo(0,.18*r,-.84*r,-.02*r)},bodyGrad(color),'rgba(255,247,203,.75)',Math.max(1.2,r*.05),14);
+   stroke(()=>{c.ellipse(0,-.8*r,.54*r,.2*r,0,0,Math.PI*2)},Math.max(1.2,r*.065),'#fff0b1',14);for(let i=0;i<9;i++){const a=Math.PI*2*i/9;c.save();c.fillStyle='#fff5bd';c.shadowBlur=10;c.shadowColor='#fff5bd';c.beginPath();c.arc(Math.cos(a)*.54*r,-.8*r+Math.sin(a)*.2*r,Math.max(1.3,r*.045),0,Math.PI*2);c.fill();c.restore()}eye(.25,-.28,r*.06,'#fff3c3');
+  } else if(id==='toxic'){
+   // Vampire squid mantle with eight mirrored arms and sucker rows.
+   for(let i=0;i<8;i++){const side=i<4?-1:1,j=i%4,sy=(j-1.5)*.18;tentacle(-.5,sy,side*.2,sy+.22,side*.88,sy+.46,side*(1.05+j*.12),sy+.72,.85,true)}
+   fill(()=>{c.moveTo(-.72*r,-.1*r);c.quadraticCurveTo(-.74*r,-.68*r,-.1*r,-.72*r);c.quadraticCurveTo(.55*r,-.65*r,.72*r,-.04*r);c.lineTo(.35*r,.28*r);c.lineTo(-.38*r,.3*r);c.closePath()},bodyGrad(color),'rgba(215,255,190,.65)',Math.max(1.2,r*.05),14);eye(.33,-.17,r*.06,'#eaffbb');
+  } else if(id==='thorn'||id==='coral'){
+   // Mirrored coral antlers, feeding fronds and symmetrical oral crown.
+   for(let side of [-1,1]){
+    stroke(()=>{c.moveTo(-.15*r,side*.1*r);c.bezierCurveTo(-.55*r,side*.35*r,-.68*r,side*.75*r,-.88*r,side*1.0*r)},Math.max(1.5,r*.07),color,12);
+    stroke(()=>{c.moveTo(-.54*r,side*.55*r);c.lineTo(-.92*r,side*.47*r);c.lineTo(-1.08*r,side*.68*r)},Math.max(1.2,r*.055),'#ffa7bc',8);
+    stroke(()=>{c.moveTo(-.68*r,side*.77*r);c.lineTo(-.48*r,side*1.05*r);c.lineTo(-.53*r,side*1.2*r)},Math.max(1.1,r*.05),color,8);
+    for(let j=0;j<3;j++){const xx=(.25+j*.16)*r;stroke(()=>{c.moveTo(xx,side*.15*r);c.quadraticCurveTo((xx+.22*r),side*.4*r,(xx+.08*r),side*.62*r)},Math.max(.8,r*.035),'#f9bfce',5)}
    }
-   if(skin?.shape==='horns'){
-     c.save();c.strokeStyle='#f2e5ff';c.lineWidth=Math.max(2,r*.15);c.shadowBlur=18;c.shadowColor=color;for(const side of [-1,1]){c.beginPath();c.moveTo(side*r*.32,-r*.5);c.bezierCurveTo(side*r*.6,-r*1.05,side*r*1.12,-r*1.15,side*r*1.02,-r*1.52);c.stroke()}c.restore();
-   }
-   if(skin?.shape==='tentacles'){
-     c.save();c.strokeStyle='#e2ffae';c.lineWidth=Math.max(2,r*.08);c.shadowBlur=16;c.shadowColor=color;for(let k=0;k<4;k++){const side=k%2?1:-1,yy=(k-1.5)*r*.28;c.beginPath();c.moveTo(side*r*.55,yy);c.bezierCurveTo(side*r*1.1,yy-r*.2,side*r*1.5,yy+r*.35,side*r*1.85,yy-r*.15);c.stroke();c.fillStyle='#fff4a8';c.beginPath();c.arc(side*r*1.85,yy-r*.15,r*.055,0,Math.PI*2);c.fill()}c.restore();
-   }
-   c.strokeStyle='rgba(179,255,248,.7)';c.lineWidth=1.3;c.beginPath();c.arc(0,0,r*1.38,-.7,.7);c.stroke();if(upgrades.shield>0){c.strokeStyle='rgba(129,239,255,.75)';c.lineWidth=2;c.beginPath();c.arc(0,0,r*1.8,t*.001,t*.001+Math.PI*1.6);c.stroke()}}
+   body(.72,.66,.08,color);c.save();c.fillStyle='#071723';c.beginPath();c.ellipse(.28*r,-.05*r,.24*r,.31*r,0,0,Math.PI*2);c.fill();c.restore();eye(.35,-.12,r*.06,'#fff0d1');
+  } else if(id==='bloodmoon'){
+   // Pale deep-sea fangfish with a huge split jaw.
+   fin([[-1.1,0],[-1.62,-.42],[-1.53,.05],[-1.68,.38]] ,color);fin([[-.3,-.34],[-.05,-.88],[.18,-.31]],color);
+   fill(()=>{c.moveTo(-1.2*r,0);c.quadraticCurveTo(-.78*r,-.6*r,.05*r,-.48*r);c.lineTo(.75*r,-.17*r);c.lineTo(.98*r,.02*r);c.lineTo(.56*r,.12*r);c.quadraticCurveTo(-.4*r,.55*r,-1.2*r,0)},bodyGrad(color),'rgba(255,224,232,.5)',Math.max(1,r*.04),12);
+   fill(()=>{c.moveTo(.38*r,-.05*r);c.quadraticCurveTo(.8*r,-.42*r,.93*r,-.18*r);c.lineTo(.75*r,.02*r);c.lineTo(.97*r,.27*r);c.quadraticCurveTo(.63*r,.32*r,.38*r,.12*r);c.closePath()},'#06111d','#ffbec9',Math.max(1,r*.045),8);
+   for(let i=0;i<5;i++){const xx=(.47+i*.085)*r;fin([[xx/r,-.08],[xx/r-.035,.035],[xx/r+.035,.035]],'#fff0e7','#ffbec9');fin([[xx/r,.12],[xx/r-.03,.02],[xx/r+.03,.02]],'#fff0e7','#ffbec9')}eye(.36,-.25,r*.06,'#ffedf2');
+  } else if(id==='solar'||id==='violet'){
+   // Spiny viperfish: tapered fusiform body, forked tail and symmetrical dorsal spines.
+   fin([[-1.05,0],[-1.62,-.37],[-1.42,0],[-1.64,.34]],color);fin([[-.6,-.28],[-.42,-.88],[-.18,-.34]],color);fin([[0,-.28],[.12,-.75],[.32,-.24]],color);fin([[-.5,.28],[-.32,.68],[-.12,.29]],color);
+   fill(()=>{c.moveTo(-1.25*r,0);c.quadraticCurveTo(-.8*r,-.56*r,-.05*r,-.42*r);c.lineTo(.78*r,-.14*r);c.lineTo(1.04*r,0);c.lineTo(.68*r,.13*r);c.quadraticCurveTo(-.38*r,.46*r,-1.25*r,0)},bodyGrad(color),'rgba(236,255,255,.52)',Math.max(1,r*.04),12);
+   for(let i=0;i<6;i++){const xx=(-.68+i*.22)*r;fin([[xx/r,-.34],[xx/r+.05,-.65-(id==='solar'?.12:0)],[xx/r+.13,-.3]],id==='solar'?'#ffedbc':'#dfceff')};gills(-.08,-.19,3);eye(.62,-.06,r*.055);
+   if(id==='violet'){for(let side of [-1,1])fin([[.05,side*.25],[.28,side*.78],[.43,side*.24]],'#e4d2ff')}
+  } else {
+   // Safe fallback for any future skin: bilateral bell and trailing filaments.
+   for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
+   body(.85,.72,0,color);eye(.3,-.16,r*.06);
+  }
+  // Fine luminous lateral line makes skin previews look like the live character.
+  if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
+  c.restore();return;
+ }
+
+ // HOSTILE FAUNA: each enemy category has its own anatomy, not just a recolored orb.
+ if(kind==='drifter'){
+  // Bell-shaped comb jelly with scalloped rim, luminous ribs and trailing cilia.
+  for(let i=0;i<7;i++){const xx=(-.65+i*.215);tentacle(xx,.12,xx-.08,.45,xx+.08,.85,xx+Math.sin(i)*.12,1.12,.7)}
+  fill(()=>{c.moveTo(-.82*r,.02*r);c.bezierCurveTo(-.92*r,-.35*r,-.67*r,-.83*r,0,-.84*r);c.bezierCurveTo(.65*r,-.82*r,.92*r,-.37*r,.82*r,.02*r);for(let i=0;i<=8;i++){const xx=(.82-i*.205)*r;c.quadraticCurveTo(xx-.08*r,.22*r,xx-.205*r,.03*r)}c.closePath()},bodyGrad(color),'rgba(234,255,253,.67)',Math.max(1,r*.05),12);
+  for(let i=0;i<7;i++){const xx=(-.62+i*.2)*r;stroke(()=>{c.moveTo(xx,-.65*r);c.quadraticCurveTo((xx-.035*r),-.33*r,(xx+.02*r),-.08*r)},Math.max(.6,r*.025),'rgba(235,255,255,.62)',4)}eye(.3,-.22,r*.07);
+ } else if(kind==='stinger'){
+  // Fast viperfish with narrow jaws, forked tail and defensive dorsal rays.
+  fin([[-1.05,0],[-1.78,-.45],[-1.52,0],[-1.76,.43]],color);fin([[-.58,-.26],[-.38,-.95],[-.16,-.3]],'#ffcf9a');fin([[-.08,-.28],[.12,-.72],[.32,-.2]],color);fin([[-.3,.24],[-.08,.58],[.1,.22]],color);
+  fill(()=>{c.moveTo(-1.2*r,0);c.quadraticCurveTo(-.83*r,-.53*r,-.12*r,-.42*r);c.lineTo(.74*r,-.12*r);c.lineTo(1.24*r,-.02*r);c.lineTo(.76*r,.12*r);c.quadraticCurveTo(-.48*r,.4*r,-1.2*r,0)},bodyGrad(color),'rgba(255,241,219,.48)',Math.max(1,r*.04),9);
+  fill(()=>{c.moveTo(.35*r,.05*r);c.lineTo(1.14*r,.08*r);c.lineTo(.62*r,.24*r);c.closePath()},'#07111b','#fff0d4',Math.max(.7,r*.03),4);for(let i=0;i<5;i++)fin([[.42+i*.12,-.05],[.46+i*.12,.12],[.5+i*.12,-.04]],'#fff3df');gills(-.14,-.18,3);eye(.63,-.1,r*.06,'#fff0c9');
+ } else if(kind==='brute'){
+  // Armored benthic isopod: symmetrical legs, mineral carapace and two pincers.
+  for(let side of [-1,1])for(let i=0;i<4;i++){const xx=-.6+i*.32;stroke(()=>{c.moveTo(xx*r,side*.18*r);c.quadraticCurveTo((xx-.12)*r,side*.48*r,(xx-.31)*r,side*.72*r)},Math.max(1.1,r*.07),color,8);stroke(()=>{c.moveTo((xx-.31)*r,side*.72*r);c.lineTo((xx-.46)*r,side*.79*r)},Math.max(.8,r*.04),'#edddff',4)}
+  fill(()=>{c.ellipse(-.05*r,0,.98*r,.62*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(243,233,255,.68)',Math.max(1,r*.05),11);
+  for(let i=0;i<6;i++){const xx=(-.76+i*.27)*r;fill(()=>{c.beginPath();c.moveTo(xx,-.42*r);c.lineTo(xx+.1*r,-.54*r);c.lineTo(xx+.22*r,-.1*r);c.lineTo(xx+.14*r,.42*r);c.lineTo(xx,.45*r);c.closePath()},'rgba(17,25,43,.45)','rgba(241,223,255,.68)',Math.max(.8,r*.03),4)}
+  for(let side of [-1,1]){stroke(()=>{c.moveTo(.45*r,side*.17*r);c.quadraticCurveTo(.79*r,side*.25*r,.88*r,side*.5*r)},Math.max(1.6,r*.1),color,8);fin([[.75,side*.42],[1.18,side*.62],[1.03,side*.26],[.85,side*.18]],color)}eye(.4,-.18,r*.065,'#f7edff');eye(.4,.13,r*.055,'#f7edff');
+ } else if(kind==='lurker'){
+  // Gulper eel: whip-tail, deep pouch-like jaw and rows of needle teeth.
+  fill(()=>{c.moveTo(-2.0*r,.06*r);c.quadraticCurveTo(-1.55*r,-.32*r,-.92*r,-.24*r);c.quadraticCurveTo(-.38*r,-.4*r,.18*r,-.31*r);c.lineTo(.76*r,-.16*r);c.lineTo(.98*r,.12*r);c.quadraticCurveTo(.48*r,.4*r,-.25*r,.29*r);c.quadraticCurveTo(-1.15*r,.42*r,-2*r,.06*r)},bodyGrad(color),'rgba(192,210,255,.5)',Math.max(1,r*.04),9);
+  fin([[-1.8,.06],[-2.32,-.2],[-2.1,.12],[-2.28,.32]],color);fill(()=>{c.moveTo(.35*r,-.1*r);c.quadraticCurveTo(.8*r,-.48*r,1.08*r,-.2*r);c.lineTo(.68*r,.08*r);c.lineTo(1.05*r,.36*r);c.quadraticCurveTo(.58*r,.42*r,.35*r,.13*r);c.closePath()},'#050b16','#96acff',Math.max(1,r*.045),8);
+  for(let i=0;i<6;i++){const xx=(.42+i*.085)*r;fin([[xx/r,-.13],[xx/r-.03,.02],[xx/r+.03,.02]],'#eff3ff');fin([[xx/r,.1],[xx/r-.03,.0],[xx/r+.03,.0]],'#eff3ff')};for(let i=0;i<5;i++){const xx=(-1.35+i*.28)*r;stroke(()=>{c.moveTo(xx,-.22*r);c.lineTo((xx-.05*r),.23*r)},Math.max(.7,r*.025),'rgba(196,218,255,.7)',3)}eye(.45,-.28,r*.06,'#d6deff');
+ } else if(kind==='boss'){
+  // The Broken Heart: horned abyssal cephalopod with a bone mask and fan of hooked arms.
+  for(let i=0;i<10;i++){const side=i<5?-1:1,j=i%5,sy=(-.4+j*.2);tentacle(-.48,sy,side*.3,sy+.18,side*(.9+j*.12),sy+.55,side*(1.25+j*.18),sy+.9,.95,true)}
+  fill(()=>{c.moveTo(-.75*r,-.22*r);c.lineTo(-.56*r,-.75*r);c.lineTo(-.15*r,-.6*r);c.lineTo(.1*r,-.92*r);c.lineTo(.38*r,-.55*r);c.lineTo(.78*r,-.38*r);c.lineTo(.72*r,.18*r);c.lineTo(.25*r,.48*r);c.lineTo(-.38*r,.4*r);c.closePath()},bodyGrad(color),'#ffb8ca',Math.max(1.5,r*.055),16);
+  fill(()=>{c.moveTo(-.47*r,-.28*r);c.lineTo(-.25*r,-.58*r);c.lineTo(.02*r,-.44*r);c.lineTo(.28*r,-.6*r);c.lineTo(.52*r,-.22*r);c.lineTo(.42*r,.2*r);c.lineTo(0,.32*r);c.lineTo(-.38*r,.15*r);c.closePath()},'#d9e5e0','#fff1f2',Math.max(1.2,r*.04),7);
+  c.save();c.fillStyle='#10121d';c.beginPath();c.ellipse(.08*r,.03*r,.28*r,.26*r,0,0,Math.PI*2);c.fill();c.restore();for(let side of [-1,1]){fin([[-.5,side*.12],[-1.0,side*.32],[-.7,side*.43]],'#ff7896');fin([[.05,side*.3],[.25,side*.62],[.42,side*.3]],'#ff7896')}eye(.02,-.15,r*.075,'#fff2f5');eye(.25,-.04,r*.045,'#ffdb83');
+ } else if(kind==='leviathan'){
+  // Ancient trench leviathan: colossal plated eel with bony crest, fins and side gills.
+  fill(()=>{c.moveTo(-2.6*r,.02*r);c.quadraticCurveTo(-2.0*r,-.47*r,-1.15*r,-.42*r);c.quadraticCurveTo(-.45*r,-.3*r,.1*r,-.35*r);c.lineTo(.72*r,-.18*r);c.lineTo(1.0*r,.04*r);c.quadraticCurveTo(.35*r,.4*r,-.78*r,.34*r);c.quadraticCurveTo(-1.8*r,.43*r,-2.6*r,.02*r)},bodyGrad(color),'rgba(225,255,250,.66)',Math.max(1.4,r*.045),15);
+  fin([[-2.32,.03],[-2.88,-.28],[-2.63,.05],[-2.86,.31]],color);for(let i=0;i<9;i++){const xx=(-1.75+i*.25)*r;fin([[xx/r,-.32],[xx/r-.1,-.78-(i%3===0?.18:0)],[xx/r+.14,-.28]],color,'#d0fff9');stroke(()=>{c.moveTo(xx,-.23*r);c.lineTo((xx-.02*r),.25*r)},Math.max(.8,r*.026),'rgba(231,255,255,.72)',4)}
+  fill(()=>{c.ellipse(.68*r,-.04*r,.3*r,.28*r,-.08,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(1,r*.04),10);eye(.76,-.14,r*.055,'#9dfff0');gills(.13,-.18,4);
+ } else if(kind==='maw'){
+  // A circular predator: jaw ring, radial teeth, plated lips and short feeding tentacles.
+  for(let i=0;i<8;i++){const a=Math.PI+i*Math.PI/7,sx=Math.cos(a)*.58,sy=Math.sin(a)*.58;tentacle(sx,sy,sx-.18,sy+.22,sx+.15,sy+.54,sx-.1,sy+.82,.85)}
+  body(1.05,1.0,0,color);c.save();c.fillStyle='#080713';c.strokeStyle='#ff92e1';c.lineWidth=Math.max(1.5,r*.075);c.shadowBlur=22;c.shadowColor=color;c.beginPath();c.ellipse(.2*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.strokeStyle='rgba(255,220,252,.7)';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.ellipse(.2*r,0,.68*r,.75*r,0,0,Math.PI*2);c.stroke();c.restore();teeth(.2,0,.52,.59,18,1.05);for(let side of [-1,1]){fin([[-.48,side*.35],[-.92,side*.78],[-.35,side*.63]],color);fin([[.55,side*.4],[.9,side*.68],[.73,side*.29]],'#f6bcff')}eye(.52,-.12,r*.055,'#f4d5ff');
+ } else if(kind==='angler'){
+  // Lanternfish horror: armored forehead, gaping toothed jaw, lure, tail and fins.
+  fin([[-.85,0],[-1.55,-.45],[-1.4,.02],[-1.55,.4]],color);fin([[-.45,-.34],[-.2,-.9],[.05,-.34]],color);fin([[-.18,.25],[.1,.66],[.18,.24]],color);
+  fill(()=>{c.moveTo(-1.0*r,0);c.quadraticCurveTo(-.78*r,-.72*r,-.12*r,-.62*r);c.quadraticCurveTo(.52*r,-.55*r,.82*r,-.12*r);c.lineTo(.65*r,.12*r);c.quadraticCurveTo(.08*r,.45*r,-.65*r,.32*r);c.closePath()},bodyGrad(color),'rgba(255,231,177,.58)',Math.max(1,r*.045),14);
+  fill(()=>{c.moveTo(.22*r,-.05*r);c.lineTo(.88*r,-.14*r);c.lineTo(.65*r,.1*r);c.lineTo(.93*r,.36*r);c.lineTo(.25*r,.25*r);c.closePath()},'#080f19','#ffd7a0',Math.max(1,r*.04),8);for(let i=0;i<6;i++){const xx=(.3+i*.085)*r;fin([[xx/r,-.08],[xx/r-.025,.08],[xx/r+.03,.02]],'#fff4d5')}
+  stroke(()=>{c.moveTo(-.05*r,-.47*r);c.quadraticCurveTo(.02*r,-1.14*r,.48*r,-1.14*r)},Math.max(1.5,r*.065),'#ffcb70',14);c.save();const pulseSize=r*.14*(1+Math.sin(t*.009)*.12);const lamp=c.createRadialGradient(.48*r,-1.14*r,1,.48*r,-1.14*r,pulseSize*2);lamp.addColorStop(0,'#fffde4');lamp.addColorStop(.35,'#ffd277');lamp.addColorStop(1,'rgba(255,147,55,0)');c.fillStyle=lamp;c.beginPath();c.arc(.48*r,-1.14*r,pulseSize*2,0,Math.PI*2);c.fill();c.restore();eye(.43,-.32,r*.055,'#fff3c5');
+ }
+ // Bioluminescent side line and paired sensory pores unify the species without flattening silhouettes.
+ if(kind!=='drifter'&&kind!=='maw')stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.55)',5);
+ if(boss){c.save();c.strokeStyle=color;c.lineWidth=Math.max(1.2,r*.035);c.shadowBlur=17;c.shadowColor=color;c.beginPath();c.ellipse(0,0,r*1.46,r*1.27,0,t*.0007,t*.0007+Math.PI*1.7);c.stroke();c.restore()}
  c.restore();
 }
 function draw(t){
@@ -413,7 +451,7 @@ function draw(t){
  for(const p of projectiles){ctx.save();const trail=p.allyShot?'#9bbcff':(p.special==='pierce'?'#ffe7a1':p.special==='ricochet'?'#ffc47a':p.special==='electric'?'#79f3ff':p.color);ctx.strokeStyle=trail;ctx.lineWidth=p.special==='pierce'?6:p.allyShot?5.5:p.special==='electric'?5:p.special==='ricochet'?5:p.r*2;ctx.shadowBlur=p.special?30:p.allyShot?26:18;ctx.shadowColor=trail;ctx.beginPath();ctx.moveTo(p.x-p.vx*(p.special==='pierce'?.065:.045),p.y-p.vy*(p.special==='pierce'?.065:.045));ctx.lineTo(p.x,p.y);ctx.stroke();if(p.special==='electric'){ctx.strokeStyle='#eaffff';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-p.vx*.025,p.y-p.vy*.025);ctx.lineTo(p.x+rand(-4,4),p.y+rand(-4,4));ctx.lineTo(p.x,p.y);ctx.stroke()}ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(p.x,p.y,p.special==='pierce'?p.r*1.3:p.r,0,Math.PI*2);ctx.fill();
  if(p.allyShot){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-p.vx*.018,p.y-p.vy*.018);ctx.lineTo(p.x+rand(-3,3),p.y+rand(-3,3));ctx.lineTo(p.x,p.y);ctx.stroke()}
  ctx.restore()}
- for(const e of enemies){drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);if(e.hp<e.maxHp||['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2,['boss','leviathan','maw','angler'].includes(e.kind)?6:3);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font='bold 11px sans-serif';ctx.textAlign='center';const labels={boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL'};ctx.fillText(labels[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-22)}}}
+ for(const e of enemies){if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);if(e.hp<e.maxHp||['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2,['boss','leviathan','maw','angler'].includes(e.kind)?6:3);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font='bold 11px sans-serif';ctx.textAlign='center';const labels={boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL'};ctx.fillText(labels[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-22)}}}
  for(const fx of effects){ctx.save();ctx.globalAlpha=clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=24;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:3;ctx.beginPath();if(fx.type==='ring'){const progress=1-fx.life/fx.maxLife;ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.lineTo(fx.x2+rand(-5,5),fx.y2+rand(-5,5))}ctx.stroke();ctx.restore()}
  for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=7;ctx.shadowColor=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill();ctx.restore()}
  if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(player.invuln<=0||Math.floor(t/80)%2===0)drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();ctx.arc(player.x,player.y,210*(upgrades.range||1),0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
@@ -447,6 +485,8 @@ window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Num
 });
 window.AbyssalGameHooks={
  skinColor:()=>currentSkinColor(),
+ viewportWidth:()=>W,
+ viewportHeight:()=>H,
  skinId:()=>equippedSkin,
  skinForId:id=>skinData.find(s=>s.id===id)||skinData[0],
  toast:message=>showToast(message),
@@ -457,7 +497,7 @@ window.AbyssalGameHooks={
  sharedXp:applySharedXp,
 };
 function renderCreaturePreview(canvas,kind,color,skin=null){
- if(!canvas)return;const c=canvas.getContext('2d');if(!c)return;const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const bg=c.createRadialGradient(w*.5,h*.45,2,w*.5,h*.5,Math.max(w,h)*.65);bg.addColorStop(0,'#102d40');bg.addColorStop(1,'#030913');c.fillStyle=bg;c.fillRect(0,0,w,h);c.save();c.strokeStyle='rgba(130,232,239,.16)';c.lineWidth=1;c.beginPath();c.ellipse(w*.5,h*.64,w*.3,h*.16,0,0,Math.PI*2);c.stroke();c.restore();drawCreature(w*.5,h*.49,Math.min(19,h*.22),-.2,color,kind,performance.now(),!!skin,0,c,skin);}
+ if(!canvas)return;const c=canvas.getContext('2d');if(!c)return;const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const bg=c.createRadialGradient(w*.5,h*.45,2,w*.5,h*.5,Math.max(w,h)*.65);bg.addColorStop(0,'#102d40');bg.addColorStop(1,'#030913');c.fillStyle=bg;c.fillRect(0,0,w,h);c.save();c.strokeStyle='rgba(130,232,239,.16)';c.lineWidth=1;c.beginPath();c.ellipse(w*.5,h*.64,w*.3,h*.16,0,0,Math.PI*2);c.stroke();c.restore();drawCreature(w*.5,h*.49,Math.min(w*.18,h*.29),-.2,color,kind,performance.now(),!!skin,0,c,skin);}
 function drawWheel(){
  const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[20,50,100,300,600,1000],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('MOEDAS',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
 function animateWheelToPrize(reward,grant=true){
@@ -490,18 +530,20 @@ function renderCatalog(){
  const el=$('catalogScreen'),grid=$('catalogGrid');if(!el||!grid)return;el.hidden=false;
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');
  const monsterData={
- drifter:{name:'Errante Luminescente',color:'#ff769d',symbol:'◉',desc:'Predador comum das zonas iluminadas do abismo. Move-se diretamente em direção ao mergulhador e causa dano por contato. Surge em grupos e sua velocidade aumenta conforme a expedição se prolonga.'},
- stinger:{name:'Ferrão de Fenda',color:'#ffbc78',symbol:'⌁',desc:'Caçador pequeno e extremamente ágil, com apêndices pontiagudos. Tem pouca resistência, mas tenta encurtar a distância rapidamente, tornando-se perigoso quando vários atacam ao mesmo tempo.'},
- brute:{name:'Bruto de Placas',color:'#bd88ff',symbol:'◈',desc:'Criatura pesada protegida por placas minerais. Aguenta muito mais dano do que os errantes e causa impactos fortes ao tocar o jogador. Sua movimentação é lenta, mas pode bloquear rotas de fuga.'},
- lurker:{name:'Predador Sombrio',color:'#6e8dff',symbol:'⦿',desc:'Habitante das regiões sem luz. Tem corpo alongado, olhos frios e comportamento persistente de perseguição. Resiste mais que as criaturas comuns e pune jogadores que permanecem parados.'},
- boss:{name:'Aberração Abissal',color:'#ff315f',symbol:'♆',desc:'Chefe de grande porte com crista óssea e tentáculos vermelhos bioluminescentes. Possui enorme reserva de vida e dano de contato elevado. A sua presença indica que a dificuldade da expedição aumentou.'},
- leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',symbol:'♜',desc:'Colosso alongado das fossas oceânicas, com nadadeiras luminosas e longos apêndices sensoriais. Tem a maior resistência entre os chefes conhecidos. Sua aproximação ocupa muito espaço e limita as rotas seguras.'},
- maw:{name:'A Boca do Abismo',color:'#c16cff',symbol:'◉',desc:'Massa predatória construída em torno de uma mandíbula circular repleta de dentes. Avança sem hesitar e transforma o contato direto em uma ameaça constante. O brilho violeta do corpo é visível mesmo na escuridão.'},
- angler:{name:'Lanterna Mortal',color:'#ffb45e',symbol:'✹',desc:'Predador de águas profundas que usa um órgão luminoso para detectar movimento. A haste brilhante e os espinhos da cabeça distinguem sua silhueta. É mais veloz que os chefes pesados e causa dano elevado.'}
+  drifter:{name:'Errante Luminescente',color:'#ff769d',desc:'Ctenóforo de sino translúcido. Avança em linha direta e deixa cílios brilhantes ondularem na água escura. Aparece em grupos e testa sua atenção.'},
+  stinger:{name:'Ferrão de Fenda',color:'#ffbc78',desc:'Peixe-ferrão veloz, corpo estreito, espinhos dorsais e mandíbula afiada. Tem pouca resistência, mas encurta a distância depressa quando vários cercam o mergulhador.'},
+  brute:{name:'Bruto de Placas',color:'#bd88ff',desc:'Isópode abissal de carapaça mineral, placas sobrepostas e patas simétricas. É lento, resistente e pode bloquear as rotas de fuga.'},
+  lurker:{name:'Predador Sombrio',color:'#6e8dff',desc:'Enguia gulper de mandíbula expansível e corpo alongado. Segue persistentemente o mergulhador e é mais difícil de eliminar que a fauna menor.'},
+  boss:{name:'O Coração Partido',color:'#ff315f',desc:'Uma entidade cefalópode coroada por osso, com máscara calcificada e braços curvados como ganchos. O brilho rubro denuncia uma criatura feita para caçar mergulhadores.'},
+  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',desc:'Serpente colossal de trincheira, com crânio pálido, costelas externas e nadadeiras em fileira. Seu corpo comprido domina as rotas de fuga.'},
+  maw:{name:'A Boca do Abismo',color:'#c16cff',desc:'Predador radial cuja silhueta é uma mandíbula circular cercada por dentes. Não há olhos fáceis de localizar — apenas um anel de fome que avança contra a luz.'},
+  angler:{name:'Lanterna Mortal',color:'#ffb45e',desc:'Peixe-pescador de mandíbula articulada, espinhos e isca bioluminescente. A luz atrai a presa para perto da boca, onde qualquer erro é punido.'}
  };
-
- const skillCopy={power:'Aumenta o dano causado por cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento do jogador.',range:'Amplia a distância máxima em que os inimigos podem ser escolhidos como alvo e alcançados pelas ondas.',magnet:'Atrai fragmentos de experiência de uma distância maior no modo solo.',regen:'Recupera vida gradualmente ao longo da partida.',shield:'Adiciona cargas de escudo que absorvem impactos antes de reduzir a vitalidade.',burst:'Libera periodicamente uma onda de energia ao redor do jogador, causando dano aos inimigos próximos.',electric:'Faz os disparos saltarem em raios visíveis entre inimigos próximos, causando dano adicional em cada salto.',pierce:'Permite atravessar uma criatura adicional por nível. A habilidade não aumenta o dano por impacto.',ricochet:'Cria arcos luminosos que saltam do alvo atingido para criaturas próximas, causando dano secundário.',nova:'Dispara periodicamente uma explosão circular de grande alcance que causa dano aos inimigos dentro da área.'};
- grid.innerHTML='<h3 class="codex-heading">✦ HABILIDADES DESCOBERTAS</h3><div class="codex-grid">'+upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('')+'</div><h3 class="codex-heading">◈ CRIATURAS ENCONTRADAS</h3><div class="codex-grid">'+Object.entries(monsterData).map(([k,m])=>{const known=codex.monsters.includes(k);return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}"><div class="codex-preview monster-preview" style="--preview:${m.color}"><canvas width="150" height="95" data-monster-preview="${k}" aria-label="Prévia real de ${known?m.name:'uma criatura não identificada'}"></canvas></div><b>${known?m.name:'Forma não identificada'}</b><p>${known?m.desc:'Sinal visual capturado. Encontre esta criatura durante uma expedição para revelar seu nome e comportamento.'}</p></article>`}).join('')+'</div>';
+ const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
+ const renderMonster=([k,m])=>{const known=codex.monsters.includes(k);return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}"><div class="codex-preview monster-preview" style="--preview:${m.color}"><canvas width="180" height="112" data-monster-preview="${k}" aria-label="Prévia real de ${known?m.name:'uma criatura não identificada'}"></canvas></div><b>${known?m.name:'Forma não identificada'}</b><p>${known?m.desc:'Registro incompleto. Observe esta criatura durante uma expedição para decifrar sua identidade e comportamento.'}</p></article>`};
+ const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
+ const entries=Object.entries(monsterData),common=entries.filter(([k])=>!['boss','leviathan','maw','angler'].includes(k)),bosses=entries.filter(([k])=>['boss','leviathan','maw','angler'].includes(k));
+ grid.innerHTML='<h3 class="codex-heading">✦ HABILIDADES DESCOBERTAS</h3><div class="codex-grid">'+skillsHtml+'</div><h3 class="codex-heading">◈ FAUNA DAS CAMADAS EXTERNAS</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div><h3 class="codex-heading">☠ ENTIDADES COLOSSAIS · FOSSAS ABISSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
  grid.querySelectorAll('canvas[data-monster-preview]').forEach(canvas=>{const kind=canvas.dataset.monsterPreview,m=monsterData[kind];renderCreaturePreview(canvas,kind,m.color,null);});
 }
 

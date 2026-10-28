@@ -14,10 +14,64 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
-let users = readJson(USERS_FILE, {});
-let rankings = readJson(RANKS_FILE, { eternal: {}, daily: {}, weekly: {}, settled: { day: '', week: '', month: '' } });
-function saveUsers() { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 }); }
-function saveRanks() { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
+const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, settled: { day: '', week: '', month: '' } };
+let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));
+let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
+let pgPool = null;
+let persistenceQueue = Promise.resolve();
+function persistState(key, value) {
+ if (!pgPool) return;
+ // Queue writes in order and snapshot the value now, so parallel socket events cannot reorder them.
+ const serialized = JSON.stringify(value);
+ persistenceQueue = persistenceQueue.then(() => pgPool.query(
+  'INSERT INTO abyssal_state (state_key, state_value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = NOW()',
+  [key, serialized]
+ )).catch(err => console.error(`[persistence] Falha ao salvar ${key} no PostgreSQL:`, err.message));
+}
+function saveUsers() {
+ try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 }); }
+ catch (err) { console.warn('[persistence] Arquivo local indisponível:', err.message); }
+ persistState('users', users);
+}
+function saveRanks() {
+ try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
+ catch (err) { console.warn('[persistence] Arquivo de rankings local indisponível:', err.message); }
+ persistState('rankings', rankings);
+}
+async function initializePersistence() {
+ if (!process.env.DATABASE_URL) {
+  console.warn('[persistence] DATABASE_URL não configurada. Este deploy usará arquivos locais efêmeros; contas podem desaparecer após reinício/deploy.');
+  return;
+ }
+ let Pool;
+ try { ({ Pool } = require('pg')); }
+ catch { throw new Error('DATABASE_URL foi configurada, mas o pacote pg não foi instalado. Execute npm install e faça um novo deploy.'); }
+ pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === 'disable' ? false : { rejectUnauthorized: false },
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000
+ });
+ pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
+ await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
+ const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings')");
+ const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
+ if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
+  users = Object.assign(Object.create(null), stored.users);
+ } else {
+  // First run: migrate whatever the old local JSON files still contain into durable storage.
+  await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('users',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(users)]);
+ }
+ if (stored.rankings && typeof stored.rankings === 'object' && !Array.isArray(stored.rankings)) {
+  rankings = { ...EMPTY_RANKINGS, ...stored.rankings, settled: { ...EMPTY_RANKINGS.settled, ...(stored.rankings.settled || {}) } };
+ } else {
+  rankings = { ...EMPTY_RANKINGS, ...rankings, settled: { ...EMPTY_RANKINGS.settled, ...(rankings.settled || {}) } };
+  await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('rankings',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(rankings)]);
+ }
+ console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
+}
+async function flushPersistence() { await persistenceQueue; }
 function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
@@ -37,19 +91,17 @@ function onlineCount() { return io.engine.clientsCount; }
 function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]) }; }
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount() }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'abyssal-server', online: onlineCount(), persistence: pgPool ? 'postgres' : 'local-ephemeral' }));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 
 const worldPlayers = new Map();
 const authAttempts = new Map();
 const BOSS_KINDS = new Set(['boss','leviathan','maw','angler']);
-const worldState = { initialized:false, elapsed:0, enemies:[], nextEnemyId:0, nextBossAt:60, bossSpawnCount:0, lastBossKind:null, lastBossMaxHp:0, spawnTimer:0, lastTick:Date.now(), snapshotTimer:0 };
-const wrap01 = value => ((value % 1) + 1) % 1;
-const wrapDelta01 = (a,b) => { let d=a-b; if(d>.5)d-=1; if(d<-.5)d+=1; return d; };
+const worldState = { initialized:false, elapsed:0, enemies:[], nextEnemyId:0, nextBossAt:60, bossSpawnCount:0, lastBossKind:null, lastBossMaxHp:0, spawnTimer:0, lastTick:Date.now(), snapshotTimer:0, playerSnapshotTimer:0 };
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function ensureWorld(){
  if(worldState.initialized)return;
- worldState.initialized=true;worldState.elapsed=0;worldState.nextBossAt=60;worldState.bossSpawnCount=0;worldState.lastBossKind=null;worldState.lastBossMaxHp=0;worldState.nextEnemyId=0;worldState.enemies=[];worldState.spawnTimer=.8;worldState.lastTick=Date.now();
+ worldState.initialized=true;worldState.elapsed=0;worldState.nextBossAt=60;worldState.bossSpawnCount=0;worldState.lastBossKind=null;worldState.lastBossMaxHp=0;worldState.nextEnemyId=0;worldState.enemies=[];worldState.spawnTimer=.8;worldState.lastTick=Date.now();worldState.snapshotTimer=0;worldState.playerSnapshotTimer=0;
  for(let i=0;i<3;i++)spawnWorldEnemy(true);
 }
 function spawnWorldEnemy(initial=false){
@@ -73,8 +125,14 @@ function spawnWorldEnemy(initial=false){
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  };
- const data=bossData[kind]||commonData[kind]||commonData.drifter;
- if(bossDue){data.hp=worldState.lastBossMaxHp>0?worldState.lastBossMaxHp*1.5:data.hp;worldState.lastBossMaxHp=data.hp;worldState.bossSpawnCount++;}
+ const data={...(bossData[kind]||commonData[kind]||commonData.drifter)};
+ if(bossDue){
+  const tier=worldState.bossSpawnCount;
+  data.hp=worldState.lastBossMaxHp>0?worldState.lastBossMaxHp*1.5:data.hp;
+  data.damage=Math.min(95,Math.round(data.damage*Math.pow(1.12,tier)));
+  data.speed=Math.min(90,data.speed*Math.pow(1.055,tier));
+  worldState.lastBossMaxHp=data.hp;worldState.bossSpawnCount++;
+ }
  const enemy={id:++worldState.nextEnemyId,x,y,r:data.r/500,hp:data.hp,maxHp:data.hp,speed:data.speed,damage:data.damage,color:data.color,value:data.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind};
  worldState.enemies.push(enemy);
  if(worldState.enemies.length>95)worldState.enemies.splice(0,worldState.enemies.length-95);
@@ -83,7 +141,13 @@ function spawnWorldEnemy(initial=false){
 function worldSnapshot(){return {elapsed:worldState.elapsed,enemies:worldState.enemies.slice(0,120).map(e=>({...e}))};}
 function broadcastWorld(){if(worldState.initialized)io.to('abyss').emit('game-snapshot',worldSnapshot());}
 function awardWorldBossCoins(){
- const seen=new Set();for(const p of worldPlayers.values()){if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);const u=users[p.userKey];if(!u)continue;u.coins=(u.coins||0)+100;saveUsers();io.to(p.id).emit('account-data',publicUser(u));}
+ const seen=new Set();let changed=false;
+ for(const p of worldPlayers.values()){
+  if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
+  const u=users[p.userKey];if(!u)continue;
+  u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
+ }
+ if(changed)saveUsers();
 }
 function processWorldDamage(socket,id,damage){
  if(!socket.data.joined||!Number.isFinite(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return;
@@ -95,7 +159,7 @@ function processWorldDamage(socket,id,damage){
   io.to('abyss').emit('shared-xp-award',{value:Math.max(1,Math.round(enemy.value)),source:'kill'});
   if(boss){worldState.nextBossAt=worldState.elapsed+60;awardWorldBossCoins();}
  }
- broadcastWorld();
+ // O próximo snapshot periódico (~12,5 Hz) inclui vida/remoção; não retransmitimos o mundo a cada projétil.
 }
 function worldTick(){
  const now=Date.now(),dt=Math.max(0,Math.min(.1,(now-worldState.lastTick)/1000));worldState.lastTick=now;
@@ -104,6 +168,8 @@ function worldTick(){
  // O relógio do mundo pertence ao servidor e continua mesmo sem uma aba em primeiro plano.
  // Sem mergulhadores conectados, congelamos encontros para que o retorno não gere hordas artificiais.
  if(worldPlayers.size===0)return;
+ worldState.playerSnapshotTimer-=dt;
+ if(worldState.playerSnapshotTimer<=0){worldState.playerSnapshotTimer=.08;io.to('abyss').emit('world-players',[...worldPlayers.values()]);}
  worldState.spawnTimer-=dt;
  const activeBoss=worldState.enemies.some(e=>isBossKind(e.kind));
  if(worldState.spawnTimer<=0){if(!activeBoss)spawnWorldEnemy(false);worldState.spawnTimer=activeBoss ? .45 : Math.max(.35,1.02-worldState.elapsed*.003);}
@@ -111,10 +177,14 @@ function worldTick(){
  for(const e of worldState.enemies){
   e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
   let target=null,best=Infinity;
-  for(const p of players){const dx=wrapDelta01(p.x,e.x),dy=wrapDelta01(p.y,e.y),d=Math.hypot(dx,dy);if(d<best){best=d;target=p;}}
-  if(target&&best>.006){const dx=wrapDelta01(target.x,e.x),dy=wrapDelta01(target.y,e.y),d=Math.hypot(dx,dy)||1;e.angle=Math.atan2(dy,dx);const step=(e.speed/500)*dt;e.x=wrap01(e.x+dx/d*step);e.y=wrap01(e.y+dy/d*step);}
+  for(const p of players){const dx=p.x-e.x,dy=p.y-e.y,d=Math.hypot(dx*(p.viewportWidth||1200),dy*(p.viewportHeight||700));if(d<best){best=d;target=p;}}
+  if(target&&best>2){
+   const dx=target.x-e.x,dy=target.y-e.y,vw=target.viewportWidth||1200,vh=target.viewportHeight||700;
+   const px=dx*vw,py=dy*vh,dpx=Math.hypot(px,py)||1;e.angle=Math.atan2(py,px);
+   const move=e.speed*dt;e.x+=(px/dpx*move)/vw;e.y+=(py/dpx*move)/vh;
+  }
  }
- worldState.snapshotTimer-=dt;if(worldState.snapshotTimer<=0){worldState.snapshotTimer=.10;broadcastWorld();}
+ worldState.snapshotTimer-=dt;if(worldState.snapshotTimer<=0){worldState.snapshotTimer=.08;broadcastWorld();}
 }
 setInterval(worldTick,50).unref();
 io.on('connection', socket => {
@@ -126,7 +196,7 @@ io.on('connection', socket => {
   if (attempts.length >= 12) return socket.emit('auth-result', { ok: false, message: 'Muitas tentativas. Aguarde um minuto.' });
   const nickname = String(payload.nickname || '').trim(), password = String(payload.password || '');
   if (!/^[a-zA-Z0-9_]{3,18}$/.test(nickname) || password.length < 8 || password.length > 128) return socket.emit('auth-result', { ok: false, message: 'Nickname inválido ou senha fora do limite (8–128 caracteres).' });
-  const key = nickname.toLowerCase(); let user = users[key];
+  const key = nickname.toLowerCase(); let user = Object.hasOwn(users, key) ? users[key] : null;
   const mode = payload.mode === 'register' ? 'register' : 'login';
   if (mode === 'register') {
    if (user) return socket.emit('auth-result', { ok: false, message: 'Este nickname já existe. Use Entrar ou escolha outro nickname.' });
@@ -145,7 +215,7 @@ io.on('connection', socket => {
   if (!socket.data.nickname) return socket.emit('server-message', 'Entre com sua conta para participar do modo online.');
   if (socket.data.joined) return;
   ensureWorld();socket.data.joined = true; socket.join('abyss');
-  const p = { id: socket.id, nickname: socket.data.nickname, userKey:socket.data.userKey, x: .5, y: .5, angle: 0, color: '#bd91ff', skinId: users[socket.data.userKey]?.equippedSkin || 'default' }; worldPlayers.set(socket.id, p);
+  const p = { id: socket.id, nickname: socket.data.nickname, userKey:socket.data.userKey, x: .5, y: .5, angle: 0, viewportWidth:1200, viewportHeight:700, color: '#bd91ff', skinId: users[socket.data.userKey]?.equippedSkin || 'default' }; worldPlayers.set(socket.id, p);
   socket.emit('world-players', [...worldPlayers.values()].filter(x=>x.id!==socket.id)); socket.to('abyss').emit('player-joined', p);
   socket.emit('game-snapshot',worldSnapshot());io.to('abyss').emit('server-message', `${socket.data.nickname} entrou nas profundezas.`); broadcastOnline();
  });
@@ -156,7 +226,16 @@ io.on('connection', socket => {
   if (socket.data.nickname) io.to('abyss').emit('server-message', `${socket.data.nickname} encerrou o mergulho.`);
   socket.emit('world-left');broadcastOnline();
  });
- socket.on('player-position', payload => { if (!socket.data.joined || !payload || typeof payload !== 'object') return; const p = worldPlayers.get(socket.id); if (!p) return; p.x = Math.max(.02, Math.min(.98, Number(payload.x) || .5)); p.y = Math.max(.02, Math.min(.98, Number(payload.y) || .5)); p.angle = Math.max(-Math.PI * 2, Math.min(Math.PI * 2, Number(payload.angle) || 0)); const color = String(payload.color || '#bd91ff'); p.color = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#bd91ff'; const skinId=String(payload.skinId||'default');p.skinId=new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']).has(skinId)?skinId:'default'; io.to('abyss').emit('world-players', [...worldPlayers.values()]); });
+ socket.on('player-position', payload => {
+  if (!socket.data.joined || !payload || typeof payload !== 'object') return;
+  const p = worldPlayers.get(socket.id); if (!p) return;
+  p.x = Math.max(.02, Math.min(.98, Number(payload.x) || .5)); p.y = Math.max(.02, Math.min(.98, Number(payload.y) || .5));
+  p.angle = Math.max(-Math.PI * 2, Math.min(Math.PI * 2, Number(payload.angle) || 0));
+  p.viewportWidth = Math.max(320, Math.min(3000, Number(payload.viewportWidth) || p.viewportWidth || 1200));
+  p.viewportHeight = Math.max(320, Math.min(2200, Number(payload.viewportHeight) || p.viewportHeight || 700));
+  const color = String(payload.color || '#bd91ff'); p.color = /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#bd91ff';
+  const skinId=String(payload.skinId||'default');p.skinId=new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']).has(skinId)?skinId:'default';
+ });
  socket.on('player-hit', payload => { if (!socket.data.joined || !payload) return; const x = Number(payload.x), y = Number(payload.y), damage = Number(payload.damage); if (![x,y,damage].every(Number.isFinite) || x < 0 || x > 1 || y < 0 || y > 1 || damage < 0 || damage > 1000) return; socket.to('abyss').emit('remote-hit', { x, y, damage, from: socket.data.nickname }); });
  socket.on('game-snapshot', () => {}); // Clientes não publicam mais o estado autoritativo.
  socket.on('request-host-state', () => {});
@@ -203,4 +282,27 @@ io.on('connection', socket => {
  socket.on('disconnect', () => { if (worldPlayers.has(socket.id)) { worldPlayers.delete(socket.id); socket.to('abyss').emit('player-left', socket.id);io.to('abyss').emit('world-players',[...worldPlayers.values()]);if(socket.data.nickname)io.to('abyss').emit('server-message',`${socket.data.nickname} deixou as profundezas.`); } broadcastOnline(); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
-server.listen(PORT, '0.0.0.0', () => { settlePeriods(); console.log(`Abyssal online em http://localhost:${PORT}`); });
+async function boot() {
+ await initializePersistence();
+ settlePeriods();
+ await flushPersistence();
+ server.listen(PORT, '0.0.0.0', () => console.log(`Abyssal online em http://localhost:${PORT} · persistência: ${pgPool ? 'PostgreSQL' : 'local efêmera'}`));
+}
+boot().catch(err => {
+ console.error('[boot] O servidor não será iniciado para evitar aceitar contas sem persistência configurada/funcional:', err);
+ process.exit(1);
+});
+let shutdownStarted = false;
+async function shutdown(signal) {
+ if (shutdownStarted) return; shutdownStarted = true;
+ console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
+ const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
+ try {
+  await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
+  await flushPersistence();
+  if (pgPool) await pgPool.end();
+  clearTimeout(hardStop); process.exit(0);
+ } catch (err) { console.error('[shutdown] Falha ao finalizar com segurança:', err.message); process.exit(1); }
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

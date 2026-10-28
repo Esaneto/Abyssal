@@ -1,8 +1,8 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "2.4.0",
+  "version": "2.6.0",
   "private": true,
-  "description": "Abyssal: cooperativo autoritativo no servidor, bosses abissais, skins e progressão arcade",
+  "description": "Abyssal: criaturas abissais, catálogo e loja corrigidos, multiplayer suavizado e contas persistentes via PostgreSQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "pg": "^8.16.3"
   }
 }

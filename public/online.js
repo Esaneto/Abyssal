@@ -27,8 +27,8 @@ function connect(){
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
  socket.on('shared-xp-award',data=>{if(window.AbyssalGameHooks?.sharedXp)window.AbyssalGameHooks.sharedXp(data);});
- socket.on('world-players',list=>{players.clear();list.forEach(p=>{if(p.id!==socket.id)players.set(p.id,p)})});
- socket.on('player-joined',p=>{if(p.id!==socket.id)players.set(p.id,p)});
+ socket.on('world-players',list=>applyPlayerList(list));
+ socket.on('player-joined',p=>{if(p.id!==socket.id)storePlayer(p)});
  socket.on('player-left',id=>players.delete(id));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
  socket.on('shared-shot',data=>{if(data&&data.from!==account?.nickname)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
@@ -56,7 +56,7 @@ $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput')
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
 $('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')authenticate($('nicknameInput').value,$('passwordInput').value,'login')});
 $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('passwordInput').focus()});
-function sendPosition(player){if(!socket?.connected||!authenticated||!player)return;const now=performance.now();if(now-lastPositionAt<80)return;lastPositionAt=now;socket.emit('player-position',{x:player.x, y:player.y, angle:player.angle,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default'})}
+function sendPosition(player){if(!socket?.connected||!authenticated||!player)return;const now=performance.now();if(now-lastPositionAt<80)return;lastPositionAt=now;socket.volatile.emit('player-position',{x:player.x, y:player.y, angle:player.angle,viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default'})}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage){if(socket?.connected&&authenticated)socket.emit('shared-damage',{id,damage})}
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
@@ -71,7 +71,22 @@ function saveCosmetics(data){if(socket?.connected&&authenticated)socket.emit('sa
 function renderRankings(data){const root=$('rankingContent');if(!root||!data)return;const sections=[['eternal','GLOBAL ETERNO','Top 10 mensal recebe 5.000 moedas abissais.'],['weekly','RANKING SEMANAL','Top 10 semanal recebe 1.000 moedas abissais.'],['daily','RANKING DIÁRIO','Top 10 diário recebe 100 moedas abissais.']];root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[];return `<section class="ranking-section"><h3>${title}</h3>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${formatTime(p.survival)}</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">—</span><span class="rank-name">Ainda sem registros</span><span class="rank-time">00:00</span></div>'}<p class="ranking-note">${note}</p></section>`}).join('')}
 function formatTime(s){s=Math.max(0,Math.floor(Number(s)||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function getPlayers(){return [...players.values()]}
+function getInterpolatedPeer(p,now=performance.now()){
+ const duration=Math.max(1,Number(p.interpDuration)||1),t=Math.max(0,Math.min(1,(now-(Number(p.interpAt)||now))/duration));
+ return {...p,x:Number(p.fromX)+(Number(p.targetX)-Number(p.fromX))*t,y:Number(p.fromY)+(Number(p.targetY)-Number(p.fromY))*t};
+}
+function storePlayer(incoming){
+ if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
+ const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null;
+ const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):.5;
+ players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:115});
+}
+function applyPlayerList(list){
+ const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
+ for(const id of players.keys())if(!keep.has(id))players.delete(id);
+}
+function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
+
 updateAccount();
 window.AbyssalOnline={openLogin,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},submitRun,loadRankings,purchaseSkin,purchaseMeta,spinWheel,saveCosmetics,getAccount:()=>serverAccount};
 })();
