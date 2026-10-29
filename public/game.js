@@ -220,7 +220,7 @@ function chooseUpgrade(u){
  level++;gameState='playing';$('upgradeScreen').hidden=true;
  showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
  playSkillSound(u.id,'learn');updateHud();last=performance.now();
- if(onlineMode&&xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
+ if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
 function offerUpgrade(){
  if(gameState==='upgrade')return;
