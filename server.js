@@ -614,6 +614,38 @@ io.on('connection', socket => {
  socket.on('shared-damage', (payload,acknowledge) => {const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage));if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
+ socket.on('delete-account', async(payload={}) => {
+  const key=socket.data.userKey,user=users[key];
+  if(!key||!user)return socket.emit('account-deletion-result',{ok:false,message:'Entre na sua conta para excluir seu perfil.'});
+  const typedNickname=String(payload.nickname||'').trim();
+  if(typedNickname.toLowerCase()!==String(user.nickname||'').trim().toLowerCase()){
+   return socket.emit('account-deletion-result',{ok:false,message:'O nickname digitado não corresponde à sua conta. Nenhuma informação foi excluída.'});
+  }
+  try{
+   // Disconnect every active session for this account before removing the key, so stale sockets
+   // cannot mutate a newly-created account that reuses the same nickname.
+   for(const session of io.sockets.sockets.values()){
+    if(session.data.userKey!==key)continue;
+    const isRequester=session.id===socket.id;
+    removeFromRoom(session,{announce:true,emitResult:true});
+    session.data.userKey=null;session.data.nickname=null;session.data.joined=false;session.data.roomId=null;
+    if(!isRequester)session.emit('account-force-logout',{message:'Esta conta foi excluída em outra sessão.'});
+   }
+   delete users[key];
+   const removeFromBoard=(board)=>{
+    if(!board||typeof board!=='object')return;
+    delete board[key];
+    for(const value of Object.values(board))if(value&&typeof value==='object')removeFromBoard(value);
+   };
+   removeFromBoard(rankings);
+   saveUsers();saveRanks();await flushPersistence();
+   socket.emit('account-deletion-result',{ok:true,message:'Sua conta e os dados associados foram excluídos permanentemente.'});
+   broadcastOnline();
+  }catch(err){
+   console.error('[account] Falha ao excluir conta:',err.message);
+   socket.emit('account-deletion-result',{ok:false,message:'Não foi possível concluir a exclusão agora. Tente novamente mais tarde.'});
+  }
+ });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
  socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
