@@ -35,7 +35,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   $('profileNickname').textContent=user.nickname||account?.nickname||'VISITANTE';
   $('profileEquippedLabel').textContent='Título equipado: '+current.name;
   $('profileEmblem').innerHTML=titleArtwork(current.id);$('profileEmblem').style.setProperty('--title-color',current.color);$('profileEmblem').style.color=current.color;
-  $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':'Entre na sua conta para salvar seu título.';
+  $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':(window.AbyssalOnline?.isConnected()?'Entre na sua conta para salvar seu título.':'Conexão interrompida; exibindo os últimos dados sincronizados.');
   $('profileKills').textContent=kills.toLocaleString('pt-BR');$('profileBosses').textContent=bosses.toLocaleString('pt-BR');
   $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';
   root.innerHTML=PROFILE_TITLES.map(t=>{
@@ -134,7 +134,7 @@ function connect(){
   socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
  socket.on('session-resumed',result=>{
-  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;updateAccount();if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil e o chat.',true);return;}
+  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil e o chat.',true);return;}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);
