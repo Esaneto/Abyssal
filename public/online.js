@@ -75,6 +75,8 @@ let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAcc
    return;
   }
   screen.hidden=false;
+  const deleteInput=$('deleteNicknameInput');if(deleteInput)deleteInput.value='';
+  const deleteBtn=$('deleteAccountBtn');if(deleteBtn)deleteBtn.disabled=true;
   $('profileMessage').textContent='Sincronizando suas informações com o servidor…';
   renderProfile(serverAccount);
   refreshAccount();
@@ -290,6 +292,63 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
+ socket.on('account-deletion-result',result=>{
+  const message=result?.message||'Não foi possível excluir a conta.';
+  if(!result?.ok){const el=$('profileMessage');if(el)el.textContent=message;return}
+  authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');
+  $('profileScreen').hidden=true;$('loginScreen').hidden=true;$('downloadScreen').hidden=true;
+  updateAccount();renderProfile({});
+  const toast=$('toast');if(toast){toast.textContent='Conta excluída permanentemente.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500)}
+ });
+ socket.on('account-force-logout',()=>{
+  authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');
+  $('profileScreen').hidden=true;updateAccount();renderProfile({});
+ });
+ const deleteInput=$('deleteNicknameInput'),deleteBtn=$('deleteAccountBtn');
+ function updateDeleteButton(){
+  if(!deleteInput||!deleteBtn)return;
+  const expected=String(serverAccount?.nickname||'').trim().toLowerCase();
+  deleteBtn.disabled=!authenticated||!expected||deleteInput.value.trim().toLowerCase()!==expected;
+ }
+ deleteInput?.addEventListener('input',updateDeleteButton);
+ deleteBtn?.addEventListener('click',()=>{
+  if(!authenticated||!serverAccount)return;
+  const expected=String(serverAccount.nickname||'').trim().toLowerCase();
+  if(deleteInput.value.trim().toLowerCase()!==expected){updateDeleteButton();return}
+  const message=$('profileMessage');
+  if(message)message.textContent='Solicitando exclusão segura da conta…';
+  deleteBtn.disabled=true;
+  socket.emit('delete-account',{nickname:deleteInput.value.trim()});
+ });
+ $('fullscreenBtn')?.addEventListener('click',async()=>{
+  const button=$('fullscreenBtn');
+  try{
+   const isFullscreen=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+   if(isFullscreen){
+    if(document.exitFullscreen)await document.exitFullscreen();
+    else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+   }else{
+    const root=document.documentElement;
+    if(root.requestFullscreen)await root.requestFullscreen();
+    else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
+    else throw new Error('unsupported');
+   }
+  }catch(err){
+   if(button)button.title='Tela cheia não disponível neste navegador ou dispositivo.';
+  }
+ });
+ function updateFullscreenButton(){
+  const button=$('fullscreenBtn');if(!button)return;
+  const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+  button.textContent=active?'⤢':'⛶';
+  button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
+  button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
+ }
+ document.addEventListener('fullscreenchange',updateFullscreenButton);
+ document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
+ $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false});
+ $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
+ $('playBrowserBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
  $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem enviada para o abismo.'}});
