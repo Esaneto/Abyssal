@@ -36,6 +36,12 @@ function saveUsers() {
  catch (err) { console.warn('[persistence] Arquivo local indisponível:', err.message); }
  persistState('users', users);
 }
+let titleStatsSaveTimer=null;
+function scheduleTitleStatsSave() {
+ if(titleStatsSaveTimer)return;
+ titleStatsSaveTimer=setTimeout(()=>{titleStatsSaveTimer=null;saveUsers();},2000);
+ titleStatsSaveTimer.unref?.();
+}
 function saveRanks() {
  try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
  catch (err) { console.warn('[persistence] Arquivo de rankings local indisponível:', err.message); }
@@ -80,7 +86,13 @@ function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b,
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
-function publicUser(u) { return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {} }; }
+const TITLE_DEFINITIONS=[
+  {id:'abyss-drifter',kind:'starter',required:0},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'current-hunter',kind:'kills',required:250},{id:'pelagic-executioner',kind:'kills',required:1000},
+  {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50}
+ ];
+ function unlockedTitleIds(u){const stats=u.titleStats||{};return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||(Number(stats[t.kind==='kills'?'monstersDefeated':'bossesDefeated'])||0)>=t.required).map(t=>t.id)}
+ function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
@@ -103,6 +115,11 @@ app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
+const globalChatHistory=[];
+const globalChatRate=new Map();
+const CHAT_HISTORY_LIMIT=50,CHAT_MESSAGE_LIMIT=180,CHAT_RATE_WINDOW_MS=10000,CHAT_RATE_MAX=5,CHAT_MIN_INTERVAL_MS=900;
+const CHAT_TITLE_IDS=new Set(TITLE_DEFINITIONS.map(t=>t.id));
+function publicChatMessage(message){return {id:message.id,nickname:message.nickname,titleId:message.titleId,text:message.text,at:message.at};}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
@@ -252,7 +269,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  room.players.delete(socket.id);socket.leave(channelFor(room));socket.data.joined=false;socket.data.roomId=null;
  if(announce&&socket.data.nickname&&room.players.size>0)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
  socket.to(channelFor(room)).emit('player-left',socket.id);
- io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
+ io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  if(emitResult)socket.emit('world-left');
  if(room.players.size===0){
   // Empty arenas must stop simulating immediately and release all enemy/particle-like state.
@@ -281,6 +298,14 @@ function processWorldDamage(socket,id,damage){
  if(enemy.hp<=0){
   w.enemies.splice(idx,1);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
+  const killer=users[socket.data.userKey];
+  if(killer){
+   killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
+   killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
+   if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;
+   scheduleTitleStatsSave();
+   socket.emit('account-data',publicUser(killer));
+  }
   io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
   // XP is not awarded on kill: a shared orb is dropped in the authoritative world.
   // The first player who touches it will receive the XP from tickWorld.
@@ -374,7 +399,7 @@ function tickRoom(room, now) {
  for (const heal of result.playerHeals || []) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
  }
- if (result.sendPlayers) io.to(channelFor(room)).volatile.emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
+ if (result.sendPlayers) io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
 }
 
 function worldTick() {
@@ -395,7 +420,7 @@ function worldTick() {
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
- socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
+ socket.emit('online-count', onlineCount()); socket.emit('global-chat-history',globalChatHistory); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
@@ -414,10 +439,26 @@ io.on('connection', socket => {
    const candidate = hashPassword(password, user.salt);
    if (!safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
-  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; socket.data.nickname = user.nickname; socket.data.userKey = key;
+  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
  });
- socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
+   socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
+  socket.on('global-chat-send',(payload={})=>{
+   if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
+   const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
+   const recent=previous.filter(t=>now-t<CHAT_RATE_WINDOW_MS);
+   if(recent.length>=CHAT_RATE_MAX||(recent.length&&now-recent[recent.length-1]<CHAT_MIN_INTERVAL_MS)){
+    globalChatRate.set(socket.id,recent);return socket.emit('global-chat-error',{message:'Você está transmitindo rápido demais. Aguarde um pouco.'});
+   }
+   const text=String(payload?.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,CHAT_MESSAGE_LIMIT);
+   if(!text)return;
+   recent.push(now);globalChatRate.set(socket.id,recent);
+   const user=users[socket.data.userKey];
+   const message={id:crypto.randomUUID(),nickname:socket.data.nickname,titleId:CHAT_TITLE_IDS.has(user?.equippedTitle)?user.equippedTitle:'abyss-drifter',text,at:now};
+   globalChatHistory.push(message);if(globalChatHistory.length>CHAT_HISTORY_LIMIT)globalChatHistory.splice(0,globalChatHistory.length-CHAT_HISTORY_LIMIT);
+   io.emit('global-chat-message',publicChatMessage(message));
+  });
+  socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
  socket.on('create-room', async payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-created',{ok:false,message:'Entre na sua conta antes de criar uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
@@ -439,7 +480,7 @@ io.on('connection', socket => {
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
   const existingRoom=socketRoom(socket);
-  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
+  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
   if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
@@ -452,13 +493,17 @@ io.on('connection', socket => {
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
   const initialShieldCharges=Math.max(0,Math.min(1,Math.floor(Number(u?.metaUpgrades?.startShield)||0)));
   const now=Date.now();
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',runStats:makeRunStats()};
+  const occupiedSpawnSlots=new Set([...room.players.values()].map(player=>Number(player.spawnSlot)).filter(Number.isInteger));
+  let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
+  const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
+  const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
   socket.to(channelFor(room)).emit('player-joined',((({userKey,runStats,...x})=>x)(p)));
   setTimeout(()=>{if(room.players.has(socket.id)){socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120);
-  io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,runStats,...x})=>x));
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...x})=>x));
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
@@ -570,6 +615,7 @@ io.on('connection', socket => {
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
+  socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
  socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
@@ -597,7 +643,7 @@ io.on('connection', socket => {
   u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
- socket.on('disconnect', () => { if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
+ socket.on('disconnect', () => { globalChatRate.delete(socket.id); if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heartbeat falhou:',err.message)),5000).unref();
@@ -618,6 +664,7 @@ async function shutdown(signal) {
  console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
+  if(titleStatsSaveTimer){clearTimeout(titleStatsSaveTimer);titleStatsSaveTimer=null;saveUsers();}
   await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}

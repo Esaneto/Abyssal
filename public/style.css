@@ -200,3 +200,87 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 @keyframes onlineCtaSweep{0%,70%,100%{left:-45%}85%{left:125%}}
 @media(max-width:700px){.menu-secondary-actions #onlineBtn.online-cta{min-height:62px;padding:11px 13px;gap:10px}.online-cta-copy strong{font-size:11px}.online-cta-copy small{font-size:7px}.online-cta-icon{width:34px;height:34px;flex-basis:34px;font-size:25px}}
 @media(prefers-reduced-motion:reduce){.menu-secondary-actions #onlineBtn.online-cta,.menu-secondary-actions #onlineBtn.online-cta:before{animation:none}}
+
+/* Perfil do mergulhador e seleção de títulos */
+.profile-modal{width:min(850px,calc(100vw - 28px));max-height:min(88dvh,900px);overflow:auto;padding:clamp(20px,4vw,38px);background:linear-gradient(145deg,rgba(7,28,42,.98),rgba(4,14,25,.98));border:1px solid rgba(121,243,240,.23);box-shadow:0 24px 90px rgba(0,0,0,.48),inset 0 0 45px rgba(42,149,168,.05)}
+.profile-hero{display:flex;align-items:center;gap:18px;margin:20px 0 24px;padding:18px;border:1px solid rgba(121,243,240,.17);background:linear-gradient(110deg,rgba(29,81,98,.35),rgba(10,29,43,.45));}
+.profile-emblem{width:76px;height:76px;flex:none;display:grid;place-items:center;border-radius:50%;font-size:34px;color:#a9fffb;border:1px solid rgba(121,243,240,.65);background:radial-gradient(circle,rgba(70,223,220,.23),rgba(9,38,54,.85) 70%);box-shadow:0 0 25px rgba(83,225,224,.15),inset 0 0 18px rgba(83,225,224,.12)}
+.profile-identity{min-width:0}.profile-identity h2{font-size:clamp(22px,3.4vw,34px);margin:0 0 8px;overflow-wrap:anywhere}.profile-identity p{margin:0 0 6px;color:var(--cyan);font-size:13px;font-weight:700}.profile-account-note{font-size:11px;color:var(--muted)}
+.profile-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:26px}.profile-stat{padding:14px 12px;border:1px solid var(--line);background:rgba(10,34,48,.7);min-width:0}.profile-stat small{display:block;font:9px 'DM Mono',monospace;color:#81a6b5;letter-spacing:.08em;line-height:1.5}.profile-stat strong{display:block;margin-top:8px;color:#d7ffff;font-size:clamp(20px,3vw,29px);font-variant-numeric:tabular-nums}
+.profile-title-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:12px}.profile-title-heading h3{margin:0;color:#dffbff;font-size:14px;letter-spacing:.1em}.profile-title-heading p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.5}.profile-progress{font:10px 'DM Mono',monospace;color:var(--cyan);white-space:nowrap}
+.profile-title-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}.profile-title-card{display:flex;gap:12px;align-items:flex-start;min-width:0;padding:14px;border:1px solid rgba(135,183,199,.18);background:rgba(8,26,39,.8);transition:border-color .2s,background .2s}.profile-title-card.is-equipped{border-color:rgba(121,243,240,.7);background:linear-gradient(120deg,rgba(30,103,111,.24),rgba(8,26,39,.9));box-shadow:inset 0 0 18px rgba(121,243,240,.04)}.profile-title-card.is-locked{opacity:.7}.profile-title-icon{width:43px;height:43px;flex:none;display:grid;place-items:center;border-radius:12px;font-size:21px;border:1px solid var(--title-color,rgba(121,243,240,.4));color:var(--title-color,#79f3f0);background:color-mix(in srgb,var(--title-color,#79f3f0) 9%,transparent)}.profile-title-copy{min-width:0;flex:1}.profile-title-name{margin:0 0 5px;color:var(--title-color,#b9f8f6);font-size:13px;font-weight:800;overflow-wrap:anywhere}.profile-title-desc{margin:0 0 9px;color:#88a6b5;font-size:11px;line-height:1.5}.profile-title-meta{display:flex;flex-wrap:wrap;align-items:center;gap:7px;font:9px 'DM Mono',monospace;color:#80a4b4}.profile-title-state{display:inline-flex;align-items:center;gap:4px;color:#91f4d6}.profile-title-state.locked{color:#82909b}.profile-title-action{margin-top:10px;min-height:30px;padding:7px 10px;border:1px solid rgba(121,243,240,.32);background:rgba(121,243,240,.07);color:#b9fffc;font-size:9px;font-weight:800;letter-spacing:.08em}.profile-title-action:hover:not(:disabled){background:rgba(121,243,240,.17);border-color:var(--cyan)}.profile-title-action:disabled{opacity:.45;cursor:default}.profile-title-card.is-equipped .profile-title-action{border-color:rgba(121,243,240,.16);color:#79f3f0}.profile-modal #profileMessage{min-height:18px;margin:8px 0}.profile-modal>#profileCloseBtn{width:100%;justify-content:center}
+@media(max-width:680px){.profile-modal{padding:18px 14px}.profile-hero{padding:13px;gap:12px}.profile-emblem{width:58px;height:58px;font-size:26px}.profile-stats{gap:6px}.profile-stat{padding:10px 8px}.profile-stat small{font-size:8px;letter-spacing:0}.profile-title-grid{grid-template-columns:1fr}.profile-title-card{padding:12px}.profile-title-heading{align-items:flex-start;flex-direction:column;gap:6px}.profile-title-progress{white-space:normal}}
+
+/* Chat global do menu */
+.global-chat-panel{position:absolute;z-index:3;right:clamp(18px,4vw,58px);bottom:54px;width:min(370px,36vw);padding:14px;border:1px solid rgba(121,243,240,.22);background:linear-gradient(145deg,rgba(5,24,36,.91),rgba(4,14,24,.94));box-shadow:0 18px 55px rgba(0,0,0,.25);backdrop-filter:blur(12px)}
+.global-chat-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;border-bottom:1px solid rgba(121,243,240,.12)}.global-chat-heading>div{display:flex;align-items:center;gap:8px}.global-chat-heading strong{font:10px 'DM Mono',monospace;letter-spacing:.1em;color:#b9f8f6}.global-chat-heading>span{font:8px 'DM Mono',monospace;color:#79f3f0;white-space:nowrap}
+.global-chat-messages{height:174px;overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:9px;padding:12px 2px 7px;scrollbar-width:thin;scrollbar-color:rgba(121,243,240,.3) transparent}.global-chat-empty{font-size:11px;line-height:1.6;color:#7596a6;margin:auto 0;text-align:center}
+.global-chat-message{min-width:0;overflow-wrap:anywhere;font-size:11px;line-height:1.5;color:#d6e9ee}.global-chat-message-head{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-bottom:2px}.global-chat-name{font-weight:800;color:#e7ffff}.global-chat-title{font-size:9px;font-weight:800;color:var(--chat-title-color,#79f3f0)}.global-chat-time{font:8px 'DM Mono',monospace;color:#577785}.global-chat-message-body{margin:0;color:#9eb9c4;white-space:pre-wrap;word-break:break-word}
+.global-chat-form{display:flex;gap:7px;border:1px solid rgba(121,243,240,.18);background:rgba(1,11,19,.65);padding:4px}.global-chat-form input{min-width:0;flex:1;height:34px;border:0;outline:0;background:transparent;color:#e7ffff;padding:0 7px;font:11px Manrope,sans-serif}.global-chat-form input::placeholder{color:#597886}.global-chat-form button{width:34px;flex:none;border:0;background:#79f3f0;color:#06212a;font-size:18px;font-weight:800}.global-chat-form button:disabled{opacity:.4;cursor:default}.global-chat-hint{font:8px 'DM Mono',monospace;line-height:1.5;color:#678693;margin:8px 0 0}.global-chat-panel.is-offline .global-chat-heading>span{color:#ffb3bf}
+@media(max-width:700px){.global-chat-panel{position:relative;right:auto;bottom:auto;width:calc(100% - 44px);margin:12px 22px 65px;padding:12px}.global-chat-messages{height:155px}.menu-creature{pointer-events:none}}
+@media(max-height:720px) and (min-width:701px){.global-chat-panel{bottom:44px}.global-chat-messages{height:125px}}
+
+.profile-title-icon svg{display:block;width:100%;height:100%;padding:6px;overflow:visible}.profile-emblem svg{display:block;width:100%;height:100%;padding:12px;overflow:visible}
+
+.profile-title-progressbar{height:3px;width:100%;margin:9px 0 1px;overflow:hidden;background:rgba(135,183,199,.12)}.profile-title-progressbar span{display:block;height:100%;background:var(--title-color,#79f3f0);box-shadow:0 0 8px var(--title-color,#79f3f0);transition:width .25s ease}
+
+
+/* ABYSSAL — revisão visual das profundezas: menu, navegação e painéis */
+#app{isolation:isolate}
+.topbar{border-bottom-color:rgba(105,226,235,.18);background:linear-gradient(90deg,rgba(3,17,28,.68),rgba(8,27,43,.28),rgba(3,17,28,.68));}
+.brand-mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(121,243,240,.34);border-radius:12px;background:radial-gradient(circle at 35% 25%,rgba(135,255,247,.22),rgba(17,62,83,.22) 62%,rgba(3,14,24,.8));box-shadow:0 0 24px rgba(68,211,224,.12),inset 0 0 16px rgba(121,243,240,.07)}
+.brand strong{text-shadow:0 0 18px rgba(121,243,240,.2)}
+#menuScreen{background:radial-gradient(ellipse at 74% 42%,rgba(19,94,123,.28),transparent 36%),radial-gradient(ellipse at 81% 70%,rgba(88,53,145,.18),transparent 32%),linear-gradient(110deg,rgba(2,12,22,.97) 0%,rgba(4,19,31,.91) 45%,rgba(3,13,25,.58) 100%);}
+#menuScreen:before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.23;background-image:linear-gradient(rgba(114,220,232,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(114,220,232,.08) 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(90deg,#000,transparent 85%);}
+#menuScreen:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 50% 100%,rgba(35,129,157,.14),transparent 52%),linear-gradient(180deg,transparent 75%,rgba(1,8,15,.45));}
+#menuScreen .menu-content{width:min(520px,57%);padding:clamp(28px,5.2vh,64px) 24px 30px clamp(26px,6vw,88px);background:linear-gradient(90deg,rgba(4,18,30,.7),rgba(4,18,30,.38) 78%,transparent);border-right:1px solid rgba(116,226,235,.08);}
+#menuScreen .eyebrow{color:#a1d7df;text-shadow:0 0 14px rgba(121,243,240,.16);}
+#menuScreen h1{font-size:clamp(42px,5.5vw,76px);line-height:.91;letter-spacing:-.075em;text-shadow:0 8px 36px rgba(0,0,0,.35);}
+#menuScreen h1 em{color:#8efff5;text-shadow:0 0 28px rgba(79,232,226,.28),0 0 70px rgba(74,177,220,.13);}
+#menuScreen .intro{max-width:390px;color:#b0cbd5;line-height:1.85;text-shadow:0 2px 12px #020b13;}
+#menuScreen .primary-btn{border-radius:8px;background:linear-gradient(105deg,#9dfff4,#55d9df 65%,#80a8ff);box-shadow:0 8px 28px rgba(62,218,222,.16),inset 0 1px rgba(255,255,255,.65);clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);}
+#menuScreen .menu-secondary-actions{gap:9px;margin-top:13px;}
+#menuScreen .menu-action{min-height:43px;height:auto;border-radius:7px;border:1px solid rgba(117,199,218,.2);background:linear-gradient(135deg,rgba(15,45,64,.86),rgba(6,22,37,.9));color:#d2eaf1;box-shadow:inset 0 1px rgba(218,250,255,.025);transition:transform .18s,border-color .18s,background .18s,box-shadow .18s;}
+#menuScreen .menu-action:hover{transform:translateY(-2px);border-color:rgba(121,243,240,.55);background:linear-gradient(135deg,rgba(23,76,95,.92),rgba(12,33,57,.96));box-shadow:0 8px 22px rgba(0,0,0,.22),0 0 20px rgba(82,214,219,.08);color:#efffff;}
+#menuScreen #onlineBtn.online-cta{border-color:rgba(121,243,240,.72);border-radius:9px;background:linear-gradient(115deg,rgba(15,101,117,.97),rgba(15,47,76,.97) 65%,rgba(53,37,101,.97));}
+#menuScreen #shopBtn,#menuScreen #catalogBtn,#menuScreen #rankingsBtn,#menuScreen #profileBtn{justify-content:space-between;padding-inline:12px;}
+#menuScreen .wheel-cta{border-radius:9px;box-shadow:0 8px 30px rgba(202,126,65,.12),inset 0 1px rgba(255,255,255,.08);}
+#menuScreen .account-line{color:#8aaab9;padding-top:10px;border-top:1px solid rgba(114,211,222,.12);max-width:390px;}
+#menuScreen .account-line button{color:#a2fff5;text-decoration:none;border:1px solid rgba(121,243,240,.24);border-radius:5px;padding:7px 9px;background:rgba(9,36,49,.72);}
+#menuScreen .account-line button:hover{border-color:rgba(121,243,240,.65);background:rgba(25,81,94,.5);}
+#menuScreen .controls-hint span{border-radius:4px;background:rgba(7,27,42,.55);border-color:rgba(114,198,214,.2);}
+#menuScreen .record-row{padding-top:12px;border-top:1px solid rgba(114,211,222,.1);max-width:390px;color:#83a3b2;}
+#menuScreen .menu-creature{filter:saturate(1.12) contrast(1.05);opacity:.92;}
+#menuScreen .orbit-one{border-color:rgba(110,249,238,.28);box-shadow:0 0 30px rgba(55,190,219,.04);}
+#menuScreen .orbit-two{border-color:rgba(167,136,255,.27);}
+#menuScreen .global-chat-panel{border-radius:10px;border-color:rgba(121,243,240,.28);background:linear-gradient(145deg,rgba(5,25,40,.91),rgba(3,12,25,.95));box-shadow:0 18px 60px rgba(0,0,0,.38),inset 0 1px rgba(198,255,255,.04);}
+#menuScreen .global-chat-heading{border-bottom-color:rgba(121,243,240,.2);}
+#menuScreen .global-chat-form{border-radius:6px;overflow:hidden;}
+#menuScreen .global-chat-form button{border-radius:4px;background:linear-gradient(135deg,#9dfff4,#56d9df);box-shadow:0 0 16px rgba(121,243,240,.15);}
+.menu-footer{color:#638695;text-shadow:0 2px 10px #020a12;}
+.page-footer{border-top:1px solid rgba(110,201,216,.07);background:linear-gradient(90deg,rgba(3,13,22,.8),rgba(6,20,32,.3),rgba(3,13,22,.8));}
+.modal-screen{background:radial-gradient(ellipse at 50% 35%,rgba(12,49,70,.48),rgba(2,8,16,.88) 70%);backdrop-filter:blur(12px) saturate(1.1);}
+.modal-card{border-radius:12px;border-color:rgba(121,243,240,.25);background:radial-gradient(ellipse at 100% 0%,rgba(38,97,128,.16),transparent 42%),linear-gradient(145deg,rgba(7,29,44,.98),rgba(3,12,23,.99));box-shadow:0 28px 110px rgba(0,0,0,.58),inset 0 1px rgba(204,255,255,.04);}
+.modal-card .secondary-btn{border-radius:7px;background:linear-gradient(120deg,rgba(10,33,48,.48),rgba(5,18,31,.58));}
+.text-field{border-radius:6px;background:linear-gradient(120deg,rgba(2,13,23,.8),rgba(5,23,35,.8));}
+.profile-modal .profile-hero,.profile-stat,.profile-title-card{border-radius:8px;}
+.profile-title-card{box-shadow:inset 0 1px rgba(255,255,255,.015);}
+.profile-title-card.is-equipped{box-shadow:inset 0 0 22px rgba(121,243,240,.06),0 0 18px rgba(121,243,240,.04);}
+@media(max-width:700px){
+ #menuScreen .menu-content{width:100%;padding:30px 20px 24px;background:linear-gradient(90deg,rgba(3,14,24,.88),rgba(3,14,24,.58));border-right:0;}
+ #menuScreen h1{font-size:clamp(40px,12vw,60px);}
+ #menuScreen .intro{max-width:min(320px,92%);}
+ #menuScreen .global-chat-panel{border-radius:9px;}
+ #menuScreen .menu-footer{left:20px;right:20px;}
+}
+@media(max-height:720px) and (min-width:701px){
+ #menuScreen .menu-content{padding-top:22px;}
+ #menuScreen h1{font-size:clamp(38px,5vh,54px);margin:15px 0 12px;}
+ #menuScreen .intro{margin-bottom:16px;line-height:1.55;}
+ #menuScreen .wheel-cta{margin-top:8px;min-height:50px;}
+ #menuScreen .menu-action{min-height:36px;}
+ #menuScreen .record-row{margin-top:18px;}
+}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen .menu-action,#menuScreen .primary-btn{transition:none;}
+}

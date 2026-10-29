@@ -4,6 +4,81 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
+ const PROFILE_TITLES=[
+  {id:'abyss-drifter',name:'Mergulhador das Fossas',icon:'✧',rarity:'COMUM',color:'#79f3f0',description:'Seu primeiro vínculo com as profundezas.',goal:'Disponível desde o início.',kind:'starter'},
+  {id:'abyss-spark',name:'Faísca das Fossas',icon:'◈',rarity:'INCOMUM',color:'#8cf8ff',description:'A luz que sobrevive onde o sol não chega.',goal:'Derrote 50 monstros.',kind:'kills',required:50},
+  {id:'current-hunter',name:'Caçador de Correntes',icon:'〰',rarity:'RARO',color:'#b39cff',description:'Você aprendeu a caçar contra a correnteza.',goal:'Derrote 250 monstros.',kind:'kills',required:250},
+  {id:'pelagic-executioner',name:'Carrasco Pelágico',icon:'✹',rarity:'ÉPICO',color:'#ff829b',description:'Até os predadores recuam ao sentir sua presença.',goal:'Derrote 1.000 monstros.',kind:'kills',required:1000},
+  {id:'leviathan-hunter',name:'Caçador de Leviatãs',icon:'♆',rarity:'ÉPICO',color:'#ffd27a',description:'Um troféu conquistado contra os gigantes do abismo.',goal:'Derrote 10 bosses.',kind:'bosses',required:10},
+  {id:'sovereign-abyss',name:'Soberano do Insondável',icon:'♛',rarity:'LENDÁRIO',color:'#e0b7ff',description:'O próprio oceano parece reconhecer seu nome.',goal:'Derrote 50 bosses.',kind:'bosses',required:50}
+ ];
+ const TITLE_ARTWORK={
+  'abyss-drifter':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="32" r="24" opacity=".55"/><path d="M9 35c7-7 13 7 21 0s14 7 25 0M13 43c6-4 11 4 17 0s12 4 21 0"/><path d="m32 12 3.2 7 7.5.8-5.6 5 1.6 7.2-6.7-3.8-6.7 3.8 1.6-7.2-5.6-5 7.5-.8z" fill="currentColor" fill-opacity=".18"/></svg>',
+  'abyss-spark':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M32 5 38 24 57 32 38 38 32 59 25 39 7 32 25 25z" fill="currentColor" fill-opacity=".14"/><path d="m32 17 4.5 10.5L47 32l-10.5 4.5L32 47l-4.5-10.5L17 32l10.5-4.5z"/><circle cx="32" cy="32" r="3" fill="currentColor"/></svg>',
+  'current-hunter':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 18c8-7 14 7 22 0s14 7 26 0M8 29c8-7 14 7 22 0s14 7 26 0M8 40c8-7 14 7 22 0s14 7 26 0"/><path d="m42 8-9 33-10 14 14-9z" fill="currentColor" fill-opacity=".16"/></svg>',
+  'pelagic-executioner':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 18 22 8l10 7L43 8l11 10-3 24-19 13-19-13z" fill="currentColor" fill-opacity=".12"/><path d="M15 27 25 22l7 5 8-5 9 5-6 11-8-3-7 3z"/><path d="m22 38 4 8 5-5 4 5 6-8M32 15v7"/><circle cx="24" cy="28" r="2" fill="currentColor"/><circle cx="41" cy="28" r="2" fill="currentColor"/></svg>',
+  'leviathan-hunter':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="35" r="19" opacity=".55"/><path d="M32 7v44M21 15l11 10 11-10M20 25l-8 8 8 8M44 25l8 8-8 8"/><path d="M25 35c4-5 10-5 14 0-4 5-10 5-14 0z" fill="currentColor" fill-opacity=".18"/><circle cx="32" cy="35" r="3" fill="currentColor"/></svg>',
+  'sovereign-abyss':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="35" r="15" fill="currentColor" fill-opacity=".13"/><path d="M11 20 20 27 24 12 32 23 40 12 44 27 53 20 48 38M11 20l4 23 17 12 17-12 4-23"/><path d="M25 35c4-5 10-5 14 0-4 5-10 5-14 0z"/><circle cx="32" cy="35" r="3" fill="currentColor"/><path d="M8 49c5-2 7 2 11 0m26 0c4 2 6-2 11 0"/></svg>'
+ };
+ function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK['abyss-drifter'];}
+ const profileNumber=n=>Math.max(0,Number(n)||0);
+ function renderProfile(data=serverAccount){
+  const root=$('profileTitleGrid');if(!root)return;
+  const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
+  const equipped=user.equippedTitle||'abyss-drifter';
+  const unlockedIds=new Set(Array.isArray(user.unlockedTitles)?user.unlockedTitles:PROFILE_TITLES.filter(t=>t.kind==='starter'||(t.kind==='kills'?kills:bosses)>=t.required).map(t=>t.id));
+  const unlocked=PROFILE_TITLES.filter(t=>unlockedIds.has(t.id));
+  const current=PROFILE_TITLES.find(t=>t.id===equipped)||PROFILE_TITLES[0];
+  $('profileNickname').textContent=user.nickname||account?.nickname||'VISITANTE';
+  $('profileEquippedLabel').textContent='Título equipado: '+current.name;
+  $('profileEmblem').innerHTML=titleArtwork(current.id);$('profileEmblem').style.setProperty('--title-color',current.color);$('profileEmblem').style.color=current.color;
+  $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':'Entre na sua conta para salvar seu título.';
+  $('profileKills').textContent=kills.toLocaleString('pt-BR');$('profileBosses').textContent=bosses.toLocaleString('pt-BR');
+  $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';
+  root.innerHTML=PROFILE_TITLES.map(t=>{
+   const progress=t.kind==='kills'?kills:t.kind==='bosses'?bosses:0,owned=unlockedIds.has(t.id),isEquipped=equipped===t.id;
+   const percent=t.kind==='starter'?100:Math.min(100,Math.floor(progress/t.required*100));
+    const detail=t.kind==='starter'?t.goal:owned?'Conquista concluída':percent+'% · '+progress.toLocaleString('pt-BR')+'/'+t.required.toLocaleString('pt-BR');
+   return '<article class="profile-title-card '+(owned?'':'is-locked')+' '+(isEquipped?'is-equipped':'')+'" style="--title-color:'+t.color+'"><div class="profile-title-icon" aria-hidden="true">'+titleArtwork(t.id)+'</div><div class="profile-title-copy"><h4 class="profile-title-name">'+escapeHtml(t.name)+'</h4><p class="profile-title-desc">'+escapeHtml(t.description)+'</p><div class="profile-title-meta"><span>'+t.rarity+'</span><span>·</span><span class="profile-title-state '+(owned?'':'locked')+'">'+(owned?'✓ DESBLOQUEADO':'⌑ BLOQUEADO')+'</span></div><p class="profile-title-desc" style="margin-top:7px">'+escapeHtml(owned?t.goal:detail)+'</p><div class="profile-title-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div><button class="profile-title-action" data-equip-title="'+t.id+'" '+(!owned||isEquipped||!window.AbyssalOnline?.isAuthenticated()?'disabled':'')+'>'+(isEquipped?'EQUIPADO':owned?'EQUIPAR TÍTULO':window.AbyssalOnline?.isAuthenticated()?'AINDA BLOQUEADO':'ENTRE PARA EQUIPAR')+'</button></div></article>';
+  }).join('');
+ }
+ const CHAT_TITLE_META={
+  'abyss-drifter':{name:'Mergulhador das Fossas',color:'#79f3f0'},
+  'abyss-spark':{name:'Faísca das Fossas',color:'#8cf8ff'},
+  'current-hunter':{name:'Caçador de Correntes',color:'#b39cff'},
+  'pelagic-executioner':{name:'Carrasco Pelágico',color:'#ff829b'},
+  'leviathan-hunter':{name:'Caçador de Leviatãs',color:'#ffd27a'},
+  'sovereign-abyss':{name:'Soberano do Insondável',color:'#e0b7ff'}
+ };
+ function setGlobalChatStatus(online){const panel=$('globalChatPanel'),status=$('globalChatStatus');if(panel)panel.classList.toggle('is-offline',!online);if(status)status.textContent=online?'SINAL ESTÁVEL':'SEM SINAL';}
+ function renderGlobalChatMessage(message){
+  const list=$('globalChatMessages');if(!list||!message)return;
+  const empty=list.querySelector('.global-chat-empty');if(empty)empty.remove();
+  const row=document.createElement('article');row.className='global-chat-message';
+  const head=document.createElement('div');head.className='global-chat-message-head';
+  const name=document.createElement('strong');name.className='global-chat-name';name.textContent=String(message.nickname||'Mergulhador').slice(0,18);head.appendChild(name);
+  const title=CHAT_TITLE_META[message.titleId];if(title){const badge=document.createElement('span');badge.className='global-chat-title';badge.style.setProperty('--chat-title-color',title.color);badge.textContent=title.name;head.appendChild(badge);}
+  const time=document.createElement('time');time.className='global-chat-time';time.textContent=new Date(Number(message.at)||Date.now()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});head.appendChild(time);
+  const body=document.createElement('p');body.className='global-chat-message-body';body.textContent=String(message.text||'').slice(0,180);
+  row.append(head,body);list.appendChild(row);
+  while(list.children.length>50)list.firstElementChild?.remove();
+  list.scrollTop=list.scrollHeight;
+ }
+ function renderGlobalChatHistory(messages){const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
+ function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
+ function openProfile(){
+  const screen=$('profileScreen');if(!screen)return;
+  if(!authenticated||!serverAccount){
+   screen.hidden=true;
+   openLogin();
+   setMessage('Entre na sua conta para acessar seu perfil e carregar suas conquistas.',true);
+   return;
+  }
+  screen.hidden=false;
+  $('profileMessage').textContent='Sincronizando suas informações com o servidor…';
+  renderProfile(serverAccount);
+  refreshAccount();
+ }
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
 function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':'ENTRAR / CRIAR CONTA'}
@@ -15,6 +90,8 @@ function connect(){
  startPositionHeartbeat();
  socket.on('connect',()=>{connected=true;localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);if($('roomsScreen')&&!$('roomsScreen').hidden){const m=$('roomsMessage');if(m)m.textContent='Conexão restabelecida. Entre novamente na conta para participar das salas.';}}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
+  socket.on('global-chat-history',renderGlobalChatHistory);socket.on('global-chat-message',renderGlobalChatMessage);socket.on('global-chat-error',result=>{const hint=$('globalChatHint');if(hint)hint.textContent=result?.message||'Não foi possível enviar a mensagem.'});
+  socket.on('connect',()=>setGlobalChatStatus(true));
  socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];socketRoomsAt=Date.now();publishMergedRooms()});
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
@@ -22,7 +99,13 @@ function connect(){
  socket.on('room-joined',data=>{if(!data?.ok)return;currentRoom=data.room||null;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();applyPlayerList(data.players||[]);window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:data}));setTimeout(()=>socket?.connected&&requestWorldSnapshot('room-join'),180);});
  socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
- socket.on('account-data',data=>{serverAccount=data;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));});
+ socket.on('account-data',data=>{
+  if(!authenticated||!data)return;
+  serverAccount=data;
+  renderProfile(data);
+  if($('profileMessage')&&!$('profileScreen').hidden)$('profileMessage').textContent='Perfil sincronizado com sua conta.';
+  window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));
+ });
  socket.on('purchase-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:result}));});
  socket.on('wheel-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:result}));});
  socket.on('world-enemy-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged',{detail:data||{}}));});
@@ -34,8 +117,16 @@ function connect(){
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;setMessage('Não conectou ao servidor. Abra o jogo por http://localhost:3000 e confirme que npm start está rodando.',true)});
- socket.on('disconnect',()=>{connected=false;authenticated=false;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
- socket.on('auth-result',result=>{if(!result.ok){authenticated=false;account=null;localStorage.removeItem('abyssalAccount');updateAccount();setMessage(result.message||'Falha na autenticação.',true);return}authenticated=true;account={nickname:result.nickname};serverAccount=result;localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';updateAccount();window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));});
+ socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;serverAccount=null;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
+ socket.on('auth-result',result=>{
+  if(!result.ok){authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
+  authenticated=true;account={nickname:result.nickname};serverAccount=result;
+  localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
+  updateAccount();renderProfile(result);
+  window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;
+  socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+ });
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
@@ -162,6 +253,8 @@ function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purch
 function purchaseMeta(id){if(socket?.connected&&authenticated)socket.emit('purchase-meta',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para salvar melhorias persistentes.'}}));}
 function spinWheel(){if(socket?.connected&&authenticated)socket.emit('spin-wheel');else window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:{ok:false,message:'Entre em uma conta para receber moedas pela roleta.'}}));}
 function saveCosmetics(data){if(socket?.connected&&authenticated)socket.emit('save-cosmetics',data)}
+ function equipTitle(id){if(socket?.connected&&authenticated)socket.emit('equip-title',{id});else{const m=$('profileMessage');if(m)m.textContent='Entre na sua conta para equipar e salvar títulos.'}}
+ function refreshAccount(){if(socket?.connected&&authenticated)socket.emit('get-account')}
 function renderRankings(data){const root=$('rankingContent');if(!root||!data)return;const sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho.'],['monthly','RANKING MENSAL','Top 10 do mês recebe 5.000 moedas ao fechar o período.'],['weekly','RANKING SEMANAL','Top 10 da semana recebe 1.000 moedas ao fechar o período.'],['daily','RANKING DIÁRIO','Top 10 do dia recebe 100 moedas ao fechar o período.']];root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[];return `<section class="ranking-section"><h3>${title}</h3>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'}</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">—</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: energia e tempo de mergulho.</p></section>`}).join('')}
 function formatTime(s){s=Math.max(0,Math.floor(Number(s)||0));return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -182,7 +275,7 @@ function applyPlayerList(list){
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
 
 updateAccount();
-window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,sendBuild,sendProtection,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseMeta,spinWheel,saveCosmetics,getAccount:()=>serverAccount};
+window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,sendBuild,sendProtection,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseMeta,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,sendGlobalChatMessage,getAccount:()=>serverAccount};
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
  if(socket?.connected&&authenticated&&currentRoom){
@@ -197,4 +290,10 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
+ $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
+ document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
+ $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem enviada para o abismo.'}});
+ $('globalChatInput')?.addEventListener('focus',()=>{if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}});
+ if(!socket)connect();
+ window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
 })();
