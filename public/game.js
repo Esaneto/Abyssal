@@ -596,14 +596,29 @@ function endGame(){
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 function resumeGame(){if(gameState!=='paused')return;gameState='playing';$('pauseScreen').hidden=true;$('pauseBtn').hidden=false;last=performance.now()}
 function drawBackground(t){
- const g=ctx.createRadialGradient(W*.5,H*.46,10,W*.5,H*.46,Math.max(W,H)*.8);g.addColorStop(0,'#103041');g.addColorStop(.48,'#081d2b');g.addColorStop(1,'#030b13');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
- // Deep-water light columns
- ctx.save();for(let i=0;i<5;i++){const x=W*(.1+i*.2)+Math.sin(t*.00015+i)*25;ctx.globalAlpha=.025+Math.sin(t*.0003+i)*.008;ctx.fillStyle=i%2?'#5bd9dd':'#6878df';ctx.beginPath();ctx.moveTo(x-35,0);ctx.lineTo(x+30,0);ctx.lineTo(x+130,H);ctx.lineTo(x+20,H);ctx.closePath();ctx.fill()}ctx.restore();
- // Subtle grid
- ctx.save();ctx.strokeStyle='rgba(93,175,190,.045)';ctx.lineWidth=1;const grid=44,ox=(t*.008)%grid,oy=(t*.004)%grid;for(let x=-grid+ox;x<W;x+=grid){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=-grid+oy;y<H;y+=grid){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}ctx.restore();
- for(const p of decor){p.y-=p.speed*.012;if(p.y<-5){p.y=H+5;p.x=Math.random()*W}ctx.globalAlpha=p.a*(.6+.4*Math.sin(t*.001+p.phase));ctx.fillStyle='#a0f9f1';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
- // distant drifting silhouettes
- for(let i=0;i<4;i++){const x=((i*317+t*.012*(i%2?1:-1))%(W+180))-90,y=H*(.18+i*.2)+Math.sin(t*.0005+i)*18;ctx.globalAlpha=.06;ctx.fillStyle='#68d0d6';ctx.beginPath();ctx.ellipse(x,y,25+i*3,7+i,Math.sin(t*.0002+i),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x-20,y);ctx.lineTo(x-35,y-10);ctx.lineTo(x-32,y+10);ctx.fill()}ctx.globalAlpha=1;
+ const g=ctx.createRadialGradient(W*.5,H*.45,10,W*.5,H*.45,Math.max(W,H)*.82);
+ g.addColorStop(0,'#0d2a39');g.addColorStop(.34,'#071a2b');g.addColorStop(.68,'#03111f');g.addColorStop(1,'#01040a');
+ ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ // Faint pools of alien bioluminescence and a distant warning-red bloom.
+ ctx.save();
+ const bloom=ctx.createRadialGradient(W*.79,H*.62,2,W*.79,H*.62,560);bloom.addColorStop(0,'rgba(145,25,70,.12)');bloom.addColorStop(.42,'rgba(91,29,95,.06)');bloom.addColorStop(1,'rgba(1,5,12,0)');ctx.fillStyle=bloom;ctx.fillRect(W*.45,H*.2,W*.55,H*.8);
+ const beamColors=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
+ for(let i=0;i<5;i++){const x=W*(.1+i*.2)+Math.sin(t*.00015+i)*25;ctx.globalAlpha=.018+Math.sin(t*.0003+i)*.006;ctx.fillStyle=beamColors[i];ctx.beginPath();ctx.moveTo(x-35,0);ctx.lineTo(x+30,0);ctx.lineTo(x+130,H);ctx.lineTo(x+20,H);ctx.closePath();ctx.fill()}
+ ctx.restore();
+ // Draw only the grid cells inside the camera viewport; the former world-wide scan was wasted work every frame.
+ ctx.save();ctx.strokeStyle='rgba(93,175,190,.028)';ctx.lineWidth=1;const grid=70,ox=(t*.003)%grid,oy=(t*.002)%grid;
+ const left=Math.floor(cameraX/grid)*grid-grid+ox,right=cameraX+viewW/worldZoom+grid;
+ const top=Math.floor(cameraY/grid)*grid-grid+oy,bottom=cameraY+viewH/worldZoom+grid;
+ for(let x=left;x<right;x+=grid){ctx.beginPath();ctx.moveTo(x,Math.max(0,top));ctx.lineTo(x,Math.min(H,bottom));ctx.stroke()}
+ for(let y=top;y<bottom;y+=grid){ctx.beginPath();ctx.moveTo(Math.max(0,left),y);ctx.lineTo(Math.min(W,right),y);ctx.stroke()}
+ ctx.restore();
+ // Keep the whole drift field alive, but only paint particles that can appear in the current view.
+ const visibleLeft=cameraX-30/worldZoom,visibleRight=cameraX+viewW/worldZoom+30/worldZoom;
+ const visibleTop=cameraY-30/worldZoom,visibleBottom=cameraY+viewH/worldZoom+30/worldZoom;
+ for(const p of decor){p.y-=p.speed*.012;if(p.y<-5){p.y=H+5;p.x=Math.random()*W;}if(p.x<visibleLeft||p.x>visibleRight||p.y<visibleTop||p.y>visibleBottom)continue;ctx.globalAlpha=p.a*(.6+.4*Math.sin(t*.001+p.phase));ctx.fillStyle='#9dfbf1';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()}
+ ctx.globalAlpha=1;
+ // Shadowy, distant fauna cross the edge of sight.
+ for(let i=0;i<4;i++){const x=((i*317+t*.009*(i%2?1:-1))%(W+180))-90,y=H*(.18+i*.2)+Math.sin(t*.0005+i)*18;if(x<visibleLeft-60||x>visibleRight+60||y<visibleTop-40||y>visibleBottom+40)continue;ctx.globalAlpha=.055;ctx.fillStyle=i===2?'#8e527b':'#426d85';ctx.beginPath();ctx.ellipse(x,y,25+i*3,7+i,Math.sin(t*.0002+i),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x-20,y);ctx.lineTo(x-35,y-10);ctx.lineTo(x-32,y+10);ctx.fill()}ctx.globalAlpha=1;
 }
 function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,renderContext=ctx,skinOverride=null){
  const c=renderContext;
