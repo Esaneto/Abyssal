@@ -15,7 +15,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,characte
 let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
-let snapshotClock=0,upgradeAutoTimer=null,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
+let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
 function getAbyssalCodex(){
  if(!cachedAbyssalCodex){
@@ -194,22 +194,63 @@ const upgradeList=[
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'O projétil salta visualmente até 2 vezes entre alvos próximos.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'A cada 9 segundos, libera uma explosão abissal de longo alcance.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)}
 ];
-function chooseUpgrade(u){
- if(!u || (upgradeLevels[u.id]||0)>=3)return;
+function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
- u.apply();if(player)player.invuln=2;if(onlineMode){window.AbyssalOnline?.sendProtection?.(2,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
- discoverCodexSkill(u.id);if(!codex.skills.includes(u.id))codex.skills.push(u.id);localStorage.setItem('abyssalCodex',JSON.stringify(codex));
- level++;gameState='playing';$('upgradeScreen').hidden=true;showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);playSkillSound(u.id,'learn');updateHud();last=performance.now();if(onlineMode&&xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
+ if(upgradeCountdownInterval){clearInterval(upgradeCountdownInterval);upgradeCountdownInterval=null;}
+ upgradeDeadlineAt=0;
+}
+function updateUpgradeCountdown(){
+ const remainingMs=Math.max(0,upgradeDeadlineAt-performance.now());
+ const remainingSeconds=Math.ceil(remainingMs/1000);
+ const timerText=$('upgradeTimerText'),timerFill=$('upgradeTimerFill'),timer=$('upgradeTimer');
+ if(timerText)timerText.textContent=`ESCOLHA EM ${remainingSeconds}s`;
+ if(timerFill)timerFill.style.width=`${Math.max(0,Math.min(100,remainingMs/10000*100))}%`;
+ if(timer)timer.dataset.urgent=remainingSeconds<=3?'true':'false';
+}
+function chooseUpgrade(u){
+ if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
+ clearUpgradeCountdown();
+ u.apply();
+ if(player)player.invuln=2;
+ if(onlineMode){window.AbyssalOnline?.sendProtection?.(2,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
+ upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
+ // Save through the shared codex cache; referencing a local, undefined "codex" here
+ // used to throw before the level-up overlay closed, breaking both click and auto-pick.
+ discoverCodexSkill(u.id);
+ level++;gameState='playing';$('upgradeScreen').hidden=true;
+ showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
+ playSkillSound(u.id,'learn');updateHud();last=performance.now();
+ if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
 function offerUpgrade(){
  if(gameState==='upgrade')return;
- gameState='upgrade';chosen=[];upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);const wrap=$('upgradeChoices');wrap.innerHTML='';
+ clearUpgradeCountdown();
+ gameState='upgrade';chosen=[];
+ upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
+ const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
- // Em coop, a escolha não congela o mundo e concede até 10 s de invulnerabilidade.
- if(player)player.invuln=Math.max(player.invuln,10);if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
- upgradeOptions.forEach(u=>{const current=upgradeLevels[u.id]||0;const b=document.createElement('button');b.className='upgrade-card';b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong><p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b)});
+ // A level-up pauses solo gameplay and grants 10 s of protection in co-op.
+ if(player)player.invuln=Math.max(player.invuln,10);
+ if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
+ upgradeOptions.forEach(u=>{
+  const current=upgradeLevels[u.id]||0,b=document.createElement('button');
+  b.type='button';b.className='upgrade-card';
+  b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong><p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;
+  b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b);
+ });
  $('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
- upgradeAutoTimer=setTimeout(()=>{if(gameState==='upgrade'&&upgradeOptions.length){const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);if(available.length)chooseUpgrade(available[Math.floor(Math.random()*available.length)]);else{gameState='playing';$('upgradeScreen').hidden=true}}},10000);
+ upgradeDeadlineAt=performance.now()+10000;updateUpgradeCountdown();
+ upgradeCountdownInterval=setInterval(()=>{
+  if(gameState!=='upgrade'){clearUpgradeCountdown();return}
+  updateUpgradeCountdown();
+ },100);
+ // Safety fallback: exactly one random available skill is selected after ten seconds.
+ upgradeAutoTimer=setTimeout(()=>{
+  if(gameState!=='upgrade')return;
+  const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);
+  if(available.length)chooseUpgrade(available[Math.floor(Math.random()*available.length)]);
+  else{clearUpgradeCountdown();gameState='playing';$('upgradeScreen').hidden=true;}
+ },10000);
 }
 function spawnEnemy(initial=false,type='common'){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
@@ -522,9 +563,14 @@ function update(dt){
   if(onlineMode){o.phase=(Number(o.phase)||0)+dt*3;const op=currentInterpolatedEnemyPosition(o,performance.now());o.x=op.x;o.y=op.y;continue;}
   o.phase+=dt*3;o.life-=dt;
   let d=Math.hypot(player.x-o.x,player.y-o.y);
-  if(d<100*upgrades.magnet/worldZoom){
-   if(upgradeLevels.magnet>0)playSkillSound('magnet','trigger');
-   const f=clamp((100*upgrades.magnet/worldZoom-d)/(100/worldZoom),0,1),pull=Math.min(d,dt*(2+f*8));
+  const magnetLevel=Math.max(0,Number(upgradeLevels.magnet)||0);
+  const magnetRange=140*Math.max(1,Number(upgrades.magnet)||1)/worldZoom;
+  if(d<magnetRange){
+   if(magnetLevel>0)playSkillSound('magnet','trigger');
+   const f=clamp((magnetRange-d)/Math.max(1,magnetRange),0,1);
+   // Pull speed is scaled by zoom so attraction stays visibly strong on both desktop and mobile.
+   const pullSpeed=(36+f*150)*(1+magnetLevel*.22)/worldZoom;
+   const pull=Math.min(d,dt*pullSpeed);
    if(d>0.001){o.x+=(player.x-o.x)/d*pull;o.y+=(player.y-o.y)/d*pull;}
    d=Math.hypot(player.x-o.x,player.y-o.y);
   }
