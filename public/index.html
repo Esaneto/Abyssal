@@ -41,6 +41,7 @@
           <button id="shopBtn" class="secondary-btn menu-action">LOJA DE SKINS <span>✦</span></button>
           <button id="catalogBtn" class="secondary-btn menu-action">CATÁLOGO <span>⌕</span></button>
           <button id="rankingsBtn" class="secondary-btn menu-action">RANKINGS <span>♛</span></button>
+          <button id="profileBtn" class="secondary-btn menu-action">PERFIL & TÍTULOS <span>✧</span></button>
         </div>
         <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
         <div class="controls-hint"><span>WASD / SETAS</span><i>ou</i><span>TOQUE E ARRASTE</span></div>
@@ -178,6 +179,24 @@
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+    </section>
+    <section id="profileScreen" class="screen modal-screen" hidden>
+      <div class="modal-card profile-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
+        <div class="profile-hero">
+          <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
+          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div>
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat"><small>MONSTROS DERROTADOS</small><strong id="profileKills">0</strong></div>
+          <div class="profile-stat"><small>BOSSES DERROTADOS</small><strong id="profileBosses">0</strong></div>
+          <div class="profile-stat"><small>TÍTULOS LIBERADOS</small><strong id="profileTitleCount">1</strong></div>
+        </div>
+        <div class="profile-title-heading"><div><h3>TÍTULOS DO ABISMO</h3><p>Desbloqueie conquistas e escolha como será reconhecido.</p></div><span id="profileTitleProgress" class="profile-progress">1 título disponível</span></div>
+        <div id="profileTitleGrid" class="profile-title-grid" aria-live="polite"></div>
+        <div id="profileMessage" class="form-message" role="status"></div>
+        <button id="profileCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
     </section>
     <section id="toast" class="toast" hidden></section>
   </main>
