@@ -152,6 +152,18 @@ function connect(){
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
  socket.on('shared-shot',data=>{if(data&&data.from!==account?.nickname)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
  socket.on('server-message',m=>{if(window.AbyssalGameHooks?.toast)window.AbyssalGameHooks.toast(m)});
+ socket.on('account-deletion-result',result=>{
+  const message=result?.message||'Não foi possível excluir a conta.';
+  if(!result?.ok){const el=$('profileMessage');if(el)el.textContent=message;return}
+  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
+  $('profileScreen').hidden=true;$('loginScreen').hidden=true;$('downloadScreen').hidden=true;
+  updateAccount();renderProfile({});
+  const toast=$('toast');if(toast){toast.textContent='Conta excluída permanentemente.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500)}
+ });
+ socket.on('account-force-logout',()=>{
+  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
+  $('profileScreen').hidden=true;updateAccount();renderProfile({});
+ });
  return socket;
 }
 function authenticate(nickname,password,mode='login'){
@@ -304,18 +316,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
- socket.on('account-deletion-result',result=>{
-  const message=result?.message||'Não foi possível excluir a conta.';
-  if(!result?.ok){const el=$('profileMessage');if(el)el.textContent=message;return}
-  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
-  $('profileScreen').hidden=true;$('loginScreen').hidden=true;$('downloadScreen').hidden=true;
-  updateAccount();renderProfile({});
-  const toast=$('toast');if(toast){toast.textContent='Conta excluída permanentemente.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500)}
- });
- socket.on('account-force-logout',()=>{
-  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
-  $('profileScreen').hidden=true;updateAccount();renderProfile({});
- });
+
  const deleteInput=$('deleteNicknameInput'),deleteBtn=$('deleteAccountBtn');
  function updateDeleteButton(){
   if(!deleteInput||!deleteBtn)return;
@@ -378,6 +379,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   message.textContent='No Chrome/Edge: abra o menu do navegador e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”.';
  });
  document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',()=>{
+  if(button.tagName==='A')return;
   const platform=button.dataset.platform,message=$('downloadInstallMessage');if(!message)return;
   if(platform==='windows'){message.textContent='Abrindo o instalador do Abyssal para Windows…';window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe';return;}
   if(platform==='android'){message.textContent='Abrindo o pacote APK do Abyssal… No Android, talvez seja necessário autorizar a instalação de aplicativos baixados pelo navegador.';window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk';return;}
