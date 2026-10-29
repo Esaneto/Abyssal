@@ -1,13 +1,18 @@
-# Abyssal — v3.4.2
+# Abyssal — v3.5.4
 
-## Objetivos desta versão
+## Objetivo desta versão
 
-- O mundo cooperativo tem uma única fonte de verdade: o servidor cria, move, ataca, recebe dano e remove as mesmas entidades que todos os clientes recebem por snapshots. Nenhum navegador simula outra cópia dos inimigos.
-- O evento que confirma um ataque nunca cria nem teletransporta monstros. Ele apenas destaca o inimigo existente; posições e existência continuam vindo dos snapshots autoritativos.
-- O zoom do celular foi afastado de 0,52 para 0,42; PC permanece em 0,78. As unidades do mapa são compartilhadas e a câmera segue o personagem.
-- O botão do menu foi renomeado para **MERGULHAR ONLINE**. Os query strings de HTML/CSS/JS usam `v=3.4.2` para invalidar cache antigo.
-- O XP usa orbes: em solo, o cliente cria e coleta o orbe; no cooperativo, o servidor cria e move os mesmos orbes que todos veem e escolhe um único jogador para recebê-lo. O valor e o raio dependem da força do inimigo; bosses deixam orbes com muito mais XP e maior tamanho.
-- No cooperativo, todos os clientes recebem a mesma posição autoritativa de cada orbe e o mesmo evento de remoção. Somente o jogador que o servidor determinar como coletor recebe `shared-xp-award`.
+Esta revisão prioriza a regra básica do cooperativo: todos os jogadores de uma sala veem as mesmas criaturas nas posições autoritativas do servidor, e dano por contato só acontece quando a simulação confirma uma colisão real.
+
+- O servidor é a única fonte de verdade para existência, posição, vida, ataques, morte e orbes de XP dos inimigos.
+- Snapshots completos de movimento são enviados de forma confiável em intervalos de 100 ms. Eventos críticos (spawn, contato, dano, coleta e remoção) também são confiáveis e ordenados antes de seus eventos dependentes.
+- O cliente interpola entre snapshots, não cria inimigos para representar dano e não executa uma segunda IA divergente no modo online.
+- O dano por contato de jogadores visíveis exige amostra de posição recente, aplica uma predição curta da movimentação e usa uma margem conservadora no raio de colisão para evitar dano fantasma por coordenadas antigas. O atacante é incluído em snapshot crítico confiável antes do evento de vida.
+- Para uma aba minimizada, a simulação segue usando a última posição conhecida. Ao retornar à aba, o cliente solicita um snapshot e as vitals atuais do servidor.
+- A movimentação de monstros e a lógica de perseguição usam o mesmo módulo compartilhado do modo solo.
+- O zoom móvel é 0,42, o zoom de PC 0,78 e o botão de menu é **MERGULHAR ONLINE**.
+- O XP cooperativo é representado por orbes autoritativos; todos veem o mesmo orbe e somente o jogador escolhido pelo servidor recebe a XP.
+- Ao sair o último jogador, a sala deixa de simular e seus dados de mundo são limpos.
 
 ## Atualizar no Render
 
@@ -16,12 +21,20 @@
 3. Faça commit/push para a branch `main` e espere o Render ficar `Live`.
 4. Não apague nem altere `DATABASE_URL` nem o grupo de ambiente `abyss`; esta atualização não cria outro banco.
 
-## Verificar
+## Verificar depois do deploy
 
-Durante uma partida online, `/health` deve mostrar `build: 3.4.2`, `persistence: postgres`, `simulation.errors: 0`, `activePlayers > 0` e `movingEnemies > 0`. `/api/rooms` mostra as salas disponíveis. Para testar XP em duas sessões, derrote um monstro, confirme que ambas veem o mesmo orbe se movendo, depois recolha-o com apenas um jogador: o orbe deve desaparecer para os dois e somente o coletor deve evoluir.
+Durante uma partida com pelo menos um jogador vivo, `/health` deve mostrar `build: 3.5.4`, `persistence: postgres`, `simulation.errors: 0`, `activePlayers > 0`, `worldTickerActive: true` e `movingEnemies > 0`. Em `activeRoomDetails`, `latestPositionAgeMs` deve ser baixo enquanto o cliente está visível e enviando posições. `/api/rooms` mostra as salas disponíveis.
 
-## Comportamento de XP
+Para validar o combate sem acionar dano fantasma, use duas sessões na mesma sala: mova um jogador enquanto o outro observa; as duas telas devem mostrar os mesmos IDs/posições autoritativas aproximadas, suavizadas pela interpolação. Espere uma criatura realmente encostar para confirmar o dano. Um evento de dano não deve criar nem reposicionar artificialmente uma criatura.
 
-O servidor atribui a coleta de orbes do cooperativo por posição real dos jogadores no tick de simulação. Se dois jogadores estiverem no raio no mesmo tick, vence o mais próximo, com desempate determinístico por ID. Isso impede que o mesmo orbe dê XP a vários jogadores. Orbes expiram após 25 segundos e têm uma quantidade limitada para conter o uso de memória.
+## Notas de rede e combate
 
-Os testes locais não substituem a validação final no Render com duas conexões reais. O servidor continua autoritativo sobre o mundo; a interpolação do cliente apenas suaviza a renderização e não altera os valores reais de X/Y usados para colisão.
+- Snapshots frequentes são confiáveis a 10 Hz e possuem `worldId` e `snapshotSeq`, para evitar que uma atualização antiga reverta uma mais nova. Os dados de posição do jogador são amostras voláteis de última posição; um pacote perdido não bloqueia o próximo.
+- Antes de `player-vitals` por ataque, o servidor publica um snapshot crítico contendo a criatura atacante em sua coordenada real. Eventos por socket mantêm a ordem de emissão.
+- O servidor registra `simulation.combat.lastPlayerHit`, com ID/tipo e geometria do contato, além da idade da posição do jogador. Para jogador visível, um heartbeat antigo demais faz o servidor pular o ataque em vez de usar uma coordenada ultrapassada; para uma aba explicitamente minimizada, a posição conhecida continua válida para o combate de fundo.
+- O cliente só mostra efeitos na criatura que já existe no snapshot autoritativo. Não cria clones, não move o monstro para a posição do dano e não altera X/Y a partir do evento `player-vitals`.
+- O limite de entidades mantém a carga previsível: até 50 inimigos totais na arena, com no máximo quatro bosses simultâneos.
+
+## Validação
+
+Execute `npm install` e `npm test`. Os testes automatizados cobrem perseguição do servidor, igualdade de coordenadas por sala, ordem snapshot→dano, snapshots antigos, colisão com coordenada recente, dano ao minimizar, orbes de XP e remoção de salas vazias. O teste de transporte é simulado; ele não substitui uma partida real no Render com dois navegadores. Se o problema aparecer após a publicação, consulte `/health` enquanto a partida estiver ativa e verifique `simulation.errors`, `movingEnemies`, `latestPositionAgeMs` e `simulation.combat.lastPlayerHit`.

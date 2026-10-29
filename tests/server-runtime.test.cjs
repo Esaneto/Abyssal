@@ -182,7 +182,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
-  assert.equal(health.world.engine, 'server-authoritative-shared-enemies-and-xp-orbs-with-client-interpolation');
+  assert.equal(health.world.engine, 'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4');
   assert.ok(health.simulation.movingEnemies > 0);
 
   // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.
@@ -230,11 +230,21 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const nearestEnemy = currentSnapshot.enemies[0];
   let frozenPositionAck = null;
   const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
+  await owner.clientEmit('client-visibility', { hidden: true });
   await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 3, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
   assert.equal(frozenPositionAck?.ok, true);
   await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 2500);
   const damageWhileFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).at(-1);
   assert.ok(damageWhileFrozen.hp < damageWhileFrozen.maxHp, 'server must damage a player using the last known position');
+  const hitLogIndex = owner.sent.map(entry => entry.event).lastIndexOf('player-vitals');
+  const hitLog = owner.sent[hitLogIndex];
+  const hitSnapshotIndex = owner.sent.findIndex(entry => entry.event === 'game-snapshot' && Number(entry.args[0]?.snapshotSeq) === Number(hitLog?.args[0]?.snapshotSeq));
+  assert.ok(hitSnapshotIndex >= 0 && hitSnapshotIndex < hitLogIndex, 'a reliable attacker snapshot must arrive before the damage/vitals event');
+  const hitSnapshot = owner.sent[hitSnapshotIndex].args[0];
+  const attacker = hitSnapshot.enemies.find(enemy => String(enemy.id) === String(hitLog.args[0].enemyId));
+  assert.ok(attacker, 'the attacking enemy must exist in the shared snapshot before damage');
+  assert.ok(Math.hypot(attacker.x - hitLog.args[0].enemyX, attacker.y - hitLog.args[0].enemyY) < 0.01, 'attacker visual coordinates match the exact authoritative collision coordinates');
+  assert.ok(Math.hypot(hitLog.args[0].enemyX - hitLog.args[0].playerX, hitLog.args[0].enemyY - hitLog.args[0].playerY) <= hitLog.args[0].contactRadius + 0.01, 'server damage is only issued after real contact geometry is confirmed');
   const positionCountAfterMove = frozenPositionAck.positionUpdates;
   await wait(850);
   const staleHealth = await getJson(port, '/health');

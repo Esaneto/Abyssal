@@ -6,6 +6,10 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
   const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  // Snapshot delivery is intentionally lossy for routine positions. Keep the latest
+  // authoritative velocity moving the sprite briefly through a dropped packet, then
+  // stop extrapolation quickly so hit geometry does not diverge from the server.
+  const MAX_EXTRAPOLATION_MS = 180;
 
   function createMotionWatchdog(options = {}) {
     const motionEpsilon = Math.max(0.05, Number(options.motionEpsilon) || 0.35);
@@ -55,8 +59,15 @@
     const toX = Number(enemy.interpTargetX), toY = Number(enemy.interpTargetY);
     const at = Number(enemy.interpAt), duration = Number(enemy.interpDuration);
     if ([fromX, fromY, toX, toY, at, duration].every(Number.isFinite) && duration > 0) {
-      const t = clamp((now - at) / duration, 0, 1);
-      return { x: fromX + (toX - fromX) * t, y: fromY + (toY - fromY) * t };
+      const elapsed = Math.max(0, now - at);
+      if (elapsed <= duration) {
+        const t = clamp(elapsed / duration, 0, 1);
+        return { x: fromX + (toX - fromX) * t, y: fromY + (toY - fromY) * t };
+      }
+      const extraSeconds = Math.min(MAX_EXTRAPOLATION_MS, elapsed - duration) / 1000;
+      const vx = clamp(Number(enemy.vx) || 0, -220, 220);
+      const vy = clamp(Number(enemy.vy) || 0, -220, 220);
+      return { x: toX + vx * extraSeconds, y: toY + vy * extraSeconds };
     }
     if (Number.isFinite(toX) && Number.isFinite(toY)) return { x: toX, y: toY };
     return { x: Number.isFinite(x) ? x : 0, y: Number.isFinite(y) ? y : 0 };
@@ -78,11 +89,13 @@
     const now = Number.isFinite(Number(options.now)) ? Number(options.now) : (typeof performance !== 'undefined' ? performance.now() : Date.now());
     const interpolationMs = clamp(Number(options.interpolationMs) || 100, 50, 160);
     const list = Array.isArray(incomingEnemies) ? incomingEnemies : [];
+    const criticalIds = new Set((Array.isArray(options.criticalIds) ? options.criticalIds : []).map(String));
     return list.filter(raw => raw && raw.id != null).map(raw => {
       const old = previous.get(String(raw.id));
       const serverX = clamp(Number(raw.x) || 0, minX, maxX);
       const serverY = clamp(Number(raw.y) || 0, minY, maxY);
-      const current = old ? renderedPosition(old, now) : { x: serverX, y: serverY };
+      const critical = criticalIds.has(String(raw.id));
+      const current = old && !critical ? renderedPosition(old, now) : { x: serverX, y: serverY };
       const oldDamageRevision = Math.max(0, Number(old?.damageRevision) || 0);
       const incomingDamageRevision = Math.max(0, Number(raw.damageRevision) || 0);
       const preserveConfirmedHealth = Boolean(old && oldDamageRevision > incomingDamageRevision);
@@ -96,10 +109,11 @@
         interpFromX: current.x, interpFromY: current.y,
         interpTargetX: serverX, interpTargetY: serverY,
         interpAt: now,
-        interpDuration: old ? interpolationMs : 0,
+        interpDuration: old && !critical ? interpolationMs : 0,
+        snapshotReceivedAt: now,
         authoritativePosition: true
       };
     });
   }
-  return { createMotionWatchdog, reconcileSnapshot, renderedPosition };
+  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, MAX_EXTRAPOLATION_MS };
 });

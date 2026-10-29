@@ -63,3 +63,23 @@ test('a delayed older snapshot cannot restore HP after a confirmed server hit', 
   assert.equal(fresh[0].hp, 7);
   assert.equal(fresh[0].damageRevision, 3);
 });
+
+
+test('critical attacker snapshot snaps the real entity to server coordinates before contact feedback', () => {
+  const old = reconcileSnapshot([], [{ id: 7, kind: 'drifter', x: 100, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 0 });
+  const hit = reconcileSnapshot(old, [{ id: 7, kind: 'drifter', x: 210, y: 215, r: 10, hp: 22, maxHp: 22 }], {
+    now: 50, interpolationMs: 100, criticalIds: ['7']
+  });
+  assert.equal(hit[0].x, 210);
+  assert.equal(hit[0].y, 215);
+  assert.equal(hit[0].interpDuration, 0);
+});
+
+test('movement extrapolation bridges the reliable snapshot baseline without freezing sprites', () => {
+  const state = reconcileSnapshot([], [{ id: 99, kind: 'drifter', x: 100, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 0 });
+  const next = reconcileSnapshot(state, [{ id: 99, kind: 'drifter', x: 108, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 100, interpolationMs: 100 });
+  const held = renderedPosition(next[0], 500);
+  assert.ok(held.x > 108, 'enemy continues briefly along its last authoritative velocity');
+  assert.equal(held.x, 122.4, 'extrapolation is bounded to 180ms beyond interpolation in this test');
+  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 180);
+});

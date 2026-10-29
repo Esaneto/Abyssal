@@ -139,7 +139,7 @@ test('authoritative room spawns a boss at the one-minute deadline and makes it a
 test('server contact radius exactly matches the visible solo sprite collision and reports attack source', () => {
   const stats = AI.statsForKind('drifter');
   const enemy = { id: 91, kind: 'drifter', x: 1000, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, damage: stats.damage, color: stats.color, phase: 0, attackCd: 0 };
-  const player = { id: 'p1', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, hp: 100, maxHp: 100, alive: true, shieldCharges: 0, invulnerableUntil: 0 };
+  const player = { id: 'p1', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, hp: 100, maxHp: 100, alive: true, shieldCharges: 0, invulnerableUntil: 0, lastPositionAt: 1050, velocityX: 0, velocityY: 0, clientHidden: false };
   const contact = Sim.contactGeometry(enemy, player);
   const expected = enemy.r / AI.WORLD_ZOOM + player.r + 8 / AI.WORLD_ZOOM;
   assert.ok(Math.abs(contact.radius - expected) < 1e-8, 'player radius is not divided by world zoom twice');
@@ -179,4 +179,41 @@ test('the authoritative XP-orb pickup awards one player only and removes the orb
   assert.equal(result.xpCollected[0].playerId, 'player-a', 'simultaneous pickup uses a stable ID tie-break');
   assert.equal(result.xpCollected[0].value, 55);
   assert.equal(world.orbs.length, 0, 'the authoritative orb disappears after collection');
+});
+
+test('visible-player contact uses the predicted current position and rejects stale-coordinate ghost hits', () => {
+  const makeWorld = () => {
+    const world = Sim.createWorldState(1000);
+    world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 99999;
+    const stats = AI.statsForKind('drifter');
+    world.enemies = [{ id: 41, kind: 'drifter', x: 1000, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, damage: stats.damage, color: stats.color, value: stats.value, phase: 0, attackCd: 0 }];
+    world.nextEnemyId = 41;
+    return world;
+  };
+  const ghostWorld = makeWorld();
+  const movingVisiblePlayer = { id:'p1', x:1036, y:1000, r:13/AI.WORLD_ZOOM, hp:100, maxHp:100, alive:true, lastPositionAt:1020, velocityX:200, velocityY:0, clientHidden:false, positionResumeGraceUntil:0, invulnerableUntil:0, shieldCharges:0 };
+  const rejected = Sim.tickWorld(ghostWorld, [movingVisiblePlayer], 1050, Math.random);
+  assert.equal(rejected.playerHits.length, 0, 'must not hit based on the earlier, non-predicted coordinate');
+  assert.equal(movingVisiblePlayer.hp, 100);
+
+  const contactWorld = makeWorld();
+  const movingIntoVisibleContact = { id:'p2', x:1000, y:1000, r:13/AI.WORLD_ZOOM, hp:100, maxHp:100, alive:true, lastPositionAt:1050, velocityX:0, velocityY:0, clientHidden:false, positionResumeGraceUntil:0, invulnerableUntil:0, shieldCharges:0 };
+  const accepted = Sim.tickWorld(contactWorld, [movingIntoVisibleContact], 1050, Math.random);
+  assert.equal(accepted.playerHits.length, 1);
+  assert.ok(accepted.playerHits[0].contactDistance <= accepted.playerHits[0].contactRadius);
+  assert.ok(Math.abs(accepted.playerHits[0].playerX - movingIntoVisibleContact.x) < 1, 'stationary fresh player hit uses the current rendered coordinate');
+  assert.equal(accepted.playerHits[0].targetWasHidden, false);
+  assert.ok(movingIntoVisibleContact.hp < 100);
+});
+
+test('a minimized player is still vulnerable at the last known position, but hidden state is explicitly reported', () => {
+  const world = Sim.createWorldState(1000);
+  world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 99999;
+  const stats = AI.statsForKind('drifter');
+  world.enemies = [{ id: 52, kind:'drifter', x:1000, y:1000, r:stats.r, speed:stats.speed/AI.WORLD_ZOOM, hp:stats.hp, maxHp:stats.hp, damage:stats.damage, color:stats.color, value:stats.value, phase:0, attackCd:0 }];
+  const hiddenPlayer = { id:'p-hidden', x:1020, y:1000, r:13/AI.WORLD_ZOOM, hp:100, maxHp:100, alive:true, lastPositionAt:1000, velocityX:0, velocityY:0, clientHidden:true, invulnerableUntil:0, shieldCharges:0 };
+  const result = Sim.tickWorld(world, [hiddenPlayer], 5000, Math.random);
+  assert.equal(result.playerHits.length, 1);
+  assert.equal(result.playerHits[0].targetWasHidden, true);
+  assert.ok(hiddenPlayer.hp < 100);
 });

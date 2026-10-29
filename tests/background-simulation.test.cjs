@@ -25,15 +25,23 @@ test('online client renders server-authoritative enemy positions instead of simu
   assert.match(game, /if\(target\.local&&td<e\.r\+player\.r\+8\/worldZoom\)/);
   assert.match(game, /if\(!onlineMode&&upgrades\.regen>0/);
   assert.match(game, /revealOnlineContactSource\(data\)/);
+  assert.match(game, /function alignPlayerToAuthoritativeContact\(data\)/);
+  assert.match(game, /requestWorldSnapshot\?\.\('contact-resync'\)/);
+  assert.match(game, /criticalIds:authoritativeCriticalIds/);
+  assert.match(game, /contactSourceReady[\s\S]*?enemies\.some\(e=>String\(e\.id\)===String\(data\.enemyId\)\)/);
+  assert.match(server, /criticalSnapshot\?\.snapshotSeq/);
+  assert.match(server, /if \(snapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', snapshot\)/);
+  assert.match(game, /if\(data\.targetWasHidden===true\)alignPlayerToAuthoritativeContact\(data\)/);
 });
 
 test('returning to a minimized tab requests current vitals and a fresh snapshot', () => {
   assert.match(online, /document\.addEventListener\('visibilitychange',[\s\S]*?requestPlayerState\(\)/);
-  assert.match(online, /function requestPlayerState\(\)[\s\S]*?request-player-state[\s\S]*?request-world-snapshot/);
+  assert.match(online, /function requestPlayerState\(reason='resync'\)[\s\S]*?requestWorldSnapshot\(reason\)[\s\S]*?request-player-state/);
+  assert.match(server, /criticalReason:resumeResync\?'resume-resync'/);
 });
 
 test('dead players cannot restart the room through an ordinary snapshot request', () => {
-  assert.match(server, /if\(!hasLivingPlayers\(room\)\)\{socket\.emit\('game-snapshot',[\s\S]*?enemies:\[\]/);
+  assert.match(server, /if\(!hasLivingPlayers\(room\)\)[\s\S]*?emptySnapshot\.enemies=\[\][\s\S]*?socket\.emit\('game-snapshot',emptySnapshot\)/);
 });
 
 
@@ -54,7 +62,7 @@ test('mobile zoom reveals more of the same world and online menu uses the reques
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css', 'enemy-ai.js', 'enemy-netcode.js', 'skill-audio.js', 'game.js', 'online.js']) {
-    assert.match(html, new RegExp(`${asset}\\?v=3\.4\.2`));
+    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.4`));
   }
 });
 
@@ -64,4 +72,14 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
   assert.match(game, /function applySharedXp\(data\)[\s\S]*?gainXp\(Math\.max\(0,Number\(data\.value\)\|\|0\),'shared'\)/);
   assert.match(online, /socket\.on\('shared-xp-award',[\s\S]*?sharedXp/);
   assert.match(game, /function addOrb\(x,y,value\)[\s\S]*?xpOrbRadius/);
+});
+
+test('authoritative movement snapshots use reliable ordered delivery and precede contact vitals', () => {
+  assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'a dropped position snapshot must not leave a creature frozen until a later baseline');
+  assert.match(server, /if \(snapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', snapshot\)/);
+  const tickRoom = server.indexOf('function tickRoom(room, now)');
+  const snapshotEmit = server.indexOf("io.to(channelFor(room)).emit('game-snapshot', criticalSnapshot)", tickRoom);
+  const vitalsEmit = server.indexOf("io.to(hit.playerId).emit('player-vitals'", tickRoom);
+  assert.ok(tickRoom >= 0 && snapshotEmit > tickRoom && vitalsEmit > snapshotEmit, 'the attacker snapshot must be emitted before the damage event');
+  assert.match(server, /criticalEnemyIds = \[\.\.\.new Set\(\[\.\.\.spawnedEnemies\.map\(enemy => String\(enemy\.id\)\), \.\.\.playerHits\.map\(hit => String\(hit\.enemyId\)\)\]\)\]/);
 });

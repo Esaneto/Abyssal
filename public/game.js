@@ -15,7 +15,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,characte
 let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
-let snapshotClock=0,upgradeAutoTimer=null,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0;
+let snapshotClock=0,upgradeAutoTimer=null,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,botBuddyTimer=0;
 const skinData=[
@@ -134,7 +134,7 @@ function showBossAlert(kind,id=null,threat=0){
 function showScreen(id){screens.forEach(s=>$(s).hidden=s!==id);$('hud').hidden=id!=='gameScreen';}
 function startGame(){
  startAmbientMusic();
- elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.max(0,Number(metaUpgrades.startShield)||0),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
@@ -239,8 +239,55 @@ function revealOnlineContactSource(data){
  const nowMs=Date.now();
  if(nowMs-lastContactNoticeAt>1600){lastContactNoticeAt=nowMs;const names={drifter:'ERRANTE LUMINESCENTE',stinger:'FERRÃO DE FENDA',brute:'BRUTO DE PLACAS',lurker:'OCULTO DAS FOSSAS',boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL'};showToast(e?`ATAQUE IDENTIFICADO · ${names[kind]||kind.toUpperCase()}`:'IMPACTO RECEBIDO · SINCRONIZANDO POSIÇÕES');}
 }
+function authoritativeContactFrame(data){
+ if(!data||data.enemyId==null||!data.worldId||!Number(data.snapshotSeq))return null;
+ return authoritativeSnapshotHistory.get(`${String(data.worldId)}:${Math.floor(Number(data.snapshotSeq))}`)||null;
+}
+function verifyAuthoritativeContact(data){
+ const frame=authoritativeContactFrame(data);if(!frame)return {ready:false,valid:false,reason:'snapshot-pending'};
+ const id=String(data.enemyId),source=frame.enemies.get(id);
+ if(!source||!frame.criticalEnemyIds.has(id))return {ready:true,valid:false,reason:'attacker-not-in-critical-snapshot'};
+ const ex=Number(data.enemyX),ey=Number(data.enemyY),px=Number(data.playerX),py=Number(data.playerY),reportedDistance=Number(data.contactDistance),radius=Number(data.contactRadius);
+ if(![ex,ey,px,py,reportedDistance,radius].every(Number.isFinite)||radius<=0)return {ready:true,valid:false,reason:'invalid-contact-geometry'};
+ const sourceMismatch=Math.hypot(source.x-ex,source.y-ey);
+ const measuredDistance=Math.hypot(source.x-px,source.y-py);
+ const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&measuredDistance<=radius+2&&reportedDistance<=radius+2;
+ return {ready:true,valid:geometryValid,reason:geometryValid?null:'contact-position-mismatch',frame,source};
+}
+function alignPlayerToAuthoritativeContact(data){
+ if(!player||!data)return false;
+ const sx=Number(data.playerX),sy=Number(data.playerY);
+ if(!Number.isFinite(sx)||!Number.isFinite(sy))return false;
+ const distance=Math.hypot(player.x-sx,player.y-sy);
+ const contactRadius=Math.max(1,Number(data.contactRadius)||40);
+ // Client movement is predicted locally; on a confirmed server hit we reconcile only
+ // if the two positions diverged enough to make the attacker appear unrelated to damage.
+ if(distance>Math.max(12/worldZoom,contactRadius*.38)){
+  player.x=clamp(sx,player.r,W-player.r);player.y=clamp(sy,player.r,H-player.r);
+  if(player.trail)player.trail.length=0;
+  updateCamera();return true;
+ }
+ return false;
+}
 function applyOnlinePlayerVitals(data){
  if(!onlineMode||!player||!data||typeof data!=='object')return;
+ const contactEvent=data.source==='enemy'&&data.enemyId!=null&&(data.reason==='enemy-attack'||data.reason==='shield-block'||data.blocked===true);
+ let contactSourceReady=false,contactVerification=null;
+ if(contactEvent){
+  contactVerification=verifyAuthoritativeContact(data);
+  contactSourceReady=String(lastAuthoritativeWorldId||'')===String(data.worldId||'')&&contactVerification.valid&&enemies.some(e=>String(e.id)===String(data.enemyId));
+  // A server-confirmed collision is authoritative for HP. Never silently discard its
+  // vitals because a render snapshot is late; reconcile the local player and request the
+  // newest complete world if the expected attacker snapshot is not currently available.
+  // Do not teleport a visible player when contact arrives. Visible hits are reconciled
+  // by the authoritative enemy snapshot and movement prediction. Only a hidden client
+  // may be aligned to its last server-known position when it resumes.
+  if(data.targetWasHidden===true)alignPlayerToAuthoritativeContact(data);
+  if(!contactSourceReady){
+   window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');
+   if(performance.now()-lastDamageWarningAt>2500){lastDamageWarningAt=performance.now();showToast(contactVerification?.valid?'ATUALIZANDO A POSIÇÃO DO ATACANTE':'COLISÃO CONFIRMADA · SINCRONIZANDO ABISMO');}
+  }
+ }
  const receivedAt=Number(data.serverTime)||Date.now();
  if(receivedAt<(Number(lastOnlineVitalsAt)||0))return;
  lastOnlineVitalsAt=receivedAt;
@@ -248,9 +295,14 @@ function applyOnlinePlayerVitals(data){
  if(Number.isFinite(Number(data.hp)))hp=clamp(Number(data.hp),0,maxHp);
  if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
  if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,10);
- if(data.reason==='enemy-attack'&&Number(data.damage)>0){revealOnlineContactSource(data);shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);}
- else if(data.reason==='shield-block'||data.blocked){revealOnlineContactSource(data);burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');}
- else if(data.reason==='regeneration'&&Number(data.healed)>0)playSkillSound('regen','trigger');
+ if(data.reason==='enemy-attack'&&Number(data.damage)>0){
+  if(contactSourceReady)revealOnlineContactSource(data);
+  else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
+  shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);
+ }else if(data.reason==='shield-block'||data.blocked){
+  if(contactSourceReady)revealOnlineContactSource(data);
+  burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');
+ }else if(data.reason==='regeneration'&&Number(data.healed)>0)playSkillSound('regen','trigger');
  updateHud();
  if(data.alive===false&&gameState!=='over')endGame();
 }
@@ -322,6 +374,25 @@ function applySharedOrbs(incomingOrbs,now=performance.now()){
 }
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
+ const incomingWorldId=String(data.worldId||''),incomingSeq=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),incomingServerTime=Math.max(0,Number(data.serverTime)||0);
+ // Reliable lifecycle and movement snapshots share one sequence. Never let an
+ // older packet restore a dead/spawn-removed entity or roll enemy positions backwards.
+ if(lastAuthoritativeServerTime&&incomingServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
+ if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId===lastAuthoritativeWorldId&&incomingSeq>0&&incomingSeq<=lastAuthoritativeSnapshotSeq)return;
+ if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId!==lastAuthoritativeWorldId){
+  if(incomingServerTime&&lastAuthoritativeServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
+  enemies=[];orbs=[];lastAuthoritativeSnapshotSeq=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
+ }
+ if(incomingWorldId)lastAuthoritativeWorldId=incomingWorldId;
+ if(incomingSeq>0)lastAuthoritativeSnapshotSeq=incomingSeq;
+ if(incomingServerTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,incomingServerTime);
+ const forceResync=String(data.criticalReason||'')==='resume-resync'||String(data.criticalReason||'')==='contact-resync';
+ const authoritativeCriticalIds=forceResync?data.enemies.filter(e=>e&&e.id!=null).map(e=>String(e.id)):(data.criticalEnemyIds||[]).map(String);
+ if(incomingWorldId&&incomingSeq>0){
+  const frame={worldId:incomingWorldId,snapshotSeq:incomingSeq,serverTime:incomingServerTime,criticalEnemyIds:new Set(authoritativeCriticalIds),enemies:new Map(data.enemies.filter(e=>e&&e.id!=null).map(e=>[String(e.id),{id:String(e.id),kind:String(e.kind||'drifter'),x:Number(e.x)||0,y:Number(e.y)||0,r:Number(e.r)||10,hp:Number(e.hp)||0,maxHp:Number(e.maxHp)||0}]))};
+  authoritativeSnapshotHistory.set(`${incomingWorldId}:${incomingSeq}`,frame);
+  while(authoritativeSnapshotHistory.size>18)authoritativeSnapshotHistory.delete(authoritativeSnapshotHistory.keys().next().value);
+ }
  const now=performance.now(),previousById=new Map(enemies.map(e=>[e.id,e]));
  observeOnlineServerMotion(data);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
@@ -330,13 +401,20 @@ function applySharedSnapshot(data){
  // local movement step. Never assign finite interpolation targets here: draw() uses a
  // finite interpTargetX/Y as a hard set-position operation and would freeze first-spawned mobs.
  if(window.AbyssalEnemyNetcode?.reconcileSnapshot){
-  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/worldZoom,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:100});
+  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/worldZoom,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:100,criticalIds:authoritativeCriticalIds||data.criticalEnemyIds||[]});
  }else{
   // Fallback mirrors the authoritative interpolation module instead of running a
   // second enemy simulation in the browser.
-  enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:serverX,y:serverY};return {...old,...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||12)/worldZoom,serverX,serverY,interpFromX:from.x,interpFromY:from.y,interpTargetX:serverX,interpTargetY:serverY,interpAt:now,interpDuration:old?100:0,authoritativePosition:true};});
+  enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:serverX,y:serverY};return {...old,...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||12)/worldZoom,serverX,serverY,interpFromX:from.x,interpFromY:from.y,interpTargetX:serverX,interpTargetY:serverY,interpAt:now,interpDuration:(old&&!authoritativeCriticalIds.includes(String(raw.id)))?100:0,authoritativePosition:true};});
  }
  applySharedOrbs(data.orbs,now);
+ const queued=pendingOnlineHitVitals;pendingOnlineHitVitals=[];
+ for(const item of queued){
+  const ready=String(lastAuthoritativeWorldId||'')===String(item.worldId||'')&&verifyAuthoritativeContact(item).valid&&enemies.some(e=>String(e.id)===String(item.enemyId));
+  if(ready)applyOnlinePlayerVitals(item);
+  else if(now-(Number(item._queuedAt)||now)<900)pendingOnlineHitVitals.push(item);
+  else window.AbyssalOnline?.requestPlayerState?.();
+ }
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');let codexChanged=false;for(const e of enemies){if(!codex.monsters.includes(e.kind)){codex.monsters.push(e.kind);codexChanged=true;}}if(codexChanged)localStorage.setItem('abyssalCodex',JSON.stringify(codex));
  const newBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&!previousBossIds.has(e.id));if(newBoss){lastRemoteBossId=newBoss.id;showBossAlert(newBoss.kind,newBoss.id,Number(newBoss.threat)||0);burst(newBoss.x,newBoss.y,newBoss.color,70,270);}
 }

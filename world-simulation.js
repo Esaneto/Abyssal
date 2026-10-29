@@ -8,12 +8,12 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function createWorldState(now = Date.now()) {
   return {
-    initialized: false, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
+    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
     nextBossAt: 60, bossSpawnCount: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
-    commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0,
+    commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
-    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0
+    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0
   };
 }
 
@@ -158,10 +158,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // The server stops its ticker as well; state is cleared when the last participant leaves.
     world.lastTick = now;
     world.movingEnemyCount = 0;
-    return { active: false, dt: 0, movedEnemyCount: 0, spawnedBosses: [], playerHits: [], playerHeals: [], defeatedPlayers: [], sendSnapshot: false, sendPlayers: false };
+    return { active: false, dt: 0, movedEnemyCount: 0, spawnedEnemies: [], spawnedBosses: [], playerHits: [], playerHeals: [], defeatedPlayers: [], sendSnapshot: false, sendReliableSnapshot: false, sendPlayers: false };
   }
 
   const initialSpawns = initializeWorld(world, now, random);
+  const spawnedEnemies = [...initialSpawns];
   const previousTick = Number(world.lastTick) || now;
   // The server runs this ticker independently of browser rendering. Clamp a single
   // catch-up step to avoid huge jumps after GC or brief event-loop contention.
@@ -193,11 +194,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
   if (commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
-    spawnEnemy(world, { type: 'common', random });
+    const spawned = spawnEnemy(world, { type: 'common', random });
+    if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.6;
   } else if (world.commonSpawnTimer <= 0) {
-    if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) spawnEnemy(world, { type: 'common', random });
+    if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
+      const spawned = spawnEnemy(world, { type: 'common', random });
+      if (spawned) spawnedEnemies.push(spawned);
+    }
     commonCount = countCommons(world);
     world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.38, 1.02 - world.elapsed * 0.0015) : 0.15;
   }
@@ -209,6 +214,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       const boss = spawnEnemy(world, { type: 'boss', random });
       if (boss) {
         spawnedBosses.push(boss);
+        spawnedEnemies.push(boss);
         world.nextBossAt = world.elapsed + 60;
       } else {
         world.nextBossAt = world.elapsed + 3;
@@ -237,14 +243,42 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     if (movement.moved) movedEnemyCount++;
 
-    // Contact attacks are resolved here on the server, not in requestAnimationFrame.
-    // A minimized client therefore cannot pause damage or make itself invulnerable by
-    // stopping its local game loop. We keep the last validated player coordinates.
+    // Contact attacks are resolved here on the server, never in requestAnimationFrame.
+    // A minimized tab keeps taking damage at its last known position; a visible tab must
+    // have a fresh heartbeat and uses a short velocity prediction to compensate for transit
+    // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
     if (!target || target.alive === false || enemy.attackCd > 0) continue;
-    const contact = contactGeometry(enemy, target);
+    const lastPositionAt = Number(target.lastPositionAt) || 0;
+    const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
+    const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
+    if (target.clientHidden !== true && (lastPositionAt <= 0 || positionAge > 180 || resumeGraceUntil > now)) {
+      world.stalePositionAttackSkips = (world.stalePositionAttackSkips || 0) + 1;
+      continue;
+    }
+    const predictionSeconds = target.clientHidden === true ? 0 : Math.min(0.12, Math.max(0, positionAge) / 1000);
+    let vx = Number(target.velocityX) || 0, vy = Number(target.velocityY) || 0;
+    const velocity = Math.hypot(vx, vy);
+    if (velocity > 320) { vx = vx / velocity * 320; vy = vy / velocity * 320; }
+    const contactTarget = target.clientHidden === true ? target : {
+      ...target,
+      x: Number(target.x) + vx * predictionSeconds,
+      y: Number(target.y) + vy * predictionSeconds
+    };
+    const contact = contactGeometry(enemy, contactTarget);
     const contactDistance = contact.distance;
-    const contactRadius = contact.radius;
+    const rawContactRadius = contact.radius;
+    // Reduce the outer edge of the hitbox by the player movement predicted since the
+    // latest sample plus a small jitter buffer. It can never report a hit outside the
+    // visible body-to-body collision envelope after compensation.
+    const predictedDrift = Math.hypot(vx, vy) * predictionSeconds;
+    const contactSafetyMargin = target.clientHidden === true ? 0 : Math.min(28, 8 + predictedDrift);
+    // Visible-player contact is deliberately stricter than the solo padding radius. The
+    // client is locally predicting its own movement between position packets; this margin
+    // compensates for the short sampling/network window so the sprite must actually be
+    // overlapping/very close before the server applies damage. Hidden tabs still use the
+    // full authoritative radius at their last known coordinate.
+    const contactRadius = target.clientHidden === true ? rawContactRadius : Math.max(1, rawContactRadius - contactSafetyMargin);
     if (contactDistance > contactRadius) continue;
 
     // Spend the attack cooldown even when blocked by invulnerability so a pack cannot
@@ -276,8 +310,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     playerHits.push({
       playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
       enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
-      enemyRadius: contact.enemyRadiusWorld, playerX: Number(target.x), playerY: Number(target.y),
+      enemyRadius: contact.enemyRadiusWorld, playerX: Number(contactTarget.x), playerY: Number(contactTarget.y),
       contactDistance, contactRadius,
+      positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
+      rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
       damage: appliedDamage, blocked, hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
@@ -337,16 +373,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
+  world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
   world.playerSnapshotTimer -= dt;
   const sendSnapshot = world.snapshotTimer <= 0;
+  const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
   if (sendSnapshot) world.snapshotTimer = 0.1;
+  if (sendReliableSnapshot) world.reliableSnapshotTimer = 0.25;
   if (sendPlayers) world.playerSnapshotTimer = 0.1;
   return {
     active: true, dt, movedEnemyCount,
-    spawnedBosses: [...initialSpawns.filter(e => BOSS_KINDS.includes(e.kind)), ...spawnedBosses],
-    playerHits, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendPlayers,
-    tickCount: world.tickCount, elapsed: world.elapsed
+    spawnedEnemies,
+    spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
+    playerHits, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers,
+    tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
 
