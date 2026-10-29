@@ -80,7 +80,13 @@ function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b,
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
-function publicUser(u) { return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {} }; }
+const TITLE_DEFINITIONS=[
+  {id:'abyss-drifter',kind:'starter',required:0},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'current-hunter',kind:'kills',required:250},{id:'pelagic-executioner',kind:'kills',required:1000},
+  {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50}
+ ];
+ function unlockedTitleIds(u){const stats=u.titleStats||{};return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||(Number(stats[t.kind==='kills'?'monstersDefeated':'bossesDefeated'])||0)>=t.required).map(t=>t.id)}
+ function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
@@ -414,7 +420,7 @@ io.on('connection', socket => {
    const candidate = hashPassword(password, user.salt);
    if (!safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
-  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; socket.data.nickname = user.nickname; socket.data.userKey = key;
+  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
  });
  socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
@@ -452,7 +458,7 @@ io.on('connection', socket => {
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
   const initialShieldCharges=Math.max(0,Math.min(1,Math.floor(Number(u?.metaUpgrades?.startShield)||0)));
   const now=Date.now();
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',runStats:makeRunStats()};
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -570,6 +576,7 @@ io.on('connection', socket => {
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
+  socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player)player.titleId=id; });
  socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
