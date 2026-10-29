@@ -337,15 +337,17 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let magnetTarget = null, magnetDistance = Infinity, magnetRange = 0;
     for (const p of validPlayers) {
       const strength = clamp(Number(p.magnetStrength) || 1, 1, 4.5);
-      const range = 100 * strength / WORLD_ZOOM;
+      const range = 140 * strength / WORLD_ZOOM;
       const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
       if (d < range && d < magnetDistance) {
         magnetTarget = p; magnetDistance = d; magnetRange = range;
       }
     }
     if (magnetTarget && magnetDistance > 0.001) {
-      const f = clamp((magnetRange - magnetDistance) / (100 / WORLD_ZOOM), 0, 1);
-      const pull = Math.min(magnetDistance, dt * (2 + f * 8));
+      const f = clamp((magnetRange - magnetDistance) / Math.max(1, magnetRange), 0, 1);
+      // Keep pickup motion authoritative, but fast enough to visibly answer to the magnet skill.
+      const pullSpeed = (36 + f * 150) * Math.sqrt(Math.max(1, Number(magnetTarget.magnetStrength) || 1)) / WORLD_ZOOM;
+      const pull = Math.min(magnetDistance, dt * pullSpeed);
       orb.x += (Number(magnetTarget.x) - orb.x) / magnetDistance * pull;
       orb.y += (Number(magnetTarget.y) - orb.y) / magnetDistance * pull;
     }
