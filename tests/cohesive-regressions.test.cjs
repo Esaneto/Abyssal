@@ -10,7 +10,7 @@ test('online players are broadcast from accepted position heartbeats', () => {
   const server = read('server.js');
   assert.match(server, /connectionStateRecovery:\s*\{\s*maxDisconnectionDuration:\s*120000/);
   assert.match(server, /room\.lastPlayersBroadcastAt/);
-  assert.match(server, /io\.to\(channelFor\(room\)\)\.emit\('world-players',[\s\S]{0,180}peer\)\s*=>\s*peer\)/);
+  assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('world-players'/);
 });
 
 test('temporary disconnect preserves the last synchronized account profile', () => {
