@@ -242,7 +242,7 @@ function spawnEnemy(initial=false,type='common'){
  const x=clamp(point.x,70/worldZoom,W-70/worldZoom),y=clamp(point.y,70/worldZoom,H-70/worldZoom);
  const enemy={id:++enemyId,x,y,...data,r:data.r/worldZoom,speed:data.speed/worldZoom,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind};
  enemies.push(enemy);
- discoverCodexMonsters([kind])if(!seen.monsters.includes(kind)){seen.monsters.push(kind);localStorage.setItem('abyssalCodex',JSON.stringify(seen));}
+ discoverCodexMonsters([kind]);
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,70,300);}
  return enemy;
 }
