@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const EnemyAI = require('./public/enemy-ai');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const rand = (min, max) => min + Math.random() * (max - min);
 
@@ -96,7 +97,7 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.0.2',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0)},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT}}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.0.3',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0)},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT}}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
@@ -148,9 +149,9 @@ async function roomListForClients(){
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
-app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.0.2',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.0.2',directoryFallback:true});}});
+app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.0.3',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.0.3',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
-function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,serverTime:Date.now(),tickCount:room.world.tickCount||0,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
+function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,serverTime:Date.now(),tickCount:room.world.tickCount||0,movingEnemyCount:room.world.movingEnemyCount||0,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
 async function persistRoomRow(room){
  if(!pgPool||!roomRegistryReady||!room)return;
@@ -293,19 +294,13 @@ function tickRoom(room,now){
  }
  const targetPlayers=[...room.players.values()].filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));let movedCount=0;
  for(const e of w.enemies){
-  e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
-  let best=Infinity,target=null,dxWorld=0,dyWorld=0;
-  for(const p of targetPlayers){const dx=(p.x-e.x)*WORLD_WIDTH,dy=(p.y-e.y)*WORLD_HEIGHT,d=Math.hypot(dx,dy);if(d<best){best=d;target=p;dxWorld=dx;dyWorld=dy;}}
-  if(target){e.angle=Math.atan2(dyWorld,dxWorld);}
-  // Keep the creature just outside the diver's collision radius; do not let mobs pile up
-  // at the exact player coordinate and then appear frozen. Radius uses the solo renderer's zoom.
-  const stopDistance=((Number(e.r)||10)+13)/WORLD_ZOOM+3;
-  if(target&&best>stopDistance&&dt>0){
-   const nx=dxWorld/(best||1),ny=dyWorld/(best||1),speed=Math.max(1,Number(e.speed)||80),step=Math.min(best-stopDistance,speed*dt),oldX=e.x,oldY=e.y;
-   e.x=clamp(e.x+(nx*step)/WORLD_WIDTH,.008,.992);e.y=clamp(e.y+(ny*step)/WORLD_HEIGHT,.008,.992);
-   e.vx=(e.x-oldX)/Math.max(dt,.001);e.vy=(e.y-oldY)/Math.max(dt,.001);
-   if(Math.abs(e.x-oldX)>1e-8||Math.abs(e.y-oldY)>1e-8)movedCount++;
-  }else{e.vx=0;e.vy=0;}
+  e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);
+  // The exact same pursuit helper is loaded by game.js for solo play. Server coordinates
+  // are normalized (0..1); the helper converts deltas into the shared 3600x2200 world.
+  const oldX=e.x,oldY=e.y;
+  const movement=EnemyAI.moveTowardTarget(e,targetPlayers,dt,{normalized:true,worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,minX:.008,maxX:.992,minY:.008,maxY:.992,stopDistance:0});
+  if(movement.moved)movedCount++;
+  e.vx=(e.x-oldX)/Math.max(dt,.001);e.vy=(e.y-oldY)/Math.max(dt,.001);
  }
  if(movedCount>0)w.lastMovementAt=now;w.movingEnemyCount=movedCount;
  w.snapshotTimer-=dt;if(w.snapshotTimer<=0){w.snapshotTimer=.1;broadcastWorld(room);}

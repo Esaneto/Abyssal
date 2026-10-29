@@ -23,6 +23,15 @@
       "score": 4429,
       "level": 9,
       "updatedAt": "2026-10-28T00:57:36.318Z"
+    },
+    "nekko": {
+      "key": "nekko",
+      "nickname": "Nekko",
+      "bossesKilled": 0,
+      "score": 13,
+      "level": 1,
+      "survival": 16,
+      "updatedAt": "2026-10-29T00:32:01.356Z"
     }
   },
   "daily": {
@@ -51,6 +60,17 @@
         "level": 9,
         "updatedAt": "2026-10-28T00:57:36.318Z"
       }
+    },
+    "2026-10-29": {
+      "nekko": {
+        "key": "nekko",
+        "nickname": "Nekko",
+        "bossesKilled": 0,
+        "score": 13,
+        "level": 1,
+        "survival": 16,
+        "updatedAt": "2026-10-29T00:32:01.356Z"
+      }
     }
   },
   "weekly": {
@@ -78,12 +98,34 @@
         "score": 4429,
         "level": 9,
         "updatedAt": "2026-10-28T00:57:36.318Z"
+      },
+      "nekko": {
+        "key": "nekko",
+        "nickname": "Nekko",
+        "bossesKilled": 0,
+        "score": 13,
+        "level": 1,
+        "survival": 16,
+        "updatedAt": "2026-10-29T00:32:01.356Z"
       }
     }
   },
   "settled": {
-    "day": "2026-10-28",
+    "day": "2026-10-29",
     "week": "2026-W44",
     "month": "2026-10"
+  },
+  "monthly": {
+    "2026-10": {
+      "nekko": {
+        "key": "nekko",
+        "nickname": "Nekko",
+        "bossesKilled": 0,
+        "score": 13,
+        "level": 1,
+        "survival": 16,
+        "updatedAt": "2026-10-29T00:32:01.356Z"
+      }
+    }
   }
 }
