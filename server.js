@@ -134,7 +134,7 @@ function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
  return { playerId: player.id, hp: Math.max(0, Number(player.hp) || 0), maxHp: Math.max(1, Number(player.maxHp) || 100), shieldCharges: Math.max(0, Math.min(3, Math.floor(Number(player.shieldCharges) || 0))), alive: player.alive !== false, invulnerabilityMs: Math.max(0, (Number(player.invulnerableUntil) || 0) - Date.now()), ...extra };
 }
-const BOSS_KINDS = new Set(['boss','leviathan','maw','angler']);
+const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken']);
 const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 50;
 const MAX_BOSSES_PER_ROOM = 4;
@@ -155,7 +155,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
-const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
 function makeWorldState(){return WorldSimulation.createWorldState();}
@@ -291,14 +291,35 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-function processWorldDamage(socket,id,damage){
+function processWorldDamage(socket,id,damage,skillId=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
  const reject=(reason)=>{combatDiagnostics.rejectedHits++;combatDiagnostics.lastDamageReason=reason;return {ok:false,id:Number.isFinite(id)?id:null,reason};};
  if(!room||!socket.data.joined)return reject('not-in-room');
  if(!Number.isSafeInteger(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return reject('invalid-hit');
+ const player=room.players.get(socket.id);
  const w=room.world,normalizedId=Number(id),idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');
- const enemy=w.enemies[idx],applied=Math.min(250,damage);
+ const enemy=w.enemies[idx],now=Date.now();
+ let requestedDamage=damage;
+ if(skillId==='kraken-sweep'){
+  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
+  const radius=280/WORLD_ZOOM, distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
+  if(distance>radius)return reject('skin-ability-out-of-range');
+  if(now>(Number(player.krakenSweepWindowUntil)||0)){
+   if(now<(Number(player.krakenSweepReadyAt)||0))return reject('skin-ability-cooldown');
+   player.krakenSweepReadyAt=now+12000;player.krakenSweepWindowUntil=now+800;player.krakenSweepTargetIds=new Set();
+  }
+  player.krakenSweepTargetIds ||= new Set();
+  if(player.krakenSweepTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
+  player.krakenSweepTargetIds.add(normalizedId);
+  requestedDamage=Math.min(requestedDamage,48);
+ }
+ let skinMultiplier=1;
+ if(player?.skinId==='toxic')skinMultiplier*=1.12;
+ if(player?.skinId==='leviathan'&&isBossKind(enemy.kind))skinMultiplier*=1.25;
+ if(player?.skinId==='thorn'&&Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y))<((Number(enemy.r)||10)+85)/WORLD_ZOOM)skinMultiplier*=1.24;
+ if(player?.skinId==='bloodmoon'&&Number(player.maxHp)>0&&Number(player.hp)/Number(player.maxHp)<=0.35)skinMultiplier*=1.3;
+ const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
@@ -321,6 +342,10 @@ function processWorldDamage(socket,id,damage){
   const orb=WorldSimulation.spawnXpOrb(w,enemy);
   if(orb)combatDiagnostics.xpOrbsSpawned++;
   if(boss)awardWorldBossCoins(room);
+  if(player?.skinId==='coral'&&player.alive!==false){
+   const healed=Math.min(4,Math.max(0,player.maxHp-player.hp));
+   if(healed>0){player.hp+=healed;socket.emit('player-vitals',playerVitalsPayload(player,{reason:'regeneration',healed,serverTime:Date.now()}));}
+  }
   // Confirm a removal immediately; do not depend on the next periodic snapshot.
   broadcastWorld(room);
  }
@@ -514,13 +539,14 @@ io.on('connection', socket => {
   socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const u=users[socket.data.userKey];
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
-  const initialShieldCharges=Math.max(0,Math.min(1,Math.floor(Number(u?.metaUpgrades?.startShield)||0)));
+  const equippedSkinId=allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default';
+  const initialShieldCharges=Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.startShield)||0)+(equippedSkinId==='abyssking'?1:0)));
   const now=Date.now();
   const occupiedSpawnSlots=new Set([...room.players.values()].map(player=>Number(player.spawnSlot)).filter(Number.isInteger));
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -562,7 +588,8 @@ io.on('connection', socket => {
   p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
   p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);p.clientMotionAt=Date.now();
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
-  const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
+  const account=users[socket.data.userKey],skinId=String(account?.equippedSkin||'default');
+  p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=60){
@@ -640,7 +667,7 @@ io.on('connection', socket => {
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
  socket.on('shared-shot', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;io.to(channelFor(room)).volatile.emit('shared-shot',{x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet'].includes(payload.special)?payload.special:null,from:socket.data.nickname,at:Date.now()});});
- socket.on('shared-damage', (payload,acknowledge) => {const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage));if(typeof acknowledge==='function')acknowledge(result);});
+ socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('delete-account', async(payload={}) => {
@@ -682,10 +709,10 @@ io.on('connection', socket => {
  });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
- socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
+ socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
-  const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000 };
+  const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000 };
   const id = String(payload.id || ''), price = prices[id];
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Skin indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });

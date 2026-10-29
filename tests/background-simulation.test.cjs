@@ -22,7 +22,7 @@ test('online client receives authoritative player vitals from the server', () =>
 
 test('online client renders server-authoritative enemy positions instead of simulating a divergent copy', () => {
   assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
-  assert.match(game, /if\(target\.local&&td<e\.r\+player\.r\+8\/worldZoom\)/);
+  assert.match(game, /if\(target\.local&&\(td<e\.r\+player\.r\+8\/worldZoom\|\|\(e\.kind==='kraken'&&window\.AbyssalEnemyAI\?\.touchesKrakenTentacle/);
   assert.match(game, /if\(!onlineMode&&upgrades\.regen>0/);
   assert.match(game, /revealOnlineContactSource\(data\)/);
   assert.match(game, /function alignPlayerToAuthoritativeContact\(data\)/);
@@ -62,7 +62,7 @@ test('mobile zoom uses the requested level and online menu uses the requested na
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css', 'enemy-ai.js', 'enemy-netcode.js', 'skill-audio.js', 'game.js', 'online.js']) {
-    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.11`));
+    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.12`));
   }
 });
 

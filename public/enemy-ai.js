@@ -11,7 +11,7 @@
   const WORLD_WIDTH = 3600;
   const WORLD_HEIGHT = 2200;
   const WORLD_ZOOM = 0.78;
-  const BOSS_KINDS = Object.freeze(['boss', 'leviathan', 'maw', 'angler']);
+  const BOSS_KINDS = Object.freeze(['boss', 'leviathan', 'maw', 'angler', 'kraken']);
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
     stinger: Object.freeze({ r: 7, hp: 13, speed: 88, damage: 6, color: '#ffbc78', value: 2 }),
@@ -20,7 +20,8 @@
     boss: Object.freeze({ r: 40, hp: 2820, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
     leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
     maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
-    angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 })
+    angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
+    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#52c8b5', value: 180 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
@@ -59,6 +60,62 @@
     };
   }
 
+  // Eight deterministic, animated arms shared by the renderer and collision code.
+  // Coordinates are relative to the body's radius; the base is thick and each tip tapers.
+  function krakenTentaclePose(index, phase = 0) {
+    const i = ((Math.floor(Number(index) || 0) % 8) + 8) % 8;
+    const angle = 0.34 + i * (2.46 / 7);
+    const sway = Math.sin((Number(phase) || 0) * 0.88 + i * 1.73);
+    const length = 2.16 + 0.16 * Math.sin((Number(phase) || 0) * 0.43 + i * 0.91);
+    const sx = Math.cos(angle) * 0.44;
+    const sy = 0.25 + Math.sin(angle) * 0.21;
+    return {
+      sx, sy,
+      c1x: sx + Math.cos(angle - 0.35) * 0.58,
+      c1y: sy + Math.sin(angle - 0.35) * 0.68,
+      c2x: Math.cos(angle + sway * 0.18) * (length * 0.68),
+      c2y: 0.25 + Math.sin(angle + sway * 0.18) * (length * 0.67),
+      ex: Math.cos(angle + sway * 0.24) * length,
+      ey: 0.20 + Math.sin(angle + sway * 0.24) * (length * 0.94)
+    };
+  }
+
+  function pointSegmentDistance(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay;
+    const lengthSq = dx * dx + dy * dy;
+    if (lengthSq <= 1e-9) return Math.hypot(px - ax, py - ay);
+    const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSq, 0, 1);
+    return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+  }
+
+  /** True when a player overlaps an animated kraken arm, not only its central body. */
+  function touchesKrakenTentacle(enemy, target, enemyRadiusScale = 1) {
+    if (!enemy || enemy.kind !== 'kraken' || !target) return false;
+    const radius = Math.max(1, Number(enemy.r) || 80) * Math.max(0.001, Number(enemyRadiusScale) || 1);
+    const px = Number(target.x), py = Number(target.y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) return false;
+    const targetRadius = Math.max(1, Number(target.r) || 13 / WORLD_ZOOM);
+    const margin = 8 / WORLD_ZOOM;
+    const facing = Number(enemy.angle) || 0, cs = Math.cos(facing), sn = Math.sin(facing);
+    const phase = Number(enemy.phase) || 0;
+    for (let arm = 0; arm < 8; arm++) {
+      const p = krakenTentaclePose(arm, phase);
+      let prevX = Number(enemy.x) + (p.sx * cs - p.sy * sn) * radius;
+      let prevY = Number(enemy.y) + (p.sx * sn + p.sy * cs) * radius;
+      for (let step = 1; step <= 12; step++) {
+        const t = step / 12, mt = 1 - t;
+        const nx = mt*mt*mt*p.sx + 3*mt*mt*t*p.c1x + 3*mt*t*t*p.c2x + t*t*t*p.ex;
+        const ny = mt*mt*mt*p.sy + 3*mt*mt*t*p.c1y + 3*mt*t*t*p.c2y + t*t*t*p.ey;
+        const x = Number(enemy.x) + (nx * cs - ny * sn) * radius;
+        const y = Number(enemy.y) + (nx * sn + ny * cs) * radius;
+        const armRadius = radius * (0.125 * (1 - (t - 1 / 24)) + 0.035);
+        if (pointSegmentDistance(px, py, prevX, prevY, x, y) <= targetRadius + armRadius + margin) return true;
+        prevX = x; prevY = y;
+      }
+    }
+    return false;
+  }
+
   /** Move one enemy toward the nearest target. x, y, speed and target coordinates all use world units. */
   function moveTowardTarget(enemy, targets, dt, options = {}) {
     if (!enemy || !Array.isArray(targets) || !targets.length || !Number.isFinite(dt) || dt <= 0) {
@@ -75,7 +132,9 @@
 
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
-    const speed = Math.max(0, Number(enemy.speed) || 0);
+    const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
+    // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
+    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? baseSpeed * 0.74 : baseSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     let x = oldX, y = oldY;
@@ -115,5 +174,5 @@
     return { moved: Math.abs(x - oldX) > 1e-8 || Math.abs(y - oldY) > 1e-8, target, distance, dx, dy };
   }
 
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, moveTowardTarget };
 });

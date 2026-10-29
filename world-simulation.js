@@ -27,11 +27,15 @@ function contactGeometry(enemy, target) {
   const paddingWorld = 8 / WORLD_ZOOM; // exactly the solo collision padding
   const dx = Number(target?.x) - Number(enemy?.x);
   const dy = Number(target?.y) - Number(enemy?.y);
-  return {
+  const geometry = {
     distance: Math.hypot(dx, dy),
     radius: enemyRadiusWorld + playerRadiusWorld + paddingWorld,
     enemyRadiusWorld, playerRadiusWorld, paddingWorld
   };
+  if (enemy?.kind === 'kraken' && EnemyAI.touchesKrakenTentacle?.(enemy, target, 1 / WORLD_ZOOM)) {
+    return { ...geometry, distance: 0, tentacleContact: true };
+  }
+  return geometry;
 }
 
 function forceAdvanceEnemy(enemy, players, dt) {
@@ -99,7 +103,7 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
   if (type === 'boss') {
     stats.hp = world.lastBossMaxHp > 0 ? Math.max(stats.hp, world.lastBossMaxHp * 1.5) : stats.hp;
     stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
-    stats.speed = Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
+    stats.speed = kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
     world.lastBossDamage = stats.damage;
@@ -291,15 +295,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
     if (shieldCharges > 0) {
       target.shieldCharges = shieldCharges - 1;
-      target.invulnerableUntil = now + 700;
+      target.invulnerableUntil = now + (target.skinId === 'violet' ? 900 : 700);
       blocked = true;
     } else {
-      const requestedDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
+      const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
+      const requestedDamage = Math.max(1, Math.round(baseDamage * (target.skinId === 'deepwarden' ? 0.82 : 1)));
       const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
       target.maxHp = Math.max(1, Number(target.maxHp) || 100);
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
       appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
-      target.invulnerableUntil = now + 800;
+      target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
       if (target.hp <= 0) {
         target.alive = false;
         world.playerDefeatCount = (world.playerDefeatCount || 0) + 1;
@@ -367,7 +372,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (collector) {
       expiredOrbIds.add(String(orb.id));
       world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
-      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(Number(orb.value) || 1)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
+      const orbValue = Math.max(1, Math.round(Number(orb.value) || 1));
+      const xpMultiplier = collector.skinId === 'royal' ? 1.25 : collector.skinId === 'default' ? 1.12 : 1;
+      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
     }
   }
   if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));

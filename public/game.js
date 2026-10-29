@@ -51,20 +51,21 @@ function discoverCodexSkill(skillId){
 let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,botBuddyTimer=0;
 const skinData=[
-{id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.'},
-{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:1000,paid:false,shape:'horns',desc:'Chifres translúcidos e uma aura espectral que pulsa no escuro.'},
-{id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.'},
-{id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.'},
-{id:'leviathan',name:'Leviatã Cego',color:'#ff668f',price:6500,paid:false,shape:'leviathan',desc:'Uma forma alongada com placas dorsais e olhos sensoriais apagados.'},
-{id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.'},
-{id:'abyssking',name:'Rei do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.'},
-{id:'royal',name:'Abismo Real',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.'},
-{id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.'},
-{id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.'},
-{id:'bloodmoon',name:'Lua Sangrenta',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Uma mandíbula dupla e presas pálidas sob um brilho carmesim.'},
-{id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.'},
-{id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.'},
-{id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.'}
+{id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
+{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:1000,paid:false,shape:'horns',desc:'Chifres translúcidos e uma aura espectral que pulsa no escuro.',ability:'Fase espectral: aumenta a invulnerabilidade após sofrer dano.'},
+{id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
+{id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Veneno de maré: todos os ataques causam 12% mais dano.'},
+{id:'leviathan',name:'Leviatã Cego',color:'#ff668f',price:6500,paid:false,shape:'leviathan',desc:'Uma forma alongada com placas dorsais e olhos sensoriais apagados.',ability:'Caçador de colossos: causa 25% mais dano aos bosses.'},
+{id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
+{id:'abyssking',name:'Rei do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
+{id:'royal',name:'Abismo Real',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
+{id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
+{id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
+{id:'bloodmoon',name:'Lua Sangrenta',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Uma mandíbula dupla e presas pálidas sob um brilho carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
+{id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
+{id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
+{id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
+{id:'kraken',name:'Kraken, Sorriso do Abismo',color:'#52c8b5',price:30000,paid:false,shape:'kraken',desc:'Uma lula ancestral de sorriso dentado e oito tentáculos grossos que se afilam até desaparecer na escuridão.',ability:'Varredura tentacular: a cada 12 segundos, atinge até seis inimigos próximos.'}
 ];
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 function saveCosmetics(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades});}
@@ -72,10 +73,14 @@ function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinD
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null};
 const MAX_ENEMIES=50,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
-const BOSS_KINDS=['boss','leviathan','maw','angler'];
-const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL'});
+const BOSS_KINDS=['boss','leviathan','maw','angler','kraken'];
+const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',kraken:'KRAKEN · SORRISO DO ABISMO'});
 const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável'});
 const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff'});
+const particlePool=[];
+const hostileSpriteCache=new Map();
+let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270;
+const projectileCandidates=[];
 const isMobileDevice=()=>mobileViewport;
 function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=!enabled;resize();}
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
@@ -147,7 +152,7 @@ function playBossCry(kind){
   audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
   if(audioCtx.state==='suspended')audioCtx.resume();
   const now=audioCtx.currentTime, master=audioCtx.createGain();master.gain.value=.055;master.connect(audioCtx.destination);
-  const base=kind==='leviathan'?58:kind==='maw'?42:kind==='angler'?82:kind==='boss'?49:65;
+  const base=kind==='leviathan'?58:kind==='maw'?42:kind==='angler'?82:kind==='kraken'?32:kind==='boss'?49:65;
   for(let i=0;i<3;i++){
    const o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
    o.type=i===0?'sawtooth':i===1?'triangle':'sine';
@@ -165,7 +170,7 @@ function showToast(t){$('toast').textContent=t;$('toast').hidden=false;clearTime
 function showBossAlert(kind,id=null,threat=0){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:String(id);
  if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>32)alertedBossIds=new Set([...alertedBossIds].slice(-16));
- const names={boss:['ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. NÃO OLHE PARA A LUZ VERMELHA.'],leviathan:['O LEVIATÃ DAS FOSSAS','A PRESSÃO SUBIU. UMA COISA IMENSA ESTÁ VINDO PELO FUNDO.'],maw:['A BOCA DO ABISMO','O ECO QUE VOCÊ OUVIU NÃO FOI SEU. CORRA.'],angler:['A LANTERNA MORTAL','A LUZ NÃO É UM RESGATE. É A ISCA.']};
+ const names={boss:['ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. NÃO OLHE PARA A LUZ VERMELHA.'],leviathan:['O LEVIATÃ DAS FOSSAS','A PRESSÃO SUBIU. UMA COISA IMENSA ESTÁ VINDO PELO FUNDO.'],maw:['A BOCA DO ABISMO','O ECO QUE VOCÊ OUVIU NÃO FOI SEU. CORRA.'],angler:['A LANTERNA MORTAL','A LUZ NÃO É UM RESGATE. É A ISCA.'],kraken:['KRAKEN · SORRISO DO ABISMO','OITO BRAÇOS CERCAM A FENDA. O SORRISO É A ÚLTIMA COISA QUE VOCÊ VERÁ.']};
  const [title,copy]=names[kind]||['PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
  const alert=$('bossAlert');if(alert){$('bossAlertTitle').textContent=title;$('bossAlertText').textContent=copy;$('bossAlertKicker').textContent=threat?`SINAL DE PRESSÃO · AMEAÇA ${threat}`:'SINAL DE PRESSÃO · CONTATO DESCONHECIDO';alert.hidden=false;alert.classList.remove('boss-alert-enter');void alert.offsetWidth;alert.classList.add('boss-alert-enter');clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{alert.hidden=true;alert.classList.remove('boss-alert-enter')},4600);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
@@ -176,10 +181,10 @@ function startGame(){
  startAmbientMusic();
  elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.max(0,Number(metaUpgrades.startShield)||0),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
- enemies=[];orbs=[];particles=[];projectiles=[];effects=[];
- player={x:W*.5,y:H*.5,r:13/worldZoom,angle:0,moveSpeed:150/worldZoom,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0};updateCamera();
+ enemies=[];orbs=[];particles=[];particlePool.length=0;projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
+ player={x:W*.5,y:H*.5,r:13/worldZoom,angle:0,moveSpeed:150/worldZoom,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7};updateCamera();
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
  if(Number(metaUpgrades.bulkhead)>0)activePassiveSounds.push('bulkhead');
@@ -278,6 +283,7 @@ function spawnEnemy(initial=false,type='common'){
   leviathan:{r:54,hp:4700,speed:44,damage:34,color:'#4ce0d1',value:90},
   maw:{r:45,hp:3750,speed:58,damage:31,color:'#c16cff',value:75},
   angler:{r:35,hp:3260,speed:66,damage:28,color:'#ffb45e',value:65},
+  kraken:{r:80,hp:9200,speed:20,damage:38,color:'#52c8b5',value:180},
   drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
   stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
@@ -286,7 +292,7 @@ function spawnEnemy(initial=false,type='common'){
  if(type==='boss'){
   data.hp=lastBossMaxHp>0?Math.max(data.hp,lastBossMaxHp*1.5):data.hp;
   data.damage=lastBossDamage>0?Math.max(data.damage,Math.round(lastBossDamage*1.12)):data.damage;
-  data.speed=Math.min(90,lastBossSpeed>0?Math.max(data.speed,lastBossSpeed*1.05):data.speed);
+  data.speed=kind==='kraken'?20:Math.min(90,lastBossSpeed>0?Math.max(data.speed,lastBossSpeed*1.05):data.speed);
   lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
  }
  const point=ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)};
@@ -294,16 +300,20 @@ function spawnEnemy(initial=false,type='common'){
  const enemy={id:++enemyId,x,y,...data,r:data.r/worldZoom,speed:data.speed/worldZoom,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind};
  enemies.push(enemy);
  discoverCodexMonsters([kind]);
- if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,70,300);}
+ if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
 }
 function burst(x,y,color,n=10,force=100){
- n=Math.min(n,Math.max(0,particleBudget()-particles.length));for(let i=0;i<n;i++){let a=Math.random()*Math.PI*2,s=rand(force*.25,force),life=rand(.22,.7);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life,max:life,r:rand(1,3.5),color})}
+ n=Math.min(Math.max(0,Math.floor(n)),Math.max(0,particleBudget()-particles.length));
+ for(let i=0;i<n;i++){
+  const a=Math.random()*Math.PI*2,s=rand(force*.25,force),life=rand(.22,.7),p=particlePool.pop()||{};
+  p.x=x;p.y=y;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;p.life=life;p.max=life;p.r=rand(1,3.5);p.color=color;particles.push(p);
+ }
 }
 function addOrb(x,y,value){const r=(window.AbyssalEnemyAI?.xpOrbRadius?.(value)||Math.min(15,4+Math.sqrt(Math.max(1,value))))/worldZoom;orbs.push({id:`solo-${Math.random().toString(36).slice(2)}`,x,y,r,value,phase:rand(0,6.28),life:25})}
 function hurtPlayer(dmg){
- if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
- hp-=dmg;player.invuln=.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0)endGame();
+ if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
+ const received=Math.max(1,dmg*(equippedSkin==='deepwarden'?.82:1));hp-=received;player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0)endGame();
 }
 function revealOnlineContactSource(data){
  // Never create or teleport a mob from a damage event. The authoritative room snapshot
@@ -391,7 +401,8 @@ let lastOnlineVitalsAt=0;
 function onlineHost(){return !onlineMode;} // O mundo online é simulado pelo servidor, nunca por um jogador.
 function gainXp(value, source='shared'){
  if(!Number.isFinite(value)||value<=0||!player)return;
- xp+=value; score+=Math.round(value*3);
+ const skinMultiplier=source==='orb'?(equippedSkin==='default'?1.12:equippedSkin==='royal'?1.25:1):1;
+ xp+=value*skinMultiplier; score+=Math.round(value*3);
  if(xp>=xpNeed && gameState!=='upgrade'){
    xp-=xpNeed; xpNeed=Math.floor(xpNeed*1.34+3); offerUpgrade();
  }
@@ -401,13 +412,17 @@ function dealEnemyDamage(enemy, damage, skillId=null){
  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
  if(skillId)playSkillSound(skillId,'trigger');
  if(onlineMode){
-   const sent=window.AbyssalOnline?.sendDamage(enemy.id, damage);
+   const sent=window.AbyssalOnline?.sendDamage(enemy.id, damage, skillId);
    if(!sent)window.dispatchEvent(new CustomEvent('abyssal-world-damage-result',{detail:{ok:false,id:enemy.id,reason:'not-connected'}}));
    enemy.hit=.14;
    burst(enemy.x,enemy.y,'#c4b4ff',5,60);
    return;
  }
- enemy.hp-=damage; enemy.hit=.14;
+ let multiplier=equippedSkin==='toxic'?1.12:1;
+ if(equippedSkin==='leviathan'&&BOSS_KINDS.includes(enemy.kind))multiplier*=1.25;
+ if(equippedSkin==='thorn'&&Math.hypot(player.x-enemy.x,player.y-enemy.y)<enemy.r+85/worldZoom)multiplier*=1.24;
+ if(equippedSkin==='bloodmoon'&&hp/maxHp<=.35)multiplier*=1.3;
+ enemy.hp-=damage*multiplier; enemy.hit=.14;
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
 }
 function currentInterpolatedEnemyPosition(e,now){
@@ -497,7 +512,7 @@ function applySharedSnapshot(data){
   else window.AbyssalOnline?.requestPlayerState?.();
  }
  discoverCodexMonsters(enemies);
- const newBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&!previousBossIds.has(e.id));if(newBoss){lastRemoteBossId=newBoss.id;showBossAlert(newBoss.kind,newBoss.id,Number(newBoss.threat)||0);burst(newBoss.x,newBoss.y,newBoss.color,70,270);}
+ const newBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&!previousBossIds.has(e.id));if(newBoss){lastRemoteBossId=newBoss.id;showBossAlert(newBoss.kind,newBoss.id,Number(newBoss.threat)||0);burst(newBoss.x,newBoss.y,newBoss.color,newBoss.kind==='kraken'?26:32,230);}
 }
 function applySharedDamage(data){ /* Dano é resolvido diretamente no servidor; mantido apenas por compatibilidade. */ }
 function applySharedXp(data){
@@ -508,10 +523,12 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;updateHud();}
- discoverCodexMonsters([e.kind]);score+=e.value*10;if(!onlineMode)addOrb(e.x,e.y,e.value);burst(e.x,e.y,e.color,['boss','leviathan','maw','angler'].includes(e.kind)?100:e.kind==='brute'?22:12,['boss','leviathan','maw','angler'].includes(e.kind)?340:e.kind==='brute'?145:95);if(['boss','leviathan','maw','angler'].includes(e.kind)){score+=1400;coins+=100;showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);
+ discoverCodexMonsters([e.kind]);score+=e.value*10;if(!onlineMode)addOrb(e.x,e.y,e.value);burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){score+=1400;coins+=100;showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
+ if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
+ enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
 }
 function fire(){
- if(!player)return;let target=null,bd=Infinity;const maxRange=210*upgrades.range/worldZoom;
+ if(!player)return;let target=null,bd=Infinity;const maxRange=210*upgrades.range*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
  for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
  if(!target)return;
  const a=Math.atan2(target.y-player.y,target.x-player.x);
@@ -530,20 +547,24 @@ function update(dt){
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
    else if(pointer.down&&!isMobileDevice()){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*dashMultiplier*dt;const wall=52/worldZoom;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
-   player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/(upgrades.rate||1))}
+   const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt;const wall=52/worldZoom;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
+   player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(equippedSkin==='solar'?1.18:1)))}
  }
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.38,1.05-elapsed*.0015)}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
+ if(equippedSkin==='kraken'){
+  player.krakenSweepTimer=(Number(player.krakenSweepTimer)||0)-dt;
+  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/worldZoom;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#52c8b5'});burst(target.x,target.y,'#52c8b5',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#52c8b5'});playSkillSound('kraken-sweep','trigger');showToast('KRAKEN · VARREDURA TENTACULAR');}}
+ }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/worldZoom){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/worldZoom,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/worldZoom){dealEnemyDamage(e,18*upgrades.nova,'nova');burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/worldZoom,life:.75,maxLife:.75,color:'#72f5ff'});audio(500,.045,'sine',.008)}}
  // Co-op is rendered from the server's authoritative coordinates. Do NOT run a
  // second local AI here: that divergence is what made server-side contact attacks feel
  // like invisible enemies. Solo keeps its original local movement/collision loop.
  onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=0;
- const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,local:true};
+ const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,local:true,skinId:equippedSkin};
  for(let i=enemies.length-1;i>=0;i--){
   const e=enemies[i];e.hit=Math.max(0,e.hit-dt);
   if(onlineMode){
@@ -562,9 +583,12 @@ function update(dt){
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  if(target.local&&td<e.r+player.r+8/worldZoom){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
+  if(target.local&&(td<e.r+player.r+8/worldZoom||(e.kind==='kraken'&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:e.kind==='kraken'?.95:1.1;}}
  }
- for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];p.hitIds ||= [];if(!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
+ // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
+ enemyCollisionGrid.clear();enemyCollisionCellSize=270;
+ for(const enemy of enemies){if(enemy.hp<=0)continue;const gx=Math.floor(enemy.x/enemyCollisionCellSize),gy=Math.floor(enemy.y/enemyCollisionCellSize),key=gx+','+gy;let bucket=enemyCollisionGrid.get(key);if(!bucket){bucket=[];enemyCollisionGrid.set(key,bucket);}bucket.push(enemy);}
+ for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gx+','+gy);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08),'electric');audio(500,.045,'sine',.008);next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
  if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(2,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.28,maxLife:.28,color:'#ffc47a'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42,'ricochet');audio(500,.045,'sine',.008);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom)projectiles.splice(i,1)}
@@ -591,8 +615,8 @@ function update(dt){
   }else if(o.life<=0)orbs.splice(i,1);
  }
  for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0)effects.splice(i,1)}
- for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0)particles.splice(i,1)}
- if(particles.length>particleBudget())particles.splice(0,particles.length-particleBudget());if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();if(particlePool.length<700)particlePool.push(p)}}
+ if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
  if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
  updateHud();
 }
@@ -681,9 +705,18 @@ function drawBackground(t){
 }
 function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,renderContext=ctx,skinOverride=null){
  const c=renderContext;
+ // Cache elaborate hostile drawings off-screen and refresh them infrequently; a horde can share one sprite.
+ if(renderContext===ctx&&!playerCreature){
+  const spread=kind==='kraken'?2.8:kind==='leviathan'?3.15:kind==='lurker'?2.55:BOSS_KINDS.includes(kind)?2.15:1.85;
+  const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side;
+  let sprite=hostileSpriteCache.get(key);
+  if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
+  if(t-sprite.lastPaint>=(BOSS_KINDS.includes(kind)?85:150)){sprite.context.clearRect(0,0,side,side);drawCreature(sprite.center,sprite.center,r,0,color,kind,t,false,0,sprite.context);sprite.lastPaint=t;}
+  c.save();c.translate(Math.round(x),Math.round(y));c.rotate(Number.isFinite(angle)?angle:0);c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(hit>0){c.globalAlpha=clamp(hit*2.6,0,.45);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
+ }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
- const boss=['boss','leviathan','maw','angler'].includes(kind);
+ const boss=BOSS_KINDS.includes(kind);
  const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=1;
@@ -696,14 +729,28 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   stroke(()=>{c.moveTo(sx*r,sy*r);c.bezierCurveTo(c1x*r,c1y*r,c2x*r,c2y*r,ex*r,ey*r)},Math.max(.8,r*.045*w),color,9);
   if(suckers){c.save();c.fillStyle='#d8fff9';c.shadowBlur=6*glowScale;c.shadowColor=color;for(let j=1;j<=4;j++){const q=j/5,px=(sx*(1-q)**3+3*c1x*q*(1-q)**2+3*c2x*q*q*(1-q)+ex*q**3)*r,py=(sy*(1-q)**3+3*c1y*q*(1-q)**2+3*c2y*q*q*(1-q)+ey*q**3)*r;c.beginPath();c.arc(px,py,Math.max(.7,r*.035),0,Math.PI*2);c.fill()}c.restore()}
  };
- const eye=(ex,ey,er=r*.09,iris='#e6ffff')=>{c.save();c.fillStyle='#020a12';c.beginPath();c.ellipse(ex*r,ey*r,er*1.3,er*1.65,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=12*glowScale;c.shadowColor=iris;c.beginPath();c.arc(ex*r+er*.2,ey*r-er*.18,er*.5,0,Math.PI*2);c.fill();c.restore()};
+   const krakenArm=(pose,armIndex,phase)=>{
+   const points=[];
+   for(let j=0;j<=18;j++){const q=j/18,mt=1-q;const x=mt*mt*mt*pose.sx+3*mt*mt*q*pose.c1x+3*mt*q*q*pose.c2x+q*q*q*pose.ex;const y=mt*mt*mt*pose.sy+3*mt*mt*q*pose.c1y+3*mt*q*q*pose.c2y+q*q*q*pose.ey;points.push({x:x*r,y:y*r,t:q});}
+   const left=[],right=[];
+   for(let j=0;j<points.length;j++){const p=points[j],prev=points[Math.max(0,j-1)],next=points[Math.min(points.length-1,j+1)],dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;const width=r*(.115*Math.pow(1-p.t,1.22)+.008);const nx=-dy/len,ny=dx/len;left.push([p.x+nx*width,p.y+ny*width]);right.push([p.x-nx*width,p.y-ny*width]);}
+   c.save();c.beginPath();left.forEach((p,j)=>j?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));for(let j=right.length-1;j>=0;j--)c.lineTo(right[j][0],right[j][1]);c.closePath();c.fillStyle=bodyGrad(color);c.shadowBlur=(playerCreature||boss)?8*glowScale:0;c.shadowColor=color;c.fill();c.strokeStyle='rgba(130,255,231,.62)';c.lineWidth=Math.max(.8,r*.016);c.stroke();
+   c.shadowBlur=3*glowScale;c.fillStyle='#caffef';for(let j=3;j<=11;j+=2){const p=points[j],width=r*(.115*Math.pow(1-p.t,1.22)+.008);c.beginPath();c.ellipse(p.x,p.y,Math.max(.65,width*.23),Math.max(.5,width*.16),Math.atan2(points[Math.min(18,j+1)].y-p.y,points[Math.min(18,j+1)].x-p.x),0,Math.PI*2);c.fill();}c.restore();
+  };
+  const eye=(ex,ey,er=r*.09,iris='#e6ffff')=>{c.save();c.fillStyle='#020a12';c.beginPath();c.ellipse(ex*r,ey*r,er*1.3,er*1.65,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=12*glowScale;c.shadowColor=iris;c.beginPath();c.arc(ex*r+er*.2,ey*r-er*.18,er*.5,0,Math.PI*2);c.fill();c.restore()};
  const teeth=(cx,cy,rx,ry,count=8,scale=1,reverse=false)=>{c.save();c.fillStyle='#f6fbec';c.shadowBlur=7*glowScale;c.shadowColor='#ffb4bb';for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2,tx=cx+Math.cos(a)*rx,ty=cy+Math.sin(a)*ry,innerX=cx+Math.cos(a)*rx*.68,innerY=cy+Math.sin(a)*ry*.68;c.beginPath();c.moveTo(tx*r,ty*r);c.lineTo((innerX+Math.cos(a+.2)*.09*scale)*r,(innerY+Math.sin(a+.2)*.09*scale)*r);c.lineTo((innerX+Math.cos(a-.2)*.09*scale)*r,(innerY+Math.sin(a-.2)*.09*scale)*r);c.closePath();c.fill()}c.restore()};
  const gills=(x0=-.2,y0=-.28,count=3,side=1)=>{for(let i=0;i<count;i++){const xx=x0+i*.12;stroke(()=>{c.moveTo(xx*r,y0*r);c.quadraticCurveTo((xx-.12)*r,(y0+.13)*r,(xx-.06)*r,(y0+.22)*r)},Math.max(.7,r*.028),'rgba(194,255,248,.72)',4)}};
  const finRay=(x0,y0,x1,y1,x2,y2,col=color)=>fin([[x0,y0],[x1,y1],[x2,y2]],col,'rgba(230,255,249,.48)');
 
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
-  if(id==='default'){
+  if(id==='kraken'){
+    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
+    fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(132,247,223,.88)',Math.max(1.2,r*.06),12);
+    for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#ff314f';c.shadowBlur=10*glowScale;c.shadowColor='#ff1b42';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.09,r*.13,side*-.16,0,Math.PI*2);c.fill();c.restore();}
+    c.save();c.fillStyle='#020309';c.strokeStyle='rgba(150,26,54,.85)';c.lineWidth=Math.max(.8,r*.03);c.beginPath();c.moveTo(-.42*r,.03*r);c.quadraticCurveTo(0,.32*r,.45*r,.015*r);c.quadraticCurveTo(.35*r,.42*r,0,.38*r);c.quadraticCurveTo(-.32*r,.37*r,-.42*r,.03*r);c.closePath();c.fill();c.stroke();c.fillStyle='#e9d5c9';for(let tooth=0;tooth<7;tooth++){const tx=(-.34+tooth*.11)*r,ty=(.12+Math.sin(tooth*.7)*.045)*r;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx+r*.045,ty+r*.105);c.lineTo(tx+r*.078,ty+r*.015);c.closePath();c.fill();}c.restore();
+    for(let g=0;g<3;g++)stroke(()=>{c.moveTo((-.42+g*.1)*r,-.44*r);c.quadraticCurveTo((-.35+g*.1)*r,-.26*r,(-.3+g*.1)*r,-.12*r)},Math.max(.7,r*.024),'rgba(207,255,239,.55)',2);
+   } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.
    for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
    fill(()=>{c.moveTo(-.84*r,-.02*r);c.bezierCurveTo(-.9*r,-.7*r,-.48*r,-.9*r,0,-.86*r);c.bezierCurveTo(.5*r,-.9*r,.9*r,-.56*r,.82*r,-.02*r);c.quadraticCurveTo(0,.24*r,-.82*r,-.02*r)},bodyGrad(color),'rgba(204,255,253,.75)',Math.max(1.2,r*.06),16);
@@ -776,7 +823,12 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
 
  // HOSTILE FAUNA: each enemy category has its own anatomy, not just a recolored orb.
- if(kind==='drifter'){
+ if(kind==='kraken'){
+  for(let arm=0;arm<8;arm++){const phase=(Number(t)||0)*.0015+(Number(x)+Number(y))*.0002;const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,phase)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
+  fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(132,247,223,.88)',Math.max(1.5,r*.06),14);
+  for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#ff203f';c.shadowBlur=12*glowScale;c.shadowColor='#ff1b42';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.09,r*.13,side*-.16,0,Math.PI*2);c.fill();c.restore();}
+  c.save();c.fillStyle='#020309';c.strokeStyle='rgba(150,26,54,.9)';c.lineWidth=Math.max(1,r*.03);c.beginPath();c.moveTo(-.42*r,.03*r);c.quadraticCurveTo(0,.32*r,.45*r,.015*r);c.quadraticCurveTo(.35*r,.42*r,0,.38*r);c.quadraticCurveTo(-.32*r,.37*r,-.42*r,.03*r);c.closePath();c.fill();c.stroke();c.fillStyle='#e9d5c9';for(let tooth=0;tooth<9;tooth++){const tx=(-.36+tooth*.09)*r,ty=(.12+Math.sin(tooth*.7)*.045)*r;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx+r*.035,ty+r*.12);c.lineTo(tx+r*.07,ty+r*.01);c.closePath();c.fill();}c.restore();
+ } else if(kind==='drifter'){
   // Bell-shaped comb jelly with scalloped rim, luminous ribs and trailing cilia.
   for(let i=0;i<7;i++){const xx=(-.65+i*.215);tentacle(xx,.12,xx-.08,.45,xx+.08,.85,xx+Math.sin(i)*.12,1.12,.7)}
   fill(()=>{c.moveTo(-.82*r,.02*r);c.bezierCurveTo(-.92*r,-.35*r,-.67*r,-.83*r,0,-.84*r);c.bezierCurveTo(.65*r,-.82*r,.92*r,-.37*r,.82*r,.02*r);for(let i=0;i<=8;i++){const xx=(.82-i*.205)*r;c.quadraticCurveTo(xx-.08*r,.22*r,xx-.205*r,.03*r)}c.closePath()},bodyGrad(color),'rgba(234,255,253,.67)',Math.max(1,r*.05),12);
@@ -858,7 +910,7 @@ function draw(t){
  for(const p of projectiles){ctx.save();const trail=p.allyShot?'#9bbcff':(p.special==='pierce'?'#ffe7a1':p.special==='ricochet'?'#ffc47a':p.special==='electric'?'#79f3ff':p.color);ctx.strokeStyle=trail;ctx.lineWidth=p.special==='pierce'?6:p.allyShot?5.5:p.special==='electric'?5:p.special==='ricochet'?5:p.r*2;ctx.shadowBlur=lowPowerRendering?0:(p.special?16:p.allyShot?13:9);ctx.shadowColor=trail;ctx.beginPath();ctx.moveTo(p.x-p.vx*(p.special==='pierce'?.065:.045),p.y-p.vy*(p.special==='pierce'?.065:.045));ctx.lineTo(p.x,p.y);ctx.stroke();if(p.special==='electric'){ctx.strokeStyle='#eaffff';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-p.vx*.025,p.y-p.vy*.025);ctx.lineTo(p.x+rand(-4,4),p.y+rand(-4,4));ctx.lineTo(p.x,p.y);ctx.stroke()}ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(p.x,p.y,p.special==='pierce'?p.r*1.3:p.r,0,Math.PI*2);ctx.fill();
  if(p.allyShot){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-p.vx*.018,p.y-p.vy*.018);ctx.lineTo(p.x+rand(-3,3),p.y+rand(-3,3));ctx.lineTo(p.x,p.y);ctx.stroke()}
  ctx.restore()}
- for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);if(e.hp<e.maxHp||['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2,['boss','leviathan','maw','angler'].includes(e.kind)?6:3);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(['boss','leviathan','maw','angler'].includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-22)}}}
+ for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='leviathan'?3.15:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);if(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2,['boss','leviathan','maw','angler'].includes(e.kind)?6:3);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-22)}}}
  for(const fx of effects){ctx.save();ctx.globalAlpha=clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:3;ctx.beginPath();if(fx.type==='ring'){const progress=1-fx.life/fx.maxLife;ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.lineTo(fx.x2+rand(-5,5),fx.y2+rand(-5,5))}ctx.stroke();ctx.restore()}
  const particleShadowBlur=0;for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill();ctx.restore()}
  if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(player.invuln<=0||Math.floor(t/80)%2===0)drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();ctx.arc(player.x,player.y,210*(upgrades.range||1)/worldZoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
@@ -949,7 +1001,7 @@ window.AbyssalGameHooks={
  sharedXp:applySharedXp,
 };
 function renderCreaturePreview(canvas,kind,color,skin=null){
- if(!canvas)return;const c=canvas.getContext('2d');if(!c)return;const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const bg=c.createRadialGradient(w*.5,h*.45,2,w*.5,h*.5,Math.max(w,h)*.65);bg.addColorStop(0,'#102d40');bg.addColorStop(1,'#030913');c.fillStyle=bg;c.fillRect(0,0,w,h);c.save();c.strokeStyle='rgba(130,232,239,.16)';c.lineWidth=1;c.beginPath();c.ellipse(w*.5,h*.64,w*.3,h*.16,0,0,Math.PI*2);c.stroke();c.restore();drawCreature(w*.5,h*.49,Math.min(w*.18,h*.29),-.2,color,kind,performance.now(),!!skin,0,c,skin);}
+ if(!canvas)return;const c=canvas.getContext('2d');if(!c)return;const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const bg=c.createRadialGradient(w*.5,h*.45,2,w*.5,h*.5,Math.max(w,h)*.65);bg.addColorStop(0,'#102d40');bg.addColorStop(1,'#030913');c.fillStyle=bg;c.fillRect(0,0,w,h);c.save();c.strokeStyle='rgba(130,232,239,.16)';c.lineWidth=1;c.beginPath();c.ellipse(w*.5,h*.64,w*.3,h*.16,0,0,Math.PI*2);c.stroke();c.restore();const previewRadius=skin?.id==='kraken'?Math.min(w*.13,h*.22):Math.min(w*.18,h*.29);drawCreature(w*.5,h*.49,previewRadius,-.2,color,kind,performance.now(),!!skin,0,c,skin);}
 function drawWheel(){
  const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[20,50,100,300,600,1000],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('MOEDAS',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
 function animateWheelToPrize(reward,grant=true){
@@ -982,10 +1034,10 @@ window.addEventListener('abyssal-world-damaged',ev=>applyWorldEnemyDamage(ev.det
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};orbs=orbs.filter(o=>String(o.id)!==String(d.orbId));const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>2200){lastDamageWarningAt=now;showToast(`IMPACTO NÃO CONFIRMADO · ${String(d.reason||'sem resposta').toUpperCase()}`);}});
 window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(d.kind)showBossAlert(d.kind,d.id,d.threat);});
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));score+=Number(e.value||0)*10;const bosses=['boss','leviathan','maw','angler'].includes(e.kind);if(bosses){bossKillsThisRun++;score+=1400;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?90:14,bosses?300:100);audio(bosses?180:260,.08,'triangle',.025);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));score+=Number(e.value||0)*10;const bosses=BOSS_KINDS.includes(e.kind);if(bosses){bossKillsThisRun++;score+=1400;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString('pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
- skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id;const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="Prévia real da skin ${skin.name}"></canvas></div><strong>${skin.name}</strong><p>${skin.desc}</p><button ${skin.paid?'disabled':''}>${equipped?'EQUIPADA':owned?'EQUIPAR':skin.paid?'EM BREVE · PREMIUM':`COMPRAR · ${skin.price.toLocaleString('pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!skin.paid&&!equipped)btn.addEventListener('click',()=>{if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN EQUIPADA');}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast('ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});
+ skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id;const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="Prévia real da skin ${skin.name}"></canvas></div><strong>${skin.name}</strong><p>${skin.desc}</p><p class="skin-ability"><b>HABILIDADE ÚNICA</b> ${skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${skin.paid?'disabled':''}>${equipped?'EQUIPADA':owned?'EQUIPAR':skin.paid?'EM BREVE · PREMIUM':`COMPRAR · ${skin.price.toLocaleString('pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!skin.paid&&!equipped)btn.addEventListener('click',()=>{if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN EQUIPADA');}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast('ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax?'disabled':''}>${ownedMax?'DESBLOQUEADO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`}</button>`;const button=card.querySelector('button');if(!ownedMax)button.addEventListener('click',()=>buyMetaUpgrade(item.id));metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();
 }
@@ -1003,12 +1055,13 @@ function renderCatalog(){
   boss:{name:'Aberração Abissal',color:'#ff315f',desc:'Uma entidade cefalópode coroada por osso, com máscara calcificada e braços curvados como ganchos. O brilho rubro denuncia uma criatura feita para caçar mergulhadores.'},
   leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',desc:'Serpente colossal de trincheira, com crânio pálido, costelas externas e nadadeiras em fileira. Seu corpo comprido domina as rotas de fuga.'},
   maw:{name:'A Boca do Abismo',color:'#c16cff',desc:'Predador radial cuja silhueta é uma mandíbula circular cercada por dentes. Não há olhos fáceis de localizar — apenas um anel de fome que avança contra a luz.'},
-  angler:{name:'Lanterna Mortal',color:'#ffb45e',desc:'Peixe-pescador de mandíbula articulada, espinhos e isca bioluminescente. A luz atrai a presa para perto da boca, onde qualquer erro é punido.'}
+  angler:{name:'Lanterna Mortal',color:'#ffb45e',desc:'Peixe-pescador de mandíbula articulada, espinhos e isca bioluminescente. A luz atrai a presa para perto da boca, onde qualquer erro é punido.'},
+  kraken:{name:'Kraken · Sorriso do Abismo',color:'#52c8b5',desc:'Uma lula ancestral quase duas vezes maior que a Aberração Abissal. Seus oito braços grossos se afilam em pontas móveis, cobertos por ventosas e guiados por um sorriso cheio de dentes.'}
  };
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
  const renderMonster=([k,m])=>{const known=codex.monsters.includes(k);return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}"><div class="codex-preview monster-preview" style="--preview:${m.color}"><canvas width="180" height="112" data-monster-preview="${k}" aria-label="Prévia real de ${known?m.name:'uma criatura não identificada'}"></canvas></div><b>${known?m.name:'Forma não identificada'}</b><p>${known?m.desc:'Registro incompleto. Observe esta criatura durante uma expedição para decifrar sua identidade e comportamento.'}</p></article>`};
  const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
- const entries=Object.entries(monsterData),common=entries.filter(([k])=>!['boss','leviathan','maw','angler'].includes(k)),bosses=entries.filter(([k])=>['boss','leviathan','maw','angler'].includes(k));
+ const entries=Object.entries(monsterData),common=entries.filter(([k])=>!BOSS_KINDS.includes(k)),bosses=entries.filter(([k])=>BOSS_KINDS.includes(k));
  grid.innerHTML='<h3 class="codex-heading">✦ HABILIDADES DESCOBERTAS</h3><div class="codex-grid">'+skillsHtml+'</div><h3 class="codex-heading">◈ FAUNA DAS CAMADAS EXTERNAS</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div><h3 class="codex-heading">☠ ENTIDADES COLOSSAIS · FOSSAS ABISSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
  grid.querySelectorAll('canvas[data-monster-preview]').forEach(canvas=>{const kind=canvas.dataset.monsterPreview,m=monsterData[kind];renderCreaturePreview(canvas,kind,m.color,null);});
 }
