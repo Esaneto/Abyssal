@@ -26,7 +26,8 @@ let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAcc
   const root=$('profileTitleGrid');if(!root)return;
   const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
   const equipped=user.equippedTitle||'abyss-drifter';
-  const unlocked=PROFILE_TITLES.filter(t=>t.kind==='starter'||(t.kind==='kills'?kills:bosses)>=t.required);
+  const unlockedIds=new Set(Array.isArray(user.unlockedTitles)?user.unlockedTitles:PROFILE_TITLES.filter(t=>t.kind==='starter'||(t.kind==='kills'?kills:bosses)>=t.required).map(t=>t.id));
+  const unlocked=PROFILE_TITLES.filter(t=>unlockedIds.has(t.id));
   const current=PROFILE_TITLES.find(t=>t.id===equipped)||PROFILE_TITLES[0];
   $('profileNickname').textContent=user.nickname||account?.nickname||'VISITANTE';
   $('profileEquippedLabel').textContent='Título equipado: '+current.name;
@@ -35,7 +36,7 @@ let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAcc
   $('profileKills').textContent=kills.toLocaleString('pt-BR');$('profileBosses').textContent=bosses.toLocaleString('pt-BR');
   $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';
   root.innerHTML=PROFILE_TITLES.map(t=>{
-   const progress=t.kind==='kills'?kills:t.kind==='bosses'?bosses:0,owned=t.kind==='starter'||progress>=t.required,isEquipped=equipped===t.id;
+   const progress=t.kind==='kills'?kills:t.kind==='bosses'?bosses:0,owned=unlockedIds.has(t.id),isEquipped=equipped===t.id;
    const percent=t.kind==='starter'?100:Math.min(100,Math.floor(progress/t.required*100));
     const detail=t.kind==='starter'?t.goal:owned?'Conquista concluída':percent+'% · '+progress.toLocaleString('pt-BR')+'/'+t.required.toLocaleString('pt-BR');
    return '<article class="profile-title-card '+(owned?'':'is-locked')+' '+(isEquipped?'is-equipped':'')+'" style="--title-color:'+t.color+'"><div class="profile-title-icon" aria-hidden="true">'+titleArtwork(t.id)+'</div><div class="profile-title-copy"><h4 class="profile-title-name">'+escapeHtml(t.name)+'</h4><p class="profile-title-desc">'+escapeHtml(t.description)+'</p><div class="profile-title-meta"><span>'+t.rarity+'</span><span>·</span><span class="profile-title-state '+(owned?'':'locked')+'">'+(owned?'✓ DESBLOQUEADO':'⌑ BLOQUEADO')+'</span></div><p class="profile-title-desc" style="margin-top:7px">'+escapeHtml(owned?t.goal:detail)+'</p><div class="profile-title-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div><button class="profile-title-action" data-equip-title="'+t.id+'" '+(!owned||isEquipped||!window.AbyssalOnline?.isAuthenticated()?'disabled':'')+'>'+(isEquipped?'EQUIPADO':owned?'EQUIPAR TÍTULO':window.AbyssalOnline?.isAuthenticated()?'AINDA BLOQUEADO':'ENTRE PARA EQUIPAR')+'</button></div></article>';
@@ -65,7 +66,19 @@ let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAcc
  }
  function renderGlobalChatHistory(messages){const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
  function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
- function openProfile(){const screen=$('profileScreen');if(!screen)return;screen.hidden=false;const data=serverAccount||{};renderProfile(data);if(window.AbyssalOnline?.isAuthenticated())window.AbyssalOnline.refreshAccount?.();}
+ function openProfile(){
+  const screen=$('profileScreen');if(!screen)return;
+  if(!authenticated||!serverAccount){
+   screen.hidden=true;
+   openLogin();
+   setMessage('Entre na sua conta para acessar seu perfil e carregar suas conquistas.',true);
+   return;
+  }
+  screen.hidden=false;
+  $('profileMessage').textContent='Sincronizando suas informações com o servidor…';
+  renderProfile(serverAccount);
+  refreshAccount();
+ }
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
 function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':'ENTRAR / CRIAR CONTA'}
@@ -86,7 +99,13 @@ function connect(){
  socket.on('room-joined',data=>{if(!data?.ok)return;currentRoom=data.room||null;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();applyPlayerList(data.players||[]);window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:data}));setTimeout(()=>socket?.connected&&requestWorldSnapshot('room-join'),180);});
  socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
- socket.on('account-data',data=>{serverAccount=data;renderProfile(data);window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));});
+ socket.on('account-data',data=>{
+  if(!authenticated||!data)return;
+  serverAccount=data;
+  renderProfile(data);
+  if($('profileMessage')&&!$('profileScreen').hidden)$('profileMessage').textContent='Perfil sincronizado com sua conta.';
+  window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));
+ });
  socket.on('purchase-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:result}));});
  socket.on('wheel-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:result}));});
  socket.on('world-enemy-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged',{detail:data||{}}));});
@@ -98,8 +117,16 @@ function connect(){
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;setMessage('Não conectou ao servidor. Abra o jogo por http://localhost:3000 e confirme que npm start está rodando.',true)});
- socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
- socket.on('auth-result',result=>{if(!result.ok){authenticated=false;account=null;localStorage.removeItem('abyssalAccount');updateAccount();setMessage(result.message||'Falha na autenticação.',true);return}authenticated=true;account={nickname:result.nickname};serverAccount=result;localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';updateAccount();window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));});
+ socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;serverAccount=null;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
+ socket.on('auth-result',result=>{
+  if(!result.ok){authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
+  authenticated=true;account={nickname:result.nickname};serverAccount=result;
+  localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
+  updateAccount();renderProfile(result);
+  window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;
+  socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+ });
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
