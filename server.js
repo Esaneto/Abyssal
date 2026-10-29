@@ -36,6 +36,12 @@ function saveUsers() {
  catch (err) { console.warn('[persistence] Arquivo local indisponível:', err.message); }
  persistState('users', users);
 }
+let titleStatsSaveTimer=null;
+function scheduleTitleStatsSave() {
+ if(titleStatsSaveTimer)return;
+ titleStatsSaveTimer=setTimeout(()=>{titleStatsSaveTimer=null;saveUsers();},2000);
+ titleStatsSaveTimer.unref?.();
+}
 function saveRanks() {
  try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
  catch (err) { console.warn('[persistence] Arquivo de rankings local indisponível:', err.message); }
@@ -297,7 +303,7 @@ function processWorldDamage(socket,id,damage){
    killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
    killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
    if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;
-   saveUsers();
+   scheduleTitleStatsSave();
    socket.emit('account-data',publicUser(killer));
   }
   io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
