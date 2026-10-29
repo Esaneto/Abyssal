@@ -227,4 +227,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
+ $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
+ document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
+ window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
 })();
