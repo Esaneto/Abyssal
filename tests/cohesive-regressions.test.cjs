@@ -1,0 +1,44 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
+
+test('online players are broadcast from accepted position heartbeats', () => {
+  const server = read('server.js');
+  assert.match(server, /connectionStateRecovery:\s*\{\s*maxDisconnectionDuration:\s*120000/);
+  assert.match(server, /room\.lastPlayersBroadcastAt/);
+  assert.match(server, /io\.to\(channelFor\(room\)\)\.emit\('world-players',[\s\S]{0,180}peer\)\s*=>\s*peer\)/);
+});
+
+test('temporary disconnect preserves the last synchronized account profile', () => {
+  const online = read('public/online.js');
+  const disconnect = online.match(/socket\.on\('disconnect',\(\)=>\{([\s\S]*?)\}\);/);
+  assert.ok(disconnect, 'disconnect handler exists');
+  assert.doesNotMatch(disconnect[1], /serverAccount=null/);
+  assert.doesNotMatch(disconnect[1], /\$\('profileScreen'\)\.hidden=true/);
+  assert.match(online, /socket\.on\('session-resumed'/);
+});
+
+test('mobile zoom and offensive shot sounds follow the requested settings', () => {
+  const game = read('public/game.js');
+  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? 2 : \.78;\}/);
+  assert.match(game, /function fire\(\)[\s\S]*?audio\(500,\.045,'sine',\.008\)/);
+  assert.match(game, /if\(p\.special\)audio\(500,\.045,'sine',\.008\)/);
+});
+
+test('download, fullscreen, account deletion and PWA entry points remain present', () => {
+  const html = read('public/index.html');
+  const online = read('public/online.js');
+  const server = read('server.js');
+  assert.match(html, /id="fullscreenBtn"/);
+  assert.match(html, /id="downloadScreen"/);
+  assert.match(html, /data-platform="windows"/);
+  assert.match(html, /data-platform="android"/);
+  assert.match(html, /id="installPwaBtn"/);
+  assert.match(html, /id="deleteAccountBtn"/);
+  assert.match(online, /beforeinstallprompt/);
+  assert.match(server, /socket\.on\('delete-account'/);
+});
