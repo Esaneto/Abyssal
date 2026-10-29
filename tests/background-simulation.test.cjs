@@ -56,13 +56,13 @@ test('online contact feedback never creates or teleports a mob to its damage sou
   assert.doesNotMatch(reporter, /e\.y\s*=\s*Number\(data\./);
 });
 
-test('mobile zoom reveals more of the same world and online menu uses the requested name', () => {
+test('mobile zoom uses the requested level and online menu uses the requested name', () => {
   const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
   assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.42 : \.78;\}/);
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css', 'enemy-ai.js', 'enemy-netcode.js', 'skill-audio.js', 'game.js', 'online.js']) {
-    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.6`));
+    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.7`));
   }
 });
 
