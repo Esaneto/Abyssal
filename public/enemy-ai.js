@@ -17,10 +17,10 @@
     stinger: Object.freeze({ r: 7, hp: 13, speed: 88, damage: 6, color: '#ffbc78', value: 2 }),
     brute: Object.freeze({ r: 16, hp: 65, speed: 30, damage: 15, color: '#bd88ff', value: 4 }),
     lurker: Object.freeze({ r: 20, hp: 100, speed: 43, damage: 18, color: '#6e8dff', value: 6 }),
-    boss: Object.freeze({ r: 40, hp: 2820, speed: 22, damage: 25, color: '#ff315f', value: 55 }),
-    leviathan: Object.freeze({ r: 54, hp: 4700, speed: 16, damage: 34, color: '#4ce0d1', value: 90 }),
-    maw: Object.freeze({ r: 45, hp: 3750, speed: 25, damage: 31, color: '#c16cff', value: 75 }),
-    angler: Object.freeze({ r: 35, hp: 3260, speed: 30, damage: 28, color: '#ffb45e', value: 65 })
+    boss: Object.freeze({ r: 40, hp: 2820, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
+    leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
+    maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
+    angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 })
   });
 
   function statsForKind(kind) {

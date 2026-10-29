@@ -1,8 +1,8 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "3.2.1",
+  "version": "3.3.0",
   "private": true,
-  "description": "Abyssal: lobby compartilhado, simulação autoritativa com perseguição orbital e predição visual contínua com estado de jogo autoritativo no cooperativo",
+  "description": "Abyssal: lobby compartilhado, combate online autoritativo, dano confirmado pelo servidor, bosses sincronizados e áudio único por habilidade",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

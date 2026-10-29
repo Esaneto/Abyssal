@@ -117,3 +117,20 @@ test('simulation fallback forces progress if an enemy state is otherwise station
   assert.equal(moved, true);
   assert.ok(Math.hypot(stuck.x - player.x, stuck.y - player.y) > 0);
 });
+
+
+test('authoritative room spawns a boss at the one-minute deadline and makes it available to snapshots', () => {
+  const world = Sim.createWorldState(1000);
+  Sim.initializeWorld(world, 1000);
+  world.elapsed = 59.98;
+  world.nextBossAt = 60;
+  world.commonSpawnTimer = 999;
+  const player = { id: 'p1', x: AI.WORLD_WIDTH / 2, y: AI.WORLD_HEIGHT / 2 };
+  const result = Sim.tickWorld(world, [player], 1050, () => 0.31);
+  assert.equal(result.spawnedBosses.length, 1, 'a boss must be reported as spawned when the timer crosses 60s');
+  const boss = result.spawnedBosses[0];
+  assert.ok(AI.BOSS_KINDS.includes(boss.kind));
+  assert.ok(world.enemies.some(e => e.id === boss.id), 'boss remains in authoritative world state');
+  assert.ok(result.sendSnapshot || result.spawnedBosses.length, 'server has a reason to broadcast the boss immediately');
+  assert.equal(world.enemies.length, 4, 'the horde and the new boss coexist');
+});

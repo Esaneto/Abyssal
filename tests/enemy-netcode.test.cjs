@@ -74,3 +74,15 @@ test('predicted enemy keeps moving after repeated identical server snapshots', (
   AI.moveTowardTarget(local[0], [player], 0.05, { minX: 0, maxX: AI.WORLD_WIDTH, minY: 0, maxY: AI.WORLD_HEIGHT, stopDistance: 28 });
   assert.ok(Math.hypot(local[0].x - once.x, local[0].y - once.y) > 0.1, 'shared AI should continue advancing after snapshot reconciliation');
 });
+
+
+test('a delayed older snapshot cannot restore HP after a confirmed server hit', () => {
+  const { reconcileSnapshot } = require('../public/enemy-netcode.js');
+  const damaged = [{ id: 81, kind: 'drifter', x: 420, y: 530, r: 10, hp: 12, maxHp: 22, damageRevision: 2 }];
+  const delayed = reconcileSnapshot(damaged, [{ id: 81, kind: 'drifter', x: 250, y: 300, r: 10, hp: 22, maxHp: 22, damageRevision: 1 }], { radiusScale: 1 / 0.78 });
+  assert.equal(delayed[0].hp, 12, 'older snapshots must not make a damaged enemy immortal again');
+  assert.equal(delayed[0].damageRevision, 2);
+  const fresh = reconcileSnapshot(delayed, [{ id: 81, kind: 'drifter', x: 240, y: 290, r: 10, hp: 7, maxHp: 22, damageRevision: 3 }], { radiusScale: 1 / 0.78 });
+  assert.equal(fresh[0].hp, 7, 'newer server revisions may update authoritative health');
+  assert.equal(fresh[0].damageRevision, 3);
+});

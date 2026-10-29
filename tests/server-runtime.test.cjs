@@ -177,6 +177,18 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(health.ok, true);
   assert.equal(health.world.engine, 'shared-solo-ai-client-prediction-authoritative-state');
   assert.ok(health.simulation.movingEnemies > 0);
+
+  // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.
+  const damageTarget = latest.enemies.find(enemy => enemy && Number(enemy.hp) > 6);
+  assert.ok(damageTarget, 'the current authoritative snapshot should contain a damageable enemy');
+  let damageAck = null;
+  const beforeHp = Number(damageTarget.hp);
+  await owner.clientEmit('shared-damage', { id: damageTarget.id, damage: 5 }, result => { damageAck = result; });
+  assert.equal(damageAck?.ok, true, `server should accept valid damage; received ${JSON.stringify(damageAck)}`);
+  assert.equal(Number(damageAck.hp), beforeHp - 5, 'server-confirmed HP must decrease by the requested damage');
+  assert.equal(owner.latest('world-enemy-damaged')?.id, damageTarget.id, 'server should broadcast authoritative HP feedback');
+  assert.ok(Number((await getJson(port, '/health')).simulation.combat.appliedHits) > 0, 'health diagnostics should count applied hits');
+
   assert.equal(health.simulation.activeRoomDetails[0].clientReportedMovingEnemies, 5);
   assert.equal(health.simulation.activeRoomDetails[0].clientPredictingPlayers, 2);
   assert.equal(health.worldTickerActive, true);

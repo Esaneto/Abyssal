@@ -97,7 +97,7 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.2.1',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'shared-solo-ai-client-prediction-authoritative-state'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.3.0',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'shared-solo-ai-client-prediction-authoritative-state'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
@@ -116,6 +116,7 @@ const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
 let lastWorldTickAt = 0;
 let worldTickErrors = 0;
+const combatDiagnostics = { damageEvents: 0, appliedHits: 0, rejectedHits: 0, kills: 0, bossSpawns: 0, lastDamageAt: null, lastBossSpawnAt: null, lastDamageReason: null };
 let worldTicker = null;
 let roomRegistryReady = false;
 let roomDirectoryQueue = Promise.resolve();
@@ -154,7 +155,7 @@ async function roomListForClients(){
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
-app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.2.1',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.2.1',directoryFallback:true});}});
+app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.3.0',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.3.0',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,serverTime:Date.now(),tickCount:room.world.tickCount||0,movingEnemyCount:room.world.movingEnemyCount||0,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
@@ -254,15 +255,28 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
 function processWorldDamage(socket,id,damage){
- const room=socketRoom(socket);if(!room||!socket.data.joined||!Number.isFinite(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return;
- const w=room.world,idx=w.enemies.findIndex(e=>e.id===id);if(idx<0)return;
- const enemy=w.enemies[idx];enemy.hp-=Math.min(250,damage);enemy.hit=.14;
+ combatDiagnostics.damageEvents++;
+ const room=socketRoom(socket);
+ const reject=(reason)=>{combatDiagnostics.rejectedHits++;combatDiagnostics.lastDamageReason=reason;return {ok:false,id:Number.isFinite(id)?id:null,reason};};
+ if(!room||!socket.data.joined)return reject('not-in-room');
+ if(!Number.isSafeInteger(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return reject('invalid-hit');
+ const w=room.world,normalizedId=Number(id),idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');
+ const enemy=w.enemies[idx],applied=Math.min(250,damage);
+ enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
+ const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,kind:enemy.kind,killed:enemy.hp<=0};
+ // Reliable event (not volatile) makes HP bars and hit feedback update immediately for every player.
+ io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
-  w.enemies.splice(idx,1);const boss=isBossKind(enemy.kind);
+  w.enemies.splice(idx,1);combatDiagnostics.kills++;
+  const boss=isBossKind(enemy.kind);
   io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
   io.to(channelFor(room)).emit('shared-xp-award',{value:Math.max(1,Math.round(enemy.value)),source:'kill'});
   if(boss)awardWorldBossCoins(room);
+  // Confirm a removal immediately; do not depend on the next volatile periodic snapshot.
+  broadcastWorld(room);
  }
+ return damageEvent;
 }
 async function finishRunForSocket(socket,payload={}){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
@@ -291,9 +305,14 @@ function tickRoom(room,now){
  if(!room||room.players.size===0){if(room)clearRoomWorld(room);return;}
  const w=room.world;
  const result=WorldSimulation.tickWorld(w,[...room.players.values()],now);
- for(const boss of result.spawnedBosses||[])if(isBossKind(boss.kind))io.to(channelFor(room)).emit('boss-warning',{id:boss.id,kind:boss.kind,threat:boss.threat});
+ const spawnedBosses=(result.spawnedBosses||[]).filter(boss=>isBossKind(boss.kind));
+ for(const boss of spawnedBosses){
+  combatDiagnostics.bossSpawns++;combatDiagnostics.lastBossSpawnAt=new Date().toISOString();
+  io.to(channelFor(room)).emit('boss-warning',{id:boss.id,kind:boss.kind,threat:boss.threat,hp:boss.hp,maxHp:boss.maxHp,elapsed:Math.floor(w.elapsed||0)});
+ }
  if(result.sendPlayers)io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));
- if(result.sendSnapshot)broadcastWorld(room);
+ // Always push immediately when a boss appears so clients don't wait for a volatile interval.
+ if(result.sendSnapshot||spawnedBosses.length)io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room));
 }
 function worldTick(){
  const active=[...rooms.values()].filter(room=>room.players.size>0);
@@ -392,7 +411,7 @@ io.on('connection', socket => {
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
  socket.on('shared-shot', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;io.to(channelFor(room)).volatile.emit('shared-shot',{x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet'].includes(payload.special)?payload.special:null,from:socket.data.nickname,at:Date.now()});});
- socket.on('shared-damage', payload => {if(!payload)return;processWorldDamage(socket,Number(payload.id),Number(payload.damage));});
+ socket.on('shared-damage', (payload,acknowledge) => {const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage));if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-xp-award', () => {}); // XP é concedido pelo servidor quando uma criatura é derrotada.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
@@ -409,11 +428,11 @@ io.on('connection', socket => {
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;
   const catalogue={bulkhead:{price:1800,max:3},focuser:{price:2200,max:3},current:{price:1600,max:3},startShield:{price:3200,max:1},pulse:{price:3500,max:1},dash:{price:4200,max:1}};
-  const id=String(payload.id||''),item=catalogue[id];if(!item)return socket.emit('purchase-result',{ok:false,message:'Melhoria indisponível.',account:publicUser(u)});
+  const id=String(payload.id||''),item=catalogue[id];if(!item)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Melhoria indisponível.',account:publicUser(u)});
   u.metaUpgrades ||= {};const current=Number(u.metaUpgrades[id])||0;
-  if(current>=item.max)return socket.emit('purchase-result',{ok:false,message:'Esta melhoria já está no nível máximo.',account:publicUser(u)});
-  if((u.coins||0)<item.price)return socket.emit('purchase-result',{ok:false,message:'Moedas abissais insuficientes.',account:publicUser(u)});
-  u.coins-=item.price;u.metaUpgrades[id]=current+1;saveUsers();socket.emit('purchase-result',{ok:true,message:'Adaptação permanente desbloqueada!',account:publicUser(u)});
+  if(current>=item.max)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Esta melhoria já está no nível máximo.',account:publicUser(u)});
+  if((u.coins||0)<item.price)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Moedas abissais insuficientes.',account:publicUser(u)});
+  u.coins-=item.price;u.metaUpgrades[id]=current+1;saveUsers();socket.emit('purchase-result',{ok:true,itemId:id,message:'Adaptação permanente desbloqueada!',account:publicUser(u)});
  });
  socket.on('spin-wheel', () => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('wheel-result',{ok:false,message:'Entre na sua conta para guardar a recompensa.'});

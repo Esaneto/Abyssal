@@ -94,9 +94,16 @@
       const serverY = clamp(Number(raw.y) || 0, minY, maxY);
       const localX = old && Number.isFinite(Number(old.x)) ? Number(old.x) : serverX;
       const localY = old && Number.isFinite(Number(old.y)) ? Number(old.y) : serverY;
+      const oldDamageRevision = Math.max(0, Number(old?.damageRevision) || 0);
+      const incomingDamageRevision = Math.max(0, Number(raw.damageRevision) || 0);
+      // A delayed snapshot is allowed to move no local coordinates and must not undo
+      // an HP update that was already confirmed by the reliable damage event/ACK.
+      const preserveConfirmedHealth = Boolean(old && oldDamageRevision > incomingDamageRevision);
       return {
         ...(old || {}),
         ...raw,
+        hp: preserveConfirmedHealth ? old.hp : raw.hp,
+        damageRevision: Math.max(oldDamageRevision, incomingDamageRevision),
         x: localX,
         y: localY,
         r: Math.max(2, Number(raw.r) || 12) * radiusScale,

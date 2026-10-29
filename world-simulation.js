@@ -10,7 +10,7 @@ function createWorldState(now = Date.now()) {
   return {
     initialized: false, elapsed: 0, enemies: [], nextEnemyId: 0,
     nextBossAt: 60, bossSpawnCount: 0, lastBossKind: null,
-    lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0,
+    lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0
@@ -83,10 +83,11 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
 
   const stats = EnemyAI.statsForKind(kind);
   if (type === 'boss') {
-    stats.hp = world.lastBossMaxHp > 0 ? world.lastBossMaxHp * 1.5 : stats.hp;
+    stats.hp = world.lastBossMaxHp > 0 ? Math.max(stats.hp, world.lastBossMaxHp * 1.5) : stats.hp;
     stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
     stats.speed = Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
     world.lastBossMaxHp = stats.hp;
+    world.lastBossSpawnAt = Date.now();
     world.lastBossDamage = stats.damage;
     world.lastBossSpeed = stats.speed;
     world.bossSpawnCount++;
@@ -100,7 +101,7 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
     id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
-    hit: 0, attackCd: 0.6, vx: 0, vy: 0, threat: world.bossSpawnCount,
+    hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     spawnCorner: point.corner
   };
   world.enemies.push(enemy);
@@ -112,7 +113,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.initialized = true;
   world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 60;
   world.bossSpawnCount = 0; world.lastBossKind = null;
-  world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0;
+  world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.commonSpawnTimer = 0.8;
   world.lastTick = now; world.snapshotTimer = 0; world.playerSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
@@ -146,11 +147,23 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   const spawnedBosses = [];
   if (world.elapsed >= world.nextBossAt) {
-    if (countBosses(world).length < MAX_BOSSES && world.enemies.length < MAX_ENEMIES) {
+    const activeBossCount = countBosses(world).length;
+    if (activeBossCount < MAX_BOSSES && world.enemies.length < MAX_ENEMIES) {
       const boss = spawnEnemy(world, { type: 'boss', random });
-      if (boss) spawnedBosses.push(boss);
+      if (boss) {
+        spawnedBosses.push(boss);
+        world.nextBossAt = world.elapsed + 60;
+      } else {
+        // A failed spawn must retry shortly, not silently postpone the boss by another minute.
+        world.nextBossAt = world.elapsed + 3;
+      }
+    } else if (activeBossCount >= MAX_BOSSES) {
+      world.nextBossAt = world.elapsed + 60;
+    } else {
+      // The common-mob cap normally leaves four slots reserved for bosses; retry if a
+      // legacy/corrupted room state temporarily violates that invariant.
+      world.nextBossAt = world.elapsed + 3;
     }
-    world.nextBossAt = world.elapsed + 60;
   }
 
   const validPlayers = players.filter(p => Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)));
