@@ -4,10 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.5">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.6">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.5">
+<link rel="stylesheet" href="style.css?v=3.5.6">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#061522">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="abyssal-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="abyssal-icon.svg">
 </head>
 <body>
 <div id="app">
@@ -220,14 +227,15 @@
       <div class="modal-card download-modal">
         <div class="eyebrow"><span class="pulse-dot"></span> ACESSO AO ABISMO</div>
         <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
-        <p>Estamos preparando versões instaláveis. No momento, a versão oficial disponível é a do navegador.</p>
+        <p>Você já pode instalar o Abyssal como aplicativo web nos navegadores compatíveis. Os pacotes nativos e publicações nas lojas ainda exigem etapas de assinatura e cadastro.</p>
         <div class="download-options">
-          <article class="download-option"><span class="download-platform-icon">▣</span><div><strong>PC · WINDOWS</strong><small>Versão instalável em preparação</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
-          <article class="download-option"><span class="download-platform-icon">▤</span><div><strong>ANDROID · APK</strong><small>Pacote Android ainda não publicado</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
-          <article class="download-option"><span class="download-platform-icon">◉</span><div><strong>GOOGLE PLAY</strong><small>Publicação na loja ainda não disponível</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
-          <article class="download-option"><span class="download-platform-icon">▧</span><div><strong>iOS · IPHONE / IPAD</strong><small>Versão iOS ainda não empacotada</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
-          <article class="download-option"><span class="download-platform-icon">◌</span><div><strong>APPLE APP STORE</strong><small>Publicação na loja ainda não disponível</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+          <button class="download-option download-option-button" type="button" data-platform="windows"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Instalar como aplicativo pelo navegador</small></span><span class="download-status">INSTALAR</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="android"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Instalação web disponível; APK assinado em preparação</small></span><span class="download-status">OPÇÕES</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="google-play"><span class="download-platform-icon">◉</span><span class="download-option-copy"><strong>GOOGLE PLAY</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="ios"><span class="download-platform-icon">▧</span><span class="download-option-copy"><strong>iOS · IPHONE / IPAD</strong><small>Adicionar à tela inicial pelo Safari</small></span><span class="download-status">INSTRUÇÕES</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="app-store"><span class="download-platform-icon">◌</span><span class="download-option-copy"><strong>APPLE APP STORE</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
         </div>
+        <p id="downloadInstallMessage" class="download-install-message" role="status" aria-live="polite">Selecione uma plataforma para ver como instalar.</p>
         <button id="playBrowserBtn" class="primary-btn">JOGAR NO NAVEGADOR <span>↗</span></button>
         <button id="downloadCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
@@ -237,10 +245,10 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.5"></script>
-<script src="enemy-netcode.js?v=3.5.5"></script>
-<script src="skill-audio.js?v=3.5.5"></script>
-<script src="game.js?v=3.5.5"></script>
-<script src="online.js?v=3.5.5"></script>
+<script src="enemy-ai.js?v=3.5.6"></script>
+<script src="enemy-netcode.js?v=3.5.6"></script>
+<script src="skill-audio.js?v=3.5.6"></script>
+<script src="game.js?v=3.5.6"></script>
+<script src="online.js?v=3.5.6"></script>
 </body>
 </html>

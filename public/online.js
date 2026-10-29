@@ -4,6 +4,9 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
+let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const message=$('downloadInstallMessage');if(message)message.textContent='Abyssal instalado com sucesso neste dispositivo.';});
  const PROFILE_TITLES=[
   {id:'abyss-drifter',name:'Mergulhador das Fossas',icon:'✧',rarity:'COMUM',color:'#79f3f0',description:'Seu primeiro vínculo com as profundezas.',goal:'Disponível desde o início.',kind:'starter'},
   {id:'abyss-spark',name:'Faísca das Fossas',icon:'◈',rarity:'INCOMUM',color:'#8cf8ff',description:'A luz que sobrevive onde o sol não chega.',goal:'Derrote 50 monstros.',kind:'kills',required:50},
@@ -90,7 +93,7 @@ function connect(){
  if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,timeout:8000});
  startPositionHeartbeat();
- socket.on('connect',()=>{connected=true;localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);if($('roomsScreen')&&!$('roomsScreen').hidden){const m=$('roomsMessage');if(m)m.textContent='Conexão restabelecida. Entre novamente na conta para participar das salas.';}}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
+ socket.on('connect',()=>{connected=true;localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
   socket.on('global-chat-history',renderGlobalChatHistory);socket.on('global-chat-message',renderGlobalChatMessage);socket.on('global-chat-error',result=>{const hint=$('globalChatHint');if(hint)hint.textContent=result?.message||'Não foi possível enviar a mensagem.'});
   socket.on('connect',()=>setGlobalChatStatus(true));
@@ -119,16 +122,25 @@ function connect(){
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;setMessage('Não conectou ao servidor. Abra o jogo por http://localhost:3000 e confirme que npm start está rodando.',true)});
- socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;serverAccount=null;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
+ socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;serverAccount=null;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(sessionToken?'Conexão interrompida. Tentando restaurar sua sessão…':'Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
  socket.on('auth-result',result=>{
-  if(!result.ok){authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
+  if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
+  if(result.sessionToken){sessionToken=result.sessionToken;localStorage.setItem('abyssalSessionToken',sessionToken);}
   localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
   setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;
   socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
+ socket.on('session-resumed',result=>{
+  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;updateAccount();if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil e o chat.',true);return;}
+  authenticated=true;account={nickname:result.nickname};serverAccount=result;
+  localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
+  setMessage(`Sessão restaurada: ${result.nickname}.`);
+  socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+ });
+ socket.on('global-chat-sent',result=>{if(!result?.ok)return;const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem transmitida para o abismo.'});
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
@@ -295,13 +307,13 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  socket.on('account-deletion-result',result=>{
   const message=result?.message||'Não foi possível excluir a conta.';
   if(!result?.ok){const el=$('profileMessage');if(el)el.textContent=message;return}
-  authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');
+  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
   $('profileScreen').hidden=true;$('loginScreen').hidden=true;$('downloadScreen').hidden=true;
   updateAccount();renderProfile({});
   const toast=$('toast');if(toast){toast.textContent='Conta excluída permanentemente.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500)}
  });
  socket.on('account-force-logout',()=>{
-  authenticated=false;account=null;serverAccount=null;localStorage.removeItem('abyssalAccount');
+  authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
   $('profileScreen').hidden=true;updateAccount();renderProfile({});
  });
  const deleteInput=$('deleteNicknameInput'),deleteBtn=$('deleteAccountBtn');
@@ -332,9 +344,12 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
     if(root.requestFullscreen)await root.requestFullscreen();
     else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
     else throw new Error('unsupported');
+    try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch(_orientationError){}
    }
   }catch(err){
-   if(button)button.title='Tela cheia não disponível neste navegador ou dispositivo.';
+   if(button)button.title='Este navegador não permite tela cheia por botão. Em iPhone/iPad, adicione o jogo à Tela de Início para abrir sem a barra do navegador.';
+   const toast=$('toast');
+   if(toast){toast.textContent='Tela cheia não está disponível neste navegador. Em iPhone/iPad, use Compartilhar → Adicionar à Tela de Início.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},6500)}
   }
  });
  function updateFullscreenButton(){
@@ -346,12 +361,29 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  }
  document.addEventListener('fullscreenchange',updateFullscreenButton);
  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
- $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false});
+ $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false;});
  $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('playBrowserBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
+ document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',async()=>{
+  const platform=button.dataset.platform,message=$('downloadInstallMessage');
+  if(!message)return;
+  if(platform==='google-play'){message.textContent='O Abyssal ainda não está publicado na Google Play. A publicação exige gerar e assinar um pacote Android, configurar a ficha da loja e concluir a análise do Google.';return;}
+  if(platform==='app-store'){message.textContent='O Abyssal ainda não está publicado na Apple App Store. A publicação exige um build iOS assinado, cadastro Apple Developer e aprovação da loja.';return;}
+  if(platform==='ios'){message.textContent='No iPhone/iPad: abra esta página no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Abra pelo novo ícone para uma experiência mais próxima de um aplicativo em tela cheia.';return;}
+  if((platform==='windows'||platform==='android')&&deferredInstallPrompt){
+   try{
+    await deferredInstallPrompt.prompt();
+    const choice=await deferredInstallPrompt.userChoice;
+    message.textContent=choice?.outcome==='accepted'?'Instalação iniciada. Siga a confirmação exibida pelo navegador.':'Instalação cancelada. Você pode tentar novamente pelo menu do navegador.';
+   }catch(error){message.textContent='Não foi possível abrir a instalação automática neste navegador. Use o menu do navegador para instalar o aplicativo.';}
+   deferredInstallPrompt=null;return;
+  }
+  if(platform==='windows'){message.textContent='No Chrome ou Edge para Windows: abra o menu ⋮ e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”. Esta opção instala a versão web, não um .exe independente.';return;}
+  if(platform==='android'){message.textContent='No Android, abra o jogo no Chrome e use o menu ⋮ → “Instalar app” ou “Adicionar à tela inicial”. Isso instala a versão web. O APK independente ainda precisa ser gerado e assinado antes de ser distribuído.';return;}
+ }));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
- $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem enviada para o abismo.'}});
+ $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}});
  $('globalChatInput')?.addEventListener('focus',()=>{if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}});
  if(!socket)connect();
  window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
