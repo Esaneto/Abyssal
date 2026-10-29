@@ -22,7 +22,7 @@ test('online client receives authoritative player vitals from the server', () =>
 
 test('online client renders server-authoritative enemy positions instead of simulating a divergent copy', () => {
   assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
-  assert.match(game, /if\(target\.local&&td<e\.r\+player\.r\+8\/worldZoom\)/);
+  assert.match(game, /if\(target\.local&&\(td<e\.r\+player\.r\+8\/worldZoom\|\|\(e\.kind==='kraken'&&window\.AbyssalEnemyAI\?\.touchesKrakenTentacle/);
   assert.match(game, /if\(!onlineMode&&upgrades\.regen>0/);
   assert.match(game, /revealOnlineContactSource\(data\)/);
   assert.match(game, /function alignPlayerToAuthoritativeContact\(data\)/);
