@@ -284,3 +284,35 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 @media(prefers-reduced-motion:reduce){
  #menuScreen .menu-action,#menuScreen .primary-btn{transition:none;}
 }
+
+
+/* ABYSSAL 3.5.5 — tela cheia, exclusão segura de conta e painel de plataformas */
+.fullscreen-btn{font-size:22px;line-height:1}
+#downloadBtn.download-cta{width:min(300px,100%);margin-top:9px;justify-content:center;gap:12px;border-color:rgba(121,243,240,.35);background:linear-gradient(110deg,rgba(14,66,83,.92),rgba(25,39,71,.92));}
+#downloadBtn.download-cta span{font-size:18px;color:#9dfff4}
+.account-delete-panel{margin:22px 0 16px;padding:18px;border:1px solid rgba(255,70,94,.55);background:linear-gradient(145deg,rgba(76,12,27,.28),rgba(24,8,19,.56));box-shadow:inset 0 0 26px rgba(255,45,77,.045)}
+.account-delete-heading{display:flex;align-items:flex-start;gap:12px;color:#ff647d}
+.account-delete-heading>span{font-size:25px;line-height:1}
+.account-delete-heading h3{margin:0 0 7px;font-size:14px;letter-spacing:.12em;color:#ff647d}
+.account-delete-heading p{margin:0;color:#d6a4ad;font-size:11px;line-height:1.65}
+.delete-nickname-field{border-color:rgba(255,75,97,.42)}
+.delete-nickname-field:focus{outline:1px solid rgba(255,75,97,.75);border-color:#ff647d}
+.danger-delete-btn{width:100%;min-height:46px;margin-top:12px;padding:12px;border:1px solid #ff405f;background:linear-gradient(110deg,#a80f31,#e52b4c);color:#fff;font:800 10px 'DM Mono',monospace;letter-spacing:.07em;box-shadow:0 0 24px rgba(255,30,65,.16);transition:filter .15s,transform .15s}
+.danger-delete-btn:hover:not(:disabled){filter:brightness(1.14);transform:translateY(-1px)}
+.danger-delete-btn:disabled{opacity:.35;cursor:not-allowed;filter:saturate(.6)}
+.delete-account-warning{margin:10px 0 0;color:#ff7187;font:9px 'DM Mono',monospace;letter-spacing:.08em;text-align:center}
+.download-modal{width:min(640px,calc(100vw - 28px));max-height:min(88dvh,850px);overflow:auto}
+.download-modal h2{margin-bottom:12px}
+.download-options{display:flex;flex-direction:column;gap:9px;margin:20px 0}
+.download-option{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:11px;padding:13px;border:1px solid rgba(121,243,240,.15);background:linear-gradient(110deg,rgba(11,38,54,.82),rgba(4,17,30,.82))}
+.download-platform-icon{display:grid;place-items:center;width:32px;height:32px;border:1px solid rgba(121,243,240,.3);color:#9dfff4;font-size:19px}
+.download-option strong{display:block;color:#e1f7fb;font:800 10px 'DM Mono',monospace;letter-spacing:.06em}
+.download-option small{display:block;margin-top:5px;color:#7898a8;font-size:10px;line-height:1.5}
+.download-status{color:#d8a96b;font:8px 'DM Mono',monospace;letter-spacing:.06em;text-align:right}
+.download-modal #playBrowserBtn,.download-modal #downloadCloseBtn{width:100%;margin-top:8px}
+@media(max-width:520px){
+ .account-delete-panel{padding:13px}
+ .download-option{grid-template-columns:30px minmax(0,1fr);gap:9px;padding:11px}
+ .download-status{grid-column:2;text-align:left}
+ .download-option small{font-size:9px}
+}
