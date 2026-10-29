@@ -364,6 +364,23 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false;});
  $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('playBrowserBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
+ $('installPwaBtn')?.addEventListener('click',async()=>{
+  const message=$('downloadInstallMessage');
+  if(!message)return;
+  if(deferredInstallPrompt){
+   try{
+    await deferredInstallPrompt.prompt();
+    const choice=await deferredInstallPrompt.userChoice;
+    message.textContent=choice?.outcome==='accepted'?'Instalação iniciada. Siga a confirmação exibida pelo navegador.':'Instalação cancelada. Você pode tentar novamente.';
+   }catch(error){message.textContent='A instalação automática não está disponível agora. Use o menu do navegador.';}
+   deferredInstallPrompt=null;
+   return;
+  }
+  const ua=navigator.userAgent||'';
+  if(/iphone|ipad|ipod/i.test(ua)){message.textContent='No iPhone/iPad: abra no Safari, toque em Compartilhar e selecione “Adicionar à Tela de Início”.';return;}
+  if(/android/i.test(ua)){message.textContent='No Android: abra no Chrome, toque no menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”.';return;}
+  message.textContent='No Chrome/Edge: abra o menu do navegador e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”.';
+ });
  document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',async()=>{
   const platform=button.dataset.platform,message=$('downloadInstallMessage');
   if(!message)return;
