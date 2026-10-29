@@ -55,5 +55,5 @@ test('responsive screens avoid visible scrollbars and keep three skill cards in 
   const css = read('public/style.css');
   assert.match(css, /\*::-webkit-scrollbar\{display:none!important/);
   assert.match(css, /#upgradeScreen \.upgrade-choices\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /grid-template-columns:minmax\\(0,1\\.08fr\\) minmax\\(250px,\\.72fr\\)/);
+  assert.match(css, /grid-template-columns:minmax\(0,1\.08fr\) minmax\(250px,\.72fr\)/);
 });
