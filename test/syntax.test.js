@@ -63,3 +63,20 @@ test('each title has dedicated vector artwork in the profile', () => {
   assert.match(client, /'sovereign-abyss':.*<svg/s);
   assert.match(client, /titleArtwork\(t\.id\)/);
 });
+
+
+test('profile is gated behind an authenticated account and uses server-owned unlocks', () => {
+  const client = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
+  assert.match(client, /if\(!authenticated\|\|!serverAccount\)/);
+  assert.match(client, /Entre na sua conta para acessar seu perfil e carregar suas conquistas/);
+  assert.match(client, /new Set\(Array\.isArray\(user\.unlockedTitles\)\?user\.unlockedTitles/);
+  assert.match(client, /if\(!authenticated\|\|!data\)return/);
+  assert.match(client, /\$\('profileScreen'\)\.hidden=true;updateAccount\(\);renderProfile\(\{\}\)/);
+});
+test('menu has the abyssal visual theme across navigation and modal panels', () => {
+  const css = fs.readFileSync(path.join(root, 'public', 'style.css'), 'utf8');
+  assert.match(css, /#menuScreen:before/);
+  assert.match(css, /#menuScreen \.menu-action:hover/);
+  assert.match(css, /\.modal-screen\{background:radial-gradient/);
+  assert.match(css, /#menuScreen \.global-chat-panel/);
+});
