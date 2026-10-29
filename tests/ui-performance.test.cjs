@@ -10,7 +10,7 @@ test('download control is outside the menu column and docked discreetly at the u
   const html = read('public/index.html');
   const css = read('public/style.css');
   const contentStart = html.indexOf('<div class="menu-content">');
-  const download = html.indexOf('id="downloadBtn"');
+  const download = html.indexOf('<button id="downloadBtn"');
   const contentEnd = html.indexOf('</div>', contentStart);
   assert.ok(contentStart >= 0 && download > contentStart);
   assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
