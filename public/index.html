@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.9">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.10">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.9">
+<link rel="stylesheet" href="style.css?v=3.5.10">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -21,6 +21,7 @@
   <header class="topbar">
     <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
     <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
+      <button id="globalChatToggle" class="icon-btn chat-toggle-btn" type="button" aria-label="Abrir chat global" aria-expanded="false" title="Chat global">☷</button>
       <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
       <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
       <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
@@ -71,7 +72,7 @@
         </form>
         <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para transmitir mensagens.</p>
       </section>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.9</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.10</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -99,6 +100,10 @@
         <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
         <h2>ESCOLHA SUA<br><em>RESSONÂNCIA</em></h2>
         <p>O abismo lhe oferece uma nova adaptação.</p>
+        <div id="upgradeTimer" class="upgrade-timer" role="timer" aria-live="polite" aria-atomic="true">
+          <div class="upgrade-timer-copy"><strong id="upgradeTimerText">ESCOLHA EM 10s</strong><span>SEM ESCOLHA, UMA HABILIDADE ALEATÓRIA SERÁ APLICADA</span></div>
+          <div class="upgrade-timer-track" aria-hidden="true"><span id="upgradeTimerFill"></span></div>
+        </div>
         <div id="upgradeChoices" class="upgrade-choices"></div>
       </div>
     </section>
@@ -246,11 +251,11 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.9"></script>
-<script src="enemy-netcode.js?v=3.5.9"></script>
-<script src="skill-audio.js?v=3.5.9"></script>
-<script src="game.js?v=3.5.9"></script>
-<script src="online.js?v=3.5.9"></script>
+<script src="enemy-ai.js?v=3.5.10"></script>
+<script src="enemy-netcode.js?v=3.5.10"></script>
+<script src="skill-audio.js?v=3.5.10"></script>
+<script src="game.js?v=3.5.10"></script>
+<script src="online.js?v=3.5.10"></script>
 <script>
 /* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
 (()=>{
