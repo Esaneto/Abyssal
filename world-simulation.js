@@ -13,7 +13,7 @@ function createWorldState(now = Date.now()) {
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
-    movingEnemyCount: 0, movementRecoveryCount: 0
+    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0
   };
 }
 
@@ -120,18 +120,45 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
 }
 
 function tickWorld(world, players, now = Date.now(), random = Math.random) {
-  if (!Array.isArray(players) || players.length === 0) {
-    // Empty arenas are paused. The server normally destroys them immediately; this protects the engine if called directly.
+  const validPlayers = Array.isArray(players)
+    ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
+    : [];
+  if (validPlayers.length === 0) {
+    // No living participants means no world time, spawning, movement, or attacks.
+    // The server stops its ticker as well; state is cleared when the last participant leaves.
     world.lastTick = now;
     world.movingEnemyCount = 0;
-    return { active: false, dt: 0, movedEnemyCount: 0, spawnedBosses: [], sendSnapshot: false, sendPlayers: false };
+    return { active: false, dt: 0, movedEnemyCount: 0, spawnedBosses: [], playerHits: [], playerHeals: [], defeatedPlayers: [], sendSnapshot: false, sendPlayers: false };
   }
+
   const initialSpawns = initializeWorld(world, now, random);
   const previousTick = Number(world.lastTick) || now;
+  // The server runs this ticker independently of browser rendering. Clamp a single
+  // catch-up step to avoid huge jumps after GC or brief event-loop contention.
   const dt = Math.max(0, Math.min(0.1, (now - previousTick) / 1000));
   world.lastTick = now;
   world.elapsed += dt;
   world.tickCount++;
+
+  // Server-authoritative passive regeneration: it continues even if a player's tab is hidden.
+  const playerHeals = [];
+  for (const p of validPlayers) {
+    const regenLevel = clamp(Math.floor(Number(p.regenLevel) || 0), 0, 3);
+    if (regenLevel <= 0 || Number(p.hp) >= Number(p.maxHp)) continue;
+    p.regenAccumulator = (Number(p.regenAccumulator) || 0) + dt * regenLevel * 0.25;
+    let healed = 0;
+    while (p.regenAccumulator >= 1 && Number(p.hp) < Number(p.maxHp)) {
+      p.regenAccumulator -= 1;
+      p.hp = Math.min(Number(p.maxHp) || 100, (Number(p.hp) || 0) + 1);
+      healed++;
+    }
+    if (healed > 0) playerHeals.push({
+      playerId: p.id, hp: p.hp, maxHp: p.maxHp,
+      shieldCharges: clamp(Math.floor(Number(p.shieldCharges) || 0), 0, 3),
+      alive: p.alive !== false, healed,
+      invulnerabilityMs: Math.max(0, (Number(p.invulnerableUntil) || 0) - now)
+    });
+  }
 
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
@@ -154,41 +181,79 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         spawnedBosses.push(boss);
         world.nextBossAt = world.elapsed + 60;
       } else {
-        // A failed spawn must retry shortly, not silently postpone the boss by another minute.
         world.nextBossAt = world.elapsed + 3;
       }
     } else if (activeBossCount >= MAX_BOSSES) {
       world.nextBossAt = world.elapsed + 60;
     } else {
-      // The common-mob cap normally leaves four slots reserved for bosses; retry if a
-      // legacy/corrupted room state temporarily violates that invariant.
       world.nextBossAt = world.elapsed + 3;
     }
   }
 
-  const validPlayers = players.filter(p => Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)));
   let movedEnemyCount = 0;
+  const playerHits = [];
+  const defeatedPlayers = [];
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
     const movement = EnemyAI.moveTowardTarget(enemy, validPlayers, dt, {
       minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM,
       minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM,
-      // Keep each creature visible at contact instead of letting it hide exactly under the player sprite.
-      // Solo applies the same 62% contact radius in game.js. Enemy r is stored in base render units here.
       stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9)
     });
-    // Safety guard for corrupted/zero-speed enemy state. The world simulation must
-    // never report a live pursuing enemy as frozen forever; recover its speed from
-    // the shared catalog and move it along the same deterministic pursuit/orbit rules.
     if (!movement.moved && validPlayers.length && dt > 0) {
-      // Last-resort recovery: a live enemy must continue advancing even if a damaged
-      // state or a future AI regression produces a zero-delta steering result.
       movement.moved = forceAdvanceEnemy(enemy, validPlayers, dt);
       if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
     }
     if (movement.moved) movedEnemyCount++;
+
+    // Contact attacks are resolved here on the server, not in requestAnimationFrame.
+    // A minimized client therefore cannot pause damage or make itself invulnerable by
+    // stopping its local game loop. We keep the last validated player coordinates.
+    const target = movement.target;
+    if (!target || target.alive === false || enemy.attackCd > 0) continue;
+    const contactDistance = Math.hypot(Number(target.x) - Number(enemy.x), Number(target.y) - Number(enemy.y));
+    const enemyRadiusWorld = Math.max(1, Number(enemy.r) || 10) / WORLD_ZOOM;
+    const playerRadiusWorld = Math.max(1, Number(target.r) || (13 / WORLD_ZOOM));
+    const contactRadius = enemyRadiusWorld + playerRadiusWorld + 6 / WORLD_ZOOM;
+    if (contactDistance > contactRadius) continue;
+
+    // Spend the attack cooldown even when blocked by invulnerability so a pack cannot
+    // repeatedly evaluate the same contact every frame.
+    const attackInterval = BOSS_KINDS.includes(enemy.kind) ? 1.15 : enemy.kind === 'stinger' ? 0.72 : 0.92;
+    enemy.attackCd = attackInterval;
+    if ((Number(target.invulnerableUntil) || 0) > now) continue;
+
+    let appliedDamage = 0, blocked = false;
+    const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
+    if (shieldCharges > 0) {
+      target.shieldCharges = shieldCharges - 1;
+      target.invulnerableUntil = now + 700;
+      blocked = true;
+    } else {
+      const requestedDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
+      const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
+      target.maxHp = Math.max(1, Number(target.maxHp) || 100);
+      target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
+      appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
+      target.invulnerableUntil = now + 800;
+      if (target.hp <= 0) {
+        target.alive = false;
+        world.playerDefeatCount = (world.playerDefeatCount || 0) + 1;
+        defeatedPlayers.push(target);
+      }
+    }
+    world.playerDamageCount = (world.playerDamageCount || 0) + 1;
+    playerHits.push({
+      playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
+      damage: appliedDamage, blocked, hp: Math.max(0, Number(target.hp) || 0),
+      maxHp: Math.max(1, Number(target.maxHp) || 100),
+      shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
+      alive: target.alive !== false,
+      invulnerabilityMs: Math.max(0, (Number(target.invulnerableUntil) || 0) - now)
+    });
   }
+
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
@@ -197,7 +262,12 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const sendPlayers = world.playerSnapshotTimer <= 0;
   if (sendSnapshot) world.snapshotTimer = 0.1;
   if (sendPlayers) world.playerSnapshotTimer = 0.1;
-  return { active: true, dt, movedEnemyCount, spawnedBosses: [...initialSpawns.filter(e => BOSS_KINDS.includes(e.kind)), ...spawnedBosses], sendSnapshot, sendPlayers, tickCount: world.tickCount, elapsed: world.elapsed };
+  return {
+    active: true, dt, movedEnemyCount,
+    spawnedBosses: [...initialSpawns.filter(e => BOSS_KINDS.includes(e.kind)), ...spawnedBosses],
+    playerHits, playerHeals, defeatedPlayers, sendSnapshot, sendPlayers,
+    tickCount: world.tickCount, elapsed: world.elapsed
+  };
 }
 
 function resetWorldState(world, now = Date.now()) {

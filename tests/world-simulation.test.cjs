@@ -101,7 +101,7 @@ test('a stationary player does not cause the whole online horde to freeze at con
   const enemy = { id: 7, kind: 'drifter', x: 900, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
   world.enemies = [enemy];
   world.nextEnemyId = 7;
-  const player = { id: 'p1', x: 1000, y: 1000 };
+  const player = { id: 'p1', x: 1000, y: 1000, hp: 10000, maxHp: 10000, alive: true, shieldCharges: 0 };
   for (let i = 1; i <= 700; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   assert.ok(world.movingEnemyCount > 0, 'enemy keeps moving even after reaching a stationary player');
   assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < 30, 'enemy remains inside attack distance');

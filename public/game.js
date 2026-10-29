@@ -134,7 +134,7 @@ function showBossAlert(kind,id=null,threat=0){
 function showScreen(id){screens.forEach(s=>$(s).hidden=s!==id);$('hud').hidden=id!=='gameScreen';}
 function startGame(){
  startAmbientMusic();
- elapsed=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=Boolean(onlineMode);lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=Boolean(onlineMode);lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.max(0,Number(metaUpgrades.startShield)||0),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
@@ -148,7 +148,7 @@ function startGame(){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen});window.AbyssalOnline?.requestPlayerState?.();}snapshotClock=0;
 }
 const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Seus disparos causam 50% mais dano por nível.',apply:()=>upgrades.power*=1.5},
@@ -167,7 +167,7 @@ const upgradeList=[
 function chooseUpgrade(u){
  if(!u || (upgradeLevels[u.id]||0)>=3)return;
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
- u.apply();if(player)player.invuln=2;upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
+ u.apply();if(player)player.invuln=2;if(onlineMode){window.AbyssalOnline?.sendProtection?.(2,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen});}upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');if(!codex.skills.includes(u.id))codex.skills.push(u.id);localStorage.setItem('abyssalCodex',JSON.stringify(codex));
  level++;gameState='playing';$('upgradeScreen').hidden=true;showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);playSkillSound(u.id,'learn');updateHud();last=performance.now();if(onlineMode&&xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
@@ -176,7 +176,7 @@ function offerUpgrade(){
  gameState='upgrade';chosen=[];upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
  // Em coop, a escolha não congela o mundo e concede até 10 s de invulnerabilidade.
- if(player)player.invuln=Math.max(player.invuln,10);
+ if(player)player.invuln=Math.max(player.invuln,10);if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
  upgradeOptions.forEach(u=>{const current=upgradeLevels[u.id]||0;const b=document.createElement('button');b.className='upgrade-card';b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong><p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b)});
  $('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
  upgradeAutoTimer=setTimeout(()=>{if(gameState==='upgrade'&&upgradeOptions.length){const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);if(available.length)chooseUpgrade(available[Math.floor(Math.random()*available.length)]);else{gameState='playing';$('upgradeScreen').hidden=true}}},10000);
@@ -224,6 +224,22 @@ function hurtPlayer(dmg){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
  hp-=dmg;player.invuln=.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0)endGame();
 }
+function applyOnlinePlayerVitals(data){
+ if(!onlineMode||!player||!data||typeof data!=='object')return;
+ const receivedAt=Number(data.serverTime)||Date.now();
+ if(receivedAt<(Number(lastOnlineVitalsAt)||0))return;
+ lastOnlineVitalsAt=receivedAt;
+ if(Number.isFinite(Number(data.maxHp)))maxHp=Math.max(1,Number(data.maxHp));
+ if(Number.isFinite(Number(data.hp)))hp=clamp(Number(data.hp),0,maxHp);
+ if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
+ if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,10);
+ if(data.reason==='enemy-attack'&&Number(data.damage)>0){shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);}
+ else if(data.reason==='shield-block'||data.blocked){burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');}
+ else if(data.reason==='regeneration'&&Number(data.healed)>0)playSkillSound('regen','trigger');
+ updateHud();
+ if(data.alive===false&&gameState!=='over')endGame();
+}
+let lastOnlineVitalsAt=0;
 function onlineHost(){return !onlineMode;} // O mundo online é simulado pelo servidor, nunca por um jogador.
 function gainXp(value, source='shared'){
  if(!Number.isFinite(value)||value<=0||!player)return;
@@ -333,7 +349,7 @@ function update(dt){
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.38,1.05-elapsed*.0015)}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
- if(upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
+ if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/worldZoom){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/worldZoom,life:.55,maxLife:.55,color:'#b3a0ff'});playSkillSound('burst','trigger')}}
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/worldZoom){dealEnemyDamage(e,18*upgrades.nova,'nova');burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/worldZoom,life:.75,maxLife:.75,color:'#72f5ff'});playSkillSound('nova','trigger')}}
  // Aliado IA: atua como um segundo jogador, deslocando-se por conta própria e disparando projéteis visíveis.
@@ -351,7 +367,7 @@ function update(dt){
   if(window.AbyssalEnemyAI?.moveTowardTarget){const move=window.AbyssalEnemyAI.moveTowardTarget(e,targets,dt,{minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:Math.max(1,(e.r+player.r)*.9)});if(move.target){target=move.target;td=move.distance;}}
   else {const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y+dy/d*e.speed*dt,8/worldZoom,H-8/worldZoom);}
   if(onlineMode&&Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  if(target.local&&td<e.r+player.r+8/worldZoom){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
+  if(!onlineMode&&target.local&&td<e.r+player.r+8/worldZoom){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
  }
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];p.hitIds ||= [];if(!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playSkillSound(p.special,'trigger');
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08),'electric');playSkillSound('electric','trigger');next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
@@ -392,7 +408,7 @@ function activateAbility(id){
  }else if(id==='dash'){
   if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}
   if(player.dashCooldown>0)return;
-  player.dashCooldown=18;player.dashTime=1.25;player.invuln=Math.max(player.invuln,1.25);player.x=clamp(player.x+Math.cos(player.angle||0)*92/worldZoom,52/worldZoom+player.r,W-52/worldZoom-player.r);player.y=clamp(player.y+Math.sin(player.angle||0)*92/worldZoom,52/worldZoom+player.r,H-52/worldZoom-player.r);updateCamera();burst(player.x,player.y,'#d8c9ff',24,150);playSkillSound('dash','trigger');showToast('PASSO FANTASMA · INVULNERÁVEL');
+  player.dashCooldown=18;player.dashTime=1.25;player.invuln=Math.max(player.invuln,1.25);if(onlineMode)window.AbyssalOnline?.sendProtection?.(1.25,'dash');player.x=clamp(player.x+Math.cos(player.angle||0)*92/worldZoom,52/worldZoom+player.r,W-52/worldZoom-player.r);player.y=clamp(player.y+Math.sin(player.angle||0)*92/worldZoom,52/worldZoom+player.r,H-52/worldZoom-player.r);updateCamera();burst(player.x,player.y,'#d8c9ff',24,150);playSkillSound('dash','trigger');showToast('PASSO FANTASMA · INVULNERÁVEL');
  }
  updateAbilityButtons();
 }
@@ -405,6 +421,7 @@ function updateHud(){
  $('timeText').textContent=fmtTime(elapsed);$('levelText').textContent=String(level).padStart(2,'0');$('bossKillsText').textContent=String(bossKillsThisRun).padStart(2,'0');$('scoreText').textContent=score.toLocaleString('pt-BR');$('hpText').textContent=`${Math.ceil(Math.max(0,hp))} / ${maxHp}`;$('hpFill').style.width=`${clamp(hp/maxHp*100,0,100)}%`;$('xpText').textContent=`${Math.floor(xp)} / ${xpNeed}`;$('xpFill').style.width=`${clamp(xp/xpNeed*100,0,100)}%`;
 }
 function endGame(){
+ if(gameState==='over'||gameState==='menu')return;
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  if(authenticated&&window.AbyssalOnline?.finishRun)window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:onlineMode});
  else { coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop(); }
@@ -706,6 +723,7 @@ function applyWorldEnemyDamage(data){
  if(Number.isFinite(Number(data.damageRevision)))enemy.damageRevision=Math.max(Number(enemy.damageRevision)||0,Number(data.damageRevision));
  enemy.hit=.16;
 }
+window.addEventListener('abyssal-player-vitals',ev=>applyOnlinePlayerVitals(ev.detail));
 window.addEventListener('abyssal-world-damaged',ev=>applyWorldEnemyDamage(ev.detail));
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>2200){lastDamageWarningAt=now;showToast(`IMPACTO NÃO CONFIRMADO · ${String(d.reason||'sem resposta').toUpperCase()}`);}});
 window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(d.kind)showBossAlert(d.kind,d.id,d.threat);});

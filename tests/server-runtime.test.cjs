@@ -175,7 +175,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
-  assert.equal(health.world.engine, 'shared-solo-ai-client-prediction-authoritative-state');
+  assert.equal(health.world.engine, 'shared-solo-ai-server-tick-and-authoritative-combat');
   assert.ok(health.simulation.movingEnemies > 0);
 
   // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.
@@ -188,6 +188,27 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(Number(damageAck.hp), beforeHp - 5, 'server-confirmed HP must decrease by the requested damage');
   assert.equal(owner.latest('world-enemy-damaged')?.id, damageTarget.id, 'server should broadcast authoritative HP feedback');
   assert.ok(Number((await getJson(port, '/health')).simulation.combat.appliedHits) > 0, 'health diagnostics should count applied hits');
+
+  // Simulate minimizing the browser: send one final position beside a mob, then stop
+  // sending position packets entirely. The server must continue ticking and attack that
+  // last known position without a browser animation frame or a new heartbeat.
+  const currentSnapshot = owner.latest('game-snapshot');
+  const nearestEnemy = currentSnapshot.enemies[0];
+  let frozenPositionAck = null;
+  const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
+  await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
+  assert.equal(frozenPositionAck?.ok, true);
+  await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 2500);
+  const damageWhileFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).at(-1);
+  assert.ok(damageWhileFrozen.hp < damageWhileFrozen.maxHp, 'server must damage a player using the last known position');
+  const positionCountAfterMove = frozenPositionAck.positionUpdates;
+  await wait(850);
+  const staleHealth = await getJson(port, '/health');
+  const activeRoomAfterFreeze = staleHealth.simulation.activeRoomDetails.find(r => r.id === roomId);
+  assert.ok(activeRoomAfterFreeze, 'room remains active while sockets remain connected');
+  assert.ok(activeRoomAfterFreeze.positionUpdates >= positionCountAfterMove, 'position counter remains valid after client position stream pauses');
+  assert.ok(staleHealth.worldTickerActive, 'server world ticker continues without client frames');
+  assert.ok(staleHealth.simulation.combat.playerAttacks > 0, 'server contact attack loop remains active while the client is frozen');
 
   assert.equal(health.simulation.activeRoomDetails[0].clientReportedMovingEnemies, 5);
   assert.equal(health.simulation.activeRoomDetails[0].clientPredictingPlayers, 2);
