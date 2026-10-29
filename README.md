@@ -1,4 +1,4 @@
-# Abyssal v3.1.0 — simulação cooperativa refeita
+# Abyssal v3.1.1 — perseguição contínua e heartbeat de posição
 
 Esta versão reestrutura a simulação de inimigos para o cooperativo reutilizar as mesmas regras de perseguição e estatísticas do modo solo.
 
@@ -34,7 +34,7 @@ Mantenha a variável de ambiente `DATABASE_URL` existente no Render. Não coloqu
 - Mundo fixo: 3600 × 2200 unidades.
 - Spawns iniciais em três vórtices distintos; novos mobs continuam surgindo de pontos de corrente nas bordas.
 - Cada tick move todas as criaturas em direção ao jogador online mais próximo usando `AbyssalEnemyAI.moveTowardTarget`, a mesma função do solo.
-- Atualizações de posição são snapshots voláteis a cada 100 ms para preferir coordenadas atuais em vez de acumular estados antigos.
+- O cliente envia a posição do jogador com heartbeat independente do loop de renderização (100 ms) e confirmação do servidor, mantendo apenas um pacote de posição em trânsito. Os snapshots de inimigos são enviados em intervalos voláteis para evitar filas de estados antigos.
 - A simulação não avança se não houver jogadores; no servidor, o ticker é desligado quando todas as salas ficam vazias.
 
 ## Testes de backend
@@ -44,3 +44,18 @@ Mantenha a variável de ambiente `DATABASE_URL` existente no Render. Não coloqu
 ## Segurança e persistência
 
 As salas privadas ficam listadas apenas com metadados públicos (`isPrivate`); senhas e hashes não são transmitidos. A autenticação, moedas e rankings permanecem no PostgreSQL do Neon por meio da variável `DATABASE_URL`.
+
+
+## Correções v3.1.1 — foco nos monstros parados online
+
+- O cliente envia a posição do jogador por um heartbeat independente do loop de renderização (100 ms), consultando o estado atual do jogador diretamente.
+- Há no máximo um pacote de posição confirmado em voo; isso evita acumular posições antigas em conexões lentas. O servidor responde com ACK e atualiza os contadores de diagnóstico.
+- A IA compartilhada faz as criaturas continuarem circulando dentro do alcance de ataque depois de alcançar o jogador; elas não congelam quando chegam ao ponto de contato. Essa lógica vale tanto para o solo quanto para o cooperativo.
+- O endpoint `/health` mostra o tempo desde a última posição do jogador e o contador de pacotes recebidos; o handler `player-position` confirma o recebimento por ACK.
+- O nome em jogo do boss vermelho foi padronizado para **O Coração Partido**, igual ao alerta e ao catálogo.
+
+### Verificação
+
+Execute `npm test` e `npm start`. Durante uma partida online, `/health` deve reportar `build: "3.1.1"`, `simulation.errors: 0`, `movingEnemies` maior que zero e `latestPositionAgeMs` baixo (normalmente menos de 1.500 ms, dependendo da conexão). `positionUpdates` deve continuar aumentando mesmo se o ciclo visual estiver temporariamente reduzido.
+
+O diretório de salas e as contas usam a configuração PostgreSQL já existente (`DATABASE_URL`). Não altere nem publique essa variável.

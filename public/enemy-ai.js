@@ -72,10 +72,27 @@
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     let x = oldX, y = oldY;
-    if (distance > stopDistance && speed > 0) {
+    if (speed > 0 && distance > stopDistance + 0.5) {
+      // Same pursuit steering in solo and co-op: approach the current nearest player.
       const step = Math.min(distance - stopDistance, speed * dt);
       x += (dx / (distance || 1)) * step;
       y += (dy / (distance || 1)) * step;
+    } else if (speed > 0 && stopDistance > 0) {
+      // Do not freeze a whole horde when it reaches the player. Circle through the
+      // attack range, like a living predator, until it is killed or the player moves.
+      // A small ID-based radius offset prevents all enemies from occupying one ring.
+      const idOffset = Math.abs(Math.floor(Number(enemy.id) || 0)) % 4;
+      const orbitRadius = stopDistance * (1 + idOffset * 0.075);
+      let theta = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
+      if (!Number.isFinite(theta) || distance < 0.001) theta = (Number(enemy.angle) || 0) + Math.PI;
+      const direction = Number(enemy.orbitDirection) || ((Math.abs(Math.floor(Number(enemy.id) || 1)) % 2) ? 1 : -1);
+      enemy.orbitDirection = direction;
+      const angularSpeed = clamp((speed * 0.45) / Math.max(orbitRadius, 12), 0.25, 1.45);
+      theta += direction * angularSpeed * dt;
+      x = Number(target.x) + Math.cos(theta) * orbitRadius;
+      y = Number(target.y) + Math.sin(theta) * orbitRadius;
+      // Face the prey while strafing around it.
+      enemy.angle = Math.atan2(Number(target.y) - y, Number(target.x) - x);
     }
     x = clamp(x, Number.isFinite(options.minX) ? options.minX : 0, Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH);
     y = clamp(y, Number.isFinite(options.minY) ? options.minY : 0, Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT);

@@ -19,10 +19,10 @@ class FakeSocket {
   }
   on(event, handler) { const list = this.handlers.get(event) || []; list.push(handler); this.handlers.set(event, list); return this; }
   emit(event, ...args) { this.sent.push({ event, args, at: Date.now() }); return true; }
-  async clientEmit(event, payload) {
+  async clientEmit(event, payload, ...extraArgs) {
     const list = this.handlers.get(event) || [];
     let result;
-    for (const handler of list) result = handler(payload);
+    for (const handler of list) result = handler(payload, ...extraArgs);
     if (result && typeof result.then === 'function') await result;
     return result;
   }
@@ -157,8 +157,11 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(guest.latest('room-joined').ok, true);
 
   // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
-  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 800, viewportHeight: 500 });
-  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 800, viewportHeight: 500 });
+  let ownerPositionAck = null, guestPositionAck = null;
+  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 1 }, result => { ownerPositionAck = result; });
+  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 800, viewportHeight: 500, seq: 1 }, result => { guestPositionAck = result; });
+  assert.equal(ownerPositionAck?.ok, true, 'server acknowledges the player position stream');
+  assert.equal(guestPositionAck?.ok, true, 'server acknowledges each co-op player position');
   await waitFor(() => owner.all('game-snapshot').length >= 2, 2500);
   await wait(350);
   const snapshots = owner.all('game-snapshot');
@@ -172,7 +175,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
-  assert.equal(health.world.engine, 'shared-solo-ai');
+  assert.equal(health.world.engine, 'shared-solo-ai-orbit-contact');
   assert.ok(health.simulation.movingEnemies > 0);
   assert.equal(health.worldTickerActive, true);
 

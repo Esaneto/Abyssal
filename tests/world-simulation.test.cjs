@@ -85,5 +85,24 @@ test('online mobs keep the same 62% contact radius as solo and remain visible be
   const sharedContactRadius = (stats.r + 13) / AI.WORLD_ZOOM;
   assert.ok(distance > 0, 'enemy must not settle at the exact player coordinate');
   assert.ok(distance < sharedContactRadius, 'enemy remains within contact/damage range');
-  assert.ok(Math.abs(distance - sharedContactRadius * 0.62) < 1, 'server uses the same contact distance as the solo client');
+  assert.ok(distance >= sharedContactRadius * 0.55, 'enemy remains outside the exact player center');
+  assert.ok(distance < sharedContactRadius, 'enemy circles inside player contact range');
+  assert.ok(world.movingEnemyCount > 0, 'enemy continues orbiting instead of freezing after contact');
+});
+
+
+test('a stationary player does not cause the whole online horde to freeze at contact', () => {
+  const world = Sim.createWorldState(1000);
+  world.initialized = true;
+  world.lastTick = 1000;
+  world.nextBossAt = 999999;
+  world.commonSpawnTimer = 999999;
+  const stats = AI.statsForKind('drifter');
+  const enemy = { id: 7, kind: 'drifter', x: 900, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
+  world.enemies = [enemy];
+  world.nextEnemyId = 7;
+  const player = { id: 'p1', x: 1000, y: 1000 };
+  for (let i = 1; i <= 700; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
+  assert.ok(world.movingEnemyCount > 0, 'enemy keeps moving even after reaching a stationary player');
+  assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < 30, 'enemy remains inside attack distance');
 });
