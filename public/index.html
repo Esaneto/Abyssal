@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.7">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.8">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.7">
+<link rel="stylesheet" href="style.css?v=3.5.8">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -71,7 +71,7 @@
         </form>
         <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para transmitir mensagens.</p>
       </section>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.7</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.8</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -246,10 +246,50 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.7"></script>
-<script src="enemy-netcode.js?v=3.5.7"></script>
-<script src="skill-audio.js?v=3.5.7"></script>
-<script src="game.js?v=3.5.7"></script>
-<script src="online.js?v=3.5.7"></script>
+<script src="enemy-ai.js?v=3.5.8"></script>
+<script src="enemy-netcode.js?v=3.5.8"></script>
+<script src="skill-audio.js?v=3.5.8"></script>
+<script src="game.js?v=3.5.8"></script>
+<script src="online.js?v=3.5.8"></script>
+<script>
+/* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
+(()=>{
+  const chatForm=document.getElementById('globalChatForm');
+  chatForm?.addEventListener('submit',event=>{event.preventDefault();},true);
+  if(window.__abyssalFullscreenHandlerReady)return;
+  const button=document.getElementById('fullscreenBtn');
+  const update=()=>{
+    if(!button)return;
+    const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+    button.textContent=active?'⤢':'⛶';
+    button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
+    button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
+  };
+  button?.addEventListener('click',async()=>{
+    try{
+      const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+      if(active){
+        if(document.exitFullscreen)await document.exitFullscreen();
+        else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+      }else{
+        const root=document.documentElement;
+        if(root.requestFullscreen)await root.requestFullscreen();
+        else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
+        else throw new Error('fullscreen-unavailable');
+      }
+    }catch(error){
+      const toast=document.getElementById('toast');
+      if(toast){
+        toast.textContent='Este navegador não permitiu tela cheia. No celular, tente instalar o Abyssal pela opção BAIXAR ABYSSAL.';
+        toast.hidden=false;
+        setTimeout(()=>{toast.hidden=true;},6000);
+      }
+    }
+  });
+  document.addEventListener('fullscreenchange',update);
+  document.addEventListener('webkitfullscreenchange',update);
+  update();
+})();
+</script>
 </body>
 </html>
