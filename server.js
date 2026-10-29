@@ -444,7 +444,7 @@ io.on('connection', socket => {
    if(recent.length>=CHAT_RATE_MAX||(recent.length&&now-recent[recent.length-1]<CHAT_MIN_INTERVAL_MS)){
     globalChatRate.set(socket.id,recent);return socket.emit('global-chat-error',{message:'Você está transmitindo rápido demais. Aguarde um pouco.'});
    }
-   const text=String(payload?.text||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,CHAT_MESSAGE_LIMIT);
+   const text=String(payload?.text||'').replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,CHAT_MESSAGE_LIMIT);
    if(!text)return;
    recent.push(now);globalChatRate.set(socket.id,recent);
    const user=users[socket.data.userKey];
