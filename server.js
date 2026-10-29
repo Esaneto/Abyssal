@@ -287,6 +287,14 @@ function processWorldDamage(socket,id,damage){
  if(enemy.hp<=0){
   w.enemies.splice(idx,1);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
+  const killer=users[socket.data.userKey];
+  if(killer){
+   killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
+   killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
+   if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;
+   saveUsers();
+   socket.emit('account-data',publicUser(killer));
+  }
   io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
   // XP is not awarded on kill: a shared orb is dropped in the authoritative world.
   // The first player who touches it will receive the XP from tickWorld.
