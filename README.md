@@ -1,24 +1,46 @@
-# Abyssal v3.0.3 — movimento compartilhado e fallback online
+# Abyssal v3.1.0 — simulação cooperativa refeita
 
-## Correções desta versão
+Esta versão reestrutura a simulação de inimigos para o cooperativo reutilizar as mesmas regras de perseguição e estatísticas do modo solo.
 
-- Foi criado `public/enemy-ai.js`, um único algoritmo de perseguição utilizado pelo modo solo e pela simulação autoritativa do servidor online. Ambos usam o mesmo cálculo de direção, velocidade, fase e limites.
-- O servidor online agora calcula movimento através desse módulo comum e envia `movingEnemyCount`, `tickCount` e timestamp nos snapshots para diagnóstico.
-- O cliente suaviza as posições autoritativas por interpolação entre snapshots.
-- Se o cliente detectar que vários snapshots consecutivos mantêm os monstros parados longe de qualquer mergulhador, ativa temporariamente o mesmo algoritmo local de perseguição do solo. Quando os snapshots voltam a demonstrar movimento real, o cliente sai do fallback e retoma a interpolação autoritativa.
-- Os sprites, a vida, os surgimentos e as derrotas continuam recebendo estado do servidor; o fallback serve para evitar uma tela estática se a simulação de rede estiver parada.
-- Os arquivos JS/CSS/Favicon usam cache bust `3.0.3` para evitar mistura entre versões antigas e novas.
+## Alterações centrais
 
-## Instalação
+- `public/enemy-ai.js` é a fonte compartilhada do catálogo de criaturas, velocidade base, sorteio de inimigos, pontos de spawn/vórtices e movimento de perseguição.
+- `world-simulation.js` controla a simulação autoritativa por sala: horda contínua, no máximo 50 criaturas (até 4 bosses), escolha do jogador mais próximo, velocidades/caminhos em unidades do mundo e snapshots.
+- Coordenadas de jogador e inimigo agora são sempre unidades do mundo `3600 × 2200` (não normalizadas entre 0 e 1). Velocidade e interpolação também usam unidades do mundo por segundo. Isso remove a conversão duplicada que dificultava sincronizar movimento.
+- O servidor inicia o loop de 20 ticks por segundo apenas enquanto houver pelo menos uma sala ocupada.
+- Quando todos saem de uma sala criada, o objeto da sala e sua simulação/inimigos são descartados imediatamente e a linha correspondente é excluída do diretório PostgreSQL. A sala estática `MAR-ABERTO` fica disponível como entrada padrão, mas seu mundo é reiniciado e não simula quando vazia.
+- Uma sala criada mas nunca ocupada expira em 30 segundos. O diretório PostgreSQL só contém salas ocupadas; listagens não enviam senha nem hash.
+- Ao reiniciar/deployar o serviço, as linhas antigas do diretório de salas são apagadas porque sockets e simulações não sobrevivem ao processo. Contas, moedas e rankings ficam no `abyssal_state` e não são apagados.
+- `/health` informa `build`, `world.engine`, `world.coordinateSystem`, `worldTickerActive`, `simulation.movingEnemies`, `simulation.errors`, `roomsPendingDeletion` e detalhes seguros por sala: contagem de inimigos, ticks, updates de posição recebidos e idade da última posição (sem nicknames, senhas ou IDs de conta).
 
-1. Extraia o ZIP.
-2. Copie os arquivos mantendo a estrutura `public/` e substituindo os equivalentes no repositório.
-3. Execute `npm install` na raiz; inclua o `package-lock.json` atualizado no commit, se ele existir no repositório.
-4. Faça commit/push na branch `main` do GitHub e aguarde o Render terminar o deploy.
-5. Não altere a variável `DATABASE_URL` nem o grupo `abyss` do Render.
+## Instalar/testar
 
-## Verificação
+Requer Node.js 18 ou superior.
 
-- `/health` deve mostrar `build: "3.0.3"`, `persistence: "postgres"` e `simulation.errors: 0`.
-- Com uma sala ativa, `simulation.movingEnemies` deve ser maior que zero enquanto houver monstros se aproximando de jogadores.
-- Teste com duas sessões reais na mesma sala. A simulação server-side é autoritativa; o fallback de cliente é uma proteção visual para snapshots sem movimento, e não substitui um diagnóstico do servidor se `simulation.errors` estiver aumentando.
+```bash
+npm install
+npm test
+npm start
+```
+
+Abra `http://localhost:3000`. Para cooperativo, conecte duas sessões, autentique duas contas e entre na mesma sala. Os monstros devem aparecer nos vórtices e avançar em direção ao jogador mais próximo. Ao sair das duas sessões, `/health` deve mostrar `activeRooms: 0`, `activePlayers: 0`, `simulation.totalEnemies: 0` e `worldTickerActive: false`.
+
+## Render + Neon
+
+Mantenha a variável de ambiente `DATABASE_URL` existente no Render. Não coloque a connection string no repositório. O serviço é desenhado para uma única instância do Render, pois as sessões Socket.IO e os mundos autoritativos ficam no processo ativo. O diretório de salas usa PostgreSQL para publicação de metadados, mas não implementa replicação do motor de mundo entre várias instâncias.
+
+## Propriedades da simulação
+
+- Mundo fixo: 3600 × 2200 unidades.
+- Spawns iniciais em três vórtices distintos; novos mobs continuam surgindo de pontos de corrente nas bordas.
+- Cada tick move todas as criaturas em direção ao jogador online mais próximo usando `AbyssalEnemyAI.moveTowardTarget`, a mesma função do solo.
+- Atualizações de posição são snapshots voláteis a cada 100 ms para preferir coordenadas atuais em vez de acumular estados antigos.
+- A simulação não avança se não houver jogadores; no servidor, o ticker é desligado quando todas as salas ficam vazias.
+
+## Testes de backend
+
+`npm test` executa os testes da IA compartilhada, da simulação, do ciclo de vida de salas e um teste dos handlers reais de `server.js` com adaptadores de transporte simulados. Este último verifica que uma segunda sessão vê e entra na sala, recebe snapshots com inimigos em movimento e que a sala/ticker são removidos quando os dois jogadores saem. O teste usa `DATA_DIR` temporário e não apaga os dados locais existentes.
+
+## Segurança e persistência
+
+As salas privadas ficam listadas apenas com metadados públicos (`isPrivate`); senhas e hashes não são transmitidos. A autenticação, moedas e rankings permanecem no PostgreSQL do Neon por meio da variável `DATABASE_URL`.

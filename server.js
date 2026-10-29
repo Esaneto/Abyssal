@@ -5,14 +5,14 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const EnemyAI = require('./public/enemy-ai');
+const WorldSimulation = require('./world-simulation');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const rand = (min, max) => min + Math.random() * (max - min);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true }, maxHttpBufferSize: 1e5 });
 const PORT = Number(process.env.PORT || 3000);
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -97,7 +97,7 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.0.3',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0)},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT}}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.1.0',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.min(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'shared-solo-ai'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
@@ -108,23 +108,28 @@ const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 50;
 const MAX_BOSSES_PER_ROOM = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
-const WORLD_WIDTH = 3600;
-const WORLD_HEIGHT = 2200;
-const WORLD_ZOOM = 0.78; // Same logical zoom used by the solo renderer.
+const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
+const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
+const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
 let lastWorldTickAt = 0;
 let worldTickErrors = 0;
+let worldTicker = null;
 let roomRegistryReady = false;
+let roomDirectoryQueue = Promise.resolve();
+function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);roomDirectoryQueue=run.catch(()=>{});return run;}
+const deletingRoomIds = new Set();
+const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
-function makeWorldState(){return {initialized:false,elapsed:0,enemies:[],nextEnemyId:0,nextBossAt:60,bossSpawnCount:0,lastBossKind:null,lastBossMaxHp:0,lastBossDamage:0,lastBossSpeed:0,commonSpawnTimer:.15,lastTick:Date.now(),snapshotTimer:0,playerSnapshotTimer:0,tickCount:0,lastMovementAt:0,movingEnemyCount:0};}
+function makeWorldState(){return WorldSimulation.createWorldState();}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6}={}){
  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
- return {id,name,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,createdAt:Date.now()};
+ return {id,name,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
@@ -139,84 +144,79 @@ async function roomListForClients(){
  const merged=new Map();
  if(pgPool&&roomRegistryReady){
   try{
-   const result=await pgPool.query("SELECT room_id,name,is_private,capacity,player_count,owner_instance,lease_until,created_at FROM abyssal_rooms WHERE lease_until>NOW() ORDER BY player_count DESC,created_at ASC");
-   for(const r of result.rows){const count=Number(r.player_count)||0,capacity=Number(r.capacity)||6;merged.set(r.room_id,{id:r.room_id,code:r.room_id,name:r.name,isPrivate:Boolean(r.is_private),playerCount:count,capacity,available:count<capacity,joinable:r.owner_instance===SERVER_INSTANCE_ID,local:r.owner_instance===SERVER_INSTANCE_ID,remote:r.owner_instance!==SERVER_INSTANCE_ID,state:count?'INICIADA':'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,createdAt:r.created_at});}
+   const result=await pgPool.query("SELECT room_id,name,is_private,capacity,player_count,owner_instance,lease_until,created_at FROM abyssal_rooms WHERE lease_until>NOW() AND player_count>0 ORDER BY player_count DESC,created_at ASC");
+   for(const r of result.rows){if(deletingRoomIds.has(r.room_id))continue;const count=Number(r.player_count)||0,capacity=Number(r.capacity)||6;merged.set(r.room_id,{id:r.room_id,code:r.room_id,name:r.name,isPrivate:Boolean(r.is_private),playerCount:count,capacity,available:count<capacity,joinable:r.owner_instance===SERVER_INSTANCE_ID,local:r.owner_instance===SERVER_INSTANCE_ID,remote:r.owner_instance!==SERVER_INSTANCE_ID,state:'INICIADA',elapsed:0,enemyCount:0,bossCount:0,createdAt:r.created_at});}
   }catch(err){console.error('[rooms] Consulta ao diretório falhou; usando instância local:',err.message);}
  }
  // Live in-process rooms contain the authoritative player count and are always joinable by this process.
- for(const room of rooms.values())merged.set(room.id,publicRoomInfo(room));
+ for(const room of rooms.values())if(!deletingRoomIds.has(room.id))merged.set(room.id,publicRoomInfo(room));
  if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
-app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.0.3',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.0.3',directoryFallback:true});}});
+app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.1.0',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.1.0',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,serverTime:Date.now(),tickCount:room.world.tickCount||0,movingEnemyCount:room.world.movingEnemyCount||0,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
 async function persistRoomRow(room){
- if(!pgPool||!roomRegistryReady||!room)return;
- await pgPool.query(`INSERT INTO abyssal_rooms(room_id,name,is_private,capacity,player_count,owner_instance,created_at,updated_at,lease_until)
- VALUES($1,$2,$3,$4,$5,$6,to_timestamp($7/1000.0),NOW(),NOW()+INTERVAL '25 seconds')
- ON CONFLICT(room_id) DO UPDATE SET name=EXCLUDED.name,is_private=EXCLUDED.is_private,capacity=EXCLUDED.capacity,player_count=EXCLUDED.player_count,owner_instance=EXCLUDED.owner_instance,updated_at=NOW(),lease_until=NOW()+INTERVAL '25 seconds'`,[room.id,room.name,Boolean(room.isPrivate),room.capacity,room.players.size,SERVER_INSTANCE_ID,room.createdAt||Date.now()]);
+ if(!pgPool||!roomRegistryReady||!room||room.id===DEFAULT_ROOM_ID)return;
+ if(room.players.size===0){deletingRoomIds.add(room.id);pendingRoomDeletion.add(room.id);return deleteRoomRow(room.id);}
+ return queueRoomDirectory(async()=>{
+  // Re-check after acquiring the queue: a leave event may have destroyed this room since this write was queued.
+  if(rooms.get(room.id)!==room||room.players.size===0||deletingRoomIds.has(room.id)){
+   await pgPool.query('DELETE FROM abyssal_rooms WHERE room_id=$1',[room.id]);
+   pendingRoomDeletion.delete(room.id);deletingRoomIds.delete(room.id);return;
+  }
+  await pgPool.query(`INSERT INTO abyssal_rooms(room_id,name,is_private,capacity,player_count,owner_instance,created_at,updated_at,lease_until)
+  VALUES($1,$2,$3,$4,$5,$6,to_timestamp($7/1000.0),NOW(),NOW()+INTERVAL '25 seconds')
+  ON CONFLICT(room_id) DO UPDATE SET name=EXCLUDED.name,is_private=EXCLUDED.is_private,capacity=EXCLUDED.capacity,player_count=EXCLUDED.player_count,owner_instance=EXCLUDED.owner_instance,updated_at=NOW(),lease_until=NOW()+INTERVAL '25 seconds'`,[room.id,room.name,Boolean(room.isPrivate),room.capacity,room.players.size,SERVER_INSTANCE_ID,room.createdAt||Date.now()]);
+ });
 }
-async function deleteRoomRow(roomId){if(pgPool&&roomRegistryReady)await pgPool.query('DELETE FROM abyssal_rooms WHERE room_id=$1 AND owner_instance=$2',[roomId,SERVER_INSTANCE_ID]);}
-async function heartbeatRoomDirectory(){if(!pgPool||!roomRegistryReady)return;await pgPool.query('DELETE FROM abyssal_rooms WHERE lease_until<NOW()');for(const room of rooms.values())await persistRoomRow(room);}
+async function deleteRoomRow(roomId){
+ if(roomId===DEFAULT_ROOM_ID){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
+ deletingRoomIds.add(roomId);
+ if(!pgPool||!roomRegistryReady){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
+ try{return await queueRoomDirectory(async()=>{await pgPool.query('DELETE FROM abyssal_rooms WHERE room_id=$1',[roomId]);pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);});}
+ catch(err){pendingRoomDeletion.add(roomId);deletingRoomIds.add(roomId);throw err;}
+}
+async function heartbeatRoomDirectory(){
+ if(!pgPool||!roomRegistryReady)return;
+ await queueRoomDirectory(()=>pgPool.query('DELETE FROM abyssal_rooms WHERE lease_until<NOW() OR player_count<=0'));
+ for(const id of [...pendingRoomDeletion]){try{await deleteRoomRow(id);}catch(err){console.error('[rooms] tentativa de remover sala órfã falhou:',err.message);}}
+ for(const room of rooms.values())if(room.id!==DEFAULT_ROOM_ID&&room.players.size>0)await persistRoomRow(room);
+}
 async function initializeRoomRegistry(){
  if(!pgPool)return;
  await pgPool.query(`CREATE TABLE IF NOT EXISTS abyssal_rooms(room_id TEXT PRIMARY KEY,name TEXT NOT NULL,is_private BOOLEAN NOT NULL DEFAULT FALSE,capacity INTEGER NOT NULL DEFAULT 6,player_count INTEGER NOT NULL DEFAULT 0,owner_instance TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),lease_until TIMESTAMPTZ NOT NULL)`);
  await pgPool.query('CREATE INDEX IF NOT EXISTS abyssal_rooms_lease_idx ON abyssal_rooms(lease_until)');
- roomRegistryReady=true;await pgPool.query('DELETE FROM abyssal_rooms WHERE lease_until<NOW()');await heartbeatRoomDirectory();
+ roomRegistryReady=true;
+ // Socket memberships and arena simulations live in memory. Old room rows can never be rejoined after a deploy, so discard the directory and repopulate only active rooms.
+ await pgPool.query('DELETE FROM abyssal_rooms');
+ await heartbeatRoomDirectory();
 }
 function ensureWorld(room){
- const w=room.world;if(w.initialized)return;
- w.initialized=true;w.elapsed=0;w.nextBossAt=60;w.bossSpawnCount=0;w.lastBossKind=null;w.lastBossMaxHp=0;w.lastBossDamage=0;w.lastBossSpeed=0;w.nextEnemyId=0;w.enemies=[];w.commonSpawnTimer=.8;w.lastTick=Date.now();w.snapshotTimer=0;w.playerSnapshotTimer=0;
- for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);
+ const spawned=WorldSimulation.initializeWorld(room.world,Date.now());
+ return spawned;
 }
 function spawnWorldEnemy(room,type='common',initial=false){
- const w=room.world;if(!w.initialized||w.enemies.length>=MAX_ENEMIES_PER_ROOM)return null;
- const bosses=w.enemies.filter(e=>isBossKind(e.kind));
- if(type==='boss'&&bosses.length>=MAX_BOSSES_PER_ROOM)return null;
- if(type!=='boss'&&w.enemies.filter(e=>!isBossKind(e.kind)).length>=MAX_COMMON_ENEMIES)return null;
- // Every creature enters through a fixed vortex in a map corner, matching solo mode.
- // Initial waves are deliberately distributed across corners instead of appearing around the player.
- const corner=initial?(w.nextEnemyId%4):Math.floor(Math.random()*4);
- const vortexX=138, vortexY=138, spreadX=rand(-42,42), spreadY=rand(-42,42);
- const left=corner===0||corner===2, top=corner===0||corner===1;
- const worldX=(left?vortexX:WORLD_WIDTH-vortexX)+spreadX;
- const worldY=(top?vortexY:WORLD_HEIGHT-vortexY)+spreadY;
- const x=clamp(worldX,72,WORLD_WIDTH-72)/WORLD_WIDTH;
- const y=clamp(worldY,72,WORLD_HEIGHT-72)/WORLD_HEIGHT;
- const bossData={
-  boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
-  leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
-  maw:{r:45,hp:3750,speed:25,damage:31,color:'#c16cff',value:75},
-  angler:{r:35,hp:3260,speed:30,damage:28,color:'#ffb45e',value:65}
- };
- const commonData={
-  drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
-  stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
-  brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
-  lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
- };
- let kind;
- if(type==='boss'){
-  const available=[...BOSS_KINDS].filter(k=>!bosses.some(e=>e.kind===k));
-  if(!available.length)return null;
-  kind=available[Math.floor(Math.random()*available.length)];
- }else{
-  const t=Math.random();kind=t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker';
- }
- const base={...(bossData[kind]||commonData[kind]||commonData.drifter)};
- if(type==='boss'){
-  // A vida cresce sempre 50% em relação ao boss mais recentemente criado, independentemente da espécie.
-  base.hp=w.lastBossMaxHp>0?w.lastBossMaxHp*1.5:base.hp;
-  base.damage=w.lastBossDamage>0?Math.max(base.damage,Math.round(w.lastBossDamage*1.12)):base.damage;
-  base.speed=Math.min(90,w.lastBossSpeed>0?Math.max(base.speed,w.lastBossSpeed*1.05):base.speed);
-  w.lastBossMaxHp=base.hp;w.lastBossDamage=base.damage;w.lastBossSpeed=base.speed;w.bossSpawnCount++;
- }
- const enemy={id:++w.nextEnemyId,x,y,r:base.r,hp:base.hp,maxHp:base.hp,speed:base.speed/WORLD_ZOOM,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind,threat:w.bossSpawnCount};
- w.enemies.push(enemy);
- return enemy;
+ return WorldSimulation.spawnEnemy(room.world,{type,initial});
+}
+function clearRoomWorld(room){
+ if(!room)return;
+ room.world=WorldSimulation.createWorldState(Date.now());
+}
+function scheduleUnjoinedRoomExpiry(room,delay=30000){
+ if(!room||room.id===DEFAULT_ROOM_ID)return;
+ if(room.emptyRoomTimer)clearTimeout(room.emptyRoomTimer);
+ room.emptyRoomTimer=setTimeout(()=>{
+  room.emptyRoomTimer=null;
+  if(room.players.size===0&&rooms.get(room.id)===room){
+   rooms.delete(room.id);clearRoomWorld(room);deletingRoomIds.add(room.id);pendingRoomDeletion.add(room.id);
+   deleteRoomRow(room.id).catch(err=>console.error('[rooms] remoção de sala vazia:',err.message));
+   refreshWorldTicker();broadcastRooms();
+  }
+ },delay);
+ room.emptyRoomTimer.unref?.();
 }
 function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
@@ -228,19 +228,30 @@ function awardWorldBossCoins(room){
  }
  if(changed)saveUsers();
 }
+function refreshWorldTicker(){
+ const hasActiveRoom=[...rooms.values()].some(room=>room.players.size>0);
+ if(hasActiveRoom&&!worldTicker){worldTicker=setInterval(worldTick,50);worldTicker.unref?.();}
+ else if(!hasActiveRoom&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
+}
 function removeFromRoom(socket,{announce=true,emitResult=true}={}){
- const room=socketRoom(socket);if(!room){socket.data.joined=false;socket.data.roomId=null;return;}
+ const room=socketRoom(socket);
+ if(!room){socket.data.joined=false;socket.data.roomId=null;return;}
+ const roomId=room.id;
  room.players.delete(socket.id);socket.leave(channelFor(room));socket.data.joined=false;socket.data.roomId=null;
- if(announce&&socket.data.nickname)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
+ if(announce&&socket.data.nickname&&room.players.size>0)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
  socket.to(channelFor(room)).emit('player-left',socket.id);
  io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));
  if(emitResult)socket.emit('world-left');
- if(room.id!==DEFAULT_ROOM_ID&&room.players.size===0){
-  if(room.cleanupTimer)clearTimeout(room.cleanupTimer);
-  room.cleanupTimer=setTimeout(()=>{if(room.players.size===0){rooms.delete(room.id);deleteRoomRow(room.id).catch(err=>console.error('[rooms] limpeza do diretório:',err.message));broadcastRooms();}},10*60*1000);room.cleanupTimer.unref?.();
- }
- if(room.players.size>0)persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
- broadcastRooms();broadcastOnline();
+ if(room.players.size===0){
+  // Empty arenas must stop simulating immediately and release all enemy/particle-like state.
+  clearRoomWorld(room);
+  if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
+  if(roomId!==DEFAULT_ROOM_ID){
+   rooms.delete(roomId);deletingRoomIds.add(roomId);pendingRoomDeletion.add(roomId);
+   deleteRoomRow(roomId).then(()=>broadcastRooms()).catch(err=>console.error('[rooms] limpeza da sala vazia:',err.message));
+  }
+ }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
+ broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
 function processWorldDamage(socket,id,damage){
  const room=socketRoom(socket);if(!room||!socket.data.joined||!Number.isFinite(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return;
@@ -277,39 +288,19 @@ async function finishRunForSocket(socket,payload={}){
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 function tickRoom(room,now){
- const w=room.world,previousTick=Number(w.lastTick)||now,dt=Math.max(0,Math.min(.1,(now-previousTick)/1000));w.lastTick=now;
- if(room.players.size===0)return;
- if(!w.initialized)ensureWorld(room);
- w.elapsed+=dt;w.tickCount=(w.tickCount||0)+1;
- w.playerSnapshotTimer-=dt;
- if(w.playerSnapshotTimer<=0){w.playerSnapshotTimer=.1;io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));}
- w.commonSpawnTimer-=dt;
- let commonCount=w.enemies.filter(e=>!isBossKind(e.kind)).length;
- if(commonCount===0&&w.enemies.length<MAX_ENEMIES_PER_ROOM){spawnWorldEnemy(room,'common');commonCount=1;w.commonSpawnTimer=.6;}
- if(w.commonSpawnTimer<=0){if(commonCount<MAX_COMMON_ENEMIES&&w.enemies.length<MAX_ENEMIES_PER_ROOM)spawnWorldEnemy(room,'common');w.commonSpawnTimer=commonCount<MAX_COMMON_ENEMIES?Math.max(.38,1.02-w.elapsed*.0015):.15;}
- if(w.elapsed>=w.nextBossAt){
-  const activeBossCount=w.enemies.filter(e=>isBossKind(e.kind)).length;
-  if(activeBossCount<MAX_BOSSES_PER_ROOM&&w.enemies.length<MAX_ENEMIES_PER_ROOM){const spawned=spawnWorldEnemy(room,'boss');if(spawned)io.to(channelFor(room)).emit('boss-warning',{id:spawned.id,kind:spawned.kind,threat:w.bossSpawnCount});}
-  w.nextBossAt=w.elapsed+60;
- }
- const targetPlayers=[...room.players.values()].filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));let movedCount=0;
- for(const e of w.enemies){
-  e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);
-  // The exact same pursuit helper is loaded by game.js for solo play. Server coordinates
-  // are normalized (0..1); the helper converts deltas into the shared 3600x2200 world.
-  const oldX=e.x,oldY=e.y;
-  const movement=EnemyAI.moveTowardTarget(e,targetPlayers,dt,{normalized:true,worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,minX:.008,maxX:.992,minY:.008,maxY:.992,stopDistance:0});
-  if(movement.moved)movedCount++;
-  e.vx=(e.x-oldX)/Math.max(dt,.001);e.vy=(e.y-oldY)/Math.max(dt,.001);
- }
- if(movedCount>0)w.lastMovementAt=now;w.movingEnemyCount=movedCount;
- w.snapshotTimer-=dt;if(w.snapshotTimer<=0){w.snapshotTimer=.1;broadcastWorld(room);}
+ if(!room||room.players.size===0){if(room)clearRoomWorld(room);return;}
+ const w=room.world;
+ const result=WorldSimulation.tickWorld(w,[...room.players.values()],now);
+ for(const boss of result.spawnedBosses||[])if(isBossKind(boss.kind))io.to(channelFor(room)).emit('boss-warning',{id:boss.id,kind:boss.kind,threat:boss.threat});
+ if(result.sendPlayers)io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...p})=>p));
+ if(result.sendSnapshot)broadcastWorld(room);
 }
 function worldTick(){
+ const active=[...rooms.values()].filter(room=>room.players.size>0);
+ if(!active.length){refreshWorldTicker();return;}
  const now=Date.now();worldTickCount++;lastWorldTickAt=now;
- for(const room of rooms.values())try{tickRoom(room,now)}catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
+ for(const room of active)try{tickRoom(room,now)}catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
 }
-setInterval(worldTick,50).unref();
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
@@ -346,40 +337,47 @@ io.on('connection', socket => {
   if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
   const id=randomRoomId(),room=makeRoom({id,name,isPrivate,password,capacity});rooms.set(id,room);
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
-  try{await persistRoomRow(room);}catch(err){console.error('[rooms] falha ao registrar sala no PostgreSQL:',err.message);}
+  scheduleUnjoinedRoomExpiry(room,30000);
   socket.emit('room-created',{ok:true,room:publicRoomInfo(room),message:`Sala criada. Código para convite: ${id}`});broadcastRooms();io.to(socket.id).emit('rooms-list',await roomListForClients());
  });
  socket.on('join-room', async payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
-  const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase(),room=rooms.get(id);
-  if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala está ativa em outro processo do servidor. No Render, mantenha uma instância única para que os sockets compartilhem a simulação.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
+  const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase();
+  const room=rooms.get(id);
+  if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
+  const existingRoom=socketRoom(socket);
+  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
-  if(socket.data.joined)removeFromRoom(socket,{announce:true,emitResult:false});
+  if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
+  if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
   socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const u=users[socket.data.userKey];
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:.5,y:.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:Math.max(.5,Math.min(1.1,Number(payload.worldZoom)||.78)),color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',runStats:makeRunStats()};
-  room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length){for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);}
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,angle:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',runStats:makeRunStats()};
+  room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,...x})=>x),snapshot:getRoomSnapshot(room)});
-  socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));setTimeout(()=>{if(room.players.has(socket.id)){if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120); 
+  socket.to(channelFor(room)).emit('player-joined',((({userKey,...x})=>x)(p)));
+  setTimeout(()=>{if(room.players.has(socket.id)){socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120);
   io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,...x})=>x));
-  io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();
+  io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);
+  persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
  socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
  socket.on('leave-world', async () => { if(socket.data.userKey&&socket.data.joined) { try { await finishRunForSocket(socket,{}); } catch(err) { console.error('[run] Falha ao finalizar mergulho ao sair:',err.message); } } removeFromRoom(socket,{announce:true,emitResult:true}); });
  socket.on('player-position', payload => {
   if(!socket.data.joined||!payload||typeof payload!=='object')return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return;
-  p.x=Math.max(.01,Math.min(.99,Number(payload.x)||.5));p.y=Math.max(.01,Math.min(.99,Number(payload.y)||.5));
+  const x=Number(payload.x),y=Number(payload.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
+  p.x=clamp(x,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(y,8/WORLD_ZOOM,WORLD_HEIGHT-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=Date.now();
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
   p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.worldZoom=.78;
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
   const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
  });
  socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
- socket.on('request-world-snapshot',()=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;ensureWorld(room);if(!room.world.enemies.length)for(let i=0;i<3;i++)spawnWorldEnemy(room,'common',true);socket.emit('game-snapshot',getRoomSnapshot(room));});
+ socket.on('request-world-snapshot',()=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);socket.emit('game-snapshot',getRoomSnapshot(room));});
  socket.on('begin-run',()=>{if(!socket.data.userKey)return;const room=socketRoom(socket),p=room?.players.get(socket.id);if(p){if(!p.runStats||p.runStats.settled)p.runStats=makeRunStats();}else socket.data.runStats=makeRunStats();});
  socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));run.level=Math.max(1,Math.min(9999,Number(payload.level)||1));if(!p)run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});

@@ -162,33 +162,37 @@ function offerUpgrade(){
 }
 function spawnEnemy(initial=false,type='common'){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
- const bosses=BOSS_KINDS,bossCount=enemies.filter(e=>bosses.includes(e.kind)).length,commonCount=enemies.length-bossCount;
+ const bossCount=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length,commonCount=enemies.length-bossCount;
  if(type==='boss'&&(bossCount>=MAX_BOSSES||enemies.length>=MAX_ENEMIES))return null;
  if(type!=='boss'&&commonCount>=MAX_COMMON_ENEMIES)return null;
- const corner=Math.floor(Math.random()*4),insetX=rand(100,290),insetY=rand(90,250);let x,y;
- // A fauna always enters from one of four fixed current vortices at the map corners.
- const wx=corner===0?insetX:corner===1?W-insetX:corner===2?insetX:W-insetX;
- const wy=corner===0?insetY:corner===1?insetY:H-insetY;
- x=clamp(wx,70/worldZoom,W-70/worldZoom);y=clamp(wy,70/worldZoom,H-70/worldZoom);
- const bossData={boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},maw:{r:45,hp:3750,speed:25,damage:31,color:'#c16cff',value:75},angler:{r:35,hp:3260,speed:30,damage:28,color:'#ffb45e',value:65}};
- let kind;
- if(type==='boss'){
-  const available=bosses.filter(k=>!enemies.some(e=>e.kind===k));if(!available.length)return null;
-  kind=available[Math.floor(Math.random()*available.length)];
- }else{
-  const t=Math.random();kind=t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker';
- }
- const data={...(bossData[kind]||(kind==='drifter'?{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1}:kind==='stinger'?{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2}:kind==='brute'?{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4}:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}))};
+ // Shared catalog + spawn-point logic: solo and online use identical anatomy, stats and corner vortices.
+ const ai=window.AbyssalEnemyAI;
+ const activeKinds=enemies.map(e=>e.kind);
+ const kind=type==='boss'?(ai?.chooseBossKind(activeKinds)||BOSS_KINDS.find(k=>!activeKinds.includes(k))):
+   (ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})());
+ if(!kind)return null;
+ const data=ai?.statsForKind(kind)||({
+  boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
+  leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
+  maw:{r:45,hp:3750,speed:25,damage:31,color:'#c16cff',value:75},
+  angler:{r:35,hp:3260,speed:30,damage:28,color:'#ffb45e',value:65},
+  drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
+  stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
+  brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
+  lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
+ })[kind];
  if(type==='boss'){
   data.hp=lastBossMaxHp>0?lastBossMaxHp*1.5:data.hp;
   data.damage=lastBossDamage>0?Math.max(data.damage,Math.round(lastBossDamage*1.12)):data.damage;
   data.speed=Math.min(90,lastBossSpeed>0?Math.max(data.speed,lastBossSpeed*1.05):data.speed);
   lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
  }
+ const point=ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)};
+ const x=clamp(point.x,70/worldZoom,W-70/worldZoom),y=clamp(point.y,70/worldZoom,H-70/worldZoom);
  const enemy={id:++enemyId,x,y,...data,r:data.r/worldZoom,speed:data.speed/worldZoom,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind};
  enemies.push(enemy);
  const seen=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');if(!seen.monsters.includes(kind)){seen.monsters.push(kind);localStorage.setItem('abyssalCodex',JSON.stringify(seen));}
- if(bosses.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,70,300);}
+ if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,70,300);}
  return enemy;
 }
 function burst(x,y,color,n=10,force=100){
@@ -229,16 +233,16 @@ function currentInterpolatedEnemyPosition(e,now){
 function nearestOnlineTargetDistance(x,y){
  let best=player?Math.hypot(player.x-x,player.y-y):Infinity;
  const peers=window.AbyssalOnline?.getPlayers?.()||[];
- for(const peer of peers){const px=(Number(peer.x)||0)*W,py=(Number(peer.y)||0)*H;best=Math.min(best,Math.hypot(px-x,py-y));}
+ for(const peer of peers){const px=Number(peer.x),py=Number(peer.y);if(Number.isFinite(px)&&Number.isFinite(py))best=Math.min(best,Math.hypot(px-x,py-y));}
  return best;
 }
 function observeOnlineServerMotion(data){
  const list=Array.isArray(data.enemies)?data.enemies:[];let moved=false;const nextPositions=new Map();
  for(const raw of list){if(!raw||raw.id==null)continue;const x=Number(raw.x)||0,y=Number(raw.y)||0,prev=lastServerEnemyPositions.get(raw.id);nextPositions.set(raw.id,{x,y});
-  if(prev&&Math.hypot((x-prev.x)*W,(y-prev.y)*H)>.2)moved=true;
+  if(prev&&Math.hypot(x-prev.x,y-prev.y)>.2)moved=true;
  }
  lastServerEnemyPositions=nextPositions;
- const needsMovement=Boolean(player&&list.some(raw=>nearestOnlineTargetDistance((Number(raw.x)||0)*W,(Number(raw.y)||0)*H)>Math.max(130/worldZoom,(Number(raw.r)||10)/worldZoom+player.r+55/worldZoom)));
+ const needsMovement=Boolean(player&&list.some(raw=>nearestOnlineTargetDistance(Number(raw.x)||0,Number(raw.y)||0)>Math.max(130/worldZoom,(Number(raw.r)||10)/worldZoom+player.r+55/worldZoom)));
  // A server counter alone is not enough: only changed coordinates prove that snapshots actually move.
  if(moved){onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots++;if(onlineMovementConfirmedSnapshots>=2)onlineClientMovementFallback=false;}
  else if(needsMovement){onlineMovementConfirmedSnapshots=0;onlineMovementStalledSnapshots++;if(onlineMovementStalledSnapshots>=7)onlineClientMovementFallback=true;}
@@ -251,7 +255,7 @@ function applySharedSnapshot(data){
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  const previousBossIds=new Set(enemies.filter(e=>BOSS_KINDS.includes(e.kind)).map(e=>e.id));
  enemies=data.enemies.map(raw=>{
-  const e={...raw},leadSeconds=.075,targetX=clamp(Number(raw.x)||0,0,1)*W+clamp(Number(raw.vx)||0,-.25,.25)*W*leadSeconds,targetY=clamp(Number(raw.y)||0,0,1)*H+clamp(Number(raw.vy)||0,-.25,.25)*H*leadSeconds,old=previousById.get(raw.id),radius=Math.max(2,Number(raw.r)||12)/worldZoom;
+  const e={...raw},leadSeconds=.075,targetX=clamp(Number(raw.x)||0,0,W)+clamp(Number(raw.vx)||0,-250,250)*leadSeconds,targetY=clamp(Number(raw.y)||0,0,H)+clamp(Number(raw.vy)||0,-250,250)*leadSeconds,old=previousById.get(raw.id),radius=Math.max(2,Number(raw.r)||12)/worldZoom;
   if(old&&onlineClientMovementFallback){const cur=currentInterpolatedEnemyPosition(old,now);return {...old,...e,x:cur.x,y:cur.y,r:radius,interpFromX:cur.x,interpFromY:cur.y,interpTargetX:NaN,interpTargetY:NaN,interpAt:NaN,interpDuration:0};}
   if(old){const cur=currentInterpolatedEnemyPosition(old,now);return {...old,...e,x:cur.x,y:cur.y,r:radius,interpFromX:cur.x,interpFromY:cur.y,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:130};}
   return {...e,x:targetX,y:targetY,r:radius,interpFromX:targetX,interpFromY:targetY,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:0};
@@ -302,14 +306,14 @@ function update(dt){
  for(let i=enemies.length-1;i>=0;i--){
   const e=enemies[i];e.hit=Math.max(0,e.hit-dt);
   const targets=[{x:player.x,y:player.y,local:true}];
-  if(onlineMode&&window.AbyssalOnline){for(const peer of humanPeers)targets.push({x:(Number(peer.x)||0)*W,y:(Number(peer.y)||0)*H,local:false,id:peer.id});}
+  if(onlineMode&&window.AbyssalOnline){for(const peer of humanPeers){const px=Number(peer.x),py=Number(peer.y);if(Number.isFinite(px)&&Number.isFinite(py))targets.push({x:px,y:py,local:false,id:peer.id});}}
   let target=targets[0],td=Infinity;for(const candidate of targets){const dd=Math.hypot(e.x-candidate.x,e.y-candidate.y);if(dd<td){td=dd;target=candidate;}}
   const shouldRunSharedAI=!onlineMode||onlineClientMovementFallback;
   if(shouldRunSharedAI){
-   if(window.AbyssalEnemyAI?.moveTowardTarget){const move=window.AbyssalEnemyAI.moveTowardTarget(e,targets,dt,{normalized:false,minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:0});if(move.target){target=move.target;td=move.distance;}}
+   if(window.AbyssalEnemyAI?.moveTowardTarget){const move=window.AbyssalEnemyAI.moveTowardTarget(e,targets,dt,{minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:Math.max(0,(e.r+player.r)*.62)});if(move.target){target=move.target;td=move.distance;}}
    else if(!onlineMode){const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y+dy/d*e.speed*dt,8/worldZoom,H-8/worldZoom);}
   }
-  if(target.local&&td<e.r+player.r){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;if(!onlineMode){const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.x=clamp(e.x-dx/d*10/worldZoom,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y-dy/d*10/worldZoom,8/worldZoom,H-8/worldZoom);}}}
+  if(target.local&&td<e.r+player.r){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
  }
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];p.hitIds ||= [];if(!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage);e.hit=.12;burst(p.x,p.y,p.color,4,40);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08));next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
@@ -319,7 +323,7 @@ function update(dt){
  for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0)effects.splice(i,1)}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0)particles.splice(i,1)}
  if(particles.length>particleBudget())particles.splice(0,particles.length-particleBudget());if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
- if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x/W,y:player.y/H,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
+ if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
  updateHud();
 }
 const metaShopItems=[
@@ -572,7 +576,7 @@ function draw(t){
  // Cooperative companions: live players are relayed by the online server; if alone, a helper drone appears.
  if(player && onlineMode){
    const peers=window.AbyssalOnline?window.AbyssalOnline.getPlayers():[];
-   peers.forEach(peer=>{const px=peer.x*W,py=peer.y*H;drawCreature(px,py,12/worldZoom,peer.angle||0,peer.color||'#b8a4ff','peer',t,true,0,ctx,window.AbyssalGameHooks?.skinForId?.(peer.skinId));ctx.fillStyle='#d8ffff';ctx.font='10px Manrope';ctx.textAlign='center';ctx.fillText(peer.nickname||'Mergulhador',px,py-22)});
+   peers.forEach(peer=>{const px=Number(peer.x)||0,py=Number(peer.y)||0;drawCreature(px,py,12/worldZoom,peer.angle||0,peer.color||'#b8a4ff','peer',t,true,0,ctx,window.AbyssalGameHooks?.skinForId?.(peer.skinId));ctx.fillStyle='#d8ffff';ctx.font='10px Manrope';ctx.textAlign='center';ctx.fillText(peer.nickname||'Mergulhador',px,py-22)});
  }
  // corner scanner details
  ctx.save();ctx.strokeStyle='rgba(123,215,223,.23)';ctx.lineWidth=1;const s=14;[[12,12,1,1],[W-12,12,-1,1],[12,H-12,1,-1],[W-12,H-12,-1,-1]].forEach(([x,y,a,b])=>{ctx.beginPath();ctx.moveTo(x,y+s*b);ctx.lineTo(x,y);ctx.lineTo(x+s*a,y);ctx.stroke()});ctx.restore();
@@ -613,7 +617,7 @@ window.AbyssalGameHooks={
  remoteHit:data=>{if(!player)return;const tx=data.x*W,ty=data.y*H;let nearest=null,bd=Infinity;for(const e of enemies){const d=Math.hypot(e.x-tx,e.y-ty);if(d<bd){bd=d;nearest=e}}if(nearest&&bd<100/worldZoom){effects.push({type:'beam',x1:tx,y1:ty,x2:nearest.x,y2:nearest.y,life:.14,maxLife:.14,color:'#bba8ff'});burst(nearest.x,nearest.y,'#bba8ff',5,60);}},
  applySnapshot:applySharedSnapshot,
   onlineMovementFallback:()=>onlineClientMovementFallback,
- restoreHostState:data=>{if(!data||!Array.isArray(data.enemies))return;enemies=data.enemies.map(e=>({...e,x:(Number(e.x)||0)*W,y:(Number(e.y)||0)*H,r:Math.max(2,Number(e.r)||12)/worldZoom}));},
+ restoreHostState:data=>{if(!data||!Array.isArray(data.enemies))return;enemies=data.enemies.map(e=>({...e,x:Number(e.x)||0,y:Number(e.y)||0,r:Math.max(2,Number(e.r)||12)/worldZoom}));},
  sharedDamage:applySharedDamage,
  sharedXp:applySharedXp,
 };
@@ -637,7 +641,7 @@ $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true})
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
 $('testWheelBtn')?.addEventListener('click',()=>{if(wheelBusy)return;animateWheelToPrize(weightedWheelPrize(),false);});
 window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){coins=Number(d.coins)||coins;saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||20,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;score+=Number(e.value||0)*10;const bosses=['boss','leviathan','maw','angler'].includes(e.kind);if(bosses){bossKillsThisRun++;score+=1400;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=(Number(e.x)||.5)*W,y=(Number(e.y)||.5)*H;burst(x,y,e.color||'#8ffff4',bosses?90:14,bosses?300:100);audio(bosses?180:260,.08,'triangle',.025);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;score+=Number(e.value||0)*10;const bosses=['boss','leviathan','maw','angler'].includes(e.kind);if(bosses){bossKillsThisRun++;score+=1400;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?90:14,bosses?300:100);audio(bosses?180:260,.08,'triangle',.025);});
 function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString('pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id;const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="Prévia real da skin ${skin.name}"></canvas></div><strong>${skin.name}</strong><p>${skin.desc}</p><button ${skin.paid?'disabled':''}>${equipped?'EQUIPADA':owned?'EQUIPAR':skin.paid?'EM BREVE · PREMIUM':`COMPRAR · ${skin.price.toLocaleString('pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!skin.paid&&!equipped)btn.addEventListener('click',()=>{if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN EQUIPADA');}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast('ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});

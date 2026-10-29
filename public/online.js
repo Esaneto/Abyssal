@@ -140,7 +140,7 @@ function getInterpolatedPeer(p,now=performance.now()){
 function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null;
- const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):.5;
+ const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||3600)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||2200)*.5;
  players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:115});
 }
 function applyPlayerList(list){
