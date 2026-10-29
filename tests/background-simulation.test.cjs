@@ -62,7 +62,7 @@ test('mobile zoom reveals more of the same world and online menu uses the reques
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css', 'enemy-ai.js', 'enemy-netcode.js', 'skill-audio.js', 'game.js', 'online.js']) {
-    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.4`));
+    assert.match(html, new RegExp(`${asset}\\?v=3\.5\.5`));
   }
 });
 
