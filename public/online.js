@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null;
+let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
@@ -11,9 +11,9 @@ function connect(){
  if(socket?.connected)return socket;
  if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,timeout:8000});
- socket.on('connect',()=>{connected=true;localPlayerId=socket.id;if(account?.nickname)setMessage(`Servidor conectado. Entre com ${account.nickname}.`);else setMessage('Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
+ socket.on('connect',()=>{connected=true;localPlayerId=socket.id;if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);if($('roomsScreen')&&!$('roomsScreen').hidden){const m=$('roomsMessage');if(m)m.textContent='Conexão restabelecida. Entre novamente na conta para participar das salas.';}}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
- socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];publishMergedRooms()});
+ socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];socketRoomsAt=Date.now();publishMergedRooms()});
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(result&&!result.ok)window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}))});
@@ -27,7 +27,7 @@ function connect(){
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;setMessage('Não conectou ao servidor. Abra o jogo por http://localhost:3000 e confirme que npm start está rodando.',true)});
- socket.on('disconnect',()=>{connected=false;players.clear();setMessage('Conexão perdida. Tentando reconectar…',true)});
+ socket.on('disconnect',()=>{connected=false;authenticated=false;players.clear();currentRoom=null;hostId=null;stopRoomPolling();updateAccount();setMessage('Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
  socket.on('auth-result',result=>{if(!result.ok){authenticated=false;account=null;localStorage.removeItem('abyssalAccount');updateAccount();setMessage(result.message||'Falha na autenticação.',true);return}authenticated=true;account={nickname:result.nickname};serverAccount=result;localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';updateAccount();window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));});
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
@@ -52,12 +52,23 @@ function authenticate(nickname,password,mode='login'){
  if(s.connected)send();else {s.once('connect',send);setTimeout(()=>{if(!s.connected)setMessage('O servidor não respondeu. Execute npm start na pasta do projeto.',true)},9000)}
 }
 function publishMergedRooms(){
- const merged=new Map();for(const r of [...(httpRoomsCache||[]),...(socketRoomsCache||[])])if(r&&r.id)merged.set(String(r.id),r);
- if(!merged.has('MAR-ABERTO'))merged.set('MAR-ABERTO',{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true});
- const list=[...merged.values()].sort((a,b)=>a.id==='MAR-ABERTO'?-1:b.id==='MAR-ABERTO'?1:(Number(b.playerCount)||0)-(Number(a.playerCount)||0));
+ // Socket.IO and HTTP both expose the same canonical server directory. Use the freshest completed response.
+ // An older in-flight HTTP response must never overwrite a newer rooms-list event.
+ let list=[];
+ if(Array.isArray(httpRoomsCache)&&httpRoomsAt>=socketRoomsAt)list=httpRoomsCache;
+ else if(Array.isArray(socketRoomsCache))list=socketRoomsCache;
+ else if(Array.isArray(httpRoomsCache))list=httpRoomsCache;
+ if(!list.some(r=>r&&r.id==='MAR-ABERTO'))list=[{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true},...list];
+ list=[...list].sort((a,b)=>a.id==='MAR-ABERTO'?-1:b.id==='MAR-ABERTO'?1:(Number(b.playerCount)||0)-(Number(a.playerCount)||0));
  window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:list}));
 }
-function refreshRoomsHttp(){fetch(`/api/rooms?_=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}).then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.rooms)){httpRoomsCache=data.rooms;publishMergedRooms()}}).catch(()=>{});}
+function refreshRoomsHttp(){
+ const requestedAt=Date.now();
+ fetch(`/api/rooms?_=${requestedAt}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}})
+  .then(r=>r.ok?r.json():null)
+  .then(data=>{if(!data||!Array.isArray(data.rooms))return;if(requestedAt<=socketRoomsAt)return;httpRoomsCache=data.rooms;httpRoomsAt=Date.now();publishMergedRooms()})
+  .catch(()=>{});
+}
 function startRoomPolling(){stopRoomPolling();roomPollTimer=setInterval(()=>{const screen=$('roomsScreen');if(!screen||screen.hidden){stopRoomPolling();return;}if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp()},3500)}
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
 function showRooms(){
@@ -67,7 +78,7 @@ function showRooms(){
  refreshRoomsHttp();
  const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
 }
-function requestRooms(){if(!socket?.connected)return;socket.emit('list-rooms')}
+function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp();}
 function connectAndJoin(){
  const s=connect();if(!s)return;
  if(authenticated){window.AbyssalOnlinePendingStart=false;showRooms();return;}

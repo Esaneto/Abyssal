@@ -1,8 +1,8 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "2.9.1",
+  "version": "3.0.1",
   "private": true,
-  "description": "Abyssal: mundo multiplataforma compartilhado, vórtices de spawn e rankings por bosses",
+  "description": "Abyssal: lobby compartilhado, simulação online autoritativa e ranking por bosses",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
