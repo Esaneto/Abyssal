@@ -631,6 +631,11 @@ io.on('connection', socket => {
     session.data.userKey=null;session.data.nickname=null;session.data.joined=false;session.data.roomId=null;
     if(!isRequester)session.emit('account-force-logout',{message:'Esta conta foi excluída em outra sessão.'});
    }
+   // Remove recent chat messages associated with the deleted profile as part of data cleanup.
+   for(let i=globalChatHistory.length-1;i>=0;i--){
+    if(String(globalChatHistory[i]?.nickname||'').toLowerCase()===String(user.nickname||'').toLowerCase())globalChatHistory.splice(i,1);
+   }
+   io.emit('global-chat-history',globalChatHistory.map(publicChatMessage));
    delete users[key];
    const removeFromBoard=(board)=>{
     if(!board||typeof board!=='object')return;
