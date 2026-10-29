@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.9">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.8">
+<link rel="stylesheet" href="style.css?v=3.5.9">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -71,7 +71,7 @@
         </form>
         <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para transmitir mensagens.</p>
       </section>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.8</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.9</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -229,8 +229,8 @@
         <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
         <p>Você já pode instalar o Abyssal como aplicativo web nos navegadores compatíveis. Os pacotes nativos e publicações nas lojas ainda exigem etapas de assinatura e cadastro.</p>
         <div class="download-options">
-          <button class="download-option download-option-button" type="button" data-platform="windows"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Baixar instalador Abyssal para Windows 64-bit</small></span><span class="download-status">BAIXAR .EXE</span></button>
-          <button class="download-option download-option-button" type="button" data-platform="android"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Baixar pacote Android para instalação manual</small></span><span class="download-status">BAIXAR APK</span></button>
+          <a class="download-option download-option-link" data-platform="windows" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Baixar instalador Abyssal para Windows 64-bit</small></span><span class="download-status">BAIXAR .EXE ↓</span></a>
+          <a class="download-option download-option-link" data-platform="android" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Baixar pacote Android para instalação manual</small></span><span class="download-status">BAIXAR APK ↓</span></a>
           <button class="download-option download-option-button" type="button" data-platform="google-play"><span class="download-platform-icon">◉</span><span class="download-option-copy"><strong>GOOGLE PLAY</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
           <button class="download-option download-option-button" type="button" data-platform="ios"><span class="download-platform-icon">▧</span><span class="download-option-copy"><strong>iOS · IPHONE / IPAD</strong><small>Adicionar à tela inicial pelo Safari</small></span><span class="download-status">INSTRUÇÕES</span></button>
           <button class="download-option download-option-button" type="button" data-platform="app-store"><span class="download-platform-icon">◌</span><span class="download-option-copy"><strong>APPLE APP STORE</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
@@ -246,11 +246,11 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.8"></script>
-<script src="enemy-netcode.js?v=3.5.8"></script>
-<script src="skill-audio.js?v=3.5.8"></script>
-<script src="game.js?v=3.5.8"></script>
-<script src="online.js?v=3.5.8"></script>
+<script src="enemy-ai.js?v=3.5.9"></script>
+<script src="enemy-netcode.js?v=3.5.9"></script>
+<script src="skill-audio.js?v=3.5.9"></script>
+<script src="game.js?v=3.5.9"></script>
+<script src="online.js?v=3.5.9"></script>
 <script>
 /* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
 (()=>{

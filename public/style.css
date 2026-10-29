@@ -329,7 +329,7 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 @media(max-width:520px){.download-install-message{font-size:10px}}
 
 
-/* v3.5.8 — prevent menu labels from being squeezed and preserve readable navigation. */
+/* v3.5.9 — prevent menu labels from being squeezed and preserve readable navigation. */
 #menuScreen{overflow:auto;overscroll-behavior:contain}
 #menuScreen .menu-content{
   width:min(560px,64%);
@@ -380,4 +380,181 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
   #menuScreen .wheel-cta{margin-top:8px}
   #menuScreen .menu-secondary-actions{gap:6px;margin-top:8px}
   #menuScreen .menu-action{min-height:36px;padding:6px 8px}
+}
+
+
+/* ABYSSAL 3.5.9 — visual identity of an oppressive deep-ocean trench. */
+:root{--bg:#020710;--panel:rgba(3,13,25,.97);--cyan:#8efff2;--blue:#32b8d0;--violet:#b59aff;--text:#f0ffff;--muted:#bdd0dc;--line:rgba(126,231,235,.25);--danger:#ff5478}
+body{background:radial-gradient(ellipse at 52% 35%,#092233 0%,#04111e 43%,#01050b 100%);color:var(--text)}
+#gameShell{background:radial-gradient(ellipse at 50% 48%,#0a2135 0%,#03101e 57%,#01050b 100%);border-color:rgba(109,224,228,.16)}
+.topbar{border-bottom-color:rgba(130,235,239,.26);background:linear-gradient(90deg,rgba(2,9,18,.96),rgba(5,22,36,.88),rgba(2,8,16,.96))}
+.brand strong{font-size:15px;letter-spacing:.22em;color:#efffff}
+.brand small{font-size:10px;color:#b1cdd8}
+.icon-btn{background:linear-gradient(150deg,rgba(9,43,57,.98),rgba(3,12,24,.98));border-color:rgba(135,246,235,.35);color:#e3fffc}
+.icon-btn:hover,.icon-btn:focus-visible{border-color:#a6fff7;background:#104454;color:white;box-shadow:0 0 22px rgba(88,246,233,.2);outline:2px solid rgba(142,255,242,.45);outline-offset:2px}
+#menuScreen{
+ overflow:auto;overscroll-behavior:contain;
+ background:
+  radial-gradient(ellipse at 76% 44%,rgba(7,94,116,.32),transparent 24%),
+  radial-gradient(ellipse at 88% 79%,rgba(91,23,72,.28),transparent 32%),
+  radial-gradient(ellipse at 57% 8%,rgba(30,75,126,.23),transparent 35%),
+  linear-gradient(112deg,rgba(1,7,15,.99) 0%,rgba(3,16,29,.97) 43%,rgba(2,8,17,.85) 100%);
+}
+#menuScreen:before{
+ pointer-events:none;z-index:0;opacity:.44;
+ background-image:
+  radial-gradient(circle at 75% 22%,rgba(141,255,246,.14) 0 1px,transparent 2px),
+  radial-gradient(circle at 83% 67%,rgba(255,93,139,.12) 0 1px,transparent 2px),
+  linear-gradient(rgba(105,219,229,.045) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(105,219,229,.045) 1px,transparent 1px);
+ background-size:73px 91px,121px 113px,48px 48px,48px 48px;
+ mask-image:linear-gradient(90deg,#000,rgba(0,0,0,.8) 56%,transparent 100%);
+}
+#menuScreen:after{
+ pointer-events:none;z-index:0;
+ background:
+  radial-gradient(ellipse at 80% 55%,transparent 0 19%,rgba(0,3,10,.24) 53%,rgba(0,3,10,.75) 100%),
+  linear-gradient(180deg,rgba(0,4,12,.12),transparent 38%,rgba(0,3,10,.65));
+}
+#menuScreen .menu-content{
+ position:relative;z-index:4;width:min(650px,63%);
+ padding:clamp(24px,4vh,48px) 22px 100px clamp(24px,4vw,66px);
+ background:linear-gradient(90deg,rgba(2,12,23,.94),rgba(3,16,28,.84) 70%,rgba(2,10,20,.23));
+ border-right:1px solid rgba(118,235,235,.15);
+ box-shadow:inset -20px 0 46px rgba(4,15,25,.22);
+}
+#menuScreen .menu-creature{pointer-events:none;z-index:1;width:min(54vw,700px);height:min(54vw,700px);right:1.5%;top:50%;opacity:.78;filter:saturate(1.2) contrast(1.18)}
+#menuScreen .glow{background:radial-gradient(circle,rgba(20,183,192,.22),rgba(96,34,105,.18) 30%,rgba(17,32,93,.12) 48%,transparent 72%);filter:blur(26px)}
+#menuScreen .orbit{border-color:rgba(118,246,236,.27);box-shadow:0 0 26px rgba(47,224,228,.06)}
+#menuScreen .orbit-two{border-color:rgba(198,88,151,.34)}
+#menuScreen .creature-core{
+ background:radial-gradient(circle at 33% 26%,#9afff6 0%,#45cbd2 8%,#125a75 24%,#07192d 49%,#010611 77%);
+ border:1px solid rgba(153,255,245,.8);
+ box-shadow:inset -19px -20px 34px #010610,inset 8px 8px 18px rgba(148,255,241,.19),0 0 26px #2bd3d4,0 0 88px rgba(28,183,206,.38),0 0 135px rgba(125,27,95,.18);
+}
+#menuScreen .creature-core:before,#menuScreen .creature-core:after{top:39%;height:9%;width:17%;background:#ff4d71;border-radius:10% 80% 10% 80%;box-shadow:0 0 7px #ff335e,0 0 22px rgba(255,41,94,.95)}
+#menuScreen .creature-core:before{left:23%;transform:rotate(12deg)}
+#menuScreen .creature-core:after{right:23%;transform:rotate(-12deg)}
+#menuScreen .creature-core span{border-bottom:3px solid #ff7b91;box-shadow:0 4px 12px rgba(255,41,94,.35);height:14%;top:63%}
+#menuScreen .creature-tentacle{border-left-color:rgba(74,242,231,.8);border-left-width:4px;filter:drop-shadow(0 0 8px #1bced2) drop-shadow(0 0 14px rgba(122,33,95,.45))}
+#menuScreen .eyebrow{font-size:11px;line-height:1.5;color:#c2e5ef;letter-spacing:.13em}
+#menuScreen h1{font-size:clamp(48px,5.6vw,78px);line-height:.98;letter-spacing:-.055em;margin:22px 0 20px;color:#f3ffff;text-shadow:0 3px 18px #000,0 0 35px rgba(77,193,213,.16)}
+#menuScreen h1 em{color:#9efff5;text-shadow:0 0 22px rgba(87,255,237,.35),0 0 48px rgba(51,199,219,.18)}
+#menuScreen .intro{max-width:455px;font-size:clamp(15px,1.05vw,17px);line-height:1.72;color:#e0edf4;text-shadow:0 2px 12px #000;margin:0 0 22px;padding-left:14px;border-left:2px solid rgba(120,255,242,.55)}
+#menuScreen .primary-btn{width:min(430px,100%);min-height:58px;height:auto;padding:14px 18px;font-size:14px;line-height:1.45;letter-spacing:.075em;border-radius:7px;background:linear-gradient(105deg,#a8fff6,#68e4e4 55%,#90b8ff);box-shadow:0 0 24px rgba(79,238,231,.18),inset 0 1px rgba(255,255,255,.65)}
+#menuScreen .wheel-cta{width:min(430px,100%);min-height:64px;margin:13px 0 0;padding:12px 15px;border-color:rgba(255,180,115,.82);background:linear-gradient(112deg,rgba(66,24,51,.98),rgba(8,47,63,.98) 57%,rgba(21,26,61,.98));box-shadow:0 0 25px rgba(236,67,111,.12),inset 0 0 22px rgba(255,220,196,.04)}
+#menuScreen .wheel-cta-copy strong{font-size:13px;color:#fff4ee;letter-spacing:.08em}
+#menuScreen .wheel-cta-copy small{font-size:10px;line-height:1.45;color:#f1d7ec;letter-spacing:.03em}
+#menuScreen .wheel-cta-icon{box-shadow:0 0 17px rgba(255,112,136,.35)}
+#menuScreen .menu-secondary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:10px;width:min(430px,100%);margin-top:14px}
+#menuScreen .menu-action{
+ position:relative;z-index:5;min-width:0;width:100%;height:auto;min-height:49px;margin:0;padding:10px 12px;
+ display:flex;align-items:center;justify-content:center;white-space:normal;overflow-wrap:anywhere;text-align:center;line-height:1.4;
+ font-size:clamp(12px,.9vw,14px);font-weight:750;letter-spacing:.025em;color:#e8fbff;
+ border:1px solid rgba(132,220,231,.34);border-radius:7px;
+ background:linear-gradient(145deg,rgba(11,43,59,.97),rgba(3,15,28,.98));
+ box-shadow:inset 0 1px rgba(220,255,255,.035),0 6px 17px rgba(0,0,0,.18);
+}
+#menuScreen .menu-action:hover,#menuScreen .menu-action:focus-visible{color:#fff;border-color:#a8fff5;background:linear-gradient(135deg,rgba(16,78,91,.99),rgba(15,25,52,.99));box-shadow:0 0 20px rgba(65,217,219,.17);outline:2px solid rgba(125,255,242,.28);outline-offset:2px}
+#menuScreen .menu-secondary-actions #onlineBtn.online-cta{min-height:75px;grid-column:1/-1;display:flex;justify-content:space-between;gap:15px;padding:14px 17px;border:1px solid rgba(139,255,245,.88);background:linear-gradient(112deg,rgba(11,99,111,.98),rgba(8,41,66,.98) 58%,rgba(54,24,65,.98))}
+#menuScreen .online-cta-copy{display:grid;gap:7px;min-width:0}
+#menuScreen .online-cta-copy strong{font-size:15px;line-height:1.35;color:#f3ffff;letter-spacing:.07em;overflow-wrap:anywhere}
+#menuScreen .online-cta-copy small{font-size:11px;line-height:1.5;color:#dbffff;white-space:normal;overflow-wrap:anywhere}
+#menuScreen .online-cta-icon{flex:0 0 42px;width:42px;height:42px;font-size:27px;color:#ddfffb}
+#menuScreen .account-line{max-width:min(430px,100%);font-size:12px;line-height:1.65;color:#b6d1de;letter-spacing:.015em;gap:10px}
+#menuScreen .account-line button{font:700 12px/1.3 system-ui,sans-serif;padding:8px 11px;color:#dffffa;border-color:rgba(130,249,238,.45)}
+#menuScreen .controls-hint{max-width:min(430px,100%);font:11px/1.65 'DM Mono',monospace;color:#b2ccd7;letter-spacing:.035em;gap:8px}
+#menuScreen .controls-hint span{padding:7px 10px;border-color:rgba(140,226,231,.27);background:rgba(3,14,25,.78);color:#f0ffff}
+#menuScreen .record-row{max-width:min(430px,100%);font:11px/1.6 'DM Mono',monospace;color:#aac3d1;letter-spacing:.035em;margin-top:22px}
+#menuScreen .record-row strong{color:#f0ffff;font-weight:700}
+#menuScreen .menu-footer{z-index:4;color:#9eb9c7;font-size:9px;letter-spacing:.08em;text-shadow:0 2px 8px #000}
+#menuScreen .global-chat-panel{z-index:6;right:clamp(14px,2vw,30px);bottom:45px;width:min(390px,33vw);padding:17px;border-radius:10px;border-color:rgba(123,246,238,.38);background:linear-gradient(145deg,rgba(2,16,29,.98),rgba(3,8,19,.98));box-shadow:0 20px 50px rgba(0,0,0,.58),inset 0 1px rgba(208,255,252,.04)}
+#menuScreen .global-chat-heading{gap:12px;color:#f2ffff;border-bottom-color:rgba(121,243,240,.27);padding-bottom:11px}
+#menuScreen .global-chat-heading strong{font-size:12px;line-height:1.5;letter-spacing:.065em}
+#menuScreen #globalChatStatus{font-size:10px;color:#b7d5de;white-space:nowrap}
+#menuScreen .global-chat-messages{height:152px;overflow:auto;overscroll-behavior:contain}
+#menuScreen .global-chat-empty{font-size:12px;line-height:1.6;color:#b0cad4}
+#menuScreen .global-chat-message-head{gap:7px}
+#menuScreen .global-chat-name{font-size:12px;color:#efffff}
+#menuScreen .global-chat-title{font-size:10px}
+#menuScreen .global-chat-time{font-size:10px;color:#a9c1cc}
+#menuScreen .global-chat-message-body{font-size:13px;line-height:1.6;color:#e2eff5;overflow-wrap:anywhere}
+#menuScreen .global-chat-form{border-color:rgba(127,241,233,.42);background:rgba(0,7,17,.96);gap:8px;padding:5px}
+#menuScreen .global-chat-form input{height:42px;font-size:14px;color:#f3ffff}
+#menuScreen .global-chat-form input::placeholder{color:#b0c3ce}
+#menuScreen .global-chat-form button{width:42px;font-size:21px;cursor:pointer}
+#menuScreen .global-chat-hint{font-size:11px;line-height:1.6;color:#bed4df;margin-top:9px}
+#menuScreen .menu-creature,#menuScreen:before,#menuScreen:after{pointer-events:none}
+.menu-action,.primary-btn,.secondary-btn,.icon-btn,.upgrade-card,.download-option-link{touch-action:manipulation}
+.modal-screen{background:rgba(0,4,12,.84);backdrop-filter:blur(11px)}
+.modal-card{border-color:rgba(115,243,235,.38);border-radius:12px;background:linear-gradient(148deg,rgba(4,27,41,.99),rgba(4,10,22,.99) 74%);box-shadow:0 28px 110px rgba(0,0,0,.78),inset 0 1px rgba(223,255,255,.045)}
+.modal-card h2{color:#f3ffff}
+.modal-card>p{font-size:15px;line-height:1.75;color:#d2e3eb}
+.field-label{font-size:11px;color:#c0dae3}
+.text-field{font-size:14px;color:#efffff;background:rgba(0,8,18,.94);border-color:rgba(123,234,236,.4)}
+.form-message{font-size:12px;line-height:1.6}
+.secondary-btn{font-size:12px;font-weight:750;color:#d0e6ed;border-radius:6px;border-color:rgba(128,218,231,.32)}
+.upgrade-card{background:linear-gradient(145deg,rgba(7,34,49,.97),rgba(3,13,25,.98));border-color:rgba(124,230,232,.32);border-radius:9px;padding:17px 14px}
+.upgrade-card strong{font-size:13px;line-height:1.45;color:#f1ffff}
+.upgrade-card p{font-size:12px;line-height:1.6;color:#c2d6e0}
+.upgrade-icon{color:#a2fff6;text-shadow:0 0 15px rgba(116,255,242,.32)}
+.hud-stat small,.bar-label{font-size:11px;color:#bfd5df}
+.hud-stat strong{font-size:24px;color:#f0ffff;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.mobile-tip{font-size:11px;color:#e1f0f5;text-shadow:0 2px 7px #000}
+.toast{font-size:12px;line-height:1.5;white-space:normal;max-width:min(90vw,620px);text-align:center;background:rgba(2,17,30,.98);border-color:rgba(128,246,237,.58);box-shadow:0 12px 36px rgba(0,0,0,.55);z-index:50}
+.page-footer{color:#9bb4c3;font-size:10px}
+.download-option-link{display:flex;align-items:center;gap:14px;width:100%;min-width:0;padding:15px 16px;margin:0 0 9px;border:1px solid rgba(121,243,240,.32);border-radius:7px;background:linear-gradient(145deg,rgba(8,38,53,.98),rgba(3,14,27,.98));color:#efffff;text-decoration:none;line-height:1.5;cursor:pointer}
+.download-option-link .download-option-copy{flex:1;min-width:0}
+.download-option-link .download-option-copy strong{font-size:13px;line-height:1.5}
+.download-option-link .download-option-copy small{font-size:12px;line-height:1.6;color:#c0d6e0;white-space:normal}
+.download-option-link .download-status{font-size:11px;color:#b4fff5;font-weight:800;white-space:nowrap}
+.download-option-link:hover,.download-option-link:focus-visible{border-color:#9cfff5;background:linear-gradient(130deg,rgba(13,70,83,.98),rgba(10,23,42,.99));outline:2px solid rgba(132,255,244,.3);outline-offset:2px}
+#downloadScreen .download-install-message{font-size:13px;line-height:1.65;color:#d7e8ef;border-left-color:#8efff2}
+@media(max-width:900px) and (min-width:701px){
+ #menuScreen .menu-content{width:61%;padding-left:24px;padding-right:16px}
+ #menuScreen h1{font-size:clamp(42px,5vw,62px)}
+ #menuScreen .global-chat-panel{width:34vw;right:12px}
+ #menuScreen .global-chat-message-body{font-size:12px}
+ #menuScreen .menu-action{font-size:12px;padding:9px 7px}
+}
+@media(max-width:700px){
+ #menuScreen .menu-content{width:100%;padding:24px 18px 30px;background:linear-gradient(90deg,rgba(1,9,18,.97),rgba(2,14,25,.9) 68%,rgba(1,7,16,.62));border-right:0}
+ #menuScreen .menu-creature{width:94vw;height:94vw;right:-32%;top:36%;opacity:.28}
+ #menuScreen .menu-secondary-actions{width:100%;max-width:520px;gap:9px}
+ #menuScreen .menu-action{font-size:12px;min-height:48px;padding:10px 8px}
+ #menuScreen .menu-secondary-actions #onlineBtn.online-cta{min-height:72px;padding:12px;gap:10px}
+ #menuScreen .online-cta-copy strong{font-size:13px}
+ #menuScreen .online-cta-copy small{font-size:10px}
+ #menuScreen .account-line{font-size:11px}
+ #menuScreen .controls-hint{font-size:10px}
+ #menuScreen .record-row{font-size:10px;margin-top:18px}
+ #menuScreen .global-chat-panel{position:relative;right:auto;bottom:auto;width:calc(100% - 36px);max-width:520px;margin:14px 18px 10px;padding:13px}
+ #menuScreen .global-chat-messages{height:136px}
+ #menuScreen .global-chat-form input{font-size:14px}
+ #menuScreen .global-chat-hint{font-size:11px}
+ #menuScreen .menu-footer{position:relative;left:auto;right:auto;bottom:auto;margin:12px 18px 12px;font-size:9px;line-height:1.6}
+ #menuScreen h1{font-size:clamp(42px,10vw,60px)}
+ #menuScreen .intro{font-size:15px;max-width:min(460px,100%)}
+ .download-option-link{gap:9px;padding:12px 10px}
+ .download-option-link .download-option-copy strong{font-size:11px}
+ .download-option-link .download-option-copy small{font-size:11px}
+ .download-option-link .download-status{font-size:9px}
+}
+@media(max-width:360px){
+ #menuScreen .menu-secondary-actions{grid-template-columns:1fr}
+ #menuScreen .menu-secondary-actions #onlineBtn.online-cta{grid-column:auto}
+ #menuScreen h1{font-size:40px}
+}
+@media(max-height:720px) and (min-width:701px){
+ #menuScreen .menu-content{padding-top:18px;padding-bottom:92px}
+ #menuScreen h1{font-size:clamp(42px,4.7vw,61px);margin:14px 0 12px}
+ #menuScreen .intro{line-height:1.55;margin-bottom:15px}
+ #menuScreen .wheel-cta{margin-top:8px;min-height:56px}
+ #menuScreen .menu-secondary-actions{gap:8px;margin-top:9px}
+ #menuScreen .menu-action{min-height:44px;padding:7px 9px}
+}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen .creature-core,#menuScreen .creature-tentacle,#menuScreen .orbit,#menuScreen .glow,
+ #menuScreen .wheel-cta,#menuScreen .menu-secondary-actions #onlineBtn.online-cta,
+ #menuScreen .menu-secondary-actions #onlineBtn.online-cta:before{animation:none!important}
 }
