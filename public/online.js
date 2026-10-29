@@ -352,6 +352,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
    if(toast){toast.textContent='Tela cheia não está disponível neste navegador. Em iPhone/iPad, use Compartilhar → Adicionar à Tela de Início.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},6500)}
   }
  });
+ window.__abyssalFullscreenHandlerReady=true;
  function updateFullscreenButton(){
   const button=$('fullscreenBtn');if(!button)return;
   const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
