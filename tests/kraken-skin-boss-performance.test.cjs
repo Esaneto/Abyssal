@@ -37,7 +37,7 @@ test('every skin presents its own distinct ability and Kraken costs 30,000 coins
   assert.match(game, /class="skin-ability"/);
   const server = read('server.js');
   assert.match(server, /kraken:30000/);
-  assert.match(server, /player\.skinId==='kraken'/);
+  assert.match(server, /player\.skinId!=='kraken'/);
 });
 
 test('menu Kraken uses eight moving arms and a jagged smile', () => {
