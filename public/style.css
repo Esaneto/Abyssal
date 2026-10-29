@@ -221,3 +221,5 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 @media(max-height:720px) and (min-width:701px){.global-chat-panel{bottom:44px}.global-chat-messages{height:125px}}
 
 .profile-title-icon svg{display:block;width:100%;height:100%;padding:6px;overflow:visible}.profile-emblem svg{display:block;width:100%;height:100%;padding:12px;overflow:visible}
+
+.profile-title-progressbar{height:3px;width:100%;margin:9px 0 1px;overflow:hidden;background:rgba(135,183,199,.12)}.profile-title-progressbar span{display:block;height:100%;background:var(--title-color,#79f3f0);box-shadow:0 0 8px var(--title-color,#79f3f0);transition:width .25s ease}
