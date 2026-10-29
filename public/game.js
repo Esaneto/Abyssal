@@ -47,7 +47,7 @@ let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
 $('bestTime').textContent=fmtTime(bestTime);$('bestScore').textContent=bestScore.toLocaleString('pt-BR');
 
 // The logical world is shared across devices; mobile uses a smaller zoom to reveal more of that same world.
-function desiredWorldZoom(){return isMobileDevice() ? .42 : .78;}
+function desiredWorldZoom(){return isMobileDevice() ? 2 : .78;}
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
  if(!player){cameraX=0;cameraY=0;return;}
