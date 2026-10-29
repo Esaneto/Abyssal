@@ -4,7 +4,9 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
-let sessionToken=localStorage.getItem('abyssalSessionToken')||'';
+let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const message=$('downloadInstallMessage');if(message)message.textContent='Abyssal instalado com sucesso neste dispositivo.';});
  const PROFILE_TITLES=[
   {id:'abyss-drifter',name:'Mergulhador das Fossas',icon:'✧',rarity:'COMUM',color:'#79f3f0',description:'Seu primeiro vínculo com as profundezas.',goal:'Disponível desde o início.',kind:'starter'},
   {id:'abyss-spark',name:'Faísca das Fossas',icon:'◈',rarity:'INCOMUM',color:'#8cf8ff',description:'A luz que sobrevive onde o sol não chega.',goal:'Derrote 50 monstros.',kind:'kills',required:50},
@@ -342,9 +344,12 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
     if(root.requestFullscreen)await root.requestFullscreen();
     else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
     else throw new Error('unsupported');
+    try{if(screen.orientation?.lock)await screen.orientation.lock('landscape')}catch(_orientationError){}
    }
   }catch(err){
-   if(button)button.title='Tela cheia não disponível neste navegador ou dispositivo.';
+   if(button)button.title='Este navegador não permite tela cheia por botão. Em iPhone/iPad, adicione o jogo à Tela de Início para abrir sem a barra do navegador.';
+   const toast=$('toast');
+   if(toast){toast.textContent='Tela cheia não está disponível neste navegador. Em iPhone/iPad, use Compartilhar → Adicionar à Tela de Início.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},6500)}
   }
  });
  function updateFullscreenButton(){
@@ -356,9 +361,26 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  }
  document.addEventListener('fullscreenchange',updateFullscreenButton);
  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
- $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false});
+ $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false;});
  $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('playBrowserBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
+ document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',async()=>{
+  const platform=button.dataset.platform,message=$('downloadInstallMessage');
+  if(!message)return;
+  if(platform==='google-play'){message.textContent='O Abyssal ainda não está publicado na Google Play. A publicação exige gerar e assinar um pacote Android, configurar a ficha da loja e concluir a análise do Google.';return;}
+  if(platform==='app-store'){message.textContent='O Abyssal ainda não está publicado na Apple App Store. A publicação exige um build iOS assinado, cadastro Apple Developer e aprovação da loja.';return;}
+  if(platform==='ios'){message.textContent='No iPhone/iPad: abra esta página no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Abra pelo novo ícone para uma experiência mais próxima de um aplicativo em tela cheia.';return;}
+  if((platform==='windows'||platform==='android')&&deferredInstallPrompt){
+   try{
+    await deferredInstallPrompt.prompt();
+    const choice=await deferredInstallPrompt.userChoice;
+    message.textContent=choice?.outcome==='accepted'?'Instalação iniciada. Siga a confirmação exibida pelo navegador.':'Instalação cancelada. Você pode tentar novamente pelo menu do navegador.';
+   }catch(error){message.textContent='Não foi possível abrir a instalação automática neste navegador. Use o menu do navegador para instalar o aplicativo.';}
+   deferredInstallPrompt=null;return;
+  }
+  if(platform==='windows'){message.textContent='No Chrome ou Edge para Windows: abra o menu ⋮ e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”. Esta opção instala a versão web, não um .exe independente.';return;}
+  if(platform==='android'){message.textContent='No Android, abra o jogo no Chrome e use o menu ⋮ → “Instalar app” ou “Adicionar à tela inicial”. Isso instala a versão web. O APK independente ainda precisa ser gerado e assinado antes de ser distribuído.';return;}
+ }));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
  $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}});
