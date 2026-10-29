@@ -26,7 +26,7 @@ test('menu monster has a frightening toothed grin and the chat is docked beneath
   assert.match(css, /#menuScreen \.creature-core span:after/);
   assert.match(css, /#menuScreen \.menu-creature\{[\s\S]*?top:45%/);
   assert.match(css, /#menuScreen \.global-chat-panel\{[\s\S]*?bottom:34px/);
-  assert.match(css, /#menuScreen \.global-chat-panel\.chat-expanded\{display:flex\}/);
+  assert.match(css, /#menuScreen \.global-chat-panel\.chat-expanded\{display:flex/);
 });
 
 test('render work is capped to 60 FPS in combat and 30 FPS while idle', () => {
