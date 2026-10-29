@@ -96,8 +96,9 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.0.1',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0)},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT}}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.0.2',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,errors:worldTickErrors,movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0)},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT}}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
+app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
@@ -108,6 +109,7 @@ const MAX_BOSSES_PER_ROOM = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const WORLD_WIDTH = 3600;
 const WORLD_HEIGHT = 2200;
+const WORLD_ZOOM = 0.78; // Same logical zoom used by the solo renderer.
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
@@ -146,7 +148,7 @@ async function roomListForClients(){
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
-app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.0.1',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.0.1',directoryFallback:true});}});
+app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.0.2',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.0.2',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room){return {room:publicRoomInfo(room),elapsed:room.world.elapsed,serverTime:Date.now(),tickCount:room.world.tickCount||0,enemies:room.world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e}))};}
 function broadcastWorld(room){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).volatile.emit('game-snapshot',getRoomSnapshot(room));}
@@ -174,16 +176,15 @@ function spawnWorldEnemy(room,type='common',initial=false){
  const bosses=w.enemies.filter(e=>isBossKind(e.kind));
  if(type==='boss'&&bosses.length>=MAX_BOSSES_PER_ROOM)return null;
  if(type!=='boss'&&w.enemies.filter(e=>!isBossKind(e.kind)).length>=MAX_COMMON_ENEMIES)return null;
- // The vortices stay fixed in the four map corners. The first scouting wave is placed close enough to be seen immediately on desktop and mobile; subsequent waves enter from the corners.
- const corner=Math.floor(Math.random()*4),insetX=rand(100,290),insetY=rand(90,250);
- let worldX=corner===0?insetX:corner===1?WORLD_WIDTH-insetX:corner===2?insetX:WORLD_WIDTH-insetX;
- let worldY=corner===0?insetY:corner===1?insetY:corner===2?WORLD_HEIGHT-insetY:WORLD_HEIGHT-insetY;
- if(initial){
-  const anchor=[...room.players.values()][0];
-  if(anchor){const angle=Math.random()*Math.PI*2,distance=rand(175,245);worldX=anchor.x*WORLD_WIDTH+Math.cos(angle)*distance;worldY=anchor.y*WORLD_HEIGHT+Math.sin(angle)*distance;}
-  worldX=clamp(worldX,100,WORLD_WIDTH-100);worldY=clamp(worldY,100,WORLD_HEIGHT-100);
- }
- let x=worldX/WORLD_WIDTH,y=worldY/WORLD_HEIGHT;
+ // Every creature enters through a fixed vortex in a map corner, matching solo mode.
+ // Initial waves are deliberately distributed across corners instead of appearing around the player.
+ const corner=initial?(w.nextEnemyId%4):Math.floor(Math.random()*4);
+ const vortexX=138, vortexY=138, spreadX=rand(-42,42), spreadY=rand(-42,42);
+ const left=corner===0||corner===2, top=corner===0||corner===1;
+ const worldX=(left?vortexX:WORLD_WIDTH-vortexX)+spreadX;
+ const worldY=(top?vortexY:WORLD_HEIGHT-vortexY)+spreadY;
+ const x=clamp(worldX,72,WORLD_WIDTH-72)/WORLD_WIDTH;
+ const y=clamp(worldY,72,WORLD_HEIGHT-72)/WORLD_HEIGHT;
  const bossData={
   boss:{r:40,hp:2820,speed:22,damage:25,color:'#ff315f',value:55},
   leviathan:{r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90},
@@ -191,10 +192,10 @@ function spawnWorldEnemy(room,type='common',initial=false){
   angler:{r:35,hp:3260,speed:30,damage:28,color:'#ffb45e',value:65}
  };
  const commonData={
-  drifter:{r:10,hp:22,speed:118,damage:8,color:'#ff769d',value:1},
-  stinger:{r:7,hp:13,speed:164,damage:6,color:'#ffbc78',value:2},
-  brute:{r:16,hp:65,speed:76,damage:15,color:'#bd88ff',value:4},
-  lurker:{r:20,hp:100,speed:92,damage:18,color:'#6e8dff',value:6}
+  drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
+  stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
+  brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
+  lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  };
  let kind;
  if(type==='boss'){
@@ -212,7 +213,7 @@ function spawnWorldEnemy(room,type='common',initial=false){
   base.speed=Math.min(90,w.lastBossSpeed>0?Math.max(base.speed,w.lastBossSpeed*1.05):base.speed);
   w.lastBossMaxHp=base.hp;w.lastBossDamage=base.damage;w.lastBossSpeed=base.speed;w.bossSpawnCount++;
  }
- const enemy={id:++w.nextEnemyId,x,y,r:base.r,hp:base.hp,maxHp:base.hp,speed:base.speed,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind,threat:w.bossSpawnCount};
+ const enemy={id:++w.nextEnemyId,x,y,r:base.r,hp:base.hp,maxHp:base.hp,speed:base.speed/WORLD_ZOOM,damage:base.damage,color:base.color,value:base.value,angle:Math.random()*Math.PI*2,phase:Math.random()*Math.PI*2,hit:0,attackCd:.6,kind,threat:w.bossSpawnCount};
  w.enemies.push(enemy);
  return enemy;
 }
@@ -295,10 +296,13 @@ function tickRoom(room,now){
   e.hit=Math.max(0,(e.hit||0)-dt);e.attackCd=Math.max(0,(e.attackCd||0)-dt);e.phase=(e.phase||0)+dt*(e.kind==='stinger'?7:3);
   let best=Infinity,target=null,dxWorld=0,dyWorld=0;
   for(const p of targetPlayers){const dx=(p.x-e.x)*WORLD_WIDTH,dy=(p.y-e.y)*WORLD_HEIGHT,d=Math.hypot(dx,dy);if(d<best){best=d;target=p;dxWorld=dx;dyWorld=dy;}}
-  if(target&&best>Math.max(4,(Number(e.r)||8)*.35)&&dt>0){
-   // Server-authoritative chase in logical-world units; positions sent to clients are normalized fractions.
-   const nx=dxWorld/(best||1),ny=dyWorld/(best||1),speed=Math.max(1,Number(e.speed)||80),step=Math.min(best,speed*dt),oldX=e.x,oldY=e.y;
-   e.x=clamp(e.x+(nx*step)/WORLD_WIDTH,.008,.992);e.y=clamp(e.y+(ny*step)/WORLD_HEIGHT,.008,.992);e.angle=Math.atan2(dyWorld,dxWorld);
+  if(target){e.angle=Math.atan2(dyWorld,dxWorld);}
+  // Keep the creature just outside the diver's collision radius; do not let mobs pile up
+  // at the exact player coordinate and then appear frozen. Radius uses the solo renderer's zoom.
+  const stopDistance=((Number(e.r)||10)+13)/WORLD_ZOOM+3;
+  if(target&&best>stopDistance&&dt>0){
+   const nx=dxWorld/(best||1),ny=dyWorld/(best||1),speed=Math.max(1,Number(e.speed)||80),step=Math.min(best-stopDistance,speed*dt),oldX=e.x,oldY=e.y;
+   e.x=clamp(e.x+(nx*step)/WORLD_WIDTH,.008,.992);e.y=clamp(e.y+(ny*step)/WORLD_HEIGHT,.008,.992);
    e.vx=(e.x-oldX)/Math.max(dt,.001);e.vy=(e.y-oldY)/Math.max(dt,.001);
    if(Math.abs(e.x-oldX)>1e-8||Math.abs(e.y-oldY)>1e-8)movedCount++;
   }else{e.vx=0;e.vy=0;}

@@ -52,21 +52,28 @@ function authenticate(nickname,password,mode='login'){
  if(s.connected)send();else {s.once('connect',send);setTimeout(()=>{if(!s.connected)setMessage('O servidor não respondeu. Execute npm start na pasta do projeto.',true)},9000)}
 }
 function publishMergedRooms(){
- // Socket.IO and HTTP both expose the same canonical server directory. Use the freshest completed response.
- // An older in-flight HTTP response must never overwrite a newer rooms-list event.
+ // Keep the most recently received full roster. Both endpoints return the complete list,
+ // including private rooms (metadata only; never passwords or password hashes).
  let list=[];
- if(Array.isArray(httpRoomsCache)&&httpRoomsAt>=socketRoomsAt)list=httpRoomsCache;
+ const useHttp=Array.isArray(httpRoomsCache)&&httpRoomsAt>socketRoomsAt;
+ if(useHttp)list=httpRoomsCache;
  else if(Array.isArray(socketRoomsCache))list=socketRoomsCache;
  else if(Array.isArray(httpRoomsCache))list=httpRoomsCache;
- if(!list.some(r=>r&&r.id==='MAR-ABERTO'))list=[{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true},...list];
- list=[...list].sort((a,b)=>a.id==='MAR-ABERTO'?-1:b.id==='MAR-ABERTO'?1:(Number(b.playerCount)||0)-(Number(a.playerCount)||0));
+ const clean=new Map();
+ for(const room of (Array.isArray(list)?list:[])){
+  if(!room||!room.id)continue;
+  const id=String(room.id).toUpperCase();
+  clean.set(id,{...room,id,code:room.code||id,isPrivate:Boolean(room.isPrivate),playerCount:Math.max(0,Number(room.playerCount)||0),capacity:Math.max(1,Number(room.capacity)||6)});
+ }
+ if(!clean.has('MAR-ABERTO'))clean.set('MAR-ABERTO',{id:'MAR-ABERTO',code:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
+ list=[...clean.values()].sort((a,b)=>a.id==='MAR-ABERTO'?-1:b.id==='MAR-ABERTO'?1:(Number(b.playerCount)||0)-(Number(a.playerCount)||0));
  window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:list}));
 }
 function refreshRoomsHttp(){
  const requestedAt=Date.now();
  fetch(`/api/rooms?_=${requestedAt}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}})
   .then(r=>r.ok?r.json():null)
-  .then(data=>{if(!data||!Array.isArray(data.rooms))return;if(requestedAt<=socketRoomsAt)return;httpRoomsCache=data.rooms;httpRoomsAt=Date.now();publishMergedRooms()})
+  .then(data=>{if(!data||!Array.isArray(data.rooms))return;const completedAt=Date.now();if(completedAt<socketRoomsAt)return;httpRoomsCache=data.rooms;httpRoomsAt=completedAt;publishMergedRooms()})
   .catch(()=>{});
 }
 function startRoomPolling(){stopRoomPolling();roomPollTimer=setInterval(()=>{const screen=$('roomsScreen');if(!screen||screen.hidden){stopRoomPolling();return;}if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp()},3500)}

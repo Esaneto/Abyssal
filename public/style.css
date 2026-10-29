@@ -178,3 +178,25 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 .room-row small{display:block;line-height:1.45}
 .room-join-btn:disabled{opacity:.48;cursor:not-allowed;filter:saturate(.4)}
 .room-row-private{border-color:rgba(183,153,255,.35)}
+
+
+/* v3.0.2 — botão cooperativo destacado, com leitura clara em desktop e mobile. */
+.menu-secondary-actions #onlineBtn.online-cta{
+ grid-column:1 / -1; width:100%; min-height:68px; height:auto; margin:2px 0 4px;
+ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 17px;
+ border:1px solid rgba(121,248,238,.88); border-radius:12px;
+ background:linear-gradient(112deg,rgba(20,112,124,.98),rgba(15,48,77,.97) 58%,rgba(71,36,113,.97));
+ color:#efffff; text-align:left; box-shadow:0 0 0 1px rgba(121,248,238,.12),0 0 25px rgba(79,231,226,.18),inset 0 0 20px rgba(152,255,243,.06);
+ position:relative; overflow:hidden; isolation:isolate; animation:onlineCtaPulse 3.4s ease-in-out infinite;
+}
+.menu-secondary-actions #onlineBtn.online-cta:before{content:"";position:absolute;z-index:-1;top:-70%;bottom:-70%;left:-45%;width:24%;transform:rotate(18deg);background:linear-gradient(90deg,transparent,rgba(224,255,252,.19),transparent);animation:onlineCtaSweep 5.6s ease-in-out infinite}
+.online-cta-copy{display:grid;gap:6px;min-width:0}
+.online-cta-copy strong{font:900 13px 'DM Mono',monospace;letter-spacing:.1em;color:#eaffff;text-shadow:0 0 16px rgba(116,255,244,.35)}
+.online-cta-copy small{font:8px/1.45 'DM Mono',monospace;letter-spacing:.055em;color:rgba(205,250,250,.82);white-space:normal}
+.online-cta-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border:1px solid rgba(180,255,247,.45);border-radius:10px;background:rgba(3,19,34,.34);font-size:28px;line-height:1;color:#cafff8;text-shadow:0 0 14px #72fff0;transition:transform .2s}
+.menu-secondary-actions #onlineBtn.online-cta:hover{border-color:#d1fffa;box-shadow:0 0 0 1px rgba(121,248,238,.22),0 0 34px rgba(79,231,226,.28),inset 0 0 25px rgba(152,255,243,.09);transform:translateY(-1px)}
+.menu-secondary-actions #onlineBtn.online-cta:hover .online-cta-icon{transform:translateX(3px) rotate(-8deg)}
+@keyframes onlineCtaPulse{0%,100%{box-shadow:0 0 0 1px rgba(121,248,238,.12),0 0 20px rgba(79,231,226,.14),inset 0 0 20px rgba(152,255,243,.04)}50%{box-shadow:0 0 0 1px rgba(121,248,238,.2),0 0 30px rgba(79,231,226,.25),inset 0 0 25px rgba(152,255,243,.08)}}
+@keyframes onlineCtaSweep{0%,70%,100%{left:-45%}85%{left:125%}}
+@media(max-width:700px){.menu-secondary-actions #onlineBtn.online-cta{min-height:62px;padding:11px 13px;gap:10px}.online-cta-copy strong{font-size:11px}.online-cta-copy small{font-size:7px}.online-cta-icon{width:34px;height:34px;flex-basis:34px;font-size:25px}}
+@media(prefers-reduced-motion:reduce){.menu-secondary-actions #onlineBtn.online-cta,.menu-secondary-actions #onlineBtn.online-cta:before{animation:none}}
