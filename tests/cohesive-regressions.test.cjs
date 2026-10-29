@@ -62,8 +62,44 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.8/);
-  assert.match(html, /game\.js\?v=3\.5\.8/);
+  assert.match(html, /style\.css\?v=3\.5\.9/);
+  assert.match(html, /game\.js\?v=3\.5\.9/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
+});
+
+
+test('Socket.IO account handlers are attached only after connect() creates the socket', () => {
+  const online = read('public/online.js');
+  const start = online.indexOf('function connect(){');
+  const end = online.indexOf('\nfunction authenticate(', start);
+  assert.ok(start >= 0 && end > start, 'connect function boundaries exist');
+  const connectBody = online.slice(start, end);
+  assert.match(connectBody, /socket\.on\('account-deletion-result'/);
+  assert.match(connectBody, /socket\.on\('account-force-logout'/);
+  assert.doesNotMatch(online.slice(end), /socket\.on\('account-deletion-result'/);
+  assert.doesNotMatch(online.slice(end), /socket\.on\('account-force-logout'/);
+});
+
+test('Windows and Android downloads have native direct links to published release assets', () => {
+  const html = read('public/index.html');
+  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/latest\/download\/Abyssal-Setup\.exe"/);
+  assert.match(html, /href="https:\/\/github\.com\/Esaneto\/Abyssal\/releases\/latest\/download\/Abyssal-Android\.apk"/);
+});
+
+test('codex state is cached and snapshot handling never reads localStorage repeatedly', () => {
+  const game = read('public/game.js');
+  assert.match(game, /function discoverCodexMonsters/);
+  assert.match(game, /codexSavePending/);
+  const start = game.indexOf('function applySharedSnapshot(data)');
+  const end = game.indexOf('function applySharedDamage', start);
+  assert.ok(start >= 0 && end > start);
+  assert.doesNotMatch(game.slice(start, end), /JSON\.parse\(localStorage\.getItem\('abyssalCodex'/);
+});
+
+test('menu text uses a larger high-contrast abyssal theme and chat overlays remain clickable', () => {
+  const css = read('public/style.css');
+  assert.match(css, /#menuScreen \.intro\{[^}]*font-size:clamp\(15px/);
+  assert.match(css, /#menuScreen \.menu-action\{[^}]*font-size:clamp\(12px/);
+  assert.match(css, /#menuScreen \.menu-creature,#menuScreen:before,#menuScreen:after\{pointer-events:none\}/);
 });
