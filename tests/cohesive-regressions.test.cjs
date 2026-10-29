@@ -42,3 +42,28 @@ test('download, fullscreen, account deletion and PWA entry points remain present
   assert.match(online, /beforeinstallprompt/);
   assert.match(server, /socket\.on\('delete-account'/);
 });
+
+
+test('chat form cannot trigger a native page refresh when the UI script is delayed or fails', () => {
+  const html = read('public/index.html');
+  assert.match(html, /globalChatForm[\s\S]*?addEventListener\('submit',event=>\{event\.preventDefault\(\);\},true\)/);
+  const online = read('public/online.js');
+  assert.match(online, /globalChatForm[\s\S]*?addEventListener\('submit',ev=>\{ev\.preventDefault\(\)/);
+});
+
+test('fullscreen has a standalone fallback if the main online UI initialization fails', () => {
+  const html = read('public/index.html');
+  const online = read('public/online.js');
+  assert.match(html, /__abyssalFullscreenHandlerReady/);
+  assert.match(html, /requestFullscreen/);
+  assert.match(online, /__abyssalFullscreenHandlerReady=true/);
+});
+
+test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
+  const html = read('public/index.html');
+  const css = read('public/style.css');
+  assert.match(html, /style\.css\?v=3\.5\.8/);
+  assert.match(html, /game\.js\?v=3\.5\.8/);
+  assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /white-space:normal/);
+});
