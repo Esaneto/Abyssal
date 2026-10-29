@@ -370,16 +370,16 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   if(platform==='google-play'){message.textContent='O Abyssal ainda não está publicado na Google Play. A publicação exige gerar e assinar um pacote Android, configurar a ficha da loja e concluir a análise do Google.';return;}
   if(platform==='app-store'){message.textContent='O Abyssal ainda não está publicado na Apple App Store. A publicação exige um build iOS assinado, cadastro Apple Developer e aprovação da loja.';return;}
   if(platform==='ios'){message.textContent='No iPhone/iPad: abra esta página no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Abra pelo novo ícone para uma experiência mais próxima de um aplicativo em tela cheia.';return;}
-  if((platform==='windows'||platform==='android')&&deferredInstallPrompt){
-   try{
-    await deferredInstallPrompt.prompt();
-    const choice=await deferredInstallPrompt.userChoice;
-    message.textContent=choice?.outcome==='accepted'?'Instalação iniciada. Siga a confirmação exibida pelo navegador.':'Instalação cancelada. Você pode tentar novamente pelo menu do navegador.';
-   }catch(error){message.textContent='Não foi possível abrir a instalação automática neste navegador. Use o menu do navegador para instalar o aplicativo.';}
-   deferredInstallPrompt=null;return;
+  if(platform==='windows'){
+   message.textContent='Abrindo o instalador do Abyssal para Windows…';
+   window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe';
+   return;
   }
-  if(platform==='windows'){message.textContent='No Chrome ou Edge para Windows: abra o menu ⋮ e procure “Instalar Abyssal” ou “Instalar esta página como aplicativo”. Esta opção instala a versão web, não um .exe independente.';return;}
-  if(platform==='android'){message.textContent='No Android, abra o jogo no Chrome e use o menu ⋮ → “Instalar app” ou “Adicionar à tela inicial”. Isso instala a versão web. O APK independente ainda precisa ser gerado e assinado antes de ser distribuído.';return;}
+  if(platform==='android'){
+   message.textContent='Abrindo o pacote APK do Abyssal… No Android, talvez seja necessário autorizar a instalação de aplicativos baixados pelo navegador.';
+   window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk';
+   return;
+  }
  }));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
