@@ -83,6 +83,15 @@ async function initializePersistence() {
 async function flushPersistence() { await persistenceQueue; }
 function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
+function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
+function issueSessionToken(user) {
+ const now=Date.now(),expiresAt=now+30*24*60*60*1000;
+ user.sessionTokens=(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).filter(item=>item&&Number(item.expiresAt)>now);
+ const token=crypto.randomBytes(32).toString('hex');
+ user.sessionTokens.push({hash:hashSessionToken(token),expiresAt});
+ if(user.sessionTokens.length>10)user.sessionTokens=user.sessionTokens.slice(-10);
+ return token;
+}
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
@@ -440,9 +449,22 @@ io.on('connection', socket => {
    if (!safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
   user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
-  socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
+  const sessionToken=issueSessionToken(user);saveUsers();
+  socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });
  });
-   socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
+ socket.on('resume-session',(payload={})=>{
+  const token=String(payload?.token||'');
+  if(!/^[a-f0-9]{64}$/i.test(token))return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
+  const digest=hashSessionToken(token),now=Date.now();
+  const match=Object.entries(users).find(([,user])=>(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
+  if(!match)return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
+  const [key,user]=match;
+  user.sessionTokens=user.sessionTokens.filter(item=>item&&Number(item.expiresAt)>now);
+  user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.coins ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0};user.equippedTitle ||= 'abyss-drifter';
+  socket.data.nickname=user.nickname;socket.data.userKey=key;saveUsers();
+  socket.emit('session-resumed',{ok:true,...publicUser(user)});
+ });
+ socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
   socket.on('global-chat-send',(payload={})=>{
    if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
    const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
@@ -457,6 +479,7 @@ io.on('connection', socket => {
    const message={id:crypto.randomUUID(),nickname:socket.data.nickname,titleId:CHAT_TITLE_IDS.has(user?.equippedTitle)?user.equippedTitle:'abyss-drifter',text,at:now};
    globalChatHistory.push(message);if(globalChatHistory.length>CHAT_HISTORY_LIMIT)globalChatHistory.splice(0,globalChatHistory.length-CHAT_HISTORY_LIMIT);
    io.emit('global-chat-message',publicChatMessage(message));
+   socket.emit('global-chat-sent',{ok:true,id:message.id});
   });
   socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
  socket.on('create-room', async payload => {
