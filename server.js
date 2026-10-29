@@ -263,7 +263,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  room.players.delete(socket.id);socket.leave(channelFor(room));socket.data.joined=false;socket.data.roomId=null;
  if(announce&&socket.data.nickname&&room.players.size>0)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
  socket.to(channelFor(room)).emit('player-left',socket.id);
- io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
+ io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  if(emitResult)socket.emit('world-left');
  if(room.players.size===0){
   // Empty arenas must stop simulating immediately and release all enemy/particle-like state.
@@ -393,7 +393,7 @@ function tickRoom(room, now) {
  for (const heal of result.playerHeals || []) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
  }
- if (result.sendPlayers) io.to(channelFor(room)).volatile.emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
+ if (result.sendPlayers) io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
 }
 
 function worldTick() {
@@ -474,7 +474,7 @@ io.on('connection', socket => {
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
   const existingRoom=socketRoom(socket);
-  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
+  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
   if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
@@ -487,13 +487,15 @@ io.on('connection', socket => {
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
   const initialShieldCharges=Math.max(0,Math.min(1,Math.floor(Number(u?.metaUpgrades?.startShield)||0)));
   const now=Date.now();
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
+  const spawnIndex=room.players.size,spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
+  const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default',titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
   socket.to(channelFor(room)).emit('player-joined',((({userKey,runStats,...x})=>x)(p)));
   setTimeout(()=>{if(room.players.has(socket.id)){socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120);
-  io.to(channelFor(room)).volatile.emit('world-players',[...room.players.values()].map(({userKey,runStats,...x})=>x));
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...x})=>x));
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
