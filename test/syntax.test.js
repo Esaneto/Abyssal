@@ -43,7 +43,8 @@ test('global chat is authenticated, bounded, and rate limited on the server', ()
 test('online players receive distinct server-assigned spawn positions', () => {
   const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
   const game = fs.readFileSync(path.join(root, 'public', 'game.js'), 'utf8');
-  assert.match(server, /spawnIndex=room\.players\.size/);
+  assert.match(server, /occupiedSpawnSlots=new Set/);
+  assert.match(server, /spawnSlot:spawnIndex/);
   assert.match(server, /spawn:\{x:p\.x,y:p\.y\}/);
   assert.match(game, /setPlayerPosition:\(x,y\)/);
   assert.match(game, /setPlayerPosition\?\.\(d\.spawn\.x,d\.spawn\.y\)/);
