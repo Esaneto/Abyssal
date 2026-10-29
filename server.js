@@ -10,7 +10,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: true }, maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000 });
+const io = new Server(server, { cors: { origin: true }, maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -563,6 +563,12 @@ io.on('connection', socket => {
   p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);p.clientMotionAt=Date.now();
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
   const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
+  // Relay live player transforms independently of world-enemy snapshots. Throttle per room
+  // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
+  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=60){
+   room.lastPlayersBroadcastAt=receivedAt;
+   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+  }
   ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  });
  socket.on('player-build', payload => {

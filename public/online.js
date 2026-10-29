@@ -35,7 +35,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   $('profileNickname').textContent=user.nickname||account?.nickname||'VISITANTE';
   $('profileEquippedLabel').textContent='Título equipado: '+current.name;
   $('profileEmblem').innerHTML=titleArtwork(current.id);$('profileEmblem').style.setProperty('--title-color',current.color);$('profileEmblem').style.color=current.color;
-  $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':'Entre na sua conta para salvar seu título.';
+  $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':(window.AbyssalOnline?.isConnected()?'Entre na sua conta para salvar seu título.':'Conexão interrompida; exibindo os últimos dados sincronizados.');
   $('profileKills').textContent=kills.toLocaleString('pt-BR');$('profileBosses').textContent=bosses.toLocaleString('pt-BR');
   $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';
   root.innerHTML=PROFILE_TITLES.map(t=>{
@@ -86,7 +86,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  }
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
-function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':'ENTRAR / CRIAR CONTA'}
+function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA'}
 function openLogin(){$('loginScreen').hidden=false;setMessage(account?`Último nickname: ${account.nickname}. Digite sua senha para entrar.`:'Crie uma conta ou entre com seu nickname e senha.');if(account)$('nicknameInput').value=account.nickname}
 function connect(){
  if(socket){if(!socket.connected)socket.connect();return socket;}
@@ -122,7 +122,7 @@ function connect(){
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;setMessage('Não conectou ao servidor. Abra o jogo por http://localhost:3000 e confirme que npm start está rodando.',true)});
- socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;serverAccount=null;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(sessionToken?'Conexão interrompida. Tentando restaurar sua sessão…':'Conexão perdida. Após reconectar, entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
+ socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;authenticated=false;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Tentando restaurar sua sessão…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -134,7 +134,7 @@ function connect(){
   socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
  socket.on('session-resumed',result=>{
-  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;updateAccount();if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil e o chat.',true);return;}
+  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil e o chat.',true);return;}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);
