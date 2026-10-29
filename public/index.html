@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.4">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.5">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.4">
+<link rel="stylesheet" href="style.css?v=3.5.5">
 </head>
 <body>
 <div id="app">
@@ -15,6 +15,7 @@
     <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
     <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
       <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
+      <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
       <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
     </div>
   </header>
@@ -43,6 +44,7 @@
           <button id="rankingsBtn" class="secondary-btn menu-action">RANKINGS <span>♛</span></button>
           <button id="profileBtn" class="secondary-btn menu-action">PERFIL & TÍTULOS <span>✧</span></button>
         </div>
+        <button id="downloadBtn" class="secondary-btn menu-action download-cta">BAIXAR ABYSSAL <span>⇩</span></button>
         <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
         <div class="controls-hint"><span>WASD / SETAS</span><i>ou</i><span>TOQUE E ARRASTE</span></div>
         <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
@@ -62,7 +64,7 @@
         </form>
         <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para transmitir mensagens.</p>
       </section>
-      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.4</span></div>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.5</span></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -203,8 +205,31 @@
         </div>
         <div class="profile-title-heading"><div><h3>TÍTULOS DO ABISMO</h3><p>Desbloqueie conquistas e escolha como será reconhecido.</p></div><span id="profileTitleProgress" class="profile-progress">1 título disponível</span></div>
         <div id="profileTitleGrid" class="profile-title-grid" aria-live="polite"></div>
+        <section class="account-delete-panel" aria-labelledby="deleteAccountHeading">
+          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, moedas, skins, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
+          <label class="field-label" for="deleteNicknameInput">DIGITE SEU NICKNAME PARA CONFIRMAR</label>
+          <input id="deleteNicknameInput" class="text-field delete-nickname-field" maxlength="18" autocomplete="off" placeholder="Digite exatamente seu nickname">
+          <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
+          <p class="delete-account-warning">NÃO É POSSÍVEL DESFAZER ESTA OPERAÇÃO.</p>
+        </section>
         <div id="profileMessage" class="form-message" role="status"></div>
         <button id="profileCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="downloadScreen" class="screen modal-screen" hidden>
+      <div class="modal-card download-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> ACESSO AO ABISMO</div>
+        <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
+        <p>Estamos preparando versões instaláveis. No momento, a versão oficial disponível é a do navegador.</p>
+        <div class="download-options">
+          <article class="download-option"><span class="download-platform-icon">▣</span><div><strong>PC · WINDOWS</strong><small>Versão instalável em preparação</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+          <article class="download-option"><span class="download-platform-icon">▤</span><div><strong>ANDROID · APK</strong><small>Pacote Android ainda não publicado</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+          <article class="download-option"><span class="download-platform-icon">◉</span><div><strong>GOOGLE PLAY</strong><small>Publicação na loja ainda não disponível</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+          <article class="download-option"><span class="download-platform-icon">▧</span><div><strong>iOS · IPHONE / IPAD</strong><small>Versão iOS ainda não empacotada</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+          <article class="download-option"><span class="download-platform-icon">◌</span><div><strong>APPLE APP STORE</strong><small>Publicação na loja ainda não disponível</small></div><span class="download-status">EM PREPARAÇÃO</span></article>
+        </div>
+        <button id="playBrowserBtn" class="primary-btn">JOGAR NO NAVEGADOR <span>↗</span></button>
+        <button id="downloadCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="toast" class="toast" hidden></section>
@@ -212,10 +237,10 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.4"></script>
-<script src="enemy-netcode.js?v=3.5.4"></script>
-<script src="skill-audio.js?v=3.5.4"></script>
-<script src="game.js?v=3.5.4"></script>
-<script src="online.js?v=3.5.4"></script>
+<script src="enemy-ai.js?v=3.5.5"></script>
+<script src="enemy-netcode.js?v=3.5.5"></script>
+<script src="skill-audio.js?v=3.5.5"></script>
+<script src="game.js?v=3.5.5"></script>
+<script src="online.js?v=3.5.5"></script>
 </body>
 </html>
