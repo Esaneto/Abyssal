@@ -1,21 +1,22 @@
-# Abyssal v3.1.1 — perseguição contínua e heartbeat de posição
+# Abyssal v3.2.1 — movimento cooperativo reconstruído
 
-Esta versão reestrutura a simulação de inimigos para o cooperativo reutilizar as mesmas regras de perseguição e estatísticas do modo solo.
+Esta versão ataca o problema de inimigos visualmente imóveis com duas camadas: simulação autoritativa no servidor e predição de apresentação no cliente usando a mesma IA compartilhada do modo solo.
 
-## Alterações centrais
+## O que mudou
 
-- `public/enemy-ai.js` é a fonte compartilhada do catálogo de criaturas, velocidade base, sorteio de inimigos, pontos de spawn/vórtices e movimento de perseguição.
-- `world-simulation.js` controla a simulação autoritativa por sala: horda contínua, no máximo 50 criaturas (até 4 bosses), escolha do jogador mais próximo, velocidades/caminhos em unidades do mundo e snapshots.
-- Coordenadas de jogador e inimigo agora são sempre unidades do mundo `3600 × 2200` (não normalizadas entre 0 e 1). Velocidade e interpolação também usam unidades do mundo por segundo. Isso remove a conversão duplicada que dificultava sincronizar movimento.
-- O servidor inicia o loop de 20 ticks por segundo apenas enquanto houver pelo menos uma sala ocupada.
-- Quando todos saem de uma sala criada, o objeto da sala e sua simulação/inimigos são descartados imediatamente e a linha correspondente é excluída do diretório PostgreSQL. A sala estática `MAR-ABERTO` fica disponível como entrada padrão, mas seu mundo é reiniciado e não simula quando vazia.
-- Uma sala criada mas nunca ocupada expira em 30 segundos. O diretório PostgreSQL só contém salas ocupadas; listagens não enviam senha nem hash.
-- Ao reiniciar/deployar o serviço, as linhas antigas do diretório de salas são apagadas porque sockets e simulações não sobrevivem ao processo. Contas, moedas e rankings ficam no `abyssal_state` e não são apagados.
-- `/health` informa `build`, `world.engine`, `world.coordinateSystem`, `worldTickerActive`, `simulation.movingEnemies`, `simulation.errors`, `roomsPendingDeletion` e detalhes seguros por sala: contagem de inimigos, ticks, updates de posição recebidos e idade da última posição (sem nicknames, senhas ou IDs de conta).
+- `public/enemy-ai.js` é a regra comum de perseguição e órbita para o modo solo e o servidor. Os inimigos perseguem o jogador mais próximo, e as órbitas têm faixas distintas para não virarem uma massa imóvel no centro.
+- `world-simulation.js` controla surgimento, relógio, movimento, vida e snapshots do cooperativo. Se uma criatura ativa produzir um passo de movimento zero por estado inválido ou regressão, há uma recuperação de movimento usando a mesma escolha de alvo e deslocamento em unidades do mundo.
+- `public/enemy-netcode.js` reconcilia snapshots sem realimentar as posições visuais. O primeiro snapshot posiciona a criatura; os seguintes atualizam vida, tipo, cor e identidade, mas preservam o `x/y` local. Isso evita um bug onde o renderizador reaplicava o ponto de spawn em todo quadro.
+- Tanto solo quanto cooperativo executam `AbyssalEnemyAI.moveTowardTarget` em cada atualização visual. O watchdog mede a qualidade do movimento autoritativo apenas para diagnóstico: ele nunca desliga a movimentação local. O servidor continua autoritativo sobre spawns, HP, mortes e recompensas.
+- `public/online.js` envia a posição do jogador por pacote volátil a cada 80 ms. O pacote mais recente substitui o antigo; não existe bloqueio esperando um ACK antes de enviar outra posição. Isso segue o uso documentado de eventos voláteis do Socket.IO para dados de posição, nos quais a próxima amostra é mais útil que uma fila de amostras antigas.
+- O servidor rejeita sequências de posição antigas, confirma recebimentos e mede a idade da posição mais antiga entre jogadores ativos no `/health`.
+- O motor continua tendo autoridade sobre a criação/remoção de inimigos e dano/vida. A predição visual é contínua e não depende de snapshots de posição; os snapshots são usados para reconciliar os atributos autoritativos e retirar monstros derrotados.
+- Quando não há jogadores, as salas vazias deixam de simular e o ticker global é desligado. O diretório de sala não guarda estado de partidas de maneira durável.
+- O nome do boss vermelho é **O Coração Partido**.
 
-## Instalar/testar
+## Testar localmente
 
-Requer Node.js 18 ou superior.
+Node.js 18 ou superior:
 
 ```bash
 npm install
@@ -23,39 +24,29 @@ npm test
 npm start
 ```
 
-Abra `http://localhost:3000`. Para cooperativo, conecte duas sessões, autentique duas contas e entre na mesma sala. Os monstros devem aparecer nos vórtices e avançar em direção ao jogador mais próximo. Ao sair das duas sessões, `/health` deve mostrar `activeRooms: 0`, `activePlayers: 0`, `simulation.totalEnemies: 0` e `worldTickerActive: false`.
+Abra `http://localhost:3000`. Para testar o cooperativo, use duas sessões de navegador, autentique contas diferentes e entre na mesma sala. Os monstros devem surgir dos vórtices e continuar perseguindo o jogador mais próximo. Deixe o personagem parado: os monstros devem permanecer em movimento/órbita.
+
+## Indicadores em produção
+
+Durante uma partida online ativa, abra `/health`:
+
+- `build` deve ser `3.2.1`.
+- `clientReportedMovingEnemies` deve ser maior que zero durante uma partida se a IA visual local está avançando monstros.
+- `clientPredictingPlayers` deve corresponder ao número de jogadores ativos que estão usando predição visual.
+- `simulation.errors` deve ser `0`.
+- `simulation.movingEnemies` deve ser maior que zero.
+- `activePlayers` e `activeRooms` devem ser maiores que zero durante a partida.
+- `latestPositionAgeMs` em cada sala ativa deve ficar baixo; `stalePositionPlayers` deve ser zero em condições normais.
+- Se não há jogadores conectados, `activePlayers: 0`, `activeRooms: 0`, `totalEnemies: 0` e `worldTickerActive: false` são resultados esperados, e não evidência de falha de movimento.
 
 ## Render + Neon
 
-Mantenha a variável de ambiente `DATABASE_URL` existente no Render. Não coloque a connection string no repositório. O serviço é desenhado para uma única instância do Render, pois as sessões Socket.IO e os mundos autoritativos ficam no processo ativo. O diretório de salas usa PostgreSQL para publicação de metadados, mas não implementa replicação do motor de mundo entre várias instâncias.
+Mantenha a variável `DATABASE_URL` existente. Não coloque a string de conexão no repositório e não remova o grupo de ambiente `abyss`. As contas e rankings continuam no PostgreSQL; salas e simulação em andamento ficam na memória da instância e terminam após um deploy/reinício. O jogo assume uma única instância Render porque os mundos e sessões Socket.IO são locais à instância.
 
-## Propriedades da simulação
+## Observação técnica
 
-- Mundo fixo: 3600 × 2200 unidades.
-- Spawns iniciais em três vórtices distintos; novos mobs continuam surgindo de pontos de corrente nas bordas.
-- Cada tick move todas as criaturas em direção ao jogador online mais próximo usando `AbyssalEnemyAI.moveTowardTarget`, a mesma função do solo.
-- O cliente envia a posição do jogador com heartbeat independente do loop de renderização (100 ms) e confirmação do servidor, mantendo apenas um pacote de posição em trânsito. Os snapshots de inimigos são enviados em intervalos voláteis para evitar filas de estados antigos.
-- A simulação não avança se não houver jogadores; no servidor, o ticker é desligado quando todas as salas ficam vazias.
+Socket.IO usa eventos voláteis para dados que podem ser descartados se o transporte estiver ocupado — útil para posições — e os callbacks de confirmação são usados apenas como diagnóstico, nunca como trava do fluxo de posições. Browsers também podem reduzir `requestAnimationFrame` e timers em abas ocultas; por isso o servidor tem seu próprio tick e a predição visual não depende apenas do quadro de renderização para receber as amostras do servidor.
 
-## Testes de backend
+## Diagnóstico v3.2.1
 
-`npm test` executa os testes da IA compartilhada, da simulação, do ciclo de vida de salas e um teste dos handlers reais de `server.js` com adaptadores de transporte simulados. Este último verifica que uma segunda sessão vê e entra na sala, recebe snapshots com inimigos em movimento e que a sala/ticker são removidos quando os dois jogadores saem. O teste usa `DATA_DIR` temporário e não apaga os dados locais existentes.
-
-## Segurança e persistência
-
-As salas privadas ficam listadas apenas com metadados públicos (`isPrivate`); senhas e hashes não são transmitidos. A autenticação, moedas e rankings permanecem no PostgreSQL do Neon por meio da variável `DATABASE_URL`.
-
-
-## Correções v3.1.1 — foco nos monstros parados online
-
-- O cliente envia a posição do jogador por um heartbeat independente do loop de renderização (100 ms), consultando o estado atual do jogador diretamente.
-- Há no máximo um pacote de posição confirmado em voo; isso evita acumular posições antigas em conexões lentas. O servidor responde com ACK e atualiza os contadores de diagnóstico.
-- A IA compartilhada faz as criaturas continuarem circulando dentro do alcance de ataque depois de alcançar o jogador; elas não congelam quando chegam ao ponto de contato. Essa lógica vale tanto para o solo quanto para o cooperativo.
-- O endpoint `/health` mostra o tempo desde a última posição do jogador e o contador de pacotes recebidos; o handler `player-position` confirma o recebimento por ACK.
-- O nome em jogo do boss vermelho foi padronizado para **O Coração Partido**, igual ao alerta e ao catálogo.
-
-### Verificação
-
-Execute `npm test` e `npm start`. Durante uma partida online, `/health` deve reportar `build: "3.1.1"`, `simulation.errors: 0`, `movingEnemies` maior que zero e `latestPositionAgeMs` baixo (normalmente menos de 1.500 ms, dependendo da conexão). `positionUpdates` deve continuar aumentando mesmo se o ciclo visual estiver temporariamente reduzido.
-
-O diretório de salas e as contas usam a configuração PostgreSQL já existente (`DATABASE_URL`). Não altere nem publique essa variável.
+A rota `/health` agrega `clientReportedEnemies`, `clientReportedMovingEnemies`, `clientPredictingPlayers` e `clientMotionAgeMs` por sala. Esses campos são amostras declaradas pelo cliente a cada heartbeat; servem para separar travamento visual local de travamento na simulação do servidor. Durante uma sala ativa, `latestPositionAgeMs` e `clientMotionAgeMs` devem permanecer baixos.

@@ -16,7 +16,7 @@ let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,came
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let snapshotClock=0,upgradeAutoTimer=null,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0;
-let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map();
+let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,botBuddyTimer=0;
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.'},
@@ -120,7 +120,7 @@ function showBossAlert(kind,id=null,threat=0){
 function showScreen(id){screens.forEach(s=>$(s).hidden=s!==id);$('hud').hidden=id!=='gameScreen';}
 function startGame(){
  startAmbientMusic();
- elapsed=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=Boolean(onlineMode);lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.max(0,Number(metaUpgrades.startShield)||0),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
@@ -237,29 +237,39 @@ function nearestOnlineTargetDistance(x,y){
  return best;
 }
 function observeOnlineServerMotion(data){
- const list=Array.isArray(data.enemies)?data.enemies:[];let moved=false;const nextPositions=new Map();
- for(const raw of list){if(!raw||raw.id==null)continue;const x=Number(raw.x)||0,y=Number(raw.y)||0,prev=lastServerEnemyPositions.get(raw.id);nextPositions.set(raw.id,{x,y});
-  if(prev&&Math.hypot(x-prev.x,y-prev.y)>.2)moved=true;
- }
+ const list=Array.isArray(data.enemies)?data.enemies:[];
+ let moved=false;const nextPositions=new Map();
+ for(const raw of list){if(!raw||raw.id==null)continue;const x=Number(raw.x)||0,y=Number(raw.y)||0,prev=lastServerEnemyPositions.get(raw.id);nextPositions.set(raw.id,{x,y});if(prev&&Math.hypot(x-prev.x,y-prev.y)>.35)moved=true;}
  lastServerEnemyPositions=nextPositions;
- const needsMovement=Boolean(player&&list.some(raw=>nearestOnlineTargetDistance(Number(raw.x)||0,Number(raw.y)||0)>Math.max(130/worldZoom,(Number(raw.r)||10)/worldZoom+player.r+55/worldZoom)));
- // A server counter alone is not enough: only changed coordinates prove that snapshots actually move.
- if(moved){onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots++;if(onlineMovementConfirmedSnapshots>=2)onlineClientMovementFallback=false;}
- else if(needsMovement){onlineMovementConfirmedSnapshots=0;onlineMovementStalledSnapshots++;if(onlineMovementStalledSnapshots>=7)onlineClientMovementFallback=true;}
- else{onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineClientMovementFallback=false;}
+ if(onlineMotionWatchdog){
+  const result=onlineMotionWatchdog.observe(list);
+  onlineMovementStalledSnapshots=result.stalledStreak;
+  onlineMovementConfirmedSnapshots=result.healthyStreak;
+ }else if(moved){
+  onlineMovementConfirmedSnapshots++;onlineMovementStalledSnapshots=0;
+ }else{
+  onlineMovementConfirmedSnapshots=0;onlineMovementStalledSnapshots++;
+ }
+ // Visual movement is always simulated locally with the same AI as solo. The watchdog
+ // is diagnostic only: a healthy-looking snapshot must not disable the local AI and
+ // a snapshot must never hard-reset a creature's rendered x/y.
+ onlineClientMovementFallback=Boolean(onlineMode);
 }
+
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const now=performance.now(),previousById=new Map(enemies.map(e=>[e.id,e]));
  observeOnlineServerMotion(data);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  const previousBossIds=new Set(enemies.filter(e=>BOSS_KINDS.includes(e.kind)).map(e=>e.id));
- enemies=data.enemies.map(raw=>{
-  const e={...raw},leadSeconds=.075,targetX=clamp(Number(raw.x)||0,0,W)+clamp(Number(raw.vx)||0,-250,250)*leadSeconds,targetY=clamp(Number(raw.y)||0,0,H)+clamp(Number(raw.vy)||0,-250,250)*leadSeconds,old=previousById.get(raw.id),radius=Math.max(2,Number(raw.r)||12)/worldZoom;
-  if(old&&onlineClientMovementFallback){const cur=currentInterpolatedEnemyPosition(old,now);return {...old,...e,x:cur.x,y:cur.y,r:radius,interpFromX:cur.x,interpFromY:cur.y,interpTargetX:NaN,interpTargetY:NaN,interpAt:NaN,interpDuration:0};}
-  if(old){const cur=currentInterpolatedEnemyPosition(old,now);return {...old,...e,x:cur.x,y:cur.y,r:radius,interpFromX:cur.x,interpFromY:cur.y,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:130};}
-  return {...e,x:targetX,y:targetY,r:radius,interpFromX:targetX,interpFromY:targetY,interpTargetX:targetX,interpTargetY:targetY,interpAt:now,interpDuration:0};
- });
+ // Snapshots reconcile authoritative gameplay fields, but positions belong to the shared
+ // local movement step. Never assign finite interpolation targets here: draw() uses a
+ // finite interpTargetX/Y as a hard set-position operation and would freeze first-spawned mobs.
+ if(window.AbyssalEnemyNetcode?.reconcileSnapshot){
+  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/worldZoom,maxX:W,maxY:H,minX:0,minY:0});
+ }else{
+  enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H);return {...old,...raw,x:old&&Number.isFinite(old.x)?old.x:serverX,y:old&&Number.isFinite(old.y)?old.y:serverY,r:Math.max(2,Number(raw.r)||12)/worldZoom,serverX,serverY,interpFromX:NaN,interpFromY:NaN,interpTargetX:NaN,interpTargetY:NaN,interpAt:NaN,interpDuration:0};});
+ }
  const codex=JSON.parse(localStorage.getItem('abyssalCodex')||'{"skills":[],"monsters":[]}');let codexChanged=false;for(const e of enemies){if(!codex.monsters.includes(e.kind)){codex.monsters.push(e.kind);codexChanged=true;}}if(codexChanged)localStorage.setItem('abyssalCodex',JSON.stringify(codex));
  const newBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&!previousBossIds.has(e.id));if(newBoss){lastRemoteBossId=newBoss.id;showBossAlert(newBoss.kind,newBoss.id,Number(newBoss.threat)||0);burst(newBoss.x,newBoss.y,newBoss.color,70,270);}
 }
@@ -303,17 +313,20 @@ function update(dt){
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/worldZoom){dealEnemyDamage(e,18*upgrades.nova);burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/worldZoom,life:.75,maxLife:.75,color:'#72f5ff'});audio(120,.38,'sawtooth',.045)}}
  // Aliado IA: atua como um segundo jogador, deslocando-se por conta própria e disparando projéteis visíveis.
  const humanPeers=onlineMode&&window.AbyssalOnline?window.AbyssalOnline.getPlayers():[];
+ onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=0;
  for(let i=enemies.length-1;i>=0;i--){
   const e=enemies[i];e.hit=Math.max(0,e.hit-dt);
   const targets=[{x:player.x,y:player.y,local:true}];
   if(onlineMode&&window.AbyssalOnline){for(const peer of humanPeers){const px=Number(peer.x),py=Number(peer.y);if(Number.isFinite(px)&&Number.isFinite(py))targets.push({x:px,y:py,local:false,id:peer.id});}}
   let target=targets[0],td=Infinity;for(const candidate of targets){const dd=Math.hypot(e.x-candidate.x,e.y-candidate.y);if(dd<td){td=dd;target=candidate;}}
-  const shouldRunSharedAI=!onlineMode||onlineClientMovementFallback;
-  if(shouldRunSharedAI){
-   if(window.AbyssalEnemyAI?.moveTowardTarget){const move=window.AbyssalEnemyAI.moveTowardTarget(e,targets,dt,{minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:Math.max(0,(e.r+player.r)*.62)});if(move.target){target=move.target;td=move.distance;}}
-   else if(!onlineMode){const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y+dy/d*e.speed*dt,8/worldZoom,H-8/worldZoom);}
-  }
-  if(target.local&&td<e.r+player.r){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
+  const beforeEnemyX=e.x,beforeEnemyY=e.y;
+  // Both solo and co-op execute the same AI on every live frame. In co-op the server
+  // remains authoritative for enemy identity, HP, spawns and kills, while local x/y is
+  // predicted for rendering so a stale/repeated snapshot cannot freeze a sprite.
+  if(window.AbyssalEnemyAI?.moveTowardTarget){const move=window.AbyssalEnemyAI.moveTowardTarget(e,targets,dt,{minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:Math.max(1,(e.r+player.r)*.9)});if(move.target){target=move.target;td=move.distance;}}
+  else {const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y+dy/d*e.speed*dt,8/worldZoom,H-8/worldZoom);}
+  if(onlineMode&&Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
+  if(target.local&&td<e.r+player.r+8/worldZoom){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:1.1;}}
  }
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;for(let j=enemies.length-1;j>=0;j--){const e=enemies[j];p.hitIds ||= [];if(!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage);e.hit=.12;burst(p.x,p.y,p.color,4,40);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08));next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
@@ -618,6 +631,7 @@ window.AbyssalGameHooks={
  remoteHit:data=>{if(!player)return;const tx=data.x*W,ty=data.y*H;let nearest=null,bd=Infinity;for(const e of enemies){const d=Math.hypot(e.x-tx,e.y-ty);if(d<bd){bd=d;nearest=e}}if(nearest&&bd<100/worldZoom){effects.push({type:'beam',x1:tx,y1:ty,x2:nearest.x,y2:nearest.y,life:.14,maxLife:.14,color:'#bba8ff'});burst(nearest.x,nearest.y,'#bba8ff',5,60);}},
  applySnapshot:applySharedSnapshot,
   onlineMovementFallback:()=>onlineClientMovementFallback,
+  motionDiagnostics:()=>({enemyCount:onlineVisualEnemyCount,movingEnemies:onlineVisualMovingEnemies,predictingLocally:Boolean(onlineMode),stalledSnapshots:onlineMovementStalledSnapshots,confirmedSnapshots:onlineMovementConfirmedSnapshots,gameState}),
  restoreHostState:data=>{if(!data||!Array.isArray(data.enemies))return;enemies=data.enemies.map(e=>({...e,x:Number(e.x)||0,y:Number(e.y)||0,r:Math.max(2,Number(e.r)||12)/worldZoom}));},
  sharedDamage:applySharedDamage,
  sharedXp:applySharedXp,

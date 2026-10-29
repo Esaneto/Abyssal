@@ -4,6 +4,7 @@ const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 50;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function createWorldState(now = Date.now()) {
   return {
@@ -12,12 +13,61 @@ function createWorldState(now = Date.now()) {
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0,
     commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
-    movingEnemyCount: 0
+    movingEnemyCount: 0, movementRecoveryCount: 0
   };
 }
 
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
 function countCommons(world) { return world.enemies.length - countBosses(world).length; }
+
+function forceAdvanceEnemy(enemy, players, dt) {
+  if (!enemy || !players.length || dt <= 0) return false;
+  let target = null, nearest = Infinity;
+  for (const player of players) {
+    const d = Math.hypot(Number(player.x) - Number(enemy.x), Number(player.y) - Number(enemy.y));
+    if (Number.isFinite(d) && d < nearest) { nearest = d; target = player; }
+  }
+  if (!target) return false;
+  const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
+  const speed = Math.max(20, Number(enemy.speed) || (EnemyAI.statsForKind(enemy.kind).speed / WORLD_ZOOM) || 35);
+  const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
+  let x = oldX, y = oldY;
+  if (nearest > stopDistance + 1) {
+    const dx = Number(target.x) - oldX, dy = Number(target.y) - oldY;
+    const step = Math.min(speed * dt, nearest - stopDistance);
+    x += dx / (nearest || 1) * step; y += dy / (nearest || 1) * step;
+  } else {
+    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
+    const lane = id % 6;
+    const radius = stopDistance * (0.78 + lane * 0.12);
+    let angle = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
+    if (!Number.isFinite(angle) || nearest < 0.001) angle = Number(enemy.orbitAngle) || ((id % 2) ? Math.PI : 0);
+    const direction = Number(enemy.orbitDirection) || ((id % 2) ? 1 : -1);
+    enemy.orbitDirection = direction;
+    angle += direction * Math.max(0.025, Math.min(1.8, speed * 0.62 / Math.max(radius, 12))) * dt;
+    enemy.orbitAngle = angle;
+    const desiredX = Number(target.x) + Math.cos(angle) * radius;
+    const desiredY = Number(target.y) + Math.sin(angle) * radius;
+    const dx = desiredX - oldX, dy = desiredY - oldY, d = Math.hypot(dx, dy);
+    const step = Math.min(d, speed * dt);
+    if (d > 1e-8) { x += dx / d * step; y += dy / d * step; }
+  }
+  const margin = 8 / WORLD_ZOOM;
+  x = clamp(x, margin, WORLD_WIDTH - margin); y = clamp(y, margin, WORLD_HEIGHT - margin);
+  if (Math.hypot(x - oldX, y - oldY) < 0.05) {
+    // Boundary-safe tangential nudge; never leave an active enemy frozen because its
+    // desired orbit point happens to clamp back to its current coordinate.
+    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
+    const dir = (id % 2) ? 1 : -1;
+    const a = Math.atan2(oldY - Number(target.y), oldX - Number(target.x)) + dir * Math.PI / 2;
+    const step = Math.max(0.3, Math.min(speed * dt, 5));
+    x = clamp(oldX + Math.cos(a) * step, margin, WORLD_WIDTH - margin);
+    y = clamp(oldY + Math.sin(a) * step, margin, WORLD_HEIGHT - margin);
+  }
+  enemy.x = x; enemy.y = y;
+  enemy.vx = (x - oldX) / Math.max(dt, 0.001); enemy.vy = (y - oldY) / Math.max(dt, 0.001);
+  return Math.hypot(x - oldX, y - oldY) >= 0.05;
+}
 
 function spawnEnemy(world, { type = 'common', initial = false, random = Math.random } = {}) {
   if (!world || world.enemies.length >= MAX_ENEMIES) return null;
@@ -113,8 +163,17 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM,
       // Keep each creature visible at contact instead of letting it hide exactly under the player sprite.
       // Solo applies the same 62% contact radius in game.js. Enemy r is stored in base render units here.
-      stopDistance: Math.max(0, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.62)
+      stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9)
     });
+    // Safety guard for corrupted/zero-speed enemy state. The world simulation must
+    // never report a live pursuing enemy as frozen forever; recover its speed from
+    // the shared catalog and move it along the same deterministic pursuit/orbit rules.
+    if (!movement.moved && validPlayers.length && dt > 0) {
+      // Last-resort recovery: a live enemy must continue advancing even if a damaged
+      // state or a future AI regression produces a zero-delta steering result.
+      movement.moved = forceAdvanceEnemy(enemy, validPlayers, dt);
+      if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+    }
     if (movement.moved) movedEnemyCount++;
   }
   if (movedEnemyCount) world.lastMovementAt = now;
@@ -135,4 +194,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, tickWorld, resetWorldState, countBosses, countCommons };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy };

@@ -48,3 +48,12 @@ test('shared catalog stats are stable and available to both modes', () => {
   assert.deepEqual(AI.statsForKind('drifter'), { r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1 });
   assert.deepEqual(AI.statsForKind('leviathan'), { r:54,hp:4700,speed:16,damage:34,color:'#4ce0d1',value:90 });
 });
+
+
+test('an enemy at contact distance continues orbital movement with the shared solo AI', () => {
+  const enemy = { id: 19, x: 1800, y: 1100, speed: 65, kind: 'drifter', phase: 0 };
+  const target = { x: 1800, y: 1100 };
+  const result = moveTowardTarget(enemy, [target], 0.05, { minX: 0, maxX: AI.WORLD_WIDTH, minY: 0, maxY: AI.WORLD_HEIGHT, stopDistance: 28 });
+  assert.equal(result.moved, true);
+  assert.ok(Math.hypot(enemy.x - target.x, enemy.y - target.y) > 0);
+});

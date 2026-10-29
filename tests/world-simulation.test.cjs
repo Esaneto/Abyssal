@@ -69,7 +69,7 @@ test('empty rooms do not advance time or simulate, and reset releases their enem
   assert.equal(world.elapsed, 0);
 });
 
-test('online mobs keep the same 62% contact radius as solo and remain visible beside the player', () => {
+test('online mobs use the shared contact radius and remain visible beside the player', () => {
   const world = Sim.createWorldState(1000);
   world.initialized = true;
   world.lastTick = 1000;
@@ -105,4 +105,15 @@ test('a stationary player does not cause the whole online horde to freeze at con
   for (let i = 1; i <= 700; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   assert.ok(world.movingEnemyCount > 0, 'enemy keeps moving even after reaching a stationary player');
   assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < 30, 'enemy remains inside attack distance');
+});
+
+
+test('simulation fallback forces progress if an enemy state is otherwise stationary', () => {
+  const world = Sim.createWorldState(1000);
+  const stats = AI.statsForKind('drifter');
+  const stuck = { id: 12, kind: 'drifter', x: 1800, y: 1100, r: stats.r, speed: 0, hp: stats.hp, maxHp: stats.hp, angle: 0, phase: 0 };
+  const player = { id: 'p1', x: 1800, y: 1100 };
+  const moved = Sim.forceAdvanceEnemy(stuck, [player], 0.05);
+  assert.equal(moved, true);
+  assert.ok(Math.hypot(stuck.x - player.x, stuck.y - player.y) > 0);
 });
