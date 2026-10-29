@@ -8,7 +8,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function createWorldState(now = Date.now()) {
   return {
-    initialized: false, elapsed: 0, enemies: [], nextEnemyId: 0,
+    initialized: false, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
     nextBossAt: 60, bossSpawnCount: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0,
@@ -122,13 +122,29 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
   return enemy;
 }
 
+function spawnXpOrb(world, enemy) {
+  if (!world || !enemy) return null;
+  world.orbs ||= [];
+  world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
+  const value = Math.max(1, Math.round(Number(enemy.value) || 1));
+  const orb = {
+    id: world.nextOrbId, x: Number(enemy.x) || 0, y: Number(enemy.y) || 0,
+    r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(value) : Math.min(15, 4 + Math.sqrt(value)),
+    value, phase: 0, life: 25, sourceEnemyId: enemy.id,
+    sourceKind: enemy.kind
+  };
+  world.orbs.push(orb);
+  if (world.orbs.length > 220) world.orbs.splice(0, world.orbs.length - 220);
+  return orb;
+}
+
 function initializeWorld(world, now = Date.now(), random = Math.random) {
   if (world.initialized) return [];
   world.initialized = true;
   world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 60;
   world.bossSpawnCount = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
-  world.enemies = []; world.commonSpawnTimer = 0.8;
+  world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
   world.lastTick = now; world.snapshotTimer = 0; world.playerSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
 }
@@ -270,6 +286,54 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
+  // Shared XP orbs are server-owned world entities. All co-op clients receive the same
+  // coordinates, lifetime and removal event; only the first player to touch an orb earns it.
+  world.orbs ||= [];
+  const xpCollected = [];
+  const expiredOrbIds = new Set();
+  for (const orb of world.orbs) {
+    orb.phase = (Number(orb.phase) || 0) + dt * 3;
+    orb.life = (Number(orb.life) || 0) - dt;
+    if (orb.life <= 0) { expiredOrbIds.add(String(orb.id)); continue; }
+
+    // Same magnetic pickup idea as solo: the orb is pulled toward the nearest player
+    // with magnet range. Its movement remains authoritative, so every client sees it alike.
+    let magnetTarget = null, magnetDistance = Infinity, magnetRange = 0;
+    for (const p of validPlayers) {
+      const strength = clamp(Number(p.magnetStrength) || 1, 1, 4.5);
+      const range = 100 * strength / WORLD_ZOOM;
+      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
+      if (d < range && d < magnetDistance) {
+        magnetTarget = p; magnetDistance = d; magnetRange = range;
+      }
+    }
+    if (magnetTarget && magnetDistance > 0.001) {
+      const f = clamp((magnetRange - magnetDistance) / (100 / WORLD_ZOOM), 0, 1);
+      const pull = Math.min(magnetDistance, dt * (2 + f * 8));
+      orb.x += (Number(magnetTarget.x) - orb.x) / magnetDistance * pull;
+      orb.y += (Number(magnetTarget.y) - orb.y) / magnetDistance * pull;
+    }
+
+    // If multiple players touch it in one server tick, choose the closest; a stable
+    // ID tie-break makes simultaneous collection deterministic. The orb is removed once.
+    const orbRadiusWorld = Math.max(1, Number(orb.r) || 4) / WORLD_ZOOM;
+    let collector = null, collectorDistance = Infinity;
+    for (const p of validPlayers) {
+      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
+      const playerRadius = Math.max(1, Number(p.r) || (13 / WORLD_ZOOM));
+      if (d <= playerRadius + orbRadiusWorld + 4 / WORLD_ZOOM &&
+          (d < collectorDistance || (d === collectorDistance && String(p.id) < String(collector?.id || '\uffff')))) {
+        collector = p; collectorDistance = d;
+      }
+    }
+    if (collector) {
+      expiredOrbIds.add(String(orb.id));
+      world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
+      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(Number(orb.value) || 1)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
+    }
+  }
+  if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));
+
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
@@ -281,7 +345,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   return {
     active: true, dt, movedEnemyCount,
     spawnedBosses: [...initialSpawns.filter(e => BOSS_KINDS.includes(e.kind)), ...spawnedBosses],
-    playerHits, playerHeals, defeatedPlayers, sendSnapshot, sendPlayers,
+    playerHits, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendPlayers,
     tickCount: world.tickCount, elapsed: world.elapsed
   };
 }
@@ -293,4 +357,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry };

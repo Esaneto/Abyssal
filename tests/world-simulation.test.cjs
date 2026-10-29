@@ -151,3 +151,32 @@ test('server contact radius exactly matches the visible solo sprite collision an
   assert.ok(Number.isFinite(hit.enemyX)&&Number.isFinite(hit.enemyY));
   assert.ok(Number.isFinite(hit.contactDistance)&&Number.isFinite(hit.contactRadius));
 });
+
+
+test('XP orbs spawn at the exact enemy coordinates and bosses drop larger, higher-value orbs', () => {
+  const world = Sim.createWorldState(1000);
+  const common = { id: 10, kind: 'drifter', x: 700, y: 900, value: AI.statsForKind('drifter').value };
+  const boss = { id: 11, kind: 'leviathan', x: 1700, y: 1200, value: AI.statsForKind('leviathan').value };
+  const smallOrb = Sim.spawnXpOrb(world, common);
+  const bossOrb = Sim.spawnXpOrb(world, boss);
+  assert.deepEqual([smallOrb.x, smallOrb.y], [common.x, common.y]);
+  assert.deepEqual([bossOrb.x, bossOrb.y], [boss.x, boss.y]);
+  assert.equal(smallOrb.value, common.value);
+  assert.equal(bossOrb.value, boss.value);
+  assert.ok(bossOrb.r > smallOrb.r, 'stronger enemies create visibly larger XP orbs');
+});
+
+test('the authoritative XP-orb pickup awards one player only and removes the orb for everyone', () => {
+  const world = Sim.createWorldState(1000);
+  world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 999999;
+  world.enemies = [];
+  world.orbs = [{ id: 77, x: 1000, y: 1000, r: 10, value: 55, phase: 0, life: 25, sourceKind: 'boss' }];
+  const first = { id: 'player-a', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
+  const second = { id: 'player-b', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
+  const result = Sim.tickWorld(world, [second, first], 1050, () => 0.8);
+  assert.equal(result.xpCollected.length, 1, 'an orb can only be collected once per room world');
+  assert.equal(result.xpCollected[0].orbId, 77);
+  assert.equal(result.xpCollected[0].playerId, 'player-a', 'simultaneous pickup uses a stable ID tie-break');
+  assert.equal(result.xpCollected[0].value, 55);
+  assert.equal(world.orbs.length, 0, 'the authoritative orb disappears after collection');
+});

@@ -35,3 +35,33 @@ test('returning to a minimized tab requests current vitals and a fresh snapshot'
 test('dead players cannot restart the room through an ordinary snapshot request', () => {
   assert.match(server, /if\(!hasLivingPlayers\(room\)\)\{socket\.emit\('game-snapshot',[\s\S]*?enemies:\[\]/);
 });
+
+
+test('online contact feedback never creates or teleports a mob to its damage source', () => {
+  const start = game.indexOf('function revealOnlineContactSource(data)');
+  const end = game.indexOf('function applyOnlinePlayerVitals(data)', start);
+  assert.ok(start >= 0 && end > start);
+  const reporter = game.slice(start, end);
+  assert.match(reporter, /enemies\.find/);
+  assert.doesNotMatch(reporter, /enemies\.push/);
+  assert.doesNotMatch(reporter, /e\.x\s*=\s*Number\(data\./);
+  assert.doesNotMatch(reporter, /e\.y\s*=\s*Number\(data\./);
+});
+
+test('mobile zoom reveals more of the same world and online menu uses the requested name', () => {
+  const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.42 : \.78;\}/);
+  assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
+  assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
+  for (const asset of ['style.css', 'enemy-ai.js', 'enemy-netcode.js', 'skill-audio.js', 'game.js', 'online.js']) {
+    assert.match(html, new RegExp(`${asset}\\?v=3\.4\.2`));
+  }
+});
+
+
+test('solo orb pickup and co-op server award feed the same gainXp function', () => {
+  assert.match(game, /gainXp\(o\.value,'orb'\)/);
+  assert.match(game, /function applySharedXp\(data\)[\s\S]*?gainXp\(Math\.max\(0,Number\(data\.value\)\|\|0\),'shared'\)/);
+  assert.match(online, /socket\.on\('shared-xp-award',[\s\S]*?sharedXp/);
+  assert.match(game, /function addOrb\(x,y,value\)[\s\S]*?xpOrbRadius/);
+});

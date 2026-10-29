@@ -172,10 +172,17 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   });
   assert.ok(moved, 'server snapshots should contain real enemy movement');
   assert.ok(latest.elapsed > 0, 'server world clock advances while the room is occupied');
+  const guestLatest = guest.latest('game-snapshot');
+  assert.ok(guestLatest, 'the second client receives the room snapshot');
+  assert.deepEqual(
+    guestLatest.enemies.map(e => [e.id, e.x, e.y]),
+    latest.enemies.map(e => [e.id, e.x, e.y]),
+    'all clients receive exactly the same authoritative enemy coordinates in a snapshot'
+  );
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
-  assert.equal(health.world.engine, 'server-authoritative-enemy-positions-with-client-interpolation-and-contact-source');
+  assert.equal(health.world.engine, 'server-authoritative-shared-enemies-and-xp-orbs-with-client-interpolation');
   assert.ok(health.simulation.movingEnemies > 0);
 
   // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.
@@ -189,6 +196,33 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(owner.latest('world-enemy-damaged')?.id, damageTarget.id, 'server should broadcast authoritative HP feedback');
   assert.ok(Number((await getJson(port, '/health')).simulation.combat.appliedHits) > 0, 'health diagnostics should count applied hits');
 
+  // A dead common enemy creates one shared XP orb. The two clients see the same orb,
+  // but the server awards the XP only to the player who reaches it first.
+  const xpTarget = owner.latest('game-snapshot').enemies.find(e => e && !['boss','leviathan','maw','angler'].includes(e.kind));
+  assert.ok(xpTarget, 'a common enemy should be available for the XP-drop integration test');
+  const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
+  const guestXpAwardsBefore = guest.all('shared-xp-award').length;
+  let killAck = null;
+  await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: 1000 }, result => { killAck = result; });
+  assert.equal(killAck?.ok, true, 'the server accepts damage that kills a common enemy');
+  assert.equal(killAck.killed, true, 'the server confirms the enemy was killed');
+  const orbSnapshot = owner.latest('game-snapshot');
+  const xpOrb = orbSnapshot.orbs?.find(o => String(o.sourceEnemyId) === String(xpTarget.id));
+  assert.ok(xpOrb, 'the server snapshot contains the dropped XP orb');
+  const guestOrbSnapshot = guest.latest('game-snapshot');
+  assert.ok(guestOrbSnapshot.orbs?.some(o => String(o.id) === String(xpOrb.id)), 'the other player sees the same XP orb');
+  assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore, 'killing an enemy does not immediately award XP');
+  assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'XP is not broadcast as an award to every player');
+  let xpOwnerAck = null, xpGuestAck = null;
+  await owner.clientEmit('player-position', { x: xpOrb.x, y: xpOrb.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: false, clientGameState: 'playing' }, result => { xpOwnerAck = result; });
+  await guest.clientEmit('player-position', { x: 3200, y: 1900, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: false, clientGameState: 'playing' }, result => { xpGuestAck = result; });
+  assert.equal(xpOwnerAck?.ok, true);
+  assert.equal(xpGuestAck?.ok, true);
+  await waitFor(() => owner.all('shared-xp-award').length > ownerXpAwardsBefore, 2000);
+  assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore + 1, 'the collector receives one XP award');
+  assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'the other player receives no XP from the orb');
+  assert.ok(owner.all('world-xp-orb-collected').some(evt => String(evt.orbId) === String(xpOrb.id)), 'orb removal is broadcast to the whole room');
+
   // Simulate minimizing the browser: send one final position beside a mob, then stop
   // sending position packets entirely. The server must continue ticking and attack that
   // last known position without a browser animation frame or a new heartbeat.
@@ -196,7 +230,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const nearestEnemy = currentSnapshot.enemies[0];
   let frozenPositionAck = null;
   const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
-  await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
+  await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 3, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
   assert.equal(frozenPositionAck?.ok, true);
   await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 2500);
   const damageWhileFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).at(-1);

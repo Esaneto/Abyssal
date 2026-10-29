@@ -23,6 +23,13 @@
     angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 })
   });
 
+  // Radius in screen-logical pixels. Both solo and online convert it once into world units.
+  // Higher XP values (especially bosses) create visibly larger resonance orbs.
+  function xpOrbRadius(value) {
+    const amount = Math.max(1, Number(value) || 1);
+    return clamp(3.4 + Math.sqrt(amount) * 1.35, 4.5, 15.5);
+  }
+
   function statsForKind(kind) {
     const stats = ENEMY_STATS[kind] || ENEMY_STATS.drifter;
     return { ...stats };
@@ -108,5 +115,5 @@
     return { moved: Math.abs(x - oldX) > 1e-8 || Math.abs(y - oldY) > 1e-8, target, distance, dx, dy };
   }
 
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, chooseCommonKind, chooseBossKind, chooseSpawnPoint, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, moveTowardTarget };
 });
