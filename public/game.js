@@ -761,7 +761,16 @@ function draw(t){
  // Cooperative companions: live players are relayed by the online server; if alone, a helper drone appears.
  if(player && onlineMode){
    const peers=window.AbyssalOnline?window.AbyssalOnline.getPlayers():[];
-   peers.forEach(peer=>{const px=Number(peer.x)||0,py=Number(peer.y)||0;drawCreature(px,py,12/worldZoom,peer.angle||0,peer.color||'#b8a4ff','peer',t,true,0,ctx,window.AbyssalGameHooks?.skinForId?.(peer.skinId));ctx.fillStyle='#d8ffff';ctx.font='10px Manrope';ctx.textAlign='center';ctx.fillText(peer.nickname||'Mergulhador',px,py-22)});
+   peers.forEach(peer=>{
+      const px=Number(peer.x)||0,py=Number(peer.y)||0;
+      drawCreature(px,py,12/worldZoom,peer.angle||0,peer.color||'#b8a4ff','peer',t,true,0,ctx,window.AbyssalGameHooks?.skinForId?.(peer.skinId));
+      const titleNames={'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável'};
+      const titleColors={'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff'};
+      const title=titleNames[peer.titleId]||'';
+      ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
+      if(title){ctx.font='800 9px Manrope';ctx.fillStyle=titleColors[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;ctx.fillText(title,px,py-31);}
+      ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font='700 11px Manrope';ctx.fillText(peer.nickname||'Mergulhador',px,py-19);ctx.restore();
+    });
  }
  // corner scanner details
  ctx.save();ctx.strokeStyle='rgba(123,215,223,.23)';ctx.lineWidth=1;const s=14;[[12,12,1,1],[W-12,12,-1,1],[12,H-12,1,-1],[W-12,H-12,-1,-1]].forEach(([x,y,a,b])=>{ctx.beginPath();ctx.moveTo(x,y+s*b);ctx.lineTo(x,y);ctx.lineTo(x+s*a,y);ctx.stroke()});ctx.restore();
