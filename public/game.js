@@ -771,6 +771,13 @@ function draw(t){
       if(title){ctx.font='800 9px Manrope';ctx.fillStyle=titleColors[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;ctx.fillText(title,px,py-31);}
       ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font='700 11px Manrope';ctx.fillText(peer.nickname||'Mergulhador',px,py-19);ctx.restore();
     });
+    const self=window.AbyssalOnline?.getAccount?.()||{};
+    const selfTitleNames={'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável'};
+    const selfTitleColors={'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff'};
+    const selfTitle=selfTitleNames[self.equippedTitle]||'';
+    ctx.save();ctx.textAlign='center';
+    if(selfTitle){ctx.font='800 9px Manrope';ctx.fillStyle=selfTitleColors[self.equippedTitle]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;ctx.fillText(selfTitle,player.x,player.y-31);}
+    ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font='700 11px Manrope';ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-19);ctx.restore();
  }
  // corner scanner details
  ctx.save();ctx.strokeStyle='rgba(123,215,223,.23)';ctx.lineWidth=1;const s=14;[[12,12,1,1],[W-12,12,-1,1],[12,H-12,1,-1],[W-12,H-12,-1,-1]].forEach(([x,y,a,b])=>{ctx.beginPath();ctx.moveTo(x,y+s*b);ctx.lineTo(x,y);ctx.lineTo(x+s*a,y);ctx.stroke()});ctx.restore();
