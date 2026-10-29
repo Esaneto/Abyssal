@@ -175,7 +175,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
-  assert.equal(health.world.engine, 'shared-solo-ai-server-tick-and-authoritative-combat');
+  assert.equal(health.world.engine, 'server-authoritative-enemy-positions-with-client-interpolation-and-contact-source');
   assert.ok(health.simulation.movingEnemies > 0);
 
   // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.

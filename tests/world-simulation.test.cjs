@@ -82,7 +82,7 @@ test('online mobs use the shared contact radius and remain visible beside the pl
   const player = { id: 'p1', x: 1100, y: 1000 };
   for (let i = 1; i <= 40; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
-  const sharedContactRadius = (stats.r + 13) / AI.WORLD_ZOOM;
+  const sharedContactRadius = (stats.r + 13 + 8) / AI.WORLD_ZOOM;
   assert.ok(distance > 0, 'enemy must not settle at the exact player coordinate');
   assert.ok(distance < sharedContactRadius, 'enemy remains within contact/damage range');
   assert.ok(distance >= sharedContactRadius * 0.55, 'enemy remains outside the exact player center');
@@ -104,7 +104,7 @@ test('a stationary player does not cause the whole online horde to freeze at con
   const player = { id: 'p1', x: 1000, y: 1000, hp: 10000, maxHp: 10000, alive: true, shieldCharges: 0 };
   for (let i = 1; i <= 700; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   assert.ok(world.movingEnemyCount > 0, 'enemy keeps moving even after reaching a stationary player');
-  assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < 30, 'enemy remains inside attack distance');
+  assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < (stats.r + 13 + 8) / AI.WORLD_ZOOM, 'enemy remains inside attack distance');
 });
 
 
@@ -133,4 +133,21 @@ test('authoritative room spawns a boss at the one-minute deadline and makes it a
   assert.ok(world.enemies.some(e => e.id === boss.id), 'boss remains in authoritative world state');
   assert.ok(result.sendSnapshot || result.spawnedBosses.length, 'server has a reason to broadcast the boss immediately');
   assert.equal(world.enemies.length, 4, 'the horde and the new boss coexist');
+});
+
+
+test('server contact radius exactly matches the visible solo sprite collision and reports attack source', () => {
+  const stats = AI.statsForKind('drifter');
+  const enemy = { id: 91, kind: 'drifter', x: 1000, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, damage: stats.damage, color: stats.color, phase: 0, attackCd: 0 };
+  const player = { id: 'p1', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, hp: 100, maxHp: 100, alive: true, shieldCharges: 0, invulnerableUntil: 0 };
+  const contact = Sim.contactGeometry(enemy, player);
+  const expected = enemy.r / AI.WORLD_ZOOM + player.r + 8 / AI.WORLD_ZOOM;
+  assert.ok(Math.abs(contact.radius - expected) < 1e-8, 'player radius is not divided by world zoom twice');
+  const world = Sim.createWorldState(1000); world.initialized = true; world.lastTick = 1000; world.nextBossAt=999999; world.commonSpawnTimer=999999; world.enemies=[enemy]; world.nextEnemyId=91;
+  const result=Sim.tickWorld(world,[player],1050);
+  const hit=result.playerHits.find(h=>h.playerId==='p1');
+  assert.ok(hit, 'a close enemy should apply contact damage');
+  assert.equal(hit.enemyId,91);
+  assert.ok(Number.isFinite(hit.enemyX)&&Number.isFinite(hit.enemyY));
+  assert.ok(Number.isFinite(hit.contactDistance)&&Number.isFinite(hit.contactRadius));
 });

@@ -20,9 +20,11 @@ test('online client receives authoritative player vitals from the server', () =>
   assert.match(game, /if\(data\.alive===false&&gameState!=='over'\)endGame\(\)/);
 });
 
-test('online client never applies local enemy-contact damage or local regeneration', () => {
-  assert.match(game, /if\(!onlineMode&&target\.local&&td</);
+test('online client renders server-authoritative enemy positions instead of simulating a divergent copy', () => {
+  assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
+  assert.match(game, /if\(target\.local&&td<e\.r\+player\.r\+8\/worldZoom\)/);
   assert.match(game, /if\(!onlineMode&&upgrades\.regen>0/);
+  assert.match(game, /revealOnlineContactSource\(data\)/);
 });
 
 test('returning to a minimized tab requests current vitals and a fresh snapshot', () => {

@@ -20,6 +20,20 @@ function createWorldState(now = Date.now()) {
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
 function countCommons(world) { return world.enemies.length - countBosses(world).length; }
 
+function contactGeometry(enemy, target) {
+  const enemyRadiusWorld = Math.max(1, Number(enemy?.r) || 10) / WORLD_ZOOM;
+  // Player radius is stored in WORLD UNITS already (13 / WORLD_ZOOM).
+  const playerRadiusWorld = Math.max(1, Number(target?.r) || (13 / WORLD_ZOOM));
+  const paddingWorld = 8 / WORLD_ZOOM; // exactly the solo collision padding
+  const dx = Number(target?.x) - Number(enemy?.x);
+  const dy = Number(target?.y) - Number(enemy?.y);
+  return {
+    distance: Math.hypot(dx, dy),
+    radius: enemyRadiusWorld + playerRadiusWorld + paddingWorld,
+    enemyRadiusWorld, playerRadiusWorld, paddingWorld
+  };
+}
+
 function forceAdvanceEnemy(enemy, players, dt) {
   if (!enemy || !players.length || dt <= 0) return false;
   let target = null, nearest = Infinity;
@@ -199,7 +213,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const movement = EnemyAI.moveTowardTarget(enemy, validPlayers, dt, {
       minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM,
       minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM,
-      stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9)
+      stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96)
     });
     if (!movement.moved && validPlayers.length && dt > 0) {
       movement.moved = forceAdvanceEnemy(enemy, validPlayers, dt);
@@ -212,10 +226,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // stopping its local game loop. We keep the last validated player coordinates.
     const target = movement.target;
     if (!target || target.alive === false || enemy.attackCd > 0) continue;
-    const contactDistance = Math.hypot(Number(target.x) - Number(enemy.x), Number(target.y) - Number(enemy.y));
-    const enemyRadiusWorld = Math.max(1, Number(enemy.r) || 10) / WORLD_ZOOM;
-    const playerRadiusWorld = Math.max(1, Number(target.r) || (13 / WORLD_ZOOM));
-    const contactRadius = enemyRadiusWorld + playerRadiusWorld + 6 / WORLD_ZOOM;
+    const contact = contactGeometry(enemy, target);
+    const contactDistance = contact.distance;
+    const contactRadius = contact.radius;
     if (contactDistance > contactRadius) continue;
 
     // Spend the attack cooldown even when blocked by invulnerability so a pack cannot
@@ -246,6 +259,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     world.playerDamageCount = (world.playerDamageCount || 0) + 1;
     playerHits.push({
       playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
+      enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
+      enemyRadius: contact.enemyRadiusWorld, playerX: Number(target.x), playerY: Number(target.y),
+      contactDistance, contactRadius,
       damage: appliedDamage, blocked, hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
@@ -277,4 +293,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry };

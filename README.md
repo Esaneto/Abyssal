@@ -1,4 +1,4 @@
-# Abyssal — v3.4.0
+# Abyssal — v3.4.1
 
 ## Correções desta versão
 
@@ -7,7 +7,7 @@
 - O evento `player-vitals` agora é recebido pelo cliente e sincroniza vida, escudos, invulnerabilidade e fim de mergulho. Ao voltar à aba, o cliente solicita o estado atual do jogador e um snapshot do mundo.
 - O cliente não aplica dano de contato nem regeneração local no cooperativo, evitando duplicação e valores de vida divergentes.
 - Ao sair o último jogador, a sala personalizada é removida, a simulação para e o registro é excluído do diretório. Se todos os jogadores forem derrotados enquanto conectados, o ticker para e a horda é liberada. Uma nova partida reinicializa o mundo.
-- Os ativos HTML/JS/CSS usam query string `v=3.4.0` para evitar clientes com código antigo em cache.
+- Os ativos HTML/JS/CSS usam query string `v=3.4.1` para evitar clientes com código antigo em cache.
 
 ## Atualizar no Render
 
@@ -19,10 +19,19 @@
 
 ## Verificação
 
-Durante uma partida ativa, abra `/health`. A versão deve mostrar `build: 3.4.0`, `backgroundSimulation: server-owned`, `worldTickerActive: true`, `simulation.errors: 0`, `movingEnemies` maior que zero e `latestPositionAgeMs` baixo enquanto o cliente envia posições.
+Durante uma partida ativa, abra `/health`. A versão deve mostrar `build: 3.4.1`, `backgroundSimulation: server-owned`, `worldTickerActive: true`, `simulation.errors: 0`, `movingEnemies` maior que zero e `latestPositionAgeMs` baixo enquanto o cliente envia posições.
 
 Minimizar o navegador não pausa o loop do servidor. Se a conexão realmente se desconectar ou o usuário sair do mundo, o servidor remove esse jogador; quando o último jogador sai, a sala customizada é destruída e o ticker é desligado. O Render Free ainda pode suspender a instância após inatividade geral conforme as regras da plataforma.
 
 ## Testes
 
 Execute `npm test`. Os testes cobrem o módulo de IA, netcode, som, simulação autoritativa, vida/dano no servidor, recebimento de estado e limpeza de salas sem jogadores.
+
+
+## v3.4.1 — correção de dano sem inimigo visível
+
+- O cooperativo passou a renderizar a posição autoritativa do servidor com interpolação de snapshots, em vez de simular uma segunda cópia dos inimigos no navegador.
+- O servidor envia a origem exata do contato que causou dano (`enemyId`, tipo, coordenadas, distância e raio de contato). O cliente alinha o inimigo visual à posição de contato e mostra um marcador/aviso com o nome da criatura.
+- Corrigido o raio do jogador no cálculo de contato: `player.r` já está em unidades do mundo e não deve ser dividido por `WORLD_ZOOM` uma segunda vez. A fórmula passa a corresponder à colisão do modo solo.
+- O endpoint `/health` inclui `simulation.combat.lastPlayerHit` para diagnosticar a última origem de dano, sem armazenar dados de senha.
+- Não requer alterar `DATABASE_URL`; atualiza os arquivos de cliente e servidor.
