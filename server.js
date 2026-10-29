@@ -109,6 +109,11 @@ app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
+const globalChatHistory=[];
+const globalChatRate=new Map();
+const CHAT_HISTORY_LIMIT=50,CHAT_MESSAGE_LIMIT=180,CHAT_RATE_WINDOW_MS=10000,CHAT_RATE_MAX=5,CHAT_MIN_INTERVAL_MS=900;
+const CHAT_TITLE_IDS=new Set(TITLE_DEFINITIONS.map(t=>t.id));
+function publicChatMessage(message){return {id:message.id,nickname:message.nickname,titleId:message.titleId,text:message.text,at:message.at};}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
@@ -409,7 +414,7 @@ function worldTick() {
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
- socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
+ socket.emit('online-count', onlineCount()); socket.emit('global-chat-history',globalChatHistory); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
@@ -431,7 +436,23 @@ io.on('connection', socket => {
   user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user) });
  });
- socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
+   socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
+  socket.on('global-chat-send',(payload={})=>{
+   if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
+   const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
+   const recent=previous.filter(t=>now-t<CHAT_RATE_WINDOW_MS);
+   if(recent.length>=CHAT_RATE_MAX||(recent.length&&now-recent[recent.length-1]<CHAT_MIN_INTERVAL_MS)){
+    globalChatRate.set(socket.id,recent);return socket.emit('global-chat-error',{message:'Você está transmitindo rápido demais. Aguarde um pouco.'});
+   }
+   const text=String(payload?.text||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim().slice(0,CHAT_MESSAGE_LIMIT);
+   if(!text)return;
+   recent.push(now);globalChatRate.set(socket.id,recent);
+   const user=users[socket.data.userKey];
+   const message={id:crypto.randomUUID(),nickname:socket.data.nickname,titleId:CHAT_TITLE_IDS.has(user?.equippedTitle)?user.equippedTitle:'abyss-drifter',text,at:now};
+   globalChatHistory.push(message);if(globalChatHistory.length>CHAT_HISTORY_LIMIT)globalChatHistory.splice(0,globalChatHistory.length-CHAT_HISTORY_LIMIT);
+   io.emit('global-chat-message',publicChatMessage(message));
+  });
+  socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
  socket.on('create-room', async payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-created',{ok:false,message:'Entre na sua conta antes de criar uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
@@ -612,7 +633,7 @@ io.on('connection', socket => {
   u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
- socket.on('disconnect', () => { if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
+ socket.on('disconnect', () => { globalChatRate.delete(socket.id); if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heartbeat falhou:',err.message)),5000).unref();
