@@ -588,7 +588,8 @@ io.on('connection', socket => {
   p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
   p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);p.clientMotionAt=Date.now();
   const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
-  const skinId=String(payload.skinId||'default');p.skinId=allowedSkinIds.has(skinId)?skinId:'default';
+  const account=users[socket.data.userKey],skinId=String(account?.equippedSkin||'default');
+  p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=60){
