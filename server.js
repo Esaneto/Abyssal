@@ -15,11 +15,13 @@ const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
+const CARDUMES_FILE = path.join(DATA_DIR, 'cardumes.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
 const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, monthly: {}, settled: { day: '', week: '', month: '' } };
 let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));
 let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
+let cardumes = readJson(CARDUMES_FILE, {});
 let pgPool = null;
 let persistenceQueue = Promise.resolve();
 function persistState(key, value) {
@@ -41,6 +43,11 @@ function scheduleTitleStatsSave() {
  if(titleStatsSaveTimer)return;
  titleStatsSaveTimer=setTimeout(()=>{titleStatsSaveTimer=null;saveUsers();},2000);
  titleStatsSaveTimer.unref?.();
+}
+function saveCardumes() {
+ try { fs.writeFileSync(CARDUMES_FILE, JSON.stringify(cardumes, null, 2), { mode: 0o600 }); }
+ catch (err) { console.warn('[persistence] Arquivo de cardumes indisponível:', err.message); }
+ persistState('cardumes', cardumes);
 }
 function saveRanks() {
  try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
@@ -64,7 +71,7 @@ async function initializePersistence() {
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
- const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings')");
+ const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes')");
  const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
  if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
   users = Object.assign(Object.create(null), stored.users);
@@ -78,6 +85,8 @@ async function initializePersistence() {
   rankings = { ...EMPTY_RANKINGS, ...rankings, monthly: { ...(rankings.monthly || {}) }, settled: { ...EMPTY_RANKINGS.settled, ...(rankings.settled || {}) } };
   await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('rankings',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(rankings)]);
  }
+ if (stored.cardumes && typeof stored.cardumes === 'object' && !Array.isArray(stored.cardumes)) cardumes = stored.cardumes;
+ else await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('cardumes',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(cardumes)]);
  console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
 }
 async function flushPersistence() { await persistenceQueue; }
@@ -101,7 +110,7 @@ const TITLE_DEFINITIONS=[
   {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50}
  ];
  function unlockedTitleIds(u){const stats=u.titleStats||{};return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||(Number(stats[t.kind==='kills'?'monstersDefeated':'bossesDefeated'])||0)>=t.required).map(t=>t.id)}
- function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
+ function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
@@ -490,7 +499,33 @@ io.on('connection', socket => {
   socket.emit('session-resumed',{ok:true,...publicUser(user)});
  });
  socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
-  socket.on('global-chat-send',(payload={})=>{
+    const publicCardume = c => ({id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity,createdAt:c.createdAt,open:c.open});
+  const sendCardumes = () => socket.emit('cardumes-list',Object.values(cardumes).map(publicCardume).sort((a,b)=>b.members-a.members||a.name.localeCompare(b.name)));
+  socket.on('list-cardumes',sendCardumes);
+  socket.on('create-cardume',(payload={})=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para criar um Cardume.'});
+   if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já faz parte de um Cardume.'});
+   const name=String(payload.name||'').replace(/[<>\u0000-\u001f]/g,'').trim().slice(0,24),description=String(payload.description||'').replace(/[<>\u0000-\u001f]/g,' ').trim().slice(0,120);
+   if(name.length<3)return socket.emit('cardume-action-result',{ok:false,message:'O nome do Cardume deve ter pelo menos 3 caracteres.'});
+   if(Object.values(cardumes).some(c=>c.name.toLowerCase()===name.toLowerCase()))return socket.emit('cardume-action-result',{ok:false,message:'Já existe um Cardume com esse nome.'});
+   if(Object.keys(cardumes).length>=500)return socket.emit('cardume-action-result',{ok:false,message:'O limite de Cardumes foi atingido.'});
+   const id=crypto.randomUUID(),entry={id,name,description,leader:user.nickname,members:[key],capacity:30,open:true,createdAt:Date.now()};cardumes[id]=entry;user.cardumeId=id;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Cardume criado! Você é o líder.',cardume:publicCardume(entry),account:publicUser(user)});sendCardumes();
+  });
+  socket.on('join-cardume',(payload={})=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para recrutar-se em um Cardume.'});
+   if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já pertence a um Cardume. Saia dele antes de entrar em outro.'});
+   const c=cardumes[String(payload.id||'')];if(!c||!c.open)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume não está disponível.'});
+   if(c.members.length>=c.capacity)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume está cheio.'});
+   c.members.push(key);user.cardumeId=c.id;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você entrou no Cardume '+c.name+'.',cardume:publicCardume(c),account:publicUser(user)});sendCardumes();
+  });
+  socket.on('leave-cardume',()=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta primeiro.'});
+   const c=cardumes[user.cardumeId];if(!c)return socket.emit('cardume-action-result',{ok:false,message:'Você não está em um Cardume.'});
+   c.members=c.members.filter(member=>member!==key);delete user.cardumeId;
+   if(!c.members.length)delete cardumes[c.id];else if(c.leader===user.nickname)c.leader=users[c.members[0]]?.nickname||'Líder';
+   saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você saiu do Cardume.',account:publicUser(user)});sendCardumes();
+  });
+socket.on('global-chat-send',(payload={})=>{
    if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
    const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
    const recent=previous.filter(t=>now-t<CHAT_RATE_WINDOW_MS);
@@ -722,8 +757,8 @@ io.on('connection', socket => {
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
   const code=String(payload?.code||'').trim().toLowerCase();if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
-  u.redeemedCodes ||= [];if(u.redeemedCodes.includes('abyssal10k'))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.',account:publicUser(u)});
-  u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('abyssal10k');saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u)});
+  u.redeemedCodes ||= [];
+  u.coins=(Number(u.coins)||0)+10000;saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências. Você pode resgatá-lo novamente quando quiser.',account:publicUser(u)});
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;

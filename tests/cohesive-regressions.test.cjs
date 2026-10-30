@@ -127,7 +127,7 @@ test('new shooter upgrades and photon online shot type remain wired', () => {
 });
 
 
-test('abyssal10k grants 10,000 essences to authenticated account only once', () => {
+test('abyssal10k can be redeemed repeatedly by the same authenticated account', () => {
   const game = read('public/game.js');
   const online = read('public/online.js');
   const server = read('server.js');
@@ -135,7 +135,7 @@ test('abyssal10k grants 10,000 essences to authenticated account only once', () 
   assert.match(online, /socket\.emit\('redeem-code'/);
   assert.match(server, /socket\.on\('redeem-code'/);
   assert.match(server, /u\.coins=\(Number\(u\.coins\)\|\|0\)\+10000/);
-  assert.match(server, /u\.redeemedCodes\.includes\('abyssal10k'\)/);
+  assert.doesNotMatch(server, /u\.redeemedCodes\.includes\('abyssal10k'\)/);
 });
 
 test('menu adds fish and rock ambience, currents push the player, active skills can be equipped and unequipped', () => {
@@ -166,3 +166,7 @@ test('client-side currents do not overwrite authoritative online movement', () =
   assert.match(game, /if\(!onlineMode\)\{currentSpawnTimer/);
   assert.match(game, /if\(!onlineMode\)\{for\(const current of currentZones\)/);
 });
+
+
+test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes', cardumes\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',renderCardumesList\)/)});
+test('menu removes the old octopus and currents render as flowing ribbons',()=>{const html=read('public/index.html');const css=read('public/style.css');const game=read('public/game.js');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/);assert.match(game,/const length=z\.radius\*3\.8,width=z\.radius\*\.62/);assert.match(game,/for\(let n=0;n<11;n\+\+\)/)});
