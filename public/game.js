@@ -899,7 +899,26 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 }
 
 function drawCurrentZones(t){
- if(!currentZones.length)return;ctx.save();ctx.lineCap='round';for(const z of currentZones){const alpha=Math.min(1,z.life/2);ctx.save();ctx.translate(z.x,z.y);ctx.rotate(z.angle);const pulse=1+Math.sin(t*.004+z.x*.01)*.04;ctx.globalAlpha=.45*alpha;const grad=ctx.createRadialGradient(0,0,5,0,0,z.radius*pulse);grad.addColorStop(0,'rgba(74,224,229,.16)');grad.addColorStop(.7,'rgba(42,161,196,.09)');grad.addColorStop(1,'rgba(30,121,164,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,0,z.radius*pulse,z.radius*.55,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(108,245,238,.6)';ctx.lineWidth=2/worldZoom;ctx.beginPath();ctx.ellipse(0,0,z.radius*.92,z.radius*.45,0,0,Math.PI*2);ctx.stroke();for(let n=0;n<4;n++){const x=-z.radius*.65+n*z.radius*.42,yy=Math.sin(t*.005+n*1.7)*z.radius*.18;ctx.strokeStyle='rgba(177,255,251,.8)';ctx.lineWidth=3/worldZoom;ctx.beginPath();ctx.moveTo(x-z.radius*.13,yy);ctx.lineTo(x+z.radius*.08,yy);ctx.lineTo(x+z.radius*.02,yy-z.radius*.07);ctx.stroke();}ctx.restore();}ctx.restore();}
+ if(!currentZones.length)return;
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+ for(const z of currentZones){
+  const alpha=Math.max(0,Math.min(1,z.life/2)),length=z.radius*3.8,width=z.radius*.62;
+  ctx.save();ctx.translate(z.x,z.y);ctx.rotate(z.angle);
+  const pulse=1+Math.sin(t*.0025+z.x*.003)*.035;
+  const grad=ctx.createLinearGradient(-length/2,0,length/2,0);
+  grad.addColorStop(0,'rgba(34,157,190,0)');grad.addColorStop(.12,'rgba(44,186,208,.10)');grad.addColorStop(.5,'rgba(83,236,230,.19)');grad.addColorStop(.88,'rgba(44,186,208,.10)');grad.addColorStop(1,'rgba(34,157,190,0)');
+  ctx.globalAlpha=alpha;ctx.fillStyle=grad;ctx.beginPath();ctx.moveTo(-length/2,0);ctx.bezierCurveTo(-length*.28,-width*pulse,-length*.1,-width*.82,length*.08,-width*.68);ctx.bezierCurveTo(length*.28,-width*.55,length*.38,-width*pulse,length/2,0);ctx.bezierCurveTo(length*.34,width*pulse,length*.13,width*.76,-length*.08,width*.68);ctx.bezierCurveTo(-length*.3,width*.55,-length*.4,width*pulse,-length/2,0);ctx.fill();
+  ctx.strokeStyle='rgba(105,248,239,.35)';ctx.lineWidth=2/worldZoom;ctx.beginPath();ctx.moveTo(-length*.47,0);ctx.bezierCurveTo(-length*.18,-width*.2,length*.15,width*.2,length*.47,0);ctx.stroke();
+  for(let n=0;n<11;n++){
+   const phase=(t*.00016*(z.speed||110)+n/11+((z.x+z.y)*.00001))%1;
+   const x=-length*.46+phase*length*.92,y=Math.sin(phase*15+t*.001+n)*width*.24;
+   const streak=length*(.018+(n%3)*.006);
+   ctx.globalAlpha=alpha*(.28+(n%4)*.12);ctx.strokeStyle=n%3===0?'rgba(198,255,250,.95)':'rgba(81,210,226,.72)';ctx.lineWidth=(1.2+n%2)/worldZoom;ctx.beginPath();ctx.moveTo(x-streak,y);ctx.lineTo(x+streak,y+Math.sin(t*.002+n)*width*.035);ctx.stroke();
+  }
+  ctx.restore();
+ }
+ ctx.restore();
+}
 function drawArenaTerrain(t){
  // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
