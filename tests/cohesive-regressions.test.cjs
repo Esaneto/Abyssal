@@ -66,7 +66,7 @@ test('menu navigation remains a responsive grid with wrapping labels and refresh
   const html = read('public/index.html');
   const css = read('public/style.css');
   assert.match(html, /style\.css\?v=3\.5\.31/);
-  assert.match(html, /game\.js\?v=3\.5\.33/);
+  assert.match(html, /game\.js\?v=3\.5\.34/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
@@ -156,6 +156,7 @@ test('menu ambience and active skills remain present without per-frame current-z
 test('online damage rejects stale-room hits quietly and avoids per-hit acknowledgements', () => {
   const game = read('public/game.js');
   const online = read('public/online.js');
+  const server = read('server.js');
   assert.doesNotMatch(game, /IMPACTO NÃO CONFIRMADO/);
   assert.match(game, /if\(\['not-in-room','not-connected','enemy-not-found','ack-timeout'\]\.includes\(reason\)\)return/);
   assert.match(online, /!currentRoom\)return false/);
