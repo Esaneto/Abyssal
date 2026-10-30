@@ -186,8 +186,26 @@
       // Face the prey while strafing around it.
       enemy.angle = Math.atan2(Number(target.y) - y, Number(target.x) - x);
     }
-    x = clamp(x, Number.isFinite(options.minX) ? options.minX : 0, Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH);
-    y = clamp(y, Number.isFinite(options.minY) ? options.minY : 0, Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT);
+    const minX = Number.isFinite(options.minX) ? options.minX : 0;
+    const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
+    const minY = Number.isFinite(options.minY) ? options.minY : 0;
+    const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
+    x = clamp(x, minX, maxX);
+    y = clamp(y, minY, maxY);
+    // If clamping an orbit point against the arena wall erased all movement, steer
+    // tangentially along the boundary instead of leaving the creature frozen in place.
+    if (speed > 0 && Math.hypot(x - oldX, y - oldY) < 0.05) {
+      const id = Math.abs(Math.floor(Number(enemy.id) || 1));
+      const radial = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
+      const direction = (id % 2) ? 1 : -1;
+      const candidates = [radial + direction * Math.PI / 2, Math.atan2(dy, dx)];
+      for (const angle of candidates) {
+        const step = Math.max(0.25, Math.min(speed * dt, 5));
+        const nx = clamp(oldX + Math.cos(angle) * step, minX, maxX);
+        const ny = clamp(oldY + Math.sin(angle) * step, minY, maxY);
+        if (Math.hypot(nx - oldX, ny - oldY) >= 0.05) { x = nx; y = ny; break; }
+      }
+    }
     enemy.x = x; enemy.y = y;
     enemy.vx = (x - oldX) / Math.max(dt, 0.001);
     enemy.vy = (y - oldY) / Math.max(dt, 0.001);
