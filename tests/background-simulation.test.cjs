@@ -1,3 +1,4 @@
+// Regression coverage for view-scoped motion, compact lifecycle packets and skill batching.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
