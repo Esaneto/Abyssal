@@ -65,7 +65,7 @@ const skinData=[
 {id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'kraken',name:'Kraken, Sorriso do Abismo',color:'#52c8b5',price:30000,paid:false,shape:'kraken',desc:'Uma lula ancestral de sorriso dentado e oito tentáculos grossos que se afilam até desaparecer na escuridão.',ability:'Varredura tentacular: a cada 12 segundos, atinge até seis inimigos próximos.'}
+{id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000,paid:false,shape:'kraken',desc:'Uma entidade das fossas com oito tentáculos robustos, pontas afiadas e olhos violeta que emergem da escuridão.',ability:'Varredura tentacular: a cada 12 segundos, atinge até seis inimigos próximos.'}
 ];
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 function saveCosmetics(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades});}
@@ -74,7 +74,7 @@ let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,ac
 const MAX_ENEMIES=50,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','leviathan','maw','angler','kraken'];
-const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',kraken:'KRAKEN · SORRISO DO ABISMO'});
+const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',kraken:'KRAKEN · SENHOR DAS FOSSAS'});
 const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável'});
 const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff'});
 const particlePool=[];
@@ -283,7 +283,7 @@ function spawnEnemy(initial=false,type='common'){
   leviathan:{r:54,hp:4700,speed:44,damage:34,color:'#4ce0d1',value:90},
   maw:{r:45,hp:3750,speed:58,damage:31,color:'#c16cff',value:75},
   angler:{r:35,hp:3260,speed:66,damage:28,color:'#ffb45e',value:65},
-  kraken:{r:80,hp:9200,speed:20,damage:38,color:'#52c8b5',value:180},
+  kraken:{r:80,hp:9200,speed:20,damage:38,color:'#8b5cf6',value:180},
   drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
   stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
@@ -747,8 +747,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   if(id==='kraken'){
     for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
     fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(132,247,223,.88)',Math.max(1.2,r*.06),12);
-    for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#ff314f';c.shadowBlur=10*glowScale;c.shadowColor='#ff1b42';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.09,r*.13,side*-.16,0,Math.PI*2);c.fill();c.restore();}
-    c.save();c.fillStyle='#020309';c.strokeStyle='rgba(150,26,54,.85)';c.lineWidth=Math.max(.8,r*.03);c.beginPath();c.moveTo(-.42*r,.03*r);c.quadraticCurveTo(0,.32*r,.45*r,.015*r);c.quadraticCurveTo(.35*r,.42*r,0,.38*r);c.quadraticCurveTo(-.32*r,.37*r,-.42*r,.03*r);c.closePath();c.fill();c.stroke();c.fillStyle='#e9d5c9';for(let tooth=0;tooth<7;tooth++){const tx=(-.34+tooth*.11)*r,ty=(.12+Math.sin(tooth*.7)*.045)*r;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx+r*.045,ty+r*.105);c.lineTo(tx+r*.078,ty+r*.015);c.closePath();c.fill();}c.restore();
+    for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#d9c7ff';c.shadowBlur=13*glowScale;c.shadowColor='#a855f7';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.075,r*.12,side*-.16,0,Math.PI*2);c.fill();c.restore();}
+    c.save();c.strokeStyle='rgba(9,5,24,.98)';c.lineWidth=Math.max(1.2,r*.075);c.lineCap='round';c.beginPath();c.moveTo(-.28*r,.18*r);c.quadraticCurveTo(0,.12*r,.28*r,.18*r);c.stroke();c.strokeStyle='rgba(192,132,252,.9)';c.lineWidth=Math.max(.7,r*.018);c.beginPath();c.moveTo(-.18*r,.2*r);c.quadraticCurveTo(0,.16*r,.18*r,.2*r);c.stroke();c.restore();
     for(let g=0;g<3;g++)stroke(()=>{c.moveTo((-.42+g*.1)*r,-.44*r);c.quadraticCurveTo((-.35+g*.1)*r,-.26*r,(-.3+g*.1)*r,-.12*r)},Math.max(.7,r*.024),'rgba(207,255,239,.55)',2);
    } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.

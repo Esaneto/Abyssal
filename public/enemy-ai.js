@@ -21,7 +21,7 @@
     leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
     maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
-    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#52c8b5', value: 180 })
+    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
@@ -133,8 +133,18 @@
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
+    // Bosses build pressure as their health falls, but never outrun the target player.
+    // The same shared steering runs in solo and on the authoritative online server.
+    let pursuitSpeed = baseSpeed;
+    if (BOSS_KINDS.includes(enemy.kind)) {
+      const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const healthRatio = clamp((Number(enemy.hp) || 0) / maxHp, 0, 1);
+      const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
+      const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
+      pursuitSpeed = Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp);
+    }
     // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
-    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? baseSpeed * 0.74 : baseSpeed;
+    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? pursuitSpeed * 0.74 : pursuitSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     let x = oldX, y = oldY;
