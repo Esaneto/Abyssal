@@ -194,6 +194,7 @@ let lastWorldTickAt = 0;
 let worldTickErrors = 0;
 const combatDiagnostics = { damageEvents: 0, appliedHits: 0, rejectedHits: 0, kills: 0, bossSpawns: 0, playerAttacks: 0, playerDefeats: 0, lastDamageAt: null, lastBossSpawnAt: null, lastPlayerAttackAt: null, lastDamageReason: null, lastPlayerHit: null, xpOrbsSpawned: 0, xpOrbsCollected: 0, lastXpOrbPickup: null };
 let worldTicker = null;
+const simulatingRooms = new Set();
 let roomRegistryReady = false;
 let roomDirectoryQueue = Promise.resolve();
 function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);roomDirectoryQueue=run.catch(()=>{});return run;}
@@ -327,9 +328,10 @@ function awardWorldBossCoins(room){
  if(changed)saveUsers();
 }
 function refreshWorldTicker(){
- const hasActiveRoom=[...rooms.values()].some(room=>hasLivingPlayers(room));
- if(hasActiveRoom&&!worldTicker){worldTicker=setInterval(worldTick,50);worldTicker.unref?.();}
- else if(!hasActiveRoom&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
+ simulatingRooms.clear();
+ for(const room of rooms.values())if(hasLivingPlayers(room))simulatingRooms.add(room);
+ if(simulatingRooms.size&&!worldTicker){worldTicker=setInterval(worldTick,50);worldTicker.unref?.();}
+ else if(!simulatingRooms.size&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
 }
 function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  const room=socketRoom(socket);
@@ -513,19 +515,16 @@ function tickRoom(room, now) {
 }
 
 function worldTick() {
- const active=[];
- for(const room of rooms.values())if(hasLivingPlayers(room))active.push(room);
- if(!active.length){if(worldTicker){clearInterval(worldTicker);worldTicker=null;}return;}
+ if(!simulatingRooms.size){if(worldTicker){clearInterval(worldTicker);worldTicker=null;}return;}
  const now=Date.now();worldTickCount++;lastWorldTickAt=now;
- let hasLivingAfterTick=false;
- for(const room of active){
+ for(const room of simulatingRooms){
+  if(rooms.get(room.id)!==room){simulatingRooms.delete(room);continue;}
   try{tickRoom(room,now);}
   catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
-  if(hasLivingPlayers(room))hasLivingAfterTick=true;
+  if(!hasLivingPlayers(room))simulatingRooms.delete(room);
  }
- // Avoid rescanning every idle room on every 50 ms tick. The ticker is only stopped
- // when the last living player in all active rooms is defeated.
- if(!hasLivingAfterTick&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
+ // Only currently occupied, living rooms are visited in the hot 50 ms loop.
+ if(!simulatingRooms.size&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
 }
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
