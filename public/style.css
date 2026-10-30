@@ -1425,3 +1425,22 @@ body.mobile-game-active #mobileJoystick.is-floating .joystick-knob{width:48px;he
     padding:5px 5px !important;
   }
 }
+
+
+/* Abyssal 3.5.31 — título do menu dimensionado pelo espaço real disponível. */
+#menuScreen .menu-content{box-sizing:border-box;min-width:0;max-width:100%}
+#menuScreen h1{
+ width:100%;max-width:100%;
+ font-size:clamp(28px,min(9.5vw,6.4vh),58px);
+ line-height:.94;letter-spacing:-.065em;
+ overflow-wrap:normal;word-break:normal;text-wrap:balance;
+}
+#menuScreen h1 em{display:inline-block;max-width:100%}
+@media(max-width:420px){
+ #menuScreen .menu-content{padding-left:14px;padding-right:14px}
+ #menuScreen h1{font-size:clamp(26px,9vw,38px);line-height:.96;letter-spacing:-.06em}
+}
+@media(max-height:560px){
+ #menuScreen h1{font-size:clamp(24px,5.4vh,34px);line-height:.95;margin:6px 0 8px}
+ #menuScreen .menu-content{padding-top:8px;padding-bottom:60px;gap:6px}
+}
