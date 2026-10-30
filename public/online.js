@@ -138,11 +138,16 @@ function connect(){
 socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:result}));});
  socket.on('wheel-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:result}));});
  socket.on('world-enemy-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged',{detail:data||{}}));});
+ socket.on('world-enemies-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged-batch',{detail:Array.isArray(data)?data:[]}));});
  // Server-owned HP/shields are sent reliably. Bridge them to the game UI; without this
  // listener a minimized client could be killed server-side but still look alive on resume.
  socket.on('player-vitals',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-vitals',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
  socket.on('world-enemy-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated',{detail:data}));});
+ socket.on('world-enemies-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated-batch',{detail:Array.isArray(data)?data:[]}));});
+ socket.on('world-xp-orb-spawned',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orb-spawned',{detail:data||{}}));});
+ socket.on('world-xp-orbs-spawned',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orbs-spawned',{detail:Array.isArray(data)?data:[]}));});
+ socket.on('world-xp-orbs-expired',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orbs-expired',{detail:Array.isArray(data)?data:[]}));});
  socket.on('world-xp-orb-collected',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orb-collected',{detail:data||{}}));});
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
@@ -169,6 +174,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
+ socket.on('world-enemies-spawned',data=>{if(window.AbyssalGameHooks?.applySpawn)window.AbyssalGameHooks.applySpawn(data);});
  socket.on('enemy-contact-source',data=>{if(window.AbyssalGameHooks?.registerContactSnapshot)window.AbyssalGameHooks.registerContactSnapshot(data);});
  socket.on('enemy-motion',data=>{if(window.AbyssalGameHooks?.applyMotion)window.AbyssalGameHooks.applyMotion(data);});
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
@@ -286,6 +292,12 @@ function startPositionHeartbeat(){
 function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
+function sendDamageBatch(hits){
+ if(!socket?.connected||!authenticated||!currentRoom||!Array.isArray(hits))return false;
+ const valid=hits.slice(0,128).map(hit=>({id:Number(hit?.id),damage:Number(hit?.damage),skillId:String(hit?.skillId||'').slice(0,32)})).filter(hit=>Number.isSafeInteger(hit.id)&&Number.isFinite(hit.damage)&&hit.damage>0);
+ if(!valid.length)return false;
+ socket.emit('shared-damage-batch',{hits:valid});return true;
+}
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
@@ -341,7 +353,7 @@ function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p)
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,sendGlobalChatMessage,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,sendGlobalChatMessage,getAccount:()=>serverAccount};
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
  if(socket?.connected&&authenticated&&currentRoom){
