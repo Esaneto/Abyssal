@@ -194,6 +194,7 @@ let lastWorldTickAt = 0;
 let worldTickErrors = 0;
 const combatDiagnostics = { damageEvents: 0, appliedHits: 0, rejectedHits: 0, kills: 0, bossSpawns: 0, playerAttacks: 0, playerDefeats: 0, lastDamageAt: null, lastBossSpawnAt: null, lastPlayerAttackAt: null, lastDamageReason: null, lastPlayerHit: null, xpOrbsSpawned: 0, xpOrbsCollected: 0, lastXpOrbPickup: null };
 let worldTicker = null;
+const simulatingRooms = new Set();
 let roomRegistryReady = false;
 let roomDirectoryQueue = Promise.resolve();
 function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);roomDirectoryQueue=run.catch(()=>{});return run;}
@@ -240,6 +241,21 @@ function getRoomSnapshot(room, metadata = {}){
 }
 // Critical changes are reliable: joins, new entities, deaths and contact attacks must
 // never refer to an entity that the client has not received yet. Routine positions stay volatile.
+function getRoomMotionSnapshot(room){
+ if(!room?.world?.initialized||!room.players.size)return null;
+ const world=room.world;
+ world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+ return {
+  worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
+  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,intervalMs:100,
+  enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>[
+   e.id,e.x,e.y,Number(e.vx)||0,Number(e.vy)||0,Number(e.hp)||0,Number(e.maxHp)||1,
+   Number(e.angle)||0,Number(e.phase)||0,Number(e.hit)||0,Number(e.attackCd)||0,Number(e.damageRevision)||0,
+   e.suctionActive===true,Number(e.suctionTimer)||0,Number(e.suctionCooldown)||0,Number(e.suctionPulse)||0
+  ]),
+  orbs:(world.orbs||[]).slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])
+ };
+}
 function broadcastWorld(room, metadata = {}){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
 async function persistRoomRow(room){
  if(!pgPool||!roomRegistryReady||!room||room.id===DEFAULT_ROOM_ID)return;
@@ -312,9 +328,10 @@ function awardWorldBossCoins(room){
  if(changed)saveUsers();
 }
 function refreshWorldTicker(){
- const hasActiveRoom=[...rooms.values()].some(room=>hasLivingPlayers(room));
- if(hasActiveRoom&&!worldTicker){worldTicker=setInterval(worldTick,50);worldTicker.unref?.();}
- else if(!hasActiveRoom&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
+ simulatingRooms.clear();
+ for(const room of rooms.values())if(hasLivingPlayers(room))simulatingRooms.add(room);
+ if(simulatingRooms.size&&!worldTicker){worldTicker=setInterval(worldTick,50);worldTicker.unref?.();}
+ else if(!simulatingRooms.size&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
 }
 function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  const room=socketRoom(socket);
@@ -437,13 +454,11 @@ function tickRoom(room, now) {
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
 
- // Reliable snapshots are sent BEFORE the dependent event (damage/boss/XP). That way
- // every client has the exact authoritative attacker/entity state before reacting to it.
- // Movement snapshots are reliable and sequenced: volatile delivery previously let a
- // dropped update freeze visible enemies until extrapolation expired. At 10 Hz and 50
- // entities the payload is bounded, and lifecycle/contact snapshots remain reliable too.
- const criticalEnemyIds = [...new Set([...spawnedEnemies.map(enemy => String(enemy.id)), ...playerHits.map(hit => String(hit.enemyId))])];
+ // Full snapshots are sent BEFORE dependent damage/boss/XP events so each client
+ // has the authoritative attacker/entity state. Intervening compact motion packets are
+ // sequenced and update only already-known entities.
  const criticalChange = spawnedEnemies.length > 0 || playerHits.length > 0 || xpCollected.length > 0;
+ const criticalEnemyIds = criticalChange ? [...new Set([...spawnedEnemies.map(enemy => String(enemy.id)), ...playerHits.map(hit => String(hit.enemyId))])] : [];
  let criticalSnapshot = null;
  if (criticalChange || result.sendReliableSnapshot) {
   const reason = playerHits.length ? 'enemy-contact' : spawnedEnemies.length ? 'enemy-spawn' : xpCollected.length ? 'xp-orb-collected' : 'periodic-baseline';
@@ -453,8 +468,8 @@ function tickRoom(room, now) {
   if (criticalSnapshot) io.to(channelFor(room)).emit('game-snapshot', criticalSnapshot);
   w.reliableSnapshotTimer = 0.25;
  } else if (result.sendSnapshot) {
-  const snapshot = getRoomSnapshot(room);
-  if (snapshot) io.to(channelFor(room)).emit('game-snapshot', snapshot);
+  const motion = getRoomMotionSnapshot(room);
+  if (motion) io.to(channelFor(room)).emit('enemy-motion', motion);
  }
 
  for (const boss of spawnedBosses) {
@@ -498,17 +513,16 @@ function tickRoom(room, now) {
 }
 
 function worldTick() {
- const active = [...rooms.values()].filter(room => hasLivingPlayers(room));
- if (!active.length) { refreshWorldTicker(); return; }
- const now = Date.now(); worldTickCount++; lastWorldTickAt = now;
- for (const room of active) {
-  try { tickRoom(room, now); }
-  catch (err) { worldTickErrors++; room.world.lastTick = now; console.error(`[simulation] tick failed in room ${room.id}:`, err.stack || err); }
+ if(!simulatingRooms.size){if(worldTicker){clearInterval(worldTicker);worldTicker=null;}return;}
+ const now=Date.now();worldTickCount++;lastWorldTickAt=now;
+ for(const room of simulatingRooms){
+  if(rooms.get(room.id)!==room){simulatingRooms.delete(room);continue;}
+  try{tickRoom(room,now);}
+  catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
+  if(!hasLivingPlayers(room))simulatingRooms.delete(room);
  }
- // If nobody is alive, refreshWorldTicker() pauses simulation without clearing state.
- // Enemies, bosses, XP orbs and elapsed time resume when a player revives. Empty rooms
- // are cleared in removeFromRoom(), after the final socket leaves.
- refreshWorldTicker();
+ // Only currently occupied, living rooms are visited in the hot 50 ms loop.
+ if(!simulatingRooms.size&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
 }
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}

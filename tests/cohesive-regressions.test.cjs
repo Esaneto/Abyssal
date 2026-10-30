@@ -63,7 +63,7 @@ test('menu navigation remains a responsive grid with wrapping labels and refresh
   const html = read('public/index.html');
   const css = read('public/style.css');
   assert.match(html, /style\.css\?v=3\.5\.31/);
-  assert.match(html, /game\.js\?v=3\.5\.31/);
+  assert.match(html, /game\.js\?v=3\.5\.32/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
