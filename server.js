@@ -110,7 +110,7 @@ const TITLE_DEFINITIONS=[
   {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50}
  ];
  function unlockedTitleIds(u){const stats=u.titleStats||{};return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||(Number(stats[t.kind==='kills'?'monstersDefeated':'bossesDefeated'])||0)>=t.required).map(t=>t.id)}
- function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
+ function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
