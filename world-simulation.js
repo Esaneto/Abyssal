@@ -9,7 +9,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function createWorldState(now = Date.now()) {
   return {
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
-    nextBossAt: 60, bossSpawnCount: 0, lastBossKind: null,
+    nextBossAt: 60, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
@@ -101,13 +101,13 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
 
   let kind;
   if (type === 'boss') {
-    kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random);
+    kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else kind = EnemyAI.chooseCommonKind(random);
 
   const stats = EnemyAI.statsForKind(kind);
   if (type === 'boss') {
-    stats.hp = world.lastBossMaxHp > 0 ? Math.max(stats.hp, world.lastBossMaxHp * 1.5) : stats.hp;
+    // Preserve the ordered base HP tiers; only damage scales between waves.
     stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
     stats.speed = kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
     world.lastBossMaxHp = stats.hp;
@@ -152,7 +152,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   if (world.initialized) return [];
   world.initialized = true;
   world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 60;
-  world.bossSpawnCount = 0; world.lastBossKind = null;
+  world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
   world.lastTick = now; world.snapshotTimer = 0; world.playerSnapshotTimer = 0;
@@ -222,20 +222,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const spawnedBosses = [];
   if (world.elapsed >= world.nextBossAt) {
     const activeBossCount = countBosses(world).length;
-    if (activeBossCount < MAX_BOSSES && world.enemies.length < MAX_ENEMIES) {
+    const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(validPlayers.length / 2));
+    let currentBossCount = activeBossCount;
+    while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
       const boss = spawnEnemy(world, { type: 'boss', random });
-      if (boss) {
-        spawnedBosses.push(boss);
-        spawnedEnemies.push(boss);
-        world.nextBossAt = world.elapsed + 60;
-      } else {
-        world.nextBossAt = world.elapsed + 3;
-      }
-    } else if (activeBossCount >= MAX_BOSSES) {
-      world.nextBossAt = world.elapsed + 60;
-    } else {
-      world.nextBossAt = world.elapsed + 3;
+      if (!boss) break;
+      spawnedBosses.push(boss);
+      spawnedEnemies.push(boss);
+      currentBossCount++;
     }
+    world.nextBossAt = currentBossCount > activeBossCount ? world.elapsed + 60 : world.elapsed + 3;
   }
 
   let movedEnemyCount = 0;
