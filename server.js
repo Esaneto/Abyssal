@@ -260,10 +260,13 @@ function getRoomMotionSnapshot(room, options = {}){
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,intervalMs:100,
+  // Quantized world coordinates (one world unit is < 1 screen pixel) and only
+  // fields needed to render motion, health and boss suction.
   enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>[
-   e.id,e.x,e.y,Number(e.vx)||0,Number(e.vy)||0,Number(e.hp)||0,Number(e.maxHp)||1,
-   Number(e.angle)||0,Number(e.phase)||0,Number(e.hit)||0,Number(e.attackCd)||0,Number(e.damageRevision)||0,
-   e.suctionActive===true,Number(e.suctionTimer)||0,Number(e.suctionCooldown)||0,Number(e.suctionPulse)||0
+   e.id,Math.round(Number(e.x)||0),Math.round(Number(e.y)||0),Number(e.hp)||0,Number(e.damageRevision)||0,
+   Math.round((Number(e.angle)||0)*100)/100,Math.round((Number(e.phase)||0)*100)/100,
+   e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,
+   Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100
   ]),
   ...(options.includeOrbs?{orbs:(world.orbs||[]).slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
  };
