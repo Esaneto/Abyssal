@@ -156,7 +156,7 @@ function playerVitalsPayload(player, extra = {}) {
 }
 const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken']);
 const MAX_PLAYERS_PER_ROOM = 6;
-const MAX_ENEMIES_PER_ROOM = 50;
+const MAX_ENEMIES_PER_ROOM = 150;
 const MAX_BOSSES_PER_ROOM = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
