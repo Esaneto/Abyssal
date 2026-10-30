@@ -228,7 +228,7 @@ function updateUpgradeCountdown(){
 function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const selected=Object.entries(upgradeLevels).filter(([,rank])=>Number(rank)>0).sort((a,b)=>a[0].localeCompare(b[0]));
- panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<div class="selected-skill-row"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></div>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
+ panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<div class="selected-skill-row" title="'+skill.desc+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></div>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
 function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
