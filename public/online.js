@@ -171,6 +171,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
  socket.on('shared-xp-award',data=>{if(window.AbyssalGameHooks?.sharedXp)window.AbyssalGameHooks.sharedXp(data);});
  socket.on('world-players',list=>applyPlayerList(list));
+ socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('player-joined',p=>{if(p.id!==socket.id)storePlayer(p)});
  socket.on('player-left',id=>players.delete(id));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
