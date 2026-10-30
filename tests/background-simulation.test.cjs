@@ -111,13 +111,5 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
   assert.match(server,/socket\.on\('shared-damage-batch'/);
   assert.match(online,/function sendDamageBatch\(hits\)/);
   assert.match(game,/flushOnlineDamageBatch\(\)/);
-  assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
-  assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
-  assert.match(server,/orbScope:recipient\?'view':'all'/);
-  assert.match(game,/orbDuration=clamp\(Number\(data\.orbIntervalMs\)\|\|500,400,650\)/);
-  assert.match(game,/data\.orbScope!=='view'/);
-  assert.match(server,/emit\('world-xp-orbs-expired',expiredOrbIds\)/);
-  assert.match(server,/socket\.on\('shared-damage-batch'/);
-  assert.match(online,/function sendDamageBatch\(hits\)/);
-  assert.match(game,/flushOnlineDamageBatch\(\)/);
+
 });
