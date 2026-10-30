@@ -227,7 +227,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   // sending position packets entirely. The server must continue ticking and attack that
   // last known position without a browser animation frame or a new heartbeat.
   const currentSnapshot = owner.latest('game-snapshot');
-  const nearestEnemy = currentSnapshot.enemies[0];
+  const nearestEnemy = currentSnapshot.enemies.find(enemy => String(enemy.id) !== String(xpTarget.id)) || currentSnapshot.enemies[0];
   let frozenPositionAck = null;
   const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
   await owner.clientEmit('client-visibility', { hidden: true });
