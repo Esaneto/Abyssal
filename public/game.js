@@ -1545,7 +1545,8 @@ window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePend
 window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};showBossAlert(d.kind,d.id,d.threat);});
 window.addEventListener('abyssal-room-joined',ev=>{onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');const d=ev.detail||{};if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`⌁ ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.hidden=false;}showToast(`MERGULHAR ONLINE · ${d.room?.name||'SALA ABISSAL'}`)});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
-window.addEventListener('abyssal-room-left',()=>{const badge=$('roomBadge');if(badge)badge.hidden=true;setMobileGameActive(false)});
+window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
+window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;const badge=$('roomBadge');if(badge)badge.hidden=true;setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 $('roomsCloseBtn')?.addEventListener('click',()=>{$('roomsScreen').hidden=true;onlineMode=false});
 $('refreshRoomsBtn')?.addEventListener('click',()=>window.AbyssalOnline?.requestRooms());
