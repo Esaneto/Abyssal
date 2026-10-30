@@ -1100,12 +1100,12 @@ window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.
 function redeemAbyssalCode(){
  const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
  if(!message||!input)return;
- if(code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
- if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode('abyssal10k');return;}
+ if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}if(code!=='bemvindoabyssal'&&code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
+ if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode(code);return;}
  let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
- if(redeemed.includes('abyssal10k')){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
- coins+=10000;redeemed.push('abyssal10k');localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));saveCosmetics();
- message.textContent='CÓDIGO RESGATADO! +10.000 ESSÊNCIAS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+ if(redeemed.includes(code)){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
+ coins+=10000;redeemed.push(code);localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));saveCosmetics();
+ message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
