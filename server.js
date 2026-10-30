@@ -742,6 +742,10 @@ socket.on('global-chat-send',(payload={})=>{
     if(String(globalChatHistory[i]?.nickname||'').toLowerCase()===String(user.nickname||'').toLowerCase())globalChatHistory.splice(i,1);
    }
    io.emit('global-chat-history',globalChatHistory.map(publicChatMessage));
+   // Keep social links and Cardume membership consistent when an account is deleted.
+   const oldCardume=cardumes[user.cardumeId];
+   if(oldCardume){oldCardume.members=oldCardume.members.filter(member=>member!==key);if(!oldCardume.members.length)delete cardumes[oldCardume.id];else if(oldCardume.leader===user.nickname)oldCardume.leader=users[oldCardume.members[0]]?.nickname||'Líder';saveCardumes();}
+   for(const other of Object.values(users)){other.likedBy=(Array.isArray(other.likedBy)?other.likedBy:[]).filter(member=>member!==key);other.likedProfiles=(Array.isArray(other.likedProfiles)?other.likedProfiles:[]).filter(profile=>profile!==key);}
    delete users[key];
    const removeFromBoard=(board)=>{
     if(!board||typeof board!=='object')return;
@@ -751,7 +755,7 @@ socket.on('global-chat-send',(payload={})=>{
    removeFromBoard(rankings);
    saveUsers();saveRanks();await flushPersistence();
    socket.emit('account-deletion-result',{ok:true,message:'Sua conta e os dados associados foram excluídos permanentemente.'});
-   broadcastOnline();
+   broadcastOnline();broadcastCardumeRosters();
   }catch(err){
    console.error('[account] Falha ao excluir conta:',err.message);
    socket.emit('account-deletion-result',{ok:false,message:'Não foi possível concluir a exclusão agora. Tente novamente mais tarde.'});
