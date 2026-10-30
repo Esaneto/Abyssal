@@ -96,21 +96,21 @@
   }
 
   // Shared suction geometry for the solo client and authoritative co-op simulation.
-  // Pull is strongest at the outer edge and falls smoothly to zero near the mouth.
+  // The doubled field has a near-irresistible outer pull; quadratic falloff weakens it smoothly near the mouth.
   function suctionPullDelta(target, boss, dt, options = {}) {
     if (!target || !boss || !Number.isFinite(dt) || dt <= 0 || boss.suctionActive !== true) {
       return { dx: 0, dy: 0, strength: 0 };
     }
     const dx = Number(boss.x) - Number(target.x), dy = Number(boss.y) - Number(target.y);
     const distance = Math.hypot(dx, dy);
-    const range = Math.max(1, Number(options.range) || 620 / WORLD_ZOOM);
+    const range = Math.max(1, Number(options.range) || 1240 / WORLD_ZOOM);
     const safeRadius = clamp(Number(options.safeRadius) || 155 / WORLD_ZOOM, 0, range - 1);
     if (!Number.isFinite(distance) || distance <= safeRadius || distance >= range) {
       return { dx: 0, dy: 0, strength: 0 };
     }
     const linearStrength = clamp((distance - safeRadius) / (range - safeRadius), 0, 1);
     const strength = linearStrength * linearStrength;
-    const maxSpeed = Math.max(0, Number(options.maxSpeed) || 180 / WORLD_ZOOM);
+    const maxSpeed = Math.max(0, Number(options.maxSpeed) || 520 / WORLD_ZOOM);
     const step = Math.min(distance - safeRadius, maxSpeed * strength * dt);
     if (step <= 0) return { dx: 0, dy: 0, strength };
     return { dx: dx / distance * step, dy: dy / distance * step, strength };
