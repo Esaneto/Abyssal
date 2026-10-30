@@ -33,8 +33,8 @@ test('online client renders server-authoritative enemy positions instead of simu
   assert.match(server, /criticalSnapshot\?\.snapshotSeq/);
   assert.match(server, /getRoomContactSnapshot\(room,playerHits\)/);
   assert.match(server, /emit\('enemy-contact-source',contactSnapshot\)/);
-  assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
-  assert.match(server, /if\(motion\)io\.to\(channelFor\(room\)\)\.volatile\.emit\('enemy-motion',motion\)/);
+  assert.match(server, /if\s*\(criticalSnapshot\)\s*io\.to\(channelFor\(room\)\)\.emit\('game-snapshot',\s*criticalSnapshot\)/);
+  assert.match(server, /if\s*\(motion\)\s*io\.to\(channelFor\(room\)\)\.volatile\.emit\('enemy-motion',\s*motion\)/);
   assert.match(online, /socket\.on\('enemy-contact-source'/);
   assert.match(game, /function registerEnemyContactSnapshot\(data\)/);
   assert.match(game, /if\(data\.targetWasHidden===true\)alignPlayerToAuthoritativeContact\(data\)/);
@@ -81,7 +81,7 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
 
 test('authoritative movement is lossy-but-fresh, while collision verification keeps a reliable attacker frame', () => {
   assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'entity lifecycle and recovery snapshots must remain reliable');
-  assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
+  assert.match(server, /if\s*\(criticalSnapshot\)\s*io\.to\(channelFor\(room\)\)\.emit\('game-snapshot',\s*criticalSnapshot\)/);
   assert.match(server, /\.volatile\.emit\('enemy-motion',motion\)/);
   const tickRoom=server.indexOf('function tickRoom(room, now)');
   const motionEmit=server.indexOf("volatile.emit('enemy-motion',motion)",tickRoom);
@@ -94,7 +94,7 @@ test('authoritative movement is lossy-but-fresh, while collision verification ke
 
 test('room traffic uses compact player motion, slower roster recovery and throttled orb snapshots',()=>{
   assert.match(server,/getRoomPlayerMotion\(room\)/);
-  assert.match(server,/socket\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion',motion\)/);
+  assert.match(server,/io\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion',motion\)/);
   assert.match(online,/socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
   assert.match(online,/function applyPlayerMotion\(rows\)/);
   assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 1/);

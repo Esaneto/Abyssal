@@ -12,7 +12,7 @@ test('online players are broadcast from accepted position heartbeats', () => {
   assert.match(server, /connectionStateRecovery:\s*\{\s*maxDisconnectionDuration:\s*120000/);
   assert.match(server, /room\.lastPlayersBroadcastAt/);
   assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('player-motion'/);
-  assert.match(server, /socket\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion'/);
+  assert.match(server, /io\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion'/);
   assert.match(online, /socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
 });
 
