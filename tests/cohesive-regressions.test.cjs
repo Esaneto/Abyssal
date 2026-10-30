@@ -10,7 +10,9 @@ test('online players are broadcast from accepted position heartbeats', () => {
   const server = read('server.js');
   assert.match(server, /connectionStateRecovery:\s*\{\s*maxDisconnectionDuration:\s*120000/);
   assert.match(server, /room\.lastPlayersBroadcastAt/);
-  assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('world-players'/);
+  assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('player-motion'/);
+  assert.match(server, /socket\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion'/);
+  assert.match(online, /socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
 });
 
 test('temporary disconnect preserves the last synchronized account profile', () => {
@@ -63,7 +65,7 @@ test('menu navigation remains a responsive grid with wrapping labels and refresh
   const html = read('public/index.html');
   const css = read('public/style.css');
   assert.match(html, /style\.css\?v=3\.5\.31/);
-  assert.match(html, /game\.js\?v=3\.5\.32/);
+  assert.match(html, /game\.js\?v=3\.5\.33/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
