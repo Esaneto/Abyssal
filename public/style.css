@@ -1295,3 +1295,7 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
  body.mobile-game-active #roomBadge.room-badge{top:auto!important;left:auto!important;right:max(6px,env(safe-area-inset-right))!important;bottom:max(6px,env(safe-area-inset-bottom))!important;max-width:clamp(42px,13vw,76px)!important;padding:3px 4px!important;font-size:5px!important;letter-spacing:0!important;opacity:.5!important;z-index:7!important;}
 }
 @media(max-width:380px){body.mobile-game-active #roomBadge.room-badge{max-width:48px!important;padding:2px 3px!important;font-size:5px!important;}}
+
+
+/* Botão de saída sempre visível no topo das janelas de loja e roleta. */
+.shop-modal,.wheel-modal{position:relative;padding-top:44px!important}.modal-top-close{position:absolute;top:10px;right:10px;z-index:20;width:32px;height:32px;display:grid;place-items:center;border:1px solid rgba(121,243,240,.32);border-radius:7px;background:rgba(3,15,26,.9);color:#d9ffff;font-size:23px;line-height:1;cursor:pointer}.modal-top-close:hover{background:rgba(21,66,78,.95);border-color:rgba(121,243,240,.7)}
