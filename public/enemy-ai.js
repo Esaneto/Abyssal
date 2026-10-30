@@ -12,7 +12,7 @@
   const WORLD_HEIGHT = 2200;
   const WORLD_ZOOM = 0.78;
   // Bosses ordered from the lowest base HP to the highest.
-  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'kraken']);
+  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'kraken', 'devourer']);
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
     stinger: Object.freeze({ r: 7, hp: 13, speed: 88, damage: 6, color: '#ffbc78', value: 2 }),
@@ -22,7 +22,8 @@
     leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
     maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
-    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 })
+    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
+    devourer: Object.freeze({ r: 78, hp: 15000, speed: 14, damage: 42, color: '#39d8c4', value: 260 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
@@ -92,6 +93,27 @@
     if (lengthSq <= 1e-9) return Math.hypot(px - ax, py - ay);
     const t = clamp(((px - ax) * dx + (py - ay) * dy) / lengthSq, 0, 1);
     return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+  }
+
+  // Shared suction geometry for the solo client and authoritative co-op simulation.
+  // Pull is strongest at the outer edge and falls smoothly to zero near the mouth.
+  function suctionPullDelta(target, boss, dt, options = {}) {
+    if (!target || !boss || !Number.isFinite(dt) || dt <= 0 || boss.suctionActive !== true) {
+      return { dx: 0, dy: 0, strength: 0 };
+    }
+    const dx = Number(boss.x) - Number(target.x), dy = Number(boss.y) - Number(target.y);
+    const distance = Math.hypot(dx, dy);
+    const range = Math.max(1, Number(options.range) || 620 / WORLD_ZOOM);
+    const safeRadius = clamp(Number(options.safeRadius) || 155 / WORLD_ZOOM, 0, range - 1);
+    if (!Number.isFinite(distance) || distance <= safeRadius || distance >= range) {
+      return { dx: 0, dy: 0, strength: 0 };
+    }
+    const linearStrength = clamp((distance - safeRadius) / (range - safeRadius), 0, 1);
+    const strength = linearStrength * linearStrength;
+    const maxSpeed = Math.max(0, Number(options.maxSpeed) || 180 / WORLD_ZOOM);
+    const step = Math.min(distance - safeRadius, maxSpeed * strength * dt);
+    if (step <= 0) return { dx: 0, dy: 0, strength };
+    return { dx: dx / distance * step, dy: dy / distance * step, strength };
   }
 
   /** True when a player overlaps an animated kraken arm, not only its central body. */
@@ -218,5 +240,5 @@
     result.target = target; result.distance = distance; result.dx = dx; result.dy = dy;
     return result;
   }
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });
