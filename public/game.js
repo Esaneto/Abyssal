@@ -243,7 +243,7 @@ function showSkillDescription(id,target){
 }
 function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
 const selectedSkillPanel=$('selectedSkillsList');
-// Mantém o ranking abaixo do painel de habilidades conforme a lista cresce ou muda de tamanho.
+// Mantém o ranking alinhado ao lado do painel de habilidades conforme a lista cresce ou muda de tamanho.
 function positionRunEnergyRanking(){
  const panel=$('selectedSkillsPanel');
  const ranking=$('runEnergyRanking');
