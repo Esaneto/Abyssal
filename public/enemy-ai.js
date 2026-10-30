@@ -123,9 +123,13 @@
   }
 
   /** Move one enemy toward the nearest target. x, y, speed and target coordinates all use world units. */
-  function moveTowardTarget(enemy, targets, dt, options = {}) {
+  function moveTowardTarget(enemy, targets, dt, options = {}, reusableResult = null) {
+    // Hot path: the server and solo client pass one reusable result object per frame/tick.
+    // External callers may omit it and receive a fresh object as before.
+    const result = reusableResult || {};
     if (!enemy || !Array.isArray(targets) || !targets.length || !Number.isFinite(dt) || dt <= 0) {
-      return { moved: false, target: null, distance: Infinity };
+      result.moved = false; result.target = null; result.distance = Infinity; result.dx = 0; result.dy = 0;
+      return result;
     }
     let target = null, dx = 0, dy = 0, distance = Infinity;
     for (const candidate of targets) {
@@ -134,14 +138,14 @@
       const cx = x - Number(enemy.x), cy = y - Number(enemy.y), d = Math.hypot(cx, cy);
       if (d < distance) { distance = d; dx = cx; dy = cy; target = candidate; }
     }
-    if (!target || !Number.isFinite(distance)) return { moved: false, target: null, distance: Infinity };
+    if (!target || !Number.isFinite(distance)) {
+      result.moved = false; result.target = null; result.distance = Infinity; result.dx = 0; result.dy = 0;
+      return result;
+    }
 
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
-    // Bosses begin slowly at full health and accelerate as they take damage.
-    // The hard cap is 79% of the player's base movement speed (before environmental
-    // slows), so even a nearly defeated boss cannot match the player's raw speed.
     let pursuitSpeed = baseSpeed;
     if (BOSS_KINDS.includes(enemy.kind)) {
       const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
@@ -152,20 +156,23 @@
       pursuitSpeed = slowSpeed + (fastSpeed - slowSpeed) * (1 - healthRatio);
       pursuitSpeed = Math.min(pursuitSpeed, playerSpeed * 0.79);
     }
-    // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
     const reducedPursuitSpeed = pursuitSpeed * 0.85;
     const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? reducedPursuitSpeed * 0.74 : reducedPursuitSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
+    // When no contact/orbit radius was requested, exact overlap must remain stationary.
+    // This also prevents zero-distance NaN/oscillation in the solo and server AI.
+    if (distance < 0.001 && stopDistance <= 0) {
+      enemy.vx = 0; enemy.vy = 0;
+      result.moved = false; result.target = target; result.distance = distance; result.dx = 0; result.dy = 0;
+      return result;
+    }
     let x = oldX, y = oldY;
     if (speed > 0 && distance > stopDistance + 0.5) {
-      // Same pursuit steering in solo and co-op: approach the nearest live player.
       const step = Math.min(distance - stopDistance, speed * dt);
       x += (dx / (distance || 1)) * step;
       y += (dy / (distance || 1)) * step;
     } else if (speed > 0 && stopDistance > 0) {
-      // A small horde should not collapse into one static pile at the player's feet.
-      // Stable ID-based lanes spread creatures around the prey while they keep moving.
       const id = Math.abs(Math.floor(Number(enemy.id) || 1));
       const lane = id % 6;
       const orbitRadius = stopDistance * (0.78 + lane * 0.12);
@@ -174,16 +181,13 @@
       let direction = Number(enemy.orbitDirection);
       if (!direction) direction = (id % 2) ? 1 : -1;
       enemy.orbitDirection = direction;
-      // The orbit speed is world-units/second compatible with the solo simulation.
       const angularSpeed = clamp((speed * 0.62) / Math.max(orbitRadius, 12), 0.35, 1.8);
       theta += direction * angularSpeed * dt;
       const desiredX = Number(target.x) + Math.cos(theta) * orbitRadius;
       const desiredY = Number(target.y) + Math.sin(theta) * orbitRadius;
-      // Move toward the next point on the orbit instead of teleporting to its radius.
       const ox = desiredX - oldX, oy = desiredY - oldY, od = Math.hypot(ox, oy);
       const orbitStep = Math.min(od, speed * dt);
       if (od > 1e-8) { x += ox / od * orbitStep; y += oy / od * orbitStep; }
-      // Face the prey while strafing around it.
       enemy.angle = Math.atan2(Number(target.y) - y, Number(target.x) - x);
     }
     const minX = Number.isFinite(options.minX) ? options.minX : 0;
@@ -192,25 +196,27 @@
     const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
     x = clamp(x, minX, maxX);
     y = clamp(y, minY, maxY);
-    // If clamping an orbit point against the arena wall erased all movement, steer
-    // tangentially along the boundary instead of leaving the creature frozen in place.
     if (speed > 0 && Math.hypot(x - oldX, y - oldY) < 0.05) {
       const id = Math.abs(Math.floor(Number(enemy.id) || 1));
       const radial = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
       const direction = (id % 2) ? 1 : -1;
-      const candidates = [radial + direction * Math.PI / 2, Math.atan2(dy, dx)];
-      for (const angle of candidates) {
-        const step = Math.max(0.25, Math.min(speed * dt, 5));
-        const nx = clamp(oldX + Math.cos(angle) * step, minX, maxX);
-        const ny = clamp(oldY + Math.sin(angle) * step, minY, maxY);
-        if (Math.hypot(nx - oldX, ny - oldY) >= 0.05) { x = nx; y = ny; break; }
+      const step = Math.max(0.25, Math.min(speed * dt, 5));
+      const firstAngle = radial + direction * Math.PI / 2;
+      const secondAngle = Math.atan2(dy, dx);
+      let nx = clamp(oldX + Math.cos(firstAngle) * step, minX, maxX);
+      let ny = clamp(oldY + Math.sin(firstAngle) * step, minY, maxY);
+      if (Math.hypot(nx - oldX, ny - oldY) < 0.05) {
+        nx = clamp(oldX + Math.cos(secondAngle) * step, minX, maxX);
+        ny = clamp(oldY + Math.sin(secondAngle) * step, minY, maxY);
       }
+      if (Math.hypot(nx - oldX, ny - oldY) >= 0.05) { x = nx; y = ny; }
     }
     enemy.x = x; enemy.y = y;
     enemy.vx = (x - oldX) / Math.max(dt, 0.001);
     enemy.vy = (y - oldY) / Math.max(dt, 0.001);
-    return { moved: Math.abs(x - oldX) > 1e-8 || Math.abs(y - oldY) > 1e-8, target, distance, dx, dy };
+    result.moved = Math.abs(x - oldX) > 1e-8 || Math.abs(y - oldY) > 1e-8;
+    result.target = target; result.distance = distance; result.dx = dx; result.dy = dy;
+    return result;
   }
-
   return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, moveTowardTarget };
 });

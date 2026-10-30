@@ -57,3 +57,18 @@ test('an enemy at contact distance continues orbital movement with the shared so
   assert.equal(result.moved, true);
   assert.ok(Math.hypot(enemy.x - target.x, enemy.y - target.y) > 0);
 });
+
+
+test('movement AI can reuse a caller-owned result object without changing behavior', () => {
+  const enemy = { x: 100, y: 100, speed: 80, kind: 'stinger', phase: 0 };
+  const result = {};
+  const target = { x: 400, y: 110 };
+  const first = moveTowardTarget(enemy, [target], 0.05, { minX: 0, maxX: AI.WORLD_WIDTH, minY: 0, maxY: AI.WORLD_HEIGHT }, result);
+  assert.strictEqual(first, result);
+  assert.equal(first.target, target);
+  assert.equal(first.moved, true);
+  const previousX = enemy.x;
+  const second = moveTowardTarget(enemy, [target], 0.05, { minX: 0, maxX: AI.WORLD_WIDTH, minY: 0, maxY: AI.WORLD_HEIGHT }, result);
+  assert.strictEqual(second, result);
+  assert.ok(enemy.x > previousX);
+});

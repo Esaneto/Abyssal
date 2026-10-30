@@ -62,8 +62,8 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.24/);
-  assert.match(html, /game\.js\?v=3\.5\.24/);
+  assert.match(html, /style\.css\?v=3\.5\.31/);
+  assert.match(html, /game\.js\?v=3\.5\.31/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
@@ -138,14 +138,13 @@ test('abyssal10k can be redeemed repeatedly by the same authenticated account', 
   assert.doesNotMatch(server, /u\.redeemedCodes\.includes\('abyssal10k'\)/);
 });
 
-test('menu adds fish and rock ambience, currents push the player, active skills can be equipped and unequipped', () => {
+test('menu ambience and active skills remain present without per-frame current-zone effects', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
   const game = read('public/game.js');
   assert.match(html, /class="menu-fauna"/);
   assert.match(css, /menuFishSwim/);
-  assert.match(game, /function drawCurrentZones/);
-  assert.match(game, /currentSpawnTimer/);
+  assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
   assert.match(game, /function toggleEquippedActiveSkill/);
   assert.match(game, /DESEQUIPAR/);
 });
@@ -161,10 +160,11 @@ test('online damage rejects stale-room hits quietly and avoids per-hit acknowled
   assert.doesNotMatch(online, /socket\.timeout\(2500\)\.emit\('shared-damage'/);
 });
 
-test('client-side currents do not overwrite authoritative online movement', () => {
+test('solo enemy movement uses the shared AI while online movement stays authoritative', () => {
   const game = read('public/game.js');
-  assert.match(game, /if\(!onlineMode\)\{currentSpawnTimer/);
-  assert.match(game, /if\(!onlineMode\)\{for\(const current of currentZones\)/);
+  assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
+  assert.match(game, /moveTowardTarget\(e,localTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult\)/);
+  assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
 });
 
 

@@ -16,12 +16,12 @@ test('level-up choice uses the shared codex cache and cannot fail on an undefine
   assert.doesNotMatch(handlers, /codex\.skills/);
 });
 
-test('level-up shows a 10-second countdown and picks a random option if time expires', () => {
+test('level-up shows a 25-second countdown and picks a random option if time expires', () => {
   const game = read('public/game.js');
   const html = read('public/index.html');
   assert.match(html, /id="upgradeTimerText"/);
   assert.match(html, /id="upgradeTimerFill"/);
-  assert.match(game, /upgradeDeadlineAt=performance\.now\(\)\+10000/);
+  assert.match(game, /upgradeDeadlineAt=performance\.now\(\)\+25000/);
   assert.match(game, /Math\.floor\(Math\.random\(\)\*available\.length\)/);
   assert.match(game, /clearUpgradeCountdown\(\)/);
 });

@@ -16,7 +16,7 @@ test('download control is outside the menu column and docked discreetly at the u
   assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
   assert.match(css, /#menuScreen \.download-cta\{[\s\S]*?top:12px;right:14px/);
   assert.match(css, /min-height:29px;height:29px/);
-  assert.ok(html.includes('style.css?v=3.5.24'));
+  assert.ok(html.includes('style.css?v=3.5.31'));
 });
 
 test('menu monster has a frightening toothed grin and the chat is docked beneath its face', () => {
@@ -47,4 +47,43 @@ test('canvas rendering caches static gradients and removes repeated terrain and 
   assert.match(game, /function setTextIfChanged\(/);
   assert.match(game, /PROFILE_TITLE_NAMES=Object\.freeze/);
   assert.match(game, /const enemyFrameNow=performance\.now\(\),localTarget=/);
+});
+
+
+test('combat updates only rebuild changed HUD sections and cache active-skill storage reads', () => {
+  const game = read('public/game.js');
+  assert.match(game, /function renderSoloEnergyRanking\(\)[\s\S]*?if\(value!==lastSoloRankingValue\)/);
+  assert.match(game, /panel\.dataset\.skillsSignature===signature/);
+  assert.match(game, /let equippedActiveSkillsCache=null/);
+  assert.match(game, /function updateAbilityButtons\(force=false\)/);
+  assert.match(game, /if\(!force&&now-lastAbilityUiAt<100\)return/);
+  assert.match(game, /updateHud\(false\)/);
+});
+
+test('horde hot paths reuse collision buckets and movement results', () => {
+  const game = read('public/game.js');
+  const ai = read('public/enemy-ai.js');
+  const simulation = read('world-simulation.js');
+  assert.match(game, /enemyCollisionBuckets\[enemyCollisionBucketCount\]/);
+  assert.match(game, /key=gy\*65536\+gx/);
+  assert.match(ai, /reusableResult\s*=\s*null/);
+  assert.match(simulation, /EnemyAI\.moveTowardTarget\(enemy,\s*targetablePlayers,\s*dt,\s*movementOptions,\s*movementResult\)/);
+  assert.match(simulation, /resolvedContactTarget/);
+});
+
+test('runtime performance snapshot measures update, drawing, long tasks and entity counts', () => {
+  const game = read('public/game.js');
+  assert.match(game, /window\.AbyssalPerformance=\{snapshot:getAbyssalPerformanceSnapshot\}/);
+  assert.match(game, /longTaskObserver\.observe\(\{type:'longtask',buffered:true\}\)/);
+  assert.match(game, /lastUpdateMs/);
+  assert.match(game, /lastDrawMs/);
+  assert.match(game, /frameP95Ms/);
+  assert.match(game, /heapUsedMb/);
+});
+
+test('menu title scales to narrow and short screens', () => {
+  const css = read('public/style.css');
+  assert.match(css, /#menuScreen h1\{[\s\S]*?font-size:clamp\(28px,min\(9\.5vw,6\.4vh\),58px\)/);
+  assert.match(css, /@media\(max-width:420px\)[\s\S]*?#menuScreen h1/);
+  assert.match(css, /@media\(max-height:560px\)[\s\S]*?#menuScreen h1/);
 });
