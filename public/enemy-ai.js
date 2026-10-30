@@ -21,7 +21,7 @@
     leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
     maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
-    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#52c8b5', value: 180 })
+    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
