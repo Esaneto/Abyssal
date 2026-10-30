@@ -160,6 +160,13 @@
     const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? reducedPursuitSpeed * 0.74 : reducedPursuitSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
+    // When no contact/orbit radius was requested, exact overlap must remain stationary.
+    // This also prevents zero-distance NaN/oscillation in the solo and server AI.
+    if (distance < 0.001 && stopDistance <= 0) {
+      enemy.vx = 0; enemy.vy = 0;
+      result.moved = false; result.target = target; result.distance = distance; result.dx = 0; result.dy = 0;
+      return result;
+    }
     let x = oldX, y = oldY;
     if (speed > 0 && distance > stopDistance + 0.5) {
       const step = Math.min(distance - stopDistance, speed * dt);
