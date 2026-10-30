@@ -222,7 +222,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const spawnedBosses = [];
   if (world.elapsed >= world.nextBossAt) {
     const activeBossCount = countBosses(world).length;
-    const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(validPlayers.length / 2));
+    const playerCountForDifficulty = Math.max(validPlayers.length, Math.floor(Number(world.roomPlayerCount) || 0));
+    const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(playerCountForDifficulty / 2));
     let currentBossCount = activeBossCount;
     while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
       const boss = spawnEnemy(world, { type: 'boss', random });
