@@ -501,9 +501,10 @@ function tickRoom(room, now) {
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
+ const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
 
- // Full snapshots are reserved for entity creation and periodic recovery. Contact hits
- // use a tiny attacker-only frame, while orb removals arrive through the next orb motion frame.
+ // Full snapshots are reserved for periodic recovery. Entity creation, damage and orb
+ // lifecycle changes use compact reliable events; motion stays volatile and view-scoped.
  const criticalEnemyIds=[...new Set([...spawnedEnemies.map(enemy=>String(enemy.id)),...playerHits.map(hit=>String(hit.enemyId))])];
  let criticalSnapshot=null;
  if(result.sendReliableSnapshot){
@@ -548,6 +549,7 @@ function tickRoom(room, now) {
    bossId: pull.bossId, strength: Number(pull.strength) || 0
   });
  }
+ if(expiredOrbIds.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expiredOrbIds);
  // Shared XP orb pickup is decided by the server. A single orb can only be claimed
  // once, and only the winning player receives the XP event. Snapshot above has removed it.
  for (const pickup of xpCollected) {
