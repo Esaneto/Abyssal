@@ -499,7 +499,33 @@ io.on('connection', socket => {
   socket.emit('session-resumed',{ok:true,...publicUser(user)});
  });
  socket.on('global-chat-history',()=>socket.emit('global-chat-history',globalChatHistory));
-  socket.on('global-chat-send',(payload={})=>{
+    const publicCardume = c => ({id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity,createdAt:c.createdAt,open:c.open});
+  const sendCardumes = () => socket.emit('cardumes-list',Object.values(cardumes).map(publicCardume).sort((a,b)=>b.members-a.members||a.name.localeCompare(b.name)));
+  socket.on('list-cardumes',sendCardumes);
+  socket.on('create-cardume',(payload={})=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para criar um Cardume.'});
+   if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já faz parte de um Cardume.'});
+   const name=String(payload.name||'').replace(/[<>\\u0000-\\u001f]/g,'').trim().slice(0,24),description=String(payload.description||'').replace(/[<>\\u0000-\\u001f]/g,' ').trim().slice(0,120);
+   if(name.length<3)return socket.emit('cardume-action-result',{ok:false,message:'O nome do Cardume deve ter pelo menos 3 caracteres.'});
+   if(Object.values(cardumes).some(c=>c.name.toLowerCase()===name.toLowerCase()))return socket.emit('cardume-action-result',{ok:false,message:'Já existe um Cardume com esse nome.'});
+   if(Object.keys(cardumes).length>=500)return socket.emit('cardume-action-result',{ok:false,message:'O limite de Cardumes foi atingido.'});
+   const id=crypto.randomUUID(),entry={id,name,description,leader:user.nickname,members:[key],capacity:30,open:true,createdAt:Date.now()};cardumes[id]=entry;user.cardumeId=id;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Cardume criado! Você é o líder.',cardume:publicCardume(entry),account:publicUser(user)});sendCardumes();
+  });
+  socket.on('join-cardume',(payload={})=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para recrutar-se em um Cardume.'});
+   if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já pertence a um Cardume. Saia dele antes de entrar em outro.'});
+   const c=cardumes[String(payload.id||'')];if(!c||!c.open)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume não está disponível.'});
+   if(c.members.length>=c.capacity)return socket.emit('cardume-action-result',{ok:false,message:'Este Cardume está cheio.'});
+   c.members.push(key);user.cardumeId=c.id;saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você entrou no Cardume '+c.name+'.',cardume:publicCardume(c),account:publicUser(user)});sendCardumes();
+  });
+  socket.on('leave-cardume',()=>{
+   const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta primeiro.'});
+   const c=cardumes[user.cardumeId];if(!c)return socket.emit('cardume-action-result',{ok:false,message:'Você não está em um Cardume.'});
+   c.members=c.members.filter(member=>member!==key);delete user.cardumeId;
+   if(!c.members.length)delete cardumes[c.id];else if(c.leader===user.nickname)c.leader=users[c.members[0]]?.nickname||'Líder';
+   saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você saiu do Cardume.',account:publicUser(user)});sendCardumes();
+  });
+socket.on('global-chat-send',(payload={})=>{
    if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
    const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
    const recent=previous.filter(t=>now-t<CHAT_RATE_WINDOW_MS);
@@ -731,8 +757,8 @@ io.on('connection', socket => {
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
   const code=String(payload?.code||'').trim().toLowerCase();if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
-  u.redeemedCodes ||= [];if(u.redeemedCodes.includes('abyssal10k'))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.',account:publicUser(u)});
-  u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('abyssal10k');saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u)});
+  u.redeemedCodes ||= [];
+  u.coins=(Number(u.coins)||0)+10000;saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências. Você pode resgatá-lo novamente quando quiser.',account:publicUser(u)});
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;
