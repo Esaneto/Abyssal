@@ -158,20 +158,21 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
   let ownerPositionAck = null, guestPositionAck = null;
-  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
-  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 800, viewportHeight: 500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
+  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
+  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
   assert.equal(ownerPositionAck?.ok, true, 'server acknowledges the player position stream');
   assert.equal(guestPositionAck?.ok, true, 'server acknowledges each co-op player position');
-  await waitFor(() => owner.all('game-snapshot').length >= 2, 2500);
+  await waitFor(() => owner.all('enemy-motion').length >= 1, 2500);
   await wait(350);
   const snapshots = owner.all('game-snapshot');
-  const latest = snapshots[snapshots.length - 1];
-  const moved = latest.enemies.some(enemy => {
-    const prev = firstPositions.get(enemy.id);
-    return prev && Math.hypot(enemy.x - prev.x, enemy.y - prev.y) > 1;
+  const latest = snapshots[snapshots.length - 1] || initialSnapshot;
+  const motion = owner.latest('enemy-motion');
+  const moved = (motion?.enemies || []).some(row => {
+    const prev = firstPositions.get(row[0]);
+    return prev && Math.hypot(Number(row[1]) - prev.x, Number(row[2]) - prev.y) > 1;
   });
-  assert.ok(moved, 'server snapshots should contain real enemy movement');
-  assert.ok(latest.elapsed > 0, 'server world clock advances while the room is occupied');
+  assert.ok(moved, 'compact per-player motion packets should contain real enemy movement');
+  assert.ok(Number(motion?.elapsed) > 0, 'server world clock advances in compact motion packets');
   const guestLatest = guest.latest('game-snapshot');
   assert.ok(guestLatest, 'the second client receives the room snapshot');
   assert.deepEqual(
@@ -206,11 +207,10 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: 1000 }, result => { killAck = result; });
   assert.equal(killAck?.ok, true, 'the server accepts damage that kills a common enemy');
   assert.equal(killAck.killed, true, 'the server confirms the enemy was killed');
-  const orbSnapshot = owner.latest('game-snapshot');
-  const xpOrb = orbSnapshot.orbs?.find(o => String(o.sourceEnemyId) === String(xpTarget.id));
-  assert.ok(xpOrb, 'the server snapshot contains the dropped XP orb');
-  const guestOrbSnapshot = guest.latest('game-snapshot');
-  assert.ok(guestOrbSnapshot.orbs?.some(o => String(o.id) === String(xpOrb.id)), 'the other player sees the same XP orb');
+  const xpOrb = owner.latest('world-xp-orb-spawned');
+  assert.ok(xpOrb && String(xpOrb.sourceEnemyId) === String(xpTarget.id), 'the server sends the dropped XP orb as a compact lifecycle event');
+  const guestXpOrb = guest.latest('world-xp-orb-spawned');
+  assert.equal(guestXpOrb?.id, xpOrb.id, 'the other player receives the same authoritative XP orb');
   assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore, 'killing an enemy does not immediately award XP');
   assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'XP is not broadcast as an award to every player');
   let xpOwnerAck = null, xpGuestAck = null;
@@ -227,7 +227,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   // sending position packets entirely. The server must continue ticking and attack that
   // last known position without a browser animation frame or a new heartbeat.
   const currentSnapshot = owner.latest('game-snapshot');
-  const nearestEnemy = currentSnapshot.enemies[0];
+  const nearestEnemy = currentSnapshot.enemies.find(enemy => String(enemy.id) !== String(xpTarget.id)) || currentSnapshot.enemies[0];
   let frozenPositionAck = null;
   const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
   await owner.clientEmit('client-visibility', { hidden: true });

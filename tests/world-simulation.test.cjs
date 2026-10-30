@@ -215,6 +215,21 @@ test('the authoritative XP-orb pickup awards one player only and removes the orb
   assert.equal(world.orbs.length, 0, 'the authoritative orb disappears after collection');
 });
 
+test('expired XP orbs emit a distinct removal list without duplicating collected orbs', () => {
+  const world = Sim.createWorldState(1000);
+  world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 999999;
+  world.enemies = [];
+  world.orbs = [
+    { id: 77, x: 1000, y: 1000, r: 4, value: 10, phase: 0, life: 0.01 },
+    { id: 78, x: 2200, y: 1600, r: 4, value: 10, phase: 0, life: 20 }
+  ];
+  const player = { id: 'p1', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
+  const result = Sim.tickWorld(world, [player], 1050, () => 0.8);
+  assert.deepEqual(result.expiredOrbIds, ['77'], 'only lifetime expiry is sent in the periodic removal event');
+  assert.deepEqual(world.orbs.map(orb => orb.id), [78], 'expired orb is removed while the other orb survives');
+  assert.equal(result.xpCollected.length, 0, 'expired orbs do not grant experience');
+});
+
 test('visible-player contact uses the predicted current position and rejects stale-coordinate ghost hits', () => {
   const makeWorld = () => {
     const world = Sim.createWorldState(1000);

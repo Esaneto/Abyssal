@@ -232,7 +232,7 @@ async function roomListForClients(){
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
-app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.5.4',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.5.4',directoryFallback:true});}});
+app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.5.8',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.5.8',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
 function getRoomSnapshot(room, metadata = {}){
  if(!room?.world)return null;
@@ -257,18 +257,39 @@ function getRoomMotionSnapshot(room, options = {}){
  if(!room?.world?.initialized||!room.players.size)return null;
  const world=room.world;
  world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+ const recipient=options.player&&room.players.get(options.player.id)===options.player?options.player:null;
+ let bounds=null;
+ if(recipient){
+  const zoom=clamp(Number(recipient.worldZoom)||WORLD_ZOOM,.35,1.2);
+  const viewWidth=windowWidthSafe(recipient.viewportWidth,1200)/zoom;
+  const viewHeight=windowWidthSafe(recipient.viewportHeight,700)/zoom;
+  const cameraX=clamp((Number(recipient.x)||0)-viewWidth*.5,0,Math.max(0,WORLD_WIDTH-viewWidth));
+  const cameraY=clamp((Number(recipient.y)||0)-viewHeight*.5,0,Math.max(0,WORLD_HEIGHT-viewHeight));
+  const paddingX=viewWidth*.22,paddingY=viewHeight*.22;
+  bounds={left:cameraX-paddingX,right:cameraX+viewWidth+paddingX,top:cameraY-paddingY,bottom:cameraY+viewHeight+paddingY};
+ }
+ const enemies=recipient?world.enemies.filter(enemy=>isBossKind(enemy.kind)||(enemy.x>=bounds.left&&enemy.x<=bounds.right&&enemy.y>=bounds.top&&enemy.y<=bounds.bottom)):world.enemies;
+ const visibleOrbs=recipient?(world.orbs||[]).filter(orb=>orb.x>=bounds.left&&orb.x<=bounds.right&&orb.y>=bounds.top&&orb.y<=bounds.bottom):(world.orbs||[]);
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,intervalMs:100,
-  // Quantized world coordinates (one world unit is < 1 screen pixel) and only
-  // fields needed to render motion, health and boss suction.
-  enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>[
+  enemies:enemies.map(e=>[
    e.id,Math.round(Number(e.x)||0),Math.round(Number(e.y)||0),Number(e.hp)||0,Number(e.damageRevision)||0,
    Math.round((Number(e.angle)||0)*100)/100,Math.round((Number(e.phase)||0)*100)/100,
    e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,
    Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100
   ]),
-  ...(options.includeOrbs?{orbs:(world.orbs||[]).slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
+  ...(options.includeOrbs?{orbIntervalMs:500,orbScope:recipient?'view':'all',orbs:visibleOrbs.slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
+ };
+}
+function getRoomSpawnSnapshot(room, spawnedEnemies = []){
+ if(!room?.world?.initialized||!room.players.size||!Array.isArray(spawnedEnemies)||!spawnedEnemies.length)return null;
+ const world=room.world;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+ return {
+  worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
+  snapshotSeq:world.snapshotSeq,serverTime:Date.now(),elapsed:world.elapsed,tickCount:world.tickCount||0,
+  criticalEnemyIds:spawnedEnemies.map(enemy=>String(enemy.id)),
+  enemies:spawnedEnemies.map(enemy=>({...enemy}))
  };
 }
 function getRoomPlayerMotion(room){
@@ -372,7 +393,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-function processWorldDamage(socket,id,damage,skillId=null){
+function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
  const reject=(reason)=>{combatDiagnostics.rejectedHits++;combatDiagnostics.lastDamageReason=reason;return {ok:false,id:Number.isFinite(id)?id:null,reason};};
@@ -404,8 +425,8 @@ function processWorldDamage(socket,id,damage,skillId=null){
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
- // Reliable event (not volatile) makes HP bars and hit feedback update immediately for every player.
- io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
+ if(batch)batch.damaged.push(damageEvent);
+ else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
   w.enemies.splice(idx,1);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
@@ -415,9 +436,12 @@ function processWorldDamage(socket,id,damage,skillId=null){
    killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
    if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;
    scheduleTitleStatsSave();
-   socket.emit('account-data',publicUser(killer));
+   if(batch)batch.accountUpdated=true;
+   else socket.emit('account-data',publicUser(killer));
   }
-  io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
+  const defeatedEvent={id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss};
+  if(batch)batch.defeated.push(defeatedEvent);
+  else io.to(channelFor(room)).emit('world-enemy-defeated',defeatedEvent);
   // Each successive boss drops triple the previous boss's base XP: x1, x3, x9...
   // The multiplier is shared by the room and persists across player re-entry.
   if(boss){
@@ -425,14 +449,19 @@ function processWorldDamage(socket,id,damage,skillId=null){
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
   }
   const orb=WorldSimulation.spawnXpOrb(w,enemy);
-  if(orb)combatDiagnostics.xpOrbsSpawned++;
+  if(orb){
+   combatDiagnostics.xpOrbsSpawned++;
+   if(batch)batch.orbs.push({...orb});
+   else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...orb});
+  }
   if(boss)awardWorldBossCoins(room);
   if(player?.skinId==='coral'&&player.alive!==false){
    const healed=Math.min(4,Math.max(0,player.maxHp-player.hp));
    if(healed>0){player.hp+=healed;socket.emit('player-vitals',playerVitalsPayload(player,{reason:'regeneration',healed,serverTime:Date.now()}));}
   }
-  // Confirm a removal immediately; do not depend on the next periodic snapshot.
-  broadcastWorld(room);
+  // A batch sends one consolidated lifecycle update after every hit has been
+  // validated; single-hit compatibility uses the same compact lifecycle events.
+  if(batch)batch.worldChanged=true;
  }
  return damageEvent;
 }
@@ -472,20 +501,26 @@ function tickRoom(room, now) {
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
+ const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
 
- // Full snapshots are reserved for entity creation and periodic recovery. Contact hits
- // use a tiny attacker-only frame, while orb removals arrive through the next orb motion frame.
+ // Full snapshots are reserved for periodic recovery. Entity creation, damage and orb
+ // lifecycle changes use compact reliable events; motion stays volatile and view-scoped.
  const criticalEnemyIds=[...new Set([...spawnedEnemies.map(enemy=>String(enemy.id)),...playerHits.map(hit=>String(hit.enemyId))])];
  let criticalSnapshot=null;
- if(spawnedEnemies.length>0||result.sendReliableSnapshot){
-  const reason=playerHits.length?'enemy-contact':spawnedEnemies.length?'enemy-spawn':'periodic-baseline';
+ if(result.sendReliableSnapshot){
+  const reason=playerHits.length?'enemy-contact':'periodic-baseline';
   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
   if(criticalSnapshot)io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
-  w.reliableSnapshotTimer=1;
-  w.orbSnapshotTimer=.5;
- }else if(result.sendSnapshot){
-  const motion=getRoomMotionSnapshot(room,{includeOrbs:Boolean(result.sendOrbSnapshot)});
-  if(motion)io.to(channelFor(room)).volatile.emit('enemy-motion',motion);
+  w.reliableSnapshotTimer=5;
+ }else if(spawnedEnemies.length>0){
+  const spawnFrame=getRoomSpawnSnapshot(room,spawnedEnemies);
+  if(spawnFrame)io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);
+ }
+ if(result.sendSnapshot){
+  for(const recipient of activePlayers){
+   const motion=getRoomMotionSnapshot(room,{player:recipient,includeOrbs:Boolean(result.sendOrbSnapshot)});
+   if(motion)io.to(recipient.id).volatile.emit('enemy-motion',motion);
+  }
  }
  let contactSnapshot=null;
  if(!criticalSnapshot&&playerHits.length){
@@ -514,6 +549,7 @@ function tickRoom(room, now) {
    bossId: pull.bossId, strength: Number(pull.strength) || 0
   });
  }
+ if(expiredOrbIds.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expiredOrbIds);
  // Shared XP orb pickup is decided by the server. A single orb can only be claimed
  // once, and only the winning player receives the XP event. Snapshot above has removed it.
  for (const pickup of xpCollected) {
@@ -720,7 +756,7 @@ socket.on('global-chat-send',(payload={})=>{
   else {p.velocityX=0;p.velocityY=0;}
   p.x=clamp(x,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(y,8/WORLD_ZOOM,WORLD_HEIGHT-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=receivedAt;p.positionResumeGraceUntil=0;if(typeof payload.clientHidden==='boolean')p.clientHidden=payload.clientHidden;if(p.clientHidden){p.velocityX=0;p.velocityY=0;}p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
-  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.worldZoom=.78;
+  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.worldZoom=clamp(Number(payload.worldZoom)||WORLD_ZOOM,.35,1.2);
   p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientEnemyCount)||0)));
   p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
   p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);p.clientMotionAt=Date.now();
@@ -819,6 +855,24 @@ socket.on('global-chat-send',(payload={})=>{
  socket.on('request-host-transfer', () => {});
  socket.on('shared-shot', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;io.to(channelFor(room)).volatile.emit('shared-shot',{x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet','photon'].includes(payload.special)?payload.special:null,from:socket.data.nickname,at:Date.now()});});
  socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
+ socket.on('shared-damage-batch',(payload={},acknowledge)=>{
+  const ack=data=>{if(typeof acknowledge==='function')acknowledge(data)};
+  const room=socketRoom(socket);
+  if(!room||!socket.data.joined)return ack({ok:false,reason:'not-in-room',accepted:0});
+  const hits=Array.isArray(payload?.hits)?payload.hits.slice(0,128):[];
+  if(!hits.length)return ack({ok:false,reason:'empty-batch',accepted:0});
+  const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false};
+  let accepted=0,rejected=0;
+  for(const hit of hits){
+   const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch);
+   if(result?.ok)accepted++;else rejected++;
+  }
+  if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
+  if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
+  if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
+  if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('account-data',publicUser(account));}
+  ack({ok:accepted>0,accepted,rejected,defeated:batch.defeated.length});
+ });
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('delete-account', async(payload={}) => {

@@ -382,10 +382,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.orbs ||= [];
   const xpCollected = [];
   const expiredOrbIds = new Set();
+  const expiredOnlyOrbIds = [];
   for (const orb of world.orbs) {
     orb.phase = (Number(orb.phase) || 0) + dt * 3;
     orb.life = (Number(orb.life) || 0) - dt;
-    if (orb.life <= 0) { expiredOrbIds.add(String(orb.id)); continue; }
+    if (orb.life <= 0) { expiredOrbIds.add(String(orb.id)); expiredOnlyOrbIds.push(String(orb.id)); continue; }
 
     // Same magnetic pickup idea as solo: the orb is pulled toward the nearest player
     // with magnet range. Its movement remains authoritative, so every client sees it alike.
@@ -440,14 +441,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const sendPlayers = world.playerSnapshotTimer <= 0;
   const sendOrbSnapshot = sendSnapshot && world.orbSnapshotTimer <= 0;
   if (sendSnapshot) world.snapshotTimer = 0.1;
-  if (sendReliableSnapshot) world.reliableSnapshotTimer = 1;
+  if (sendReliableSnapshot) world.reliableSnapshotTimer = 5;
   if (sendPlayers) world.playerSnapshotTimer = 1;
   if (sendOrbSnapshot) world.orbSnapshotTimer = 0.5;
   return {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
