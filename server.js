@@ -505,7 +505,7 @@ io.on('connection', socket => {
   socket.on('create-cardume',(payload={})=>{
    const key=socket.data.userKey,user=users[key];if(!user)return socket.emit('cardume-action-result',{ok:false,message:'Entre na sua conta para criar um Cardume.'});
    if(user.cardumeId&&cardumes[user.cardumeId])return socket.emit('cardume-action-result',{ok:false,message:'Você já faz parte de um Cardume.'});
-   const name=String(payload.name||'').replace(/[<>\\u0000-\\u001f]/g,'').trim().slice(0,24),description=String(payload.description||'').replace(/[<>\\u0000-\\u001f]/g,' ').trim().slice(0,120);
+   const name=String(payload.name||'').replace(/[<>\u0000-\u001f]/g,'').trim().slice(0,24),description=String(payload.description||'').replace(/[<>\u0000-\u001f]/g,' ').trim().slice(0,120);
    if(name.length<3)return socket.emit('cardume-action-result',{ok:false,message:'O nome do Cardume deve ter pelo menos 3 caracteres.'});
    if(Object.values(cardumes).some(c=>c.name.toLowerCase()===name.toLowerCase()))return socket.emit('cardume-action-result',{ok:false,message:'Já existe um Cardume com esse nome.'});
    if(Object.keys(cardumes).length>=500)return socket.emit('cardume-action-result',{ok:false,message:'O limite de Cardumes foi atingido.'});
