@@ -16,12 +16,17 @@ test('Devourer is a 15,000 HP boss and is slower than the Kraken', () => {
 test('Devourer suction pulls from range and weakens as a target approaches its mouth', () => {
   const ai = require('../public/enemy-ai');
   const boss = { kind: 'devourer', x: 0, y: 0, suctionActive: true };
+  const edge = ai.suctionPullDelta({ x: 1540, y: 0 }, boss, 0.1);
   const far = ai.suctionPullDelta({ x: 600, y: 0 }, boss, 0.1);
   const near = ai.suctionPullDelta({ x: 300, y: 0 }, boss, 0.1);
   const safe = ai.suctionPullDelta({ x: 170, y: 0 }, boss, 0.1);
+  assert.ok(edge.dx < -55, 'the doubled outer field pulls faster than a player can normally swim');
   assert.ok(far.dx < 0, 'the force points toward the boss');
   assert.ok(Math.abs(near.dx) < Math.abs(far.dx), 'pull strength decreases near the mouth');
   assert.deepEqual(safe, { dx: 0, dy: 0, strength: 0 }, 'the inner safe zone allows escape');
+  const source = read('public/enemy-ai.js');
+  assert.match(source, /Number\(options\.range\) \|\| 1240 \/ WORLD_ZOOM/);
+  assert.match(source, /Number\(options\.maxSpeed\) \|\| 520 \/ WORLD_ZOOM/);
 });
 
 test('authoritative co-op simulation activates suction and reports player displacement', () => {
@@ -90,4 +95,16 @@ test('mobile camera zoom is separated from player base speed and world combat sc
   assert.match(game, /moveSpeed:150\/GAME_WORLD_ZOOM/);
   assert.match(game, /desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
   assert.doesNotMatch(game, /oldZoom>0\?oldZoom\/worldZoom/);
+});
+
+test('online gameplay uses compact motion deltas between reliable full snapshots', () => {
+  const server = read('server.js');
+  const online = read('public/online.js');
+  const game = read('public/game.js');
+  assert.match(server, /function getRoomMotionSnapshot\(room\)/);
+  assert.match(server, /emit\('enemy-motion', motion\)/);
+  assert.match(online, /socket\.on\('enemy-motion'/);
+  assert.match(game, /function applySharedMotion\(data\)/);
+  assert.match(game, /applyMotion:applySharedMotion/);
+  assert.match(server, /if\(!hasLivingAfterTick&&worldTicker\)/);
 });
