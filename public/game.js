@@ -442,7 +442,7 @@ function applyOnlinePlayerVitals(data){
  if(Number.isFinite(Number(data.maxHp)))maxHp=Math.max(1,Number(data.maxHp));
  if(Number.isFinite(Number(data.hp)))hp=clamp(Number(data.hp),0,maxHp);
  if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
- if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,10);
+ if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,30);
  if(data.reason==='enemy-attack'&&Number(data.damage)>0){
   if(contactSourceReady)revealOnlineContactSource(data);
   else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
