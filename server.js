@@ -596,7 +596,7 @@ socket.on('global-chat-send',(payload={})=>{
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+400,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
+  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -662,18 +662,19 @@ socket.on('global-chat-send',(payload={})=>{
   const seconds = Number(payload.seconds), reason = String(payload.reason || 'gameplay');
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 25) return;
   const now = Date.now();
-  // Rate-limit gameplay grants but allow a legitimate skill selection to shorten the
-  // 25s choice window to 2s, as soon as the player confirms an upgrade.
+  // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
    if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   p.skillSelectingUntil = now + 25000;
    p.upgradeProtectionUntil = now + 25000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
   if (reason === 'upgrade-selected') {
-   if (now > (Number(p.upgradeProtectionUntil) || 0) + 1000 || seconds !== 2) return;
+   if (now > (Number(p.upgradeProtectionUntil) || 0) + 1000 || seconds !== 3) return;
    p.upgradeProtectionUntil = 0;
-   p.invulnerableUntil = now + 2000;
+   p.skillSelectingUntil = 0;
+   p.invulnerableUntil = now + 3000;
    return;
   }
   if (reason === 'dash') {
@@ -706,7 +707,7 @@ socket.on('global-chat-send',(payload={})=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
    if(!p.runStats||p.runStats.settled)p.runStats=makeRunStats();
-   if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+1000;p.regenAccumulator=0;clearRoomWorld(room);ensureWorld(room);}
+   if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;clearRoomWorld(room);ensureWorld(room);}
    socket.emit('player-vitals',playerVitalsPayload(p,{reason:'run-start',serverTime:Date.now()}));
    refreshWorldTicker();
   } else socket.data.runStats=makeRunStats();
@@ -775,9 +776,14 @@ socket.on('global-chat-send',(payload={})=>{
  });
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
-  const code=String(payload?.code||'').trim().toLowerCase();if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
+  const code=String(payload?.code||'').trim().toLowerCase();if(code==='bemvindoabyssal'){
+   u.redeemedCodes ||= [];
+   if(u.redeemedCodes.includes('bemvindoabyssal'))return socket.emit('code-redeem-result',{ok:false,message:'Este código de boas-vindas já foi utilizado nesta conta.'});
+   u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('bemvindoabyssal');saveUsers();return socket.emit('code-redeem-result',{ok:true,message:'Boas-vindas ao Abyssal! +10.000 moedas abissais. Código usado nesta conta.',account:publicUser(u)});
+  }
+  if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
   u.redeemedCodes ||= [];
-  u.coins=(Number(u.coins)||0)+10000;saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências. Você pode resgatá-lo novamente quando quiser.',account:publicUser(u)});
+  u.coins=(Number(u.coins)||0)+10000;saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u)});
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;

@@ -41,7 +41,9 @@ function contactGeometry(enemy, target) {
 function forceAdvanceEnemy(enemy, players, dt) {
   if (!enemy || !players.length || dt <= 0) return false;
   let target = null, nearest = Infinity;
-  for (const player of players) {
+  const visibleTargets = players.filter(player => Number(player.skillSelectingUntil) <= Date.now());
+  const targetPool = visibleTargets.length ? visibleTargets : players;
+  for (const player of targetPool) {
     const d = Math.hypot(Number(player.x) - Number(enemy.x), Number(player.y) - Number(enemy.y));
     if (Number.isFinite(d) && d < nearest) { nearest = d; target = player; }
   }
@@ -51,7 +53,7 @@ function forceAdvanceEnemy(enemy, players, dt) {
   const healthRatio = clamp((Number(enemy.hp) || 0) / Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1), 0, 1);
   const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
   const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
-  const speed = BOSS_KINDS.includes(enemy.kind) ? Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp) : baseSpeed;
+  const speed = BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed;
   const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
   let x = oldX, y = oldY;
   if (nearest > stopDistance + 1) {

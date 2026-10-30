@@ -16,7 +16,7 @@ const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.
 function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[character]));}
 let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
-let currentZones=[],currentSpawnTimer=16+Math.random()*12;
+let currentZones=[],currentSpawnTimer=6+Math.random()*6;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
@@ -234,8 +234,8 @@ function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
  clearUpgradeCountdown();
  u.apply();
- if(player)player.invuln=2;
- if(onlineMode){window.AbyssalOnline?.sendProtection?.(2,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
+ if(player)player.invuln=3;
+ if(onlineMode){window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
  upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
@@ -552,7 +552,7 @@ function update(dt){
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
-   if(!onlineMode){currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<3){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:95+Math.random()*55,radius:115+Math.random()*45,life:10+Math.random()*7,maxLife:17});currentSpawnTimer=19+Math.random()*18;}
+   if(!onlineMode){currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<3){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:95+Math.random()*55,radius:115+Math.random()*45,life:10+Math.random()*7,maxLife:17});currentSpawnTimer=8+Math.random()*8;}
    for(let i=currentZones.length-1;i>=0;i--){currentZones[i].life-=dt;if(currentZones[i].life<=0)currentZones.splice(i,1);}}
    else currentZones.length=0;
    player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
@@ -1016,7 +1016,7 @@ function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base
 if(joystick){joystick.addEventListener('pointerdown',e=>{if(gameState!=='playing')return;e.preventDefault();joystickVector.pointerId=e.pointerId;joystick.setPointerCapture?.(e.pointerId);setJoystickFromPointer(e)});joystick.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});const release=()=>{joystickVector={x:0,y:0,active:false,pointerId:null};if(joystickKnob)joystickKnob.style.transform='translate(0, 0)'};['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,release));}
 window.addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if((e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>keys[e.key]=false);
-$('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});$('againBtn').addEventListener('click',()=>{if(onlineMode){window.AbyssalOnline?.leaveWorld();onlineMode=false;}startGame()});$('menuBtn').addEventListener('click',()=>{gameState='menu';setMobileGameActive(false);$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
+$('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});$('againBtn').addEventListener('click',()=>{if(onlineMode){startGame();return;}startGame()});$('menuBtn').addEventListener('click',()=>{gameState='menu';setMobileGameActive(false);$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
 $('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();onlineMode=false;setMobileGameActive(false);gameState='menu';$('pauseScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
 $('soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('soundBtn').textContent=soundOn?'♫':'♪';$('soundBtn').style.color=soundOn?'':'#617783';if(soundOn){startAmbientMusic();audio(580,.08,'sine',.025)}else stopAmbientMusic()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
@@ -1064,6 +1064,7 @@ function requestWheelSpin(){
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
 $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Uma chance de recompensa a cada anúncio premiado. O prêmio é sorteado pelo servidor quando a integração estiver ativa.';});
 $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
+$('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
 $('testWheelBtn')?.addEventListener('click',()=>{if(wheelBusy)return;animateWheelToPrize(weightedWheelPrize(),false);});
 window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){coins=Number(d.coins)||coins;saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||20,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
@@ -1136,11 +1137,12 @@ function renderCatalog(){
 }
 
 $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
+$('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true});
 $('loginBtn').addEventListener('click',()=>{if(window.AbyssalOnline)window.AbyssalOnline.openLogin()});
 $('onlineBtn').addEventListener('click',()=>{startAmbientMusic();onlineMode=true;if(window.AbyssalOnline?.isAuthenticated())window.AbyssalOnline.showRooms();else window.AbyssalOnline?.connectAndJoin()});
 window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePendingStart){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;onlineMode=true;window.AbyssalOnline?.showRooms()}});
 window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};showBossAlert(d.kind,d.id,d.threat);});
-window.addEventListener('abyssal-room-joined',ev=>{onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();const d=ev.detail||{};if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`⌁ ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.hidden=false;}showToast(`MERGULHAR ONLINE · ${d.room?.name||'SALA ABISSAL'}`)});
+window.addEventListener('abyssal-room-joined',ev=>{onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');const d=ev.detail||{};if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`⌁ ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.hidden=false;}showToast(`MERGULHAR ONLINE · ${d.room?.name||'SALA ABISSAL'}`)});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-room-left',()=>{const badge=$('roomBadge');if(badge)badge.hidden=true;setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});

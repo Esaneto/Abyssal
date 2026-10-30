@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.18">
+<link rel="stylesheet" href="style.css?v=3.5.19">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -156,7 +156,7 @@
     </section>
 
     <section id="shopScreen" class="screen modal-screen" hidden>
-      <div class="modal-card shop-modal">
+      <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
         <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Skins cosméticas. Nenhuma concede vantagem de combate.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>ESSÊNCIAS</small></div></div>
         <h3 class="shop-section-title">✦ FORMAS DE VIDA · PRÉVIA EM COMBATE</h3>
@@ -182,7 +182,7 @@
     </section>
 
     <section id="wheelScreen" class="screen modal-screen" hidden>
-      <div class="modal-card wheel-modal">
+      <div class="modal-card wheel-modal"><button id="wheelTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar roleta">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
         <h2>ROLETA<br><em>ABISSAL</em></h2>
         <p>Escolha sua sorte: prêmios de 20 a 1.000 moedas abissais. O prêmio raro tem chance de 0,1%.</p>
@@ -303,8 +303,8 @@
 <script src="enemy-ai.js?v=3.5.12"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.16"></script>
-<script src="online.js?v=3.5.16"></script>
+<script src="game.js?v=3.5.19"></script>
+<script src="online.js?v=3.5.19"></script>
 <script>
 /* UI failsafe for the rebuilt global chat. */
 (()=>{
