@@ -186,8 +186,8 @@ function startGame(){
  startAmbientMusic();
  elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,spread:0,photon:0,nova:0,gravitationalRupture:0};
- upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0,gravitationalRupture:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,spread:0,photon:0,nova:0,gravitationalRupture:0,arcChain:0};
+ upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0,gravitationalRupture:0,arcChain:0};
  enemies=[];orbs=[];particles=[];particlePool.length=0;projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  player={x:W*.5,y:H*.5,r:13/worldZoom,angle:0,moveSpeed:150/worldZoom,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7};updateCamera();
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
@@ -216,7 +216,10 @@ const upgradeList=[
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Projéteis mais rápidos e concentrados causam dano adicional.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Libera uma explosão de longo alcance a cada 9 segundos no nível 1; níveis seguintes aumentam o dano e reduzem o intervalo até 4,5 segundos. ',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)}
 ];
-const COMBO_SKILLS={gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'}};
+const COMBO_SKILLS={
+ gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia saltam entre até cinco inimigos próximos dentro do alcance de disparo.'}
+};
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
  if(upgradeCountdownInterval){clearInterval(upgradeCountdownInterval);upgradeCountdownInterval=null;}
@@ -232,8 +235,9 @@ function updateUpgradeCountdown(){
 }
 function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
- const comboActive=Number(upgrades.gravitationalRupture)>0;
- const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(comboActive&&['burst','nova'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
+ const arcChainActive=Number(upgrades.arcChain)>0;
+ const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
  panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id)||COMBO_SKILLS[id];return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
 function showSkillDescription(id,target){
@@ -271,17 +275,22 @@ function chooseUpgrade(u){
  if(player){player.invuln=3;hp=maxHp;}
  if(onlineMode){window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
  upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
- let combinedNow=false;
+ let combinedNow=false,combinedSkillName='';
  if(!upgrades.gravitationalRupture&&upgradeLevels.burst>=3&&upgradeLevels.nova>=3){
   upgrades.burst=0;upgrades.nova=0;upgrades.gravitationalRupture=1;
-  upgradeLevels.gravitationalRupture=1;combinedNow=true;
+  upgradeLevels.gravitationalRupture=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.gravitationalRupture.name;
   if(player)player.gravitationalRuptureTimer=0;
+ }
+ if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.ricochet>=3){
+  upgrades.electric=0;upgrades.ricochet=0;upgrades.arcChain=1;
+  upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
+  if(player)player.arcChainTimer=0;
  }
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
  level++;gameState='playing';$('upgradeScreen').hidden=true;renderSelectedSkills();
- showToast(combinedNow?'FUSÃO DESBLOQUEADA · RUPTURA GRAVITACIONAL':`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
+ showToast(combinedNow?`FUSÃO DESBLOQUEADA · ${combinedSkillName.toUpperCase()}`:`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
  playSkillSound(combinedNow?'nova':u.id,'learn');updateHud();last=performance.now();
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
@@ -625,6 +634,23 @@ function update(dt){
     effects.push({type:'beam',x1:e.x-5/worldZoom,y1:e.y-5/worldZoom,x2:e.x+5/worldZoom,y2:e.y+5/worldZoom,life:.16,maxLife:.16,color:'#9dfcff'});
    }
    playSkillSound('nova','trigger');
+  }
+ }
+ if(upgrades.arcChain>0){
+  player.arcChainTimer=(Number(player.arcChainTimer)||0)-dt;
+  if(player.arcChainTimer<=0){
+   player.arcChainTimer=.48;
+   const fieldRange=294*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
+   const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,5);
+   let previous={x:player.x,y:player.y};
+   for(const target of targets){
+    dealEnemyDamage(target,16,'arcChain');
+    target.hit=.16;
+    effects.push({type:'beam',x1:previous.x,y1:previous.y,x2:target.x,y2:target.y,life:.2,maxLife:.2,color:'#77f7ff'});
+    burst(target.x,target.y,'#a4ffff',7,90);
+    previous=target;
+   }
+   if(targets.length)audio(650,.04,'sine',.009);
   }
  }
  // Co-op is rendered from the server's authoritative coordinates. Do NOT run a
