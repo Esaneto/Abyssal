@@ -8,6 +8,7 @@ const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
 test('online players are broadcast from accepted position heartbeats', () => {
   const server = read('server.js');
+  const online = read('public/online.js');
   assert.match(server, /connectionStateRecovery:\s*\{\s*maxDisconnectionDuration:\s*120000/);
   assert.match(server, /room\.lastPlayersBroadcastAt/);
   assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('player-motion'/);
