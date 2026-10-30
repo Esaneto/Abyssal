@@ -301,7 +301,7 @@ function offerUpgrade(){
  upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
  const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
- // A level-up pauses gameplay and grants protection while the player has 10 seconds to choose.
+ // A level-up pauses gameplay and grants protection while the player has 25 seconds to choose.
  if(player)player.invuln=Math.max(player.invuln,25);
  if(onlineMode)window.AbyssalOnline?.sendProtection?.(25,'upgrade-offer');
  upgradeOptions.forEach(u=>{
