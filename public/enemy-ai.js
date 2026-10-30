@@ -133,8 +133,18 @@
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
+    // Bosses build pressure as their health falls, but never outrun the target player.
+    // The same shared steering runs in solo and on the authoritative online server.
+    let pursuitSpeed = baseSpeed;
+    if (BOSS_KINDS.includes(enemy.kind)) {
+      const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
+      const healthRatio = clamp((Number(enemy.hp) || 0) / maxHp, 0, 1);
+      const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
+      const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
+      pursuitSpeed = Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp);
+    }
     // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
-    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? baseSpeed * 0.74 : baseSpeed;
+    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? pursuitSpeed * 0.74 : pursuitSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     let x = oldX, y = oldY;
