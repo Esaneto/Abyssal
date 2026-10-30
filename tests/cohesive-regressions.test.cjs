@@ -24,7 +24,7 @@ test('temporary disconnect preserves the last synchronized account profile', () 
 
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
   const game = read('public/game.js');
-  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? 2 : \.78;\}/);
+  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
   assert.match(game, /function fire\(\)[\s\S]*?audio\(500,\.045,'sine',\.008\)/);
   assert.match(game, /if\(p\.special\)audio\(500,\.045,'sine',\.008\)/);
 });
@@ -62,8 +62,8 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.21/);
-  assert.match(html, /game\.js\?v=3\.5\.21/);
+  assert.match(html, /style\.css\?v=3\.5\.23/);
+  assert.match(html, /game\.js\?v=3\.5\.23/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });

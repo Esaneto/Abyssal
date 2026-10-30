@@ -42,18 +42,52 @@ test('regular mobs keep spawning when bosses are active; boss types never duplic
   assert.equal(Sim.countBosses(world).length, 1);
 });
 
-test('boss health grows by 50 percent per spawn and caps active bosses at four', () => {
+test('boss HP tiers are ordered from lowest to highest and active bosses cap at four', () => {
   const world = Sim.createWorldState(1000);
   Sim.initializeWorld(world, 1000);
-  const first = Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 });
-  const second = Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 });
-  assert.ok(second);
-  assert.equal(second.maxHp, first.maxHp * 1.5);
-  Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 });
-  Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 });
+  const bosses = [];
+  for (let i = 0; i < 4; i++) bosses.push(Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 }));
+  assert.deepEqual(bosses.map(e => e.kind), ['boss', 'angler', 'maw', 'leviathan']);
+  assert.deepEqual(bosses.map(e => e.maxHp), [2820, 3260, 3750, 4700]);
   assert.equal(Sim.countBosses(world).length, 4);
   assert.equal(Sim.spawnEnemy(world, { type: 'boss' }), null);
   assert.equal(new Set(Sim.countBosses(world).map(e => e.kind)).size, 4);
+});
+
+test('boss waves add one simultaneous boss per two living players, in HP order', () => {
+  for (const [count, expected] of [
+    [1, ['boss']],
+    [2, ['boss', 'angler']],
+    [4, ['boss', 'angler', 'maw']],
+    [6, ['boss', 'angler', 'maw', 'leviathan']]
+  ]) {
+    const now = 1000, world = Sim.createWorldState(now);
+    Sim.initializeWorld(world, now, () => 0.1);
+    world.elapsed = 60; world.nextBossAt = 60; world.lastTick = now;
+    const players = Array.from({length: count}, (_, i) => ({
+      id: 'p' + i, alive: true, x: 1700 + i * 40, y: 1100,
+      r: 13 / AI.WORLD_ZOOM, moveSpeed: 150 / AI.WORLD_ZOOM,
+      skinId: 'default', lastPositionAt: now, hp: 100, maxHp: 100,
+      invulnerableUntil: now + 10000, skillSelectingUntil: 0
+    }));
+    const result = Sim.tickWorld(world, players, now + 50, () => 0.1);
+    assert.deepEqual(result.spawnedBosses.map(e => e.kind), expected);
+  }
+});
+
+test('bosses accelerate as health falls but stay below 80 percent of base player speed', () => {
+  const baseSpeed = 150 / AI.WORLD_ZOOM;
+  const target = { x: 1000, y: 500, r: 13 / AI.WORLD_ZOOM, moveSpeed: baseSpeed, skinId: 'default' };
+  const travelSpeed = hp => {
+    const enemy = { id: 3, kind: 'boss', x: 500, y: 500, r: 40, speed: 52 / AI.WORLD_ZOOM, hp, maxHp: 2820, angle: 0, phase: 0 };
+    const startX = enemy.x;
+    AI.moveTowardTarget(enemy, [target], 0.1, {});
+    return (enemy.x - startX) / 0.1;
+  };
+  const fullHealthSpeed = travelSpeed(2820);
+  const criticalHealthSpeed = travelSpeed(1);
+  assert.ok(criticalHealthSpeed > fullHealthSpeed);
+  assert.ok(criticalHealthSpeed < baseSpeed * 0.8);
 });
 
 test('empty rooms do not advance time or simulate, and reset releases their enemies', () => {

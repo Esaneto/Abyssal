@@ -11,7 +11,8 @@
   const WORLD_WIDTH = 3600;
   const WORLD_HEIGHT = 2200;
   const WORLD_ZOOM = 0.78;
-  const BOSS_KINDS = Object.freeze(['boss', 'leviathan', 'maw', 'angler', 'kraken']);
+  // Bosses ordered from the lowest base HP to the highest.
+  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'kraken']);
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
     stinger: Object.freeze({ r: 7, hp: 13, speed: 88, damage: 6, color: '#ffbc78', value: 2 }),
@@ -41,10 +42,15 @@
     return roll < 0.56 ? 'drifter' : roll < 0.78 ? 'stinger' : roll < 0.94 ? 'brute' : 'lurker';
   }
 
-  function chooseBossKind(activeKinds = [], random = Math.random) {
-    const available = BOSS_KINDS.filter(kind => !activeKinds.includes(kind));
-    if (!available.length) return null;
-    return available[Math.min(available.length - 1, Math.floor(random() * available.length))];
+  function chooseBossKind(activeKinds = [], random = Math.random, spawnIndex = 0) {
+    const active = new Set(activeKinds);
+    if (active.size >= BOSS_KINDS.length) return null;
+    const start = Math.max(0, Math.floor(Number(spawnIndex) || 0)) % BOSS_KINDS.length;
+    for (let offset = 0; offset < BOSS_KINDS.length; offset++) {
+      const kind = BOSS_KINDS[(start + offset) % BOSS_KINDS.length];
+      if (!active.has(kind)) return kind;
+    }
+    return null;
   }
 
   function chooseSpawnPoint(random = Math.random, cornerOverride = null, width = WORLD_WIDTH, height = WORLD_HEIGHT) {
@@ -133,15 +139,18 @@
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
-    // Bosses build pressure as their health falls, but never outrun the target player.
-    // The same shared steering runs in solo and on the authoritative online server.
+    // Bosses begin slowly at full health and accelerate as they take damage.
+    // The hard cap is 79% of the player's base movement speed (before environmental
+    // slows), so even a nearly defeated boss cannot match the player's raw speed.
     let pursuitSpeed = baseSpeed;
     if (BOSS_KINDS.includes(enemy.kind)) {
       const maxHp = Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1);
       const healthRatio = clamp((Number(enemy.hp) || 0) / maxHp, 0, 1);
       const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
-      const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
-      pursuitSpeed = Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp);
+      const slowSpeed = Math.min(baseSpeed, playerSpeed * 0.25);
+      const fastSpeed = playerSpeed * 0.79;
+      pursuitSpeed = slowSpeed + (fastSpeed - slowSpeed) * (1 - healthRatio);
+      pursuitSpeed = Math.min(pursuitSpeed, playerSpeed * 0.79);
     }
     // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
     const reducedPursuitSpeed = pursuitSpeed * 0.85;

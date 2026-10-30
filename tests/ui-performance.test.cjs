@@ -16,7 +16,7 @@ test('download control is outside the menu column and docked discreetly at the u
   assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
   assert.match(css, /#menuScreen \.download-cta\{[\s\S]*?top:12px;right:14px/);
   assert.match(css, /min-height:29px;height:29px/);
-  assert.ok(html.includes('style.css?v=3.5.21'));
+  assert.ok(html.includes('style.css?v=3.5.23'));
 });
 
 test('menu monster has a frightening toothed grin and the chat is docked beneath its face', () => {

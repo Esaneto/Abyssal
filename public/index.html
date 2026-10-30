@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.22">
+<link rel="stylesheet" href="style.css?v=3.5.23">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -222,7 +222,7 @@
       </div>
     </section>
     <section id="cardumesScreen" class="screen modal-screen" hidden>
-      <div class="modal-card cardumes-modal">
+      <div class="modal-card cardumes-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="cardumesScreen" aria-label="Fechar Cardumes">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> COMUNIDADE · RECRUTAMENTO</div>
         <h2>CARDUMES<br><em>DO ABISMO</em></h2>
         <p>Reúna mergulhadores, encontre companheiros de expedição e cresça como equipe. Cada conta pode pertencer a um Cardume por vez.</p>
@@ -248,13 +248,13 @@
       </div>
     </section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
     <section id="profileScreen" class="screen modal-screen" hidden>
-      <div class="modal-card profile-modal">
+      <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
         <div class="profile-hero">
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
@@ -302,11 +302,11 @@
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-<script src="enemy-ai.js?v=3.5.22"></script>
+<script src="enemy-ai.js?v=3.5.23"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.22"></script>
-<script src="online.js?v=3.5.22"></script>
+<script src="game.js?v=3.5.23"></script>
+<script src="online.js?v=3.5.23"></script>
 <script>
 /* UI failsafe for the rebuilt global chat. */
 (()=>{

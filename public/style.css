@@ -48,6 +48,45 @@
 .wheel-cta{width:min(390px,100%);margin:14px 0 0}
 @media(max-width:420px){.wheel-cta{gap:8px;padding:9px}.wheel-cta-copy strong{font-size:10px}.wheel-cta-copy small{font-size:6px}.menu-action{font-size:7px;padding:0 5px}}
 
+/* Keep the ranking beside the acquired skills panel instead of overlapping it. */
+.run-energy-ranking{top:142px;right:calc(clamp(145px,17vw,220px) + 22px);z-index:9}
+@media(max-width:700px){.run-energy-ranking{top:130px;right:calc(clamp(126px,39vw,170px) + 16px);width:118px}}
+/* Gameplay controls stay readable while letting the action remain visible behind them. */
+body.game-active .icon-btn,
+body.game-active .active-ability,
+body.game-active .room-badge{
+ background:rgba(4,17,29,.30);
+ opacity:.84;
+ backdrop-filter:blur(2px);
+ box-shadow:none;
+}
+body.game-active .icon-btn:hover,
+body.game-active .active-ability:hover,
+body.game-active .room-badge:hover{opacity:1;background:rgba(4,17,29,.52)}
+/* Close controls remain pinned to the top edge while a long menu is scrolled. */
+.codex-modal .modal-top-close,
+.cardumes-modal .modal-top-close,
+.profile-modal .modal-top-close{
+ position:sticky;
+ top:0;
+ float:right;
+ margin:0 0 -32px auto;
+ z-index:30;
+ width:32px;
+ height:32px;
+ display:grid;
+ place-items:center;
+ border:1px solid rgba(121,243,240,.32);
+ border-radius:7px;
+ background:rgba(3,15,26,.92);
+ color:#d9ffff;
+ font-size:23px;
+ line-height:1;
+ cursor:pointer;
+}
+.codex-modal .modal-top-close:hover,
+.cardumes-modal .modal-top-close:hover,
+.profile-modal .modal-top-close:hover{background:rgba(21,66,78,.95);border-color:rgba(121,243,240,.7)}
 /* Enemy portraits remain visible in the codex even before their field notes are unlocked. */
 .monster-codex-card.locked{opacity:.92;filter:none}
 .monster-codex-card .monster-preview{filter:none}
