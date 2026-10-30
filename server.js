@@ -4,6 +4,9 @@ const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { monitorEventLoopDelay } = require('perf_hooks');
+const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
+eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -71,7 +74,7 @@ async function initializePersistence() {
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
- const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes')");
+ const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes','global_chat')");
  const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
  if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
   users = Object.assign(Object.create(null), stored.users);
@@ -87,7 +90,12 @@ async function initializePersistence() {
  }
  if (stored.cardumes && typeof stored.cardumes === 'object' && !Array.isArray(stored.cardumes)) cardumes = stored.cardumes;
  else await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('cardumes',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(cardumes)]);
- console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
+ if (stored.global_chat && typeof stored.global_chat === 'object' && !Array.isArray(stored.global_chat)) {
+  globalChatHistory.splice(0, globalChatHistory.length, ...(Array.isArray(stored.global_chat.messages) ? stored.global_chat.messages.slice(-CHAT_HISTORY_LIMIT) : []));
+  globalChatDayKey = String(stored.global_chat.dayKey || globalChatDayKey);
+ } else persistGlobalChat();
+ resetGlobalChatIfNewDay();
+ console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas; chat global restaurado.`);
 }
 async function flushPersistence() { await persistenceQueue; }
 function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
@@ -138,7 +146,7 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.4',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.5',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
@@ -148,6 +156,23 @@ const globalChatHistory=[];
 const globalChatRate=new Map();
 const CHAT_HISTORY_LIMIT=50,CHAT_MESSAGE_LIMIT=180,CHAT_RATE_WINDOW_MS=10000,CHAT_RATE_MAX=5,CHAT_MIN_INTERVAL_MS=900;
 const CHAT_TITLE_IDS=new Set(TITLE_DEFINITIONS.map(t=>t.id));
+function saoPauloDayKey(date = new Date()) {
+ const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
+ const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+ return `${values.year}-${values.month}-${values.day}`;
+}
+let globalChatDayKey = saoPauloDayKey();
+function persistGlobalChat() { persistState('global_chat', { dayKey: globalChatDayKey, messages: globalChatHistory.slice(-CHAT_HISTORY_LIMIT) }); }
+function resetGlobalChatIfNewDay() {
+ const today = saoPauloDayKey();
+ if (globalChatDayKey === today) return false;
+ globalChatHistory.length = 0;
+ globalChatDayKey = today;
+ persistGlobalChat();
+ io.emit('global-chat-reset', { dayKey: today });
+ console.log(`[chat] Histórico global reiniciado à meia-noite de São Paulo (${today}).`);
+ return true;
+}
 function publicChatMessage(message){return {id:message.id,nickname:message.nickname,titleId:message.titleId,text:message.text,at:message.at};}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
@@ -559,6 +584,7 @@ socket.on('global-chat-send',(payload={})=>{
    const user=users[socket.data.userKey];
    const message={id:crypto.randomUUID(),nickname:socket.data.nickname,titleId:CHAT_TITLE_IDS.has(user?.equippedTitle)?user.equippedTitle:'abyss-drifter',text,at:now};
    globalChatHistory.push(message);if(globalChatHistory.length>CHAT_HISTORY_LIMIT)globalChatHistory.splice(0,globalChatHistory.length-CHAT_HISTORY_LIMIT);
+   persistGlobalChat();
    io.emit('global-chat-message',publicChatMessage(message));
    socket.emit('global-chat-sent',{ok:true,id:message.id});
   });
@@ -823,6 +849,8 @@ socket.on('global-chat-send',(payload={})=>{
  socket.on('disconnect', () => { globalChatRate.delete(socket.id); if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
+// Detecta a virada do dia em America/Sao_Paulo; o boot também corrige dias perdidos após spin-down.
+setInterval(resetGlobalChatIfNewDay, 30 * 1000).unref();
 setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heartbeat falhou:',err.message)),5000).unref();
 async function boot() {
  await initializePersistence();
