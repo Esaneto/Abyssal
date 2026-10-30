@@ -66,7 +66,8 @@ body.game-active .room-badge:hover{opacity:1;background:rgba(4,17,29,.52)}
 /* Close controls remain pinned to the top edge while a long menu is scrolled. */
 .codex-modal .modal-top-close,
 .cardumes-modal .modal-top-close,
-.profile-modal .modal-top-close{
+.profile-modal .modal-top-close,
+.shop-modal .modal-top-close{
  position:sticky;
  top:0;
  float:right;
@@ -86,7 +87,8 @@ body.game-active .room-badge:hover{opacity:1;background:rgba(4,17,29,.52)}
 }
 .codex-modal .modal-top-close:hover,
 .cardumes-modal .modal-top-close:hover,
-.profile-modal .modal-top-close:hover{background:rgba(21,66,78,.95);border-color:rgba(121,243,240,.7)}
+.profile-modal .modal-top-close:hover,
+.shop-modal .modal-top-close:hover{background:rgba(21,66,78,.95);border-color:rgba(121,243,240,.7)}
 /* Enemy portraits remain visible in the codex even before their field notes are unlocked. */
 .monster-codex-card.locked{opacity:.92;filter:none}
 .monster-codex-card .monster-preview{filter:none}
