@@ -629,8 +629,22 @@ function applySharedSnapshot(data){
  discoverCodexMonsters(enemies);
  const newBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&!previousBossIds.has(e.id));if(newBoss){lastRemoteBossId=newBoss.id;showBossAlert(newBoss.kind,newBoss.id,Number(newBoss.threat)||0);burst(newBoss.x,newBoss.y,newBoss.color,newBoss.kind==='kraken'?26:32,230);}
 }
+function registerEnemyContactSnapshot(data){
+ if(!onlineMode||!data||!Array.isArray(data.enemies))return;
+ const worldId=String(data.worldId||''),sequence=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),serverTime=Math.max(0,Number(data.serverTime)||0);
+ if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSnapshotSeq)return;
+ if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
+ const criticalIds=new Set((data.criticalEnemyIds||[]).map(String));
+ const enemyRows=data.enemies.filter(enemy=>enemy&&enemy.id!=null);
+ const frame={worldId,snapshotSeq:sequence,serverTime,criticalEnemyIds:criticalIds,enemies:new Map(enemyRows.map(enemy=>[String(enemy.id),{id:String(enemy.id),kind:String(enemy.kind||'drifter'),x:Number(enemy.x)||0,y:Number(enemy.y)||0,r:Number(enemy.r)||10,hp:Number(enemy.hp)||0,maxHp:Number(enemy.maxHp)||0}]))};
+ if(!frame.enemies.size||![...criticalIds].some(id=>frame.enemies.has(id)))return;
+ authoritativeSnapshotHistory.set(`${worldId}:${sequence}`,frame);
+ while(authoritativeSnapshotHistory.size>18)authoritativeSnapshotHistory.delete(authoritativeSnapshotHistory.keys().next().value);
+ lastAuthoritativeSnapshotSeq=sequence;
+ if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
+}
 function applySharedMotion(data){
- if(!onlineMode||!data||!Array.isArray(data.enemies)||!Array.isArray(data.orbs))return;
+ if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const worldId=String(data.worldId||''),sequence=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),serverTime=Math.max(0,Number(data.serverTime)||0);
  // Compact motion packets update only entities already introduced by a reliable full snapshot.
  if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSnapshotSeq)return;
@@ -654,18 +668,20 @@ function applySharedMotion(data){
   enemy.suctionActive=row[12]===true;enemy.suctionTimer=Math.max(0,Number(row[13])||0);enemy.suctionCooldown=Math.max(0,Number(row[14])||0);enemy.suctionPulse=Math.max(0,Number(row[15])||0);
   if(Math.hypot(tx-current.x,ty-current.y)>.02)moved++;
  }
- const activeOrbIds=new Set();
- for(const row of data.orbs){
-  if(!Array.isArray(row)||row.length<5)continue;
-  const id=String(row[0]);activeOrbIds.add(id);
-  const orb=onlineOrbById.get(id);if(!orb)continue;
-  const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H),current=currentInterpolatedEnemyPosition(orb,now);
-  orb.x=current.x;orb.y=current.y;orb.interpFromX=current.x;orb.interpFromY=current.y;orb.interpTargetX=tx;orb.interpTargetY=ty;orb.interpAt=now;orb.interpDuration=duration;
-  orb.phase=Number(row[3])||0;orb.life=Math.max(0,Number(row[4])||0);
+ if(Array.isArray(data.orbs)){
+  const activeOrbIds=new Set();
+  for(const row of data.orbs){
+   if(!Array.isArray(row)||row.length<5)continue;
+   const id=String(row[0]);activeOrbIds.add(id);
+   const orb=onlineOrbById.get(id);if(!orb)continue;
+   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H),current=currentInterpolatedEnemyPosition(orb,now);
+   orb.x=current.x;orb.y=current.y;orb.interpFromX=current.x;orb.interpFromY=current.y;orb.interpTargetX=tx;orb.interpTargetY=ty;orb.interpAt=now;orb.interpDuration=duration;
+   orb.phase=Number(row[3])||0;orb.life=Math.max(0,Number(row[4])||0);
+  }
+  let removedOrb=false;
+  for(const id of onlineOrbById.keys())if(!activeOrbIds.has(id)){onlineOrbById.delete(id);removedOrb=true;}
+  if(removedOrb)orbs=orbs.filter(orb=>onlineOrbById.has(String(orb.id)));
  }
- let removedOrb=false;
- for(const id of onlineOrbById.keys())if(!activeOrbIds.has(id)){onlineOrbById.delete(id);removedOrb=true;}
- if(removedOrb)orbs=orbs.filter(orb=>onlineOrbById.has(String(orb.id)));
  onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=moved;
 }
 function applySharedDamage(data){ /* Dano é resolvido diretamente no servidor; mantido apenas por compatibilidade. */ }
@@ -1363,6 +1379,7 @@ window.AbyssalGameHooks={
  toast:message=>showToast(message),
  remoteHit:data=>{if(!player)return;const tx=data.x*W,ty=data.y*H;let nearest=null,bd=Infinity;for(const e of enemies){const d=Math.hypot(e.x-tx,e.y-ty);if(d<bd){bd=d;nearest=e}}if(nearest&&bd<100/GAME_WORLD_ZOOM){effects.push({type:'beam',x1:tx,y1:ty,x2:nearest.x,y2:nearest.y,life:.14,maxLife:.14,color:'#bba8ff'});burst(nearest.x,nearest.y,'#bba8ff',5,60);}},
  applySnapshot:applySharedSnapshot,
+ registerContactSnapshot:registerEnemyContactSnapshot,
  applyMotion:applySharedMotion,
   onlineMovementFallback:()=>onlineClientMovementFallback,
   motionDiagnostics:()=>({enemyCount:onlineVisualEnemyCount,movingEnemies:onlineVisualMovingEnemies,predictingLocally:false,stalledSnapshots:onlineMovementStalledSnapshots,confirmedSnapshots:onlineMovementConfirmedSnapshots,gameState}),
