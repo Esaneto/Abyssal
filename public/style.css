@@ -1444,3 +1444,51 @@ body.mobile-game-active #mobileJoystick.is-floating .joystick-knob{width:48px;he
  #menuScreen h1{font-size:clamp(24px,5.4vh,34px);line-height:.95;margin:6px 0 8px}
  #menuScreen .menu-content{padding-top:8px;padding-bottom:60px;gap:6px}
 }
+
+
+/* HUD compact control, readability and consistent 60% gameplay transparency. */
+.hud-toggle-btn{
+  position:absolute;z-index:36;top:72px;right:14px;
+  display:grid;place-items:center;width:34px;height:38px;
+  border:1px solid rgba(135,239,231,.46);border-radius:8px;
+  background:rgba(4,18,29,.34);color:#d9ffff;
+  font:800 25px/1 Manrope,system-ui,sans-serif;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
+  backdrop-filter:blur(5px);cursor:pointer;
+  transition:opacity .16s,background .16s,border-color .16s;
+}
+.hud-toggle-btn[hidden]{display:none!important}
+body.game-active .hud,
+body.game-active .hud-toggle-btn,
+body.game-active #pauseBtn,
+body.game-active #endDiveBtn,
+body.game-active #roomBadge,
+body.game-active #activeAbilities,
+body.game-active #mobileJoystick{
+  opacity:.6!important;
+  transition:opacity .16s ease;
+}
+body.game-active .hud-toggle-btn:hover,
+body.game-active .hud-toggle-btn:focus-visible,
+body.game-active #pauseBtn:hover,
+body.game-active #endDiveBtn:hover,
+body.game-active #roomBadge:hover,
+body.game-active #activeAbilities .active-ability:hover{
+  opacity:1!important;
+}
+body.hud-collapsed #selectedSkillsPanel,
+body.hud-collapsed #runEnergyRanking,
+body.hud-collapsed #activeAbilities,
+body.hud-collapsed #skillDescriptionTooltip,
+body.hud-collapsed #mobileTip{
+  display:none!important;
+}
+body.mobile-game-active .hud-toggle-btn{
+  position:fixed;top:calc(max(8px,env(safe-area-inset-top)) + 64px);
+  right:max(8px,env(safe-area-inset-right));
+  z-index:46;width:32px;height:36px;
+}
+@media(max-width:700px){
+  body.game-active .hud{opacity:.6!important}
+  body.mobile-game-active .hud-toggle-btn{top:calc(max(8px,env(safe-area-inset-top)) + 63px)}
+}
