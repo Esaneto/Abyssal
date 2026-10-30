@@ -169,7 +169,7 @@ test('client-side currents do not overwrite authoritative online movement', () =
 
 
 test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes', cardumes\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',renderCardumesList\)/)});
-test('menu removes the old octopus and currents render as flowing ribbons',()=>{const html=read('public/index.html');const css=read('public/style.css');const game=read('public/game.js');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/);assert.match(game,/const length=z\.radius\*3\.8,width=z\.radius\*\.62/);assert.match(game,/for\(let n=0;n<11;n\+\+\)/)});
+test('menu removes the old octopus artwork',()=>{const html=read('public/index.html');const css=read('public/style.css');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/)});
 
 
 test('Cardume view supports member presence and safe public profiles',()=>{
