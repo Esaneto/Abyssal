@@ -67,7 +67,7 @@ test('mobile zoom uses the requested level and online menu uses the requested na
   assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
-  for (const [asset,version] of Object.entries({'style.css':'3.5.31','enemy-ai.js':'3.5.32','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.33','online.js':'3.5.32'})) {
+  for (const [asset,version] of Object.entries({'style.css':'3.5.31','enemy-ai.js':'3.5.32','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.34','online.js':'3.5.33'})) {
     assert.ok(html.includes(`${asset}?v=${version}`), `asset version missing: ${asset}`);
   }});
 
@@ -97,9 +97,18 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
   assert.match(server,/io\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion',motion\)/);
   assert.match(online,/socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
   assert.match(online,/function applyPlayerMotion\(rows\)/);
-  assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 1/);
+  assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 5/);
   assert.match(simulation,/if \(sendPlayers\) world\.playerSnapshotTimer = 1/);
   assert.match(simulation,/const sendOrbSnapshot = sendSnapshot && world\.orbSnapshotTimer <= 0/);
   assert.match(server,/getRoomMotionSnapshot\(room,\{includeOrbs:Boolean\(result\.sendOrbSnapshot\)\}\)/);
   assert.match(game,/if\(Array\.isArray\(data\.orbs\)\)\{/);
+  assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
+  assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
+  assert.match(server,/orbScope:recipient\?'view':'all'/);
+  assert.match(game,/orbDuration=clamp\(Number\(data\.orbIntervalMs\)\|\|500,400,650\)/);
+  assert.match(game,/data\.orbScope!=='view'/);
+  assert.match(server,/emit\('world-xp-orbs-expired',expiredOrbIds\)/);
+  assert.match(server,/socket\.on\('shared-damage-batch'/);
+  assert.match(online,/function sendDamageBatch\(hits\)/);
+  assert.match(game,/flushOnlineDamageBatch\(\)/);
 });
