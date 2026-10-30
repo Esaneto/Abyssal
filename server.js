@@ -200,7 +200,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
-const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','aberration','angler','maw','devourer']);
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
 function makeWorldState(){return WorldSimulation.createWorldState();}
@@ -817,7 +817,7 @@ socket.on('global-chat-send',(payload={})=>{
  });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
- socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
+ socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
   const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000, aberration:16000, angler:19000, maw:22000, devourer:35000 };
