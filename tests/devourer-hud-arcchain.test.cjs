@@ -106,5 +106,6 @@ test('online gameplay uses compact motion deltas between reliable full snapshots
   assert.match(online, /socket\.on\('enemy-motion'/);
   assert.match(game, /function applySharedMotion\(data\)/);
   assert.match(game, /applyMotion:applySharedMotion/);
-  assert.match(server, /if\(!hasLivingAfterTick&&worldTicker\)/);
+  assert.match(server, /const simulatingRooms = new Set\(\)/);
+  assert.match(server, /for\(const room of simulatingRooms\)/);
 });
