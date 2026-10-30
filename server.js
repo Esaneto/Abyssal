@@ -511,7 +511,8 @@ function tickRoom(room, now) {
   const reason=playerHits.length?'enemy-contact':'periodic-baseline';
   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
   if(criticalSnapshot)io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
-  w.reliableSnapshotTimer=5;
+  // Keep the periodic full-state recovery aligned with world-simulation.js (30 s).
+  w.reliableSnapshotTimer=30;
  }else if(spawnedEnemies.length>0){
   const spawnFrame=getRoomSpawnSnapshot(room,spawnedEnemies);
   if(spawnFrame)io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);
