@@ -655,17 +655,16 @@ function applySharedMotion(data){
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  let moved=0;
  for(const row of data.enemies){
-  if(!Array.isArray(row)||row.length<16)continue;
+  if(!Array.isArray(row)||row.length<11)continue;
   const enemy=onlineEnemyById.get(String(row[0]));if(!enemy)continue;
   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H);
   const current=window.AbyssalEnemyNetcode?.renderedPosition?.(enemy,now)||currentInterpolatedEnemyPosition(enemy,now);
   enemy.x=current.x;enemy.y=current.y;enemy.serverX=tx;enemy.serverY=ty;
   enemy.interpFromX=current.x;enemy.interpFromY=current.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=duration;
-  enemy.vx=Number(row[3])||0;enemy.vy=Number(row[4])||0;
-  const incomingRevision=Math.max(0,Number(row[11])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
-  if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[5])||0);enemy.maxHp=Math.max(1,Number(row[6])||enemy.maxHp||1);enemy.damageRevision=incomingRevision;}
-  enemy.angle=Number(row[7])||0;enemy.phase=Number(row[8])||0;enemy.hit=Math.max(0,Number(row[9])||0);enemy.attackCd=Math.max(0,Number(row[10])||0);
-  enemy.suctionActive=row[12]===true;enemy.suctionTimer=Math.max(0,Number(row[13])||0);enemy.suctionCooldown=Math.max(0,Number(row[14])||0);enemy.suctionPulse=Math.max(0,Number(row[15])||0);
+  const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
+  if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[3])||0);enemy.damageRevision=incomingRevision;}
+  enemy.angle=Number(row[5])||0;enemy.phase=Number(row[6])||0;
+  enemy.suctionActive=row[7]===true;enemy.suctionTimer=Math.max(0,Number(row[8])||0);enemy.suctionCooldown=Math.max(0,Number(row[9])||0);enemy.suctionPulse=Math.max(0,Number(row[10])||0);
   if(Math.hypot(tx-current.x,ty-current.y)>.02)moved++;
  }
  if(Array.isArray(data.orbs)){
