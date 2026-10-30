@@ -61,7 +61,7 @@ test('mobile zoom uses the requested level and online menu uses the requested na
   assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
-  for (const [asset,version] of Object.entries({'style.css':'3.5.23','enemy-ai.js':'3.5.23','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.23','online.js':'3.5.23'})) {
+  for (const [asset,version] of Object.entries({'style.css':'3.5.24','enemy-ai.js':'3.5.24','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.24','online.js':'3.5.24'})) {
     assert.ok(html.includes(`${asset}?v=${version}`), `asset version missing: ${asset}`);
   }});
 

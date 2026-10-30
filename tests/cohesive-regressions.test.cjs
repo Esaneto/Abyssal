@@ -62,8 +62,8 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.23/);
-  assert.match(html, /game\.js\?v=3\.5\.23/);
+  assert.match(html, /style\.css\?v=3\.5\.24/);
+  assert.match(html, /game\.js\?v=3\.5\.24/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
@@ -171,6 +171,15 @@ test('client-side currents do not overwrite authoritative online movement', () =
 test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes', cardumes\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',renderCardumesList\)/)});
 test('menu removes the old octopus artwork',()=>{const html=read('public/index.html');const css=read('public/style.css');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/)});
 
+
+test('paired level-three skills fuse into gravitational and electric chain abilities',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/gravitationalRupture:[\s\S]*?arcChain:/);
+ assert.match(game,/upgradeLevels\.burst>=3&&upgradeLevels\.nova>=3/);
+ assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.ricochet>=3/);
+ assert.match(game,/dealEnemyDamage\(e,10,'gravitationalRupture'\)/);
+ assert.match(game,/dealEnemyDamage\(target,16,'arcChain'\)/);
+});
 
 test('Cardume view supports member presence and safe public profiles',()=>{
  const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html'),css=read('public/style.css');
