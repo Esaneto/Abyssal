@@ -82,7 +82,7 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
 test('authoritative movement is lossy-but-fresh, while collision verification keeps a reliable attacker frame', () => {
   assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'entity lifecycle and recovery snapshots must remain reliable');
   assert.match(server, /if\s*\(criticalSnapshot\)\s*io\.to\(channelFor\(room\)\)\.emit\('game-snapshot',\s*criticalSnapshot\)/);
-  assert.match(server, /\.volatile\.emit\('enemy-motion',motion\)/);
+  assert.match(server, /io\.to\(recipient\.id\)\.volatile\.emit\('enemy-motion',motion\)/);
   const tickRoom=server.indexOf('function tickRoom(room, now)');
   const motionEmit=server.indexOf("volatile.emit('enemy-motion',motion)",tickRoom);
   const contactEmit=server.indexOf("emit('enemy-contact-source',contactSnapshot)",tickRoom);
@@ -100,8 +100,17 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
   assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 5/);
   assert.match(simulation,/if \(sendPlayers\) world\.playerSnapshotTimer = 1/);
   assert.match(simulation,/const sendOrbSnapshot = sendSnapshot && world\.orbSnapshotTimer <= 0/);
-  assert.match(server,/getRoomMotionSnapshot\(room,\{includeOrbs:Boolean\(result\.sendOrbSnapshot\)\}\)/);
+  assert.match(server,/getRoomMotionSnapshot\(room,\{player:recipient,includeOrbs:Boolean\(result\.sendOrbSnapshot\)\}\)/);
   assert.match(game,/if\(Array\.isArray\(data\.orbs\)\)\{/);
+  assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
+  assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
+  assert.match(server,/orbScope:recipient\?'view':'all'/);
+  assert.match(game,/orbDuration=clamp\(Number\(data\.orbIntervalMs\)\|\|500,400,650\)/);
+  assert.match(game,/data\.orbScope!=='view'/);
+  assert.match(server,/emit\('world-xp-orbs-expired',expiredOrbIds\)/);
+  assert.match(server,/socket\.on\('shared-damage-batch'/);
+  assert.match(online,/function sendDamageBatch\(hits\)/);
+  assert.match(game,/flushOnlineDamageBatch\(\)/);
   assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
   assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
   assert.match(server,/orbScope:recipient\?'view':'all'/);
