@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.12">
+<link rel="stylesheet" href="style.css?v=3.5.13">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -50,6 +50,7 @@
           <button id="shopBtn" class="secondary-btn menu-action">LOJA DE SKINS <span>✦</span></button>
           <button id="catalogBtn" class="secondary-btn menu-action">CATÁLOGO <span>⌕</span></button>
           <button id="rankingsBtn" class="secondary-btn menu-action">RANKINGS <span>♛</span></button>
+          <button id="cardumesBtn" class="secondary-btn menu-action">CARDUMES <span>≋</span></button>
           <button id="profileBtn" class="secondary-btn menu-action">PERFIL & TÍTULOS <span>✧</span></button>
         </div>
         <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
@@ -58,12 +59,6 @@
       </div>
       <button id="downloadBtn" class="secondary-btn download-cta" type="button" aria-label="Abrir opções de download">BAIXAR <span aria-hidden="true">⇩</span></button>
       <div class="menu-fauna" aria-hidden="true"><span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span><span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span></div>
-      <div class="menu-creature" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
-        <div class="creature-tentacle t1"></div><div class="creature-tentacle t2"></div><div class="creature-tentacle t3"></div><div class="creature-tentacle t4"></div><div class="creature-tentacle t5"></div><div class="creature-tentacle t6"></div><div class="creature-tentacle t7"></div><div class="creature-tentacle t8"></div>
-        <div class="creature-core"><span></span></div>
-        <div class="glow"></div>
-      </div>
       <section id="globalChatPanel" class="global-chat-panel" aria-label="Chat global do Abyssal">
         <div class="global-chat-heading"><div><span class="pulse-dot"></span><strong>TRANSMISSÃO ABISSAL</strong></div><span id="globalChatStatus">CONECTANDO…</span></div>
         <div id="globalChatMessages" class="global-chat-messages" role="log" aria-live="polite" aria-relevant="additions"><p class="global-chat-empty">Sintonizando os sinais dos mergulhadores…</p></div>
@@ -212,6 +207,18 @@
         <button id="roomsCloseBtn" type="button" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
+    <section id="cardumesScreen" class="screen modal-screen" hidden>
+      <div class="modal-card cardumes-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> COMUNIDADE · RECRUTAMENTO</div>
+        <h2>CARDUMES<br><em>DO ABISMO</em></h2>
+        <p>Reúna mergulhadores, encontre companheiros de expedição e cresça como equipe. Cada conta pode pertencer a um Cardume por vez.</p>
+        <div id="cardumeMessage" class="form-message" role="status" aria-live="polite">Conecte-se e carregue os Cardumes disponíveis.</div>
+        <div class="rooms-title-row"><h3>CARDUMES EXISTENTES</h3><button id="refreshCardumesBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+        <div id="cardumesList" class="cardumes-list"><p class="rooms-empty">Buscando Cardumes…</p></div>
+        <div class="room-create-section"><h3>FUNDAR UM CARDUME</h3><label class="field-label" for="cardumeNameInput">NOME (3–24 CARACTERES)</label><input id="cardumeNameInput" class="text-field" maxlength="24" placeholder="Ex.: Filhos da Fossa"><label class="field-label" for="cardumeDescriptionInput">DESCRIÇÃO (OPCIONAL)</label><input id="cardumeDescriptionInput" class="text-field" maxlength="120" placeholder="Como seu Cardume mergulha junto?"><button id="createCardumeBtn" class="primary-btn" type="button">CRIAR CARDUME <span>↗</span></button><button id="leaveCardumeBtn" class="secondary-btn" type="button">SAIR DO MEU CARDUME</button></div>
+        <button id="cardumesCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
@@ -269,8 +276,8 @@
 <script src="enemy-ai.js?v=3.5.12"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.12"></script>
-<script src="online.js?v=3.5.12"></script>
+<script src="game.js?v=3.5.13"></script>
+<script src="online.js?v=3.5.13"></script>
 <script>
 /* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
 (()=>{
