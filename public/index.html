@@ -155,8 +155,21 @@
         <div id="skinGrid" class="skin-grid"></div>
         <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste essências para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
         <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
-        <section class="redeem-code-panel" aria-labelledby="redeemCodeTitle"><div><span class="eyebrow">RECOMPENSA ESPECIAL</span><h3 id="redeemCodeTitle">RESGATAR CÓDIGO</h3><p>Digite um código promocional para receber essências abissais.</p></div><div class="redeem-code-controls"><label for="redeemCodeInput">CÓDIGO PROMOCIONAL</label><input id="redeemCodeInput" type="text" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Ex.: abyssal10k" aria-label="Código promocional"><button id="redeemCodeBtn" class="secondary-btn" type="button">RESGATAR CÓDIGO</button></div><p id="redeemCodeMessage" class="redeem-code-message" role="status" aria-live="polite"></p></section>
+        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber essências abissais</small></span><strong>↗</strong></button>
         <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen" hidden>
+      <div class="modal-card redeem-modal-card" role="dialog" aria-modal="true" aria-labelledby="redeemCodeTitle">
+        <button id="redeemCodeCloseBtn" class="redeem-close-btn" type="button" aria-label="Fechar janela">×</button>
+        <div class="redeem-modal-emblem" aria-hidden="true">✦</div>
+        <div class="eyebrow"><span class="pulse-dot"></span> RECOMPENSA ESPECIAL</div>
+        <h2 id="redeemCodeTitle">CÓDIGO<br><em>ABISSAL</em></h2>
+        <p>Digite seu código abaixo para desbloquear uma recompensa das profundezas.</p>
+        <div class="redeem-code-controls"><label for="redeemCodeInput">CÓDIGO PROMOCIONAL</label><input id="redeemCodeInput" type="text" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Digite seu código aqui" aria-label="Código promocional"><button id="redeemCodeBtn" class="primary-btn" type="button">RESGATAR CÓDIGO <span>↗</span></button></div>
+        <p id="redeemCodeMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
+        <button id="redeemCodeBackBtn" class="secondary-btn" type="button">VOLTAR À LOJA</button>
       </div>
     </section>
 

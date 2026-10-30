@@ -117,3 +117,6 @@ test('Kraken tentacle poses radiate into all four directions', () => {
   assert.ok(poses.some(p => p.ey < -0.8), 'upward arm');
   assert.ok(poses.some(p => p.ey > 1.0), 'downward arm');
 });
+
+test('redeem code is entered in a dedicated modal',()=>{const html=read('public/index.html'),css=read('public/style.css'),game=read('public/game.js');assert.match(html,/id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen"/);assert.match(game,/openRedeemCodeBtn.*openRedeemCodeModal/);assert.match(game,/coins\+=10000/);assert.match(css,/\.redeem-modal-screen\{z-index:12/);});
+test('prism spread and photon lance upgrades affect projectile creation',()=>{const game=read('public/game.js');assert.match(game,/id:'spread',name:'Rajada Prismática'/);assert.match(game,/id:'photon',name:'Lança de Fótons'/);assert.match(game,/if\(\(upgrades\.spread\|\|0\)>0\)/);assert.match(game,/shotSpeed=430\*\(1\+\(upgrades\.photon\|\|0\)\*\.22\)/);});
