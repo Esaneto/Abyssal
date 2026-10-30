@@ -108,3 +108,12 @@ test('redeem code input is visible, editable, and can be submitted by Enter', ()
   assert.match(game, /redeemCodeInput.*addEventListener\('keydown'/);
   assert.match(game, /coins\+=10000/);
 });
+
+test('Kraken tentacle poses radiate into all four directions', () => {
+  const ai = require('../public/enemy-ai');
+  const poses = Array.from({ length: 8 }, (_, i) => ai.krakenTentaclePose(i, 0));
+  assert.ok(poses.some(p => p.ex < -0.8 && Math.abs(p.ey) < 1.0), 'left-facing arm');
+  assert.ok(poses.some(p => p.ex > 0.8 && Math.abs(p.ey) < 1.0), 'right-facing arm');
+  assert.ok(poses.some(p => p.ey < -0.8), 'upward arm');
+  assert.ok(poses.some(p => p.ey > 1.0), 'downward arm');
+});
