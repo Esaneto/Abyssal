@@ -403,6 +403,9 @@ function tickRoom(room, now) {
  const activePlayers = livingPlayers(room);
  if (!activePlayers.length) return;
  const w = room.world;
+ // Boss difficulty scales to everyone occupying the room, including players who are
+ // temporarily down and may revive; movement and damage still target living players.
+ w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
