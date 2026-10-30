@@ -1094,3 +1094,82 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
 /* Cardume com lista de presença e perfis públicos. */
 .cardume-detail{margin:16px 0}.cardume-detail-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px;border:1px solid rgba(121,243,240,.2);background:rgba(7,31,44,.75);margin:12px 0}.cardume-detail-heading h3{margin:0;color:#e8ffff;font-size:18px}.cardume-detail-heading p{margin:6px 0 0;color:#9ab9c6;font-size:12px;line-height:1.5}.cardume-members{display:grid;gap:8px;margin:12px 0 18px}.cardume-member{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid rgba(121,243,240,.15);background:rgba(5,22,33,.85)}.member-presence{width:10px;height:10px;border-radius:50%;background:#63717a;box-shadow:0 0 0 3px rgba(99,113,122,.12)}.member-presence.is-online{background:#51f39a;box-shadow:0 0 10px rgba(81,243,154,.75)}.cardume-member-copy{min-width:0}.cardume-member-copy strong{display:block;color:#e9ffff;font-size:13px;overflow-wrap:anywhere}.cardume-member-copy small{display:block;margin-top:4px;color:#91aebb;font:9px 'DM Mono',monospace}.cardume-member button{border:1px solid rgba(121,243,240,.3);background:rgba(121,243,240,.06);color:#bafffb;padding:8px 10px;font-size:10px;font-weight:800}.public-profile-actions{display:flex;align-items:center;gap:12px;margin:12px 0 18px}.public-profile-actions .primary-btn{min-width:170px}.public-profile-actions .primary-btn:disabled{opacity:.55}.profile-social-counts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}.profile-social-counts span{border:1px solid rgba(121,243,240,.16);padding:7px 10px;color:#a6d8dc;font:10px 'DM Mono',monospace}
 @media(max-width:520px){.cardume-member{grid-template-columns:auto minmax(0,1fr)}.cardume-member button{grid-column:2;justify-self:start}.public-profile-actions{align-items:flex-start;flex-direction:column}}
+
+
+/* Menu refresh: reserve a dedicated right column for chat, never over the actions. */
+@media (min-width: 701px) {
+  #menuScreen { overflow: hidden; }
+  #menuScreen .menu-content {
+    width: min(56%, 760px);
+    min-height: 100%;
+    padding-right: clamp(18px, 3vw, 46px);
+    padding-bottom: 72px;
+  }
+  #menuScreen .global-chat-panel {
+    position: absolute;
+    top: 50%;
+    right: clamp(18px, 2.5vw, 40px);
+    bottom: auto;
+    transform: translateY(-50%);
+    width: clamp(310px, 34vw, 470px);
+    max-height: min(76%, 650px);
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: clamp(12px, 1.2vw, 18px);
+    z-index: 6;
+  }
+  #menuScreen .global-chat-messages {
+    height: auto;
+    min-height: 130px;
+    flex: 1 1 auto;
+    max-height: min(42vh, 380px);
+  }
+  #menuScreen .menu-footer { right: clamp(18px, 2.5vw, 40px); }
+}
+.menu-catalog-creature {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  width: clamp(90px, 14vw, 220px);
+  height: auto;
+  object-fit: contain;
+  opacity: .44;
+  filter: drop-shadow(0 0 18px rgba(98, 226, 232, .22));
+  pointer-events: none;
+  animation: catalogCreatureDrift 34s linear infinite;
+}
+.menu-creature-drifter { top: 15%; left: 68%; width: clamp(60px, 9vw, 130px); animation-duration: 28s; }
+.menu-creature-angler { top: 65%; left: 78%; width: clamp(70px, 10vw, 150px); animation-duration: 36s; animation-delay: -11s; }
+.menu-creature-leviathan { top: 25%; left: 78%; width: clamp(100px, 17vw, 250px); animation-duration: 44s; animation-delay: -20s; }
+.menu-creature-maw { top: 53%; left: 57%; width: clamp(75px, 12vw, 170px); animation-duration: 39s; animation-delay: -17s; }
+.menu-creature-kraken { top: 34%; left: 67%; width: clamp(110px, 18vw, 260px); opacity: .30; animation-duration: 52s; animation-delay: -29s; }
+@keyframes catalogCreatureDrift {
+  0% { transform: translate3d(16vw, 0, 0) rotate(-5deg); }
+  25% { transform: translate3d(-3vw, 4vh, 0) rotate(2deg); }
+  50% { transform: translate3d(-24vw, -2vh, 0) rotate(6deg); }
+  75% { transform: translate3d(-8vw, -5vh, 0) rotate(-2deg); }
+  100% { transform: translate3d(16vw, 0, 0) rotate(-5deg); }
+}
+@media (max-width: 700px) {
+  #menuScreen { overflow-y: auto; }
+  #menuScreen .menu-content { width: 100%; padding-bottom: 26px; }
+  #menuScreen .global-chat-panel {
+    position: relative;
+    inset: auto;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 36px);
+    max-width: none;
+    max-height: none;
+    margin: 14px 18px 60px;
+    align-self: stretch;
+  }
+  #menuScreen .global-chat-messages { height: 150px; max-height: none; flex: none; }
+  .menu-catalog-creature { opacity: .20; }
+  .menu-creature-kraken { left: 45%; top: 45%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-catalog-creature { animation: none; }
+}

@@ -1153,7 +1153,12 @@ window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)
 window.addEventListener('abyssal-account-data',e=>{const a=e.detail;if(!a)return;coins=Number(a.coins)||0;ownedSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];equippedSkin=a.equippedSkin||'default';metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;saveCosmeticsLocalOnly();renderShop();updateAbilityButtons();});
 window.addEventListener('abyssal-purchase-result',e=>{const r=e.detail||{};showToast(r.message||'Compra processada');if(r.ok&&r.itemId)playSkillSound(r.itemId,'learn');else if(r.ok)audio(760,.15,'triangle',.035);});
 function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
-renderShop();resize();gameState='menu';requestAnimationFrame(loop);
+renderShop();
+document.querySelectorAll('#menuScreen canvas[data-menu-creature]').forEach(canvas=>{
+  const kind=canvas.dataset.menuCreature, color=canvas.dataset.menuColor||'#79f3f0';
+  renderCreaturePreview(canvas,kind,color,null);
+});
+resize();gameState='menu';requestAnimationFrame(loop);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{

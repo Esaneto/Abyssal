@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.14">
+<link rel="stylesheet" href="style.css?v=3.5.15">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -58,7 +58,15 @@
         <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
       </div>
       <button id="downloadBtn" class="secondary-btn download-cta" type="button" aria-label="Abrir opções de download">BAIXAR <span aria-hidden="true">⇩</span></button>
-      <div class="menu-fauna" aria-hidden="true"><span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span><span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span></div>
+      <div class="menu-fauna" aria-hidden="true">
+        <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
+        <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-angler" width="180" height="112" data-menu-creature="angler" data-menu-color="#ffb45e"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-leviathan" width="220" height="140" data-menu-creature="leviathan" data-menu-color="#4ce0d1"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-maw" width="180" height="140" data-menu-creature="maw" data-menu-color="#c16cff"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-kraken" width="220" height="180" data-menu-creature="kraken" data-menu-color="#8b5cf6"></canvas>
+        <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
+      </div>
       <section id="globalChatPanel" class="global-chat-panel" aria-label="Chat global do Abyssal">
         <div class="global-chat-heading"><div><span class="pulse-dot"></span><strong>TRANSMISSÃO ABISSAL</strong></div><span id="globalChatStatus">CONECTANDO…</span></div>
         <div id="globalChatMessages" class="global-chat-messages" role="log" aria-live="polite" aria-relevant="additions"><p class="global-chat-empty">Sintonizando os sinais dos mergulhadores…</p></div>
@@ -291,8 +299,8 @@
 <script src="enemy-ai.js?v=3.5.12"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.14"></script>
-<script src="online.js?v=3.5.14"></script>
+<script src="game.js?v=3.5.15"></script>
+<script src="online.js?v=3.5.15"></script>
 <script>
 /* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
 (()=>{
