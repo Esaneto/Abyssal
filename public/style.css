@@ -1343,3 +1343,17 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
 
 /* Botão de saída sempre visível no topo das janelas de loja e roleta. */
 .shop-modal,.wheel-modal{position:relative;padding-top:44px!important}.modal-top-close{position:absolute;top:10px;right:10px;z-index:20;width:32px;height:32px;display:grid;place-items:center;border:1px solid rgba(121,243,240,.32);border-radius:7px;background:rgba(3,15,26,.9);color:#d9ffff;font-size:23px;line-height:1;cursor:pointer}.modal-top-close:hover{background:rgba(21,66,78,.95);border-color:rgba(121,243,240,.7)}
+
+
+/* O ranking acompanha a altura real do painel de habilidades e fica logo abaixo dele. */
+.run-energy-ranking{right:auto;top:calc(142px + 40px);width:clamp(145px,17vw,220px);max-height:24vh;overflow:hidden;}
+@media(max-width:700px){.run-energy-ranking{right:auto;top:calc(130px + 40px);width:clamp(126px,39vw,170px);max-height:18vh;padding:5px 6px;font-size:8px}.run-energy-ranking>strong{font-size:8px}}
+.combo-codex-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));}
+.codex-card.combo-codex-card{position:relative;overflow:hidden;border:1px solid rgba(169,139,255,.72);background:radial-gradient(ellipse at 50% 0%,rgba(111,73,194,.22),transparent 65%),linear-gradient(145deg,rgba(26,19,49,.98),rgba(4,13,27,.99));box-shadow:inset 0 0 24px rgba(151,115,255,.08),0 0 18px rgba(123,88,255,.08);}
+.codex-card.combo-codex-card:before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:linear-gradient(115deg,transparent 25%,rgba(191,170,255,.08) 50%,transparent 72%);}
+.combo-rarity{position:relative;z-index:1;align-self:flex-start;margin-bottom:8px;padding:4px 7px;border:1px solid rgba(191,166,255,.48);border-radius:4px;background:rgba(86,53,143,.24);color:#dfd1ff;font:800 8px/1.4 'DM Mono',monospace;letter-spacing:.1em;}
+.combo-preview{border:1px solid rgba(180,153,255,.5);background:radial-gradient(circle,var(--preview),rgba(21,18,43,.8) 54%,rgba(3,10,21,.95));color:#f5efff;text-shadow:0 0 14px var(--preview);font-size:34px;box-shadow:inset 0 0 25px rgba(177,147,255,.12),0 0 14px rgba(142,105,255,.14);}
+.codex-card.combo-codex-card>b{color:#f1eaff;font-size:13px;letter-spacing:.025em;}
+.codex-card.combo-codex-card>p{color:#d4c9f3;line-height:1.6;}
+.combo-recipe{display:block;margin-top:8px;padding-top:8px;border-top:1px solid rgba(182,156,255,.22);color:#b9e8ff;font:700 9px/1.6 'DM Mono',monospace;}
+.special-codex-heading{color:#d6c5ff!important;text-shadow:0 0 16px rgba(151,112,255,.22);}
