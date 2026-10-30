@@ -238,16 +238,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   let movedEnemyCount = 0;
   const playerHits = [];
   const defeatedPlayers = [];
+  // Players choosing a skill are protected and removed from enemy target selection;
+  // enemies continue pursuing the remaining active players in the room.
+  const targetablePlayers = validPlayers.filter(p => (Number(p.skillSelectingUntil) || 0) <= now);
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
-    const movement = EnemyAI.moveTowardTarget(enemy, validPlayers, dt, {
+    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, {
       minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM,
       minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM,
       stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96)
     });
-    if (!movement.moved && validPlayers.length && dt > 0) {
-      movement.moved = forceAdvanceEnemy(enemy, validPlayers, dt);
+    if (!movement.moved && targetablePlayers.length && dt > 0) {
+      movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
       if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
     }
     if (movement.moved) movedEnemyCount++;
