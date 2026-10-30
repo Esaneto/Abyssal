@@ -149,3 +149,20 @@ test('menu adds fish and rock ambience, currents push the player, active skills 
   assert.match(game, /function toggleEquippedActiveSkill/);
   assert.match(game, /DESEQUIPAR/);
 });
+
+
+test('online damage rejects stale-room hits quietly and avoids per-hit acknowledgements', () => {
+  const game = read('public/game.js');
+  const online = read('public/online.js');
+  assert.doesNotMatch(game, /IMPACTO NÃO CONFIRMADO/);
+  assert.match(game, /if\(\['not-in-room','not-connected','enemy-not-found','ack-timeout'\]\.includes\(reason\)\)return/);
+  assert.match(online, /!currentRoom\)return false/);
+  assert.match(online, /socket\.emit\('shared-damage'/);
+  assert.doesNotMatch(online, /socket\.timeout\(2500\)\.emit\('shared-damage'/);
+});
+
+test('client-side currents do not overwrite authoritative online movement', () => {
+  const game = read('public/game.js');
+  assert.match(game, /if\(!onlineMode\)\{currentSpawnTimer/);
+  assert.match(game, /if\(!onlineMode\)\{for\(const current of currentZones\)/);
+});
