@@ -179,7 +179,7 @@ function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
  return { playerId: player.id, hp: Math.max(0, Number(player.hp) || 0), maxHp: Math.max(1, Number(player.maxHp) || 100), shieldCharges: Math.max(0, Math.min(3, Math.floor(Number(player.shieldCharges) || 0))), alive: player.alive !== false, invulnerabilityMs: Math.max(0, (Number(player.invulnerableUntil) || 0) - Date.now()), ...extra };
 }
-const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken']);
+const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken','devourer']);
 const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 400;
 const MAX_BOSSES_PER_ROOM = 4;
@@ -200,7 +200,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
-const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken']);
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','aberration','angler','maw','devourer']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
 function makeWorldState(){return WorldSimulation.createWorldState();}
@@ -460,6 +460,15 @@ function tickRoom(room, now) {
  for (const boss of spawnedBosses) {
   combatDiagnostics.bossSpawns++; combatDiagnostics.lastBossSpawnAt = new Date().toISOString();
   io.to(channelFor(room)).emit('boss-warning', { id: boss.id, kind: boss.kind, threat: boss.threat, hp: boss.hp, maxHp: boss.maxHp, elapsed: Math.floor(w.elapsed || 0) });
+ }
+ // Relay authoritative suction displacement to the affected player's predicted client.
+ // Position heartbeats continue normally, keeping the server aligned while controls can fight the pull.
+ for (const pull of result.playerSuctionPulls || []) {
+  if (!pull || !pull.playerId || (!pull.dx && !pull.dy)) continue;
+  io.to(pull.playerId).emit('player-suction-pull', {
+   dx: Number(pull.dx) || 0, dy: Number(pull.dy) || 0,
+   bossId: pull.bossId, strength: Number(pull.strength) || 0
+  });
  }
  // Shared XP orb pickup is decided by the server. A single orb can only be claimed
  // once, and only the winning player receives the XP event. Snapshot above has removed it.
@@ -811,7 +820,7 @@ socket.on('global-chat-send',(payload={})=>{
  socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
-  const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000 };
+  const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000, aberration:16000, angler:19000, maw:22000, devourer:35000 };
   const id = String(payload.id || ''), price = prices[id];
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Skin indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });
