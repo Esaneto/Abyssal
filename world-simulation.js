@@ -1,7 +1,7 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
-const MAX_ENEMIES = 50;
+const MAX_ENEMIES = 150;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
