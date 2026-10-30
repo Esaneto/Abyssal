@@ -11,7 +11,7 @@ test('shared pursuit moves an enemy toward the nearest player in world coordinat
   for (let i = 0; i < 20; i++) moveTowardTarget(enemy, [target], 0.05, { minX: 0, maxX: AI.WORLD_WIDTH, minY: 0, maxY: AI.WORLD_HEIGHT });
   const finalDistance = Math.hypot(target.x - enemy.x, target.y - enemy.y);
   assert.ok(finalDistance < startDistance);
-  assert.ok(Math.abs(Math.hypot(enemy.x - 150, enemy.y - 150) - 65) < 1e-6);
+  assert.ok(Math.abs(Math.hypot(enemy.x - 150, enemy.y - 150) - 65 * 0.85) < 1e-6);
 });
 
 test('solo and online call the exact same movement function and speed units', () => {
