@@ -18,7 +18,8 @@ function createWorldState(now = Date.now()) {
 }
 
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
-function countCommons(world) { return world.enemies.length - countBosses(world).length; }
+function countBossesNumber(world) { let count = 0; for (const enemy of world.enemies) if (BOSS_KINDS.includes(enemy.kind)) count++; return count; }
+function countCommons(world) { let count = 0; for (const enemy of world.enemies) if (!BOSS_KINDS.includes(enemy.kind)) count++; return count; }
 
 function contactGeometry(enemy, target) {
   const enemyRadiusWorld = Math.max(1, Number(enemy?.r) || 10) / WORLD_ZOOM;
@@ -41,9 +42,9 @@ function contactGeometry(enemy, target) {
 function forceAdvanceEnemy(enemy, players, dt) {
   if (!enemy || !players.length || dt <= 0) return false;
   let target = null, nearest = Infinity;
-  const visibleTargets = players.filter(player => Number(player.skillSelectingUntil) <= Date.now());
-  const targetPool = visibleTargets.length ? visibleTargets : players;
-  for (const player of targetPool) {
+  // tickWorld passes the pre-filtered targetable-player array; don't allocate a new
+  // filtered array for every one of up to 400 enemies on every 50 ms server tick.
+  for (const player of players) {
     const d = Math.hypot(Number(player.x) - Number(enemy.x), Number(player.y) - Number(enemy.y));
     if (Number.isFinite(d) && d < nearest) { nearest = d; target = player; }
   }
@@ -238,17 +239,18 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   let movedEnemyCount = 0;
   const playerHits = [];
   const defeatedPlayers = [];
+  // Reuse one movement result and one options object through the entire 400-enemy pass.
+  const movementResult = {};
+  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM, stopDistance: 0 };
+  const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
   const targetablePlayers = validPlayers.filter(p => (Number(p.skillSelectingUntil) || 0) <= now);
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
-    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, {
-      minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM,
-      minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM,
-      stopDistance: Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96)
-    });
+    movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
+    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
     if (!movement.moved && targetablePlayers.length && dt > 0) {
       movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
       if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
@@ -272,12 +274,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let vx = Number(target.velocityX) || 0, vy = Number(target.velocityY) || 0;
     const velocity = Math.hypot(vx, vy);
     if (velocity > 320) { vx = vx / velocity * 320; vy = vy / velocity * 320; }
-    const contactTarget = target.clientHidden === true ? target : {
-      ...target,
-      x: Number(target.x) + vx * predictionSeconds,
-      y: Number(target.y) + vy * predictionSeconds
-    };
-    const contact = contactGeometry(enemy, contactTarget);
+    let resolvedContactTarget = target;
+    if (target.clientHidden !== true) {
+      // Reuse a single lightweight contact target rather than spreading/copying the
+      // complete player record for every enemy whose contact cooldown expires.
+      contactTarget.x = Number(target.x) + vx * predictionSeconds;
+      contactTarget.y = Number(target.y) + vy * predictionSeconds;
+      contactTarget.r = Number(target.r) || (13 / WORLD_ZOOM);
+      resolvedContactTarget = contactTarget;
+    }
+    const contact = contactGeometry(enemy, resolvedContactTarget);
     const contactDistance = contact.distance;
     const rawContactRadius = contact.radius;
     // Reduce the outer edge of the hitbox by the player movement predicted since the
@@ -323,7 +329,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     playerHits.push({
       playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
       enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
-      enemyRadius: contact.enemyRadiusWorld, playerX: Number(contactTarget.x), playerY: Number(contactTarget.y),
+      enemyRadius: contact.enemyRadiusWorld, playerX: Number(resolvedContactTarget.x), playerY: Number(resolvedContactTarget.y),
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
