@@ -1074,9 +1074,9 @@ function redeemAbyssalCode(){
  const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
  if(!message||!input)return;
  if(code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
+ if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode('abyssal10k');return;}
  let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
  if(redeemed.includes('abyssal10k')){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
- if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode('abyssal10k');return;}
  coins+=10000;redeemed.push('abyssal10k');localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));saveCosmetics();
  message.textContent='CÓDIGO RESGATADO! +10.000 ESSÊNCIAS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
 }
