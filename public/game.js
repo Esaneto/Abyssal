@@ -239,6 +239,23 @@ function showSkillDescription(id,target){
 }
 function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
 const selectedSkillPanel=$('selectedSkillsList');
+// Mantém o ranking abaixo do painel de habilidades conforme a lista cresce ou muda de tamanho.
+function positionRunEnergyRanking(){
+ const panel=$('selectedSkillsPanel');
+ const ranking=$('runEnergyRanking');
+ if(!panel||!ranking)return;
+ const rect=panel.getBoundingClientRect();
+ const gap=8;
+ const top=Math.max(8,Math.min(window.innerHeight-70,rect.bottom+gap));
+ ranking.style.top=top+'px';
+}
+const skillsPanelForRanking=$('selectedSkillsPanel');
+if(skillsPanelForRanking&&'ResizeObserver' in window){
+ const rankingLayoutObserver=new ResizeObserver(positionRunEnergyRanking);
+ rankingLayoutObserver.observe(skillsPanelForRanking);
+}
+window.addEventListener('resize',positionRunEnergyRanking);
+positionRunEnergyRanking();
 selectedSkillPanel?.addEventListener('pointerover',event=>{if(event.pointerType==='mouse'){const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);}});
 selectedSkillPanel?.addEventListener('pointerout',event=>{if(event.pointerType==='mouse'&&!event.relatedTarget?.closest?.('[data-skill-id]'))hideSkillDescription();});
 selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);});
