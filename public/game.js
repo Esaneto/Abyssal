@@ -264,7 +264,7 @@ const upgradeList=[
 ];
 const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia saltam entre até cinco inimigos próximos dentro do alcance de disparo.'}
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia saltam entre até 12 inimigos em um raio duas vezes maior que o alcance de disparo.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -320,7 +320,7 @@ selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.clos
 document.addEventListener('click',event=>{if(!event.target.closest?.('#selectedSkillsPanel'))hideSkillDescription();});
 function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
- clearUpgradeCountdown();
+ clearUpgradeCountdown();gameState='upgrade-applying';
  u.apply();
  if(player){player.invuln=3;hp=maxHp;}
  if(onlineMode){window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
@@ -345,11 +345,13 @@ function chooseUpgrade(u){
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
 function offerUpgrade(){
- if(gameState==='upgrade')return;
+ if(gameState==='upgrade'||gameState==='upgrade-applying')return;
  clearUpgradeCountdown();
  gameState='upgrade';chosen=[];
- upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
- const wrap=$('upgradeChoices');wrap.innerHTML='';
+ const available=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3);
+ for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]];}
+ upgradeOptions=available.slice(0,3);
+ const wrap=$('upgradeChoices'),fragment=document.createDocumentFragment();wrap.replaceChildren();
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
  // A level-up pauses gameplay and grants protection while the player has 25 seconds to choose.
  if(player)player.invuln=Math.max(player.invuln,25);
@@ -358,9 +360,9 @@ function offerUpgrade(){
   const current=upgradeLevels[u.id]||0,b=document.createElement('button');
   b.type='button';b.className='upgrade-card';
   b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong><p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;
-  b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b);
+  b.addEventListener('click',()=>chooseUpgrade(u));fragment.appendChild(b);
  });
- $('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
+ wrap.appendChild(fragment);$('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
  upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
@@ -674,7 +676,7 @@ function update(dt){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
    player.gravitationalRuptureTimer=.34;
-   const fieldRange=294*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
+   const fieldRange=588*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/GAME_WORLD_ZOOM;
    for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];if(dist(player,e)>fieldRange)continue;
     dealEnemyDamage(e,10,'gravitationalRupture');
@@ -689,7 +691,7 @@ function update(dt){
   if(player.arcChainTimer<=0){
    player.arcChainTimer=.48;
    const fieldRange=294*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
-   const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,5);
+   const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,12);
    let previous={x:player.x,y:player.y};
    for(const target of targets){
     dealEnemyDamage(target,16,'arcChain');
