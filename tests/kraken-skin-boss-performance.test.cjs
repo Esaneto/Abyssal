@@ -72,3 +72,20 @@ test('boss pursuit ramps toward player speed as health falls and never exceeds i
   assert.ok(Math.hypot(critical.x, critical.y) <= 50.001);
   assert.ok(Math.hypot(critical.x, critical.y) <= target.moveSpeed * 0.5 + 1e-6);
 });
+
+test('Kraken identity is consistently violet and no longer uses the smiling name', () => {
+  const game = read('public/game.js');
+  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6'/);
+  assert.match(game, /kraken:\{name:'Kraken do Abismo',color:'#8b5cf6'/);
+  assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
+});
+
+test('shop includes one-time abyssal10k redemption for 10,000 coins', () => {
+  const html = read('public/index.html');
+  const game = read('public/game.js');
+  assert.match(html, /id="redeemCodeInput"/);
+  assert.match(html, /id="redeemCodeBtn"/);
+  assert.match(game, /code!=='abyssal10k'/);
+  assert.match(game, /coins\+=10000/);
+  assert.match(game, /abyssalRedeemedCodes/);
+});
