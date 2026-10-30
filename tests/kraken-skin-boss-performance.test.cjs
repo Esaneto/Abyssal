@@ -33,20 +33,20 @@ test('every skin presents its own distinct ability and Kraken costs 30,000 coins
   assert.equal(skins.length, 15, 'the catalog should cover all existing skins and Kraken');
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
-  assert.match(source, /id:'kraken',name:'Kraken, Sorriso do Abismo',color:'#52c8b5',price:30000/);
+  assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000/);
   assert.match(game, /class="skin-ability"/);
   const server = read('server.js');
   assert.match(server, /kraken:30000/);
   assert.match(server, /player\.skinId!=='kraken'/);
 });
 
-test('menu Kraken uses eight moving arms and a jagged smile', () => {
+test('menu Kraken uses eight moving arms and a shadowed, toothless maw', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
   assert.equal((html.match(/class="creature-tentacle t[1-8]"/g)||[]).length, 8);
   assert.match(css, /@keyframes kraken-arm/);
-  assert.match(css, /#menuScreen \.creature-core span:before/);
-  assert.match(css, /#menuScreen \.creature-core span:after/);
+  assert.match(css, /radial-gradient\(ellipse at 50% 38%,#160824/);
+  assert.match(css, /#menuScreen \.creature-core span:before,\s*#menuScreen \.creature-core span:after\{content:none;display:none\}/);
 });
 
 test('boss-heavy scenes avoid full enemy redraws and all-to-all projectile checks', () => {
@@ -59,4 +59,16 @@ test('boss-heavy scenes avoid full enemy redraws and all-to-all projectile check
   assert.match(game, /particlePool\.pop\(\)/);
   assert.match(game, /if\(hit>0\)\{c\.globalAlpha=clamp\(hit\*2\.6/);
   assert.match(game, /burst\(newBoss\.x,newBoss\.y,newBoss\.color,newBoss\.kind==='kraken'\?26:32,230\)/);
+});
+
+test('boss pursuit ramps toward player speed as health falls and never exceeds it', () => {
+  const ai = require('../public/enemy-ai');
+  const target = { x: 1000, y: 0, moveSpeed: 100 };
+  const healthy = { x: 0, y: 0, speed: 20, kind: 'kraken', hp: 100, maxHp: 100, phase: 0 };
+  const critical = { ...healthy, hp: 20 };
+  ai.moveTowardTarget(healthy, [target], 0.5, { stopDistance: 0 });
+  ai.moveTowardTarget(critical, [target], 0.5, { stopDistance: 0 });
+  assert.ok(Math.hypot(healthy.x, healthy.y) <= 10.001);
+  assert.ok(Math.hypot(critical.x, critical.y) <= 50.001);
+  assert.ok(Math.hypot(critical.x, critical.y) <= target.moveSpeed * 0.5 + 1e-6);
 });
