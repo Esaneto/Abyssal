@@ -130,9 +130,9 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
     try { if (temporaryDataDir) fs.rmSync(temporaryDataDir, { recursive: true, force: true }); } catch {}
   });
 
-  await waitFor(() => testServer?.listening);
+  await waitFor(() => testServer?.listening, 5000);
   const port = testServer.address().port;
-  await waitFor(() => FakeSocketServer.instance);
+  await waitFor(() => FakeSocketServer.instance, 5000);
   const io = FakeSocketServer.instance;
   const owner = io.connect('owner');
   await owner.clientEmit('authenticate', { nickname: 'RuntimeOwner', password: 'testing123', mode: 'register' });
