@@ -30,7 +30,8 @@ test('every skin presents its own distinct ability and Kraken costs 30,000 coins
   assert.ok(start >= 0 && end > start);
   const source = game.slice(start, end);
   const skins = [...source.matchAll(/\{id:'([^']+)'[^}]*?ability:'([^']+)'[^}]*\}/gs)];
-  assert.equal(skins.length, 15, 'the catalog should cover all existing skins and Kraken');
+  assert.equal(skins.length, 19, 'the catalog should include all existing skins plus one for every boss');
+  for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
   assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000/);
@@ -38,6 +39,10 @@ test('every skin presents its own distinct ability and Kraken costs 30,000 coins
   const server = read('server.js');
   assert.match(server, /kraken:30000/);
   assert.match(server, /player\.skinId!=='kraken'/);
+  for (const [id,price] of [['aberration',16000],['angler',19000],['maw',22000],['devourer',35000]]) {
+    assert.match(server, new RegExp(`${id}:${price}`));
+    assert.match(server, new RegExp(`'${id}'`));
+  }
 });
 
 test('menu Kraken uses eight moving arms and a shadowed, toothless maw', () => {
