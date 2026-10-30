@@ -338,7 +338,7 @@ function spawnEnemy(initial=false,type='common'){
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  })[kind];
  if(type==='boss'){
-  data.hp=lastBossMaxHp>0?Math.max(data.hp,lastBossMaxHp*1.5):data.hp;
+  // Preserve the ordered base HP tiers in solo just as in the online simulation.
   data.damage=lastBossDamage>0?Math.max(data.damage,Math.round(lastBossDamage*1.12)):data.damage;
   data.speed=kind==='kraken'?20:Math.min(90,lastBossSpeed>0?Math.max(data.speed,lastBossSpeed*1.05):data.speed);
   lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
