@@ -670,9 +670,9 @@ socket.on('global-chat-send',(payload={})=>{
   const now = Date.now();
   // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
-   if (seconds !== 10 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
-   p.skillSelectingUntil = now + 10000;
-   p.upgradeProtectionUntil = now + 10000;
+   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   p.skillSelectingUntil = now + 25000;
+   p.upgradeProtectionUntil = now + 25000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
