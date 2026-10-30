@@ -662,18 +662,19 @@ socket.on('global-chat-send',(payload={})=>{
   const seconds = Number(payload.seconds), reason = String(payload.reason || 'gameplay');
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 25) return;
   const now = Date.now();
-  // Rate-limit gameplay grants but allow a legitimate skill selection to shorten the
-  // 25s choice window to 2s, as soon as the player confirms an upgrade.
+  // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
    if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   p.skillSelectingUntil = now + 25000;
    p.upgradeProtectionUntil = now + 25000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
   if (reason === 'upgrade-selected') {
-   if (now > (Number(p.upgradeProtectionUntil) || 0) + 1000 || seconds !== 2) return;
+   if (now > (Number(p.upgradeProtectionUntil) || 0) + 1000 || seconds !== 3) return;
    p.upgradeProtectionUntil = 0;
-   p.invulnerableUntil = now + 2000;
+   p.skillSelectingUntil = 0;
+   p.invulnerableUntil = now + 3000;
    return;
   }
   if (reason === 'dash') {
