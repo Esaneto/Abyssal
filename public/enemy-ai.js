@@ -64,7 +64,7 @@
   // Coordinates are relative to the body's radius; the base is thick and each tip tapers.
   function krakenTentaclePose(index, phase = 0) {
     const i = ((Math.floor(Number(index) || 0) % 8) + 8) % 8;
-    const angle = 0.34 + i * (2.46 / 7);
+    const angle = -Math.PI / 2 + i * (Math.PI * 2 / 8);
     const sway = Math.sin((Number(phase) || 0) * 0.88 + i * 1.73);
     const length = 2.16 + 0.16 * Math.sin((Number(phase) || 0) * 0.43 + i * 0.91);
     const sx = Math.cos(angle) * 0.44;
