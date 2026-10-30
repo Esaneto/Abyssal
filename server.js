@@ -530,7 +530,10 @@ function tickRoom(room, now) {
   combatDiagnostics.lastPlayerHit = { at: new Date(now).toISOString(), enemyId: hit.enemyId, enemyKind: hit.enemyKind, enemyX: hit.enemyX, enemyY: hit.enemyY, playerX: hit.playerX, playerY: hit.playerY, contactDistance: hit.contactDistance, contactRadius: hit.contactRadius, rawContactRadius: hit.rawContactRadius, contactSafetyMargin: hit.contactSafetyMargin, positionAgeMs: hit.positionAgeMs, targetWasHidden: hit.targetWasHidden, playerVelocityX: room.players.get(hit.playerId)?.velocityX||0, playerVelocityY: room.players.get(hit.playerId)?.velocityY||0, damage: hit.damage, blocked: hit.blocked, worldId: w.worldId, snapshotSeq: contactSnapshotSeq };
   // A reliable full or attacker-only snapshot is always emitted before contact vitals.
   io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: contactSnapshotSeq, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
-  if (!hit.alive) io.to(channelFor(room)).emit('server-message', 'Um mergulhador foi engolido pelas profundezas.');
+  if (!hit.alive) {
+   io.to(channelFor(room)).emit('server-message', 'Um mergulhador foi engolido pelas profundezas.');
+   io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...peer }) => peer));
+  }
  }
  for (const heal of result.playerHeals || []) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
