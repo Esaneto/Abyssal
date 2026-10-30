@@ -992,3 +992,37 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
 .redeem-code-controls button{min-width:120px;border-color:rgba(167,139,250,.45);color:#e9ddff}
 .redeem-code-message{min-height:16px;margin-top:8px!important;color:#c4b5fd!important}
 @media(max-width:520px){.redeem-code-controls{flex-direction:column}.redeem-code-controls button{width:100%}#menuScreen .menu-creature{width:85vw;height:85vw;right:-20%;opacity:.48}#menuScreen .menu-content{width:94%;padding-left:20px}}
+
+/* Redesign final do Kraken: oito braços radiais, volumosos e animados */
+#menuScreen .menu-creature{width:min(62vw,790px);height:min(62vw,790px);right:0;top:50%;opacity:1;filter:saturate(1.2) contrast(1.12)}
+#menuScreen .glow{width:75%;height:75%;background:radial-gradient(circle,rgba(124,58,237,.42),rgba(76,29,149,.22) 35%,rgba(18,7,43,.1) 58%,transparent 74%);filter:blur(22px)}
+#menuScreen .orbit{border-color:rgba(167,139,250,.22);box-shadow:0 0 24px rgba(139,92,246,.16)}
+#menuScreen .orbit-two{border-color:rgba(196,181,253,.3)}
+#menuScreen .creature-core{width:25%;height:25%;z-index:3;border-radius:48% 48% 43% 43%;background:radial-gradient(ellipse at 34% 23%,#e9d5ff 0%,#c4b5fd 5%,#8b5cf6 17%,#4c1d95 38%,#170b32 64%,#020108 100%);border:1px solid rgba(221,214,254,.9);box-shadow:inset -19px -20px 34px #03010b,inset 8px 8px 18px rgba(216,180,254,.22),0 0 28px #8b5cf6,0 0 88px rgba(124,58,237,.55),0 0 145px rgba(76,29,149,.32);animation:float 4s ease-in-out infinite}
+#menuScreen .creature-core:before,#menuScreen .creature-core:after{top:39%;height:10%;width:16%;background:#f5d0fe;border-radius:50%;box-shadow:0 0 8px #e9d5ff,0 0 24px rgba(192,132,252,.95)}
+#menuScreen .creature-core:before{left:22%;transform:none}
+#menuScreen .creature-core:after{right:22%;transform:none}
+#menuScreen .creature-core span{width:22%;height:12%;left:39%;top:63%;border:1px solid rgba(167,139,250,.35);border-radius:50%;background:#05020d;box-shadow:0 0 14px rgba(139,92,246,.4)}
+#menuScreen .creature-tentacle{position:absolute;z-index:2;left:43.5%;top:28%;width:13%;height:46%;border:0;border-radius:0;transform-origin:50% 50%;clip-path:polygon(22% 0,78% 0,82% 20%,72% 43%,61% 67%,50% 100%,39% 67%,28% 43%,18% 20%);background:linear-gradient(90deg,#170b32 0%,#4c1d95 19%,#8b5cf6 42%,#c4b5fd 50%,#6d28d9 68%,#170b32 100%);filter:drop-shadow(0 0 7px rgba(139,92,246,.8));animation:kraken-arm 2.6s ease-in-out infinite;animation-delay:var(--arm-delay,0s)}
+#menuScreen .creature-tentacle:after{content:"";position:absolute;inset:8% 36% 14%;background:repeating-linear-gradient(to bottom,rgba(237,233,254,.58) 0 1px,transparent 1px 15%);opacity:.5;clip-path:polygon(25% 0,75% 0,60% 100%,40% 100%)}
+#menuScreen .creature-tentacle.t1{--arm-angle:0deg;--arm-delay:-.2s}
+#menuScreen .creature-tentacle.t2{--arm-angle:45deg;--arm-delay:-.6s}
+#menuScreen .creature-tentacle.t3{--arm-angle:90deg;--arm-delay:-1s}
+#menuScreen .creature-tentacle.t4{--arm-angle:135deg;--arm-delay:-1.4s}
+#menuScreen .creature-tentacle.t5{--arm-angle:180deg;--arm-delay:-1.8s}
+#menuScreen .creature-tentacle.t6{--arm-angle:225deg;--arm-delay:-2.2s}
+#menuScreen .creature-tentacle.t7{--arm-angle:270deg;--arm-delay:-.9s}
+#menuScreen .creature-tentacle.t8{--arm-angle:315deg;--arm-delay:-1.7s}
+@keyframes kraken-arm{0%,100%{transform:rotate(var(--arm-angle,0deg)) scaleX(.88) scaleY(.94)}50%{transform:rotate(calc(var(--arm-angle,0deg) + 13deg)) scaleX(1.06) scaleY(1.05)}}
+#menuScreen h1 em{color:#c4b5fd;text-shadow:0 0 22px rgba(167,139,250,.5),0 0 48px rgba(124,58,237,.28)}
+#menuScreen .primary-btn{background:linear-gradient(105deg,#e9d5ff,#a78bfa 55%,#7c3aed);box-shadow:0 0 28px rgba(139,92,246,.25)}
+.redeem-code-panel{position:relative;z-index:2;overflow:visible;margin:18px 0 14px;padding:18px;border:1px solid rgba(167,139,250,.55);border-radius:8px;background:linear-gradient(125deg,rgba(48,22,83,.6),rgba(7,18,31,.94));}
+.redeem-code-controls{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin-top:14px}
+.redeem-code-controls label{display:block;position:relative;color:#d9c7ff;font:10px 'DM Mono',monospace;letter-spacing:.1em;pointer-events:auto}
+.redeem-code-controls input{display:block;position:relative;z-index:5;width:100%;min-height:46px;height:46px;flex:none;box-sizing:border-box;border:1px solid rgba(196,181,253,.7);border-radius:5px;background:#020611!important;color:#fff!important;padding:0 14px;font:14px 'DM Mono',monospace;text-transform:none;letter-spacing:.04em;outline:none;pointer-events:auto;user-select:text;opacity:1}
+.redeem-code-controls input:focus{border-color:#c4b5fd;box-shadow:0 0 0 3px rgba(139,92,246,.22),0 0 18px rgba(139,92,246,.2)}
+.redeem-code-controls input::placeholder{color:#8d80ad;opacity:1}
+.redeem-code-controls button{display:block;position:relative;z-index:5;width:100%;min-height:42px;flex:none;border-color:rgba(167,139,250,.65);color:#f0e7ff;pointer-events:auto}
+.redeem-code-message{min-height:18px;margin-top:10px!important;color:#d9c7ff!important}
+@media(max-width:700px){#menuScreen .menu-creature{width:92vw;height:92vw;right:-23%;top:47%;opacity:.66}#menuScreen .menu-content{z-index:3}.redeem-code-controls input{font-size:16px}}
+@media(prefers-reduced-motion:reduce){#menuScreen .creature-tentacle{animation-duration:8s!important}}
