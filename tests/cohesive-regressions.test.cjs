@@ -161,6 +161,8 @@ test('online damage rejects stale-room hits quietly and avoids per-hit acknowled
   assert.match(online, /!currentRoom\)return false/);
   assert.match(online, /socket\.emit\('shared-damage'/);
   assert.doesNotMatch(online, /socket\.timeout\(2500\)\.emit\('shared-damage'/);
+  assert.match(online,/socket\.emit\('shared-damage-batch'/);
+  assert.match(server,/socket\.on\('shared-damage-batch'/);
 });
 
 test('solo enemy movement uses the shared AI while online movement stays authoritative', () => {
