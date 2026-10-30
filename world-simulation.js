@@ -240,7 +240,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const defeatedPlayers = [];
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
-  const targetablePlayers = validPlayers.filter(p => Number(p.skillSelectingUntil) <= now);
+  const targetablePlayers = validPlayers.filter(p => (Number(p.skillSelectingUntil) || 0) <= now);
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
