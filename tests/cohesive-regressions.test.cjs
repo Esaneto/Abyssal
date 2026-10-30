@@ -108,7 +108,7 @@ test('menu text uses a larger high-contrast abyssal theme and chat overlays rema
 test('abyssal10k is permanent, grants 10,000 coins and is limited to one redemption per browser profile', () => {
   const html = read('public/index.html');
   const game = read('public/game.js');
-  assert.match(html, /CÓDIGO PERMANENTE · NÃO EXPIRA · \+10\.000 MOEDAS ABISSAIS/);
+  assert.doesNotMatch(html, /CÓDIGO PERMANENTE · NÃO EXPIRA · \+10\.000 MOEDAS ABISSAIS/);
   assert.match(game, /code!=='abyssal10k'/);
   assert.match(game, /coins\+=10000/);
   assert.match(game, /localStorage\.getItem\('abyssalRedeemedCodes'\)/);
@@ -124,4 +124,28 @@ test('new shooter upgrades and photon online shot type remain wired', () => {
   assert.match(game, /upgrades\.spread/);
   assert.match(game, /upgrades\.photon/);
   assert.match(server, /'pierce','electric','ricochet','photon'/);
+});
+
+
+test('abyssal10k grants 10,000 essences to authenticated account only once', () => {
+  const game = read('public/game.js');
+  const online = read('public/online.js');
+  const server = read('server.js');
+  assert.match(game, /window\.AbyssalOnline\.redeemCode\('abyssal10k'\)/);
+  assert.match(online, /socket\.emit\('redeem-code'/);
+  assert.match(server, /socket\.on\('redeem-code'/);
+  assert.match(server, /u\.coins=\(Number\(u\.coins\)\|\|0\)\+10000/);
+  assert.match(server, /u\.redeemedCodes\.includes\('abyssal10k'\)/);
+});
+
+test('menu adds fish and rock ambience, currents push the player, active skills can be equipped and unequipped', () => {
+  const html = read('public/index.html');
+  const css = read('public/style.css');
+  const game = read('public/game.js');
+  assert.match(html, /class="menu-fauna"/);
+  assert.match(css, /menuFishSwim/);
+  assert.match(game, /function drawCurrentZones/);
+  assert.match(game, /currentSpawnTimer/);
+  assert.match(game, /function toggleEquippedActiveSkill/);
+  assert.match(game, /DESEQUIPAR/);
 });
