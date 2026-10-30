@@ -12,7 +12,7 @@ function createWorldState(now = Date.now()) {
     nextBossAt: 60, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
-    playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
+    playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0
   };
 }
@@ -156,7 +156,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
-  world.lastTick = now; world.snapshotTimer = 0; world.playerSnapshotTimer = 0;
+  world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
 }
 
@@ -434,17 +434,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.snapshotTimer -= dt;
   world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
   world.playerSnapshotTimer -= dt;
+  world.orbSnapshotTimer = (Number(world.orbSnapshotTimer) || 0) - dt;
   const sendSnapshot = world.snapshotTimer <= 0;
   const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
+  const sendOrbSnapshot = sendSnapshot && world.orbSnapshotTimer <= 0;
   if (sendSnapshot) world.snapshotTimer = 0.1;
-  if (sendReliableSnapshot) world.reliableSnapshotTimer = 0.25;
-  if (sendPlayers) world.playerSnapshotTimer = 0.1;
+  if (sendReliableSnapshot) world.reliableSnapshotTimer = 1;
+  if (sendPlayers) world.playerSnapshotTimer = 1;
+  if (sendOrbSnapshot) world.orbSnapshotTimer = 0.5;
   return {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers,
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }

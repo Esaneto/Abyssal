@@ -7,6 +7,7 @@ const root = path.join(__dirname, '..');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 const online = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
 const game = fs.readFileSync(path.join(root, 'public', 'game.js'), 'utf8');
+const simulation = fs.readFileSync(path.join(root, 'world-simulation.js'), 'utf8');
 
 test('server owns the simulation ticker and does not rely on a browser host', () => {
   assert.match(server, /setInterval\(worldTick,\s*50\)/);
@@ -30,8 +31,12 @@ test('online client renders server-authoritative enemy positions instead of simu
   assert.match(game, /criticalIds:authoritativeCriticalIds/);
   assert.match(game, /contactSourceReady[\s\S]*?enemies\.some\(e=>String\(e\.id\)===String\(data\.enemyId\)\)/);
   assert.match(server, /criticalSnapshot\?\.snapshotSeq/);
+  assert.match(server, /getRoomContactSnapshot\(room,playerHits\)/);
+  assert.match(server, /emit\('enemy-contact-source',contactSnapshot\)/);
   assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
-  assert.match(server, /if \(motion\) io\.to\(channelFor\(room\)\)\.emit\('enemy-motion', motion\)/);
+  assert.match(server, /if\(motion\)io\.to\(channelFor\(room\)\)\.volatile\.emit\('enemy-motion',motion\)/);
+  assert.match(online, /socket\.on\('enemy-contact-source'/);
+  assert.match(game, /function registerEnemyContactSnapshot\(data\)/);
   assert.match(game, /if\(data\.targetWasHidden===true\)alignPlayerToAuthoritativeContact\(data\)/);
 });
 
@@ -62,7 +67,7 @@ test('mobile zoom uses the requested level and online menu uses the requested na
   assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
-  for (const [asset,version] of Object.entries({'style.css':'3.5.31','enemy-ai.js':'3.5.32','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.32','online.js':'3.5.31'})) {
+  for (const [asset,version] of Object.entries({'style.css':'3.5.31','enemy-ai.js':'3.5.32','enemy-netcode.js':'3.5.12','skill-audio.js':'3.5.12','game.js':'3.5.33','online.js':'3.5.32'})) {
     assert.ok(html.includes(`${asset}?v=${version}`), `asset version missing: ${asset}`);
   }});
 
@@ -74,13 +79,27 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
   assert.match(game, /function addOrb\(x,y,value\)[\s\S]*?xpOrbRadius/);
 });
 
-test('authoritative movement snapshots use reliable ordered delivery and precede contact vitals', () => {
-  assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'a dropped position snapshot must not leave a creature frozen until a later baseline');
+test('authoritative movement is lossy-but-fresh, while collision verification keeps a reliable attacker frame', () => {
+  assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'entity lifecycle and recovery snapshots must remain reliable');
   assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
-  assert.match(server, /if \(motion\) io\.to\(channelFor\(room\)\)\.emit\('enemy-motion', motion\)/);
-  const tickRoom = server.indexOf('function tickRoom(room, now)');
-  const snapshotEmit = server.indexOf("io.to(channelFor(room)).emit('game-snapshot', criticalSnapshot)", tickRoom);
-  const vitalsEmit = server.indexOf("io.to(hit.playerId).emit('player-vitals'", tickRoom);
-  assert.ok(tickRoom >= 0 && snapshotEmit > tickRoom && vitalsEmit > snapshotEmit, 'the attacker snapshot must be emitted before the damage event');
-  assert.match(server, /criticalEnemyIds = criticalChange \? \[\.\.\.new Set\(/);
+  assert.match(server, /\.volatile\.emit\('enemy-motion',motion\)/);
+  const tickRoom=server.indexOf('function tickRoom(room, now)');
+  const motionEmit=server.indexOf("volatile.emit('enemy-motion',motion)",tickRoom);
+  const contactEmit=server.indexOf("emit('enemy-contact-source',contactSnapshot)",tickRoom);
+  const vitalsEmit=server.indexOf("io.to(hit.playerId).emit('player-vitals'",tickRoom);
+  assert.ok(tickRoom>=0&&contactEmit>motionEmit&&vitalsEmit>contactEmit,'the compact attacker frame must precede contact vitals');
+  assert.match(server,/const criticalEnemyIds=\[\.\.\.new Set\(/);
+  assert.match(game,/authoritativeSnapshotHistory\.set\(`\$\{worldId\}:\$\{sequence\}`,frame\)/);
+});
+
+test('room traffic uses compact player motion, slower roster recovery and throttled orb snapshots',()=>{
+  assert.match(server,/getRoomPlayerMotion\(room\)/);
+  assert.match(server,/socket\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion',motion\)/);
+  assert.match(online,/socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
+  assert.match(online,/function applyPlayerMotion\(rows\)/);
+  assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 1/);
+  assert.match(simulation,/if \(sendPlayers\) world\.playerSnapshotTimer = 1/);
+  assert.match(simulation,/const sendOrbSnapshot = sendSnapshot && world\.orbSnapshotTimer <= 0/);
+  assert.match(server,/getRoomMotionSnapshot\(room,\{includeOrbs:Boolean\(result\.sendOrbSnapshot\)\}\)/);
+  assert.match(game,/if\(Array\.isArray\(data\.orbs\)\)\{/);
 });
