@@ -181,7 +181,7 @@ function startGame(){
  startAmbientMusic();
  elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,nova:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,spread:0,photon:0,nova:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0};
  enemies=[];orbs=[];particles=[];particlePool.length=0;projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  player={x:W*.5,y:H*.5,r:13/worldZoom,angle:0,moveSpeed:150/worldZoom,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7};updateCamera();
@@ -207,6 +207,8 @@ const upgradeList=[
  {id:'electric',name:'Tempestade elétrica',icon:'ϟ',desc:'Disparos encadeiam raios visíveis em até 2 inimigos próximos.',apply:()=>upgrades.electric=Math.min(3,(upgrades.electric||0)+1)},
  {id:'pierce',name:'Lança-abismo',icon:'➶',desc:'Projéteis atravessam +1 criatura por nível. Não aumenta o dano por impacto.',apply:()=>upgrades.pierce=Math.min(3,(upgrades.pierce||0)+1)},
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'O projétil salta visualmente até 2 vezes entre alvos próximos.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
+ {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Dispara fótons laterais em cada ataque, cobrindo uma área maior.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
+ {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Projéteis mais rápidos e concentrados causam dano adicional.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'A cada 9 segundos, libera uma explosão abissal de longo alcance.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)}
 ];
 function clearUpgradeCountdown(){
@@ -532,11 +534,12 @@ function fire(){
  for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
  if(!target)return;
  const a=Math.atan2(target.y-player.y,target.x-player.x);
- // O som padrão do disparo é tocado no fim desta função; upgrades de tiro não sobrepõem outro efeito sonoro.
- 
- projectiles.push({x:player.x+Math.cos(a)*13,y:player.y+Math.sin(a)*13,vx:Math.cos(a)*430/worldZoom,vy:Math.sin(a)*430/worldZoom,r:4.1/worldZoom,life:.95,damage:12*upgrades.power,pierceRemaining:upgrades.pierce||0,hitIds:[],color:upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#83fff3',special:upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});
- if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(a)*13/worldZoom)/W,y:(player.y+Math.sin(a)*13/worldZoom)/H,vx:Math.cos(a)*430/(W*worldZoom),vy:Math.sin(a)*430/(H*worldZoom),damage:12*upgrades.power,color:upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#83fff3',special:upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});
- player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#9afff7',upgrades.ricochet>0||upgrades.electric>0?9:5,upgrades.ricochet>0||upgrades.electric>0?90:45);if(upgrades.electric>0)effects.push({type:'beam',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*30,y2:muzzleY+Math.sin(a)*30,life:.16,maxLife:.16,color:'#eaffff'});audio(500,.045,'sine',.008);
+ const shotSpeed=430*(1+(upgrades.photon||0)*.22)/worldZoom;
+ const shotDamage=12*upgrades.power*(1+(upgrades.photon||0)*.16);
+ const shotColor=(upgrades.spread||0)>0?'#d8b4fe':(upgrades.photon||0)>0?'#f0abfc':upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#83fff3';
+ const angles=[a];if((upgrades.spread||0)>0){angles.push(a-.14,a+.14);if(upgrades.spread>=3)angles.push(a-.27,a+.27);}
+ for(const shotAngle of angles){const damage=shotDamage/angles.length*(angles.length>1?1.35:1);projectiles.push({x:player.x+Math.cos(shotAngle)*13,y:player.y+Math.sin(shotAngle)*13,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:(4.1+(upgrades.photon||0)*.35)/worldZoom,life:.95,damage,pierceRemaining:upgrades.pierce||0,hitIds:[],color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/worldZoom)/W,y:(player.y+Math.sin(shotAngle)*13/worldZoom)/H,vx:Math.cos(shotAngle)*shotSpeed/(W*worldZoom),vy:Math.sin(shotAngle)*shotSpeed/(W*worldZoom),damage,color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});}
+ player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(upgrades.electric>0)effects.push({type:'beam',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*30,y2:muzzleY+Math.sin(a)*30,life:.16,maxLife:.16,color:'#eaffff'});audio(500,.045,'sine',.008);
 }
 function update(dt){
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
@@ -1053,20 +1056,24 @@ function renderShop(){
 }
 $('shopBtn').addEventListener('click',()=>{$('shopScreen').hidden=false;renderShop()});
 const redeemCodeBtn=$('redeemCodeBtn');
+function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage');if(input){input.disabled=false;input.value='';}if(redeemCodeBtn)redeemCodeBtn.disabled=false;if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
+function closeRedeemCodeModal(){const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
+$('openRedeemCodeBtn')?.addEventListener('click',openRedeemCodeModal);
+$('redeemCodeCloseBtn')?.addEventListener('click',closeRedeemCodeModal);
+$('redeemCodeBackBtn')?.addEventListener('click',closeRedeemCodeModal);
+$('redeemCodeScreen')?.addEventListener('click',event=>{if(event.target===$('redeemCodeScreen'))closeRedeemCodeModal();});
 function redeemAbyssalCode(){
  const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
  if(!message||!input)return;
- if(code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';return;}
+ if(code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
  let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
  if(redeemed.includes('abyssal10k')){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
  coins+=10000;redeemed.push('abyssal10k');localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));saveCosmetics();
- message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;
- audio(880,.18,'triangle',.035);renderShop();
- const updatedMessage=$('redeemCodeMessage');if(updatedMessage)updatedMessage.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';
- const updatedInput=$('redeemCodeInput'),updatedButton=$('redeemCodeBtn');if(updatedInput)updatedInput.disabled=true;if(updatedButton)updatedButton.disabled=true;
+ message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('redeemCodeScreen')?.hidden)closeRedeemCodeModal();});
 
 $('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('skillDashBtn')?.addEventListener('click',()=>activateAbility('dash'));
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
