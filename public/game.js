@@ -83,6 +83,10 @@ const particlePool=[];
 const hostileSpriteCache=new Map();
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270;
 const projectileCandidates=[];
+// Reused objects/arrays for the hot enemy-update path (up to 400 entities per frame).
+const soloEnemyMovementResult={};
+const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
+let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity,lastSoloRankingValue=null;
 const isMobileDevice=()=>mobileViewport;
 function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
@@ -240,6 +244,10 @@ function renderSelectedSkills(){
  const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
  const arcChainActive=Number(upgrades.arcChain)>0;
  const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const signature=selected.map(([id,rank])=>id+':'+rank).join('|')||'none';
+ // Avoid replacing focused/clicked skill buttons on every simulation frame.
+ if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
+ selectedSkillsRenderedSignature=signature;panel.dataset.skillsSignature=signature;
  panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id)||COMBO_SKILLS[id];return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
 function showSkillDescription(id,target){
@@ -657,7 +665,7 @@ function update(dt){
  // second local AI here: that divergence is what made server-side contact attacks feel
  // like invisible enemies. Solo keeps its original local movement/collision loop.
  onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=0;
- const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,local:true,skinId:equippedSkin};
+ const enemyFrameNow=performance.now(),localTarget={x:player.x,y:player.y,local:true,skinId:equippedSkin},localTargets=[localTarget];
  for(let i=enemies.length-1;i>=0;i--){
   const e=enemies[i];e.hit=Math.max(0,e.hit-dt);
   if(onlineMode){
@@ -670,7 +678,8 @@ function update(dt){
   const target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(window.AbyssalEnemyAI?.moveTowardTarget){
-   window.AbyssalEnemyAI.moveTowardTarget(e,[target],dt,{minX:8/worldZoom,maxX:W-8/worldZoom,minY:8/worldZoom,maxY:H-8/worldZoom,stopDistance:Math.max(1,(e.r+player.r+8/worldZoom)*.96)});
+   soloEnemyMovementOptions.minX=8/worldZoom;soloEnemyMovementOptions.maxX=W-8/worldZoom;soloEnemyMovementOptions.minY=8/worldZoom;soloEnemyMovementOptions.maxY=H-8/worldZoom;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/worldZoom)*.96);
+   window.AbyssalEnemyAI.moveTowardTarget(e,localTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
   }else{
    const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/worldZoom,W-8/worldZoom);e.y=clamp(e.y+dy/d*e.speed*dt,8/worldZoom,H-8/worldZoom);
   }
@@ -711,7 +720,7 @@ function update(dt){
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();if(particlePool.length<700)particlePool.push(p)}}
  if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
  if(onlineMode&&window.AbyssalOnline){window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
- updateHud();
+ updateHud(false);
 }
 const metaShopItems=[
  {id:'bulkhead',name:'Costelas de Basalto',type:'passive',price:1800,max:3,icon:'⬡',desc:'+8 de vida máxima por nível.'},
@@ -721,8 +730,23 @@ const metaShopItems=[
  {id:'pulse',name:'Pulso de Maré',type:'active',price:3500,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
  {id:'dash',name:'Passo Fantasma',type:'active',price:4200,max:1,icon:'〰',desc:'Ative E ou o botão para disparar em alta velocidade e ficar invulnerável por 1,25 s.'}
 ];
-function loadEquippedActiveSkills(){try{const v=JSON.parse(localStorage.getItem('abyssalEquippedActiveSkills')||'[]');return Array.isArray(v)?v.filter(id=>['pulse','dash'].includes(id)&&Number(metaUpgrades[id])>0):[];}catch(_){return [];}}
-function toggleEquippedActiveSkill(id){if(!['pulse','dash'].includes(id)||!(Number(metaUpgrades[id])>0))return;let equipped=loadEquippedActiveSkills();if(equipped.includes(id))equipped=equipped.filter(x=>x!==id);else{if(equipped.length>=2){showToast('VOCÊ JÁ EQUIPOU 2 HABILIDADES ATIVAS');return;}equipped.push(id);}localStorage.setItem('abyssalEquippedActiveSkills',JSON.stringify(equipped));renderShop();updateAbilityButtons();showToast(equipped.includes(id)?'HABILIDADE EQUIPADA':'HABILIDADE DESEQUIPADA');}
+let equippedActiveSkillsCache=null;
+function loadEquippedActiveSkills(){
+ if(!equippedActiveSkillsCache){
+  try{const value=JSON.parse(localStorage.getItem('abyssalEquippedActiveSkills')||'[]');equippedActiveSkillsCache=Array.isArray(value)?value.filter(id=>id==='pulse'||id==='dash'):[];}
+  catch(_){equippedActiveSkillsCache=[];}
+ }
+ return equippedActiveSkillsCache;
+}
+window.addEventListener('storage',event=>{if(event.key==='abyssalEquippedActiveSkills'){equippedActiveSkillsCache=null;updateAbilityButtons(true);}});
+function toggleEquippedActiveSkill(id){
+ if(!['pulse','dash'].includes(id)||!(Number(metaUpgrades[id])>0))return;
+ let equipped=[...loadEquippedActiveSkills()];
+ if(equipped.includes(id))equipped=equipped.filter(x=>x!==id);
+ else{if(equipped.length>=2){showToast('VOCÊ JÁ EQUIPOU 2 HABILIDADES ATIVAS');return;}equipped.push(id);}
+ equippedActiveSkillsCache=equipped;
+ localStorage.setItem('abyssalEquippedActiveSkills',JSON.stringify(equipped));renderShop();updateAbilityButtons(true);showToast(equipped.includes(id)?'HABILIDADE EQUIPADA':'HABILIDADE DESEQUIPADA');
+}
 function buyMetaUpgrade(id){
  const item=metaShopItems.find(x=>x.id===id);if(!item)return;
  const current=Number(metaUpgrades[id])||0;if(current>=item.max){showToast('MELHORIA JÁ NO NÍVEL MÁXIMO');return;}
@@ -747,15 +771,31 @@ function activateAbility(id){
  }
  updateAbilityButtons();
 }
-function updateAbilityButtons(){
- const pulse=$('skillPulseBtn'),dash=$('skillDashBtn');
- if(pulse){pulse.hidden=!(Number(metaUpgrades.pulse)>0)&&true; pulse.hidden=!(Number(metaUpgrades.pulse)>0&&loadEquippedActiveSkills().includes('pulse'));pulse.disabled=!player||player.pulseCooldown>0;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
- if(dash){dash.hidden=!(Number(metaUpgrades.dash)>0&&loadEquippedActiveSkills().includes('dash'));dash.disabled=!player||player.dashCooldown>0;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
+function updateAbilityButtons(force=false){
+ const now=performance.now();
+ // Cooldown labels only change to tenths of a second; updating the DOM 10x/second is enough.
+ if(!force&&now-lastAbilityUiAt<100)return;
+ lastAbilityUiAt=now;
+ const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),equipped=loadEquippedActiveSkills();
+ if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
+ if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
-function updateHud(){
- setTextIfChanged('timeText',fmtTime(elapsed));setTextIfChanged('levelText',String(level).padStart(2,'0'));setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode){const root=$('runEnergyRankingList');if(root)root.innerHTML='<div class="run-energy-row"><span class="energy-name">1. Você</span><span class="energy-value">'+Math.floor(score).toLocaleString('pt-BR')+'</span></div>';}
+function renderSoloEnergyRanking(){
+ const root=$('runEnergyRankingList');if(!root)return;
+ const value=Math.floor(score).toLocaleString('pt-BR');
+ if(!root.querySelector('.energy-value')){
+  const row=document.createElement('div');row.className='run-energy-row';
+  const name=document.createElement('span');name.className='energy-name';name.textContent='1. Você';
+  const amount=document.createElement('span');amount.className='energy-value';
+  row.append(name,amount);root.replaceChildren(row);lastSoloRankingValue=null;
+ }
+ if(value!==lastSoloRankingValue){const amount=root.querySelector('.energy-value');if(amount)amount.textContent=value;lastSoloRankingValue=value;}
+}
+function updateHud(force=true){
+ const now=performance.now();if(!force&&now-lastHudUpdateAt<100)return;lastHudUpdateAt=now;
+ setTextIfChanged('timeText',fmtTime(elapsed));setTextIfChanged('levelText',String(level).padStart(2,'0'));setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode)renderSoloEnergyRanking();
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
 function endGame(){
