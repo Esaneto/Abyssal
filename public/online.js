@@ -417,19 +417,8 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
  $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}});
  $('globalChatInput')?.addEventListener('focus',()=>{if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}});
- const chatToggle=$('globalChatToggle'),chatPanel=$('globalChatPanel');
- chatToggle?.addEventListener('click',()=>{
-  const open=Boolean(chatPanel?.classList.toggle('chat-expanded'));
-  chatToggle.setAttribute('aria-expanded',String(open));
-  chatToggle.setAttribute('aria-label',open?'Fechar chat global':'Abrir chat global');
-  chatToggle.textContent=open?'×':'☷';
-  if(open)requestAnimationFrame(()=>$('globalChatInput')?.focus());
- });
- document.addEventListener('keydown',event=>{
-  if(event.key!=='Escape'||!chatPanel?.classList.contains('chat-expanded'))return;
-  chatPanel.classList.remove('chat-expanded');chatToggle?.setAttribute('aria-expanded','false');
-  chatToggle?.setAttribute('aria-label','Abrir chat global');if(chatToggle)chatToggle.textContent='☷';
- });
+ const chatPanel=$('globalChatPanel');
+ if(chatPanel)chatPanel.classList.remove('chat-expanded');
  if(!socket)connect();
  window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
 })();

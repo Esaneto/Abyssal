@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.15">
+<link rel="stylesheet" href="style.css?v=3.5.16">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -21,7 +21,6 @@
   <header class="topbar">
     <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
     <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
-      <button id="globalChatToggle" class="icon-btn chat-toggle-btn" type="button" aria-label="Abrir chat global" aria-expanded="false" title="Chat global">☷</button>
       <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
       <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
       <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
@@ -67,14 +66,18 @@
         <canvas class="menu-catalog-creature menu-creature-kraken" width="220" height="180" data-menu-creature="kraken" data-menu-color="#8b5cf6"></canvas>
         <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
       </div>
-      <section id="globalChatPanel" class="global-chat-panel" aria-label="Chat global do Abyssal">
-        <div class="global-chat-heading"><div><span class="pulse-dot"></span><strong>TRANSMISSÃO ABISSAL</strong></div><span id="globalChatStatus">CONECTANDO…</span></div>
-        <div id="globalChatMessages" class="global-chat-messages" role="log" aria-live="polite" aria-relevant="additions"><p class="global-chat-empty">Sintonizando os sinais dos mergulhadores…</p></div>
+      <section id="globalChatPanel" class="global-chat-panel abyssal-chat-v2" aria-label="Chat global do Abyssal">
+        <header class="global-chat-heading">
+          <div class="chat-title-wrap"><span class="chat-live-indicator"></span><div><strong>CHAT GLOBAL</strong><small>COMUNICAÇÃO ENTRE MERGULHADORES</small></div></div>
+          <span id="globalChatStatus" class="global-chat-status">CONECTANDO…</span>
+        </header>
+        <div class="chat-feed-label"><span>TRANSMISSÕES RECENTES</span><span>GLOBAL · AO VIVO</span></div>
+        <div id="globalChatMessages" class="global-chat-messages" role="log" aria-live="polite" aria-relevant="additions"><p class="global-chat-empty">Nenhuma transmissão recebida. Seja o primeiro a falar.</p></div>
         <form id="globalChatForm" class="global-chat-form">
-          <input id="globalChatInput" maxlength="180" autocomplete="off" placeholder="Transmitir mensagem…" aria-label="Mensagem do chat global">
-          <button type="submit" aria-label="Enviar mensagem">↗</button>
+          <input id="globalChatInput" maxlength="180" autocomplete="off" placeholder="Escreva uma mensagem…" aria-label="Mensagem do chat global">
+          <button type="submit" aria-label="Enviar mensagem" title="Enviar mensagem">➤</button>
         </form>
-        <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para transmitir mensagens.</p>
+        <p id="globalChatHint" class="global-chat-hint">Entre na sua conta para enviar mensagens.</p>
       </section>
       <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.12</span></div>
     </section>
@@ -299,10 +302,10 @@
 <script src="enemy-ai.js?v=3.5.12"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.15"></script>
-<script src="online.js?v=3.5.15"></script>
+<script src="game.js?v=3.5.16"></script>
+<script src="online.js?v=3.5.16"></script>
 <script>
-/* UI failsafe: never let chat Enter fall through to a native page reload if another script fails. */
+/* UI failsafe for the rebuilt global chat. */
 (()=>{
   const chatForm=document.getElementById('globalChatForm');
   chatForm?.addEventListener('submit',event=>{event.preventDefault();},true);
