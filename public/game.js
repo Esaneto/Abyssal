@@ -72,7 +72,7 @@ let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"
 function saveCosmetics(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null};
-const MAX_ENEMIES=50,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
+const MAX_ENEMIES=150,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','leviathan','maw','angler','kraken'];
 const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',kraken:'KRAKEN · SENHOR DAS FOSSAS'});
@@ -222,8 +222,13 @@ function updateUpgradeCountdown(){
  const remainingSeconds=Math.ceil(remainingMs/1000);
  const timerText=$('upgradeTimerText'),timerFill=$('upgradeTimerFill'),timer=$('upgradeTimer');
  if(timerText)timerText.textContent=`ESCOLHA EM ${remainingSeconds}s`;
- if(timerFill)timerFill.style.width=`${Math.max(0,Math.min(100,remainingMs/10000*100))}%`;
+ if(timerFill)timerFill.style.width=`${Math.max(0,Math.min(100,remainingMs/25000*100))}%`;
  if(timer)timer.dataset.urgent=remainingSeconds<=3?'true':'false';
+}
+function renderSelectedSkills(){
+ const panel=$('selectedSkillsList');if(!panel)return;
+ const selected=Object.entries(upgradeLevels).filter(([,rank])=>Number(rank)>0).sort((a,b)=>a[0].localeCompare(b[0]));
+ panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<div class="selected-skill-row"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></div>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
 function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
@@ -235,7 +240,7 @@ function chooseUpgrade(u){
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
- level++;gameState='playing';$('upgradeScreen').hidden=true;
+ level++;gameState='playing';$('upgradeScreen').hidden=true;renderSelectedSkills();
  showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
  playSkillSound(u.id,'learn');updateHud();last=performance.now();
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
@@ -247,9 +252,9 @@ function offerUpgrade(){
  upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
  const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
- // A level-up pauses solo gameplay and grants 10 s of protection in co-op.
- if(player)player.invuln=Math.max(player.invuln,10);
- if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
+ // A level-up pauses solo gameplay and grants 25 s of protection in co-op.
+ if(player)player.invuln=Math.max(player.invuln,25);
+ if(onlineMode)window.AbyssalOnline?.sendProtection?.(25,'upgrade-offer');
  upgradeOptions.forEach(u=>{
   const current=upgradeLevels[u.id]||0,b=document.createElement('button');
   b.type='button';b.className='upgrade-card';
@@ -257,18 +262,18 @@ function offerUpgrade(){
   b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b);
  });
  $('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
- upgradeDeadlineAt=performance.now()+10000;updateUpgradeCountdown();
+ upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
   updateUpgradeCountdown();
  },100);
- // Safety fallback: exactly one random available skill is selected after ten seconds.
+ // Safety fallback: exactly one random available skill is selected after 25 seconds.
  upgradeAutoTimer=setTimeout(()=>{
   if(gameState!=='upgrade')return;
   const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);
   if(available.length)chooseUpgrade(available[Math.floor(Math.random()*available.length)]);
   else{clearUpgradeCountdown();gameState='playing';$('upgradeScreen').hidden=true;}
- },10000);
+ },25000);
 }
 function spawnEnemy(initial=false,type='common'){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
@@ -532,7 +537,7 @@ function killEnemy(i){
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
 }
 function fire(){
- if(!player)return;let target=null,bd=Infinity;const maxRange=210*upgrades.range*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
+ if(!player)return;let target=null,bd=Infinity;const maxRange=294*upgrades.range*(equippedSkin==='abyssaleye'?1.2:1)/worldZoom;
  for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
  if(!target)return;
  const a=Math.atan2(target.y-player.y,target.x-player.x);
@@ -540,7 +545,7 @@ function fire(){
  const shotDamage=12*upgrades.power*(1+(upgrades.photon||0)*.16);
  const shotColor=(upgrades.spread||0)>0?'#d8b4fe':(upgrades.photon||0)>0?'#f0abfc':upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#83fff3';
  const angles=[a];if((upgrades.spread||0)>0){angles.push(a-.14,a+.14);if(upgrades.spread>=3)angles.push(a-.27,a+.27);}
- for(const shotAngle of angles){const damage=shotDamage/angles.length*(angles.length>1?1.35:1);projectiles.push({x:player.x+Math.cos(shotAngle)*13,y:player.y+Math.sin(shotAngle)*13,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:(4.1+(upgrades.photon||0)*.35)/worldZoom,life:.95,damage,pierceRemaining:upgrades.pierce||0,hitIds:[],color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/worldZoom)/W,y:(player.y+Math.sin(shotAngle)*13/worldZoom)/H,vx:Math.cos(shotAngle)*shotSpeed/(W*worldZoom),vy:Math.sin(shotAngle)*shotSpeed/(W*worldZoom),damage,color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});}
+ for(const shotAngle of angles){const damage=shotDamage/angles.length*(angles.length>1?1.35:1);projectiles.push({x:player.x+Math.cos(shotAngle)*13,y:player.y+Math.sin(shotAngle)*13,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:(4.1+(upgrades.photon||0)*.35)/worldZoom,life:1.33,damage,pierceRemaining:upgrades.pierce||0,hitIds:[],color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/worldZoom)/W,y:(player.y+Math.sin(shotAngle)*13/worldZoom)/H,vx:Math.cos(shotAngle)*shotSpeed/(W*worldZoom),vy:Math.sin(shotAngle)*shotSpeed/(W*worldZoom),damage,color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});}
  player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(upgrades.electric>0)effects.push({type:'beam',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*30,y2:muzzleY+Math.sin(a)*30,life:.16,maxLife:.16,color:'#eaffff'});audio(500,.045,'sine',.008);
 }
 function update(dt){
@@ -671,7 +676,7 @@ function updateAbilityButtons(){
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
 function updateHud(){
- setTextIfChanged('timeText',fmtTime(elapsed));setTextIfChanged('levelText',String(level).padStart(2,'0'));setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);
+ setTextIfChanged('timeText',fmtTime(elapsed));setTextIfChanged('levelText',String(level).padStart(2,'0'));setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();
 }
 function endGame(){
  if(gameState==='over'||gameState==='menu')return;
