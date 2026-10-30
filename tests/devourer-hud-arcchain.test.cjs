@@ -101,8 +101,8 @@ test('online gameplay uses compact motion deltas between reliable full snapshots
   const server = read('server.js');
   const online = read('public/online.js');
   const game = read('public/game.js');
-  assert.match(server, /function getRoomMotionSnapshot\(room\)/);
-  assert.match(server, /emit\('enemy-motion', motion\)/);
+  assert.match(server, /function getRoomMotionSnapshot\(room, options = \{\}\)/);
+  assert.match(server, /volatile\.emit\('enemy-motion',motion\)/);
   assert.match(online, /socket\.on\('enemy-motion'/);
   assert.match(game, /function applySharedMotion\(data\)/);
   assert.match(game, /applyMotion:applySharedMotion/);
