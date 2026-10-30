@@ -21,7 +21,7 @@ test('level-up shows a 25-second countdown and picks a random option if time exp
   const html = read('public/index.html');
   assert.match(html, /id="upgradeTimerText"/);
   assert.match(html, /id="upgradeTimerFill"/);
-  assert.match(game, /upgradeDeadlineAt=performance\.now\(\)\+10000/);
+  assert.match(game, /upgradeDeadlineAt=performance\.now\(\)\+25000/);
   assert.match(game, /Math\.floor\(Math\.random\(\)\*available\.length\)/);
   assert.match(game, /clearUpgradeCountdown\(\)/);
 });
