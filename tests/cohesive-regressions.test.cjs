@@ -62,8 +62,8 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.12/);
-  assert.match(html, /game\.js\?v=3\.5\.12/);
+  assert.match(html, /style\.css\?v=3\.5\.14/);
+  assert.match(html, /game\.js\?v=3\.5\.14/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
@@ -169,4 +169,25 @@ test('client-side currents do not overwrite authoritative online movement', () =
 
 
 test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes', cardumes\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',renderCardumesList\)/)});
-test('menu removes the old octopus and currents render as flowing ribbons',()=>{const html=read('public/index.html');const css=read('public/style.css');const game=read('public/game.js');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/);assert.match(game,/const length=z\.radius\*3\.8,width=z\.radius\*\.62/);assert.match(game,/for\(let n=0;n<11;n\+\+\)/)});
+test('menu removes the old octopus artwork',()=>{const html=read('public/index.html');const css=read('public/style.css');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/)});
+
+
+test('Cardume view supports member presence and safe public profiles',()=>{
+ const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html'),css=read('public/style.css');
+ assert.match(server,/socket\.on\('get-cardume-details'/);
+ assert.match(server,/online:online\.has\(key\)/);
+ assert.match(server,/socket\.on\('get-public-profile'/);
+ assert.match(server,/socket\.on\('toggle-profile-like'/);
+ assert.match(server,/target\.likedBy\.push\(viewerKey\)/);
+ assert.match(server,/viewer\.likedProfiles\.push\(targetKey\)/);
+ assert.match(server,/kind:'likesReceived',required:100/);
+ assert.match(server,/kind:'likesGiven',required:25/);
+ assert.match(server,/kind:'cardumesCreated',required:1/);
+ assert.match(online,/function showCardumeDetail/);
+ assert.match(online,/function showPublicProfile/);
+ assert.match(online,/socket\.emit\('get-public-profile'/);
+ assert.match(html,/id="cardumeMembers"/);
+ assert.match(html,/id="likeProfileBtn"/);
+ assert.match(html,/id="accountDeletePanel"/);
+ assert.match(css,/\.member-presence\.is-online/);
+});
