@@ -146,7 +146,7 @@ function broadcastOnline() { io.emit('online-count', onlineCount()); }
 function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]) }; }
 app.use((req, res, next) => { if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); next(); });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.5',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.7',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
@@ -239,9 +239,21 @@ function getRoomSnapshot(room, metadata = {}){
  const world=room.world;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
  return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
 }
+function getRoomContactSnapshot(room, hits = []){
+ if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
+ const world=room.world;
+ const hitIds=[...new Set(hits.map(hit=>String(hit?.enemyId??'')).filter(Boolean))];
+ const enemies=hitIds.map(id=>{
+  const enemy=world.enemies.find(item=>String(item.id)===id);
+  return enemy?{id:enemy.id,kind:enemy.kind,x:enemy.x,y:enemy.y,r:enemy.r,hp:enemy.hp,maxHp:enemy.maxHp}:null;
+ }).filter(Boolean);
+ if(!enemies.length)return null;
+ world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+ return {worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,serverTime:Date.now(),criticalEnemyIds:enemies.map(enemy=>String(enemy.id)),enemies};
+}
 // Critical changes are reliable: joins, new entities, deaths and contact attacks must
 // never refer to an entity that the client has not received yet. Routine positions stay volatile.
-function getRoomMotionSnapshot(room){
+function getRoomMotionSnapshot(room, options = {}){
  if(!room?.world?.initialized||!room.players.size)return null;
  const world=room.world;
  world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
@@ -253,8 +265,12 @@ function getRoomMotionSnapshot(room){
    Number(e.angle)||0,Number(e.phase)||0,Number(e.hit)||0,Number(e.attackCd)||0,Number(e.damageRevision)||0,
    e.suctionActive===true,Number(e.suctionTimer)||0,Number(e.suctionCooldown)||0,Number(e.suctionPulse)||0
   ]),
-  orbs:(world.orbs||[]).slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])
+  ...(options.includeOrbs?{orbs:(world.orbs||[]).slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
  };
+}
+function getRoomPlayerMotion(room){
+ if(!room?.players?.size)return [];
+ return [...room.players.values()].map(peer=>[String(peer.id),Number(peer.x)||0,Number(peer.y)||0,Number(peer.angle)||0,String(peer.color||'#bd91ff'),String(peer.skinId||'default')]);
 }
 function broadcastWorld(room, metadata = {}){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
 async function persistRoomRow(room){
@@ -454,22 +470,32 @@ function tickRoom(room, now) {
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
 
- // Full snapshots are sent BEFORE dependent damage/boss/XP events so each client
- // has the authoritative attacker/entity state. Intervening compact motion packets are
- // sequenced and update only already-known entities.
- const criticalChange = spawnedEnemies.length > 0 || playerHits.length > 0 || xpCollected.length > 0;
- const criticalEnemyIds = criticalChange ? [...new Set([...spawnedEnemies.map(enemy => String(enemy.id)), ...playerHits.map(hit => String(hit.enemyId))])] : [];
- let criticalSnapshot = null;
- if (criticalChange || result.sendReliableSnapshot) {
-  const reason = playerHits.length ? 'enemy-contact' : spawnedEnemies.length ? 'enemy-spawn' : xpCollected.length ? 'xp-orb-collected' : 'periodic-baseline';
-  criticalSnapshot = getRoomSnapshot(room, { criticalEnemyIds, criticalReason: reason });
-  // Send the authoritative attacker and its true position before any damage/vitals event.
-  // Socket.IO preserves event order per connection; each recipient can render the exact mob first.
-  if (criticalSnapshot) io.to(channelFor(room)).emit('game-snapshot', criticalSnapshot);
-  w.reliableSnapshotTimer = 0.25;
- } else if (result.sendSnapshot) {
-  const motion = getRoomMotionSnapshot(room);
-  if (motion) io.to(channelFor(room)).emit('enemy-motion', motion);
+ // Full snapshots are reserved for entity creation and periodic recovery. Contact hits
+ // use a tiny attacker-only frame, while orb removals arrive through the next orb motion frame.
+ const criticalEnemyIds=[...new Set([...spawnedEnemies.map(enemy=>String(enemy.id)),...playerHits.map(hit=>String(hit.enemyId))])];
+ let criticalSnapshot=null;
+ if(spawnedEnemies.length>0||result.sendReliableSnapshot){
+  const reason=playerHits.length?'enemy-contact':spawnedEnemies.length?'enemy-spawn':'periodic-baseline';
+  criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
+  if(criticalSnapshot)io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
+  w.reliableSnapshotTimer=1;
+  w.orbSnapshotTimer=.5;
+ }else if(result.sendSnapshot){
+  const motion=getRoomMotionSnapshot(room,{includeOrbs:Boolean(result.sendOrbSnapshot)});
+  if(motion)io.to(channelFor(room)).volatile.emit('enemy-motion',motion);
+ }
+ let contactSnapshot=null;
+ if(!criticalSnapshot&&playerHits.length){
+  contactSnapshot=getRoomContactSnapshot(room,playerHits);
+  if(contactSnapshot){
+   const recipients=new Set(playerHits.map(hit=>String(hit.playerId)));
+   for(const playerId of recipients)io.to(playerId).emit('enemy-contact-source',contactSnapshot);
+  }else{
+   // Fail safe: preserve strict collision verification if the attacker disappeared mid-tick.
+   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:'enemy-contact'});
+   if(criticalSnapshot)io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
+   w.reliableSnapshotTimer=1;
+  }
  }
 
  for (const boss of spawnedBosses) {
@@ -500,10 +526,10 @@ function tickRoom(room, now) {
   combatDiagnostics.playerAttacks++;
   combatDiagnostics.lastPlayerAttackAt = new Date().toISOString();
   if (!hit.alive) combatDiagnostics.playerDefeats++;
-  combatDiagnostics.lastPlayerHit = { at: new Date(now).toISOString(), enemyId: hit.enemyId, enemyKind: hit.enemyKind, enemyX: hit.enemyX, enemyY: hit.enemyY, playerX: hit.playerX, playerY: hit.playerY, contactDistance: hit.contactDistance, contactRadius: hit.contactRadius, rawContactRadius: hit.rawContactRadius, contactSafetyMargin: hit.contactSafetyMargin, positionAgeMs: hit.positionAgeMs, targetWasHidden: hit.targetWasHidden, playerVelocityX: room.players.get(hit.playerId)?.velocityX||0, playerVelocityY: room.players.get(hit.playerId)?.velocityY||0, damage: hit.damage, blocked: hit.blocked, worldId: w.worldId, snapshotSeq: criticalSnapshot?.snapshotSeq || null };
-  // Damage is only issued after a reliable snapshot containing this source has been emitted.
-  // The client also checks worldId/sequence/source before showing the hit feedback.
-  io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: criticalSnapshot?.snapshotSeq || null, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
+  const contactSnapshotSeq=criticalSnapshot?.snapshotSeq||contactSnapshot?.snapshotSeq||null;
+  combatDiagnostics.lastPlayerHit = { at: new Date(now).toISOString(), enemyId: hit.enemyId, enemyKind: hit.enemyKind, enemyX: hit.enemyX, enemyY: hit.enemyY, playerX: hit.playerX, playerY: hit.playerY, contactDistance: hit.contactDistance, contactRadius: hit.contactRadius, rawContactRadius: hit.rawContactRadius, contactSafetyMargin: hit.contactSafetyMargin, positionAgeMs: hit.positionAgeMs, targetWasHidden: hit.targetWasHidden, playerVelocityX: room.players.get(hit.playerId)?.velocityX||0, playerVelocityY: room.players.get(hit.playerId)?.velocityY||0, damage: hit.damage, blocked: hit.blocked, worldId: w.worldId, snapshotSeq: contactSnapshotSeq };
+  // A reliable full or attacker-only snapshot is always emitted before contact vitals.
+  io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: contactSnapshotSeq, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
   if (!hit.alive) io.to(channelFor(room)).emit('server-message', 'Um mergulhador foi engolido pelas profundezas.');
  }
  for (const heal of result.playerHeals || []) {
@@ -697,9 +723,10 @@ socket.on('global-chat-send',(payload={})=>{
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
-  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=60){
+  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
    room.lastPlayersBroadcastAt=receivedAt;
-   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+   const motion=getRoomPlayerMotion(room);
+   if(motion.length>1)socket.to(channelFor(room)).volatile.emit('player-motion',motion);
   }
   ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  });
