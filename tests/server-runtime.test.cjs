@@ -158,8 +158,8 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
   let ownerPositionAck = null, guestPositionAck = null;
-  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
-  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 800, viewportHeight: 500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
+  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
+  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
   assert.equal(ownerPositionAck?.ok, true, 'server acknowledges the player position stream');
   assert.equal(guestPositionAck?.ok, true, 'server acknowledges each co-op player position');
   await waitFor(() => owner.all('enemy-motion').length >= 1, 2500);
