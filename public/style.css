@@ -1463,7 +1463,11 @@ body.game-active .hud-toggle-btn,
 body.game-active #pauseBtn,
 body.game-active #endDiveBtn,
 body.game-active #roomBadge,
+body.game-active #selectedSkillsPanel,
+body.game-active #runEnergyRanking,
 body.game-active #activeAbilities,
+body.game-active #skillDescriptionTooltip,
+body.game-active #mobileTip,
 body.game-active #mobileJoystick{
   opacity:.6!important;
   transition:opacity .16s ease;
