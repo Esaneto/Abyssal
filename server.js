@@ -664,9 +664,9 @@ socket.on('global-chat-send',(payload={})=>{
   const now = Date.now();
   // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
-   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   if (seconds !== 10 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
    p.skillSelectingUntil = now + 10000;
-   p.upgradeProtectionUntil = now + 25000;
+   p.upgradeProtectionUntil = now + 10000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
@@ -702,6 +702,15 @@ socket.on('global-chat-send',(payload={})=>{
   const resumeResync=reason==='resume-resync';
   const snapshot=getRoomSnapshot(room,{criticalReason:resumeResync?'resume-resync':reason==='contact-resync'?'contact-resync':reason==='room-join'?'room-join':null,criticalEnemyIds:resumeResync?room.world.enemies.map(e=>String(e.id)):[]});
   socket.emit('game-snapshot',snapshot);});
+ socket.on('revive-player',()=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!socket.data.userKey||!p||p.alive!==false)return socket.emit('revive-result',{ok:false,message:'Este mergulho não pode ser retomado agora.'});
+  const now=Date.now();p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=now+3000;p.skillSelectingUntil=0;p.upgradeProtectionUntil=0;p.regenAccumulator=0;
+  if(!room.world.initialized||!room.world.enemies.length)ensureWorld(room);
+  socket.emit('revive-result',{ok:true,message:'Ressurreição concluída! Seu nível e suas habilidades foram preservados.'});
+  socket.emit('player-vitals',playerVitalsPayload(p,{reason:'revive',serverTime:now}));
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
+ });
  socket.on('begin-run',()=>{
   if(!socket.data.userKey)return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
