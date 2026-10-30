@@ -62,7 +62,7 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.14/);
+  assert.match(html, /style\.css\?v=3\.5\.21/);
   assert.match(html, /game\.js\?v=3\.5\.14/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
@@ -131,7 +131,7 @@ test('abyssal10k can be redeemed repeatedly by the same authenticated account', 
   const game = read('public/game.js');
   const online = read('public/online.js');
   const server = read('server.js');
-  assert.match(game, /window\.AbyssalOnline\.redeemCode\('abyssal10k'\)/);
+  assert.match(game, /window\.AbyssalOnline\.redeemCode\(code\)/);
   assert.match(online, /socket\.emit\('redeem-code'/);
   assert.match(server, /socket\.on\('redeem-code'/);
   assert.match(server, /u\.coins=\(Number\(u\.coins\)\|\|0\)\+10000/);
