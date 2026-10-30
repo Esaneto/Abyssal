@@ -26,6 +26,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK['abyss-drifter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  function renderProfile(data=serverAccount){
+  if(data&&serverAccount&&data.nickname===serverAccount.nickname)serverAccount={...serverAccount,...(data.cardumeId?{cardumeId:data.cardumeId}:{})};
   const root=$('profileTitleGrid');if(!root)return;
   const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
   const equipped=user.equippedTitle||'abyss-drifter';
@@ -69,6 +70,9 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  }
  function renderGlobalChatHistory(messages){const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
  function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
+
+ function renderCardumesList(items){const root=$('cardumesList');if(!root)return;root.replaceChildren();if(!Array.isArray(items)||!items.length){const p=document.createElement('p');p.className='rooms-empty';p.textContent='Nenhum Cardume criado ainda. Seja o primeiro a fundar um.';root.appendChild(p);return;}for(const c of items){const card=document.createElement('article');card.className='cardume-card';const copy=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('p'),meta=document.createElement('small');name.textContent=c.name;desc.textContent=c.description||'Este Cardume ainda não adicionou uma descrição.';meta.textContent='LÍDER '+c.leader+' · '+c.members+'/'+c.capacity+' MERGULHADORES';copy.append(name,desc,meta);const btn=document.createElement('button');btn.type='button';btn.textContent='RECRUTAR-SE';btn.disabled=!authenticated||Boolean(serverAccount?.cardumeId)||c.members>=c.capacity;btn.addEventListener('click',()=>socket?.emit('join-cardume',{id:c.id}));card.append(copy,btn);root.appendChild(card);}}
+ function requestCardumes(){if(!socket?.connected){const msg=$('cardumeMessage');if(msg)msg.textContent='Conectando ao servidor…';connect();return;}socket.emit('list-cardumes');const msg=$('cardumeMessage');if(msg)msg.textContent=authenticated?'Explore a lista e entre em um Cardume.':'Entre na sua conta para criar ou entrar em um Cardume.';}
  function openProfile(){
   const screen=$('profileScreen');if(!screen)return;
   if(!authenticated||!serverAccount){
@@ -95,6 +99,7 @@ function connect(){
  startPositionHeartbeat();
  socket.on('connect',()=>{connected=true;localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
+  socket.on('cardumes-list',renderCardumesList);socket.on('cardume-action-result',result=>{const msg=$('cardumeMessage');if(msg)msg.textContent=result?.message||'Operação concluída.';if(result?.ok)socket.emit('list-cardumes');});
   socket.on('global-chat-history',renderGlobalChatHistory);socket.on('global-chat-message',renderGlobalChatMessage);socket.on('global-chat-error',result=>{const hint=$('globalChatHint');if(hint)hint.textContent=result?.message||'Não foi possível enviar a mensagem.'});
   socket.on('connect',()=>setGlobalChatStatus(true));
  socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];socketRoomsAt=Date.now();publishMergedRooms()});
@@ -389,6 +394,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   if(platform==='app-store'){message.textContent='O Abyssal ainda não está publicado na Apple App Store. A publicação exige um build iOS assinado, cadastro Apple Developer e aprovação da loja.';return;}
   if(platform==='ios'){message.textContent='No iPhone/iPad: abra esta página no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Abra pelo novo ícone para uma experiência mais próxima de um aplicativo em tela cheia.';return;}
  }));
+ $('cardumesBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=false;requestCardumes()});$('cardumesCloseBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=true});$('refreshCardumesBtn')?.addEventListener('click',requestCardumes);$('createCardumeBtn')?.addEventListener('click',()=>{if(!authenticated){const msg=$('cardumeMessage');if(msg)msg.textContent='Entre na sua conta para criar um Cardume.';openLogin();return;}const name=$('cardumeNameInput').value.trim(),description=$('cardumeDescriptionInput').value.trim();socket?.emit('create-cardume',{name,description});});$('leaveCardumeBtn')?.addEventListener('click',()=>socket?.emit('leave-cardume'));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
  $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}});
