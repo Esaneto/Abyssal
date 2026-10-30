@@ -18,7 +18,6 @@ function createWorldState(now = Date.now()) {
 }
 
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
-function countBossesNumber(world) { let count = 0; for (const enemy of world.enemies) if (BOSS_KINDS.includes(enemy.kind)) count++; return count; }
 function countCommons(world) { let count = 0; for (const enemy of world.enemies) if (!BOSS_KINDS.includes(enemy.kind)) count++; return count; }
 
 function contactGeometry(enemy, target) {
