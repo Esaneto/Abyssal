@@ -87,6 +87,21 @@ const projectileCandidates=[];
 const soloEnemyMovementResult={};
 const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
 let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity,lastSoloRankingValue=null;
+const BACKGROUND_BEAM_COLORS=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
+let arenaVortexLayoutKey='',arenaVortexLayoutCache=[],arenaVortexGradientKey='';
+let arenaVortexGlowGradients=new Map();
+function getArenaVortices(){
+ const key=W+':'+H;
+ if(key!==arenaVortexLayoutKey){arenaVortexLayoutKey=key;arenaVortexLayoutCache=[{x:138,y:138,label:'FENDA I',phase:0},{x:W-138,y:138,label:'FENDA II',phase:1.2},{x:138,y:H-138,label:'FENDA III',phase:2.4},{x:W-138,y:H-138,label:'FENDA IV',phase:3.6}];}
+ return arenaVortexLayoutCache;
+}
+function getArenaVortexGlow(vortex){
+ const key=W+':'+H+':'+worldZoom;
+ if(key!==arenaVortexGradientKey){arenaVortexGradientKey=key;arenaVortexGlowGradients=new Map();}
+ let gradient=arenaVortexGlowGradients.get(vortex.label);
+ if(!gradient){const radius=58/worldZoom*1.9*1.1;gradient=ctx.createRadialGradient(vortex.x,vortex.y,1,vortex.x,vortex.y,radius);gradient.addColorStop(0,'rgba(49,215,218,.18)');gradient.addColorStop(.55,'rgba(43,135,164,.08)');gradient.addColorStop(1,'rgba(10,35,52,0)');arenaVortexGlowGradients.set(vortex.label,gradient);}
+ return gradient;
+}
 const isMobileDevice=()=>mobileViewport;
 function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
@@ -822,8 +837,7 @@ function drawBackground(t){
  // Faint pools of alien bioluminescence and a distant warning-red bloom.
  ctx.save();
  ctx.fillStyle=backgroundBloomCache;ctx.fillRect(W*.45,H*.2,W*.55,H*.8);
- const beamColors=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
- for(let i=0;i<5;i++){const x=W*(.1+i*.2)+Math.sin(t*.00015+i)*25;ctx.globalAlpha=.018+Math.sin(t*.0003+i)*.006;ctx.fillStyle=beamColors[i];ctx.beginPath();ctx.moveTo(x-35,0);ctx.lineTo(x+30,0);ctx.lineTo(x+130,H);ctx.lineTo(x+20,H);ctx.closePath();ctx.fill()}
+ for(let i=0;i<5;i++){const x=W*(.1+i*.2)+Math.sin(t*.00015+i)*25;ctx.globalAlpha=.018+Math.sin(t*.0003+i)*.006;ctx.fillStyle=BACKGROUND_BEAM_COLORS[i];ctx.beginPath();ctx.moveTo(x-35,0);ctx.lineTo(x+30,0);ctx.lineTo(x+130,H);ctx.lineTo(x+20,H);ctx.closePath();ctx.fill()}
  ctx.restore();
  // Draw only the grid cells inside the camera viewport; the former world-wide scan was wasted work every frame.
  ctx.save();ctx.strokeStyle='rgba(93,175,190,.028)';ctx.lineWidth=1;const grid=70,ox=(t*.003)%grid,oy=(t*.002)%grid;
@@ -1027,15 +1041,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 function drawArenaTerrain(t){
  // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
- const vortices=[
-  {x:138,y:138,label:'FENDA I',phase:0},
-  {x:W-138,y:138,label:'FENDA II',phase:1.2},
-  {x:138,y:H-138,label:'FENDA III',phase:2.4},
-  {x:W-138,y:H-138,label:'FENDA IV',phase:3.6}
- ];
+ const vortices=getArenaVortices();
  for(const v of vortices){
   const pulse=1+Math.sin(t*.0014+v.phase)*.08,r=58/worldZoom*pulse;
-  const glow=ctx.createRadialGradient(v.x,v.y,1,v.x,v.y,r*1.9);glow.addColorStop(0,'rgba(49,215,218,.18)');glow.addColorStop(.55,'rgba(43,135,164,.08)');glow.addColorStop(1,'rgba(10,35,52,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(v.x,v.y,r*1.9,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=getArenaVortexGlow(v);ctx.beginPath();ctx.arc(v.x,v.y,r*1.9,0,Math.PI*2);ctx.fill();
   for(let ring=0;ring<3;ring++){const rr=(18+ring*15+Math.sin(t*.0011+v.phase+ring)*3)/worldZoom;ctx.beginPath();ctx.ellipse(v.x,v.y,rr*1.08,rr*.72,t*.00018*(ring%2?-1:1)+v.phase,0,Math.PI*2);ctx.strokeStyle=`rgba(96,244,233,${.28-ring*.065})`;ctx.lineWidth=(2-ring*.35)/worldZoom;ctx.stroke();}
   ctx.save();ctx.translate(v.x,v.y);ctx.rotate(-t*.00042-v.phase);ctx.beginPath();for(let a=0;a<=Math.PI*3.5;a+=.12){const rr=(4+a*2.3)/worldZoom;if(a===0)ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr);else ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}ctx.strokeStyle='rgba(110,247,239,.64)';ctx.lineWidth=1.6/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#4de4df';ctx.stroke();ctx.restore();
   ctx.fillStyle='rgba(160,242,237,.8)';ctx.font=`${9/worldZoom}px 'DM Mono',monospace`;ctx.textAlign='center';ctx.fillText(v.label,v.x,v.y+79/worldZoom);
@@ -1106,12 +1115,35 @@ function drawBossDirectionIndicators(t){
  ctx.restore();
 }
 let loopErrorShown=false;
+const gameFrameSamples=new Float32Array(180);
+let gameFrameSampleCount=0,gameFrameSampleIndex=0,gameFrameFps=0,gameFrameWindowStart=0,gameFrameWindowCount=0;
+let gameLastUpdateMs=0,gameLastDrawMs=0,gameMaxFrameMs=0,gameLongTaskCount=0,gameMaxLongTaskMs=0;
+function recordGameFrame(startedAt,endedAt,updateMs,drawMs){
+ const duration=Math.max(0,endedAt-startedAt);gameFrameSamples[gameFrameSampleIndex]=duration;gameFrameSampleIndex=(gameFrameSampleIndex+1)%gameFrameSamples.length;gameFrameSampleCount=Math.min(gameFrameSamples.length,gameFrameSampleCount+1);
+ gameLastUpdateMs=updateMs;gameLastDrawMs=drawMs;gameMaxFrameMs=Math.max(gameMaxFrameMs,duration);
+ if(!gameFrameWindowStart)gameFrameWindowStart=endedAt;gameFrameWindowCount++;
+ if(endedAt-gameFrameWindowStart>=1000){gameFrameFps=Math.round(gameFrameWindowCount*1000/(endedAt-gameFrameWindowStart));gameFrameWindowStart=endedAt;gameFrameWindowCount=0;}
+}
+function getAbyssalPerformanceSnapshot(){
+ const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
+ const p95=samples.length?samples[Math.min(samples.length-1,Math.ceil(samples.length*.95)-1)]:0;
+ const memory=performance.memory?.usedJSHeapSize;
+ return {fps:gameFrameFps,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
+}
+window.AbyssalPerformance={snapshot:getAbyssalPerformanceSnapshot};
+if(typeof PerformanceObserver!=='undefined'){
+ try{const longTaskObserver=new PerformanceObserver(list=>{for(const entry of list.getEntries()){gameLongTaskCount++;gameMaxLongTaskMs=Math.max(gameMaxLongTaskMs,Number(entry.duration)||0);}});longTaskObserver.observe({type:'longtask',buffered:true});}catch(_){/* Long Task API is optional. */}
+}
 function loop(t){
  const active=gameState==='playing'||(onlineMode&&gameState==='upgrade');
  const minFrameInterval=active?1000/60:1000/30;
  if(lastPaintAt&&t-lastPaintAt<minFrameInterval-1){requestAnimationFrame(loop);return;}
  const dt=Math.min(.035,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
- try{if(active)update(dt);draw(t)}catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
+ const frameStarted=performance.now();let updateMs=0,drawMs=0;
+ try{
+  if(active){const updateStarted=performance.now();update(dt);updateMs=performance.now()-updateStarted;}
+  const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);
+ }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  requestAnimationFrame(loop);
 }
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
