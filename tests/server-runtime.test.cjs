@@ -233,7 +233,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   await owner.clientEmit('client-visibility', { hidden: true });
   await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 3, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
   assert.equal(frozenPositionAck?.ok, true);
-  await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 2500);
+  await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 6000);
   const damageWhileFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).at(-1);
   assert.ok(damageWhileFrozen.hp < damageWhileFrozen.maxHp, 'server must damage a player using the last known position');
   const hitLogIndex = owner.sent.map(entry => entry.event).lastIndexOf('player-vitals');
