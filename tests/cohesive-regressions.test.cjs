@@ -103,3 +103,25 @@ test('menu text uses a larger high-contrast abyssal theme and chat overlays rema
   assert.match(css, /#menuScreen \.menu-action\{[^}]*font-size:clamp\(12px/);
   assert.match(css, /#menuScreen \.menu-creature,#menuScreen:before,#menuScreen:after\{pointer-events:none\}/);
 });
+
+
+test('abyssal10k is permanent, grants 10,000 coins and is limited to one redemption per browser profile', () => {
+  const html = read('public/index.html');
+  const game = read('public/game.js');
+  assert.match(html, /CÓDIGO PERMANENTE · NÃO EXPIRA · \+10\.000 MOEDAS ABISSAIS/);
+  assert.match(game, /code!=='abyssal10k'/);
+  assert.match(game, /coins\+=10000/);
+  assert.match(game, /localStorage\.getItem\('abyssalRedeemedCodes'\)/);
+  assert.match(game, /localStorage\.setItem\('abyssalRedeemedCodes'/);
+  assert.doesNotMatch(game, /abyssal10k.{0,100}(expiresAt|expiry|expirationDate)/i);
+});
+
+test('new shooter upgrades and photon online shot type remain wired', () => {
+  const game = read('public/game.js');
+  const server = read('server.js');
+  assert.match(game, /id:'spread',name:'Rajada Prismática'/);
+  assert.match(game, /id:'photon',name:'Lança de Fótons'/);
+  assert.match(game, /upgrades\.spread/);
+  assert.match(game, /upgrades\.photon/);
+  assert.match(server, /'pierce','electric','ricochet','photon'/);
+});
