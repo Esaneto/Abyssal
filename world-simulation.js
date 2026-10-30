@@ -109,7 +109,7 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
   if (type === 'boss') {
     // Preserve the ordered base HP tiers; only damage scales between waves.
     stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
-    stats.speed = kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
+    stats.speed = kind === 'devourer' ? 14 : kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
     world.lastBossDamage = stats.damage;
@@ -126,6 +126,7 @@ function spawnEnemy(world, { type = 'common', initial = false, random = Math.ran
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
+    suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner
   };
   world.enemies.push(enemy);
@@ -237,6 +238,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   let movedEnemyCount = 0;
   const playerHits = [];
+  const playerSuctionPulls = [];
   const defeatedPlayers = [];
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
@@ -248,6 +250,41 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
+    if (enemy.kind === 'devourer') {
+      enemy.suctionCooldown = Math.max(0, (Number(enemy.suctionCooldown) || 0) - dt);
+      if (enemy.suctionActive) {
+        enemy.suctionTimer = Math.max(0, (Number(enemy.suctionTimer) || 0) - dt);
+        if (enemy.suctionTimer <= 0) enemy.suctionActive = false;
+      } else if (enemy.suctionCooldown <= 0) {
+        enemy.suctionActive = true;
+        enemy.suctionTimer = 4;
+        enemy.suctionCooldown = 20;
+        enemy.suctionPulse = (Number(enemy.suctionPulse) || 0) + 1;
+      }
+    }
+    if (enemy.kind === 'devourer' && enemy.suctionActive) {
+      // The Devourer holds position while drawing every nearby creature and player
+      // toward its mouth. Pull is authoritative online and mirrored by the solo client.
+      enemy.vx = 0; enemy.vy = 0;
+      for (const creature of world.enemies) {
+        if (creature === enemy) continue;
+        const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
+        if (pull.dx || pull.dy) {
+          creature.x = clamp(creature.x + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+          creature.y = clamp(creature.y + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+          creature.vx = pull.dx / Math.max(dt, 0.001);
+          creature.vy = pull.dy / Math.max(dt, 0.001);
+        }
+      }
+      for (const player of validPlayers) {
+        const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
+        if (!pull.dx && !pull.dy) continue;
+        player.x = clamp(Number(player.x) + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+        player.y = clamp(Number(player.y) + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+        playerSuctionPulls.push({ playerId: player.id, dx: pull.dx, dy: pull.dy, bossId: enemy.id, strength: pull.strength });
+      }
+      continue;
+    }
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
     const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
     if (!movement.moved && targetablePlayers.length && dt > 0) {
@@ -407,7 +444,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers,
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, sendSnapshot, sendReliableSnapshot, sendPlayers,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
