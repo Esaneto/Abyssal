@@ -1359,3 +1359,9 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
 .codex-card.combo-codex-card>p{color:#d4c9f3;line-height:1.6;}
 .combo-recipe{display:block;margin-top:8px;padding-top:8px;border-top:1px solid rgba(182,156,255,.22);color:#b9e8ff;font:700 9px/1.6 'DM Mono',monospace;}
 .special-codex-heading{color:#d6c5ff!important;text-shadow:0 0 16px rgba(151,112,255,.22);}
+
+/* Joystick flutuante: aparece no ponto inicial do toque e some ao soltar. */
+body.mobile-game-active #mobileJoystick.is-floating{left:var(--floating-joystick-x,50%);top:var(--floating-joystick-y,50%);bottom:auto;transform:translate(-50%,-50%);}
+body.mobile-game-active #mobileJoystick.is-floating small{display:none}
+body.mobile-game-active #mobileJoystick.is-floating .joystick-base{width:112px;height:112px;border-color:rgba(134,241,239,.52);background:radial-gradient(circle,rgba(55,128,147,.36),rgba(4,18,29,.7));}
+body.mobile-game-active #mobileJoystick.is-floating .joystick-knob{width:48px;height:48px}
