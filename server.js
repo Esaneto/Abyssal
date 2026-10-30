@@ -715,7 +715,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(!socket.data.userKey)return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
-   if(!p.runStats||p.runStats.settled)p.runStats=makeRunStats();
+   if(!p.runStats||p.runStats.settled){p.runStats=makeRunStats();p.runLevel=1;p.energy=0;}
    if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;clearRoomWorld(room);ensureWorld(room);}
    socket.emit('player-vitals',playerVitalsPayload(p,{reason:'run-start',serverTime:Date.now()}));
    refreshWorldTicker();
