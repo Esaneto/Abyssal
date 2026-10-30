@@ -1,7 +1,7 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
-const MAX_ENEMIES = 300;
+const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -53,7 +53,7 @@ function forceAdvanceEnemy(enemy, players, dt) {
   const healthRatio = clamp((Number(enemy.hp) || 0) / Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1), 0, 1);
   const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
   const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
-  const speed = BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed;
+  const speed = (BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed) * 0.85;
   const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
   let x = oldX, y = oldY;
   if (nearest > stopDistance + 1) {
@@ -214,7 +214,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if (spawned) spawnedEnemies.push(spawned);
     }
     commonCount = countCommons(world);
-    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.24, 0.52 - world.elapsed * 0.0008) : 0.12;
+    const spawnRamp = clamp(world.elapsed / 300, 0, 1);
+    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp);
+    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.17, spawnInterval) : 0.12;
   }
 
   const spawnedBosses = [];

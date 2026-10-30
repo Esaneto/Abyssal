@@ -156,7 +156,7 @@ function playerVitalsPayload(player, extra = {}) {
 }
 const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken']);
 const MAX_PLAYERS_PER_ROOM = 6;
-const MAX_ENEMIES_PER_ROOM = 300;
+const MAX_ENEMIES_PER_ROOM = 400;
 const MAX_BOSSES_PER_ROOM = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
@@ -664,9 +664,9 @@ socket.on('global-chat-send',(payload={})=>{
   const now = Date.now();
   // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
-   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
-   p.skillSelectingUntil = now + 25000;
-   p.upgradeProtectionUntil = now + 25000;
+   if (seconds !== 10 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   p.skillSelectingUntil = now + 10000;
+   p.upgradeProtectionUntil = now + 10000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
@@ -702,17 +702,26 @@ socket.on('global-chat-send',(payload={})=>{
   const resumeResync=reason==='resume-resync';
   const snapshot=getRoomSnapshot(room,{criticalReason:resumeResync?'resume-resync':reason==='contact-resync'?'contact-resync':reason==='room-join'?'room-join':null,criticalEnemyIds:resumeResync?room.world.enemies.map(e=>String(e.id)):[]});
   socket.emit('game-snapshot',snapshot);});
+ socket.on('revive-player',()=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!socket.data.userKey||!p||p.alive!==false)return socket.emit('revive-result',{ok:false,message:'Este mergulho não pode ser retomado agora.'});
+  const now=Date.now();p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=now+3000;p.skillSelectingUntil=0;p.upgradeProtectionUntil=0;p.regenAccumulator=0;
+  if(!room.world.initialized||!room.world.enemies.length)ensureWorld(room);
+  socket.emit('revive-result',{ok:true,message:'Ressurreição concluída! Seu nível e suas habilidades foram preservados.'});
+  socket.emit('player-vitals',playerVitalsPayload(p,{reason:'revive',serverTime:now}));
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
+ });
  socket.on('begin-run',()=>{
   if(!socket.data.userKey)return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
-   if(!p.runStats||p.runStats.settled)p.runStats=makeRunStats();
+   if(!p.runStats||p.runStats.settled){p.runStats=makeRunStats();p.runLevel=1;p.energy=0;}
    if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;clearRoomWorld(room);ensureWorld(room);}
    socket.emit('player-vitals',playerVitalsPayload(p,{reason:'run-start',serverTime:Date.now()}));
    refreshWorldTicker();
   } else socket.data.runStats=makeRunStats();
  });
- socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));run.level=Math.max(1,Math.min(9999,Number(payload.level)||1));if(p){const account=users[socket.data.userKey];p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
+ socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});

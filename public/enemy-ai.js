@@ -144,7 +144,8 @@
       pursuitSpeed = Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp);
     }
     // Glacier skin gives nearby enemies a readable slow field without altering their attack cadence.
-    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? pursuitSpeed * 0.74 : pursuitSpeed;
+    const reducedPursuitSpeed = pursuitSpeed * 0.85;
+    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? reducedPursuitSpeed * 0.74 : reducedPursuitSpeed;
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     let x = oldX, y = oldY;

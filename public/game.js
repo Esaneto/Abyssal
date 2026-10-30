@@ -18,6 +18,7 @@ let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,came
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let currentZones=[],currentSpawnTimer=2.5+Math.random()*2.5,autoFollowCursor=false;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
+let runResultPending=false;
 let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
 function getAbyssalCodex(){
@@ -72,7 +73,7 @@ let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"
 function saveCosmetics(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null};
-const MAX_ENEMIES=300,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
+const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','leviathan','maw','angler','kraken'];
 const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',kraken:'KRAKEN · SENHOR DAS FOSSAS'});
@@ -179,6 +180,7 @@ function showBossAlert(kind,id=null,threat=0){
 
 function showScreen(id){screens.forEach(s=>$(s).hidden=s!==id);$('hud').hidden=id!=='gameScreen';}
 function startGame(){
+ runResultPending=false;
  startAmbientMusic();
  elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);
@@ -194,7 +196,7 @@ function startGame(){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});window.AbyssalOnline?.requestPlayerState?.();}snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
 }
 const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Seus disparos causam 50% mais dano por nível.',apply:()=>upgrades.power*=1.5},
@@ -204,13 +206,13 @@ const upgradeList=[
  {id:'magnet',name:'Campo magnético',icon:'⌁',desc:'Atrai fragmentos de energia de mais longe.',apply:()=>upgrades.magnet*=1.45},
  {id:'regen',name:'Membrana viva',icon:'✚',desc:'Recupera 1 ponto de vida a cada 4 segundos.',apply:()=>upgrades.regen+=1},
  {id:'shield',name:'Escudo espectral',icon:'◉',desc:'Ganha uma carga que bloqueia o próximo dano.',apply:()=>upgrades.shield=Math.min(3,upgrades.shield+1)},
- {id:'burst',name:'Pulso de ruptura',icon:'✺',desc:'A cada 7 segundos, libera uma onda de energia em grande alcance.',apply:()=>upgrades.burst=Math.min(3,upgrades.burst+1)},
- {id:'electric',name:'Tempestade elétrica',icon:'ϟ',desc:'Disparos encadeiam raios visíveis em até 2 inimigos próximos.',apply:()=>upgrades.electric=Math.min(3,(upgrades.electric||0)+1)},
+ {id:'burst',name:'Pulso de ruptura',icon:'✺',desc:'Libera dano em área: começa a cada 7 segundos, com intervalo mínimo de 3,5 segundos e dano crescente por nível.',apply:()=>upgrades.burst=Math.min(3,upgrades.burst+1)},
+ {id:'electric',name:'Tempestade elétrica',icon:'ϟ',desc:'Cada disparo encadeia raios em até 3 alvos próximos; cada nível adiciona um salto e aumenta o dano dos raios.',apply:()=>upgrades.electric=Math.min(3,(upgrades.electric||0)+1)},
  {id:'pierce',name:'Lança-abismo',icon:'➶',desc:'Projéteis atravessam +1 criatura por nível. Não aumenta o dano por impacto.',apply:()=>upgrades.pierce=Math.min(3,(upgrades.pierce||0)+1)},
- {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'O projétil salta visualmente até 2 vezes entre alvos próximos.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
+ {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'Os projéteis ricocheteiam entre inimigos próximos: cada nível adiciona um salto, até 3.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
  {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Dispara fótons laterais em cada ataque, cobrindo uma área maior.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Projéteis mais rápidos e concentrados causam dano adicional.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
- {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'A cada 9 segundos, libera uma explosão abissal de longo alcance.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)}
+ {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Libera uma explosão de longo alcance a cada 9 segundos no nível 1; níveis seguintes aumentam o dano e reduzem o intervalo até 4,5 segundos. ',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)}
 ];
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -222,19 +224,30 @@ function updateUpgradeCountdown(){
  const remainingSeconds=Math.ceil(remainingMs/1000);
  const timerText=$('upgradeTimerText'),timerFill=$('upgradeTimerFill'),timer=$('upgradeTimer');
  if(timerText)timerText.textContent=`ESCOLHA EM ${remainingSeconds}s`;
- if(timerFill)timerFill.style.width=`${Math.max(0,Math.min(100,remainingMs/25000*100))}%`;
+ if(timerFill)timerFill.style.width=`${Math.max(0,Math.min(100,remainingMs/10000*100))}%`;
  if(timer)timer.dataset.urgent=remainingSeconds<=3?'true':'false';
 }
 function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const selected=Object.entries(upgradeLevels).filter(([,rank])=>Number(rank)>0).sort((a,b)=>a[0].localeCompare(b[0]));
- panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<div class="selected-skill-row" title="'+skill.desc+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></div>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
+ panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
+function showSkillDescription(id,target){
+ const skill=upgradeList.find(item=>item.id===String(id||'')),tooltip=$('skillDescriptionTooltip');if(!skill||!tooltip)return;
+ tooltip.replaceChildren();const title=document.createElement('strong'),description=document.createElement('span');title.textContent=skill.name;description.textContent=skill.desc;tooltip.append(title,description);tooltip.hidden=false;
+ const rect=target?.getBoundingClientRect?.();if(rect){const left=Math.max(8,Math.min(window.innerWidth-290,rect.left));const top=Math.max(8,Math.min(window.innerHeight-100,rect.bottom+6));tooltip.style.left=left+'px';tooltip.style.top=top+'px';}
+}
+function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
+const selectedSkillPanel=$('selectedSkillsList');
+selectedSkillPanel?.addEventListener('pointerover',event=>{if(event.pointerType==='mouse'){const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);}});
+selectedSkillPanel?.addEventListener('pointerout',event=>{if(event.pointerType==='mouse'&&!event.relatedTarget?.closest?.('[data-skill-id]'))hideSkillDescription();});
+selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);});
+document.addEventListener('click',event=>{if(!event.target.closest?.('#selectedSkillsPanel'))hideSkillDescription();});
 function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
  clearUpgradeCountdown();
  u.apply();
- if(player)player.invuln=3;
+ if(player){player.invuln=3;hp=maxHp;}
  if(onlineMode){window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
  upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
  // Save through the shared codex cache; referencing a local, undefined "codex" here
@@ -252,9 +265,9 @@ function offerUpgrade(){
  upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
  const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
- // A level-up pauses solo gameplay and grants 25 s of protection in co-op.
+ // A level-up pauses gameplay and grants protection while the player has 10 seconds to choose.
  if(player)player.invuln=Math.max(player.invuln,25);
- if(onlineMode)window.AbyssalOnline?.sendProtection?.(25,'upgrade-offer');
+ if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
  upgradeOptions.forEach(u=>{
   const current=upgradeLevels[u.id]||0,b=document.createElement('button');
   b.type='button';b.className='upgrade-card';
@@ -262,18 +275,18 @@ function offerUpgrade(){
   b.addEventListener('click',()=>chooseUpgrade(u));wrap.appendChild(b);
  });
  $('upgradeScreen').hidden=false;audio(330,.16,'sine',.03);
- upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
+ upgradeDeadlineAt=performance.now()+10000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
   updateUpgradeCountdown();
  },100);
- // Safety fallback: exactly one random available skill is selected after 25 seconds.
+ // Safety fallback: select one available skill if the player does not choose within 10 seconds.
  upgradeAutoTimer=setTimeout(()=>{
   if(gameState!=='upgrade')return;
   const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);
   if(available.length)chooseUpgrade(available[Math.floor(Math.random()*available.length)]);
   else{clearUpgradeCountdown();gameState='playing';$('upgradeScreen').hidden=true;}
- },25000);
+ },10000);
 }
 function spawnEnemy(initial=false,type='common'){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
@@ -552,7 +565,7 @@ function update(dt){
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
-   currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<5){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:125+Math.random()*75,radius:125+Math.random()*55,life:11+Math.random()*7,maxLife:18});currentSpawnTimer=3+Math.random()*3;}
+   if(!onlineMode){currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<5){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:125+Math.random()*75,radius:125+Math.random()*55,life:11+Math.random()*7,maxLife:18});currentSpawnTimer=1.8+Math.random()*1.2;}}
    for(let i=currentZones.length-1;i>=0;i--){currentZones[i].life-=dt;if(currentZones[i].life<=0)currentZones.splice(i,1);}
    player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
@@ -562,9 +575,9 @@ function update(dt){
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt;const wall=52/worldZoom;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(equippedSkin==='solar'?1.18:1)))}
  }
- for(const current of currentZones){const dx=player.x-current.x,dy=player.y-current.y,d=Math.hypot(dx,dy);if(d<current.radius){const strength=(1-d/current.radius)*current.speed*dt;const wall=52/worldZoom;player.x=clamp(player.x+Math.cos(current.angle)*strength,wall+player.r,W-wall-player.r);player.y=clamp(player.y+Math.sin(current.angle)*strength,wall+player.r,H-wall-player.r);}}
+ if(!onlineMode){for(const current of currentZones){const dx=player.x-current.x,dy=player.y-current.y,d=Math.hypot(dx,dy);if(d<current.radius){const strength=(1-d/current.radius)*current.speed*dt;const wall=52/worldZoom;player.x=clamp(player.x+Math.cos(current.angle)*strength,wall+player.r,W-wall-player.r);player.y=clamp(player.y+Math.sin(current.angle)*strength,wall+player.r,H-wall-player.r);}}}
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
- if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.28,.55-elapsed*.0008)}else spawnTimer=.35;}
+ if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1);spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp));}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(equippedSkin==='kraken'){
@@ -603,7 +616,7 @@ function update(dt){
  for(const enemy of enemies){if(enemy.hp<=0)continue;const gx=Math.floor(enemy.x/enemyCollisionCellSize),gy=Math.floor(enemy.y/enemyCollisionCellSize),key=gx+','+gy;let bucket=enemyCollisionGrid.get(key);if(!bucket){bucket=[];enemyCollisionGrid.set(key,bucket);}bucket.push(enemy);}
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gx+','+gy);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08),'electric');audio(500,.045,'sine',.008);next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
- if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(2,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.28,maxLife:.28,color:'#ffc47a'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42,'ricochet');audio(500,.045,'sine',.008);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
+ if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190/worldZoom&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.28,maxLife:.28,color:'#ffc47a'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42,'ricochet');audio(500,.045,'sine',.008);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom)projectiles.splice(i,1)}
  for(let i=orbs.length-1;i>=0;i--){
   const o=orbs[i];
@@ -681,15 +694,16 @@ window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnerg
 function endGame(){
  if(gameState==='over'||gameState==='menu')return;
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
- if(authenticated&&window.AbyssalOnline?.finishRun)window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:onlineMode});
- else { coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop(); }
+ if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
+ else if(onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
+ else runResultPending=true;
  if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
- gameState='over';$('hud').hidden=true;$('pauseBtn').hidden=true;const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;
+ gameState='over';$('hud').hidden=true;$('pauseBtn').hidden=true;const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));$('bestScore').textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));$('bestTime').textContent=fmtTime(bestTime)}
- $('saveStatus').textContent='SINAL DE SOBREVIVÊNCIA REGISTRADO';burst(player.x,player.y,'#ff7796',35,210);audio(95,.5,'sawtooth',.04);
+ $('saveStatus').textContent=runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO';burst(player.x,player.y,'#ff7796',35,210);audio(95,.5,'sawtooth',.04);
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 function resumeGame(){if(gameState!=='paused')return;gameState='playing';$('pauseScreen').hidden=true;$('pauseBtn').hidden=false;last=performance.now()}
@@ -727,7 +741,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side;
   let sprite=hostileSpriteCache.get(key);
   if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
-  if(t-sprite.lastPaint>=(BOSS_KINDS.includes(kind)?85:150)){sprite.context.clearRect(0,0,side,side);drawCreature(sprite.center,sprite.center,r,0,color,kind,t,false,0,sprite.context);sprite.lastPaint=t;}
+  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?140:220):(BOSS_KINDS.includes(kind)?85:150);if(t-sprite.lastPaint>=refreshInterval){sprite.context.clearRect(0,0,side,side);drawCreature(sprite.center,sprite.center,r,0,color,kind,t,false,0,sprite.context);sprite.lastPaint=t;}
   c.save();c.translate(Math.round(x),Math.round(y));c.rotate(Number.isFinite(angle)?angle:0);c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(hit>0){c.globalAlpha=clamp(hit*2.6,0,.45);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
@@ -960,7 +974,7 @@ function draw(t){
  for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='leviathan'?3.15:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);if(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2,['boss','leviathan','maw','angler'].includes(e.kind)?6:3);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-22)}}}
  for(const fx of effects){ctx.save();ctx.globalAlpha=clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:3;ctx.beginPath();if(fx.type==='ring'){const progress=1-fx.life/fx.maxLife;ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.lineTo(fx.x2+rand(-5,5),fx.y2+rand(-5,5))}ctx.stroke();ctx.restore()}
  const particleShadowBlur=0;for(const p of particles){ctx.save();ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill();ctx.restore()}
- if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(player.invuln<=0||Math.floor(t/80)%2===0)drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();ctx.arc(player.x,player.y,210*(upgrades.range||1)/worldZoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
+ if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0)drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();ctx.arc(player.x,player.y,210*(upgrades.range||1)/worldZoom,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
  // Cooperative companions: live players are relayed by the online server; if alone, a helper drone appears.
  if(player && onlineMode){
    const peers=window.AbyssalOnline?window.AbyssalOnline.getPlayers():[];
@@ -1016,7 +1030,45 @@ function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base
 if(joystick){joystick.addEventListener('pointerdown',e=>{if(gameState!=='playing')return;e.preventDefault();joystickVector.pointerId=e.pointerId;joystick.setPointerCapture?.(e.pointerId);setJoystickFromPointer(e)});joystick.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});const release=()=>{joystickVector={x:0,y:0,active:false,pointerId:null};if(joystickKnob)joystickKnob.style.transform='translate(0, 0)'};['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,release));}
 window.addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if((e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if((e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>keys[e.key]=false);
-$('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});$('againBtn').addEventListener('click',()=>{if(onlineMode){startGame();return;}startGame()});$('menuBtn').addEventListener('click',()=>{gameState='menu';setMobileGameActive(false);$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
+function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
+function resumeAfterRewardedRevive(){
+ if(onlineMode){window.AbyssalOnline?.revivePlayer?.();return;}
+ if(!player){setReviveMessage('Não foi possível recuperar este mergulho.');return;}
+ hp=maxHp;player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);setReviveMessage('Ressurreição concluída! Nível e habilidades preservados.');updateHud();last=performance.now();
+}
+$('reviveWithAdBtn')?.addEventListener('click',()=>{
+ const button=$('reviveWithAdBtn');if(!button)return;
+ if(typeof window.adBreak!=='function'){setReviveMessage('Anúncio recompensado indisponível neste momento. Tente novamente mais tarde.');return;}
+ button.disabled=true;setReviveMessage('Carregando anúncio recompensado…');let requested=false;
+ try{window.adBreak({type:'reward',name:'abyssal-revive',beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;resumeAfterRewardedRevive();},adDismissed:()=>{if(!requested)setReviveMessage('O anúncio foi fechado antes da recompensa.');button.disabled=false;},adBreakDone:()=>{button.disabled=false;if(!requested)setReviveMessage('Nenhuma recompensa foi confirmada pelo anúncio.');}});}
+ catch(error){console.warn('Falha ao iniciar anúncio de ressurreição:',error);button.disabled=false;setReviveMessage('Não foi possível abrir o anúncio agora.');}
+});
+window.addEventListener('abyssal-revive-result',event=>{
+ const result=event.detail||{};setReviveMessage(result.message||'');
+ const button=$('reviveWithAdBtn');if(button)button.disabled=false;
+ if(!result.ok)return;
+ hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
+});
+function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun};}
+function returnToMainMenu(){runResultPending=false;onlineMode=false;setMobileGameActive(false);gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
+$('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
+$('againBtn').addEventListener('click',()=>{
+ if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
+  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:false,onComplete:()=>{runResultPending=false;startGame();}});
+  if(sent)return;
+ }
+ if(runResultPending&&!window.AbyssalOnline?.isAuthenticated?.()&&!onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
+ runResultPending=false;startGame();
+});
+$('menuBtn').addEventListener('click',()=>{
+ if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
+  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:onlineMode,onComplete:()=>returnToMainMenu()});
+  if(sent)return;
+ }
+ if(runResultPending&&!window.AbyssalOnline?.isAuthenticated?.()&&!onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
+ if(onlineMode)window.AbyssalOnline?.leaveWorld?.();
+ returnToMainMenu();
+});
 $('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();onlineMode=false;setMobileGameActive(false);gameState='menu';$('pauseScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
 $('soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('soundBtn').textContent=soundOn?'♫':'♪';$('soundBtn').style.color=soundOn?'':'#617783';if(soundOn){startAmbientMusic();audio(580,.08,'sine',.025)}else stopAmbientMusic()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
