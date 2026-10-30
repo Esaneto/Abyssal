@@ -729,7 +729,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
-   if(motion.length>1)socket.to(channelFor(room)).volatile.emit('player-motion',motion);
+   if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);
   }
   ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  });
