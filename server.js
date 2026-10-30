@@ -660,13 +660,13 @@ socket.on('global-chat-send',(payload={})=>{
   const room = socketRoom(socket), p = room?.players.get(socket.id);
   if (!p || p.alive === false || !payload || typeof payload !== 'object') return;
   const seconds = Number(payload.seconds), reason = String(payload.reason || 'gameplay');
-  if (!Number.isFinite(seconds) || seconds < 0 || seconds > 10) return;
+  if (!Number.isFinite(seconds) || seconds < 0 || seconds > 25) return;
   const now = Date.now();
   // Rate-limit gameplay grants but allow a legitimate skill selection to shorten the
-  // 10s choice window to 2s, as soon as the player confirms an upgrade.
+  // 25s choice window to 2s, as soon as the player confirms an upgrade.
   if (reason === 'upgrade-offer') {
-   if (seconds !== 10 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
-   p.upgradeProtectionUntil = now + 10000;
+   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   p.upgradeProtectionUntil = now + 25000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
