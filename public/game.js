@@ -228,8 +228,19 @@ function updateUpgradeCountdown(){
 function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const selected=Object.entries(upgradeLevels).filter(([,rank])=>Number(rank)>0).sort((a,b)=>a[0].localeCompare(b[0]));
- panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<div class="selected-skill-row" title="'+skill.desc+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></div>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
+ panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id);return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
 }
+function showSkillDescription(id,target){
+ const skill=upgradeList.find(item=>item.id===String(id||'')),tooltip=$('skillDescriptionTooltip');if(!skill||!tooltip)return;
+ tooltip.replaceChildren();const title=document.createElement('strong'),description=document.createElement('span');title.textContent=skill.name;description.textContent=skill.desc;tooltip.append(title,description);tooltip.hidden=false;
+ const rect=target?.getBoundingClientRect?.();if(rect){const left=Math.max(8,Math.min(window.innerWidth-290,rect.left));const top=Math.max(8,Math.min(window.innerHeight-100,rect.bottom+6));tooltip.style.left=left+'px';tooltip.style.top=top+'px';}
+}
+function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
+const selectedSkillPanel=$('selectedSkillsList');
+selectedSkillPanel?.addEventListener('pointerover',event=>{if(event.pointerType==='mouse'){const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);}});
+selectedSkillPanel?.addEventListener('pointerout',event=>{if(event.pointerType==='mouse'&&!event.relatedTarget?.closest?.('[data-skill-id]'))hideSkillDescription();});
+selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);});
+document.addEventListener('click',event=>{if(!event.target.closest?.('#selectedSkillsPanel'))hideSkillDescription();});
 function chooseUpgrade(u){
  if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
  clearUpgradeCountdown();
@@ -252,7 +263,7 @@ function offerUpgrade(){
  upgradeOptions=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3).sort(()=>Math.random()-.5).slice(0,3);
  const wrap=$('upgradeChoices');wrap.innerHTML='';
  if(!upgradeOptions.length){gameState='playing';$('upgradeScreen').hidden=true;return}
- // A level-up pauses solo gameplay and grants 25 s of protection in co-op.
+ // A level-up pauses gameplay and grants protection while the player has 10 seconds to choose.
  if(player)player.invuln=Math.max(player.invuln,25);
  if(onlineMode)window.AbyssalOnline?.sendProtection?.(10,'upgrade-offer');
  upgradeOptions.forEach(u=>{
@@ -267,7 +278,7 @@ function offerUpgrade(){
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
   updateUpgradeCountdown();
  },100);
- // Safety fallback: exactly one random available skill is selected after 25 seconds.
+ // Safety fallback: select one available skill if the player does not choose within 10 seconds.
  upgradeAutoTimer=setTimeout(()=>{
   if(gameState!=='upgrade')return;
   const available=upgradeOptions.filter(u=>(upgradeLevels[u.id]||0)<3);
