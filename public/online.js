@@ -256,7 +256,7 @@ function startPositionHeartbeat(){
 }
 function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
-function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated)return false;socket.timeout(2500).emit('shared-damage',{id,damage,skillId:String(skillId||'').slice(0,32)},(err,result)=>{if(err){window.dispatchEvent(new CustomEvent('abyssal-world-damage-result',{detail:{ok:false,id,reason:'ack-timeout'}}));return;}if(result)window.dispatchEvent(new CustomEvent('abyssal-world-damage-result',{detail:result}));});return true;}
+function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
