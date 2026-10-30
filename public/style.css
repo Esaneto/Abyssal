@@ -1065,3 +1065,17 @@ html,body{width:100%;height:100%;min-width:0;min-height:0;overflow:hidden}
 .redeem-code-message{min-height:18px;margin:14px 0 0!important;color:#d9c7ff!important;font-size:11px!important}
 @media(max-width:700px){#menuScreen .menu-creature{width:96vw;height:96vw;right:-28%;top:43%;opacity:.72}#menuScreen .menu-content{z-index:3}.redeem-modal-card{padding:25px 20px}.redeem-code-controls input{font-size:16px}}
 @media(prefers-reduced-motion:reduce){#menuScreen .creature-tentacle{animation-duration:8s!important}}
+
+
+/* MENU FAUNA — fauna e rochas em silhueta, animadas por CSS sem trabalho extra no loop do jogo */
+.menu-fauna{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none;opacity:.92;background:radial-gradient(ellipse at 76% 86%,rgba(29,100,130,.22),transparent 45%),linear-gradient(180deg,transparent 62%,rgba(1,7,14,.7));}
+.menu-fish{position:absolute;width:54px;height:23px;border-radius:55% 45% 48% 52%;background:linear-gradient(180deg,rgba(133,236,235,.72),rgba(35,109,145,.42));box-shadow:0 0 18px rgba(73,210,224,.16);opacity:.5;animation:menuFishSwim 22s linear infinite;}
+.menu-fish:before{content:"";position:absolute;right:-13px;top:4px;border-top:8px solid transparent;border-bottom:8px solid transparent;border-left:15px solid rgba(91,190,207,.48)}
+.menu-fish:after{content:"";position:absolute;left:12px;top:7px;width:3px;height:3px;border-radius:50%;background:#d8ffff;box-shadow:0 0 6px #a6ffff}
+.fish-a{top:22%;left:68%;transform:scale(.75);animation-delay:-5s}.fish-b{top:38%;left:83%;transform:scale(.45);animation-delay:-14s}.fish-c{top:59%;left:62%;transform:scale(1.05);animation-delay:-9s}.fish-d{top:76%;left:88%;transform:scale(.55);animation-delay:-2s}
+.menu-rock{position:absolute;bottom:-3%;background:linear-gradient(135deg,rgba(28,67,85,.8),rgba(4,20,34,.96) 70%);border:1px solid rgba(112,196,208,.12);filter:drop-shadow(0 -12px 22px rgba(10,72,95,.13));}
+.rock-a{left:37%;width:22%;height:22%;clip-path:polygon(0 100%,8% 55%,26% 38%,34% 11%,52% 26%,64% 0,77% 48%,93% 57%,100% 100%)}.rock-b{right:-2%;width:24%;height:28%;clip-path:polygon(0 100%,7% 60%,24% 47%,31% 18%,45% 29%,61% 5%,74% 38%,91% 50%,100% 100%)}.rock-c{left:62%;width:13%;height:13%;clip-path:polygon(0 100%,13% 45%,33% 30%,48% 0,65% 32%,85% 47%,100% 100%)}
+.menu-seaweed{position:absolute;bottom:10%;width:5px;height:20%;border-radius:100% 0 100% 0;border-left:2px solid rgba(61,170,155,.32);transform-origin:bottom;animation:menuWeedSway 4s ease-in-out infinite}.weed-a{left:49%;height:23%}.weed-b{right:12%;height:18%;animation-delay:-2s}
+@keyframes menuFishSwim{0%{translate:80px 0;opacity:0}12%{opacity:.5}85%{opacity:.45}100%{translate:-180px -14px;opacity:0}}@keyframes menuWeedSway{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(11deg)}}
+#menuScreen .menu-fauna{mask-image:linear-gradient(90deg,transparent 20%,#000 55%,#000);}
+@media(max-width:700px){.menu-fauna{opacity:.58}.menu-fish{opacity:.35}.rock-a{left:18%;width:35%}.rock-b{width:38%}}

@@ -16,6 +16,7 @@ const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.
 function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[character]));}
 let W=3600,H=2200,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
+let currentZones=[],currentSpawnTimer=16+Math.random()*12;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
@@ -545,6 +546,8 @@ function update(dt){
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
+   currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<3){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:95+Math.random()*55,radius:115+Math.random()*45,life:10+Math.random()*7,maxLife:17});currentSpawnTimer=19+Math.random()*18;}
+   for(let i=currentZones.length-1;i>=0;i--){currentZones[i].life-=dt;if(currentZones[i].life<=0)currentZones.splice(i,1);}
    player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
@@ -553,6 +556,7 @@ function update(dt){
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const dashMultiplier=player.dashTime>0?2.05:1;const nx=player.x+mx/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt,ny=player.y+my/mag*player.moveSpeed*upgrades.speed*(equippedSkin==='voidwing'?1.18:1)*dashMultiplier*dt;const wall=52/worldZoom;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(equippedSkin==='solar'?1.18:1)))}
  }
+ for(const current of currentZones){const dx=player.x-current.x,dy=player.y-current.y,d=Math.hypot(dx,dy);if(d<current.radius){const strength=(1-d/current.radius)*current.speed*dt;const wall=52/worldZoom;player.x=clamp(player.x+Math.cos(current.angle)*strength,wall+player.r,W-wall-player.r);player.y=clamp(player.y+Math.sin(current.angle)*strength,wall+player.r,H-wall-player.r);}}
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.38,1.05-elapsed*.0015)}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
@@ -631,6 +635,8 @@ const metaShopItems=[
  {id:'pulse',name:'Pulso de Maré',type:'active',price:3500,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
  {id:'dash',name:'Passo Fantasma',type:'active',price:4200,max:1,icon:'〰',desc:'Ative E ou o botão para disparar em alta velocidade e ficar invulnerável por 1,25 s.'}
 ];
+function loadEquippedActiveSkills(){try{const v=JSON.parse(localStorage.getItem('abyssalEquippedActiveSkills')||'[]');return Array.isArray(v)?v.filter(id=>['pulse','dash'].includes(id)&&Number(metaUpgrades[id])>0):[];}catch(_){return [];}}
+function toggleEquippedActiveSkill(id){if(!['pulse','dash'].includes(id)||!(Number(metaUpgrades[id])>0))return;let equipped=loadEquippedActiveSkills();if(equipped.includes(id))equipped=equipped.filter(x=>x!==id);else{if(equipped.length>=2){showToast('VOCÊ JÁ EQUIPOU 2 HABILIDADES ATIVAS');return;}equipped.push(id);}localStorage.setItem('abyssalEquippedActiveSkills',JSON.stringify(equipped));renderShop();updateAbilityButtons();showToast(equipped.includes(id)?'HABILIDADE EQUIPADA':'HABILIDADE DESEQUIPADA');}
 function buyMetaUpgrade(id){
  const item=metaShopItems.find(x=>x.id===id);if(!item)return;
  const current=Number(metaUpgrades[id])||0;if(current>=item.max){showToast('MELHORIA JÁ NO NÍVEL MÁXIMO');return;}
@@ -643,13 +649,13 @@ function buyMetaUpgrade(id){
 function activateAbility(id){
  if(!player||gameState!=='playing')return;
  if(id==='pulse'){
-  if(!(Number(metaUpgrades.pulse)>0)){showToast('DESBLOQUEIE PULSO DE MARÉ NA LOJA');return;}
+  if(!(Number(metaUpgrades.pulse)>0)){showToast('DESBLOQUEIE PULSO DE MARÉ NA LOJA');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const radius=245*upgrades.range/worldZoom;
   for(const e of [...enemies])if(dist(player,e)<radius){dealEnemyDamage(e,28*upgrades.power,'pulse');burst(e.x,e.y,'#78f8f3',10,120);}
   effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});burst(player.x,player.y,'#9ffff8',60,260);playSkillSound('pulse','trigger');showToast('PULSO DE MARÉ · LIBERADO');
  }else if(id==='dash'){
-  if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}
+  if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
   if(player.dashCooldown>0)return;
   player.dashCooldown=18;player.dashTime=1.25;player.invuln=Math.max(player.invuln,1.25);if(onlineMode)window.AbyssalOnline?.sendProtection?.(1.25,'dash');player.x=clamp(player.x+Math.cos(player.angle||0)*92/worldZoom,52/worldZoom+player.r,W-52/worldZoom-player.r);player.y=clamp(player.y+Math.sin(player.angle||0)*92/worldZoom,52/worldZoom+player.r,H-52/worldZoom-player.r);updateCamera();burst(player.x,player.y,'#d8c9ff',24,150);playSkillSound('dash','trigger');showToast('PASSO FANTASMA · INVULNERÁVEL');
  }
@@ -657,8 +663,8 @@ function activateAbility(id){
 }
 function updateAbilityButtons(){
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn');
- if(pulse){pulse.hidden=!(Number(metaUpgrades.pulse)>0);pulse.disabled=!player||player.pulseCooldown>0;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:'Q · PULSO DE MARÉ';if(pulse.textContent!==label)pulse.textContent=label;}
- if(dash){dash.hidden=!(Number(metaUpgrades.dash)>0);dash.disabled=!player||player.dashCooldown>0;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:'E · PASSO FANTASMA';if(dash.textContent!==label)dash.textContent=label;}
+ if(pulse){pulse.hidden=!(Number(metaUpgrades.pulse)>0)&&true; pulse.hidden=!(Number(metaUpgrades.pulse)>0&&loadEquippedActiveSkills().includes('pulse'));pulse.disabled=!player||player.pulseCooldown>0;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:'Q · PULSO DE MARÉ';if(pulse.textContent!==label)pulse.textContent=label;}
+ if(dash){dash.hidden=!(Number(metaUpgrades.dash)>0&&loadEquippedActiveSkills().includes('dash'));dash.disabled=!player||player.dashCooldown>0;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:'E · PASSO FANTASMA';if(dash.textContent!==label)dash.textContent=label;}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
@@ -890,6 +896,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  c.restore();
 }
 
+function drawCurrentZones(t){
+ if(!currentZones.length)return;ctx.save();ctx.lineCap='round';for(const z of currentZones){const alpha=Math.min(1,z.life/2);ctx.save();ctx.translate(z.x,z.y);ctx.rotate(z.angle);const pulse=1+Math.sin(t*.004+z.x*.01)*.04;ctx.globalAlpha=.45*alpha;const grad=ctx.createRadialGradient(0,0,5,0,0,z.radius*pulse);grad.addColorStop(0,'rgba(74,224,229,.16)');grad.addColorStop(.7,'rgba(42,161,196,.09)');grad.addColorStop(1,'rgba(30,121,164,0)');ctx.fillStyle=grad;ctx.beginPath();ctx.ellipse(0,0,z.radius*pulse,z.radius*.55,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(108,245,238,.6)';ctx.lineWidth=2/worldZoom;ctx.beginPath();ctx.ellipse(0,0,z.radius*.92,z.radius*.45,0,0,Math.PI*2);ctx.stroke();for(let n=0;n<4;n++){const x=-z.radius*.65+n*z.radius*.42,yy=Math.sin(t*.005+n*1.7)*z.radius*.18;ctx.strokeStyle='rgba(177,255,251,.8)';ctx.lineWidth=3/worldZoom;ctx.beginPath();ctx.moveTo(x-z.radius*.13,yy);ctx.lineTo(x+z.radius*.08,yy);ctx.lineTo(x+z.radius*.02,yy-z.radius*.07);ctx.stroke();}ctx.restore();}ctx.restore();}
 function drawArenaTerrain(t){
  // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
@@ -916,7 +924,7 @@ function drawArenaTerrain(t){
 }
 
 function draw(t){
- ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);updateCamera();ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);drawArenaTerrain(t);
+ ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);updateCamera();ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);drawArenaTerrain(t);drawCurrentZones(t);
  // faint floor current rings
  ctx.save();ctx.strokeStyle='rgba(105,207,214,.08)';for(let i=0;i<4;i++){const rr=(65+i*46+Math.sin(t*.001+i)*4)/worldZoom;ctx.beginPath();ctx.ellipse(player?.x??W*.5,player?.y??H*.5,rr*1.5/worldZoom,rr*.7/worldZoom,Math.sin(t*.0002)*.1,0,Math.PI*2);ctx.stroke()}ctx.restore();
  for(const o of orbs){if(onlineMode&&Number.isFinite(o.interpAt)){const op=currentInterpolatedEnemyPosition(o,performance.now());o.x=op.x;o.y=op.y;}const pulse=1+Math.sin(o.phase)*.2;ctx.save();ctx.shadowBlur=lowPowerRendering?0:8;ctx.shadowColor='#a28dff';ctx.fillStyle='#b8a7ff';ctx.beginPath();ctx.arc(o.x,o.y,o.r*pulse,0,Math.PI*2);ctx.fill();ctx.fillStyle='#effaff';ctx.beginPath();ctx.arc(o.x-o.r*.25,o.y-o.r*.25,o.r*.3,0,Math.PI*2);ctx.fill();ctx.restore()}
@@ -1051,7 +1059,7 @@ window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)re
 function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString('pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id;const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="Prévia real da skin ${skin.name}"></canvas></div><strong>${skin.name}</strong><p>${skin.desc}</p><p class="skin-ability"><b>HABILIDADE ÚNICA</b> ${skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${skin.paid?'disabled':''}>${equipped?'EQUIPADA':owned?'EQUIPAR':skin.paid?'EM BREVE · PREMIUM':`COMPRAR · ${skin.price.toLocaleString('pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!skin.paid&&!equipped)btn.addEventListener('click',()=>{if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN EQUIPADA');}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();showToast('SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast('ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});
- const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax?'disabled':''}>${ownedMax?'DESBLOQUEADO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`}</button>`;const button=card.querySelector('button');if(!ownedMax)button.addEventListener('click',()=>buyMetaUpgrade(item.id));metaGrid.appendChild(card);});}
+ const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();
 }
 $('shopBtn').addEventListener('click',()=>{$('shopScreen').hidden=false;renderShop()});
@@ -1062,14 +1070,16 @@ $('openRedeemCodeBtn')?.addEventListener('click',openRedeemCodeModal);
 $('redeemCodeCloseBtn')?.addEventListener('click',closeRedeemCodeModal);
 $('redeemCodeBackBtn')?.addEventListener('click',closeRedeemCodeModal);
 $('redeemCodeScreen')?.addEventListener('click',event=>{if(event.target===$('redeemCodeScreen'))closeRedeemCodeModal();});
+window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.detail||{},message=$('redeemCodeMessage'),input=$('redeemCodeInput');if(!message)return;if(result.ok){message.textContent='CÓDIGO RESGATADO! +10.000 ESSÊNCIAS NA SUA CONTA.';if(input){input.value='';input.disabled=true;}if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();}else{message.textContent=result.message||'Não foi possível resgatar o código.';}});
 function redeemAbyssalCode(){
  const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
  if(!message||!input)return;
  if(code!=='abyssal10k'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
+ if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode('abyssal10k');return;}
  let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
  if(redeemed.includes('abyssal10k')){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
  coins+=10000;redeemed.push('abyssal10k');localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));saveCosmetics();
- message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+ message.textContent='CÓDIGO RESGATADO! +10.000 ESSÊNCIAS.';input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});

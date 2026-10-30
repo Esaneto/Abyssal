@@ -101,7 +101,7 @@ const TITLE_DEFINITIONS=[
   {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50}
  ];
  function unlockedTitleIds(u){const stats=u.titleStats||{};return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||(Number(stats[t.kind==='kills'?'monstersDefeated':'bossesDefeated'])||0)>=t.required).map(t=>t.id)}
- function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
+ function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0};u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats }; }
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
@@ -473,7 +473,7 @@ io.on('connection', socket => {
    const candidate = hashPassword(password, user.salt);
    if (!safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
-  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
+  user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0}; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   const sessionToken=issueSessionToken(user);saveUsers();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });
  });
@@ -485,7 +485,7 @@ io.on('connection', socket => {
   if(!match)return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
   const [key,user]=match;
   user.sessionTokens=user.sessionTokens.filter(item=>item&&Number(item.expiresAt)>now);
-  user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.coins ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0};user.equippedTitle ||= 'abyss-drifter';
+  user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.redeemedCodes ||= [];user.coins ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0};user.equippedTitle ||= 'abyss-drifter';
   socket.data.nickname=user.nickname;socket.data.userKey=key;saveUsers();
   socket.emit('session-resumed',{ok:true,...publicUser(user)});
  });
@@ -718,6 +718,12 @@ io.on('connection', socket => {
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });
   if ((u.coins || 0) < price) return socket.emit('purchase-result', { ok:false, message:'Moedas abissais insuficientes.', account:publicUser(u) });
   u.coins -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Skin desbloqueada e salva na conta!', account:publicUser(u) });
+ });
+ socket.on('redeem-code', payload => {
+  const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
+  const code=String(payload?.code||'').trim().toLowerCase();if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
+  u.redeemedCodes ||= [];if(u.redeemedCodes.includes('abyssal10k'))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.',account:publicUser(u)});
+  u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('abyssal10k');saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u)});
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;
