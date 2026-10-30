@@ -552,9 +552,8 @@ function update(dt){
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
-   if(!onlineMode){currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<3){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:95+Math.random()*55,radius:115+Math.random()*45,life:10+Math.random()*7,maxLife:17});currentSpawnTimer=8+Math.random()*8;}
-   for(let i=currentZones.length-1;i>=0;i--){currentZones[i].life-=dt;if(currentZones[i].life<=0)currentZones.splice(i,1);}}
-   else currentZones.length=0;
+   currentSpawnTimer-=dt;if(currentSpawnTimer<=0&&currentZones.length<5){const angle=Math.random()*Math.PI*2,radius=150+Math.random()*120;currentZones.push({x:clamp(player.x+Math.cos(angle)*radius,160,W-160),y:clamp(player.y+Math.sin(angle)*radius,160,H-160),angle:Math.random()*Math.PI*2,speed:125+Math.random()*75,radius:125+Math.random()*55,life:11+Math.random()*7,maxLife:18});currentSpawnTimer=3+Math.random()*3;}
+   for(let i=currentZones.length-1;i>=0;i--){currentZones[i].life-=dt;if(currentZones[i].life<=0)currentZones.splice(i,1);}
    player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
