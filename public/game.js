@@ -564,7 +564,7 @@ function update(dt){
  }
  for(const current of currentZones){const dx=player.x-current.x,dy=player.y-current.y,d=Math.hypot(dx,dy);if(d<current.radius){const strength=(1-d/current.radius)*current.speed*dt;const wall=52/worldZoom;player.x=clamp(player.x+Math.cos(current.angle)*strength,wall+player.r,W-wall-player.r);player.y=clamp(player.y+Math.sin(current.angle)*strength,wall+player.r,H-wall-player.r);}}
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)spawnTimer-=dt;player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
- if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.38,1.05-elapsed*.0015)}else spawnTimer=.35;}
+ if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');spawnTimer=Math.max(.28,.55-elapsed*.0008)}else spawnTimer=.35;}
  if(!onlineMode&&elapsed>=nextBossAt){const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES)spawnEnemy(false,'boss');nextBossAt=elapsed+60;}
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(equippedSkin==='kraken'){
