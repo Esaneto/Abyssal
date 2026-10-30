@@ -238,11 +238,17 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.ok(damageWhileFrozen.hp < damageWhileFrozen.maxHp, 'server must damage a player using the last known position');
   const hitLogIndex = owner.sent.map(entry => entry.event).lastIndexOf('player-vitals');
   const hitLog = owner.sent[hitLogIndex];
-  const hitSnapshotIndex = owner.sent.findIndex(entry => entry.event === 'game-snapshot' && Number(entry.args[0]?.snapshotSeq) === Number(hitLog?.args[0]?.snapshotSeq));
-  assert.ok(hitSnapshotIndex >= 0 && hitSnapshotIndex < hitLogIndex, 'a reliable attacker snapshot must arrive before the damage/vitals event');
+  const hitSnapshotIndex = owner.sent.findIndex(entry =>
+    ['game-snapshot', 'enemy-contact-source'].includes(entry.event) &&
+    Number(entry.args[0]?.snapshotSeq) === Number(hitLog?.args[0]?.snapshotSeq)
+  );
+  assert.ok(hitSnapshotIndex >= 0 && hitSnapshotIndex < hitLogIndex, 'a reliable full or attacker-only frame must arrive before the damage/vitals event');
   const hitSnapshot = owner.sent[hitSnapshotIndex].args[0];
   const attacker = hitSnapshot.enemies.find(enemy => String(enemy.id) === String(hitLog.args[0].enemyId));
-  assert.ok(attacker, 'the attacking enemy must exist in the shared snapshot before damage');
+  assert.ok(attacker, 'the attacking enemy must exist in the authoritative frame before damage');
+  if (owner.sent[hitSnapshotIndex].event === 'enemy-contact-source') {
+    assert.equal(hitSnapshot.enemies.length, 1, 'contact-only frames contain only the attacker, not the entire room');
+  }
   assert.ok(Math.hypot(attacker.x - hitLog.args[0].enemyX, attacker.y - hitLog.args[0].enemyY) < 0.01, 'attacker visual coordinates match the exact authoritative collision coordinates');
   assert.ok(Math.hypot(hitLog.args[0].enemyX - hitLog.args[0].playerX, hitLog.args[0].enemyY - hitLog.args[0].playerY) <= hitLog.args[0].contactRadius + 0.01, 'server damage is only issued after real contact geometry is confirmed');
   const positionCountAfterMove = frozenPositionAck.positionUpdates;
