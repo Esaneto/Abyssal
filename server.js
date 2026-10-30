@@ -454,11 +454,9 @@ function tickRoom(room, now) {
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
 
- // Reliable snapshots are sent BEFORE the dependent event (damage/boss/XP). That way
- // every client has the exact authoritative attacker/entity state before reacting to it.
- // Movement snapshots are reliable and sequenced: volatile delivery previously let a
- // dropped update freeze visible enemies until extrapolation expired. At 10 Hz and 50
- // entities the payload is bounded, and lifecycle/contact snapshots remain reliable too.
+ // Full snapshots are sent BEFORE dependent damage/boss/XP events so each client
+ // has the authoritative attacker/entity state. Intervening compact motion packets are
+ // sequenced and update only already-known entities.
  const criticalChange = spawnedEnemies.length > 0 || playerHits.length > 0 || xpCollected.length > 0;
  const criticalEnemyIds = criticalChange ? [...new Set([...spawnedEnemies.map(enemy => String(enemy.id)), ...playerHits.map(hit => String(hit.enemyId))])] : [];
  let criticalSnapshot = null;
