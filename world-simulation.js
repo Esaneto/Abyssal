@@ -47,7 +47,11 @@ function forceAdvanceEnemy(enemy, players, dt) {
   }
   if (!target) return false;
   const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
-  const speed = Math.max(20, Number(enemy.speed) || (EnemyAI.statsForKind(enemy.kind).speed / WORLD_ZOOM) || 35);
+  const baseSpeed = Math.max(20, Number(enemy.speed) || (EnemyAI.statsForKind(enemy.kind).speed / WORLD_ZOOM) || 35);
+  const healthRatio = clamp((Number(enemy.hp) || 0) / Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1), 0, 1);
+  const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
+  const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
+  const speed = BOSS_KINDS.includes(enemy.kind) ? Math.min(playerSpeed, baseSpeed + (playerSpeed - Math.min(baseSpeed, playerSpeed)) * ramp) : baseSpeed;
   const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
   let x = oldX, y = oldY;
   if (nearest > stopDistance + 1) {
