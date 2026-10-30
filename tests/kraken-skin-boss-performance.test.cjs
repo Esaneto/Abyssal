@@ -44,7 +44,7 @@ test('menu Kraken uses eight moving arms and a shadowed, toothless maw', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
   assert.doesNotMatch(html, /class="menu-creature"/);
-  assert.match(css, /#menuScreen \.menu-creature\\{display:none!important\\}/);
+  assert.match(css, /#menuScreen \.menu-creature\{display:none!important\}/);
   assert.match(css, /radial-gradient\(ellipse at 50% 38%,#160824/);
   assert.match(css, /#menuScreen \.creature-core span:before,\s*#menuScreen \.creature-core span:after\{content:none;display:none\}/);
 });
