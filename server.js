@@ -357,8 +357,12 @@ function processWorldDamage(socket,id,damage,skillId=null){
    socket.emit('account-data',publicUser(killer));
   }
   io.to(channelFor(room)).emit('world-enemy-defeated',{id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss});
-  // XP is not awarded on kill: a shared orb is dropped in the authoritative world.
-  // The first player who touches it will receive the XP from tickWorld.
+  // Each successive boss drops triple the previous boss's base XP: x1, x3, x9...
+  // The multiplier is shared by the room and persists across player re-entry.
+  if(boss){
+   enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*Math.pow(3,Math.max(0,Number(w.bossesDefeated)||0)));
+   w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
+  }
   const orb=WorldSimulation.spawnXpOrb(w,enemy);
   if(orb)combatDiagnostics.xpOrbsSpawned++;
   if(boss)awardWorldBossCoins(room);
@@ -464,10 +468,9 @@ function worldTick() {
   try { tickRoom(room, now); }
   catch (err) { worldTickErrors++; room.world.lastTick = now; console.error(`[simulation] tick failed in room ${room.id}:`, err.stack || err); }
  }
- // If the last living player dies while still connected, stop the world and free the
- // horde immediately. The socket can still receive final vitals / save the run, but no
- // enemies, spawn timers, or world state continue consuming resources.
- for (const room of rooms.values()) if (room.players.size > 0 && !hasLivingPlayers(room)) clearRoomWorld(room);
+ // If nobody is alive, refreshWorldTicker() pauses simulation without clearing state.
+ // Enemies, bosses, XP orbs and elapsed time resume when a player revives. Empty rooms
+ // are cleared in removeFromRoom(), after the final socket leaves.
  refreshWorldTicker();
 }
 
@@ -583,9 +586,9 @@ socket.on('global-chat-send',(payload={})=>{
   if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
-  // If the last living player has left or died, the next entrant starts a fresh world.
-  // No disconnected client is elected host and no browser frame loop owns this reset.
-  if (!hasLivingPlayers(room)) clearRoomWorld(room);
+  // A room's shared world survives defeats and re-entry. It is cleared only when the
+  // last socket leaves the room (removeFromRoom), not when everyone is temporarily dead.
+  ensureWorld(room);
   socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const u=users[socket.data.userKey];
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
@@ -716,8 +719,11 @@ socket.on('global-chat-send',(payload={})=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
    if(!p.runStats||p.runStats.settled){p.runStats=makeRunStats();p.runLevel=1;p.energy=0;}
-   if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;clearRoomWorld(room);ensureWorld(room);}
+   if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;}
+   ensureWorld(room);
    socket.emit('player-vitals',playerVitalsPayload(p,{reason:'run-start',serverTime:Date.now()}));
+   socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'}));
+   broadcastWorld(room);
    refreshWorldTicker();
   } else socket.data.runStats=makeRunStats();
  });
