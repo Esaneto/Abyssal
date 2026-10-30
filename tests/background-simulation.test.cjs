@@ -30,7 +30,8 @@ test('online client renders server-authoritative enemy positions instead of simu
   assert.match(game, /criticalIds:authoritativeCriticalIds/);
   assert.match(game, /contactSourceReady[\s\S]*?enemies\.some\(e=>String\(e\.id\)===String\(data\.enemyId\)\)/);
   assert.match(server, /criticalSnapshot\?\.snapshotSeq/);
-  assert.match(server, /if \(snapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', snapshot\)/);
+  assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
+  assert.match(server, /if \(motion\) io\.to\(channelFor\(room\)\)\.emit\('enemy-motion', motion\)/);
   assert.match(game, /if\(data\.targetWasHidden===true\)alignPlayerToAuthoritativeContact\(data\)/);
 });
 
@@ -75,10 +76,11 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
 
 test('authoritative movement snapshots use reliable ordered delivery and precede contact vitals', () => {
   assert.doesNotMatch(server, /\.volatile\.emit\('game-snapshot'/, 'a dropped position snapshot must not leave a creature frozen until a later baseline');
-  assert.match(server, /if \(snapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', snapshot\)/);
+  assert.match(server, /if \(criticalSnapshot\) io\.to\(channelFor\(room\)\)\.emit\('game-snapshot', criticalSnapshot\)/);
+  assert.match(server, /if \(motion\) io\.to\(channelFor\(room\)\)\.emit\('enemy-motion', motion\)/);
   const tickRoom = server.indexOf('function tickRoom(room, now)');
   const snapshotEmit = server.indexOf("io.to(channelFor(room)).emit('game-snapshot', criticalSnapshot)", tickRoom);
   const vitalsEmit = server.indexOf("io.to(hit.playerId).emit('player-vitals'", tickRoom);
   assert.ok(tickRoom >= 0 && snapshotEmit > tickRoom && vitalsEmit > snapshotEmit, 'the attacker snapshot must be emitted before the damage event');
-  assert.match(server, /criticalEnemyIds = \[\.\.\.new Set\(\[\.\.\.spawnedEnemies\.map\(enemy => String\(enemy\.id\)\), \.\.\.playerHits\.map\(hit => String\(hit\.enemyId\)\)\]\)\]/);
+  assert.match(server, /criticalEnemyIds = criticalChange \? \[\.\.\.new Set\(/);
 });
