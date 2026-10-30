@@ -1,7 +1,7 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
-const MAX_ENEMIES = 150;
+const MAX_ENEMIES = 300;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -11,7 +11,7 @@ function createWorldState(now = Date.now()) {
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
     nextBossAt: 60, bossSpawnCount: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
-    commonSpawnTimer: 0.8, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
+    commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0
   };
@@ -207,14 +207,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const spawned = spawnEnemy(world, { type: 'common', random });
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
-    world.commonSpawnTimer = 0.6;
+    world.commonSpawnTimer = 0.35;
   } else if (world.commonSpawnTimer <= 0) {
     if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
       const spawned = spawnEnemy(world, { type: 'common', random });
       if (spawned) spawnedEnemies.push(spawned);
     }
     commonCount = countCommons(world);
-    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.38, 1.02 - world.elapsed * 0.0015) : 0.15;
+    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.24, 0.52 - world.elapsed * 0.0008) : 0.12;
   }
 
   const spawnedBosses = [];
