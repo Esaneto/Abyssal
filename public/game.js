@@ -84,13 +84,14 @@ const hostileSpriteCache=new Map();
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270;
 const projectileCandidates=[];
 const isMobileDevice=()=>mobileViewport;
-function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=!enabled;resize();}
+function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
 $('bestTime').textContent=fmtTime(bestTime);$('bestScore').textContent=bestScore.toLocaleString('pt-BR');
 
 // The logical world is shared across devices; mobile uses a smaller zoom to reveal more of that same world.
 // Mobile reveals five times more world than before while desktop keeps its current framing.
-function desiredWorldZoom(){return isMobileDevice() ? .1 : .78;}
+// Mantém escala de combate legível no celular; evita zoom extremo que prejudica leitura e controle.
+function desiredWorldZoom(){return isMobileDevice() ? .5 : .78;}
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
  if(!player){cameraX=0;cameraY=0;return;}
@@ -1077,9 +1078,23 @@ function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.cl
 canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),down:true,active:true};canvas.setPointerCapture?.(e.pointerId)});
 canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){Object.assign(pointer,coords(e));pointer.active=true;}});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{pointer.down=false;pointer.active=false}));
-const joystick=$('mobileJoystick'),joystickKnob=$('joystickKnob');
+const joystick=$('mobileJoystick'),joystickKnob=$('joystickKnob'),gameShell=$('gameShell');
 function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base=joystick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(18,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}joystickVector.x=dx/max;joystickVector.y=dy/max;joystickVector.active=Math.hypot(joystickVector.x,joystickVector.y)>.13;joystickKnob.style.transform=`translate(${dx}px, ${dy}px)`;}
-if(joystick){joystick.addEventListener('pointerdown',e=>{if(gameState!=='playing')return;e.preventDefault();joystickVector.pointerId=e.pointerId;joystick.setPointerCapture?.(e.pointerId);setJoystickFromPointer(e)});joystick.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});const release=()=>{joystickVector={x:0,y:0,active:false,pointerId:null};if(joystickKnob)joystickKnob.style.transform='translate(0, 0)'};['pointerup','pointercancel','lostpointercapture'].forEach(ev=>joystick.addEventListener(ev,release));}
+function releaseMobileJoystick(e){if(!joystick||joystickVector.pointerId!==e.pointerId)return;joystickVector={x:0,y:0,active:false,pointerId:null};joystick.hidden=true;joystick.classList.remove('is-floating');joystick.style.left='';joystick.style.top='';joystick.style.bottom='';joystick.style.transform='';if(joystickKnob)joystickKnob.style.transform='translate(0, 0)';}
+if(gameShell&&joystick){
+ gameShell.addEventListener('pointerdown',e=>{
+  if(gameState!=='playing'||!isMobileDevice()||joystickVector.pointerId!==null)return;
+  if(e.target.closest('button,a,input,select,textarea,.active-ability,.screen,#mobileJoystick'))return;
+  e.preventDefault();
+  joystickVector={x:0,y:0,active:false,pointerId:e.pointerId};
+  joystick.hidden=false;joystick.classList.add('is-floating');
+  joystick.style.left=`${e.clientX}px`;joystick.style.top=`${e.clientY}px`;joystick.style.bottom='auto';joystick.style.transform='translate(-50%, -50%)';
+  gameShell.setPointerCapture?.(e.pointerId);
+  setJoystickFromPointer(e);
+ });
+ gameShell.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
+ ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>gameShell.addEventListener(ev,releaseMobileJoystick));
+}
 window.addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if((e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if((e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>keys[e.key]=false);
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
