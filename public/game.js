@@ -692,7 +692,7 @@ function update(dt){
   player.arcChainTimer=(Number(player.arcChainTimer)||0)-dt;
   if(player.arcChainTimer<=0){
    player.arcChainTimer=.48;
-   const fieldRange=294*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/GAME_WORLD_ZOOM;
+   const fieldRange=588*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/GAME_WORLD_ZOOM;
    const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,12);
    let previous={x:player.x,y:player.y};
    for(const target of targets){
