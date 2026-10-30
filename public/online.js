@@ -169,10 +169,12 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
+ socket.on('enemy-contact-source',data=>{if(window.AbyssalGameHooks?.registerContactSnapshot)window.AbyssalGameHooks.registerContactSnapshot(data);});
  socket.on('enemy-motion',data=>{if(window.AbyssalGameHooks?.applyMotion)window.AbyssalGameHooks.applyMotion(data);});
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
  socket.on('shared-xp-award',data=>{if(window.AbyssalGameHooks?.sharedXp)window.AbyssalGameHooks.sharedXp(data);});
  socket.on('world-players',list=>applyPlayerList(list));
+ socket.on('player-motion',rows=>applyPlayerMotion(rows));
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
  socket.on('player-joined',p=>{if(p.id!==socket.id)storePlayer(p)});
@@ -321,11 +323,19 @@ function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null;
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||3600)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||2200)*.5;
- players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:115});
+ players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:135});
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
  for(const id of players.keys())if(!keep.has(id))players.delete(id);
+}
+function applyPlayerMotion(rows){
+ if(!Array.isArray(rows))return;
+ for(const row of rows){
+  if(!Array.isArray(row)||row.length<6)continue;
+  const id=String(row[0]??'');if(!id||id===localPlayerId)continue;
+  storePlayer({id,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0,color:row[4],skinId:row[5]});
+ }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
 
