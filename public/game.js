@@ -128,6 +128,27 @@ let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
 $('bestTime').textContent=fmtTime(bestTime);$('bestScore').textContent=bestScore.toLocaleString('pt-BR');
 
 // The logical world is shared across devices; mobile uses a smaller zoom to reveal more of that same world.
+
+/*** NOTIFICATION LOGIC ***/
+// Show a temporary notification box. Uses i18n for translation.
+function showNotification(message) {
+  const box = $('#notificationBox');
+  if (!box) return;
+  box.textContent = message;
+  box.classList.remove('hidden');
+  clearTimeout(box._hideTimer);
+  box._hideTimer = setTimeout(() => box.classList.add('hidden'), 5000);
+}
+// Hook into end‑run UI – called when the game over screen is shown.
+function showEndOfRun(coins) {
+  const msg = i18n.t('endRunMessage', {coins});
+  showNotification(msg);
+}
+// Attach click handler to the bell icon.
+$('#notifBtn')?.addEventListener('click', () => {
+  const box = $('#notificationBox');
+  if (box) box.classList.toggle('hidden');
+});
 // Mobile reveals five times more world than before while desktop keeps its current framing.
 // Mantém escala de combate legível no celular; evita zoom extremo que prejudica leitura e controle.
 function desiredWorldZoom(){return isMobileDevice() ? .5 : .78;}
