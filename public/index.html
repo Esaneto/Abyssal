@@ -28,7 +28,7 @@
   window.adBreak=window.adBreak||function(o){_ab.push(o);};
   window.adConfig=window.adConfig||function(o){_ab.push(o);};
   // Configura o SDK: pré-carregar anúncios recompensados; nunca exibir intersticiais automáticos
-  window.adConfig({preloadAdBreaks:'on',sound:'off',onReady:function(){
+  window.adConfig({preloadAdBreaks:'on',sound:'off',adFormats:['reward'],onReady:function(){
     console.log('[AdSense H5] SDK pronto.');
   }});
 })();
