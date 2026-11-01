@@ -4,7 +4,7 @@
 // Distâncias são recebidas em unidades do mundo; não dependem de Canvas ou Socket.IO.
 const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','kraken','devourer']);
 const CLOSE_RANGE = 150; // reduzido para balanceamento
-const LONG_RANGE = 280; // aumentado para habilidades de longo alcance
+// const LONG_RANGE = 280; // aumentado para habilidades de longo alcance (removido para evitar duplicação)
 const LONG_RANGE = 260;
 
 function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
