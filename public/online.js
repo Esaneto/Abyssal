@@ -583,6 +583,20 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  const chatPanel=$('globalChatPanel');
  if(chatPanel)chatPanel.classList.remove('chat-expanded');
  if(!socket)connect();
+ 
+ // Handle return from Stripe checkout
+ const urlParams = new URLSearchParams(window.location.search);
+ if (urlParams.get('payment') === 'success') {
+  showToast('PAGAMENTO CONFIRMADO! ATUALIZANDO CONTEÚDO...');
+  window.history.replaceState({}, document.title, window.location.pathname);
+  setTimeout(() => {
+   if (socket?.connected && authenticated) socket.emit('get-account');
+  }, 1000);
+ } else if (urlParams.get('payment') === 'cancelled') {
+  showToast('PAGAMENTO CANCELADO.');
+  window.history.replaceState({}, document.title, window.location.pathname);
+ }
+
  const resetToken=new URLSearchParams(location.hash.slice(1)).get('passwordResetToken');
  if(resetToken){$('loginScreen').hidden=true;$('passwordRecoveryScreen').hidden=true;$('passwordResetScreen').hidden=false;$('newPasswordInput').focus();setAuthFlowMessage('resetMessage','');}
  window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));

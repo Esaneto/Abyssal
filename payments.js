@@ -4,7 +4,7 @@ const { hasKidPermission } = require('./kid-age-gate');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
- violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:100,testOnly:true},
+ violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:100,testOnly:false},
  leviathan:{name:'Leviatã Cego',nameEn:'Blind Leviathan',brl:999},
  kraken:{name:'Kraken do Abismo',nameEn:'Abyss Kraken',brl:999},
  aberration:{name:'Máscara da Aberração',nameEn:'Aberration Mask',brl:999},
@@ -85,7 +85,21 @@ function registerPaymentRoutes(options) {
   saveUsers();
   res.json({ok:true,termsVersion:TERMS_VERSION});
  });
- app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:['violet'],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:4999},liveEnabled:liveSalesReady()});});
+ 
+ app.get('/api/payments/order-status/:orderId', async (req, res) => {
+  try {
+   await ensureSchema();
+   const pool = getPool(), orderId = String(req.params.orderId || '');
+   const found = await pool.query('SELECT status, skin_ids, user_key FROM abyssal_payment_orders WHERE order_id=$1', [orderId]);
+   if (!found.rowCount) return res.status(404).json({ ok: false, message: 'Pedido não encontrado.' });
+   const order = found.rows[0];
+   res.json({ ok: true, status: order.status, skinIds: order.skin_ids });
+  } catch (err) {
+   res.status(500).json({ ok: false, message: err.message });
+  }
+ });
+
+ app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:4999},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=process.env.STRIPE_SECRET_KEY;
@@ -98,7 +112,7 @@ function registerPaymentRoutes(options) {
    if(!order.skinIds.length||!order.amount)return res.status(409).json({ok:false,message:'Você já possui este conteúdo.'});
    const isLive=/^(sk|rk)_live_/.test(secret);
    // live sales allowed when Stripe credentials are set
-   if(order.productId==='violet'&&isLive)return res.status(423).json({ok:false,message:'A skin Violet está disponível somente em modo de teste.'});
+   // violet is fully purchasable in live mode
    await ensureSchema();
    const pool=getPool(),orderId=crypto.randomUUID(),client=await pool.connect();let clientReleased=false;
    try{

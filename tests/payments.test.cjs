@@ -5,7 +5,7 @@ const crypto=require('node:crypto');
 const {calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,PAID_SKINS,BOSS_SKINS,TERMS_VERSION}=require('../payments');
 
 test('server catalog fixes Violet, predatory and boss prices in minor units',()=>{
- assert.equal(PAID_SKINS.violet.brl,100);assert.equal(PAID_SKINS.violet.testOnly,true);
+ assert.equal(PAID_SKINS.violet.brl,100);assert.equal(PAID_SKINS.violet.testOnly,false);
  for(const id of ['reefshark','hammerhead','abysscroc','armoredgator'])assert.equal(PAID_SKINS[id].brl,499);
  for(const id of BOSS_SKINS)assert.equal(PAID_SKINS[id].brl,999);
  assert.equal(calculateOrder('violet',[],'brl').amount,100);

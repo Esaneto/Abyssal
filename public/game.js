@@ -56,7 +56,7 @@ let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineCl
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,botBuddyTimer=0;
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
-{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,testOnly:true,shape:'horns',desc:'Skin de demonstração para pagamentos em modo de teste.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
+{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Um espectro luminescente com cornos de energia violeta.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
 {id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
 {id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Veneno de maré: todos os ataques causam 12% mais dano.'},
 {id:'leviathan',name:'Leviatã Cego',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Uma forma alongada com placas dorsais e olhos sensoriais apagados.',ability:'Caçador de colossos: causa 25% mais dano aos bosses.'},
