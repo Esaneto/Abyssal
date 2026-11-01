@@ -48,6 +48,7 @@
 
   <main id="gameShell">
     <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
+    
     <button id="mobilePauseBtn" class="mobile-pause-btn" type="button" aria-label="Pausar jogo" title="Pausar jogo">Ⅱ</button>
     <button id="roomBadge" class="room-badge" type="button" hidden title="Copiar código de convite da sala"></button>
     <div id="bossAlert" class="boss-alert" hidden role="alert" aria-live="assertive"><span id="bossAlertKicker" class="boss-alert-kicker">SINAL DE PRESSÃO · CONTATO DESCONHECIDO</span><strong id="bossAlertTitle">UMA PRESENÇA COLOSSAL</strong><p id="bossAlertText">Algo se move onde a luz não alcança.</p></div>
@@ -85,10 +86,15 @@
       <div class="menu-fauna" aria-hidden="true">
         <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
         <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
+    
         <canvas class="menu-catalog-creature menu-creature-angler" width="180" height="112" data-menu-creature="angler" data-menu-color="#ffb45e"></canvas>
+    
         <canvas class="menu-catalog-creature menu-creature-leviathan" width="220" height="140" data-menu-creature="leviathan" data-menu-color="#4ce0d1"></canvas>
+    
         <canvas class="menu-catalog-creature menu-creature-maw" width="180" height="140" data-menu-creature="maw" data-menu-color="#c16cff"></canvas>
+    
         <canvas class="menu-catalog-creature menu-creature-kraken" width="220" height="180" data-menu-creature="kraken" data-menu-color="#8b5cf6"></canvas>
+    
         <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
       </div>
       <section id="globalChatPanel" class="global-chat-panel abyssal-chat-v2" aria-label="Chat global do Abyssal" hidden>
@@ -298,7 +304,8 @@
         <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
         <h2>ROLETA<br><em>ABISSAL</em></h2>
         <p>Escolha sua sorte: prêmios de 20 a 1.000 moedas abissais. O prêmio raro tem chance de 0,1%.</p>
-        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas></div>
+        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas>
+    </div>
         <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar essências abissais!</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button><button id="testWheelBtn" class="secondary-btn">TESTAR GIRO · SEM PRÊMIO</button></div>
         <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
