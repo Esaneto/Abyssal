@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06121d">
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
+<meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
+<title>Abyssal — Ecos das Profundezas</title>
+<link rel="stylesheet" href="style.css?v=3.5.36">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#061522">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="abyssal-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="abyssal-icon.svg">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
+    <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
+      <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
+      <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
+      <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
+    </div>
+  </header>
+
+  <main id="gameShell">
+    <canvas id="game" aria-label="Área do jogo Abyssal"></canvas>
+    <button id="mobilePauseBtn" class="mobile-pause-btn" type="button" aria-label="Pausar jogo" title="Pausar jogo">Ⅱ</button>
+    <button id="roomBadge" class="room-badge" type="button" hidden title="Copiar código de convite da sala"></button>
+    <div id="bossAlert" class="boss-alert" hidden role="alert" aria-live="assertive"><span id="bossAlertKicker" class="boss-alert-kicker">SINAL DE PRESSÃO · CONTATO DESCONHECIDO</span><strong id="bossAlertTitle">UMA PRESENÇA COLOSSAL</strong><p id="bossAlertText">Algo se move onde a luz não alcança.</p></div>
+    <div id="mobileJoystick" class="mobile-joystick" hidden aria-label="Joystick virtual de movimento">
+      <div class="joystick-base"><span id="joystickKnob" class="joystick-knob"></span></div><small>MOVER</small>
+    </div>
+
+    <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">‹</button>
+
+    <section id="menuScreen" class="screen">
+      <div class="menu-content">
+        <div class="eyebrow"><span class="pulse-dot"></span> SINAL DETECTADO · SETOR 07</div>
+        <h1>Mergulhadores<br><em>Abissais</em></h1>
+        <p class="intro">Seu sinal atravessou uma região apagada dos mapas. Algo respondeu do fundo — e está vindo na direção da luz.</p>
+        <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
+        <button id="wheelBtn" class="wheel-cta" aria-label="Abrir roleta abissal">
+          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE ESSÊNCIAS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
+        </button>
+        
+        <div class="menu-secondary-actions">
+          <button id="onlineBtn" class="secondary-btn menu-action online-cta"><span class="online-cta-copy"><strong>MERGULHAR ONLINE</strong><small>EXPEDIÇÕES PÚBLICAS E PRIVADAS · ATÉ 6 MERGULHADORES</small></span><span class="online-cta-icon" aria-hidden="true">⌁</span></button>
+          <button id="shopBtn" class="secondary-btn menu-action">LOJA DE SKINS <span>✦</span></button>
+          <button id="catalogBtn" class="secondary-btn menu-action">CATÁLOGO <span>⌕</span></button>
+          <button id="rankingsBtn" class="secondary-btn menu-action">RANKINGS <span>♛</span></button>
+          <button id="cardumesBtn" class="secondary-btn menu-action">CARDUMES <span>≋</span></button>
+          <button id="profileBtn" class="secondary-btn menu-action">PERFIL & TÍTULOS <span>✧</span></button>
+          <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal">SUPORTE <span aria-hidden="true">✉</span></button>
+        </div>
+        <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
+        <div class="controls-hint"><span>WASD / SETAS</span><i>ou</i><span>TOQUE E ARRASTE</span></div>
+        <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
+      </div>
+      <div class="language-setting"><label for="languageSelect">IDIOMA / LANGUAGE</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
+      <button id="downloadBtn" class="secondary-btn download-cta" type="button" aria-label="Abrir opções de download">BAIXAR <span aria-hidden="true">⇩</span></button>
+      <div class="menu-fauna" aria-hidden="true">
+        <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
+        <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-angler" width="180" height="112" data-menu-creature="angler" data-menu-color="#ffb45e"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-leviathan" width="220" height="140" data-menu-creature="leviathan" data-menu-color="#4ce0d1"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-maw" width="180" height="140" data-menu-creature="maw" data-menu-color="#c16cff"></canvas>
+        <canvas class="menu-catalog-creature menu-creature-kraken" width="220" height="180" data-menu-creature="kraken" data-menu-color="#8b5cf6"></canvas>
+        <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
+      </div>
+      <section id="globalChatPanel" class="global-chat-panel abyssal-chat-v2" aria-label="Chat global do Abyssal" hidden>
+        <header class="global-chat-heading">
+          <div class="chat-title-wrap"><span class="chat-live-indicator"></span><div><strong>CHAT GLOBAL</strong><small>COMUNICAÇÃO ENTRE MERGULHADORES</small></div></div>
+          <span id="globalChatStatus" class="global-chat-status">CONECTANDO…</span>
+        </header>
+        <div class="chat-feed-label"><span>TRANSMISSÕES RECENTES</span><span>GLOBAL · AO VIVO</span></div>
+        <div id="globalChatMessages" class="global-chat-messages" role="log" aria-live="polite" aria-relevant="additions"><p class="global-chat-empty">Nenhuma transmissão recebida. Seja o primeiro a falar.</p></div>
+        <form id="globalChatForm" class="global-chat-form">
+          <input id="globalChatInput" maxlength="180" autocomplete="off" placeholder="Escreva uma mensagem…" aria-label="Mensagem do chat global">
+          <button type="submit" aria-label="Enviar mensagem" title="Enviar mensagem">➤</button>
+        </form>
+        <p id="globalChatHint" class="global-chat-hint">Converse com outros mergulhadores online.</p>
+      </section>
+      <div class="menu-footer"><span>UMA EXPERIÊNCIA ARCADE ORIGINAL</span><span>V. 3.5.12</span><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html">Termos</a><a href="/privacy.html">Privacidade</a><a href="/community.html">Comunidade</a><a href="/store-policy.html">Loja e reembolsos</a></nav></div>
+    </section>
+
+    <section id="hud" class="hud" hidden>
+      <div class="hud-top">
+        <div class="hud-stat"><small>TEMPO</small><strong id="timeText">00:00</strong></div>
+        <div class="hud-stat center-stat"><small>NÍVEL</small><strong id="levelText">01</strong></div>
+        <div class="hud-stat center-stat"><small>BOSSES</small><strong id="bossKillsText">00</strong></div>
+        <div class="hud-stat right-stat"><small>ENERGIA</small><strong id="scoreText">0</strong></div>
+      </div>
+      <div class="bars">
+        <div class="bar-label"><span>VITALIDADE</span><span id="hpText">100 / 100</span></div>
+        <div class="bar"><div id="hpFill" class="bar-fill hp-fill"></div></div>
+        <div class="bar-label xp-label"><span>RESSONÂNCIA</span><span id="xpText">0 / 10</span></div>
+        <div class="bar xp-bar"><div id="xpFill" class="bar-fill xp-fill"></div></div>
+      </div>
+      <div class="mobile-tip" id="mobileTip">Arraste para se mover. Seus poderes atacam automaticamente.</div>
+      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Habilidades adquiridas"><strong class="selected-skills-title">HABILIDADES</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside><div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div><aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>ENERGIA · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
+      <div class="active-abilities" id="activeAbilities">
+        <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
+        <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PASSO FANTASMA</button>
+      </div>
+    </section>
+
+    <section id="upgradeScreen" class="screen modal-screen" hidden>
+      <div class="modal-card">
+        <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
+        <h2>ESCOLHA SUA<br><em>RESSONÂNCIA</em></h2>
+        <p>O abismo lhe oferece uma nova adaptação.</p>
+        <div id="upgradeTimer" class="upgrade-timer" role="timer" aria-live="polite" aria-atomic="true">
+          <div class="upgrade-timer-copy"><strong id="upgradeTimerText">ESCOLHA EM 10s</strong><span>SEM ESCOLHA, UMA HABILIDADE ALEATÓRIA SERÁ APLICADA</span></div>
+          <div class="upgrade-timer-track" aria-hidden="true"><span id="upgradeTimerFill"></span></div>
+        </div>
+        <div id="upgradeChoices" class="upgrade-choices"></div>
+      </div>
+    </section>
+
+    <section id="pauseScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow">SINAL SUSPENSO</div><h2>PAUSA NAS<br><em>PROFUNDEZAS</em></h2>
+        <p>Respire. O abismo pode esperar alguns segundos.</p>
+        <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
+        <button id="quitBtn" class="secondary-btn">ENCERRAR MERGULHO</button>
+      </div>
+    </section>
+
+    <section id="gameOverScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
+        <h2>O ABISMO<br><em>RECLAMA.</em></h2>
+        <p>Seu mergulho terminou. Mas as profundezas ainda guardam segredos.</p>
+        <div class="results">
+          <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
+          <div><small>ENERGIA</small><strong id="finalScore">0</strong></div>
+          <div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+        </div>
+        <button id="againBtn" class="primary-btn">MERGULHAR NOVAMENTE <span>↗</span></button>
+        <button id="reviveWithAdBtn" class="secondary-btn">ASSISTIR ANÚNCIO E RESSUSCITAR</button>
+        <p id="reviveAdMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
+        <button id="menuBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="loginScreen" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card">
+        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIFICAÇÃO DO MERGULHADOR</div>
+        <h2>ENTRE NO<br><em>ABISMO</em></h2>
+        <p>Crie sua conta com nickname e senha para salvar sua identidade e moedas no servidor.</p>
+        <label class="field-label" for="nicknameInput">NICKNAME</label>
+        <input id="nicknameInput" class="text-field" maxlength="18" autocomplete="username" placeholder="Seu nickname">
+        <label id="emailFieldLabel" class="field-label" for="emailInput">EMAIL PARA RECUPERAÇÃO (OBRIGATÓRIO AO CRIAR CONTA)</label>
+        <input id="emailInput" class="text-field" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
+        <label class="field-label" for="passwordInput">SENHA</label>
+        <input id="passwordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Mínimo de 8 caracteres">
+        <div id="loginMessage" class="form-message"></div>
+        <div class="auth-actions"><button id="loginSubmitBtn" class="primary-btn">ENTRAR <span>↗</span></button><button id="registerBtn" class="secondary-btn">CRIAR CONTA +</button></div>
+        <button id="forgotPasswordBtn" class="secondary-btn" type="button">ESQUECI A SENHA / FORGOT PASSWORD</button>
+        <button id="loginCancelBtn" class="secondary-btn">VOLTAR</button>
+      </div>
+    </section>
+
+    <section id="kidAgeGateScreen" class="screen modal-screen auth-flow-screen" style="display:none !important;" hidden hidden>
+      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="kidAgeGateTitle">
+        <div class="eyebrow"><span class="pulse-dot"></span> PROTEÇÃO DO MERGULHADOR</div>
+        <h2 id="kidAgeGateTitle">CONFIRME SUA<br><em>IDADE</em></h2>
+        <p>Precisamos confirmar sua idade para aplicar as proteções e permissões adequadas à sua conta.</p>
+        <label class="field-label" for="kidDateOfBirth">DATA DE NASCIMENTO</label>
+        <input id="kidDateOfBirth" class="text-field" type="date" autocomplete="bday" required>
+        <button id="kidAgeGateSubmit" class="primary-btn" type="button">CONTINUAR</button>
+        <div id="kidAgeGateMessage" class="form-message" role="status" aria-live="polite"></div>
+        <div id="kidParentChallenge" hidden>
+          <p>É necessária a autorização de um responsável. Peça que ele conclua a solicitação pelo link abaixo ou informe o email dele para receber o convite.</p>
+          <a id="kidChallengeLink" href="https://asktoplay.com" target="_blank" rel="noopener noreferrer">Abrir autorização do responsável</a>
+          <p id="kidChallengeCode"></p>
+          <label class="field-label" for="kidParentEmail">EMAIL DO RESPONSÁVEL</label>
+          <input id="kidParentEmail" class="text-field" type="email" maxlength="254" placeholder="responsavel@exemplo.com">
+          <button id="kidSendParentEmail" class="secondary-btn" type="button">ENVIAR CONVITE</button>
+        </div>
+        <iframe id="kidAgeAssuranceFrame" title="Verificação de idade" hidden
+          allow="camera;payment;publickey-credentials-get;publickey-credentials-create"
+          referrerpolicy="strict-origin" style="width:100%;min-height:560px;border:0;border-radius:12px"></iframe>
+        <button id="kidCheckChallenge" class="secondary-btn" type="button" hidden>JÁ CONCLUÍ A AUTORIZAÇÃO — VERIFICAR</button>
+      </div>
+    </section>
+
+    <section id="passwordRecoveryScreen" class="screen modal-screen auth-flow-screen" hidden>
+      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="recoveryTitle">
+        <div class="eyebrow"><span class="pulse-dot"></span> CENTRAL DO MERGULHADOR</div>
+        <h2 id="recoveryTitle">RECUPERAR<br><em>ACESSO</em></h2>
+        <p>Informe o e-mail vinculado à sua conta.</p>
+        <label class="field-label" for="recoveryEmailInput">E-MAIL DA CONTA</label>
+        <input id="recoveryEmailInput" class="text-field" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
+        <p id="recoveryMessage" class="form-message auth-flow-message" role="status" aria-live="polite"></p>
+        <button id="requestPasswordResetBtn" class="primary-btn" type="button">ENVIAR LINK DE RECUPERAÇÃO <span>↗</span></button>
+        <button id="recoveryCancelBtn" class="secondary-btn" type="button">VOLTAR AO LOGIN</button>
+      </div>
+    </section>
+
+    <section id="passwordResetScreen" class="screen modal-screen auth-flow-screen" hidden>
+      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+        <div class="eyebrow"><span class="pulse-dot"></span> NOVA IDENTIDADE</div>
+        <h2 id="resetTitle">NOVA<br><em>SENHA</em></h2>
+        <p>Escolha uma senha com pelo menos 8 caracteres.</p>
+        <label class="field-label" for="newPasswordInput">NOVA SENHA</label>
+        <input id="newPasswordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Mínimo de 8 caracteres">
+        <label class="field-label" for="confirmNewPasswordInput">CONFIRMAR NOVA SENHA</label>
+        <input id="confirmNewPasswordInput" class="text-field" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Digite a senha novamente">
+        <p id="resetMessage" class="form-message auth-flow-message" role="status" aria-live="polite"></p>
+        <button id="completePasswordResetBtn" class="primary-btn" type="button">SALVAR NOVA SENHA <span>↗</span></button>
+      </div>
+    </section>
+
+
+    <section id="supportScreen" class="screen modal-screen auth-flow-screen" hidden>
+      <div class="modal-card compact-card auth-flow-card support-flow-card" role="dialog" aria-modal="true" aria-labelledby="supportTitle">
+        <div class="eyebrow"><span class="pulse-dot"></span> CENTRAL DE COMUNICAÇÃO</div>
+        <h2 id="supportTitle">SINAL DE<br><em>SOCORRO</em></h2>
+        <p>Conte à nossa equipe o que aconteceu. Sua mensagem será enviada diretamente ao suporte do Abyssal.</p>
+        <label class="field-label" for="supportNameInput">SEU NOME OU NICKNAME (OPCIONAL)</label>
+        <input id="supportNameInput" class="text-field" type="text" maxlength="60" autocomplete="name" placeholder="Como podemos chamar você?">
+        <label class="field-label" for="supportEmailInput">E-MAIL PARA RESPOSTA</label>
+        <input id="supportEmailInput" class="text-field" type="email" maxlength="254" autocomplete="email" required placeholder="voce@exemplo.com">
+        <label class="field-label" for="supportSubjectInput">ASSUNTO</label>
+        <select id="supportSubjectInput" class="text-field" required>
+          <option value="Problema técnico">Problema técnico</option>
+          <option value="Conta e acesso">Conta e acesso</option>
+          <option value="Compra e pagamento">Compra e pagamento</option>
+          <option value="Sugestão ou feedback">Sugestão ou feedback</option>
+          <option value="Outro assunto">Outro assunto</option>
+        </select>
+        <label class="field-label" for="supportMessageInput">MENSAGEM</label>
+        <textarea id="supportMessageInput" class="text-field support-message-input" maxlength="2000" rows="5" required placeholder="Descreva sua dúvida ou problema..."></textarea>
+        <input id="supportWebsiteInput" class="support-honeypot" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p id="supportMessageStatus" class="form-message auth-flow-message" role="status" aria-live="polite"></p>
+        <button id="sendSupportBtn" class="primary-btn" type="button">ENVIAR MENSAGEM <span>↗</span></button>
+        <button id="supportCancelBtn" class="secondary-btn" type="button">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="shopScreen" class="screen modal-screen" hidden>
+      <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
+        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Algumas skins concedem habilidades de jogo. Consulte seus efeitos antes de escolher.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>ESSÊNCIAS</small></div></div>
+        <div class="payment-settings"><label for="shopCurrency">Moeda de cobrança / Billing currency</label><div id="shopCurrency" class="text-field" aria-label="Moeda de cobrança">BRL · Real (R$)</div>
+          
+          
+        </div>
+        <h3 class="shop-section-title">✦ FORMAS DE VIDA · PRÉVIA EM COMBATE</h3>
+        <div id="skinGrid" class="skin-grid"></div>
+        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste essências para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
+        <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
+        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber essências abissais</small></span><strong>↗</strong></button>
+        <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+
+    <section id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen" hidden>
+      <div class="modal-card redeem-modal-card" role="dialog" aria-modal="true" aria-labelledby="redeemCodeTitle">
+        <button id="redeemCodeCloseBtn" class="redeem-close-btn" type="button" aria-label="Fechar janela">×</button>
+        <div class="redeem-modal-emblem" aria-hidden="true">✦</div>
+        <div class="eyebrow"><span class="pulse-dot"></span> RECOMPENSA ESPECIAL</div>
+        <h2 id="redeemCodeTitle">CÓDIGO<br><em>ABISSAL</em></h2>
+        <p>Digite seu código abaixo para desbloquear uma recompensa das profundezas.</p>
+        <div class="redeem-code-controls"><label for="redeemCodeInput">CÓDIGO PROMOCIONAL</label><input id="redeemCodeInput" type="text" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="none" placeholder="Digite seu código aqui" aria-label="Código promocional"><button id="redeemCodeBtn" class="primary-btn" type="button">RESGATAR CÓDIGO <span>↗</span></button></div>
+        <p id="redeemCodeMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
+        <button id="redeemCodeBackBtn" class="secondary-btn" type="button">VOLTAR À LOJA</button>
+      </div>
+    </section>
+
+    <section id="wheelScreen" class="screen modal-screen" hidden>
+      <div class="modal-card wheel-modal"><button id="wheelTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar roleta">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
+        <h2>ROLETA<br><em>ABISSAL</em></h2>
+        <p>Escolha sua sorte: prêmios de 20 a 1.000 moedas abissais. O prêmio raro tem chance de 0,1%.</p>
+        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas></div>
+        <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar essências abissais!</div>
+        <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button><button id="testWheelBtn" class="secondary-btn">TESTAR GIRO · SEM PRÊMIO</button></div>
+        <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="roomsScreen" class="screen modal-screen" hidden>
+      <div class="modal-card room-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> REDE DE MERGULHO · ATÉ 6 JOGADORES</div>
+        <h2>SALAS DO<br><em>ABISMO</em></h2>
+        <p>Estas são as expedições que ainda transmitem sinal. Salas com cadeado exigem senha; salas públicas aceitam entrada direta. Cada mergulho tem sua própria horda.</p>
+        <div id="roomsMessage" class="form-message" aria-live="polite">Procurando sinais de mergulhadores…</div>
+        <div class="rooms-title-row"><h3>EXPEDIÇÕES DISPONÍVEIS</h3><button id="refreshRoomsBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+        <div id="roomsList" class="rooms-list"><p class="rooms-empty">Sondando o escuro…</p></div>
+        <div class="room-create-section">
+          <h3>CRIAR NOVA SALA</h3>
+          <label class="field-label" for="roomNameInput">NOME DA EXPEDIÇÃO</label>
+          <input id="roomNameInput" class="text-field" maxlength="28" placeholder="Ex.: A Fossa da Meia-Noite" value="Expedição Abissal">
+          <div class="room-form-row">
+            <div><label class="field-label" for="roomCapacityInput">LIMITE DE JOGADORES</label><select id="roomCapacityInput" class="text-field"><option value="1">1 jogador</option><option value="2">2 jogadores</option><option value="3">3 jogadores</option><option value="4">4 jogadores</option><option value="5">5 jogadores</option><option value="6" selected>6 jogadores</option></select></div>
+            <label class="room-private-toggle"><input id="roomPrivateCheck" type="checkbox"> <span>SALA PRIVADA<br><small>Somente com senha</small></span></label>
+          </div>
+          <div id="roomPasswordField" hidden><label class="field-label" for="roomPasswordInput">SENHA DA SALA (4–64 CARACTERES)</label><input id="roomPasswordInput" class="text-field" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="Defina a senha para convidados"></div>
+          <button id="createRoomBtn" class="primary-btn" type="button">CRIAR E MERGULHAR <span>↗</span></button>
+        </div>
+        <div class="room-join-code">
+          <h3>ENTRAR COM CÓDIGO</h3>
+          <div class="room-form-row"><div><label class="field-label" for="roomCodeInput">CÓDIGO DE CONVITE</label><input id="roomCodeInput" class="text-field" maxlength="12" placeholder="Ex.: A1B2C3 ou MAR-ABERTO"></div><div><label class="field-label" for="roomJoinPasswordInput">SENHA (SE EXIGIDA)</label><input id="roomJoinPasswordInput" class="text-field" type="password" maxlength="64" placeholder="Senha da sala"></div></div>
+          <button id="joinRoomCodeBtn" type="button" class="secondary-btn">ENTRAR NA SALA</button>
+        </div>
+        <button id="roomsCloseBtn" type="button" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="cardumesScreen" class="screen modal-screen" hidden>
+      <div class="modal-card cardumes-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="cardumesScreen" aria-label="Fechar Cardumes">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> COMUNIDADE · RECRUTAMENTO</div>
+        <h2>CARDUMES<br><em>DO ABISMO</em></h2>
+        <p>Reúna mergulhadores, encontre companheiros de expedição e cresça como equipe. Cada conta pode pertencer a um Cardume por vez.</p>
+        <div id="cardumeMessage" class="form-message" role="status" aria-live="polite">Conecte-se e carregue os Cardumes disponíveis.</div>
+        <div id="cardumeDirectory">
+          <div class="rooms-title-row"><h3>CARDUMES EXISTENTES</h3><button id="refreshCardumesBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+          <div id="cardumesList" class="cardumes-list"><p class="rooms-empty">Buscando Cardumes…</p></div>
+          <div class="room-create-section">
+            <h3>FUNDAR UM CARDUME</h3>
+            <label class="field-label" for="cardumeNameInput">NOME (3–24 CARACTERES)</label><input id="cardumeNameInput" class="text-field" maxlength="24" placeholder="Ex.: Filhos da Fossa">
+            <label class="field-label" for="cardumeDescriptionInput">DESCRIÇÃO (OPCIONAL)</label><input id="cardumeDescriptionInput" class="text-field" maxlength="120" placeholder="Como seu Cardume mergulha junto?">
+            <button id="createCardumeBtn" class="primary-btn" type="button">CRIAR CARDUME <span>↗</span></button>
+          </div>
+        </div>
+        <section id="cardumeDetail" class="cardume-detail" hidden>
+          <div class="cardume-detail-heading"><div><h3 id="cardumeDetailName">MEU CARDUME</h3><p id="cardumeDetailDescription"></p></div><span id="cardumeMemberCount" class="profile-progress">0 / 30</span></div>
+          <div class="rooms-title-row"><h3>MERGULHADORES DO CARDUME</h3><button id="refreshCardumeDetailBtn" type="button" class="small-action">ATUALIZAR ↻</button></div>
+          <div id="cardumeMembers" class="cardume-members"></div>
+          <button id="leaveCardumeBtn" class="secondary-btn" type="button">SAIR DO MEU CARDUME</button>
+          <button id="backToCardumeDirectoryBtn" class="secondary-btn" type="button">VER OUTROS CARDUMES</button>
+        </section>
+        <button id="cardumesCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="catalogScreen" class="screen modal-screen" hidden>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+    </section>
+    <section id="rankingsScreen" class="screen modal-screen" hidden>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+    </section>
+    <section id="profileScreen" class="screen modal-screen" hidden>
+      <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
+        <div class="profile-hero">
+          <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
+          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div>
+        </div>
+        <div class="profile-stats">
+          <div class="profile-stat"><small>MONSTROS DERROTADOS</small><strong id="profileKills">0</strong></div>
+          <div class="profile-stat"><small>BOSSES DERROTADOS</small><strong id="profileBosses">0</strong></div>
+          <div class="profile-stat"><small>TÍTULOS LIBERADOS</small><strong id="profileTitleCount">1</strong></div>
+        </div>
+        <div class="profile-title-heading"><div><h3>TÍTULOS DO ABISMO</h3><p>Desbloqueie conquistas e escolha como será reconhecido.</p></div><span id="profileTitleProgress" class="profile-progress">1 título disponível</span></div>
+        <div id="profileTitleGrid" class="profile-title-grid" aria-live="polite"></div>
+        <section id="accountDeletePanel" class="account-delete-panel" aria-labelledby="deleteAccountHeading">
+          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, moedas, skins, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
+          <label class="field-label" for="deleteNicknameInput">DIGITE SEU NICKNAME PARA CONFIRMAR</label>
+          <input id="deleteNicknameInput" class="text-field delete-nickname-field" maxlength="18" autocomplete="off" placeholder="Digite exatamente seu nickname">
+          <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
+          <p class="delete-account-warning">NÃO É POSSÍVEL DESFAZER ESTA OPERAÇÃO.</p>
+        </section>
+        <div id="publicProfileActions" class="public-profile-actions" hidden><button id="likeProfileBtn" class="primary-btn" type="button">♡ CURTIR PERFIL</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
+        <div id="profileMessage" class="form-message" role="status"></div>
+        <button id="profileCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="downloadScreen" class="screen modal-screen" hidden>
+      <div class="modal-card download-modal">
+        <div class="eyebrow"><span class="pulse-dot"></span> ACESSO AO ABISMO</div>
+        <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
+        <p>Você já pode instalar o Abyssal como aplicativo web nos navegadores compatíveis. Os pacotes nativos e publicações nas lojas ainda exigem etapas de assinatura e cadastro.</p>
+        <div class="download-options">
+          <a class="download-option download-option-link" data-platform="windows" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Baixar instalador Abyssal para Windows 64-bit</small></span><span class="download-status">BAIXAR .EXE ↓</span></a>
+          <a class="download-option download-option-link" data-platform="android" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Baixar pacote Android para instalação manual</small></span><span class="download-status">BAIXAR APK ↓</span></a>
+          <button class="download-option download-option-button" type="button" data-platform="google-play"><span class="download-platform-icon">◉</span><span class="download-option-copy"><strong>GOOGLE PLAY</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="ios"><span class="download-platform-icon">▧</span><span class="download-option-copy"><strong>iOS · IPHONE / IPAD</strong><small>Adicionar à tela inicial pelo Safari</small></span><span class="download-status">INSTRUÇÕES</span></button>
+          <button class="download-option download-option-button" type="button" data-platform="app-store"><span class="download-platform-icon">◌</span><span class="download-option-copy"><strong>APPLE APP STORE</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
+        </div>
+        <p id="downloadInstallMessage" class="download-install-message" role="status" aria-live="polite">Selecione uma plataforma para baixar ou instalar.</p>
+        <button id="installPwaBtn" class="secondary-btn">INSTALAR COMO APLICATIVO WEB</button>
+        <button id="playBrowserBtn" class="primary-btn">JOGAR NO NAVEGADOR <span>↗</span></button>
+        <button id="downloadCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="toast" class="toast" hidden></section>
+  </main>
+  <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
+</div>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="i18n.js?v=3"></script>
+<script src="skin-abilities.js?v=2"></script>
+<script src="enemy-ai.js?v=3.5.33"></script>
+<script src="enemy-netcode.js?v=3.5.12"></script>
+<script src="skill-audio.js?v=3.5.12"></script>
+<script src="game.js?v=3.5.43"></script>
+<script src="online.js?v=3.5.37"></script>
+<script>
+/* UI failsafe for the rebuilt global chat. */
+(()=>{
+  const chatForm=document.getElementById('globalChatForm');
+  chatForm?.addEventListener('submit',event=>{event.preventDefault();},true);
+  if(window.__abyssalFullscreenHandlerReady)return;
+  const button=document.getElementById('fullscreenBtn');
+  const update=()=>{
+    if(!button)return;
+    const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+    button.textContent=active?'⤢':'⛶';
+    button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
+    button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
+  };
+  button?.addEventListener('click',async()=>{
+    try{
+      const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
+      if(active){
+        if(document.exitFullscreen)await document.exitFullscreen();
+        else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+      }else{
+        const root=document.documentElement;
+        if(root.requestFullscreen)await root.requestFullscreen();
+        else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
+        else throw new Error('fullscreen-unavailable');
+      }
+    }catch(error){
+      const toast=document.getElementById('toast');
+      if(toast){
+        toast.textContent='Este navegador não permitiu tela cheia. No celular, tente instalar o Abyssal pela opção BAIXAR ABYSSAL.';
+        toast.hidden=false;
+        setTimeout(()=>{toast.hidden=true;},6000);
+      }
+    }
+  });
+  document.addEventListener('fullscreenchange',update);
+  document.addEventListener('webkitfullscreenchange',update);
+  update();
+})();
+</script>
+</body>
+</html>

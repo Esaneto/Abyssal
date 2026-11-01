@@ -1,0 +1,479 @@
+'use strict';
+const EnemyAI = require('./public/enemy-ai.js');
+const SkinAbilities = require('./skin-abilities');
+const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
+const MAX_ENEMIES = 400;
+const MAX_BOSSES = 4;
+const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+function createWorldState(now = Date.now()) {
+  return {
+    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
+    nextBossAt: 60, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
+    lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
+    commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
+    playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
+    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0
+  };
+}
+
+function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
+function countCommons(world) { let count = 0; for (const enemy of world.enemies) if (!BOSS_KINDS.includes(enemy.kind)) count++; return count; }
+
+function contactGeometry(enemy, target) {
+  const enemyRadiusWorld = Math.max(1, Number(enemy?.r) || 10) / WORLD_ZOOM;
+  // Player radius is stored in WORLD UNITS already (13 / WORLD_ZOOM).
+  const playerRadiusWorld = Math.max(1, Number(target?.r) || (13 / WORLD_ZOOM));
+  const paddingWorld = 8 / WORLD_ZOOM; // exactly the solo collision padding
+  const dx = Number(target?.x) - Number(enemy?.x);
+  const dy = Number(target?.y) - Number(enemy?.y);
+  const geometry = {
+    distance: Math.hypot(dx, dy),
+    radius: enemyRadiusWorld + playerRadiusWorld + paddingWorld,
+    enemyRadiusWorld, playerRadiusWorld, paddingWorld
+  };
+  if (enemy?.kind === 'kraken' && EnemyAI.touchesKrakenTentacle?.(enemy, target, 1 / WORLD_ZOOM)) {
+    return { ...geometry, distance: 0, tentacleContact: true };
+  }
+  return geometry;
+}
+
+function forceAdvanceEnemy(enemy, players, dt) {
+  if (!enemy || !players.length || dt <= 0) return false;
+  let target = null, nearest = Infinity;
+  // tickWorld passes the pre-filtered targetable-player array; don't allocate a new
+  // filtered array for every one of up to 400 enemies on every 50 ms server tick.
+  for (const player of players) {
+    const d = Math.hypot(Number(player.x) - Number(enemy.x), Number(player.y) - Number(enemy.y));
+    if (Number.isFinite(d) && d < nearest) { nearest = d; target = player; }
+  }
+  if (!target) return false;
+  const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
+  const baseSpeed = Math.max(20, Number(enemy.speed) || (EnemyAI.statsForKind(enemy.kind).speed / WORLD_ZOOM) || 35);
+  const healthRatio = clamp((Number(enemy.hp) || 0) / Math.max(1, Number(enemy.maxHp) || Number(enemy.hp) || 1), 0, 1);
+  const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
+  const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
+  const speed = (BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed) * 0.85;
+  const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
+  let x = oldX, y = oldY;
+  if (nearest > stopDistance + 1) {
+    const dx = Number(target.x) - oldX, dy = Number(target.y) - oldY;
+    const step = Math.min(speed * dt, nearest - stopDistance);
+    x += dx / (nearest || 1) * step; y += dy / (nearest || 1) * step;
+  } else {
+    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
+    const lane = id % 6;
+    const radius = stopDistance * (0.78 + lane * 0.12);
+    let angle = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
+    if (!Number.isFinite(angle) || nearest < 0.001) angle = Number(enemy.orbitAngle) || ((id % 2) ? Math.PI : 0);
+    const direction = Number(enemy.orbitDirection) || ((id % 2) ? 1 : -1);
+    enemy.orbitDirection = direction;
+    angle += direction * Math.max(0.025, Math.min(1.8, speed * 0.62 / Math.max(radius, 12))) * dt;
+    enemy.orbitAngle = angle;
+    const desiredX = Number(target.x) + Math.cos(angle) * radius;
+    const desiredY = Number(target.y) + Math.sin(angle) * radius;
+    const dx = desiredX - oldX, dy = desiredY - oldY, d = Math.hypot(dx, dy);
+    const step = Math.min(d, speed * dt);
+    if (d > 1e-8) { x += dx / d * step; y += dy / d * step; }
+  }
+  const margin = 8 / WORLD_ZOOM;
+  x = clamp(x, margin, WORLD_WIDTH - margin); y = clamp(y, margin, WORLD_HEIGHT - margin);
+  if (Math.hypot(x - oldX, y - oldY) < 0.05) {
+    // Boundary-safe tangential nudge; never leave an active enemy frozen because its
+    // desired orbit point happens to clamp back to its current coordinate.
+    const id = Math.abs(Math.floor(Number(enemy.id) || 1));
+    const dir = (id % 2) ? 1 : -1;
+    const a = Math.atan2(oldY - Number(target.y), oldX - Number(target.x)) + dir * Math.PI / 2;
+    const step = Math.max(0.3, Math.min(speed * dt, 5));
+    x = clamp(oldX + Math.cos(a) * step, margin, WORLD_WIDTH - margin);
+    y = clamp(oldY + Math.sin(a) * step, margin, WORLD_HEIGHT - margin);
+  }
+  enemy.x = x; enemy.y = y;
+  enemy.vx = (x - oldX) / Math.max(dt, 0.001); enemy.vy = (y - oldY) / Math.max(dt, 0.001);
+  return Math.hypot(x - oldX, y - oldY) >= 0.05;
+}
+
+function spawnEnemy(world, { type = 'common', initial = false, random = Math.random } = {}) {
+  if (!world || world.enemies.length >= MAX_ENEMIES) return null;
+  const bosses = countBosses(world);
+  if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
+  if (type !== 'boss' && countCommons(world) >= MAX_COMMON_ENEMIES) return null;
+
+  let kind;
+  if (type === 'boss') {
+    kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
+    if (!kind) return null;
+  } else kind = EnemyAI.chooseCommonKind(random);
+
+  const stats = EnemyAI.statsForKind(kind);
+  if (type === 'boss') {
+    // Preserve the ordered base HP tiers; only damage scales between waves.
+    stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
+    stats.speed = kind === 'devourer' ? 14 : kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
+    world.lastBossMaxHp = stats.hp;
+    world.lastBossSpawnAt = Date.now();
+    world.lastBossDamage = stats.damage;
+    world.lastBossSpeed = stats.speed;
+    world.bossSpawnCount++;
+    world.lastBossKind = kind;
+  }
+  // First wave deliberately enters through different fixed corner vortices. Later waves choose a current randomly.
+  const corner = initial ? world.nextEnemyId % 4 : null;
+  const point = EnemyAI.chooseSpawnPoint(random, corner, WORLD_WIDTH, WORLD_HEIGHT);
+  const id = ++world.nextEnemyId;
+  const enemy = {
+    id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
+    speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
+    value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
+    hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
+    suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
+    spawnCorner: point.corner
+  };
+  world.enemies.push(enemy);
+  return enemy;
+}
+
+function spawnXpOrb(world, enemy) {
+  if (!world || !enemy) return null;
+  world.orbs ||= [];
+  world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
+  const value = Math.max(1, Math.round(Number(enemy.value) || 1));
+  const orb = {
+    id: world.nextOrbId, x: Number(enemy.x) || 0, y: Number(enemy.y) || 0,
+    r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(value) : Math.min(15, 4 + Math.sqrt(value)),
+    value, phase: 0, life: 25, sourceEnemyId: enemy.id,
+    sourceKind: enemy.kind
+  };
+  world.orbs.push(orb);
+  if (world.orbs.length > 220) world.orbs.splice(0, world.orbs.length - 220);
+  return orb;
+}
+
+function initializeWorld(world, now = Date.now(), random = Math.random) {
+  if (world.initialized) return [];
+  world.initialized = true;
+  world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 60;
+  world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
+  world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
+  world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
+  world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
+  return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
+}
+
+function tickWorld(world, players, now = Date.now(), random = Math.random) {
+  const validPlayers = Array.isArray(players)
+    ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
+    : [];
+  if (validPlayers.length === 0) {
+    // No living participants means no world time, spawning, movement, or attacks.
+    // The server stops its ticker as well; state is cleared when the last participant leaves.
+    world.lastTick = now;
+    world.movingEnemyCount = 0;
+    return { active: false, dt: 0, movedEnemyCount: 0, spawnedEnemies: [], spawnedBosses: [], playerHits: [], playerHeals: [], defeatedPlayers: [], sendSnapshot: false, sendReliableSnapshot: false, sendPlayers: false };
+  }
+
+  const initialSpawns = initializeWorld(world, now, random);
+  const spawnedEnemies = [...initialSpawns];
+  const previousTick = Number(world.lastTick) || now;
+  // The server runs this ticker independently of browser rendering. Clamp a single
+  // catch-up step to avoid huge jumps after GC or brief event-loop contention.
+  const dt = Math.max(0, Math.min(0.1, (now - previousTick) / 1000));
+  world.lastTick = now;
+  world.elapsed += dt;
+  world.tickCount++;
+
+  // Server-authoritative passive regeneration: it continues even if a player's tab is hidden.
+  const playerHeals = [];
+  for (const p of validPlayers) {
+    const regenLevel = clamp(Math.floor(Number(p.regenLevel) || 0), 0, 3);
+    if (regenLevel <= 0 || Number(p.hp) >= Number(p.maxHp)) continue;
+    p.regenAccumulator = (Number(p.regenAccumulator) || 0) + dt * regenLevel * 0.25;
+    let healed = 0;
+    while (p.regenAccumulator >= 1 && Number(p.hp) < Number(p.maxHp)) {
+      p.regenAccumulator -= 1;
+      p.hp = Math.min(Number(p.maxHp) || 100, (Number(p.hp) || 0) + 1);
+      healed++;
+    }
+    if (healed > 0) playerHeals.push({
+      playerId: p.id, hp: p.hp, maxHp: p.maxHp,
+      shieldCharges: clamp(Math.floor(Number(p.shieldCharges) || 0), 0, 3),
+      alive: p.alive !== false, healed,
+      invulnerabilityMs: Math.max(0, (Number(p.invulnerableUntil) || 0) - now)
+    });
+  }
+
+  world.commonSpawnTimer -= dt;
+  let commonCount = countCommons(world);
+  if (commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
+    const spawned = spawnEnemy(world, { type: 'common', random });
+    if (spawned) spawnedEnemies.push(spawned);
+    commonCount = countCommons(world);
+    world.commonSpawnTimer = 0.35;
+  } else if (world.commonSpawnTimer <= 0) {
+    if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
+      const spawned = spawnEnemy(world, { type: 'common', random });
+      if (spawned) spawnedEnemies.push(spawned);
+    }
+    commonCount = countCommons(world);
+    const spawnRamp = clamp(world.elapsed / 300, 0, 1);
+    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp);
+    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.17, spawnInterval) : 0.12;
+  }
+
+  const spawnedBosses = [];
+  if (world.elapsed >= world.nextBossAt) {
+    const activeBossCount = countBosses(world).length;
+    const playerCountForDifficulty = Math.max(validPlayers.length, Math.floor(Number(world.roomPlayerCount) || 0));
+    const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(playerCountForDifficulty / 2));
+    let currentBossCount = activeBossCount;
+    while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
+      const boss = spawnEnemy(world, { type: 'boss', random });
+      if (!boss) break;
+      spawnedBosses.push(boss);
+      spawnedEnemies.push(boss);
+      currentBossCount++;
+    }
+    world.nextBossAt = currentBossCount > activeBossCount ? world.elapsed + 60 : world.elapsed + 3;
+  }
+
+  let movedEnemyCount = 0;
+  const playerHits = [];
+  const playerSuctionPulls = [];
+  const defeatedPlayers = [];
+  // Reuse one movement result and one options object through the entire 400-enemy pass.
+  const movementResult = {};
+  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM, stopDistance: 0 };
+  const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
+  // Players choosing a skill are protected and removed from enemy target selection;
+  // enemies continue pursuing the remaining active players in the room.
+  const targetablePlayers = validPlayers.filter(p => (Number(p.skillSelectingUntil) || 0) <= now);
+  for (const enemy of world.enemies) {
+    enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
+    enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
+    if (enemy.kind === 'devourer') {
+      enemy.suctionCooldown = Math.max(0, (Number(enemy.suctionCooldown) || 0) - dt);
+      if (enemy.suctionActive) {
+        enemy.suctionTimer = Math.max(0, (Number(enemy.suctionTimer) || 0) - dt);
+        if (enemy.suctionTimer <= 0) enemy.suctionActive = false;
+      } else if (enemy.suctionCooldown <= 0) {
+        enemy.suctionActive = true;
+        enemy.suctionTimer = 4;
+        enemy.suctionCooldown = 20;
+        enemy.suctionPulse = (Number(enemy.suctionPulse) || 0) + 1;
+      }
+    }
+    if (enemy.kind === 'devourer' && enemy.suctionActive) {
+      // The Devourer holds position while drawing every nearby creature and player
+      // toward its mouth. Pull is authoritative online and mirrored by the solo client.
+      enemy.vx = 0; enemy.vy = 0;
+      for (const creature of world.enemies) {
+        if (creature === enemy) continue;
+        const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
+        if (pull.dx || pull.dy) {
+          creature.x = clamp(creature.x + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+          creature.y = clamp(creature.y + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+          creature.vx = pull.dx / Math.max(dt, 0.001);
+          creature.vy = pull.dy / Math.max(dt, 0.001);
+        }
+      }
+      for (const player of validPlayers) {
+        const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
+        if (!pull.dx && !pull.dy) continue;
+        player.x = clamp(Number(player.x) + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+        player.y = clamp(Number(player.y) + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+        playerSuctionPulls.push({ playerId: player.id, dx: pull.dx, dy: pull.dy, bossId: enemy.id, strength: pull.strength });
+      }
+      continue;
+    }
+    movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
+    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+    if (!movement.moved && targetablePlayers.length && dt > 0) {
+      movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
+      if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+    }
+    if (movement.moved) movedEnemyCount++;
+
+    // Contact attacks are resolved here on the server, never in requestAnimationFrame.
+    // A minimized tab keeps taking damage at its last known position; a visible tab must
+    // have a fresh heartbeat and uses a short velocity prediction to compensate for transit
+    // time. This prevents hits against stale coordinates that no longer match the sprite.
+    const target = movement.target;
+    if (!target || target.alive === false || enemy.attackCd > 0) continue;
+    const lastPositionAt = Number(target.lastPositionAt) || 0;
+    const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
+    const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
+    if (target.clientHidden !== true && (lastPositionAt <= 0 || positionAge > 180 || resumeGraceUntil > now)) {
+      world.stalePositionAttackSkips = (world.stalePositionAttackSkips || 0) + 1;
+      continue;
+    }
+    const predictionSeconds = target.clientHidden === true ? 0 : Math.min(0.12, Math.max(0, positionAge) / 1000);
+    let vx = Number(target.velocityX) || 0, vy = Number(target.velocityY) || 0;
+    const velocity = Math.hypot(vx, vy);
+    if (velocity > 320) { vx = vx / velocity * 320; vy = vy / velocity * 320; }
+    let resolvedContactTarget = target;
+    if (target.clientHidden !== true) {
+      // Reuse a single lightweight contact target rather than spreading/copying the
+      // complete player record for every enemy whose contact cooldown expires.
+      contactTarget.x = Number(target.x) + vx * predictionSeconds;
+      contactTarget.y = Number(target.y) + vy * predictionSeconds;
+      contactTarget.r = Number(target.r) || (13 / WORLD_ZOOM);
+      resolvedContactTarget = contactTarget;
+    }
+    const contact = contactGeometry(enemy, resolvedContactTarget);
+    const contactDistance = contact.distance;
+    const rawContactRadius = contact.radius;
+    // Reduce the outer edge of the hitbox by the player movement predicted since the
+    // latest sample plus a small jitter buffer. It can never report a hit outside the
+    // visible body-to-body collision envelope after compensation.
+    const predictedDrift = Math.hypot(vx, vy) * predictionSeconds;
+    const contactSafetyMargin = target.clientHidden === true ? 0 : Math.min(28, 8 + predictedDrift);
+    // Visible-player contact is deliberately stricter than the solo padding radius. The
+    // client is locally predicting its own movement between position packets; this margin
+    // compensates for the short sampling/network window so the sprite must actually be
+    // overlapping/very close before the server applies damage. Hidden tabs still use the
+    // full authoritative radius at their last known coordinate.
+    const contactRadius = target.clientHidden === true ? rawContactRadius : Math.max(1, rawContactRadius - contactSafetyMargin);
+    if (contactDistance > contactRadius) continue;
+
+    // Spend the attack cooldown even when blocked by invulnerability so a pack cannot
+    // repeatedly evaluate the same contact every frame.
+    const attackInterval = BOSS_KINDS.includes(enemy.kind) ? 1.15 : enemy.kind === 'stinger' ? 0.72 : 0.92;
+    enemy.attackCd = attackInterval;
+    if ((Number(target.invulnerableUntil) || 0) > now) continue;
+
+    let appliedDamage = 0, blocked = false;
+    const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
+    if (shieldCharges > 0) {
+      target.shieldCharges = shieldCharges - 1;
+      target.invulnerableUntil = now + (target.skinId === 'violet' ? 900 : 700);
+      blocked = true;
+    } else {
+      const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
+      const requestedDamage = Math.max(1, Math.round(baseDamage * SkinAbilities.incomingDamageMultiplier(target.skinId)));
+      const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
+      target.maxHp = Math.max(1, Number(target.maxHp) || 100);
+      target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
+      appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
+      target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
+      if (target.skinId === 'aberration' && !target.aberrationEchoUsed) {
+        target.aberrationEchoUsed = true;
+        const radius = 210 / WORLD_ZOOM;
+        for (const nearby of world.enemies) {
+          if (!nearby || nearby.id === enemy.id) continue;
+          const dx = Number(nearby.x) - Number(target.x), dy = Number(nearby.y) - Number(target.y), d = Math.hypot(dx, dy);
+          if (d > 0.001 && d <= radius) {
+            const push = Math.min(95 / WORLD_ZOOM, (radius - d) * 0.62 + 24 / WORLD_ZOOM);
+            nearby.x = clamp(nearby.x + dx / d * push, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+            nearby.y = clamp(nearby.y + dy / d * push, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+          }
+        }
+      }
+      if (target.hp <= 0) {
+        target.alive = false;
+        world.playerDefeatCount = (world.playerDefeatCount || 0) + 1;
+        defeatedPlayers.push(target);
+      }
+    }
+    world.playerDamageCount = (world.playerDamageCount || 0) + 1;
+    playerHits.push({
+      playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
+      enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
+      enemyRadius: contact.enemyRadiusWorld, playerX: Number(resolvedContactTarget.x), playerY: Number(resolvedContactTarget.y),
+      contactDistance, contactRadius,
+      positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
+      rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
+      damage: appliedDamage, blocked, hp: Math.max(0, Number(target.hp) || 0),
+      maxHp: Math.max(1, Number(target.maxHp) || 100),
+      shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
+      alive: target.alive !== false,
+      invulnerabilityMs: Math.max(0, (Number(target.invulnerableUntil) || 0) - now)
+    });
+  }
+
+  // Shared XP orbs are server-owned world entities. All co-op clients receive the same
+  // coordinates, lifetime and removal event; only the first player to touch an orb earns it.
+  world.orbs ||= [];
+  const xpCollected = [];
+  const expiredOrbIds = new Set();
+  const expiredOnlyOrbIds = [];
+  for (const orb of world.orbs) {
+    orb.phase = (Number(orb.phase) || 0) + dt * 3;
+    orb.life = (Number(orb.life) || 0) - dt;
+    if (orb.life <= 0) { expiredOrbIds.add(String(orb.id)); expiredOnlyOrbIds.push(String(orb.id)); continue; }
+
+    // Same magnetic pickup idea as solo: the orb is pulled toward the nearest player
+    // with magnet range. Its movement remains authoritative, so every client sees it alike.
+    let magnetTarget = null, magnetDistance = Infinity, magnetRange = 0;
+    for (const p of validPlayers) {
+      const strength = clamp(Number(p.magnetStrength) || 1, 1, 4.5);
+      const range = 140 * strength * SkinAbilities.magnetRangeMultiplier(p.skinId) * (p.skinId === 'devourer' && Number(p.devourerVacuumUntil) > now ? 4 : 1) / WORLD_ZOOM;
+      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
+      if (d < range && d < magnetDistance) {
+        magnetTarget = p; magnetDistance = d; magnetRange = range;
+      }
+    }
+    if (magnetTarget && magnetDistance > 0.001) {
+      const f = clamp((magnetRange - magnetDistance) / Math.max(1, magnetRange), 0, 1);
+      // Keep pickup motion authoritative, but fast enough to visibly answer to the magnet skill.
+      const pullSpeed = (36 + f * 150) * Math.sqrt(Math.max(1, Number(magnetTarget.magnetStrength) || 1)) / WORLD_ZOOM;
+      const pull = Math.min(magnetDistance, dt * pullSpeed);
+      orb.x += (Number(magnetTarget.x) - orb.x) / magnetDistance * pull;
+      orb.y += (Number(magnetTarget.y) - orb.y) / magnetDistance * pull;
+    }
+
+    // If multiple players touch it in one server tick, choose the closest; a stable
+    // ID tie-break makes simultaneous collection deterministic. The orb is removed once.
+    const orbRadiusWorld = Math.max(1, Number(orb.r) || 4) / WORLD_ZOOM;
+    let collector = null, collectorDistance = Infinity;
+    for (const p of validPlayers) {
+      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
+      const playerRadius = Math.max(1, Number(p.r) || (13 / WORLD_ZOOM));
+      if (d <= playerRadius + orbRadiusWorld + 4 / WORLD_ZOOM &&
+          (d < collectorDistance || (d === collectorDistance && String(p.id) < String(collector?.id || '\uffff')))) {
+        collector = p; collectorDistance = d;
+      }
+    }
+    if (collector) {
+      expiredOrbIds.add(String(orb.id));
+      world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
+      const orbValue = Math.max(1, Math.round(Number(orb.value) || 1));
+      const xpMultiplier = SkinAbilities.orbExperienceMultiplier(collector.skinId);
+      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
+    }
+  }
+  if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));
+
+  if (movedEnemyCount) world.lastMovementAt = now;
+  world.movingEnemyCount = movedEnemyCount;
+  world.snapshotTimer -= dt;
+  world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
+  world.playerSnapshotTimer -= dt;
+  world.orbSnapshotTimer = (Number(world.orbSnapshotTimer) || 0) - dt;
+  const sendSnapshot = world.snapshotTimer <= 0;
+  const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
+  const sendPlayers = world.playerSnapshotTimer <= 0;
+  const sendOrbSnapshot = sendSnapshot && world.orbSnapshotTimer <= 0;
+  if (sendSnapshot) world.snapshotTimer = 0.1;
+  // Full-world recovery snapshots are expensive; lifecycle events and 10 Hz motion keep clients current.
+  // Use a 30 s recovery interval instead of resending every enemy/orb every 5 s.
+  if (sendReliableSnapshot) world.reliableSnapshotTimer = 30;
+  if (sendPlayers) world.playerSnapshotTimer = 1;
+  if (sendOrbSnapshot) world.orbSnapshotTimer = 0.5;
+  return {
+    active: true, dt, movedEnemyCount,
+    spawnedEnemies,
+    spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
+  };
+}
+
+function resetWorldState(world, now = Date.now()) {
+  const fresh = createWorldState(now);
+  for (const key of Object.keys(world || {})) delete world[key];
+  Object.assign(world || {}, fresh);
+  return world;
+}
+
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry };

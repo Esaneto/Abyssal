@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "Abyssal — Ecos das Profundezas",
+  "short_name": "Abyssal",
+  "description": "Sobreviva às profundezas, evolua e descubra os segredos do abismo.",
+  "lang": "pt-BR",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#061522",
+  "theme_color": "#061522",
+  "icons": [
+    {
+      "src": "/abyssal-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"]
+}
