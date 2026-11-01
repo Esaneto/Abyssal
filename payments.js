@@ -156,17 +156,11 @@ function registerPaymentRoutes(options) {
    form.set('automatic_tax[enabled]','false');
    form.set('allow_promotion_codes','false');
    form.set('submit_type','auto');
-   form.set('saved_payment_method_options[payment_method_save]','enabled');
-   form.set('integration_identifier','hosted_mobile_app_0001');
-   form.set('origin_context','web');
    form.set('expires_at',String(Math.floor(Date.now()/1000)+45*60));
    form.set('success_url','https://abyssal-ej5j.onrender.com/?payment=success&session_id={CHECKOUT_SESSION_ID}');
    form.set('cancel_url','https://abyssal-ej5j.onrender.com/?payment=cancelled');
    form.set('client_reference_id',account.key);form.set('locale',english?'en':'pt-BR');
-   // Keep Stripe's dynamic payment-method eligibility, but explicitly allow the methods
-   // enabled for Abyssal: cards (including eligible Apple Pay wallets), Link, and Pix.
-   // Stripe will only show Pix when the account, customer, currency, and session are eligible.
-   for(const method of ['card','link','pix'])form.append('allowed_payment_method_types[]',method);
+   // payment_method_types let Stripe choose dynamically (card, pix, link per account eligibility)
    form.set('line_items[0][quantity]','1');
    form.set('line_items[0][price_data][currency]',currency);
    form.set('line_items[0][price_data][unit_amount]',String(order.amount));
@@ -176,7 +170,7 @@ function registerPaymentRoutes(options) {
    form.set('payment_intent_data[metadata][order_id]',orderId);form.set('payment_intent_data[metadata][user_key]',account.key);
    const response=await fetch('https://api.stripe.com/v1/checkout/sessions',{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':orderId},body:form});
    const session=await response.json();
-   if(!response.ok||!session.url){await pool.query("UPDATE abyssal_payment_orders SET status='failed',updated_at=NOW() WHERE order_id=$1",[orderId]);console.error('[payments] Stripe API error:',session.error&&session.error.type||response.status);return res.status(502).json({ok:false,message:'Não foi possível iniciar o pagamento.'});}
+   if(!response.ok||!session.url){await pool.query("UPDATE abyssal_payment_orders SET status='failed',updated_at=NOW() WHERE order_id=$1",[orderId]);console.error('[payments] Stripe API error status:',response.status,'type:',session.error&&session.error.type,'code:',session.error&&session.error.code,'param:',session.error&&session.error.param,'msg:',session.error&&session.error.message);return res.status(502).json({ok:false,message:'Não foi possível iniciar o pagamento.'});}
    await pool.query('UPDATE abyssal_payment_orders SET checkout_session_id=$2,updated_at=NOW() WHERE order_id=$1',[orderId,session.id]);
    res.json({ok:true,url:session.url,orderId:orderId});
   }catch(error){console.error('[payments] Checkout error:',error.message);res.status(500).json({ok:false,message:'Erro ao iniciar o checkout.'});}
