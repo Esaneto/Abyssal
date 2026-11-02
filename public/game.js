@@ -199,20 +199,19 @@ function clearAllNotifications() {
 function updateNotifBadge() {
   const btn = $('#notifBtn');
   if (!btn) return;
+
   const list = getStoredNotifications();
   const lastSeen = Number(localStorage.getItem('abyssalNotificationsLastSeen') || 0);
   const hasUnread = list.some(item => Number(item.timestamp) > lastSeen);
-  let dot = btn.querySelector('.notification-badge-dot');
-  if (hasUnread) {
-    if (!dot) {
-      dot = document.createElement('span');
-      dot.className = 'notification-badge-dot';
-      dot.setAttribute('aria-label', 'Novas notificações');
-      btn.appendChild(dot);
-    }
-  } else if (dot) {
-    dot.remove();
-  }
+
+  // O indicador é desenhado por CSS diretamente sobre o botão do sino.
+  // Remove elementos antigos para evitar bolinhas duplicadas.
+  btn.querySelectorAll('.notification-badge-dot').forEach(dot => dot.remove());
+  btn.classList.toggle('has-unread', hasUnread);
+  btn.setAttribute(
+    'aria-label',
+    hasUnread ? 'Abrir notificações — há itens não lidos' : 'Abrir notificações'
+  );
 }
 
 function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
@@ -542,21 +541,47 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   alert.hidden=false;
   alert.setAttribute('aria-live','assertive');
   alert.classList.remove('boss-alert-enter');
-  clearTimeout(bossAlertTimer);
-  // Fica totalmente visível por 2 s e desaparece progressivamente durante 3 s.
-  alert.style.transition='none';
-  alert.style.opacity='1';
-  void alert.offsetWidth;
-  bossAlertTimer=setTimeout(()=>{
-   alert.style.transition='opacity 3s linear';
-   alert.style.opacity='0';
-   bossAlertTimer=setTimeout(()=>{
-    alert.hidden=true;
-    alert.style.transition='';
-    alert.style.opacity='';
-   },3050);
-  },2000);
- }else{showAbyssalAlert(title,copy);}
+   clearTimeout(bossAlertTimer);
+
+   // Sobrescreve animações anteriores: 2 s totalmente opaco + 3 s de fade linear.
+   if(alert._abyssalBossFadeAnimation){
+    alert._abyssalBossFadeAnimation.cancel();
+    alert._abyssalBossFadeAnimation=null;
+   }
+   alert.style.transition='none';
+   alert.style.opacity='1';
+   void alert.offsetWidth;
+
+   if(typeof alert.animate==='function'){
+    const fade=alert.animate(
+     [
+      {opacity:1,offset:0},
+      {opacity:1,offset:0.4},
+      {opacity:0,offset:1}
+     ],
+     {duration:5000,easing:'linear',fill:'forwards'}
+    );
+    alert._abyssalBossFadeAnimation=fade;
+    fade.onfinish=()=>{
+     if(alert._abyssalBossFadeAnimation!==fade)return;
+     alert.hidden=true;
+     alert.style.opacity='';
+     alert._abyssalBossFadeAnimation=null;
+    };
+   }else{
+    // Alternativa compatível: mantém os mesmos 2 s + 3 s.
+    bossAlertTimer=setTimeout(()=>{
+     alert.style.transition='opacity 3000ms linear';
+     void alert.offsetWidth;
+     alert.style.opacity='0';
+     bossAlertTimer=setTimeout(()=>{
+      alert.hidden=true;
+      alert.style.transition='';
+      alert.style.opacity='';
+     },3050);
+    },2000);
+   }
+}else{showAbyssalAlert(title,copy);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
 
