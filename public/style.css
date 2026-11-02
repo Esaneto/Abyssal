@@ -2325,8 +2325,8 @@ body.mobile-game-active .hud-toggle-btn{
 #notifBtn.has-unread::after {
   content: "";
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 1px;
+  right: 2px;
   z-index: 2147483647;
   display: block;
   width: 13px;
