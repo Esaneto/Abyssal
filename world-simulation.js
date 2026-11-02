@@ -308,7 +308,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         enemy.kbVy = knockbackY * decay;
         enemy.vx = enemy.kbVx;
         enemy.vy = enemy.kbVy;
-        enemy.angle = Math.atan2(enemy.kbVy, enemy.kbVx);
+        // Preserva enemy.angle: o inimigo desliza para trás sem girar o sprite.
         movedEnemyCount++;
         continue;
       }
