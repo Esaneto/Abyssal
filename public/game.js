@@ -646,7 +646,8 @@ function triggerProgressionBossSpawn() {
     activeBossEntity = spawned;
   }
 
-  showAbyssalAlert('☠ ' + getBossDisplayName(targetKind) + ' SURGIU DAS PROFUNDEZAS!', 'ALERTA DE AMEAÇA ABISSAL');
+  // Use o alerta cinematográfico específico de cada boss; o alerta genérico sobrescrevia a mensagem temática logo após o spawn.
+  showBossAlert(targetKind, spawned?.id ?? `progression-${bossProgressionCycle}-${bossCycleIndex}`, Number(spawned?.threat) || 0);
   updateProgressionTrackUI();
 }
 
@@ -1396,19 +1397,6 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    const color=equippedSkin==='reefshark'?'#8bd8ec':equippedSkin==='abysscroc'?'#79bd83':'#c5a66e';
    burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});
 
-    if(equippedSkin==='reefshark'){ /* reefshark-dash */
-      for(let step=0; step<=range; step+=24){
-        sharkWakeTrails.push({
-          x: player.x + Math.cos(angle)*step + rand(-12,12),
-          y: player.y + Math.sin(angle)*step + rand(-12,12),
-          r: rand(18, 30),
-          life: 5.0,
-          maxLife: 5.0,
-          color: '#8bd8ec'
-        });
-      }
-    }
-
    if(equippedSkin!=='reefshark'){
     for(const target of targets){
       dealEnemyDamage(target,cfg.damage,equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
@@ -1421,7 +1409,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
     }
    }
-   if(onlineMode && window.AbyssalOnline?.sendSkinAbility){
+   // O Tubarão-branco mantém apenas o rastro gerado ao se movimentar; não transmite mais o jato frontal.
+   if(onlineMode && equippedSkin!=='reefshark' && window.AbyssalOnline?.sendSkinAbility){
      window.AbyssalOnline.sendSkinAbility({skin: equippedSkin, x: player.x/W, y: player.y/H, angle: player.angle});
    }
   }
@@ -2596,10 +2585,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const angle=Number(d.angle)||0;
   const skin=String(d.skin||'');
   if(skin==='reefshark'||skin==='whiteShark'){
-    const range=260/GAME_WORLD_ZOOM;
-    for(let step=0; step<=range; step+=24){
-      sharkWakeTrails.push({x:px+Math.cos(angle)*step+rand(-12,12),y:py+Math.sin(angle)*step+rand(-12,12),r:rand(18,30),life:5.0,maxLife:5.0,color:'#8bd8ec'});
-    }
+    // Sem efeito frontal: o rastro visual é criado pelo movimento de cada jogador.
   } else if(skin==='armoredgator'){
     effects.push({type:'ring',x:px,y:py,r:0,max:190/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#c5a66e'});
     burst(px,py,'#c5a66e',28,175);
