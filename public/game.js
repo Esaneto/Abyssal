@@ -668,15 +668,14 @@ function triggerProgressionBossSpawn() {
   progressionPausedForBoss = true;
   activeBossEntities = [];
 
-  // REGRA: sempre 1 boss por vez — próximo só aparece após este morrer
-  const spawned = !onlineMode ? spawnEnemy(false, targetKind) : null;
+  // No online, o servidor é a única fonte de confirmação do spawn.
+  if (onlineMode) { updateProgressionTrackUI(); return; }
+  const spawned = spawnEnemy(false, targetKind);
   if (spawned) {
     activeBossEntities.push(spawned);
     activeBossEntity = spawned;
-  }
-
-  // Use o alerta cinematográfico específico de cada boss; o alerta genérico sobrescrevia a mensagem temática logo após o spawn.
-  showBossAlert(targetKind, spawned?.id ?? `progression-${bossProgressionCycle}-${bossCycleIndex}`, Number(spawned?.threat) || 0);
+    showBossAlert(targetKind, spawned.id, Number(spawned.threat) || 0);
+  } else progressionPausedForBoss = false;
   updateProgressionTrackUI();
 }
 
@@ -2405,8 +2404,8 @@ window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Ar
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
-window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(d.kind)showBossAlert(d.kind,d.id,d.threat);});
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind);if(bosses){bossKillsThisRun++;updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
+window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(!d.kind)return;if(onlineMode){progressionDistance=100;progressionPausedForBoss=true;activeBossEntities=[{id:d.id,kind:d.kind}];activeBossEntity=activeBossEntities[0];updateProgressionTrackUI();}showBossAlert(d.kind,d.id,d.threat);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
  let bossCount=0;
