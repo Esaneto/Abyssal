@@ -220,7 +220,7 @@ function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
  return { playerId: player.id, hp: Math.max(0, Number(player.hp) || 0), maxHp: Math.max(1, Number(player.maxHp) || 100), shieldCharges: Math.max(0, Math.min(3, Math.floor(Number(player.shieldCharges) || 0))), alive: player.alive !== false, invulnerabilityMs: Math.max(0, (Number(player.invulnerableUntil) || 0) - Date.now()), ...extra };
 }
-const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','kraken','devourer']);
+const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer']);
 const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 400;
 const MAX_BOSSES_PER_ROOM = 4;
