@@ -486,12 +486,16 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
- // Giro do Nilo: impulso radial autoritativo, espelhando a força usada no modo solo.
+ // Giro do Nilo: replica exatamente o empurrão original do modo solo.
+ // O inimigo é deslocado 130 unidades escaladas e recebe velocidade radial 280.
  if(skillId==='armoredgator-spin' && player){
   const pushX=Number(enemy.x)-Number(player.x),pushY=Number(enemy.y)-Number(player.y);
   const pushLength=Math.hypot(pushX,pushY)||1;
-  enemy.kbVx=(pushX/pushLength)*620;
-  enemy.kbVy=(pushY/pushLength)*620;
+  const pushForce=130/WORLD_ZOOM;
+  enemy.x=clamp(Number(enemy.x)+(pushX/pushLength)*pushForce,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);
+  enemy.y=clamp(Number(enemy.y)+(pushY/pushLength)*pushForce,8/WORLD_ZOOM,WORLD_HEIGHT-8/WORLD_ZOOM);
+  enemy.vx=(pushX/pushLength)*280;
+  enemy.vy=(pushY/pushLength)*280;
  }
  if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
