@@ -503,7 +503,7 @@ function showBossAlert(kind,id=null,threat=0){
  if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>32)alertedBossIds=new Set([...alertedBossIds].slice(-16));
  const names={boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']};
  const [title,copy]=names[kind]||['PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
- const alert=$('bossAlert');if(alert){$('bossAlertTitle').textContent=title;$('bossAlertText').textContent=copy;$('bossAlertKicker').textContent=threat?`☠ NÍVEL DE AMEAÇA ${threat} · ALERTA MÁXIMO`:'☠ CONTATO ABISSAL · PREPARE-SE';alert.hidden=false;alert.classList.remove('boss-alert-enter');void alert.offsetWidth;alert.classList.add('boss-alert-enter');clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{alert.hidden=true;alert.classList.remove('boss-alert-enter')},4600);}
+ const alert=$('bossAlert');if(alert){$('bossAlertTitle').textContent=title;$('bossAlertText').textContent=copy;$('bossAlertKicker').textContent=threat?`☠ NÍVEL DE AMEAÇA ${threat} · ALERTA MÁXIMO`:'☠ CONTATO ABISSAL · PREPARE-SE';alert.hidden=false;alert.classList.remove('boss-alert-enter');void alert.offsetWidth;alert.classList.add('boss-alert-enter');clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{alert.hidden=true;alert.classList.remove('boss-alert-enter')},5000);}
   showAbyssalAlert(title, copy.slice(0,80));
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
@@ -1362,16 +1362,8 @@ function update(dt){
 player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&equippedSkin==='devourer'&&player.devourerVacuumUntil>performance.now()){for(const orb of orbs){const d=Math.hypot(player.x-orb.x,player.y-orb.y);if(d>1&&d<760/GAME_WORLD_ZOOM){const pull=Math.min(d,dt*(110+Math.max(0,760/GAME_WORLD_ZOOM-d)*.22));orb.x+=(player.x-orb.x)/d*pull;orb.y+=(player.y-orb.y)/d*pull;}}}
  if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1);spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp));}else spawnTimer=.35;}
- if(!onlineMode&&elapsed>=nextBossAt){
-  const activeBosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length;
-  if(activeBosses<MAX_BOSSES&&enemies.length<MAX_ENEMIES){
-    const bossKinds = window.AbyssalEnemyAI?.chooseBossesForSession?.(1) || ['boss'];
-    for(const k of bossKinds){
-      if(enemies.length<MAX_ENEMIES&&enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length<MAX_BOSSES) spawnEnemy(false, k);
-    }
-  }
-  nextBossAt=elapsed+60;
- }
+ // Spawn de boss solo gerenciado exclusivamente pelo sistema de progressão (updateBossProgressionStep).
+ // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
   const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:14,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];

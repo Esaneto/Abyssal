@@ -171,8 +171,8 @@ canvas{position:relative;inset:auto;width:100%;height:100%;display:block}
 .boss-alert-kicker{display:block;margin-bottom:8px;color:#ff9eac;font:800 9px 'DM Mono',monospace;letter-spacing:.24em}
 .boss-alert strong{display:block;color:#fff0f2;font-size:clamp(19px,3vw,34px);line-height:1.08;letter-spacing:.09em;text-shadow:0 0 20px rgba(255,45,86,.8)}
 .boss-alert p{margin:10px 0 0;color:#e0b8c4;font:10px/1.65 'DM Mono',monospace;letter-spacing:.045em}
-.boss-alert-enter{animation:bossWarning 4.6s ease both}
-@keyframes bossWarning{0%{opacity:0;filter:blur(10px);transform:translate(-50%,-22px) scale(1.06)}10%,40%{opacity:1;filter:blur(0);transform:translate(-50%,0) scale(1)}100%{opacity:0;filter:blur(5px);transform:translate(-50%,-10px) scale(.98)}}
+.boss-alert-enter{animation:bossWarning 5s linear both}
+@keyframes bossWarning{0%,55%{opacity:1;filter:none;transform:translate(-50%,0) scale(1)}100%{opacity:0;filter:none;transform:translate(-50%,0) scale(1)}}
 .rooms-empty{line-height:1.65}
 .room-row{min-height:58px}
 .room-row b{font-size:12px}
@@ -2097,38 +2097,23 @@ body.mobile-game-active .hud-toggle-btn{
   transition: opacity 0.5s ease-out;
 }
 @keyframes abyssalDangerSequence {
-  0% {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.92) translateY(-20px);
-    filter: blur(8px);
-  }
-  6% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1.03) translateY(2px);
-    filter: blur(0);
-  }
-  10%, 28.5% {
-    /* Primeiros 2 segundos (28.5% de 7s) 100% visível, nítido e aterrador */
+  0%, 40% {
+    /* Aparece imediatamente sólido — sem fade-in, sem blur */
     opacity: 1;
     transform: translateX(-50%) scale(1) translateY(0);
-    filter: blur(0);
+    filter: none;
   }
-  50% {
-    /* 3.5s: Começa a esvanecer suavemente */
-    opacity: 0.75;
-    transform: translateX(-50%) scale(0.99) translateY(2px);
-  }
-  75% {
-    /* 5.25s: Bem tênue */
-    opacity: 0.35;
-    transform: translateX(-50%) scale(0.98) translateY(6px);
-    filter: blur(1px);
+  70% {
+    /* Começa a esvanecer suavemente após 40% (≈2.8s de 7s) */
+    opacity: 0.45;
+    transform: translateX(-50%) scale(0.99) translateY(4px);
+    filter: none;
   }
   100% {
-    /* 7s (2s + 5s fade-out): some completamente */
+    /* 7s: some completamente */
     opacity: 0;
-    transform: translateX(-50%) scale(0.96) translateY(12px);
-    filter: blur(4px);
+    transform: translateX(-50%) scale(0.97) translateY(10px);
+    filter: none;
   }
 }
 .adanger-inner {

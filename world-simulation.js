@@ -19,6 +19,7 @@ function createWorldState(now = Date.now()) {
 }
 
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
+function countBossCount(world) { let n = 0; for (const e of world.enemies) if (BOSS_KINDS.includes(e.kind)) n++; return n; }
 function countCommons(world) { let count = 0; for (const enemy of world.enemies) if (!BOSS_KINDS.includes(enemy.kind)) count++; return count; }
 
 function contactGeometry(enemy, target) {
@@ -232,18 +233,24 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   const spawnedBosses = [];
   if (world.elapsed >= world.nextBossAt) {
-    const activeBossCount = countBosses(world).length;
-    const playerCountForDifficulty = Math.max(validPlayers.length, Math.floor(Number(world.roomPlayerCount) || 0));
-    const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(playerCountForDifficulty / 2));
-    let currentBossCount = activeBossCount;
-    while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
-      const boss = spawnEnemy(world, { type: 'boss', random });
-      if (!boss) break;
-      spawnedBosses.push(boss);
-      spawnedEnemies.push(boss);
-      currentBossCount++;
+    const activeBossCount = countBossCount(world);
+    // Só spawn quando NENHUM boss estiver vivo — regra: 1 onda de cada vez
+    if (activeBossCount === 0) {
+      const playerCountForDifficulty = Math.max(validPlayers.length, Math.floor(Number(world.roomPlayerCount) || 0));
+      const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(playerCountForDifficulty / 2));
+      let currentBossCount = 0;
+      while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
+        const boss = spawnEnemy(world, { type: 'boss', random });
+        if (!boss) break;
+        spawnedBosses.push(boss);
+        spawnedEnemies.push(boss);
+        currentBossCount++;
+      }
+      world.nextBossAt = currentBossCount > 0 ? world.elapsed + 60 : world.elapsed + 3;
+    } else {
+      // Ainda há boss(es) vivo(s) — verificar novamente em breve
+      world.nextBossAt = world.elapsed + 5;
     }
-    world.nextBossAt = currentBossCount > activeBossCount ? world.elapsed + 60 : world.elapsed + 3;
   }
 
   let movedEnemyCount = 0;
