@@ -504,8 +504,8 @@ function showAbyssalAlert(text, subtitle = '') {
 }
 function showToast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0){
- const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:String(id);
- if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>32)alertedBossIds=new Set([...alertedBossIds].slice(-16));
+ const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
+ if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
   boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
   leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
@@ -516,7 +516,20 @@ function showBossAlert(kind,id=null,threat=0){
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
  };
  const [title,copy]=names[kind]||['☠ PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
- showAbyssalAlert(title, copy.slice(0,85));
+ // Use o alerta dedicado com animação própria e evite camadas de tela/modal.
+ const alert=$('bossAlert');
+ if(alert){
+  const kicker=$('bossAlertKicker'),titleNode=$('bossAlertTitle'),textNode=$('bossAlertText');
+  if(kicker)kicker.textContent='SINAL DE PRESSÃO · CONTATO DESCONHECIDO';
+  if(titleNode)titleNode.textContent=title;
+  if(textNode)textNode.textContent=copy;
+  alert.hidden=false;
+  alert.classList.remove('boss-alert-enter');
+  void alert.offsetWidth;
+  alert.classList.add('boss-alert-enter');
+  clearTimeout(bossAlertTimer);
+  bossAlertTimer=setTimeout(()=>{alert.classList.remove('boss-alert-enter');alert.hidden=true;},5200);
+ }else{showAbyssalAlert(title,copy);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
 
@@ -758,7 +771,7 @@ function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
  startAmbientMusic();
- elapsed=0;lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
+ elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:0,pierce:0,ricochet:0,spread:0,photon:0,nova:0,gravitationalRupture:0,arcChain:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:0,pierce:0,ricochet:0,nova:0,gravitationalRupture:0,arcChain:0};
@@ -1387,7 +1400,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:5,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
+  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:3,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
   if(player.predatorAbilityTimer<=0){
    player.predatorAbilityTimer=cfg.cooldown;
@@ -1395,7 +1408,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(equippedSkin==='abysscroc')player.dashTime=.32;
    const targets=enemies.filter(e=>{const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>range)return false;if(cfg.arc>=Math.PI)return true;const a=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(a-angle),Math.cos(a-angle));return Math.abs(delta)<=cfg.arc&&Math.abs(Math.sin(delta)*d)<=cfg.width/GAME_WORLD_ZOOM;}).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,8);
    const color=equippedSkin==='reefshark'?'#8bd8ec':equippedSkin==='abysscroc'?'#79bd83':'#c5a66e';
-   burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});
+   if(equippedSkin!=='reefshark'){burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});}
 
    if(equippedSkin!=='reefshark'){
     for(const target of targets){
