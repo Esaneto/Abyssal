@@ -199,11 +199,14 @@ function updateNotifBadge() {
   const btn = $('#notifBtn');
   if (!btn) return;
   const list = getStoredNotifications();
+  const lastSeen = Number(localStorage.getItem('abyssalNotificationsLastSeen') || 0);
+  const hasUnread = list.some(item => Number(item.timestamp) > lastSeen);
   let dot = btn.querySelector('.notification-badge-dot');
-  if (list.length > 0) {
+  if (hasUnread) {
     if (!dot) {
       dot = document.createElement('span');
       dot.className = 'notification-badge-dot';
+      dot.setAttribute('aria-label', 'Novas notificações');
       btn.appendChild(dot);
     }
   } else if (dot) {
@@ -329,6 +332,9 @@ function openNotifPanel() {
   renderNotifPanel();
   panel.hidden = false;
   document.body.style.overflow = 'hidden';
+  // Marcar como lidas apenas ao abrir a caixa, removendo o ponto vermelho do sino.
+  try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
+  updateNotifBadge();
 }
 
 function closeNotifPanel() {
