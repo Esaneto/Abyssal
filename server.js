@@ -457,7 +457,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const predatorSkills={
   'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:34,arc:.48,width:58/WORLD_ZOOM},
   'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:42,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:14000,range:190/WORLD_ZOOM,damage:30,arc:Math.PI,width:0}
+  'armoredgator-spin':{skin:'armoredgator',cooldown:3000,range:190/WORLD_ZOOM,damage:30,arc:Math.PI,width:0}
  };
  if(predatorSkills[skillId]){
   const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
@@ -486,6 +486,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ // Giro do Nilo: impulso radial autoritativo, espelhando a força usada no modo solo.
+ if(skillId==='armoredgator-spin' && player){
+  const pushX=Number(enemy.x)-Number(player.x),pushY=Number(enemy.y)-Number(player.y);
+  const pushLength=Math.hypot(pushX,pushY)||1;
+  enemy.kbVx=(pushX/pushLength)*620;
+  enemy.kbVy=(pushY/pushLength)*620;
+ }
  if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
