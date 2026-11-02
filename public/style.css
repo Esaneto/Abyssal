@@ -2322,13 +2322,16 @@ body.mobile-game-active .hud-toggle-btn{
 }
 .notification-badge-dot {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 9px;
-  height: 9px;
+  top: 1px;
+  right: 1px;
+  z-index: 20;
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #fff;
   border-radius: 50%;
-  background: #ff315f;
-  box-shadow: 0 0 6px #ff315f;
+  background: #ff1744;
+  box-shadow: 0 0 0 2px rgba(255, 23, 68, .22), 0 0 9px #ff1744;
   pointer-events: none;
   animation: badgePop 0.4s cubic-bezier(0.18,0.89,0.32,1.28);
 }
