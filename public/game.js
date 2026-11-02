@@ -542,11 +542,20 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   alert.hidden=false;
   alert.setAttribute('aria-live','assertive');
   alert.classList.remove('boss-alert-enter');
-  void alert.offsetWidth;
-  alert.classList.add('boss-alert-enter');
   clearTimeout(bossAlertTimer);
-  // A animação dura 5 s; o elemento permanece até 5,2 s para concluir o fade sem corte.
-  bossAlertTimer=setTimeout(()=>{alert.classList.remove('boss-alert-enter');alert.hidden=true;},5200);
+  // Mantém a mensagem totalmente visível por 3 s e depois faz um fade suave de 1,5 s.
+  alert.style.transition='none';
+  alert.style.opacity='1';
+  void alert.offsetWidth;
+  bossAlertTimer=setTimeout(()=>{
+   alert.style.transition='opacity 1.5s ease';
+   alert.style.opacity='0';
+   bossAlertTimer=setTimeout(()=>{
+    alert.hidden=true;
+    alert.style.transition='';
+    alert.style.opacity='';
+   },1550);
+  },3000);
  }else{showAbyssalAlert(title,copy);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
@@ -676,7 +685,6 @@ function triggerProgressionBossSpawn() {
     pendingProgressionBossWarningKind=targetKind;
     pendingProgressionBossWarningAt=performance.now();
     showBossAlert(targetKind, `progression-${bossProgressionCycle}-${bossCycleIndex}`, 0);
-    addNotification(`A barra de progressão chegou a 100%. ${BOSS_LABELS[targetKind]||targetKind} está sendo invocado.`, 'BOSS INVOCADO', 'boss');
     updateProgressionTrackUI();
     return;
   }
@@ -685,7 +693,6 @@ function triggerProgressionBossSpawn() {
     activeBossEntities.push(spawned);
     activeBossEntity = spawned;
     showBossAlert(targetKind, spawned.id, Number(spawned.threat) || 0);
-    addNotification(`${BOSS_LABELS[targetKind]||targetKind} apareceu. Prepare-se para o combate.`, 'BOSS INVOCADO', 'boss');
   } else progressionPausedForBoss = false;
   updateProgressionTrackUI();
 }
@@ -2421,7 +2428,6 @@ window.addEventListener('abyssal-boss-warning',ev=>{
  const warningAlreadyShown=pendingProgressionBossWarningKind===d.kind&&(performance.now()-pendingProgressionBossWarningAt)<12000;
  if(warningAlreadyShown){pendingProgressionBossWarningKind=null;pendingProgressionBossWarningAt=0;return;}
  showBossAlert(d.kind,d.id,d.threat,true);
- addNotification(`${BOSS_LABELS[d.kind]||d.kind} apareceu. Prepare-se para o combate.`, 'BOSS INVOCADO', 'boss');
 });
 window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
