@@ -126,7 +126,7 @@ function getArenaVortexGlow(vortex){
 const isMobileDevice=()=>mobileViewport;
 function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let hudCollapsed=false;
-function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'›':'‹';button.setAttribute('aria-label',hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking');button.title=hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking';}}
+function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking');button.title=hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking';}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
 window.addEventListener('abyssal-player-suction-pull',event=>{if(!onlineMode||!player)return;const d=event.detail||{},dx=Number(d.dx)||0,dy=Number(d.dy)||0;if(!dx&&!dy)return;player.x=clamp(player.x+dx,player.r,W-player.r);player.y=clamp(player.y+dy,player.r,H-player.r);updateCamera();});
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
@@ -915,8 +915,12 @@ function spawnEnemy(initial=false,type='common'){
  // Shared catalog + spawn-point logic: solo and online use identical anatomy, stats and corner vortices.
  const ai=window.AbyssalEnemyAI;
  const activeKinds=enemies.map(e=>e.kind);
- const kind=type==='boss'?(ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k))):
+ let kind=type==='boss'?(ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k))):
    (ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})());
+ if(kind==='whiteShark'){
+  const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;
+  if(whiteSharkCount>=10)kind='drifter';
+ }
  if(!kind)return null;
  const data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:2820,speed:52,damage:25,color:'#ff315f',value:55},
@@ -2371,10 +2375,6 @@ function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
  const english=gameLanguage==='en';
- 
- const termsChecked=$('legalTermsConsent')?.checked||false,consentTerms=$('legalTermsConsent')?.parentElement,legalNote=document.querySelector('.payment-settings>small');
- if(consentTerms){consentTerms.innerHTML=`<input id="legalTermsConsent" type="checkbox" ${termsChecked?'checked':''}> ${english?'I have read and agree to the':'Li e concordo com os'} <a href="/terms.html" target="_blank" rel="noopener">${english?'Terms of Use':'Termos de Uso'}</a> ${english?'and the':'e a'} <a href="/privacy.html" target="_blank" rel="noopener">${english?'Privacy Policy':'Política de Privacidade'}</a>.`;}
- if(legalNote)legalNote.textContent=english?'Confirm the purchase responsibility statement and accept the legal documents before checkout.':'Confirme a declaração de responsabilidade e aceite os documentos para continuar. Esta declaração não substitui verificações legalmente exigidas.';
  const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'ABYSSAL<br><em>RELICS</em>':'VESTÍGIOS<br><em>DO ABISMO</em>';
  const englishNames={violet:'Violet Wraith',leviathan:'Blind Leviathan',kraken:'Abyss Kraken',aberration:'Aberration Mask',angler:'Deadly Lantern',maw:'Rift Maw',devourer:'Void Devourer',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Black Caiman',armoredgator:'Nile Crocodile'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'Broad snout, short legs, powerful tail and armored back of a black caiman.',armoredgator:'Pointed snout, rugged scales and dorsal armor inspired by the Nile crocodile.'};

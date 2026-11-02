@@ -602,8 +602,53 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  $('cardumesBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=false;showCardumeDirectory();requestCardumes();if(serverAccount?.cardumeId)socket?.emit('get-cardume-details')});$('cardumesCloseBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=true});$('refreshCardumesBtn')?.addEventListener('click',requestCardumes);$('refreshCardumeDetailBtn')?.addEventListener('click',()=>socket?.emit('get-cardume-details'));$('backToCardumeDirectoryBtn')?.addEventListener('click',()=>{showCardumeDirectory();requestCardumes()});$('createCardumeBtn')?.addEventListener('click',()=>{if(!authenticated){const msg=$('cardumeMessage');if(msg)msg.textContent='Entre na sua conta para criar um Cardume.';openLogin();return;}const name=$('cardumeNameInput').value.trim(),description=$('cardumeDescriptionInput').value.trim();socket?.emit('create-cardume',{name,description});});$('leaveCardumeBtn')?.addEventListener('click',()=>socket?.emit('leave-cardume'));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true;viewedPublicProfile=null;$('accountDeletePanel').hidden=false;$('publicProfileActions').hidden=true});$('likeProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile&&authenticated)socket?.emit('toggle-profile-like',{nickname:viewedPublicProfile});else openLogin()});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
- $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}});
- $('globalChatInput')?.addEventListener('focus',()=>{if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}});
+ function isChatAgeVerified() {
+  return localStorage.getItem('abyssalChatAgeVerified') === 'true';
+ }
+ function openChatAgeGateModal() {
+  const modal = $('chatAgeGateModal');
+  if (!modal) return;
+  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2'), btn = $('chatAgeConfirmBtn');
+  if (c1) c1.checked = false;
+  if (c2) c2.checked = false;
+  if (btn) btn.disabled = true;
+  modal.hidden = false;
+ }
+ function closeChatAgeGateModal() {
+  const modal = $('chatAgeGateModal');
+  if (modal) modal.hidden = true;
+ }
+ function updateChatAgeGateBtn() {
+  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2'), btn = $('chatAgeConfirmBtn');
+  if (btn) btn.disabled = !(c1?.checked && c2?.checked);
+ }
+ $('chatAgeCheck1')?.addEventListener('change', updateChatAgeGateBtn);
+ $('chatAgeCheck2')?.addEventListener('change', updateChatAgeGateBtn);
+ $('chatAgeGateCloseBtn')?.addEventListener('click', closeChatAgeGateModal);
+ $('chatAgeGateCancelBtn')?.addEventListener('click', closeChatAgeGateModal);
+ $('chatAgeConfirmBtn')?.addEventListener('click', () => {
+  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2');
+  if (c1?.checked && c2?.checked) {
+   localStorage.setItem('abyssalChatAgeVerified', 'true');
+   closeChatAgeGateModal();
+   $('globalChatInput')?.focus();
+  }
+ });
+
+ $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();
+  if (!isChatAgeVerified()) {
+   openChatAgeGateModal();
+   return;
+  }
+  const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}
+ });
+ $('globalChatInput')?.addEventListener('focus',()=>{
+  if (!isChatAgeVerified()) {
+   openChatAgeGateModal();
+   return;
+  }
+  if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}
+ });
  const chatPanel=$('globalChatPanel');
  if(chatPanel)chatPanel.classList.remove('chat-expanded');
  if(!socket)connect();

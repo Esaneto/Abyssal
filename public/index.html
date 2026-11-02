@@ -63,7 +63,7 @@
       <div class="joystick-base"><span id="joystickKnob" class="joystick-knob"></span></div><small>MOVER</small>
     </div>
 
-    <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">‹</button>
+    <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
 
     <section id="menuScreen" class="screen">
       <div class="menu-content">
@@ -104,7 +104,7 @@
     
         <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
       </div>
-      <section id="globalChatPanel" class="global-chat-panel abyssal-chat-v2" aria-label="Chat global do Abyssal" hidden>
+      <section id="globalChatPanel" class="global-chat-panel abyssal-chat-v2" aria-label="Chat global do Abyssal">
         <header class="global-chat-heading">
           <div class="chat-title-wrap"><span class="chat-live-indicator"></span><div><strong>CHAT GLOBAL</strong><small>COMUNICAÇÃO ENTRE MERGULHADORES</small></div></div>
           <span id="globalChatStatus" class="global-chat-status">CONECTANDO…</span>
@@ -328,6 +328,29 @@
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button id="skinPurchaseConfirmBtn" class="primary-btn" type="button" disabled>CONFIRMAR COMPRA ↗</button>
           <button id="skinPurchaseCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="chatAgeGateModal" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card" role="dialog" aria-modal="true" aria-labelledby="chatAgeGateTitle">
+        <button id="chatAgeGateCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar verificação">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> CHAT GLOBAL</div>
+        <h2 id="chatAgeGateTitle">ACESSO AO<br><em>CHAT</em></h2>
+        <p>O chat global permite comunicação com outros mergulhadores em tempo real.</p>
+        <div class="confirm-checks" style="display:flex;flex-direction:column;gap:12px;margin:16px 0;text-align:left;font-size:13px;line-height:1.45;color:var(--text-dim, #c3d9e8);">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="chatAgeCheck1" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
+            <span>Li e concordo com as diretrizes de convivência da <a href="/community.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Comunidade</a> e os <a href="/terms.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Termos</a>.</span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="chatAgeCheck2" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
+            <span>Confirmo que tenho 18 anos e/ou estou autorizado pelo meu responsavel a realizar está compra.</span>
+          </label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button id="chatAgeConfirmBtn" class="primary-btn" type="button" disabled>ACESSAR CHAT ↗</button>
+          <button id="chatAgeGateCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
         </div>
       </div>
     </section>

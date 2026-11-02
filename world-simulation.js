@@ -107,7 +107,13 @@ function spawnEnemy(world, options = {}) {
   } else if (type === 'boss') {
     kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
-  } else kind = EnemyAI.chooseCommonKind(random);
+  } else {
+    kind = EnemyAI.chooseCommonKind(random);
+    if (kind === 'whiteShark') {
+      const whiteSharkCount = world.enemies.filter(e => e.kind === 'whiteShark').length;
+      if (whiteSharkCount >= 10) kind = 'drifter';
+    }
+  }
 
   const stats = EnemyAI.statsForKind(kind);
   if (type === 'boss') {
