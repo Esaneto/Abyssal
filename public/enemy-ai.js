@@ -168,8 +168,11 @@
     }
 
     // Paralisia de impacto (ex: Enguia Elétrica - 0.1s de interrupção motora)
-    const currentTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    if (enemy.paralyzedUntil && currentTime < enemy.paralyzedUntil) {
+    // O servidor usa timestamps Unix (Date.now), enquanto o cliente pode usar performance.now.
+    // Use o mesmo relógio da marca de paralisia para evitar que ela se torne permanente.
+    const paralysisUntil = Number(enemy.paralyzedUntil) || 0;
+    const currentTime = paralysisUntil > 100000000000 ? Date.now() : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (paralysisUntil && currentTime < paralysisUntil) {
       result.moved = false; result.target = target; result.distance = distance; result.dx = 0; result.dy = 0;
       return result;
     }
