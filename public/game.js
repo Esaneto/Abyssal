@@ -21,6 +21,7 @@ let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];
 let autoFollowCursor=false;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let bossProgressionCycle=0,bossCycleStreak=0,bossCycleBosses=[],bossCycleIndex=0,progressionDistance=0,progressionPausedForBoss=false,activeBossEntity=null,bossVictoryPending=false;
+let pendingProgressionBossWarningKind=null,pendingProgressionBossWarningAt=0;
 let runResultPending=false;
 let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
@@ -669,13 +670,22 @@ function triggerProgressionBossSpawn() {
   progressionPausedForBoss = true;
   activeBossEntities = [];
 
-  // No online, o servidor é a única fonte de confirmação do spawn.
-  if (onlineMode) { updateProgressionTrackUI(); return; }
+  // O aviso começa exatamente quando a barra chega a 100%, antes da confirmação de rede.
+  // No online, o servidor continua sendo a autoridade sobre o spawn e a vida do boss.
+  if (onlineMode) {
+    pendingProgressionBossWarningKind=targetKind;
+    pendingProgressionBossWarningAt=performance.now();
+    showBossAlert(targetKind, `progression-${bossProgressionCycle}-${bossCycleIndex}`, 0);
+    addNotification(`A barra de progressão chegou a 100%. ${BOSS_LABELS[targetKind]||targetKind} está sendo invocado.`, 'BOSS INVOCADO', 'boss');
+    updateProgressionTrackUI();
+    return;
+  }
   const spawned = spawnEnemy(false, targetKind);
   if (spawned) {
     activeBossEntities.push(spawned);
     activeBossEntity = spawned;
     showBossAlert(targetKind, spawned.id, Number(spawned.threat) || 0);
+    addNotification(`${BOSS_LABELS[targetKind]||targetKind} apareceu. Prepare-se para o combate.`, 'BOSS INVOCADO', 'boss');
   } else progressionPausedForBoss = false;
   updateProgressionTrackUI();
 }
@@ -2405,7 +2415,14 @@ window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Ar
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
-window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(!d.kind)return;if(onlineMode){progressionDistance=100;progressionPausedForBoss=true;activeBossEntities=[{id:d.id,kind:d.kind}];activeBossEntity=activeBossEntities[0];updateProgressionTrackUI();}showBossAlert(d.kind,d.id,d.threat,true);});
+window.addEventListener('abyssal-boss-warning',ev=>{
+ const d=ev.detail||{};if(!d.kind)return;
+ if(onlineMode){progressionDistance=100;progressionPausedForBoss=true;activeBossEntities=[{id:d.id,kind:d.kind}];activeBossEntity=activeBossEntities[0];updateProgressionTrackUI();}
+ const warningAlreadyShown=pendingProgressionBossWarningKind===d.kind&&(performance.now()-pendingProgressionBossWarningAt)<12000;
+ if(warningAlreadyShown){pendingProgressionBossWarningKind=null;pendingProgressionBossWarningAt=0;return;}
+ showBossAlert(d.kind,d.id,d.threat,true);
+ addNotification(`${BOSS_LABELS[d.kind]||d.kind} apareceu. Prepare-se para o combate.`, 'BOSS INVOCADO', 'boss');
+});
 window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
