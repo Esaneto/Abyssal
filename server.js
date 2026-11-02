@@ -180,7 +180,7 @@ app.use((req, res, next) => {
 });
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
 if (typeof app.post === 'function') {
- registerPaymentRoutes({ app, getUsers: () => users, getPool: () => pgPool, saveUsers });
+ registerPaymentRoutes({ app, getUsers: () => users, getPool: () => pgPool, saveUsers, dataDir: DATA_DIR });
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
