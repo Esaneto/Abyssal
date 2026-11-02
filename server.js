@@ -511,6 +511,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   if(boss){
    enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*Math.pow(3,Math.max(0,Number(w.bossesDefeated)||0)));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
+   // A barra só reinicia após a derrota do chefe atual.
+   w.nextBossAt=(Number(w.elapsed)||0)+(100/3.8);
   }
   const orb=WorldSimulation.spawnXpOrb(w,enemy);
   if(orb){
