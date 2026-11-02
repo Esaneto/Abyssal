@@ -512,9 +512,10 @@ function showAbyssalAlert(text, subtitle = '') {
   }, 6200);
 }
 function showToast(t){const bossPriorityAlert=$('bossAlert');if(bossPriorityAlert&&!bossPriorityAlert.hidden)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
-function showBossAlert(kind,id=null,threat=0){
+function showBossAlert(kind,id=null,threat=0,force=false){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
- if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
+ // O evento confirmado pelo servidor tem prioridade: não pode ser descartado por uma previsão local.
+ if(!force&&alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
   boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
   leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
@@ -2404,7 +2405,7 @@ window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Ar
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
-window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(!d.kind)return;if(onlineMode){progressionDistance=100;progressionPausedForBoss=true;activeBossEntities=[{id:d.id,kind:d.kind}];activeBossEntity=activeBossEntities[0];updateProgressionTrackUI();}showBossAlert(d.kind,d.id,d.threat);});
+window.addEventListener('abyssal-boss-warning',ev=>{const d=ev.detail||{};if(!d.kind)return;if(onlineMode){progressionDistance=100;progressionPausedForBoss=true;activeBossEntities=[{id:d.id,kind:d.kind}];activeBossEntity=activeBossEntities[0];updateProgressionTrackUI();}showBossAlert(d.kind,d.id,d.threat,true);});
 window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
