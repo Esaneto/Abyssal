@@ -86,6 +86,13 @@ const skinData=[
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
+try{
+  const savedRedeemed=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');
+  if(savedRedeemed.includes('vi-o-nascimento-abyssal')&&!ownedSkins.includes('electriceel')){
+    ownedSkins.push('electriceel');
+    localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));
+  }
+}catch(_){}
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
@@ -470,7 +477,7 @@ function playDevourerSuction(){
  }catch(_){/* Som sintético opcional; a habilidade continua funcionando sem áudio. */}
 }
 
-// === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade em 5s) ===
+// === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade sólido) ===
 let abyssalAlertTimer = null;
 function getBossDisplayName(kind) {
   const n = {
@@ -487,24 +494,29 @@ function showAbyssalAlert(text, subtitle = '') {
   const subEl = el.querySelector('.adanger-sub');
   if (titleEl) titleEl.textContent = text;
   if (subEl) subEl.textContent = subtitle;
-  // Reiniciar animação: remover classes, forçar reflow, re-adicionar
   el.classList.remove('adanger-visible', 'adanger-fadeout');
   void el.offsetWidth;
   el.classList.add('adanger-visible');
   clearTimeout(abyssalAlertTimer);
-  // Após 7s total (2s visível + 5s fade) limpar
   abyssalAlertTimer = setTimeout(() => {
-    el.classList.remove('adanger-visible', 'adanger-fadeout');
-  }, 7200);
+    el.classList.remove('adanger-visible');
+  }, 6200);
 }
 function showToast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:String(id);
  if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>32)alertedBossIds=new Set([...alertedBossIds].slice(-16));
- const names={boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']};
- const [title,copy]=names[kind]||['PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
- const alert=$('bossAlert');if(alert){$('bossAlertTitle').textContent=title;$('bossAlertText').textContent=copy;$('bossAlertKicker').textContent=threat?`☠ NÍVEL DE AMEAÇA ${threat} · ALERTA MÁXIMO`:'☠ CONTATO ABISSAL · PREPARE-SE';alert.hidden=false;alert.classList.remove('boss-alert-enter');void alert.offsetWidth;alert.classList.add('boss-alert-enter');clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{alert.hidden=true;alert.classList.remove('boss-alert-enter')},5000);}
-  showAbyssalAlert(title, copy.slice(0,80));
+ const names={
+  boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
+  leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
+  maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],
+  angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],
+  kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],
+  devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],
+  whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
+ };
+ const [title,copy]=names[kind]||['☠ PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
+ showAbyssalAlert(title, copy.slice(0,85));
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
 
@@ -1337,17 +1349,17 @@ function update(dt){
  }
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){spawnTimer-=dt;updateBossProgressionStep(dt);}else{updateBossProgressionStep(dt);}
 
-  // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano suave)
+  // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   for (let i = sharkWakeTrails.length - 1; i >= 0; i--) {
     const bubble = sharkWakeTrails[i];
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = 0.4;
+      bubble.damageTimer = 0.55;
       for (const e of enemies) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)) {
-          dealEnemyDamage(e, 2, 'pelagic-wake', { visual: false, silentSound: true });
-          burst(e.x, e.y, '#7bf5ff', 3, 40);
+          dealEnemyDamage(e, 1, 'pelagic-wake', { visual: false, silentSound: true });
+          burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
     }
@@ -1374,7 +1386,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:2,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
+  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:5,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
   if(player.predatorAbilityTimer<=0){
    player.predatorAbilityTimer=cfg.cooldown;
@@ -1384,7 +1396,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    const color=equippedSkin==='reefshark'?'#8bd8ec':equippedSkin==='abysscroc'?'#79bd83':'#c5a66e';
    burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});
 
-    if(equippedSkin==='reefshark'){
+    if(equippedSkin==='reefshark'){ /* reefshark-dash */
       for(let step=0; step<=range; step+=24){
         sharkWakeTrails.push({
           x: player.x + Math.cos(angle)*step + rand(-12,12),
@@ -1397,28 +1409,26 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
     }
 
-   for(const target of targets){
-     dealEnemyDamage(target,cfg.damage,equippedSkin==='reefshark'?'reefshark-dash':equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
-     burst(target.x,target.y,color,7,90);
-     if(equippedSkin==='armoredgator'){
-       const kdx=target.x-player.x,kdy=target.y-player.y;
-       const kdd=Math.hypot(kdx,kdy)||1;
-       const kbForce=380/GAME_WORLD_ZOOM;
-       target.x=clamp(target.x+(kdx/kdd)*kbForce,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
-       target.y=clamp(target.y+(kdy/kdd)*kbForce,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
-       target.vx=(kdx/kdd)*500;
-       target.vy=(kdy/kdd)*500;
-     }
+   if(equippedSkin!=='reefshark'){
+    for(const target of targets){
+      dealEnemyDamage(target,cfg.damage,equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
+      burst(target.x,target.y,color,7,90);
+      if(equippedSkin==='armoredgator'){
+        const kdx=target.x-player.x,kdy=target.y-player.y;
+        const kdd=Math.hypot(kdx,kdy)||1;
+        target.kbVx=(kdx/kdd)*620;
+        target.kbVy=(kdy/kdd)*620;
+      }
+    }
    }
    if(onlineMode && window.AbyssalOnline?.sendSkinAbility){
      window.AbyssalOnline.sendSkinAbility({skin: equippedSkin, x: player.x/W, y: player.y/H, angle: player.angle});
    }
-   showToast(equippedSkin==='reefshark'?'RASGO PELÁGICO':equippedSkin==='abysscroc'?'MORDIDA DE EMBOSCADA':'GIRO DO NILO');
   }
  }
  if(equippedSkin==='kraken'){
   player.krakenSweepTimer=(Number(player.krakenSweepTimer)||0)-dt;
-  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/GAME_WORLD_ZOOM;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#8b5cf6'});burst(target.x,target.y,'#8b5cf6',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#8b5cf6'});playSkillSound('kraken-sweep','trigger');showToast('KRAKEN · VARREDURA TENTACULAR');}}
+  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/GAME_WORLD_ZOOM;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#8b5cf6'});burst(target.x,target.y,'#8b5cf6',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#8b5cf6'});playSkillSound('kraken-sweep','trigger');}}
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,18*upgrades.nova,'nova');burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.75,maxLife:.75,color:'#72f5ff'});audio(500,.045,'sine',.008)}}
@@ -1526,6 +1536,13 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
 
   const target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
+  if(e.kbVx||e.kbVy){
+   e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
+   e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+   const decay=Math.exp(-dt*6.5);
+   e.kbVx*=decay;e.kbVy*=decay;
+   if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
+  }
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    window.AbyssalEnemyAI.moveTowardTarget(e,localTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
@@ -1618,7 +1635,7 @@ function activateAbility(id){
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
-  effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');showToast('PULSO DE MARÉ · LIBERADO');
+  effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');
  }else if(id==='dash'){
   if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
   if(player.dashCooldown>0)return;
@@ -1629,7 +1646,6 @@ function activateAbility(id){
   if(onlineMode)window.AbyssalOnline?.sendProtection?.(1.5,'dash');
   burst(player.x,player.y,'#d8c9ff',lowPowerRendering?8:14,130);
   playSkillSound('dash','trigger');
-  showToast('PASSO FANTASMA · VELOCIDADE 500');
  }
  updateAbilityButtons();
 }
@@ -2494,17 +2510,21 @@ function redeemAbyssalCode(){
  if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}if(code!=='bemvindoabyssal'&&code!=='abyssal10k'&&code!=='vi-o-nascimento-abyssal'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
  if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode(code);return;}
  let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
- if(redeemed.includes(code)){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
  if(code==='vi-o-nascimento-abyssal'){
-  coins+=60000;
   if(!ownedSkins.includes('electriceel')) ownedSkins.push('electriceel');
   equippedSkin='electriceel';
-  redeemed.push(code);
-  localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
+  if(!redeemed.includes(code)){
+    coins+=60000;
+    redeemed.push(code);
+    localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
+  }
   saveCosmetics();
-  message.textContent='CÓDIGO SUPREMO RESGATADO! +60.000 MOEDAS E SKIN ENGUIA ELÉTRICA!';
-  addNotification('Você resgatou o código histórico "vi-o-nascimento-abyssal"! +60.000 moedas e a skin exclusiva "Enguia Elétrica" foram adicionadas à sua conta.', 'RESGATE PROMOCIONAL HISTÓRICO ⚡', 'promo');
- } else {
+  message.textContent='CÓDIGO VALIDADO! SKIN ENGUIA ELÉTRICA DESBLOQUEADA E EQUIPADA!';
+  addNotification('Você resgatou o código histórico "vi-o-nascimento-abyssal"! A skin exclusiva "Enguia Elétrica" está disponível na sua conta.', 'RESGATE CONFIRMADO ⚡', 'promo');
+  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+  return;
+ }
+ if(redeemed.includes(code)){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
   coins+=10000;
   redeemed.push(code);
   localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));

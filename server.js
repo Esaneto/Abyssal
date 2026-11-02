@@ -1036,16 +1036,16 @@ socket.on('global-chat-send',(payload={})=>{
    u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('bemvindoabyssal');saveUsers();return socket.emit('code-redeem-result',{ok:true,message:'Boas-vindas ao Abyssal! +10.000 moedas abissais. Código usado nesta conta.',account:publicUser(u)});
   }
   u.redeemedCodes ||= [];
-  if(u.redeemedCodes.includes(code)) return socket.emit('code-redeem-result',{ok:false,message:'Este código promocional já foi resgatado nesta conta.'});
-
   if(code==='vi-o-nascimento-abyssal'){
     u.coins=(Number(u.coins)||0)+60000;
     u.ownedSkins ||= ['default'];
     if(!u.ownedSkins.includes('electriceel')) u.ownedSkins.push('electriceel');
-    u.redeemedCodes.push(code);
+    if(!u.redeemedCodes.includes(code)) u.redeemedCodes.push(code);
     saveUsers();
-    return socket.emit('code-redeem-result',{ok:true,message:'Código "vi-o-nascimento-abyssal" resgatado! +60.000 moedas e skin lendária Enguia Elétrica!',account:publicUser(u),skinId:'electriceel',coinsAwarded:60000});
-  } else if(code==='abyssal10k'||code==='bemvindoabyssal'){
+    return socket.emit('code-redeem-result',{ok:true,message:'Código "vi-o-nascimento-abyssal" validado! +60.000 moedas e skin lendária Enguia Elétrica desbloqueada permanentemente!',account:publicUser(u),skinId:'electriceel',coinsAwarded:60000});
+  }
+  if(u.redeemedCodes.includes(code)) return socket.emit('code-redeem-result',{ok:false,message:'Este código promocional já foi resgatado nesta conta.'});
+  if(code==='abyssal10k'||code==='bemvindoabyssal'){
     u.coins=(Number(u.coins)||0)+10000;
     u.redeemedCodes.push(code);
     saveUsers();

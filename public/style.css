@@ -2081,39 +2081,33 @@ body.mobile-game-active .hud-toggle-btn{
 /* ===== ALERTA DE PERIGO ABISSAL ===== */
 #abyssalDangerAlert {
   position: absolute;
-  z-index: 20;
-  top: 12%;
+  z-index: 100;
+  top: 15%;
   left: 50%;
   transform: translateX(-50%);
   pointer-events: none;
   opacity: 0;
-  width: min(700px, calc(100% - 24px));
+  width: min(720px, calc(100% - 24px));
 }
 #abyssalDangerAlert.adanger-visible {
-  animation: abyssalDangerSequence 7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: abyssalDangerSequence 6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 #abyssalDangerAlert.adanger-fadeout {
   opacity: 0;
   transition: opacity 0.5s ease-out;
 }
 @keyframes abyssalDangerSequence {
-  0%, 40% {
-    /* Aparece imediatamente sólido — sem fade-in, sem blur */
+  0% {
     opacity: 1;
-    transform: translateX(-50%) scale(1) translateY(0);
-    filter: none;
+    transform: translateX(-50%) scale(1.04);
   }
-  70% {
-    /* Começa a esvanecer suavemente após 40% (≈2.8s de 7s) */
-    opacity: 0.45;
-    transform: translateX(-50%) scale(0.99) translateY(4px);
-    filter: none;
+  8%, 50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
   }
   100% {
-    /* 7s: some completamente */
     opacity: 0;
-    transform: translateX(-50%) scale(0.97) translateY(10px);
-    filter: none;
+    transform: translateX(-50%) scale(0.96) translateY(12px);
   }
 }
 .adanger-inner {

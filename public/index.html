@@ -59,6 +59,17 @@
     <button id="mobilePauseBtn" class="mobile-pause-btn" type="button" aria-label="Pausar jogo" title="Pausar jogo">Ⅱ</button>
     <button id="roomBadge" class="room-badge" type="button" hidden title="Copiar código de convite da sala"></button>
     <div id="bossAlert" class="boss-alert" hidden role="alert" aria-live="assertive"><span id="bossAlertKicker" class="boss-alert-kicker">SINAL DE PRESSÃO · CONTATO DESCONHECIDO</span><strong id="bossAlertTitle">UMA PRESENÇA COLOSSAL</strong><p id="bossAlertText">Algo se move onde a luz não alcança.</p></div>
+    <!-- Alerta abissal de boss/progressão (vermelho, ameaçador, fade suave) -->
+    <div id="abyssalDangerAlert" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="adanger-inner">
+        <span class="adanger-icon">☠</span>
+        <div class="adanger-body">
+          <strong class="adanger-title">AMEAÇA ABISSAL</strong>
+          <span class="adanger-sub"></span>
+        </div>
+        <span class="adanger-icon adanger-icon-r">☠</span>
+      </div>
+    </div>
     <div id="mobileJoystick" class="mobile-joystick" hidden aria-label="Joystick virtual de movimento">
       <div class="joystick-base"><span id="joystickKnob" class="joystick-knob"></span></div><small>MOVER</small>
     </div>
@@ -484,17 +495,6 @@
       </div>
     </section>
     <section id="toast" class="toast" hidden></section>
-    <!-- Alerta abissal de boss/progressão (vermelho, ameaçador, fade em 5s) -->
-    <div id="abyssalDangerAlert" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="adanger-inner">
-        <span class="adanger-icon">☠</span>
-        <div class="adanger-body">
-          <strong class="adanger-title">AMEAÇA ABISSAL</strong>
-          <span class="adanger-sub"></span>
-        </div>
-        <span class="adanger-icon adanger-icon-r">☠</span>
-      </div>
-    </div>
   
 
   <!-- PAINEL DE NOTIFICAÇÕES (overlay flutuante) -->
