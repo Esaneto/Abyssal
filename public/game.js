@@ -543,19 +543,19 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   alert.setAttribute('aria-live','assertive');
   alert.classList.remove('boss-alert-enter');
   clearTimeout(bossAlertTimer);
-  // Mantém a mensagem totalmente visível por 3 s e depois faz um fade suave de 1,5 s.
+  // Fica totalmente visível por 2 s e desaparece progressivamente durante 3 s.
   alert.style.transition='none';
   alert.style.opacity='1';
   void alert.offsetWidth;
   bossAlertTimer=setTimeout(()=>{
-   alert.style.transition='opacity 1.5s ease';
+   alert.style.transition='opacity 3s linear';
    alert.style.opacity='0';
    bossAlertTimer=setTimeout(()=>{
     alert.hidden=true;
     alert.style.transition='';
     alert.style.opacity='';
-   },1550);
-  },3000);
+   },3050);
+  },2000);
  }else{showAbyssalAlert(title,copy);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
@@ -1345,7 +1345,7 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;updateHud();}
- discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?e.value*Math.pow(3,Math.max(0,bossKillsThisRun-1)):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
+ discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?e.value*Math.pow(3,Math.max(0,bossKillsThisRun-1)):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
