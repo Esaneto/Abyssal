@@ -488,6 +488,9 @@ function getBossDisplayName(kind) {
   return n[kind] || kind.toUpperCase();
 }
 function showAbyssalAlert(text, subtitle = '') {
+  // Mensagens comuns nunca podem cobrir ou reiniciar o alerta prioritário de aparição de boss.
+  const bossPriorityAlert = $('bossAlert');
+  if (bossPriorityAlert && !bossPriorityAlert.hidden) return;
   const el = $('abyssalDangerAlert');
   if (!el) return;
   const titleEl = el.querySelector('.adanger-title');
@@ -502,7 +505,7 @@ function showAbyssalAlert(text, subtitle = '') {
     el.classList.remove('adanger-visible');
   }, 6200);
 }
-function showToast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+function showToast(t){const bossPriorityAlert=$('bossAlert');if(bossPriorityAlert&&!bossPriorityAlert.hidden)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
  if(alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
@@ -523,11 +526,18 @@ function showBossAlert(kind,id=null,threat=0){
   if(kicker)kicker.textContent='SINAL DE PRESSÃO · CONTATO DESCONHECIDO';
   if(titleNode)titleNode.textContent=title;
   if(textNode)textNode.textContent=copy;
+  // O aviso de boss fica no topo visual e suprime mensagens concorrentes durante sua exibição.
+  const commonAlert=$('abyssalDangerAlert'),toast=$('toast');
+  if(commonAlert){commonAlert.classList.remove('adanger-visible','adanger-fadeout');}
+  if(toast)toast.hidden=true;
+  clearTimeout(abyssalAlertTimer);
   alert.hidden=false;
+  alert.setAttribute('aria-live','assertive');
   alert.classList.remove('boss-alert-enter');
   void alert.offsetWidth;
   alert.classList.add('boss-alert-enter');
   clearTimeout(bossAlertTimer);
+  // A animação dura 5 s; o elemento permanece até 5,2 s para concluir o fade sem corte.
   bossAlertTimer=setTimeout(()=>{alert.classList.remove('boss-alert-enter');alert.hidden=true;},5200);
  }else{showAbyssalAlert(title,copy);}
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
@@ -1438,7 +1448,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
    player.gravitationalRuptureTimer=.34;
-   const fieldRange=588*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;
+   const fieldRange=294*(upgrades.range||1)*(equippedSkin==='abyssaleye'?1.2:1)/GAME_WORLD_ZOOM;
    for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];if(dist(player,e)>fieldRange)continue;
     dealEnemyDamage(e,10,'gravitationalRupture');
