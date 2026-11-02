@@ -2396,16 +2396,17 @@ $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.targ
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
 
 let pendingStripePurchase = null;
-function openSkinPurchaseConfirm(skin, currency, lang, isBundle = false) {
+function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   const modal = $('skinPurchaseConfirmModal');
   if (!modal) {
     window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);
     return;
   }
-  pendingStripePurchase = { skin, currency, lang, isBundle };
+  const skinId = typeof skin === 'string' ? skin : skin?.id;
+  pendingStripePurchase = { skin: { id: skinId, name }, name, priceFormatted, isBundle };
   const desc = $('skinPurchaseConfirmDesc');
   if (desc) {
-    desc.textContent = `Você está prestes a adquirir ${skin.name || 'este cosmético'} por ${skin.priceFormatted || ''}. Esta transação será realizada em ambiente seguro da Stripe e adicionará o cosmético permanentemente à sua conta.`;
+    desc.textContent = `Você está prestes a adquirir ${name || 'este cosmético'} por ${priceFormatted || ''}. Esta transação será realizada em ambiente seguro da Stripe e adicionará o cosmético permanentemente à sua conta.`;
   }
   const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2'), confirmBtn = $('skinPurchaseConfirmBtn');
   if (check1) check1.checked = false;

@@ -123,7 +123,9 @@ function registerPaymentRoutes(options) {
    const account=tokenUser(getUsers(),token);
    if(!account)return res.status(401).json({ok:false,message:'Entre na sua conta para comprar.'});
    const currency='brl';
-   const order=calculateOrder(String(req.body&&req.body.productId||''),account.user.ownedSkins||['default']);
+   const reqProductId = String(req.body&&req.body.productId||'');
+   if (!reqProductId) return res.status(400).json({ok:false,message:'Produto não informado.'});
+   const order=calculateOrder(reqProductId,account.user.ownedSkins||['default']);
    if(!order.skinIds.length||!order.amount)return res.status(409).json({ok:false,message:'Você já possui este conteúdo.'});
    await ensureSchema();
    const pool=getPool(),orderId=crypto.randomUUID();
@@ -207,12 +209,12 @@ function registerPaymentRoutes(options) {
     if(pool)await pool.query("UPDATE abyssal_payment_orders SET status='failed',updated_at=NOW() WHERE order_id=$1",[orderId]);
     else if(localOrders[orderId]){localOrders[orderId].status='failed';writeLocalStore(localOrdersFile,localOrders);}
     console.error('[payments] Stripe API error status:',response.status,'type:',session.error&&session.error.type,'code:',session.error&&session.error.code,'param:',session.error&&session.error.param,'msg:',session.error&&session.error.message);
-    return res.status(502).json({ok:false,message:'Não foi possível iniciar o pagamento com a Stripe.'});
+    return res.status(502).json({ok:false,message:session?.error?.message||'Não foi possível iniciar o pagamento com a Stripe.'});
    }
    if(pool)await pool.query('UPDATE abyssal_payment_orders SET checkout_session_id=$2,updated_at=NOW() WHERE order_id=$1',[orderId,session.id]);
    else if(localOrders[orderId]){localOrders[orderId].checkoutSessionId=session.id;writeLocalStore(localOrdersFile,localOrders);}
    res.json({ok:true,url:session.url,orderId:orderId});
-  }catch(error){console.error('[payments] Checkout error:',error.message);res.status(500).json({ok:false,message:'Erro ao iniciar o checkout.'});}
+  }catch(error){console.error('[payments] Checkout error:',error.message);res.status(500).json({ok:false,message:error.message||'Erro ao iniciar o checkout.'});}
  });
  app.post('/api/payments/webhook',rawParser,async(req,res)=>{
   try{
