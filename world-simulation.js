@@ -10,7 +10,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function createWorldState(now = Date.now()) {
   return {
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
-    nextBossAt: 60, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
+    nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
@@ -163,7 +163,7 @@ function spawnXpOrb(world, enemy) {
 function initializeWorld(world, now = Date.now(), random = Math.random) {
   if (world.initialized) return [];
   world.initialized = true;
-  world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 60;
+  world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 100 / 3.8;
   world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
@@ -232,25 +232,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   }
 
   const spawnedBosses = [];
-  if (world.elapsed >= world.nextBossAt) {
-    const activeBossCount = countBossCount(world);
-    // Só spawn quando NENHUM boss estiver vivo — regra: 1 onda de cada vez
-    if (activeBossCount === 0) {
-      const playerCountForDifficulty = Math.max(validPlayers.length, Math.floor(Number(world.roomPlayerCount) || 0));
-      const desiredBossCount = Math.min(MAX_BOSSES, 1 + Math.floor(playerCountForDifficulty / 2));
-      let currentBossCount = 0;
-      while (currentBossCount < desiredBossCount && world.enemies.length < MAX_ENEMIES) {
-        const boss = spawnEnemy(world, { type: 'boss', random });
-        if (!boss) break;
+  // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
+  if (world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
+    if (world.enemies.length < MAX_ENEMIES) {
+      const boss = spawnEnemy(world, { type: 'boss', random });
+      if (boss) {
         spawnedBosses.push(boss);
         spawnedEnemies.push(boss);
-        currentBossCount++;
-      }
-      world.nextBossAt = currentBossCount > 0 ? world.elapsed + 60 : world.elapsed + 3;
-    } else {
-      // Ainda há boss(es) vivo(s) — verificar novamente em breve
-      world.nextBossAt = world.elapsed + 5;
-    }
+        world.nextBossAt = Infinity;
+      } else world.nextBossAt = world.elapsed + 1;
+    } else world.nextBossAt = world.elapsed + 1;
   }
 
   let movedEnemyCount = 0;
