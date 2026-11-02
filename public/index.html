@@ -72,7 +72,7 @@
         <p class="intro">Seu sinal atravessou uma região apagada dos mapas. Algo respondeu do fundo — e está vindo na direção da luz.</p>
         <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
         <button id="wheelBtn" class="wheel-cta" aria-label="Abrir roleta abissal">
-          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE ESSÊNCIAS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
+          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE MOEDAS ABISSAIS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
         </button>
         
         <div class="menu-secondary-actions">
@@ -183,16 +183,16 @@
       <div class="modal-card compact-card">
         <div class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
         <h2>O ABISMO<br><em>RECLAMA.</em></h2>
-        <p>Seu mergulho terminou. Mas as profundezas ainda guardam segredos.</p>
+        <p>Sua vida acabou nas profundezas! Deseja encerrar o mergulho ou assistir a um anúncio para reviver?</p>
         <div class="results">
           <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
           <div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
         </div>
-        <button id="againBtn" class="primary-btn">MERGULHAR NOVAMENTE <span>↗</span></button>
-        <button id="reviveWithAdBtn" class="secondary-btn">ASSISTIR ANÚNCIO E RESSUSCITAR</button>
+        <button id="reviveWithAdBtn" class="primary-btn">ASSISTIR ANÚNCIO PARA REVIVER <span>▶</span></button>
+        <button id="againBtn" class="secondary-btn">ENCERRAR E MERGULHAR NOVAMENTE</button>
         <p id="reviveAdMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
-        <button id="menuBtn" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="menuBtn" class="secondary-btn">ENCERRAR MERGULHO E VOLTAR AO MENU</button>
       </div>
     </section>
 
@@ -295,16 +295,16 @@
     <section id="shopScreen" class="screen modal-screen" hidden>
       <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
-        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Algumas skins concedem habilidades de jogo. Consulte seus efeitos antes de escolher.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>ESSÊNCIAS</small></div></div>
+        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Algumas skins concedem habilidades de jogo. Consulte seus efeitos antes de escolher.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>MOEDAS ABISSAIS</small></div></div>
         <div class="payment-settings"><label for="shopCurrency">Moeda de cobrança / Billing currency</label><div id="shopCurrency" class="text-field" aria-label="Moeda de cobrança">BRL · Real (R$)</div>
           
           
         </div>
         <h3 class="shop-section-title">✦ FORMAS DE VIDA · PRÉVIA EM COMBATE</h3>
         <div id="skinGrid" class="skin-grid"></div>
-        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste essências para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
+        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste moedas abissais para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
         <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
-        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber essências abissais</small></span><strong>↗</strong></button>
+        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber moedas abissais</small></span><strong>↗</strong></button>
         <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
@@ -329,7 +329,7 @@
         <p>Escolha sua sorte: prêmios de 20 a 1.000 moedas abissais. O prêmio raro tem chance de 0,1%.</p>
         <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas>
     </div>
-        <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar essências abissais!</div>
+        <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar moedas abissais!</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button></div>
         <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>

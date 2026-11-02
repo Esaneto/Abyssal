@@ -43,6 +43,27 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   const progressFor=t=>t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:((t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')&&Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0);
   const equipped=user.equippedTitle||'abyss-drifter';
   const unlockedIds=new Set(Array.isArray(user.unlockedTitles)?user.unlockedTitles:PROFILE_TITLES.filter(t=>t.kind==='starter'||progressFor(t)>=t.required).map(t=>t.id));
+  // Notificar títulos desbloqueados recém-detectados
+  try {
+    const knownUnlocked = JSON.parse(localStorage.getItem('abyssalKnownOnlineTitles') || '[]');
+    let newlyUnlocked = 0;
+    unlockedIds.forEach(tId => {
+      if (!knownUnlocked.includes(tId) && tId !== 'abyss-drifter') {
+        knownUnlocked.push(tId);
+        newlyUnlocked++;
+        const titleObj = PROFILE_TITLES.find(pt => pt.id === tId);
+        const tName = titleObj ? titleObj.name : tId;
+        const tGoal = titleObj?.goal ? (' Conquista: ' + titleObj.goal) : '';
+        if (typeof window.addNotification === 'function') {
+          window.addNotification('☬ Você desbloqueou o título "' + tName + '"!' + tGoal, 'NOVO TÍTULO DESBLOQUEADO ☬', 'title');
+        }
+      }
+    });
+    if (newlyUnlocked > 0) {
+      localStorage.setItem('abyssalKnownOnlineTitles', JSON.stringify(knownUnlocked));
+      if (typeof window.updateNotifBadge === 'function') window.updateNotifBadge();
+    }
+  } catch(e) {}
   const unlocked=PROFILE_TITLES.filter(t=>unlockedIds.has(t.id));
   const current=PROFILE_TITLES.find(t=>t.id===equipped)||PROFILE_TITLES[0];
   $('profileNickname').textContent=user.nickname||account?.nickname||'VISITANTE';

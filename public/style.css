@@ -2090,19 +2090,46 @@ body.mobile-game-active .hud-toggle-btn{
   width: min(700px, calc(100% - 24px));
 }
 #abyssalDangerAlert.adanger-visible {
-  animation: adanger-appear 2s ease forwards, adanger-fade 3s ease 2s forwards;
+  animation: abyssalDangerSequence 7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 #abyssalDangerAlert.adanger-fadeout {
-  animation: adanger-fade 0.5s ease forwards;
+  opacity: 0;
+  transition: opacity 0.5s ease-out;
 }
-@keyframes adanger-appear {
-  0%   { opacity: 0; transform: translateX(-50%) scale(0.92) translateY(-20px); filter: blur(8px); }
-  12%  { opacity: 1; transform: translateX(-50%) scale(1.04) translateY(2px); filter: blur(0); }
-  20%, 100% { opacity: 1; transform: translateX(-50%) scale(1) translateY(0); filter: blur(0); }
-}
-@keyframes adanger-fade {
-  0%   { opacity: 1; }
-  100% { opacity: 0; }
+@keyframes abyssalDangerSequence {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.92) translateY(-20px);
+    filter: blur(8px);
+  }
+  6% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.03) translateY(2px);
+    filter: blur(0);
+  }
+  10%, 28.5% {
+    /* Primeiros 2 segundos (28.5% de 7s) 100% visível, nítido e aterrador */
+    opacity: 1;
+    transform: translateX(-50%) scale(1) translateY(0);
+    filter: blur(0);
+  }
+  50% {
+    /* 3.5s: Começa a esvanecer suavemente */
+    opacity: 0.75;
+    transform: translateX(-50%) scale(0.99) translateY(2px);
+  }
+  75% {
+    /* 5.25s: Bem tênue */
+    opacity: 0.35;
+    transform: translateX(-50%) scale(0.98) translateY(6px);
+    filter: blur(1px);
+  }
+  100% {
+    /* 7s (2s + 5s fade-out): some completamente */
+    opacity: 0;
+    transform: translateX(-50%) scale(0.96) translateY(12px);
+    filter: blur(4px);
+  }
 }
 .adanger-inner {
   display: flex;

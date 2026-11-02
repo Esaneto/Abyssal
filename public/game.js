@@ -172,7 +172,7 @@ function addNotification(message, title = 'NOTIFICAÇÃO ABISSAL', type = 'info'
   list.unshift(newItem);
   if (list.length > 30) list.pop();
   saveNotifications(list);
-  renderNotificationBox();
+  updateNotifBadge();
   showToast(`${title}: ${message.slice(0, 50)}...`);
 }
 
@@ -180,12 +180,12 @@ function deleteNotification(id) {
   let list = getStoredNotifications();
   list = list.filter(item => item.id !== id);
   saveNotifications(list);
-  renderNotificationBox();
+  updateNotifBadge();
 }
 
 function clearAllNotifications() {
   saveNotifications([]);
-  renderNotificationBox();
+  updateNotifBadge();
 }
 
 function updateNotifBadge() {
@@ -206,15 +206,17 @@ function updateNotifBadge() {
 
 function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
   addNotification(message, title);
-  renderNotificationBox();
+  updateNotifBadge();
 }
 
 function showEndOfRun(coinsEarned) {
+  // Notificação de moedas enviada apenas uma vez ao fim da partida
   const amount = Number(coinsEarned) || 0;
-  const msg = amount > 0 
-    ? `Expedição finalizada! Você coletou ${amount.toLocaleString('pt-BR')} moedas abissais nesta partida.` 
-    : 'O mergulho terminou nas profundezas. Colete mais essências na próxima expedição.';
-  addNotification(msg, 'FIM DE MERGULHO · RECOMPENSA');
+  const msg = amount > 0
+    ? 'Expedição encerrada! Você acumulou ' + amount.toLocaleString('pt-BR') + ' moedas abissais nesta partida.'
+    : 'O mergulho terminou. Volte às profundezas para acumular mais moedas abissais!';
+  addNotification(msg, 'FIM DE MERGULHO ⚓', 'coins');
+  updateNotifBadge();
 }
 
 updateNotifBadge();
@@ -485,15 +487,15 @@ function showAbyssalAlert(text, subtitle = '') {
   const subEl = el.querySelector('.adanger-sub');
   if (titleEl) titleEl.textContent = text;
   if (subEl) subEl.textContent = subtitle;
+  // Reiniciar animação: remover classes, forçar reflow, re-adicionar
   el.classList.remove('adanger-visible', 'adanger-fadeout');
-  void el.offsetWidth; // force reflow
+  void el.offsetWidth;
   el.classList.add('adanger-visible');
   clearTimeout(abyssalAlertTimer);
+  // Após 7s total (2s visível + 5s fade) limpar
   abyssalAlertTimer = setTimeout(() => {
-    el.classList.remove('adanger-visible');
-    el.classList.add('adanger-fadeout');
-    setTimeout(() => el.classList.remove('adanger-fadeout'), 3000);
-  }, 2000);
+    el.classList.remove('adanger-visible', 'adanger-fadeout');
+  }, 7200);
 }
 function showToast(t){$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0){
@@ -536,7 +538,8 @@ function getBossCycleMultiplier() {
 
 function updateProgressionTrackUI() {
   var track = $('bossProgressionTrack');
-  if (!track || onlineMode) { if (track) track.style.display = 'none'; return; }
+  if (!track) return;
+  track.style.display = 'block';
   track.style.display = 'block';
   var bonusPercent = Math.round(bossProgressionCycle * 20);
   var cycleBadge = $('trackCycleBadge');
@@ -587,7 +590,7 @@ function updateProgressionTrackUI() {
 }
 
 function updateBossProgressionStep(dt) {
-  if (onlineMode || gameState !== 'playing') return;
+  if (gameState !== 'playing') return;
 
   // Se houver boss(es) ativo(s), pausar o avanço até que TODOS sejam derrotados
   if (progressionPausedForBoss) {
@@ -625,7 +628,7 @@ function triggerProgressionBossSpawn() {
   activeBossEntities = [];
 
   // REGRA: sempre 1 boss por vez — próximo só aparece após este morrer
-  const spawned = spawnEnemy(false, targetKind);
+  const spawned = !onlineMode ? spawnEnemy(false, targetKind) : null;
   if (spawned) {
     activeBossEntities.push(spawned);
     activeBossEntity = spawned;
@@ -1304,8 +1307,8 @@ function update(dt){
        x: player.x - Math.cos(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
        y: player.y - Math.sin(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
        r: rand(14, 22),
-       life: 15.0,
-       maxLife: 15.0,
+       life: 5.0,
+       maxLife: 5.0,
        color: '#7bf5ff'
      });
      if (sharkWakeTrails.length > 250) sharkWakeTrails.shift();
@@ -1319,9 +1322,9 @@ function update(dt){
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){spawnTimer-=dt;updateBossProgressionStep(dt);}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){spawnTimer-=dt;updateBossProgressionStep(dt);}else{updateBossProgressionStep(dt);}
 
-  // Gestão da esteira de bolhas do tubarão (dura 15 segundos e causa dano contínuo)
+  // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano suave)
   for (let i = sharkWakeTrails.length - 1; i >= 0; i--) {
     const bubble = sharkWakeTrails[i];
     bubble.life -= dt;
@@ -1330,7 +1333,7 @@ function update(dt){
       bubble.damageTimer = 0.4;
       for (const e of enemies) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)) {
-          dealEnemyDamage(e, 8, 'pelagic-wake', { visual: false, silentSound: true });
+          dealEnemyDamage(e, 2, 'pelagic-wake', { visual: false, silentSound: true });
           e.poisonTimer = Math.max(e.poisonTimer || 0, 3.0);
           burst(e.x, e.y, '#7bf5ff', 3, 40);
         }
@@ -1383,8 +1386,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
           x: player.x + Math.cos(angle)*step + rand(-12,12),
           y: player.y + Math.sin(angle)*step + rand(-12,12),
           r: rand(18, 30),
-          life: 15.0,
-          maxLife: 15.0,
+          life: 5.0,
+          maxLife: 5.0,
           color: '#8bd8ec'
         });
       }
@@ -1512,7 +1515,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){e.attackCd-=dt;if(player.invuln<=0){hurtPlayer(e.damage);e.attackCd=e.kind==='stinger'?.8:e.kind==='kraken'?.95:1.1;}}
+  e.attackCd = (e.attackCd || 0) - dt; if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){if(player.invuln<=0){hurtPlayer(e.damage);}e.attackCd=e.kind==='stinger'?.8:e.kind==='kraken'?.95:1.1;}}
  }
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  enemyCollisionGrid.clear();enemyCollisionBucketCount=0;enemyCollisionCellSize=270;
@@ -1586,7 +1589,7 @@ function buyMetaUpgrade(id){
  if(window.AbyssalOnline?.isAuthenticated()){
   window.AbyssalOnline.purchaseMeta(id);return;
  }
- if(coins<item.price){showToast('ESSÊNCIA INSUFICIENTE');return;}
+ if(coins<item.price){showToast('MOEDAS ABISSAIS INSUFICIENTES');return;}
  coins-=item.price;metaUpgrades[id]=current+1;saveCosmetics();renderShop();showToast(`${item.name.toUpperCase()} DESBLOQUEADO`);playSkillSound(id,'learn');
 }
 function activateAbility(id){
@@ -1640,6 +1643,7 @@ function endGame(){
  else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
  else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=true;}
  showEndOfRun(earnedCoins);
+ updateNotifBadge();
  if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
@@ -2075,7 +2079,7 @@ function draw(t){
     ctx.restore();
   }if(e.kind==='devourer'&&e.suctionActive)drawDevourerSuction(e,t);if(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind)){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?16:8)/worldZoom,e.r*2,(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?6:3)/worldZoom);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font=`bold ${14/worldZoom}px sans-serif`;ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-25/worldZoom)}}}
  
-  // Renderizar esteira de bolhas pelágicas do tubarão (duração de 15s)
+  // Renderizar esteira de bolhas pelágicas do tubarão (duração de 5s)
   for (const b of sharkWakeTrails) {
     if (b.x < cameraX - 40/worldZoom || b.x > cameraX + viewW/worldZoom + 40/worldZoom ||
         b.y < cameraY - 40/worldZoom || b.y > cameraY + viewH/worldZoom + 40/worldZoom) continue;
@@ -2294,7 +2298,7 @@ function requestWheelSpin(){
  try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
- $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar essências abissais!';});
+ $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar moedas abissais!';});
 $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
@@ -2351,7 +2355,8 @@ function renderShop(){
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${equipped?'disabled':''}>${equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification(`Você adquiriu com sucesso a criatura ${skin.name}! Equipe-a no catálogo a qualquer momento.`, 'NOVA SKIN ADQUIRIDA', 'skin'); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast(english?'NOT ENOUGH ESSENCE':'ESSÊNCIA INSUFICIENTE');});grid.appendChild(card)});
+const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${equipped?'disabled':''}>${equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
+        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
  const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];const remaining=bundleIds.filter(id=>!ownedSkins.includes(id)).length;const bundleBrlAmount=remaining===6?4999:999*remaining;const bundleAmount=shopCurrency==='brl'?bundleBrlAmount:Math.round(bundleBrlAmount*Number(shopRates[shopCurrency]||0));const bundleNames={leviathan:'Leviatã Cego',kraken:'Kraken do Abismo',aberration:'Máscara da Aberração',angler:'Lanterna Mortal',maw:'Mandíbula da Fenda',devourer:'Devorador do Vazio'};bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Pacote dos seis bosses</strong><p>Uma coleção abissal com artefatos vivos e animação exclusiva.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 skins restantes · ${remaining===6?'DESCONTO DO PACOTE COMPLETO':'preço individual das skins restantes'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'CONTEÚDO COMPLETO':`${english?'BUY BUNDLE':'COMPRAR PACOTE'} · ${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`}</button>`;bundle.querySelector('button').addEventListener('click',()=>{if(remaining)window.AbyssalOnline?.purchaseStripe('boss_bundle',shopCurrency,gameLanguage);});grid.appendChild(bundle);
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();
@@ -2486,7 +2491,22 @@ function renderRoomList(rooms){const root=$('roomsList');if(!root)return;let lis
 $('loginCancelBtn').addEventListener('click',()=>{$('loginScreen').hidden=true});
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
 window.addEventListener('abyssal-account-data',e=>{const a=e.detail;if(!a)return;coins=Number(a.coins)||0;ownedSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];equippedSkin=a.equippedSkin||'default';metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;saveCosmeticsLocalOnly();renderShop();updateAbilityButtons();});
-window.addEventListener('abyssal-purchase-result',e=>{const r=e.detail||{};showToast(r.message||'Compra processada');if(r.ok&&r.itemId)playSkillSound(r.itemId,'learn');else if(r.ok)audio(760,.15,'triangle',.035);});
+window.addEventListener('abyssal-purchase-result',e=>{
+  const r=e.detail||{};
+  showToast(r.message||'Compra processada');
+  if(r.ok&&r.itemId){
+    playSkillSound(r.itemId,'learn');
+    if(!ownedSkins.includes(r.itemId)){
+      ownedSkins.push(r.itemId);
+      saveCosmetics();
+    }
+    const skinName = (SHOP_SKINS && SHOP_SKINS.find(s=>s.id===r.itemId)?.name) || r.itemId;
+    addNotification('🐚 ' + skinName + ' desbloqueada com sucesso na sua conta! Equipe-a pelo Catálogo a qualquer momento.', 'NOVA SKIN · CONTA ONLINE', 'skin');
+    updateNotifBadge();
+  } else if(r.ok) {
+    audio(760,.15,'triangle',.035);
+  }
+});
 function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
 renderShop();
 document.querySelectorAll('#menuScreen canvas[data-menu-creature]').forEach(canvas=>{
