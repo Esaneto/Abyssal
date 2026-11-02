@@ -294,28 +294,6 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       continue;
     }
 
-    // Giro do Nilo: replica no servidor o recuo radial aplicado no modo solo.
-    // Enquanto o impulso dura, o inimigo não persegue o jogador; apenas desacelera.
-    const knockbackX = Number(enemy.kbVx) || 0;
-    const knockbackY = Number(enemy.kbVy) || 0;
-    if (knockbackX || knockbackY) {
-      const knockbackSpeed = Math.hypot(knockbackX, knockbackY);
-      if (knockbackSpeed > 15) {
-        enemy.x = clamp(Number(enemy.x) + knockbackX * dt, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
-        enemy.y = clamp(Number(enemy.y) + knockbackY * dt, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
-        const decay = Math.exp(-dt * 6.5);
-        enemy.kbVx = knockbackX * decay;
-        enemy.kbVy = knockbackY * decay;
-        enemy.vx = enemy.kbVx;
-        enemy.vy = enemy.kbVy;
-        // Preserva enemy.angle: o inimigo desliza para trás sem girar o sprite.
-        movedEnemyCount++;
-        continue;
-      }
-      enemy.kbVx = 0;
-      enemy.kbVy = 0;
-    }
-
     if (enemy.paralyzedUntil && Date.now() < enemy.paralyzedUntil) {
       continue;
     }
