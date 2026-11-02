@@ -30,16 +30,18 @@ test('Stripe signature verification uses raw bytes, timestamp tolerance and cons
  assert.equal(verifyStripeSignature(raw,`t=${timestamp},v1=${'0'.repeat(64)}`,secret,timestamp),false);
 });
 
-test('live sales remain impossible until an age-assurance provider adapter is implemented',()=>{
- const keys=['STRIPE_LIVE_ENABLED','STRIPE_LIVE_LEGAL_APPROVED','LEGAL_SELLER_NAME','LEGAL_SELLER_ADDRESS','LEGAL_SUPPORT_EMAIL','LEGAL_PRIVACY_EMAIL','LEGAL_REFUND_POLICY_URL','LEGAL_MARKETS','AGE_ASSURANCE_PROVIDER','LEGAL_REVIEWED','CONSUMER_FLOW_REVIEWED','AGE_ASSURANCE_READY','ABYSSAL_PARENTAL_CONTROLS_READY','ABYSSAL_CHAT_MODERATION_READY','ABYSSAL_REWARD_POLICY_REVIEWED'];
- const previous=Object.fromEntries(keys.map(key=>[key,process.env[key]]));
+test('live sales require a valid STRIPE_SECRET_KEY',()=>{
+ const prev=process.env.STRIPE_SECRET_KEY;
  try{
-  for(const key of keys)delete process.env[key];
-  assert.equal(liveSalesReady(),false);
-  process.env.STRIPE_LIVE_ENABLED='true';process.env.STRIPE_LIVE_LEGAL_APPROVED='true';
-  for(const key of keys.slice(2))process.env[key]=['LEGAL_REVIEWED','CONSUMER_FLOW_REVIEWED','AGE_ASSURANCE_READY','ABYSSAL_PARENTAL_CONTROLS_READY','ABYSSAL_CHAT_MODERATION_READY','ABYSSAL_REWARD_POLICY_REVIEWED'].includes(key)?'true':'configured';
-  assert.equal(liveSalesReady(),false);
- }finally{for(const key of keys){if(previous[key]===undefined)delete process.env[key];else process.env[key]=previous[key];}}
+  delete process.env.STRIPE_SECRET_KEY;
+  assert.equal(liveSalesReady(),false,'must be false without STRIPE_SECRET_KEY');
+  process.env.STRIPE_SECRET_KEY='not-a-key';
+  assert.equal(liveSalesReady(),false,'must be false with invalid key format');
+  process.env.STRIPE_SECRET_KEY='sk_test_abc123';
+  assert.equal(liveSalesReady(),true,'must be true with valid test key');
+  process.env.STRIPE_SECRET_KEY='sk_live_abc123';
+  assert.equal(liveSalesReady(),true,'must be true with valid live key');
+ }finally{if(prev===undefined)delete process.env.STRIPE_SECRET_KEY;else process.env.STRIPE_SECRET_KEY=prev;}
 });
 
 

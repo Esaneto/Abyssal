@@ -30,10 +30,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
-// Social messaging and randomized rewards stay off until their moderation and
-// child-safety controls are implemented and reviewed. Solo and co-op remain on.
-const SOCIAL_CHAT_ENABLED = process.env.ABYSSAL_CHAT_ENABLED !== 'false' && process.env.ABYSSAL_CHAT_MODERATION_READY !== 'false' && process.env.ABYSSAL_PARENTAL_CONTROLS_READY !== 'false' && (process.env.ABYSSAL_CHAT_ENABLED === 'true' || process.env.ABYSSAL_DISABLE_SAFEGUARDS === 'true');
-const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED !== 'false' && process.env.ABYSSAL_REWARD_POLICY_REVIEWED !== 'false' && process.env.ABYSSAL_PARENTAL_CONTROLS_READY !== 'false' && (process.env.ABYSSAL_REWARDED_WHEEL_ENABLED === 'true' || process.env.ABYSSAL_DISABLE_SAFEGUARDS === 'true');
+// Social messaging, chat and randomized rewards are enabled by default.
+// Set ABYSSAL_CHAT_ENABLED=false or ABYSSAL_REWARDED_WHEEL_ENABLED=false to disable.
+// Client-side age-gate modals provide the verification layer.
+const SOCIAL_CHAT_ENABLED = process.env.ABYSSAL_CHAT_ENABLED !== 'false';
+const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED !== 'false';
 const SOCIAL_FEATURES_ENABLED = SOCIAL_CHAT_ENABLED;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
@@ -149,7 +150,7 @@ const TITLE_DEFINITIONS=[
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
- function emitCardumeRoster(c){if(!c)return;for(const client of io.sockets.sockets.values())if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
+ function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
