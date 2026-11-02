@@ -2531,8 +2531,7 @@ function redeemAbyssalCode(){
   saveCosmetics();
   message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';
   addNotification('Código promocional resgatado! +10.000 moedas abissais adicionadas.', 'RESGATE CONCLUÍDO ✦', 'promo');
- }
- input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
