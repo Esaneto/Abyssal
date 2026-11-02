@@ -457,7 +457,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const predatorSkills={
   'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:34,arc:.48,width:58/WORLD_ZOOM},
   'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:42,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:3000,range:190/WORLD_ZOOM,damage:30,arc:Math.PI,width:0}
+  'armoredgator-spin':{skin:'armoredgator',cooldown:3000,range:190/WORLD_ZOOM,damage:45,arc:Math.PI,width:0}
  };
  if(predatorSkills[skillId]){
   const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
