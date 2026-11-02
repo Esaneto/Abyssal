@@ -294,6 +294,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       continue;
     }
 
+    // Giro do Nilo: mesmo passo de impulso do modo solo, antes da IA normal.
+    // Não muda o ângulo nem interrompe o movimento normal de perseguição.
+    if (enemy.kbVx || enemy.kbVy) {
+      enemy.x = clamp(Number(enemy.x) + (Number(enemy.kbVx) || 0) * dt, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
+      enemy.y = clamp(Number(enemy.y) + (Number(enemy.kbVy) || 0) * dt, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+      const decay = Math.exp(-dt * 6.5);
+      enemy.kbVx = (Number(enemy.kbVx) || 0) * decay;
+      enemy.kbVy = (Number(enemy.kbVy) || 0) * decay;
+      if (Math.hypot(enemy.kbVx, enemy.kbVy) < 15) {
+        enemy.kbVx = 0;
+        enemy.kbVy = 0;
+      }
+    }
+
     if (enemy.paralyzedUntil && Date.now() < enemy.paralyzedUntil) {
       continue;
     }
