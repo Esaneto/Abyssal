@@ -1458,7 +1458,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:3,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
+  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:3,range:190,damage:45,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
   if(player.predatorAbilityTimer<=0){
    player.predatorAbilityTimer=cfg.cooldown;
@@ -1597,11 +1597,17 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
-   e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
-   e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
-   const decay=Math.exp(-dt*6.5);
-   e.kbVx*=decay;e.kbVy*=decay;
-   if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
+   const knockbackSpeed=Math.hypot(e.kbVx,e.kbVy);
+   if(knockbackSpeed>15){
+    // Desloca o inimigo sem recalcular o ângulo nem retomar a perseguição durante o impacto.
+    e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
+    e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+    const decay=Math.exp(-dt*6.5);
+    e.kbVx*=decay;e.kbVy*=decay;
+    if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
+    continue;
+   }
+   e.kbVx=0;e.kbVy=0;
   }
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
