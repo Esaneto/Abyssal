@@ -1601,17 +1601,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
-   const knockbackSpeed=Math.hypot(e.kbVx,e.kbVy);
-   if(knockbackSpeed>15){
-    // Desloca o inimigo sem recalcular o ângulo nem retomar a perseguição durante o impacto.
-    e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
-    e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
-    const decay=Math.exp(-dt*6.5);
-    e.kbVx*=decay;e.kbVy*=decay;
-    if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-    continue;
-   }
-   e.kbVx=0;e.kbVy=0;
+   e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
+   e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+   const decay=Math.exp(-dt*6.5);
+   e.kbVx*=decay;e.kbVy*=decay;
+   if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
   }
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
