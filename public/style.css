@@ -2344,8 +2344,6 @@ body.mobile-game-active .hud-toggle-btn{
   from { transform: scale(0); }
   to { transform: scale(1); }
 }
-  to   { transform: scale(1); }
-}
 
 
 /* Abyssal: controles Q/E centralizados na parte inferior em PC e mobile. */
