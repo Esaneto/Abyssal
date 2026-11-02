@@ -1473,14 +1473,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       dealEnemyDamage(target,cfg.damage,equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
       burst(target.x,target.y,color,7,90);
       if(equippedSkin==='armoredgator'){
-        // Mesma mecânica original do modo solo: deslocamento imediato + velocidade de recuo.
+        // Mantém o mesmo impulso que será processado pelo servidor online.
         const kdx=target.x-player.x,kdy=target.y-player.y;
         const kdd=Math.hypot(kdx,kdy)||1;
-        const kbForce=130/GAME_WORLD_ZOOM;
-        target.x=clamp(target.x+(kdx/kdd)*kbForce,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
-        target.y=clamp(target.y+(kdy/kdd)*kbForce,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
-        target.vx=(kdx/kdd)*280;
-        target.vy=(kdy/kdd)*280;
+        target.kbVx=(kdx/kdd)*620;
+        target.kbVy=(kdy/kdd)*620;
       }
     }
    }
