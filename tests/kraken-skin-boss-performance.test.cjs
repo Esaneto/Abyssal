@@ -30,7 +30,7 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   assert.ok(start >= 0 && end > start);
   const source = game.slice(start, end);
   const skins = [...source.matchAll(/\{id:'([^']+)'[^}]*?ability:'([^']+)'[^}]*\}/gs)];
-  assert.equal(skins.length, 23, 'the catalog includes the original skins, bosses, and four predatory skins');
+  assert.equal(skins.length, 25, 'the catalog includes the original skins, bosses, four predatory skins, greensnake, and electriceel exclusives');
   for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');

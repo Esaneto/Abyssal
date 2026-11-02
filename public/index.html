@@ -39,7 +39,14 @@
   <header class="topbar">
     <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
     <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
-      <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">♫</button>
+      <div class="sound-control-wrapper" id="soundControlWrapper">
+        <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">🔊</button>
+        <div class="volume-popup" id="volumePopup">
+          <span class="volume-icon">🔉</span>
+          <input type="range" id="volumeSlider" min="0" max="100" value="80" aria-label="Volume do jogo">
+          <span id="volumeText" class="volume-text">80%</span>
+        </div>
+      </div>
         <button id="notifBtn" class="icon-btn" aria-label="Abrir notificações" title="Notificações">🔔</button>
       <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
       <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
@@ -118,16 +125,32 @@
         <div class="hud-stat"><small>TEMPO</small><strong id="timeText">00:00</strong></div>
         <div class="hud-stat center-stat"><small>NÍVEL</small><strong id="levelText">01</strong></div>
         <div class="hud-stat center-stat"><small>BOSSES</small><strong id="bossKillsText">00</strong></div>
-        <div class="hud-stat right-stat"><small>ENERGIA</small><strong id="scoreText">0</strong></div>
+        <div class="hud-stat right-stat"><small>DANO</small><strong id="scoreText">0</strong></div>
       </div>
       <div class="bars">
         <div class="bar-label"><span>VITALIDADE</span><span id="hpText">100 / 100</span></div>
         <div class="bar"><div id="hpFill" class="bar-fill hp-fill"></div></div>
         <div class="bar-label xp-label"><span>RESSONÂNCIA</span><span id="xpText">0 / 10</span></div>
         <div class="bar xp-bar"><div id="xpFill" class="bar-fill xp-fill"></div></div>
+        <div id="bossProgressionTrack" class="boss-progression-track" aria-label="Linha de progressão da expedição">
+          <div class="track-header">
+            <span class="track-title">PROGRESSÃO DO MERGULHO</span>
+            <span id="trackCycleBadge" class="track-cycle-badge">CICLO 1 (+0% BOSS HP/XP)</span>
+          </div>
+          <div class="track-line-wrapper">
+            <div class="track-line-bg">
+              <div id="trackFill" class="track-fill"></div>
+            </div>
+            <div id="trackPlayerMarker" class="track-player-marker" title="Sua posição atual">
+              <div class="marker-dot"></div>
+              <div class="marker-pulse"></div>
+            </div>
+            <div id="trackBossNodes" class="track-boss-nodes"></div>
+          </div>
+        </div>
       </div>
       <div class="mobile-tip" id="mobileTip">Arraste para se mover. Seus poderes atacam automaticamente.</div>
-      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Habilidades adquiridas"><strong class="selected-skills-title">HABILIDADES</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside><div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div><aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>ENERGIA · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
+      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Habilidades adquiridas"><strong class="selected-skills-title">HABILIDADES</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside><div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div><aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
       <div class="active-abilities" id="activeAbilities">
         <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
         <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PASSO FANTASMA</button>
@@ -163,7 +186,7 @@
         <p>Seu mergulho terminou. Mas as profundezas ainda guardam segredos.</p>
         <div class="results">
           <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
-          <div><small>ENERGIA</small><strong id="finalScore">0</strong></div>
+          <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
           <div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
         </div>
         <button id="againBtn" class="primary-btn">MERGULHAR NOVAMENTE <span>↗</span></button>
@@ -307,7 +330,7 @@
         <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas>
     </div>
         <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar essências abissais!</div>
-        <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button><button id="testWheelBtn" class="secondary-btn">TESTAR GIRO · SEM PRÊMIO</button></div>
+        <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button></div>
         <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
@@ -415,7 +438,30 @@
       </div>
     </section>
     <section id="toast" class="toast" hidden></section>
-  <div id="notificationBox" class="menu-box hidden" role="dialog" aria-live="polite"></div>
+    <!-- Alerta abissal de boss/progressão (vermelho, ameaçador, fade em 5s) -->
+    <div id="abyssalDangerAlert" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="adanger-inner">
+        <span class="adanger-icon">☠</span>
+        <div class="adanger-body">
+          <strong class="adanger-title">AMEAÇA ABISSAL</strong>
+          <span class="adanger-sub"></span>
+        </div>
+        <span class="adanger-icon adanger-icon-r">☠</span>
+      </div>
+    </div>
+  
+
+  <!-- PAINEL DE NOTIFICAÇÕES (overlay flutuante) -->
+  <div id="notifPanel" role="dialog" aria-modal="true" aria-label="Notificações do Abismo" hidden>
+    <div id="notifPanelInner">
+      <div id="notifPanelHeader">
+        <span id="notifPanelTitle">🔔 NOTIFICAÇÕES DO ABISMO</span>
+        <button id="notifPanelClose" aria-label="Fechar notificações" title="Fechar">✕</button>
+      </div>
+      <div id="notifPanelSub">Moedas, títulos, skins e anúncios das profundezas. Expiram em 7 dias.</div>
+      <div id="notifPanelList" role="list"></div>
+    </div>
+  </div>
 </main>
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span>FEITO PARA EXPLORAR O DESCONHECIDO</span><span id="saveStatus">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>

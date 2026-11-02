@@ -12,16 +12,18 @@
   const WORLD_HEIGHT = 3000;
   const WORLD_ZOOM = 0.78;
   // Bosses ordered from the lowest base HP to the highest.
-  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'kraken', 'devourer']);
+  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
-    stinger: Object.freeze({ r: 7, hp: 13, speed: 88, damage: 6, color: '#ffbc78', value: 2 }),
+    stinger: Object.freeze({ r: 7, hp: 13, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
     brute: Object.freeze({ r: 16, hp: 65, speed: 30, damage: 15, color: '#bd88ff', value: 4 }),
     lurker: Object.freeze({ r: 20, hp: 100, speed: 43, damage: 18, color: '#6e8dff', value: 6 }),
+    whiteShark: Object.freeze({ r: 24, hp: 300, speed: 0, damage: 28, dashSpeed: 240, color: '#91c4ce', value: 24 }),
     boss: Object.freeze({ r: 40, hp: 2820, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
-    leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
-    maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
+    maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
+    leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
+    whiteSharkBoss: Object.freeze({ r: 62, hp: 6000, speed: 0, damage: 45, dashSpeed: 290, color: '#68a8b8', value: 140 }),
     kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
     devourer: Object.freeze({ r: 78, hp: 15000, speed: 14, damage: 42, color: '#39d8c4', value: 260 })
   });
@@ -40,7 +42,7 @@
 
   function chooseCommonKind(random = Math.random) {
     const roll = random();
-    return roll < 0.56 ? 'drifter' : roll < 0.78 ? 'stinger' : roll < 0.94 ? 'brute' : 'lurker';
+    return roll < 0.45 ? 'drifter' : roll < 0.68 ? 'stinger' : roll < 0.85 ? 'brute' : roll < 0.94 ? 'lurker' : 'whiteShark';
   }
 
   function chooseBossKind(activeKinds = [], random = Math.random, spawnIndex = 0) {
@@ -165,6 +167,65 @@
       return result;
     }
 
+    // Paralisia de impacto (ex: Enguia Elétrica - 0.1s de interrupção motora)
+    const currentTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (enemy.paralyzedUntil && currentTime < enemy.paralyzedUntil) {
+      result.moved = false; result.target = target; result.distance = distance; result.dx = 0; result.dy = 0;
+      return result;
+    }
+
+    // Movimentação especial de investida para tubarões (whiteShark e whiteSharkBoss):
+    // Move-se APENAS por investidas em linha reta que só param ao colidir com o fim do mapa.
+    // Ao bater na parede, vira imediatamente na direção do jogador mais próximo e investe novamente.
+    const isShark = enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss';
+    if (isShark) {
+      const minX = Number.isFinite(options.minX) ? options.minX : 0;
+      const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
+      const minY = Number.isFinite(options.minY) ? options.minY : 0;
+      const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
+      
+      const stats = ENEMY_STATS[enemy.kind] || ENEMY_STATS.whiteShark;
+      const dashSpeed = (stats.dashSpeed || 290);
+      
+      // Se não tiver direção definida ou se atingiu uma parede:
+      let hitWall = false;
+      if (enemy.dashVx == null || enemy.dashVy == null) {
+        hitWall = true;
+      } else {
+        const nextX = (Number(enemy.x) || 0) + enemy.dashVx * dt;
+        const nextY = (Number(enemy.y) || 0) + enemy.dashVy * dt;
+        if (nextX <= minX + 2 || nextX >= maxX - 2 || nextY <= minY + 2 || nextY >= maxY - 2) {
+          hitWall = true;
+        }
+      }
+
+      if (hitWall) {
+        // Redireciona na direção do jogador mais próximo
+        const aimAngle = Math.atan2(dy, dx);
+        enemy.dashVx = Math.cos(aimAngle) * dashSpeed;
+        enemy.dashVy = Math.sin(aimAngle) * dashSpeed;
+        enemy.angle = aimAngle;
+      }
+
+      let nx = (Number(enemy.x) || 0) + enemy.dashVx * dt;
+      let ny = (Number(enemy.y) || 0) + enemy.dashVy * dt;
+      nx = clamp(nx, minX, maxX);
+      ny = clamp(ny, minY, maxY);
+
+      enemy.x = nx;
+      enemy.y = ny;
+      enemy.vx = enemy.dashVx;
+      enemy.vy = enemy.dashVy;
+      enemy.phase = (Number(enemy.phase) || 0) + dt * 6;
+
+      result.moved = true;
+      result.target = target;
+      result.distance = distance;
+      result.dx = dx;
+      result.dy = dy;
+      return result;
+    }
+
     enemy.angle = Math.atan2(dy, dx);
     enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
@@ -251,5 +312,20 @@
     result.target = target; result.distance = distance; result.dx = dx; result.dy = dy;
     return result;
   }
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  function chooseBossesForSession(playerCount = 1) {
+    const count = clamp(Math.floor(Number(playerCount) || 1), 1, 6);
+    const bossCount = count <= 2 ? 1 : count <= 4 ? 2 : 3;
+    const sortedBosses = [...BOSS_KINDS].sort((a, b) => (ENEMY_STATS[a]?.hp || 0) - (ENEMY_STATS[b]?.hp || 0));
+    return sortedBosses.slice(0, bossCount);
+  }
+
+  function createWhiteShark() {
+    return { ...ENEMY_STATS.whiteShark };
+  }
+
+  function createWhiteSharkBoss() {
+    return { ...ENEMY_STATS.whiteSharkBoss };
+  }
+
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });

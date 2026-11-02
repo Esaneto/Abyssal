@@ -141,9 +141,9 @@ const TITLE_DEFINITIONS=[
   {id:'abyssal-famous',kind:'likesReceived',required:10},
   {id:'abyssal-icon',kind:'likesReceived',required:50},
   {id:'living-legend',kind:'likesReceived',required:100},
-  {id:'abyssal-patron',kind:'storeSupporter',required:1},{id:'boss-abyssal',kind:'bossAbyssal',required:1}
+  {id:'abyssal-patron',kind:'storeSupporter',required:1},{id:'boss-abyssal',kind:'bossAbyssal',required:1},{id:'abyssal-conqueror',kind:'conqueror',required:1}
  ];
- function titleProgress(u,kind){if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
+ function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length }; }
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
@@ -151,7 +151,7 @@ const TITLE_DEFINITIONS=[
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of io.sockets.sockets.values())if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
-function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
+function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
 function settlePeriods() {
  const d = dayKey(), w = weekKey(), m = monthKey();
@@ -485,6 +485,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
@@ -539,8 +540,8 @@ async function finishRunForSocket(socket,payload={}){
  run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;
  if(member)member.runStats=run;else socket.data.runStats=run;
  settlePeriods();
- const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
- const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score)||0)||(score===(Number(old.score)||0)&&survival>(Number(old.survival)||0))));
+ const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
+ const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&survival>(Number(old.survival)||0))));
  const put=board=>{if(better(board[key]))board[key]=entry;};
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
@@ -1021,9 +1022,24 @@ socket.on('global-chat-send',(payload={})=>{
    if(u.redeemedCodes.includes('bemvindoabyssal'))return socket.emit('code-redeem-result',{ok:false,message:'Este código de boas-vindas já foi utilizado nesta conta.'});
    u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('bemvindoabyssal');saveUsers();return socket.emit('code-redeem-result',{ok:true,message:'Boas-vindas ao Abyssal! +10.000 moedas abissais. Código usado nesta conta.',account:publicUser(u)});
   }
-  if(code!=='abyssal10k')return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
   u.redeemedCodes ||= [];
-  u.coins=(Number(u.coins)||0)+10000;saveUsers();socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u)});
+  if(u.redeemedCodes.includes(code)) return socket.emit('code-redeem-result',{ok:false,message:'Este código promocional já foi resgatado nesta conta.'});
+
+  if(code==='vi-o-nascimento-abyssal'){
+    u.coins=(Number(u.coins)||0)+60000;
+    u.ownedSkins ||= ['default'];
+    if(!u.ownedSkins.includes('electriceel')) u.ownedSkins.push('electriceel');
+    u.redeemedCodes.push(code);
+    saveUsers();
+    return socket.emit('code-redeem-result',{ok:true,message:'Código "vi-o-nascimento-abyssal" resgatado! +60.000 moedas e skin lendária Enguia Elétrica!',account:publicUser(u),skinId:'electriceel',coinsAwarded:60000});
+  } else if(code==='abyssal10k'||code==='bemvindoabyssal'){
+    u.coins=(Number(u.coins)||0)+10000;
+    u.redeemedCodes.push(code);
+    saveUsers();
+    return socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u),coinsAwarded:10000});
+  } else {
+    return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
+  }
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;

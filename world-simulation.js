@@ -94,14 +94,17 @@ function forceAdvanceEnemy(enemy, players, dt) {
   return Math.hypot(x - oldX, y - oldY) >= 0.05;
 }
 
-function spawnEnemy(world, { type = 'common', initial = false, random = Math.random } = {}) {
+function spawnEnemy(world, options = {}) {
+  const { type = 'common', initial = false, random = Math.random } = options;
   if (!world || world.enemies.length >= MAX_ENEMIES) return null;
   const bosses = countBosses(world);
   if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
   if (type !== 'boss' && countCommons(world) >= MAX_COMMON_ENEMIES) return null;
 
   let kind;
-  if (type === 'boss') {
+  if (options.kindOverride) {
+    kind = options.kindOverride;
+  } else if (type === 'boss') {
     kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else kind = EnemyAI.chooseCommonKind(random);
@@ -284,6 +287,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         player.y = clamp(Number(player.y) + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
         playerSuctionPulls.push({ playerId: player.id, dx: pull.dx, dy: pull.dy, bossId: enemy.id, strength: pull.strength });
       }
+      continue;
+    }
+    if (enemy.paralyzedUntil && Date.now() < enemy.paralyzedUntil) {
       continue;
     }
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
