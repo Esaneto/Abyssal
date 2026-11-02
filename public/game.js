@@ -54,7 +54,7 @@ function discoverCodexSkill(skillId){
  codex.skills.push(id);scheduleCodexSave();
 }
 let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
-let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,botBuddyTimer=0;
+let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let sharkWakeTrails=[];
 const skinData=[
@@ -1224,8 +1224,9 @@ function applySharedMotion(data){
   enemy.interpFromX=current.x;enemy.interpFromY=current.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=duration;
   // Compact server packets don't carry velocity. Estimate it from authoritative
   // positions so RTT spikes don't make an enemy freeze between snapshots.
-  enemy.vx=clamp((tx-previousServerX)/(duration/1000),-220,220);
-  enemy.vy=clamp((ty-previousServerY)/(duration/1000),-220,220);
+  const maxV=(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss')?450:220;
+  enemy.vx=clamp((tx-previousServerX)/(duration/1000),-maxV,maxV);
+  enemy.vy=clamp((ty-previousServerY)/(duration/1000),-maxV,maxV);
   const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
   if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[3])||0);enemy.damageRevision=incomingRevision;}
   enemy.angle=Number(row[5])||0;enemy.phase=Number(row[6])||0;
@@ -1334,7 +1335,6 @@ function update(dt){
       for (const e of enemies) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)) {
           dealEnemyDamage(e, 2, 'pelagic-wake', { visual: false, silentSound: true });
-          e.poisonTimer = Math.max(e.poisonTimer || 0, 3.0);
           burst(e.x, e.y, '#7bf5ff', 3, 40);
         }
       }
@@ -1370,12 +1370,12 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  }
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:34,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:14,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
+  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:14,range:190,damage:30,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
   if(player.predatorAbilityTimer<=0){
    player.predatorAbilityTimer=cfg.cooldown;
    const angle=Number(player.angle)||0,range=cfg.range/GAME_WORLD_ZOOM;
-   if(equippedSkin!=='armoredgator')player.dashTime=.32;
+   if(equippedSkin==='abysscroc')player.dashTime=.32;
    const targets=enemies.filter(e=>{const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>range)return false;if(cfg.arc>=Math.PI)return true;const a=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(a-angle),Math.cos(a-angle));return Math.abs(delta)<=cfg.arc&&Math.abs(Math.sin(delta)*d)<=cfg.width/GAME_WORLD_ZOOM;}).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,8);
    const color=equippedSkin==='reefshark'?'#8bd8ec':equippedSkin==='abysscroc'?'#79bd83':'#c5a66e';
    burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});
@@ -1393,7 +1393,19 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
     }
 
-   for(const target of targets){dealEnemyDamage(target,cfg.damage,equippedSkin==='reefshark'?'reefshark-dash':equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});burst(target.x,target.y,color,7,90);}
+   for(const target of targets){
+     dealEnemyDamage(target,cfg.damage,equippedSkin==='reefshark'?'reefshark-dash':equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
+     burst(target.x,target.y,color,7,90);
+     if(equippedSkin==='armoredgator'){
+       const kdx=target.x-player.x,kdy=target.y-player.y;
+       const kdd=Math.hypot(kdx,kdy)||1;
+       const kbForce=130/GAME_WORLD_ZOOM;
+       target.x=clamp(target.x+(kdx/kdd)*kbForce,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
+       target.y=clamp(target.y+(kdy/kdd)*kbForce,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+       target.vx=(kdx/kdd)*280;
+       target.vy=(kdy/kdd)*280;
+     }
+   }
    showToast(equippedSkin==='reefshark'?'RASGO PELÁGICO':equippedSkin==='abysscroc'?'MORDIDA DE EMBOSCADA':'GIRO DO NILO');
   }
  }
@@ -1637,6 +1649,7 @@ function updateHud(force=true){
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
 function endGame(){
  if(gameState==='over'||gameState==='menu')return;
+ wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const earnedCoins=Math.max(5,Math.floor(score/35)+level*2);
  if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
@@ -2229,12 +2242,28 @@ function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:b
 function returnToMainMenu(){runResultPending=false;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
 $('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
 $('againBtn').addEventListener('click',()=>{
+ const shouldRestartOnline = wasOnlineModeOnDeath;
+ const proceedRestart = () => {
+   runResultPending = false;
+   if(shouldRestartOnline){
+     onlineMode = true;
+     $('gameOverScreen').hidden = true;
+     if(window.AbyssalOnline?.isAuthenticated?.()){
+       window.AbyssalOnline?.showRooms?.();
+     }else{
+       window.AbyssalOnline?.connectAndJoin?.();
+     }
+   }else{
+     onlineMode = false;
+     startGame();
+   }
+ };
  if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
-  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:false,onComplete:()=>{runResultPending=false;startGame();}});
+  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:false,onComplete:()=>proceedRestart()});
   if(sent)return;
  }
  if(runResultPending&&!window.AbyssalOnline?.isAuthenticated?.()&&!onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
- runResultPending=false;startGame();
+ proceedRestart();
 });
 $('menuBtn').addEventListener('click',()=>{
  if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
@@ -2355,9 +2384,9 @@ function renderShop(){
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${equipped?'disabled':''}>${equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
+const card=document.createElement('div');card.className='skin-card'+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${equipped?'disabled':''}>${equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
         updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
- const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];const remaining=bundleIds.filter(id=>!ownedSkins.includes(id)).length;const bundleBrlAmount=remaining===6?4999:999*remaining;const bundleAmount=shopCurrency==='brl'?bundleBrlAmount:Math.round(bundleBrlAmount*Number(shopRates[shopCurrency]||0));const bundleNames={leviathan:'Leviatã Cego',kraken:'Kraken do Abismo',aberration:'Máscara da Aberração',angler:'Lanterna Mortal',maw:'Mandíbula da Fenda',devourer:'Devorador do Vazio'};bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Pacote dos seis bosses</strong><p>Uma coleção abissal com artefatos vivos e animação exclusiva.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 skins restantes · ${remaining===6?'DESCONTO DO PACOTE COMPLETO':'preço individual das skins restantes'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'CONTEÚDO COMPLETO':`${english?'BUY BUNDLE':'COMPRAR PACOTE'} · ${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`}</button>`;bundle.querySelector('button').addEventListener('click',()=>{if(remaining)window.AbyssalOnline?.purchaseStripe('boss_bundle',shopCurrency,gameLanguage);});grid.appendChild(bundle);
+ const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];const remaining=bundleIds.filter(id=>!ownedSkins.includes(id)).length;const bundleBrlAmount=remaining===6?4999:999*remaining;const bundleAmount=shopCurrency==='brl'?bundleBrlAmount:Math.round(bundleBrlAmount*Number(shopRates[shopCurrency]||0));const bundleNames={leviathan:'Leviatã Cego',kraken:'Kraken do Abismo',aberration:'Máscara da Aberração',angler:'Lanterna Mortal',maw:'Mandíbula da Fenda',devourer:'Devorador do Vazio'};bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Pacote dos seis bosses</strong><p>Uma coleção abissal com artefatos vivos e animação exclusiva.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 skins restantes · ${remaining===6?'DESCONTO DO PACOTE COMPLETO':'preço individual das skins restantes'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'CONTEÚDO COMPLETO':`${english?'BUY BUNDLE':'COMPRAR PACOTE'} · ${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`}</button>`;bundle.querySelector('button').addEventListener('click',()=>{if(remaining)openSkinPurchaseConfirm('boss_bundle','Pacote dos Seis Bosses',`${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`,true);});grid.appendChild(bundle);
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();
 }
@@ -2365,6 +2394,51 @@ $('shopBtn').addEventListener('click',()=>{$('shopScreen').hidden=false;renderSh
 $('shopCurrency')?.addEventListener('change',event=>{event.target.value='brl';shopCurrency='brl';renderShop()});
 $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
+
+let pendingStripePurchase = null;
+function openSkinPurchaseConfirm(skin, currency, lang, isBundle = false) {
+  const modal = $('skinPurchaseConfirmModal');
+  if (!modal) {
+    window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);
+    return;
+  }
+  pendingStripePurchase = { skin, currency, lang, isBundle };
+  const desc = $('skinPurchaseConfirmDesc');
+  if (desc) {
+    desc.textContent = `Você está prestes a adquirir ${skin.name || 'este cosmético'} por ${skin.priceFormatted || ''}. Esta transação será realizada em ambiente seguro da Stripe e adicionará o cosmético permanentemente à sua conta.`;
+  }
+  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2'), confirmBtn = $('skinPurchaseConfirmBtn');
+  if (check1) check1.checked = false;
+  if (check2) check2.checked = false;
+  if (confirmBtn) confirmBtn.disabled = true;
+  modal.hidden = false;
+}
+function closeSkinPurchaseConfirm() {
+  const modal = $('skinPurchaseConfirmModal');
+  if (modal) modal.hidden = true;
+  pendingStripePurchase = null;
+}
+function updateSkinPurchaseBtn() {
+  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2'), confirmBtn = $('skinPurchaseConfirmBtn');
+  if (confirmBtn) confirmBtn.disabled = !(check1?.checked && check2?.checked);
+}
+$('skinBuyCheck1')?.addEventListener('change', updateSkinPurchaseBtn);
+$('skinBuyCheck2')?.addEventListener('change', updateSkinPurchaseBtn);
+$('skinPurchaseTopCloseBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
+$('skinPurchaseCancelBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
+$('skinPurchaseConfirmBtn')?.addEventListener('click', () => {
+  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2');
+  if (!check1?.checked || !check2?.checked) return;
+  const target = pendingStripePurchase;
+  closeSkinPurchaseConfirm();
+  if (target?.skin) {
+    const skin = target.skin;
+    window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);
+  }
+});
+$('skinPurchaseConfirmModal')?.addEventListener('click', (e) => {
+  if (e.target === $('skinPurchaseConfirmModal')) closeSkinPurchaseConfirm();
+});
 
 window.addEventListener('abyssal-payment-result',event=>{if(!event.detail?.ok)showToast(event.detail?.message||'PAGAMENTO INDISPONÍVEL');});
 const redeemCodeBtn=$('redeemCodeBtn');

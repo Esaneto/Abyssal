@@ -67,8 +67,9 @@
         return { x: fromX + (toX - fromX) * t, y: fromY + (toY - fromY) * t };
       }
       const extraSeconds = Math.min(MAX_EXTRAPOLATION_MS, elapsed - duration) / 1000;
-      const vx = clamp(Number(enemy.vx) || 0, -220, 220);
-      const vy = clamp(Number(enemy.vy) || 0, -220, 220);
+      const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 450 : 220;
+      const vx = clamp(Number(enemy.vx) || 0, -maxV, maxV);
+      const vy = clamp(Number(enemy.vy) || 0, -maxV, maxV);
       return { x: toX + vx * extraSeconds, y: toY + vy * extraSeconds };
     }
     if (Number.isFinite(toX) && Number.isFinite(toY)) return { x: toX, y: toY };
@@ -109,6 +110,7 @@
       const oldDamageRevision = Math.max(0, Number(old?.damageRevision) || 0);
       const incomingDamageRevision = Math.max(0, Number(raw.damageRevision) || 0);
       const preserveConfirmedHealth = Boolean(old && oldDamageRevision > incomingDamageRevision);
+      const maxV = (raw.kind === 'whiteShark' || raw.kind === 'whiteSharkBoss' || old?.kind === 'whiteShark' || old?.kind === 'whiteSharkBoss') ? 450 : 220;
       return {
         ...(old || {}), ...raw,
         hp: preserveConfirmedHealth ? old.hp : raw.hp,
@@ -118,8 +120,8 @@
         serverX, serverY,
         // Derive motion from consecutive authoritative samples. Compact motion packets
         // omit velocity, so without this delayed snapshots make sprites visibly stop.
-        vx: clamp(Number.isFinite(Number(raw.vx)) && Number(raw.vx) !== 0 ? Number(raw.vx) : measuredVx, -220, 220),
-        vy: clamp(Number.isFinite(Number(raw.vy)) && Number(raw.vy) !== 0 ? Number(raw.vy) : measuredVy, -220, 220),
+        vx: clamp(Number.isFinite(Number(raw.vx)) && Number(raw.vx) !== 0 ? Number(raw.vx) : measuredVx, -maxV, maxV),
+        vy: clamp(Number.isFinite(Number(raw.vy)) && Number(raw.vy) !== 0 ? Number(raw.vy) : measuredVy, -maxV, maxV),
         interpFromX: current.x, interpFromY: current.y,
         interpTargetX: serverX, interpTargetY: serverY,
         interpAt: now,

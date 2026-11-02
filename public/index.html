@@ -309,6 +309,29 @@
       </div>
     </section>
 
+    <section id="skinPurchaseConfirmModal" class="screen modal-screen" hidden>
+      <div class="modal-card compact-card" role="dialog" aria-modal="true" aria-labelledby="skinPurchaseConfirmTitle">
+        <button id="skinPurchaseTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar confirmação">×</button>
+        <div class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> CONFIRMAÇÃO DE COMPRA</div>
+        <h2 id="skinPurchaseConfirmTitle">CONFIRMAR<br><em>COMPRA</em></h2>
+        <p id="skinPurchaseConfirmDesc">Você está prestes a realizar uma compra em dinheiro real.</p>
+        <div class="confirm-checks" style="display:flex;flex-direction:column;gap:12px;margin:16px 0;text-align:left;font-size:13px;line-height:1.45;color:var(--text-dim, #c3d9e8);">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="skinBuyCheck1" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
+            <span>Li e concordo com os <a href="/terms.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Termos de Uso</a> e a <a href="/privacy.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Política de Privacidade</a> e assumo total responsabilidade por esta compra.</span>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+            <input type="checkbox" id="skinBuyCheck2" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
+            <span>Confirmo que tenho 18 anos e/ou estou autorizado pelo meu responsavel a realizar está compra.</span>
+          </label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button id="skinPurchaseConfirmBtn" class="primary-btn" type="button" disabled>CONFIRMAR COMPRA ↗</button>
+          <button id="skinPurchaseCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
+        </div>
+      </div>
+    </section>
+
     <section id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen" hidden>
       <div class="modal-card redeem-modal-card" role="dialog" aria-modal="true" aria-labelledby="redeemCodeTitle">
         <button id="redeemCodeCloseBtn" class="redeem-close-btn" type="button" aria-label="Fechar janela">×</button>
