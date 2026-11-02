@@ -2417,6 +2417,7 @@ window.addEventListener('abyssal-world-defeated-batch',ev=>{
   const x=Number(enemy.x)||W*.5,y=Number(enemy.y)||H*.5;
   burst(x,y,enemy.color||'#8ffff4',boss?(enemy.kind==='kraken'?8:7):2,boss?190:65);
  }
+ if(bossCount&&onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated();}
  if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
  audio(bossCount?180:260,.08,'triangle',.025);updateHud();
 });
