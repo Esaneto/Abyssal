@@ -2336,3 +2336,21 @@ body.mobile-game-active .hud-toggle-btn{
   from { transform: scale(0); }
   to   { transform: scale(1); }
 }
+
+
+/* Abyssal: controles Q/E centralizados na parte inferior em PC e mobile. */
+body.game-active #activeAbilities.active-abilities,
+body.mobile-game-active #activeAbilities.active-abilities {
+  position:absolute!important;top:auto!important;left:50%!important;right:auto!important;
+  bottom:max(14px,env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important;
+  width:max-content!important;max-width:calc(100% - 24px)!important;display:flex!important;
+  flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:8px!important;z-index:35!important;
+}
+body.game-active #activeAbilities .active-ability,
+body.mobile-game-active #activeAbilities .active-ability {
+  width:auto!important;min-width:108px!important;max-width:min(42vw,190px)!important;white-space:nowrap!important;
+}
+@media(max-width:700px) {
+  body.mobile-game-active #activeAbilities.active-abilities {bottom:max(12px,env(safe-area-inset-bottom))!important;gap:6px!important;}
+  body.mobile-game-active #activeAbilities .active-ability {min-width:0!important;min-height:38px!important;padding:7px 9px!important;font-size:7px!important;}
+}
