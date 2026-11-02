@@ -2310,9 +2310,11 @@ body.mobile-game-active .hud-toggle-btn{
   width: calc(100% - 32px);
 }
 .notif-clear-all:hover { background: rgba(255, 40, 60, 0.22); }
-/* Badge de sino */
+/* Indicador de notificações: bolinha vermelha sobreposta ao sino */
 #notifBtn {
-  position: relative;
+  position: relative !important;
+  overflow: visible !important;
+  isolation: isolate;
   transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
 }
 #notifBtn:hover {
@@ -2320,34 +2322,28 @@ body.mobile-game-active .hud-toggle-btn{
   border-color: var(--cyan, #79f3f0);
   box-shadow: 0 0 15px rgba(121, 243, 240, 0.4);
 }
-.notification-badge-dot {
+#notifBtn.has-unread::after {
+  content: "";
   position: absolute;
   top: -4px;
-  right: -3px;
-  z-index: 999;
+  right: -4px;
+  z-index: 2147483647;
   display: block;
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
+  box-sizing: border-box;
   border: 2px solid #fff;
   border-radius: 50%;
   background: #ff1744;
-  box-shadow: 0 0 0 2px rgba(255, 23, 68, .3), 0 0 12px #ff1744;
+  box-shadow: 0 0 0 2px rgba(255, 23, 68, .32), 0 0 12px #ff1744;
   pointer-events: none;
-  animation: badgePop 0.4s cubic-bezier(0.18,0.89,0.32,1.28);
+  transform-origin: center;
+  animation: notifBadgePop 0.4s cubic-bezier(0.18,0.89,0.32,1.28);
 }
-#notifBtn {
-  position: relative;
-  overflow: visible;
-  isolation: isolate;
-}
-#notifBtn .notification-badge-dot {
-  position: absolute;
-  top: -4px;
-  right: -3px;
-  z-index: 9999;
-}
-@keyframes badgePop {
+@keyframes notifBadgePop {
   from { transform: scale(0); }
+  to { transform: scale(1); }
+}
   to   { transform: scale(1); }
 }
 
