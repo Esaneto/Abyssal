@@ -387,7 +387,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     enemy.attackCd = attackInterval;
     if ((Number(target.invulnerableUntil) || 0) > now) continue;
 
-    let appliedDamage = 0, blocked = false;
+    let appliedDamage = 0, blocked = false, aberrationEchoTriggered = false;
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
     if (shieldCharges > 0) {
       target.shieldCharges = shieldCharges - 1;
@@ -403,9 +403,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
       if (target.skinId === 'aberration' && !target.aberrationEchoUsed) {
         target.aberrationEchoUsed = true;
+        aberrationEchoTriggered = true;
         const radius = 210 / WORLD_ZOOM;
         for (const nearby of world.enemies) {
-          if (!nearby || nearby.id === enemy.id) continue;
+          if (!nearby) continue;
           const dx = Number(nearby.x) - Number(target.x), dy = Number(nearby.y) - Number(target.y), d = Math.hypot(dx, dy);
           if (d > 0.001 && d <= radius) {
             const push = Math.min(95 / WORLD_ZOOM, (radius - d) * 0.62 + 24 / WORLD_ZOOM);
@@ -428,7 +429,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, aberrationEchoTriggered, hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
