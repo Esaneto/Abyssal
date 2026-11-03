@@ -16,7 +16,7 @@ const fmtTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.
 function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[character]));}
 const GAME_WORLD_ZOOM=.78;
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
-let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
+let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
 const RESONANCE_STORAGE_KEY='abyssalResonancePresets';
 const RESONANCE_CATEGORIES={
@@ -463,7 +463,7 @@ function initVolumeControls() {
         soundBtn.textContent = val > 0.4 ? '🔊' : val > 0 ? '🔉' : '🔇';
       }
       if (ambientNodes?.master?.gain) {
-        ambientNodes.master.gain.value = 0.08 * masterSoundVolume;
+        ambientNodes.master.gain.value = 0.045 * masterSoundVolume;
       }
       window.AbyssalMasterVolume = masterSoundVolume;
     });
@@ -477,8 +477,14 @@ function initVolumeControls() {
 }
 window.AbyssalMasterVolume = masterSoundVolume;
 
-function startAmbientMusic(){if(!soundOn||ambientNodes)return;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const master=audioCtx.createGain();master.gain.value=0.08 * (masterSoundVolume || 0.8);master.connect(audioCtx.destination);const low=audioCtx.createOscillator(),high=audioCtx.createOscillator(),lfo=audioCtx.createOscillator(),lfoGain=audioCtx.createGain(),filter=audioCtx.createBiquadFilter();low.type='sine';low.frequency.value=43;high.type='triangle';high.frequency.value=67;filter.type='lowpass';filter.frequency.value=260;lfo.type='sine';lfo.frequency.value=.08;lfoGain.gain.value=65;lfo.connect(lfoGain);lfoGain.connect(filter.frequency);low.connect(filter);high.connect(filter);filter.connect(master);low.start();high.start();lfo.start();ambientNodes={master,low,high,lfo,filter};}catch(e){console.warn('Áudio ambiente indisponível',e)}}
-function stopAmbientMusic(){if(!ambientNodes)return;try{ambientNodes.master.gain.setTargetAtTime(0,audioCtx.currentTime,.25);setTimeout(()=>{try{ambientNodes.low.stop();ambientNodes.high.stop();ambientNodes.lfo.stop()}catch(e){}ambientNodes=null},800)}catch(e){ambientNodes=null}}
+function startAmbientMusic(){if(!soundOn||ambientNodes)return;try{
+ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();
+ const master=audioCtx.createGain();master.gain.value=.045*(masterSoundVolume||.8);master.connect(audioCtx.destination);
+ // Percussive procedural tension bed: short filtered pulses with silence between them, no continuous oscillator hum.
+ const timer=setInterval(()=>{if(!ambientNodes||!soundOn||!audioCtx)return;const now=audioCtx.currentTime,o=audioCtx.createOscillator(),gain=audioCtx.createGain(),filter=audioCtx.createBiquadFilter();o.type='triangle';o.frequency.setValueAtTime(72+Math.random()*22,now);o.frequency.exponentialRampToValueAtTime(42,now+.18);filter.type='bandpass';filter.frequency.value=145;filter.Q.value=1.3;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.10,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+.22);o.connect(filter);filter.connect(gain);gain.connect(master);o.start(now);o.stop(now+.24);},760);
+ ambientNodes={master,timer};
+}catch(e){console.warn('Áudio ambiente indisponível',e)}}
+function stopAmbientMusic(){if(!ambientNodes)return;try{clearInterval(ambientNodes.timer);ambientNodes.master.gain.setTargetAtTime(0,audioCtx.currentTime,.08);setTimeout(()=>{try{ambientNodes.master.disconnect()}catch(_){}ambientNodes=null},300)}catch(e){ambientNodes=null}}
 function audio(f=440,d=.07,type='sine',vol=.025){
  if(!soundOn)return;
  try{
@@ -1177,6 +1183,22 @@ function gainXp(value, source='shared'){
  }
  updateHud();
 }
+function damageTone(skillId=''){
+ const id=String(skillId||'').toLowerCase();
+ if(id.includes('poison')||id.includes('toxic')||id.includes('venom')||id.includes('greensnake'))return 'poison';
+ if(id.includes('electric')||id.includes('arc')||id.includes('ricochet'))return 'energy';
+ return 'physical';
+}
+function spawnDamageNumber(x,y,amount,tone='physical'){
+ const value=Math.max(0,Number(amount)||0);if(!value||!Number.isFinite(x)||!Number.isFinite(y))return;
+ damageNumbers.push({x,y,value:Math.max(1,Math.round(value)),tone,life:2,maxLife:2,driftX:(Math.random()-.5)*12/GAME_WORLD_ZOOM});
+ if(damageNumbers.length>180)damageNumbers.splice(0,damageNumbers.length-180);
+}
+function spawnBloodPool(x,y,r=18/GAME_WORLD_ZOOM){
+ if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ bloodPools.push({x,y,r:Math.max(14/GAME_WORLD_ZOOM,Number(r)||0),life:5,maxLife:5});
+ if(bloodPools.length>40)bloodPools.shift();
+}
 function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   score += Math.round(damage);
  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
@@ -1202,7 +1224,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=SkinAbilities?.damageMultiplier(equippedSkin,enemy.kind,distance,hp/maxHp)||1,closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1;
- enemy.hp-=damage*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*closeMultiplier*multiplier; enemy.hit=.14;
+ const appliedDamage=damage*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
 }
 function flushOnlineDamageBatch(){
@@ -2641,6 +2663,7 @@ function applyWorldEnemyDamage(data){
  if(Number.isFinite(Number(data.maxHp)))enemy.maxHp=Number(data.maxHp);
  if(Number.isFinite(Number(data.damageRevision)))enemy.damageRevision=Math.max(Number(enemy.damageRevision)||0,Number(data.damageRevision));
  enemy.hit=.16;
+ if(Number(data.damage)>0)spawnDamageNumber(Number(data.enemyX)||enemy.x,Number(data.enemyY)||enemy.y,Number(data.damage),damageTone(data.skillId));
 }
 window.addEventListener('abyssal-player-vitals',ev=>applyOnlinePlayerVitals(ev.detail));
 window.addEventListener('abyssal-world-damaged',ev=>applyWorldEnemyDamage(ev.detail));
