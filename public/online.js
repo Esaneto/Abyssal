@@ -407,7 +407,7 @@ function startPositionHeartbeat(){
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   if(!latestPositionPayload)return;
-  const now=performance.now();if(now-lastPositionAt<60)return;
+  const now=performance.now();if(now-lastPositionAt<1000/60-1)return;
   const payload={...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()};
   lastPositionAt=now;positionPacketsSent++;positionPacketInFlight=false;
   socket.volatile.emit('player-position',payload,(result)=>{
@@ -415,7 +415,7 @@ function startPositionHeartbeat(){
    if(result?.ok){positionAckAt=Date.now();positionAckErrors=0;}
    else{positionAckErrors++;if(positionAckErrors===3)window.dispatchEvent(new CustomEvent('abyssal-position-stream-warning',{detail:{errors:positionAckErrors,ageMs:positionAckAt?Date.now()-positionAckAt:null}}));}
   });
- },80);
+ },1000/60);
 }
 function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
