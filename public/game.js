@@ -476,7 +476,7 @@ function initVolumeControls() {
     musicSlider.addEventListener('input',e=>{
       musicVolume=Number(e.target.value)/100;localStorage.setItem('abyssalMusicVolume',String(musicVolume));
       if(musicLabel)musicLabel.textContent=e.target.value+'%';
-      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.52*musicVolume;
+      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.34*musicVolume;
       if(window.AbyssalMusicTrack)window.AbyssalMusicTrack.volume=musicVolume;
       window.AbyssalMusicVolume=musicVolume;
     });
@@ -508,48 +508,48 @@ function createAbyssalNoiseBuffer(ctx,duration=2){
 }
 function abyssalMusicVoice(freq,duration,volume,type='sine',detune=0,delay=0){
  if(!ambientNodes||!audioCtx||musicVolume<=0)return;
- const now=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
- o.type=type;o.frequency.setValueAtTime(freq,now);o.detune.value=detune;f.type='lowpass';f.frequency.value=420+ambientNodes.intensity*680;f.Q.value=.7;
- g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),now+.08);g.gain.exponentialRampToValueAtTime(.0001,now+duration);
- o.connect(f);f.connect(g);g.connect(ambientNodes.musicBus);o.start(now);o.stop(now+duration+.04);
+ const now=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter(),pan=audioCtx.createStereoPanner?.();
+ o.type=type;o.frequency.setValueAtTime(freq,now);o.detune.value=detune;
+ f.type='lowpass';f.frequency.value=900+ambientNodes.intensity*900;f.Q.value=.45;
+ g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),now+.28);g.gain.exponentialRampToValueAtTime(.0001,now+duration);
+ o.connect(f);f.connect(g);if(pan){pan.pan.value=Math.sin(freq*.013)*.42;g.connect(pan);pan.connect(ambientNodes.musicBus)}else g.connect(ambientNodes.musicBus);
+ o.start(now);o.stop(now+duration+.08);
 }
 function abyssalMusicPulse(intensity){
  if(!ambientNodes||!audioCtx)return;
- const roots=[110.00,123.47,130.81,146.83],root=roots[ambientNodes.bar%roots.length],boss=intensity>.9;
- abyssalMusicVoice(root,boss?.72:1.35,.09,'triangle',0);
- if(ambientNodes.bar%2===0)abyssalMusicVoice(root*1.5,1.8,.04,'sine',boss?-8:5,.12);
- if(intensity>.34){abyssalMusicVoice(root*2,boss?.24:.38,.026,'triangle',Math.sin(ambientNodes.bar)*7,.08);abyssalMusicVoice(root*3,boss?.16:.28,.012,'sine',-11,.26);}
- if(intensity>.68){for(let i=0;i<(boss?4:2);i++)abyssalMusicVoice(root*(i%2?2:1),.11,.016,'square',0,.18+i*(boss?.18:.32));}
- if(boss){abyssalMusicVoice(29.14,1.4,.065,'sawtooth',-12);abyssalMusicVoice(58.27,.85,.022,'triangle',9,.36);}
+ const progressions=[[110,130.81,164.81],[98,123.47,146.83],[87.31,110,130.81],[98,116.54,146.83]];
+ const chord=progressions[ambientNodes.bar%progressions.length],boss=intensity>.9;
+ chord.forEach((freq,i)=>abyssalMusicVoice(freq*(i===0?1:2),boss?1.8:3.8,boss?.018:.013,'sine',(i-1)*4,i*.16));
+ const melody=[329.63,293.66,261.63,220,246.94,293.66,261.63,196];
+ const note=melody[ambientNodes.bar%melody.length];
+ abyssalMusicVoice(note,boss?.7:1.65,boss?.026:.018,'sine',Math.sin(ambientNodes.bar)*5,.55);
+ if(ambientNodes.bar%2===0)abyssalMusicVoice(note*1.5,.9,.008,'triangle',7,1.15);
+ if(intensity>.62){abyssalMusicVoice(chord[0]*2,.42,.013,'triangle',0,.25);abyssalMusicVoice(chord[0]*3,.32,.009,'sine',0,.78);}
+ if(boss){abyssalMusicVoice(146.83,.34,.018,'triangle',-9,.12);abyssalMusicVoice(174.61,.34,.016,'triangle',8,.62);}
  ambientNodes.bar++;
 }
 function updateAbyssalMusic(){
  if(!ambientNodes||!audioCtx)return;
- const target=getAbyssalMusicIntensity();ambientNodes.intensity+=(target-ambientNodes.intensity)*.22;
+ const target=getAbyssalMusicIntensity();ambientNodes.intensity+=(target-ambientNodes.intensity)*.18;
  const now=audioCtx.currentTime;
- ambientNodes.master.gain.setTargetAtTime(.52*musicVolume,now,.18);
- ambientNodes.droneGain.gain.setTargetAtTime(.045+.035*ambientNodes.intensity,now,.8);
- ambientNodes.noiseGain.gain.setTargetAtTime(.012+.018*ambientNodes.intensity,now,1.2);
- ambientNodes.droneFilter.frequency.setTargetAtTime(310+ambientNodes.intensity*260,now,.7);
- const interval=ambientNodes.intensity>.9?520:ambientNodes.intensity>.62?690:ambientNodes.intensity>.32?920:1320;
+ ambientNodes.master.gain.setTargetAtTime(.34*musicVolume,now,.25);
+ ambientNodes.waterGain.gain.setTargetAtTime(.0025+.0025*ambientNodes.intensity,now,1.5);
+ const interval=ambientNodes.intensity>.9?1500:ambientNodes.intensity>.62?1900:ambientNodes.intensity>.32?2400:3200;
  if(performance.now()-ambientNodes.lastPulse>=interval){ambientNodes.lastPulse=performance.now();abyssalMusicPulse(ambientNodes.intensity);}
 }
 async function startAmbientMusic(){if(!soundOn)return;try{
  audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')await audioCtx.resume();if(audioCtx.state!=='running')return false;if(ambientNodes)return true;
- const master=audioCtx.createGain(),musicBus=audioCtx.createGain(),compressor=audioCtx.createDynamicsCompressor();master.gain.value=.52*musicVolume;musicBus.gain.value=1;compressor.threshold.value=-24;compressor.knee.value=18;compressor.ratio.value=4;compressor.attack.value=.01;compressor.release.value=.28;musicBus.connect(compressor);compressor.connect(master);master.connect(audioCtx.destination);
- const droneGain=audioCtx.createGain(),droneFilter=audioCtx.createBiquadFilter();droneGain.gain.value=.045;droneFilter.type='lowpass';droneFilter.frequency.value=260;droneFilter.Q.value=.9;droneGain.connect(droneFilter);droneFilter.connect(musicBus);
- const drones=[82.41,123.47,164.81].map((freq,i)=>{const o=audioCtx.createOscillator();o.type=i===0?'triangle':'sine';o.frequency.value=freq;o.detune.value=i===1?7:i===2?-9:-5;o.connect(droneGain);o.start();return o;});
- const noise=audioCtx.createBufferSource(),noiseFilter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=createAbyssalNoiseBuffer(audioCtx,2.4);noise.loop=true;noiseFilter.type='bandpass';noiseFilter.frequency.value=240;noiseFilter.Q.value=.55;noiseGain.gain.value=.004;noise.connect(noiseFilter);noiseFilter.connect(noiseGain);noiseGain.connect(musicBus);noise.start();
- ambientNodes={master,musicBus,compressor,droneGain,droneFilter,drones,noise,noiseGain,intensity:.12,lastPulse:0,bar:0};
+ const master=audioCtx.createGain(),musicBus=audioCtx.createGain(),compressor=audioCtx.createDynamicsCompressor();
+ master.gain.value=.34*musicVolume;musicBus.gain.value=1;compressor.threshold.value=-18;compressor.knee.value=14;compressor.ratio.value=2.2;compressor.attack.value=.02;compressor.release.value=.45;musicBus.connect(compressor);compressor.connect(master);master.connect(audioCtx.destination);
+ const water=audioCtx.createBufferSource(),waterFilter=audioCtx.createBiquadFilter(),waterGain=audioCtx.createGain();
+ water.buffer=createAbyssalNoiseBuffer(audioCtx,3.6);water.loop=true;waterFilter.type='bandpass';waterFilter.frequency.value=1150;waterFilter.Q.value=.22;waterGain.gain.value=.0025;water.connect(waterFilter);waterFilter.connect(waterGain);waterGain.connect(musicBus);water.start();
+ ambientNodes={master,musicBus,compressor,water,waterGain,intensity:.12,lastPulse:0,bar:0};
  abyssalMusicPulse(.12);return true;
 }catch(e){console.warn('Trilha procedural indisponível',e);return false}}
-function unlockAbyssalAudioFromGesture(){
- if(!soundOn)return;
- startAmbientMusic();
-}
+function unlockAbyssalAudioFromGesture(){if(!soundOn)return;startAmbientMusic();}
 ['pointerdown','keydown','touchstart'].forEach(type=>window.addEventListener(type,unlockAbyssalAudioFromGesture,{once:true,passive:true}));
 function stopAmbientMusic(){if(!ambientNodes)return;try{
- const nodes=ambientNodes;nodes.master.gain.setTargetAtTime(.0001,audioCtx.currentTime,.12);setTimeout(()=>{try{nodes.drones?.forEach(o=>o.stop());nodes.noise?.stop();nodes.master.disconnect();}catch(_){}if(ambientNodes===nodes)ambientNodes=null;},420);
+ const nodes=ambientNodes;nodes.master.gain.setTargetAtTime(.0001,audioCtx.currentTime,.18);setTimeout(()=>{try{nodes.water?.stop();nodes.master.disconnect();}catch(_){}if(ambientNodes===nodes)ambientNodes=null;},520);
 }catch(e){ambientNodes=null}}
 function audio(f=440,d=.07,type='sine',vol=.025){
  if(!soundOn)return;
