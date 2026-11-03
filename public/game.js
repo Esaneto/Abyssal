@@ -476,7 +476,7 @@ function initVolumeControls() {
     musicSlider.addEventListener('input',e=>{
       musicVolume=Number(e.target.value)/100;localStorage.setItem('abyssalMusicVolume',String(musicVolume));
       if(musicLabel)musicLabel.textContent=e.target.value+'%';
-      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.055*musicVolume;
+      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.42*musicVolume;
       if(window.AbyssalMusicTrack)window.AbyssalMusicTrack.volume=musicVolume;
       window.AbyssalMusicVolume=musicVolume;
     });
@@ -513,9 +513,9 @@ function abyssalMusicVoice(freq,duration,volume,type='sine',detune=0,delay=0){
 }
 function abyssalMusicPulse(intensity){
  if(!ambientNodes||!audioCtx)return;
- const roots=[36.71,41.20,43.65,49.00],root=roots[ambientNodes.bar%roots.length],boss=intensity>.9;
- abyssalMusicVoice(root,boss?.72:1.35,.055,'triangle',0);
- if(ambientNodes.bar%2===0)abyssalMusicVoice(root*1.5,1.8,.018,'sine',boss?-8:5,.12);
+ const roots=[55.00,61.74,65.41,73.42],root=roots[ambientNodes.bar%roots.length],boss=intensity>.9;
+ abyssalMusicVoice(root,boss?.72:1.35,.09,'triangle',0);
+ if(ambientNodes.bar%2===0)abyssalMusicVoice(root*1.5,1.8,.04,'sine',boss?-8:5,.12);
  if(intensity>.34){abyssalMusicVoice(root*2,boss?.24:.38,.026,'triangle',Math.sin(ambientNodes.bar)*7,.08);abyssalMusicVoice(root*3,boss?.16:.28,.012,'sine',-11,.26);}
  if(intensity>.68){for(let i=0;i<(boss?4:2);i++)abyssalMusicVoice(root*(i%2?2:1),.11,.016,'square',0,.18+i*(boss?.18:.32));}
  if(boss){abyssalMusicVoice(29.14,1.4,.065,'sawtooth',-12);abyssalMusicVoice(58.27,.85,.022,'triangle',9,.36);}
@@ -525,19 +525,19 @@ function updateAbyssalMusic(){
  if(!ambientNodes||!audioCtx)return;
  const target=getAbyssalMusicIntensity();ambientNodes.intensity+=(target-ambientNodes.intensity)*.22;
  const now=audioCtx.currentTime;
- ambientNodes.master.gain.setTargetAtTime(.055*musicVolume,now,.18);
- ambientNodes.droneGain.gain.setTargetAtTime(.014+.022*ambientNodes.intensity,now,.8);
- ambientNodes.noiseGain.gain.setTargetAtTime(.004+.012*ambientNodes.intensity,now,1.2);
+ ambientNodes.master.gain.setTargetAtTime(.42*musicVolume,now,.18);
+ ambientNodes.droneGain.gain.setTargetAtTime(.045+.035*ambientNodes.intensity,now,.8);
+ ambientNodes.noiseGain.gain.setTargetAtTime(.012+.018*ambientNodes.intensity,now,1.2);
  ambientNodes.droneFilter.frequency.setTargetAtTime(105+ambientNodes.intensity*150,now,.7);
  const interval=ambientNodes.intensity>.9?520:ambientNodes.intensity>.62?690:ambientNodes.intensity>.32?920:1320;
  if(performance.now()-ambientNodes.lastPulse>=interval){ambientNodes.lastPulse=performance.now();abyssalMusicPulse(ambientNodes.intensity);}
 }
 async function startAmbientMusic(){if(!soundOn)return;try{
  audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')await audioCtx.resume();if(audioCtx.state!=='running')return false;if(ambientNodes)return true;
- const master=audioCtx.createGain(),musicBus=audioCtx.createGain();master.gain.value=.055*musicVolume;musicBus.gain.value=1;musicBus.connect(master);master.connect(audioCtx.destination);
- const droneGain=audioCtx.createGain(),droneFilter=audioCtx.createBiquadFilter();droneGain.gain.value=.014;droneFilter.type='lowpass';droneFilter.frequency.value=115;droneFilter.Q.value=.9;droneGain.connect(droneFilter);droneFilter.connect(musicBus);
- const drones=[27.5,41.2].map((freq,i)=>{const o=audioCtx.createOscillator();o.type=i?'sine':'triangle';o.frequency.value=freq;o.detune.value=i?7:-5;o.connect(droneGain);o.start();return o;});
- const noise=audioCtx.createBufferSource(),noiseFilter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=createAbyssalNoiseBuffer(audioCtx,2.4);noise.loop=true;noiseFilter.type='bandpass';noiseFilter.frequency.value=165;noiseFilter.Q.value=.55;noiseGain.gain.value=.004;noise.connect(noiseFilter);noiseFilter.connect(noiseGain);noiseGain.connect(musicBus);noise.start();
+ const master=audioCtx.createGain(),musicBus=audioCtx.createGain();master.gain.value=.42*musicVolume;musicBus.gain.value=1;musicBus.connect(master);master.connect(audioCtx.destination);
+ const droneGain=audioCtx.createGain(),droneFilter=audioCtx.createBiquadFilter();droneGain.gain.value=.045;droneFilter.type='lowpass';droneFilter.frequency.value=260;droneFilter.Q.value=.9;droneGain.connect(droneFilter);droneFilter.connect(musicBus);
+ const drones=[41.2,82.41,123.47].map((freq,i)=>{const o=audioCtx.createOscillator();o.type=i===0?'triangle':'sine';o.frequency.value=freq;o.detune.value=i===1?7:i===2?-9:-5;o.connect(droneGain);o.start();return o;});
+ const noise=audioCtx.createBufferSource(),noiseFilter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=createAbyssalNoiseBuffer(audioCtx,2.4);noise.loop=true;noiseFilter.type='bandpass';noiseFilter.frequency.value=240;noiseFilter.Q.value=.55;noiseGain.gain.value=.004;noise.connect(noiseFilter);noiseFilter.connect(noiseGain);noiseGain.connect(musicBus);noise.start();
  ambientNodes={master,musicBus,droneGain,droneFilter,drones,noise,noiseGain,intensity:.12,lastPulse:0,bar:0};
  abyssalMusicPulse(.12);return true;
 }catch(e){console.warn('Trilha procedural indisponível',e);return false}}
