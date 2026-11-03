@@ -2211,14 +2211,12 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(kind==='kraken'){
   for(let arm=0;arm<8;arm++){const phase=(Number(t)||0)*.0015+(Number(x)+Number(y))*.0002;const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,phase)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
   fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(132,247,223,.88)',Math.max(1.5,r*.06),14);
-  for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#ff203f';c.shadowBlur=12*glowScale;c.shadowColor='#ff1b42';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.09,r*.13,side*-.16,0,Math.PI*2);c.fill();c.restore();}
-  c.save();c.fillStyle='#020309';c.strokeStyle='rgba(150,26,54,.9)';c.lineWidth=Math.max(1,r*.03);c.beginPath();c.moveTo(-.42*r,.03*r);c.quadraticCurveTo(0,.32*r,.45*r,.015*r);c.quadraticCurveTo(.35*r,.42*r,0,.38*r);c.quadraticCurveTo(-.32*r,.37*r,-.42*r,.03*r);c.closePath();c.fill();c.stroke();c.fillStyle='#e9d5c9';for(let tooth=0;tooth<9;tooth++){const tx=(-.36+tooth*.09)*r,ty=(.12+Math.sin(tooth*.7)*.045)*r;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx+r*.035,ty+r*.12);c.lineTo(tx+r*.07,ty+r*.01);c.closePath();c.fill();}c.restore();
- } else if(kind==='kraken'){
-  // The boss uses the same eight animated, tapered tentacles as the player skin.
-  for(let arm=0;arm<8;arm++){
-   const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.44,sy:.25,c1x:.65,c1y:.65,c2x:Math.cos(arm*Math.PI/4)*1.42,c2y:1.1,ex:Math.cos(arm*Math.PI/4)*2.1,ey:Math.sin(arm*Math.PI/4)*2.1};
-   krakenArm(pose,arm,t);
-  }
+  // Recognizable cephalopod head: frontal giant eyes, head collar and a hard central beak.
+  fill(()=>{c.ellipse(0,-.08*r,.68*r,.52*r,0,0,Math.PI*2)},bodyGrad('#533080'),'rgba(201,169,255,.9)',Math.max(1.2,r*.045),12);
+  for(let side of [-1,1]){fill(()=>{c.ellipse(side*.29*r,-.16*r,.17*r,.14*r,side*.06,0,Math.PI*2)},'#eee4ff','#fffaff',Math.max(1,r*.028),8);fill(()=>{c.ellipse(side*.29*r,-.16*r,.07*r,.105*r,0,0,Math.PI*2)},'#120821','#b38cff',Math.max(.8,r*.018),7);}
+  fill(()=>{c.moveTo(-.16*r,.12*r);c.lineTo(0,-.06*r);c.lineTo(.16*r,.12*r);c.lineTo(0,.36*r);c.closePath()},'#10080e','#d7b58d',Math.max(1.1,r*.035),5);
+  for(let i=0;i<10;i++){const a=i*Math.PI/5;c.save();c.fillStyle='rgba(222,199,255,.82)';c.beginPath();c.arc(Math.cos(a)*.43*r,(.31+Math.sin(a)*.14)*r,Math.max(1.3,r*.032),0,Math.PI*2);c.fill();c.restore();}
+ }
   fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad('#8b5cf6'),'rgba(196,164,255,.9)',Math.max(1.2,r*.06),15);
   for(let side of [-1,1]){c.save();c.fillStyle='#d9c7ff';c.shadowBlur=13*glowScale;c.shadowColor='#a855f7';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.075,r*.12,side*-.16,0,Math.PI*2);c.fill();c.restore();}
   c.save();c.fillStyle='rgba(1,1,10,.98)';c.strokeStyle='rgba(167,139,250,.85)';c.lineWidth=Math.max(1,r*.025);c.beginPath();c.ellipse(0,.2*r,.22*r,.105*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();
