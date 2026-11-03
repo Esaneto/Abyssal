@@ -90,7 +90,7 @@ const skinData=[
 {id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000,paid:true,shape:'kraken',desc:'Uma entidade das fossas com oito tentáculos robustos, pontas afiadas e olhos violeta que emergem da escuridão.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
+{id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma entidade translúcida das fossas, com manto vítreo, núcleo visceral, oito tentáculos e olhos vermelhos que brilham na escuridão.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Máscara da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'A carapaça óssea e os apêndices curvos da primeira entidade colossal.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
  {id:'angler',name:'Lanterna Mortal',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'A isca incandescente e a mandíbula de agulhas do peixe-pescador abissal.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
  {id:'maw',name:'Mandíbula da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Uma boca circular de dentes radiais, cercada por filamentos de caça.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
@@ -2105,13 +2105,17 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
   if(id==='kraken'){
-    // Colossal cephalopod: huge animated arms dominate the silhouette and visibly sweep the water.
+    // Glass-octopus inspired Kraken: translucent mantle, visible core, red eyes and an unsettling grin.
     for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.42,sy:.18,c1x:Math.cos(arm*Math.PI/4)*1.0,c1y:Math.sin(arm*Math.PI/4)*1.0,c2x:Math.cos(arm*Math.PI/4)*2.2,c2y:Math.sin(arm*Math.PI/4)*2.2,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
-    fill(()=>{c.moveTo(-.62*r,-.12*r);c.bezierCurveTo(-.78*r,-.72*r,-.48*r,-1.34*r,0,-1.48*r);c.bezierCurveTo(.48*r,-1.34*r,.78*r,-.72*r,.62*r,-.12*r);c.quadraticCurveTo(.48*r,.12*r,0,.18*r);c.quadraticCurveTo(-.48*r,.12*r,-.62*r,-.12*r);c.closePath()},bodyGrad('#5934a4'),'rgba(205,174,255,.94)',Math.max(1.4,r*.065),18);
-    fill(()=>{c.ellipse(0,.18*r,.72*r,.52*r,0,0,Math.PI*2)},bodyGrad('#382067'),'#bca3f7',Math.max(1.2,r*.045),12);
-    for(let side of [-1,1]){fill(()=>{c.ellipse(side*.31*r,.08*r,.18*r,.15*r,side*.08,0,Math.PI*2)},'#e8dcff','#fff7ff',Math.max(1,r*.03),8);fill(()=>{c.ellipse(side*.31*r,.08*r,.075*r,.11*r,0,0,Math.PI*2)},'#160a2a','#9b78ff',Math.max(.8,r*.02),8);}
-    fill(()=>{c.moveTo(-.14*r,.23*r);c.lineTo(0,.04*r);c.lineTo(.14*r,.23*r);c.lineTo(0,.43*r);c.closePath()},'#160a12','#e1c7a0',Math.max(1,r*.035),5);
-    for(let i=0;i<8;i++){const a=i*Math.PI/4;c.save();c.fillStyle='rgba(226,205,255,.8)';c.beginPath();c.arc(Math.cos(a)*.42*r,(.34+Math.sin(a)*.12)*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();c.restore();}
+    const glass=c.createRadialGradient(-.24*r,-.62*r,.04*r,.02*r,-.34*r,1.25*r);glass.addColorStop(0,'rgba(226,250,255,.74)');glass.addColorStop(.2,'rgba(105,190,224,.42)');glass.addColorStop(.62,'rgba(24,88,137,.28)');glass.addColorStop(1,'rgba(3,25,51,.58)');
+    fill(()=>{c.moveTo(-.72*r,-.08*r);c.bezierCurveTo(-.88*r,-.72*r,-.56*r,-1.58*r,0,-1.72*r);c.bezierCurveTo(.56*r,-1.58*r,.88*r,-.72*r,.72*r,-.08*r);c.quadraticCurveTo(.55*r,.24*r,0,.34*r);c.quadraticCurveTo(-.55*r,.24*r,-.72*r,-.08*r);c.closePath()},glass,'rgba(171,226,255,.82)',Math.max(1.3,r*.055),15);
+    fill(()=>{c.ellipse(0,-.72*r,.27*r,.43*r,-.04,0,Math.PI*2)},'rgba(92,34,49,.72)','rgba(224,176,184,.42)',Math.max(.8,r*.024),4);
+    for(let i=0;i<11;i++){const a=i*2.399,rr=(.1+(i%4)*.045)*r;c.save();c.fillStyle='rgba(67,21,31,.78)';c.beginPath();c.arc(Math.cos(a)*.19*r,(-.76+Math.sin(a)*.28)*r,rr*.28,0,Math.PI*2);c.fill();c.restore();}
+    fill(()=>{c.ellipse(0,.18*r,.74*r,.5*r,0,0,Math.PI*2)},'rgba(46,113,157,.34)','rgba(172,225,247,.72)',Math.max(1.1,r*.04),8);
+    for(let side of [-1,1]){fill(()=>{c.ellipse(side*.31*r,.06*r,.17*r,.135*r,side*.06,0,Math.PI*2)},'rgba(5,13,24,.92)','rgba(255,92,105,.88)',Math.max(1,r*.028),9);fill(()=>{c.ellipse(side*.31*r,.06*r,.075*r,.075*r,0,0,Math.PI*2)},'#ff263f','#ff8a98',Math.max(.8,r*.018),12);}
+    stroke(()=>{c.moveTo(-.27*r,.25*r);c.bezierCurveTo(-.13*r,.46*r,.14*r,.46*r,.28*r,.24*r)},Math.max(1.2,r*.045),'rgba(255,232,238,.92)',5);
+    for(let i=0;i<7;i++){const xx=(-.21+i*.07)*r;stroke(()=>{c.moveTo(xx,.31*r);c.lineTo(xx*.84,.39*r)},Math.max(.7,r*.018),'rgba(180,24,43,.78)',2);}
+    for(let i=0;i<12;i++){const a=i*Math.PI/6;c.save();c.fillStyle='rgba(198,238,255,.58)';c.beginPath();c.arc(Math.cos(a)*.46*r,(.38+Math.sin(a)*.14)*r,Math.max(1,r*.026),0,Math.PI*2);c.fill();c.restore();}
   } else if(id==='reefshark'){
    // Great white shark: pointed conical snout, countershading, crescent tail,
    // tall triangular dorsal fin and swept pectoral fins form a clear shark outline.
@@ -2313,11 +2317,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // HOSTILE FAUNA: each enemy category has its own anatomy, not just a recolored orb.
  if(kind==='kraken'){
   for(let arm=0;arm<8;arm++){const phase=Number.isFinite(Number(enemyState?.phase))?Number(enemyState.phase):(Number(t)||0)*.00042;const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,phase)||{sx:Math.cos(arm*Math.PI/4)*.44,sy:.25,c1x:Math.cos(arm*Math.PI/4)*.95,c1y:Math.sin(arm*Math.PI/4)*.95,c2x:Math.cos(arm*Math.PI/4)*2.1,c2y:Math.sin(arm*Math.PI/4)*2.1,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
-  fill(()=>{c.moveTo(-.68*r,-.02*r);c.bezierCurveTo(-.82*r,-.62*r,-.5*r,-1.18*r,0,-1.3*r);c.bezierCurveTo(.5*r,-1.18*r,.82*r,-.62*r,.68*r,-.02*r);c.quadraticCurveTo(.48*r,.34*r,0,.4*r);c.quadraticCurveTo(-.48*r,.34*r,-.68*r,-.02*r);c.closePath()},bodyGrad('#8b5cf6'),'rgba(201,169,255,.92)',Math.max(1.5,r*.06),16);
-  fill(()=>{c.ellipse(0,.16*r,.7*r,.5*r,0,0,Math.PI*2)},bodyGrad('#39205f'),'rgba(187,157,238,.92)',Math.max(1.2,r*.045),12);
-  for(let side of [-1,1]){fill(()=>{c.ellipse(side*.3*r,.04*r,.18*r,.145*r,side*.06,0,Math.PI*2)},'#eee4ff','#fffaff',Math.max(1,r*.028),8);fill(()=>{c.ellipse(side*.3*r,.04*r,.072*r,.105*r,0,0,Math.PI*2)},'#120821','#b38cff',Math.max(.8,r*.018),7);}
-  fill(()=>{c.moveTo(-.16*r,.2*r);c.lineTo(0,.01*r);c.lineTo(.16*r,.2*r);c.lineTo(0,.42*r);c.closePath()},'#10080e','#d7b58d',Math.max(1.1,r*.035),5);
-  for(let i=0;i<10;i++){const a=i*Math.PI/5;c.save();c.fillStyle='rgba(222,199,255,.82)';c.beginPath();c.arc(Math.cos(a)*.43*r,(.34+Math.sin(a)*.14)*r,Math.max(1.3,r*.032),0,Math.PI*2);c.fill();c.restore();}
+  const krakenGlass=c.createRadialGradient(-.25*r,-.55*r,.05*r,.04*r,-.32*r,1.3*r);krakenGlass.addColorStop(0,'rgba(235,252,255,.78)');krakenGlass.addColorStop(.18,'rgba(102,189,224,.45)');krakenGlass.addColorStop(.62,'rgba(20,78,127,.3)');krakenGlass.addColorStop(1,'rgba(2,19,43,.62)');
+  fill(()=>{c.moveTo(-.72*r,-.02*r);c.bezierCurveTo(-.9*r,-.68*r,-.57*r,-1.5*r,0,-1.64*r);c.bezierCurveTo(.57*r,-1.5*r,.9*r,-.68*r,.72*r,-.02*r);c.quadraticCurveTo(.55*r,.3*r,0,.4*r);c.quadraticCurveTo(-.55*r,.3*r,-.72*r,-.02*r);c.closePath()},krakenGlass,'rgba(173,229,255,.86)',Math.max(1.5,r*.055),16);
+  fill(()=>{c.ellipse(0,-.68*r,.28*r,.42*r,-.04,0,Math.PI*2)},'rgba(91,29,43,.78)','rgba(223,169,181,.42)',Math.max(.8,r*.022),3);
+  for(let i=0;i<13;i++){const a=i*2.17;c.save();c.fillStyle='rgba(59,15,27,.78)';c.beginPath();c.arc(Math.cos(a)*.19*r,(-.7+Math.sin(a)*.28)*r,Math.max(1.1,r*.025),0,Math.PI*2);c.fill();c.restore();}
+  fill(()=>{c.ellipse(0,.16*r,.72*r,.5*r,0,0,Math.PI*2)},'rgba(39,103,151,.35)','rgba(178,230,250,.76)',Math.max(1.2,r*.04),9);
+  for(let side of [-1,1]){fill(()=>{c.ellipse(side*.3*r,.03*r,.18*r,.14*r,side*.06,0,Math.PI*2)},'rgba(3,11,22,.95)','rgba(255,72,91,.9)',Math.max(1,r*.028),10);fill(()=>{c.ellipse(side*.3*r,.03*r,.075*r,.078*r,0,0,Math.PI*2)},'#ff203d','#ff8796',Math.max(.8,r*.018),13);}
+  stroke(()=>{c.moveTo(-.29*r,.23*r);c.bezierCurveTo(-.14*r,.47*r,.15*r,.47*r,.3*r,.22*r)},Math.max(1.4,r*.046),'rgba(255,235,239,.94)',5);
+  for(let i=0;i<7;i++){const xx=(-.21+i*.07)*r;stroke(()=>{c.moveTo(xx,.3*r);c.lineTo(xx*.82,.39*r)},Math.max(.8,r*.018),'rgba(177,20,39,.8)',2);}
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;c.save();c.fillStyle='rgba(200,239,255,.58)';c.beginPath();c.arc(Math.cos(a)*.45*r,(.38+Math.sin(a)*.14)*r,Math.max(1.2,r*.027),0,Math.PI*2);c.fill();c.restore();}
  } else if(kind==='drifter'){
   // Bell-shaped comb jelly with scalloped rim, luminous ribs and trailing cilia.
   for(let i=0;i<7;i++){const xx=(-.65+i*.215);tentacle(xx,.12,xx-.08,.45,xx+.08,.85,xx+Math.sin(i)*.12,1.12,.7)}
