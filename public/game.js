@@ -849,7 +849,7 @@ function startGame(){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain)});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
 }
 const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Seus disparos causam 50% mais dano por nível.',apply:()=>upgrades.power*=1.5},
@@ -937,7 +937,7 @@ function chooseUpgrade(u){
  clearUpgradeCountdown();gameState='upgrade-applying';
  u.apply();
  if(player){player.invuln=3;hp=maxHp;}
- if(onlineMode){window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet});}
+ if(onlineMode)window.AbyssalOnline?.sendProtection?.(3,'upgrade-selected');
  upgradeLevels[u.id]=(upgradeLevels[u.id]||0)+1;
  let combinedNow=false,combinedSkillName='';
  if(!upgrades.gravitationalRupture&&upgradeLevels.burst>=3&&upgradeLevels.nova>=3){
@@ -950,6 +950,7 @@ function chooseUpgrade(u){
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
   if(player)player.arcChainTimer=0;
  }
+ if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain)});
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
@@ -1243,6 +1244,7 @@ function applySharedSpawn(data){
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const incomingWorldId=String(data.worldId||''),incomingSeq=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),incomingServerTime=Math.max(0,Number(data.serverTime)||0);
+ const isNewAuthoritativeWorld=Boolean(incomingWorldId)&&incomingWorldId!==lastAuthoritativeWorldId;
  // Reliable lifecycle and movement snapshots share one sequence. Never let an
  // older packet restore a dead/spawn-removed entity or roll enemy positions backwards.
  if(lastAuthoritativeServerTime&&incomingServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
@@ -1250,6 +1252,20 @@ function applySharedSnapshot(data){
  if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId!==lastAuthoritativeWorldId){
   if(incomingServerTime&&lastAuthoritativeServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
   enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();lastAuthoritativeSnapshotSeq=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
+ }
+ if(isNewAuthoritativeWorld&&data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
+  const defeated=Math.max(0,Math.floor(Number(data.bossesDefeated)||0));
+  const cycleLength=Math.max(1,bossCycleBosses.length||PROGRESSION_CYCLE_BOSS_SEQUENCE.length);
+  bossProgressionCycle=Math.floor(defeated/cycleLength);
+  bossCycleIndex=defeated%cycleLength;
+  bossCycleStreak=bossCycleIndex;
+  const snapshotBosses=data.enemies.filter(enemy=>enemy&&BOSS_KINDS.includes(enemy.kind));
+  activeBossEntities=snapshotBosses.map(enemy=>({id:enemy.id,kind:enemy.kind}));
+  activeBossEntity=activeBossEntities[0]||null;
+  progressionPausedForBoss=activeBossEntities.length>0||data.progressionPausedForBoss===true;
+  progressionDistance=progressionPausedForBoss?100:clamp(Number(data.progressionDistance)||0,0,100);
+  bossVictoryPending=false;
+  updateProgressionTrackUI();
  }
  if(incomingWorldId)lastAuthoritativeWorldId=incomingWorldId;
  if(incomingSeq>0)lastAuthoritativeSnapshotSeq=incomingSeq;
