@@ -275,8 +275,8 @@ function resize(){
  lowPowerRendering=cores<=4||(memory>0&&memory<=4);adaptiveQualityLevel=lowPowerRendering?0:2;adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
  // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
  // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
- const nativeDpr=Math.max(1,window.devicePixelRatio||1),mobileDprCap=lowPowerRendering?1.35:2;
- dpr=Math.min(nativeDpr*adaptiveDprScale,mobileViewport?mobileDprCap:1.65);
+ const nativeDpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1:1.45);
+ dpr=Math.max(1,nativeDpr*adaptiveDprScale);
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
  W=4800;H=3000;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1;
@@ -1755,7 +1755,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     }
    }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);
   }
-  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});if(isPvpMode){effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:novaRange,life:.62,maxLife:.62,color:'#72f5ff'});effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:novaRange*.72,life:.5,maxLife:.5,color:'#b6fbff'});}else spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',false);playSkillSound('nova','trigger')}}
+  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
