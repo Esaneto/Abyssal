@@ -35,7 +35,7 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
   assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7',price:30000,paid:true/);
-  for (const id of ['glass-blue','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
+  for (const id of ['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
   assert.match(game, /purchaseStripe\(skin\.id,shopCurrency,gameLanguage\)/);
   assert.doesNotMatch(game, /legalAgeConsent/, 'a self-attestation checkbox must not be presented as age verification');
   assert.match(game, /class="skin-ability"/);
