@@ -2941,3 +2941,59 @@ body.game-active .gameplay-overlay-root{display:block!important}
  body.mobile-game-active #endDiveBtn{right:calc(var(--game-safe-right) + 88px)!important;bottom:var(--game-safe-bottom)!important}
  body.mobile-game-active #roomBadge.room-badge{right:calc(var(--game-safe-right) + 88px)!important;bottom:42px!important}
 }
+
+
+/* UI V8 · portrait mobile + hybrid controls + PC corner corrections */
+@media (max-width:700px),(pointer:coarse){
+ body.mobile-game-active #mobileMoveStick{display:none!important}
+ body.mobile-game-active #mobileAimStick.dual-stick-visible{
+  display:flex!important;width:118px!important;height:132px!important;
+  right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 4px)!important;
+ }
+ body.mobile-game-active #mobileAimStick .joystick-base{width:102px!important;height:102px!important}
+ body.mobile-game-active #mobileAimStick .joystick-knob{width:42px!important;height:42px!important}
+ body.mobile-game-active #mobileJoystick.is-floating{
+  display:flex!important;position:fixed!important;width:108px!important;height:122px!important;z-index:44!important;
+  pointer-events:none!important;
+ }
+ body.mobile-game-active #mobileJoystick.is-floating .joystick-base{width:92px!important;height:92px!important}
+ body.mobile-game-active #mobileJoystick.is-floating .joystick-knob{width:38px!important;height:38px!important}
+ body.mobile-game-active #selectedSkillsPanel,
+ body.mobile-game-active #runEnergyRanking{top:148px!important}
+ body.mobile-game-active #activeAbilities.active-abilities{bottom:calc(var(--game-safe-bottom) + 8px)!important}
+}
+
+/* Browser fallback when Orientation Lock API is unavailable. */
+@media (pointer:coarse) and (orientation:landscape){
+ body.mobile-game-active #gameShell::after{
+  content:'GIRE O CELULAR PARA A VERTICAL';
+  position:absolute;inset:0;z-index:1000;display:grid;place-items:center;
+  background:rgba(2,10,17,.96);color:var(--cyan);font:600 13px 'DM Mono',monospace;
+  letter-spacing:.12em;text-align:center;padding:24px;
+ }
+ body.mobile-game-active #gameShell>*{visibility:hidden!important}
+ body.mobile-game-active #gameShell::after{visibility:visible!important}
+}
+
+/* PC: right stack is deterministic, toggle hugs edge when panels collapse, Q/E stay inside arena. */
+@media (min-width:701px) and (pointer:fine){
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel{
+  right:14px!important;top:14px!important;bottom:auto!important;
+ }
+ body.game-active:not(.mobile-game-active) #endDiveBtn{
+  right:14px!important;left:auto!important;
+  top:calc(14px + min(30vh,260px) + 12px)!important;
+  bottom:auto!important;width:190px!important;max-width:190px!important;
+ }
+ body.game-active:not(.mobile-game-active) #toggleHudBtn{
+  right:214px!important;left:auto!important;top:14px!important;
+ }
+ body.game-active.hud-collapsed:not(.mobile-game-active) #toggleHudBtn{
+  right:14px!important;left:auto!important;top:14px!important;
+ }
+ body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{
+  position:absolute!important;left:14px!important;right:auto!important;
+  bottom:14px!important;top:auto!important;transform:none!important;
+  width:190px!important;z-index:30!important;
+ }
+}
