@@ -13,7 +13,7 @@ test('online players are broadcast from accepted position heartbeats', () => {
   assert.match(server, /room\.lastPlayersBroadcastAt/);
   assert.match(server, /room\.lastPlayersBroadcastAt[\s\S]*?emit\('player-motion'/);
   assert.match(server, /io\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion'/);
-  assert.match(online, /socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
+  assert.match(online, /socket\.on\('player-motion',rows=>applyPlayerMotion\(window\.AbyssalNetCodec\?\.readPlayerMotion\?\.\(rows\)\|\|rows\)\)/);
 });
 
 test('temporary disconnect preserves the last synchronized account profile', () => {

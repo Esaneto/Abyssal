@@ -1,0 +1,11 @@
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.AbyssalNetCodec=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';
+const VERSION=1,TYPE_INPUT=1,TYPE_RECONCILE=2,TYPE_PLAYER_MOTION=3;
+const viewOf=value=>{if(value instanceof ArrayBuffer)return new DataView(value);if(ArrayBuffer.isView(value))return new DataView(value.buffer,value.byteOffset,value.byteLength);return null;};
+function input(seq,x,y,angle){const b=new ArrayBuffer(20),v=new DataView(b);v.setUint8(0,VERSION);v.setUint8(1,TYPE_INPUT);v.setUint32(4,seq>>>0,true);v.setFloat32(8,+x||0,true);v.setFloat32(12,+y||0,true);v.setFloat32(16,+angle||0,true);return b;}
+function readInput(data){const v=viewOf(data);if(!v||v.byteLength!==20||v.getUint8(0)!==VERSION||v.getUint8(1)!==TYPE_INPUT)return null;return {seq:v.getUint32(4,true),x:v.getFloat32(8,true),y:v.getFloat32(12,true),angle:v.getFloat32(16,true)};}
+function reconcile(seq,x,y,blocked){const b=new ArrayBuffer(16),v=new DataView(b);v.setUint8(0,VERSION);v.setUint8(1,TYPE_RECONCILE);v.setUint8(2,blocked?1:0);v.setUint32(4,seq>>>0,true);v.setFloat32(8,+x||0,true);v.setFloat32(12,+y||0,true);return b;}
+function readReconcile(data){const v=viewOf(data);if(!v||v.byteLength!==16||v.getUint8(0)!==VERSION||v.getUint8(1)!==TYPE_RECONCILE)return null;return [v.getUint32(4,true),v.getFloat32(8,true),v.getFloat32(12,true),Boolean(v.getUint8(2))];}
+function playerMotion(rows){rows=Array.isArray(rows)?rows:[];const count=Math.min(255,rows.length),b=new ArrayBuffer(4+count*16),v=new DataView(b);v.setUint8(0,VERSION);v.setUint8(1,TYPE_PLAYER_MOTION);v.setUint16(2,count,true);for(let i=0;i<count;i++){const r=rows[i],o=4+i*16;v.setUint32(o,Number(r[0])>>>0,true);v.setFloat32(o+4,+r[1]||0,true);v.setFloat32(o+8,+r[2]||0,true);v.setFloat32(o+12,+r[3]||0,true);}return b;}
+function readPlayerMotion(data){const v=viewOf(data);if(!v||v.byteLength<4||v.getUint8(0)!==VERSION||v.getUint8(1)!==TYPE_PLAYER_MOTION)return null;const n=v.getUint16(2,true);if(v.byteLength!==4+n*16)return null;const out=[];for(let i=0;i<n;i++){const o=4+i*16;out.push([v.getUint32(o,true),v.getFloat32(o+4,true),v.getFloat32(o+8,true),v.getFloat32(o+12,true)]);}return out;}
+return {VERSION,input,readInput,reconcile,readReconcile,playerMotion,readPlayerMotion};
+});
