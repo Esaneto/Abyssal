@@ -820,13 +820,16 @@ function showVictoryModal() {
           <div style="font-size:15px;font-weight:800;color:#2ee88a;">Serpente Esmeralda (Colossal)</div>
           <p style="font-size:12px;color:#a0dac3;margin-top:4px;line-height:1.4;">Inspirada nas grandes serpentes marinhas de jade com mandíbulas afiadas e rastro venenoso.</p>
         </div>
-        <button id="victoryContinueBtn" style="background:#2ee88a;color:#04140d;font-weight:800;font-size:13px;letter-spacing:0.1em;border:none;border-radius:8px;padding:12px 28px;cursor:pointer;box-shadow:0 0 16px rgba(46,232,138,0.6);transition:transform 0.15s ease;" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">
+        <button id="victoryContinueBtn" style="background:#2ee88a;color:#04140d;font-weight:800;font-size:13px;letter-spacing:0.1em;border:none;border-radius:8px;padding:12px 28px;cursor:pointer;box-shadow:0 0 16px rgba(46,232,138,0.6);transition:transform 0.15s ease;">
           GLÓRIA AO CONQUISTADOR
         </button>
       </div>
     `;
     document.body.appendChild(modal);
-    $('victoryContinueBtn').addEventListener('click', () => {
+    const victoryContinueBtn = $('victoryContinueBtn');
+    victoryContinueBtn.addEventListener('mouseenter', () => { victoryContinueBtn.style.transform = 'scale(1.04)'; });
+    victoryContinueBtn.addEventListener('mouseleave', () => { victoryContinueBtn.style.transform = 'scale(1)'; });
+    victoryContinueBtn.addEventListener('click', () => {
       modal.remove();
       endGame();
     });
