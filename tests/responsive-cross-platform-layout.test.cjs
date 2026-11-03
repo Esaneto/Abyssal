@@ -115,3 +115,10 @@ test('legacy progression danger notifications are retired on desktop and mobile'
  assert.match(fn,/return;/);
  assert.match(css,/#abyssalDangerAlert\{display:none!important\}/);
 });
+
+test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.match(game,/const gameplayNoticeRecent=new Map\(\)/);
+ assert.match(game,/gameplayNoticeKey\(kind,title,text\)/);
+ assert.match(game,/if\(now-last<7000\)return/);
+});
