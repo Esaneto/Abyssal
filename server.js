@@ -395,6 +395,10 @@ async function initializeRoomRegistry(){
  await heartbeatRoomDirectory();
 }
 function ensureWorld(room){
+ if(room?.mode==='pvp'){
+  room.world.initialized=true;room.world.enemies=[];room.world.orbs=[];room.world.nextEnemyId=0;room.world.nextOrbId=0;
+  return [];
+ }
  const spawned=WorldSimulation.initializeWorld(room.world,Date.now());
  return spawned;
 }
