@@ -118,9 +118,9 @@ function spawnEnemy(world, options = {}) {
 
   const stats = EnemyAI.statsForKind(kind);
   if (type === 'boss') {
-    // Preserve the ordered base HP tiers; only damage scales between waves.
-    stats.damage = world.lastBossDamage > 0 ? Math.max(stats.damage, Math.round(world.lastBossDamage * 1.12)) : stats.damage;
-    stats.speed = kind === 'devourer' ? 14 : kind === 'kraken' ? 20 : Math.min(90, world.lastBossSpeed > 0 ? Math.max(stats.speed, world.lastBossSpeed * 1.05) : stats.speed);
+    // A cada ciclo completo de sete bosses, somente a vida recebe +20%.
+    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
+    stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
     world.lastBossDamage = stats.damage;
