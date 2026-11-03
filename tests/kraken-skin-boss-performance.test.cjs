@@ -34,8 +34,8 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
-  assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000,paid:true/);
-  for (const id of ['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
+  assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7',price:30000,paid:true/);
+  for (const id of ['glass-blue','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
   assert.match(game, /purchaseStripe\(skin\.id,shopCurrency,gameLanguage\)/);
   assert.doesNotMatch(game, /legalAgeConsent/, 'a self-attestation checkbox must not be presented as age verification');
   assert.match(game, /class="skin-ability"/);
@@ -81,10 +81,10 @@ test('boss pursuit ramps toward player speed as health falls and never exceeds i
   assert.ok(Math.hypot(critical.x, critical.y) <= target.moveSpeed * 0.5 + 1e-6);
 });
 
-test('Kraken identity is consistently violet and no longer uses the smiling name', () => {
+test('Kraken identity is consistently glass-blue and no longer uses the smiling name', () => {
   const game = read('public/game.js');
-  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6'/);
-  assert.match(game, /kraken:\{name:'Kraken do Abismo',color:'#8b5cf6'/);
+  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7'/);
+  assert.match(game, /kraken:\{name:'Kraken do Abismo',color:'#4f9fc7'/);
   assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
 });
 
@@ -98,11 +98,11 @@ test('shop includes one-time abyssal10k redemption for 10,000 coins', () => {
   assert.match(game, /abyssalRedeemedCodes/);
 });
 
-test('Kraken boss renders the same eight-arm violet silhouette as the player skin', () => {
+test('Kraken boss renders the same eight-arm glass-blue silhouette as the player skin', () => {
   const game = read('public/game.js');
   assert.match(game, /if\(kind==='kraken'\)/);
   assert.match(game, /for\(let arm=0;arm<8;arm\+\+\)/);
-  assert.match(game, /bodyGrad\('#8b5cf6'\)/);
+  assert.match(game, /bodyGrad\('#4f9fc7'\)/);
   assert.match(game, /touchesKrakenTentacle/);
 });
 
