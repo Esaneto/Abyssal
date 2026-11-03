@@ -542,7 +542,6 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
   if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
   player.novaDamageTargetIds ||= new Set();if(player.novaDamageTargetIds.has(normalizedId))return reject('nova-duplicate-target');player.novaDamageTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,16*Math.max(1,Number(player.powerMultiplier)||1));
  }
  if(skillId==='violet-resonance'){
   if(!player||player.skinId!=='violet')return reject('skin-ability-not-owned');
@@ -1130,6 +1129,7 @@ socket.on('global-chat-send',(payload={})=>{
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
    if(shot.special==='nova'){
+    if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
     const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;
