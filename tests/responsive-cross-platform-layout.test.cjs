@@ -46,3 +46,9 @@ test('desktop persistent match UI is zoned into extreme corners',()=>{
  assert.match(css,/#runEnergyRanking\{\s*left:auto!important;right:14px!important;top:auto!important;bottom:14px!important/);
  assert.match(css,/#activeAbilities\.active-abilities\{\s*left:14px!important;right:auto!important;top:auto!important;bottom:14px!important/);
 });
+
+test('gameplay overlays are impossible to render outside an active match',()=>{
+ assert.match(css,/\.gameplay-overlay-root\{display:none!important\}/);
+ assert.match(css,/body\.game-active \.gameplay-overlay-root\{display:block!important\}/);
+ assert.match(css,/body:not\(\.game-active\) #selectedSkillsPanel/);
+});
