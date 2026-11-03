@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
-let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0;
+let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
@@ -229,6 +229,10 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
+ socket.on('player-reconcile',data=>{
+  if(!Array.isArray(data)||data.length<4)return;const seq=Number(data[0])||0;if(seq<=lastReconcileSeq)return;lastReconcileSeq=seq;positionAckAt=Date.now();
+  window.AbyssalGameHooks?.reconcilePlayer?.({seq,x:Number(data[1]),y:Number(data[2]),blocked:Boolean(data[3])});
+ });
  socket.on('world-enemies-spawned',data=>{if(window.AbyssalGameHooks?.applySpawn)window.AbyssalGameHooks.applySpawn(data);});
  socket.on('enemy-contact-source',data=>{if(window.AbyssalGameHooks?.registerContactSnapshot)window.AbyssalGameHooks.registerContactSnapshot(data);});
  socket.on('enemy-motion',data=>{if(window.AbyssalGameHooks?.applyMotion)window.AbyssalGameHooks.applyMotion(data);});
@@ -399,25 +403,24 @@ $('requestPasswordResetBtn')?.addEventListener('click',async()=>{const email=Str
 $('completePasswordResetBtn')?.addEventListener('click',async()=>{const token=new URLSearchParams(location.hash.slice(1)).get('passwordResetToken')||'',password=String($('newPasswordInput').value||''),confirmation=String($('confirmNewPasswordInput').value||'');if(password.length<8||password.length>128){setAuthFlowMessage('resetMessage','A senha deve ter de 8 a 128 caracteres.',true);$('newPasswordInput').focus();return}if(password!==confirmation){setAuthFlowMessage('resetMessage','As senhas não coincidem. Confira os dois campos.',true);$('confirmNewPasswordInput').focus();return}const button=$('completePasswordResetBtn');button.disabled=true;setAuthFlowMessage('resetMessage','Atualizando sua senha…');try{const response=await fetch('/api/account/password-reset/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,password})});const result=await response.json();setAuthFlowMessage('resetMessage',result.message||'Link inválido ou expirado.',!result.ok);if(result.ok){history.replaceState(null,'',location.pathname);$('passwordResetScreen').hidden=true;$('loginScreen').hidden=false;$('passwordInput').value='';$('newPasswordInput').value='';$('confirmNewPasswordInput').value='';setMessage('Senha atualizada com sucesso. Entre com sua nova senha.');}}catch{setAuthFlowMessage('resetMessage','Não foi possível atualizar a senha. Tente novamente.',true)}finally{button.disabled=false}});
 $('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')authenticate($('nicknameInput').value,$('passwordInput').value,'login')});
 $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('passwordInput').focus()});
-function buildPositionPayload(player){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {x:Number(player.x),y:Number(player.y),angle:Number(player.angle)||0,viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldWidth:window.AbyssalGameHooks?.worldWidth?.()||4800,worldHeight:window.AbyssalGameHooks?.worldHeight?.()||3000,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden)};}
+function buildPositionPayload(player){return {x:Number(player.x),y:Number(player.y),angle:Number(player.angle)||0};}
+function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden)};}
 function sendPosition(player){if(!player)return;const payload=buildPositionPayload(player);if(Number.isFinite(payload.x)&&Number.isFinite(payload.y))latestPositionPayload=payload;}
 function startPositionHeartbeat(){
  if(positionHeartbeatTimer)return;
  positionHeartbeatTimer=setInterval(()=>{
   if(!socket?.connected||!authenticated||!currentRoom)return;
-  // Always sample the live game object before sending. Position packets are ephemeral:
-  // if one is dropped, the next tick supersedes it instead of waiting behind an ACK.
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   if(!latestPositionPayload)return;
-  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';if(now-lastPositionAt<(isPvp?40:75))return;
-  const payload={...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()};
-  lastPositionAt=now;positionPacketsSent++;positionPacketInFlight=false;
-  socket.volatile.emit('player-position',payload,(result)=>{
-   // This ACK is diagnostic only. A dropped packet must never block the next position.
-   if(result?.ok){positionAckAt=Date.now();positionAckErrors=0;}
-   else{positionAckErrors++;if(positionAckErrors===3)window.dispatchEvent(new CustomEvent('abyssal-position-stream-warning',{detail:{errors:positionAckErrors,ageMs:positionAckAt?Date.now()-positionAckAt:null}}));}
-  });
+  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp',interval=isPvp?1000/30:1000/20;
+  if(now-lastPositionAt<interval)return;
+  const seq=++positionSequence;
+  // Compact delta-style motion tuple: [seq,x,y,angle,clientSentAt].
+  // Static/slow metadata travels separately at 1 Hz instead of repeating 20-30 times/s.
+  socket.volatile.emit('player-motion-input',[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle,Date.now()]);
+  lastPositionAt=now;positionPacketsSent++;
+  if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
 }
 function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
