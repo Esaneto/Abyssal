@@ -8,7 +8,7 @@ xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=
  if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="landscape"');else a+=' android:screenOrientation="landscape"';
  return '<activity'+a+'>';
 });
-fs.writeFileSync(manifest,xml);
+xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{let a=attrs;if(/android:usesCleartextTraffic=/.test(a))a=a.replace(/android:usesCleartextTraffic="[^"]*"/,'android:usesCleartextTraffic="false"');else a+=' android:usesCleartextTraffic="false"';if(/android:hardwareAccelerated=/.test(a))a=a.replace(/android:hardwareAccelerated="[^"]*"/,'android:hardwareAccelerated="true"');else a+=' android:hardwareAccelerated="true"';return '<application'+a+'>';});\nfs.writeFileSync(manifest,xml);
 const java=path.join('android','app','src','main','java','com','esaneto','abyssal','MainActivity.java');
 if(fs.existsSync(java)){
  let src=fs.readFileSync(java,'utf8');
