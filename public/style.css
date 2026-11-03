@@ -2388,3 +2388,73 @@ body.mobile-game-active #activeAbilities .active-ability {
 /* Resonance category groups and Abyssario creature catalog subtitle */
 .resonance-skill-choices{display:flex;flex-direction:column;gap:14px}.resonance-category{min-width:0}.resonance-category-title{margin:5px 0 8px;padding:7px 9px;border-left:2px solid #69e6d5;background:rgba(38,103,112,.2);color:#9ff8ee;font:600 10px 'DM Mono',monospace;letter-spacing:.1em}.resonance-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.catalog-subtitle{display:block;margin:-9px 0 15px;color:#8fece4;font:10px 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}.codex-modal h2:has(+ .catalog-subtitle){margin-bottom:0}
 @media(max-width:520px){.resonance-category-list{grid-template-columns:1fr}}
+
+/* Abyssal deep-sea identity pass: menu + resonance */
+#menuScreen{
+ background:
+  radial-gradient(circle at 72% 18%,rgba(31,138,156,.14),transparent 30%),
+  radial-gradient(circle at 18% 82%,rgba(68,38,126,.18),transparent 34%),
+  linear-gradient(145deg,#020914 0%,#031321 42%,#061126 72%,#020711 100%);
+}
+#menuScreen .menu-content{width:min(430px,92vw)}
+#menuScreen .menu-secondary-actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:min(430px,100%);
+ margin-top:10px;padding:10px;border:1px solid rgba(70,189,202,.14);border-radius:14px;
+ background:linear-gradient(145deg,rgba(3,20,32,.72),rgba(6,13,31,.82));
+ box-shadow:inset 0 1px 0 rgba(154,246,244,.04),0 16px 50px rgba(0,4,12,.2);
+}
+#menuScreen .menu-secondary-actions .menu-action{
+ width:100%;min-width:0;margin:0;border-color:rgba(75,174,193,.22);
+ background:linear-gradient(135deg,rgba(5,35,49,.86),rgba(8,19,39,.9));
+ color:#c8f7f3;
+}
+#menuScreen .menu-secondary-actions .online-cta{grid-column:1/-1;border-color:rgba(79,229,218,.42);background:linear-gradient(120deg,rgba(6,63,70,.88),rgba(10,28,52,.94))}
+#menuScreen .resonance-menu-btn{
+ width:min(430px,100%);height:44px;border-color:rgba(116,108,224,.52);
+ background:linear-gradient(110deg,rgba(30,34,91,.9),rgba(7,54,67,.9));
+ box-shadow:0 0 24px rgba(61,168,186,.09);color:#d8dcff;
+}
+.resonance-modal{
+ width:min(900px,96vw);max-height:92vh;padding:26px;
+ border:1px solid rgba(78,217,210,.38);
+ background:
+  radial-gradient(circle at 88% 0%,rgba(75,81,190,.2),transparent 28%),
+  linear-gradient(155deg,rgba(2,14,25,.985),rgba(3,29,39,.985) 58%,rgba(7,13,35,.99));
+ box-shadow:0 0 0 1px rgba(84,235,224,.05),0 28px 90px rgba(0,3,12,.7);
+}
+.resonance-category{padding:10px;border:1px solid rgba(94,193,204,.1);border-radius:14px;background:rgba(1,12,22,.36)}
+.resonance-category-title{border-left:0!important;border-bottom:1px solid rgba(92,223,214,.2)!important;background:none!important;padding:5px 3px 9px!important;color:#8ef0e5!important}
+.resonance-category-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.resonance-skill-option{
+ position:relative;display:grid!important;grid-template-columns:20px 48px minmax(0,1fr);align-items:center!important;
+ min-height:76px!important;padding:10px 12px!important;overflow:hidden;
+ border:1px solid rgba(88,178,194,.2)!important;border-radius:12px!important;
+ background:linear-gradient(135deg,rgba(5,28,41,.88),rgba(6,18,34,.9))!important;
+ transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease!important;
+}
+.resonance-skill-option:hover{transform:translateY(-1px);border-color:rgba(115,231,224,.48)!important}
+.resonance-skill-option:has(input:checked){border-color:#67e8d8!important;box-shadow:inset 0 0 0 1px rgba(103,232,216,.18),0 0 22px rgba(57,193,188,.1)}
+.resonance-skill-icon{
+ width:42px;height:42px;display:grid;place-items:center;border-radius:50%;
+ font:700 21px 'DM Mono',monospace;color:#d9fffb;border:1px solid rgba(116,237,227,.34);
+ background:radial-gradient(circle,rgba(50,175,172,.22),rgba(7,30,45,.8));
+ box-shadow:inset 0 0 14px rgba(88,235,225,.08);
+}
+.resonance-shots .resonance-skill-icon{color:#9dfcff;border-color:rgba(84,215,255,.42);background:radial-gradient(circle,rgba(45,144,192,.28),rgba(6,27,46,.82))}
+.resonance-defensive .resonance-skill-icon{color:#b8d6ff;border-color:rgba(121,151,255,.4);background:radial-gradient(circle,rgba(75,85,190,.28),rgba(10,20,48,.84))}
+.resonance-passive .resonance-skill-icon{color:#d4b9ff;border-color:rgba(178,121,255,.4);background:radial-gradient(circle,rgba(116,65,176,.26),rgba(24,15,50,.84))}
+.resonance-skill-copy strong{color:#dffffb!important;font-size:11px!important;letter-spacing:.035em}
+.resonance-skill-copy small{color:#91acb9!important;font-size:10px!important;line-height:1.35!important}
+.resonance-skill-option input{appearance:none;width:16px!important;height:16px!important;border-radius:50%;border:1px solid #557987;background:#071622;margin:0!important}
+.resonance-skill-option input:checked{border:4px solid #0b2d32;background:#69e6d5;box-shadow:0 0 10px rgba(105,230,213,.5)}
+.resonance-selection-count{padding:8px 11px;border-radius:8px;background:rgba(4,27,39,.75);border:1px solid rgba(91,211,205,.18)}
+#upgradeScreen .modal-card{background:linear-gradient(155deg,rgba(2,13,24,.985),rgba(4,31,40,.98),rgba(10,14,38,.985));border-color:rgba(87,211,207,.3)}
+#upgradeScreen .upgrade-card{background:linear-gradient(145deg,rgba(5,29,41,.95),rgba(8,17,36,.96));border-color:rgba(82,187,199,.24)}
+#upgradeScreen .upgrade-card:hover{border-color:rgba(101,235,224,.58);box-shadow:0 10px 34px rgba(0,8,18,.38)}
+@media(max-width:700px){
+ #menuScreen .menu-secondary-actions{grid-template-columns:1fr 1fr;padding:7px}
+ .resonance-category-list{grid-template-columns:1fr}
+ .resonance-modal{padding:17px}
+ .resonance-skill-option{grid-template-columns:18px 42px minmax(0,1fr);min-height:68px!important}
+ .resonance-skill-icon{width:36px;height:36px;font-size:18px}
+}
