@@ -75,17 +75,17 @@
     const i = ((Math.floor(Number(index) || 0) % 8) + 8) % 8;
     const angle = -Math.PI / 2 + i * (Math.PI * 2 / 8);
     const sway = Math.sin((Number(phase) || 0) * 0.88 + i * 1.73);
-    const length = 2.16 + 0.16 * Math.sin((Number(phase) || 0) * 0.43 + i * 0.91);
+    const length = 3.35 + 0.32 * Math.sin((Number(phase) || 0) * 0.55 + i * 0.91);
     const sx = Math.cos(angle) * 0.44;
     const sy = 0.25 + Math.sin(angle) * 0.21;
     return {
       sx, sy,
-      c1x: sx + Math.cos(angle - 0.35) * 0.58,
-      c1y: sy + Math.sin(angle - 0.35) * 0.68,
-      c2x: Math.cos(angle + sway * 0.18) * (length * 0.68),
-      c2y: 0.25 + Math.sin(angle + sway * 0.18) * (length * 0.67),
-      ex: Math.cos(angle + sway * 0.24) * length,
-      ey: 0.20 + Math.sin(angle + sway * 0.24) * (length * 0.94)
+      c1x: sx + Math.cos(angle - 0.42) * 0.92,
+      c1y: sy + Math.sin(angle - 0.42) * 1.02,
+      c2x: Math.cos(angle + sway * 0.28) * (length * 0.64),
+      c2y: 0.25 + Math.sin(angle + sway * 0.28) * (length * 0.63),
+      ex: Math.cos(angle + sway * 0.38) * length,
+      ey: 0.20 + Math.sin(angle + sway * 0.38) * (length * 0.98)
     };
   }
 
