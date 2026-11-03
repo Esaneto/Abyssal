@@ -2707,3 +2707,148 @@ body:not(.game-active) #selectedSkillsPanel,
 body:not(.game-active) #runEnergyRanking,
 body:not(.game-active) #activeAbilities,
 body:not(.game-active) #skillDescriptionTooltip{display:none!important}
+
+
+/* GAMEPLAY HUD V6 · screenshot-driven ownership
+   This is the single final authority for match overlays. */
+
+/* Hard visibility boundary: match-only UI cannot exist on menus. */
+body:not(.game-active) .gameplay-overlay-root,
+body:not(.game-active) #toggleHudBtn,
+body:not(.game-active) #endDiveBtn,
+body:not(.game-active) #roomBadge,
+body:not(.game-active) #mobilePauseBtn{display:none!important}
+body.game-active .gameplay-overlay-root{display:block!important}
+
+/* PC: progress first, long and horizontal; stats immediately below. */
+@media (min-width:701px) and (pointer:fine){
+ body.game-active:not(.mobile-game-active) .hud{
+  position:absolute!important;left:14px!important;right:auto!important;top:14px!important;
+  width:min(560px,42vw)!important;max-width:560px!important;height:auto!important;
+  transform:none!important;display:flex!important;flex-direction:column!important;
+  opacity:.88!important;pointer-events:none!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .bars{
+  order:1!important;width:100%!important;margin:0!important;
+  display:flex!important;flex-direction:column!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud #bossProgressionTrack{
+  order:-1!important;width:100%!important;min-width:0!important;
+  margin:0 0 8px!important;padding:7px 9px!important;box-sizing:border-box!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .track-header{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .track-title{white-space:nowrap!important}
+ body.game-active:not(.mobile-game-active) .hud .track-cycle-badge{
+  max-width:none!important;white-space:nowrap!important;padding:3px 6px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .track-line-wrapper{
+  width:100%!important;height:24px!important;min-height:24px!important;margin-top:6px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .track-line-bg{
+  left:8px!important;right:8px!important;width:auto!important;top:50%!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-top{
+  order:2!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:5px!important;width:100%!important;margin-top:7px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-stat{
+  min-width:0!important;padding:5px 7px!important;text-align:center!important;
+  background:rgba(3,15,26,.62)!important;border:1px solid rgba(121,243,240,.12)!important;border-radius:6px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-stat small{font-size:7px!important}
+ body.game-active:not(.mobile-game-active) .hud-stat strong{font-size:15px!important}
+ body.game-active:not(.mobile-game-active) .hud .bar-label,
+ body.game-active:not(.mobile-game-active) .hud .bar{
+  width:min(330px,100%)!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .mobile-tip{display:none!important}
+
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel{
+  left:auto!important;right:14px!important;top:14px!important;width:190px!important;max-height:30vh!important;
+ }
+ body.game-active:not(.mobile-game-active) #runEnergyRanking{
+  left:auto!important;right:14px!important;top:auto!important;bottom:14px!important;
+  width:190px!important;max-height:22vh!important;
+ }
+ body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{
+  left:14px!important;right:auto!important;top:auto!important;bottom:14px!important;
+  transform:none!important;width:190px!important;max-width:190px!important;
+  display:flex!important;flex-direction:column!important;gap:6px!important;
+ }
+ body.game-active:not(.mobile-game-active) #activeAbilities .active-ability{
+  width:100%!important;min-width:0!important;max-width:none!important;min-height:38px!important;
+ }
+ body.game-active:not(.mobile-game-active) #toggleHudBtn{
+  left:auto!important;right:214px!important;top:14px!important;transform:none!important;
+ }
+ body.game-active:not(.mobile-game-active) #endDiveBtn{
+  top:58px!important;right:14px!important;left:auto!important;bottom:auto!important;
+  max-width:190px!important;
+ }
+ body.game-active:not(.mobile-game-active) #roomBadge.room-badge{
+  left:14px!important;right:auto!important;bottom:102px!important;top:auto!important;
+ }
+}
+
+/* Mobile: rebuild around reserved top info band and bottom control band. */
+@media (max-width:700px),(pointer:coarse){
+ body.mobile-game-active .hud{
+  position:fixed!important;top:var(--game-safe-top)!important;left:50%!important;right:auto!important;
+  width:calc(100vw - 104px)!important;max-width:none!important;transform:translateX(-50%)!important;
+  display:flex!important;flex-direction:column!important;opacity:.82!important;pointer-events:none!important;
+ }
+ body.mobile-game-active .hud .bars{order:1!important;width:100%!important;margin:0!important}
+ body.mobile-game-active .hud #bossProgressionTrack{
+  order:-1!important;width:100%!important;margin:0 0 5px!important;padding:5px 6px!important;box-sizing:border-box!important;
+ }
+ body.mobile-game-active .hud .track-header{display:none!important}
+ body.mobile-game-active .hud .track-line-wrapper{height:16px!important;min-height:16px!important;margin:0!important}
+ body.mobile-game-active .hud .track-line-bg{left:5px!important;right:5px!important;width:auto!important;top:50%!important}
+ body.mobile-game-active .hud-top{
+  order:2!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:3px!important;width:100%!important;margin-top:4px!important;
+ }
+ body.mobile-game-active .hud-stat{min-width:0!important;padding:3px!important;text-align:center!important}
+ body.mobile-game-active .hud-stat small{font-size:5px!important}.mobile-game-active .hud-stat strong{font-size:10px!important}
+ body.mobile-game-active .hud .bar-label,body.mobile-game-active .hud .bar{width:100%!important}
+ body.mobile-game-active .hud .bar-label{font-size:5px!important;margin:2px 0!important}
+ body.mobile-game-active .hud .bar{height:3px!important}
+ body.mobile-game-active .hud .mobile-tip{display:none!important}
+
+ body.mobile-game-active #toggleHudBtn{top:var(--game-safe-top)!important;left:var(--game-safe-left)!important;right:auto!important;width:36px!important;height:36px!important}
+ body.mobile-game-active #mobilePauseBtn{top:var(--game-safe-top)!important;right:var(--game-safe-right)!important;width:36px!important;height:36px!important}
+ body.mobile-game-active #selectedSkillsPanel{
+  top:112px!important;left:var(--game-safe-left)!important;right:auto!important;
+  width:clamp(92px,25vw,120px)!important;max-height:20dvh!important;opacity:.72!important;
+ }
+ body.mobile-game-active #runEnergyRanking{
+  top:112px!important;left:auto!important;right:var(--game-safe-right)!important;
+  width:clamp(90px,24vw,116px)!important;max-height:16dvh!important;opacity:.72!important;
+ }
+ body.mobile-game-active #activeAbilities.active-abilities{
+  position:fixed!important;left:50%!important;right:auto!important;top:auto!important;
+  bottom:var(--game-safe-bottom)!important;transform:translateX(-50%)!important;
+  width:clamp(86px,24vw,118px)!important;display:flex!important;flex-direction:column!important;gap:4px!important;
+ }
+ body.mobile-game-active #activeAbilities .active-ability{width:100%!important;min-width:0!important;min-height:36px!important;padding:5px!important;font-size:7px!important}
+ body.mobile-game-active #endDiveBtn{
+  top:auto!important;right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 120px)!important;
+  width:auto!important;max-width:110px!important;padding:6px!important;font-size:7px!important;
+ }
+ body.mobile-game-active #roomBadge.room-badge{
+  top:auto!important;right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 94px)!important;
+  left:auto!important;max-width:70px!important;
+ }
+ body.mobile-game-active .mobile-dual-stick{bottom:var(--game-safe-bottom)!important}
+}
+
+/* Short landscape phones: side information is compressed, never stacked over controls. */
+@media (pointer:coarse) and (orientation:landscape) and (max-height:520px){
+ body.mobile-game-active .hud{width:min(58vw,470px)!important}
+ body.mobile-game-active #selectedSkillsPanel{top:78px!important;max-height:23dvh!important;width:110px!important}
+ body.mobile-game-active #runEnergyRanking{top:78px!important;max-height:18dvh!important;width:108px!important}
+ body.mobile-game-active #endDiveBtn{right:calc(var(--game-safe-right) + 92px)!important;bottom:var(--game-safe-bottom)!important}
+ body.mobile-game-active #roomBadge.room-badge{right:calc(var(--game-safe-right) + 92px)!important;bottom:44px!important}
+}
