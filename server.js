@@ -987,7 +987,8 @@ socket.on('global-chat-send',(payload={})=>{
    return;
   }
   const u = users[socket.data.userKey];
-  const event = {from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
+  const type = payload.type === 'bubble-trail' && (skin === 'reefshark' || skin === 'whiteShark') ? 'bubble-trail' : 'ability';
+  const event = {type,from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
   // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
   let delivered = 0;
   // A chave do Map é o ID real do socket; peer.id pode faltar após reconexões.
