@@ -252,6 +252,24 @@ function pvpArenaRocks(){
 const PVP_ARENA_ROCKS=pvpArenaRocks();
 function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const a=-(Number(rock.angle)||0),dx=x-rock.x,dy=y-rock.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a),rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding;if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return rock;}return null;}
 function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
+function collectPvpOrbsNearPlayer(room,player,x=player?.x,y=player?.y){
+ if(!room||room.mode!=='pvp'||!player||player.alive===false)return 0;
+ const w=room.world;if(!w||!Array.isArray(w.orbs)||!w.orbs.length)return 0;
+ let collected=0;
+ for(let i=w.orbs.length-1;i>=0;i--){
+  const orb=w.orbs[i];
+  if(!orb||Number(orb.life)<=0)continue;
+  const distance=Math.hypot(Number(x)-Number(orb.x),Number(y)-Number(orb.y));
+  const pickupRadius=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+100/WORLD_ZOOM;
+  if(!Number.isFinite(distance)||distance>pickupRadius)continue;
+  w.orbs.splice(i,1);collected++;
+  io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:orb.id,playerId:player.id,value:orb.value,x:orb.x,y:orb.y});
+  io.to(player.id).emit('shared-xp-award',{value:orb.value,source:'orb',orbId:orb.id});
+  combatDiagnostics.xpOrbsCollected=(Number(combatDiagnostics.xpOrbsCollected)||0)+1;
+  combatDiagnostics.lastXpOrbPickup={at:Date.now(),roomId:room.id,playerId:player.id,orbId:orb.id,distance:Math.round(distance),pickupRadius:Math.round(pickupRadius)};
+ }
+ return collected;
+}
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
@@ -633,7 +651,7 @@ function tickRoom(room, now) {
    for(let attempt=0;attempt<18;attempt++){const x=WORLD_WIDTH*(.04+Math.random()*.92),y=WORLD_HEIGHT*(.04+Math.random()*.92);if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<Math.min(WORLD_WIDTH,WORLD_HEIGHT)*.235)continue;if(pvpRockAt(x,y,60/WORLD_ZOOM))continue;point={x,y};break;}
    if(point){w.nextOrbId=(Number(w.nextOrbId)||0)+1;const orb={id:`pvp-${w.nextOrbId}`,x:point.x,y:point.y,r:EnemyAI.xpOrbRadius?EnemyAI.xpOrbRadius(value):Math.min(15,4+Math.sqrt(value)),value,phase:0,life:35};w.orbs.push(orb);io.to(channelFor(room)).emit('world-xp-orbs-spawned',[orb]);}
   }
-  const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);continue;}for(const player of activePlayers){if(Math.hypot(Number(player.x)-Number(orb.x),Number(player.y)-Number(orb.y))<=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+60/WORLD_ZOOM){w.orbs.splice(i,1);io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:orb.id,playerId:player.id,value:orb.value,x:orb.x,y:orb.y});io.to(player.id).emit('shared-xp-award',{value:orb.value,source:'orb',orbId:orb.id});break;}}}
+  const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}for(const player of activePlayers)collectPvpOrbsNearPlayer(room,player);
   if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=100){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
   return;
@@ -915,7 +933,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
   const receivedAt=Date.now(),previousAt=Number(p.lastPositionAt)||0,deltaSeconds=(receivedAt-previousAt)/1000;
   const previousX=Number(p.x)||0,previousY=Number(p.y)||0,dx=x-previousX,dy=y-previousY,displacement=Math.hypot(dx,dy);
-  if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
+  // Resolve orb pickup against the latest client position before rock collision can reject a position update.\n  if(room.mode==='pvp')collectPvpOrbsNearPlayer(room,p,x,y);\n  if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   if(displacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=dx/deltaSeconds,vy=dy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>320){vx=vx/speed*320;vy=vy/speed*320;}p.velocityX=vx;p.velocityY=vy;}
   else {p.velocityX=0;p.velocityY=0;}
