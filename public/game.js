@@ -92,12 +92,12 @@ const skinData=[
  {id:'angler',name:'Lanterna Mortal',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'A isca incandescente e a mandíbula de agulhas do peixe-pescador abissal.',ability:'Isca predatória: aumenta em 10% o dano contra criaturas a longa distância.'},
  {id:'maw',name:'Mandíbula da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Uma boca circular de dentes radiais, cercada por filamentos de caça.',ability:'Mordida de fenda: aumenta em 12% o dano contra inimigos próximos.'},
  {id:'devourer',name:'Devorador do Vazio',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'A silhueta bojuda e a boca descomunal da criatura que engole correntes inteiras.',ability:'Vácuo residual: após eliminar um boss, atrai orbes próximos por alguns segundos.'},
-{id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Um grande tubarão branco de dorso cinza, ventre claro e nadadeiras em foice.',ability:'Gira a cauda em um golpe frontal, deixando um rastro de espuma azul que fere inimigos atravessados.'},
-{id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'O cefalofólio largo e os olhos laterais denunciam um tubarão-martelo.',ability:'Eletrorecepção: atrai orbes de experiência de 50% mais longe.'},
-{id:'abysscroc',name:'Jacaré-açu',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Focinho largo, pernas curtas, cauda forte e placas de um jacaré-açu.',ability:'Mordida de emboscada: uma arrancada baixa e explosiva que causa dano em cone à frente.'},
-{id:'armoredgator',name:'Crocodilo-do-nilo',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Focinho triangular, escamas rugosas e armadura dorsal de crocodiliano.',ability:'Giro do Nilo: rotação de cauda que repele inimigos próximos e cria uma onda de impacto.'},
-{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Uma serpente colossal das profundezas, esculpida em escamas de jade reluzentes com olhos de âmbar.',ability:'Soberania Ofídica: concede 20% mais velocidade e veneno corrosivo que amplifica o dano.'},
-  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Enguia abissal de corpo sinuoso que gera descargas bioelétricas contínuas através da água salgada.',ability:'Descarga Estática: Seus ataques irradiam eletricidade paralisando brevemente (0,1s) os inimigos atingidos.'},
+{id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Investida Pelágica: atravessa a curta distância em alta velocidade e a esteira causa dano aos inimigos cruzados. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
+{id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
+{id:'abysscroc',name:'Jacaré-açu',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Corpo pesado, focinho largo em U, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
+{id:'armoredgator',name:'Crocodilo-do-nilo',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Perfil alongado, focinho em V, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
+{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Predadora abissal de corpo longo, placas de jade e órgãos fotóforos verdes que marcam seu movimento na escuridão.',ability:'Soberania Ofídica: +20% de velocidade de movimento e +10% de dano causado.'},
+  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Predadora bioelétrica de corpo alongado, ventre luminoso e pulsos ciano que percorrem a linha lateral.',ability:'Sobrecarga Bioelétrica: +22% de velocidade de movimento e +15% de dano causado.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
@@ -940,10 +940,10 @@ const upgradeList=[
  {id:'predator',name:'Instinto Predatório',icon:'☠',desc:'Aumenta todo o dano causado em 8% por nível, até 24%.',apply:()=>upgrades.predator=Math.min(3,(upgrades.predator||0)+1)}
 ];
 const COMBO_SKILLS={
- gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Pulso Intenso: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'},
- abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Combina Lança do Abismo e Olho Profundo no nível 3. Os disparos atravessam o mapa até atingir uma criatura ou obstáculo; o indicador de alcance desaparece.'},
- vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Combina Membrana Viva e Pulso Intenso no nível 3. Recupera 2% do dano causado como vida.'}
+ gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Fusão de Pulso de Ruptura + Nova Gravitacional no nível 3. Mantém um campo ao redor do jogador que causa dano periódico dentro do alcance de disparo.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica + Pulso Intenso no nível 3. Descargas encadeadas atingem até 8 inimigos dentro do campo elétrico.'},
+ abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Fusão de Lança do Abismo + Olho Profundo no nível 3. Os disparos deixam de respeitar o limite normal de alcance e seguem até atingir uma criatura ou obstáculo.'},
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -2030,75 +2030,28 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    eye(.43,-.2,r*.06,'#f5d174');eye(.43,.2,r*.06,'#f5d174');
    for(let tooth=0;tooth<8;tooth++){const tx=(.78+tooth*.085)*r,side=tooth%2?1:-1;fin([[tx/r,side*.025],[tx/r+.035,side*.12],[tx/r+.07,side*.035]],'#f8f0d4','#4c4634');}
     } else if(id==='electriceel'){
-   // Enguia Elétrica: corpo longo azul ciano/violeta com arcos elétricos e filamentos
-   const wave = Math.sin(t * 0.008) * 0.22;
-   fill(()=>{
-     c.moveTo(-2.2*r, wave*r);
-     c.quadraticCurveTo(-1.5*r, -0.32*r + wave*r, -0.7*r, -0.25*r);
-     c.quadraticCurveTo(0, -0.18*r - wave*r, 0.8*r, -0.12*r);
-     c.lineTo(1.2*r, 0);
-     c.lineTo(0.8*r, 0.12*r);
-     c.quadraticCurveTo(0, 0.18*r + wave*r, -0.7*r, 0.25*r);
-     c.quadraticCurveTo(-1.5*r, 0.32*r - wave*r, -2.2*r, wave*r);
-     c.closePath();
-   }, bodyGrad('#1a8fff'), '#38e8ff', Math.max(1.3, r*.04), 18);
-
-   // Olhos e barbatana dorsal translúcida
-   stroke(()=>{
-     c.moveTo(-1.8*r, -0.12*r + wave*r*0.5);
-     c.quadraticCurveTo(-0.5*r, -0.38*r, 0.6*r, -0.15*r);
-   }, Math.max(1.5, r*0.06), '#64f6ff', 12);
-
-   // Faíscas e arcos de eletricidade crepitando pelo corpo da enguia
-   for(let k=0; k<4; k++){
-     // Deterministic electric arcs: time-driven animation avoids per-frame random jitter.
-     const phase=t*0.007+k*1.73;
-     const sparkX=(-1.4+k*0.65)*r+Math.sin(phase*1.31)*3;
-     const sparkY=Math.sin(phase)*0.15*r+Math.cos(phase*1.91)*4;
-     const bendX=Math.sin(phase*2.17)*7,bendY=Math.cos(phase*1.67)*8;
-     stroke(()=>{
-       c.moveTo(sparkX,sparkY);
-       c.lineTo(sparkX+bendX,sparkY+bendY);
-       c.lineTo(sparkX+Math.sin(phase*2.83)*12,sparkY+Math.cos(phase*2.41)*6);
-     },1.6,'#ffffff',14);
-   }
-   fill(()=>{ c.arc(0.7*r, -0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
-   fill(()=>{ c.arc(0.7*r, 0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
+   // Bioelectric eel: low, continuous silhouette with a long anal fin and travelling organ pulses.
+   const swim=Math.sin(t*.0046)*.055,tail=Math.sin(t*.0062)*.16;
+   fill(()=>{c.moveTo(-2.35*r,tail*r);c.bezierCurveTo(-1.72*r,(-.16+swim)*r,-.82*r,-.28*r,.12*r,-.24*r);c.bezierCurveTo(.62*r,-.22*r,1.12*r,-.14*r,1.38*r,-.03*r);c.quadraticCurveTo(1.5*r,0,1.38*r,.08*r);c.bezierCurveTo(.68*r,.27*r,-.35*r,.32*r,-1.18*r,.24*r);c.bezierCurveTo(-1.72*r,.18*r,-2.06*r,(.12+tail)*r,-2.35*r,tail*r);c.closePath()},bodyGrad('#176e86'),'rgba(95,245,255,.86)',Math.max(1.1,r*.035),12);
+   // Electric eels lack the tall shark-like dorsal fin. The long ventral fin drives the swimming motion.
+   fill(()=>{c.moveTo(-1.72*r,.19*r);c.bezierCurveTo(-.9*r,(.48+swim)*r,.28*r,.43*r,1.08*r,.17*r);c.bezierCurveTo(.25*r,.31*r,-.82*r,.34*r,-1.72*r,.19*r);c.closePath()},'rgba(41,173,193,.42)','rgba(119,255,247,.42)',Math.max(.7,r*.018),3);
+   eye(1.02,-.105,r*.045,'#d9ffff');
+   // Organ pulses travel from tail to head instead of flickering randomly each frame.
+   c.save();c.globalCompositeOperation='lighter';for(let k=0;k<7;k++){const phase=(t*.00055+k/7)%1,px=(-1.85+phase*2.85)*r,py=Math.sin(phase*9+t*.004)*.075*r,alpha=.25+.55*Math.sin(phase*Math.PI);c.globalAlpha=Math.max(.12,alpha);c.fillStyle=k%2?'#8ffff8':'#b9d8ff';c.shadowBlur=12*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(px,py,Math.max(1,r*.045),Math.max(.7,r*.022),0,0,Math.PI*2);c.fill();}c.restore();
+   for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-1.15+k*.78)*r,sy=Math.sin(phase)*.13*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+Math.sin(phase*1.7)*.16*r,sy+Math.cos(phase*1.3)*.18*r);c.lineTo(sx+.3*r,sy+Math.sin(phase*2.2)*.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.9)',8);}
   } else if(id==='greensnake'){
-   // Serpente Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
-   const segWave = Math.sin(t * 0.006) * 0.15;
-   fill(()=>{
-     c.moveTo(-2.4*r, segWave*r);
-     c.quadraticCurveTo(-1.8*r, -0.45*r + segWave*r, -0.9*r, -0.38*r);
-     c.quadraticCurveTo(0, -0.28*r - segWave*r, 0.85*r, -0.15*r);
-     c.lineTo(1.35*r, 0);
-     c.lineTo(0.85*r, 0.18*r);
-     c.quadraticCurveTo(0, 0.35*r + segWave*r, -0.9*r, 0.3*r);
-     c.quadraticCurveTo(-1.8*r, 0.4*r - segWave*r, -2.4*r, segWave*r);
-     c.closePath();
-   }, bodyGrad('#2ee88a'), 'rgba(180,255,210,.9)', Math.max(1.3, r*.05), 16);
-   for(let s=0; s<9; s++){
-     const sx = (-1.8 + s * 0.34) * r;
-     const sy = Math.sin(t*0.005 + s*0.6) * 0.08 * r;
-     fin([[sx/r, -0.1 + sy/r], [sx/r + 0.08, -0.38 + sy/r], [sx/r + 0.16, -0.1 + sy/r]], '#187845', '#79ffba');
-   }
-   fill(()=>{
-     c.moveTo(0.55*r, -0.22*r);
-     c.lineTo(1.25*r, -0.18*r);
-     c.lineTo(1.55*r, 0);
-     c.lineTo(1.25*r, 0.18*r);
-     c.lineTo(0.55*r, 0.22*r);
-     c.closePath();
-   }, bodyGrad('#3af597'), 'rgba(215,255,230,.95)', Math.max(1.1, r*.04), 8);
-   eye(0.9, -0.18, r*0.07, '#ffc83b');
-   eye(0.9, 0.18, r*0.07, '#ffc83b');
-   stroke(()=>{
-     c.moveTo(1.52*r, 0);
-     c.lineTo(1.8*r, 0);
-     c.lineTo(1.95*r, -0.06*r);
-     c.moveTo(1.8*r, 0);
-     c.lineTo(1.95*r, 0.06*r);
-   }, Math.max(1.2, r*0.025), '#ff4d6d', 4);
+   // Emerald trench serpent: plated sea-serpent silhouette, distinct from the smooth electric eel.
+   const bodyWave=Math.sin(t*.0048)*.09;
+   fill(()=>{c.moveTo(-2.45*r,bodyWave*r);c.bezierCurveTo(-1.9*r,(-.36+bodyWave)*r,-1.15*r,-.42*r,-.42*r,-.31*r);c.bezierCurveTo(.18*r,-.24*r,.62*r,-.28*r,.98*r,-.18*r);c.lineTo(1.42*r,-.11*r);c.lineTo(1.63*r,0);c.lineTo(1.42*r,.13*r);c.lineTo(.92*r,.21*r);c.bezierCurveTo(.28*r,.37*r,-.55*r,.33*r,-1.22*r,.28*r);c.bezierCurveTo(-1.86*r,.22*r,-2.18*r,(.2+bodyWave)*r,-2.45*r,bodyWave*r);c.closePath()},bodyGrad('#17633f'),'rgba(102,255,176,.78)',Math.max(1.2,r*.04),10);
+   // Overlapping dorsal scutes create a dragon-serpent identity without random animation.
+   for(let s=0;s<10;s++){const q=s/9,sx=(-1.72+q*2.48),sy=-.25-Math.sin(q*Math.PI)*.12;fin([[sx,sy],[sx+.09,sy-.22-(s%3===0?.08:0)],[sx+.19,sy+.02]],s%2?'#31b96d':'#48d981','rgba(155,255,201,.7)');}
+   // Broad armored head, jaw seam and sensory barbels.
+   fill(()=>{c.moveTo(.72*r,-.27*r);c.lineTo(1.28*r,-.25*r);c.lineTo(1.68*r,-.08*r);c.lineTo(1.76*r,0);c.lineTo(1.64*r,.14*r);c.lineTo(1.22*r,.28*r);c.lineTo(.72*r,.23*r);c.closePath()},bodyGrad('#238a55'),'rgba(184,255,213,.9)',Math.max(1,r*.035),6);
+   stroke(()=>{c.moveTo(1.05*r,.04*r);c.quadraticCurveTo(1.38*r,.13*r,1.67*r,.03*r)},Math.max(.7,r*.022),'rgba(222,255,229,.7)',2);
+   eye(1.18,-.17,r*.055,'#ffc84d');eye(1.18,.17,r*.055,'#ffc84d');
+   for(const side of [-1,1])stroke(()=>{c.moveTo(1.48*r,side*.1*r);c.quadraticCurveTo(1.82*r,side*.22*r,2.02*r,side*.36*r)},Math.max(.7,r*.018),'#8dffc1',4);
+   // Venom sacs and lateral photophores visually communicate the damage passive.
+   for(let k=0;k<6;k++){const px=(-1.25+k*.36)*r,py=.13*r;c.save();c.globalAlpha=.65;c.fillStyle='#7dff9e';c.shadowBlur=8*glowScale;c.shadowColor='#2ee88a';c.beginPath();c.arc(px,py,Math.max(.8,r*.026),0,Math.PI*2);c.fill();c.restore();}
   } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.
    for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
@@ -2169,7 +2122,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    }else if(id==='angler'){
     fin([[-.9,0],[-1.45,-.42],[-1.35,.08],[-1.5,.38]],color);body(1.0,.72,.08,color);
     fill(()=>{c.moveTo(.15*r,-.1*r);c.quadraticCurveTo(.75*r,-.58*r,1.0*r,-.2*r);c.lineTo(.68*r,.1*r);c.lineTo(1.02*r,.38*r);c.quadraticCurveTo(.44*r,.44*r,.15*r,.13*r);c.closePath()},'#06101a','#fff0c7',Math.max(1,r*.045),8);
-    teeth(.61,.06,.36,.25,9,.68);stroke(()=>{c.moveTo(-.02*r,-.5*r);c.quadraticCurveTo(.1*r,-1.12*r,.48*r,-1.04*r)},Math.max(1,r*.06),'#fff0a4',8);eye(.48,-.28,r*.06,'#fff0a4');
+    teeth(.61,.06,.36,.25,9,.68);stroke(()=>{c.moveTo(-.02*r,-.5*r);c.quadraticCurveTo(.1*r,-1.12*r,.48*r,-1.04*r)},Math.max(1,r*.06),'#fff0a4',8);c.save();c.fillStyle='#fff4b0';c.shadowBlur=20*glowScale;c.shadowColor='#ffcf70';c.beginPath();c.arc(.48*r,-1.04*r,Math.max(1.5,r*.09),0,Math.PI*2);c.fill();c.restore();eye(.48,-.28,r*.06,'#fff0a4');
    }else if(id==='maw'){
     for(let i=0;i<7;i++){const a=Math.PI+i*Math.PI/6;tentacle(Math.cos(a)*.58,Math.sin(a)*.58,Math.cos(a)*.8,Math.sin(a)*.8,Math.cos(a)*1.12,Math.sin(a)*1.1,Math.cos(a)*1.35,Math.sin(a)*1.2,.7)}
     body(1.0,.95,0,color);c.save();c.fillStyle='#050611';c.strokeStyle='#f0c5ff';c.lineWidth=Math.max(1,r*.05);c.beginPath();c.ellipse(.12*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.12,0,.52,.58,16,.8);eye(.65,-.15,r*.05,'#ffeaff');
