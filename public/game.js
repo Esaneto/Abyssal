@@ -559,22 +559,9 @@ function getBossDisplayName(kind) {
   return n[kind] || kind.toUpperCase();
 }
 function showAbyssalAlert(text, subtitle = '') {
-  // Mensagens comuns nunca podem cobrir ou reiniciar o alerta prioritário de aparição de boss.
-  const bossPriorityAlert = $('bossAlert');
-  if (bossPriorityAlert && !bossPriorityAlert.hidden) return;
-  const el = $('abyssalDangerAlert');
-  if (!el) return;
-  const titleEl = el.querySelector('.adanger-title');
-  const subEl = el.querySelector('.adanger-sub');
-  if (titleEl) titleEl.textContent = text;
-  if (subEl) subEl.textContent = subtitle;
-  el.classList.remove('adanger-visible', 'adanger-fadeout');
-  void el.offsetWidth;
-  el.classList.add('adanger-visible');
-  clearTimeout(abyssalAlertTimer);
-  abyssalAlertTimer = setTimeout(() => {
-    el.classList.remove('adanger-visible');
-  }, 6200);
+  // Legacy progression notices are intentionally non-visual.
+  // Match overlays are restricted to boss, fusion, join and death via enqueueGameplayNotice().
+  return;
 }
 const gameplayNoticeQueue=[];let gameplayNoticeActive=false;
 function enqueueGameplayNotice(kind,title,text='',priority=0){
@@ -589,8 +576,8 @@ function pumpGameplayNotice(){
  const kicker=$('bossAlertKicker'),title=$('bossAlertTitle'),copy=$('bossAlertText');
  if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':'SINAL PERDIDO · ECO INTERROMPIDO';
  if(title)title.textContent=item.title;if(copy)copy.textContent=item.text;
- el.hidden=false;el.classList.remove('boss-alert-enter');void el.offsetWidth;el.classList.add('boss-alert-enter');
- clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('boss-alert-enter');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
+ el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
+ clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
 function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0,force=false){
