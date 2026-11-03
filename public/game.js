@@ -465,11 +465,7 @@ function initVolumeControls() {
       if (soundBtn) {
         soundBtn.textContent = val > 0.4 ? '🔊' : val > 0 ? '🔉' : '🔇';
       }
-      if (ambientNodes?.master?.gain) {
-        ambientNodes.master.gain.value = 0.045 * masterSoundVolume;
-      }
       window.AbyssalMasterVolume = masterSoundVolume;
-window.AbyssalMusicVolume = musicVolume;
     });
   }
 
