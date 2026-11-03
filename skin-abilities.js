@@ -12,6 +12,7 @@ function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
   const d = Number.isFinite(Number(distance)) ? Number(distance) : Infinity;
   if (skinId === 'toxic') multiplier *= 1.12;
   if (skinId === 'electriceel') multiplier *= 1.15;
+  if (skinId === 'greensnake') multiplier *= 1.10;
   if (skinId === 'reefshark' && !boss) multiplier *= 1.15;
   if (skinId === 'leviathan' && boss) multiplier *= 1.25;
   if (skinId === 'thorn' && d <= CLOSE_RANGE) multiplier *= 1.24;
@@ -29,7 +30,7 @@ function incomingDamageMultiplier(skinId) {
 function enemySpeedMultiplier(skinId, distance) {
   return skinId === 'glacier' && Number(distance) <= 240 ? 0.74 : 1;
 }
-function movementMultiplier(skinId) { return skinId === 'voidwing' ? 1.18 : skinId === 'electriceel' ? 1.22 : 1; }
+function movementMultiplier(skinId) { return skinId === 'voidwing' ? 1.18 : skinId === 'electriceel' ? 1.22 : skinId === 'greensnake' ? 1.20 : 1; }
 function targetRangeMultiplier(skinId) { return skinId === 'abyssaleye' ? 1.20 : 1; }
 function fireRateMultiplier(skinId) { return skinId === 'solar' ? 1.18 : 1; }
 function orbExperienceMultiplier(skinId) { return skinId === 'default' ? 1.12 : skinId === 'royal' ? 1.25 : 1; }
