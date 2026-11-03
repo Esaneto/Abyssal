@@ -222,3 +222,14 @@ test('rankings expose settlement timestamps for client countdowns',()=>{
  assert.ok(online.includes('ranking-countdown'));
  assert.ok(online.includes('RECOMPENSA EM'));
 });
+
+test('Aberration Mask keeps 12% mitigation and first-hit echo repels the attacker',()=>{
+ assert.equal(SkinAbilities.incomingDamageMultiplier('aberration'),0.88);
+ const sim=fs.readFileSync(path.join(__dirname,'..','world-simulation.js'),'utf8');
+ assert.match(sim,/aberrationEchoTriggered = true/);
+ assert.doesNotMatch(sim,/nearby\.id === enemy\.id/);
+ assert.match(sim,/damage: appliedDamage, blocked, aberrationEchoTriggered/);
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(server,/if\(hit\.aberrationEchoTriggered\)/);
+ assert.match(server,/skin:'aberration'/);
+});
