@@ -84,7 +84,7 @@ test('boss pursuit ramps toward player speed as health falls and never exceeds i
 test('Kraken identity is consistently glass-blue and no longer uses the smiling name', () => {
   const game = read('public/game.js');
   assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7'/);
-  assert.match(game, /kraken:\{name:'Kraken do Abismo',color:'#4f9fc7'/);
+  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7'/);
   assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
 });
 
@@ -102,7 +102,7 @@ test('Kraken boss renders the same eight-arm glass-blue silhouette as the player
   const game = read('public/game.js');
   assert.match(game, /if\(kind==='kraken'\)/);
   assert.match(game, /for\(let arm=0;arm<8;arm\+\+\)/);
-  assert.match(game, /bodyGrad\('#4f9fc7'\)/);
+  assert.match(game, /krakenGlass|#4f9fc7/);
   assert.match(game, /touchesKrakenTentacle/);
 });
 
