@@ -1620,15 +1620,22 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.photonRay>0){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
+  const isPvpMode=onlineRoomMode==='pvp';
+  const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
   let target=null,targetDistance=Infinity;const beamRange=getFiringRange();
-  for(const enemy of enemies){if(!enemy||enemy.hp<=0)continue;const d=dist(player,enemy);if(d<=beamRange&&d<targetDistance){target=enemy;targetDistance=d;}}
+  for(const candidate of candidates){if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;const d=dist(player,candidate);if(d<=beamRange&&d<targetDistance){target=candidate;targetDistance=d;}}
   if(target){
    const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=.25,widths=[0,2.4,4.0,6.0],width=widths[beamLevel]/GAME_WORLD_ZOOM;
    effects.push({type:'photon-ray',x1:player.x,y1:player.y,x2:target.x,y2:target.y,width,life:.09,maxLife:.09,color:'#8cf7ff'});
-   if(player.photonRayTimer<=0){player.photonRayTimer=beamInterval;const beamDps=(getShotDamageAtLevel(beamLevel)/.52)*(upgrades.power||1);dealEnemyDamage(target,beamDps*beamInterval,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
+   if(player.photonRayTimer<=0){
+    player.photonRayTimer=beamInterval;
+    const beamDps=(getShotDamageAtLevel(beamLevel)/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
+    if(onlineMode&&window.AbyssalOnline?.sendShot){const beamAngle=Math.atan2(target.y-player.y,target.x-player.x),beamSpeed=900/GAME_WORLD_ZOOM;window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:Math.cos(beamAngle)*beamSpeed/W,vy:Math.sin(beamAngle)*beamSpeed/H,damage:pulseDamage,color:'#8cf7ff',special:'photonRay'});}
+    if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
+   }
   }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,.08);
  }
- if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}burst(player.x,player.y,'#72f5ff',32,Math.min(320,novaRange*.55));effects.push({type:'ring',x:player.x,y:player.y,r:0,max:novaRange,life:.55,maxLife:.55,color:'#72f5ff'});playSkillSound('nova','trigger')}}
+ if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova'});burst(player.x,player.y,'#72f5ff',32,Math.min(320,novaRange*.55));effects.push({type:'ring',x:player.x,y:player.y,r:0,max:novaRange,life:.55,maxLife:.55,color:'#72f5ff'});playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
@@ -2573,9 +2580,11 @@ $('soundBtn').addEventListener('click',()=>{
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
 window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))setMobileGameActive(true);else resize()});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
- const col=d.color||'#9bbcff',special=d.special||null;
- projectiles.push({x:d.x*W,y:d.y*H,vx:(d.vx||0)*W,vy:(d.vy||0)*H,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
- burst(d.x*W,d.y*H,col,5,75);
+ const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
+ if(special==='nova'){effects.push({type:'ring',x,y,r:0,max:294/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:col});burst(x,y,col,22,180);return;}
+ if(special==='photonRay'){const length=294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;effects.push({type:'photon-ray',x1:x,y1:y,x2:x+vx/mag*length,y2:y+vy/mag*length,width:5/GAME_WORLD_ZOOM,life:.16,maxLife:.16,color:col});return;}
+ projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
+ burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
 });
 window.AbyssalGameHooks={
