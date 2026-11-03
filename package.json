@@ -2,24 +2,19 @@
   "name": "abyssal-ecos-das-profundezas",
   "version": "3.5.9",
   "private": true,
-  "description": "Abyssal: jogo 2D multiplayer autoritativo com cliente web e Android nativo via Capacitor.",
+  "description": "Abyssal: lobby compartilhado, combate online autoritativo, simulação e combate autoritativos no servidor, ressincronização de vida ao retornar da aba, correção de hits invisíveis e interpolação autoritativa",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test",
-    "android:add": "npx cap add android",
-    "android:sync": "npx cap sync android",
-    "android:open": "npx cap open android",
-    "android:run": "npx cap run android"
+    "test": "node --test"
   },
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
-    "@capacitor/android": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
     "express": "^4.21.2",
     "socket.io": "^4.8.1",
     "pg": "^8.16.3"
-  },
-  "devDependencies": {"@capacitor/cli": "^8.0.0"}
+  }
 }
