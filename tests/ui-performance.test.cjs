@@ -87,3 +87,18 @@ test('menu title scales to narrow and short screens', () => {
   assert.match(css, /@media\(max-width:420px\)[\s\S]*?#menuScreen h1/);
   assert.match(css, /@media\(max-height:560px\)[\s\S]*?#menuScreen h1/);
 });
+
+
+test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressure', async () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const online = fs.readFileSync(path.join(__dirname, '..', 'public', 'online.js'), 'utf8');
+  assert.match(server, /playerMotionIntervalMs=room\.mode==='pvp'\?50:80/);
+  assert.match(online, /isPvp\?50:80/);
+  assert.match(online, /interpDuration:110/);
+});
+
+test('electric eel rendering is deterministic per frame sample', async () => {
+  const game = fs.readFileSync(path.join(__dirname, '..', 'public', 'game.js'), 'utf8');
+  assert.match(game, /Deterministic electric arcs/);
+  assert.doesNotMatch(game, /sparkX = \(-1\.4 \+ k \* 0\.65\) \* r \+ rand/);
+});
