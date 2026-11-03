@@ -34,7 +34,7 @@ function contactGeometry(enemy, target) {
     radius: enemyRadiusWorld + playerRadiusWorld + paddingWorld,
     enemyRadiusWorld, playerRadiusWorld, paddingWorld
   };
-  if (enemy?.kind === 'kraken' && EnemyAI.touchesKrakenTentacle?.(enemy, target, 1 / WORLD_ZOOM)) {
+  if (enemy?.kind === 'kraken' && enemy.krakenSweepActive === true && EnemyAI.touchesKrakenTentacle?.(enemy, target, 1 / WORLD_ZOOM)) {
     return { ...geometry, distance: 0, tentacleContact: true };
   }
   return geometry;
@@ -138,7 +138,8 @@ function spawnEnemy(world, options = {}) {
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
-    spawnCorner: point.corner
+    spawnCorner: point.corner,
+    krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   world.enemies.push(enemy);
   return enemy;
@@ -259,6 +260,24 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
+    if (enemy.kind === 'kraken') {
+      // Slow, readable boss sweep: 2.4 s telegraph, 2.8 s damaging sweep, 4.8 s recovery.
+      enemy.krakenSweepTimer = Math.max(0, (Number(enemy.krakenSweepTimer) || 0) - dt);
+      if (enemy.krakenSweepTimer <= 0) {
+        enemy.krakenSweepCycle = ((Number(enemy.krakenSweepCycle) || 0) + dt);
+        const cycle = enemy.krakenSweepCycle;
+        enemy.krakenTelegraph = cycle < 2.4 ? clamp(cycle / 2.4, 0, 1) : 1;
+        enemy.krakenSweepActive = cycle >= 2.4 && cycle < 5.2;
+        // Deliberately slow, broad arm motion. Players see the arc before contact becomes dangerous.
+        enemy.phase = cycle * 0.42;
+        if (cycle >= 10) {
+          enemy.krakenSweepCycle = 0;
+          enemy.krakenSweepTimer = 0;
+          enemy.krakenSweepActive = false;
+          enemy.krakenTelegraph = 0;
+        }
+      }
+    }
     if (enemy.kind === 'devourer') {
       enemy.suctionCooldown = Math.max(0, (Number(enemy.suctionCooldown) || 0) - dt);
       if (enemy.suctionActive) {
