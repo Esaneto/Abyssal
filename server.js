@@ -514,10 +514,10 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   const defeatedEvent={id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss};
   if(batch)batch.defeated.push(defeatedEvent);
   else io.to(channelFor(room)).emit('world-enemy-defeated',defeatedEvent);
-  // Each successive boss drops triple the previous boss's base XP: x1, x3, x9...
-  // The multiplier is shared by the room and persists across player re-entry.
+  // XP dos bosses cresce apenas 2% por ciclo completo de sete bosses.
   if(boss){
-   enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*Math.pow(3,Math.max(0,Number(w.bossesDefeated)||0)));
+   const completedCycles=Math.floor(Math.max(0,Number(w.bossesDefeated)||0)/BOSS_KINDS.size);
+   enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*(1+completedCycles*0.02));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
    // A barra só reinicia após a derrota do chefe atual.
    w.nextBossAt=(Number(w.elapsed)||0)+(100/3.8);
