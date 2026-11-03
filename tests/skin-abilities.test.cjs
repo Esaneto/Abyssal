@@ -316,3 +316,23 @@ test('local and remote Nova share one visual constructor',()=>{
  assert.match(game,/spawnNovaVisual\(x,y,max,col,onlineRoomMode==='pvp'\)/);
  assert.match(game,/type:'nova-core'/);
 });
+
+test('Q Pulse uses authoritative online damage and PvP wall occlusion',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(game,/sendActiveAbility\?\.\('pulse'\)/);
+ assert.match(game,/type:'occluded-ring'.*color:'#78f8f3'/);
+ assert.match(online,/socket\.emit\('active-ability'/);
+ assert.match(server,/socket\.on\('active-ability'/);
+ assert.match(server,/pvpSegmentHitsRock\(player\.x,player\.y,target\.x,target\.y/);
+ assert.match(server,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse'\)/);
+});
+test('Gravitational Nova has mode-aware cadence enforced by client and server',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(game,/player\.novaTimer=isPvpMode\?2\.4:1\.8/);
+ assert.match(server,/cooldown=room\.mode==='pvp'\?2400:1800/);
+ assert.match(server,/shooter\.novaShotReadyAt=now\+2400/);
+ assert.match(game,/function update\(dt\)\{\n const isPvpMode=onlineRoomMode==='pvp'/);
+});
