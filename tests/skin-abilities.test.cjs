@@ -147,3 +147,18 @@ test('major radial abilities use layered silhouettes for readable VFX',()=>{
  assert.ok(game.includes("color:'#c18cff'"));
  assert.ok(game.includes("color:'#f0d9ff'"));
 });
+
+
+test('abyss lance and photon lance have opposite silhouettes and travel profiles',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("pierce:{damage:[0,13,16,19],speed:[0,.86,.90,.94],radius:[0,5.4,6.0,6.6]}"));
+ assert.ok(game.includes("photon:{damage:[0,14,18,22],speed:[0,1.55,1.82,2.08],radius:[0,2.9,3.1,3.3]}"));
+ assert.ok(game.includes("p.special==='photon'?.035:p.special==='pierce'?.105"));
+ assert.ok(game.includes("ctx.ellipse(p.x,p.y,p.r*1.9,p.r*.46"));
+ assert.ok(game.includes("p.r*2.4"));
+});
+
+test('passive and defensive skills expose readable gameplay feedback',()=>{
+ const game=read('public/game.js');
+ for(const token of ["type:'regen-pulse'","type:'ward-collapse'","type:'ricochet-arc'","upgrades.lastStand>0&&hp/maxHp<=.3","if(upgrades.predator>0)","if(upgrades.shell>0)","if(upgradeLevels.magnet>0)"]) assert.ok(game.includes(token),token);
+});
