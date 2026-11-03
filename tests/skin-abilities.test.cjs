@@ -93,3 +93,31 @@ test('Kraken skin uses animated contact-damage tentacles', () => {
  assert.ok(game.includes("dealEnemyDamage(target,18,'kraken-contact')"));
  assert.ok(ai.includes('const length = 3.35 + 0.32'));
 });
+
+
+test('premium boss skins expose meaningful verified combat advantages',()=>{
+ const abilities=require('../public/skin-abilities');
+ assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
+ assert.equal(abilities.damageMultiplier('angler','drifter',300,1),1.25);
+ assert.equal(abilities.damageMultiplier('maw','drifter',100,1),1.3);
+ assert.equal(abilities.damageMultiplier('devourer','kraken',300,1),1.2);
+ assert.equal(abilities.incomingDamageMultiplier('aberration'),.88);
+ assert.equal(abilities.incomingDamageMultiplier('kraken'),.9);
+ assert.equal(abilities.targetRangeMultiplier('angler'),1.15);
+ assert.equal(abilities.magnetRangeMultiplier('devourer'),1.35);
+});
+
+test('toxic skin releases a poison cloud every five seconds',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("player.toxicCloudTimer=5"));
+ assert.ok(game.includes("dealEnemyDamage(target,8,'toxic-cloud'"));
+ assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,5)"));
+});
+
+test('paid skin copy matches implemented white shark and boss-skin mechanics',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes('Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos'));
+ assert.ok(game.includes('Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'));
+ assert.ok(game.includes('Isca predatória: +25% de dano a longa distância e +15% de alcance'));
+ assert.ok(game.includes('Mordida de fenda: +30% de dano contra inimigos próximos'));
+});
