@@ -18,6 +18,14 @@ const GAME_WORLD_ZOOM=.78;
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
+const RESONANCE_STORAGE_KEY='abyssalResonancePresets';
+const BASIC_SKILL_IDS=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','nova'];
+const RESONANCE_DEFAULTS={pve:['power','rate','speed','range','magnet','regen','shield'],pvp:['power','rate','speed','range','magnet','regen','shield']};
+let resonancePresets=(()=>{try{return JSON.parse(localStorage.getItem(RESONANCE_STORAGE_KEY)||JSON.stringify(RESONANCE_DEFAULTS))}catch{return JSON.parse(JSON.stringify(RESONANCE_DEFAULTS))}})();let resonanceEditingMode='pve';
+function normalizeResonancePresets(value){const clean={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(value?.[mode])?value[mode]:[];clean[mode]=[...new Set(ids.map(String).filter(id=>BASIC_SKILL_IDS.includes(id)))].slice(0,7);}return clean;}
+resonancePresets=normalizeResonancePresets(resonancePresets);
+function saveResonancePresets(){resonancePresets=normalizeResonancePresets(resonancePresets);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.saveCosmetics?.({resonancePresets});}
+window.addEventListener('abyssal-account-data',event=>{const saved=event.detail?.resonancePresets;if(saved){resonancePresets=normalizeResonancePresets(saved);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}}});
 let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];
 let autoFollowCursor=false;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
@@ -917,7 +925,9 @@ const upgradeList=[
 ];
 const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'}
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'},
+ abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Combina Lança do Abismo e Olho Profundo no nível 3. Os disparos atravessam o mapa até atingir uma criatura ou obstáculo; o indicador de alcance desaparece.'},
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Combina Membrana Viva e Pulso Intenso no nível 3. Recupera 2% do dano causado como vida.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -936,7 +946,7 @@ function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
  const arcChainActive=Number(upgrades.arcChain)>0;
- const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
  const signature=selected.map(([id,rank])=>id+':'+rank).join('|')||'none';
  // Avoid replacing focused/clicked skill buttons on every simulation frame.
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
@@ -993,6 +1003,8 @@ function chooseUpgrade(u){
   upgradeLevels.gravitationalRupture=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.gravitationalRupture.name;
   if(player)player.gravitationalRuptureTimer=0;
  }
+ if(!upgrades.abyssEye&&upgradeLevels.pierce>=3&&upgradeLevels.range>=3){upgrades.pierce=0;upgrades.range=0;upgrades.abyssEye=1;upgradeLevels.abyssEye=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.abyssEye.name;discoverCodexSkill('abyssEye');}
+ if(!upgrades.vitalDrain&&upgradeLevels.regen>=3&&upgradeLevels.power>=3){upgrades.regen=0;upgrades.vitalDrain=1;upgradeLevels.vitalDrain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.vitalDrain.name;discoverCodexSkill('vitalDrain');}
  if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.ricochet>=3){
   upgrades.electric=0;upgrades.ricochet=0;upgrades.arcChain=1;
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
@@ -1009,16 +1021,14 @@ function chooseUpgrade(u){
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
 
-function areAllUpgradesMaxed() {
-  return upgradeList.every(u => (upgradeLevels[u.id] || 0) >= 3);
-}
+function areAllUpgradesMaxed() {const allowed=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve'];return upgradeList.filter(u=>allowed.includes(u.id)).every(u=>(upgradeLevels[u.id]||0)>=3);}
 
 function offerUpgrade(){
  if(gameState==='upgrade'||gameState==='upgrade-applying')return;
  if(areAllUpgradesMaxed()){$('upgradeScreen').hidden=true;return;}
  clearUpgradeCountdown();
  gameState='upgrade';chosen=[];
- const available=upgradeList.filter(u=>(upgradeLevels[u.id]||0)<3);
+ const saved=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve'];const available=upgradeList.filter(u=>saved.includes(u.id)&&(upgradeLevels[u.id]||0)<3);
  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]];}
  upgradeOptions=available.slice(0,3);
  const wrap=$('upgradeChoices'),fragment=document.createDocumentFragment();wrap.replaceChildren();
@@ -1204,6 +1214,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   score += Math.round(damage);
  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
+ if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage));hp=Math.min(maxHp,hp+actualDamage*.02);}
 
   if(equippedSkin==='electriceel' && enemy && enemy.hp > 0){
     enemy.paralyzedUntil = Math.max(enemy.paralyzedUntil || 0, performance.now() + 100);
@@ -1443,7 +1454,7 @@ function killEnemy(i){
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
 }
-function getFiringRange(){return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
+function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
 function fire(){
  if(!player)return;let target=null,bd=Infinity;const maxRange=getFiringRange();
  if(onlineRoomMode==='pvp'){
@@ -1457,7 +1468,7 @@ function fire(){
  const shotDamage=12*upgrades.power*(1+(upgrades.photon||0)*.16);
  const shotColor=(upgrades.spread||0)>0?'#d8b4fe':(upgrades.photon||0)>0?'#f0abfc':upgrades.ricochet>0?'#ffc47a':upgrades.electric>0?'#eaffff':upgrades.pierce>0?'#ffe7a1':'#83fff3';
  const angles=[a];if((upgrades.spread||0)>0){angles.push(a-.14,a+.14);if(upgrades.spread>=3)angles.push(a-.27,a+.27);}
- for(const shotAngle of angles){const damage=shotDamage/angles.length*(angles.length>1?1.35:1);projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:(4.1+(upgrades.photon||0)*.35)/GAME_WORLD_ZOOM,life:1.33,travelled:0,maxDistance:Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:upgrades.pierce||0,hitIds:[],color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/W,damage,color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});}
+ for(const shotAngle of angles){const damage=shotDamage/angles.length*(angles.length>1?1.35:1);projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:(4.1+(upgrades.photon||0)*.35)/GAME_WORLD_ZOOM,life:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:upgrades.pierce||0,hitIds:[],color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/W,damage,color:shotColor,special:(upgrades.photon||0)>0?'photon':upgrades.pierce>0?'pierce':upgrades.electric>0?'electric':upgrades.ricochet>0?'ricochet':null});}
  player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(upgrades.electric>0)effects.push({type:'beam',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*30,y2:muzzleY+Math.sin(a)*30,life:.16,maxLife:.16,color:'#eaffff'});audio(500,.045,'sine',.008);
 }
 function update(dt){
@@ -2757,6 +2768,15 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('redeemC
 
 $('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('skillDashBtn')?.addEventListener('click',()=>activateAbility('dash'));
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
+
+const resonanceSkillLabels={power:['✧','Pulso Intenso'],rate:['⟡','Ressonância Veloz'],speed:['➤','Propulsão Abissal'],range:['◉','Olho Profundo'],magnet:['⌁','Campo Magnético'],regen:['✚','Membrana Viva'],shield:['◈','Escudo Espectral'],burst:['✺','Pulso de Ruptura'],electric:['ϟ','Tempestade Elétrica'],pierce:['➶','Lança do Abismo'],ricochet:['⤴','Ricochete Caótico'],spread:['✷','Rajada Prismática'],photon:['☄','Lança de Fótons'],nova:['✹','Nova Gravitacional']};
+function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const id of BASIC_SKILL_IDS){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option';const input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=resonancePresets[resonanceEditingMode].includes(id);input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(input.checked&&current.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite é de 7 habilidades básicas por modo.';return;}resonancePresets[resonanceEditingMode]=input.checked?[...current,id]:current.filter(v=>v!==id);updateResonanceCount();});const text=document.createElement('span');text.textContent=icon+'  '+label;row.append(input,text);root.append(row);}updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>b.classList.toggle('active',b.dataset.resonanceMode===resonanceEditingMode));}
+function updateResonanceCount(){const n=resonancePresets[resonanceEditingMode]?.length||0;const el=$('resonanceSelectionCount');if(el)el.textContent=n+' de 7 habilidades selecionadas';const btn=$('resonanceBtn');if(btn)btn.querySelector('span').textContent=n+'/7 HABILIDADES';}
+$('resonanceBtn')?.addEventListener('click',()=>{resonanceEditingMode='pve';$('resonanceMessage').textContent='';renderResonanceChoices();$('resonanceScreen').hidden=false;});
+document.querySelectorAll('[data-resonance-mode]').forEach(b=>b.addEventListener('click',()=>{resonanceEditingMode=b.dataset.resonanceMode;renderResonanceChoices();$('resonanceMessage').textContent='';}));
+$('saveResonanceBtn')?.addEventListener('click',()=>{if(!resonancePresets[resonanceEditingMode].length){$('resonanceMessage').textContent='Selecione pelo menos uma habilidade básica.';return;}saveResonancePresets();$('resonanceMessage').textContent='Combinação '+resonanceEditingMode.toUpperCase()+' salva!';updateResonanceCount();});
+document.querySelectorAll('[data-close-screen="resonanceScreen"]').forEach(b=>b.addEventListener('click',()=>$('resonanceScreen').hidden=true));renderResonanceChoices();
+
 function renderCatalog(){
  const el=$('catalogScreen'),grid=$('catalogGrid');if(!el||!grid)return;el.hidden=false;
  const codex=getAbyssalCodex();
