@@ -11,7 +11,8 @@
     "android:add": "npx cap add android",
     "android:sync": "npx cap sync android",
     "android:open": "npx cap open android",
-    "android:run": "npx cap run android"
+    "android:run": "npx cap run android",
+    "android:doctor": "npx cap doctor android"
   },
   "engines": {"node": ">=20"},
   "dependencies": {
