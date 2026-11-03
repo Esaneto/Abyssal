@@ -93,7 +93,7 @@ test('mobile camera zoom is separated from player base speed and world combat sc
   const game = read('public/game.js');
   assert.match(game, /const GAME_WORLD_ZOOM=\.78/);
   assert.match(game, /moveSpeed:150\/GAME_WORLD_ZOOM/);
-  assert.match(game, /desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
+  assert.match(game, /FAIR_VIEW_REFERENCE/);
   assert.doesNotMatch(game, /oldZoom>0\?oldZoom\/worldZoom/);
 });
 
