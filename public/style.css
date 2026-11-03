@@ -2391,7 +2391,7 @@ body.mobile-game-active #activeAbilities .active-ability {
 
 
 /* Resonance category groups and Abyssario creature catalog subtitle */
-.resonance-skill-choices{display:flex;flex-direction:column;gap:14px}.resonance-category{min-width:0}.resonance-category-title{margin:5px 0 8px;padding:7px 9px;border-left:2px solid #69e6d5;background:rgba(38,103,112,.2);color:#9ff8ee;font:600 10px 'DM Mono',monospace;letter-spacing:.1em}.resonance-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.catalog-subtitle{display:block;margin:-9px 0 15px;color:#8fece4;font:10px 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}.codex-modal h2:has(+ .catalog-subtitle){margin-bottom:0}
+.resonance-skill-choices{display:flex;flex-direction:column;gap:14px}.resonance-category{min-width:0}.resonance-category-title{margin:5px 0 8px;padding:7px 9px;border-left:2px solid #69e6d5;background:rgba(38,103,112,.2);color:#9ff8ee;font:600 10px 'DM Mono',monospace;letter-spacing:.1em}.resonance-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px} .catalog-subtitle{display:block;margin:8px 0 15px;color:#8fece4;font:10px 'DM Mono',monospace;letter-spacing:.2em;text-transform:uppercase}.codex-modal h2:has(+ .catalog-subtitle){margin-bottom:0}
 @media(max-width:520px){.resonance-category-list{grid-template-columns:1fr}}
 
 /* Abyssal deep-sea identity pass: menu + resonance */
@@ -3148,3 +3148,9 @@ body.game-active #bossAlert.gameplay-notice-5s{
   white-space:normal;
   overflow-wrap:anywhere;
 }
+
+/* Regression fixes: owned shop state + Abyssario heading rhythm */
+.skin-card.owned{border-color:rgba(98,245,179,.34)!important;box-shadow:inset 0 0 24px rgba(98,245,179,.035)}
+.skin-card.owned button{border-color:rgba(98,245,179,.38);color:#bfffe4}
+#catalogScreen .codex-modal>h2{margin:10px 0 0!important;line-height:1.05}
+#catalogScreen .catalog-subtitle{display:block;margin:9px 0 14px!important;line-height:1.35;position:relative;clear:both}
