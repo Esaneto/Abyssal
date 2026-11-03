@@ -469,6 +469,20 @@ function initVolumeControls() {
         ambientNodes.master.gain.value = 0.045 * masterSoundVolume;
       }
       window.AbyssalMasterVolume = masterSoundVolume;
+window.AbyssalMusicVolume = musicVolume;
+    });
+  }
+
+  const musicSlider=$('musicVolumeSlider'),musicLabel=$('musicVolumeText');
+  if(musicSlider){
+    musicSlider.value=Math.round(clamp(musicVolume,0,1)*100);
+    if(musicLabel)musicLabel.textContent=musicSlider.value+'%';
+    musicSlider.addEventListener('input',e=>{
+      musicVolume=Number(e.target.value)/100;localStorage.setItem('abyssalMusicVolume',String(musicVolume));
+      if(musicLabel)musicLabel.textContent=e.target.value+'%';
+      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.045*musicVolume;
+      if(window.AbyssalMusicTrack)window.AbyssalMusicTrack.volume=musicVolume;
+      window.AbyssalMusicVolume=musicVolume;
     });
   }
 
@@ -482,7 +496,7 @@ window.AbyssalMasterVolume = masterSoundVolume;
 
 function startAmbientMusic(){if(!soundOn||ambientNodes)return;try{
  audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();
- const master=audioCtx.createGain();master.gain.value=.045*(masterSoundVolume||.8);master.connect(audioCtx.destination);
+ const master=audioCtx.createGain();master.gain.value=.045*musicVolume;master.connect(audioCtx.destination);
  // Percussive procedural tension bed: short filtered pulses with silence between them, no continuous oscillator hum.
  const timer=setInterval(()=>{if(!ambientNodes||!soundOn||!audioCtx)return;const now=audioCtx.currentTime,o=audioCtx.createOscillator(),gain=audioCtx.createGain(),filter=audioCtx.createBiquadFilter();o.type='triangle';o.frequency.setValueAtTime(72+Math.random()*22,now);o.frequency.exponentialRampToValueAtTime(42,now+.18);filter.type='bandpass';filter.frequency.value=145;filter.Q.value=1.3;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.10,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+.22);o.connect(filter);filter.connect(gain);gain.connect(master);o.start(now);o.stop(now+.24);},760);
  ambientNodes={master,timer};
