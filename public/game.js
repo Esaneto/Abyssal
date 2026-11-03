@@ -2122,7 +2122,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    }else if(id==='angler'){
     fin([[-.9,0],[-1.45,-.42],[-1.35,.08],[-1.5,.38]],color);body(1.0,.72,.08,color);
     fill(()=>{c.moveTo(.15*r,-.1*r);c.quadraticCurveTo(.75*r,-.58*r,1.0*r,-.2*r);c.lineTo(.68*r,.1*r);c.lineTo(1.02*r,.38*r);c.quadraticCurveTo(.44*r,.44*r,.15*r,.13*r);c.closePath()},'#06101a','#fff0c7',Math.max(1,r*.045),8);
-    teeth(.61,.06,.36,.25,9,.68);stroke(()=>{c.moveTo(-.02*r,-.5*r);c.quadraticCurveTo(.1*r,-1.12*r,.48*r,-1.04*r)},Math.max(1,r*.06),'#fff0a4',8);eye(.48,-.28,r*.06,'#fff0a4');
+    teeth(.61,.06,.36,.25,9,.68);stroke(()=>{c.moveTo(-.02*r,-.5*r);c.quadraticCurveTo(.1*r,-1.12*r,.48*r,-1.04*r)},Math.max(1,r*.06),'#fff0a4',8);c.save();c.fillStyle='#fff4b0';c.shadowBlur=20*glowScale;c.shadowColor='#ffcf70';c.beginPath();c.arc(.48*r,-1.04*r,Math.max(1.5,r*.09),0,Math.PI*2);c.fill();c.restore();eye(.48,-.28,r*.06,'#fff0a4');
    }else if(id==='maw'){
     for(let i=0;i<7;i++){const a=Math.PI+i*Math.PI/6;tentacle(Math.cos(a)*.58,Math.sin(a)*.58,Math.cos(a)*.8,Math.sin(a)*.8,Math.cos(a)*1.12,Math.sin(a)*1.1,Math.cos(a)*1.35,Math.sin(a)*1.2,.7)}
     body(1.0,.95,0,color);c.save();c.fillStyle='#050611';c.strokeStyle='#f0c5ff';c.lineWidth=Math.max(1,r*.05);c.beginPath();c.ellipse(.12*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.12,0,.52,.58,16,.8);eye(.65,-.15,r*.05,'#ffeaff');
