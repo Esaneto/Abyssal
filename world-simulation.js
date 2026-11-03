@@ -331,19 +331,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (enemy.paralyzedUntil && now < enemy.paralyzedUntil) {
       continue;
     }
-    // AI LOD: nearby creatures and bosses simulate at the full 20 Hz authority rate.
-    // Distant common creatures simulate movement at 10 Hz with accumulated dt, preserving
-    // average speed while cutting target-search/path movement work roughly in half off-screen.
-    let nearestPlayerSq=Infinity;
-    for(const candidate of targetablePlayers){const dx=Number(candidate.x)-Number(enemy.x),dy=Number(candidate.y)-Number(enemy.y),d2=dx*dx+dy*dy;if(d2<nearestPlayerSq)nearestPlayerSq=d2;}
-    const highPriority=BOSS_KINDS.includes(enemy.kind)||nearestPlayerSq<1400*1400;
-    enemy.aiMoveDt=(Number(enemy.aiMoveDt)||0)+dt;
-    if(!highPriority&&((world.tickCount+(Number(enemy.id)||0))&1)!==0)continue;
-    const movementDt=Math.min(.1,Math.max(dt,enemy.aiMoveDt));enemy.aiMoveDt=0;
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
-    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, movementDt, movementOptions, movementResult);
-    if (!movement.moved && targetablePlayers.length && movementDt > 0) {
-      movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, movementDt);
+    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+    if (!movement.moved && targetablePlayers.length && dt > 0) {
+      movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
       if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
     }
     if (movement.moved) movedEnemyCount++;
