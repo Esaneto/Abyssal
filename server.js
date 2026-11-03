@@ -1032,6 +1032,7 @@ socket.on('global-chat-send',(payload={})=>{
    if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',[p.lastPositionSeq,p.x,p.y,false]);}
   }else ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  };
+ socket.on('player-position',(payload,acknowledge)=>handlePlayerPosition(payload,acknowledge,false));
  socket.on('player-motion-input',row=>{
   if(!Array.isArray(row)||row.length<4)return;
   handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3]),clientSentAt:Number(row[4])||0},null,true);
