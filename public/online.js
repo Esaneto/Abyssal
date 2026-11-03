@@ -230,6 +230,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
  socket.on('player-reconcile',data=>{
+  data=window.AbyssalNetCodec?.readReconcile?.(data)||data;
   if(!Array.isArray(data)||data.length<4)return;const seq=Number(data[0])||0;if(seq<=lastReconcileSeq)return;lastReconcileSeq=seq;positionAckAt=Date.now();
   const predicted=pendingMotion.get(seq),authoritativeX=Number(data[1]),authoritativeY=Number(data[2]);
   for(const key of pendingMotion.keys())if(key<=seq)pendingMotion.delete(key);
@@ -244,7 +245,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('shared-damage',data=>{if(window.AbyssalGameHooks?.sharedDamage)window.AbyssalGameHooks.sharedDamage(data);});
  socket.on('shared-xp-award',data=>{if(window.AbyssalGameHooks?.sharedXp)window.AbyssalGameHooks.sharedXp(data);});
  socket.on('world-players',list=>applyPlayerList(list));
- socket.on('player-motion',rows=>applyPlayerMotion(rows));
+ socket.on('player-motion',rows=>applyPlayerMotion(window.AbyssalNetCodec?.readPlayerMotion?.(rows)||rows));
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
  socket.on('player-joined',p=>{if(p.id!==socket.id){storePlayer(p);window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:{kind:'join',title:String(p.nickname||'Mergulhador').toUpperCase(),text:`${p.nickname||'Um mergulhador'} entrou nas profundezas.`}}));}});
@@ -424,7 +425,7 @@ function startPositionHeartbeat(){
   // Compact delta-style motion tuple: [seq,x,y,angle,clientSentAt].
   // Static/slow metadata travels separately at 1 Hz instead of repeating 20-30 times/s.
   pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
-  socket.volatile.emit('player-motion-input',[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle,Date.now()]);
+  socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
   lastPositionAt=now;positionPacketsSent++;
   if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
@@ -508,9 +509,9 @@ function applyPlayerList(list){
 function applyPlayerMotion(rows){
  if(!Array.isArray(rows))return;
  for(const row of rows){
-  if(!Array.isArray(row)||row.length<6)continue;
-  const id=String(row[0]??'');if(!id||id===localPlayerId)continue;
-  storePlayer({id,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0,color:row[4],skinId:row[5]});
+  if(!Array.isArray(row)||row.length<4)continue;
+  const netId=Number(row[0])>>>0,peer=[...players.values()].find(p=>(Number(p.netId)>>>0)===netId);if(!peer||peer.id===localPlayerId)continue;
+  storePlayer({id:peer.id,netId,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0});
  }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
