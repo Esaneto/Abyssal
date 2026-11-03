@@ -466,8 +466,6 @@ function initVolumeControls() {
         soundBtn.textContent = val > 0.4 ? '🔊' : val > 0 ? '🔉' : '🔇';
       }
       window.AbyssalMasterVolume = masterSoundVolume;
-window.AbyssalAudioDiagnostics=()=>({contextState:audioCtx?.state||'not-created',musicCreated:Boolean(ambientNodes),musicVolume,masterGain:ambientNodes?.master?.gain?.value??null,gameState,soundOn});
-
     });
   }
 
@@ -491,6 +489,8 @@ window.AbyssalAudioDiagnostics=()=>({contextState:audioCtx?.state||'not-created'
   }
 }
 window.AbyssalMasterVolume = masterSoundVolume;
+
+window.AbyssalAudioDiagnostics=()=>({contextState:audioCtx?.state||'not-created',musicCreated:Boolean(ambientNodes),musicVolume,masterGain:ambientNodes?.master?.gain?.value??null,gameState,soundOn});
 
 function getAbyssalMusicIntensity(){
  if(gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))return 0;
