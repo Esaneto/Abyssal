@@ -2799,9 +2799,8 @@ function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   if (desc) {
     desc.textContent = `Você está prestes a adquirir ${name || 'este cosmético'} por ${priceFormatted || ''}. Esta transação será realizada em ambiente seguro da Stripe e adicionará o cosmético permanentemente à sua conta.`;
   }
-  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2'), confirmBtn = $('skinPurchaseConfirmBtn');
+  const check1 = $('skinBuyCheck1'), confirmBtn = $('skinPurchaseConfirmBtn');
   if (check1) check1.checked = false;
-  if (check2) check2.checked = false;
   if (confirmBtn) confirmBtn.disabled = true;
   modal.hidden = false;
 }
@@ -2811,16 +2810,15 @@ function closeSkinPurchaseConfirm() {
   pendingStripePurchase = null;
 }
 function updateSkinPurchaseBtn() {
-  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2'), confirmBtn = $('skinPurchaseConfirmBtn');
-  if (confirmBtn) confirmBtn.disabled = !(check1?.checked && check2?.checked);
+  const check1 = $('skinBuyCheck1'), confirmBtn = $('skinPurchaseConfirmBtn');
+  if (confirmBtn) confirmBtn.disabled = !check1?.checked;
 }
 $('skinBuyCheck1')?.addEventListener('change', updateSkinPurchaseBtn);
-$('skinBuyCheck2')?.addEventListener('change', updateSkinPurchaseBtn);
 $('skinPurchaseTopCloseBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
 $('skinPurchaseCancelBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
 $('skinPurchaseConfirmBtn')?.addEventListener('click', () => {
-  const check1 = $('skinBuyCheck1'), check2 = $('skinBuyCheck2');
-  if (!check1?.checked || !check2?.checked) return;
+  const check1 = $('skinBuyCheck1');
+  if (!check1?.checked) return;
   const target = pendingStripePurchase;
   closeSkinPurchaseConfirm();
   if (target?.skin) {

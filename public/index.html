@@ -235,27 +235,23 @@
       </div>
     </section>
 
-    <section id="kidAgeGateScreen" class="screen modal-screen auth-flow-screen" style="display:none !important;" hidden hidden>
-      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="kidAgeGateTitle">
-        <div class="eyebrow"><span class="pulse-dot"></span> PROTEÇÃO DO MERGULHADOR</div>
-        <h2 id="kidAgeGateTitle">CONFIRME SUA<br><em>IDADE</em></h2>
-        <p>Precisamos confirmar sua idade para aplicar as proteções e permissões adequadas à sua conta.</p>
-        <label class="field-label" for="kidDateOfBirth">DATA DE NASCIMENTO</label>
-        <input id="kidDateOfBirth" class="text-field" type="date" autocomplete="bday" required>
-        <button id="kidAgeGateSubmit" class="primary-btn" type="button">CONTINUAR</button>
-        <div id="kidAgeGateMessage" class="form-message" role="status" aria-live="polite"></div>
-        <div id="kidParentChallenge" hidden>
-          <p>É necessária a autorização de um responsável. Peça que ele conclua a solicitação pelo link abaixo ou informe o email dele para receber o convite.</p>
-          <a id="kidChallengeLink" href="https://asktoplay.com" target="_blank" rel="noopener noreferrer">Abrir autorização do responsável</a>
-          <p id="kidChallengeCode"></p>
-          <label class="field-label" for="kidParentEmail">EMAIL DO RESPONSÁVEL</label>
-          <input id="kidParentEmail" class="text-field" type="email" maxlength="254" placeholder="responsavel@exemplo.com">
-          <button id="kidSendParentEmail" class="secondary-btn" type="button">ENVIAR CONVITE</button>
+    <section id="ageTermsScreen" class="screen modal-screen auth-flow-screen" hidden>
+      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="ageTermsTitle">
+        <div class="eyebrow"><span class="pulse-dot"></span> PRIMEIRO ACESSO</div>
+        <h2 id="ageTermsTitle">ANTES DE<br><em>MERGULHAR</em></h2>
+        <p>Informe sua data de nascimento. Usamos essa informação para aplicar uma experiência apropriada à sua faixa etária.</p>
+        <label class="field-label">DATA DE NASCIMENTO</label>
+        <div class="birth-date-fields" style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;">
+          <input id="ageBirthDay" class="text-field" type="number" inputmode="numeric" min="1" max="31" placeholder="Dia" aria-label="Dia de nascimento">
+          <input id="ageBirthMonth" class="text-field" type="number" inputmode="numeric" min="1" max="12" placeholder="Mês" aria-label="Mês de nascimento">
+          <input id="ageBirthYear" class="text-field" type="number" inputmode="numeric" min="1900" max="2100" placeholder="Ano" aria-label="Ano de nascimento">
         </div>
-        <iframe id="kidAgeAssuranceFrame" title="Verificação de idade" hidden
-          allow="camera;payment;publickey-credentials-get;publickey-credentials-create"
-          referrerpolicy="strict-origin" style="width:100%;min-height:560px;border:0;border-radius:12px"></iframe>
-        <button id="kidCheckChallenge" class="secondary-btn" type="button" hidden>JÁ CONCLUÍ A AUTORIZAÇÃO — VERIFICAR</button>
+        <label style="display:flex;align-items:flex-start;gap:10px;margin:16px 0;cursor:pointer;font-size:13px;line-height:1.45;">
+          <input type="checkbox" id="ageTermsAccept" style="margin-top:2px;accent-color:#2ee88a;">
+          <span>Li e concordo com os <a href="/terms.html" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e confirmo que li a <a href="/privacy.html" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.</span>
+        </label>
+        <p id="ageTermsMessage" class="form-message" role="status" aria-live="polite"></p>
+        <button id="ageTermsContinue" class="primary-btn" type="button">CONTINUAR</button>
       </div>
     </section>
 
@@ -339,39 +335,12 @@
         <div class="confirm-checks" style="display:flex;flex-direction:column;gap:12px;margin:16px 0;text-align:left;font-size:13px;line-height:1.45;color:var(--text-dim, #c3d9e8);">
           <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
             <input type="checkbox" id="skinBuyCheck1" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
-            <span>Li e concordo com os <a href="/terms.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Termos de Uso</a> e a <a href="/privacy.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Política de Privacidade</a> e assumo total responsabilidade por esta compra.</span>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-            <input type="checkbox" id="skinBuyCheck2" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
-            <span>Confirmo que tenho 18 anos e/ou estou autorizado pelo meu responsavel a realizar está compra.</span>
+            <span>Confirmo que desejo adquirir este item pelo valor informado e que revisei os detalhes da compra.</span>
           </label>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button id="skinPurchaseConfirmBtn" class="primary-btn" type="button" disabled>CONFIRMAR COMPRA ↗</button>
           <button id="skinPurchaseCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="chatAgeGateModal" class="screen modal-screen" hidden>
-      <div class="modal-card compact-card" role="dialog" aria-modal="true" aria-labelledby="chatAgeGateTitle">
-        <button id="chatAgeGateCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar verificação">×</button>
-        <div class="eyebrow"><span class="pulse-dot"></span> CHAT GLOBAL</div>
-        <h2 id="chatAgeGateTitle">ACESSO AO<br><em>CHAT</em></h2>
-        <p>O chat global permite comunicação com outros mergulhadores em tempo real.</p>
-        <div class="confirm-checks" style="display:flex;flex-direction:column;gap:12px;margin:16px 0;text-align:left;font-size:13px;line-height:1.45;color:var(--text-dim, #c3d9e8);">
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-            <input type="checkbox" id="chatAgeCheck1" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
-            <span>Li e concordo com as diretrizes de convivência da <a href="/community.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Comunidade</a> e os <a href="/terms.html" target="_blank" style="color:#75f8ed;text-decoration:underline;">Termos</a>.</span>
-          </label>
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
-            <input type="checkbox" id="chatAgeCheck2" style="margin-top:2px;accent-color:#2ee88a;cursor:pointer;">
-            <span>Confirmo que tenho 18 anos e/ou estou autorizado pelo meu responsavel a realizar está compra.</span>
-          </label>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="chatAgeConfirmBtn" class="primary-btn" type="button" disabled>ACESSAR CHAT ↗</button>
-          <button id="chatAgeGateCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
         </div>
       </div>
     </section>

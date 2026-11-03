@@ -215,7 +215,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   localStorage.setItem('abyssalAccount',JSON.stringify(account));$('passwordInput').value='';
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
-  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;refreshKidGate();
+  setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;openAgeTermsIfNeeded();
   socket.emit('get-account');socket.emit('list-cardumes');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
  socket.on('session-resumed',result=>{
@@ -338,67 +338,43 @@ $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput')
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
-async function kidApi(path, options={}) {
- const headers={Authorization:'Bearer '+sessionToken,...(options.body?{'Content-Type':'application/json'}:{})};
- const response=await fetch('/api/kid/'+path,{...options,headers});
- const result=await response.json().catch(()=>({}));
- if(!response.ok||!result.ok)throw new Error(result.message||'Não foi possível concluir a verificação de idade.');
- return result;
+const AGE_TERMS_VERSION='2026-11-03-v1';
+function ageProfile(){
+ try{return JSON.parse(localStorage.getItem('abyssalAgeProfile')||'null')}catch(_){return null}
 }
-function renderKidGate(state) { return; 
- const screen=$('kidAgeGateScreen'),parent=$('kidParentChallenge'),frame=$('kidAgeAssuranceFrame'),check=$('kidCheckChallenge'),submit=$('kidAgeGateSubmit'),message=$('kidAgeGateMessage');
- if(!screen)return;
- screen.hidden=state.status==='passed';
- if(state.status==='passed'){if(frame){frame.hidden=true;frame.removeAttribute('src');}return;}
- if(state.status!=='pending'&&frame){frame.hidden=true;frame.removeAttribute('src');}
- if(state.status==='prohibited'){message.textContent='A configuração de idade do produto não permite criar uma sessão para esta conta.';submit.hidden=true;return;}
- submit.hidden=state.status==='pending';
- parent.hidden=state.status!=='pending'||state.challengeType!=='CHALLENGE_PARENTAL_CONSENT';
- check.hidden=state.status!=='pending';
- if(state.status==='pending'&&state.challengeUrl){
-  try{
-   const url=new URL(state.challengeUrl);
-   if(!['https:'].includes(url.protocol)||!(url.hostname==='k-id.com'||url.hostname.endsWith('.k-id.com')))throw new Error('invalid challenge url');
-   if(state.challengeType==='CHALLENGE_AGE_GATE_AGE_ASSURANCE'){frame.src=url.href;frame.hidden=false;}else{frame.hidden=true;frame.removeAttribute('src');}
-   $('kidChallengeLink').href=url.href;
-  }catch{frame.hidden=true;frame.removeAttribute('src');$('kidChallengeLink').href='https://asktoplay.com';}
- }
- $('kidChallengeCode').textContent=state.oneTimePassword?'Código para o responsável: '+state.oneTimePassword:'';
+function hasAgeTermsProfile(){const p=ageProfile();return Boolean(p&&p.termsVersion===AGE_TERMS_VERSION&&['child','teen','adult'].includes(p.band));}
+function calculateAge(year,month,day){
+ const now=new Date(),birth=new Date(year,month-1,day);
+ if(birth.getFullYear()!==year||birth.getMonth()!==month-1||birth.getDate()!==day||birth>now)return null;
+ let age=now.getFullYear()-year;
+ const beforeBirthday=(now.getMonth()<month-1)||(now.getMonth()===month-1&&now.getDate()<day);
+ if(beforeBirthday)age--;
+ return age>=0&&age<=125?age:null;
 }
-let kidPermissionRefreshBusy=false;
-async function refreshKidGate() { return; 
- if(!authenticated||!sessionToken)return;
- const screen=$('kidAgeGateScreen'),message=$('kidAgeGateMessage');
- try{
-  const state=await kidApi('status');
-  if(state.status==='passed'){
-   const session=await kidApi('session');
-   renderKidGate(session);window.dispatchEvent(new CustomEvent('abyssal-kid-permissions',{detail:session.permissions||[]}));
-  }else{renderKidGate(state);if(screen)screen.hidden=false;}
- }catch(error){
-  if(screen){screen.hidden=false;message.textContent=error.message||'Não foi possível validar sua idade.';}
- }
+function applyAgeTreatment(){
+ const p=ageProfile(),restricted=!p||p.band!=='adult';
+ window.AbyssalAgeBand=p?.band||'unknown';
+ window.AbyssalRestrictedAgeTreatment=restricted;
+ try{window.adConfig?.({childDirectedTreatment:restricted?1:0,underAgeOfConsent:restricted?1:0});}catch(_){}
+ const chat=$('globalChatPanel');if(chat)chat.hidden=restricted;
 }
-$('kidAgeGateSubmit')?.addEventListener('click',async()=>{
- const button=$('kidAgeGateSubmit'),message=$('kidAgeGateMessage'),dateOfBirth=$('kidDateOfBirth').value;
- if(!dateOfBirth){message.textContent='Informe sua data de nascimento.';return;}
- button.disabled=true;message.textContent='Verificando com segurança…';
- try{const state=await kidApi('check',{method:'POST',body:JSON.stringify({dateOfBirth})});message.textContent=state.status==='passed'?'Idade confirmada.':state.status==='pending'?'Aguardando autorização ou verificação.':state.status==='prohibited'?'Não foi possível liberar o acesso para esta idade.':'';renderKidGate(state);if(state.status==='passed')await refreshKidGate();}
- catch(error){message.textContent=error.message;}finally{button.disabled=false;}
+function openAgeTermsIfNeeded(){
+ if(hasAgeTermsProfile()){applyAgeTreatment();return false}
+ const screen=$('ageTermsScreen');if(screen)screen.hidden=false;
+ return true;
+}
+$('ageTermsContinue')?.addEventListener('click',()=>{
+ const day=Number($('ageBirthDay')?.value),month=Number($('ageBirthMonth')?.value),year=Number($('ageBirthYear')?.value),message=$('ageTermsMessage');
+ const age=calculateAge(year,month,day);
+ if(age===null){if(message)message.textContent='Informe uma data de nascimento válida.';return}
+ if(!$('ageTermsAccept')?.checked){if(message)message.textContent='Para continuar, leia e aceite os Termos de Uso e confirme a leitura da Política de Privacidade.';return}
+ const band=age<13?'child':age<18?'teen':'adult';
+ localStorage.setItem('abyssalAgeProfile',JSON.stringify({band,termsVersion:AGE_TERMS_VERSION,acceptedAt:new Date().toISOString()}));
+ if(message)message.textContent='';
+ $('ageTermsScreen').hidden=true;applyAgeTreatment();
 });
-$('kidSendParentEmail')?.addEventListener('click',async()=>{
- const button=$('kidSendParentEmail'),message=$('kidAgeGateMessage'),email=$('kidParentEmail').value.trim();
- button.disabled=true;message.textContent='Enviando convite…';
- try{await kidApi('challenge-email',{method:'POST',body:JSON.stringify({email})});message.textContent='Convite enviado ao responsável.';}
- catch(error){message.textContent=error.message;}finally{button.disabled=false;}
-});
-$('kidCheckChallenge')?.addEventListener('click',async()=>{
- const button=$('kidCheckChallenge'),message=$('kidAgeGateMessage');
- button.disabled=true;message.textContent='Consultando autorização…';
- try{const state=await kidApi('challenge-status',{method:'POST',body:JSON.stringify({})});renderKidGate(state);message.textContent=state.status==='passed'?'Autorização confirmada.':state.status==='prohibited'?'A autorização não foi concedida.':'A autorização ainda está pendente.';if(state.status==='passed')await refreshKidGate();}
- catch(error){message.textContent=error.message;}finally{button.disabled=false;}
-});
-
+applyAgeTreatment();
+queueMicrotask(openAgeTermsIfNeeded);
 
 $('supportBtn')?.addEventListener('click',()=>{$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});
 $('supportCancelBtn')?.addEventListener('click',()=>{$('supportScreen').hidden=true;$('menuScreen').hidden=false;});
@@ -625,51 +601,14 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  $('cardumesBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=false;showCardumeDirectory();requestCardumes();if(serverAccount?.cardumeId)socket?.emit('get-cardume-details')});$('cardumesCloseBtn')?.addEventListener('click',()=>{$('cardumesScreen').hidden=true});$('refreshCardumesBtn')?.addEventListener('click',requestCardumes);$('refreshCardumeDetailBtn')?.addEventListener('click',()=>socket?.emit('get-cardume-details'));$('backToCardumeDirectoryBtn')?.addEventListener('click',()=>{showCardumeDirectory();requestCardumes()});$('createCardumeBtn')?.addEventListener('click',()=>{if(!authenticated){const msg=$('cardumeMessage');if(msg)msg.textContent='Entre na sua conta para criar um Cardume.';openLogin();return;}const name=$('cardumeNameInput').value.trim(),description=$('cardumeDescriptionInput').value.trim();socket?.emit('create-cardume',{name,description});});$('leaveCardumeBtn')?.addEventListener('click',()=>socket?.emit('leave-cardume'));
  $('profileBtn')?.addEventListener('click',openProfile);$('profileCloseBtn')?.addEventListener('click',()=>{$('profileScreen').hidden=true;viewedPublicProfile=null;$('accountDeletePanel').hidden=false;$('publicProfileActions').hidden=true});$('likeProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile&&authenticated)socket?.emit('toggle-profile-like',{nickname:viewedPublicProfile});else openLogin()});
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
- function isChatAgeVerified() {
-  return localStorage.getItem('abyssalChatAgeVerified') === 'true';
- }
- function openChatAgeGateModal() {
-  const modal = $('chatAgeGateModal');
-  if (!modal) return;
-  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2'), btn = $('chatAgeConfirmBtn');
-  if (c1) c1.checked = false;
-  if (c2) c2.checked = false;
-  if (btn) btn.disabled = true;
-  modal.hidden = false;
- }
- function closeChatAgeGateModal() {
-  const modal = $('chatAgeGateModal');
-  if (modal) modal.hidden = true;
- }
- function updateChatAgeGateBtn() {
-  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2'), btn = $('chatAgeConfirmBtn');
-  if (btn) btn.disabled = !(c1?.checked && c2?.checked);
- }
- $('chatAgeCheck1')?.addEventListener('change', updateChatAgeGateBtn);
- $('chatAgeCheck2')?.addEventListener('change', updateChatAgeGateBtn);
- $('chatAgeGateCloseBtn')?.addEventListener('click', closeChatAgeGateModal);
- $('chatAgeGateCancelBtn')?.addEventListener('click', closeChatAgeGateModal);
- $('chatAgeConfirmBtn')?.addEventListener('click', () => {
-  const c1 = $('chatAgeCheck1'), c2 = $('chatAgeCheck2');
-  if (c1?.checked && c2?.checked) {
-   localStorage.setItem('abyssalChatAgeVerified', 'true');
-   closeChatAgeGateModal();
-   $('globalChatInput')?.focus();
-  }
- });
+
 
  $('globalChatForm')?.addEventListener('submit',ev=>{ev.preventDefault();
-  if (!isChatAgeVerified()) {
-   openChatAgeGateModal();
-   return;
-  }
+  if(window.AbyssalRestrictedAgeTreatment){const hint=$('globalChatHint');if(hint)hint.textContent='O chat não está disponível para esta faixa etária.';return;}
   const input=$('globalChatInput');if(!input)return;const text=input.value.trim();if(!text)return;if(sendGlobalChatMessage(text)){input.value='';const hint=$('globalChatHint');if(hint)hint.textContent='Enviando mensagem…'}
  });
  $('globalChatInput')?.addEventListener('focus',()=>{
-  if (!isChatAgeVerified()) {
-   openChatAgeGateModal();
-   return;
-  }
+  if(window.AbyssalRestrictedAgeTreatment){const hint=$('globalChatHint');if(hint)hint.textContent='O chat não está disponível para esta faixa etária.';return;}
   if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.'}
  });
  const chatPanel=$('globalChatPanel');
