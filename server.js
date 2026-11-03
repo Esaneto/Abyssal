@@ -260,6 +260,25 @@ function pvpArenaRocks(){
 const PVP_ARENA_ROCKS=pvpArenaRocks();
 function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const a=-(Number(rock.angle)||0),dx=x-rock.x,dy=y-rock.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a),rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding;if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return rock;}return null;}
 function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
+function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
+ const outgoing=SkinAbilities.damageMultiplier(attacker?.skinId,'player',distance,Number(attacker?.maxHp)>0?Number(attacker.hp)/Number(attacker.maxHp):1);
+ const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId);
+ const shellLevel=clamp(Math.floor(Number(target?.shellLevel)||0),0,3);
+ const shellDefense=1-shellLevel*.08;
+ const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
+ const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
+ const lastStandDefense=lowHealth&&lastStandLevel>0?.80:1;
+ return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*skinDefense*shellDefense*lastStandDefense);
+}
+function triggerPvpAberrationEcho(room,target,attacker,now){
+ if(!room||!target||target.skinId!=='aberration'||target.aberrationEchoUsed||!attacker)return false;
+ target.aberrationEchoUsed=true;
+ const dx=Number(attacker.x)-Number(target.x),dy=Number(attacker.y)-Number(target.y),d=Math.hypot(dx,dy)||1;
+ const push=95/WORLD_ZOOM;
+ io.to(attacker.id).emit('player-suction-pull',{dx:dx/d*push,dy:dy/d*push,bossId:'aberration-echo',strength:push});
+ io.to(channelFor(room)).emit('skin-ability-remote',{type:'ability',skin:'aberration',fromId:target.id,x:clamp(Number(target.x)/WORLD_WIDTH,0,1),y:clamp(Number(target.y)/WORLD_HEIGHT,0,1),angle:0,at:now});
+ return true;
+}
 function collectPvpOrbsNearPlayer(room,player,x=player?.x,y=player?.y){
  if(!room||room.mode!=='pvp'||!player||player.alive===false)return 0;
  const w=room.world;if(!w||!Array.isArray(w.orbs)||!w.orbs.length)return 0;
@@ -671,7 +690,7 @@ function tickRoom(room, now) {
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
   const w=room.world;w.orbs||=[];w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.55;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-1);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:1,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:1,blocked,source:'reefshark-bubble'});}}
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.55;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);triggerPvpAberrationEcho(room,target,bubbleOwner,hitAt);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
   room.lastPvpOrbSpawnAt=Number(room.lastPvpOrbSpawnAt)||now;
   if(now-room.lastPvpOrbSpawnAt>=2200&&w.orbs.length<90){
    room.lastPvpOrbSpawnAt=now;const values=[5,10,20,35,60],value=values[Math.floor(Math.random()*values.length)];let point=null;
@@ -998,6 +1017,8 @@ socket.on('global-chat-send',(payload={})=>{
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 4.5);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.arcChainActive = payload.arcChainActive === true;
+  p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
+  p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
  });
  socket.on('player-protection', payload => {
   const room = socketRoom(socket), p = room?.players.get(socket.id);
@@ -1088,7 +1109,7 @@ socket.on('global-chat-send',(payload={})=>{
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
    if(shot.special==='nova'){
-    const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,damage=Math.max(1,Math.min(35,shot.damage||12));
+    const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;
     for(const target of room.players.values()){
@@ -1096,11 +1117,11 @@ socket.on('global-chat-send',(payload={})=>{
      if(Math.hypot(centerX-target.x,centerY-target.y)>radius)continue;
      // A onda continua além da rocha, mas cada alvo só é atingido se houver linha de visão radial até ele.
      if(pvpSegmentHitsRock(centerX,centerY,target.x,target.y,2/WORLD_ZOOM))continue;
-     let blocked=false;
+     let blocked=false,appliedDamage=0;
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
-     else{target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=now;target.invulnerableUntil=now+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}
-     io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
-     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:damage,blocked});
+     else{appliedDamage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(centerX-target.x,centerY-target.y));target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-appliedDamage);triggerPvpAberrationEcho(room,target,shooter,now);target.lastDamageAt=now;target.invulnerableUntil=now+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}
+     io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:appliedDamage,attackerId:socket.id,serverTime:now}));
+     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:appliedDamage,blocked});
      worldPlayersChanged=true;
     }
     if(worldPlayersChanged)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -1111,7 +1132,7 @@ socket.on('global-chat-send',(payload={})=>{
     const duration=shot.special==='abyssEye'?12:shot.special==='photonRay'?Math.min(1.05,beamRange/Math.max(1,speed)):1.05,steps=Math.max(8,Math.ceil(speed*duration/12));let targetHit=null,hitX=sx,hitY=sy;
     for(let i=1;i<=steps;i++){const t=duration*i/steps,px=sx+dx*t,py=sy+dy*t;if(px<0||py<0||px>WORLD_WIDTH||py>WORLD_HEIGHT)break;if(pvpRockAt(px,py,4/WORLD_ZOOM))break;for(const target of room.players.values()){if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;if(Math.hypot(px-target.x,py-target.y)<(Number(target.r)||13/WORLD_ZOOM)+5/WORLD_ZOOM){targetHit=target;hitX=px;hitY=py;break;}}if(targetHit)break;}
     if(targetHit&&sameVolley&&shooter.lastShotVolleyTargets?.has(targetHit.id))targetHit=null;
-    if(targetHit){shooter.lastShotVolleyTargets ||= new Set();shooter.lastShotVolleyTargets.add(targetHit.id);const damage=Math.max(1,Math.min(35,shot.damage||12));let blocked=false;if((Number(targetHit.shieldCharges)||0)>0){targetHit.shieldCharges--;targetHit.invulnerableUntil=now+350;blocked=true;}else{targetHit.hp=Math.max(0,(Number(targetHit.hp)||targetHit.maxHp)-damage);targetHit.lastDamageAt=now;targetHit.invulnerableUntil=now+180;if(targetHit.hp<=0){targetHit.alive=false;targetHit.velocityX=0;targetHit.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(targetHit.nickname||'MERGULHADOR').toUpperCase(),text:`${targetHit.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}
+    if(targetHit){shooter.lastShotVolleyTargets ||= new Set();shooter.lastShotVolleyTargets.add(targetHit.id);const rawDamage=Math.max(1,Math.min(35,shot.damage||12));const damage=pvpDamageAmount(shooter,targetHit,rawDamage,Math.hypot(Number(shooter.x)-Number(targetHit.x),Number(shooter.y)-Number(targetHit.y)));let blocked=false;if((Number(targetHit.shieldCharges)||0)>0){targetHit.shieldCharges--;targetHit.invulnerableUntil=now+350;blocked=true;}else{targetHit.hp=Math.max(0,(Number(targetHit.hp)||targetHit.maxHp)-damage);triggerPvpAberrationEcho(room,targetHit,shooter,now);targetHit.lastDamageAt=now;targetHit.invulnerableUntil=now+180;if(targetHit.hp<=0){targetHit.alive=false;targetHit.velocityX=0;targetHit.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(targetHit.nickname||'MERGULHADOR').toUpperCase(),text:`${targetHit.nickname||'Um mergulhador'} foi engolido pelas profundezas.`});}}
      io.to(targetHit.id).emit('player-vitals',playerVitalsPayload(targetHit,{reason:targetHit.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
      io.to(channelFor(room)).emit('pvp-hit',{x:hitX/WORLD_WIDTH,y:hitY/WORLD_HEIGHT,targetId:targetHit.id,attackerId:socket.id,damage:blocked?0:damage,blocked});
      io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
