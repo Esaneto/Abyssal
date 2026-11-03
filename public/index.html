@@ -497,12 +497,12 @@
 </div>
 <script>
 (function(){
-  var nativeShell=location.hostname==='localhost'&&(location.protocol==='https:'||location.protocol==='capacitor:');
+  var nativeShell=Boolean(window.Capacitor?.isNativePlatform?.())||(location.hostname==='localhost'&&(location.protocol==='https:'||location.protocol==='capacitor:'));
   window.ABYSSAL_NATIVE_SHELL=nativeShell;
   if(nativeShell)window.ABYSSAL_SERVER_URL='https://abyssal-ej5j.onrender.com';
 })();
 </script>
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
 <script src="i18n.js?v=3"></script>
 <script src="skin-abilities.js?v=3.7.0"></script>
 <script src="enemy-ai.js?v=3.7.0"></script>
