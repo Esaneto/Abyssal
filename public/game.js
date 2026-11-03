@@ -903,7 +903,7 @@ const upgradeList=[
  {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Cobertura em leque: 3, 5 ou 7 fragmentos de baixo dano individual. Forte contra grupos próximos, fraco quando poucos fragmentos acertam o mesmo alvo.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Dardo fotônico de precisão: extremamente veloz, fino e de alto dano em alvo único. Quase não permanece na tela e não perfura fileiras.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
  {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo de alvo único: mantém dano estável no inimigo mais próximo. Níveis maiores aumentam potência e espessura, sem atingir a tela inteira.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
- {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial a cada 1 segundo: atinge todos dentro do alcance, com dano individual menor para compensar a cobertura total. Níveis maiores fortalecem o pulso.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
+ {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial de alto controle: recarga de 1,8 s no PvE e 2,4 s no PvP. Atinge apenas alvos com caminho radial livre; cobertura bloqueia dano e onda visual.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
  {id:'echoShot',name:'Eco de Maré',icon:'⋔',desc:'Dispara dois projéteis paralelos com dano individual menor. Níveis maiores aumentam dano e velocidade sem abrir o leque.',apply:()=>upgrades.echoShot=Math.min(3,(upgrades.echoShot||0)+1)},
  {id:'shell',name:'Carapaça Abissal',icon:'🛡',desc:'Endurece a carapaça: reduz o dano recebido em 8% por nível, até 24%, indicado por placas minerais orbitais discretas.',apply:()=>upgrades.shell=Math.min(3,(upgrades.shell||0)+1)},
  {id:'ward',name:'Véu de Maré',icon:'◈',desc:'Cria automaticamente uma janela curta de invulnerabilidade. Começa a cada 28 s e recarrega mais rápido nos níveis seguintes; um véu azul se fecha quando ativa.',apply:()=>upgrades.ward=Math.min(3,(upgrades.ward||0)+1)},
@@ -1686,7 +1686,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     }
    }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);
   }
-  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
+  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
@@ -1901,8 +1901,12 @@ function activateAbility(id){
   if(!(Number(metaUpgrades.pulse)>0)){showToast('DESBLOQUEIE PULSO DE MARÉ NA LOJA');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
-  for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
-  effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');
+  // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
+  if(onlineMode)window.AbyssalOnline?.sendActiveAbility?.('pulse');
+  else for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
+  if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});
+  else effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});
+  burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');
  }else if(id==='dash'){
   if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
   if(player.dashCooldown>0)return;
