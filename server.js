@@ -228,6 +228,19 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
 const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
+function pvpArenaRocks(){
+ const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
+ for(let row=1;row<=5;row++)for(let col=1;col<=8;col++){
+  if((col*7+row*11)%5===0)continue;
+  const x=WORLD_WIDTH*(.07+col*.108),y=WORLD_HEIGHT*(.10+row*.16);
+  if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<minDim*.235)continue;
+  const r=minDim*(.014+((col*13+row*17)%4)*.002);rocks.push({x,y,r});
+ }
+ return rocks;
+}
+const PVP_ARENA_ROCKS=pvpArenaRocks();
+function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const dx=x-rock.x,dy=y-rock.y,r=rock.r+padding;if(dx*dx+dy*dy<r*r)return rock;}return null;}
+function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,len2=dx*dx+dy*dy;for(const rock of PVP_ARENA_ROCKS){const t=len2?Math.max(0,Math.min(1,((rock.x-x1)*dx+(rock.y-y1)*dy)/len2)):0;const px=x1+dx*t,py=y1+dy*t,r=rock.r+padding;if((px-rock.x)**2+(py-rock.y)**2<r*r)return true;}return false;}
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
@@ -874,6 +887,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
   const receivedAt=Date.now(),previousAt=Number(p.lastPositionAt)||0,deltaSeconds=(receivedAt-previousAt)/1000;
   const previousX=Number(p.x)||0,previousY=Number(p.y)||0,dx=x-previousX,dy=y-previousY,displacement=Math.hypot(dx,dy);
+  if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   if(displacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=dx/deltaSeconds,vy=dy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>320){vx=vx/speed*320;vy=vy/speed*320;}p.velocityX=vx;p.velocityY=vy;}
   else {p.velocityX=0;p.velocityY=0;}
@@ -989,7 +1003,7 @@ socket.on('global-chat-send',(payload={})=>{
    if(originDistance>240/WORLD_ZOOM)return;
    const dx=vx*WORLD_WIDTH,dy=vy*WORLD_HEIGHT,speed=Math.hypot(dx,dy);if(speed<30||speed>1800)return;
    const duration=1.05,steps=Math.max(8,Math.ceil(speed*duration/12));let targetHit=null,hitX=sx,hitY=sy;
-   for(let i=1;i<=steps;i++){const t=duration*i/steps,px=sx+dx*t,py=sy+dy*t;if(px<0||py<0||px>WORLD_WIDTH||py>WORLD_HEIGHT)break;for(const target of room.players.values()){if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;if(Math.hypot(px-target.x,py-target.y)<(Number(target.r)||13/WORLD_ZOOM)+5/WORLD_ZOOM){targetHit=target;hitX=px;hitY=py;break;}}if(targetHit)break;}
+   for(let i=1;i<=steps;i++){const t=duration*i/steps,px=sx+dx*t,py=sy+dy*t;if(px<0||py<0||px>WORLD_WIDTH||py>WORLD_HEIGHT)break;if(pvpRockAt(px,py,4/WORLD_ZOOM))break;for(const target of room.players.values()){if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;if(Math.hypot(px-target.x,py-target.y)<(Number(target.r)||13/WORLD_ZOOM)+5/WORLD_ZOOM){targetHit=target;hitX=px;hitY=py;break;}}if(targetHit)break;}
    if(targetHit){const damage=Math.max(1,Math.min(35,shot.damage||12));let blocked=false;if((Number(targetHit.shieldCharges)||0)>0){targetHit.shieldCharges--;targetHit.invulnerableUntil=now+350;blocked=true;}else{targetHit.hp=Math.max(0,(Number(targetHit.hp)||targetHit.maxHp)-damage);targetHit.lastDamageAt=now;targetHit.invulnerableUntil=now+180;if(targetHit.hp<=0){targetHit.alive=false;targetHit.velocityX=0;targetHit.velocityY=0;}}
     io.to(targetHit.id).emit('player-vitals',playerVitalsPayload(targetHit,{reason:targetHit.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
     io.to(channelFor(room)).emit('pvp-hit',{x:hitX/WORLD_WIDTH,y:hitY/WORLD_HEIGHT,targetId:targetHit.id,attackerId:socket.id,damage:blocked?0:damage,blocked});
