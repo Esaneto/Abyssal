@@ -1472,6 +1472,8 @@ function killEnemy(i){
 }
 function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
 function getShotDamageAtLevel(level){const values=[0,12,15,18];const rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1)));return values[rank];}
+function isPcMouseAimMode(){return !isMobileDevice()&&controlSettings.pc==='wasd-aim';}
+function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;}
 function getActiveShotId(){const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id)&&(Number(upgradeLevels[id])||0)>0)||null;}
 function nextShotVolleyId(){if(!player)return '';player.shotSequence=(Number(player.shotSequence)||0)+1;return Date.now().toString(36)+'-'+player.shotSequence;}
 function fire(){
@@ -1480,8 +1482,9 @@ function fire(){
   const peers=window.AbyssalOnline?.getPlayers?.()||[];
   for(const peer of peers){if(!peer||peer.alive===false)continue;const d=Math.hypot((Number(peer.x)||0)-player.x,(Number(peer.y)||0)-player.y);if(d<maxRange&&d<bd){target=peer;bd=d;}}
  }else for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
- const aimedMode=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
+ const mouseAimMode=isPcMouseAimMode(),aimedMode=mouseAimMode||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
  if(!target&&!aimedMode)return;
+ if(mouseAimMode)updateMouseAimFromCursor();
  const a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
  const activeShot=getActiveShotId(),shotLevel=activeShot?Math.max(1,Number(upgradeLevels[activeShot])||1):0;
  const baseDamage=shotLevel?getShotDamageAtLevel(shotLevel):12;
@@ -1502,7 +1505,7 @@ function update(dt){
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
    else if(!isMobileDevice()&&controlSettings.pc==='classic'&&(autoFollowCursor||pointer.down)){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
-   if(!isMobileDevice()&&controlSettings.pc==='wasd-aim'){controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;}
+   if(isPcMouseAimMode())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil);const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1);const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
@@ -1620,23 +1623,31 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.photonRay>0){
-  player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
-  const isPvpMode=onlineRoomMode==='pvp';
-  const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
-  let target=null,targetDistance=Infinity;const beamRange=getFiringRange();
-  for(const candidate of candidates){if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;const d=dist(player,candidate);if(d<=beamRange&&d<targetDistance){target=candidate;targetDistance=d;}}
-  if(target){
-   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=.25,widths=[0,2.4,4.0,6.0],width=widths[beamLevel]/GAME_WORLD_ZOOM;
-   effects.push({type:'photon-ray',x1:player.x,y1:player.y,x2:target.x,y2:target.y,width,life:.09,maxLife:.09,color:'#8cf7ff'});
+   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
+   const isPvpMode=onlineRoomMode==='pvp',mouseAimMode=isPcMouseAimMode();
+   const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
+   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=.25,widths=[0,2.4,4.0,6.0],width=widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
+   const aimAngle=mouseAimMode?(updateMouseAimFromCursor(),controlAimAngle):controlAimAngle,aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
+   let target=null,targetDistance=Infinity;
+   for(const candidate of candidates){
+    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
+    const dx=candidate.x-player.x,dy=candidate.y-player.y,d=Math.hypot(dx,dy);if(d>beamRange)continue;
+    if(mouseAimMode){
+     const along=dx*aimCos+dy*aimSin,across=Math.abs(dx*aimSin-dy*aimCos),tolerance=Math.max(18/GAME_WORLD_ZOOM,(Number(candidate.r)||10)*1.15);
+     if(along<=0||across>tolerance||along>=targetDistance)continue;
+     target=candidate;targetDistance=along;
+    }else if(d<targetDistance){target=candidate;targetDistance=d;}
+   }
+   const endX=mouseAimMode?player.x+aimCos*beamRange:(target?.x??player.x+aimCos*beamRange),endY=mouseAimMode?player.y+aimSin*beamRange:(target?.y??player.y+aimSin*beamRange);
+   effects.push({type:'photon-ray',x1:player.x,y1:player.y,x2:endX,y2:endY,width,life:.09,maxLife:.09,color:'#8cf7ff'});
    if(player.photonRayTimer<=0){
     player.photonRayTimer=beamInterval;
     const beamDps=(getShotDamageAtLevel(beamLevel)/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
-    if(onlineMode&&window.AbyssalOnline?.sendShot){const beamAngle=Math.atan2(target.y-player.y,target.x-player.x),beamSpeed=900/GAME_WORLD_ZOOM;window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:Math.cos(beamAngle)*beamSpeed/W,vy:Math.sin(beamAngle)*beamSpeed/H,damage:pulseDamage,color:'#8cf7ff',special:'photonRay',volleyId:nextShotVolleyId()});}
-    if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
+    if(onlineMode&&window.AbyssalOnline?.sendShot){window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:'#8cf7ff',special:'photonRay',volleyId:nextShotVolleyId()});}
+    if(!isPvpMode&&target){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
    }
-  }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,.08);
- }
- if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});burst(player.x,player.y,'#72f5ff',24+novaLevel*8,Math.min(360,novaRange*(.35+.05*novaLevel)));effects.push({type:'ring',x:player.x,y:player.y,r:0,max:novaRange,life:.55,maxLife:.55,color:'#72f5ff'});playSkillSound('nova','trigger')}}
+  }
+  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});burst(player.x,player.y,'#72f5ff',24+novaLevel*8,Math.min(360,novaRange*(.35+.05*novaLevel)));effects.push({type:'ring',x:player.x,y:player.y,r:0,max:novaRange,life:.55,maxLife:.55,color:'#72f5ff'});playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
@@ -2453,8 +2464,9 @@ function loop(t){
  requestAnimationFrame(loop);
 }
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
-canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),down:true,active:true};canvas.setPointerCapture?.(e.pointerId)});
-canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){Object.assign(pointer,coords(e));pointer.active=true;}});
+canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),clientX:e.clientX,clientY:e.clientY,down:true,active:true};canvas.setPointerCapture?.(e.pointerId)});
+canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){pointer.clientX=e.clientX;pointer.clientY=e.clientY;Object.assign(pointer,coords(e));pointer.active=true;}});
+window.addEventListener('pointermove',e=>{if(isMobileDevice())return;pointer.clientX=e.clientX;pointer.clientY=e.clientY;if(isPcMouseAimMode()&&gameState==='playing')updateMouseAimFromCursor();},{passive:true});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{pointer.down=false;pointer.active=false}));
 const joystick=$('mobileJoystick'),joystickKnob=$('joystickKnob'),gameShell=$('gameShell');
 function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base=joystick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(18,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}joystickVector.x=dx/max;joystickVector.y=dy/max;joystickVector.active=Math.hypot(joystickVector.x,joystickVector.y)>.13;joystickKnob.style.transform=`translate(${dx}px, ${dy}px)`;}
