@@ -84,8 +84,8 @@
       c1y: sy + Math.sin(angle - 0.42) * 1.02,
       c2x: Math.cos(angle + sway * 0.28) * (length * 0.64),
       c2y: 0.25 + Math.sin(angle + sway * 0.28) * (length * 0.63),
-      ex: Math.cos(angle + sway * 0.38) * length,
-      ey: 0.20 + Math.sin(angle + sway * 0.38) * (length * 0.98)
+      ex: Math.cos(angle + sway * 0.16) * length,
+      ey: 0.20 + Math.sin(angle + sway * 0.16) * (length * 0.98)
     };
   }
 
