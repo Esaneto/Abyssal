@@ -950,7 +950,8 @@ socket.on('global-chat-send',(payload={})=>{
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
-  if(room.mode==='pvp'||receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
+  const playerMotionIntervalMs=room.mode==='pvp'?50:80;
+  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=playerMotionIntervalMs){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
    if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);
