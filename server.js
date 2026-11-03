@@ -989,7 +989,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(!p.clientHidden){p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=Date.now()+180;}
  });
  const handlePlayerPosition=(payload, acknowledge, compact=false)=>{
-  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data)};
+  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data);if(compact&&data?.blocked){const room=socketRoom(socket),p=room?.players.get(socket.id);if(p)io.to(socket.id).volatile.emit('player-reconcile',[Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true]);}};
   if(!socket.data.joined||!payload||typeof payload!=='object')return ack({ok:false,reason:'not-in-room'});
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return ack({ok:false,reason:'player-not-found'});
   // Once the server has declared a character dead, late/background heartbeat packets
