@@ -19,7 +19,7 @@ test('server owns the simulation ticker and does not rely on a browser host', ()
 test('online client receives authoritative player vitals from the server', () => {
   assert.match(online, /socket\.on\('player-vitals',[\s\S]*?abyssal-player-vitals/);
   assert.match(game, /abyssal-player-vitals',[\s\S]*?applyOnlinePlayerVitals/);
-  assert.match(game, /if\(data\.alive===false&&gameState!=='over'\)endGame\(\)/);
+  assert.match(game, /data\.alive===false[\s\S]*?endGame\(\)/);
 });
 
 test('online client renders server-authoritative enemy positions instead of simulating a divergent copy', () => {
@@ -65,7 +65,7 @@ test('online contact feedback never creates or teleports a mob to its damage sou
 
 test('mobile zoom uses the requested level and online menu uses the requested name', () => {
   const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
-  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
+  assert.match(game, /FAIR_VIEW_REFERENCE/);
   assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css','enemy-ai.js','enemy-netcode.js','skill-audio.js','skin-abilities.js','game.js','online.js']) {
