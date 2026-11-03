@@ -76,6 +76,7 @@ test('named premium skins retain reachable render branches', () => {
  const game=read('public/game.js');
  for(const id of ['bloodmoon','thorn','abyssaleye']) assert.ok(game.includes("else if(id==='"+id+"'){"));
  const premiumGroup="else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){";
+ assert.equal(game.split(premiumGroup).length-1,1);
 });
 
 test('Photon Ray auto-targets nearest in-range target without mouse steering', () => {
