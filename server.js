@@ -260,7 +260,7 @@ function collectPvpOrbsNearPlayer(room,player,x=player?.x,y=player?.y){
   const orb=w.orbs[i];
   if(!orb||Number(orb.life)<=0)continue;
   const distance=Math.hypot(Number(x)-Number(orb.x),Number(y)-Number(orb.y));
-  const pickupRadius=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+100/WORLD_ZOOM;
+  const pickupRadius=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+2/WORLD_ZOOM;
   if(!Number.isFinite(distance)||distance>pickupRadius)continue;
   w.orbs.splice(i,1);collected++;
   io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:orb.id,playerId:player.id,value:orb.value,x:orb.x,y:orb.y});
@@ -651,7 +651,7 @@ function tickRoom(room, now) {
    for(let attempt=0;attempt<18;attempt++){const x=WORLD_WIDTH*(.04+Math.random()*.92),y=WORLD_HEIGHT*(.04+Math.random()*.92);if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<Math.min(WORLD_WIDTH,WORLD_HEIGHT)*.235)continue;if(pvpRockAt(x,y,60/WORLD_ZOOM))continue;point={x,y};break;}
    if(point){w.nextOrbId=(Number(w.nextOrbId)||0)+1;const orb={id:`pvp-${w.nextOrbId}`,x:point.x,y:point.y,r:EnemyAI.xpOrbRadius?EnemyAI.xpOrbRadius(value):Math.min(15,4+Math.sqrt(value)),value,phase:0,life:35};w.orbs.push(orb);io.to(channelFor(room)).emit('world-xp-orbs-spawned',[orb]);}
   }
-  const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}for(const player of activePlayers)collectPvpOrbsNearPlayer(room,player);
+  const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}
   if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=100){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
   return;
