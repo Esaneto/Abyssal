@@ -990,9 +990,10 @@ socket.on('global-chat-send',(payload={})=>{
   const event = {from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
   // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
   let delivered = 0;
-  for(const peer of room.players.values()) {
-   if(peer.id === socket.id) continue;
-   io.to(peer.id).emit('peer-skin-ability', event);
+  // A chave do Map é o ID real do socket; peer.id pode faltar após reconexões.
+  for(const peerSocketId of room.players.keys()) {
+   if(peerSocketId === socket.id) continue;
+   io.to(peerSocketId).emit('peer-skin-ability', event);
    delivered++;
   }
   if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
