@@ -30,6 +30,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
+// Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
+io.engine.on('connection', rawSocket => { rawSocket.request = null; });
 // Social messaging, chat and randomized rewards are enabled by default.
 // Set ABYSSAL_CHAT_ENABLED=false or ABYSSAL_REWARDED_WHEEL_ENABLED=false to disable.
 // Client-side age-gate modals provide the verification layer.
