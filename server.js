@@ -933,7 +933,9 @@ socket.on('global-chat-send',(payload={})=>{
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
   const receivedAt=Date.now(),previousAt=Number(p.lastPositionAt)||0,deltaSeconds=(receivedAt-previousAt)/1000;
   const previousX=Number(p.x)||0,previousY=Number(p.y)||0,dx=x-previousX,dy=y-previousY,displacement=Math.hypot(dx,dy);
-  // Resolve orb pickup against the latest client position before rock collision can reject a position update.\n  if(room.mode==='pvp')collectPvpOrbsNearPlayer(room,p,x,y);\n  if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
+  // Resolve orb pickup against the latest client position before rock collision can reject a position update.
+  if(room.mode==='pvp')collectPvpOrbsNearPlayer(room,p,x,y);
+  if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   if(displacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=dx/deltaSeconds,vy=dy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>320){vx=vx/speed*320;vy=vy/speed*320;}p.velocityX=vx;p.velocityY=vy;}
   else {p.velocityX=0;p.velocityY=0;}
