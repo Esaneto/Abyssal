@@ -613,20 +613,25 @@ function getBossCycleMultiplier() {
   return 1 + (bossProgressionCycle * 0.20);
 }
 
+function getBossXpMultiplier() {
+  return 1 + (bossProgressionCycle * 0.02);
+}
+
 function updateProgressionTrackUI() {
   var track = $('bossProgressionTrack');
   if (!track) return;
   track.style.display = 'block';
   track.style.display = 'block';
-  var bonusPercent = Math.round(bossProgressionCycle * 20);
+  var hpBonusPercent = Math.round(bossProgressionCycle * 20);
+  var xpBonusPercent = Math.round(bossProgressionCycle * 2);
   var cycleBadge = $('trackCycleBadge');
   if (cycleBadge) {
     if (bossProgressionCycle >= PROGRESSION_MAX_CYCLES) {
       cycleBadge.classList.add('maxed');
-      cycleBadge.textContent = 'CICLO MÁXIMO ⚡ +100% FORTALECIDO';
+      cycleBadge.textContent = 'CICLO MÁXIMO ⚡ +100% HP · +10% XP';
     } else {
       cycleBadge.classList.remove('maxed');
-      cycleBadge.textContent = 'CICLO ' + (bossProgressionCycle + 1) + ' · +' + bonusPercent + '% BOSS HP/XP';
+      cycleBadge.textContent = 'CICLO ' + (bossProgressionCycle + 1) + ' · +' + hpBonusPercent + '% HP / +' + xpBonusPercent + '% XP';
     }
   }
   var fill = $('trackFill');
@@ -745,10 +750,11 @@ function onProgressionCycleCompleted() {
 
   if (bossProgressionCycle < PROGRESSION_MAX_CYCLES) {
     bossProgressionCycle++;
-    const bonus = bossProgressionCycle * 20;
-    // Mensagem de alerta exigida ao fim de cada progressão
-    showAbyssalAlert('☠ O ABISMO ERGUE-SE MAIS FORTE! +'+bonus+'% VITALIDADE E XP DOS BOSSES', 'CICLO DE PROGRESSÃO COMPLETADO');
-    addNotification("O Abismo ergue-se mais forte! Todos os bosses foram fortalecidos em +"+bonus+"% de Vitalidade e Recompensas.", "ABISMO FORTALECIDO ☠", "cycle");
+    const hpBonus = bossProgressionCycle * 20;
+    const xpBonus = bossProgressionCycle * 2;
+    // Cada ciclo fortalece somente a vida dos bosses; a recompensa de XP sobe 2%.
+    showAbyssalAlert('☠ BOSSES FORTALECIDOS! +'+hpBonus+'% VIDA · +'+xpBonus+'% XP', 'CICLO DE PROGRESSÃO COMPLETADO');
+    addNotification("Vida dos bosses: +"+hpBonus+"%. Recompensa de XP dos bosses: +"+xpBonus+"%.", "PROGRESSÃO ABISSAL ☠", "cycle");
     burst(player.x, player.y, '#ff4772', 80, 280);
     audio(720, 0.45, 'sawtooth', 0.06);
   } else {
@@ -863,7 +869,7 @@ const upgradeList=[
 ];
 const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia saltam entre até 12 inimigos em um raio duas vezes maior que o alcance de disparo.'}
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -1027,8 +1033,7 @@ function spawnEnemy(initial=false,type='common'){
  if(isBossType){
   // Preserve the ordered base HP tiers in solo just as in the online simulation.
   data.hp = Math.round(data.hp * getBossCycleMultiplier());
-  data.damage=lastBossDamage>0?Math.max(data.damage,Math.round(lastBossDamage*1.12)):data.damage;
-  data.speed=kind==='devourer'?14:kind==='kraken'?20:Math.min(90,lastBossSpeed>0?Math.max(data.speed,lastBossSpeed*1.05):data.speed);
+  // A progressão por ciclo altera somente a vida; dano e velocidade base do boss são preservados.
   lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
  }
  const point=ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)};
@@ -1370,7 +1375,7 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;updateHud();}
- discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?e.value*Math.pow(3,Math.max(0,bossKillsThisRun-1)):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
+ discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
@@ -1511,8 +1516,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   player.arcChainTimer=(Number(player.arcChainTimer)||0)-dt;
   if(player.arcChainTimer<=0){
    player.arcChainTimer=.48;
-   const fieldRange=588*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;
-   const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,12);
+   const fieldRange=294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;
+   const targets=enemies.filter(e=>dist(player,e)<=fieldRange).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,8);
    let previous={x:player.x,y:player.y};
    for(const target of targets){
     dealEnemyDamage(target,16,'arcChain');
