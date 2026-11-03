@@ -54,12 +54,12 @@ test('boss HP tiers are ordered from lowest to highest and active bosses cap at 
   assert.equal(new Set(Sim.countBosses(world).map(e => e.kind)).size, 4);
 });
 
-test('boss waves add one simultaneous boss per two living players, in HP order', () => {
+test('boss waves spawn only one boss at a time regardless of living player count', () => {
   for (const [count, expected] of [
     [1, ['boss']],
-    [2, ['boss', 'angler']],
-    [4, ['boss', 'angler', 'maw']],
-    [6, ['boss', 'angler', 'maw', 'leviathan']]
+    [2, ['boss']],
+    [4, ['boss']],
+    [6, ['boss']]
   ]) {
     const now = 1000, world = Sim.createWorldState(now);
     Sim.initializeWorld(world, now, () => 0.1);
@@ -72,6 +72,9 @@ test('boss waves add one simultaneous boss per two living players, in HP order',
     }));
     const result = Sim.tickWorld(world, players, now + 50, () => 0.1);
     assert.deepEqual(result.spawnedBosses.map(e => e.kind), expected);
+    assert.equal(world.nextBossAt, Infinity);
+    Sim.tickWorld(world, players, now + 100, () => 0.1);
+    assert.equal(Sim.countBosses(world).length, 1);
   }
 });
 
