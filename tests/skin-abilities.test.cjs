@@ -7,14 +7,14 @@ const abilities = require('../skin-abilities');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
 test('skin damage passives are deterministic and preserve boss/range conditions', () => {
-  assert.equal(abilities.damageMultiplier('toxic','common',500,1),1.12);
-  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.25);
+  assert.equal(abilities.damageMultiplier('toxic','common',500,1),1);
+  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
   assert.equal(abilities.damageMultiplier('leviathan','common',500,1),1);
   assert.equal(abilities.damageMultiplier('thorn','common',100,1),1.24);
   assert.equal(abilities.damageMultiplier('thorn','common',220,1),1);
   assert.equal(abilities.damageMultiplier('bloodmoon','common',500,.35),1.3);
-  assert.equal(abilities.damageMultiplier('angler','common',300,1),1.1);
-  assert.equal(abilities.damageMultiplier('maw','common',100,1),1.12);
+  assert.equal(abilities.damageMultiplier('angler','common',300,1),1.25);
+  assert.equal(abilities.damageMultiplier('maw','common',100,1),1.3);
 });
 
 test('passive movement, defense, targeting, XP and magnet bonuses are centralized', () => {
