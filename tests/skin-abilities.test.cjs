@@ -257,3 +257,26 @@ test('local PvP nova uses the same rock-occluded rings as remote nova',()=>{
  assert.match(game,/if\(isPvpMode\)\{effects\.push\(\{type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange/);
  assert.match(game,/type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange\*\.72/);
 });
+
+test('combat feedback has typed two-second damage numbers and five-second blood pools',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/tone,life:2,maxLife:2/);
+ assert.match(game,/life:5,maxLife:5/);
+ assert.match(game,/#39ff72/);
+ assert.match(game,/#32cfff/);
+ assert.match(game,/#ff174d/);
+ assert.match(game,/abyssal-pvp-hit/);
+});
+test('ambient soundtrack uses discrete tension pulses instead of continuous hum oscillators',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const start=game.slice(game.indexOf('function startAmbientMusic'),game.indexOf('function audio('));
+ assert.match(start,/setInterval/);
+ assert.doesNotMatch(start,/frequency\.value=43/);
+ assert.doesNotMatch(start,/frequency\.value=67/);
+});
+test('mobile end dive and room badge are dynamically stacked below selected skills',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/function positionMobileRightStack/);
+ assert.match(game,/panelRect\.bottom/);
+ assert.match(game,/requestAnimationFrame\(positionMobileRightStack\)/);
+});
