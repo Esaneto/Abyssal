@@ -269,9 +269,11 @@ function resize(){
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
  const cores=Number(navigator.hardwareConcurrency)||4,memory=Number(navigator.deviceMemory)||0;
- lowPowerRendering=mobileViewport||cores<=4||(memory>0&&memory<=4);
- // Canvas pixel cost grows quadratically with DPR; cap buffer resolution on constrained devices.
- dpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1:1.45);
+ lowPowerRendering=cores<=4||(memory>0&&memory<=4);
+ // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
+ // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
+ const nativeDpr=Math.max(1,window.devicePixelRatio||1),mobileDprCap=lowPowerRendering?1.35:2;
+ dpr=Math.min(nativeDpr,mobileViewport?mobileDprCap:1.65);
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
  W=4800;H=3000;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1;
