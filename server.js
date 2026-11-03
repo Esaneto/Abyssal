@@ -987,7 +987,7 @@ socket.on('global-chat-send',(payload={})=>{
    return;
   }
   const u = users[socket.data.userKey];
-  const event = {from:u?.nickname || socket.id,skin,x,y,angle,at:Date.now()};
+  const event = {from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
   // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
   let delivered = 0;
   for(const peer of room.players.values()) {
