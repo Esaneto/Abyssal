@@ -1236,16 +1236,21 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   }
 
  if(onlineMode){
-   onlineDamageQueue.push({id:Number(enemy.id),damage:Number(damage)*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*(Math.hypot(player.x-enemy.x,player.y-enemy.y)<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1),skillId:String(skillId||'').slice(0,32)});
-   // O dano permanece autoritativo; só a transmissão é agrupada por quadro.
+   const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
+   onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(skillId||'').slice(0,32)});
+   // O servidor continua autoritativo para HP; as sinergias são derivadas do impacto confirmado localmente
+   // e cada dano secundário também entra na fila autoritativa.
    enemy.hit=.14;
    if(options.visual!==false)burst(enemy.x,enemy.y,'#c4b4ff',3,50);
+   triggerHitSynergies(enemy,queuedDamage,skillId,options);
    return;
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=SkinAbilities?.damageMultiplier(equippedSkin,enemy.kind,distance,hp/maxHp)||1,closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1;
  const appliedDamage=damage*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
- if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}else triggerHitSynergies(enemy,appliedDamage,skillId,options);
+ // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
+ triggerHitSynergies(enemy,appliedDamage,skillId,options);
+ if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
 }
 function flushOnlineDamageBatch(){
  if(!onlineMode||!onlineDamageQueue.length)return;

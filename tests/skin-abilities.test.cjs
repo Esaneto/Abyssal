@@ -297,3 +297,14 @@ test('PvP server applies hit synergies authoritatively and respects rock cover',
  assert.match(server,/applyPvpHitSynergies\(room,shooter,targetHit,rawDamage/);
  assert.match(server,/pvpSegmentHitsRock\(from\.x,from\.y,p\.x,p\.y/);
 });
+
+test('online PvE and lethal primary hits still trigger hit synergies',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const damageFn=game.slice(game.indexOf('function dealEnemyDamage('),game.indexOf('function flushOnlineDamageBatch('));
+ const onlineTrigger=damageFn.indexOf('triggerHitSynergies(enemy,queuedDamage,skillId,options);');
+ const onlineReturn=damageFn.indexOf('return;',damageFn.indexOf('if(onlineMode){'));
+ assert.ok(onlineTrigger>=0&&onlineTrigger<onlineReturn,'online hit synergies must run before return');
+ const soloTrigger=damageFn.indexOf('triggerHitSynergies(enemy,appliedDamage,skillId,options);');
+ const lethalRemoval=damageFn.indexOf('if(enemy.hp<=0)');
+ assert.ok(soloTrigger>=0&&soloTrigger<lethalRemoval,'lethal primary hit must trigger synergies before enemy removal');
+});
