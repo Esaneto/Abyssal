@@ -48,3 +48,5 @@ Para release, habilite R8 com `proguard-android-optimize.txt`, configure a assin
 CI note: Android API 36 build validated through the pull-request pipeline before merge.
 
 Build validation branch: API 36 debug APK pipeline.
+
+Validation trigger after workflow activation on main.
