@@ -564,9 +564,19 @@ function showAbyssalAlert(text, subtitle = '') {
   return;
 }
 const gameplayNoticeQueue=[];let gameplayNoticeActive=false;
+const gameplayNoticeRecent=new Map();
+function gameplayNoticeKey(kind,title,text){
+ return [kind,String(title||'').trim().toLowerCase(),String(text||'').trim().toLowerCase()].join('|');
+}
 function enqueueGameplayNotice(kind,title,text='',priority=0){
  const allowed=new Set(['boss','fusion','join','death']);if(!allowed.has(kind))return;
- gameplayNoticeQueue.push({kind,title:String(title||''),text:String(text||''),priority:Number(priority)||0,at:Date.now()});
+ const now=Date.now(),key=gameplayNoticeKey(kind,title,text),last=gameplayNoticeRecent.get(key)||0;
+ // Network relays and local prediction can report the same semantic event twice.
+ // Suppress identical notices across the active 5s display plus a short relay margin.
+ if(now-last<7000)return;
+ gameplayNoticeRecent.set(key,now);
+ if(gameplayNoticeRecent.size>64)for(const [k,at] of gameplayNoticeRecent)if(now-at>15000)gameplayNoticeRecent.delete(k);
+ gameplayNoticeQueue.push({kind,title:String(title||''),text:String(text||''),priority:Number(priority)||0,at:now,key});
  gameplayNoticeQueue.sort((a,b)=>b.priority-a.priority||a.at-b.at);pumpGameplayNotice();
 }
 function pumpGameplayNotice(){
