@@ -1207,6 +1207,18 @@ function spawnBloodPool(x,y,r=18/GAME_WORLD_ZOOM){
  bloodPools.push({x,y,r:Math.max(14/GAME_WORLD_ZOOM,Number(r)||0),life:5,maxLife:5});
  if(bloodPools.length>40)bloodPools.shift();
 }
+function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
+ if(!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0||options.secondary)return;
+ const source=String(sourceSkill||'physical');
+ // Hit modifiers are geometry-agnostic: projectiles, beams and radial attacks all participate.
+ if((upgrades.electric||0)>0&&source!=='electric'&&source!=='arcChain'){
+  let chains=0,from=primaryTarget;const level=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=shotBalanceValue('electric','chainRange',level,130)/GAME_WORLD_ZOOM;
+  while(chains<level){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<range&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.18,maxLife:.18,color:'#52e8ff'});dealEnemyDamage(next,baseDamage*shotBalanceValue('electric','chainDamage',level,.34),'electric',{secondary:true});visited.add(next.id);from=next;chains++;}
+ }
+ if((upgrades.ricochet||0)>0&&source!=='ricochet'){
+  let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.22,maxLife:.22,color:'#ffad55'});burst(next.x,next.y,'#ffc47a',10,110);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
+ }
+}
 function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   score += Math.round(damage);
  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
@@ -1233,7 +1245,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=SkinAbilities?.damageMultiplier(equippedSkin,enemy.kind,distance,hp/maxHp)||1,closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1;
  const appliedDamage=damage*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
- if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
+ if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}else triggerHitSynergies(enemy,appliedDamage,skillId,options);
 }
 function flushOnlineDamageBatch(){
  if(!onlineMode||!onlineDamageQueue.length)return;
@@ -1800,8 +1812,6 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
  if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){burst(p.x,p.y,'#c7d0da',8,95);burst(p.x,p.y,'#8795a8',5,65);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}
  projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
- if((upgrades.electric||0)>0){let chains=0,from=e;const electricLevel=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([e.id]),chainRange=shotBalanceValue('electric','chainRange',electricLevel,130)/GAME_WORLD_ZOOM;while(chains<electricLevel){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<chainRange&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.18,maxLife:.18,color:'#52e8ff'});burst(next.x,next.y,'#bffcff',6,72);dealEnemyDamage(next,p.damage*shotBalanceValue('electric','chainDamage',electricLevel,.34),'electric');audio(620,.035,'triangle',.006);next.hit=.12;visited.add(next.id);from=next;chains++;}}
- if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.22,maxLife:.22,color:'#ffad55'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42,'ricochet');audio(500,.045,'sine',.008);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom)projectiles.splice(i,1)}
  for(let i=orbs.length-1;i>=0;i--){
   const o=orbs[i];
