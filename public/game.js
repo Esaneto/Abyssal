@@ -17,6 +17,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,characte
 const GAME_WORLD_ZOOM=.78;
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
+let onlineRoomMode='coop';
 let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];
 let autoFollowCursor=false;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
@@ -267,6 +268,19 @@ function createDecor(){
  for(let i=0;i<count;i++)decor.push({x:Math.random()*W,y:Math.random()*H,r:rand(.5,2.2)/worldZoom,a:rand(.08,.42),speed:rand(4,22)/worldZoom,phase:rand(0,Math.PI*2)});
 }
 function createArenaRocks(){
+ arenaRocks=[];
+ if(onlineRoomMode==='pvp'){
+  const minDim=Math.min(W,H),cx=W*.5,cy=H*.5;
+  for(let row=1;row<=5;row++)for(let col=1;col<=8;col++){
+   if((col*7+row*11)%5===0)continue;
+   const x=W*(.07+col*.108),y=H*(.10+row*.16);
+   if(Math.hypot(x-cx,y-cy)<minDim*.235)continue;
+   const radius=minDim*(.014+((col*13+row*17)%4)*.002),vertices=[];
+   for(let i=0;i<8;i++){const a=i/8*Math.PI*2,rr=radius*(.78+((col*3+row*5+i*7)%5)*.055);vertices.push([Math.cos(a)*rr,Math.sin(a)*rr]);}
+   arenaRocks.push({x,y,r:radius,edge:'maze',vertices,shade:((col+row)%3)/2});
+  }
+  return;
+ }
  arenaRocks=[];const spacing=95/worldZoom,offset=24/worldZoom;
  const add=(x,y,edge)=>{const radius=rand(17,37)/worldZoom;const vertices=[];const n=7+Math.floor(Math.random()*3);for(let i=0;i<n;i++){const a=(i/n)*Math.PI*2;const rr=radius*rand(.66,1.24);vertices.push([Math.cos(a)*rr,Math.sin(a)*rr]);}arenaRocks.push({x,y,r:radius,edge,vertices,shade:Math.random()});};
  for(let x=offset;x<W;x+=spacing){add(x,rand(8,34)/worldZoom,'top');add(x,H-rand(8,34)/worldZoom,'bottom');}
@@ -2781,15 +2795,15 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
     burst(px,py,skinColor,16,120);
   }
 });
-window.addEventListener('abyssal-room-joined',ev=>{onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');const d=ev.detail||{};if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`⌁ ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.hidden=false;}showToast(`MERGULHAR ONLINE · ${d.room?.name||'SALA ABISSAL'}`)});
+window.addEventListener('abyssal-room-joined',ev=>{const d=ev.detail||{};onlineRoomMode=d.room?.mode==='pvp'?'pvp':'coop';createArenaRocks();onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}showToast(onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'))});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
-window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;const badge=$('roomBadge');if(badge)badge.hidden=true;setMobileGameActive(false)});
+window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 $('roomsCloseBtn')?.addEventListener('click',()=>{$('roomsScreen').hidden=true;onlineMode=false});
 $('refreshRoomsBtn')?.addEventListener('click',()=>window.AbyssalOnline?.requestRooms());
 $('roomPrivateCheck')?.addEventListener('change',e=>{$('roomPasswordField').hidden=!e.target.checked});
-$('createRoomBtn')?.addEventListener('click',()=>window.AbyssalOnline?.createRoom({name:$('roomNameInput').value,capacity:Number($('roomCapacityInput').value),isPrivate:$('roomPrivateCheck').checked,password:$('roomPasswordInput').value}));
+$('createRoomBtn')?.addEventListener('click',()=>window.AbyssalOnline?.createRoom({name:$('roomNameInput').value,capacity:Number($('roomCapacityInput').value),isPrivate:$('roomPrivateCheck').checked,password:$('roomPasswordInput').value,mode:$('roomModeInput')?.value==='pvp'?'pvp':'coop'}));
 $('joinRoomCodeBtn')?.addEventListener('click',()=>window.AbyssalOnline?.joinRoom($('roomCodeInput').value,$('roomJoinPasswordInput').value));
 window.addEventListener('abyssal-rooms-list',ev=>renderRoomList(ev.detail||[]));
 window.addEventListener('abyssal-room-action-error',ev=>{const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'Não foi possível realizar essa ação.';});
