@@ -52,3 +52,19 @@ test('gameplay overlays are impossible to render outside an active match',()=>{
  assert.match(css,/body\.game-active \.gameplay-overlay-root\{display:block!important\}/);
  assert.match(css,/body:not\(\.game-active\) #selectedSkillsPanel/);
 });
+
+test('desktop progression is horizontal at top-left with four stats below',()=>{
+ assert.match(css,/GAMEPLAY HUD V6/);
+ assert.match(css,/#bossProgressionTrack\{[\s\S]*width:100%!important/);
+ assert.match(css,/\.hud-top\{[\s\S]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
+ assert.match(css,/\.hud\{[\s\S]*left:14px!important;right:auto!important;top:14px!important/);
+});
+test('runtime no longer writes ranking coordinates',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.doesNotMatch(game,/function positionRunEnergyRanking\(/);
+ assert.doesNotMatch(game,/ranking\.style\.top/);
+});
+test('end dive return clears game-active state',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.match(game,/const returnToMenu=\(result\)=>\{onlineMode=false;setMobileGameActive\(false\);document\.body\.classList\.remove\('game-active'\)/);
+});
