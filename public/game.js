@@ -2209,7 +2209,6 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 
  // HOSTILE FAUNA: each enemy category has its own anatomy, not just a recolored orb.
  if(kind==='kraken'){
-  if(Number(e?.krakenTelegraph)>0&&!e?.krakenSweepActive){c.save();c.strokeStyle='rgba(213,180,255,.78)';c.lineWidth=Math.max(1.2,r*.035);c.setLineDash([r*.12,r*.08]);c.beginPath();c.arc(0,0,r*(2.7+Number(e.krakenTelegraph)*.75),0,Math.PI*2);c.stroke();c.setLineDash([]);c.restore();}
   for(let arm=0;arm<8;arm++){const phase=(Number(t)||0)*.0015+(Number(x)+Number(y))*.0002;const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,phase)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
   fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(132,247,223,.88)',Math.max(1.5,r*.06),14);
   for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#ff203f';c.shadowBlur=12*glowScale;c.shadowColor='#ff1b42';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.09,r*.13,side*-.16,0,Math.PI*2);c.fill();c.restore();}
@@ -2364,6 +2363,7 @@ function draw(t){
  if(p.allyShot){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-p.vx*.018,p.y-p.vy*.018);ctx.lineTo(p.x+rand(-3,3),p.y+rand(-3,3));ctx.lineTo(p.x,p.y);ctx.stroke()}
  ctx.restore()}
  for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.15:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit);
+  if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();ctx.strokeStyle='rgba(213,180,255,.82)';ctx.lineWidth=2.2/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,9/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,e.r*(2.7+Number(e.krakenTelegraph)*.75),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
   if (e.paralyzedUntil && performance.now() < e.paralyzedUntil) {
     ctx.save();
     ctx.strokeStyle = '#38e8ff';
