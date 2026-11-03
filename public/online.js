@@ -516,7 +516,7 @@ document.addEventListener('visibilitychange',()=>{
    socket.emit('player-position',{...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()});
   }
  }
- if(!hidden)requestPlayerState('resume-resync');
+ if(!hidden){if(socket&&!socket.connected)socket.connect();requestPlayerState('resume-resync');}
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
@@ -557,7 +557,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   const button=$('fullscreenBtn');
   try{
    const isFullscreen=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-   if(isFullscreen){
+   if(window.ABYSSAL_NATIVE_SHELL){button.title='Tela cheia gerenciada pelo aplicativo Android.';return;}\n   if(isFullscreen){
     if(document.exitFullscreen)await document.exitFullscreen();
     else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
    }else{
