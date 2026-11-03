@@ -48,3 +48,5 @@ Para release, habilite R8 com `proguard-android-optimize.txt`, configure a assin
 CI note: Android API 36 build validated through the pull-request pipeline before merge.
 
 Android CI validation v4 after BridgeActivity compatibility fix.
+
+Final green build validation after gameplay regression repairs.
