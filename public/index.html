@@ -7,7 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=3.5.46">
+<link rel="stylesheet" href="style.css?v=3.5.47">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -70,6 +70,8 @@
     <div id="mobileJoystick" class="mobile-joystick" hidden aria-label="Joystick virtual de movimento">
       <div class="joystick-base"><span id="joystickKnob" class="joystick-knob"></span></div><small>MOVER</small>
     </div>
+    <div id="mobileMoveStick" class="mobile-dual-stick move-stick" aria-label="Joystick fixo de movimentação"><div class="joystick-base"><span class="joystick-knob"></span></div><small>MOVER</small></div>
+    <div id="mobileAimStick" class="mobile-dual-stick aim-stick" aria-label="Joystick fixo de mira"><div class="joystick-base"><span class="joystick-knob"></span></div><small>MIRAR</small></div>
 
     <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
 
@@ -98,6 +100,7 @@
       </div>
       <div class="language-setting"><label for="languageSelect">IDIOMA / LANGUAGE</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
       <button id="downloadBtn" class="secondary-btn download-cta" type="button" aria-label="Abrir opções de download">BAIXAR <span aria-hidden="true">⇩</span></button>
+      <button id="controlsBtn" class="secondary-btn controls-cta" type="button">CONTROLES <span aria-hidden="true">⌖</span></button>
       <div class="menu-fauna" aria-hidden="true">
         <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
         <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
@@ -165,6 +168,7 @@
       </div>
     </section>
 
+    <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD para mover + mouse para mirar e atirar continuamente</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick esquerdo para mover + direito para mirar/atirar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
     <section id="upgradeScreen" class="screen modal-screen" hidden>
       <div class="modal-card">
         <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
@@ -514,7 +518,7 @@
 <script src="enemy-ai.js?v=3.5.34"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.64"></script>
+<script src="game.js?v=3.5.65"></script>
 <script src="online.js?v=3.5.39"></script>
 <script>
 /* UI failsafe for the rebuilt global chat. */
