@@ -146,3 +146,17 @@ test('Abyssary text reflows to one column on narrow phones',()=>{
  assert.match(css,/\.codex-card p\{[\s\S]*?font-size:clamp\(10px,2\.25vw,11px\)/);
  assert.match(css,/overflow-wrap:anywhere/);
 });
+
+
+test('Android responsive authority prevents modal and gameplay box overlap',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','public','style.css'),'utf8');
+ const final=css.slice(css.lastIndexOf('ANDROID RESPONSIVE AUTHORITY V12'));
+ assert.match(final,/\.modal-screen\{[\s\S]*overflow-y:auto!important;overflow-x:hidden!important/);
+ assert.match(final,/\.modal-card,\.shop-modal,\.codex-modal,\.wheel-modal[\s\S]*max-width:100%!important/);
+ assert.match(final,/\.skin-grid,\.meta-upgrade-grid,\.catalog-grid,\.codex-grid,\.upgrade-choices\{[\s\S]*grid-template-columns:1fr!important/);
+ assert.match(final,/body\.mobile-game-active #selectedSkillsPanel\{[\s\S]*left:auto!important;right:var\(--game-safe-right\)!important/);
+ assert.match(final,/body\.mobile-game-active #runEnergyRanking\{[\s\S]*left:var\(--game-safe-left\)!important;right:auto!important/);
+ assert.match(final,/max-width:calc\(50vw - 14px\)!important/);
+ assert.match(final,/@media \(max-width:380px\)/);
+ assert.match(final,/@media \(pointer:coarse\) and \(orientation:landscape\)/);
+});
