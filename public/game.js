@@ -281,10 +281,10 @@ function createDecor(){
  for(let i=0;i<count;i++)decor.push({x:Math.random()*W,y:Math.random()*H,r:rand(.5,2.2)/worldZoom,a:rand(.08,.42),speed:rand(4,22)/worldZoom,phase:rand(0,Math.PI*2)});
 }
 function projectileHitsPvpWall(x1,y1,x2,y2,padding=0){
- const dx=x2-x1,dy=y2-y1;
+ const dx=x2-x1,dy=y2-y1,segmentLength=Math.hypot(dx,dy),steps=Math.max(1,Math.ceil(segmentLength/4));
  for(const rock of arenaRocks){
   if(rock.visualOnly)continue;
-  const a=-(rock.angle||0),rx=(rock.rx||rock.r)+padding,ry=(rock.ry||rock.r)+padding,steps=Math.max(1,Math.min(8,Math.ceil(Math.hypot(dx,dy)/8)));
+  const a=-(rock.angle||0),rx=(rock.rx||rock.r)+padding,ry=(rock.ry||rock.r)+padding;
   for(let i=0;i<=steps;i++){
    const t=i/steps,ox=x1+dx*t-rock.x,oy=y1+dy*t-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a);
    if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return true;
@@ -569,12 +569,26 @@ function showAbyssalAlert(text, subtitle = '') {
     el.classList.remove('adanger-visible');
   }, 6200);
 }
-function showToast(t){const bossPriorityAlert=$('bossAlert');if(bossPriorityAlert&&!bossPriorityAlert.hidden)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+const gameplayNoticeQueue=[];let gameplayNoticeActive=false;
+function enqueueGameplayNotice(kind,title,text='',priority=0){
+ const allowed=new Set(['boss','fusion','join','death']);if(!allowed.has(kind))return;
+ gameplayNoticeQueue.push({kind,title:String(title||''),text:String(text||''),priority:Number(priority)||0,at:Date.now()});
+ gameplayNoticeQueue.sort((a,b)=>b.priority-a.priority||a.at-b.at);pumpGameplayNotice();
+}
+function pumpGameplayNotice(){
+ if(gameplayNoticeActive||!gameplayNoticeQueue.length)return;
+ const item=gameplayNoticeQueue.shift(),el=$('bossAlert');if(!el)return;
+ gameplayNoticeActive=true;el.dataset.noticeKind=item.kind;
+ const kicker=$('bossAlertKicker'),title=$('bossAlertTitle'),copy=$('bossAlertText');
+ if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':'SINAL PERDIDO · ECO INTERROMPIDO';
+ if(title)title.textContent=item.title;if(copy)copy.textContent=item.text;
+ el.hidden=false;el.classList.remove('boss-alert-enter');void el.offsetWidth;el.classList.add('boss-alert-enter');
+ clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('boss-alert-enter');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
+}
+function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 function showBossAlert(kind,id=null,threat=0,force=false){
- // Nunca exibir alertas de boss na arena PvP, mesmo se chegar um evento atrasado.
  if(onlineMode&&onlineRoomMode==='pvp')return;
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
- // O evento confirmado pelo servidor tem prioridade: não pode ser descartado por uma previsão local.
  if(!force&&alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
   boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
@@ -585,63 +599,9 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
  };
+
  const [title,copy]=names[kind]||['☠ PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
- // Use o alerta dedicado com animação própria e evite camadas de tela/modal.
- const alert=$('bossAlert');
- if(alert){
-  const kicker=$('bossAlertKicker'),titleNode=$('bossAlertTitle'),textNode=$('bossAlertText');
-  if(kicker)kicker.textContent='SINAL DE PRESSÃO · CONTATO DESCONHECIDO';
-  if(titleNode)titleNode.textContent=title;
-  if(textNode)textNode.textContent=copy;
-  // O aviso de boss fica no topo visual e suprime mensagens concorrentes durante sua exibição.
-  const commonAlert=$('abyssalDangerAlert'),toast=$('toast');
-  if(commonAlert){commonAlert.classList.remove('adanger-visible','adanger-fadeout');}
-  if(toast)toast.hidden=true;
-  clearTimeout(abyssalAlertTimer);
-  alert.hidden=false;
-  alert.setAttribute('aria-live','assertive');
-  alert.classList.remove('boss-alert-enter');
-   clearTimeout(bossAlertTimer);
-
-   // Sobrescreve animações anteriores: 2 s totalmente opaco + 3 s de fade linear.
-   if(alert._abyssalBossFadeAnimation){
-    alert._abyssalBossFadeAnimation.cancel();
-    alert._abyssalBossFadeAnimation=null;
-   }
-   alert.style.transition='none';
-   alert.style.opacity='1';
-   void alert.offsetWidth;
-
-   if(typeof alert.animate==='function'){
-    const fade=alert.animate(
-     [
-      {opacity:1,offset:0},
-      {opacity:1,offset:0.4},
-      {opacity:0,offset:1}
-     ],
-     {duration:5000,easing:'linear',fill:'forwards'}
-    );
-    alert._abyssalBossFadeAnimation=fade;
-    fade.onfinish=()=>{
-     if(alert._abyssalBossFadeAnimation!==fade)return;
-     alert.hidden=true;
-     alert.style.opacity='';
-     alert._abyssalBossFadeAnimation=null;
-    };
-   }else{
-    // Alternativa compatível: mantém os mesmos 2 s + 3 s.
-    bossAlertTimer=setTimeout(()=>{
-     alert.style.transition='opacity 3000ms linear';
-     void alert.offsetWidth;
-     alert.style.opacity='0';
-     bossAlertTimer=setTimeout(()=>{
-      alert.hidden=true;
-      alert.style.transition='';
-      alert.style.opacity='';
-     },3050);
-    },2000);
-   }
-}else{showAbyssalAlert(title,copy);}
+ enqueueGameplayNotice('boss',title,copy,100);
  shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
 }
 
@@ -1035,7 +995,7 @@ function chooseUpgrade(u){
  discoverCodexSkill(u.id);
  if (!areAllUpgradesMaxed()) { level++; } else { level = 'MAX'; }
  gameState='playing';$('upgradeScreen').hidden=true;renderSelectedSkills();
- showToast(combinedNow?`FUSÃO DESBLOQUEADA · ${combinedSkillName.toUpperCase()}`:`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
+ if(combinedNow){const nickname=window.AbyssalOnline?.getAccount?.()?.nickname||'Mergulhador';enqueueGameplayNotice('fusion',combinedSkillName.toUpperCase(),`${nickname} fundiu habilidades e despertou ${combinedSkillName}.`,60);if(onlineMode)window.AbyssalOnline?.sendFusion?.(combinedSkillName);}else showToast(`${u.name.toUpperCase()} · NÍVEL ${upgradeLevels[u.id]}/3`);
  playSkillSound(combinedNow?'nova':u.id,'learn');updateHud();last=performance.now();
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
@@ -1241,7 +1201,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   }
 
 
-  if(['toxic', 'greensnake'].includes(equippedSkin) && enemy && enemy.hp > 0) {
+  if(equippedSkin==='greensnake' && enemy && enemy.hp > 0) {
     enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 4.0);
   }
 
@@ -2417,7 +2377,10 @@ function draw(t){
     ctx.restore();
   }
 
-  for(const fx of effects){ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);ctx.beginPath();if(fx.type==='ring'||fx.type==='regen-pulse'){ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ward-collapse'){ctx.arc(fx.x,fx.y,fx.max*(1-progress*.72),0,Math.PI*2)}else if(fx.type==='electric-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,segments=7;for(let s=0;s<=segments;s++){const q=s/segments,edge=q===0||q===1?0:1,wave=Math.sin((Number(fx.seed)||0)*.17+s*2.2)*Math.min(9/worldZoom,len*.055)*edge,xx=fx.x1+dx*q+nx*wave,yy=fx.y1+dy*q+ny*wave;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}}else if(fx.type==='ricochet-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1;ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x1+dx*.46-dy*.08,fx.y1+dy*.46+dx*.08);ctx.lineTo(fx.x2,fx.y2);}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2)}ctx.stroke();if(fx.type==='electric-arc'){ctx.globalAlpha*=.72;ctx.strokeStyle='#efffff';ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.stroke();}if(fx.type==='photon-ray'){ctx.strokeStyle='#ffffff';ctx.shadowBlur=0;ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.beginPath();ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.stroke()}ctx.restore()}
+  for(const fx of effects){ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);ctx.beginPath();if(fx.type==='occluded-ring'){
+ const radius=fx.max*progress,segments=96;let drawing=false;
+ for(let s=0;s<=segments;s++){const a=s/segments*Math.PI*2,ex=fx.x+Math.cos(a)*radius,ey=fx.y+Math.sin(a)*radius,blocked=projectileHitsPvpWall(fx.x,fx.y,ex,ey,1/GAME_WORLD_ZOOM);if(blocked){drawing=false;continue;}if(!drawing){ctx.moveTo(ex,ey);drawing=true;}else ctx.lineTo(ex,ey);}
+}else if(fx.type==='ring'||fx.type==='regen-pulse'){ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ward-collapse'){ctx.arc(fx.x,fx.y,fx.max*(1-progress*.72),0,Math.PI*2)}else if(fx.type==='electric-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,segments=7;for(let s=0;s<=segments;s++){const q=s/segments,edge=q===0||q===1?0:1,wave=Math.sin((Number(fx.seed)||0)*.17+s*2.2)*Math.min(9/worldZoom,len*.055)*edge,xx=fx.x1+dx*q+nx*wave,yy=fx.y1+dy*q+ny*wave;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}}else if(fx.type==='ricochet-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1;ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x1+dx*.46-dy*.08,fx.y1+dy*.46+dx*.08);ctx.lineTo(fx.x2,fx.y2);}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2)}ctx.stroke();if(fx.type==='electric-arc'){ctx.globalAlpha*=.72;ctx.strokeStyle='#efffff';ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.stroke();}if(fx.type==='photon-ray'){ctx.strokeStyle='#ffffff';ctx.shadowBlur=0;ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.beginPath();ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.stroke()}ctx.restore()}
  const particleShadowBlur=0;for(const p of particles){if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
  if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0)drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);if(upgradeLevels.speed>0&&(Math.abs(player.x-(player.trail.at(-1)?.x??player.x))>0||player.trail.length>1)){ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#68f4d7';ctx.lineWidth=(1.2+upgradeLevels.speed*.35)/worldZoom;for(let i=0;i<2+Math.min(3,upgradeLevels.speed);i++){const a=(player.angle||0)+Math.PI+(i-(1+upgradeLevels.speed)/2)*.22,len=(18+upgradeLevels.speed*6)/worldZoom;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*player.r*.8,player.y+Math.sin(a)*player.r*.8);ctx.lineTo(player.x+Math.cos(a)*len,player.y+Math.sin(a)*len);ctx.stroke();}ctx.restore();}if(upgradeLevels.magnet>0){ctx.save();ctx.globalAlpha=.12+.025*Math.sin(t*.004);ctx.strokeStyle='#a98cff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([3/worldZoom,8/worldZoom]);ctx.beginPath();ctx.arc(player.x,player.y,Math.min(92/GAME_WORLD_ZOOM,26/GAME_WORLD_ZOOM+upgradeLevels.magnet*13/GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}if(upgrades.shell>0){ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#90b8b0';ctx.lineWidth=2/worldZoom;const plates=Math.min(6,2+upgrades.shell);for(let i=0;i<plates;i++){const a=t*.00018+i*Math.PI*2/plates,r=player.r*1.7;ctx.beginPath();ctx.arc(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r,3.2/worldZoom,0,Math.PI*2);ctx.stroke();}ctx.restore();}if(upgrades.lastStand>0&&hp/maxHp<=.3){ctx.save();ctx.globalAlpha=.38+.18*Math.sin(t*.014);ctx.strokeStyle='#ff4d6d';ctx.lineWidth=2.3/worldZoom;ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.55,0,Math.PI*2);ctx.stroke();ctx.restore();}if(upgrades.predator>0){ctx.save();ctx.globalAlpha=.15;ctx.strokeStyle='#ff6b78';ctx.lineWidth=1/worldZoom;const marks=Math.min(5,2+upgrades.predator);for(let i=0;i<marks;i++){const a=t*.00032+i*Math.PI*2/marks,r=player.r*1.9;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r);ctx.lineTo(player.x+Math.cos(a)*r*1.13,player.y+Math.sin(a)*r*1.13);ctx.stroke();}ctx.restore();}if(upgrades.shield>0){const chargeCount=Math.min(3,Math.max(0,Math.floor(upgrades.shield)));const shieldPulse=1+Math.sin(t*.008)*.025;ctx.save();ctx.globalAlpha=.18+chargeCount*.045;ctx.fillStyle='#73efff';ctx.strokeStyle='#9cf8ff';ctx.lineWidth=1.8/worldZoom;ctx.shadowBlur=10/worldZoom;ctx.shadowColor='#64eaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*(2.05+chargeCount*.08)*shieldPulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.42+chargeCount*.08;ctx.stroke();ctx.restore();}if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();if(!upgrades.abyssEye){ctx.arc(player.x,player.y,getFiringRange(),0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
  // Combined skill: circular field matches firing range, with a restrained spark animation.
@@ -2629,7 +2592,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState=
 window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))setMobileGameActive(true);else resize()});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
- if(special==='nova'){effects.push({type:'ring',x,y,r:0,max:Number(d.effectRadius)||294/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:col});burst(x,y,col,22,180);return;}
+ if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM;if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x,y,r:0,max,life:.7,maxLife:.7,color:col});else effects.push({type:'ring',x,y,r:0,max,life:.55,maxLife:.55,color:col});burst(x,y,col,22,180);return;}
  if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;effects.push({type:'photon-ray',x1:x,y1:y,x2:x+vx/mag*length,y2:y+vy/mag*length,width:5/GAME_WORLD_ZOOM,life:.16,maxLife:.16,color:col});return;}
  projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
  burst(x,y,col,5,75);
@@ -2921,6 +2884,7 @@ $('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true}
 $('loginBtn').addEventListener('click',()=>{if(window.AbyssalOnline)window.AbyssalOnline.openLogin()});
 $('onlineBtn').addEventListener('click',()=>{startAmbientMusic();onlineMode=true;if(window.AbyssalOnline?.isAuthenticated())window.AbyssalOnline.showRooms();else window.AbyssalOnline?.connectAndJoin()});
 window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePendingStart){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;onlineMode=true;window.AbyssalOnline?.showRooms()}});
+window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(['fusion','join','death'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',d.kind==='fusion'?60:30);});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const d=ev.detail||{};
   // O rastro de bolhas precisa ser replicado como amostras curtas de posição:

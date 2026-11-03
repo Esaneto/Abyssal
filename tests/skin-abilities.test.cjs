@@ -192,3 +192,33 @@ test('resonance selector renders dedicated icon badges and abyss category stylin
  assert.ok(css.includes('.resonance-defensive .resonance-skill-icon'));
  assert.ok(css.includes('.resonance-passive .resonance-skill-icon'));
 });
+
+
+test('toxic basic attacks do not poison while emerald serpent still does',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("if(equippedSkin==='greensnake' && enemy && enemy.hp > 0)"));
+ assert.ok(!game.includes("['toxic', 'greensnake'].includes(equippedSkin)"));
+ assert.ok(game.includes("if(equippedSkin==='toxic'){"));
+ assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,5)"));
+});
+
+test('gameplay notifications are queued with boss priority and restricted kinds',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("new Set(['boss','fusion','join','death'])"));
+ assert.ok(game.includes("enqueueGameplayNotice('boss',title,copy,100)"));
+ assert.ok(game.includes("gameplayNoticeQueue.sort((a,b)=>b.priority-a.priority||a.at-b.at)"));
+});
+
+test('PvP projectile collision uses fine rock sweep and nova exposes occlusion visual',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.ok(game.includes('Math.ceil(segmentLength/4)'));
+ assert.ok(game.includes("type:'occluded-ring'"));
+ assert.ok(server.includes('pvpSegmentHitsRock(centerX,centerY,target.x,target.y,2/WORLD_ZOOM)'));
+});
+
+test('rankings expose settlement timestamps for client countdowns',()=>{
+ const server=read('server.js'),online=read('public/online.js');
+ assert.ok(server.includes('resets:rankingResetTimes()'));
+ assert.ok(online.includes('ranking-countdown'));
+ assert.ok(online.includes('RECOMPENSA EM'));
+});
