@@ -1021,7 +1021,7 @@ function chooseUpgrade(u){
  if(!upgrades.abyssEye&&upgradeLevels.pierce>=3&&upgradeLevels.range>=3){upgrades.pierce=0;upgrades.range=0;upgrades.abyssEye=1;upgradeLevels.abyssEye=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.abyssEye.name;discoverCodexSkill('abyssEye');}
  if(!upgrades.vitalDrain&&upgradeLevels.regen>=3&&upgradeLevels.power>=3){upgrades.regen=0;upgrades.vitalDrain=1;upgradeLevels.vitalDrain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.vitalDrain.name;discoverCodexSkill('vitalDrain');}
  if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.power>=3){
-  upgrades.electric=0;upgrades.power=0;upgrades.arcChain=1;
+  upgrades.electric=0;upgrades.arcChain=1;
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
   if(player)player.arcChainTimer=0;
  }
