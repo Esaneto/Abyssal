@@ -653,7 +653,7 @@ function tickRoom(room, now) {
   }
   const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}
   if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
-  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=100){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
+  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=50){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
   return;
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
