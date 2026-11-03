@@ -3162,3 +3162,94 @@ body.game-active #bossAlert.gameplay-notice-5s{
 .maintenance-sonar{position:relative;width:92px;height:92px;margin:0 auto 20px;display:grid;place-items:center}.maintenance-sonar span{position:absolute;inset:13px;border:1px solid rgba(108,241,240,.48);border-radius:50%;animation:maintenance-sonar 2.2s ease-out infinite}.maintenance-sonar span:nth-child(2){animation-delay:1.1s}.maintenance-sonar i{font-style:normal;font-size:25px;color:#83fbf3;text-shadow:0 0 22px #59e9ed}
 .maintenance-kicker{font:800 10px/1.4 'DM Mono',monospace;letter-spacing:.2em;color:#6fa8bb}.maintenance-card h2{margin:8px 0 12px;font:900 clamp(21px,4vw,34px)/1.05 'Exo 2',sans-serif;letter-spacing:.08em;color:#eaffff;text-shadow:0 0 24px rgba(102,238,239,.18)}.maintenance-card p{margin:0 auto 20px;max-width:440px;color:#a9c8d3;font:500 14px/1.65 system-ui,sans-serif}.maintenance-status{display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 14px;margin:0 auto 15px;border:1px solid rgba(102,238,239,.16);border-radius:9px;background:rgba(58,187,195,.07);color:#aef9f5;font:700 11px/1.4 'DM Mono',monospace}.maintenance-dot{width:8px;height:8px;border-radius:50%;background:#72f4e8;box-shadow:0 0 13px #72f4e8;animation:maintenance-blink 1s ease-in-out infinite}.maintenance-card small{display:block;color:#648a9a;font:600 10px/1.55 'DM Mono',monospace;letter-spacing:.04em}
 @keyframes maintenance-sonar{0%{transform:scale(.55);opacity:.9}100%{transform:scale(1.45);opacity:0}}@keyframes maintenance-blink{50%{opacity:.25}}
+
+
+/* ANDROID RESPONSIVE AUTHORITY V12
+   Final mobile layout authority: every panel owns one bounded zone and can scroll internally. */
+@media (max-width:700px),(pointer:coarse){
+ html,body,#app{max-width:100vw!important;overflow:hidden!important}
+ #app{height:100dvh!important;min-height:0!important;padding-left:max(6px,env(safe-area-inset-left))!important;padding-right:max(6px,env(safe-area-inset-right))!important}
+ #gameShell{min-width:0!important;min-height:0!important;overflow:hidden!important}
+ .screen{max-width:100%!important;max-height:100%!important;overflow-x:hidden!important}
+ .modal-screen{
+  align-items:flex-start!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  padding:max(10px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;
+  overscroll-behavior:contain;
+ }
+ .modal-card,.shop-modal,.codex-modal,.wheel-modal,.redeem-modal-card,.auth-flow-card,.controls-card{
+  position:relative!important;
+  flex:0 0 auto!important;
+  width:min(100%,680px)!important;
+  max-width:100%!important;
+  max-height:none!important;
+  min-width:0!important;
+  margin:auto!important;
+  padding:clamp(14px,4vw,22px)!important;
+  overflow:visible!important;
+ }
+ .modal-card h2{font-size:clamp(22px,7vw,32px)!important;line-height:1.04!important;margin:12px 0 10px!important}
+ .modal-card h3,.modal-card p,.modal-card label,.modal-card button{max-width:100%!important;overflow-wrap:anywhere}
+ .modal-top-close,.redeem-close-btn{position:sticky!important;top:0!important;float:right!important;z-index:8!important}
+ .skin-grid,.meta-upgrade-grid,.catalog-grid,.codex-grid,.upgrade-choices{
+  grid-template-columns:1fr!important;
+  width:100%!important;min-width:0!important;
+ }
+ .skin-card,.meta-card,.codex-card,.upgrade-card{width:100%!important;max-width:100%!important;min-width:0!important}
+ .shop-heading,.meta-shop-heading{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important}
+ .wallet{align-self:flex-start!important}
+ .payment-settings,.redeem-code-controls,.confirm-checks,.birth-date-fields{width:100%!important;min-width:0!important}
+ .text-field,input,select,textarea{max-width:100%!important;min-width:0!important}
+ .results{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}
+ .results strong{font-size:clamp(13px,4.6vw,19px)!important;overflow-wrap:anywhere}
+ .topbar{gap:6px!important;min-width:0!important}
+ .brand{flex:1 1 auto!important;overflow:hidden!important}
+ .brand>div{min-width:0!important}.brand strong,.brand small{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+ .top-actions{flex:0 0 auto!important;max-width:62%!important;overflow-x:auto!important;scrollbar-width:none}
+ .top-actions::-webkit-scrollbar{display:none}
+ .menu-footer{position:static!important;flex-wrap:wrap!important;gap:6px!important;margin:10px 12px!important}
+ .legal-footer{display:flex!important;flex-wrap:wrap!important;gap:6px 10px!important}
+ body.mobile-game-active #selectedSkillsPanel{
+  left:auto!important;right:var(--game-safe-right)!important;
+  width:96px!important;max-width:calc(50vw - 14px)!important;
+  overflow:auto!important;
+ }
+ body.mobile-game-active #runEnergyRanking{
+  left:var(--game-safe-left)!important;right:auto!important;
+  width:92px!important;max-width:calc(50vw - 14px)!important;
+  overflow:auto!important;
+ }
+ body.mobile-game-active #selectedSkillsPanel,
+ body.mobile-game-active #runEnergyRanking{
+  top:148px!important;bottom:auto!important;max-height:min(22dvh,150px)!important;
+ }
+ body.mobile-game-active #endDiveBtn{
+  left:auto!important;right:var(--game-safe-right)!important;
+  top:calc(148px + min(22dvh,150px) + 8px)!important;bottom:auto!important;
+ }
+ body.mobile-game-active #roomBadge.room-badge{
+  left:auto!important;right:var(--game-safe-right)!important;
+  top:calc(148px + min(22dvh,150px) + 48px)!important;bottom:auto!important;
+ }
+ body.mobile-game-active #activeAbilities.active-abilities{
+  left:50%!important;right:auto!important;top:auto!important;
+  bottom:calc(var(--game-safe-bottom) + 6px)!important;
+  transform:translateX(-50%)!important;
+  max-width:30vw!important;
+ }
+ body.mobile-game-active #mobileAimStick.dual-stick-visible{max-width:32vw!important;max-height:32vw!important}
+}
+@media (max-width:380px){
+ .topbar{height:58px!important;min-height:58px!important}
+ .brand-mark{font-size:20px!important}.brand strong{font-size:9px!important}.brand small{display:none!important}
+ .top-actions .icon-btn{width:34px!important;height:34px!important;min-width:34px!important}
+ #onlineCount{display:none!important}
+ .modal-card,.shop-modal,.codex-modal,.wheel-modal{padding:12px!important}
+ .results{grid-template-columns:1fr!important}
+ .results div{display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important}
+}
+@media (pointer:coarse) and (orientation:landscape){
+ .modal-screen{padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left))!important}
+ .modal-card,.shop-modal,.codex-modal,.wheel-modal{width:min(760px,94vw)!important;padding:14px!important}
+ .skin-grid,.meta-upgrade-grid,.codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
