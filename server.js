@@ -230,17 +230,19 @@ const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
 function pvpArenaRocks(){
  const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
- for(let row=1;row<=5;row++)for(let col=1;col<=8;col++){
-  if((col*7+row*11)%5===0)continue;
-  const x=WORLD_WIDTH*(.07+col*.108),y=WORLD_HEIGHT*(.10+row*.16);
+ for(let row=0;row<8;row++)for(let col=0;col<13;col++){
+  if((col*7+row*11)%7===0)continue;
+  const x=WORLD_WIDTH*(.035+col*.077),y=WORLD_HEIGHT*(.045+row*.13);
   if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<minDim*.235)continue;
-  const r=minDim*(.014+((col*13+row*17)%4)*.002);rocks.push({x,y,r});
+  let rx=minDim*(.035+((col*13+row*17)%4)*.005),ry=minDim*(.014+((col*5+row*3)%4)*.003);
+  if((col*3+row*5)%6===0){const swap=rx;rx=ry*1.25;ry=swap*.8;}
+  rocks.push({x,y,rx,ry,r:Math.max(rx,ry)});
  }
  return rocks;
 }
 const PVP_ARENA_ROCKS=pvpArenaRocks();
-function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const dx=x-rock.x,dy=y-rock.y,r=rock.r+padding;if(dx*dx+dy*dy<r*r)return rock;}return null;}
-function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,len2=dx*dx+dy*dy;for(const rock of PVP_ARENA_ROCKS){const t=len2?Math.max(0,Math.min(1,((rock.x-x1)*dx+(rock.y-y1)*dy)/len2)):0;const px=x1+dx*t,py=y1+dy*t,r=rock.r+padding;if((px-rock.x)**2+(py-rock.y)**2<r*r)return true;}return false;}
+function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding,dx=(x-rock.x)/Math.max(1,rx),dy=(y-rock.y)/Math.max(1,ry);if(dx*dx+dy*dy<1)return rock;}return null;}
+function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
@@ -914,7 +916,7 @@ socket.on('global-chat-send',(payload={})=>{
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
-  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
+  if(room.mode==='pvp'||receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
    if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);
