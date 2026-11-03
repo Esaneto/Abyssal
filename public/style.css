@@ -3253,3 +3253,41 @@ body.game-active #bossAlert.gameplay-notice-5s{
  .modal-card,.shop-modal,.codex-modal,.wheel-modal{width:min(760px,94vw)!important;padding:14px!important}
  .skin-grid,.meta-upgrade-grid,.codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
+
+
+/* MOBILE MENU TOP UTILITIES V13 */
+.mobile-top-utility{display:none}
+@media(max-width:700px),(pointer:coarse){
+ .topbar{position:relative!important;z-index:120!important;overflow:visible!important}
+ .top-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:4px!important;max-width:none!important;overflow:visible!important}
+ .mobile-top-utility{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+ #fullscreenBtn{display:none!important}
+ #menuScreen .desktop-menu-utility{display:none!important}
+ #menuScreen{padding-top:0!important}
+ #menuScreen .menu-content{
+  justify-content:flex-start!important;
+  height:auto!important;min-height:100%!important;
+  padding-top:clamp(16px,3.8vh,28px)!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+ }
+ #menuScreen .eyebrow{margin:0 0 4px!important;min-height:14px!important}
+ #menuScreen h1{
+  display:block!important;
+  position:relative!important;
+  width:100%!important;max-width:100%!important;
+  min-height:calc(1.92em + 8px)!important;
+  margin:4px 0 10px!important;padding:2px 0 6px!important;
+  font-size:clamp(30px,9.5vw,46px)!important;
+  line-height:.96!important;
+  overflow:visible!important;
+  clip-path:none!important;
+  white-space:normal!important;
+ }
+ #menuScreen h1 em{display:inline-block!important;line-height:1!important;padding-bottom:.08em!important}
+ #menuScreen .account-line{position:relative!important;z-index:2!important}
+}
+@media(max-width:390px){
+ .top-actions{gap:3px!important}
+ .top-actions .icon-btn{width:32px!important;height:32px!important;min-width:32px!important;font-size:14px!important}
+ #menuScreen h1{font-size:clamp(29px,9.2vw,37px)!important}
+}
