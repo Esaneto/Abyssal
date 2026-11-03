@@ -40,9 +40,12 @@ test('Violet resonance has client trigger and server-authoritative cooldown/rang
   assert.match(html,/skin-abilities\.js/);
 });
 
-test('predator abilities have client triggers and server-side validation', () => {
+test('predator skins trigger client events and have server-side validation', () => {
  const game=read('public/game.js'),server=read('server.js');
- for(const id of ['reefshark-dash','abysscroc-lunge','armoredgator-spin']){assert.match(game,new RegExp(id));assert.match(server,new RegExp(id));}
+ assert.match(game, /\['reefshark','abysscroc','armoredgator'\]\.includes\(equippedSkin\)/);
+ assert.match(game, /sendSkinAbility\(\{skin: equippedSkin/);
+ for(const id of ['reefshark-dash','abysscroc-lunge','armoredgator-spin']) assert.match(server,new RegExp(id));
+ for(const id of ['abysscroc-lunge','armoredgator-spin']) assert.match(game,new RegExp(id));
 });
 test('browser and server use the same skin ability module', () => {
   assert.equal(read('skin-abilities.js'),read('public/skin-abilities.js'));
