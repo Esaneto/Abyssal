@@ -137,3 +137,12 @@ test('PvP movement stream prioritizes low latency without reliable packet backlo
  assert.match(server,/playerMotionIntervalMs=room\.mode==='pvp'\?40:75/);
  assert.match(server,/volatile\.emit\('player-motion'/);
 });
+
+test('Abyssary text reflows to one column on narrow phones',()=>{
+ const css=fs.readFileSync(path.join(__dirname,'..','public','style.css'),'utf8');
+ assert.match(css,/RESPONSIVE TEXT AUTHORITY V11/);
+ assert.match(css,/@media\(max-width:560px\)[\s\S]*?\.codex-grid\{grid-template-columns:1fr!important\}/);
+ assert.match(css,/\.codex-card b\{[\s\S]*?font-size:clamp\(11px,2\.5vw,13px\)/);
+ assert.match(css,/\.codex-card p\{[\s\S]*?font-size:clamp\(10px,2\.25vw,11px\)/);
+ assert.match(css,/overflow-wrap:anywhere/);
+});

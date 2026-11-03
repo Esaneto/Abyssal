@@ -3066,3 +3066,80 @@ body.game-active #bossAlert.gameplay-notice-5s{
   text-align:center!important;
  }
 }
+
+
+/* RESPONSIVE TEXT AUTHORITY V11 · Abyssário + modal copy
+   Final authority over legacy fixed card typography. */
+.codex-modal,.modal-card{min-width:0;max-width:100%}
+.codex-modal h2,.codex-modal .catalog-subtitle,.codex-heading,
+.modal-card h2,.modal-card h3,.modal-card p,.modal-card strong,.modal-card small{
+  max-width:100%;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.codex-modal h2{
+  font-size:clamp(18px,4.6vw,27px);
+  line-height:1.15;
+  letter-spacing:clamp(.04em,.7vw,.12em);
+}
+.catalog-subtitle{
+  font-size:clamp(8px,2.1vw,10px);
+  line-height:1.5;
+  letter-spacing:clamp(.08em,.8vw,.2em);
+  white-space:normal;
+}
+.codex-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));
+  gap:clamp(9px,2vw,14px);
+  min-width:0;
+}
+.codex-card{
+  min-width:0;
+  overflow:visible;
+}
+.codex-card b{
+  font-size:clamp(11px,2.5vw,13px);
+  line-height:1.35;
+  overflow-wrap:anywhere;
+  hyphens:auto;
+}
+.codex-card p{
+  font-size:clamp(10px,2.25vw,11px);
+  line-height:1.58;
+  overflow-wrap:anywhere;
+  hyphens:auto;
+}
+.codex-heading{
+  font-size:clamp(10px,2.4vw,12px);
+  line-height:1.4;
+  letter-spacing:clamp(.07em,.8vw,.14em);
+}
+@media(max-width:560px){
+  .codex-modal{padding:clamp(12px,4vw,18px)}
+  .codex-grid{grid-template-columns:1fr!important}
+  .codex-card{padding:11px}
+  .codex-preview{height:clamp(88px,25vw,112px)}
+  .monster-codex-card{min-height:0}
+}
+@media(min-width:561px) and (max-width:760px){
+  .codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:380px){
+  .codex-modal h2{font-size:17px}
+  .catalog-subtitle{letter-spacing:.06em}
+  .codex-card b{font-size:11px}
+  .codex-card p{font-size:10px;line-height:1.55}
+}
+
+/* Long interface copy should reflow instead of escaping its box. */
+.menu-action,.secondary-btn,.primary-btn,.control-choice,
+.upgrade-card,.meta-card,.room-card,.ranking-section,.skin-card{
+  min-width:0;
+}
+.menu-action strong,.menu-action small,.upgrade-card strong,.upgrade-card p,
+.meta-card strong,.meta-card p,.room-card strong,.room-card p,
+.skin-card strong,.skin-card p{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
