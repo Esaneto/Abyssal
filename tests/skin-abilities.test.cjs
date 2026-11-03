@@ -186,6 +186,7 @@ test('resonance adds one new tactical option to every category',()=>{
 test('resonance selector renders dedicated icon badges and abyss category styling',()=>{
  const game=read('public/game.js'),css=read('public/style.css');
  assert.ok(game.includes("badge.className='resonance-skill-icon'"));
+ assert.ok(game.includes("echoShot:['⋔','Eco de Maré']"));
  assert.ok(game.includes("row.className='resonance-skill-option resonance-'+category"));
  assert.ok(css.includes('.resonance-shots .resonance-skill-icon'));
  assert.ok(css.includes('.resonance-defensive .resonance-skill-icon'));
