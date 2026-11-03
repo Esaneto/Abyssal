@@ -10,6 +10,7 @@ eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const SkinAbilities = require('./skin-abilities');
+const NetCodec = require('./public/net-codec');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -427,7 +428,7 @@ function getRoomSpawnSnapshot(room, spawnedEnemies = []){
 }
 function getRoomPlayerMotion(room){
  if(!room?.players?.size)return [];
- return [...room.players.values()].map(peer=>[String(peer.id),Number(peer.x)||0,Number(peer.y)||0,Number(peer.angle)||0,String(peer.color||'#bd91ff'),String(peer.skinId||'default')]);
+ return [...room.players.values()].map(peer=>[Number(peer.netId)||0,Number(peer.x)||0,Number(peer.y)||0,Number(peer.angle)||0]);
 }
 function broadcastWorld(room, metadata = {}){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
 async function persistRoomRow(room){
@@ -717,7 +718,7 @@ function tickRoom(room, now) {
   }
   const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}
   if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
-  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
+  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
   return;
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
@@ -969,7 +970,7 @@ socket.on('global-chat-send',(payload={})=>{
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const p={id:socket.id,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
+  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -989,7 +990,7 @@ socket.on('global-chat-send',(payload={})=>{
   if(!p.clientHidden){p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=Date.now()+180;}
  });
  const handlePlayerPosition=(payload, acknowledge, compact=false)=>{
-  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data);if(compact&&data?.blocked){const room=socketRoom(socket),p=room?.players.get(socket.id);if(p)io.to(socket.id).volatile.emit('player-reconcile',[Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true]);}};
+  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data);if(compact&&data?.blocked){const room=socketRoom(socket),p=room?.players.get(socket.id);if(p)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true));}};
   if(!socket.data.joined||!payload||typeof payload!=='object')return ack({ok:false,reason:'not-in-room'});
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return ack({ok:false,reason:'player-not-found'});
   // Once the server has declared a character dead, late/background heartbeat packets
@@ -1024,18 +1025,19 @@ socket.on('global-chat-send',(payload={})=>{
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=playerMotionIntervalMs){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
-   if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);
+   if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(motion));
   }
   if(compact){
    // Reconcile at 5 Hz, not every transform. Client movement remains immediate while
    // authoritative rock/bounds corrections arrive often enough to stay visually tight.
-   if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',[p.lastPositionSeq,p.x,p.y,false]);}
+   if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(p.lastPositionSeq,p.x,p.y,false));}
   }else ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  };
  socket.on('player-position',(payload,acknowledge)=>handlePlayerPosition(payload,acknowledge,false));
  socket.on('player-motion-input',row=>{
+  const decoded=NetCodec.readInput(row);if(decoded)return handlePlayerPosition(decoded,null,true);
   if(!Array.isArray(row)||row.length<4)return;
-  handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3]),clientSentAt:Number(row[4])||0},null,true);
+  handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])},null,true);
  });
  socket.on('player-net-meta',meta=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!meta||typeof meta!=='object')return;
