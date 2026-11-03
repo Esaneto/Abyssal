@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
+let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map();
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null;
@@ -179,7 +179,7 @@ function connect(){
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(result&&!result.ok)window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}))});
  socket.on('room-joined',data=>{if(!data?.ok)return;currentRoom=data.room||null;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();applyPlayerList(data.players||[]);window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:data}));setTimeout(()=>socket?.connected&&requestWorldSnapshot('room-join'),180);});
- socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
+ socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
@@ -249,7 +249,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
  socket.on('player-joined',p=>{if(p.id!==socket.id){storePlayer(p);window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:{kind:'join',title:String(p.nickname||'Mergulhador').toUpperCase(),text:`${p.nickname||'Um mergulhador'} entrou nas profundezas.`}}));}});
- socket.on('player-left',id=>players.delete(id));
+ socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);});
  socket.on('gameplay-notice',data=>window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:data||{}})));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
  socket.on('shared-shot',data=>{if(data&&data.from!==account?.nickname)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
@@ -500,17 +500,17 @@ function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
- players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?58:105});
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?58:105};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
- for(const id of players.keys())if(!keep.has(id))players.delete(id);
+ for(const id of players.keys())if(!keep.has(id)){const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);}
 }
 function applyPlayerMotion(rows){
  if(!Array.isArray(rows))return;
  for(const row of rows){
   if(!Array.isArray(row)||row.length<4)continue;
-  const netId=Number(row[0])>>>0,peer=[...players.values()].find(p=>(Number(p.netId)>>>0)===netId);if(!peer||peer.id===localPlayerId)continue;
+  const netId=Number(row[0])>>>0,id=playersByNetId.get(netId),peer=id?players.get(id):null;if(!peer||peer.id===localPlayerId)continue;
   storePlayer({id:peer.id,netId,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0});
  }
 }
