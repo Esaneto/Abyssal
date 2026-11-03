@@ -148,7 +148,7 @@ function getArenaVortexGlow(vortex){
  return gradient;
 }
 const isMobileDevice=()=>mobileViewport;
-function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;const dual=enabled&&controlSettings.mobile==='dual-stick';$('mobileMoveStick')?.classList.toggle('dual-stick-visible',dual);$('mobileAimStick')?.classList.toggle('dual-stick-visible',dual);if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
+function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;$('mobileMoveStick')?.classList.remove('dual-stick-visible');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled);if(enabled)try{screen.orientation?.lock?.('portrait').catch(()=>{});}catch(_){};if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let hudCollapsed=false;
 function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking');button.title=hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking';}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
@@ -2463,7 +2463,7 @@ function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base
 function releaseMobileJoystick(e){if(!joystick||joystickVector.pointerId!==e.pointerId)return;joystickVector={x:0,y:0,active:false,pointerId:null};joystick.hidden=true;joystick.classList.remove('is-floating');joystick.style.left='';joystick.style.top='';joystick.style.bottom='';joystick.style.transform='';if(joystickKnob)joystickKnob.style.transform='translate(0, 0)';}
 if(gameShell&&joystick){
  gameShell.addEventListener('pointerdown',e=>{
-  if(gameState!=='playing'||!isMobileDevice()||controlSettings.mobile==='dual-stick'||joystickVector.pointerId!==null)return;
+  if(gameState!=='playing'||!isMobileDevice()||joystickVector.pointerId!==null)return;
   if(e.target.closest('button,a,input,select,textarea,.active-ability,.screen,#mobileJoystick,#mobileMoveStick,#mobileAimStick'))return;
   e.preventDefault();
   joystickVector={x:0,y:0,active:false,pointerId:e.pointerId};
@@ -2472,21 +2472,21 @@ if(gameShell&&joystick){
   gameShell.setPointerCapture?.(e.pointerId);
   setJoystickFromPointer(e);
  });
- gameShell.addEventListener('pointermove',e=>{if(controlSettings.mobile!=='dual-stick'&&joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
+ gameShell.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>gameShell.addEventListener(ev,releaseMobileJoystick));
 }
 // Dual sticks fixos com captura de toque independente.
 const mobileMoveStick=$('mobileMoveStick'),mobileAimStick=$('mobileAimStick');
 function updateFixedStick(e,stick,knob,isAim){if(!stick||!knob)return;const base=stick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(18,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}const vector={x:dx/max,y:dy/max,active:Math.hypot(dx/max,dy/max)>.13,pointerId:e.pointerId};if(isAim)aimJoystickVector=vector;else joystickVector=vector;knob.style.transform=`translate(${dx}px, ${dy}px)`;}
 function resetFixedStick(knob,isAim){if(isAim)aimJoystickVector={x:0,y:0,active:false,pointerId:null};else joystickVector={x:0,y:0,active:false,pointerId:null};if(knob)knob.style.transform='translate(0, 0)';}
-function configureControlButtons(){const open=$('controlsBtn'),screen=$('controlsScreen'),close=$('controlsCloseBtn');const pc=[...document.querySelectorAll('[data-control-pc]')],mobile=[...document.querySelectorAll('[data-control-mobile]')];const refresh=()=>{pc.forEach(b=>{const a=b.dataset.controlPc===controlSettings.pc;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});mobile.forEach(b=>{const a=b.dataset.controlMobile===controlSettings.mobile;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});};open?.addEventListener('click',()=>{refresh();if(screen)screen.hidden=false;});close?.addEventListener('click',()=>{if(screen)screen.hidden=true;});screen?.addEventListener('click',e=>{if(e.target===screen)screen.hidden=true;});pc.forEach(b=>b.addEventListener('click',()=>{controlSettings.pc=b.dataset.controlPc;localStorage.setItem('abyssalControlsPc',controlSettings.pc);autoFollowCursor=false;pointer.down=false;refresh();}));mobile.forEach(b=>b.addEventListener('click',()=>{controlSettings.mobile=b.dataset.controlMobile;localStorage.setItem('abyssalControlsMobile',controlSettings.mobile);joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const dual=controlSettings.mobile==='dual-stick'&&gameState==='playing'&&isMobileDevice();mobileMoveStick?.classList.toggle('dual-stick-visible',dual);mobileAimStick?.classList.toggle('dual-stick-visible',dual);const old=$('mobileJoystick');if(old){old.hidden=true;old.classList.remove('is-floating');}refresh();}));}
+function configureControlButtons(){const open=$('controlsBtn'),screen=$('controlsScreen'),close=$('controlsCloseBtn');const pc=[...document.querySelectorAll('[data-control-pc]')],mobile=[...document.querySelectorAll('[data-control-mobile]')];const refresh=()=>{pc.forEach(b=>{const a=b.dataset.controlPc===controlSettings.pc;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});mobile.forEach(b=>{const a=b.dataset.controlMobile===controlSettings.mobile;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});};open?.addEventListener('click',()=>{refresh();if(screen)screen.hidden=false;});close?.addEventListener('click',()=>{if(screen)screen.hidden=true;});screen?.addEventListener('click',e=>{if(e.target===screen)screen.hidden=true;});pc.forEach(b=>b.addEventListener('click',()=>{controlSettings.pc=b.dataset.controlPc;localStorage.setItem('abyssalControlsPc',controlSettings.pc);autoFollowCursor=false;pointer.down=false;refresh();}));mobile.forEach(b=>b.addEventListener('click',()=>{controlSettings.mobile=b.dataset.controlMobile;localStorage.setItem('abyssalControlsMobile',controlSettings.mobile);joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const mobilePlaying=gameState==='playing'&&isMobileDevice();mobileMoveStick?.classList.remove('dual-stick-visible');mobileAimStick?.classList.toggle('dual-stick-visible',mobilePlaying);const old=$('mobileJoystick');if(old){old.hidden=true;old.classList.remove('is-floating');}refresh();}));}
 function setupDualStickEvents(){
  const activeSticks=new Map();
- [[mobileMoveStick,false],[mobileAimStick,true]].forEach(([stick,isAim])=>{
+ [[mobileAimStick,true]].forEach(([stick,isAim])=>{
   if(!stick)return;
   const knob=stick.querySelector('.joystick-knob');
   stick.addEventListener('pointerdown',e=>{
-   if(gameState!=='playing'||!isMobileDevice()||controlSettings.mobile!=='dual-stick')return;
+   if(gameState!=='playing'||!isMobileDevice())return;
    e.preventDefault();
    const current=isAim?aimJoystickVector:joystickVector;
    if(current.pointerId!==null)return;
