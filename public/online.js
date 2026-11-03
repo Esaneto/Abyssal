@@ -95,9 +95,12 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   'boss-abyssal':{name:'Boss Abyssal',color:'#ff6b9d'},
    'abyssal-conqueror':{name:'Conquistador Abyssal',color:'#2ee88a'}
  };
+ function blockedChatUsers(){try{return new Set(JSON.parse(localStorage.getItem('abyssalBlockedChatUsers')||'[]').map(v=>String(v).toLowerCase()))}catch(_){return new Set()}}
+ function blockChatUser(nickname){const key=String(nickname||'').trim().toLowerCase();if(!key)return;const set=blockedChatUsers();set.add(key);localStorage.setItem('abyssalBlockedChatUsers',JSON.stringify([...set]));renderGlobalChatHistory(window.__abyssalLastChatHistory||[]);}
  function setGlobalChatStatus(online){const panel=$('globalChatPanel'),status=$('globalChatStatus');if(panel)panel.classList.toggle('is-offline',!online);if(status)status.textContent=online?'SINAL ESTÁVEL':'SEM SINAL';}
  function renderGlobalChatMessage(message){
   const list=$('globalChatMessages');if(!list||!message)return;
+  if(blockedChatUsers().has(String(message.nickname||'').toLowerCase()))return;
   const empty=list.querySelector('.global-chat-empty');if(empty)empty.remove();
   const row=document.createElement('article');row.className='global-chat-message';
   const head=document.createElement('div');head.className='global-chat-message-head';
@@ -122,13 +125,14 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
      report.textContent='DENÚNCIA ENVIADA';
     }catch(error){report.disabled=false;window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
    });
-   actions.appendChild(report);row.appendChild(actions);
+   const block=document.createElement('button');block.type='button';block.className='small-action global-chat-block';block.textContent='BLOQUEAR';block.setAttribute('aria-label','Bloquear mensagens de '+String(message.nickname||'jogador'));block.addEventListener('click',()=>{if(window.confirm('Bloquear mensagens de '+String(message.nickname||'este jogador')+' neste dispositivo?'))blockChatUser(message.nickname);});
+   actions.append(report,block);row.appendChild(actions);
   }
   list.appendChild(row);
   while(list.children.length>50)list.firstElementChild?.remove();
   list.scrollTop=list.scrollHeight;
  }
- function renderGlobalChatHistory(messages){const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
+ function renderGlobalChatHistory(messages){window.__abyssalLastChatHistory=Array.isArray(messages)?messages:[];const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
  function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
 
  function showCardumeDirectory(){const d=$('cardumeDirectory'),detail=$('cardumeDetail');if(d)d.hidden=false;if(detail)detail.hidden=true;}
@@ -338,11 +342,11 @@ $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput')
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
-const AGE_TERMS_VERSION='2026-11-03-v1';
+const AGE_TERMS_VERSION='2026-11-03-v2';
 function ageProfile(){
  try{return JSON.parse(localStorage.getItem('abyssalAgeProfile')||'null')}catch(_){return null}
 }
-function hasAgeTermsProfile(){const p=ageProfile();return Boolean(p&&p.termsVersion===AGE_TERMS_VERSION&&['child','teen','adult'].includes(p.band));}
+function hasAgeTermsProfile(){const p=ageProfile();return Boolean(p&&p.termsVersion===AGE_TERMS_VERSION&&['under16','teen','adult'].includes(p.band));}
 function calculateAge(year,month,day){
  const now=new Date(),birth=new Date(year,month-1,day);
  if(birth.getFullYear()!==year||birth.getMonth()!==month-1||birth.getDate()!==day||birth>now)return null;
@@ -352,10 +356,9 @@ function calculateAge(year,month,day){
  return age>=0&&age<=125?age:null;
 }
 function applyAgeTreatment(){
- const p=ageProfile(),restricted=!p||p.band!=='adult';
+ const p=ageProfile(),restricted=!p||p.band==='under16';
  window.AbyssalAgeBand=p?.band||'unknown';
  window.AbyssalRestrictedAgeTreatment=restricted;
- try{window.adConfig?.({childDirectedTreatment:restricted?1:0,underAgeOfConsent:restricted?1:0});}catch(_){}
  const chat=$('globalChatPanel');if(chat)chat.hidden=restricted;
 }
 function openAgeTermsIfNeeded(){
@@ -368,12 +371,15 @@ $('ageTermsContinue')?.addEventListener('click',()=>{
  const age=calculateAge(year,month,day);
  if(age===null){if(message)message.textContent='Informe uma data de nascimento válida.';return}
  if(!$('ageTermsAccept')?.checked){if(message)message.textContent='Para continuar, leia e aceite os Termos de Uso e confirme a leitura da Política de Privacidade.';return}
- const band=age<13?'child':age<18?'teen':'adult';
+ const band=age<16?'under16':age<18?'teen':'adult';
  localStorage.setItem('abyssalAgeProfile',JSON.stringify({band,termsVersion:AGE_TERMS_VERSION,acceptedAt:new Date().toISOString()}));
+ window.google_tag_for_age_treatment=band==='teen'?2:band==='under16'?1:0;
+ window.loadAbyssalAds?.();
  if(message)message.textContent='';
  $('ageTermsScreen').hidden=true;applyAgeTreatment();
 });
 applyAgeTreatment();
+const _ageStartup=ageProfile();if(hasAgeTermsProfile()){window.google_tag_for_age_treatment=_ageStartup?.band==='teen'?2:_ageStartup?.band==='under16'?1:0;window.loadAbyssalAds?.();}
 queueMicrotask(openAgeTermsIfNeeded);
 
 $('supportBtn')?.addEventListener('click',()=>{$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});

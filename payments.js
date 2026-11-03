@@ -2,7 +2,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { hasKidPermission } = require('./kid-age-gate');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
