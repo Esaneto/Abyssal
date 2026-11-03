@@ -99,6 +99,9 @@ test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressu
 
 test('electric eel rendering is deterministic per frame sample', async () => {
   const game = fs.readFileSync(path.join(__dirname, '..', 'public', 'game.js'), 'utf8');
-  const eelStart=game.indexOf(\"} else if(id==='electriceel'){\");\n  const snakeStart=game.indexOf(\"} else if(id==='greensnake'){\");\n  assert.ok(eelStart>0&&snakeStart>eelStart);\n  assert.doesNotMatch(game.slice(eelStart,snakeStart), /Math\\.random/);
+  const eelStart=game.indexOf("} else if(id==='electriceel'){");
+  const snakeStart=game.indexOf("} else if(id==='greensnake'){");
+  assert.ok(eelStart>0&&snakeStart>eelStart);
+  assert.doesNotMatch(game.slice(eelStart,snakeStart), /Math\.random/);
   assert.doesNotMatch(game, /sparkX = \(-1\.4 \+ k \* 0\.65\) \* r \+ rand/);
 });
