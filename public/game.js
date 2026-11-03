@@ -1427,16 +1427,33 @@ function update(dt){
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil);const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1);const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;player.x=clamp(nx,wall+player.r,W-wall-player.r);player.y=clamp(ny,wall+player.r,H-wall-player.r);if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
-   if (['reefshark', 'whiteShark'].includes(equippedSkin) && (mx || my) && Math.random() < 0.45) {
-     sharkWakeTrails.push({
-       x: player.x - Math.cos(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-       y: player.y - Math.sin(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-       r: rand(14, 22),
-       life: 5.0,
-       maxLife: 5.0,
-       color: '#7bf5ff'
-     });
-     if (sharkWakeTrails.length > 250) sharkWakeTrails.shift();
+   if (['reefshark', 'whiteShark'].includes(equippedSkin) && (mx || my)) {
+     if (Math.random() < 0.45) {
+       sharkWakeTrails.push({
+         x: player.x - Math.cos(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
+         y: player.y - Math.sin(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
+         r: rand(14, 22),
+         life: 5.0,
+         maxLife: 5.0,
+         color: '#7bf5ff'
+       });
+       if (sharkWakeTrails.length > 250) sharkWakeTrails.shift();
+     }
+     // As bolhas locais são criadas a cada frame, mas no online enviamos só 6-7
+     // amostras por segundo para manter o efeito visível sem inundar o WebSocket.
+     if (onlineMode && window.AbyssalOnline?.sendSkinAbility) {
+       player.sharkTrailNetworkTimer = (Number(player.sharkTrailNetworkTimer) || 0) - dt;
+       if (player.sharkTrailNetworkTimer <= 0) {
+         player.sharkTrailNetworkTimer = 0.16;
+         window.AbyssalOnline.sendSkinAbility({
+           type: 'bubble-trail',
+           skin: equippedSkin,
+           x: clamp((player.x - Math.cos(player.angle || 0) * (player.r * 1.1)) / W, 0, 1),
+           y: clamp((player.y - Math.sin(player.angle || 0) * (player.r * 1.1)) / H, 0, 1),
+           angle: player.angle
+         });
+       }
+     }
    }
 
    if(equippedSkin==='violet'&&player.violetCooldown<=0){
@@ -2723,6 +2740,14 @@ $('onlineBtn').addEventListener('click',()=>{startAmbientMusic();onlineMode=true
 window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePendingStart){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;onlineMode=true;window.AbyssalOnline?.showRooms()}});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const d=ev.detail||{};
+  // O rastro de bolhas precisa ser replicado como amostras curtas de posição:
+  // ele não é uma habilidade de recarga e não pode depender do evento de ataque.
+  if(d.type==='bubble-trail' && (d.skin==='reefshark'||d.skin==='whiteShark')){
+    const bx=clamp(Number(d.x)*W,0,W),by=clamp(Number(d.y)*H,0,H);
+    sharkWakeTrails.push({x:bx,y:by,r:rand(14,22),life:5,maxLife:5,color:'#7bf5ff',remote:true});
+    if(sharkWakeTrails.length>250)sharkWakeTrails.splice(0,sharkWakeTrails.length-250);
+    return;
+  }
   // Use as coordenadas normalizadas do instante da habilidade. O snapshot do outro jogador
   // pode estar atrasado ou representar outra escala de coordenadas.
   const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H);
