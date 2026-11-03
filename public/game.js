@@ -1175,7 +1175,7 @@ function applyOnlinePlayerVitals(data){
   burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');
  }else if(data.reason==='regeneration'&&Number(data.healed)>0)playSkillSound('regen','trigger');
  updateHud();
- if(data.alive===false&&gameState!=='over'){spawnBloodPool(player.x,player.y,player.r*2.2);endGame();}
+ if(data.alive===false&&gameState!=='over'){endGame();}
 }
 let lastOnlineVitalsAt=0;
 function gainXp(value, source='shared'){
