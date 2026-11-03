@@ -283,15 +283,24 @@ function createArenaRocks(){
  arenaRocks=[];
  if(onlineRoomMode==='pvp'){
   const minDim=Math.min(W,H),cx=W*.5,cy=H*.5;
-  for(let row=0;row<8;row++)for(let col=0;col<13;col++){
-   if((col*7+row*11)%7===0)continue;
-   const x=W*(.035+col*.077),y=H*(.045+row*.13);
-   if(Math.hypot(x-cx,y-cy)<minDim*.235)continue;
-   let rx=minDim*(.035+((col*13+row*17)%4)*.005),ry=minDim*(.014+((col*5+row*3)%4)*.003);
-   if((col*3+row*5)%6===0){const swap=rx;rx=ry*1.25;ry=swap*.8;}
-   const radius=Math.max(rx,ry),vertices=[];
-   for(let i=0;i<10;i++){const a=i/10*Math.PI*2,rr=.78+((col*3+row*5+i*7)%7)*.045;vertices.push([Math.cos(a)*rx*rr,Math.sin(a)*ry*rr]);}
-   arenaRocks.push({x,y,r:radius,rx,ry,edge:'maze',vertices,shade:((col+row)%3)/2});
+  const rnd=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453123;return v-Math.floor(v);};
+  const addRidge=(x,y,rx,ry,angle,seed)=>{
+   const vertices=[],n=9+Math.floor(rnd(seed+17)*5);
+   for(let i=0;i<n;i++){
+    const a=i/n*Math.PI*2,noise=.79+rnd(seed+i*13)*.31;
+    vertices.push([Math.cos(a)*rx*noise,Math.sin(a)*ry*noise]);
+   }
+   arenaRocks.push({x,y,r:Math.max(rx,ry),rx,ry,angle,edge:'reef',vertices,shade:rnd(seed+29),seed});
+  };
+  for(let i=0;i<62;i++){
+   const x=W*(.035+rnd(i+1)*.93),y=H*(.045+rnd(i+91)*.91);
+   if(Math.hypot(x-cx,y-cy)<minDim*.245)continue;
+   const long=minDim*(.032+rnd(i+191)*.045),thick=minDim*(.012+rnd(i+291)*.018),vertical=rnd(i+391)>.77;
+   addRidge(x,y,vertical?thick:long,vertical?long:thick,(rnd(i+491)*2-1)*Math.PI*.92,i+100);
+  }
+  for(let i=0;i<14;i++){
+   const side=i%4,along=rnd(i+701),x=side<2?W*(.04+along*.92):(side===2?W*.035:W*.965),y=side>=2?H*(.05+along*.9):(side===0?H*.035:H*.965);
+   addRidge(x,y,minDim*(.025+rnd(i+801)*.025),minDim*(.012+rnd(i+901)*.014),(rnd(i+1001)*2-1)*Math.PI,i+800);
   }
   return;
  }
