@@ -2657,6 +2657,16 @@ window.AbyssalGameHooks={
  getPlayerPosition:()=>onlineMode&&player&&gameState!=='menu'&&gameState!=='over'?{x:player.x,y:player.y,angle:player.angle||0}:null,
  roomMode:()=>onlineRoomMode,
   setPlayerPosition:(x,y)=>{if(!player||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;player.x=clamp(Number(x),8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);player.y=clamp(Number(y),8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);updateCamera();return true;},
+ reconcilePlayer:({dx=0,dy=0,blocked=false}={})=>{
+  if(!player||!onlineMode||!Number.isFinite(dx)||!Number.isFinite(dy))return false;
+  const error=Math.hypot(dx,dy);if(error<.75)return true;
+  // Apply the authoritative error to the current predicted position. This preserves
+  // movement performed after the acknowledged sequence instead of snapping to an old state.
+  const weight=blocked?1:Math.min(1,.35+error/120);
+  player.x=clamp(player.x+dx*weight,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
+  player.y=clamp(player.y+dy*weight,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+  updateCamera();return true;
+ },
  skinColor:()=>currentSkinColor(),
  viewportWidth:()=>viewW,
  viewportHeight:()=>viewH,
