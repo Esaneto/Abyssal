@@ -490,14 +490,60 @@ function initVolumeControls() {
 }
 window.AbyssalMasterVolume = masterSoundVolume;
 
+function getAbyssalMusicIntensity(){
+ if(gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))return 0;
+ if(progressionPausedForBoss||activeBossEntity||activeBossEntities?.length)return 1;
+ if(!player)return .12;
+ let nearby=0,threat=0;
+ for(const e of enemies){const d=Math.hypot((e.x||0)-player.x,(e.y||0)-player.y);if(d<430/GAME_WORLD_ZOOM){nearby++;threat+=d<180/GAME_WORLD_ZOOM?2:1;}}
+ const hpPressure=maxHp>0?1-clamp(hp/maxHp,0,1):0;
+ return clamp(.14+nearby*.045+threat*.035+hpPressure*.32,0,.78);
+}
+function createAbyssalNoiseBuffer(ctx,duration=2){
+ const length=Math.max(1,Math.floor(ctx.sampleRate*duration)),buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
+ let brown=0;for(let i=0;i<length;i++){brown=(brown*.985)+(Math.random()*2-1)*.035;data[i]=brown;}
+ return buffer;
+}
+function abyssalMusicVoice(freq,duration,volume,type='sine',detune=0,delay=0){
+ if(!ambientNodes||!audioCtx||musicVolume<=0)return;
+ const now=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
+ o.type=type;o.frequency.setValueAtTime(freq,now);o.detune.value=detune;f.type='lowpass';f.frequency.value=420+ambientNodes.intensity*680;f.Q.value=.7;
+ g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),now+.08);g.gain.exponentialRampToValueAtTime(.0001,now+duration);
+ o.connect(f);f.connect(g);g.connect(ambientNodes.musicBus);o.start(now);o.stop(now+duration+.04);
+}
+function abyssalMusicPulse(intensity){
+ if(!ambientNodes||!audioCtx)return;
+ const roots=[36.71,41.20,43.65,49.00],root=roots[ambientNodes.bar%roots.length],boss=intensity>.9;
+ abyssalMusicVoice(root,boss?.72:1.35,.055,'triangle',0);
+ if(ambientNodes.bar%2===0)abyssalMusicVoice(root*1.5,1.8,.018,'sine',boss?-8:5,.12);
+ if(intensity>.34){abyssalMusicVoice(root*2,boss?.24:.38,.026,'triangle',Math.sin(ambientNodes.bar)*7,.08);abyssalMusicVoice(root*3,boss?.16:.28,.012,'sine',-11,.26);}
+ if(intensity>.68){for(let i=0;i<(boss?4:2);i++)abyssalMusicVoice(root*(i%2?2:1),.11,.016,'square',0,.18+i*(boss?.18:.32));}
+ if(boss){abyssalMusicVoice(29.14,1.4,.065,'sawtooth',-12);abyssalMusicVoice(58.27,.85,.022,'triangle',9,.36);}
+ ambientNodes.bar++;
+}
+function updateAbyssalMusic(){
+ if(!ambientNodes||!audioCtx)return;
+ const target=getAbyssalMusicIntensity();ambientNodes.intensity+=(target-ambientNodes.intensity)*.22;
+ const now=audioCtx.currentTime;
+ ambientNodes.master.gain.setTargetAtTime(.055*musicVolume,now,.18);
+ ambientNodes.droneGain.gain.setTargetAtTime(.014+.022*ambientNodes.intensity,now,.8);
+ ambientNodes.noiseGain.gain.setTargetAtTime(.004+.012*ambientNodes.intensity,now,1.2);
+ ambientNodes.droneFilter.frequency.setTargetAtTime(105+ambientNodes.intensity*150,now,.7);
+ const interval=ambientNodes.intensity>.9?520:ambientNodes.intensity>.62?690:ambientNodes.intensity>.32?920:1320;
+ if(performance.now()-ambientNodes.lastPulse>=interval){ambientNodes.lastPulse=performance.now();abyssalMusicPulse(ambientNodes.intensity);}
+}
 function startAmbientMusic(){if(!soundOn||ambientNodes)return;try{
  audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();
- const master=audioCtx.createGain();master.gain.value=.045*musicVolume;master.connect(audioCtx.destination);
- // Percussive procedural tension bed: short filtered pulses with silence between them, no continuous oscillator hum.
- const timer=setInterval(()=>{if(!ambientNodes||!soundOn||!audioCtx)return;const now=audioCtx.currentTime,o=audioCtx.createOscillator(),gain=audioCtx.createGain(),filter=audioCtx.createBiquadFilter();o.type='triangle';o.frequency.setValueAtTime(72+Math.random()*22,now);o.frequency.exponentialRampToValueAtTime(42,now+.18);filter.type='bandpass';filter.frequency.value=145;filter.Q.value=1.3;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.10,now+.012);gain.gain.exponentialRampToValueAtTime(.0001,now+.22);o.connect(filter);filter.connect(gain);gain.connect(master);o.start(now);o.stop(now+.24);},760);
- ambientNodes={master,timer};
-}catch(e){console.warn('Áudio ambiente indisponível',e)}}
-function stopAmbientMusic(){if(!ambientNodes)return;try{clearInterval(ambientNodes.timer);ambientNodes.master.gain.setTargetAtTime(0,audioCtx.currentTime,.08);setTimeout(()=>{try{ambientNodes.master.disconnect()}catch(_){}ambientNodes=null},300)}catch(e){ambientNodes=null}}
+ const master=audioCtx.createGain(),musicBus=audioCtx.createGain();master.gain.value=.055*musicVolume;musicBus.gain.value=1;musicBus.connect(master);master.connect(audioCtx.destination);
+ const droneGain=audioCtx.createGain(),droneFilter=audioCtx.createBiquadFilter();droneGain.gain.value=.014;droneFilter.type='lowpass';droneFilter.frequency.value=115;droneFilter.Q.value=.9;droneGain.connect(droneFilter);droneFilter.connect(musicBus);
+ const drones=[27.5,41.2].map((freq,i)=>{const o=audioCtx.createOscillator();o.type=i?'sine':'triangle';o.frequency.value=freq;o.detune.value=i?7:-5;o.connect(droneGain);o.start();return o;});
+ const noise=audioCtx.createBufferSource(),noiseFilter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=createAbyssalNoiseBuffer(audioCtx,2.4);noise.loop=true;noiseFilter.type='bandpass';noiseFilter.frequency.value=165;noiseFilter.Q.value=.55;noiseGain.gain.value=.004;noise.connect(noiseFilter);noiseFilter.connect(noiseGain);noiseGain.connect(musicBus);noise.start();
+ ambientNodes={master,musicBus,droneGain,droneFilter,drones,noise,noiseGain,intensity:.12,lastPulse:0,bar:0};
+ abyssalMusicPulse(.12);
+}catch(e){console.warn('Trilha procedural indisponível',e)}}
+function stopAmbientMusic(){if(!ambientNodes)return;try{
+ const nodes=ambientNodes;nodes.master.gain.setTargetAtTime(.0001,audioCtx.currentTime,.12);setTimeout(()=>{try{nodes.drones?.forEach(o=>o.stop());nodes.noise?.stop();nodes.master.disconnect();}catch(_){}if(ambientNodes===nodes)ambientNodes=null;},420);
+}catch(e){ambientNodes=null}}
 function audio(f=440,d=.07,type='sine',vol=.025){
  if(!soundOn)return;
  try{
@@ -2532,7 +2578,7 @@ function loop(t){
  const dt=Math.min(.035,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
-  if(active){const updateStarted=performance.now();update(dt);updateMs=performance.now()-updateStarted;}
+  if(active){const updateStarted=performance.now();update(dt);updateAbyssalMusic();updateMs=performance.now()-updateStarted;}
   const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  requestAnimationFrame(loop);
