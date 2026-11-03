@@ -940,7 +940,7 @@ const upgradeList=[
 ];
 const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Ricochete: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Pulso Intenso: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'},
  abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Combina Lança do Abismo e Olho Profundo no nível 3. Os disparos atravessam o mapa até atingir uma criatura ou obstáculo; o indicador de alcance desaparece.'},
  vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Combina Membrana Viva e Pulso Intenso no nível 3. Recupera 2% do dano causado como vida.'}
 };
@@ -961,7 +961,7 @@ function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
  const arcChainActive=Number(upgrades.arcChain)>0;
- const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','power'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
  const signature=selected.map(([id,rank])=>id+':'+rank).join('|')||'none';
  // Avoid replacing focused/clicked skill buttons on every simulation frame.
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
@@ -1020,8 +1020,8 @@ function chooseUpgrade(u){
  }
  if(!upgrades.abyssEye&&upgradeLevels.pierce>=3&&upgradeLevels.range>=3){upgrades.pierce=0;upgrades.range=0;upgrades.abyssEye=1;upgradeLevels.abyssEye=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.abyssEye.name;discoverCodexSkill('abyssEye');}
  if(!upgrades.vitalDrain&&upgradeLevels.regen>=3&&upgradeLevels.power>=3){upgrades.regen=0;upgrades.vitalDrain=1;upgradeLevels.vitalDrain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.vitalDrain.name;discoverCodexSkill('vitalDrain');}
- if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.ricochet>=3){
-  upgrades.electric=0;upgrades.ricochet=0;upgrades.arcChain=1;
+ if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.power>=3){
+  upgrades.electric=0;upgrades.power=0;upgrades.arcChain=1;
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
   if(player)player.arcChainTimer=0;
  }
@@ -1577,7 +1577,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen)playSkillSound('regen','trigger');}
  if(gameState==='playing'&&upgrades.ward>0){const interval=Math.max(18,28-(upgrades.ward-1)*4);if(!Number.isFinite(player.wardTimer))player.wardTimer=interval;player.wardTimer-=dt;if(player.wardTimer<=0){player.wardTimer=interval;player.invuln=Math.max(player.invuln,.55);burst(player.x,player.y,'#9deaff',14,105);playSkillSound('shield','trigger');}}
- if(gameState==='playing'&&upgrades.repulse>0){const interval=Math.max(6,12-(upgrades.repulse-1)*3);player.repulseTimer=(Number(player.repulseTimer)||interval)-dt;if(player.repulseTimer<=0){player.repulseTimer=interval;const radius=(90+upgrades.repulse*22)/GAME_WORLD_ZOOM;for(const enemy of enemies){if(enemy.hp>0&&dist(player,enemy)<=radius)dealEnemyDamage(enemy,6+upgrades.repulse*3,'repulse',{silentSound:true});}effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.42,maxLife:.42,color:'#a7efff'});}}
+ if(gameState==='playing'&&upgrades.repulse>0){const interval=Math.max(6,12-(upgrades.repulse-1)*3);if(!Number.isFinite(player.repulseTimer))player.repulseTimer=interval;player.repulseTimer-=dt;if(player.repulseTimer<=0){player.repulseTimer=interval;const radius=(90+upgrades.repulse*22)/GAME_WORLD_ZOOM;for(const enemy of enemies){if(enemy.hp>0&&dist(player,enemy)<=radius)dealEnemyDamage(enemy,6+upgrades.repulse*3,'repulse',{silentSound:true});}effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.42,maxLife:.42,color:'#a7efff'});}}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
   const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:3,range:190,damage:45,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
@@ -2847,7 +2847,7 @@ function renderCatalog(){
   </article>`;
  };
 
- const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
+ const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Pulso Intenso Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
  const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
  const entries=Object.entries(monsterData),common=entries.filter(([k])=>!BOSS_KINDS.includes(k)),bosses=entries.filter(([k])=>BOSS_KINDS.includes(k));
  grid.innerHTML='<h3 class="codex-heading">◈ FAUNA DAS CAMADAS EXTERNAS</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div><h3 class="codex-heading">☠ ENTIDADES COLOSSAIS · FOSSAS ABISSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
