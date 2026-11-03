@@ -99,3 +99,19 @@ test('desktop end dive and collapsed HUD controls own distinct edge zones',()=>{
  assert.match(final,/body\.game-active\.hud-collapsed:not\(\.mobile-game-active\) #toggleHudBtn\{\s*right:14px!important/);
  assert.match(final,/#activeAbilities\.active-abilities\{[\s\S]*left:14px!important;right:auto!important;[\s\S]*bottom:14px!important/);
 });
+
+test('gameplay notices are arena-centered and fade across exactly five seconds',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ const final=css.slice(css.lastIndexOf('GAMEPLAY NOTICES V9'));
+ assert.match(game,/classList\.add\('gameplay-notice-5s'\)/);
+ assert.match(game,/\},5000\);/);
+ assert.match(final,/body\.game-active #bossAlert\.boss-alert\{[\s\S]*left:50%!important;[\s\S]*top:14px!important/);
+ assert.match(final,/@keyframes gameplayNoticeFiveSeconds/);
+ assert.match(final,/100%\{opacity:0/);
+});
+test('legacy progression danger notifications are retired on desktop and mobile',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ const fn=game.slice(game.indexOf("function showAbyssalAlert"),game.indexOf("const gameplayNoticeQueue"));
+ assert.match(fn,/return;/);
+ assert.match(css,/#abyssalDangerAlert\{display:none!important\}/);
+});
