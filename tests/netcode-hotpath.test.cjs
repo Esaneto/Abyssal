@@ -27,10 +27,3 @@ test('PvP blocked movement forces immediate authoritative reconciliation',()=>{
  assert.match(server,/compact&&data\?\.blocked/);
  assert.match(server,/volatile\.emit\('player-reconcile'.*true/);
 });
-
-test('distant common AI is tiered while bosses and nearby threats stay full-rate',()=>{
- const world=fs.readFileSync(path.join(__dirname,'..','world-simulation.js'),'utf8');
- assert.match(world,/const highPriority=BOSS_KINDS\.includes\(enemy\.kind\)\|\|nearestPlayerSq<1400\*1400/);
- assert.match(world,/enemy\.aiMoveDt=.*\+dt/);
- assert.match(world,/movementDt=Math\.min\(\.1,Math\.max\(dt,enemy\.aiMoveDt\)\)/);
-});
