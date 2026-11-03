@@ -407,7 +407,7 @@ function startPositionHeartbeat(){
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   if(!latestPositionPayload)return;
-  const now=performance.now();if(now-lastPositionAt<1000/60-1)return;
+  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';if(now-lastPositionAt<(isPvp?1000/60:80))return;
   const payload={...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()};
   lastPositionAt=now;positionPacketsSent++;positionPacketInFlight=false;
   socket.volatile.emit('player-position',payload,(result)=>{
