@@ -1025,7 +1025,23 @@ socket.on('global-chat-send',(payload={})=>{
  });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });
- socket.on('save-cosmetics', payload => { const u = users[socket.data.userKey]; if (!u || !payload) return; const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']); u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])]; if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin; saveUsers(); socket.emit('account-data', publicUser(u)); });
+ socket.on('save-cosmetics', payload => {
+  const u = users[socket.data.userKey];
+  if (!u || !payload) return;
+  const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
+  u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])];
+  // A conclusão dos ciclos finais concede a Serpente Esmeralda à conta.
+  // O cliente envia esta confirmação ao concluir a conquista; a skin é registrada
+  // no perfil antes de aceitar uma solicitação para equipá-la.
+  if (payload.conqueror === true) {
+   if (!u.ownedSkins.includes('greensnake')) u.ownedSkins.push('greensnake');
+   u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};
+   u.titleStats.conqueror = true;
+  }
+  if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;
+  saveUsers();
+  socket.emit('account-data', publicUser(u));
+ });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
   const stripeOnlySkins = new Set(['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
@@ -1047,6 +1063,7 @@ socket.on('global-chat-send',(payload={})=>{
   }
   u.redeemedCodes ||= [];
   if(code==='vi-o-nascimento-abyssal'){
+    if(u.redeemedCodes.includes(code))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
     u.coins=(Number(u.coins)||0)+60000;
     u.ownedSkins ||= ['default'];
     if(!u.ownedSkins.includes('electriceel')) u.ownedSkins.push('electriceel');
