@@ -2051,13 +2051,16 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 
    // Faíscas e arcos de eletricidade crepitando pelo corpo da enguia
    for(let k=0; k<4; k++){
-     const sparkX = (-1.4 + k * 0.65) * r + rand(-3, 3);
-     const sparkY = Math.sin(t*0.007 + k*1.5) * 0.15 * r + rand(-6, 6);
+     // Deterministic electric arcs: time-driven animation avoids per-frame random jitter.
+     const phase=t*0.007+k*1.73;
+     const sparkX=(-1.4+k*0.65)*r+Math.sin(phase*1.31)*3;
+     const sparkY=Math.sin(phase)*0.15*r+Math.cos(phase*1.91)*4;
+     const bendX=Math.sin(phase*2.17)*7,bendY=Math.cos(phase*1.67)*8;
      stroke(()=>{
-       c.moveTo(sparkX, sparkY);
-       c.lineTo(sparkX + rand(-8, 8), sparkY + rand(-10, 10));
-       c.lineTo(sparkX + rand(-14, 14), sparkY + rand(-6, 6));
-     }, 1.6, '#ffffff', 14);
+       c.moveTo(sparkX,sparkY);
+       c.lineTo(sparkX+bendX,sparkY+bendY);
+       c.lineTo(sparkX+Math.sin(phase*2.83)*12,sparkY+Math.cos(phase*2.41)*6);
+     },1.6,'#ffffff',14);
    }
    fill(()=>{ c.arc(0.7*r, -0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
    fill(()=>{ c.arc(0.7*r, 0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
