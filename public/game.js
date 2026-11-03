@@ -2048,7 +2048,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(.28*r,-.18*r);c.lineTo(.6*r,-.28*r);c.lineTo(1.1*r,-.27*r);c.lineTo(1.12*r,-.08*r);c.lineTo(.96*r,0);c.lineTo(1.12*r,.08*r);c.lineTo(1.1*r,.27*r);c.lineTo(.6*r,.28*r);c.lineTo(.28*r,.17*r);c.closePath()},bodyGrad(color),'rgba(226,251,255,.85)',Math.max(1,r*.04),10);
    eye(.82,-.22,r*.06,'#e8ffff');eye(.82,.22,r*.06,'#e8ffff');gills(-.36,-.18,4);
   } else if(id==='abysscroc'){
-   // Jacaré-açu: focinho curto e muito largo em U, olhos/narinas no topo,
+   // Black caiman / Jacaré-açu: focinho curto e muito largo em U, olhos/narinas no topo,
    // corpo negro robusto, osteodermos baixos e cauda lateralmente comprimida.
    const swim=Math.sin(t*.0038)*.035,tailWave=Math.sin(t*.0048)*.12;
    fill(()=>{c.moveTo(-.62*r,-.2*r);c.bezierCurveTo(-1.08*r,-.25*r,-1.65*r,(-.2+tailWave)*r,-2.22*r,tailWave*r);c.bezierCurveTo(-1.64*r,(.22+tailWave)*r,-1.02*r,.29*r,-.58*r,.23*r);c.closePath()},bodyGrad('#182a22'),'rgba(106,139,104,.68)',Math.max(1,r*.035),5);
@@ -2063,7 +2063,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    // Four short limbs remain tucked alongside the body in a swimming posture.
    for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.45+leg*.62)*r,ly=side*.27*r;c.save();c.strokeStyle='#23382b';c.lineWidth=Math.max(2,r*.08);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.08*r,side*.53*r);c.lineTo(lx+.13*r,side*.61*r);c.stroke();c.restore();}
   } else if(id==='armoredgator'){
-   // Crocodilo-do-nilo: focinho mais estreito em V, dentes inferiores visíveis,
+   // Nile crocodile / Crocodilo-do-nilo: focinho mais estreito em V, dentes inferiores visíveis,
    // cabeça comprida, escudos dorsais altos e cauda longa de natação.
    const tailWave=Math.sin(t*.0045)*.11;
    fill(()=>{c.moveTo(-.7*r,-.17*r);c.bezierCurveTo(-1.18*r,-.22*r,-1.72*r,(-.19+tailWave)*r,-2.32*r,tailWave*r);c.bezierCurveTo(-1.7*r,(.2+tailWave)*r,-1.15*r,.25*r,-.64*r,.2*r);c.closePath()},bodyGrad('#62583b'),'rgba(198,181,132,.66)',Math.max(1,r*.035),5);
