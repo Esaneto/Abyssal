@@ -4,6 +4,8 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 let mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
 let lowPowerRendering=false,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
+let adaptiveQualityLevel=2,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=1;
+const ADAPTIVE_QUALITY=[{name:'ECONOMIA',dpr:.72},{name:'EQUILIBRADO',dpr:.86},{name:'ALTO',dpr:1}];
 const $ = id => document.getElementById(id);
 const screens = ['menuScreen','upgradeScreen','pauseScreen','gameOverScreen'];
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
@@ -270,11 +272,11 @@ function resize(){
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
  const cores=Number(navigator.hardwareConcurrency)||4,memory=Number(navigator.deviceMemory)||0;
- lowPowerRendering=cores<=4||(memory>0&&memory<=4);
+ lowPowerRendering=cores<=4||(memory>0&&memory<=4);adaptiveQualityLevel=lowPowerRendering?0:2;adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
  // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
  // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
  const nativeDpr=Math.max(1,window.devicePixelRatio||1),mobileDprCap=lowPowerRendering?1.35:2;
- dpr=Math.min(nativeDpr,mobileViewport?mobileDprCap:1.65);
+ dpr=Math.min(nativeDpr*adaptiveDprScale,mobileViewport?mobileDprCap:1.65);
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
  W=4800;H=3000;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1;
@@ -2568,6 +2570,26 @@ function recordGameFrame(startedAt,endedAt,updateMs,drawMs){
  if(!gameFrameWindowStart)gameFrameWindowStart=endedAt;gameFrameWindowCount++;
  if(endedAt-gameFrameWindowStart>=1000){gameFrameFps=Math.round(gameFrameWindowCount*1000/(endedAt-gameFrameWindowStart));gameFrameWindowStart=endedAt;gameFrameWindowCount=0;}
 }
+function applyAdaptiveQuality(level,reason='runtime'){
+ const next=clamp(Math.round(level),0,2);if(next===adaptiveQualityLevel)return;
+ adaptiveQualityLevel=next;adaptiveDprScale=ADAPTIVE_QUALITY[next].dpr;lowPowerRendering=next===0;
+ // Rebuild only the framebuffer. World/gameplay coordinates are untouched.
+ const nativeDpr=Math.max(1,window.devicePixelRatio||1),baseCap=mobileViewport?(next===0?1.25:next===1?1.55:2):(next===0?1.15:next===1?1.4:1.65);
+ dpr=Math.min(nativeDpr*adaptiveDprScale,baseCap);
+ canvas.width=Math.max(1,Math.floor(viewW*dpr));canvas.height=Math.max(1,Math.floor(viewH*dpr));canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
+ backgroundGradientCache=null;backgroundBloomCache=null;
+ window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
+}
+function updateAdaptivePerformance(now){
+ if(gameState!=='playing'||now-adaptiveQualityLastCheck<2500||gameFrameFps<=0)return;
+ adaptiveQualityLastCheck=now;
+ const fps=gameFrameFps,p95=(()=>{const a=[];for(let i=0;i<gameFrameSampleCount;i++)a.push(gameFrameSamples[i]);a.sort((x,y)=>x-y);return a.length?a[Math.min(a.length-1,Math.ceil(a.length*.95)-1)]:0})();
+ const bad=fps<48||p95>23,good=fps>=57&&p95<18;
+ if(bad){adaptiveQualityBadWindows++;adaptiveQualityGoodWindows=0}else if(good){adaptiveQualityGoodWindows++;adaptiveQualityBadWindows=0}else{adaptiveQualityBadWindows=Math.max(0,adaptiveQualityBadWindows-1);adaptiveQualityGoodWindows=0}
+ if(adaptiveQualityBadWindows>=2&&adaptiveQualityLevel>0){adaptiveQualityBadWindows=0;applyAdaptiveQuality(adaptiveQualityLevel-1,'sustained-frame-pressure')}
+ else if(adaptiveQualityGoodWindows>=8&&adaptiveQualityLevel<2){adaptiveQualityGoodWindows=0;applyAdaptiveQuality(adaptiveQualityLevel+1,'sustained-headroom')}
+}
+window.AbyssalAdaptivePerformance={snapshot:()=>({level:adaptiveQualityLevel,name:ADAPTIVE_QUALITY[adaptiveQualityLevel].name,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>applyAdaptiveQuality(level,'manual-diagnostic')};
 function getAbyssalPerformanceSnapshot(){
  const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
  const p95=samples.length?samples[Math.min(samples.length-1,Math.ceil(samples.length*.95)-1)]:0;
@@ -2586,7 +2608,7 @@ function loop(t){
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
   if(active){const updateStarted=performance.now();update(dt);updateAbyssalMusic();updateMs=performance.now()-updateStarted;}
-  const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);
+  const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);updateAdaptivePerformance(frameEnded);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  requestAnimationFrame(loop);
 }
