@@ -280,3 +280,20 @@ test('mobile end dive and room badge are dynamically stacked below selected skil
  assert.match(game,/panelRect\.bottom/);
  assert.match(game,/requestAnimationFrame\(positionMobileRightStack\)/);
 });
+
+test('hit synergies apply to projectile, photon beam and direct-hit geometries',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/function triggerHitSynergies\(/);
+ assert.match(game,/triggerHitSynergies\(enemy,appliedDamage,skillId,options\)/);
+ assert.match(game,/source!=='ricochet'/);
+ assert.match(game,/source!=='electric'&&source!=='arcChain'/);
+ assert.match(game,/ricochetLevel:upgrades\.ricochet,electricLevel:upgrades\.electric/);
+});
+test('PvP server applies hit synergies authoritatively and respects rock cover',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(server,/function applyPvpHitSynergies\(/);
+ assert.match(server,/p\.ricochetLevel = clamp/);
+ assert.match(server,/p\.electricLevel = clamp/);
+ assert.match(server,/applyPvpHitSynergies\(room,shooter,targetHit,rawDamage/);
+ assert.match(server,/pvpSegmentHitsRock\(from\.x,from\.y,p\.x,p\.y/);
+});
