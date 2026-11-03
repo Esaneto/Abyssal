@@ -338,11 +338,11 @@ $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput')
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
 function setAuthFlowMessage(id,message,isError=false){const el=$(id);if(!el)return;el.textContent=message;el.classList.toggle('is-error',Boolean(isError));}
 function closePasswordRecovery(){ $('passwordRecoveryScreen').hidden=true; $('recoveryMessage').textContent=''; }
-const AGE_TERMS_VERSION='2026-11-03-v1';
+const AGE_TERMS_VERSION='2026-11-03-v2';
 function ageProfile(){
  try{return JSON.parse(localStorage.getItem('abyssalAgeProfile')||'null')}catch(_){return null}
 }
-function hasAgeTermsProfile(){const p=ageProfile();return Boolean(p&&p.termsVersion===AGE_TERMS_VERSION&&['child','teen','adult'].includes(p.band));}
+function hasAgeTermsProfile(){const p=ageProfile();return Boolean(p&&p.termsVersion===AGE_TERMS_VERSION&&['under16','teen','adult'].includes(p.band));}
 function calculateAge(year,month,day){
  const now=new Date(),birth=new Date(year,month-1,day);
  if(birth.getFullYear()!==year||birth.getMonth()!==month-1||birth.getDate()!==day||birth>now)return null;
@@ -352,10 +352,9 @@ function calculateAge(year,month,day){
  return age>=0&&age<=125?age:null;
 }
 function applyAgeTreatment(){
- const p=ageProfile(),restricted=!p||p.band!=='adult';
+ const p=ageProfile(),restricted=!p||p.band==='under16';
  window.AbyssalAgeBand=p?.band||'unknown';
  window.AbyssalRestrictedAgeTreatment=restricted;
- try{window.adConfig?.({childDirectedTreatment:restricted?1:0,underAgeOfConsent:restricted?1:0});}catch(_){}
  const chat=$('globalChatPanel');if(chat)chat.hidden=restricted;
 }
 function openAgeTermsIfNeeded(){
@@ -368,12 +367,15 @@ $('ageTermsContinue')?.addEventListener('click',()=>{
  const age=calculateAge(year,month,day);
  if(age===null){if(message)message.textContent='Informe uma data de nascimento válida.';return}
  if(!$('ageTermsAccept')?.checked){if(message)message.textContent='Para continuar, leia e aceite os Termos de Uso e confirme a leitura da Política de Privacidade.';return}
- const band=age<13?'child':age<18?'teen':'adult';
+ const band=age<16?'under16':age<18?'teen':'adult';
  localStorage.setItem('abyssalAgeProfile',JSON.stringify({band,termsVersion:AGE_TERMS_VERSION,acceptedAt:new Date().toISOString()}));
+ window.google_tag_for_age_treatment=band==='teen'?2:band==='under16'?1:0;
+ window.loadAbyssalAds?.();
  if(message)message.textContent='';
  $('ageTermsScreen').hidden=true;applyAgeTreatment();
 });
 applyAgeTreatment();
+const _ageStartup=ageProfile();if(hasAgeTermsProfile()){window.google_tag_for_age_treatment=_ageStartup?.band==='teen'?2:_ageStartup?.band==='under16'?1:0;window.loadAbyssalAds?.();}
 queueMicrotask(openAgeTermsIfNeeded);
 
 $('supportBtn')?.addEventListener('click',()=>{$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});
