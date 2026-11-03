@@ -4,3 +4,10 @@ data/
 .env.*
 !.env.example
 .DS_Store
+
+# Android / Capacitor build outputs
+android/.gradle/
+android/app/build/
+android/build/
+*.jks
+*.keystore

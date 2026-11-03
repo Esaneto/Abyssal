@@ -18,7 +18,9 @@ const { screenChatMessage } = require('./chat-safety');
 const { registerChatModerationRoutes } = require('./chat-moderation');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
 const allowedSocketOrigins = new Set(String(process.env.APP_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean));
+for(const origin of NATIVE_APP_ORIGINS)allowedSocketOrigins.add(origin);
 function socketOriginAllowed(origin, request) {
  if (!origin) return true; // Native clients and same-machine integration tests.
  if (allowedSocketOrigins.has(origin)) return true;
@@ -27,6 +29,17 @@ function socketOriginAllowed(origin, request) {
 }
 
 const app = express();
+app.use((request,response,next)=>{
+ const origin=String(request.headers.origin||'');
+ if(NATIVE_APP_ORIGINS.has(origin)){
+  response.setHeader('Access-Control-Allow-Origin',origin);
+  response.setHeader('Vary','Origin');
+  response.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');
+  response.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
+  if(request.method==='OPTIONS')return response.sendStatus(204);
+ }
+ next();
+});
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
