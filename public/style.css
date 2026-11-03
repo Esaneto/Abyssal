@@ -2698,3 +2698,12 @@ body.mobile-game-active #activeAbilities .active-ability {
  body.game-active:not(.mobile-game-active) #runEnergyRanking{width:150px!important}
  body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{width:170px!important}
 }
+
+
+/* Gameplay overlays must never leak into menu/modal states. */
+.gameplay-overlay-root{display:none!important}
+body.game-active .gameplay-overlay-root{display:block!important}
+body:not(.game-active) #selectedSkillsPanel,
+body:not(.game-active) #runEnergyRanking,
+body:not(.game-active) #activeAbilities,
+body:not(.game-active) #skillDescriptionTooltip{display:none!important}
