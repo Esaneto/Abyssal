@@ -1433,6 +1433,7 @@ function update(dt){
 
    if(equippedSkin==='violet'&&player.violetCooldown<=0){
     player.violetCooldown=10;
+    if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'violet',x:player.x/W,y:player.y/H,angle:player.angle});
     const pulseTargets=enemies.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(v=>v.d<=230/GAME_WORLD_ZOOM).sort((a,b)=>a.d-b.d).slice(0,4);
     burst(player.x,player.y,'#bd91ff',28,155);effects.push({type:'beam',x1:player.x-34/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+34/GAME_WORLD_ZOOM,y2:player.y,life:.24,maxLife:.24,color:'#d9b7ff'});
     for(const target of pulseTargets){dealEnemyDamage(target.e,22,'violet-resonance',{visual:true});burst(target.e.x,target.e.y,'#d7b7ff',7,75);}
@@ -1502,14 +1503,14 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     }
    }
    // O Tubarão-branco mantém apenas o rastro gerado ao se movimentar; não transmite mais o jato frontal.
-   if(onlineMode && equippedSkin!=='reefshark' && window.AbyssalOnline?.sendSkinAbility){
+   if(onlineMode && window.AbyssalOnline?.sendSkinAbility){
      window.AbyssalOnline.sendSkinAbility({skin: equippedSkin, x: player.x/W, y: player.y/H, angle: player.angle});
    }
   }
  }
  if(equippedSkin==='kraken'){
   player.krakenSweepTimer=(Number(player.krakenSweepTimer)||0)-dt;
-  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/GAME_WORLD_ZOOM;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#8b5cf6'});burst(target.x,target.y,'#8b5cf6',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#8b5cf6'});playSkillSound('kraken-sweep','trigger');}}
+  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/GAME_WORLD_ZOOM;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#8b5cf6'});burst(target.x,target.y,'#8b5cf6',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#8b5cf6'});if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'kraken',x:player.x/W,y:player.y/H,angle:player.angle});playSkillSound('kraken-sweep','trigger');}}
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.nova>0){player.novaTimer=(player.novaTimer||0)-dt;if(player.novaTimer<=0){player.novaTimer=Math.max(4.5,9/upgrades.nova);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,18*upgrades.nova,'nova');burst(e.x,e.y,'#72f5ff',12,130)}}burst(player.x,player.y,'#72f5ff',85,300);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.75,maxLife:.75,color:'#72f5ff'});audio(500,.045,'sine',.008)}}
@@ -2684,7 +2685,18 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const angle=Number(d.angle)||0;
   const skin=String(d.skin||'');
   if(skin==='reefshark'||skin==='whiteShark'){
-    // Sem efeito frontal: o rastro visual é criado pelo movimento de cada jogador.
+    const reach=260/GAME_WORLD_ZOOM;
+    effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(angle)*reach,y2:py+Math.sin(angle)*reach,life:.32,maxLife:.32,color:'#8bd8ec'});
+    effects.push({type:'ring',x:px,y:py,r:0,max:72/GAME_WORLD_ZOOM,life:.32,maxLife:.32,color:'#8bd8ec'});
+    burst(px+Math.cos(angle)*reach*.65,py+Math.sin(angle)*reach*.65,'#8bd8ec',14,120);
+  } else if(skin==='violet'){
+    effects.push({type:'ring',x:px,y:py,r:0,max:230/GAME_WORLD_ZOOM,life:.5,maxLife:.5,color:'#bd91ff'});
+    effects.push({type:'beam',x1:px-34/GAME_WORLD_ZOOM,y1:py,x2:px+34/GAME_WORLD_ZOOM,y2:py,life:.24,maxLife:.24,color:'#d9b7ff'});
+    burst(px,py,'#bd91ff',24,145);
+  } else if(skin==='kraken'){
+    effects.push({type:'ring',x:px,y:py,r:0,max:280/GAME_WORLD_ZOOM,life:.45,maxLife:.45,color:'#8b5cf6'});
+    for(let i=0;i<8;i++){const a=i*Math.PI/4+angle;effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(a)*280/GAME_WORLD_ZOOM,y2:py+Math.sin(a)*280/GAME_WORLD_ZOOM,life:.28,maxLife:.28,color:'#8b5cf6'});}
+    burst(px,py,'#8b5cf6',20,150);
   } else if(skin==='armoredgator'){
     effects.push({type:'ring',x:px,y:py,r:0,max:190/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#c5a66e'});
     burst(px,py,'#c5a66e',28,175);
