@@ -537,6 +537,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const w=room.world,normalizedId=Number(id),idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');
  const enemy=w.enemies[idx],now=Date.now();
  let requestedDamage=damage;
+ if(skillId==='nova'){
+  if(!player)return reject('nova-no-player');
+  const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
+  if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
+  player.novaDamageTargetIds ||= new Set();if(player.novaDamageTargetIds.has(normalizedId))return reject('nova-duplicate-target');player.novaDamageTargetIds.add(normalizedId);
+  requestedDamage=Math.min(requestedDamage,16*Math.max(1,Number(player.powerMultiplier)||1));
+ }
  if(skillId==='violet-resonance'){
   if(!player||player.skinId!=='violet')return reject('skin-ability-not-owned');
   const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
@@ -1188,6 +1195,27 @@ socket.on('global-chat-send',(payload={})=>{
    delivered++;
   }
   if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
+ });
+ socket.on('active-ability',payload=>{
+  const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
+  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return;
+  const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return;player.pulseReadyAt=now+14000;
+  const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
+  if(room.mode==='pvp'){
+   for(const target of room.players.values()){
+    if(target.id===socket.id||target.alive===false||Math.hypot(target.x-player.x,target.y-player.y)>=radius)continue;
+    if(pvpSegmentHitsRock(player.x,player.y,target.x,target.y,2/WORLD_ZOOM))continue;
+    const damage=pvpDamageAmount(player,target,Math.min(24,baseDamage),Math.hypot(target.x-player.x,target.y-player.y));let blocked=false;
+    if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
+    else if(now>=(Number(target.invulnerableUntil)||0)){target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=now;target.invulnerableUntil=now+180;triggerPvpAberrationEcho(room,target,player,now);if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
+    io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,skillId:'pulse',serverTime:now}));
+    io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:damage,skillId:'pulse',blocked});
+   }
+   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+  }else{
+   const targets=room.world.enemies.filter(enemy=>Math.hypot(enemy.x-player.x,enemy.y-player.y)<radius).slice(0,96);
+   for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse');
+  }
  });
  socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-damage-batch',(payload={},acknowledge)=>{
