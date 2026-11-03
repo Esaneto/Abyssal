@@ -266,6 +266,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
+const PVP_ROOM_ID = 'MAR-VERMELHO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
@@ -275,13 +276,14 @@ function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={
  return {id,name,mode:mode==='pvp'?'pvp':'coop',isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
+rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
 function channelFor(room){return `abyss-room:${room.id}`;}
 function publicRoomInfo(room){
  const bossCount=room.world.enemies.filter(e=>isBossKind(e.kind)).length;
  return {id:room.id,code:room.id,name:room.name,mode:room.mode==='pvp'?'pvp':'coop',isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
 }
-function sortRoomInfos(list){return list.sort((a,b)=>{if(a.id===DEFAULT_ROOM_ID)return -1;if(b.id===DEFAULT_ROOM_ID)return 1;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
+function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===DEFAULT_ROOM_ID?0:id===PVP_ROOM_ID?1:2;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
 function roomList(){return sortRoomInfos([...rooms.values()].map(publicRoomInfo));}
 async function roomListForClients(){
  const merged=new Map();
@@ -293,7 +295,8 @@ async function roomListForClients(){
  }
  // Live in-process rooms contain the authoritative player count and are always joinable by this process.
  for(const room of rooms.values())if(!deletingRoomIds.has(room.id))merged.set(room.id,publicRoomInfo(room));
- if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(PVP_ROOM_ID))merged.set(PVP_ROOM_ID,{id:PVP_ROOM_ID,code:PVP_ROOM_ID,name:'Mar Vermelho',mode:'pvp',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  return sortRoomInfos([...merged.values()]);
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
@@ -418,7 +421,7 @@ function clearRoomWorld(room){
  room.world=WorldSimulation.createWorldState(Date.now());
 }
 function scheduleUnjoinedRoomExpiry(room,delay=30000){
- if(!room||room.id===DEFAULT_ROOM_ID)return;
+ if(!room||room.id===DEFAULT_ROOM_ID||room.id===PVP_ROOM_ID)return;
  if(room.emptyRoomTimer)clearTimeout(room.emptyRoomTimer);
  room.emptyRoomTimer=setTimeout(()=>{
   room.emptyRoomTimer=null;
@@ -459,7 +462,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
   // Empty arenas must stop simulating immediately and release all enemy/particle-like state.
   clearRoomWorld(room);
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
-  if(roomId!==DEFAULT_ROOM_ID){
+  if(roomId!==DEFAULT_ROOM_ID&&roomId!==PVP_ROOM_ID){
    rooms.delete(roomId);deletingRoomIds.add(roomId);pendingRoomDeletion.add(roomId);
    deleteRoomRow(roomId).then(()=>broadcastRooms()).catch(err=>console.error('[rooms] limpeza da sala vazia:',err.message));
   }
