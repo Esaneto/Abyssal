@@ -941,7 +941,7 @@ function renderSelectedSkills(){
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
  selectedSkillsRenderedSignature=signature;panel.dataset.skillsSignature=signature;
  panel.innerHTML=selected.length?selected.map(([id,rank])=>{const skill=upgradeList.find(item=>item.id===id)||COMBO_SKILLS[id];return skill?'<button type="button" class="selected-skill-row" data-skill-id="'+skill.id+'" aria-label="Ver descrição: '+skill.name+'"><span>'+skill.icon+'</span><span class="selected-skill-name">'+skill.name+'</span><strong>NV '+rank+'</strong></button>':''}).join(''):'<p class="selected-skills-empty">Nenhuma habilidade adquirida</p>';
-}
+ requestAnimationFrame(positionMobileRightStack);}
 function showSkillDescription(id,target){
  const skill=upgradeList.find(item=>item.id===String(id||''))||COMBO_SKILLS[String(id||'')],tooltip=$('skillDescriptionTooltip');if(!skill||!tooltip)return;
  tooltip.replaceChildren();const title=document.createElement('strong'),description=document.createElement('span');title.textContent=skill.name;description.textContent=skill.desc;tooltip.append(title,description);tooltip.hidden=false;
@@ -955,6 +955,14 @@ function showSkillDescription(id,target){
  if(top+box.height>window.innerHeight-margin&&rect)top=rect.top-box.height-gap;
  top=Math.max(margin,Math.min(maxTop,top));
  tooltip.style.left=left+'px';tooltip.style.top=top+'px';
+}
+function positionMobileRightStack(){
+ if(!document.body.classList.contains('mobile-game-active'))return;
+ const panel=$('selectedSkillsPanel'),end=$('endDiveBtn'),room=$('roomBadge');if(!panel)return;
+ const shell=$('gameShell'),shellRect=shell?.getBoundingClientRect?.(),panelRect=panel.getBoundingClientRect(),gap=8;
+ const top=Math.max(0,panelRect.bottom-(shellRect?.top||0)+gap);
+ if(end){end.style.top=top+'px';end.style.right='var(--game-safe-right)';}
+ if(room){const endHeight=end&&getComputedStyle(end).display!=='none'?end.getBoundingClientRect().height:0;room.style.top=(top+endHeight+gap)+'px';room.style.right='var(--game-safe-right)';}
 }
 function hideSkillDescription(){const tooltip=$('skillDescriptionTooltip');if(tooltip)tooltip.hidden=true;}
 const selectedSkillPanel=$('selectedSkillsList');
@@ -2603,7 +2611,7 @@ $('soundBtn').addEventListener('click',()=>{
   if(!ambientNodes)startAmbientMusic();
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
-window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))setMobileGameActive(true);else resize()});
+window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}else resize()});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
  if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM;if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x,y,r:0,max,life:.7,maxLife:.7,color:col});else{effects.push({type:'ring',x,y,r:0,max,life:.55,maxLife:.55,color:col});burst(x,y,col,22,180);}return;}
