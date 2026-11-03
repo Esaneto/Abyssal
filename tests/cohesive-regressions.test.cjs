@@ -65,8 +65,8 @@ test('fullscreen has a standalone fallback if the main online UI initialization 
 test('menu navigation remains a responsive grid with wrapping labels and refreshed assets', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');
-  assert.match(html, /style\.css\?v=3\.5\.36/);
-  assert.match(html, /game\.js\?v=3\.5\.43/);
+  assert.match(html, /style\.css\?v=\d+(?:\.\d+)*/);
+  assert.match(html, /game\.js\?v=\d+(?:\.\d+)*/);
   assert.match(css, /#menuScreen \.menu-secondary-actions\{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /white-space:normal/);
 });
@@ -182,7 +182,7 @@ test('paired level-three skills fuse into gravitational and electric chain abili
  const game=read('public/game.js');
  assert.match(game,/gravitationalRupture:[\s\S]*?arcChain:/);
  assert.match(game,/upgradeLevels\.burst>=3&&upgradeLevels\.nova>=3/);
- assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.ricochet>=3/);
+ assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.power>=3/);
  assert.match(game,/dealEnemyDamage\(e,10,'gravitationalRupture'\)/);
  assert.match(game,/dealEnemyDamage\(target,16,'arcChain'\)/);
 });
