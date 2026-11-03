@@ -270,11 +270,10 @@ function createDecor(){
 function projectileHitsPvpWall(x1,y1,x2,y2,padding=0){
  const dx=x2-x1,dy=y2-y1;
  for(const rock of arenaRocks){
-  const rx=(rock.rx||rock.r)+padding,ry=(rock.ry||rock.r)+padding;
-  const steps=Math.max(1,Math.min(5,Math.ceil(Math.hypot(dx,dy)/8)));
+  const a=-(rock.angle||0),rx=(rock.rx||rock.r)+padding,ry=(rock.ry||rock.r)+padding,steps=Math.max(1,Math.min(8,Math.ceil(Math.hypot(dx,dy)/8)));
   for(let i=0;i<=steps;i++){
-   const t=i/steps,qx=(x1+dx*t-rock.x)/Math.max(1,rx),qy=(y1+dy*t-rock.y)/Math.max(1,ry);
-   if(qx*qx+qy*qy<1)return true;
+   const t=i/steps,ox=x1+dx*t-rock.x,oy=y1+dy*t-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a);
+   if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return true;
   }
  }
  return false;
@@ -1465,7 +1464,7 @@ function update(dt){
    else if(!isMobileDevice()&&controlSettings.pc==='classic'&&(autoFollowCursor||pointer.down)){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
    if(!isMobileDevice()&&controlSettings.pc==='wasd-aim'){controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;}
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil);const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1);const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){const rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,dx=(nextX-rock.x)/Math.max(1,rx),dy=(nextY-rock.y)/Math.max(1,ry);if(dx*dx+dy*dy<1){const d=Math.hypot(dx,dy)||1;nextX=rock.x+(dx/d)*rx;nextY=rock.y+(dy/d)*ry;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
+   const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil);const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1);const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
    if (['reefshark', 'whiteShark'].includes(equippedSkin) && (mx || my)) {
      if (Math.random() < 0.45) {
@@ -2222,7 +2221,27 @@ function drawArenaTerrain(t){
  // The central abyssal cave is a fixed landmark in the map, not an effect attached to the player.
  const caveX=W*.5,caveY=H*.5;for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(caveX,caveY,(88+i*25)/worldZoom,(52+i*17)/worldZoom,Math.sin(t*.00015+i)*.035,0,Math.PI*2);ctx.strokeStyle=`rgba(98,207,218,${.12-i*.017})`;ctx.lineWidth=1.5/worldZoom;ctx.stroke();}
  const left=cameraX-70/worldZoom,right=cameraX+viewW/worldZoom+70/worldZoom,top=cameraY-70/worldZoom,bottom=cameraY+viewH/worldZoom+70/worldZoom;
- for(const rock of arenaRocks){if(rock.x<left||rock.x>right||rock.y<top||rock.y>bottom)continue;ctx.save();ctx.translate(rock.x,rock.y);ctx.beginPath();rock.vertices.forEach(([vx,vy],i)=>{const x=vx*(rock.shade>.5?1.14:1),y=vy*(rock.shade>.5?.9:1.12);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});ctx.closePath();ctx.fillStyle=rock.shade>.5?'#183543':'#0b202d';ctx.strokeStyle='rgba(102,181,193,.36)';ctx.lineWidth=1.6/worldZoom;ctx.shadowBlur=lowPowerRendering?0:4/worldZoom;ctx.shadowColor='rgba(35,145,162,.16)';ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(-rock.r*.25,-rock.r*.15);ctx.lineTo(-rock.r*.04,-rock.r*.42);ctx.lineTo(rock.r*.18,-rock.r*.09);ctx.strokeStyle='rgba(141,224,229,.22)';ctx.lineWidth=1/worldZoom;ctx.stroke();ctx.restore();}
+ for(const rock of arenaRocks){
+  const reach=rock.r+35/worldZoom;if(rock.x<left-reach||rock.x>right+reach||rock.y<top-reach||rock.y>bottom+reach)continue;
+  ctx.save();ctx.translate(rock.x,rock.y);ctx.rotate(rock.angle||0);ctx.lineJoin='round';
+  // Dark contact shadow gives the reef a raised, heavy silhouette.
+  ctx.beginPath();rock.vertices.forEach(([vx,vy],i)=>{if(i===0)ctx.moveTo(vx+5/worldZoom,vy+7/worldZoom);else ctx.lineTo(vx+5/worldZoom,vy+7/worldZoom)});ctx.closePath();ctx.fillStyle='rgba(0,5,12,.38)';ctx.fill();
+  const palette=rock.shade>.68?['#263e49','#172e3b','#0d202d']:rock.shade>.34?['#304854','#1a303d','#0c202b']:['#253b48','#142a38','#091b28'];
+  ctx.beginPath();rock.vertices.forEach(([vx,vy],i)=>{if(i===0)ctx.moveTo(vx,vy);else ctx.lineTo(vx,vy)});ctx.closePath();
+  ctx.fillStyle=palette[1];ctx.strokeStyle='rgba(104,151,164,.48)';ctx.lineWidth=2/worldZoom;ctx.shadowBlur=lowPowerRendering?0:6/worldZoom;ctx.shadowColor='rgba(9,31,43,.42)';ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  // Uneven eroded shelf on the upper side, plus broken mineral seams.
+  ctx.beginPath();ctx.moveTo(rock.vertices[0][0]*.72,rock.vertices[0][1]*.55);
+  for(let i=1;i<Math.min(5,rock.vertices.length);i++)ctx.lineTo(rock.vertices[i][0]*.78,rock.vertices[i][1]*.72);
+  ctx.strokeStyle='rgba(119,170,180,.32)';ctx.lineWidth=2.2/worldZoom;ctx.stroke();
+  for(let k=0;k<2;k++){
+   const seed=(rock.seed||0)+k*7,px=(Math.sin(seed*12.3)*.34)*rock.rx,py=(Math.cos(seed*8.7)*.25)*rock.ry;
+   ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+Math.sin(seed)*rock.rx*.11,py+rock.ry*.18);ctx.lineTo(px+Math.cos(seed*2)*rock.rx*.22,py+rock.ry*.24);
+   ctx.strokeStyle=k?'rgba(2,12,20,.58)':'rgba(123,166,174,.2)';ctx.lineWidth=(k?1.5:1)/worldZoom;ctx.stroke();
+  }
+  // Tiny muted algae / sponge patches, kept subtle so silhouettes stay readable.
+  if(!lowPowerRendering&&rock.shade>.72){ctx.fillStyle='rgba(45,103,91,.42)';ctx.beginPath();ctx.ellipse(-rock.rx*.12,-rock.ry*.08,Math.max(3,rock.rx*.12),Math.max(2,rock.ry*.18),-.25,0,Math.PI*2);ctx.fill();}
+  ctx.restore();
+ }
  ctx.strokeStyle='rgba(108,215,222,.32)';ctx.lineWidth=2/worldZoom;ctx.setLineDash([9/worldZoom,13/worldZoom]);ctx.strokeRect(18/worldZoom,18/worldZoom,W-36/worldZoom,H-36/worldZoom);ctx.setLineDash([]);
  ctx.restore();
 }
