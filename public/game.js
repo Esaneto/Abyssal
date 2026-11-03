@@ -2681,8 +2681,12 @@ $('onlineBtn').addEventListener('click',()=>{startAmbientMusic();onlineMode=true
 window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePendingStart){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;onlineMode=true;window.AbyssalOnline?.showRooms()}});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const d=ev.detail||{};
-  const px=(Number(d.x)||0)*W, py=(Number(d.y)||0)*H;
-  const angle=Number(d.angle)||0;
+  // Use a posição autoritativa do jogador remoto quando disponível; evita diferenças de escala entre mapas/clientes.
+  const remotePlayers=window.AbyssalOnline?.getPlayers?.()||[];
+  const source=remotePlayers.find(p=>String(p.id||'')===String(d.fromId||'')||String(p.nickname||'')===String(d.from||''));
+  const px=source&&Number.isFinite(Number(source.x))?Number(source.x):(Number(d.x)||0)*W;
+  const py=source&&Number.isFinite(Number(source.y))?Number(source.y):(Number(d.y)||0)*H;
+  const angle=source&&Number.isFinite(Number(source.angle))?Number(source.angle):(Number(d.angle)||0);
   const skin=String(d.skin||'');
   if(skin==='reefshark'||skin==='whiteShark'){
     const reach=260/GAME_WORLD_ZOOM;
