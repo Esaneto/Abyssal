@@ -162,3 +162,33 @@ test('passive and defensive skills expose readable gameplay feedback',()=>{
  const game=read('public/game.js');
  for(const token of ["type:'regen-pulse'","type:'ward-collapse'","type:'ricochet-arc'","upgrades.lastStand>0&&hp/maxHp<=.3","if(upgrades.predator>0)","if(upgrades.shell>0)","if(upgradeLevels.magnet>0)"]) assert.ok(game.includes(token),token);
 });
+
+
+test('crocodilian skins preserve real-world silhouette differences',()=>{
+ const game=read('public/game.js');
+ const caiman=game.slice(game.indexOf("else if(id==='abysscroc'){"),game.indexOf("else if(id==='armoredgator'){"));
+ const croc=game.slice(game.indexOf("else if(id==='armoredgator'){"),game.indexOf("else if(id==='electriceel'){"));
+ assert.ok(caiman.includes('U-shaped skull'));
+ assert.ok(caiman.includes("bodyGrad('#182a22')"));
+ assert.ok(croc.includes('V-shaped rostrum'));
+ assert.ok(croc.includes('visible teeth'));
+});
+
+test('resonance adds one new tactical option to every category',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ for(const id of ['echoShot','pressureCocoon','closePressure']){assert.ok(game.includes(id),id);assert.ok(server.includes(id),id);}
+ assert.ok(game.includes("echoShot:{damage:[0,8,10,12]"));
+ assert.ok(game.includes("offsets=[-.045,.045]"));
+ assert.ok(game.includes("const cocoonInterval=[0,24,20,16]"));
+ assert.ok(game.includes("distance<=175/GAME_WORLD_ZOOM"));
+});
+
+test('resonance selector renders dedicated icon badges and abyss category styling',()=>{
+ const game=read('public/game.js'),css=read('public/style.css');
+ assert.ok(game.includes("badge.className='resonance-skill-icon'"));
+ assert.ok(game.includes("echoShot:['⋔','Eco de Maré']"));
+ assert.ok(game.includes("row.className='resonance-skill-option resonance-'+category"));
+ assert.ok(css.includes('.resonance-shots .resonance-skill-icon'));
+ assert.ok(css.includes('.resonance-defensive .resonance-skill-icon'));
+ assert.ok(css.includes('.resonance-passive .resonance-skill-icon'));
+});
