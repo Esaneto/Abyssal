@@ -251,3 +251,9 @@ test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
  assert.match(game,/edgeBlocked=projectileHitsPvpWall/);
  assert.match(game,/shellLevel:upgrades\.shell,lastStandLevel:upgrades\.lastStand/);
 });
+
+test('local PvP nova uses the same rock-occluded rings as remote nova',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/if\(isPvpMode\)\{effects\.push\(\{type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange/);
+ assert.match(game,/type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange\*\.72/);
+});
