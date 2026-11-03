@@ -495,7 +495,7 @@ function applyPlayerMotion(rows){
  }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
-function sendSkinAbility(data){if(socket?.connected)socket.emit('skin-ability',data);}
+function sendSkinAbility(data){if(!socket?.connected)return false;socket.emit('skin-ability',data,result=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');});return true;}
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
