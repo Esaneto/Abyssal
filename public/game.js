@@ -2055,7 +2055,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.ellipse(-.08*r,swim*r,.92*r,.39*r,0,0,Math.PI*2)},bodyGrad('#24382d'),'rgba(122,151,111,.72)',Math.max(1,r*.04),7);
    // Low paired scutes, closer to a caiman/alligator armored back than triangular fantasy spikes.
    for(let row=0;row<2;row++)for(let plate=0;plate<6;plate++){const px=(-.72+plate*.27)*r,py=(-.16+row*.3)*r;fill(()=>{c.roundRect(px-r*.09,py-r*.055,r*.18,r*.11,r*.035)},plate%2?'#314839':'#3b5140','rgba(151,167,126,.35)',Math.max(.5,r*.012),0);}
-   // Compact U-shaped skull with elevated eye ridges and terminal nostrils.
+   // Signature rounded head: compact U-shaped skull with elevated eye ridges and terminal nostrils.
    fill(()=>{c.moveTo(.38*r,-.31*r);c.quadraticCurveTo(.92*r,-.38*r,1.34*r,-.29*r);c.quadraticCurveTo(1.58*r,-.2*r,1.6*r,0);c.quadraticCurveTo(1.58*r,.2*r,1.34*r,.29*r);c.quadraticCurveTo(.9*r,.38*r,.38*r,.31*r);c.closePath()},bodyGrad('#2d4434'),'rgba(164,184,138,.75)',Math.max(1,r*.04),6);
    fill(()=>{c.moveTo(.48*r,.05*r);c.quadraticCurveTo(1.05*r,.14*r,1.56*r,.08*r);c.quadraticCurveTo(1.31*r,.3*r,.48*r,.25*r);c.closePath()},'#151d18','rgba(125,145,108,.42)',Math.max(.6,r*.015),1);
    for(const side of [-1,1]){fill(()=>c.ellipse(.62*r,side*.24*r,r*.14,r*.085,0,0,Math.PI*2),'#344b39','#1b2a21',Math.max(.6,r*.015),0);eye(.62,side*.25,r*.052,'#e0b35a');}
@@ -2075,7 +2075,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(.58*r,.02*r);c.lineTo(1.73*r,-.015*r);c.lineTo(1.62*r,.105*r);c.lineTo(.58*r,.14*r);c.closePath()},'#201c15','rgba(223,205,156,.4)',Math.max(.5,r*.012),1);
    for(const side of [-1,1])eye(.47,side*.205,r*.05,'#f0c766');
    for(const side of [-1,1])fill(()=>c.ellipse(1.58*r,side*.045*r,r*.025,r*.018,0,0,Math.PI*2),'#14120e',null,0,0);
-   // Crocodile signature: interlocking upper/lower teeth remain visible with mouth closed.
+   // Crocodile signature: visible teeth from both jaws remain interlocking with mouth closed.
    for(let tooth=0;tooth<9;tooth++){const tx=(.72+tooth*.105)*r,side=tooth%2?1:-1;fill(()=>{c.moveTo(tx,side*.025*r);c.lineTo(tx+.035*r,side*.12*r);c.lineTo(tx+.068*r,side*.028*r);c.closePath()},'#f4ebcf','rgba(73,65,46,.55)',Math.max(.4,r*.01),0);}
    for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.43+leg*.6)*r,ly=side*.24*r;c.save();c.strokeStyle='#6c6040';c.lineWidth=Math.max(2,r*.07);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.03*r,side*.49*r);c.lineTo(lx+.17*r,side*.58*r);c.stroke();c.restore();}
     } else if(id==='electriceel'){
