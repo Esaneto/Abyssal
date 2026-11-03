@@ -988,8 +988,8 @@ socket.on('global-chat-send',(payload={})=>{
   // On resume, don't allow contact hits until the browser's fresh world position arrives.
   if(!p.clientHidden){p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=Date.now()+180;}
  });
- socket.on('player-position', (payload, acknowledge) => {
-  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data)};
+ const handlePlayerPosition=(payload, acknowledge, compact=false)=>{
+  const ack=(data)=>{if(typeof acknowledge==='function')acknowledge(data);if(compact&&data?.blocked){const room=socketRoom(socket),p=room?.players.get(socket.id);if(p)io.to(socket.id).volatile.emit('player-reconcile',[Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true]);}};
   if(!socket.data.joined||!payload||typeof payload!=='object')return ack({ok:false,reason:'not-in-room'});
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p)return ack({ok:false,reason:'player-not-found'});
   // Once the server has declared a character dead, late/background heartbeat packets
@@ -1009,11 +1009,13 @@ socket.on('global-chat-send',(payload={})=>{
   else {p.velocityX=0;p.velocityY=0;}
   p.x=clamp(x,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(y,8/WORLD_ZOOM,WORLD_HEIGHT-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=receivedAt;p.positionResumeGraceUntil=0;if(typeof payload.clientHidden==='boolean')p.clientHidden=payload.clientHidden;if(p.clientHidden){p.velocityX=0;p.velocityY=0;}p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
-  p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.worldZoom=clamp(Number(payload.worldZoom)||WORLD_ZOOM,.35,1.2);
-  p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientEnemyCount)||0)));
-  p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
-  p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);p.clientMotionAt=Date.now();
-  const color=String(payload.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:'#bd91ff';
+  p.worldWidth=WORLD_WIDTH;p.worldHeight=WORLD_HEIGHT;p.clientMotionAt=Date.now();
+  if(!compact){
+   p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(payload.worldZoom)||p.worldZoom||WORLD_ZOOM,.35,1.2);
+   p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
+   p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);
+   const color=String(payload.color||p.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:(p.color||'#bd91ff');
+  }
   const account=users[socket.data.userKey],skinId=String(account?.equippedSkin||'default');
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
@@ -1024,7 +1026,22 @@ socket.on('global-chat-send',(payload={})=>{
    const motion=getRoomPlayerMotion(room);
    if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);
   }
-  ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
+  if(compact){
+   // Reconcile at 5 Hz, not every transform. Client movement remains immediate while
+   // authoritative rock/bounds corrections arrive often enough to stay visually tight.
+   if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',[p.lastPositionSeq,p.x,p.y,false]);}
+  }else ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
+ };
+ socket.on('player-position',(payload,acknowledge)=>handlePlayerPosition(payload,acknowledge,false));
+ socket.on('player-motion-input',row=>{
+  if(!Array.isArray(row)||row.length<4)return;
+  handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3]),clientSentAt:Number(row[4])||0},null,true);
+ });
+ socket.on('player-net-meta',meta=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!meta||typeof meta!=='object')return;
+  p.viewportWidth=windowWidthSafe(meta.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(meta.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(meta.worldZoom)||p.worldZoom||WORLD_ZOOM,.35,1.2);
+  p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientMovingEnemies)||0)));
+  p.clientPredicting=Boolean(meta.clientPredicting);p.clientGameState=String(meta.clientGameState||'unknown').slice(0,24);p.clientHidden=Boolean(meta.clientHidden);p.clientMotionAt=Date.now();
  });
  socket.on('player-build', payload => {
   const room = socketRoom(socket), p = room?.players.get(socket.id);
