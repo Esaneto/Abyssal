@@ -95,7 +95,7 @@ test('authoritative movement is lossy-but-fresh, while collision verification ke
 
 test('room traffic uses compact player motion, slower roster recovery and throttled orb snapshots',()=>{
   assert.match(server,/getRoomPlayerMotion\(room\)/);
-  assert.match(server,/io\.to\(channelFor\(room\)\)\.volatile\.emit\('player-motion',motion\)/);
+  assert.match(server,/volatile\\.emit\\('player-motion',NetCodec\\.playerMotion\\(motion\\)\\)/);
   assert.match(online,/socket\.on\('player-motion',rows=>applyPlayerMotion\(rows\)\)/);
   assert.match(online,/function applyPlayerMotion\(rows\)/);
   assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 30/);
