@@ -68,3 +68,14 @@ test('end dive return clears game-active state',()=>{
  const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
  assert.match(game,/const returnToMenu=\(result\)=>\{onlineMode=false;setMobileGameActive\(false\);document\.body\.classList\.remove\('game-active'\)/);
 });
+
+test('mobile camera pulls farther back than desktop fair-area baseline',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.match(game,/mobileViewport\?clamp\(fairZoom\*\.82,\.25,\.72\):clamp\(fairZoom,\.34,1\.12\)/);
+});
+test('mobile menu utilities do not use fixed positioning in final layout',()=>{
+ const final=css.slice(css.lastIndexOf('MOBILE V7'));
+ assert.match(final,/#menuScreen \.download-cta,#menuScreen \.controls-cta\{\s*position:static!important/);
+ assert.match(final,/@media \(max-width:700px\) and \(orientation:portrait\)/);
+ assert.match(final,/@media \(pointer:coarse\) and \(orientation:landscape\)/);
+});
