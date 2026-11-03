@@ -476,7 +476,7 @@ function initVolumeControls() {
     musicSlider.addEventListener('input',e=>{
       musicVolume=Number(e.target.value)/100;localStorage.setItem('abyssalMusicVolume',String(musicVolume));
       if(musicLabel)musicLabel.textContent=e.target.value+'%';
-      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.045*musicVolume;
+      if(ambientNodes?.master?.gain)ambientNodes.master.gain.value=.055*musicVolume;
       if(window.AbyssalMusicTrack)window.AbyssalMusicTrack.volume=musicVolume;
       window.AbyssalMusicVolume=musicVolume;
     });
@@ -532,15 +532,20 @@ function updateAbyssalMusic(){
  const interval=ambientNodes.intensity>.9?520:ambientNodes.intensity>.62?690:ambientNodes.intensity>.32?920:1320;
  if(performance.now()-ambientNodes.lastPulse>=interval){ambientNodes.lastPulse=performance.now();abyssalMusicPulse(ambientNodes.intensity);}
 }
-function startAmbientMusic(){if(!soundOn||ambientNodes)return;try{
- audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();
+async function startAmbientMusic(){if(!soundOn)return;try{
+ audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')await audioCtx.resume();if(audioCtx.state!=='running')return false;if(ambientNodes)return true;
  const master=audioCtx.createGain(),musicBus=audioCtx.createGain();master.gain.value=.055*musicVolume;musicBus.gain.value=1;musicBus.connect(master);master.connect(audioCtx.destination);
  const droneGain=audioCtx.createGain(),droneFilter=audioCtx.createBiquadFilter();droneGain.gain.value=.014;droneFilter.type='lowpass';droneFilter.frequency.value=115;droneFilter.Q.value=.9;droneGain.connect(droneFilter);droneFilter.connect(musicBus);
  const drones=[27.5,41.2].map((freq,i)=>{const o=audioCtx.createOscillator();o.type=i?'sine':'triangle';o.frequency.value=freq;o.detune.value=i?7:-5;o.connect(droneGain);o.start();return o;});
  const noise=audioCtx.createBufferSource(),noiseFilter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=createAbyssalNoiseBuffer(audioCtx,2.4);noise.loop=true;noiseFilter.type='bandpass';noiseFilter.frequency.value=165;noiseFilter.Q.value=.55;noiseGain.gain.value=.004;noise.connect(noiseFilter);noiseFilter.connect(noiseGain);noiseGain.connect(musicBus);noise.start();
  ambientNodes={master,musicBus,droneGain,droneFilter,drones,noise,noiseGain,intensity:.12,lastPulse:0,bar:0};
- abyssalMusicPulse(.12);
-}catch(e){console.warn('Trilha procedural indisponível',e)}}
+ abyssalMusicPulse(.12);return true;
+}catch(e){console.warn('Trilha procedural indisponível',e);return false}}
+function unlockAbyssalAudioFromGesture(){
+ if(!soundOn)return;
+ startAmbientMusic();
+}
+['pointerdown','keydown','touchstart'].forEach(type=>window.addEventListener(type,unlockAbyssalAudioFromGesture,{once:true,passive:true}));
 function stopAmbientMusic(){if(!ambientNodes)return;try{
  const nodes=ambientNodes;nodes.master.gain.setTargetAtTime(.0001,audioCtx.currentTime,.12);setTimeout(()=>{try{nodes.drones?.forEach(o=>o.stop());nodes.noise?.stop();nodes.master.disconnect();}catch(_){}if(ambientNodes===nodes)ambientNodes=null;},420);
 }catch(e){ambientNodes=null}}
@@ -942,7 +947,7 @@ const selectedOpeningShot=(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']|
  if(Number(metaUpgrades.current)>0)activePassiveSounds.push('current');
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
- gameState='playing';screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
+ gameState='playing';startAmbientMusic();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
  updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
 }
 const upgradeList=[
