@@ -2576,6 +2576,15 @@ function isTextEntryTarget(target){return Boolean(target?.closest?.('input,texta
 window.addEventListener('keydown',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if((e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if((e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
+let adAudioWasRunning=false;
+function prepareForH5Ad(){
+ adAudioWasRunning=Boolean(audioCtx&&audioCtx.state==='running');
+ try{if(audioCtx&&audioCtx.state==='running')audioCtx.suspend();}catch(_){}
+}
+function resumeAfterH5Ad(){
+ try{if(adAudioWasRunning&&audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}catch(_){}
+ adAudioWasRunning=false;last=performance.now();
+}
 function resumeAfterRewardedRevive(){
  if(onlineMode){window.AbyssalOnline?.revivePlayer?.();return;}
  if(!player){setReviveMessage('Não foi possível recuperar este mergulho.');return;}
@@ -2585,7 +2594,7 @@ $('reviveWithAdBtn')?.addEventListener('click',()=>{
  const button=$('reviveWithAdBtn');if(!button)return;
  if(typeof window.adBreak!=='function'){setReviveMessage('Anúncio recompensado indisponível neste momento. Tente novamente mais tarde.');return;}
  button.disabled=true;setReviveMessage('Carregando anúncio recompensado…');let requested=false;
- try{window.adBreak({type:'reward',name:'abyssal-revive',beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;resumeAfterRewardedRevive();},adDismissed:()=>{if(!requested)setReviveMessage('O anúncio foi fechado antes da recompensa.');button.disabled=false;},adBreakDone:()=>{button.disabled=false;if(!requested)setReviveMessage('Nenhuma recompensa foi confirmada pelo anúncio.');}});}
+ try{window.adBreak({type:'reward',name:'abyssal-revive',beforeAd:prepareForH5Ad,afterAd:resumeAfterH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;resumeAfterRewardedRevive();},adDismissed:()=>{if(!requested)setReviveMessage('O anúncio foi fechado antes da recompensa.');button.disabled=false;},adBreakDone:()=>{button.disabled=false;if(!requested)setReviveMessage('Nenhuma recompensa foi confirmada pelo anúncio.');}});}
  catch(error){console.warn('Falha ao iniciar anúncio de ressurreição:',error);button.disabled=false;setReviveMessage('Não foi possível abrir o anúncio agora.');}
 });
 window.addEventListener('abyssal-revive-result',event=>{
@@ -2699,7 +2708,7 @@ function requestWheelSpin(){
  if(!window.AbyssalOnline?.isAuthenticated()){$('wheelScreen').hidden=true;showToast('ENTRE NA CONTA PARA RECEBER RECOMPENSAS');window.AbyssalOnline?.openLogin();return;}
  if(typeof window.adBreak!=='function'){$('wheelMessage').textContent='Anúncios premiados ainda não estão ativos nesta versão. Use “Testar giro” para ver a animação sem ganhar moedas.';showToast('ANÚNCIO PREMIADO AINDA NÃO CONFIGURADO');return;}
  let requested=false;wheelBusy=true;$('spinWheelBtn').disabled=true;$('testWheelBtn').disabled=true;
- try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
+ try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,afterAd:resumeAfterH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
  $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar moedas abissais!';});
