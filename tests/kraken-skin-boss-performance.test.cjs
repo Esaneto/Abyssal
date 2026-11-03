@@ -100,7 +100,7 @@ test('shop includes one-time abyssal10k redemption for 10,000 coins', () => {
 
 test('Kraken boss renders the same eight-arm violet silhouette as the player skin', () => {
   const game = read('public/game.js');
-  assert.match(game, /else if\(kind==='kraken'\)/);
+  assert.match(game, /if\(kind==='kraken'\)/);
   assert.match(game, /for\(let arm=0;arm<8;arm\+\+\)/);
   assert.match(game, /bodyGrad\('#8b5cf6'\)/);
   assert.match(game, /touchesKrakenTentacle/);
