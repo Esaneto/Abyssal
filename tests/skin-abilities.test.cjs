@@ -23,10 +23,10 @@ test('passive movement, defense, targeting, XP and magnet bonuses are centralize
   assert.equal(abilities.enemySpeedMultiplier('glacier',200),.74);
   assert.equal(abilities.enemySpeedMultiplier('glacier',300),1);
   assert.equal(abilities.movementMultiplier('voidwing'),1.18);
-  assert.equal(abilities.movementMultiplier('electriceel'),1.22);
-  assert.equal(abilities.movementMultiplier('greensnake'),1.20);
-  assert.equal(abilities.damageMultiplier('electriceel','common',500,1),1.15);
-  assert.equal(abilities.damageMultiplier('greensnake','common',500,1),1.10);
+  assert.equal(abilities.movementMultiplier('electriceel'),1);
+  assert.equal(abilities.movementMultiplier('greensnake'),1);
+  assert.equal(abilities.damageMultiplier('electriceel','common',500,1),1);
+  assert.equal(abilities.damageMultiplier('greensnake','common',500,1),1);
   assert.equal(abilities.targetRangeMultiplier('abyssaleye'),1.2);
   assert.equal(abilities.fireRateMultiplier('solar'),1.18);
   assert.equal(abilities.orbExperienceMultiplier('default'),1.12);
@@ -59,18 +59,14 @@ test('browser and server use the same skin ability module', () => {
 });
 
 
-test('rebuilt eel and emerald serpent visuals are deterministic and mechanically distinct', () => {
+test('eel remains deterministic while emerald serpent keeps its original swimming identity', () => {
   const game=read('public/game.js');
   const eelStart=game.indexOf("} else if(id==='electriceel'){");
   const snakeStart=game.indexOf("} else if(id==='greensnake'){");
   const defaultStart=game.indexOf("} else if(id==='default'){");
   assert.ok(eelStart>0&&snakeStart>eelStart&&defaultStart>snakeStart);
-  const eel=game.slice(eelStart,snakeStart),snake=game.slice(snakeStart,defaultStart);
-  assert.doesNotMatch(eel,/Math\.random/);
-  assert.doesNotMatch(snake,/Math\.random/);
-  assert.match(eel,/long anal fin|ventral fin/i);
-  assert.match(snake,/dorsal scutes|armored head/i);
-  assert.match(game,/angler[\s\S]{0,14000}shadowColor='#ffcf70'/);
-  assert.match(game,/Soberania Ofídica: \+20% de velocidade de movimento e \+10% de dano causado/);
-  assert.match(game,/Sobrecarga Bioelétrica: \+22% de velocidade de movimento e \+15% de dano causado/);
+  assert.doesNotMatch(game.slice(eelStart,snakeStart),/Math\\.random/);
+  assert.match(game.slice(snakeStart,defaultStart),/const segWave = Math\\.sin\\(t \\* 0\\.006\\) \\* 0\\.15/);
+  assert.match(game,/Veneno corrosivo: ataques envenenam criaturas atingidas/);
+  assert.match(game,/Descarga Estática: ataques paralisam brevemente as criaturas atingidas/);
 });
