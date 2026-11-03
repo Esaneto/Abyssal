@@ -410,7 +410,7 @@ function startPositionHeartbeat(){
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   if(!latestPositionPayload)return;
-  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';if(now-lastPositionAt<(isPvp?50:80))return;
+  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';if(now-lastPositionAt<(isPvp?40:75))return;
   const payload={...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()};
   lastPositionAt=now;positionPacketsSent++;positionPacketInFlight=false;
   socket.volatile.emit('player-position',payload,(result)=>{
@@ -487,9 +487,9 @@ function getInterpolatedPeer(p,now=performance.now()){
 }
 function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
- const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null;
+ const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
- players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:110});
+ players.set(incoming.id,{...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?58:105});
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});

@@ -122,3 +122,18 @@ test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
  assert.match(game,/gameplayNoticeKey\(kind,title,text\)/);
  assert.match(game,/if\(now-last<7000\)return/);
 });
+
+test('mobile canvas uses adaptive high-DPI rendering instead of forced DPR 1',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/mobileDprCap=lowPowerRendering\?1\.35:2/);
+ assert.match(game,/mobileViewport\?mobileDprCap:1\.65/);
+});
+test('PvP movement stream prioritizes low latency without reliable packet backlog',()=>{
+ const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(online,/isPvp\?40:75/);
+ assert.match(online,/interpDuration:isPvp\?58:105/);
+ assert.match(online,/socket\.volatile\.emit\('player-position'/);
+ assert.match(server,/playerMotionIntervalMs=room\.mode==='pvp'\?40:75/);
+ assert.match(server,/volatile\.emit\('player-motion'/);
+});
