@@ -225,7 +225,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
   const guestXpAwardsBefore = guest.all('shared-xp-award').length;
   let killAck = null;
-  await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: 1000 }, result => { killAck = result; });
+  await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: Math.max(1000,Number(xpTarget.hp)||0) }, result => { killAck = result; });
   assert.equal(killAck?.ok, true, 'the server accepts damage that kills a common enemy');
   assert.equal(killAck.killed, true, 'the server confirms the enemy was killed');
   const xpOrb = owner.latest('world-xp-orb-spawned');
