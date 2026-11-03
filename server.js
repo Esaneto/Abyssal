@@ -1172,7 +1172,7 @@ socket.on('global-chat-send',(payload={})=>{
    u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};
    u.titleStats.conqueror = true;
   }
-  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','nova'];const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].slice(0,7);}u.resonancePresets=presets;}
+  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova'];const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].slice(0,7);}u.resonancePresets=presets;}
   if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;
   saveUsers();
   socket.emit('account-data', publicUser(u));
