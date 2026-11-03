@@ -557,7 +557,8 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
   const button=$('fullscreenBtn');
   try{
    const isFullscreen=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-   if(window.ABYSSAL_NATIVE_SHELL){button.title='Tela cheia gerenciada pelo aplicativo Android.';return;}\n   if(isFullscreen){
+   if(window.ABYSSAL_NATIVE_SHELL){button.title='Tela cheia gerenciada pelo aplicativo Android.';return;}
+   if(isFullscreen){
     if(document.exitFullscreen)await document.exitFullscreen();
     else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
    }else{
