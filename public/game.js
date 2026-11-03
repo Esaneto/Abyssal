@@ -151,7 +151,7 @@ function getArenaVortexGlow(vortex){
  return gradient;
 }
 const isMobileDevice=()=>mobileViewport;
-function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;$('mobileMoveStick')?.classList.remove('dual-stick-visible');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled);if(enabled)try{screen.orientation?.lock?.('portrait').catch(()=>{});}catch(_){};if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
+function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;const enabled=Boolean(active)&&isMobileDevice();document.body.classList.toggle('mobile-game-active',enabled);document.documentElement.classList.toggle('mobile-game-active',enabled);const stick=$('mobileJoystick');if(stick)stick.hidden=true;$('mobileMoveStick')?.classList.remove('dual-stick-visible');$('mobileAimStick')?.classList.toggle('dual-stick-visible',enabled);if(enabled&&!window.ABYSSAL_NATIVE_SHELL)try{screen.orientation?.lock?.('portrait').catch(()=>{});}catch(_){};if(!enabled){joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};stick?.classList.remove('is-floating');if(stick){stick.style.left='';stick.style.top='';stick.style.bottom='';stick.style.transform='';}}resize();}
 let hudCollapsed=false;
 function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking');button.title=hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking';}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
@@ -2756,7 +2756,7 @@ $('soundBtn').addEventListener('click',()=>{
   if(popup)popup.classList.toggle('active');
   if(!ambientNodes)startAmbientMusic();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden){last=performance.now();if(audioCtx?.state==='suspended')audioCtx.resume().then(()=>{if(soundOn&&!ambientNodes)startAmbientMusic()}).catch(()=>{});}});
 window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}else resize()});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
