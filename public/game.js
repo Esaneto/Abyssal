@@ -1806,7 +1806,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(gameState==='upgrade')break;
   }else if(o.life<=0)orbs.splice(i,1);
  }
- for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0)effects.splice(i,1)}
+ for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0){effects[i]=effects[effects.length-1];effects.pop();}}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();if(particlePool.length<700)particlePool.push(p)}}
  if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());if(orbs.length>orbBudget())orbs.splice(0,orbs.length-orbBudget());
  if(onlineMode&&window.AbyssalOnline){flushOnlineDamageBatch();window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
