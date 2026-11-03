@@ -171,7 +171,7 @@ test('crocodilian skins preserve real-world silhouette differences',()=>{
  assert.ok(caiman.includes('U-shaped skull'));
  assert.ok(caiman.includes("bodyGrad('#182a22')"));
  assert.ok(croc.includes('V-shaped rostrum'));
- assert.ok(croc.includes('interlocking upper/lower teeth'));
+ assert.ok(croc.includes('visible teeth'));
 });
 
 test('resonance adds one new tactical option to every category',()=>{
