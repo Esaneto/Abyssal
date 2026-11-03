@@ -70,3 +70,26 @@ test('eel remains deterministic while emerald serpent keeps its original swimmin
   assert.match(game,/Veneno corrosivo: ataques envenenam criaturas atingidas/);
   assert.match(game,/Descarga Estática: ataques paralisam brevemente as criaturas atingidas/);
 });
+
+
+test('named premium skins retain reachable render branches', () => {
+ const game=read('public/game.js');
+ for(const id of ['bloodmoon','thorn','abyssaleye']) assert.ok(game.includes("else if(id==='"+id+"'){"));
+ const premiumGroup="else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){";
+ assert.equal(game.split(premiumGroup).length-1,1);
+});
+
+test('Photon Ray auto-targets nearest in-range target without mouse steering', () => {
+ const game=read('public/game.js');
+ const start=game.indexOf("if(upgrades.photonRay>0){"),end=game.indexOf("if(upgrades.nova>0)",start),block=game.slice(start,end);
+ assert.ok(block.includes('d<=beamRange&&d<targetDistance'));
+ assert.ok(!block.includes('mouseAimMode')&&!block.includes('updateMouseAimFromCursor')&&!block.includes('controlAimAngle'));
+ assert.ok(block.includes('Math.atan2'));
+});
+
+test('Kraken skin uses animated contact-damage tentacles', () => {
+ const game=read('public/game.js'),ai=read('public/enemy-ai.js');
+ assert.ok(game.includes('touchesKrakenTentacle?.(krakenProxy,target,1)'));
+ assert.ok(game.includes("dealEnemyDamage(target,18,'kraken-contact')"));
+ assert.ok(ai.includes('const length = 3.35 + 0.32'));
+});

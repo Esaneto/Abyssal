@@ -87,7 +87,7 @@ const skinData=[
 {id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000,paid:true,shape:'kraken',desc:'Uma entidade das fossas com oito tentáculos robustos, pontas afiadas e olhos violeta que emergem da escuridão.',ability:'Varredura tentacular: a cada 12 segundos, atinge até seis inimigos próximos.'},
+{id:'kraken',name:'Kraken do Abismo',color:'#8b5cf6',price:30000,paid:true,shape:'kraken',desc:'Uma entidade das fossas com oito tentáculos robustos, pontas afiadas e olhos violeta que emergem da escuridão.',ability:'Tentáculos do Abismo: oito tentáculos colossais se movem continuamente e causam dano às criaturas que tocam.'},
  {id:'aberration',name:'Máscara da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'A carapaça óssea e os apêndices curvos da primeira entidade colossal.',ability:'Eco rubro: o primeiro impacto sofrido em cada mergulho gera uma pequena onda de repulsão.'},
  {id:'angler',name:'Lanterna Mortal',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'A isca incandescente e a mandíbula de agulhas do peixe-pescador abissal.',ability:'Isca predatória: aumenta em 10% o dano contra criaturas a longa distância.'},
  {id:'maw',name:'Mandíbula da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Uma boca circular de dentes radiais, cercada por filamentos de caça.',ability:'Mordida de fenda: aumenta em 12% o dano contra inimigos próximos.'},
@@ -1618,34 +1618,38 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
  }
  if(equippedSkin==='kraken'){
-  player.krakenSweepTimer=(Number(player.krakenSweepTimer)||0)-dt;
-  if(player.krakenSweepTimer<=0){player.krakenSweepTimer=12;let hitCount=0;const range=280/GAME_WORLD_ZOOM;for(const target of enemies){if(hitCount>=6)break;if(Math.hypot(target.x-player.x,target.y-player.y)>range)continue;dealEnemyDamage(target,48,'kraken-sweep');target.hit=.22;effects.push({type:'beam',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.22,maxLife:.22,color:'#8b5cf6'});burst(target.x,target.y,'#8b5cf6',5,80);hitCount++;}if(hitCount){effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.45,maxLife:.45,color:'#8b5cf6'});if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'kraken',x:player.x/W,y:player.y/H,angle:player.angle});playSkillSound('kraken-sweep','trigger');}}
+  const phase=performance.now()*.0018;
+  const krakenProxy={kind:'kraken',x:player.x,y:player.y,r:player.r*1.45,angle:player.angle||0,phase};
+  for(const target of enemies){
+   if(!target||target.hp<=0)continue;
+   if(!window.AbyssalEnemyAI?.touchesKrakenTentacle?.(krakenProxy,target,1))continue;
+   const now=performance.now();if(now-(Number(target.krakenTentacleHitAt)||0)<420)continue;
+   target.krakenTentacleHitAt=now;dealEnemyDamage(target,18,'kraken-contact');target.hit=.18;burst(target.x,target.y,'#a98bff',4,55);
+  }
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.55,maxLife:.55,color:'#b3a0ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.photonRay>0){
    player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
-   const isPvpMode=onlineRoomMode==='pvp',mouseAimMode=isPcMouseAimMode();
+   const isPvpMode=onlineRoomMode==='pvp';
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=.25,widths=[0,2.4,4.0,6.0],width=widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
-   const aimAngle=mouseAimMode?(updateMouseAimFromCursor(),controlAimAngle):controlAimAngle,aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
    let target=null,targetDistance=Infinity;
    for(const candidate of candidates){
     if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
-    const dx=candidate.x-player.x,dy=candidate.y-player.y,d=Math.hypot(dx,dy);if(d>beamRange)continue;
-    if(mouseAimMode){
-     const along=dx*aimCos+dy*aimSin,across=Math.abs(dx*aimSin-dy*aimCos),tolerance=Math.max(18/GAME_WORLD_ZOOM,(Number(candidate.r)||10)*1.15);
-     if(along<=0||across>tolerance||along>=targetDistance)continue;
-     target=candidate;targetDistance=along;
-    }else if(d<targetDistance){target=candidate;targetDistance=d;}
+    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=Math.hypot(dx,dy);
+    if(d<=beamRange&&d<targetDistance){target=candidate;targetDistance=d;}
    }
-   const endX=mouseAimMode?player.x+aimCos*beamRange:(target?.x??player.x+aimCos*beamRange),endY=mouseAimMode?player.y+aimSin*beamRange:(target?.y??player.y+aimSin*beamRange);
-   effects.push({type:'photon-ray',x1:player.x,y1:player.y,x2:endX,y2:endY,width,life:.09,maxLife:.09,color:'#8cf7ff'});
-   if(player.photonRayTimer<=0){
-    player.photonRayTimer=beamInterval;
-    const beamDps=(getShotDamageAtLevel(beamLevel)/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
-    if(onlineMode&&window.AbyssalOnline?.sendShot){window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:'#8cf7ff',special:'photonRay',volleyId:nextShotVolleyId()});}
-    if(!isPvpMode&&target){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
-   }
+   if(target){
+    const aimAngle=Math.atan2((Number(target.y)||0)-player.y,(Number(target.x)||0)-player.x),aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
+    player.angle=aimAngle;
+    effects.push({type:'photon-ray',x1:player.x,y1:player.y,x2:Number(target.x)||player.x,y2:Number(target.y)||player.y,width,life:.09,maxLife:.09,color:'#8cf7ff'});
+    if(player.photonRayTimer<=0){
+     player.photonRayTimer=beamInterval;
+     const beamDps=(getShotDamageAtLevel(beamLevel)/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
+     if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:'#8cf7ff',special:'photonRay',volleyId:nextShotVolleyId()});
+     if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
+    }
+   }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);
   }
   if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=1;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});burst(player.x,player.y,'#72f5ff',24+novaLevel*8,Math.min(360,novaRange*(.35+.05*novaLevel)));effects.push({type:'ring',x:player.x,y:player.y,r:0,max:novaRange,life:.55,maxLife:.55,color:'#72f5ff'});playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
@@ -1983,11 +1987,12 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
   if(id==='kraken'){
-    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
-    fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(196,164,255,.9)',Math.max(1.2,r*.06),15);
-    for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#d9c7ff';c.shadowBlur=13*glowScale;c.shadowColor='#a855f7';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.075,r*.12,side*-.16,0,Math.PI*2);c.fill();c.restore();}
-    c.save();c.fillStyle='rgba(1,1,10,.98)';c.strokeStyle='rgba(167,139,250,.7)';c.lineWidth=Math.max(1,r*.025);c.beginPath();c.ellipse(0,.2*r,.22*r,.105*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();
-    for(let g=0;g<3;g++)stroke(()=>{c.moveTo((-.42+g*.1)*r,-.44*r);c.quadraticCurveTo((-.35+g*.1)*r,-.26*r,(-.3+g*.1)*r,-.12*r)},Math.max(.7,r*.024),'rgba(207,255,239,.55)',2);
+    // Colossal cephalopod: huge animated arms dominate the silhouette and visibly sweep the water.
+    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.42,sy:.18,c1x:Math.cos(arm*Math.PI/4)*1.0,c1y:Math.sin(arm*Math.PI/4)*1.0,c2x:Math.cos(arm*Math.PI/4)*2.2,c2y:Math.sin(arm*Math.PI/4)*2.2,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
+    fill(()=>{c.moveTo(-.82*r,.18*r);c.bezierCurveTo(-.96*r,-.42*r,-.62*r,-1.02*r,0,-1.08*r);c.bezierCurveTo(.62*r,-1.02*r,.96*r,-.42*r,.82*r,.18*r);c.quadraticCurveTo(.5*r,.62*r,0,.66*r);c.quadraticCurveTo(-.5*r,.62*r,-.82*r,.18*r);c.closePath()},bodyGrad('#5934a4'),'rgba(205,174,255,.92)',Math.max(1.4,r*.065),18);
+    for(let side of [-1,1]){fill(()=>{c.ellipse(side*.32*r,-.28*r,.15*r,.11*r,0,0,Math.PI*2)},'#05030d','#cbb6ff',Math.max(1,r*.035),8);eye(side*.32,-.28,r*.07,'#f1eaff');}
+    fill(()=>{c.ellipse(0,.25*r,.3*r,.16*r,0,0,Math.PI*2)},'#020207','#9c7cff',Math.max(1,r*.035),5);teeth(0,.25,.27,.13,10,.65);
+    for(let g=0;g<4;g++)stroke(()=>{c.moveTo((-.38+g*.25)*r,-.66*r);c.quadraticCurveTo((-.32+g*.22)*r,-.4*r,(-.3+g*.2)*r,-.16*r)},Math.max(.7,r*.022),'rgba(215,198,255,.62)',3);
    } else if(id==='reefshark'){
    // Great white shark: pointed conical snout, countershading, crescent tail,
    // tall triangular dorsal fin and swept pectoral fins form a clear shark outline.
@@ -2104,7 +2109,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(-.68*r,.16*r);c.bezierCurveTo(-.8*r,-.48*r,-.38*r,-.76*r,.05*r,-.72*r);c.bezierCurveTo(.55*r,-.7*r,.82*r,-.34*r,.72*r,.2*r);c.quadraticCurveTo(.1*r,.55*r,-.68*r,.16*r);c.closePath()},bodyGrad('#514a9a'),'rgba(180,166,255,.72)',Math.max(1.2,r*.05),12);
    fill(()=>{c.moveTo(-.46*r,-.5*r);c.lineTo(-.42*r,-1.02*r);c.lineTo(-.12*r,-.7*r);c.lineTo(.05*r,-1.2*r);c.lineTo(.28*r,-.7*r);c.lineTo(.55*r,-1.0*r);c.lineTo(.5*r,-.48*r);c.closePath()},'#15152f','#b9aaff',Math.max(1,r*.04),10);
    c.save();c.fillStyle='#050611';c.beginPath();c.ellipse(.16*r,.02*r,.3*r,.23*r,0,0,Math.PI*2);c.fill();c.restore();eye(.1,-.08,r*.065,'#d8ccff');eye(.36,-.04,r*.05,'#9d8cff');
-  } else if(id==='abyssaleye'){  } else if(id==='abyssaleye'){
+  } else if(id==='abyssaleye'){
    // Not a plain eyeball: a protected radial organism with a layered iris and tendrils.
    for(let i=0;i<8;i++){const a=i*Math.PI/4,sx=Math.cos(a)*.68,sy=Math.sin(a)*.68,ex=Math.cos(a)*1.28,ey=Math.sin(a)*1.05;stroke(()=>{c.moveTo(sx*r,sy*r);c.quadraticCurveTo(Math.cos(a+.22)*r,Math.sin(a+.22)*r,ex*r,ey*r)},Math.max(1.4,r*.055),color,10);c.save();c.fillStyle='#d4ffff';c.shadowBlur=9;c.shadowColor=color;c.beginPath();c.arc(ex*r,ey*r,Math.max(1,r*.045),0,Math.PI*2);c.fill();c.restore()}
    body(1,.92,0,color);c.save();c.fillStyle='#07131e';c.strokeStyle='#c8fffb';c.lineWidth=Math.max(1.2,r*.06);c.shadowBlur=18;c.shadowColor=color;c.beginPath();c.ellipse(.12*r,0,.53*r,.62*r,0,0,Math.PI*2);c.fill();c.stroke();c.fillStyle=color;c.beginPath();c.ellipse(.17*r,0,.32*r,.43*r,0,0,Math.PI*2);c.fill();c.fillStyle='#020a14';c.beginPath();c.ellipse(.25*r,0,.12*r,.3*r,0,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(.29*r,-.18*r,r*.07,0,Math.PI*2);c.fill();c.restore();
@@ -2123,7 +2128,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(-.58*r,.36*r);c.bezierCurveTo(-.82*r,-.22*r,-.42*r,-.68*r,.08*r,-.62*r);c.bezierCurveTo(.65*r,-.58*r,.82*r,-.1*r,.66*r,.42*r);c.quadraticCurveTo(.22*r,.58*r,-.58*r,.36*r);c.closePath()},bodyGrad('#5a9d45'),'rgba(191,255,142,.72)',Math.max(1.2,r*.05),12);
    for(const [px,py,pr] of [[-.2,-.22,.13],[.18,.15,.1],[.42,-.18,.08]]){c.save();c.fillStyle='#c7ff6b';c.shadowBlur=10*glowScale;c.shadowColor='#83ff45';c.beginPath();c.arc(px*r,py*r,pr*r,0,Math.PI*2);c.fill();c.restore();}
    fill(()=>{c.ellipse(.46*r,.08*r,.22*r,.16*r,0,0,Math.PI*2)},'#10200d','#baff80',Math.max(.8,r*.025),3);eye(.36,-.24,r*.055,'#eaffad');
-  } else if(id==='thorn'){  } else if(id==='thorn'){
+  } else if(id==='thorn'){
    // Crown of thorns: radial armored starfish, all silhouette and defensive spines.
    for(let i=0;i<12;i++){const a=i*Math.PI/6,inner=.58+(i%2)*.08,outer=1.18+(i%3)*.12;fill(()=>{c.moveTo(Math.cos(a-.13)*inner*r,Math.sin(a-.13)*inner*r);c.lineTo(Math.cos(a)*outer*r,Math.sin(a)*outer*r);c.lineTo(Math.cos(a+.13)*inner*r,Math.sin(a+.13)*inner*r);c.closePath()},i%2?'#8e3f3a':'#b75843','rgba(255,183,131,.7)',Math.max(.7,r*.025),5);}
    body(.64,.61,0,'#9e493e');for(let i=0;i<6;i++){const a=i*Math.PI/3;c.save();c.fillStyle='#ffd09e';c.beginPath();c.arc(Math.cos(a)*.38*r,Math.sin(a)*.38*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();c.restore();}eye(.22,-.12,r*.055,'#ffe1b8');
@@ -2132,7 +2137,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(const side of [-1,1])for(let b=0;b<4;b++){const yy=(b-1.5)*.2;stroke(()=>{c.moveTo(-.3*r,yy*r);c.bezierCurveTo(-.7*r,side*(.22+b*.08)*r,-.72*r,side*(.65+b*.06)*r,(-.92-b*.08)*r,side*(.92+b*.08)*r)},Math.max(1.3,r*.065),b%2?'#bd3f68':'#e25b7c',8);for(let p=0;p<2;p++){const px=(-.64-b*.04-p*.12)*r,py=side*(.45+b*.06+p*.14)*r;fill(()=>c.arc(px,py,Math.max(1.2,r*.055),0,Math.PI*2),'#ffb3c3','#ffe3d5',Math.max(.6,r*.018),4);}}
    fill(()=>{c.ellipse(.12*r,0,.7*r,.62*r,0,0,Math.PI*2)},bodyGrad('#b74468'),'rgba(255,177,200,.7)',Math.max(1,r*.04),9);
    c.save();c.fillStyle='#170817';c.strokeStyle='#ff8fb3';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.ellipse(.35*r,0,.28*r,.34*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.35,0,.25,.3,10,.7);eye(.05,-.25,r*.045,'#ffd2df');
-  } else if(id==='bloodmoon'){  } else if(id==='bloodmoon'){
+  } else if(id==='bloodmoon'){
    // Pale deep-sea fangfish with a huge split jaw.
    fin([[-1.1,0],[-1.62,-.42],[-1.53,.05],[-1.68,.38]] ,color);fin([[-.3,-.34],[-.05,-.88],[.18,-.31]],color);
    fill(()=>{c.moveTo(-1.2*r,0);c.quadraticCurveTo(-.78*r,-.6*r,.05*r,-.48*r);c.lineTo(.75*r,-.17*r);c.lineTo(.98*r,.02*r);c.lineTo(.56*r,.12*r);c.quadraticCurveTo(-.4*r,.55*r,-1.2*r,0)},bodyGrad(color),'rgba(255,224,232,.5)',Math.max(1,r*.04),12);
@@ -2149,7 +2154,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(-.55*r,.38*r);c.bezierCurveTo(-.82*r,-.15*r,-.55*r,-.7*r,.02*r,-.72*r);c.bezierCurveTo(.58*r,-.7*r,.82*r,-.25*r,.7*r,.28*r);c.quadraticCurveTo(.18*r,.65*r,-.55*r,.38*r);c.closePath()},bodyGrad('#7650b8'),'rgba(221,199,255,.72)',Math.max(1.1,r*.045),16);
    fin([[.12,-.58],[.35,-1.16],[.52,-.5]],'#6c4ca7','#e1d1ff');fin([[.45,-.42],[.78,-.92],[.7,-.28]],'#6c4ca7','#e1d1ff');
    c.save();c.globalAlpha=.6;c.fillStyle='#c9a8ff';c.shadowBlur=16*glowScale;c.shadowColor='#a56dff';c.beginPath();c.ellipse(.08*r,.03*r,.34*r,.42*r,0,0,Math.PI*2);c.fill();c.restore();eye(.18,-.13,r*.07,'#f0e6ff');
-  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
+  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
    if(id==='aberration'){
     for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.42+i*.35,side*.18,-.62+i*.3,side*.48,-.38+i*.3,side*.82,-.68+i*.4,side*1.05,.85,true);
     fill(()=>{c.moveTo(-.7*r,-.3*r);c.lineTo(-.5*r,-.78*r);c.lineTo(-.1*r,-.52*r);c.lineTo(.22*r,-.85*r);c.lineTo(.7*r,-.32*r);c.lineTo(.68*r,.2*r);c.lineTo(.1*r,.55*r);c.lineTo(-.55*r,.25*r);c.closePath()},bodyGrad(color),'rgba(255,188,202,.8)',Math.max(1.2,r*.05),12);
