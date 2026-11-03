@@ -1244,8 +1244,7 @@ function applySharedSpawn(data){
 function applySharedSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const incomingWorldId=String(data.worldId||''),incomingSeq=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),incomingServerTime=Math.max(0,Number(data.serverTime)||0);
- const isNewAuthoritativeWorld=Boolean(incomingWorldId)&&incomingWorldId!==lastAuthoritativeWorldId;
- // Reliable lifecycle and movement snapshots share one sequence. Never let an
+  // Reliable lifecycle and movement snapshots share one sequence. Never let an
  // older packet restore a dead/spawn-removed entity or roll enemy positions backwards.
  if(lastAuthoritativeServerTime&&incomingServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
  if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId===lastAuthoritativeWorldId&&incomingSeq>0&&incomingSeq<=lastAuthoritativeSnapshotSeq)return;
@@ -1253,7 +1252,7 @@ function applySharedSnapshot(data){
   if(incomingServerTime&&lastAuthoritativeServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
   enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();lastAuthoritativeSnapshotSeq=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
  }
- if(isNewAuthoritativeWorld&&data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
+ if(data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
   const defeated=Math.max(0,Math.floor(Number(data.bossesDefeated)||0));
   const cycleLength=Math.max(1,bossCycleBosses.length||PROGRESSION_CYCLE_BOSS_SEQUENCE.length);
   bossProgressionCycle=Math.floor(defeated/cycleLength);
