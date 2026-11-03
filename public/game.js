@@ -267,6 +267,18 @@ function createDecor(){
  decor=[];const count=isMobileDevice()?64:110;
  for(let i=0;i<count;i++)decor.push({x:Math.random()*W,y:Math.random()*H,r:rand(.5,2.2)/worldZoom,a:rand(.08,.42),speed:rand(4,22)/worldZoom,phase:rand(0,Math.PI*2)});
 }
+function projectileHitsPvpWall(x1,y1,x2,y2,padding=0){
+ const dx=x2-x1,dy=y2-y1;
+ for(const rock of arenaRocks){
+  const rx=(rock.rx||rock.r)+padding,ry=(rock.ry||rock.r)+padding;
+  const steps=Math.max(1,Math.min(5,Math.ceil(Math.hypot(dx,dy)/8)));
+  for(let i=0;i<=steps;i++){
+   const t=i/steps,qx=(x1+dx*t-rock.x)/Math.max(1,rx),qy=(y1+dy*t-rock.y)/Math.max(1,ry);
+   if(qx*qx+qy*qy<1)return true;
+  }
+ }
+ return false;
+}
 function createArenaRocks(){
  arenaRocks=[];
  if(onlineRoomMode==='pvp'){
@@ -1689,7 +1701,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   bucket.push(enemy);
  }
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;let hit=false;
- if(onlineRoomMode==='pvp'&&arenaRocks.some(rock=>{const rx=(rock.rx||rock.r)+(p.r||0),ry=(rock.ry||rock.r)+(p.r||0),dx=(p.x-rock.x)/Math.max(1,rx),dy=(p.y-rock.y)/Math.max(1,ry),sx=(prevX-rock.x)/Math.max(1,rx),sy=(prevY-rock.y)/Math.max(1,ry);return dx*dx+dy*dy<1||sx*dx+sy*dy<0&&(sx*sx+sy*sy<1)||Math.hypot(p.x-prevX,p.y-prevY)>0&&Array.from({length:4},(_,k)=>{const t=(k+1)/5,qx=(prevX+(p.x-prevX)*t-rock.x)/Math.max(1,rx),qy=(prevY+(p.y-prevY)*t-rock.y)/Math.max(1,ry);return qx*qx+qy*qy<1}).some(Boolean);})){burst(p.x,p.y,'#c7d0da',8,95);burst(p.x,p.y,'#8795a8',5,65);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}
+ if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){burst(p.x,p.y,'#c7d0da',8,95);burst(p.x,p.y,'#8795a8',5,65);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}
  projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
  if((upgrades.electric||0)>0){let chains=0,from=e;const visited=new Set([e.id]);while(chains<Math.min(3,upgrades.electric)){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<120/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.24,maxLife:.24,color:'#79f3ff'});burst(from.x,from.y,'#e6ffff',4,70);burst(next.x,next.y,'#79f3ff',12,120);dealEnemyDamage(next,p.damage*(.28+upgrades.electric*.08),'electric');audio(500,.045,'sine',.008);next.hit=.12;burst(next.x,next.y,'#79f3ff',10,95);visited.add(next.id);from=next;chains++;}}
  if((upgrades.ricochet||0)>0){let from=e;const visited=new Set([e.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'beam',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.28,maxLife:.28,color:'#ffc47a'});burst(from.x,from.y,'#fff0c7',4,65);burst(next.x,next.y,'#ffc47a',14,135);dealEnemyDamage(next,p.damage*.42,'ricochet');audio(500,.045,'sine',.008);next.hit=.15;burst(next.x,next.y,'#ffc47a',14,125);visited.add(next.id);from=next;}}
