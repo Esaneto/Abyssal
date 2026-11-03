@@ -20,11 +20,6 @@ if(fs.existsSync(java)){
     super.onCreate(savedInstanceState);
     enterImmersiveMode();
   }
-  @Override
-  protected void onResume() {
-    super.onResume();
-    enterImmersiveMode();
-  }
   private void enterImmersiveMode() {
     getWindow().getDecorView().setSystemUiVisibility(
       View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
