@@ -1146,11 +1146,11 @@ function applyOnlinePlayerVitals(data){
  if(Number.isFinite(Number(data.hp)))hp=clamp(Number(data.hp),0,maxHp);
  if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
  if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,30);
- if(data.reason==='enemy-attack'&&Number(data.damage)>0){
+ if((data.reason==='enemy-attack'||data.reason==='pvp-hit'||data.reason==='pvp-defeat')&&Number(data.damage)>0){
   if(contactSourceReady)revealOnlineContactSource(data);
   else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
   shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);
- }else if(data.reason==='shield-block'||data.blocked){
+ }else if(data.reason==='shield-block'||data.reason==='pvp-shield'||data.blocked){
   if(contactSourceReady)revealOnlineContactSource(data);
   burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');
  }else if(data.reason==='regeneration'&&Number(data.healed)>0)playSkillSound('regen','trigger');
@@ -1416,7 +1416,10 @@ function killEnemy(i){
 }
 function fire(){
  if(!player)return;let target=null,bd=Infinity;const maxRange=294*upgrades.range*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;
- for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
+ if(onlineRoomMode==='pvp'){
+  const peers=window.AbyssalOnline?.getPlayers?.()||[];
+  for(const peer of peers){if(!peer||peer.alive===false)continue;const d=Math.hypot((Number(peer.x)||0)-player.x,(Number(peer.y)||0)-player.y);if(d<maxRange&&d<bd){target=peer;bd=d;}}
+ }else for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
  const aimedMode=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
  if(!target&&!aimedMode)return;
  const a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
