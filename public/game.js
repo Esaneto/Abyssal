@@ -2091,14 +2091,20 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    // Manta ray: broad paired pectoral wings and a long tapering tail.
    fill(()=>{c.moveTo(-.7*r,-.18*r);c.quadraticCurveTo(-.05*r,-.4*r,.48*r,-.2*r);c.lineTo(1.0*r,-.02*r);c.quadraticCurveTo(.56*r,.02*r,.34*r,.22*r);c.quadraticCurveTo(.08*r,.5*r,-.22*r,.28*r);c.lineTo(-1.32*r,.84*r);c.quadraticCurveTo(-1.05*r,.25*r,-.9*r,.08*r);c.lineTo(-1.32*r,-.82*r);c.quadraticCurveTo(-1.02*r,-.3*r,-.7*r,-.18*r);c.closePath()},bodyGrad(color),'rgba(230,255,255,.62)',Math.max(1,r*.04),14);
    stroke(()=>{c.moveTo(-.7*r,0);c.quadraticCurveTo(-.2*r,.22*r,.56*r,.08*r)},Math.max(1,r*.045),'rgba(216,255,253,.75)',5);tentacle(-1.12,.0,-1.8,.06,-2.05,.08,-2.5,.12,.55);eye(.53,-.08,r*.06);
-  } else if(id==='deepwarden'||id==='abyssking'){
-   // Isopod/crab: paired legs, overlapping mineral plates and symmetric pincers.
-   for(let side of [-1,1])for(let i=0;i<4;i++){const xx=(-.62+i*.32);stroke(()=>{c.moveTo(xx*r,side*.22*r);c.quadraticCurveTo((xx-.18)*r,side*.55*r,(xx-.36)*r,side*.74*r)},Math.max(1.2,r*.065),color,8);stroke(()=>{c.moveTo((xx-.36)*r,side*.74*r);c.lineTo((xx-.54)*r,side*.78*r)},Math.max(1,r*.04),'rgba(235,255,247,.8)',5)}
-   fill(()=>{c.ellipse(-.05*r,0,.92*r,.63*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(221,255,248,.62)',Math.max(1,r*.05),12);
-   for(let i=0;i<5;i++){const xx=(-.72+i*.32)*r;fill(()=>{c.beginPath();c.moveTo(xx,-.48*r);c.lineTo((xx+.12*r),-.56*r);c.lineTo((xx+.2*r),.08*r);c.lineTo((xx+.1*r),.43*r);c.lineTo(xx,.48*r);c.closePath()},'rgba(4,24,37,.38)','rgba(230,255,255,.58)',Math.max(.7,r*.025),4)}
-   for(let side of [-1,1]){stroke(()=>{c.moveTo(.42*r,side*.2*r);c.quadraticCurveTo(.8*r,side*.25*r,.86*r,side*.49*r)},Math.max(1.8,r*.09),color,8);fin([[.78,side*.4],[1.18,side*.6],[1.03,side*.24],[.86,side*.18]],color)}
-   eye(.4,-.2,r*.06);eye(.4,.2,r*.06);if(id==='abyssking'){fill(()=>{c.moveTo(-.44*r,-.46*r);c.lineTo(-.38*r,-1.0*r);c.lineTo(-.12*r,-.65*r);c.lineTo(.03*r,-1.15*r);c.lineTo(.25*r,-.64*r);c.lineTo(.54*r,-.94*r);c.lineTo(.48*r,-.36*r);c.closePath()},'#d9e9ff',color,Math.max(1,r*.04),10)}
-  } else if(id==='abyssaleye'){
+  } else if(id==='deepwarden'){
+   // Trench warden: a compact mineral trilobite with layered armor and anchoring legs.
+   for(const side of [-1,1])for(let i=0;i<5;i++){const xx=(-.68+i*.29);stroke(()=>{c.moveTo(xx*r,side*.28*r);c.lineTo((xx-.12)*r,side*(.58+i*.035)*r);c.lineTo((xx+.02)*r,side*(.72+i*.025)*r)},Math.max(1,r*.05),'#78998b',4);}
+   fill(()=>{c.ellipse(-.08*r,0,1.02*r,.66*r,0,0,Math.PI*2)},bodyGrad('#6e8f80'),'rgba(207,238,224,.72)',Math.max(1.2,r*.05),7);
+   for(let i=0;i<6;i++){const xx=(-.82+i*.29)*r;fill(()=>{c.moveTo(xx,-.5*r);c.lineTo(xx+.18*r,-.58*r);c.lineTo(xx+.28*r,0);c.lineTo(xx+.18*r,.54*r);c.lineTo(xx,.48*r);c.closePath()},i%2?'#4c6a60':'#5b796d','rgba(207,238,224,.42)',Math.max(.7,r*.022),2);}
+   fill(()=>{c.moveTo(.62*r,-.38*r);c.lineTo(1.04*r,-.24*r);c.lineTo(1.18*r,0);c.lineTo(1.04*r,.24*r);c.lineTo(.62*r,.38*r);c.closePath()},'#789b89','rgba(229,255,241,.72)',Math.max(1,r*.035),5);
+   eye(.74,-.18,r*.055,'#b9ffe1');eye(.74,.18,r*.055,'#b9ffe1');
+  } else if(id==='abyssking'){
+   // Void king: floating crowned cephalopod, visually unrelated to the armored warden.
+   for(let i=0;i<6;i++){const a=(i/5-.5)*1.7;tentacle(-.35,Math.sin(a)*.32,-.72,Math.sin(a)*.58,-1.05,Math.sin(a)*.78,-1.3-Math.abs(a)*.12,Math.sin(a)*.9,.8);}
+   fill(()=>{c.moveTo(-.68*r,.16*r);c.bezierCurveTo(-.8*r,-.48*r,-.38*r,-.76*r,.05*r,-.72*r);c.bezierCurveTo(.55*r,-.7*r,.82*r,-.34*r,.72*r,.2*r);c.quadraticCurveTo(.1*r,.55*r,-.68*r,.16*r);c.closePath()},bodyGrad('#514a9a'),'rgba(180,166,255,.72)',Math.max(1.2,r*.05),12);
+   fill(()=>{c.moveTo(-.46*r,-.5*r);c.lineTo(-.42*r,-1.02*r);c.lineTo(-.12*r,-.7*r);c.lineTo(.05*r,-1.2*r);c.lineTo(.28*r,-.7*r);c.lineTo(.55*r,-1.0*r);c.lineTo(.5*r,-.48*r);c.closePath()},'#15152f','#b9aaff',Math.max(1,r*.04),10);
+   c.save();c.fillStyle='#050611';c.beginPath();c.ellipse(.16*r,.02*r,.3*r,.23*r,0,0,Math.PI*2);c.fill();c.restore();eye(.1,-.08,r*.065,'#d8ccff');eye(.36,-.04,r*.05,'#9d8cff');
+  } else if(id==='abyssaleye'){  } else if(id==='abyssaleye'){
    // Not a plain eyeball: a protected radial organism with a layered iris and tendrils.
    for(let i=0;i<8;i++){const a=i*Math.PI/4,sx=Math.cos(a)*.68,sy=Math.sin(a)*.68,ex=Math.cos(a)*1.28,ey=Math.sin(a)*1.05;stroke(()=>{c.moveTo(sx*r,sy*r);c.quadraticCurveTo(Math.cos(a+.22)*r,Math.sin(a+.22)*r,ex*r,ey*r)},Math.max(1.4,r*.055),color,10);c.save();c.fillStyle='#d4ffff';c.shadowBlur=9;c.shadowColor=color;c.beginPath();c.arc(ex*r,ey*r,Math.max(1,r*.045),0,Math.PI*2);c.fill();c.restore()}
    body(1,.92,0,color);c.save();c.fillStyle='#07131e';c.strokeStyle='#c8fffb';c.lineWidth=Math.max(1.2,r*.06);c.shadowBlur=18;c.shadowColor=color;c.beginPath();c.ellipse(.12*r,0,.53*r,.62*r,0,0,Math.PI*2);c.fill();c.stroke();c.fillStyle=color;c.beginPath();c.ellipse(.17*r,0,.32*r,.43*r,0,0,Math.PI*2);c.fill();c.fillStyle='#020a14';c.beginPath();c.ellipse(.25*r,0,.12*r,.3*r,0,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(.29*r,-.18*r,r*.07,0,Math.PI*2);c.fill();c.restore();
@@ -2112,31 +2118,38 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(-.84*r,-.02*r);c.bezierCurveTo(-.85*r,-.62*r,-.44*r,-.88*r,0,-.82*r);c.bezierCurveTo(.47*r,-.88*r,.86*r,-.5*r,.84*r,-.02*r);c.quadraticCurveTo(0,.18*r,-.84*r,-.02*r)},bodyGrad(color),'rgba(255,247,203,.75)',Math.max(1.2,r*.05),14);
    stroke(()=>{c.ellipse(0,-.8*r,.54*r,.2*r,0,0,Math.PI*2)},Math.max(1.2,r*.065),'#fff0b1',14);for(let i=0;i<9;i++){const a=Math.PI*2*i/9;c.save();c.fillStyle='#fff5bd';c.shadowBlur=10;c.shadowColor='#fff5bd';c.beginPath();c.arc(Math.cos(a)*.54*r,-.8*r+Math.sin(a)*.2*r,Math.max(1.3,r*.045),0,Math.PI*2);c.fill();c.restore()}eye(.25,-.28,r*.06,'#fff3c3');
   } else if(id==='toxic'){
-   // Vampire squid mantle with eight mirrored arms and sucker rows.
-   for(let i=0;i<8;i++){const side=i<4?-1:1,j=i%4,sy=(j-1.5)*.18;tentacle(-.5,sy,side*.2,sy+.22,side*.88,sy+.46,side*(1.05+j*.12),sy+.72,.85,true)}
-   fill(()=>{c.moveTo(-.72*r,-.1*r);c.quadraticCurveTo(-.74*r,-.68*r,-.1*r,-.72*r);c.quadraticCurveTo(.55*r,-.65*r,.72*r,-.04*r);c.lineTo(.35*r,.28*r);c.lineTo(-.38*r,.3*r);c.closePath()},bodyGrad(color),'rgba(215,255,190,.65)',Math.max(1.2,r*.05),14);eye(.33,-.17,r*.06,'#eaffbb');
-  } else if(id==='thorn'||id==='coral'){
-   // Mirrored coral antlers, feeding fronds and symmetrical oral crown.
-   for(let side of [-1,1]){
-    stroke(()=>{c.moveTo(-.15*r,side*.1*r);c.bezierCurveTo(-.55*r,side*.35*r,-.68*r,side*.75*r,-.88*r,side*1.0*r)},Math.max(1.5,r*.07),color,12);
-    stroke(()=>{c.moveTo(-.54*r,side*.55*r);c.lineTo(-.92*r,side*.47*r);c.lineTo(-1.08*r,side*.68*r)},Math.max(1.2,r*.055),'#ffa7bc',8);
-    stroke(()=>{c.moveTo(-.68*r,side*.77*r);c.lineTo(-.48*r,side*1.05*r);c.lineTo(-.53*r,side*1.2*r)},Math.max(1.1,r*.05),color,8);
-    for(let j=0;j<3;j++){const xx=(.25+j*.16)*r;stroke(()=>{c.moveTo(xx,side*.15*r);c.quadraticCurveTo((xx+.22*r),side*.4*r,(xx+.08*r),side*.62*r)},Math.max(.8,r*.035),'#f9bfce',5)}
-   }
-   body(.72,.66,.08,color);c.save();c.fillStyle='#071723';c.beginPath();c.ellipse(.28*r,-.05*r,.24*r,.31*r,0,0,Math.PI*2);c.fill();c.restore();eye(.35,-.12,r*.06,'#fff0d1');
-  } else if(id==='bloodmoon'){
+   // Toxic sludge: asymmetrical gelatinous predator with acid sacs and dripping pseudopods.
+   for(let i=0;i<7;i++){const yy=(-.48+i*.16);tentacle(-.45,yy,-.78,yy+.08,-.9,yy+(i%2?.28:-.22),-1.18-(i%3)*.08,yy+(i-3)*.08,.62);}
+   fill(()=>{c.moveTo(-.58*r,.36*r);c.bezierCurveTo(-.82*r,-.22*r,-.42*r,-.68*r,.08*r,-.62*r);c.bezierCurveTo(.65*r,-.58*r,.82*r,-.1*r,.66*r,.42*r);c.quadraticCurveTo(.22*r,.58*r,-.58*r,.36*r);c.closePath()},bodyGrad('#5a9d45'),'rgba(191,255,142,.72)',Math.max(1.2,r*.05),12);
+   for(const [px,py,pr] of [[-.2,-.22,.13],[.18,.15,.1],[.42,-.18,.08]]){c.save();c.fillStyle='#c7ff6b';c.shadowBlur=10*glowScale;c.shadowColor='#83ff45';c.beginPath();c.arc(px*r,py*r,pr*r,0,Math.PI*2);c.fill();c.restore();}
+   fill(()=>{c.ellipse(.46*r,.08*r,.22*r,.16*r,0,0,Math.PI*2)},'#10200d','#baff80',Math.max(.8,r*.025),3);eye(.36,-.24,r*.055,'#eaffad');
+  } else if(id==='thorn'){  } else if(id==='thorn'){
+   // Crown of thorns: radial armored starfish, all silhouette and defensive spines.
+   for(let i=0;i<12;i++){const a=i*Math.PI/6,inner=.58+(i%2)*.08,outer=1.18+(i%3)*.12;fill(()=>{c.moveTo(Math.cos(a-.13)*inner*r,Math.sin(a-.13)*inner*r);c.lineTo(Math.cos(a)*outer*r,Math.sin(a)*outer*r);c.lineTo(Math.cos(a+.13)*inner*r,Math.sin(a+.13)*inner*r);c.closePath()},i%2?'#8e3f3a':'#b75843','rgba(255,183,131,.7)',Math.max(.7,r*.025),5);}
+   body(.64,.61,0,'#9e493e');for(let i=0;i<6;i++){const a=i*Math.PI/3;c.save();c.fillStyle='#ffd09e';c.beginPath();c.arc(Math.cos(a)*.38*r,Math.sin(a)*.38*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();c.restore();}eye(.22,-.12,r*.055,'#ffe1b8');
+  } else if(id==='coral'){
+   // Carnivorous garden: branching coral colony with a central anemone mouth and feeding polyps.
+   for(const side of [-1,1])for(let b=0;b<4;b++){const yy=(b-1.5)*.2;stroke(()=>{c.moveTo(-.3*r,yy*r);c.bezierCurveTo(-.7*r,side*(.22+b*.08)*r,-.72*r,side*(.65+b*.06)*r,(-.92-b*.08)*r,side*(.92+b*.08)*r)},Math.max(1.3,r*.065),b%2?'#bd3f68':'#e25b7c',8);for(let p=0;p<2;p++){const px=(-.64-b*.04-p*.12)*r,py=side*(.45+b*.06+p*.14)*r;fill(()=>c.arc(px,py,Math.max(1.2,r*.055),0,Math.PI*2),'#ffb3c3','#ffe3d5',Math.max(.6,r*.018),4);}}
+   fill(()=>{c.ellipse(.12*r,0,.7*r,.62*r,0,0,Math.PI*2)},bodyGrad('#b74468'),'rgba(255,177,200,.7)',Math.max(1,r*.04),9);
+   c.save();c.fillStyle='#170817';c.strokeStyle='#ff8fb3';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.ellipse(.35*r,0,.28*r,.34*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.35,0,.25,.3,10,.7);eye(.05,-.25,r*.045,'#ffd2df');
+  } else if(id==='bloodmoon'){  } else if(id==='bloodmoon'){
    // Pale deep-sea fangfish with a huge split jaw.
    fin([[-1.1,0],[-1.62,-.42],[-1.53,.05],[-1.68,.38]] ,color);fin([[-.3,-.34],[-.05,-.88],[.18,-.31]],color);
    fill(()=>{c.moveTo(-1.2*r,0);c.quadraticCurveTo(-.78*r,-.6*r,.05*r,-.48*r);c.lineTo(.75*r,-.17*r);c.lineTo(.98*r,.02*r);c.lineTo(.56*r,.12*r);c.quadraticCurveTo(-.4*r,.55*r,-1.2*r,0)},bodyGrad(color),'rgba(255,224,232,.5)',Math.max(1,r*.04),12);
    fill(()=>{c.moveTo(.38*r,-.05*r);c.quadraticCurveTo(.8*r,-.42*r,.93*r,-.18*r);c.lineTo(.75*r,.02*r);c.lineTo(.97*r,.27*r);c.quadraticCurveTo(.63*r,.32*r,.38*r,.12*r);c.closePath()},'#06111d','#ffbec9',Math.max(1,r*.045),8);
    for(let i=0;i<5;i++){const xx=(.47+i*.085)*r;fin([[xx/r,-.08],[xx/r-.035,.035],[xx/r+.035,.035]],'#fff0e7','#ffbec9');fin([[xx/r,.12],[xx/r-.03,.02],[xx/r+.03,.02]],'#fff0e7','#ffbec9')}eye(.36,-.25,r*.06,'#ffedf2');
-  } else if(id==='solar'||id==='violet'){
-   // Spiny viperfish: tapered fusiform body, forked tail and symmetrical dorsal spines.
-   fin([[-1.05,0],[-1.62,-.37],[-1.42,0],[-1.64,.34]],color);fin([[-.6,-.28],[-.42,-.88],[-.18,-.34]],color);fin([[0,-.28],[.12,-.75],[.32,-.24]],color);fin([[-.5,.28],[-.32,.68],[-.12,.29]],color);
-   fill(()=>{c.moveTo(-1.25*r,0);c.quadraticCurveTo(-.8*r,-.56*r,-.05*r,-.42*r);c.lineTo(.78*r,-.14*r);c.lineTo(1.04*r,0);c.lineTo(.68*r,.13*r);c.quadraticCurveTo(-.38*r,.46*r,-1.25*r,0)},bodyGrad(color),'rgba(236,255,255,.52)',Math.max(1,r*.04),12);
-   for(let i=0;i<6;i++){const xx=(-.68+i*.22)*r;fin([[xx/r,-.34],[xx/r+.05,-.65-(id==='solar'?.12:0)],[xx/r+.13,-.3]],id==='solar'?'#ffedbc':'#dfceff')};gills(-.08,-.19,3);eye(.62,-.06,r*.055);
-   if(id==='violet'){for(let side of [-1,1])fin([[.05,side*.25],[.28,side*.78],[.43,side*.24]],'#e4d2ff')}
-  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
+  } else if(id==='solar'){
+   // Solar core: compact armored sunfish with a corona of rigid golden rays.
+   for(let i=0;i<14;i++){const a=i*Math.PI/7,inner=.66,outer=i%2?1.0:1.18;fill(()=>{c.moveTo(Math.cos(a-.08)*inner*r,Math.sin(a-.08)*inner*r);c.lineTo(Math.cos(a)*outer*r,Math.sin(a)*outer*r);c.lineTo(Math.cos(a+.08)*inner*r,Math.sin(a+.08)*inner*r);c.closePath()},'#b66c24','#ffe7a1',Math.max(.7,r*.025),6);}
+   fill(()=>{c.ellipse(0,0,.72*r,.62*r,0,0,Math.PI*2)},bodyGrad('#d68b31'),'rgba(255,236,164,.82)',Math.max(1.2,r*.05),14);
+   c.save();const g=c.createRadialGradient(.1*r,-.08*r,1,.1*r,-.08*r,.48*r);g.addColorStop(0,'#fffce1');g.addColorStop(.4,'#ffd86a');g.addColorStop(1,'rgba(255,148,44,.12)');c.fillStyle=g;c.beginPath();c.arc(.1*r,-.08*r,.48*r,0,Math.PI*2);c.fill();c.restore();eye(.38,-.17,r*.055,'#fff4bc');
+  } else if(id==='violet'){
+   // Violet specter: translucent horned ghost, deliberately unlike any ordinary fish.
+   for(let i=0;i<5;i++){const yy=(-.35+i*.18);tentacle(-.48,yy,-.85,yy-.12,-1.08,yy+.18,-1.38,yy+(i-2)*.12,.65);}
+   fill(()=>{c.moveTo(-.55*r,.38*r);c.bezierCurveTo(-.82*r,-.15*r,-.55*r,-.7*r,.02*r,-.72*r);c.bezierCurveTo(.58*r,-.7*r,.82*r,-.25*r,.7*r,.28*r);c.quadraticCurveTo(.18*r,.65*r,-.55*r,.38*r);c.closePath()},bodyGrad('#7650b8'),'rgba(221,199,255,.72)',Math.max(1.1,r*.045),16);
+   fin([[.12,-.58],[.35,-1.16],[.52,-.5]],'#6c4ca7','#e1d1ff');fin([[.45,-.42],[.78,-.92],[.7,-.28]],'#6c4ca7','#e1d1ff');
+   c.save();c.globalAlpha=.6;c.fillStyle='#c9a8ff';c.shadowBlur=16*glowScale;c.shadowColor='#a56dff';c.beginPath();c.ellipse(.08*r,.03*r,.34*r,.42*r,0,0,Math.PI*2);c.fill();c.restore();eye(.18,-.13,r*.07,'#f0e6ff');
+  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){  } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
    if(id==='aberration'){
     for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.42+i*.35,side*.18,-.62+i*.3,side*.48,-.38+i*.3,side*.82,-.68+i*.4,side*1.05,.85,true);
     fill(()=>{c.moveTo(-.7*r,-.3*r);c.lineTo(-.5*r,-.78*r);c.lineTo(-.1*r,-.52*r);c.lineTo(.22*r,-.85*r);c.lineTo(.7*r,-.32*r);c.lineTo(.68*r,.2*r);c.lineTo(.1*r,.55*r);c.lineTo(-.55*r,.25*r);c.closePath()},bodyGrad(color),'rgba(255,188,202,.8)',Math.max(1.2,r*.05),12);
