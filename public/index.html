@@ -94,6 +94,7 @@
           <button id="profileBtn" class="secondary-btn menu-action">PERFIL & TÍTULOS <span>✧</span></button>
           <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal">SUPORTE <span aria-hidden="true">✉</span></button>
         </div>
+        <button id="resonanceBtn" class="secondary-btn resonance-menu-btn" type="button">✧ RESSONÂNCIA <span>7/7 HABILIDADES</span></button>
         <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
         <div class="controls-hint"><span>WASD / SETAS</span><i>ou</i><span>TOQUE E ARRASTE</span></div>
         <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
@@ -446,6 +447,7 @@
         <button id="cardumesCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
     </section>
+<section id="resonanceScreen" class="screen modal-screen" hidden><div class="modal-card codex-modal resonance-modal" role="dialog" aria-modal="true" aria-labelledby="resonanceTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="resonanceScreen" aria-label="Fechar ressonância">×</button><div class="eyebrow"><span class="pulse-dot"></span> PREPARE SUA EVOLUÇÃO</div><h2 id="resonanceTitle">RESSONÂNCIA<br><em>ABISSAL</em></h2><p>Escolha até 7 habilidades básicas que aparecerão durante as evoluções. Combinações podem criar ressonâncias adicionais, com limite de 10 habilidades no total.</p><div class="resonance-mode-tabs"><button type="button" class="primary-btn" data-resonance-mode="pve">RESSONÂNCIA PVE</button><button type="button" class="secondary-btn" data-resonance-mode="pvp">RESSONÂNCIA PVP</button></div><div id="resonanceSelectionCount" class="resonance-selection-count">7 de 7 selecionadas</div><div id="resonanceSkillChoices" class="resonance-skill-choices"></div><p id="resonanceMessage" class="form-message" aria-live="polite"></p><button id="saveResonanceBtn" class="primary-btn" type="button">SALVAR COMBINAÇÃO</button></div></section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>CATÁLOGO<br><em>ABISSAL</em></h2><p>Descubra novas habilidades e criaturas durante suas expedições.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
     </section>
@@ -519,7 +521,7 @@
 <script src="enemy-ai.js?v=3.5.34"></script>
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
-<script src="game.js?v=3.5.76"></script>
+<script src="game.js?v=3.5.77"></script>
 <script src="online.js?v=3.5.42"></script>
 <script>
 /* UI failsafe for the rebuilt global chat. */
