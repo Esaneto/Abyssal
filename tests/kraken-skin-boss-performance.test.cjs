@@ -100,7 +100,7 @@ test('shop includes one-time abyssal10k redemption for 10,000 coins', () => {
 
 test('Kraken boss renders the same eight-arm violet silhouette as the player skin', () => {
   const game = read('public/game.js');
-  assert.match(game, /else if\(kind==='kraken'\)/);
+  assert.match(game, /if\(kind==='kraken'\)/);
   assert.match(game, /for\(let arm=0;arm<8;arm\+\+\)/);
   assert.match(game, /bodyGrad\('#8b5cf6'\)/);
   assert.match(game, /touchesKrakenTentacle/);
@@ -128,3 +128,13 @@ test('Kraken tentacle poses radiate into all four directions', () => {
 
 test('redeem code is entered in a dedicated modal',()=>{const html=read('public/index.html'),css=read('public/style.css'),game=read('public/game.js');assert.match(html,/id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen"/);assert.match(game,/openRedeemCodeBtn.*openRedeemCodeModal/);assert.match(game,/coins\+=10000/);assert.match(css,/\.redeem-modal-screen\{z-index:12/);});
 test('prism spread and photon lance upgrades affect projectile creation',()=>{const game=read('public/game.js');assert.match(game,/id:'spread',name:'Rajada Prismática'/);assert.match(game,/id:'photon',name:'Lança de Fótons'/);assert.match(game,/if\(activeShot==='spread'\)/);assert.match(game,/shotSpeed=430\*\(activeShot==='photon'\?1\+\.22\*shotLevel:1\)\/GAME_WORLD_ZOOM/);});
+
+
+test('Kraken boss sweep is telegraphed before tentacle contact becomes dangerous',()=>{
+ const worldSource=read('world-simulation.js'),game=read('public/game.js');
+ assert.match(worldSource,/cycle < 2\.4/);
+ assert.match(worldSource,/cycle >= 2\.4 && cycle < 5\.2/);
+ assert.match(worldSource,/enemy\.krakenSweepActive === true/);
+ assert.match(game,/krakenTelegraph/);
+ assert.match(game,/enemyState\?\.phase/);
+});

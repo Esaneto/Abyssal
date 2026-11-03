@@ -372,7 +372,8 @@ function getRoomMotionSnapshot(room, options = {}){
    e.id,Math.round(Number(e.x)||0),Math.round(Number(e.y)||0),Number(e.hp)||0,Number(e.damageRevision)||0,
    Math.round((Number(e.angle)||0)*100)/100,Math.round((Number(e.phase)||0)*100)/100,
    e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,
-   Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100
+   Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100,
+   e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100
   ]),
   ...(options.includeOrbs?{orbIntervalMs:500,orbScope:recipient?'view':'all',orbs:visibleOrbs.slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
  };
@@ -529,6 +530,24 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   if(player.arcChainTargetIds.has(normalizedId)||player.arcChainTargetIds.size>=8)return reject('arc-chain-target-limit');
   player.arcChainTargetIds.add(normalizedId);
   requestedDamage=Math.min(requestedDamage,16);
+ }
+ if(skillId==='toxic-cloud'){
+  if(!player||player.skinId!=='toxic')return reject('skin-ability-not-owned');
+  const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
+  if(distance>190/WORLD_ZOOM)return reject('skin-ability-out-of-range');
+  if(now>(Number(player.toxicCloudWindowUntil)||0)){
+   if(now<(Number(player.toxicCloudReadyAt)||0))return reject('skin-ability-cooldown');
+   player.toxicCloudReadyAt=now+5000;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
+  }
+  player.toxicCloudTargetIds ||= new Set();if(player.toxicCloudTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
+  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,8);
+ }
+ if(skillId==='kraken-contact'){
+  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
+  const proxy={kind:'kraken',x:Number(player.x),y:Number(player.y),r:(13/WORLD_ZOOM)*1.45,angle:Number(player.angle)||0,phase:(now*.0018)};
+  if(!EnemyAI.touchesKrakenTentacle?.(proxy,enemy,1))return reject('skin-ability-out-of-range');
+  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<420)return reject('skin-ability-cooldown');
+  player[key]=now;requestedDamage=Math.min(requestedDamage,24);
  }
  const predatorSkills={
   'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:34,arc:.48,width:58/WORLD_ZOOM},

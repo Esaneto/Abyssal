@@ -230,7 +230,7 @@
     }
 
     enemy.angle = Math.atan2(dy, dx);
-    enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : 3);
+    enemy.phase = (Number(enemy.phase) || 0) + dt * (enemy.kind === 'stinger' ? 7 : enemy.kind === 'kraken' ? 0.42 : 3);
     const baseSpeed = Math.max(0, Number(enemy.speed) || 0);
     let pursuitSpeed = baseSpeed;
     if (BOSS_KINDS.includes(enemy.kind)) {
