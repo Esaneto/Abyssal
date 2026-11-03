@@ -2030,75 +2030,28 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    eye(.43,-.2,r*.06,'#f5d174');eye(.43,.2,r*.06,'#f5d174');
    for(let tooth=0;tooth<8;tooth++){const tx=(.78+tooth*.085)*r,side=tooth%2?1:-1;fin([[tx/r,side*.025],[tx/r+.035,side*.12],[tx/r+.07,side*.035]],'#f8f0d4','#4c4634');}
     } else if(id==='electriceel'){
-   // Enguia Elétrica: corpo longo azul ciano/violeta com arcos elétricos e filamentos
-   const wave = Math.sin(t * 0.008) * 0.22;
-   fill(()=>{
-     c.moveTo(-2.2*r, wave*r);
-     c.quadraticCurveTo(-1.5*r, -0.32*r + wave*r, -0.7*r, -0.25*r);
-     c.quadraticCurveTo(0, -0.18*r - wave*r, 0.8*r, -0.12*r);
-     c.lineTo(1.2*r, 0);
-     c.lineTo(0.8*r, 0.12*r);
-     c.quadraticCurveTo(0, 0.18*r + wave*r, -0.7*r, 0.25*r);
-     c.quadraticCurveTo(-1.5*r, 0.32*r - wave*r, -2.2*r, wave*r);
-     c.closePath();
-   }, bodyGrad('#1a8fff'), '#38e8ff', Math.max(1.3, r*.04), 18);
-
-   // Olhos e barbatana dorsal translúcida
-   stroke(()=>{
-     c.moveTo(-1.8*r, -0.12*r + wave*r*0.5);
-     c.quadraticCurveTo(-0.5*r, -0.38*r, 0.6*r, -0.15*r);
-   }, Math.max(1.5, r*0.06), '#64f6ff', 12);
-
-   // Faíscas e arcos de eletricidade crepitando pelo corpo da enguia
-   for(let k=0; k<4; k++){
-     // Deterministic electric arcs: time-driven animation avoids per-frame random jitter.
-     const phase=t*0.007+k*1.73;
-     const sparkX=(-1.4+k*0.65)*r+Math.sin(phase*1.31)*3;
-     const sparkY=Math.sin(phase)*0.15*r+Math.cos(phase*1.91)*4;
-     const bendX=Math.sin(phase*2.17)*7,bendY=Math.cos(phase*1.67)*8;
-     stroke(()=>{
-       c.moveTo(sparkX,sparkY);
-       c.lineTo(sparkX+bendX,sparkY+bendY);
-       c.lineTo(sparkX+Math.sin(phase*2.83)*12,sparkY+Math.cos(phase*2.41)*6);
-     },1.6,'#ffffff',14);
-   }
-   fill(()=>{ c.arc(0.7*r, -0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
-   fill(()=>{ c.arc(0.7*r, 0.07*r, 2.5, 0, Math.PI*2); }, '#ffffff', '#38e8ff', 1, 8);
+   // Bioelectric eel: low, continuous silhouette with a long anal fin and travelling organ pulses.
+   const swim=Math.sin(t*.0046)*.055,tail=Math.sin(t*.0062)*.16;
+   fill(()=>{c.moveTo(-2.35*r,tail*r);c.bezierCurveTo(-1.72*r,(-.16+swim)*r,-.82*r,-.28*r,.12*r,-.24*r);c.bezierCurveTo(.62*r,-.22*r,1.12*r,-.14*r,1.38*r,-.03*r);c.quadraticCurveTo(1.5*r,0,1.38*r,.08*r);c.bezierCurveTo(.68*r,.27*r,-.35*r,.32*r,-1.18*r,.24*r);c.bezierCurveTo(-1.72*r,.18*r,-2.06*r,(.12+tail)*r,-2.35*r,tail*r);c.closePath()},bodyGrad('#176e86'),'rgba(95,245,255,.86)',Math.max(1.1,r*.035),12);
+   // Electric eels lack the tall shark-like dorsal fin. The long ventral fin drives the swimming motion.
+   fill(()=>{c.moveTo(-1.72*r,.19*r);c.bezierCurveTo(-.9*r,(.48+swim)*r,.28*r,.43*r,1.08*r,.17*r);c.bezierCurveTo(.25*r,.31*r,-.82*r,.34*r,-1.72*r,.19*r);c.closePath()},'rgba(41,173,193,.42)','rgba(119,255,247,.42)',Math.max(.7,r*.018),3);
+   eye(1.02,-.105,r*.045,'#d9ffff');
+   // Organ pulses travel from tail to head instead of flickering randomly each frame.
+   c.save();c.globalCompositeOperation='lighter';for(let k=0;k<7;k++){const phase=(t*.00055+k/7)%1,px=(-1.85+phase*2.85)*r,py=Math.sin(phase*9+t*.004)*.075*r,alpha=.25+.55*Math.sin(phase*Math.PI);c.globalAlpha=Math.max(.12,alpha);c.fillStyle=k%2?'#8ffff8':'#b9d8ff';c.shadowBlur=12*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(px,py,Math.max(1,r*.045),Math.max(.7,r*.022),0,0,Math.PI*2);c.fill();}c.restore();
+   for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-1.15+k*.78)*r,sy=Math.sin(phase)*.13*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+Math.sin(phase*1.7)*.16*r,sy+Math.cos(phase*1.3)*.18*r);c.lineTo(sx+.3*r,sy+Math.sin(phase*2.2)*.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.9)',8);}
   } else if(id==='greensnake'){
-   // Serpente Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
-   const segWave = Math.sin(t * 0.006) * 0.15;
-   fill(()=>{
-     c.moveTo(-2.4*r, segWave*r);
-     c.quadraticCurveTo(-1.8*r, -0.45*r + segWave*r, -0.9*r, -0.38*r);
-     c.quadraticCurveTo(0, -0.28*r - segWave*r, 0.85*r, -0.15*r);
-     c.lineTo(1.35*r, 0);
-     c.lineTo(0.85*r, 0.18*r);
-     c.quadraticCurveTo(0, 0.35*r + segWave*r, -0.9*r, 0.3*r);
-     c.quadraticCurveTo(-1.8*r, 0.4*r - segWave*r, -2.4*r, segWave*r);
-     c.closePath();
-   }, bodyGrad('#2ee88a'), 'rgba(180,255,210,.9)', Math.max(1.3, r*.05), 16);
-   for(let s=0; s<9; s++){
-     const sx = (-1.8 + s * 0.34) * r;
-     const sy = Math.sin(t*0.005 + s*0.6) * 0.08 * r;
-     fin([[sx/r, -0.1 + sy/r], [sx/r + 0.08, -0.38 + sy/r], [sx/r + 0.16, -0.1 + sy/r]], '#187845', '#79ffba');
-   }
-   fill(()=>{
-     c.moveTo(0.55*r, -0.22*r);
-     c.lineTo(1.25*r, -0.18*r);
-     c.lineTo(1.55*r, 0);
-     c.lineTo(1.25*r, 0.18*r);
-     c.lineTo(0.55*r, 0.22*r);
-     c.closePath();
-   }, bodyGrad('#3af597'), 'rgba(215,255,230,.95)', Math.max(1.1, r*.04), 8);
-   eye(0.9, -0.18, r*0.07, '#ffc83b');
-   eye(0.9, 0.18, r*0.07, '#ffc83b');
-   stroke(()=>{
-     c.moveTo(1.52*r, 0);
-     c.lineTo(1.8*r, 0);
-     c.lineTo(1.95*r, -0.06*r);
-     c.moveTo(1.8*r, 0);
-     c.lineTo(1.95*r, 0.06*r);
-   }, Math.max(1.2, r*0.025), '#ff4d6d', 4);
+   // Emerald trench serpent: plated sea-serpent silhouette, distinct from the smooth electric eel.
+   const bodyWave=Math.sin(t*.0048)*.09;
+   fill(()=>{c.moveTo(-2.45*r,bodyWave*r);c.bezierCurveTo(-1.9*r,(-.36+bodyWave)*r,-1.15*r,-.42*r,-.42*r,-.31*r);c.bezierCurveTo(.18*r,-.24*r,.62*r,-.28*r,.98*r,-.18*r);c.lineTo(1.42*r,-.11*r);c.lineTo(1.63*r,0);c.lineTo(1.42*r,.13*r);c.lineTo(.92*r,.21*r);c.bezierCurveTo(.28*r,.37*r,-.55*r,.33*r,-1.22*r,.28*r);c.bezierCurveTo(-1.86*r,.22*r,-2.18*r,(.2+bodyWave)*r,-2.45*r,bodyWave*r);c.closePath()},bodyGrad('#17633f'),'rgba(102,255,176,.78)',Math.max(1.2,r*.04),10);
+   // Overlapping dorsal scutes create a dragon-serpent identity without random animation.
+   for(let s=0;s<10;s++){const q=s/9,sx=(-1.72+q*2.48),sy=-.25-Math.sin(q*Math.PI)*.12;fin([[sx,sy],[sx+.09,sy-.22-(s%3===0?.08:0)],[sx+.19,sy+.02]],s%2?'#31b96d':'#48d981','rgba(155,255,201,.7)');}
+   // Broad armored head, jaw seam and sensory barbels.
+   fill(()=>{c.moveTo(.72*r,-.27*r);c.lineTo(1.28*r,-.25*r);c.lineTo(1.68*r,-.08*r);c.lineTo(1.76*r,0);c.lineTo(1.64*r,.14*r);c.lineTo(1.22*r,.28*r);c.lineTo(.72*r,.23*r);c.closePath()},bodyGrad('#238a55'),'rgba(184,255,213,.9)',Math.max(1,r*.035),6);
+   stroke(()=>{c.moveTo(1.05*r,.04*r);c.quadraticCurveTo(1.38*r,.13*r,1.67*r,.03*r)},Math.max(.7,r*.022),'rgba(222,255,229,.7)',2);
+   eye(1.18,-.17,r*.055,'#ffc84d');eye(1.18,.17,r*.055,'#ffc84d');
+   for(const side of [-1,1])stroke(()=>{c.moveTo(1.48*r,side*.1*r);c.quadraticCurveTo(1.82*r,side*.22*r,2.02*r,side*.36*r)},Math.max(.7,r*.018),'#8dffc1',4);
+   // Venom sacs and lateral photophores visually communicate the damage passive.
+   for(let k=0;k<6;k++){const px=(-1.25+k*.36)*r,py=.13*r;c.save();c.globalAlpha=.65;c.fillStyle='#7dff9e';c.shadowBlur=8*glowScale;c.shadowColor='#2ee88a';c.beginPath();c.arc(px,py,Math.max(.8,r*.026),0,Math.PI*2);c.fill();c.restore();}
   } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.
    for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
