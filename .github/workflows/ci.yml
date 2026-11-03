@@ -40,7 +40,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Install Android SDK 36
-        run: |\n          SDKMANAGER="$(find "$ANDROID_HOME" -type f -name sdkmanager | head -n 1)"\n          test -n "$SDKMANAGER" || { echo "sdkmanager not found under $ANDROID_HOME"; find "$ANDROID_HOME" -maxdepth 4 -type f | head -200; exit 1; }\n          yes | "$SDKMANAGER" --licenses >/dev/null || true\n          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME" -type f -name sdkmanager | head -n 1)
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
       - name: Install server dependencies
         run: npm ci
       - name: Install Capacitor tooling
