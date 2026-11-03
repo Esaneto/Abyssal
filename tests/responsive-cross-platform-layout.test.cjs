@@ -79,3 +79,23 @@ test('mobile menu utilities do not use fixed positioning in final layout',()=>{
  assert.match(final,/@media \(max-width:700px\) and \(orientation:portrait\)/);
  assert.match(final,/@media \(pointer:coarse\) and \(orientation:landscape\)/);
 });
+
+test('mobile match uses floating movement and only fixed aim stick',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.match(game,/\[\[mobileAimStick,true\]\]\.forEach/);
+ assert.match(css,/body\.mobile-game-active #mobileMoveStick\{display:none!important\}/);
+ assert.match(css,/#mobileAimStick\.dual-stick-visible/);
+ assert.match(css,/#mobileJoystick\.is-floating/);
+});
+test('mobile match requests portrait and blocks landscape as fallback',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ assert.match(game,/screen\.orientation\?\.lock\?\.\('portrait'\)/);
+ assert.match(css,/@media \(pointer:coarse\) and \(orientation:landscape\)/);
+ assert.match(css,/GIRE O CELULAR PARA A VERTICAL/);
+});
+test('desktop end dive and collapsed HUD controls own distinct edge zones',()=>{
+ const final=css.slice(css.lastIndexOf('UI V8'));
+ assert.match(final,/#endDiveBtn\{[\s\S]*top:calc\(14px \+ min\(30vh,260px\) \+ 12px\)!important/);
+ assert.match(final,/body\.game-active\.hud-collapsed:not\(\.mobile-game-active\) #toggleHudBtn\{\s*right:14px!important/);
+ assert.match(final,/#activeAbilities\.active-abilities\{[\s\S]*left:14px!important;right:auto!important;[\s\S]*bottom:14px!important/);
+});
