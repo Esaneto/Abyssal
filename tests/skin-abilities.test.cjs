@@ -121,3 +121,29 @@ test('paid skin copy matches implemented white shark and boss-skin mechanics',()
  assert.ok(game.includes('Isca predatória: +25% de dano a longa distância e +15% de alcance'));
  assert.ok(game.includes('Mordida de fenda: +30% de dano contra inimigos próximos'));
 });
+
+
+test('shot families use explicit power budgets instead of full damage per projectile',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("spread:{damage:[0,6.0,4.6,3.8]"));
+ assert.ok(game.includes("photon:{damage:[0,14,18,22]"));
+ assert.ok(game.includes("pierce:{damage:[0,13,16,19]"));
+ assert.ok(game.includes("electric:{damage:[0,11,13,15]"));
+ assert.ok(game.includes("getShotDamageAtLevel(shotLevel,activeShot)"));
+});
+
+test('electric shot has deterministic lightning geometry and reduced chain damage',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("type:'electric-arc'"));
+ assert.ok(game.includes("chainDamage:[0,.38,.34,.30]"));
+ assert.ok(game.includes("Math.sin((Number(fx.seed)||0)*.17+s*2.2)"));
+ assert.ok(!game.includes("if(p.special==='electric'){ctx.strokeStyle='#eaffff';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-p.vx*.025,p.y-p.vy*.025);ctx.lineTo(p.x+rand(-4,4)"));
+});
+
+test('major radial abilities use layered silhouettes for readable VFX',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("color:'#7568ff'"));
+ assert.ok(game.includes("color:'#b8aaff'"));
+ assert.ok(game.includes("color:'#c18cff'"));
+ assert.ok(game.includes("color:'#f0d9ff'"));
+});
