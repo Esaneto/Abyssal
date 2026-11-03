@@ -625,7 +625,9 @@ function tickRoom(room, now) {
  const w = room.world;
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
-  const w=room.world;w.orbs||=[];room.lastPvpOrbSpawnAt=Number(room.lastPvpOrbSpawnAt)||now;
+  const w=room.world;w.orbs||=[];w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.55;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-1);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:1,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:1,blocked,source:'reefshark-bubble'});}}
+  room.lastPvpOrbSpawnAt=Number(room.lastPvpOrbSpawnAt)||now;
   if(now-room.lastPvpOrbSpawnAt>=2200&&w.orbs.length<90){
    room.lastPvpOrbSpawnAt=now;const values=[5,10,20,35,60],value=values[Math.floor(Math.random()*values.length)];let point=null;
    for(let attempt=0;attempt<18;attempt++){const x=WORLD_WIDTH*(.04+Math.random()*.92),y=WORLD_HEIGHT*(.04+Math.random()*.92);if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<Math.min(WORLD_WIDTH,WORLD_HEIGHT)*.235)continue;if(pvpRockAt(x,y,30/WORLD_ZOOM))continue;point={x,y};break;}
@@ -1053,6 +1055,14 @@ socket.on('global-chat-send',(payload={})=>{
   const u = users[socket.data.userKey];
   const type = payload.type === 'bubble-trail' && (skin === 'reefshark' || skin === 'whiteShark') ? 'bubble-trail' : 'ability';
   const event = {type,from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
+  if(type==='bubble-trail'&&room.mode==='pvp'){
+   const player=room.players.get(socket.id);
+   if(player&&(player.skinId==='reefshark'||player.skinId==='whiteShark')){
+    room.world.sharkWakeTrails=Array.isArray(room.world.sharkWakeTrails)?room.world.sharkWakeTrails:[];
+    room.world.sharkWakeTrails.push({ownerId:socket.id,x:x*WORLD_WIDTH,y:y*WORLD_HEIGHT,r:18/WORLD_ZOOM,life:5,damageTimer:.55});
+    if(room.world.sharkWakeTrails.length>160)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-160);
+   }
+  }
   // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
   let delivered = 0;
   // A chave do Map é o ID real do socket; peer.id pode faltar após reconexões.
