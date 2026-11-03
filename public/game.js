@@ -92,12 +92,12 @@ const skinData=[
  {id:'angler',name:'Lanterna Mortal',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'A isca incandescente e a mandíbula de agulhas do peixe-pescador abissal.',ability:'Isca predatória: aumenta em 10% o dano contra criaturas a longa distância.'},
  {id:'maw',name:'Mandíbula da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Uma boca circular de dentes radiais, cercada por filamentos de caça.',ability:'Mordida de fenda: aumenta em 12% o dano contra inimigos próximos.'},
  {id:'devourer',name:'Devorador do Vazio',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'A silhueta bojuda e a boca descomunal da criatura que engole correntes inteiras.',ability:'Vácuo residual: após eliminar um boss, atrai orbes próximos por alguns segundos.'},
-{id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Um grande tubarão branco de dorso cinza, ventre claro e nadadeiras em foice.',ability:'Gira a cauda em um golpe frontal, deixando um rastro de espuma azul que fere inimigos atravessados.'},
-{id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'O cefalofólio largo e os olhos laterais denunciam um tubarão-martelo.',ability:'Eletrorecepção: atrai orbes de experiência de 50% mais longe.'},
-{id:'abysscroc',name:'Jacaré-açu',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Focinho largo, pernas curtas, cauda forte e placas de um jacaré-açu.',ability:'Mordida de emboscada: uma arrancada baixa e explosiva que causa dano em cone à frente.'},
-{id:'armoredgator',name:'Crocodilo-do-nilo',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Focinho triangular, escamas rugosas e armadura dorsal de crocodiliano.',ability:'Giro do Nilo: rotação de cauda que repele inimigos próximos e cria uma onda de impacto.'},
-{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Uma serpente colossal das profundezas, esculpida em escamas de jade reluzentes com olhos de âmbar.',ability:'Soberania Ofídica: concede 20% mais velocidade e veneno corrosivo que amplifica o dano.'},
-  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Enguia abissal de corpo sinuoso que gera descargas bioelétricas contínuas através da água salgada.',ability:'Descarga Estática: Seus ataques irradiam eletricidade paralisando brevemente (0,1s) os inimigos atingidos.'},
+{id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Investida Pelágica: atravessa a curta distância em alta velocidade e a esteira causa dano aos inimigos cruzados. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
+{id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
+{id:'abysscroc',name:'Jacaré-açu',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Corpo pesado, focinho largo em U, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
+{id:'armoredgator',name:'Crocodilo-do-nilo',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Perfil alongado, focinho em V, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
+{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Predadora abissal de corpo longo, placas de jade e órgãos fotóforos verdes que marcam seu movimento na escuridão.',ability:'Soberania Ofídica: +20% de velocidade de movimento e +10% de dano causado.'},
+  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Predadora bioelétrica de corpo alongado, ventre luminoso e pulsos ciano que percorrem a linha lateral.',ability:'Sobrecarga Bioelétrica: +22% de velocidade de movimento e +15% de dano causado.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
@@ -940,10 +940,10 @@ const upgradeList=[
  {id:'predator',name:'Instinto Predatório',icon:'☠',desc:'Aumenta todo o dano causado em 8% por nível, até 24%.',apply:()=>upgrades.predator=Math.min(3,(upgrades.predator||0)+1)}
 ];
 const COMBO_SKILLS={
- gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Campo gravitacional contínuo com alcance igual ao alcance de disparo. Inimigos dentro da área recebem dano periódico e faíscas de energia.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Combina Tempestade Elétrica e Pulso Intenso: a cada pulso, arcos de energia atingem até 8 inimigos em um raio igual à metade do alcance de disparo anterior.'},
- abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Combina Lança do Abismo e Olho Profundo no nível 3. Os disparos atravessam o mapa até atingir uma criatura ou obstáculo; o indicador de alcance desaparece.'},
- vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Combina Membrana Viva e Pulso Intenso no nível 3. Recupera 2% do dano causado como vida.'}
+ gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Fusão de Pulso de Ruptura + Nova Gravitacional no nível 3. Mantém um campo ao redor do jogador que causa dano periódico dentro do alcance de disparo.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica + Pulso Intenso no nível 3. Descargas encadeadas atingem até 8 inimigos dentro do campo elétrico.'},
+ abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Fusão de Lança do Abismo + Olho Profundo no nível 3. Os disparos deixam de respeitar o limite normal de alcance e seguem até atingir uma criatura ou obstáculo.'},
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
