@@ -38,3 +38,11 @@ test('mobile information panels occupy opposite arena corners',()=>{
  assert.match(css,/#selectedSkillsPanel\{left:var\(--game-safe-left\)!important;right:auto!important/);
  assert.match(css,/#runEnergyRanking\{left:auto!important;right:var\(--game-safe-right\)!important/);
 });
+
+test('desktop persistent match UI is zoned into extreme corners',()=>{
+ assert.match(css,/DESKTOP MATCH HUD V5/);
+ assert.match(css,/\.hud\{\s*left:14px!important;right:auto!important;top:14px!important/);
+ assert.match(css,/#selectedSkillsPanel\{\s*left:auto!important;right:14px!important;top:14px!important/);
+ assert.match(css,/#runEnergyRanking\{\s*left:auto!important;right:14px!important;top:auto!important;bottom:14px!important/);
+ assert.match(css,/#activeAbilities\.active-abilities\{\s*left:14px!important;right:auto!important;top:auto!important;bottom:14px!important/);
+});
