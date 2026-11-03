@@ -254,8 +254,8 @@ test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
 
 test('local PvP nova uses the same rock-occluded rings as remote nova',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/if\(isPvpMode\)\{effects\.push\(\{type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange/);
- assert.match(game,/type:'occluded-ring',x:player\.x,y:player\.y,r:0,max:novaRange\*\.72/);
+ assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode\)/);
+ assert.match(game,/function spawnNovaVisual/);
 });
 
 test('combat feedback has typed two-second damage numbers and five-second blood pools',()=>{
