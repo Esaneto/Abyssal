@@ -584,7 +584,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  }
  document.addEventListener('fullscreenchange',updateFullscreenButton);
  document.addEventListener('webkitfullscreenchange',updateFullscreenButton);
- $('downloadBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=false;});
+ [$('downloadBtn'),$('mobileDownloadTopBtn')].filter(Boolean).forEach(button=>button.addEventListener('click',()=>{$('downloadScreen').hidden=false;}));
  $('downloadCloseBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('playBrowserBtn')?.addEventListener('click',()=>{$('downloadScreen').hidden=true});
  $('installPwaBtn')?.addEventListener('click',async()=>{
