@@ -2580,3 +2580,158 @@ body.mobile-game-active #activeAbilities .active-ability {
   .menu-secondary-actions{grid-template-columns:1fr!important}
   .menu-action{min-height:42px;height:auto;padding:9px 10px}
 }
+
+
+/* ==========================================================================
+   CROSS-PLATFORM GAME LAYOUT · 2026-11
+   Fair camera is handled in game.js. This layer keeps interaction chrome out
+   of the combat center and gives portrait, landscape and desktop distinct HUDs.
+   ========================================================================== */
+:root{
+ --game-safe-top:max(10px,env(safe-area-inset-top));
+ --game-safe-right:max(10px,env(safe-area-inset-right));
+ --game-safe-bottom:max(10px,env(safe-area-inset-bottom));
+ --game-safe-left:max(10px,env(safe-area-inset-left));
+ --touch-target:48px;
+}
+#gameShell{overflow:hidden;min-width:0;min-height:0}
+#game{display:block;width:100%;height:100%;touch-action:none}
+
+/* Desktop: central combat lane stays clear; utilities use predictable edges. */
+body.game-active:not(.mobile-game-active) .hud{
+ left:50%;right:auto;top:14px;width:min(760px,calc(100vw - 440px));transform:translateX(-50%);
+}
+body.game-active:not(.mobile-game-active) .hud-top{
+ display:grid;grid-template-columns:repeat(4,minmax(92px,1fr));gap:10px;
+}
+body.game-active:not(.mobile-game-active) #selectedSkillsPanel{
+ left:14px;right:auto;top:84px;width:210px;max-height:min(46vh,420px);
+}
+body.game-active:not(.mobile-game-active) #runEnergyRanking{
+ left:14px;right:auto;top:auto;bottom:18px;width:210px;max-height:28vh;
+}
+body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{
+ left:50%!important;right:auto!important;bottom:18px!important;transform:translateX(-50%);
+ display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:10px!important;
+}
+body.game-active:not(.mobile-game-active) #activeAbilities .active-ability{
+ min-width:154px!important;max-width:220px!important;min-height:44px!important;padding:9px 14px!important;
+}
+body.game-active:not(.mobile-game-active) #roomBadge.room-badge{
+ right:14px!important;bottom:14px!important;
+}
+body.game-active:not(.mobile-game-active) .mobile-pause-btn{display:none!important}
+
+/* Menus: coherent hierarchy on desktop, no scattered action buttons. */
+@media (min-width:701px){
+ #menuScreen .menu-content{width:min(520px,calc(100vw - 80px));max-height:calc(100dvh - 54px);overflow:auto;padding:8px 10px 18px;scrollbar-gutter:stable}
+ #menuScreen .menu-secondary-actions{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));}
+ #menuScreen .menu-secondary-actions .online-cta{grid-column:1/-1}
+ #menuScreen .resonance-menu-btn{width:100%}
+ #menuScreen .controls-cta,#menuScreen .download-cta{position:fixed;top:58px;min-height:36px;height:36px}
+ #menuScreen .download-cta{right:14px}
+ #menuScreen .controls-cta{right:112px}
+}
+
+/* Mobile shared rules: touch-sized controls, safe areas and uncluttered center. */
+@media (max-width:700px),(pointer:coarse){
+ body.mobile-game-active .hud{
+  top:var(--game-safe-top)!important;left:var(--game-safe-left)!important;right:var(--game-safe-right)!important;
+  width:auto!important;transform:none!important;pointer-events:none;
+ }
+ body.mobile-game-active .hud-top{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px!important}
+ body.mobile-game-active .hud-stat{padding:5px 6px!important;border-radius:7px!important;background:rgba(2,12,22,.68)!important;backdrop-filter:blur(5px)}
+ body.mobile-game-active .hud-stat small{font-size:clamp(5px,1.5vw,7px)!important}
+ body.mobile-game-active .hud-stat strong{font-size:clamp(12px,3.6vw,16px)!important}
+ body.mobile-game-active .mobile-pause-btn{
+  display:grid!important;place-items:center;top:calc(var(--game-safe-top) + 58px)!important;right:var(--game-safe-right)!important;
+  width:var(--touch-target)!important;height:var(--touch-target)!important;min-width:var(--touch-target)!important;min-height:var(--touch-target)!important;
+  padding:0!important;border-radius:50%!important;z-index:45!important;
+ }
+ body.mobile-game-active #toggleHudBtn{
+  top:calc(var(--game-safe-top) + 58px)!important;left:var(--game-safe-left)!important;right:auto!important;
+  width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;z-index:44!important;
+ }
+ body.mobile-game-active #selectedSkillsPanel{
+  top:calc(var(--game-safe-top) + 108px)!important;left:var(--game-safe-left)!important;right:auto!important;
+  width:clamp(118px,34vw,164px)!important;max-height:24dvh!important;opacity:.88;
+ }
+ body.mobile-game-active #runEnergyRanking{
+  top:auto!important;left:var(--game-safe-left)!important;right:auto!important;bottom:calc(var(--game-safe-bottom) + 154px)!important;
+  width:clamp(118px,34vw,164px)!important;max-height:17dvh!important;opacity:.86;
+ }
+ body.mobile-game-active #activeAbilities.active-abilities{
+  left:50%!important;right:auto!important;bottom:calc(var(--game-safe-bottom) + 12px)!important;transform:translateX(-50%)!important;
+  width:min(44vw,210px)!important;max-width:none!important;display:flex!important;flex-direction:column!important;gap:7px!important;z-index:40!important;
+ }
+ body.mobile-game-active #activeAbilities .active-ability{
+  width:100%!important;min-width:0!important;min-height:var(--touch-target)!important;max-width:none!important;padding:8px 9px!important;
+  font-size:8px!important;border-radius:10px!important;white-space:normal!important;
+ }
+ body.mobile-game-active .mobile-dual-stick{
+  bottom:var(--game-safe-bottom)!important;width:clamp(104px,27vw,132px)!important;height:clamp(118px,31vw,150px)!important;z-index:41!important;
+ }
+ body.mobile-game-active .mobile-dual-stick.move-stick{left:var(--game-safe-left)!important}
+ body.mobile-game-active .mobile-dual-stick.aim-stick{right:var(--game-safe-right)!important}
+ body.mobile-game-active #roomBadge.room-badge{right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 2px)!important}
+ body.mobile-game-active .boss-alert{top:18%!important;max-width:min(92vw,560px)!important}
+
+ /* Mobile menu becomes a scrollable control deck instead of overflowing the viewport. */
+ #menuScreen{overflow:hidden}
+ #menuScreen .menu-content{
+  width:calc(100vw - 20px)!important;max-width:520px!important;max-height:calc(100dvh - 72px)!important;
+  overflow:auto!important;padding:8px 8px 22px!important;scrollbar-width:thin;overscroll-behavior:contain;
+ }
+ #menuScreen .menu-secondary-actions{width:100%!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+ #menuScreen .menu-secondary-actions .online-cta{grid-column:1/-1!important;min-height:58px!important}
+ #menuScreen .menu-action{min-height:46px!important}
+ #menuScreen .resonance-menu-btn{width:100%!important;min-height:46px!important}
+ #menuScreen .download-cta,#menuScreen .controls-cta{position:fixed!important;top:var(--game-safe-top)!important;height:38px!important;min-height:38px!important;z-index:50!important}
+ #menuScreen .download-cta{right:var(--game-safe-right)!important}
+ #menuScreen .controls-cta{right:calc(var(--game-safe-right) + 92px)!important}
+}
+
+/* Portrait: controls form a lower three-zone dock, information stays at upper edges. */
+@media (max-width:700px) and (orientation:portrait){
+ body.mobile-game-active #selectedSkillsPanel{max-height:22dvh!important}
+ body.mobile-game-active #runEnergyRanking{bottom:calc(var(--game-safe-bottom) + 164px)!important;max-height:15dvh!important}
+ body.mobile-game-active .mobile-dual-stick .joystick-base{width:clamp(86px,24vw,112px)!important;height:clamp(86px,24vw,112px)!important}
+ #menuScreen .menu-content{padding-top:54px!important}
+}
+
+/* Landscape: preserve vertical combat space by moving secondary HUD to side rails. */
+@media (pointer:coarse) and (orientation:landscape), (max-width:900px) and (max-height:520px) and (orientation:landscape){
+ body.mobile-game-active .hud{left:50%!important;right:auto!important;width:min(58vw,620px)!important;transform:translateX(-50%)!important}
+ body.mobile-game-active .hud-top{gap:4px!important}
+ body.mobile-game-active .mobile-pause-btn{top:var(--game-safe-top)!important;right:var(--game-safe-right)!important}
+ body.mobile-game-active #toggleHudBtn{top:var(--game-safe-top)!important;left:var(--game-safe-left)!important}
+ body.mobile-game-active #selectedSkillsPanel{
+  top:calc(var(--game-safe-top) + 48px)!important;left:var(--game-safe-left)!important;width:min(22vw,160px)!important;max-height:35dvh!important;
+ }
+ body.mobile-game-active #runEnergyRanking{
+  top:auto!important;bottom:calc(var(--game-safe-bottom) + 116px)!important;left:var(--game-safe-left)!important;width:min(22vw,160px)!important;max-height:24dvh!important;
+ }
+ body.mobile-game-active #activeAbilities.active-abilities{
+  left:auto!important;right:var(--game-safe-right)!important;bottom:calc(var(--game-safe-bottom) + 116px)!important;transform:none!important;
+  width:min(21vw,176px)!important;
+ }
+ body.mobile-game-active .mobile-dual-stick{width:104px!important;height:108px!important}
+ body.mobile-game-active .mobile-dual-stick .joystick-base{width:82px!important;height:82px!important}
+ body.mobile-game-active .mobile-dual-stick .joystick-knob{width:36px!important;height:36px!important}
+ body.mobile-game-active .boss-alert{top:14%!important;width:min(62vw,560px)!important}
+ #menuScreen .menu-content{
+  max-width:min(76vw,720px)!important;max-height:calc(100dvh - 18px)!important;padding:8px 10px 14px!important;
+ }
+ #menuScreen .menu-content h1{font-size:clamp(28px,7vh,48px)!important;margin-block:5px!important}
+ #menuScreen .intro{margin-block:5px 8px!important;line-height:1.35!important}
+ #menuScreen .menu-secondary-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ #menuScreen .menu-secondary-actions .online-cta{grid-column:1/-1!important}
+ #menuScreen .wheel-cta{min-height:48px!important}
+}
+
+/* Very narrow portrait: one-column menu prevents compressed labels. */
+@media (max-width:390px) and (orientation:portrait){
+ #menuScreen .menu-secondary-actions{grid-template-columns:1fr!important}
+ #menuScreen .menu-secondary-actions .online-cta{grid-column:auto!important}
+ body.mobile-game-active #activeAbilities.active-abilities{width:38vw!important}
+}

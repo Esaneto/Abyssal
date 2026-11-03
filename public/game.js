@@ -245,9 +245,14 @@ function showEndOfRun(coinsEarned) {
 }
 
 updateNotifBadge();
-// Mobile reveals five times more world than before while desktop keeps its current framing.
-// Mantém escala de combate legível no celular; evita zoom extremo que prejudica leitura e controle.
-function desiredWorldZoom(){return isMobileDevice() ? .5 : .78;}
+// Competitive camera: every platform renders the same world AREA.
+// 1366x768 at the legacy .78 zoom is the reference. Portrait/landscape change shape, not information volume.
+const FAIR_VIEW_REFERENCE=Object.freeze({width:1366,height:768,zoom:.78});
+const FAIR_VIEW_WORLD_AREA=(FAIR_VIEW_REFERENCE.width*FAIR_VIEW_REFERENCE.height)/(FAIR_VIEW_REFERENCE.zoom*FAIR_VIEW_REFERENCE.zoom);
+function desiredWorldZoom(){
+ const viewportArea=Math.max(320,viewW)*Math.max(300,viewH);
+ return clamp(Math.sqrt(viewportArea/FAIR_VIEW_WORLD_AREA),.34,1.12);
+}
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
  if(!player){cameraX=0;cameraY=0;return;}
