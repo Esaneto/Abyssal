@@ -2648,3 +2648,53 @@ body.mobile-game-active #activeAbilities .active-ability {
 }
 @media (max-width:390px) and (orientation:portrait){body.mobile-game-active #selectedSkillsPanel{max-height:18dvh!important;width:98px!important}body.mobile-game-active #runEnergyRanking{max-height:14dvh!important;width:92px!important}body.mobile-game-active #activeAbilities.active-abilities{width:82px!important}#menuScreen .menu-secondary-actions{grid-template-columns:1fr!important}#menuScreen .menu-secondary-actions .online-cta{grid-column:auto!important}}
 
+
+
+/* DESKTOP MATCH HUD V5 · center-clear corner zoning
+   Persistent UI never occupies the central combat corridor. */
+@media (min-width:701px) and (pointer:fine){
+ body.game-active:not(.mobile-game-active) .hud{
+  left:14px!important;right:auto!important;top:14px!important;
+  width:min(330px,24vw)!important;transform:none!important;opacity:.88!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-top{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-stat{min-width:0!important;padding:5px 7px!important}
+ body.game-active:not(.mobile-game-active) .bars{margin-top:5px!important}
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel{
+  left:auto!important;right:14px!important;top:14px!important;
+  width:min(190px,16vw)!important;max-height:32vh!important;
+ }
+ body.game-active:not(.mobile-game-active) #runEnergyRanking{
+  left:auto!important;right:14px!important;top:auto!important;bottom:14px!important;
+  width:min(190px,16vw)!important;max-height:24vh!important;
+ }
+ body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{
+  left:14px!important;right:auto!important;top:auto!important;bottom:14px!important;
+  transform:none!important;width:min(205px,17vw)!important;max-width:205px!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;
+ }
+ body.game-active:not(.mobile-game-active) #activeAbilities .active-ability{
+  width:100%!important;min-width:0!important;max-width:none!important;min-height:38px!important;
+  padding:7px 9px!important;text-align:center!important;white-space:normal!important;
+ }
+ body.game-active:not(.mobile-game-active) #roomBadge.room-badge{
+  left:14px!important;right:auto!important;top:auto!important;
+  bottom:calc(14px + min(24vh,170px))!important;max-width:190px!important;
+ }
+ body.game-active:not(.mobile-game-active) .boss-alert{
+  top:12px!important;left:50%!important;transform:translateX(-50%)!important;
+  width:min(420px,34vw)!important;
+ }
+ body.game-active:not(.mobile-game-active) #abyssalDangerAlert{
+  top:12px!important;width:min(480px,38vw)!important;
+ }
+}
+/* Keep the four corner stacks compact on notebook-sized desktop screens. */
+@media (min-width:701px) and (pointer:fine) and (max-width:1100px){
+ body.game-active:not(.mobile-game-active) .hud{width:250px!important}
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel,
+ body.game-active:not(.mobile-game-active) #runEnergyRanking{width:150px!important}
+ body.game-active:not(.mobile-game-active) #activeAbilities.active-abilities{width:170px!important}
+}
