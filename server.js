@@ -230,18 +230,27 @@ const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
 function pvpArenaRocks(){
  const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
- for(let row=0;row<8;row++)for(let col=0;col<13;col++){
-  if((col*7+row*11)%7===0)continue;
-  const x=WORLD_WIDTH*(.035+col*.077),y=WORLD_HEIGHT*(.045+row*.13);
-  if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<minDim*.235)continue;
-  let rx=minDim*(.035+((col*13+row*17)%4)*.005),ry=minDim*(.014+((col*5+row*3)%4)*.003);
-  if((col*3+row*5)%6===0){const swap=rx;rx=ry*1.25;ry=swap*.8;}
-  rocks.push({x,y,rx,ry,r:Math.max(rx,ry)});
+ // Layout irregular, like eroded reef ridges and broken underwater rock spines.
+ // A deterministic hash keeps the server collision map identical for every room.
+ const rnd=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453123;return v-Math.floor(v);};
+ for(let i=0;i<62;i++){
+  const x=WORLD_WIDTH*(.035+rnd(i+1)*.93),y=WORLD_HEIGHT*(.045+rnd(i+91)*.91);
+  if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<minDim*.245)continue;
+  const long=minDim*(.032+rnd(i+191)*.045),thick=minDim*(.012+rnd(i+291)*.018);
+  const vertical=rnd(i+391)>.77,rx=vertical?thick:long,ry=vertical?long:thick;
+  const angle=(rnd(i+491)*2-1)*Math.PI*.92;
+  rocks.push({x,y,rx,ry,angle,r:Math.max(rx,ry)});
+ }
+ // Add a few short, offset spurs around the perimeter to make natural broken ridges.
+ for(let i=0;i<14;i++){
+  const side=i%4,along=rnd(i+701),x=side<2?WORLD_WIDTH*(.04+along*.92):(side===2?WORLD_WIDTH*.035:WORLD_WIDTH*.965),y=side>=2?WORLD_HEIGHT*(.05+along*.9):(side===0?WORLD_HEIGHT*.035:WORLD_HEIGHT*.965);
+  const rx=minDim*(.025+rnd(i+801)*.025),ry=minDim*(.012+rnd(i+901)*.014),angle=(rnd(i+1001)*2-1)*Math.PI;
+  rocks.push({x,y,rx,ry,angle,r:Math.max(rx,ry)});
  }
  return rocks;
 }
 const PVP_ARENA_ROCKS=pvpArenaRocks();
-function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding,dx=(x-rock.x)/Math.max(1,rx),dy=(y-rock.y)/Math.max(1,ry);if(dx*dx+dy*dy<1)return rock;}return null;}
+function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const a=-(Number(rock.angle)||0),dx=x-rock.x,dy=y-rock.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a),rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding;if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return rock;}return null;}
 function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
