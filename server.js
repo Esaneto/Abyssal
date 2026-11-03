@@ -974,17 +974,28 @@ socket.on('global-chat-send',(payload={})=>{
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
  socket.on('shared-shot', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;io.to(channelFor(room)).volatile.emit('shared-shot',{x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet','photon'].includes(payload.special)?payload.special:null,from:socket.data.nickname,at:Date.now()});});
- socket.on('skin-ability', payload => {
+ socket.on('skin-ability', (payload, acknowledge) => {
   const room = socketRoom(socket);
-  if(!room || !payload) return;
+  if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
+   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
+   return;
+  }
+  const skin = String(payload.skin || '').slice(0,32);
+  const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
+  if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
+   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'invalid-payload'});
+   return;
+  }
   const u = users[socket.data.userKey];
-  socket.to(channelFor(room)).emit('peer-skin-ability', {
-    from: u?.nickname || socket.id,
-    skin: String(payload.skin || ''),
-    x: Number(payload.x) || 0,
-    y: Number(payload.y) || 0,
-    angle: Number(payload.angle) || 0
-  });
+  const event = {from:u?.nickname || socket.id,skin,x,y,angle,at:Date.now()};
+  // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
+  let delivered = 0;
+  for(const peer of room.players.values()) {
+   if(peer.id === socket.id) continue;
+   io.to(peer.id).emit('peer-skin-ability', event);
+   delivered++;
+  }
+  if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
  });
  socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-damage-batch',(payload={},acknowledge)=>{
