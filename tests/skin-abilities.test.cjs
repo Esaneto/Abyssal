@@ -334,5 +334,5 @@ test('Gravitational Nova has mode-aware cadence enforced by client and server',(
  assert.match(game,/player\.novaTimer=isPvpMode\?2\.4:1\.8/);
  assert.match(server,/cooldown=room\.mode==='pvp'\?2400:1800/);
  assert.match(server,/shooter\.novaShotReadyAt=now\+2400/);
- assert.match(game,/function update\(dt\)\{\n const isPvpMode=onlineRoomMode==='pvp'/);
+ assert.match(game,/function update\(dt\)\{\r?\n const isPvpMode=onlineRoomMode==='pvp'/);
 });
