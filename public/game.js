@@ -2341,7 +2341,34 @@ const mobileMoveStick=$('mobileMoveStick'),mobileAimStick=$('mobileAimStick');
 function updateFixedStick(e,stick,knob,isAim){if(!stick||!knob)return;const base=stick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(18,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}const vector={x:dx/max,y:dy/max,active:Math.hypot(dx/max,dy/max)>.13,pointerId:e.pointerId};if(isAim)aimJoystickVector=vector;else joystickVector=vector;knob.style.transform=`translate(${dx}px, ${dy}px)`;}
 function resetFixedStick(knob,isAim){if(isAim)aimJoystickVector={x:0,y:0,active:false,pointerId:null};else joystickVector={x:0,y:0,active:false,pointerId:null};if(knob)knob.style.transform='translate(0, 0)';}
 function configureControlButtons(){const open=$('controlsBtn'),screen=$('controlsScreen'),close=$('controlsCloseBtn');const pc=[...document.querySelectorAll('[data-control-pc]')],mobile=[...document.querySelectorAll('[data-control-mobile]')];const refresh=()=>{pc.forEach(b=>{const a=b.dataset.controlPc===controlSettings.pc;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});mobile.forEach(b=>{const a=b.dataset.controlMobile===controlSettings.mobile;b.classList.toggle('control-choice-active',a);b.setAttribute('aria-pressed',String(a));});};open?.addEventListener('click',()=>{refresh();if(screen)screen.hidden=false;});close?.addEventListener('click',()=>{if(screen)screen.hidden=true;});screen?.addEventListener('click',e=>{if(e.target===screen)screen.hidden=true;});pc.forEach(b=>b.addEventListener('click',()=>{controlSettings.pc=b.dataset.controlPc;localStorage.setItem('abyssalControlsPc',controlSettings.pc);autoFollowCursor=false;pointer.down=false;refresh();}));mobile.forEach(b=>b.addEventListener('click',()=>{controlSettings.mobile=b.dataset.controlMobile;localStorage.setItem('abyssalControlsMobile',controlSettings.mobile);joystickVector={x:0,y:0,active:false,pointerId:null};aimJoystickVector={x:0,y:0,active:false,pointerId:null};const dual=controlSettings.mobile==='dual-stick'&&gameState==='playing'&&isMobileDevice();mobileMoveStick?.classList.toggle('dual-stick-visible',dual);mobileAimStick?.classList.toggle('dual-stick-visible',dual);const old=$('mobileJoystick');if(old){old.hidden=true;old.classList.remove('is-floating');}refresh();}));}
-function setupDualStickEvents(){[[mobileMoveStick,false],[mobileAimStick,true]].forEach(([stick,isAim])=>{if(!stick)return;const knob=stick.querySelector('.joystick-knob');stick.addEventListener('pointerdown',e=>{if(gameState!=='playing'||!isMobileDevice()||controlSettings.mobile!=='dual-stick')return;e.preventDefault();stick.setPointerCapture?.(e.pointerId);updateFixedStick(e,stick,knob,isAim);});stick.addEventListener('pointermove',e=>{const v=isAim?aimJoystickVector:joystickVector;if(v.pointerId===e.pointerId)updateFixedStick(e,stick,knob,isAim);});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>stick.addEventListener(ev,e=>{const v=isAim?aimJoystickVector:joystickVector;if(v.pointerId===e.pointerId)resetFixedStick(knob,isAim);}));});}
+function setupDualStickEvents(){
+ const activeSticks=new Map();
+ [[mobileMoveStick,false],[mobileAimStick,true]].forEach(([stick,isAim])=>{
+  if(!stick)return;
+  const knob=stick.querySelector('.joystick-knob');
+  stick.addEventListener('pointerdown',e=>{
+   if(gameState!=='playing'||!isMobileDevice()||controlSettings.mobile!=='dual-stick')return;
+   e.preventDefault();
+   const current=isAim?aimJoystickVector:joystickVector;
+   if(current.pointerId!==null)return;
+   activeSticks.set(e.pointerId,{stick,knob,isAim});
+   try{stick.setPointerCapture?.(e.pointerId)}catch(_){}
+   updateFixedStick(e,stick,knob,isAim);
+  });
+ });
+ window.addEventListener('pointermove',e=>{
+  const active=activeSticks.get(e.pointerId);
+  if(active)updateFixedStick(e,active.stick,active.knob,active.isAim);
+ },{passive:false});
+ const release=e=>{
+  const active=activeSticks.get(e.pointerId);
+  if(!active)return;
+  resetFixedStick(active.knob,active.isAim);
+  activeSticks.delete(e.pointerId);
+ };
+ window.addEventListener('pointerup',release);
+ window.addEventListener('pointercancel',release);
+}
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
 window.addEventListener('keydown',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if((e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if((e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
@@ -2696,13 +2723,12 @@ $('onlineBtn').addEventListener('click',()=>{startAmbientMusic();onlineMode=true
 window.addEventListener('abyssal-authenticated',()=>{if(window.AbyssalOnlinePendingStart){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;onlineMode=true;window.AbyssalOnline?.showRooms()}});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
   const d=ev.detail||{};
-  // Use a posição autoritativa do jogador remoto quando disponível; evita diferenças de escala entre mapas/clientes.
-  const remotePlayers=window.AbyssalOnline?.getPlayers?.()||[];
-  const source=remotePlayers.find(p=>String(p.id||'')===String(d.fromId||'')||String(p.nickname||'')===String(d.from||''));
-  const px=source&&Number.isFinite(Number(source.x))?Number(source.x):(Number(d.x)||0)*W;
-  const py=source&&Number.isFinite(Number(source.y))?Number(source.y):(Number(d.y)||0)*H;
-  const angle=source&&Number.isFinite(Number(source.angle))?Number(source.angle):(Number(d.angle)||0);
+  // Use as coordenadas normalizadas do instante da habilidade. O snapshot do outro jogador
+  // pode estar atrasado ou representar outra escala de coordenadas.
+  const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H);
+  const angle=Number.isFinite(Number(d.angle))?Number(d.angle):0;
   const skin=String(d.skin||'');
+  const skinColor=(skinData.find(item=>item.id===skin)||{}).color||'#79f3f0';
   if(skin==='reefshark'||skin==='whiteShark'){
     const reach=260/GAME_WORLD_ZOOM;
     effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(angle)*reach,y2:py+Math.sin(angle)*reach,life:.32,maxLife:.32,color:'#8bd8ec'});
@@ -2722,6 +2748,12 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   } else if(skin==='abysscroc'){
     effects.push({type:'ring',x:px,y:py,r:0,max:210/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#79bd83'});
     burst(px,py,'#79bd83',28,175);
+  } else {
+    // Fallback visual para outros IDs de skin quando o evento de habilidade for enviado.
+    const reach=(skin==='devourer'?320:skin==='greensnake'?210:skin==='electriceel'?165:125)/GAME_WORLD_ZOOM;
+    effects.push({type:'ring',x:px,y:py,r:0,max:reach,life:.4,maxLife:.4,color:skinColor});
+    for(let i=0;i<4;i++){const a=angle+i*Math.PI/2;effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(a)*reach*.72,y2:py+Math.sin(a)*reach*.72,life:.22,maxLife:.22,color:skinColor});}
+    burst(px,py,skinColor,16,120);
   }
 });
 window.addEventListener('abyssal-room-joined',ev=>{onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');const d=ev.detail||{};if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`⌁ ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.hidden=false;}showToast(`MERGULHAR ONLINE · ${d.room?.name||'SALA ABISSAL'}`)});
