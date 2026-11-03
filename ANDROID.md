@@ -50,3 +50,5 @@ CI note: Android API 36 build validated through the pull-request pipeline before
 Build validation branch: API 36 debug APK pipeline.
 
 Validation trigger after workflow activation on main.
+
+Trusted workflow trigger validation.
