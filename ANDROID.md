@@ -9,15 +9,11 @@ A versão Android usa Capacitor para manter a mesma base de gameplay web, carreg
 - Android SDK 36
 - JDK fornecido pelo Android Studio
 
-## Primeira geração do projeto nativo
+## Estado da fundação
 
-1. Execute `npm install`.
-2. Execute `npx cap add android`.
-3. Confirme no projeto Android gerado que `compileSdk` e `targetSdk` estão em API 36 ou superior.
-4. Execute `npm run android:sync`.
-5. Abra com `npm run android:open`.
+A base web já está preparada para distinguir o shell Android, manter `public/` como bundle local e direcionar multiplayer/API ao backend remoto do Abyssal. A dependência Capacitor ainda não é adicionada ao `package.json` nesta etapa para não quebrar o lockfile e o pipeline do servidor.
 
-O diretório `public/` é o bundle web local do aplicativo. O multiplayer continua usando o servidor remoto do Abyssal.
+Na etapa de scaffold Android, o lockfile será regenerado junto com Capacitor 8 e o projeto nativo será criado com Android SDK 36. Isso será feito como uma mudança isolada e testável.
 
 ## Performance
 
