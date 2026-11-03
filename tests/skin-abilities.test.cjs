@@ -70,6 +70,7 @@ test('rebuilt eel and emerald serpent visuals are deterministic and mechanically
   assert.doesNotMatch(snake,/Math\.random/);
   assert.match(eel,/long anal fin|ventral fin/i);
   assert.match(snake,/dorsal scutes|armored head/i);
+  assert.match(game,/angler[\s\S]{0,14000}shadowColor='#ffcf70'/);
   assert.match(game,/Soberania Ofídica: \+20% de velocidade de movimento e \+10% de dano causado/);
   assert.match(game,/Sobrecarga Bioelétrica: \+22% de velocidade de movimento e \+15% de dano causado/);
 });
