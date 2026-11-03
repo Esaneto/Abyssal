@@ -41,9 +41,12 @@
       <div class="sound-control-wrapper" id="soundControlWrapper">
         <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">🔊</button>
         <div class="volume-popup" id="volumePopup">
-          <span class="volume-icon">🔉</span>
-          <input type="range" id="volumeSlider" min="0" max="100" value="80" aria-label="Volume do jogo">
+          <label class="volume-channel" for="volumeSlider"><span class="volume-icon">🔉</span><span>EFEITOS</span></label>
+          <input type="range" id="volumeSlider" min="0" max="100" value="80" aria-label="Volume dos efeitos">
           <span id="volumeText" class="volume-text">80%</span>
+          <label class="volume-channel" for="musicVolumeSlider"><span class="volume-icon">♫</span><span>MÚSICA</span></label>
+          <input type="range" id="musicVolumeSlider" min="0" max="100" value="45" aria-label="Volume da música">
+          <span id="musicVolumeText" class="volume-text">45%</span>
         </div>
       </div>
         <button id="notifBtn" class="icon-btn" aria-label="Abrir notificações" title="Notificações">🔔<span id="notifUnreadDot" class="notification-badge-dot" hidden aria-hidden="true"></span></button>
