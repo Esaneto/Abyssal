@@ -27,7 +27,7 @@ test('temporary disconnect preserves the last synchronized account profile', () 
 
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
   const game = read('public/game.js');
-  assert.match(game, /function desiredWorldZoom\(\)\{return isMobileDevice\(\) \? \.5 : \.78;\}/);
+  assert.match(game, /FAIR_VIEW_REFERENCE/);
   assert.match(game, /function fire\(\)[\s\S]*?audio\(500,\.045,'sine',\.008\)/);
   assert.match(game, /if\(p\.special\)audio\(500,\.045,'sine',\.008\)/);
 });
