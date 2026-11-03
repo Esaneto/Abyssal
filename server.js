@@ -30,6 +30,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
+// Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
+io.engine.on('connection', rawSocket => { rawSocket.request = null; });
 // Social messaging, chat and randomized rewards are enabled by default.
 // Set ABYSSAL_CHAT_ENABLED=false or ABYSSAL_REWARDED_WHEEL_ENABLED=false to disable.
 // Client-side age-gate modals provide the verification layer.
@@ -653,7 +655,7 @@ function tickRoom(room, now) {
   }
   const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}
   if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
-  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=100){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
+  if(now-(Number(room.lastPlayersBroadcastAt)||0)>=50){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',getRoomPlayerMotion(room));}
   return;
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
@@ -950,7 +952,8 @@ socket.on('global-chat-send',(payload={})=>{
   p.skinId=allowedSkinIds.has(skinId)&&((account?.ownedSkins||['default']).includes(skinId))?skinId:'default';
   // Relay live player transforms independently of world-enemy snapshots. Throttle per room
   // so all clients see movement/skins without flooding Socket.IO with every heartbeat.
-  if(room.mode==='pvp'||receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=100){
+  const playerMotionIntervalMs=room.mode==='pvp'?50:80;
+  if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=playerMotionIntervalMs){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
    if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',motion);

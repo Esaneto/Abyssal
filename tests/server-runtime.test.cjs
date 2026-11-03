@@ -33,7 +33,7 @@ class FakeSocket {
   all(event) { return this.sent.filter(x => x.event === event).map(x => x.args[0]); }
 }
 class FakeSocketServer extends EventEmitter {
-  constructor() { super(); this.engine = { clientsCount: 0 }; this.sockets = new Map(); this.members = new Map(); FakeSocketServer.instance = this; }
+  constructor() { super(); this.engine = Object.assign(new EventEmitter(), { clientsCount: 0 }); this.sockets = new Map(); this.members = new Map(); FakeSocketServer.instance = this; }
   connect(id) { const socket = new FakeSocket(id, this); this.sockets.set(id, socket); this.engine.clientsCount = this.sockets.size; super.emit('connection', socket); return socket; }
   addMember(room, socket) { if (!this.members.has(room)) this.members.set(room, new Set()); this.members.get(room).add(socket.id); }
   removeMember(room, socket) { this.members.get(room)?.delete(socket.id); if (!this.members.get(room)?.size) this.members.delete(room); }

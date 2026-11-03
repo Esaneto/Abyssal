@@ -70,11 +70,11 @@ test('authoritative co-op simulation activates suction and reports player displa
   assert.ok(result.playerSuctionPulls[0].dx < 0);
 });
 
-test('Arc Chain has twice the base reach and can hit twelve monsters', () => {
+test('Arc Chain uses half the former reach and caps targets at eight monsters', () => {
   const game = read('public/game.js');
-  assert.match(game, /const fieldRange=588\*\(upgrades\.range\|\|1\)/);
-  assert.match(game, /sort\(\(a,b\)=>dist\(player,a\)-dist\(player,b\)\)\.slice\(0,12\)/);
-  assert.match(game, /até 12 inimigos em um raio duas vezes maior/);
+  assert.match(game, /const fieldRange=294\*\(upgrades\.range\|\|1\)/);
+  assert.match(game, /sort\(\(a,b\)=>dist\(player,a\)-dist\(player,b\)\)\.slice\(0,8\)/);
+  assert.match(game, /até 8 inimigos em um raio igual à metade do alcance de disparo anterior/);
 });
 
 test('in-game HUD can be collapsed without hiding its arrow and uses 60% opacity', () => {

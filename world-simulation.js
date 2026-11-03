@@ -254,7 +254,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
-  const targetablePlayers = validPlayers.filter(p => (Number(p.skillSelectingUntil) || 0) <= now);
+  const targetablePlayers = [];
+  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now) targetablePlayers.push(p);
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
@@ -308,7 +309,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
 
-    if (enemy.paralyzedUntil && Date.now() < enemy.paralyzedUntil) {
+    if (enemy.paralyzedUntil && now < enemy.paralyzedUntil) {
       continue;
     }
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);

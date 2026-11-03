@@ -16,7 +16,7 @@ test('download control is outside the menu column and docked discreetly at the u
   assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
   assert.match(css, /#menuScreen \.download-cta\{[\s\S]*?top:12px;right:14px/);
   assert.match(css, /min-height:29px;height:29px/);
-  assert.ok(html.includes('style.css?v=3.5.36'));
+  assert.match(html, /style\.css\?v=\d+\.\d+\.\d+/);
 });
 
 test('menu monster has a frightening toothed grin and the chat is docked beneath its face', () => {
@@ -86,4 +86,19 @@ test('menu title scales to narrow and short screens', () => {
   assert.match(css, /#menuScreen h1\{[\s\S]*?font-size:clamp\(28px,min\(9\.5vw,6\.4vh\),58px\)/);
   assert.match(css, /@media\(max-width:420px\)[\s\S]*?#menuScreen h1/);
   assert.match(css, /@media\(max-height:560px\)[\s\S]*?#menuScreen h1/);
+});
+
+
+test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressure', async () => {
+  const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+  const online = fs.readFileSync(path.join(__dirname, '..', 'public', 'online.js'), 'utf8');
+  assert.match(server, /playerMotionIntervalMs=room\.mode==='pvp'\?50:80/);
+  assert.match(online, /isPvp\?50:80/);
+  assert.match(online, /interpDuration:110/);
+});
+
+test('electric eel rendering is deterministic per frame sample', async () => {
+  const game = fs.readFileSync(path.join(__dirname, '..', 'public', 'game.js'), 'utf8');
+  assert.match(game, /Deterministic electric arcs/);
+  assert.doesNotMatch(game, /sparkX = \(-1\.4 \+ k \* 0\.65\) \* r \+ rand/);
 });
