@@ -1987,11 +1987,12 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
   if(id==='kraken'){
-    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(.34+arm*.35)*.44,sy:.25,c1x:.6,c1y:.72,c2x:Math.cos(.34+arm*.35)*1.2,c2y:1.2,ex:Math.cos(.34+arm*.35)*2,ey:1.8};krakenArm(pose,arm,t);}
-    fill(()=>{c.moveTo(-.76*r,.12*r);c.bezierCurveTo(-.98*r,-.27*r,-.73*r,-.82*r,-.25*r,-.83*r);c.bezierCurveTo(.25*r,-.97*r,.78*r,-.62*r,.78*r,.1*r);c.quadraticCurveTo(.35*r,.52*r,-.08*r,.45*r);c.quadraticCurveTo(-.47*r,.48*r,-.76*r,.12*r);},bodyGrad(color),'rgba(196,164,255,.9)',Math.max(1.2,r*.06),15);
-    for(let side of [-1,1]){fill(()=>{c.moveTo(side*.48*r,-.34*r);c.lineTo(side*.85*r,-.63*r);c.lineTo(side*.77*r,-.23*r);c.closePath()},'#07131d',color,Math.max(1,r*.025),4);c.save();c.fillStyle='#d9c7ff';c.shadowBlur=13*glowScale;c.shadowColor='#a855f7';c.beginPath();c.ellipse(side*.34*r,-.22*r,r*.075,r*.12,side*-.16,0,Math.PI*2);c.fill();c.restore();}
-    c.save();c.fillStyle='rgba(1,1,10,.98)';c.strokeStyle='rgba(167,139,250,.7)';c.lineWidth=Math.max(1,r*.025);c.beginPath();c.ellipse(0,.2*r,.22*r,.105*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();
-    for(let g=0;g<3;g++)stroke(()=>{c.moveTo((-.42+g*.1)*r,-.44*r);c.quadraticCurveTo((-.35+g*.1)*r,-.26*r,(-.3+g*.1)*r,-.12*r)},Math.max(.7,r*.024),'rgba(207,255,239,.55)',2);
+    // Colossal cephalopod: huge animated arms dominate the silhouette and visibly sweep the water.
+    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.42,sy:.18,c1x:Math.cos(arm*Math.PI/4)*1.0,c1y:Math.sin(arm*Math.PI/4)*1.0,c2x:Math.cos(arm*Math.PI/4)*2.2,c2y:Math.sin(arm*Math.PI/4)*2.2,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
+    fill(()=>{c.moveTo(-.82*r,.18*r);c.bezierCurveTo(-.96*r,-.42*r,-.62*r,-1.02*r,0,-1.08*r);c.bezierCurveTo(.62*r,-1.02*r,.96*r,-.42*r,.82*r,.18*r);c.quadraticCurveTo(.5*r,.62*r,0,.66*r);c.quadraticCurveTo(-.5*r,.62*r,-.82*r,.18*r);c.closePath()},bodyGrad('#5934a4'),'rgba(205,174,255,.92)',Math.max(1.4,r*.065),18);
+    for(let side of [-1,1]){fill(()=>{c.ellipse(side*.32*r,-.28*r,.15*r,.11*r,0,0,Math.PI*2)},'#05030d','#cbb6ff',Math.max(1,r*.035),8);eye(side*.32,-.28,r*.07,'#f1eaff');}
+    fill(()=>{c.ellipse(0,.25*r,.3*r,.16*r,0,0,Math.PI*2)},'#020207','#9c7cff',Math.max(1,r*.035),5);teeth(0,.25,.27,.13,10,.65);
+    for(let g=0;g<4;g++)stroke(()=>{c.moveTo((-.38+g*.25)*r,-.66*r);c.quadraticCurveTo((-.32+g*.22)*r,-.4*r,(-.3+g*.2)*r,-.16*r)},Math.max(.7,r*.022),'rgba(215,198,255,.62)',3);
    } else if(id==='reefshark'){
    // Great white shark: pointed conical snout, countershading, crescent tail,
    // tall triangular dorsal fin and swept pectoral fins form a clear shark outline.
