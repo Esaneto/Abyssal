@@ -2497,3 +2497,86 @@ body.mobile-game-active #activeAbilities .active-ability {
  .boss-alert{top:12%;width:calc(100% - 20px);padding:14px 16px}
 }
 @media(max-width:430px){.menu-secondary-actions{grid-template-columns:1fr!important}.menu-secondary-actions .online-cta{grid-column:auto!important}}
+
+
+/* ==========================================================================
+   UI COHERENCE LAYER · 2026-11
+   Mantém boxes, menus e formulários legíveis e responsivos sem descaracterizar o Abyssal.
+   ========================================================================== */
+.modal-card,.codex-modal,.cardumes-modal,.profile-modal,.shop-modal,.controls-card,.support-flow-card{
+  box-sizing:border-box;
+  width:min(var(--modal-width,760px),calc(100vw - 32px));
+  max-height:min(88dvh,900px);
+  overflow:auto;
+  scrollbar-gutter:stable;
+  border-radius:14px;
+}
+.modal-card>h2,.codex-modal>h2,.cardumes-modal>h2,.profile-modal>h2,.shop-modal>h2{
+  text-wrap:balance;
+}
+.room-form-row,.meta-upgrade-grid,.catalog-grid,.skin-grid{
+  align-items:stretch;
+}
+.text-field,select.text-field,textarea.text-field,.secondary-btn,.primary-btn,.room-join-btn,.control-choice{
+  box-sizing:border-box;
+  min-width:0;
+}
+.text-field:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid rgba(121,243,240,.9);
+  outline-offset:2px;
+}
+.ranking-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.ranking-reset{
+  font:700 8px 'DM Mono',monospace;
+  letter-spacing:.08em;
+  color:#b9d9e2;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.ranking-countdown{color:#d9c4ff}
+.notification-badge-dot{
+  position:absolute;
+  top:1px;
+  right:2px;
+  z-index:20;
+  width:13px;
+  height:13px;
+  box-sizing:border-box;
+  border:2px solid #fff;
+  border-radius:50%;
+  background:#ff1744;
+  box-shadow:0 0 0 2px rgba(255,23,68,.32),0 0 12px #ff1744;
+  pointer-events:none;
+  animation:notifBadgePop .4s cubic-bezier(.18,.89,.32,1.28);
+}
+.notification-badge-dot[hidden]{display:none!important}
+.boss-alert[data-notice-kind="boss"]{--notice-accent:#ff526f}
+.boss-alert[data-notice-kind="fusion"]{--notice-accent:#b985ff}
+.boss-alert[data-notice-kind="join"]{--notice-accent:#5ce5d3}
+.boss-alert[data-notice-kind="death"]{--notice-accent:#9aa3b7}
+.boss-alert[data-notice-kind]{border-left:3px solid var(--notice-accent);animation:noticeBreath 1.8s ease-in-out infinite}
+@keyframes noticeBreath{50%{box-shadow:0 0 34px color-mix(in srgb,var(--notice-accent) 30%,transparent)}}
+@media(max-width:700px){
+  .modal-card,.codex-modal,.cardumes-modal,.profile-modal,.shop-modal,.controls-card,.support-flow-card{
+    width:calc(100vw - 18px);
+    max-height:calc(100dvh - 18px);
+    padding:16px;
+    border-radius:12px;
+  }
+  .room-form-row,.meta-upgrade-grid,.catalog-grid{grid-template-columns:1fr!important}
+  .skin-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .ranking-row{grid-template-columns:28px minmax(0,1fr);gap:6px 8px}
+  .ranking-row .rank-time{grid-column:2;white-space:normal;line-height:1.35}
+  .ranking-reset{text-align:left}
+}
+@media(max-width:420px){
+  .skin-grid{grid-template-columns:1fr!important}
+  .menu-secondary-actions{grid-template-columns:1fr!important}
+  .menu-action{min-height:42px;height:auto;padding:9px 10px}
+}
