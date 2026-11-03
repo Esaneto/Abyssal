@@ -125,8 +125,8 @@ test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
 
 test('mobile canvas uses adaptive high-DPI rendering instead of forced DPR 1',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/mobileDprCap=lowPowerRendering\?1\.35:2/);
- assert.match(game,/mobileViewport\?mobileDprCap:1\.65/);
+ assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+ assert.match(game,/adaptiveDprScale/);
 });
 test('PvP movement stream prioritizes low latency without reliable packet backlog',()=>{
  const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
