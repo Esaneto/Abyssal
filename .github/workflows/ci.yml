@@ -1,6 +1,6 @@
 name: Abyssal checks
 
-on:
+'on':
   push:
     branches: [main, 'feature/**']
   pull_request:
