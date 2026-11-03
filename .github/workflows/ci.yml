@@ -63,3 +63,13 @@ jobs:
           name: abyssal-android-api36-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Preserve Android build metadata
+        run: |
+          echo "commit=$GITHUB_SHA" > android-build.txt
+          echo "targetSdk=36" >> android-build.txt
+          echo "artifact=abyssal-android-api36-debug" >> android-build.txt
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: abyssal-android-build-metadata
+          path: android-build.txt
