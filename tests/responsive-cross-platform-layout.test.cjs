@@ -25,3 +25,16 @@ test('desktop gameplay controls use stable edge and center zones',()=>{
  assert.match(css,/body\.game-active:not\(\.mobile-game-active\) #selectedSkillsPanel/);
  assert.match(css,/@media \(min-width:701px\)/);
 });
+
+test('gameplay overlays are detached from the HUD coordinate box',()=>{
+ const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
+ const hudClose=html.indexOf('</section>',html.indexOf('<section id="hud"'));
+ const overlay=html.indexOf('id="gameplayOverlayRoot"');
+ assert.ok(hudClose>0 && overlay>hudClose,'overlay root must be a sibling after HUD');
+ assert.match(css,/\.gameplay-overlay-root\{position:absolute;inset:0/);
+});
+
+test('mobile information panels occupy opposite arena corners',()=>{
+ assert.match(css,/#selectedSkillsPanel\{left:var\(--game-safe-left\)!important;right:auto!important/);
+ assert.match(css,/#runEnergyRanking\{left:auto!important;right:var\(--game-safe-right\)!important/);
+});

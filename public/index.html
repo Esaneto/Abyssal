@@ -162,12 +162,18 @@
         </div>
       </div>
       <div class="mobile-tip" id="mobileTip">Arraste para se mover. Seus poderes atacam automaticamente.</div>
-      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Habilidades adquiridas"><strong class="selected-skills-title">HABILIDADES</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside><div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div><aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
+    </section>
+
+    <!-- Gameplay overlays are siblings of HUD so their coordinates resolve against the arena, not the HUD box. -->
+    <div id="gameplayOverlayRoot" class="gameplay-overlay-root">
+      <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Habilidades adquiridas"><strong class="selected-skills-title">HABILIDADES</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside>
+      <div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div>
+      <aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
       <div class="active-abilities" id="activeAbilities">
         <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
         <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PASSO FANTASMA</button>
       </div>
-    </section>
+    </div>
 
     <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD para mover + mouse para mirar e atirar continuamente</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick esquerdo para mover + direito para mirar/atirar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
     <section id="upgradeScreen" class="screen modal-screen" hidden>
