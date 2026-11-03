@@ -46,3 +46,5 @@ npm run android:open
 Para release, habilite R8 com `proguard-android-optimize.txt`, configure a assinatura fora do Git e gere o AAB com `gradlew bundleRelease`. Antes da Play Console, valide login, reconexão, PvP/co-op, troca Wi-Fi/4G e retorno do background em aparelho físico.
 
 CI note: Android API 36 build validated through the pull-request pipeline before merge.
+
+Android CI validation v4 after BridgeActivity compatibility fix.
