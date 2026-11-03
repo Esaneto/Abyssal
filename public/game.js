@@ -2333,7 +2333,7 @@ if(gameShell&&joystick){
   gameShell.setPointerCapture?.(e.pointerId);
   setJoystickFromPointer(e);
  });
- gameShell.addEventListener('pointermove',e=>{if(joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
+ gameShell.addEventListener('pointermove',e=>{if(controlSettings.mobile!=='dual-stick'&&joystickVector.pointerId===e.pointerId)setJoystickFromPointer(e)});
  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>gameShell.addEventListener(ev,releaseMobileJoystick));
 }
 // Dual sticks fixos com captura de toque independente.
