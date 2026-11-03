@@ -761,7 +761,8 @@ function tickRoom(room, now) {
   // A reliable full or attacker-only snapshot is always emitted before contact vitals.
   io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: contactSnapshotSeq, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
   if (!hit.alive) {
-   io.to(channelFor(room)).emit('server-message', 'Um mergulhador foi engolido pelas profundezas.');
+   const defeated=room.players.get(hit.playerId);const nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
+   io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi engolido pelas profundezas.`});
    io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...peer }) => peer));
   }
  }
