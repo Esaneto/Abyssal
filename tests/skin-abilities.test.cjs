@@ -66,7 +66,7 @@ test('eel remains deterministic while emerald serpent keeps its original swimmin
   const defaultStart=game.indexOf("} else if(id==='default'){");
   assert.ok(eelStart>0&&snakeStart>eelStart&&defaultStart>snakeStart);
   assert.doesNotMatch(game.slice(eelStart,snakeStart),/Math\\.random/);
-  assert.match(game.slice(snakeStart,defaultStart),/const segWave = Math\\.sin\\(t \\* 0\\.006\\) \\* 0\\.15/);
+  assert.ok(game.slice(snakeStart,defaultStart).includes('const segWave = Math.sin(t * 0.006) * 0.15;'));
   assert.match(game,/Veneno corrosivo: ataques envenenam criaturas atingidas/);
   assert.match(game,/Descarga Estática: ataques paralisam brevemente as criaturas atingidas/);
 });
