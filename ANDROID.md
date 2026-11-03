@@ -11,9 +11,7 @@ A versão Android usa Capacitor para manter a mesma base de gameplay web, carreg
 
 ## Estado da fundação
 
-A base web já está preparada para distinguir o shell Android, manter `public/` como bundle local e direcionar multiplayer/API ao backend remoto do Abyssal. A dependência Capacitor ainda não é adicionada ao `package.json` nesta etapa para não quebrar o lockfile e o pipeline do servidor.
-
-Na etapa de scaffold Android, o lockfile será regenerado junto com Capacitor 8 e o projeto nativo será criado com Android SDK 36. Isso será feito como uma mudança isolada e testável.
+A base web já está preparada para distinguir o shell Android, manter `public/` como bundle local e direcionar multiplayer/API ao backend remoto do Abyssal. Capacitor 8 já está declarado no `package.json`. Ao gerar o scaffold nativo, use `npm install`, `npm run android:add` e `npm run android:sync`. O projeto deve usar `minSdkVersion = 24`, `compileSdkVersion = 36` e `targetSdkVersion = 36`.
 
 ## Performance
 
@@ -34,3 +32,15 @@ Para inspecionar durante desenvolvimento:
 ## Release
 
 A Play Store recebe Android App Bundle (AAB). Não versione chaves de assinatura no Git.
+
+
+## Build local
+
+```bash
+npm install
+npm run android:add
+npm run android:sync
+npm run android:open
+```
+
+Para release, habilite R8 com `proguard-android-optimize.txt`, configure a assinatura fora do Git e gere o AAB com `gradlew bundleRelease`. Antes da Play Console, valide login, reconexão, PvP/co-op, troca Wi-Fi/4G e retorno do background em aparelho físico.
