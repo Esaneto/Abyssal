@@ -187,6 +187,9 @@ app.use((req, res, next) => {
  if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
  next();
 });
+app.get('/ads.txt', (_req, res) => {
+ res.type('text/plain; charset=utf-8').set('Cache-Control','public, max-age=3600').send('google.com, pub-2314281138409028, DIRECT, f08c47fec0942fa0\n');
+});
 app.use(express.static(path.join(__dirname, 'public'), { etag: false, lastModified: false, maxAge: 0 }));
 if (typeof app.post === 'function') {
  registerPaymentRoutes({ app, getUsers: () => users, getPool: () => pgPool, saveUsers, dataDir: DATA_DIR });
