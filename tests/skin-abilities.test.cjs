@@ -308,3 +308,11 @@ test('online PvE and lethal primary hits still trigger hit synergies',()=>{
  const lethalRemoval=damageFn.indexOf('if(enemy.hp<=0)');
  assert.ok(soloTrigger>=0&&soloTrigger<lethalRemoval,'lethal primary hit must trigger synergies before enemy removal');
 });
+
+test('local and remote Nova share one visual constructor',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/function spawnNovaVisual\(/);
+ assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode\)/);
+ assert.match(game,/spawnNovaVisual\(x,y,max,col,onlineRoomMode==='pvp'\)/);
+ assert.match(game,/type:'nova-core'/);
+});
