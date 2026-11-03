@@ -233,3 +233,21 @@ test('Aberration Mask keeps 12% mitigation and first-hit echo repels the attacke
  assert.match(server,/if\(hit\.aberrationEchoTriggered\)/);
  assert.match(server,/skin:'aberration'/);
 });
+
+test('PvP authoritative damage applies skin and learned defensive passives',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+ assert.match(server,/function pvpDamageAmount\(/);
+ assert.match(server,/SkinAbilities\.damageMultiplier\(attacker\?\.skinId,'player'/);
+ assert.match(server,/SkinAbilities\.incomingDamageMultiplier\(target\?\.skinId\)/);
+ assert.match(server,/shellLevel\*\.08/);
+ assert.match(server,/lastStandLevel/);
+ assert.match(server,/triggerPvpAberrationEcho/);
+ assert.match(server,/bubbleDamage=pvpDamageAmount/);
+});
+test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/type:'occluded-ring'/);
+ assert.match(game,/segments=360/);
+ assert.match(game,/edgeBlocked=projectileHitsPvpWall/);
+ assert.match(game,/shellLevel:upgrades\.shell,lastStandLevel:upgrades\.lastStand/);
+});
