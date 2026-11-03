@@ -95,9 +95,12 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   'boss-abyssal':{name:'Boss Abyssal',color:'#ff6b9d'},
    'abyssal-conqueror':{name:'Conquistador Abyssal',color:'#2ee88a'}
  };
+ function blockedChatUsers(){try{return new Set(JSON.parse(localStorage.getItem('abyssalBlockedChatUsers')||'[]').map(v=>String(v).toLowerCase()))}catch(_){return new Set()}}
+ function blockChatUser(nickname){const key=String(nickname||'').trim().toLowerCase();if(!key)return;const set=blockedChatUsers();set.add(key);localStorage.setItem('abyssalBlockedChatUsers',JSON.stringify([...set]));renderGlobalChatHistory(window.__abyssalLastChatHistory||[]);}
  function setGlobalChatStatus(online){const panel=$('globalChatPanel'),status=$('globalChatStatus');if(panel)panel.classList.toggle('is-offline',!online);if(status)status.textContent=online?'SINAL ESTÁVEL':'SEM SINAL';}
  function renderGlobalChatMessage(message){
   const list=$('globalChatMessages');if(!list||!message)return;
+  if(blockedChatUsers().has(String(message.nickname||'').toLowerCase()))return;
   const empty=list.querySelector('.global-chat-empty');if(empty)empty.remove();
   const row=document.createElement('article');row.className='global-chat-message';
   const head=document.createElement('div');head.className='global-chat-message-head';
@@ -122,13 +125,14 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
      report.textContent='DENÚNCIA ENVIADA';
     }catch(error){report.disabled=false;window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
    });
-   actions.appendChild(report);row.appendChild(actions);
+   const block=document.createElement('button');block.type='button';block.className='small-action global-chat-block';block.textContent='BLOQUEAR';block.setAttribute('aria-label','Bloquear mensagens de '+String(message.nickname||'jogador'));block.addEventListener('click',()=>{if(window.confirm('Bloquear mensagens de '+String(message.nickname||'este jogador')+' neste dispositivo?'))blockChatUser(message.nickname);});
+   actions.append(report,block);row.appendChild(actions);
   }
   list.appendChild(row);
   while(list.children.length>50)list.firstElementChild?.remove();
   list.scrollTop=list.scrollHeight;
  }
- function renderGlobalChatHistory(messages){const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
+ function renderGlobalChatHistory(messages){window.__abyssalLastChatHistory=Array.isArray(messages)?messages:[];const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
  function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
 
  function showCardumeDirectory(){const d=$('cardumeDirectory'),detail=$('cardumeDetail');if(d)d.hidden=false;if(detail)detail.hidden=true;}
