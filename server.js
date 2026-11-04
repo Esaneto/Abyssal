@@ -14,8 +14,6 @@ const NetCodec = require('./public/net-codec');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
-const { screenChatMessage } = require('./chat-safety');
-const { registerChatModerationRoutes } = require('./chat-moderation');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
@@ -45,12 +43,10 @@ const io = new Server(server, { cors: { origin: true, credentials: false }, allo
 const PORT = Number(process.env.PORT || 3000);
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
-// Social messaging, chat and randomized rewards are enabled by default.
-// Set ABYSSAL_CHAT_ENABLED=false or ABYSSAL_REWARDED_WHEEL_ENABLED=false to disable.
-// The client uses a neutral 16+ age-band declaration before social and advertising features.
-const SOCIAL_CHAT_ENABLED = process.env.ABYSSAL_CHAT_ENABLED !== 'false';
+// Profiles and Cardumes remain available independently from text communication.
+// Public text chat was removed from the product surface and server protocol.
 const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED !== 'false';
-const SOCIAL_FEATURES_ENABLED = SOCIAL_CHAT_ENABLED;
+const SOCIAL_FEATURES_ENABLED = true;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
@@ -110,7 +106,7 @@ async function initializePersistence() {
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
- const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes','global_chat')");
+ const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes')");
  const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
  if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
   users = Object.assign(Object.create(null), stored.users);
@@ -126,10 +122,7 @@ async function initializePersistence() {
  }
  if (stored.cardumes && typeof stored.cardumes === 'object' && !Array.isArray(stored.cardumes)) cardumes = stored.cardumes;
  else await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('cardumes',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(cardumes)]);
- if (stored.global_chat && typeof stored.global_chat === 'object' && !Array.isArray(stored.global_chat)) {
-  globalChatHistory.splice(0, globalChatHistory.length, ...(Array.isArray(stored.global_chat.messages) ? stored.global_chat.messages.slice(-CHAT_HISTORY_LIMIT) : []));
- } else persistGlobalChat();
- console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas; chat global restaurado.`);
+ console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
 }
 async function flushPersistence() { await persistenceQueue; }
 function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
@@ -206,7 +199,6 @@ if (typeof app.post === 'function') {
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
-registerChatModerationRoutes({ app, getUsers: () => users, saveUsers, getPool: () => pgPool, getChatHistory: () => globalChatHistory });
 app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.9',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/api/runtime-config', (_req,res)=>res.set('Cache-Control','no-store').json({previewMode:process.env.ABYSSAL_PREVIEW_MODE==='true',realPaymentsEnabled:liveSalesReady(),socialFeaturesEnabled:SOCIAL_FEATURES_ENABLED,randomRewardsEnabled:REWARDED_WHEEL_ENABLED}));
@@ -214,12 +206,6 @@ app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
-const globalChatHistory=[];
-const globalChatRate=new Map();
-const CHAT_HISTORY_LIMIT=50,CHAT_MESSAGE_LIMIT=180,CHAT_RATE_WINDOW_MS=10000,CHAT_RATE_MAX=5,CHAT_MIN_INTERVAL_MS=900;
-const CHAT_TITLE_IDS=new Set(TITLE_DEFINITIONS.map(t=>t.id));
-function persistGlobalChat() { persistState('global_chat', { messages: globalChatHistory.slice(-CHAT_HISTORY_LIMIT) }); }
-function publicChatMessage(message){return {id:message.id,nickname:message.nickname,titleId:message.titleId,text:message.text,at:message.at};}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
@@ -828,7 +814,7 @@ io.on('connection', socket => {
   const hasKidAgePass=()=>true;
   const requireKidPermission=()=>true;
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
- socket.emit('online-count', onlineCount()); socket.emit('global-chat-history',[]); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
+ socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
@@ -866,7 +852,6 @@ io.on('connection', socket => {
   socket.data.nickname=user.nickname;socket.data.userKey=key;saveUsers();
   socket.emit('session-resumed',{ok:true,...publicUser(user)});broadcastCardumeRosters();
  });
- socket.on('global-chat-history',()=>socket.emit('global-chat-history',SOCIAL_CHAT_ENABLED&&requireKidPermission('text-chat-public')?globalChatHistory.map(publicChatMessage):[]));
   socket.on('get-public-profile',(payload={})=>{if(!requireKidPermission('public-profile'))return socket.emit('public-profile-result',{ok:false,message:'O k-ID não liberou perfis públicos para esta conta.'});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
   socket.on('toggle-profile-like',(payload={})=>{if(!requireKidPermission('public-profile'))return socket.emit('profile-like-result',{ok:false,message:'O k-ID não liberou interações em perfis públicos para esta conta.'});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
   socket.on('get-cardume-details',()=>{if(!requireKidPermission('join-groups'))return socket.emit('cardume-details',{cardume:null,roster:[]});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-details',{cardume:null,roster:[]});const user=users[socket.data.userKey],c=user&&cardumes[user.cardumeId];if(!c)return socket.emit('cardume-details',{cardume:null,roster:[]});emitCardumeRoster(c);});
@@ -898,29 +883,6 @@ io.on('connection', socket => {
    c.members=c.members.filter(member=>member!==key);delete user.cardumeId;
    if(!c.members.length)delete cardumes[c.id];else if(c.leader===user.nickname)c.leader=users[c.members[0]]?.nickname||'Líder';
    saveCardumes();saveUsers();socket.emit('cardume-action-result',{ok:true,message:'Você saiu do Cardume.',account:publicUser(user)});sendCardumes();emitCardumeRoster(c);
-  });
-socket.on('global-chat-send',(payload={})=>{
-   if(!SOCIAL_CHAT_ENABLED)return socket.emit('global-chat-error',{message:'O chat está temporariamente indisponível enquanto os recursos de segurança são preparados.'});
-   if(!socket.data.userKey||!socket.data.nickname)return socket.emit('global-chat-error',{message:'Entre na sua conta para conversar no chat global.'});
-   if(!hasKidAgePass())return socket.emit('global-chat-error',{message:'Conclua a verificação de idade para usar o chat.'});
-    if(!requireKidPermission('text-chat-public'))return socket.emit('global-chat-error',{message:'O k-ID não liberou o chat público para esta conta.'});
-   const now=Date.now(),previous=globalChatRate.get(socket.id)||[];
-   const recent=previous.filter(t=>now-t<CHAT_RATE_WINDOW_MS);
-   if(recent.length>=CHAT_RATE_MAX||(recent.length&&now-recent[recent.length-1]<CHAT_MIN_INTERVAL_MS)){
-    globalChatRate.set(socket.id,recent);return socket.emit('global-chat-error',{message:'Você está transmitindo rápido demais. Aguarde um pouco.'});
-   }
-   const screened=screenChatMessage(payload?.text,CHAT_MESSAGE_LIMIT);
-   if(!screened.ok){const filterMessages={contact_or_link:'Não envie links, telefone, email ou contatos pessoais no chat.',profanity:'A mensagem contém linguagem bloqueada pelo filtro de segurança.',threat:'A mensagem foi bloqueada por conter ameaça.',grooming_or_off_platform_contact:'A mensagem foi bloqueada para proteger a comunidade.',repeated_characters:'Evite spam ou repetição excessiva de caracteres.',empty:'Digite uma mensagem antes de enviar.'};return socket.emit('global-chat-error',{reason:screened.reason,message:filterMessages[screened.reason]||'A mensagem foi recusada pelo filtro de segurança.'});}
-   const text=screened.text;
-   recent.push(now);globalChatRate.set(socket.id,recent);
-   const user=users[socket.data.userKey];
-   if(user?.chatBanned===true)return socket.emit('global-chat-error',{message:'Sua conta perdeu o acesso ao chat por decisão da moderação.'});
-   if(Number(user?.chatMutedUntil)>now)return socket.emit('global-chat-error',{message:'Você está temporariamente silenciado pela moderação.'});
-   const message={id:crypto.randomUUID(),senderKey:socket.data.userKey,nickname:socket.data.nickname,titleId:CHAT_TITLE_IDS.has(user?.equippedTitle)?user.equippedTitle:'abyss-drifter',text,at:now};
-   globalChatHistory.push(message);if(globalChatHistory.length>CHAT_HISTORY_LIMIT)globalChatHistory.splice(0,globalChatHistory.length-CHAT_HISTORY_LIMIT);
-   persistGlobalChat();
-   for(const client of (io.sockets?.sockets?.values?.() || []))client.emit('global-chat-message',publicChatMessage(message));
-   socket.emit('global-chat-sent',{ok:true,id:message.id});
   });
   socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
  socket.on('create-room', async payload => {
@@ -1272,11 +1234,6 @@ socket.on('global-chat-send',(payload={})=>{
     session.data.userKey=null;session.data.nickname=null;session.data.joined=false;session.data.roomId=null;
     if(!isRequester)session.emit('account-force-logout',{message:'Esta conta foi excluída em outra sessão.'});
    }
-   // Remove recent chat messages associated with the deleted profile as part of data cleanup.
-   for(let i=globalChatHistory.length-1;i>=0;i--){
-    if(String(globalChatHistory[i]?.nickname||'').toLowerCase()===String(user.nickname||'').toLowerCase())globalChatHistory.splice(i,1);
-   }
-   io.emit('global-chat-history',globalChatHistory.map(publicChatMessage));
    // Keep social links and Cardume membership consistent when an account is deleted.
    const oldCardume=cardumes[user.cardumeId];
    if(oldCardume){oldCardume.members=oldCardume.members.filter(member=>member!==key);if(!oldCardume.members.length)delete cardumes[oldCardume.id];else if(oldCardume.leader===user.nickname)oldCardume.leader=users[oldCardume.members[0]]?.nickname||'Líder';saveCardumes();}
@@ -1373,7 +1330,7 @@ socket.on('global-chat-send',(payload={})=>{
   u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
- socket.on('disconnect', () => { globalChatRate.delete(socket.id); if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
+ socket.on('disconnect', () => { if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 // Detecta a virada do dia em America/Sao_Paulo; o boot também corrige dias perdidos após spin-down.
