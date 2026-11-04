@@ -187,7 +187,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   updateAccount();renderProfile(result);
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
   setMessage(`Bem-vindo, ${result.nickname}!`);$('loginScreen').hidden=true;openAgeTermsIfNeeded();
-  socket.emit('get-account');socket.emit('list-cardumes');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+  socket.emit('get-account');socket.emit('list-cardumes');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));restoreRoomAfterReconnect();
  });
  socket.on('session-resumed',result=>{
   if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil.',true);return;}
