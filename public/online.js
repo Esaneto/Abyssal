@@ -219,7 +219,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);refreshKidGate();
-  socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+  socket.emit('get-account');socket.emit('global-chat-history');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
  socket.on('global-chat-sent',result=>{if(!result?.ok)return;const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem transmitida para o abismo.'});
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
