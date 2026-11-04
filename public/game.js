@@ -1770,6 +1770,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(!hasAim){if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
+  // The target selects direction only. The visible/damaging ray always extends to full range.
+  // This prevents the local client from visually snapping the endpoint onto an interpolated
+  // moving target before the authoritative server position has actually crossed the beam.
   let beamLength=beamRange,beamTargetId=null;
   if(hasAim&&!manualPhotonAim){
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
@@ -1779,7 +1782,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=Math.hypot(dx,dy);
     if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
    }
-   if(nearest){beamLength=Math.min(beamRange,nearestDistance);beamTargetId=String(nearest.id??'');}
+   if(nearest)beamTargetId=String(nearest.id??'');
   }
   let x2=player.x+ux*beamLength,y2=player.y+uy*beamLength;
   if(isPvpMode&&projectileHitsPvpWall(player.x,player.y,x2,y2,Math.max(1,width*.5))){
