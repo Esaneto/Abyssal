@@ -86,7 +86,7 @@ test('Photon Ray follows the mouse cursor independently of movement mode and ret
  assert.ok(block.includes('pointer.clientY'));
  assert.ok(block.includes('aimJoystickVector.active'));
  assert.ok(block.includes('PHOTON_RAY_VISUAL.segmentCircleHit'));
- assert.ok(block.includes('for(const target of enemies)'));
+ assert.ok(block.includes('for(const target of [...enemies])'));
  assert.ok(!block.includes('beamTargetId:target.id'));
 });
 
