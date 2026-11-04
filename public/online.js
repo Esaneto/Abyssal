@@ -116,18 +116,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
    const actions=document.createElement('div');actions.className='global-chat-message-actions';
    const report=document.createElement('button');report.type='button';report.className='small-action global-chat-report';report.textContent='DENUNCIAR';
    report.setAttribute('aria-label','Denunciar mensagem de '+String(message.nickname||'jogador'));
-   report.addEventListener('click',async()=>{
-    const choices=['bullying','hate','sexual_content','personal_information','threat','spam','other'];
-    const labels=['Assédio ou bullying','Discurso de ódio','Conteúdo sexual','Dados pessoais','Ameaça','Spam','Outro'];
-    const selected=window.prompt('Escolha o motivo da denúncia:\n'+labels.map((label,index)=>(index+1)+'. '+label).join('\n')+'\n\nDigite um número de 1 a 7.');
-    const index=Number(selected)-1;if(!Number.isInteger(index)||index<0||index>=choices.length)return;
-    report.disabled=true;
-    try{
-     const response=await fetch(SERVER_URL+'/api/chat/reports',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionToken},body:JSON.stringify({messageId:message.id,reason:choices[index]})});
-     const result=await response.json();if(!response.ok)throw new Error(result.message||'Não foi possível enviar a denúncia.');
-     report.textContent='DENÚNCIA ENVIADA';
-    }catch(error){report.disabled=false;window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
-   });
+   report.addEventListener('click',()=>openChatReportDialog(message,async reason=>{report.disabled=true;try{const response=await fetch(SERVER_URL+'/api/chat/reports',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionToken},body:JSON.stringify({messageId:message.id,reason})});const result=await response.json();if(!response.ok)throw new Error(result.message||'Não foi possível enviar a denúncia.');report.textContent='DENÚNCIA ENVIADA';const hint=$('globalChatHint');if(hint)hint.textContent='Denúncia enviada para análise da moderação.';window.addNotification?.('Sua denúncia foi registrada e entrou na fila de moderação.','DENÚNCIA REGISTRADA','moderation');}catch(error){report.disabled=false;const hint=$('globalChatHint');if(hint)hint.textContent=error.message;}}));
    const block=document.createElement('button');block.type='button';block.className='small-action global-chat-block';block.textContent='BLOQUEAR';block.setAttribute('aria-label','Bloquear mensagens de '+String(message.nickname||'jogador'));block.addEventListener('click',()=>{if(window.confirm('Bloquear mensagens de '+String(message.nickname||'este jogador')+' neste dispositivo?'))blockChatUser(message.nickname);});
    actions.append(report,block);row.appendChild(actions);
   }
@@ -643,4 +632,5 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  const resetToken=new URLSearchParams(location.hash.slice(1)).get('passwordResetToken');
  if(resetToken){$('loginScreen').hidden=true;$('passwordRecoveryScreen').hidden=true;$('passwordResetScreen').hidden=false;$('newPasswordInput').focus();setAuthFlowMessage('resetMessage','');}
  window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
-})();
+})();  function openChatReportDialog(message,onSubmit){document.getElementById('chatReportOverlay')?.remove();const overlay=document.createElement('div');overlay.id='chatReportOverlay';overlay.className='chat-report-overlay';const card=document.createElement('div');card.className='chat-report-card';card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');card.innerHTML='<strong>DENUNCIAR TRANSMISSÃO</strong><p>Selecione o motivo da denúncia.</p>';const choices=document.createElement('div');choices.className='chat-report-choices';for(const [value,label] of [['bullying','ASSÉDIO / BULLYING'],['hate','DISCURSO DE ÓDIO'],['sexual_content','CONTEÚDO SEXUAL'],['personal_information','DADOS PESSOAIS'],['threat','AMEAÇA'],['spam','SPAM'],['other','OUTRO']]){const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',()=>{overlay.remove();onSubmit(value)});choices.appendChild(button)}const cancel=document.createElement('button');cancel.type='button';cancel.className='chat-report-cancel';cancel.textContent='CANCELAR';cancel.addEventListener('click',()=>overlay.remove());card.append(choices,cancel);overlay.appendChild(card);overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});document.body.appendChild(overlay);choices.querySelector('button')?.focus();}
+
