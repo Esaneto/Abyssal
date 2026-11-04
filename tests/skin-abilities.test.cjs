@@ -384,8 +384,8 @@ test('Abyssal Runic typography and dynamic i18n are global',()=>{
  const html=read('public/index.html');
  const css=read('public/style.css');
  const i18n=read('public/i18n.js');
- assert.ok(html.includes('family=Pirata+One'));
- assert.ok(css.includes('--abyssal-runic:"Pirata One"'));
+ assert.ok(html.includes('family=Cinzel:wght@400;500;600;700;800;900'));
+ assert.ok(css.includes('--abyssal-runic:"Cinzel"'));
  assert.ok(css.includes('html,body,button,input,select,textarea{font-family:var(--abyssal-runic)!important;}'));
  assert.ok(i18n.includes("attributeFilter:['title','placeholder','aria-label']"));
  assert.ok(i18n.includes("'Tempestade elétrica':'Electric Storm'"));
@@ -393,11 +393,11 @@ test('Abyssal Runic typography and dynamic i18n are global',()=>{
 });
 
 
-test('Pirata One reaches online CTA and decorative microcopy is removed',()=>{
+test('Cinzel reaches online CTA and decorative microcopy is removed',()=>{
  const html=read('public/index.html');
  const css=read('public/style.css');
  const game=read('public/game.js');
- assert.ok(html.includes('family=Pirata+One'));
+ assert.ok(html.includes('family=Cinzel:wght@400;500;600;700;800;900'));
  assert.ok(css.includes('#onlineBtn,#onlineBtn *'));
  assert.doesNotMatch(html,/V\. 3\.5\.12/);
  assert.doesNotMatch(html,/UMA EXPERIÊNCIA ARCADE ORIGINAL/);
