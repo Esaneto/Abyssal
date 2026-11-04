@@ -111,3 +111,17 @@ test('owned bundle skins do not keep a residual BRL purchase price',()=>{
  assert.match(game,/const bundleBrlAmount=remaining===6\?4999:0/);
  assert.match(game,/SKINS ADQUIRIDAS SEM PREÇO/);
 });
+
+
+test('mobile explicitly orders Resonance before Solo and Online',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/#menuScreen #resonanceBtn\{order:20!important;position:static!important/);
+ assert.match(css,/#menuScreen #playBtn\{order:21!important/);
+ assert.match(css,/#menuScreen \.menu-secondary-actions\{order:23!important/);
+});
+
+test('multiplayer keeps offscreen enemy motion warm instead of viewport-culling mobs',()=>{
+ const server=read('server.js');
+ assert.match(server,/const enemies=world\.enemies;/);
+ assert.doesNotMatch(server,/const enemies=recipient\?world\.enemies\.filter\(enemy=>isBossKind/);
+});
