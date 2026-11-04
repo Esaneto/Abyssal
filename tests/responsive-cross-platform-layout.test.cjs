@@ -219,3 +219,11 @@ test('match HUD reserves topbar space and reclaims it when chrome is collapsed',
   assert.match(css, /body\.game-active:not\(\.mobile-game-active\) \.hud\{top:var\(--match-ui-top\)!important/);
   assert.match(css, /body\.mobile-game-active \.hud\{top:var\(--match-ui-top\)!important/);
 });
+
+
+test('fullscreen resize preserves isotropic world scale instead of area-shrinking gameplay', () => {
+  const game = read('public/game.js');
+  const zoom = game.slice(game.indexOf('function desiredWorldZoom'), game.indexOf('function desiredMapFactor'));
+  assert.match(zoom, /heightZoom=Math\.max\(300,viewH\)\/\(FAIR_VIEW_REFERENCE\.height\/FAIR_VIEW_REFERENCE\.zoom\)/);
+  assert.doesNotMatch(zoom, /viewportArea|Math\.sqrt\(viewportArea/);
+});
