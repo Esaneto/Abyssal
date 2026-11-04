@@ -3603,10 +3603,6 @@ body.game-active #bossAlert.gameplay-notice-5s{
  text-align:center!important;
  color:#fff!important;
  text-shadow:none!important;
- padding-left:42px!important;
- padding-right:42px!important;
- margin-left:auto!important;
- margin-right:auto!important;
 }
 #menuScreen #playBtn>span:last-child{
  position:absolute!important;
