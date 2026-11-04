@@ -22,6 +22,7 @@ let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,came
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
 let runShotId='electric';
+let runResonanceIds=[];
 const RESONANCE_STORAGE_KEY='abyssalResonancePresets';
 const RESONANCE_CATEGORIES={
  shots:['electric','pierce','spread','photon','photonRay','nova','echoShot'],
@@ -938,7 +939,8 @@ function startGame(){
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
-const selectedOpeningShot=(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[]).find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
+runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
+ const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:selectedOpeningShot==='spread'?1:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,repulse:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:selectedOpeningShot==='spread'?1:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,repulse:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
@@ -1040,7 +1042,7 @@ selectedSkillPanel?.addEventListener('pointerout',event=>{if(event.pointerType==
 selectedSkillPanel?.addEventListener('click',event=>{const row=event.target.closest('[data-skill-id]');if(row)showSkillDescription(row.dataset.skillId,row);});
 document.addEventListener('click',event=>{if(!event.target.closest?.('#selectedSkillsPanel'))hideSkillDescription();});
 function chooseUpgrade(u){
- if(gameState!=='upgrade'||!u||(upgradeLevels[u.id]||0)>=3)return;
+ if(gameState!=='upgrade'||!u||!runResonanceIds.includes(u.id)||(upgradeLevels[u.id]||0)>=3)return;
  clearUpgradeCountdown();gameState='upgrade-applying';
  u.apply();
  if(player){player.invuln=3;hp=maxHp;}
@@ -1070,14 +1072,14 @@ function chooseUpgrade(u){
  if(xp>=xpNeed){xp-=xpNeed;xpNeed=Math.floor(xpNeed*1.34+3);setTimeout(()=>{if(gameState==='playing')offerUpgrade()},0)}
 }
 
-function areAllUpgradesMaxed() {const allowed=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve'];return upgradeList.filter(u=>allowed.includes(u.id)).every(u=>(upgradeLevels[u.id]||0)>=3);}
+function areAllUpgradesMaxed(){return upgradeList.filter(u=>runResonanceIds.includes(u.id)).every(u=>(upgradeLevels[u.id]||0)>=3);}
 
 function offerUpgrade(){
  if(gameState==='upgrade'||gameState==='upgrade-applying')return;
  if(areAllUpgradesMaxed()){$('upgradeScreen').hidden=true;return;}
  clearUpgradeCountdown();
  gameState='upgrade';chosen=[];
- const saved=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve'];const available=upgradeList.filter(u=>saved.includes(u.id)&&(upgradeLevels[u.id]||0)<3);
+ const available=upgradeList.filter(u=>runResonanceIds.includes(u.id)&&(upgradeLevels[u.id]||0)<3);
  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]];}
  upgradeOptions=available.slice(0,3);
  const wrap=$('upgradeChoices'),fragment=document.createDocumentFragment();wrap.replaceChildren();
