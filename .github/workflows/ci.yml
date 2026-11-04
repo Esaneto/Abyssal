@@ -23,7 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Check Android configurator syntax
-        run: node --check scripts/configure-android.cjs
+        run: |
+          node --check scripts/configure-android.cjs
+          node --check scripts/configure-android-signing.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
 
