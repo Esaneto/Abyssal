@@ -383,7 +383,9 @@ function getRoomMotionSnapshot(room, options = {}){
   const paddingX=viewWidth*.22,paddingY=viewHeight*.22;
   bounds={left:cameraX-paddingX,right:cameraX+viewWidth+paddingX,top:cameraY-paddingY,bottom:cameraY+viewHeight+paddingY};
  }
- const enemies=recipient?world.enemies.filter(enemy=>isBossKind(enemy.kind)||(enemy.x>=bounds.left&&enemy.x<=bounds.right&&enemy.y>=bounds.top&&enemy.y<=bounds.bottom)):world.enemies;
+ // Enemy motion is global for every room member. Rendering remains camera-culled on the client, but
+ // positions must stay warm off-screen or a mob appears to teleport when it enters a small mobile viewport.
+ const enemies=world.enemies;
  const visibleOrbs=recipient?(world.orbs||[]).filter(orb=>orb.x>=bounds.left&&orb.x<=bounds.right&&orb.y>=bounds.top&&orb.y<=bounds.bottom):(world.orbs||[]);
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
