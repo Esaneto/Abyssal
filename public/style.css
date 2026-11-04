@@ -3781,3 +3781,7 @@ body.abyssal-native-shell #fullscreenBtn{
  .match-history-player{font-size:9px}.match-profile-btn{font-size:7px;padding:4px}
  .match-history-head{align-items:flex-start}.match-history-head time{text-align:right}
 }
+
+
+/* Controles: manter o texto do botão de salvar em branco. */
+#controlsCloseBtn{color:#fff!important;}
