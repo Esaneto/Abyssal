@@ -19,14 +19,12 @@ test('download control is outside the menu column and docked discreetly at the u
   assert.match(html, /style\.css\?v=\d+\.\d+\.\d+/);
 });
 
-test('menu monster has a frightening toothed grin and the chat is docked beneath its face', () => {
+test('menu monster keeps its frightening toothed grin after public chat removal', () => {
   const css = read('public/style.css');
   assert.match(css, /#menuScreen \.creature-core span\{[\s\S]*?display:block/);
   assert.match(css, /#menuScreen \.creature-core span:before/);
   assert.match(css, /#menuScreen \.creature-core span:after/);
   assert.match(css, /#menuScreen \.menu-creature\{[\s\S]*?top:45%/);
-  assert.match(css, /#menuScreen \.global-chat-panel\{[\s\S]*?bottom:34px/);
-  assert.match(css, /#menuScreen \.global-chat-panel\.chat-expanded\{display:flex/);
 });
 
 test('render work is capped to 60 FPS in combat and 30 FPS while idle', () => {
