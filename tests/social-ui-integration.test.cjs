@@ -108,7 +108,7 @@ test('profile safety actions are compact and report is red',()=>{
 
 test('owned bundle skins do not keep a residual BRL purchase price',()=>{
  const game=read('public/game.js');
- assert.match(game,/const bundleBrlAmount=remaining===6\?4999:0/);
+ assert.match(game,/const bundleBrlAmount=remaining===6\?4999:null/);
  assert.match(game,/SKINS ADQUIRIDAS SEM PREÇO/);
 });
 
