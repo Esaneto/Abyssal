@@ -46,3 +46,17 @@ test('download and controls menu utilities remain compact instead of full width'
  assert.match(css,/#menuScreen \.download-cta\{right:10px!important;bottom:44px!important/);
  assert.match(css,/#menuScreen \.controls-cta\{right:10px!important;bottom:10px!important/);
 });
+
+
+test('moderation socket listener is bound only after the socket is created',()=>{
+ const online=read('public/online.js');
+ const created=online.indexOf("socket=window.io(SERVER_URL");
+ const listener=online.indexOf("socket.on('ugc-report-result'");
+ assert.ok(created>=0&&listener>created,'report listener must not dereference a null socket during startup');
+});
+
+test('mobile hides download controls and fullscreen utilities',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/@media\(max-width:700px\),\(pointer:coarse\)[\s\S]*?#mobileDownloadTopBtn,#mobileControlsTopBtn,#fullscreenBtn/);
+ assert.match(css,/#menuScreen #downloadBtn,#menuScreen #controlsBtn[\s\S]*?display:none!important/);
+});
