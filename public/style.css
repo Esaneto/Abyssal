@@ -3905,3 +3905,23 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
  #menuScreen .menu-footer{pointer-events:auto!important;}
  #menuScreen .legal-footer,#menuScreen .legal-footer a{pointer-events:auto!important;}
 }
+
+/* RESONANCE TYPOGRAPHY V18: runic identity and stronger menu label. */
+#menuScreen .resonance-menu-btn,
+#menuScreen .resonance-label,
+.resonance-modal,
+.resonance-modal button,
+.resonance-modal input,
+.resonance-modal select,
+.resonance-category-title,
+.resonance-selection-count,
+.resonance-skill-option,
+.resonance-skill-icon,
+.resonance-skill-copy,
+.resonance-skill-copy strong,
+.resonance-skill-copy small{
+ font-family:var(--abyssal-runic)!important;
+}
+#menuScreen .resonance-menu-btn{font-size:14px!important;min-height:48px!important;}
+#menuScreen .resonance-label{font-size:14px!important;letter-spacing:.08em!important;}
+.resonance-category-title{font-size:12px!important;}
