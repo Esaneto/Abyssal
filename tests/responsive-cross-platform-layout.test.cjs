@@ -210,3 +210,12 @@ test('gameplay uses the full viewport with collapsible chrome and platform-speci
   assert.match(css, /body\.game-active #gameShell::after/);
   assert.match(css, /@media \(max-width:700px\),\(pointer:coarse\)[\s\S]*body\.game-active #gameShell::after[\s\S]*linear-gradient\(180deg/);
 });
+
+
+test('match HUD reserves topbar space and reclaims it when chrome is collapsed', () => {
+  const css = read('public/style.css');
+  assert.match(css, /body\.game-active\{--match-ui-top:calc\(max\(8px,env\(safe-area-inset-top\)\) \+ 64px\)\}/);
+  assert.match(css, /body\.game-active\.hud-collapsed\{--match-ui-top:max\(10px,env\(safe-area-inset-top\)\)\}/);
+  assert.match(css, /body\.game-active:not\(\.mobile-game-active\) \.hud\{top:var\(--match-ui-top\)!important/);
+  assert.match(css, /body\.mobile-game-active \.hud\{top:var\(--match-ui-top\)!important/);
+});
