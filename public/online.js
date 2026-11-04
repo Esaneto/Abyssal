@@ -566,4 +566,4 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  const resetToken=new URLSearchParams(location.hash.slice(1)).get('passwordResetToken');
  if(resetToken){$('loginScreen').hidden=true;$('passwordRecoveryScreen').hidden=true;$('passwordResetScreen').hidden=false;$('newPasswordInput').focus();setAuthFlowMessage('resetMessage','');}
  window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
-
+})();
