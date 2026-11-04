@@ -47,13 +47,6 @@ test('download, fullscreen, account deletion and PWA entry points remain present
 });
 
 
-test('chat form cannot trigger a native page refresh when the UI script is delayed or fails', () => {
-  const html = read('public/index.html');
-  assert.match(html, /globalChatForm[\s\S]*?addEventListener\('submit',event=>\{event\.preventDefault\(\);\},true\)/);
-  const online = read('public/online.js');
-  assert.match(online, /globalChatForm[\s\S]*?addEventListener\('submit',ev=>\{ev\.preventDefault\(\)/);
-});
-
 test('fullscreen has a standalone fallback if the main online UI initialization fails', () => {
   const html = read('public/index.html');
   const online = read('public/online.js');
@@ -100,7 +93,7 @@ test('codex state is cached and snapshot handling never reads localStorage repea
   assert.doesNotMatch(game.slice(start, end), /JSON\.parse\(localStorage\.getItem\('abyssalCodex'/);
 });
 
-test('menu text uses a larger high-contrast abyssal theme and chat overlays remain clickable', () => {
+test('menu text uses a larger high-contrast abyssal theme and decorative overlays stay non-interactive', () => {
   const css = read('public/style.css');
   assert.match(css, /#menuScreen \.intro\{[^}]*font-size:clamp\(15px/);
   assert.match(css, /#menuScreen \.menu-action\{[^}]*font-size:clamp\(12px/);
