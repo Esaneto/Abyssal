@@ -3592,3 +3592,27 @@ body.game-active #bossAlert.gameplay-notice-5s{
  color:#e7c8ff!important;
 }
 #menuScreen #resonanceBtn .resonance-label{width:100%!important;justify-content:center!important}
+
+/* Solo button: center its label independently of the arrow. */
+#menuScreen #playBtn{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ grid-template-columns:none!important;
+ justify-items:initial!important;
+ text-align:center!important;
+ color:#fff!important;
+ text-shadow:none!important;
+ padding-left:42px!important;
+ padding-right:42px!important;
+ margin-left:auto!important;
+ margin-right:auto!important;
+}
+#menuScreen #playBtn>span:last-child{
+ position:absolute!important;
+ right:18px!important;
+ top:50%!important;
+ transform:translateY(-50%)!important;
+ color:#fff!important;
+ text-shadow:none!important;
+}
