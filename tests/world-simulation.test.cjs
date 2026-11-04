@@ -48,7 +48,7 @@ test('boss HP tiers are ordered from lowest to highest and active bosses cap at 
   const bosses = [];
   for (let i = 0; i < 4; i++) bosses.push(Sim.spawnEnemy(world, { type: 'boss', random: () => 0.3 }));
   assert.deepEqual(bosses.map(e => e.kind), ['boss', 'angler', 'maw', 'leviathan']);
-  assert.deepEqual(bosses.map(e => e.maxHp), [2820, 3260, 3750, 4700]);
+  assert.deepEqual(bosses.map(e => e.maxHp), [5640, 6520, 7500, 9400]);
   assert.equal(Sim.countBosses(world).length, 4);
   assert.equal(Sim.spawnEnemy(world, { type: 'boss' }), null);
   assert.equal(new Set(Sim.countBosses(world).map(e => e.kind)).size, 4);
