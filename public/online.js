@@ -387,14 +387,6 @@ function submitRun(data){return finishRun(data||{},{});}
 function loadRankings(){if(socket?.connected)socket.emit('get-rankings');else fetch(SERVER_URL+'/api/rankings').then(r=>r.json()).then(renderRankings).catch(()=>{});}
 function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purchase-skin',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para comprar skins e salvar a compra nela.'}}));}
 
-let ageAssuranceBusy=false;
-async function refreshAgeAssuranceStatus(){return refreshKidGate();}
-async function startAgeAssurance(){
- if(!authenticated||!sessionToken){openLogin();return;}
- $('kidAgeGateScreen').hidden=false;
- await refreshKidGate();
-}
-
 async function purchaseStripe(productId,currency,language='pt'){
  const nativeAndroid=Boolean(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
  if(nativeAndroid){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'}}));return;}
@@ -448,7 +440,7 @@ function sendFusion(name){if(!socket?.connected||!authenticated||!currentRoom)re
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,startAgeAssurance,refreshAgeAssuranceStatus,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
  if(socket?.connected&&authenticated&&currentRoom){
@@ -464,22 +456,6 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
 
- window.addEventListener('abyssal-age-assurance-status',event=>{
-  const status=$('ageAssuranceStatus'),button=$('ageAssuranceButton'),detail=event.detail||{};
-  const messages={
-   verified:'Idade 18+ confirmada pela Stripe em modo de teste. / Age 18+ verified in test mode.',
-   underage:'A verificação confirmou idade inferior a 18 anos. Compras bloqueadas. / Under 18 confirmed. Purchases blocked.',
-   needs_setup:'A verificação precisa ser concluída na Stripe antes de liberar a loja.',
-   needs_review:'Não foi possível confirmar a maioridade. Inicie uma nova verificação ou contate o suporte.',
-   processing:'A Stripe ainda está processando seus documentos. Esta tela atualizará o resultado ao consultar novamente.',
-   requires_input:'A Stripe precisa de novas informações. Inicie uma nova tentativa de verificação.',
-   canceled:'A tentativa anterior foi cancelada. Você pode iniciar uma nova verificação.',
-   not_started:'Nenhuma verificação iniciada.',
-   pending:'Verificação pendente. / Verification pending.'
-  };
-  if(status)status.textContent=detail.message||messages[detail.status]||messages.pending;
-  if(button)button.disabled=detail.status==='verified'||detail.status==='underage'||ageAssuranceBusy;
- });
  const deleteInput=$('deleteNicknameInput'),deleteBtn=$('deleteAccountBtn');
  function updateDeleteButton(){
   if(!deleteInput||!deleteBtn)return;
