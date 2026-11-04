@@ -79,12 +79,15 @@ test('named premium skins retain reachable render branches', () => {
  assert.equal(game.split(premiumGroup).length-1,1);
 });
 
-test('Photon Ray auto-targets nearest in-range target without mouse steering', () => {
+test('Photon Ray follows the mouse cursor independently of movement mode and retains mobile aim', () => {
  const game=read('public/game.js');
  const start=game.indexOf("if(upgrades.photonRay>0){"),end=game.indexOf("if(upgrades.nova>0)",start),block=game.slice(start,end);
- assert.ok(block.includes('distanceSquared<=beamRangeSquared&&distanceSquared<targetDistanceSquared'));
- assert.ok(!block.includes('mouseAimMode')&&!block.includes('updateMouseAimFromCursor')&&!block.includes('controlAimAngle'));
- assert.ok(block.includes('Math.atan2'));
+ assert.ok(block.includes('pointer.clientX'));
+ assert.ok(block.includes('pointer.clientY'));
+ assert.ok(block.includes('aimJoystickVector.active'));
+ assert.ok(block.includes('PHOTON_RAY_VISUAL.segmentCircleHit'));
+ assert.ok(block.includes('for(const target of [...enemies])'));
+ assert.ok(!block.includes('beamTargetId:target.id'));
 });
 
 test('Kraken skin uses animated contact-damage tentacles', () => {

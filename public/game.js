@@ -973,7 +973,7 @@ const upgradeList=[
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'Após o primeiro impacto, o projétil salta para outro inimigo próximo. Cada nível adiciona um ricochete, até 3, marcado por trajetórias âmbar.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
  {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Cobertura em leque: 3, 5 ou 7 fragmentos de baixo dano individual. Forte contra grupos próximos, fraco quando poucos fragmentos acertam o mesmo alvo.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Dardo fotônico de precisão: extremamente veloz, fino e de alto dano em alvo único. Quase não permanece na tela e não perfura fileiras.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
- {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo de alvo único: mantém dano estável no inimigo mais próximo. Níveis maiores aumentam potência e espessura, sem atingir a tela inteira.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
+ {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo que acompanha o cursor do mouse e atinge todos os alvos atravessados. No celular, use a mira ou a seleção automática. Níveis maiores aumentam potência e espessura.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial de alto controle: recarga de 1,8 s no PvE e 2,4 s no PvP. Atinge apenas alvos com caminho radial livre; cobertura bloqueia dano e onda visual.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
  {id:'echoShot',name:'Eco de Maré',icon:'⋔',desc:'Dispara dois projéteis paralelos com dano individual menor. Níveis maiores aumentam dano e velocidade sem abrir o leque.',apply:()=>upgrades.echoShot=Math.min(3,(upgrades.echoShot||0)+1)},
  {id:'shell',name:'Carapaça Abissal',icon:'🛡',desc:'Endurece a carapaça: reduz o dano recebido em 8% por nível, até 24%, indicado por placas minerais orbitais discretas.',apply:()=>upgrades.shell=Math.min(3,(upgrades.shell||0)+1)},
@@ -1739,28 +1739,53 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.62,maxLife:.62,color:'#c18cff'});effects.push({type:'ring',x:player.x,y:player.y,r:0,max:145*upgrades.range/GAME_WORLD_ZOOM,life:.4,maxLife:.4,color:'#f0d9ff'});audio(500,.045,'sine',.008)}}
  if(upgrades.photonRay>0){
-   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
-   const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
-   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
-   let target=null,targetDistanceSquared=Infinity;const beamRangeSquared=beamRange*beamRange;
-   for(const candidate of candidates){
-    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
-    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,distanceSquared=dx*dx+dy*dy;
-    if(distanceSquared<=beamRangeSquared&&distanceSquared<targetDistanceSquared){target=candidate;targetDistanceSquared=distanceSquared;}
-   }
-   if(target){
-    player.photonRayActive=true;
-    const aimAngle=Math.atan2((Number(target.y)||0)-player.y,(Number(target.x)||0)-player.x),aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
-    player.angle=aimAngle;
-    const localBeam=effects.find(fx=>fx.localPhotonBeam);if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=Number(target.x)||player.x;localBeam.y2=Number(target.y)||player.y;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2:Number(target.x)||player.x,y2:Number(target.y)||player.y,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
-    if(player.photonRayTimer<=0){
-     player.photonRayTimer=beamInterval;
-     const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
-     if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,beamEndX:target.x/W,beamEndY:target.y/H,beamTargetId:target.id,special:'photonRay',volleyId:nextShotVolleyId()});
-     if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
-    }
-   }else{if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
+  player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
+  const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
+  const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
+  // Desktop always follows the actual cursor, regardless of the movement control preset.
+  // Mobile preserves the right-stick aim; without a right stick, fall back to auto aim.
+  let aimAngle=Number(player.angle)||0,hasAim=false;
+  if(!isMobileDevice()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
+   const rect=canvas.getBoundingClientRect();
+   const cursorX=cameraX+(pointer.clientX-rect.left)/worldZoom;
+   const cursorY=cameraY+(pointer.clientY-rect.top)/worldZoom;
+   if(Math.hypot(cursorX-player.x,cursorY-player.y)>2/GAME_WORLD_ZOOM){aimAngle=Math.atan2(cursorY-player.y,cursorX-player.x);hasAim=true;}
+  }else if(isMobileDevice()&&aimJoystickVector.active){
+   aimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);hasAim=true;
   }
+  if(!hasAim&&isMobileDevice()){
+   const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
+   let nearest=null,nearestDistance=beamRange*beamRange;
+   for(const candidate of candidates){
+    if(!candidate||candidate.alive===false||Number(candidate.hp)===0)continue;
+    const dx=candidate.x-player.x,dy=candidate.y-player.y,d=dx*dx+dy*dy;
+    if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
+   }
+   if(nearest)aimAngle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+  }
+  const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle),x2=player.x+ux*beamRange,y2=player.y+uy*beamRange;
+  player.angle=aimAngle;player.photonRayActive=true;
+  const localBeam=effects.find(fx=>fx.localPhotonBeam);
+  if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
+  else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
+  if(player.photonRayTimer<=0){
+   player.photonRayTimer=beamInterval;
+   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
+   // A single command describes the whole ray. Server determines every PvE/PvP hit.
+   if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',volleyId:nextShotVolleyId()});
+   if(!onlineMode){
+    // Damage may remove killed enemies from the original list; iterate a snapshot.
+    for(const target of [...enemies]){
+     if(!target||target.hp<=0)continue;
+     if(!PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5))continue;
+     dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
+    }
+   }
+  }
+ }else if(player.photonRayActive){
+  if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
+  player.photonRayActive=false;
+ }
   if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
@@ -1936,6 +1961,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const originX=owner?.x??beam.targetX1??beam.x1,originY=owner?.y??beam.targetY1??beam.y1;
   beam.x1+=(originX-beam.x1)*blend;beam.y1+=(originY-beam.y1)*blend;
   let destinationX=beam.targetX2??beam.x2,destinationY=beam.targetY2??beam.y2;
+  // Keep the ray aimed in the last authoritative direction while its shooter moves between packets.
+  if(owner&&!beam.remoteTargetId){destinationX=originX+(beam.targetX2-beam.targetX1);destinationY=originY+(beam.targetY2-beam.targetY1);}
   if(beam.remoteTargetId){
    const target=onlineRoomMode==='pvp'?window.AbyssalOnline?.getPlayerById?.(beam.remoteTargetId):onlineEnemyById.get(beam.remoteTargetId);
    if(target&&target.alive!==false&&Number(target.hp)!==0){
