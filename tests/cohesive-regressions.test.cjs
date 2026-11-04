@@ -18,11 +18,25 @@ test('online players are broadcast from accepted position heartbeats', () => {
 
 test('temporary disconnect preserves the last synchronized account profile', () => {
   const online = read('public/online.js');
-  const disconnect = online.match(/socket\.on\('disconnect',\(\)=>\{([\s\S]*?)\}\);/);
+  const disconnect = online.match(/socket\.on\('disconnect',\([^)]*\)=>\{([\s\S]*?)\}\);/);
   assert.ok(disconnect, 'disconnect handler exists');
   assert.doesNotMatch(disconnect[1], /serverAccount=null/);
   assert.doesNotMatch(disconnect[1], /\$\('profileScreen'\)\.hidden=true/);
   assert.match(online, /socket\.on\('session-resumed'/);
+});
+
+test('Render deploy reconnect restores the active expedition instead of leaving gameplay stranded', () => {
+  const online = read('public/online.js');
+  const game = read('public/game.js');
+  const server = read('server.js');
+  assert.match(online, /rememberReconnectTarget/);
+  assert.match(online, /restoreRoomAfterReconnect/);
+  assert.match(online, /reconnectionAttempts:Infinity/);
+  assert.match(online, /joinRoom\(target\.id,target\.password,\{reconnect:true\}\)/);
+  assert.match(game, /d\.reconnected&&d\.resumedRun/);
+  assert.match(server, /function stashDeployRun/);
+  assert.match(server, /pendingRunResume/);
+  assert.match(server, /spawn:\{x:p\.x,y:p\.y\}/);
 });
 
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
