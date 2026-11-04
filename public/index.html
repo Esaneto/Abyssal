@@ -511,10 +511,6 @@
 <script src="net-codec.js?v=4.2.0"></script>
 <script src="online.js?v=4.2.0"></script>
 <script>
-/* UI failsafe for the rebuilt global chat. */
-(()=>{
-  const chatForm=document.getElementById('globalChatForm');
-  chatForm?.addEventListener('submit',event=>{event.preventDefault();},true);
   if(window.__abyssalFullscreenHandlerReady)return;
   const button=document.getElementById('fullscreenBtn');
   const update=()=>{
