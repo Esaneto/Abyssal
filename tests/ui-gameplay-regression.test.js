@@ -97,3 +97,21 @@ test('profile back button uses the shared modal close contract', () => {
   const html = read('public/index.html');
   assert.match(html, /id="profileCloseBtn"[^>]*data-close-screen="profileScreen"/);
 });
+
+
+test('closing the online lobby from a finished run restores an interactive main menu', () => {
+  const game = read('public/game.js');
+  assert.match(game, /function handleRoomsClosed\(\)\{onlineMode=false;if\(gameState==='menu'\)/);
+  assert.match(game, /\$\('menuScreen'\)\.hidden=false/);
+  assert.match(game, /abyssal-modal-closed[^\n]*handleRoomsClosed\(\)/);
+});
+
+test('desktop level-up UI is enlarged without changing the mobile breakpoint', () => {
+  const css = read('public/style.css');
+  const marker = css.indexOf('Desktop-only level-up readability');
+  assert.ok(marker >= 0);
+  const desktopRules = css.slice(marker);
+  assert.match(desktopRules, /@media\(min-width:701px\)/);
+  assert.match(desktopRules, /#upgradeScreen \.modal-card\{width:min\(1040px,94vw\)/);
+  assert.match(desktopRules, /#upgradeScreen \.upgrade-card p\{font-size:13px/);
+});

@@ -4291,3 +4291,20 @@ button.primary-btn span{
   }
   #menuScreen .legal-footer a{font-size:8px!important;}
 }
+
+
+/* Desktop-only level-up readability: larger selection panel and cards without changing mobile. */
+@media(min-width:701px){
+ #upgradeScreen{padding:clamp(22px,3vw,42px)}
+ #upgradeScreen .modal-card{width:min(1040px,94vw);max-width:1040px;padding:clamp(24px,3vw,38px)}
+ #upgradeScreen .modal-card h2{font-size:clamp(34px,3.2vw,48px);line-height:1.08}
+ #upgradeScreen .modal-card>p{font-size:14px;line-height:1.55}
+ #upgradeScreen .upgrade-choices{gap:16px}
+ #upgradeScreen .upgrade-card{padding:20px 18px;gap:8px;min-height:220px}
+ #upgradeScreen .upgrade-icon{font-size:34px}
+ #upgradeScreen .upgrade-card strong{font-size:15px;line-height:1.35}
+ #upgradeScreen .upgrade-card p{font-size:13px;line-height:1.55}
+ #upgradeScreen .upgrade-progress{font-size:11px;line-height:1.4}
+ #upgradeScreen .upgrade-timer-copy strong{font-size:14px}
+ #upgradeScreen .upgrade-timer-copy span{font-size:11px}
+}
