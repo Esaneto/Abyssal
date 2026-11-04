@@ -1774,7 +1774,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
    if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',volleyId:nextShotVolleyId()});
    if(!onlineMode){
-    for(const target of enemies){
+    // Damage may remove killed enemies from the original list; iterate a snapshot.
+    for(const target of [...enemies]){
      if(!target||target.hp<=0)continue;
      if(!PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5))continue;
      dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
