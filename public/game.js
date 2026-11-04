@@ -2623,7 +2623,7 @@ function getAbyssalPerformanceSnapshot(){
  const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
  const p95=samples.length?samples[Math.min(samples.length-1,Math.ceil(samples.length*.95)-1)]:0;
  const memory=performance.memory?.usedJSHeapSize;
- return {fps:gameFrameFps,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
+ return {fps:gameFrameFps,lastUpdateMs:Number(gameLastUpdateMs.toFixed(2)),lastDrawMs:Number(gameLastDrawMs.toFixed(2)),frameP95Ms:Number(p95.toFixed(2)),maxFrameMs:Number(gameMaxFrameMs.toFixed(2)),longTaskCount:gameLongTaskCount,maxLongTaskMs:Number(gameMaxLongTaskMs.toFixed(2)),entities:{enemies:enemies.length,orbs:orbs.length,projectiles:projectiles.length,particles:particles.length,effects:effects.length},network:window.AbyssalOnline?.positionDiagnostics?.()||null,heapUsedMb:Number.isFinite(memory)?Number((memory/1048576).toFixed(1)):null};
 }
 window.AbyssalPerformance={snapshot:getAbyssalPerformanceSnapshot};
 if(typeof PerformanceObserver!=='undefined'){
