@@ -3492,3 +3492,59 @@ body.game-active #bossAlert.gameplay-notice-5s{
  #menuScreen .menu-action .menu-nav-icon,
  #menuScreen .menu-action .online-cta-icon{grid-column:3!important}
 }
+
+
+/* REQUESTED ALIGNMENT + RESONANCE COLOR V17 */
+#menuScreen .menu-secondary-actions .menu-action{
+ position:relative!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ text-align:center!important;
+}
+#menuScreen .menu-secondary-actions .menu-action>.menu-action-label,
+#menuScreen .menu-secondary-actions .menu-action>.online-cta-copy{
+ width:100%!important;
+ margin:0!important;
+ text-align:center!important;
+ align-items:center!important;
+ justify-content:center!important;
+}
+#menuScreen .menu-secondary-actions .menu-action>.menu-nav-icon,
+#menuScreen .menu-secondary-actions .menu-action>.online-cta-icon{
+ position:absolute!important;
+ right:12px!important;
+ top:50%!important;
+ transform:translateY(-50%)!important;
+ margin:0!important;
+}
+.top-actions .icon-btn,
+.top-actions .sound-control-wrapper>.icon-btn{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ padding:0!important;
+ line-height:1!important;
+}
+.top-actions .icon-btn>.ui-icon,
+.top-actions .sound-control-wrapper>.icon-btn>.ui-icon{
+ display:block!important;
+ margin:auto!important;
+ flex:0 0 auto!important;
+}
+.selected-skills-panel{
+ border-color:rgba(183,132,255,.58)!important;
+ background:linear-gradient(155deg,rgba(61,28,91,.90),rgba(26,15,55,.94))!important;
+ box-shadow:0 0 18px rgba(167,91,255,.16),inset 0 0 24px rgba(151,78,224,.07)!important;
+}
+.selected-skills-title{color:#d8b8ff!important;text-shadow:0 0 10px rgba(185,120,255,.32)!important}
+@media(max-width:700px),(pointer:coarse){
+ #menuScreen .menu-secondary-actions .menu-action{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+ }
+ #menuScreen .menu-secondary-actions .menu-action>.menu-nav-icon,
+ #menuScreen .menu-secondary-actions .menu-action>.online-cta-icon{right:10px!important}
+}
