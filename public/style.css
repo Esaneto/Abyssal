@@ -4100,3 +4100,13 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
   }
   #menuScreen .legal-footer a{font-size:8px!important;}
 }
+
+
+/* CONTRASTE DOS BOTOES PRINCIPAIS: texto branco em todos os botoes com fundo cyan. */
+#menuScreen .primary-btn,
+.primary-btn,
+.primary-btn span,
+button.primary-btn,
+button.primary-btn span{
+  color:#fff!important;
+}
