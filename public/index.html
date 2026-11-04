@@ -275,7 +275,7 @@
 
 
     <section id="supportScreen" class="screen modal-screen auth-flow-screen" hidden>
-      <div class="modal-card compact-card auth-flow-card support-flow-card" role="dialog" aria-modal="true" aria-labelledby="supportTitle">
+      <div class="modal-card compact-card auth-flow-card support-flow-card" role="dialog" aria-modal="true" aria-labelledby="supportTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="supportScreen" aria-label="Fechar suporte">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> CENTRAL DE COMUNICAÇÃO</div>
         <h2 id="supportTitle">SINAL DE<br><em>SOCORRO</em></h2>
         <p>Conte à nossa equipe o que aconteceu. Sua mensagem será enviada diretamente ao suporte do Abyssal.</p>
@@ -296,7 +296,7 @@
         <input id="supportWebsiteInput" class="support-honeypot" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
         <p id="supportMessageStatus" class="form-message auth-flow-message" role="status" aria-live="polite"></p>
         <button id="sendSupportBtn" class="primary-btn" type="button">ENVIAR MENSAGEM <span>↗</span></button>
-        <button id="supportCancelBtn" class="secondary-btn" type="button">VOLTAR AO MENU</button>
+        <button id="supportCancelBtn" class="secondary-btn" type="button" data-close-screen="supportScreen">VOLTAR AO MENU</button>
       </div>
     </section>
 
@@ -313,7 +313,7 @@
         <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste moedas abissais para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
         <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
         <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber moedas abissais</small></span><strong>↗</strong></button>
-        <button id="shopCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="shopCloseBtn" class="secondary-btn" data-close-screen="shopScreen">VOLTAR AO MENU</button>
       </div>
     </section>
 
@@ -358,11 +358,11 @@
     </div>
         <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar moedas abissais!</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button></div>
-        <button id="wheelCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="wheelCloseBtn" class="secondary-btn" data-close-screen="wheelScreen">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="roomsScreen" class="screen modal-screen" hidden>
-      <div class="modal-card room-modal">
+      <div class="modal-card room-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="roomsScreen" aria-label="Fechar salas">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> REDE DE MERGULHO · ATÉ 6 JOGADORES</div>
         <h2>SALAS DO<br><em>ABISMO</em></h2>
         <p>Estas são as expedições que ainda transmitem sinal. Salas com cadeado exigem senha; salas públicas aceitam entrada direta. Cada mergulho tem sua própria horda.</p>
@@ -386,7 +386,7 @@
           <div class="room-form-row"><div><label class="field-label" for="roomCodeInput">CÓDIGO DE CONVITE</label><input id="roomCodeInput" class="text-field" maxlength="12" placeholder="Ex.: A1B2C3 ou MAR-ABERTO"></div><div><label class="field-label" for="roomJoinPasswordInput">SENHA (SE EXIGIDA)</label><input id="roomJoinPasswordInput" class="text-field" type="password" maxlength="64" placeholder="Senha da sala"></div></div>
           <button id="joinRoomCodeBtn" type="button" class="secondary-btn">ENTRAR NA SALA</button>
         </div>
-        <button id="roomsCloseBtn" type="button" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="roomsCloseBtn" type="button" class="secondary-btn" data-close-screen="roomsScreen">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="cardumesScreen" class="screen modal-screen" hidden>
@@ -412,15 +412,15 @@
           <button id="leaveCardumeBtn" class="secondary-btn" type="button">SAIR DO MEU CARDUME</button>
           <button id="backToCardumeDirectoryBtn" class="secondary-btn" type="button">VER OUTROS CARDUMES</button>
         </section>
-        <button id="cardumesCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="cardumesCloseBtn" class="secondary-btn" data-close-screen="cardumesScreen">VOLTAR AO MENU</button>
       </div>
     </section>
 <section id="resonanceScreen" class="screen modal-screen" hidden><div class="modal-card codex-modal resonance-modal" role="dialog" aria-modal="true" aria-labelledby="resonanceTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="resonanceScreen" aria-label="Fechar ressonância">×</button><div class="eyebrow"><span class="pulse-dot"></span> PREPARE SUA EVOLUÇÃO</div><h2 id="resonanceTitle">RESSONÂNCIA<br><em>ABISSAL</em></h2><p>Monte sua configuração de evolução: escolha até <strong>1 habilidade de Disparos</strong> e complete os 7 espaços com habilidades Defensivas e Passivas. Assim, vários modificadores de tiro não se acumulam na mesma configuração.</p><div class="resonance-mode-tabs"><button type="button" class="primary-btn" data-resonance-mode="pve">RESSONÂNCIA PVE</button><button type="button" class="secondary-btn" data-resonance-mode="pvp">RESSONÂNCIA PVP</button></div><div id="resonanceSelectionCount" class="resonance-selection-count">7 de 7 selecionadas</div><div id="resonanceSkillChoices" class="resonance-skill-choices"></div><p id="resonanceMessage" class="form-message" aria-live="polite"></p><button id="saveResonanceBtn" class="primary-btn" type="button">SALVAR COMBINAÇÃO</button></div></section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>ABYSSARIO</h2><p>Registre as criaturas encontradas durante suas expedições pelas fossas abissais.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>ABYSSARIO</h2><p>Registre as criaturas encontradas durante suas expedições pelas fossas abissais.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="profileScreen" class="screen modal-screen" hidden>
       <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
@@ -459,7 +459,7 @@
       </div>
     </section>
     <section id="downloadScreen" class="screen modal-screen" hidden>
-      <div class="modal-card download-modal">
+      <div class="modal-card download-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="downloadScreen" aria-label="Fechar downloads">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> ACESSO AO ABISMO</div>
         <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
         <p>Você já pode instalar o Abyssal como aplicativo web nos navegadores compatíveis. Os pacotes nativos e publicações nas lojas ainda exigem etapas de assinatura e cadastro.</p>
@@ -473,7 +473,7 @@
         <p id="downloadInstallMessage" class="download-install-message" role="status" aria-live="polite">Selecione uma plataforma para baixar ou instalar.</p>
         <button id="installPwaBtn" class="secondary-btn">INSTALAR COMO APLICATIVO WEB</button>
         <button id="playBrowserBtn" class="primary-btn">JOGAR NO NAVEGADOR <span>↗</span></button>
-        <button id="downloadCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+        <button id="downloadCloseBtn" class="secondary-btn" data-close-screen="downloadScreen">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="toast" class="toast" hidden></section>

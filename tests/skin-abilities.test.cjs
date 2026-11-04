@@ -485,3 +485,16 @@ test('legal links remain present and escaped newline artifacts are absent',()=>{
  for(const href of ['/terms.html','/privacy.html','/community.html','/store-policy.html'])assert.ok(html.includes('href="'+href+'"'));
  assert.ok(!html.includes('\\n\\n\\n'));
 });
+
+
+test('menu modals expose a canonical working close action and sticky X',()=>{
+ const html=read('public/index.html'),online=read('public/online.js'),css=read('public/style.css');
+ for(const [button,screen] of Object.entries({supportCancelBtn:'supportScreen',shopCloseBtn:'shopScreen',wheelCloseBtn:'wheelScreen',roomsCloseBtn:'roomsScreen',cardumesCloseBtn:'cardumesScreen',catalogCloseBtn:'catalogScreen',rankingsCloseBtn:'rankingsScreen',downloadCloseBtn:'downloadScreen'})){
+  assert.match(html,new RegExp('id="'+button+'"[^>]*data-close-screen="'+screen+'"'));
+ }
+ for(const screen of ['supportScreen','roomsScreen','cardumesScreen','catalogScreen','rankingsScreen','downloadScreen'])assert.ok(html.includes('data-close-screen="'+screen+'"'));
+ assert.ok(online.includes("event.target.closest?.('[data-close-screen]')"));
+ assert.ok(online.includes('event.stopImmediatePropagation()'));
+ assert.ok(css.includes('UNIVERSAL MODAL CLOSE V23'));
+ assert.ok(css.includes('position:sticky!important'));
+});

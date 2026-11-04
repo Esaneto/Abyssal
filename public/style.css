@@ -4110,3 +4110,24 @@ button.primary-btn,
 button.primary-btn span{
   color:#fff!important;
 }
+
+
+/* UNIVERSAL MODAL CLOSE V23: X remains visible while modal content scrolls. */
+.modal-screen>.modal-card{position:relative!important;}
+.modal-screen>.modal-card>.modal-top-close{
+ position:sticky!important;
+ top:8px!important;
+ right:8px!important;
+ float:right!important;
+ margin:0 0 -38px auto!important;
+ z-index:80!important;
+ width:34px!important;
+ height:34px!important;
+ display:grid!important;
+ place-items:center!important;
+ pointer-events:auto!important;
+ cursor:pointer!important;
+ background:rgba(3,15,26,.96)!important;
+ backdrop-filter:blur(8px);
+}
+.modal-screen>.modal-card>.modal-top-close:focus-visible{outline:2px solid #79f3f0!important;outline-offset:2px!important;}
