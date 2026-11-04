@@ -339,3 +339,32 @@ test('Gravitational Nova has mode-aware cadence enforced by client and server',(
  assert.match(server,/shooter\.novaShotReadyAt=now\+2400/);
  assert.match(game,/function update\(dt\)\{\r?\n const isPvpMode=onlineRoomMode==='pvp'/);
 });
+
+
+test('resonance always keeps exactly one shot and defaults to electric storm',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("RESONANCE_DEFAULTS={pve:['electric'"));
+ assert.ok(game.includes("if(!clean[mode].some(id=>RESONANCE_CATEGORIES.shots.includes(id)))"));
+ assert.ok(game.includes("Você precisa manter exatamente 1 disparo selecionado."));
+ assert.ok(game.includes("DISPAROS · ESCOLHA EXATAMENTE 1"));
+});
+
+test('photon ray control modes share authoritative endpoints',()=>{
+ const game=read('public/game.js');
+ const server=read('server.js');
+ assert.ok(game.includes("controlSettings.pc==='wasd-aim'"));
+ assert.ok(game.includes("controlSettings.mobile==='dual-stick'"));
+ assert.ok(game.includes("manualAim:manualPhotonAim"));
+ assert.ok(game.includes("beamEndX:x2/W,beamEndY:y2/H"));
+ assert.ok(server.includes("const manualAim=payload.manualAim===true"));
+ assert.ok(server.includes("shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1)"));
+});
+
+test('projectiles dissolve at collision and range end and electric shot is a twisted bolt',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("function spawnProjectileDissolve"));
+ assert.ok(game.includes("if(hit||reachedRange)spawnProjectileDissolve"));
+ assert.ok(game.includes("fx.type==='projectile-dissolve'"));
+ assert.ok(game.includes("segments=8"));
+ assert.ok(game.includes("Math.sin(phase+s*2.7)"));
+});
