@@ -1140,6 +1140,11 @@ io.on('connection', socket => {
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
   const shot={x,y,vx,vy,color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet','photon','photonRay','nova','abyssEye','echoShot'].includes(payload.special)?payload.special:null,from:socket.data.nickname,fromId:socket.id,at:now};
   if(shot.special==='photonRay')shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));
+  if(shot.special==='photonRay'&&room.mode!=='pvp'){
+   const endX=Number(payload.beamEndX),endY=Number(payload.beamEndY);
+   const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   if(Number.isFinite(endX)&&Number.isFinite(endY)&&endX>=0&&endX<=1&&endY>=0&&endY<=1&&Math.hypot((endX-x)*WORLD_WIDTH,(endY-y)*WORLD_HEIGHT)<=range+8/WORLD_ZOOM){shot.beamEndX=endX;shot.beamEndY=endY;}
+  }
   if(room.mode==='pvp'){
    const sx=x*WORLD_WIDTH,sy=y*WORLD_HEIGHT,originDistance=Math.hypot(sx-shooter.x,sy-shooter.y);
    if(originDistance>240/WORLD_ZOOM)return;
