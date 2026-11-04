@@ -181,19 +181,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
  socket.on('connect_error',()=>{connected=false;showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');setMessage('Servidor temporariamente indisponível. Tentando reconectar…',true)});
- socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();function scrubLiteralMenuNewlines(){
- const menu=$('menuScreen');if(!menu)return;
- const walker=document.createTreeWalker(menu,NodeFilter.SHOW_TEXT);
- const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
- for(const node of nodes){
-  const value=String(node.nodeValue||'');
-  if(!value.includes('\\\\n'))continue;
-  const cleaned=value.replace(/(?:\\\\n){2,}/g,'').replace(/\\\\n/g,' ');
-  if(cleaned!==value)node.nodeValue=cleaned;
- }
-}
-scrubLiteralMenuNewlines();
-updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
+ socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
