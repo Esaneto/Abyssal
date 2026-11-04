@@ -540,8 +540,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
   if(Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y))>range+20/WORLD_ZOOM)return reject('photon-out-of-range');
-  if(now<(Number(player.photonDamageReadyAt)||0))return reject('photon-cooldown');
-  player.photonDamageReadyAt=now+190;
+  if(!player.photonServerResolving)return reject('photon-ray-server-only');
   requestedDamage=Math.min(requestedDamage,45);
  }
  if(skillId==='nova'){
@@ -1159,7 +1158,52 @@ io.on('connection', socket => {
    const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
    if(Number.isFinite(endX)&&Number.isFinite(endY)&&endX>=0&&endX<=1&&endY>=0&&endY<=1&&Math.hypot((endX-x)*WORLD_WIDTH,(endY-y)*WORLD_HEIGHT)<=range+8/WORLD_ZOOM){shot.beamEndX=endX;shot.beamEndY=endY;}
   }
-  if(room.mode==='pvp'){
+  if(shot.special==='photonRay'){
+   const sx=Number(shooter.x),sy=Number(shooter.y),dx=vx*WORLD_WIDTH,dy=vy*WORLD_HEIGHT,speed=Math.hypot(dx,dy);
+   if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
+   const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
+   const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   const ux=dx/speed,uy=dy/speed;
+   let length=beamRange;
+   if(room.mode==='pvp'){
+    // The same wall clipping applies to the actual hit segment and its visual endpoint.
+    for(let distance=0;distance<=beamRange;distance+=4/WORLD_ZOOM){
+     if(pvpRockAt(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){length=Math.max(0,distance-4/WORLD_ZOOM);break;}
+    }
+   }
+   const ex=sx+ux*length,ey=sy+uy*length;
+   shot.x=sx/WORLD_WIDTH;shot.y=sy/WORLD_HEIGHT;shot.effectRadius=length;
+   shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/WORLD_HEIGHT,0,1);
+   const hitRadius=5/WORLD_ZOOM+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
+   if(room.mode==='pvp'){
+    let changed=false;
+    for(const target of room.players.values()){
+     if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;
+     if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,(Number(target.r)||13/WORLD_ZOOM)+hitRadius))continue;
+     const rawDamage=Math.max(1,Math.min(35,shot.damage||12));
+     const damage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(sx-target.x,sy-target.y));
+     let blocked=false;
+     if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
+     else{target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);triggerPvpAberrationEcho(room,target,shooter,now);target.lastDamageAt=now;target.invulnerableUntil=now+180;
+      if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,playerId:target.id});}
+     }
+     io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
+     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:damage,skillId:'photonRay',blocked});
+     if(!blocked&&damage>0)applyPvpHitSynergies(room,shooter,target,rawDamage,'photonRay',now);
+     changed=true;
+    }
+    if(changed)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+   }else{
+    shooter.photonServerResolving=true;
+    try{
+     for(const enemy of [...(room.world?.enemies||[])]){
+      if(!enemy||Number(enemy.hp)<=0)continue;
+      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),(Number(enemy.r)||12/WORLD_ZOOM)+hitRadius))continue;
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay');
+     }
+    }finally{shooter.photonServerResolving=false;}
+   }
+  }else if(room.mode==='pvp'){
    const sx=x*WORLD_WIDTH,sy=y*WORLD_HEIGHT,originDistance=Math.hypot(sx-shooter.x,sy-shooter.y);
    if(originDistance>240/WORLD_ZOOM)return;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
