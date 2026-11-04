@@ -868,28 +868,29 @@ io.on('connection', socket => {
   socket.on('report-ugc',async(payload={})=>{
    const reporterKey=socket.data.userKey,reporter=users[reporterKey];
    if(!reporter)return socket.emit('ugc-report-result',{ok:false,message:'Entre na sua conta para enviar uma denúncia.'});
-   const type=payload.type==='cardume'?'cardume':'profile';
-   const targetId=String(payload.targetId||'').trim().slice(0,80);
-   const reason=String(payload.reason||'').trim().slice(0,60);
-   const details=String(payload.details||'').trim().replace(/[\u0000-\u001f]/g,' ').slice(0,800);
+   const type=payload.type==='cardume'?'cardume':'profile',targetId=String(payload.targetId||'').trim().slice(0,80),reason=String(payload.reason||'').trim().slice(0,60),details=String(payload.details||'').trim().replace(/[\u0000-\u001f]/g,' ').slice(0,800);
    const allowedReasons=new Set(['nome-improprio','assedio','discriminacao','fraude','dados-pessoais','conteudo-ilegal','outro']);
    if(!targetId||!allowedReasons.has(reason))return socket.emit('ugc-report-result',{ok:false,message:'Selecione um motivo válido para a denúncia.'});
-   let targetLabel='',snapshot='';
+   let targetLabel='',targetKey='',snapshot='';
    if(type==='profile'){
-    const target=users[targetId.toLowerCase()];if(!target)return socket.emit('ugc-report-result',{ok:false,message:'Perfil não encontrado.'});
-    if(targetId.toLowerCase()===reporterKey)return socket.emit('ugc-report-result',{ok:false,message:'Você não pode denunciar o próprio perfil.'});
-    targetLabel=target.nickname;snapshot='Nickname: '+target.nickname;
-   }else{
-    const c=cardumes[targetId];if(!c)return socket.emit('ugc-report-result',{ok:false,message:'Cardume não encontrado.'});
-    targetLabel=c.name;snapshot='Nome: '+c.name+'\nDescrição: '+String(c.description||'')+'\nLíder: '+String(c.leader||'');
-   }
-   const apiKey=String(process.env.SENDGRID_API_KEY||''),from=String(process.env.RECOVERY_FROM_EMAIL||'');
-   if(!apiKey||!from)return socket.emit('ugc-report-result',{ok:false,message:'O canal de moderação está temporariamente indisponível.'});
+    targetKey=targetId.toLowerCase();const target=users[targetKey];if(!target)return socket.emit('ugc-report-result',{ok:false,message:'Perfil não encontrado.'});
+    if(targetKey===reporterKey)return socket.emit('ugc-report-result',{ok:false,message:'Você não pode denunciar o próprio perfil.'});
+    targetLabel=target.nickname;snapshot='Nickname atual: '+target.nickname+'\nID interno da conta: '+targetKey;
+   }else{const c=cardumes[targetId];if(!c)return socket.emit('ugc-report-result',{ok:false,message:'Cardume não encontrado.'});targetKey=c.id;targetLabel=c.name;snapshot='Nome: '+c.name+'\nID interno do Cardume: '+c.id+'\nDescrição: '+String(c.description||'')+'\nLíder: '+String(c.leader||'');}
+   reporter.moderationReports ||= [];const now=Date.now(),recent=reporter.moderationReports.filter(r=>now-Number(r.at||0)<3600000);reporter.moderationReports=recent;
+   if(recent.length>=8)return socket.emit('ugc-report-result',{ok:false,message:'Limite temporário de denúncias atingido. Aguarde antes de enviar outra.'});
+   const matchId=String(payload.matchId||'').slice(0,80),duplicate=recent.find(r=>r.type===type&&r.targetKey===targetKey&&r.reason===reason&&String(r.matchId||'')===matchId);
+   if(duplicate)return socket.emit('ugc-report-result',{ok:false,message:'Esta denúncia já foi registrada recentemente. Protocolo: '+String(duplicate.reportId).slice(0,8).toUpperCase()});
+   const context=payload.context&&typeof payload.context==='object'?payload.context:{};
+   const contextLines=matchId?['ID da partida: '+matchId,'Sala: '+String(context.roomName||context.roomId||'não informada').slice(0,100),'Data da partida: '+String(context.playedAt||'não informada').slice(0,60),'Bosses abatidos pelo alvo: '+Math.max(0,Math.floor(Number(context.bossesKilled)||0)),'Dano do alvo: '+Math.max(0,Math.round(Number(context.damage)||0)).toLocaleString('pt-BR')]:['Origem: perfil/cardume fora do histórico de partidas'];
+   const target=type==='profile'?users[targetKey]:null;const priorReports=target?Math.max(0,Number(target.moderationReportCount)||0):0;
+   const apiKey=String(process.env.SENDGRID_API_KEY||''),from=String(process.env.RECOVERY_FROM_EMAIL||'');if(!apiKey||!from)return socket.emit('ugc-report-result',{ok:false,message:'O canal de moderação está temporariamente indisponível.'});
    const reportId=crypto.randomUUID(),createdAt=new Date().toISOString();
-   const body=['DENÚNCIA DE UGC - ABYSSAL','ID: '+reportId,'Data UTC: '+createdAt,'Denunciante: '+reporter.nickname,'Tipo: '+type,'Alvo: '+targetLabel,'Motivo: '+reason,'','CONTEÚDO CAPTURADO NO MOMENTO DA DENÚNCIA',snapshot,'','DETALHES DO DENUNCIANTE',details||'Não informado','', 'Ação necessária: revisar conteúdo/conta e aplicar medida apropriada conforme Termos e regras da comunidade.'].join('\n');
+   const body=['DENÚNCIA DE UGC - ABYSSAL','Protocolo: '+reportId,'Data UTC: '+createdAt,'','IDENTIFICAÇÃO','Denunciante: '+reporter.nickname,'ID interno do denunciante: '+reporterKey,'Tipo: '+type,'Alvo: '+targetLabel,'ID interno do alvo: '+targetKey,'Motivo: '+reason,'Denúncias anteriores registradas contra este alvo: '+priorReports,'','CONTEXTO DA PARTIDA',...contextLines,'','CONTEÚDO / PERFIL CAPTURADO',snapshot,'','RELATO DO DENUNCIANTE',details||'Não informado','','Ação necessária: revisar o contexto e aplicar medida apropriada conforme Termos e regras da comunidade. Não aplicar punição automática apenas pela quantidade de denúncias.'].join('\n');
    try{
-    const response=await fetch('https://api.sendgrid.com/v3/mail/send',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({personalizations:[{to:[{email:'abyssalelectrongames@gmail.com'}]}],from:{email:from,name:'Abyssal - Moderação'},subject:'Abyssal | DENÚNCIA | '+reason+' | '+targetLabel,content:[{type:'text/plain',value:body}]})});
+    const response=await fetch('https://api.sendgrid.com/v3/mail/send',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({personalizations:[{to:[{email:'abyssalelectrongames@gmail.com'}]}],from:{email:from,name:'Abyssal - Moderação'},subject:'Abyssal | DENÚNCIA | '+reason+' | '+targetLabel+' | '+reportId.slice(0,8).toUpperCase(),content:[{type:'text/plain',value:body}]})});
     if(!response.ok)return socket.emit('ugc-report-result',{ok:false,message:'Não foi possível entregar a denúncia ao suporte agora.'});
+    reporter.moderationReports.push({at:now,reportId,type,targetKey,reason,matchId});if(target)target.moderationReportCount=priorReports+1;saveUsers();
     socket.emit('ugc-report-result',{ok:true,reportId,message:'Denúncia enviada ao suporte para análise. Protocolo: '+reportId.slice(0,8).toUpperCase()});
    }catch(err){console.error('[moderation] Falha ao enviar denúncia:',err.message);socket.emit('ugc-report-result',{ok:false,message:'Falha temporária ao enviar a denúncia.'});}
   });
