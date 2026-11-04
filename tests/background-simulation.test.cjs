@@ -114,3 +114,10 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
   assert.match(game,/flushOnlineDamageBatch\(\)/);
 
 });
+
+
+test('deploy reconnect keeps maintenance visible until the authoritative room is restored', () => {
+  assert.match(online, /if\(!reconnectPending\)hideMaintenanceOverlay\(\);else showMaintenanceOverlay/);
+  assert.match(online, /showMaintenanceOverlay\('Expedição restaurada\. Sincronizando o mundo…'\)/);
+  assert.match(online, /window\.dispatchEvent\(new CustomEvent\('abyssal-room-joined'/);
+});

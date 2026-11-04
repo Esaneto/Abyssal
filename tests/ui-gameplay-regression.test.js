@@ -91,3 +91,9 @@ test('responsive screens avoid visible scrollbars and keep three skill cards in 
   assert.match(css, /#upgradeScreen \.upgrade-choices\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css, /grid-template-columns:minmax\(0,1\.08fr\) minmax\(250px,\.72fr\)/);
 });
+
+
+test('profile back button uses the shared modal close contract', () => {
+  const html = read('public/index.html');
+  assert.match(html, /id="profileCloseBtn"[^>]*data-close-screen="profileScreen"/);
+});
