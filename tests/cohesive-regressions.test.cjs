@@ -115,15 +115,17 @@ test('menu text uses a larger high-contrast abyssal theme and decorative overlay
 });
 
 
-test('abyssal10k is permanent, grants 10,000 coins and is limited to one redemption per browser profile', () => {
-  const html = read('public/index.html');
+test('promotional redemption is authenticated and server-authoritative', () => {
   const game = read('public/game.js');
-  assert.doesNotMatch(html, /CÓDIGO PERMANENTE · NÃO EXPIRA · \+10\.000 MOEDAS ABISSAIS/);
-  assert.match(game, /code!=='abyssal10k'/);
-  assert.match(game, /coins\+=10000/);
-  assert.match(game, /localStorage\.getItem\('abyssalRedeemedCodes'\)/);
-  assert.match(game, /localStorage\.setItem\('abyssalRedeemedCodes'/);
-  assert.doesNotMatch(game, /abyssal10k.{0,100}(expiresAt|expiry|expirationDate)/i);
+  const online = read('public/online.js');
+  const server = read('server.js');
+  assert.doesNotMatch(game, /abyssal10k/i);
+  assert.match(game, /window\.AbyssalOnline\.redeemCode\(code\)/);
+  assert.match(online, /socket\.emit\('redeem-code'/);
+  assert.match(server, /process\.env\.ABYSSAL_WELCOME_CODE/);
+  assert.match(server, /process\.env\.ABYSSAL_FOUNDER_CODE/);
+  assert.match(server, /redeemedPromoIds/);
+  assert.doesNotMatch(server, /bemvindoabyssal/i);
 });
 
 test('new shooter upgrades and photon online shot type remain wired', () => {
@@ -136,17 +138,6 @@ test('new shooter upgrades and photon online shot type remain wired', () => {
   assert.match(server, /'pierce','electric','ricochet','photon'/);
 });
 
-
-test('abyssal10k can be redeemed repeatedly by the same authenticated account', () => {
-  const game = read('public/game.js');
-  const online = read('public/online.js');
-  const server = read('server.js');
-  assert.match(game, /window\.AbyssalOnline\.redeemCode\(code\)/);
-  assert.match(online, /socket\.emit\('redeem-code'/);
-  assert.match(server, /socket\.on\('redeem-code'/);
-  assert.match(server, /u\.coins=\(Number\(u\.coins\)\|\|0\)\+10000/);
-  assert.doesNotMatch(server, /u\.redeemedCodes\.includes\('abyssal10k'\)/);
-});
 
 test('menu ambience and active skills remain present without per-frame current-zone effects', () => {
   const html = read('public/index.html');
