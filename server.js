@@ -1175,7 +1175,8 @@ io.on('connection', socket => {
     }
    }
   }
-  io.to(channelFor(room)).volatile.emit('shared-shot',shot);
+  if(shot.special==='photonRay')io.to(channelFor(room)).emit('shared-shot',shot);
+  else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
  socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability', (payload, acknowledge) => {
