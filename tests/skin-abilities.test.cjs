@@ -555,3 +555,26 @@ test('photon ray full-range segment still respects PvP rock occlusion',()=>{
  assert.ok(server.includes('pvpRockAt(sx+ux*distance,sy+uy*distance'));
  assert.ok(server.includes('PhotonRay.segmentCircleHit(sx,sy,ex,ey'));
 });
+
+
+test('online combat predicts presentation but keeps HP server authoritative',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ assert.ok(game.includes('const predictedCombatHits=new Map()'));
+ assert.ok(game.includes('predictCombatImpact(enemy,queuedDamage,skillId,actionId)'));
+ assert.ok(game.includes('consumePredictedCombatImpact(data)'));
+ assert.ok(online.includes("actionId:String(hit?.actionId||'').slice(0,72)"));
+ assert.ok(server.includes("actionId:String(actionId||'').slice(0,72)"));
+});
+test('authoritative shots carry correlation ids for photon and PvP reconciliation',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.ok(server.includes("actionId:String(payload.actionId||payload.volleyId||'').slice(0,72)"));
+ assert.ok(server.includes("processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId)"));
+ assert.ok(game.includes("const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'')"));
+});
+test('movement keeps local prediction and remote interpolation',()=>{
+ const game=read('public/game.js'),online=read('public/online.js');
+ assert.ok(game.includes('reconcilePlayer:({dx=0,dy=0,blocked=false}={})=>'));
+ assert.ok(online.includes("socket.volatile.emit('player-motion-input'"));
+ assert.ok(online.includes('function applyPlayerMotion(rows)'));
+ assert.ok(game.includes('function currentInterpolatedEnemyPosition(e,now)'));
+});
