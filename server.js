@@ -45,7 +45,7 @@ const PORT = Number(process.env.PORT || 3000);
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
 // Profiles and Cardumes remain available independently from text communication.
 // Public text chat was removed from the product surface and server protocol.
-const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED !== 'false';
+const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED === 'true';
 const SOCIAL_FEATURES_ENABLED = true;
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data')); // Override only for isolated tests or an explicit persistent volume.
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
