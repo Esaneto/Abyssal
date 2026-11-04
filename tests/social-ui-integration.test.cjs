@@ -69,3 +69,17 @@ test('resonance is structurally above solo dive in the main menu',()=>{
  const css=read('public/style.css');
  assert.match(css,/#menuScreen #resonanceBtn\{[\s\S]*?position:static!important/);
 });
+
+
+test('account and online menu actions are owned by the online module',()=>{
+ const online=read('public/online.js'),game=read('public/game.js');
+ assert.match(online,/\$\('loginBtn'\)\?\.addEventListener\('click',\(\)=>openLogin\(\)\)/);
+ assert.match(online,/\$\('onlineBtn'\)\?\.addEventListener\('click'/);
+ assert.doesNotMatch(game,/\$\('loginBtn'\)\.addEventListener/);
+ assert.doesNotMatch(game,/\$\('onlineBtn'\)\.addEventListener/);
+});
+
+test('UGC modal exists before online client scripts execute',()=>{
+ const html=read('public/index.html');
+ assert.ok(html.indexOf('id="ugcReportScreen"')<html.indexOf('src="online.js'));
+});
