@@ -3785,3 +3785,27 @@ body.abyssal-native-shell #fullscreenBtn{
 
 /* Controles: manter o texto do botão de salvar em branco. */
 #controlsCloseBtn{color:#fff!important;}
+
+
+/* RESSONÂNCIA: texto branco e botões PVE/PVP com dimensões idênticas. */
+.resonance-modal .resonance-mode-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:stretch!important;
+}
+.resonance-modal .resonance-mode-tabs button{
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-width:0!important;
+  min-height:38px!important;
+  height:38px!important;
+  margin:0!important;
+  color:#fff!important;
+  white-space:normal!important;
+}
+.resonance-modal #saveResonanceBtn{
+  color:#fff!important;
+}
