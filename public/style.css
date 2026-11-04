@@ -3712,3 +3712,14 @@ body.abyssal-native-shell #fullscreenBtn{
 .profile-report-btn{border:1px solid rgba(255,69,89,.72)!important;background:rgba(151,18,38,.30)!important;color:#ff8392!important}
 .profile-report-btn:hover{background:rgba(197,25,49,.48)!important;border-color:#ff5368!important;color:#fff!important}
 .profile-top-actions #profileLikesCount{margin-left:2px;font-size:9px}
+
+
+/* Mobile main-action order: Resonance must sit directly above Solo, then Online. */
+@media(max-width:700px),(pointer:coarse){
+ #menuScreen .menu-content{display:flex!important;flex-direction:column!important}
+ #menuScreen #resonanceBtn{order:20!important;position:static!important;width:100%!important;margin:0 0 8px!important}
+ #menuScreen #playBtn{order:21!important;position:relative!important;width:100%!important;margin:0 0 8px!important}
+ #menuScreen #wheelBtn{order:22!important}
+ #menuScreen .menu-secondary-actions{order:23!important;margin-top:8px!important}
+ #menuScreen #onlineBtn.online-cta{margin-top:0!important}
+}
