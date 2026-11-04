@@ -46,6 +46,23 @@ test('Remote ray anchors use interpolated peer and enemy positions every render 
  assert.match(server,/shot\.beamTargetId=targetId/);
 });
 
+test('Pulse ability keeps immediate local feedback and reverts on explicit server rejection',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ assert.match(game,/const sent=window\.AbyssalOnline\?\.sendActiveAbility\?\.\('pulse',result=>/);
+ assert.match(game,/pulseCaster\.pulseCooldown=0/);
+ assert.match(server,/socket\.on\('active-ability',\(payload,acknowledge\)=>/);
+ assert.match(server,/ack\(false,'cooldown'\)/);
+ assert.match(online,/socket\.timeout\(3000\)\.emit\('active-ability'/);
+});
+
+test('Network diagnostics record acknowledged local motion RTT without trusting wall-clock differences',()=>{
+ const game=read('public/game.js'),online=read('public/online.js');
+ assert.match(online,/sentAt:now/);
+ assert.match(online,/performance\.now\(\)-predicted\.sentAt/);
+ assert.match(online,/motionJitterMs/);
+ assert.match(game,/network:window\.AbyssalOnline\?\.positionDiagnostics\?\.\(\)/);
+});
+
 test('PvP photon rays clip both body and core before drawing, without nested line-of-sight stepping',()=>{
  const game=read('public/game.js');
  assert.match(game,/let photonX2=fx\.x2,photonY2=fx\.y2/);
