@@ -510,3 +510,22 @@ test('successful socket reconnect releases maintenance UI even while expedition 
  const online=read('public/online.js');
  assert.ok(online.includes("socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();"));
 });
+
+
+test('removed start-screen records cannot abort game initialization',()=>{
+ const html=read('public/index.html'),game=read('public/game.js');
+ assert.ok(!html.includes('id="bestTime"'));
+ assert.ok(!html.includes('id="bestScore"'));
+ assert.ok(game.includes("const bestTimeEl=$('bestTime'),bestScoreEl=$('bestScore');if(bestTimeEl)"));
+ assert.ok(game.includes("const el=$('bestScore');if(el)el.textContent"));
+ assert.ok(game.includes("const el=$('bestTime');if(el)el.textContent"));
+ assert.ok(game.includes("if($('testWheelBtn'))$('testWheelBtn').disabled="));
+});
+test('core menu navigation handlers remain registered after initialization guards',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ for(const id of ['soloBtn','resonanceBtn','wheelBtn','shopBtn','catalogBtn','rankingsBtn'])assert.ok(game.includes("$('"+id+"')")||game.includes("$('"+id+"')?")||game.includes("const "+id.replace('Btn','Btn')+"=$('"+id+"')"));
+ assert.ok(online.includes('function connectAndJoin()'));
+ assert.ok(server.includes("rooms.set(DEFAULT_ROOM_ID"));
+ assert.ok(server.includes("rooms.set(PVP_ROOM_ID"));
+ assert.ok(server.includes("socket.on('create-room'"));
+});
