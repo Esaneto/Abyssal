@@ -115,3 +115,12 @@ test('desktop level-up UI is enlarged without changing the mobile breakpoint', (
   assert.match(desktopRules, /#upgradeScreen \.modal-card\{width:min\(1040px,94vw\)/);
   assert.match(desktopRules, /#upgradeScreen \.upgrade-card p\{font-size:13px/);
 });
+
+
+test('paid skin ownership survives session restoration and shop refreshes authoritative account', () => {
+  const game = read('public/game.js');
+  assert.doesNotMatch(game, /ownedSkins=ownedSkins\.filter\(id=>!premiumIds\.has\(id\)\)/);
+  assert.match(game, /shopBtn[^\n]*refreshAccount/);
+  assert.match(game, /if\(r\.account\)\{window\.dispatchEvent\(new CustomEvent\('abyssal-account-data'/);
+  assert.match(game, /equipped\?\(english\?'EQUIPPED':'EQUIPADA'\):owned\?\(english\?'EQUIP':'EQUIPAR'\)/);
+});
