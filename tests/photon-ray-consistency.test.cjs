@@ -63,6 +63,14 @@ test('Network diagnostics record acknowledged local motion RTT without trusting 
  assert.match(game,/network:window\.AbyssalOnline\?\.positionDiagnostics\?\.\(\)/);
 });
 
+test('Server enforces Photon Ray pulse rate, hit range and a capped damage budget',()=>{
+ const server=read('server.js');
+ assert.match(server,/player\.photonDamageReadyAt=now\+190/);
+ assert.match(server,/requestedDamage=Math\.min\(requestedDamage,45\)/);
+ assert.match(server,/shooter\.photonShotReadyAt=now\+190/);
+ assert.match(server,/return reject\('photon-out-of-range'\)/);
+});
+
 test('PvP photon rays clip both body and core before drawing, without nested line-of-sight stepping',()=>{
  const game=read('public/game.js');
  assert.match(game,/let photonX2=fx\.x2,photonY2=fx\.y2/);
