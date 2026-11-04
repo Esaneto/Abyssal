@@ -170,3 +170,13 @@ test('moderation email contains internal ids match evidence recurrence and anti-
  assert.match(online,/matchId:match\.id/);
  assert.match(online,/bossesKilled:player\.bossesKilled,damage:player\.damage/);
 });
+
+
+test('accounts have immutable UUID identity for moderation independent of nickname',()=>{
+ const server=read('server.js');
+ assert.match(server,/function ensureAccountId\(u\)/);
+ assert.match(server,/accountId:crypto\.randomUUID\(\)/);
+ assert.match(server,/UUID permanente do denunciante/);
+ assert.match(server,/UUID permanente do alvo/);
+ assert.match(server,/UUID permanente da conta/);
+});
