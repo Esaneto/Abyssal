@@ -63,6 +63,16 @@ test('Network diagnostics record acknowledged local motion RTT without trusting 
  assert.match(game,/network:window\.AbyssalOnline\?\.positionDiagnostics\?\.\(\)/);
 });
 
+test('Photon Ray publishes a reliable stop event once the local beam loses its target',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ assert.match(game,/player\.photonRayActive=true/);
+ assert.match(game,/if\(player\.photonRayActive&&onlineMode\)window\.AbyssalOnline\?\.sendPhotonRayStop\?\.\(\)/);
+ assert.match(game,/abyssal-remote-photon-stop/);
+ assert.match(online,/socket\.on\('photon-ray-stop'/);
+ assert.match(online,/socket\.emit\('photon-ray-stop'\)/);
+ assert.match(server,/socket\.on\('photon-ray-stop'/);
+});
+
 test('Server enforces Photon Ray pulse rate, hit range and a capped damage budget',()=>{
  const server=read('server.js');
  assert.match(server,/player\.photonDamageReadyAt=now\+190/);
