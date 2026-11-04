@@ -3925,3 +3925,31 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
 #menuScreen .resonance-menu-btn{font-size:14px!important;min-height:48px!important;}
 #menuScreen .resonance-label{font-size:14px!important;letter-spacing:.08em!important;}
 .resonance-category-title{font-size:12px!important;}
+
+
+/* MENU CORNER UTILITIES V19: legal links bottom-left, account/language upper-right. */
+@media(min-width:701px){
+ #menuScreen .menu-content{position:relative!important;}
+ #menuScreen .menu-account-utility{
+  position:absolute!important;top:18px!important;right:18px!important;left:auto!important;
+  z-index:24!important;width:220px!important;max-width:220px!important;margin:0!important;
+ }
+ #menuScreen .menu-language-utility{
+  position:absolute!important;top:86px!important;right:18px!important;left:auto!important;
+  z-index:24!important;width:220px!important;max-width:220px!important;margin:0!important;
+ }
+ #menuScreen .menu-footer{
+  position:absolute!important;left:18px!important;right:auto!important;bottom:14px!important;top:auto!important;
+  z-index:24!important;margin:0!important;width:auto!important;max-width:calc(100% - 36px)!important;
+  pointer-events:auto!important;
+ }
+ #menuScreen .legal-footer{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;gap:7px 14px!important;}
+}
+@media(max-width:700px){
+ #menuScreen .menu-account-utility{position:relative!important;top:auto!important;right:auto!important;left:auto!important;}
+ #menuScreen .menu-language-utility{position:relative!important;top:auto!important;right:auto!important;left:auto!important;}
+ #menuScreen .menu-footer{
+  position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;
+  margin:10px 11px 16px!important;max-width:none!important;
+ }
+}
