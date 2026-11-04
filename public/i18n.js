@@ -160,11 +160,11 @@ const translations={
 "FUNDAR UM CARDUME":"FOUND A SCHOAL",
 "NOME (3–24 CARACTERES)":"NAME (3–24 CHARACTERS)",
 "DESCRIÇÃO (OPCIONAL)":"DESCRIPTION (OPTIONAL)",
-"CRIAR CARDUME":"CREATE SCHOOAL",
-"MEU CARDUME":"MY SCHOOAL",
-"MERGULHADORES DO CARDUME":"SCHOOAL DIVERS",
-"SAIR DO MEU CARDUME":"LEAVE MY SCHOOAL",
-"VER OUTROS CARDUMES":"VIEW OTHER SCHOOALS",
+"CRIAR CARDUME":"CREATE SCHOAL",
+"MEU CARDUME":"MY SCHOAL",
+"MERGULHADORES DO CARDUME":"SCHOAL DIVERS",
+"SAIR DO MEU CARDUME":"LEAVE MY SCHOAL",
+"VER OUTROS CARDUMES":"VIEW OTHER SCHOALS",
 "Título equipado: Mergulhador das Fossas":"Equipped title: Trench Diver",
 "Entre na sua conta para salvar seu título.":"Log in to save your title.",
 "1 título disponível":"1 title available",
@@ -252,7 +252,7 @@ const translations={
 "ENTRE PARA EQUIPAR":"LOG IN TO EQUIP",
 "LÍDER":"LEADER",
 "VER PERFIL":"VIEW PROFILE",
-"RECRUTAR-SE":"JOIN SCHOOAL"
+"RECRUTAR-SE":"JOIN SCHOAL"
 ,
 "ESCUDO ABSORVEU O IMPACTO":"SHIELD ABSORBED THE HIT",
 "ERRANTE LUMINESCENTE":"LUMINOUS DRIFTER",
@@ -577,9 +577,27 @@ const spanishTranslations={
 "CÓDIGO PROMOCIONAL":"CÓDIGO PROMOCIONAL",
 "Use um código promocional para receber essências abissais":"Usa un código promocional para recibir esencias abisales"
 };
+
+// Canonical gameplay terminology. Dynamic UI uses the same dictionaries as static DOM.
+Object.assign(translations,{
+ 'Tempestade elétrica':'Electric Storm','Lança-abismo':'Abyss Spear','Ricochete caótico':'Chaotic Ricochet',
+ 'Rajada Prismática':'Prismatic Barrage','Lança de Fótons':'Photon Lance','Raio de Fótons':'Photon Ray',
+ 'Nova gravitacional':'Gravitational Nova','Eco de Maré':'Tidal Echo',
+ 'DISPAROS · ESCOLHA EXATAMENTE 1':'SHOTS · CHOOSE EXACTLY 1','DEFENSIVAS':'DEFENSIVE','PASSIVAS':'PASSIVE',
+ 'Você precisa manter exatamente 1 disparo selecionado.':'You must keep exactly 1 shot selected.',
+ 'Selecione exatamente 1 disparo.':'Select exactly 1 shot.'
+});
+Object.assign(spanishTranslations,{
+ 'Tempestade elétrica':'Tormenta eléctrica','Lança-abismo':'Lanza abisal','Ricochete caótico':'Rebote caótico',
+ 'Rajada Prismática':'Ráfaga prismática','Lança de Fótons':'Lanza de fotones','Raio de Fótons':'Rayo de fotones',
+ 'Nova gravitacional':'Nova gravitacional','Eco de Maré':'Eco de marea',
+ 'DISPAROS · ESCOLHA EXATAMENTE 1':'DISPAROS · ELIGE EXACTAMENTE 1','DEFENSIVAS':'DEFENSIVAS','PASSIVAS':'PASIVAS',
+ 'Você precisa manter exatamente 1 disparo selecionado.':'Debes mantener exactamente 1 disparo seleccionado.',
+ 'Selecione exatamente 1 disparo.':'Selecciona exactamente 1 disparo.'
+});
 const attrMap={title:{'Som':'Sound','Tela cheia':'Fullscreen','Pausar':'Pause'},placeholder:{'Escreva uma mensagem…':'Write a message…','Seu nickname':'Your nickname'},'aria-label':{'Abrir roleta abissal':'Open Abyssal Wheel','Chat global do Abyssal':'Abyssal global chat','Mensagem do chat global':'Global chat message','Falar com o suporte do Abyssal':'Contact Abyssal support'}};
 let current=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
-function translateTextNode(node){if(current==='pt'||!node.nodeValue)return;const raw=node.nodeValue,trimmed=raw.trim();if(!trimmed)return;const dictionary=current==='es'?spanishTranslations:translations;let translated=dictionary[trimmed];if(!translated&&current==='en'){const patterns=[[ /^(\d+) de (\d+) disponíveis$/,'$1 of $2 available'],[/^(\d+) curtidas$/,'$1 likes'],[/^(\d+) títulos$/,'$1 titles'],[/^Título equipado: /,'Equipped title: '],[/^CONECTADO COMO /,'CONNECTED AS '],[/^VISITANTE #/,'VISITOR #'],[/^MERGULHO REGISTRADO · /,'DIVE RECORDED · '],[/^Sala criada! Código para convidar amigos: /,'Room created! Invite code: ']];for(const [pattern,replacement] of patterns){if(pattern.test(trimmed)){translated=trimmed.replace(pattern,replacement);break;}}}if(translated)node.nodeValue=raw.replace(trimmed,translated);}
+function translateTextNode(node){if(current==='pt'||!node.nodeValue)return;const raw=node.nodeValue,trimmed=raw.trim();if(!trimmed)return;const dictionary=current==='es'?spanishTranslations:translations;let translated=dictionary[trimmed];if(!translated&&current==='en'){const patterns=[[ /^(\d+) de (\d+) disponíveis$/,'$1 of $2 available'],[/^(\d+) curtidas$/,'$1 likes'],[/^(\d+) títulos$/,'$1 titles'],[/^Título equipado: /,'Equipped title: '],[/^CONECTADO COMO /,'CONNECTED AS '],[/^VISITANTE #/,'VISITOR #'],[/^MERGULHO REGISTRADO · /,'DIVE RECORDED · '],[/^Sala criada! Código para convidar amigos: /,'Room created! Invite code: ']];for(const [pattern,replacement] of patterns){if(pattern.test(trimmed)){translated=trimmed.replace(pattern,replacement);break;}}}if(translated)node.nodeValue=raw.replace(trimmed,translated);else if(/[A-Za-zÀ-ÿ]{3}/.test(trimmed)){node.parentElement?.setAttribute?.('data-i18n-missing',trimmed.slice(0,160));console.warn('[Abyssal i18n] Tradução ausente:',current,trimmed);}}
 function apply(root=document.body){if(current==='pt')return;const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode()))translateTextNode(node);if(root.nodeType===1){for(const [attr,dict] of Object.entries(attrMap)){const value=root.getAttribute(attr);if(value&&dict[value])root.setAttribute(attr,dict[value]);}root.querySelectorAll?.('[title],[placeholder],[aria-label]').forEach(el=>{for(const [attr,dict] of Object.entries(attrMap)){const value=el.getAttribute(attr);if(value&&dict[value])el.setAttribute(attr,dict[value]);}});}}
 function setLanguage(language){current=['en','es'].includes(language)?language:'pt';document.documentElement.lang=current==='en'?'en':current==='es'?'es':'pt-BR';document.title=current==='en'?'Abyssal — Echoes of the Deep':current==='es'?'Abyssal — Ecos de las Profundidades':'Abyssal — Ecos das Profundezas';location.reload();}
 window.AbyssalI18n={setLanguage,getLanguage:()=>current,apply};
