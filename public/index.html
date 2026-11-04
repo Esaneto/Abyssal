@@ -88,9 +88,9 @@
         <h1>Mergulhadores<br><em>Abissais</em></h1>
         <p class="intro">Seu sinal atravessou uma região apagada dos mapas. Algo respondeu do fundo — e está vindo na direção da luz.</p>
         <button id="resonanceBtn" class="secondary-btn resonance-menu-btn" type="button"><span class="resonance-label"><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>RESSONÂNCIA</span></button>
-        <button id="playBtn" class="primary-btn">MERGULHAR SOLO</button>
+        <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
         <button id="wheelBtn" class="wheel-cta" aria-label="Abrir roleta abissal">
-          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE MOEDAS ABISSAIS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span>
+          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong><small>GIRE · DESCUBRA · COLETE MOEDAS ABISSAIS</small></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
         </button>
         
         <div class="menu-secondary-actions">
@@ -429,7 +429,7 @@
         <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
         <div class="profile-hero">
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
-          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
+          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><button id="blockProfileBtn" class="profile-action-btn" type="button">⊘ BLOQUEAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
         </div>
         <div class="profile-stats">
           <div class="profile-stat"><small>MONSTROS DERROTADOS</small><strong id="profileKills">0</strong></div>
@@ -484,9 +484,9 @@
         <div class="maintenance-sonar" aria-hidden="true"><span></span><span></span><i>◉</i></div>
         <div class="maintenance-kicker">SINAL DAS PROFUNDEZAS INTERROMPIDO</div>
         <h2>O ABISMO ESTÁ EM MANUTENÇÃO</h2>
-        <p>Estamos atualizando as profundezas. Não é um crash e seu jogo não quebrou.</p>
+        <p>Estamos atualizando as profundezas. Sua expedição ativa fica protegida enquanto a conexão é restaurada.</p>
         <div class="maintenance-status"><span class="maintenance-dot"></span><strong id="maintenanceStatusText">Reconectando ao servidor automaticamente…</strong></div>
-        <small>Fique por aqui. Assim que o servidor voltar, o Abyssal tentará restaurar sua conexão.</small>
+        <small>Fique por aqui. Assim que o servidor voltar, o Abyssal restaura sua sessão e retoma a expedição automaticamente.</small>
       </div>
     </section>
   
@@ -537,19 +537,18 @@
 <script src="enemy-netcode.js?v=3.5.12"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
 <script src="photon-ray-config.js?v=2"></script>
-<script src="game.js?v=4.1.2"></script>
+<script src="game.js?v=4.1.4"></script>
 <script src="net-codec.js?v=4.2.0"></script>
-<script src="online.js?v=4.2.1"></script>
+<script src="online.js?v=4.2.3"></script>
 <script>
   if(window.__abyssalFullscreenHandlerReady)return;
   const button=document.getElementById('fullscreenBtn');
   const update=()=>{
     if(!button)return;
     const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-    // Preserve o SVG do ícone: substituir textContent apagava o desenho e deixava o botão vazio no mobile.
+    button.textContent=active?'⤢':'⛶';
     button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
     button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
-    button.setAttribute('data-fullscreen-active',active?'true':'false');
   };
   button?.addEventListener('click',async()=>{
     try{
@@ -562,12 +561,6 @@
         if(root.requestFullscreen)await root.requestFullscreen();
         else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
         else throw new Error('fullscreen-unavailable');
-        // Em navegadores compatíveis, mantém o jogo na horizontal durante a tela cheia.
-        try{
-          if(screen.orientation?.lock)await screen.orientation.lock('landscape');
-        }catch(orientationError){
-          // Alguns navegadores só permitem bloquear a orientação em um app instalado.
-        }
       }
     }catch(error){
       const toast=document.getElementById('toast');

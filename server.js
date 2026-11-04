@@ -154,8 +154,8 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, matchHistory:u.matchHistory }; }
- function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory }; }
+ function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
@@ -312,6 +312,8 @@ const PVP_ROOM_ID = 'MAR-VERMELHO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, settled: false, historySaved:false }; }
+function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:room.mode==='pvp'?'pvp':'coop',resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
+function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;delete user.pendingRunResume;if(Number(saved.expiresAt)<Date.now()||saved.settled||saved.roomMode!==(room.mode==='pvp'?'pvp':'coop'))return null;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
 function ensureMatchParticipant(room,p){
  if(!room||!p)return null;room.matchParticipants ||= new Map();
  const key=String(p.userKey||p.nickname||p.id);let row=room.matchParticipants.get(key);
@@ -873,7 +875,18 @@ io.on('connection', socket => {
   socket.emit('session-resumed',{ok:true,...publicUser(user)});broadcastCardumeRosters();
  });
   socket.on('get-public-profile',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
-  socket.on('toggle-profile-like',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
+  socket.on('toggle-user-block',(payload={})=>{
+   if(!SOCIAL_FEATURES_ENABLED)return socket.emit('user-block-result',{ok:false,message:'Os recursos sociais estão indisponíveis.'});
+   const viewerKey=socket.data.userKey,viewer=users[viewerKey];if(!viewer)return socket.emit('user-block-result',{ok:false,message:'Entre na sua conta para bloquear usuários.'});
+   const targetKey=String(payload.nickname||'').trim().toLowerCase(),target=users[targetKey];if(!target)return socket.emit('user-block-result',{ok:false,message:'Jogador não encontrado.'});
+   if(targetKey===viewerKey)return socket.emit('user-block-result',{ok:false,message:'Você não pode bloquear o próprio perfil.'});
+   viewer.blockedUsers ||= [];viewer.likedProfiles ||= [];target.likedBy ||= [];
+   const blocked=viewer.blockedUsers.includes(targetKey);
+   if(blocked)viewer.blockedUsers=viewer.blockedUsers.filter(key=>key!==targetKey);
+   else{viewer.blockedUsers.push(targetKey);viewer.likedProfiles=viewer.likedProfiles.filter(key=>key!==targetKey);target.likedBy=target.likedBy.filter(key=>key!==viewerKey);}
+   saveUsers();socket.emit('user-block-result',{ok:true,blocked:!blocked,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:blocked?'Usuário desbloqueado.':'Usuário bloqueado. Interações sociais entre vocês foram interrompidas.'});
+  });
+  socket.on('toggle-profile-like',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.blockedUsers ||= [];viewer.blockedUsers ||= [];if(viewer.blockedUsers.includes(targetKey)||target.blockedUsers.includes(viewerKey))return socket.emit('profile-like-result',{ok:false,message:'Esta interação não está disponível entre usuários bloqueados.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
   socket.on('report-ugc',async(payload={})=>{
    const reporterKey=socket.data.userKey,reporter=users[reporterKey];
    if(!reporter)return socket.emit('ugc-report-result',{ok:false,message:'Entre na sua conta para enviar uma denúncia.'});
@@ -955,7 +968,7 @@ io.on('connection', socket => {
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
   const existingRoom=socketRoom(socket);
-  if(existingRoom&&existingRoom.id===room.id){socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
+  if(existingRoom&&existingRoom.id===room.id){const existingPlayer=room.players.get(socket.id);socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),spawn:existingPlayer?{x:existingPlayer.x,y:existingPlayer.y}:null,resumedRun:false,players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
   if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
@@ -973,9 +986,10 @@ io.on('connection', socket => {
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};ensureMatchParticipant(room,p);
+  const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,WORLD_HEIGHT-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
+  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
-  socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
+  socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
   socket.to(channelFor(room)).emit('player-joined',((({userKey,runStats,...x})=>x)(p)));
   setTimeout(()=>{if(room.players.has(socket.id)){socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120);
@@ -1390,30 +1404,17 @@ io.on('connection', socket => {
  });
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
-  const code=String(payload?.code||'').trim().toLowerCase();if(code==='bemvindoabyssal'){
-   u.redeemedCodes ||= [];
-   if(u.redeemedCodes.includes('bemvindoabyssal'))return socket.emit('code-redeem-result',{ok:false,message:'Este código de boas-vindas já foi utilizado nesta conta.'});
-   u.coins=(Number(u.coins)||0)+10000;u.redeemedCodes.push('bemvindoabyssal');saveUsers();return socket.emit('code-redeem-result',{ok:true,message:'Boas-vindas ao Abyssal! +10.000 moedas abissais. Código usado nesta conta.',account:publicUser(u)});
-  }
-  u.redeemedCodes ||= [];
-  if(code==='vi-o-nascimento-abyssal'){
-    if(u.redeemedCodes.includes(code))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
-    u.coins=(Number(u.coins)||0)+60000;
-    u.ownedSkins ||= ['default'];
-    if(!u.ownedSkins.includes('electriceel')) u.ownedSkins.push('electriceel');
-    if(!u.redeemedCodes.includes(code)) u.redeemedCodes.push(code);
-    saveUsers();
-    return socket.emit('code-redeem-result',{ok:true,message:'Código "vi-o-nascimento-abyssal" validado! +60.000 moedas e skin lendária Enguia Elétrica desbloqueada permanentemente!',account:publicUser(u),skinId:'electriceel',coinsAwarded:60000});
-  }
-  if(u.redeemedCodes.includes(code)) return socket.emit('code-redeem-result',{ok:false,message:'Este código promocional já foi resgatado nesta conta.'});
-  if(code==='abyssal10k'||code==='bemvindoabyssal'){
-    u.coins=(Number(u.coins)||0)+10000;
-    u.redeemedCodes.push(code);
-    saveUsers();
-    return socket.emit('code-redeem-result',{ok:true,message:'Código resgatado! +10.000 essências.',account:publicUser(u),coinsAwarded:10000});
-  } else {
-    return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
-  }
+  const code=String(payload?.code||'').trim().toLowerCase();
+  const welcome=String(process.env.ABYSSAL_WELCOME_CODE||'').trim().toLowerCase();
+  const founder=String(process.env.ABYSSAL_FOUNDER_CODE||'').trim().toLowerCase();
+  u.redeemedPromoIds=Array.isArray(u.redeemedPromoIds)?u.redeemedPromoIds:[];
+  let id='',coinsAwarded=0,skinId=null,message='';
+  if(welcome&&code===welcome){id='welcome-10k';coinsAwarded=10000;message='Código resgatado! +10.000 essências.';}
+  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e skin lendária Enguia Elétrica desbloqueada permanentemente!';}
+  else return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
+  if(u.redeemedPromoIds.includes(id))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
+  u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
+  socket.emit('code-redeem-result',{ok:true,message,skinId,coinsAwarded,account:publicUser(u)});
  });
  socket.on('purchase-meta', payload => {
   const u=users[socket.data.userKey];if(!u||!payload)return;
@@ -1433,7 +1434,7 @@ io.on('connection', socket => {
   u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
- socket.on('disconnect', () => { if(socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
+ socket.on('disconnect', () => { if(!shutdownStarted&&socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 // Detecta a virada do dia em America/Sao_Paulo; o boot também corrige dias perdidos após spin-down.
@@ -1455,7 +1456,9 @@ async function shutdown(signal) {
  console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
+  let deployRuns=0;for(const client of (io.sockets?.sockets?.values?.()||[]))if(stashDeployRun(client))deployRuns++;if(deployRuns)saveUsers();
   if(titleStatsSaveTimer){clearTimeout(titleStatsSaveTimer);titleStatsSaveTimer=null;saveUsers();}
+  await flushPersistence();
   await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}

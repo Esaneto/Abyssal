@@ -11,3 +11,13 @@ android/app/build/
 android/build/
 *.jks
 *.keystore
+
+# Private credentials and signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+credentials*.json
+service-account*.json
+.npmrc

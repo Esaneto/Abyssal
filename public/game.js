@@ -105,13 +105,6 @@ const skinData=[
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
-try{
-  const savedRedeemed=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');
-  if(savedRedeemed.includes('vi-o-nascimento-abyssal')&&!ownedSkins.includes('electriceel')){
-    ownedSkins.push('electriceel');
-    localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));
-  }
-}catch(_){}
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
@@ -973,7 +966,7 @@ const upgradeList=[
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'Após o primeiro impacto, o projétil salta para outro inimigo próximo. Cada nível adiciona um ricochete, até 3, marcado por trajetórias âmbar.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
  {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Cobertura em leque: 3, 5 ou 7 fragmentos de baixo dano individual. Forte contra grupos próximos, fraco quando poucos fragmentos acertam o mesmo alvo.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Dardo fotônico de precisão: extremamente veloz, fino e de alto dano em alvo único. Quase não permanece na tela e não perfura fileiras.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
- {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo que acompanha o cursor do mouse e atinge todos os alvos atravessados. No celular, use a mira ou a seleção automática. Níveis maiores aumentam potência e espessura.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
+ {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo que atinge todos os alvos atravessados. No Controle 1, mira automaticamente no alvo mais próximo; no Controle 2, acompanha o mouse no PC ou o joystick de mira no celular. Níveis maiores aumentam potência e espessura.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial de alto controle: recarga de 1,8 s no PvE e 2,4 s no PvP. Atinge apenas alvos com caminho radial livre; cobertura bloqueia dano e onda visual.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
  {id:'echoShot',name:'Eco de Maré',icon:'⋔',desc:'Dispara dois projéteis paralelos com dano individual menor. Níveis maiores aumentam dano e velocidade sem abrir o leque.',apply:()=>upgrades.echoShot=Math.min(3,(upgrades.echoShot||0)+1)},
  {id:'shell',name:'Carapaça Abissal',icon:'🛡',desc:'Endurece a carapaça: reduz o dano recebido em 8% por nível, até 24%, indicado por placas minerais orbitais discretas.',apply:()=>upgrades.shell=Math.min(3,(upgrades.shell||0)+1)},
@@ -1742,29 +1735,33 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
   const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
-  // Desktop always follows the actual cursor, regardless of the movement control preset.
-  // Mobile preserves the right-stick aim; without a right stick, fall back to auto aim.
+  // Controle 2 owns manual continuous aiming. Controle 1 keeps automatic nearest-target aiming.
+  const manualPhotonAim=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
   let aimAngle=Number(player.angle)||0,hasAim=false;
-  if(!isMobileDevice()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
+  if(manualPhotonAim&&!isMobileDevice()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
    const rect=canvas.getBoundingClientRect();
    const cursorX=cameraX+(pointer.clientX-rect.left)/worldZoom;
    const cursorY=cameraY+(pointer.clientY-rect.top)/worldZoom;
    if(Math.hypot(cursorX-player.x,cursorY-player.y)>2/GAME_WORLD_ZOOM){aimAngle=Math.atan2(cursorY-player.y,cursorX-player.x);hasAim=true;}
-  }else if(isMobileDevice()&&aimJoystickVector.active){
+  }else if(manualPhotonAim&&isMobileDevice()&&aimJoystickVector.active){
    aimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);hasAim=true;
+  }else if(manualPhotonAim){
+   // Keep firing along the last manual aim while the mouse/stick is momentarily stationary.
+   hasAim=true;
   }
-  if(!hasAim&&isMobileDevice()){
+  if(!manualPhotonAim){
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    let nearest=null,nearestDistance=beamRange*beamRange;
    for(const candidate of candidates){
-    if(!candidate||candidate.alive===false||Number(candidate.hp)===0)continue;
-    const dx=candidate.x-player.x,dy=candidate.y-player.y,d=dx*dx+dy*dy;
+    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
+    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=dx*dx+dy*dy;
     if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
    }
-   if(nearest)aimAngle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+   if(nearest){aimAngle=Math.atan2((Number(nearest.y)||0)-player.y,(Number(nearest.x)||0)-player.x);hasAim=true;}
   }
+  if(!hasAim){if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle),x2=player.x+ux*beamRange,y2=player.y+uy*beamRange;
-  player.angle=aimAngle;player.photonRayActive=true;
+  if(hasAim){player.angle=aimAngle;player.photonRayActive=true;
   const localBeam=effects.find(fx=>fx.localPhotonBeam);
   if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
   else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
@@ -1781,6 +1778,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
     }
    }
+  }
   }
  }else if(player.photonRayActive){
   if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
@@ -3016,33 +3014,11 @@ window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.
   renderShop();
 }else{message.textContent=result.message||'Não foi possível resgatar o código.';}});
 function redeemAbyssalCode(){
- const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
+ const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim();
  if(!message||!input)return;
- if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}if(code!=='bemvindoabyssal'&&code!=='abyssal10k'&&code!=='vi-o-nascimento-abyssal'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
- if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode(code);return;}
- let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
- if(code==='vi-o-nascimento-abyssal'){
-  if(!ownedSkins.includes('electriceel')) ownedSkins.push('electriceel');
-  equippedSkin='electriceel';
-  if(!redeemed.includes(code)){
-    coins+=60000;
-    redeemed.push(code);
-    localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
-  }
-  saveCosmetics();
-  message.textContent='CÓDIGO VALIDADO! SKIN ENGUIA ELÉTRICA DESBLOQUEADA E EQUIPADA!';
-  addNotification('Você resgatou o código histórico "vi-o-nascimento-abyssal"! A skin exclusiva "Enguia Elétrica" está disponível na sua conta.', 'RESGATE CONFIRMADO ⚡', 'promo');
-  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
-  return;
- }
- if(redeemed.includes(code)){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
-  coins+=10000;
-  redeemed.push(code);
-  localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
-  saveCosmetics();
-  message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';
-  addNotification('Código promocional resgatado! +10.000 moedas abissais adicionadas.', 'RESGATE CONCLUÍDO ✦', 'promo');
-  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+ if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}
+ if(!window.AbyssalOnline?.isAuthenticated()){message.textContent='ENTRE NA SUA CONTA PARA RESGATAR CÓDIGOS.';return;}
+ window.AbyssalOnline.redeemCode(code);
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
@@ -3159,9 +3135,10 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
     burst(px,py,skinColor,16,120);
   }
 });
-window.addEventListener('abyssal-room-joined',ev=>{const d=ev.detail||{};onlineRoomMode=d.room?.mode==='pvp'?'pvp':'coop';createArenaRocks();onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;startGame();if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,'room-join');if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}showToast(onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'))});
+window.addEventListener('abyssal-room-joined',ev=>{const d=ev.detail||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&onlineMode&&player&&gameState!=='menu'&&gameState!=='over');onlineRoomMode=d.room?.mode==='pvp'?'pvp':'coop';createArenaRocks();onlineMode=true;$('roomsScreen').hidden=true;$('menuScreen').hidden=true;if(!canResume)startGame();else{gameState='playing';last=performance.now();onlineDamageQueue.length=0;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});}if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);window.AbyssalOnline?.sendProtection?.(5,d.reconnected?'deploy-reconnect':'room-join');if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}showToast(d.reconnected&&d.resumedRun?'CONEXÃO RESTAURADA · EXPEDIÇÃO RETOMADA':onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'))});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
+window.addEventListener('abyssal-reconnect-failed',ev=>{onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
 window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 $('roomsCloseBtn')?.addEventListener('click',()=>{$('roomsScreen').hidden=true;onlineMode=false});
@@ -3179,18 +3156,7 @@ window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   coins=Number(a.coins)||0;
   const serverSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];
-  const localRedeemed=[];
-  try{
-    const codes=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');
-    if(codes.includes('vi-o-nascimento-abyssal'))localRedeemed.push('electriceel');
-  }catch(_){}
-  try{
-    const localOwned=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'[]');
-    if(localOwned.includes('electriceel'))localRedeemed.push('electriceel');
-    if(localOwned.includes('greensnake'))localRedeemed.push('greensnake');
-  }catch(_){}
-  ownedSkins=[...new Set([...serverSkins,...localRedeemed])];
-  if(!$('shopScreen')?.hidden)renderShop();
+  ownedSkins=[...new Set(serverSkins)];
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;
