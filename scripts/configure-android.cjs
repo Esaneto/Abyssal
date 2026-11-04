@@ -33,3 +33,14 @@ if(fs.existsSync(java)){
 }`);
  fs.writeFileSync(java,src);
 }
+
+const gradle=path.join('android','app','build.gradle');
+if(fs.existsSync(gradle)){
+ let build=fs.readFileSync(gradle,'utf8');
+ const packageVersion=String(process.env.ABYSSAL_VERSION_NAME||require('../package.json').version||'1.0.0').replace(/[^0-9A-Za-z._-]/g,'');
+ const runNumber=Math.max(1,Number.parseInt(process.env.ABYSSAL_VERSION_CODE||process.env.GITHUB_RUN_NUMBER||'1',10)||1);
+ build=build.replace(/versionCode\s+\d+/, 'versionCode '+runNumber);
+ build=build.replace(/versionName\s+["'][^"']+["']/, 'versionName "'+packageVersion+'"');
+ fs.writeFileSync(gradle,build);
+ console.log('Android version configured:',packageVersion,'('+runNumber+')');
+}
