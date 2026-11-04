@@ -1224,10 +1224,11 @@ io.on('connection', socket => {
   }
   if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
  });
- socket.on('active-ability',payload=>{
+ socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
-  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return;
-  const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return;player.pulseReadyAt=now+14000;
+  const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
+  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
    for(const target of room.players.values()){
