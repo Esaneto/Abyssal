@@ -354,6 +354,7 @@ function openUgcReport(type,targetId,label){
 }
 function closeUgcReport(){$('ugcReportScreen').hidden=true;pendingUgcReport=null}
 $('reportProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile)openUgcReport('profile',viewedPublicProfile,viewedPublicProfile)});
+$('blockProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile&&socket?.connected)socket.emit('toggle-user-block',{nickname:viewedPublicProfile});});
 $('ugcReportCloseBtn')?.addEventListener('click',closeUgcReport);$('ugcReportCancelBtn')?.addEventListener('click',closeUgcReport);
 $('ugcReportSendBtn')?.addEventListener('click',()=>{if(!pendingUgcReport)return;const reason=$('ugcReportReason').value,details=$('ugcReportDetails').value.trim(),btn=$('ugcReportSendBtn');btn.disabled=true;$('ugcReportStatus').textContent='Enviando denúncia para análise...';socket.emit('report-ugc',{...pendingUgcReport,reason,details})});
 
