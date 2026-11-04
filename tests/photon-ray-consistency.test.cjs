@@ -28,10 +28,10 @@ test('Photon Ray remote pulses reuse a single effect per connection and do not e
  assert.match(read('server.js'),/if\(shot\.special==='photonRay'\)io\.to\(channelFor\(room\)\)\.emit\('shared-shot',shot\)/);
 });
 
-test('Cooperative ray endpoints are validated and reconstructed, not enlarged by client',()=>{
+test('Server computes safe beam endpoints for cursor-directed cooperative and PvP rays',()=>{
  const server=read('server.js'),game=read('public/game.js');
- assert.match(game,/beamEndX:target\.x\/W,beamEndY:target\.y\/H/);
- assert.match(server,/Math\.hypot\(\(endX-x\)\*WORLD_WIDTH,\(endY-y\)\*WORLD_HEIGHT\)<=range\+8\/WORLD_ZOOM/);
+ assert.match(game,/vx:ux\*900\/GAME_WORLD_ZOOM\/W,vy:uy\*900\/GAME_WORLD_ZOOM\/H/);
+ assert.match(server,/shot\.beamEndX=clamp\(ex\/WORLD_WIDTH,0,1\)/);
  assert.match(game,/remoteEndValid\?d\.beamEndX\*W/);
  assert.match(server,/shot\.beamLevel=Math\.max\(1,Math\.min\(PhotonRay\.maxLevel/);
 });
@@ -63,10 +63,10 @@ test('Network diagnostics record acknowledged local motion RTT without trusting 
  assert.match(game,/network:window\.AbyssalOnline\?\.positionDiagnostics\?\.\(\)/);
 });
 
-test('Photon Ray publishes a reliable stop event once the local beam loses its target',()=>{
+test('Photon Ray preserves stop events when the skill is unequipped',()=>{
  const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
  assert.match(game,/player\.photonRayActive=true/);
- assert.match(game,/if\(player\.photonRayActive&&onlineMode\)window\.AbyssalOnline\?\.sendPhotonRayStop\?\.\(\)/);
+ assert.match(game,/if\(onlineMode\)window\.AbyssalOnline\?\.sendPhotonRayStop\?\.\(\)/);
  assert.match(game,/abyssal-remote-photon-stop/);
  assert.match(online,/socket\.on\('photon-ray-stop'/);
  assert.match(online,/socket\.emit\('photon-ray-stop'\)/);
@@ -75,7 +75,7 @@ test('Photon Ray publishes a reliable stop event once the local beam loses its t
 
 test('Server enforces Photon Ray pulse rate, hit range and a capped damage budget',()=>{
  const server=read('server.js');
- assert.match(server,/player\.photonDamageReadyAt=now\+190/);
+ assert.match(server,/if\(!player\.photonServerResolving\)return reject\('photon-ray-server-only'\)/);
  assert.match(server,/requestedDamage=Math\.min\(requestedDamage,45\)/);
  assert.match(server,/shooter\.photonShotReadyAt=now\+190/);
  assert.match(server,/return reject\('photon-out-of-range'\)/);
@@ -87,4 +87,25 @@ test('PvP photon rays clip both body and core before drawing, without nested lin
  assert.match(game,/for\(let step=0;step<9;step\+\+\)/);
  assert.match(game,/ctx\.lineTo\(photonX2,photonY2\);ctx\.stroke\(\)/);
  assert.doesNotMatch(game,/for\(let rs=1;rs<=steps;rs\+\+\)/);
+});
+
+test('Ray collision detects any circular target crossed by the beam, including behind its aim point',()=>{
+ const hit=ray.segmentCircleHit;
+ assert.equal(hit(0,0,100,0,45,0,5),true,'target in middle of beam receives hit');
+ assert.equal(hit(0,0,100,0,90,3,5),true,'target near end of beam receives hit');
+ assert.equal(hit(0,0,100,0,50,20,5),false,'off-axis target is untouched');
+ assert.equal(hit(0,0,100,0,120,0,5),false,'target beyond beam range is untouched');
+ assert.equal(hit(0,0,0,0,0,0,5),true,'degenerate beam remains bounded');
+ assert.equal(hit(0,0,100,0,50,0,0),true,'centerline hit works at zero radius');
+});
+test('Server is authoritative for multi-target PvE/PvP ray collision',()=>{
+ const server=read('server.js'),game=read('public/game.js');
+ assert.match(server,/for\(const enemy of \[\.\.\.\(room\.world\?\.enemies\|\|\[\]\)\]\)/);
+ assert.match(server,/PhotonRay\.segmentCircleHit\(sx,sy,ex,ey/);
+ assert.match(server,/processWorldDamage\(socket,Number\(enemy\.id\)/);
+ assert.match(server,/for\(const target of room\.players\.values\(\)\)/);
+ assert.match(server,/pvpRockAt\(sx\+ux\*distance,sy\+uy\*distance/);
+ const rayBlock=game.slice(game.indexOf('if(upgrades.photonRay>0){'),game.indexOf('if(upgrades.nova>0)',game.indexOf('if(upgrades.photonRay>0){')));
+ assert.match(rayBlock,/if\(!onlineMode\)\{/);
+ assert.doesNotMatch(rayBlock,/if\(!isPvpMode\)\{dealEnemyDamage/);
 });
