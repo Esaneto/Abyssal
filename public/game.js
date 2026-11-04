@@ -1742,29 +1742,33 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
   const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
-  // Desktop always follows the actual cursor, regardless of the movement control preset.
-  // Mobile preserves the right-stick aim; without a right stick, fall back to auto aim.
+  // Controle 2 owns manual continuous aiming. Controle 1 keeps automatic nearest-target aiming.
+  const manualPhotonAim=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
   let aimAngle=Number(player.angle)||0,hasAim=false;
-  if(!isMobileDevice()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
+  if(manualPhotonAim&&!isMobileDevice()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
    const rect=canvas.getBoundingClientRect();
    const cursorX=cameraX+(pointer.clientX-rect.left)/worldZoom;
    const cursorY=cameraY+(pointer.clientY-rect.top)/worldZoom;
    if(Math.hypot(cursorX-player.x,cursorY-player.y)>2/GAME_WORLD_ZOOM){aimAngle=Math.atan2(cursorY-player.y,cursorX-player.x);hasAim=true;}
-  }else if(isMobileDevice()&&aimJoystickVector.active){
+  }else if(manualPhotonAim&&isMobileDevice()&&aimJoystickVector.active){
    aimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);hasAim=true;
+  }else if(manualPhotonAim){
+   // Keep firing along the last manual aim while the mouse/stick is momentarily stationary.
+   hasAim=true;
   }
-  if(!hasAim&&isMobileDevice()){
+  if(!manualPhotonAim){
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    let nearest=null,nearestDistance=beamRange*beamRange;
    for(const candidate of candidates){
-    if(!candidate||candidate.alive===false||Number(candidate.hp)===0)continue;
-    const dx=candidate.x-player.x,dy=candidate.y-player.y,d=dx*dx+dy*dy;
+    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
+    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=dx*dx+dy*dy;
     if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
    }
-   if(nearest)aimAngle=Math.atan2(nearest.y-player.y,nearest.x-player.x);
+   if(nearest){aimAngle=Math.atan2((Number(nearest.y)||0)-player.y,(Number(nearest.x)||0)-player.x);hasAim=true;}
   }
+  if(!hasAim){if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle),x2=player.x+ux*beamRange,y2=player.y+uy*beamRange;
-  player.angle=aimAngle;player.photonRayActive=true;
+  if(hasAim){player.angle=aimAngle;player.photonRayActive=true;
   const localBeam=effects.find(fx=>fx.localPhotonBeam);
   if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
   else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
@@ -1781,6 +1785,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
     }
    }
+  }
   }
  }else if(player.photonRayActive){
   if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
