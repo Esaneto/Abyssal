@@ -3637,3 +3637,11 @@ body.abyssal-native-shell #fullscreenBtn{
  margin:0!important;
  border:0!important;
 }
+
+
+/* Top-right utility spacing: keep controls distinct and easy to tap. */
+.menu-top-actions{gap:8px!important}
+#mobileDownloadTopBtn,#mobileControlsTopBtn{margin:0!important}
+@media(max-width:700px),(pointer:coarse){
+ .menu-top-actions{gap:7px!important}
+}
