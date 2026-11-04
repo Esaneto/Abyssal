@@ -6,10 +6,10 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Devourer is a 15,000 HP boss and is slower than the Kraken', () => {
+test('Devourer is a 30,000 HP boss and is slower than the Kraken', () => {
   const ai = require('../public/enemy-ai');
   assert.ok(ai.BOSS_KINDS.includes('devourer'));
-  assert.equal(ai.ENEMY_STATS.devourer.hp, 15000);
+  assert.equal(ai.ENEMY_STATS.devourer.hp, 30000);
   assert.ok(ai.ENEMY_STATS.devourer.speed < ai.ENEMY_STATS.kraken.speed);
 });
 
@@ -44,7 +44,7 @@ test('authoritative co-op simulation activates suction and reports player displa
   world.playerSnapshotTimer = 10;
   const boss = {
     id: 1, kind: 'devourer', x: 500, y: 600, r: ai.ENEMY_STATS.devourer.r,
-    hp: 15000, maxHp: 15000, speed: ai.ENEMY_STATS.devourer.speed / ai.WORLD_ZOOM,
+    hp: 30000, maxHp: 30000, speed: ai.ENEMY_STATS.devourer.speed / ai.WORLD_ZOOM,
     damage: 42, color: '#39d8c4', value: 260, phase: 0, angle: 0,
     hit: 0, attackCd: 100, suctionActive: false, suctionTimer: 0,
     suctionCooldown: 0, suctionPulse: 0
