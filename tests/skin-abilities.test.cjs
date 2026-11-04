@@ -498,3 +498,15 @@ test('menu modals expose a canonical working close action and sticky X',()=>{
  assert.ok(css.includes('UNIVERSAL MODAL CLOSE V23'));
  assert.ok(css.includes('position:sticky!important'));
 });
+
+
+test('shared modal closer never suppresses unrelated menu click handlers',()=>{
+ const online=read('public/online.js');
+ assert.ok(online.includes("document.addEventListener('click',event=>{const button=event.target.closest?.('[data-close-screen]')"));
+ assert.doesNotMatch(online,/stopImmediatePropagation\(\)/);
+ assert.doesNotMatch(online,/\},true\);\s*window\.addEventListener\('beforeinstallprompt'/);
+});
+test('successful socket reconnect releases maintenance UI even while expedition restore continues',()=>{
+ const online=read('public/online.js');
+ assert.ok(online.includes("socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();"));
+});
