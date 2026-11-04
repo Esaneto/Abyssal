@@ -326,6 +326,16 @@ applyAgeTreatment();
 const _ageStartup=ageProfile();if(hasAgeTermsProfile()){window.google_tag_for_age_treatment=_ageStartup?.band==='teen'?2:_ageStartup?.band==='under16'?1:0;window.loadAbyssalAds?.();}
 queueMicrotask(openAgeTermsIfNeeded);
 
+let pendingUgcReport=null;
+function openUgcReport(type,targetId,label){
+ if(!authenticated){openLogin();return}
+ pendingUgcReport={type,targetId};$('ugcReportTarget').textContent='Denunciando: '+String(label||targetId);$('ugcReportDetails').value='';$('ugcReportStatus').textContent='';$('ugcReportScreen').hidden=false;
+}
+function closeUgcReport(){$('ugcReportScreen').hidden=true;pendingUgcReport=null}
+$('reportProfileBtn')?.addEventListener('click',()=>{if(viewedPublicProfile)openUgcReport('profile',viewedPublicProfile,viewedPublicProfile)});
+$('ugcReportCloseBtn')?.addEventListener('click',closeUgcReport);$('ugcReportCancelBtn')?.addEventListener('click',closeUgcReport);
+$('ugcReportSendBtn')?.addEventListener('click',()=>{if(!pendingUgcReport)return;const reason=$('ugcReportReason').value,details=$('ugcReportDetails').value.trim(),btn=$('ugcReportSendBtn');btn.disabled=true;$('ugcReportStatus').textContent='Enviando denúncia para análise...';socket.emit('report-ugc',{...pendingUgcReport,reason,details})});
+socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
 $('supportBtn')?.addEventListener('click',()=>{$('menuScreen').hidden=true;$('supportScreen').hidden=false;$('supportMessageStatus').textContent='';$('supportEmailInput').focus();});
 $('supportCancelBtn')?.addEventListener('click',()=>{$('supportScreen').hidden=true;$('menuScreen').hidden=false;});
 $('sendSupportBtn')?.addEventListener('click',async()=>{const name=String($('supportNameInput').value||'').trim(),email=String($('supportEmailInput').value||'').trim(),subject=String($('supportSubjectInput').value||''),message=String($('supportMessageInput').value||'').trim(),website=String($('supportWebsiteInput').value||'');if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){setAuthFlowMessage('supportMessageStatus','Informe um e-mail válido para podermos responder.',true);$('supportEmailInput').focus();return}if(message.length<10){setAuthFlowMessage('supportMessageStatus','Conte um pouco mais: a mensagem precisa ter pelo menos 10 caracteres.',true);$('supportMessageInput').focus();return}const button=$('sendSupportBtn');button.disabled=true;setAuthFlowMessage('supportMessageStatus','Transmitindo mensagem…');try{const response=await fetch(SERVER_URL+'/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,subject,message,website})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Não foi possível enviar sua mensagem.');setAuthFlowMessage('supportMessageStatus','Mensagem enviada! Nossa equipe recebeu seu contato.');$('supportNameInput').value='';$('supportEmailInput').value='';$('supportMessageInput').value='';$('supportWebsiteInput').value='';}catch(error){setAuthFlowMessage('supportMessageStatus',error.message||'Falha no envio. Tente novamente mais tarde.',true)}finally{button.disabled=false}});
