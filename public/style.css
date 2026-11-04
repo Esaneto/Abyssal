@@ -3960,3 +3960,31 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
  #menuScreen .menu-account-utility{position:absolute!important;top:16px!important;right:18px!important;left:auto!important;z-index:30!important;}
  #menuScreen .menu-language-utility{position:absolute!important;top:84px!important;right:18px!important;left:auto!important;z-index:30!important;}
 }
+
+
+/* MENU SECTION RIGHT RAIL V21: account and language live on the right side of menuScreen. */
+@media(min-width:701px){
+ #menuScreen{position:relative!important;}
+ #menuScreen .menu-account-utility{
+  position:absolute!important;
+  top:clamp(24px,4vh,46px)!important;
+  right:clamp(24px,3vw,48px)!important;
+  left:auto!important;
+  width:230px!important;max-width:230px!important;
+  margin:0!important;padding:0!important;border:0!important;
+  z-index:35!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;
+  background:transparent!important;text-align:right!important;
+ }
+ #menuScreen .menu-language-utility{
+  position:absolute!important;
+  top:clamp(94px,12vh,120px)!important;
+  right:clamp(24px,3vw,48px)!important;
+  left:auto!important;
+  width:230px!important;max-width:230px!important;
+  margin:0!important;padding:0!important;
+  z-index:35!important;
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;
+ }
+ #menuScreen .menu-language-utility select{width:132px!important;max-width:132px!important;}
+}
