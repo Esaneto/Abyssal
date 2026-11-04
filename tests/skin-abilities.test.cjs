@@ -472,3 +472,16 @@ test('start menu omits survival record and anchors account utilities to section 
  assert.ok(css.includes('#menuScreen{position:relative!important;}'));
  assert.ok(css.includes('right:clamp(24px,3vw,48px)!important;'));
 });
+
+
+test('deploy announces maintenance before shutdown and client shows it immediately',()=>{
+ const server=read('server.js'),online=read('public/online.js');
+ assert.ok(server.includes("io.emit('server-maintenance'"));
+ assert.ok(online.includes("socket.on('server-maintenance'"));
+ assert.ok(online.includes("showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…')"));
+});
+test('legal links remain present and escaped newline artifacts are absent',()=>{
+ const html=read('public/index.html');
+ for(const href of ['/terms.html','/privacy.html','/community.html','/store-policy.html'])assert.ok(html.includes('href="'+href+'"'));
+ assert.ok(!html.includes('\\n\\n\\n'));
+});
