@@ -464,12 +464,13 @@ function applyPlayerMotion(rows){
  }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
+function getPlayerById(id){const peer=players.get(String(id));return peer?getInterpolatedPeer(peer):null;}
 function sendSkinAbility(data){if(!socket?.connected)return false;socket.emit('skin-ability',data,result=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');});return true;}
 function sendFusion(name){if(!socket?.connected||!authenticated||!currentRoom)return false;socket.emit('fusion-achieved',{name:String(name||'').slice(0,48)});return true;}
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
