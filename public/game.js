@@ -1742,11 +1742,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1)),beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
-   let target=null,targetDistance=Infinity;
+   let target=null,targetDistanceSquared=Infinity;const beamRangeSquared=beamRange*beamRange;
    for(const candidate of candidates){
     if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
-    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=Math.hypot(dx,dy);
-    if(d<=beamRange&&d<targetDistance){target=candidate;targetDistance=d;}
+    const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,distanceSquared=dx*dx+dy*dy;
+    if(distanceSquared<=beamRangeSquared&&distanceSquared<targetDistanceSquared){target=candidate;targetDistanceSquared=distanceSquared;}
    }
    if(target){
     const aimAngle=Math.atan2((Number(target.y)||0)-player.y,(Number(target.x)||0)-player.x),aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
