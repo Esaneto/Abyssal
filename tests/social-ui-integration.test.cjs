@@ -26,6 +26,14 @@ test('remaining UGC has in-app reporting wired to human moderation',()=>{
  assert.match(html,/id="reportProfileBtn"/);
 });
 
+test('UGC profile safety includes a user restriction action',()=>{
+ const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html');
+ assert.match(server,/toggle-user-block/);
+ assert.match(server,/blockedUsers/);
+ assert.match(online,/blockProfileBtn/);
+ assert.match(html,/id="blockProfileBtn"/);
+});
+
 test('account deletion exists both in-app and as a public web request path',()=>{
  const server=read('server.js'),html=read('public/index.html'),support=read('support.js'),deletion=read('public/delete-account.html');
  assert.match(server,/socket\.on\('delete-account'/);
