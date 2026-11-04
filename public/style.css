@@ -3996,3 +3996,32 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
  #menuScreen .legal-footer{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;gap:7px 14px!important;pointer-events:auto!important;}
  #menuScreen .legal-footer a{pointer-events:auto!important;position:relative!important;z-index:35!important;}
 }
+
+
+/* MENU ACCOUNT/LANGUAGE FINAL POSITION: anchor both utilities to the full menu screen. */
+@media(min-width:701px){
+  #menuScreen .menu-content{position:static!important;}
+  #menuScreen .menu-account-utility{
+    position:absolute!important;
+    top:clamp(24px,4vh,46px)!important;
+    right:clamp(24px,3vw,48px)!important;
+    left:auto!important;
+    z-index:60!important;
+  }
+  #menuScreen .menu-language-utility{
+    position:absolute!important;
+    top:clamp(104px,14vh,132px)!important;
+    right:clamp(24px,3vw,48px)!important;
+    left:auto!important;
+    z-index:60!important;
+  }
+}
+@media(max-width:700px){
+  #menuScreen .menu-account-utility,
+  #menuScreen .menu-language-utility{
+    position:relative!important;
+    top:auto!important;
+    right:auto!important;
+    left:auto!important;
+  }
+}
