@@ -1469,7 +1469,9 @@ async function shutdown(signal) {
  console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
+  let deployRuns=0;for(const client of (io.sockets?.sockets?.values?.()||[]))if(stashDeployRun(client))deployRuns++;if(deployRuns)saveUsers();
   if(titleStatsSaveTimer){clearTimeout(titleStatsSaveTimer);titleStatsSaveTimer=null;saveUsers();}
+  await flushPersistence();
   await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}
