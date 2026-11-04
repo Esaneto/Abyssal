@@ -71,7 +71,10 @@ test('enemy stops without coordinate drift if the target is exactly at its locat
 
 test('shared catalog stats are stable and available to both modes', () => {
   assert.deepEqual(AI.statsForKind('drifter'), { r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1 });
-  assert.deepEqual(AI.statsForKind('leviathan'), { r:54,hp:4700,speed:44,damage:34,color:'#4ce0d1',value:90 });
+  assert.deepEqual(AI.statsForKind('leviathan'), { r:54,hp:9400,speed:44,damage:34,color:'#4ce0d1',value:90 });
+  assert.equal(AI.statsForKind('whiteShark').dashSpeed,300);
+  assert.equal(AI.statsForKind('whiteSharkBoss').dashSpeed,350);
+  assert.equal(AI.statsForKind('whiteSharkBoss').hp,12000);
 });
 
 
