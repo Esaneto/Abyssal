@@ -462,3 +462,13 @@ test('a non-selected shot cannot be accepted even if injected into an upgrade ch
  const game=read('public/game.js');
  assert.ok(game.includes("if(gameState!=='upgrade'||!u||!runResonanceIds.includes(u.id)||(upgradeLevels[u.id]||0)>=3)return;"));
 });
+
+
+test('start menu omits survival record and anchors account utilities to section right',()=>{
+ const html=read('public/index.html'),css=read('public/style.css');
+ assert.doesNotMatch(html,/MELHOR SOBREVIVÊNCIA/);
+ assert.doesNotMatch(html,/class="record-row"/);
+ assert.ok(css.includes('MENU SECTION RIGHT RAIL V21'));
+ assert.ok(css.includes('#menuScreen{position:relative!important;}'));
+ assert.ok(css.includes('right:clamp(24px,3vw,48px)!important;'));
+});
