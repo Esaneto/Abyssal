@@ -182,7 +182,7 @@ app.use((req, res, next) => {
  res.set('X-Content-Type-Options','nosniff');
  res.set('X-Frame-Options','DENY');
  res.set('Referrer-Policy','strict-origin-when-cross-origin');
- res.set('Permissions-Policy','camera=(self "https://family.k-id.com" "https://*.k-id.com"), microphone=(), geolocation=(), payment=(self "https://checkout.stripe.com"), fullscreen=(self)');
+ res.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), payment=(self "https://checkout.stripe.com"), fullscreen=(self)');
  res.set('Cross-Origin-Opener-Policy','same-origin');
  if(req.secure||String(req.headers['x-forwarded-proto']||'').split(',')[0].trim()==='https')res.set('Strict-Transport-Security','max-age=31536000');
  // Report-only while legacy inline scripts are migrated to nonces/hashes.
@@ -810,9 +810,6 @@ function worldTick() {
 
 function windowWidthSafe(value,fallback){return Math.max(320,Math.min(10000,Number(value)||fallback||1200));}
 io.on('connection', socket => {
- const currentKidUser=()=>users[socket.data.userKey];
-  const hasKidAgePass=()=>true;
-  const requireKidPermission=()=>true;
  socket.data.nickname = null; socket.data.userKey = null; socket.data.joined = false; socket.data.roomId = null; broadcastOnline();
  socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', (payload = {}) => {
@@ -852,12 +849,12 @@ io.on('connection', socket => {
   socket.data.nickname=user.nickname;socket.data.userKey=key;saveUsers();
   socket.emit('session-resumed',{ok:true,...publicUser(user)});broadcastCardumeRosters();
  });
-  socket.on('get-public-profile',(payload={})=>{if(!requireKidPermission('public-profile'))return socket.emit('public-profile-result',{ok:false,message:'O k-ID não liberou perfis públicos para esta conta.'});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
-  socket.on('toggle-profile-like',(payload={})=>{if(!requireKidPermission('public-profile'))return socket.emit('profile-like-result',{ok:false,message:'O k-ID não liberou interações em perfis públicos para esta conta.'});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
-  socket.on('get-cardume-details',()=>{if(!requireKidPermission('join-groups'))return socket.emit('cardume-details',{cardume:null,roster:[]});if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-details',{cardume:null,roster:[]});const user=users[socket.data.userKey],c=user&&cardumes[user.cardumeId];if(!c)return socket.emit('cardume-details',{cardume:null,roster:[]});emitCardumeRoster(c);});
+  socket.on('get-public-profile',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
+  socket.on('toggle-profile-like',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
+  socket.on('get-cardume-details',()=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-details',{cardume:null,roster:[]});const user=users[socket.data.userKey],c=user&&cardumes[user.cardumeId];if(!c)return socket.emit('cardume-details',{cardume:null,roster:[]});emitCardumeRoster(c);});
 
     const publicCardume = c => ({id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity,createdAt:c.createdAt,open:c.open});
-  const sendCardumes = () => socket.emit('cardumes-list',SOCIAL_FEATURES_ENABLED&&requireKidPermission('join-groups')?Object.values(cardumes).map(publicCardume).sort((a,b)=>b.members-a.members||a.name.localeCompare(b.name)):[]);
+  const sendCardumes = () => socket.emit('cardumes-list',SOCIAL_FEATURES_ENABLED?Object.values(cardumes).map(publicCardume).sort((a,b)=>b.members-a.members||a.name.localeCompare(b.name)):[]);
   socket.on('list-cardumes',sendCardumes);
   socket.on('create-cardume',(payload={})=>{
    if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-action-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis enquanto os controles de segurança são preparados.'});
@@ -887,8 +884,6 @@ io.on('connection', socket => {
   socket.on('list-rooms', async () => { socket.emit('rooms-list',await roomListForClients()); });
  socket.on('create-room', async payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-created',{ok:false,message:'Entre na sua conta antes de criar uma sala.'});
-  if(!hasKidAgePass())return socket.emit('room-created',{ok:false,message:'Conclua a verificação de idade antes de criar uma sala.'});
-   if(!requireKidPermission('multiplayer'))return socket.emit('room-created',{ok:false,message:'O k-ID não liberou o modo multijogador para esta conta.'});
   payload=payload&&typeof payload==='object'?payload:{};
   const name=String(payload.name||'Expedição Abissal').trim().replace(/[<>]/g,'').slice(0,28)||'Expedição Abissal';
   const capacity=Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Math.floor(Number(payload.capacity)||6)));
@@ -902,8 +897,6 @@ io.on('connection', socket => {
  });
  socket.on('join-room', async payload => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
-  if(!hasKidAgePass())return socket.emit('room-join-result',{ok:false,message:'Conclua a verificação de idade antes de entrar em uma sala.'});
-   if(!requireKidPermission('multiplayer'))return socket.emit('room-join-result',{ok:false,message:'O k-ID não liberou o modo multijogador para esta conta.'});
   payload=payload&&typeof payload==='object'?payload:{};
   const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase();
   const room=rooms.get(id);
@@ -1223,8 +1216,6 @@ io.on('connection', socket => {
    return socket.emit('account-deletion-result',{ok:false,message:'O nickname digitado não corresponde à sua conta. Nenhuma informação foi excluída.'});
   }
   try{
-   // Revoke the linked k-ID session before deleting the local account.
-   // k-ID session bypassed
    // Disconnect every active session for this account before removing the key, so stale sockets
    // cannot mutate a newly-created account that reuses the same nickname.
    for(const session of (io.sockets?.sockets?.values?.() || [])){
