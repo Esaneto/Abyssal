@@ -82,52 +82,6 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
    return '<article class="profile-title-card '+(owned?'':'is-locked')+' '+(isEquipped?'is-equipped':'')+'" style="--title-color:'+t.color+'"><div class="profile-title-icon" aria-hidden="true">'+titleArtwork(t.id)+'</div><div class="profile-title-copy"><h4 class="profile-title-name">'+escapeHtml(t.name)+'</h4><p class="profile-title-desc">'+escapeHtml(t.description)+'</p><div class="profile-title-meta"><span>'+t.rarity+'</span><span>·</span><span class="profile-title-state '+(owned?'':'locked')+'">'+(owned?'✓ DESBLOQUEADO':'⌑ BLOQUEADO')+'</span></div><p class="profile-title-desc" style="margin-top:7px">'+escapeHtml(owned?t.goal:detail)+'</p><div class="profile-title-progressbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><span style="width:'+percent+'%"></span></div><button class="profile-title-action" data-equip-title="'+t.id+'" '+(!owned||isEquipped||!window.AbyssalOnline?.isAuthenticated()?'disabled':'')+'>'+(isEquipped?'EQUIPADO':owned?'EQUIPAR TÍTULO':window.AbyssalOnline?.isAuthenticated()?'AINDA BLOQUEADO':'ENTRE PARA EQUIPAR')+'</button></div></article>';
   }).join('');
  }
- const CHAT_TITLE_META={
-  'abyss-drifter':{name:'Mergulhador das Fossas',color:'#79f3f0'},
-  'abyss-spark':{name:'Faísca das Fossas',color:'#8cf8ff'},
-  'current-hunter':{name:'Caçador de Correntes',color:'#b39cff'},
-  'pelagic-executioner':{name:'Carrasco Pelágico',color:'#ff829b'},
-  'leviathan-hunter':{name:'Caçador de Leviatãs',color:'#ffd27a'},
-  'sovereign-abyss':{name:'Soberano do Insondável',color:'#e0b7ff'},
-  'shoal-founder':{name:'Fundador do Cardume',color:'#73e7c3'},
-  'supporter-of-the-depths':{name:'Apoio das Profundezas',color:'#ff9fca'},
-  'abyssal-famous':{name:'Nome Conhecido',color:'#ffb0d9'},
-  'abyssal-icon':{name:'Ícone do Abismo',color:'#f2a8ff'},
-  'living-legend':{name:'Lenda Viva',color:'#ffe29b'},
-  'abyssal-patron':{name:'Patrono do Abismo',color:'#ffd27a'},
-  'boss-abyssal':{name:'Boss Abyssal',color:'#ff6b9d'},
-   'abyssal-conqueror':{name:'Conquistador Abyssal',color:'#2ee88a'}
- };
- function blockedChatUsers(){try{return new Set(JSON.parse(localStorage.getItem('abyssalBlockedChatUsers')||'[]').map(v=>String(v).toLowerCase()))}catch(_){return new Set()}}
- function setChatUserBlocked(nickname,blocked){const key=String(nickname||'').trim().toLowerCase();if(!key)return false;const set=blockedChatUsers();if(blocked)set.add(key);else set.delete(key);localStorage.setItem('abyssalBlockedChatUsers',JSON.stringify([...set]));renderGlobalChatHistory(window.__abyssalLastChatHistory||[]);if(viewedPublicProfile&&String(viewedPublicProfile).toLowerCase()===key)updatePublicProfileSafetyActions(viewedPublicProfile);return blocked;}
- function toggleChatUserBlock(nickname){const key=String(nickname||'').trim().toLowerCase();if(!key)return false;const blocked=!blockedChatUsers().has(key);setChatUserBlocked(nickname,blocked);return blocked;}
- function updatePublicProfileSafetyActions(nickname){const block=$('blockProfileBtn');if(!block)return;const blocked=blockedChatUsers().has(String(nickname||'').trim().toLowerCase());block.textContent=blocked?'DESBLOQUEAR':'BLOQUEAR';block.setAttribute('aria-label',(blocked?'Desbloquear ':'Bloquear ')+String(nickname||'jogador'));block.classList.toggle('is-blocked',blocked);}
- function setGlobalChatStatus(online){const panel=$('globalChatPanel'),status=$('globalChatStatus');if(panel)panel.classList.toggle('is-offline',!online);if(status)status.textContent=online?'SINAL ESTÁVEL':'SEM SINAL';}
- function renderGlobalChatMessage(message){
-  const list=$('globalChatMessages');if(!list||!message)return;
-  if(blockedChatUsers().has(String(message.nickname||'').toLowerCase()))return;
-  const empty=list.querySelector('.global-chat-empty');if(empty)empty.remove();
-  const row=document.createElement('article');row.className='global-chat-message';
-  const head=document.createElement('div');head.className='global-chat-message-head';
-  const name=document.createElement('strong');name.className='global-chat-name';name.textContent=String(message.nickname||'Mergulhador').slice(0,18);head.appendChild(name);
-  const title=CHAT_TITLE_META[message.titleId];if(title){const badge=document.createElement('span');badge.className='global-chat-title';badge.style.setProperty('--chat-title-color',title.color);badge.textContent=title.name;head.appendChild(badge);}
-  const time=document.createElement('time');time.className='global-chat-time';time.textContent=new Date(Number(message.at)||Date.now()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});head.appendChild(time);
-  const body=document.createElement('p');body.className='global-chat-message-body';body.textContent=String(message.text||'').slice(0,180);
-  row.append(head,body);
-  if(authenticated&&sessionToken&&message.id&&message.nickname!==account?.nickname){
-   const actions=document.createElement('div');actions.className='global-chat-message-actions';
-   const report=document.createElement('button');report.type='button';report.className='small-action global-chat-report';report.textContent='DEN.';
-   report.setAttribute('aria-label','Denunciar mensagem de '+String(message.nickname||'jogador'));
-   report.addEventListener('click',()=>openChatReportDialog(message,async reason=>{report.disabled=true;try{const response=await fetch(SERVER_URL+'/api/chat/reports',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+sessionToken},body:JSON.stringify({messageId:message.id,reason})});const result=await response.json();if(!response.ok)throw new Error(result.message||'Não foi possível enviar a denúncia.');report.textContent='DENÚNCIA ENVIADA';const hint=$('globalChatHint');if(hint)hint.textContent='Denúncia enviada para análise da moderação.';window.addNotification?.('Sua denúncia foi registrada e entrou na fila de moderação.','DENÚNCIA REGISTRADA','moderation');}catch(error){report.disabled=false;const hint=$('globalChatHint');if(hint)hint.textContent=error.message;}}));
-   const block=document.createElement('button');block.type='button';block.className='small-action global-chat-block';block.textContent='BLOQ.';block.setAttribute('aria-label','Bloquear mensagens de '+String(message.nickname||'jogador'));block.addEventListener('click',()=>{if(window.confirm('Bloquear mensagens de '+String(message.nickname||'este jogador')+' neste dispositivo?'))setChatUserBlocked(message.nickname,true);});
-   actions.append(report,block);row.appendChild(actions);
-  }
-  list.appendChild(row);
-  while(list.children.length>50)list.firstElementChild?.remove();
-  list.scrollTop=list.scrollHeight;
- }
- function renderGlobalChatHistory(messages){window.__abyssalLastChatHistory=Array.isArray(messages)?messages:[];const list=$('globalChatMessages');if(!list)return;list.replaceChildren();(Array.isArray(messages)?messages:[]).slice(-50).forEach(renderGlobalChatMessage);if(!list.children.length){const empty=document.createElement('p');empty.className='global-chat-empty';empty.textContent='Nenhuma transmissão recente. Seja o primeiro a falar.';list.appendChild(empty)}}
- function sendGlobalChatMessage(text){if(!socket?.connected){const hint=$('globalChatHint');if(hint)hint.textContent='Sem conexão com o servidor. Tente novamente.';return false}if(!authenticated){const hint=$('globalChatHint');if(hint)hint.textContent='Entre na sua conta para transmitir mensagens.';return false}socket.emit('global-chat-send',{text});return true}
 
  function showCardumeDirectory(){const d=$('cardumeDirectory'),detail=$('cardumeDetail');if(d)d.hidden=false;if(detail)detail.hidden=true;}
  function showCardumeDetail(data){const c=data?.cardume,roster=Array.isArray(data?.roster)?data.roster:[];if(!c){showCardumeDirectory();return;}const d=$('cardumeDirectory'),detail=$('cardumeDetail');if(d)d.hidden=true;if(detail)detail.hidden=false;$('cardumeDetailName').textContent=c.name;$('cardumeDetailDescription').textContent=c.description||'Um grupo de mergulhadores explorando as profundezas.';$('cardumeMemberCount').textContent=c.members+' / '+c.capacity;const root=$('cardumeMembers');if(!root)return;root.replaceChildren();if(!roster.length){const p=document.createElement('p');p.className='rooms-empty';p.textContent='Nenhum membro encontrado.';root.appendChild(p);return;}for(const m of roster){const row=document.createElement('article');row.className='cardume-member';const dot=document.createElement('span');dot.className='member-presence'+(m.online?' is-online':'');dot.title=m.online?'Online':'Offline';const copy=document.createElement('div');copy.className='cardume-member-copy';const name=document.createElement('strong');name.textContent=m.nickname+(m.leader?' · LÍDER':'');const meta=document.createElement('small');meta.textContent=(m.online?'ONLINE':'OFFLINE')+' · '+(CHAT_TITLE_META[m.equippedTitle]?.name||'Mergulhador das Fossas')+' · '+(m.likesReceived||0)+' curtidas';copy.append(name,meta);const btn=document.createElement('button');btn.type='button';btn.textContent='VER PERFIL';btn.addEventListener('click',()=>openPublicProfile(m.nickname));row.append(dot,copy,btn);root.appendChild(row);}}
@@ -205,7 +159,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('connect_error',()=>{connected=false;scheduleMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Tentando reconectar…',true)});
- socket.on('disconnect',()=>{setGlobalChatStatus(false);connected=false;scheduleMaintenanceOverlay();authenticated=false;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Tentando restaurar sua sessão…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
+ socket.on('disconnect',()=>{connected=false;scheduleMaintenanceOverlay();authenticated=false;players.clear();currentRoom=null;latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Tentando restaurar sua sessão…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected'))});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -221,9 +175,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);refreshKidGate();
-  socket.emit('get-account');socket.emit('global-chat-history');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
+  socket.emit('get-account');window.dispatchEvent(new CustomEvent('abyssal-authenticated'));
  });
- socket.on('global-chat-sent',result=>{if(!result?.ok)return;const hint=$('globalChatHint');if(hint)hint.textContent='Mensagem transmitida para o abismo.'});
  socket.on('world-host',()=>{}); // Compatibilidade com clientes antigos: nenhum jogador é eleito host.
 
  socket.on('game-snapshot',data=>{if(window.AbyssalGameHooks?.applySnapshot)window.AbyssalGameHooks.applySnapshot(data);});
@@ -353,7 +306,6 @@ function applyAgeTreatment(){
  const p=ageProfile(),restricted=!p||p.band==='under16';
  window.AbyssalAgeBand=p?.band||'unknown';
  window.AbyssalRestrictedAgeTreatment=restricted;
- const chat=$('globalChatPanel');if(chat)chat.hidden=restricted;
 }
 function openAgeTermsIfNeeded(){
  if(hasAgeTermsProfile()){applyAgeTreatment();return false}
@@ -498,7 +450,7 @@ function sendFusion(name){if(!socket?.connected||!authenticated||!currentRoom)re
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,startAgeAssurance,refreshAgeAssuranceStatus,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,sendGlobalChatMessage,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,startAgeAssurance,refreshAgeAssuranceStatus,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
  if(socket?.connected&&authenticated&&currentRoom){
