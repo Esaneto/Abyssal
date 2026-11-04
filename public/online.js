@@ -578,7 +578,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  function updateFullscreenButton(){
   const button=$('fullscreenBtn');if(!button)return;
   const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-  button.textContent=active?'⤢':'⛶';
+  button.classList.toggle('is-fullscreen',active);
   button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
   button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
  }
