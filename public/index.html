@@ -561,6 +561,12 @@
         if(root.requestFullscreen)await root.requestFullscreen();
         else if(root.webkitRequestFullscreen)root.webkitRequestFullscreen();
         else throw new Error('fullscreen-unavailable');
+        // Em navegadores compatíveis, mantém o jogo na horizontal durante a tela cheia.
+        try{
+          if(screen.orientation?.lock)await screen.orientation.lock('landscape');
+        }catch(orientationError){
+          // Alguns navegadores só permitem bloquear a orientação em um app instalado.
+        }
       }
     }catch(error){
       const toast=document.getElementById('toast');
