@@ -1177,12 +1177,19 @@ io.on('connection', socket => {
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
-   const ux=dx/speed,uy=dy/speed;
+   let ux=dx/speed,uy=dy/speed;
+   const manualAim=payload.manualAim===true;
+   if(!manualAim&&shot.beamTargetId){
+    const lockedTarget=room.mode==='pvp'?room.players.get(shot.beamTargetId):room.world?.enemies?.find(enemy=>String(enemy.id)===shot.beamTargetId&&Number(enemy.hp)>0);
+    if(lockedTarget&&lockedTarget.alive!==false&&lockedTarget.id!==socket.id){
+     const lockDx=Number(lockedTarget.x)-sx,lockDy=Number(lockedTarget.y)-sy,lockDistance=Math.hypot(lockDx,lockDy);
+     if(Number.isFinite(lockDistance)&&lockDistance>0&&lockDistance<=beamRange+20/WORLD_ZOOM){ux=lockDx/lockDistance;uy=lockDy/lockDistance;}
+    }
+   }
    // The beam endpoint is range-authoritative, never target-authoritative.
    // Auto aim chooses direction on the client, but a nearby/moving target must not shorten
    // the ray. Damage is evaluated against this full segment using authoritative positions.
    let length=beamRange;
-   const manualAim=payload.manualAim===true;
    if(room.mode==='pvp'){
     // The same wall clipping applies to the actual hit segment and its visual endpoint.
     for(let distance=0;distance<=length;distance+=4/WORLD_ZOOM){
