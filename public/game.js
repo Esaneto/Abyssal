@@ -1749,6 +1749,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     if(distanceSquared<=beamRangeSquared&&distanceSquared<targetDistanceSquared){target=candidate;targetDistanceSquared=distanceSquared;}
    }
    if(target){
+    player.photonRayActive=true;
     const aimAngle=Math.atan2((Number(target.y)||0)-player.y,(Number(target.x)||0)-player.x),aimCos=Math.cos(aimAngle),aimSin=Math.sin(aimAngle);
     player.angle=aimAngle;
     const localBeam=effects.find(fx=>fx.localPhotonBeam);if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=Number(target.x)||player.x;localBeam.y2=Number(target.y)||player.y;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2:Number(target.x)||player.x,y2:Number(target.y)||player.y,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
@@ -1758,7 +1759,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,beamEndX:target.x/W,beamEndY:target.y/H,beamTargetId:target.id,special:'photonRay',volleyId:nextShotVolleyId()});
      if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
     }
-   }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);
+   }else{if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   }
   if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
@@ -2787,6 +2788,7 @@ window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Num
  burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
 });
+window.addEventListener('abyssal-remote-photon-stop',event=>{const fromId=String(event.detail?.fromId||'');if(!fromId)return;for(const fx of effects)if(fx.type==='photon-ray'&&fx.remoteBeamKey===fromId)fx.life=Math.min(fx.life,.06);});
 window.AbyssalGameHooks={
  getPlayerPosition:()=>onlineMode&&player&&gameState!=='menu'&&gameState!=='over'?{x:player.x,y:player.y,angle:player.angle||0}:null,
  roomMode:()=>onlineRoomMode,
