@@ -39,7 +39,7 @@
     <div class="brand"><span class="brand-mark">✦</span><div><strong>ABYSSAL</strong><small>ECOS DAS PROFUNDEZAS</small></div></div>
     <div class="top-actions"><div class="online-counter"><span class="pulse-dot"></span><span id="onlineCount">0</span> ONLINE</div>
       <div class="sound-control-wrapper" id="soundControlWrapper">
-        <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som">🔊</button>
+        <button id="soundBtn" class="icon-btn" aria-label="Ativar ou desativar som" title="Som"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a8 8 0 0 1 0 12"/></svg></button>
         <div class="volume-popup" id="volumePopup">
           <label class="volume-channel" for="volumeSlider"><span class="volume-icon">🔉</span><span>EFEITOS</span></label>
           <input type="range" id="volumeSlider" min="0" max="100" value="80" aria-label="Volume dos efeitos">
@@ -49,8 +49,10 @@
           <span id="musicVolumeText" class="volume-text">45%</span>
         </div>
       </div>
-        <button id="notifBtn" class="icon-btn" aria-label="Abrir notificações" title="Notificações">🔔<span id="notifUnreadDot" class="notification-badge-dot" hidden aria-hidden="true"></span></button>
-      <button id="mobileDownloadTopBtn" class="icon-btn mobile-top-utility" type="button" aria-label="Baixar Abyssal" title="Baixar">⇩</button>\n      <button id="mobileControlsTopBtn" class="icon-btn mobile-top-utility" type="button" aria-label="Configurar controles" title="Controles">⌖</button>\n      <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia">⛶</button>
+        <button id="notifBtn" class="icon-btn" aria-label="Abrir notificações" title="Notificações"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span id="notifUnreadDot" class="notification-badge-dot" hidden aria-hidden="true"></span></button>
+      <button id="mobileDownloadTopBtn" class="icon-btn mobile-top-utility" type="button" aria-label="Baixar Abyssal" title="Baixar"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+      <button id="mobileControlsTopBtn" class="icon-btn mobile-top-utility" type="button" aria-label="Configurar controles" title="Controles"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v3.6A4.7 4.7 0 0 0 6.7 18l2.1-2h6.4l2.1 2a4.7 4.7 0 0 0 4.7-4.7V9.7A4.7 4.7 0 0 0 17.3 5Z"/></svg></button>
+      <button id="fullscreenBtn" class="icon-btn fullscreen-btn" aria-label="Ativar tela cheia" title="Tela cheia"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
       <button id="pauseBtn" class="icon-btn" aria-label="Pausar jogo" title="Pausar" hidden>Ⅱ</button>
     </div>
   </header>
@@ -105,8 +107,8 @@
         <div class="record-row"><span>MELHOR SOBREVIVÊNCIA</span><strong id="bestTime">00:00</strong><span class="dot-sep">·</span><span>RECORDE <strong id="bestScore">0</strong></span></div>
       </div>
       <div class="language-setting"><label for="languageSelect">IDIOMA / LANGUAGE</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
-      <button id="downloadBtn" class="secondary-btn download-cta desktop-menu-utility" type="button" aria-label="Abrir opções de download">BAIXAR <span aria-hidden="true">⇩</span></button>
-      <button id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility" type="button">CONTROLES <span aria-hidden="true">⌖</span></button>
+      <button id="downloadBtn" class="secondary-btn download-cta desktop-menu-utility" type="button" aria-label="Abrir opções de download">BAIXAR <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
+      <button id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility" type="button">CONTROLES <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v3.6A4.7 4.7 0 0 0 6.7 18l2.1-2h6.4l2.1 2a4.7 4.7 0 0 0 4.7-4.7V9.7A4.7 4.7 0 0 0 17.3 5Z"/></svg></button>
       <div class="menu-fauna" aria-hidden="true">
         <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
         <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
