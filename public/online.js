@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
-let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map();
+let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,everConnected=false;
 function showMaintenanceOverlay(){if(maintenanceVisible)return;maintenanceVisible=true;const el=$('maintenanceOverlay');if(el)el.hidden=false;}
@@ -201,6 +201,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   data=window.AbyssalNetCodec?.readReconcile?.(data)||data;
   if(!Array.isArray(data)||data.length<4)return;const seq=Number(data[0])||0;if(seq<=lastReconcileSeq)return;lastReconcileSeq=seq;positionAckAt=Date.now();
   const predicted=pendingMotion.get(seq),authoritativeX=Number(data[1]),authoritativeY=Number(data[2]);
+  if(predicted?.sentAt!=null){const sample=Math.max(0,performance.now()-predicted.sentAt);motionJitterMs=motionRttMs==null?0:motionJitterMs*.8+Math.abs(sample-motionRttMs)*.2;motionRttMs=motionRttMs==null?sample:motionRttMs*.8+sample*.2;motionAckCount++;}
   for(const key of pendingMotion.keys())if(key<=seq)pendingMotion.delete(key);
   if(predicted&&Number.isFinite(authoritativeX)&&Number.isFinite(authoritativeY)){
    const dx=authoritativeX-predicted.x,dy=authoritativeY-predicted.y;
@@ -379,13 +380,13 @@ function startPositionHeartbeat(){
   const seq=++positionSequence;
   // Compact delta-style motion tuple: [seq,x,y,angle,clientSentAt].
   // Static/slow metadata travels separately at 1 Hz instead of repeating 20-30 times/s.
-  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
+  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
   socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
   lastPositionAt=now;positionPacketsSent++;
   if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
 }
-function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
+function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendDamageBatch(hits){
