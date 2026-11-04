@@ -1961,6 +1961,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const originX=owner?.x??beam.targetX1??beam.x1,originY=owner?.y??beam.targetY1??beam.y1;
   beam.x1+=(originX-beam.x1)*blend;beam.y1+=(originY-beam.y1)*blend;
   let destinationX=beam.targetX2??beam.x2,destinationY=beam.targetY2??beam.y2;
+  // Keep the ray aimed in the last authoritative direction while its shooter moves between packets.
+  if(owner&&!beam.remoteTargetId){destinationX=originX+(beam.targetX2-beam.targetX1);destinationY=originY+(beam.targetY2-beam.targetY1);}
   if(beam.remoteTargetId){
    const target=onlineRoomMode==='pvp'?window.AbyssalOnline?.getPlayerById?.(beam.remoteTargetId):onlineEnemyById.get(beam.remoteTargetId);
    if(target&&target.alive!==false&&Number(target.hp)!==0){
