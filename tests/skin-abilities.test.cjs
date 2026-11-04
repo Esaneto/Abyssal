@@ -368,3 +368,26 @@ test('projectiles dissolve at collision and range end and electric shot is a twi
  assert.ok(game.includes("segments=8"));
  assert.ok(game.includes("Math.sin(phase+s*2.7)"));
 });
+
+
+test('selected shot identity is never replaced by passive modifiers',()=>{
+ const game=read('public/game.js');
+ const server=read('server.js');
+ assert.ok(game.includes("const activeShot=getActiveShotId()||'electric'"));
+ assert.ok(game.includes("const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:"));
+ assert.doesNotMatch(game,/const special=upgrades\.abyssEye/);
+ assert.doesNotMatch(game,/activeShot==='photon'\?'#f0abfc':upgrades\.ricochet/);
+ assert.ok(server.includes("modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye)"));
+});
+
+test('Abyssal Runic typography and dynamic i18n are global',()=>{
+ const html=read('public/index.html');
+ const css=read('public/style.css');
+ const i18n=read('public/i18n.js');
+ assert.ok(html.includes('family=Uncial+Antiqua'));
+ assert.ok(css.includes('--abyssal-runic:'));
+ assert.ok(css.includes('html,body,button,input,select,textarea{font-family:var(--abyssal-runic)!important;}'));
+ assert.ok(i18n.includes("attributeFilter:['title','placeholder','aria-label']"));
+ assert.ok(i18n.includes("'Tempestade elétrica':'Electric Storm'"));
+ assert.doesNotMatch(i18n,/SCHOOAL/);
+});
