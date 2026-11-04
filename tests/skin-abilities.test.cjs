@@ -82,7 +82,7 @@ test('named premium skins retain reachable render branches', () => {
 test('Photon Ray auto-targets nearest in-range target without mouse steering', () => {
  const game=read('public/game.js');
  const start=game.indexOf("if(upgrades.photonRay>0){"),end=game.indexOf("if(upgrades.nova>0)",start),block=game.slice(start,end);
- assert.ok(block.includes('d<=beamRange&&d<targetDistance'));
+ assert.ok(block.includes('distanceSquared<=beamRangeSquared&&distanceSquared<targetDistanceSquared'));
  assert.ok(!block.includes('mouseAimMode')&&!block.includes('updateMouseAimFromCursor')&&!block.includes('controlAimAngle'));
  assert.ok(block.includes('Math.atan2'));
 });
