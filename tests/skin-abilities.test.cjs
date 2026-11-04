@@ -365,7 +365,7 @@ test('projectiles dissolve at collision and range end and electric shot is a twi
  assert.ok(game.includes("function spawnProjectileDissolve"));
  assert.ok(game.includes("if(hit||reachedRange)spawnProjectileDissolve"));
  assert.ok(game.includes("fx.type==='projectile-dissolve'"));
- assert.ok(game.includes("segments=8"));
+ assert.ok(game.includes("segments=12"));
  assert.ok(game.includes("Math.sin(phase+s*2.7)"));
 });
 
@@ -494,7 +494,19 @@ test('menu modals expose a canonical working close action and sticky X',()=>{
  }
  for(const screen of ['supportScreen','roomsScreen','cardumesScreen','catalogScreen','rankingsScreen','downloadScreen'])assert.ok(html.includes('data-close-screen="'+screen+'"'));
  assert.ok(online.includes("event.target.closest?.('[data-close-screen]')"));
- assert.ok(online.includes('event.stopImmediatePropagation()'));
+ assert.ok(!online.includes('event.stopImmediatePropagation()'));
  assert.ok(css.includes('UNIVERSAL MODAL CLOSE V23'));
  assert.ok(css.includes('position:sticky!important'));
+});
+
+
+test('shared modal closer never suppresses unrelated menu click handlers',()=>{
+ const online=read('public/online.js');
+ assert.ok(online.includes("document.addEventListener('click',event=>{const button=event.target.closest?.('[data-close-screen]')"));
+ assert.doesNotMatch(online,/stopImmediatePropagation\(\)/);
+ assert.doesNotMatch(online,/\},true\);\s*window\.addEventListener\('beforeinstallprompt'/);
+});
+test('successful socket reconnect releases maintenance UI even while expedition restore continues',()=>{
+ const online=read('public/online.js');
+ assert.ok(online.includes("socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();"));
 });
