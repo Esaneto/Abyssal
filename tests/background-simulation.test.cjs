@@ -121,3 +121,12 @@ test('deploy reconnect keeps maintenance visible until the authoritative room is
   assert.match(online, /showMaintenanceOverlay\('Expedição restaurada\. Sincronizando o mundo…'\)/);
   assert.match(online, /window\.dispatchEvent\(new CustomEvent\('abyssal-room-joined'/);
 });
+
+
+test('deploy reconnect cannot leave the maintenance overlay pending forever', () => {
+  assert.match(online, /function armReconnectWatchdog\(\)/);
+  assert.match(online, /setTimeout\(\(\)=>\{if\(reconnectPending\)failReconnect/);
+  assert.match(online, /},15000\)/);
+  assert.match(online, /if\(reconnectPending\)failReconnect\('Sua sessão expirou durante a atualização/);
+  assert.match(online, /socket\.on\('room-joined',data=>\{if\(!data\?\.ok\)return;clearReconnectWatchdog\(\)/);
+});
