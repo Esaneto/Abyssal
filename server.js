@@ -1484,13 +1484,20 @@ boot().catch(err => {
 let shutdownStarted = false;
 async function shutdown(signal) {
  if (shutdownStarted) return; shutdownStarted = true;
- console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
- try{io.emit('server-maintenance',{reason:'deploy',message:'Atualização em andamento. Reconectando automaticamente…'});await new Promise(resolve=>setTimeout(resolve,450));}catch(_){}
+ console.log(`[shutdown] ${signal}: preservando expedições e transferindo clientes…`);
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
+  // Snapshot active runs before notifying or disconnecting clients. A deploy must never
+  // depend on a WebSocket remaining attached to the retiring Render instance.
   let deployRuns=0;for(const client of (io.sockets?.sockets?.values?.()||[]))if(stashDeployRun(client))deployRuns++;if(deployRuns)saveUsers();
   if(titleStatsSaveTimer){clearTimeout(titleStatsSaveTimer);titleStatsSaveTimer=null;saveUsers();}
   await flushPersistence();
+  io.emit('server-maintenance',{reason:'deploy',instanceId:SERVER_INSTANCE_ID,message:'Atualização em andamento. Reconectando automaticamente…'});
+  await new Promise(resolve=>setTimeout(resolve,250));
+  // server.close() waits for persistent WebSockets. Explicitly detach them so Socket.IO
+  // reconnects clients to the new Render instance instead of leaving them on maintenance.
+  io.disconnectSockets(true);
+  await new Promise(resolve=>setTimeout(resolve,80));
   await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}
