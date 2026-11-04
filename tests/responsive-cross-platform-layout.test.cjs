@@ -173,3 +173,18 @@ test('mobile menu moves download and controls to topbar and protects title flow'
  assert.match(final,/#menuScreen \.desktop-menu-utility\{display:none!important\}/);
  assert.match(final,/#menuScreen h1\{[\s\S]*min-height:calc\(1\.92em \+ 8px\)!important;[\s\S]*overflow:visible!important/);
 });
+
+
+test('mobile header uses compact vector icons and menu remains vertically scrollable',()=>{
+ const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
+ const css=fs.readFileSync(path.join(root,'public','style.css'),'utf8');
+ const final=css.slice(css.lastIndexOf('MOBILE HEADER + SCROLL AUTHORITY V14'));
+ assert.doesNotMatch(html,/mobileDownloadTopBtn[^>]*>[\s\S]{0,20}\\n/);
+ assert.match(html,/id="mobileDownloadTopBtn"[\s\S]*?<svg class="ui-icon"/);
+ assert.match(html,/id="mobileControlsTopBtn"[\s\S]*?<svg class="ui-icon"/);
+ assert.match(final,/#menuScreen\{[\s\S]*overflow-y:auto!important/);
+ assert.match(final,/touch-action:pan-y!important/);
+ assert.match(final,/#menuScreen \.menu-content\{[\s\S]*height:auto!important;[\s\S]*max-height:none!important/);
+ assert.match(final,/#menuScreen \.language-setting\{[\s\S]*align-self:flex-end!important/);
+ assert.match(final,/\.top-actions \.icon-btn\{[\s\S]*width:30px!important;height:30px!important/);
+});
