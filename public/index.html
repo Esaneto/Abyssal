@@ -546,9 +546,10 @@
   const update=()=>{
     if(!button)return;
     const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement);
-    button.textContent=active?'⤢':'⛶';
+    // Preserve o SVG do ícone: substituir textContent apagava o desenho e deixava o botão vazio no mobile.
     button.title=active?'Sair da tela cheia (Esc)':'Ativar tela cheia';
     button.setAttribute('aria-label',active?'Sair da tela cheia':'Ativar tela cheia');
+    button.setAttribute('data-fullscreen-active',active?'true':'false');
   };
   button?.addEventListener('click',async()=>{
     try{
