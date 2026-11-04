@@ -130,3 +130,12 @@ test('deploy reconnect cannot leave the maintenance overlay pending forever', ()
   assert.match(online, /if\(reconnectPending\)failReconnect\('Sua sessão expirou durante a atualização/);
   assert.match(online, /socket\.on\('room-joined',data=>\{if\(!data\?\.ok\)return;clearReconnectWatchdog\(\)/);
 });
+
+
+test('deploy shutdown persists runs before forcing old WebSockets to reconnect', () => {
+  const server = read('server.js');
+  const shutdown = server.slice(server.indexOf('async function shutdown'), server.indexOf("process.on('SIGTERM'"));
+  assert.ok(shutdown.indexOf('stashDeployRun(client)') < shutdown.indexOf('io.disconnectSockets(true)'));
+  assert.ok(shutdown.indexOf('await flushPersistence()') < shutdown.indexOf('io.disconnectSockets(true)'));
+  assert.ok(shutdown.indexOf('io.disconnectSockets(true)') < shutdown.indexOf('server.close(resolve)'));
+});

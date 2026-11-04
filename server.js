@@ -683,6 +683,26 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // validated; single-hit compatibility uses the same compact lifecycle events.
   if(batch)batch.worldChanged=true;
  }
+ // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
+ // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
+ // while ricochet-generated hits cannot recursively start another chain.
+ if(player&&Number(player.ricochetLevel)>0&&skillId!=='ricochet'){
+  let fromX=Number(enemy.x),fromY=Number(enemy.y);
+  const visited=new Set([Number(enemy.id)]);
+  for(let bounce=0;bounce<Math.min(3,Number(player.ricochetLevel)||0);bounce++){
+   let next=null,nextDistance=Infinity;
+   for(const candidate of w.enemies){
+    if(!candidate||Number(candidate.hp)<=0||visited.has(Number(candidate.id)))continue;
+    const distance=Math.hypot(Number(candidate.x)-fromX,Number(candidate.y)-fromY);
+    if(distance<190/WORLD_ZOOM&&distance<nextDistance){next=candidate;nextDistance=distance;}
+   }
+   if(!next)break;
+   visited.add(Number(next.id));
+   const bounced=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.42),'ricochet',batch,actionId);
+   if(!bounced?.ok)break;
+   fromX=Number(next.x);fromY=Number(next.y);
+  }
+ }
  return damageEvent;
 }
 async function finishRunForSocket(socket,payload={}){
@@ -1464,13 +1484,20 @@ boot().catch(err => {
 let shutdownStarted = false;
 async function shutdown(signal) {
  if (shutdownStarted) return; shutdownStarted = true;
- console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
- try{io.emit('server-maintenance',{reason:'deploy',message:'Atualização em andamento. Reconectando automaticamente…'});await new Promise(resolve=>setTimeout(resolve,450));}catch(_){}
+ console.log(`[shutdown] ${signal}: preservando expedições e transferindo clientes…`);
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
+  // Snapshot active runs before notifying or disconnecting clients. A deploy must never
+  // depend on a WebSocket remaining attached to the retiring Render instance.
   let deployRuns=0;for(const client of (io.sockets?.sockets?.values?.()||[]))if(stashDeployRun(client))deployRuns++;if(deployRuns)saveUsers();
   if(titleStatsSaveTimer){clearTimeout(titleStatsSaveTimer);titleStatsSaveTimer=null;saveUsers();}
   await flushPersistence();
+  io.emit('server-maintenance',{reason:'deploy',instanceId:SERVER_INSTANCE_ID,message:'Atualização em andamento. Reconectando automaticamente…'});
+  await new Promise(resolve=>setTimeout(resolve,250));
+  // server.close() waits for persistent WebSockets. Explicitly detach them so Socket.IO
+  // reconnects clients to the new Render instance instead of leaving them on maintenance.
+  io.disconnectSockets(true);
+  await new Promise(resolve=>setTimeout(resolve,80));
   await new Promise(resolve => { if (server.listening) server.close(resolve); else resolve(); });
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}
