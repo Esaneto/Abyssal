@@ -4,10 +4,12 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
-let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,everConnected=false;
+let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,everConnected=false,activeRoomPassword='',reconnectTarget=null,reconnectPending=false,reconnectFallbackUsed=false;
 function showMaintenanceOverlay(){if(maintenanceVisible)return;maintenanceVisible=true;const el=$('maintenanceOverlay');if(el)el.hidden=false;}
 function hideMaintenanceOverlay(){maintenanceVisible=false;if(maintenanceTimer){clearTimeout(maintenanceTimer);maintenanceTimer=null;}const el=$('maintenanceOverlay');if(el)el.hidden=true;}
 function scheduleMaintenanceOverlay(){if(!everConnected||maintenanceVisible||maintenanceTimer)return;maintenanceTimer=setTimeout(()=>{maintenanceTimer=null;if(!connected)showMaintenanceOverlay();},1800);}
+function rememberReconnectTarget(){const live=window.AbyssalGameHooks?.getPlayerPosition?.();if(!currentRoom||!live)return;reconnectTarget={id:String(currentRoom.id||'MAR-ABERTO').toUpperCase(),mode:currentRoom.mode==='pvp'?'pvp':'coop',password:activeRoomPassword};reconnectPending=true;reconnectFallbackUsed=false;}
+function restoreRoomAfterReconnect(){if(!reconnectPending||!reconnectTarget||!socket?.connected||!authenticated)return false;const target=reconnectTarget;setMessage('Sessão restaurada. Retomando a expedição…');return joinRoom(target.id,target.password,{reconnect:true});}
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstallPrompt=event;});
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const message=$('downloadInstallMessage');if(message)message.textContent='Abyssal instalado com sucesso neste dispositivo.';});
  const PROFILE_TITLES=[
