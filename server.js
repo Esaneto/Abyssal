@@ -1178,21 +1178,11 @@ io.on('connection', socket => {
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
    const ux=dx/speed,uy=dy/speed;
+   // The beam endpoint is range-authoritative, never target-authoritative.
+   // Auto aim chooses direction on the client, but a nearby/moving target must not shorten
+   // the ray. Damage is evaluated against this full segment using authoritative positions.
    let length=beamRange;
    const manualAim=payload.manualAim===true;
-   if(!manualAim){
-    const requestedTargetId=payload.beamTargetId==null?'':String(payload.beamTargetId).slice(0,64);
-    const candidates=room.mode==='pvp'?[...room.players.values()].filter(target=>target.id!==socket.id&&target.alive!==false):[...(room.world?.enemies||[])].filter(target=>Number(target.hp)>0);
-    let nearest=null,nearestDistance=beamRange;
-    for(const target of candidates){
-     const dx=Number(target.x)-sx,dy=Number(target.y)-sy,d=Math.hypot(dx,dy);
-     if(d>beamRange)continue;
-     const angularMiss=Math.abs(dx*uy-dy*ux);
-     const targetRadius=(Number(target.r)||13/WORLD_ZOOM)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM)+8/WORLD_ZOOM;
-     if(angularMiss<=targetRadius&&(requestedTargetId?String(target.id)===requestedTargetId:d<nearestDistance)){nearest=target;nearestDistance=d;if(requestedTargetId)break;}
-    }
-    if(nearest)length=Math.min(length,nearestDistance);
-   }
    if(room.mode==='pvp'){
     // The same wall clipping applies to the actual hit segment and its visual endpoint.
     for(let distance=0;distance<=length;distance+=4/WORLD_ZOOM){
