@@ -1928,6 +1928,22 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(gameState==='upgrade')break;
   }else if(o.life<=0)orbs.splice(i,1);
  }
+ for(const beam of effects){
+  if(!beam.remoteBeamKey||!onlineMode)continue;
+  const blend=1-Math.exp(-dt*18);
+  const owner=window.AbyssalOnline?.getPlayerById?.(beam.remoteBeamKey);
+  const originX=owner?.x??beam.targetX1??beam.x1,originY=owner?.y??beam.targetY1??beam.y1;
+  beam.x1+=(originX-beam.x1)*blend;beam.y1+=(originY-beam.y1)*blend;
+  let destinationX=beam.targetX2??beam.x2,destinationY=beam.targetY2??beam.y2;
+  if(beam.remoteTargetId){
+   const target=onlineRoomMode==='pvp'?window.AbyssalOnline?.getPlayerById?.(beam.remoteTargetId):onlineEnemyById.get(beam.remoteTargetId);
+   if(target&&target.alive!==false&&Number(target.hp)!==0){
+    const point=onlineRoomMode==='pvp'?target:currentInterpolatedEnemyPosition(target,performance.now());
+    destinationX=point.x;destinationY=point.y;
+   }
+  }
+  beam.x2+=(destinationX-beam.x2)*blend;beam.y2+=(destinationY-beam.y2)*blend;
+ }
  for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0){effects[i]=effects[effects.length-1];effects.pop();}}
  for(let i=damageNumbers.length-1;i>=0;i--){damageNumbers[i].life-=dt;if(damageNumbers[i].life<=0)damageNumbers.splice(i,1);}for(let i=bloodPools.length-1;i>=0;i--){bloodPools[i].life-=dt;if(bloodPools[i].life<=0)bloodPools.splice(i,1);}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();if(particlePool.length<700)particlePool.push(p)}}
@@ -2766,7 +2782,7 @@ window.addEventListener('resize',()=>{if(gameState==='playing'||(onlineMode&&gam
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
  if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM;spawnNovaVisual(x,y,max,col,onlineRoomMode==='pvp');return;}
- if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote');const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.x1=x;existing.y1=y;existing.x2=beamX2;existing.y2=beamY2;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,x1:x,y1:y,x2:beamX2,y2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});return;}
+ if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});return;}
  projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
  burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
