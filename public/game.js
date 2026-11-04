@@ -1990,12 +1990,12 @@ function activateAbility(id){
  if(id==='pulse'){
   if(!(Number(metaUpgrades.pulse)>0)){showToast('DESBLOQUEIE PULSO DE MARÉ NA LOJA');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
   if(player.pulseCooldown>0)return;
-  player.pulseCooldown=14;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
+  player.pulseCooldown=14;const pulseCastId=(Number(player.pulseCastId)||0)+1;player.pulseCastId=pulseCastId;const pulseCaster=player;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
-  if(onlineMode)window.AbyssalOnline?.sendActiveAbility?.('pulse');
+  if(onlineMode){const sent=window.AbyssalOnline?.sendActiveAbility?.('pulse',result=>{if(result?.ok!==false||player!==pulseCaster||pulseCaster.pulseCastId!==pulseCastId)return;pulseCaster.pulseCooldown=0;for(let i=effects.length-1;i>=0;i--)if(effects[i].pulseCastId===pulseCastId)effects.splice(i,1);updateAbilityButtons(true);});if(!sent){pulseCaster.pulseCooldown=0;updateAbilityButtons(true);return;}}
   else for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
-  if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});
-  else effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3'});
+  if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
+  else effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');
  }else if(id==='dash'){
   if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
