@@ -3809,3 +3809,14 @@ body.abyssal-native-shell #fullscreenBtn{
 .resonance-modal #saveResonanceBtn{
   color:#fff!important;
 }
+
+
+/* Botões escuros: garantir contraste com texto branco. */
+#createCardumeBtn,
+#sendSupportBtn{
+  color:#fff!important;
+}
+#createCardumeBtn span,
+#sendSupportBtn span{
+  color:#fff!important;
+}
