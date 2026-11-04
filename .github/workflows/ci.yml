@@ -27,7 +27,12 @@ jobs:
         run: |
           node --check scripts/configure-android.cjs
           node --check scripts/configure-android-signing.cjs
-      - name: Check JavaScript syntax and title definitions
+      - name: Check test file syntax
+        run: |
+          node --check tests/cohesive-regressions.test.cjs
+          node --check tests/skin-abilities.test.cjs
+          node --check tests/social-ui-integration.test.cjs
+      - name: Run JavaScript tests
         run: npm test
 
   android-api36:
