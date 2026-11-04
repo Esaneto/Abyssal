@@ -3454,3 +3454,41 @@ body.game-active #bossAlert.gameplay-notice-5s{
   align-self:center!important;margin:0 auto 6px!important;width:min(150px,46vw)!important;
  }
 }
+
+
+/* ALIGNMENT ONLY V16: preserve existing visual design. */
+#menuScreen .menu-action{
+ text-align:center!important;
+ align-items:center!important;
+ justify-items:center!important;
+}
+#menuScreen .menu-action .menu-action-label,
+#menuScreen .menu-action .online-cta-copy{
+ text-align:center!important;
+ justify-self:center!important;
+}
+#menuScreen .menu-action .menu-nav-icon,
+#menuScreen .menu-action .online-cta-icon{
+ align-self:center!important;
+ justify-self:center!important;
+}
+#menuScreen .resonance-menu-btn,
+#menuScreen .resonance-label{
+ align-items:center!important;
+ justify-content:center!important;
+ text-align:center!important;
+}
+.selected-skills-panel{text-align:center!important}
+.selected-skills-title{display:block!important;width:100%!important;text-align:center!important}
+.selected-skills-list{text-align:center!important}
+.selected-skill-row{align-items:center!important}
+.selected-skill-row>span,.selected-skill-row>strong{text-align:center!important}
+@media(max-width:700px),(pointer:coarse){
+ #menuScreen .menu-action{
+  grid-template-columns:32px minmax(0,1fr) 32px!important;
+ }
+ #menuScreen .menu-action .menu-action-label,
+ #menuScreen .menu-action .online-cta-copy{grid-column:2!important}
+ #menuScreen .menu-action .menu-nav-icon,
+ #menuScreen .menu-action .online-cta-icon{grid-column:3!important}
+}
