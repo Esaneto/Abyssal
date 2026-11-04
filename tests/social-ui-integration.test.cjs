@@ -125,3 +125,17 @@ test('multiplayer keeps offscreen enemy motion warm instead of viewport-culling 
  assert.match(server,/const enemies=world\.enemies;/);
  assert.doesNotMatch(server,/const enemies=recipient\?world\.enemies\.filter\(enemy=>isBossKind/);
 });
+
+
+test('profile menu button opens the account profile flow',()=>{
+ const online=read('public/online.js');
+ assert.match(online,/\$\('profileBtn'\)\?\.addEventListener\('click',\(\)=>openProfile\(\)\)/);
+});
+
+test('Abyssary stats are centered in HP damage speed order',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/\.monster-stats-row\{[\s\S]*?justify-content:center!important/);
+ assert.match(css,/\.monster-stats-row \.stat-hp\{order:1\}/);
+ assert.match(css,/\.monster-stats-row \.stat-dmg\{order:2\}/);
+ assert.match(css,/\.monster-stats-row \.stat-spd\{order:3\}/);
+});
