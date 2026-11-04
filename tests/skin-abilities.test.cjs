@@ -538,3 +538,20 @@ test('legal links stay restored and pinned to bottom-left menu corner',()=>{
  assert.match(css,/#menuScreen \.menu-footer\{[\s\S]*?position:fixed!important;[\s\S]*?left:max\(12px,[\s\S]*?right:auto!important;[\s\S]*?top:auto!important;[\s\S]*?bottom:max\(10px,/);
  assert.match(css,/#menuScreen\[hidden\] \.menu-footer\{display:none!important;\}/);
 });
+
+
+test('photon ray target controls direction but never shortens beam range',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.ok(game.includes('The target selects direction only. The visible/damaging ray always extends to full range.'));
+ assert.ok(game.includes('let beamLength=beamRange,beamTargetId=null;'));
+ assert.ok(!game.includes('beamLength=Math.min(beamRange,nearestDistance)'));
+ assert.ok(server.includes('The beam endpoint is range-authoritative, never target-authoritative.'));
+ assert.ok(server.includes('let length=beamRange;'));
+ assert.ok(!server.includes('if(nearest)length=Math.min(length,nearestDistance)'));
+});
+test('photon ray full-range segment still respects PvP rock occlusion',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.ok(game.includes('projectileHitsPvpWall(player.x,player.y,x2,y2'));
+ assert.ok(server.includes('pvpRockAt(sx+ux*distance,sy+uy*distance'));
+ assert.ok(server.includes('PhotonRay.segmentCircleHit(sx,sy,ex,ey'));
+});
