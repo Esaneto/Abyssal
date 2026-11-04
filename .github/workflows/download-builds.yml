@@ -27,7 +27,19 @@ jobs:
         run: node --check desktop/main.cjs
       - name: Build Windows installer
         working-directory: desktop
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npm run dist
+      - name: Verify Windows signature when certificate is configured
+        if: env.WIN_CSC_LINK != ''
+        shell: pwsh
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+        run: |
+          $sig = Get-AuthenticodeSignature "desktop/dist/Abyssal-Setup.exe"
+          Write-Host "Signature status: $($sig.Status)"
+          if ($sig.Status -ne "Valid") { throw "Abyssal installer signature is not valid." }
       - name: Upload Windows validation artifact
         uses: actions/upload-artifact@v4
         with:
