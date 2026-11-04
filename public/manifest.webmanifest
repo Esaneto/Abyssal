@@ -6,8 +6,12 @@
   "lang": "pt-BR",
   "start_url": "/?source=pwa",
   "scope": "/",
-  "display": "standalone",
-  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "display": "fullscreen",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "landscape",
   "background_color": "#061522",
   "theme_color": "#061522",
@@ -19,5 +23,8 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "entertainment"]
+  "categories": [
+    "games",
+    "entertainment"
+  ]
 }
