@@ -157,3 +157,16 @@ test('public profile like and report actions are inside the identity hero',()=>{
  const hero=html.indexOf('class="profile-hero"'),actions=html.indexOf('id="publicProfileActions"'),stats=html.indexOf('class="profile-stats"');
  assert.ok(hero>=0&&actions>hero&&actions<stats);
 });
+
+
+test('moderation email contains internal ids match evidence recurrence and anti-spam controls',()=>{
+ const server=read('server.js'),online=read('public/online.js');
+ assert.match(server,/ID interno do denunciante/);
+ assert.match(server,/ID interno do alvo/);
+ assert.match(server,/CONTEXTO DA PARTIDA/);
+ assert.match(server,/Denúncias anteriores registradas contra este alvo/);
+ assert.match(server,/recent\.length>=8/);
+ assert.match(server,/Esta denúncia já foi registrada recentemente/);
+ assert.match(online,/matchId:match\.id/);
+ assert.match(online,/bossesKilled:player\.bossesKilled,damage:player\.damage/);
+});
