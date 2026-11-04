@@ -3563,3 +3563,23 @@ body.game-active #bossAlert.gameplay-notice-5s{
  #menuScreen .download-cta{right:8px!important;bottom:40px!important}
  #menuScreen .controls-cta{right:8px!important;bottom:8px!important}
 }
+
+
+/* Mobile/Android shell: downloads, control configuration and browser fullscreen are desktop-only utilities. */
+@media(max-width:700px),(pointer:coarse){
+ #mobileDownloadTopBtn,#mobileControlsTopBtn,#fullscreenBtn,
+ #menuScreen #downloadBtn,#menuScreen #controlsBtn{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+ }
+}
+body.abyssal-native-shell #mobileDownloadTopBtn,
+body.abyssal-native-shell #mobileControlsTopBtn,
+body.abyssal-native-shell #fullscreenBtn,
+body.abyssal-native-shell #downloadBtn,
+body.abyssal-native-shell #controlsBtn{
+ display:none!important;
+ visibility:hidden!important;
+ pointer-events:none!important;
+}
