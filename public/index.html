@@ -444,7 +444,7 @@
           <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
           <p class="delete-account-warning">NÃO É POSSÍVEL DESFAZER ESTA OPERAÇÃO.</p>
         </section>
-        <div id="publicProfileActions" class="public-profile-actions" hidden><button id="likeProfileBtn" class="primary-btn" type="button">♡ CURTIR PERFIL</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
+        <div id="publicProfileActions" class="public-profile-actions" hidden><button id="likeProfileBtn" class="primary-btn" type="button">♡ CURTIR PERFIL</button><button id="reportProfileBtn" class="secondary-btn" type="button">⚑ DENUNCIAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
         <div id="profileMessage" class="form-message" role="status"></div>
         <button id="profileCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
       </div>
@@ -546,5 +546,23 @@
   update();
 })();
 </script>
+
+    <section id="ugcReportScreen" class="screen modal-screen auth-flow-screen" hidden>
+      <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="ugcReportTitle">
+        <button id="ugcReportCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar denúncia">×</button>
+        <div class="eyebrow">SEGURANÇA DA COMUNIDADE</div>
+        <h2 id="ugcReportTitle">DENUNCIAR CONTEÚDO</h2>
+        <p id="ugcReportTarget">Informe por que este conteúdo deve ser analisado.</p>
+        <label class="field-label" for="ugcReportReason">MOTIVO</label>
+        <select id="ugcReportReason" class="text-field">
+          <option value="nome-improprio">Nome ou conteúdo impróprio</option><option value="assedio">Assédio ou intimidação</option><option value="discriminacao">Discriminação ou discurso de ódio</option><option value="fraude">Fraude ou falsidade</option><option value="dados-pessoais">Exposição de dados pessoais</option><option value="conteudo-ilegal">Conteúdo ilegal</option><option value="outro">Outro motivo</option>
+        </select>
+        <label class="field-label" for="ugcReportDetails">EXPLIQUE O MOTIVO (OPCIONAL)</label>
+        <textarea id="ugcReportDetails" class="text-field support-message-input" maxlength="800" rows="4" placeholder="Ex.: nickname ofensivo, descrição imprópria, tentativa de se passar por outra pessoa..."></textarea>
+        <p id="ugcReportStatus" class="form-message auth-flow-message" role="status" aria-live="polite"></p>
+        <button id="ugcReportSendBtn" class="primary-btn" type="button">ENVIAR DENÚNCIA</button>
+        <button id="ugcReportCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
+      </div>
+    </section>
 </body>
 </html>
