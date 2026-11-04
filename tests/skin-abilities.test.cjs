@@ -447,3 +447,18 @@ test('resonance UI uses Abyssal runic typography with a larger menu label',()=>{
  assert.ok(css.includes('font-family:var(--abyssal-runic)!important;'));
  assert.ok(css.includes('#menuScreen .resonance-menu-btn{font-size:14px!important;min-height:48px!important;}'));
 });
+
+
+test('level-up pool is frozen from the resonance selected when the run starts',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes('let runResonanceIds=[]'));
+ assert.ok(game.includes("runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])]"));
+ assert.ok(game.includes('const available=upgradeList.filter(u=>runResonanceIds.includes(u.id)'));
+ assert.ok(game.includes("!runResonanceIds.includes(u.id)"));
+ assert.ok(game.includes('upgradeList.filter(u=>runResonanceIds.includes(u.id)).every'));
+});
+
+test('a non-selected shot cannot be accepted even if injected into an upgrade choice',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("if(gameState!=='upgrade'||!u||!runResonanceIds.includes(u.id)||(upgradeLevels[u.id]||0)>=3)return;"));
+});
