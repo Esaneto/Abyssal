@@ -528,7 +528,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-function processWorldDamage(socket,id,damage,skillId=null,batch=null){
+function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
  const reject=(reason)=>{combatDiagnostics.rejectedHits++;combatDiagnostics.lastDamageReason=reason;return {ok:false,id:Number.isFinite(id)?id:null,reason};};
@@ -642,7 +642,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  }
  if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
- const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
+ const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
@@ -1160,7 +1160,7 @@ io.on('connection', socket => {
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
    if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>7)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
-  const shot={x,y,vx,vy,color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
   if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
@@ -1206,7 +1206,7 @@ io.on('connection', socket => {
       if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,playerId:target.id});}
      }
      io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
-     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:damage,skillId:'photonRay',blocked});
+     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:damage,skillId:'photonRay',actionId:shot.actionId,blocked});
      if(!blocked&&damage>0)applyPvpHitSynergies(room,shooter,target,rawDamage,'photonRay',now);
      changed=true;
     }
@@ -1217,7 +1217,7 @@ io.on('connection', socket => {
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
       if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
-      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay');
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId);
      }
     }finally{shooter.photonServerResolving=false;}
    }
@@ -1240,7 +1240,7 @@ io.on('connection', socket => {
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
      else{appliedDamage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(centerX-target.x,centerY-target.y));target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-appliedDamage);triggerPvpAberrationEcho(room,target,shooter,now);target.lastDamageAt=now;target.invulnerableUntil=now+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
      io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:appliedDamage,attackerId:socket.id,serverTime:now}));
-     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:appliedDamage,skillId:shot.special||'physical',blocked});if(!blocked&&appliedDamage>0)applyPvpHitSynergies(room,shooter,target,rawDamage,shot.special||'physical',now);
+     io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:socket.id,damage:blocked?0:appliedDamage,skillId:shot.special||'physical',actionId:shot.actionId,blocked});if(!blocked&&appliedDamage>0)applyPvpHitSynergies(room,shooter,target,rawDamage,shot.special||'physical',now);
      worldPlayersChanged=true;
     }
     if(worldPlayersChanged)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -1253,7 +1253,7 @@ io.on('connection', socket => {
     if(targetHit&&sameVolley&&shooter.lastShotVolleyTargets?.has(targetHit.id))targetHit=null;
     if(targetHit){shooter.lastShotVolleyTargets ||= new Set();shooter.lastShotVolleyTargets.add(targetHit.id);const rawDamage=Math.max(1,Math.min(35,shot.damage||12));const damage=pvpDamageAmount(shooter,targetHit,rawDamage,Math.hypot(Number(shooter.x)-Number(targetHit.x),Number(shooter.y)-Number(targetHit.y)));let blocked=false;if((Number(targetHit.shieldCharges)||0)>0){targetHit.shieldCharges--;targetHit.invulnerableUntil=now+350;blocked=true;}else{targetHit.hp=Math.max(0,(Number(targetHit.hp)||targetHit.maxHp)-damage);triggerPvpAberrationEcho(room,targetHit,shooter,now);targetHit.lastDamageAt=now;targetHit.invulnerableUntil=now+180;if(targetHit.hp<=0){targetHit.alive=false;targetHit.velocityX=0;targetHit.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(targetHit.nickname||'MERGULHADOR').toUpperCase(),text:`${targetHit.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(targetHit.x)/WORLD_WIDTH,y:Number(targetHit.y)/WORLD_HEIGHT,playerId:targetHit.id});}}
      io.to(targetHit.id).emit('player-vitals',playerVitalsPayload(targetHit,{reason:targetHit.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:socket.id,serverTime:now}));
-     io.to(channelFor(room)).emit('pvp-hit',{x:hitX/WORLD_WIDTH,y:hitY/WORLD_HEIGHT,targetId:targetHit.id,attackerId:socket.id,damage:blocked?0:damage,skillId:shot.special||'physical',blocked});if(!blocked&&damage>0)applyPvpHitSynergies(room,shooter,targetHit,rawDamage,shot.special||'physical',now);
+     io.to(channelFor(room)).emit('pvp-hit',{x:hitX/WORLD_WIDTH,y:hitY/WORLD_HEIGHT,targetId:targetHit.id,attackerId:socket.id,damage:blocked?0:damage,skillId:shot.special||'physical',actionId:shot.actionId,blocked});if(!blocked&&damage>0)applyPvpHitSynergies(room,shooter,targetHit,rawDamage,shot.special||'physical',now);
      io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
     }
    }
@@ -1327,7 +1327,7 @@ io.on('connection', socket => {
   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false};
   let accepted=0,rejected=0;
   for(const hit of hits){
-   const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch);
+   const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch,String(hit?.actionId||'').slice(0,72));
    if(result?.ok)accepted++;else rejected++;
   }
   if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);

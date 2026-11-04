@@ -36,7 +36,7 @@ function normalizeResonancePresets(value){const clean={pve:[],pvp:[]};for(const 
 resonancePresets=normalizeResonancePresets(resonancePresets);
 function saveResonancePresets(){resonancePresets=normalizeResonancePresets(resonancePresets);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.saveCosmetics?.({resonancePresets});}
 window.addEventListener('abyssal-account-data',event=>{const saved=event.detail?.resonancePresets;if(saved){resonancePresets=normalizeResonancePresets(saved);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}}});
-let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];
+let onlineEnemyById=new Map(),onlineOrbById=new Map(),onlineDamageQueue=[];\nconst predictedCombatHits=new Map();let predictedCombatSequence=0;\nfunction nextCombatActionId(skillId='hit'){predictedCombatSequence=(predictedCombatSequence+1)>>>0;return `${String(skillId||'hit').slice(0,18)}:${Date.now().toString(36)}:${predictedCombatSequence.toString(36)}`;}\nfunction predictCombatImpact(enemy,damage,skillId,actionId){if(!enemy||!actionId)return;const key=`${actionId}:${enemy.id}`;predictedCombatHits.set(key,{at:performance.now(),enemyId:String(enemy.id),skillId:String(skillId||''),damage:Number(damage)||0});enemy.hit=Math.max(Number(enemy.hit)||0,.16);burst(enemy.x,enemy.y,'#c4b4ff',3,50);spawnDamageNumber(enemy.x,enemy.y,damage,damageTone(skillId));if(predictedCombatHits.size>256){const cutoff=performance.now()-2500;for(const [id,row] of predictedCombatHits)if(row.at<cutoff)predictedCombatHits.delete(id);}}\nfunction consumePredictedCombatImpact(data){const actionId=String(data?.actionId||'');if(!actionId||data?.id==null)return false;const key=`${actionId}:${data.id}`;const existed=predictedCombatHits.delete(key);return existed;}
 let autoFollowCursor=false;
 let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Number(localStorage.getItem('abyssalBestTime')||0);
 let bossProgressionCycle=0,bossCycleStreak=0,bossCycleBosses=[],bossCycleIndex=0,progressionDistance=0,progressionPausedForBoss=false,activeBossEntity=null,bossVictoryPending=false;
@@ -1327,11 +1327,11 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
 
  if(onlineMode){
    const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
-   onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(skillId||'').slice(0,32)});
-   // O servidor continua autoritativo para HP; as sinergias são derivadas do impacto confirmado localmente
-   // e cada dano secundário também entra na fila autoritativa.
-   enemy.hit=.14;
-   if(options.visual!==false)burst(enemy.x,enemy.y,'#c4b4ff',3,50);
+   const actionId=String(options.actionId||nextCombatActionId(skillId));
+   onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(skillId||'').slice(0,32),actionId});
+   // Predict only presentation. HP remains server-authoritative and is reconciled by actionId.
+   if(options.visual!==false)predictCombatImpact(enemy,queuedDamage,skillId,actionId);
+   else enemy.hit=.14;
    triggerHitSynergies(enemy,queuedDamage,skillId,options);
    return;
  }
@@ -1796,7 +1796,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    player.photonRayTimer=beamInterval;
    const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
-   if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:nextShotVolleyId()});
+   if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
    if(!onlineMode){
     // Damage may remove killed enemies from the original list; iterate a snapshot.
     for(const target of [...enemies]){
@@ -2905,10 +2905,10 @@ function applyWorldEnemyDamage(data){
  if(Number.isFinite(Number(data.maxHp)))enemy.maxHp=Number(data.maxHp);
  if(Number.isFinite(Number(data.damageRevision)))enemy.damageRevision=Math.max(Number(enemy.damageRevision)||0,Number(data.damageRevision));
  enemy.hit=.16;
- if(Number(data.damage)>0)spawnDamageNumber(Number(data.enemyX)||enemy.x,Number(data.enemyY)||enemy.y,Number(data.damage),damageTone(data.skillId));
+ if(Number(data.damage)>0&&!consumePredictedCombatImpact(data))spawnDamageNumber(Number(data.enemyX)||enemy.x,Number(data.enemyY)||enemy.y,Number(data.damage),damageTone(data.skillId));
 }
 window.addEventListener('abyssal-player-vitals',ev=>applyOnlinePlayerVitals(ev.detail));
-window.addEventListener('abyssal-pvp-hit',ev=>{const d=ev.detail||{};if(Number(d.damage)<=0)return;const selfId=window.AbyssalOnline?.getSocketId?.();if(selfId&&String(d.targetId)===String(selfId))return;const px=Number(d.x)*W,py=Number(d.y)*H;if(Number.isFinite(px)&&Number.isFinite(py))spawnDamageNumber(px,py,Number(d.damage),damageTone(d.skillId));});
+window.addEventListener('abyssal-pvp-hit',ev=>{const d=ev.detail||{};if(Number(d.damage)<=0)return;const selfId=window.AbyssalOnline?.getSocketId?.();if(selfId&&String(d.targetId)===String(selfId))return;const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'');if(d.actionId&&predictedCombatHits.delete(predictedKey))return;const px=Number(d.x)*W,py=Number(d.y)*H;if(Number.isFinite(px)&&Number.isFinite(py))spawnDamageNumber(px,py,Number(d.damage),damageTone(d.skillId));});
 
 window.addEventListener('abyssal-world-damaged',ev=>applyWorldEnemyDamage(ev.detail));
 window.addEventListener('abyssal-world-damaged-batch',ev=>applyWorldEnemyDamageBatch(ev.detail));

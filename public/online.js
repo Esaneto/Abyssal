@@ -399,7 +399,7 @@ function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('pl
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendDamageBatch(hits){
  if(!socket?.connected||!authenticated||!currentRoom||!Array.isArray(hits))return false;
- const valid=hits.slice(0,128).map(hit=>({id:Number(hit?.id),damage:Number(hit?.damage),skillId:String(hit?.skillId||'').slice(0,32)})).filter(hit=>Number.isSafeInteger(hit.id)&&Number.isFinite(hit.damage)&&hit.damage>0);
+ const valid=hits.slice(0,128).map(hit=>({id:Number(hit?.id),damage:Number(hit?.damage),skillId:String(hit?.skillId||'').slice(0,32),actionId:String(hit?.actionId||'').slice(0,72)})).filter(hit=>Number.isSafeInteger(hit.id)&&Number.isFinite(hit.damage)&&hit.damage>0);
  if(!valid.length)return false;
  socket.emit('shared-damage-batch',{hits:valid});return true;
 }
