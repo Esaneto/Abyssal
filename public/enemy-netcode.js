@@ -11,7 +11,7 @@
   // stop extrapolation quickly so hit geometry does not diverge from the server.
   // Snapshot cadence is 100 ms, but real RTT/jitter can be several times higher.
   // Keep moving briefly through delayed packets instead of freezing at the last point.
-  const MAX_EXTRAPOLATION_MS = 450;
+  const MAX_EXTRAPOLATION_MS = 180;
 
   function createMotionWatchdog(options = {}) {
     const motionEpsilon = Math.max(0.05, Number(options.motionEpsilon) || 0.35);
@@ -67,7 +67,7 @@
         return { x: fromX + (toX - fromX) * t, y: fromY + (toY - fromY) * t };
       }
       const extraSeconds = Math.min(MAX_EXTRAPOLATION_MS, elapsed - duration) / 1000;
-      const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 450 : 220;
+      const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 380 : 220;
       const vx = clamp(Number(enemy.vx) || 0, -maxV, maxV);
       const vy = clamp(Number(enemy.vy) || 0, -maxV, maxV);
       return { x: toX + vx * extraSeconds, y: toY + vy * extraSeconds };
@@ -110,7 +110,7 @@
       const oldDamageRevision = Math.max(0, Number(old?.damageRevision) || 0);
       const incomingDamageRevision = Math.max(0, Number(raw.damageRevision) || 0);
       const preserveConfirmedHealth = Boolean(old && oldDamageRevision > incomingDamageRevision);
-      const maxV = (raw.kind === 'whiteShark' || raw.kind === 'whiteSharkBoss' || old?.kind === 'whiteShark' || old?.kind === 'whiteSharkBoss') ? 450 : 220;
+      const maxV = (raw.kind === 'whiteShark' || raw.kind === 'whiteSharkBoss' || old?.kind === 'whiteShark' || old?.kind === 'whiteSharkBoss') ? 380 : 220;
       return {
         ...(old || {}), ...raw,
         hp: preserveConfirmedHealth ? old.hp : raw.hp,
