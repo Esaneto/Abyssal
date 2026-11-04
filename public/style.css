@@ -4254,3 +4254,40 @@ button.primary-btn span{
   #menuScreen .legal-footer{justify-content:flex-start!important;gap:4px 9px!important;}
   #menuScreen .legal-footer a{font-size:8px!important;}
 }
+
+
+/* MENU LEGAL MOBILE FINAL FLOW V26: desktop stays anchored; mobile legal links are the last menu element. */
+@media(max-width:700px){
+  #menuScreen{
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    padding-bottom:0!important;
+  }
+  #menuScreen .menu-content{
+    min-height:100%!important;
+    height:auto!important;
+    padding-bottom:18px!important;
+  }
+  #menuScreen .menu-footer{
+    position:relative!important;
+    left:auto!important;
+    right:auto!important;
+    top:auto!important;
+    bottom:auto!important;
+    width:auto!important;
+    max-width:none!important;
+    margin:24px 12px max(14px,env(safe-area-inset-bottom))!important;
+    padding:8px 0 0!important;
+    z-index:20!important;
+    order:999!important;
+    background:transparent!important;
+    border-top:1px solid rgba(121,243,240,.13)!important;
+  }
+  #menuScreen .legal-footer{
+    width:100%!important;
+    justify-content:flex-start!important;
+    align-items:center!important;
+    gap:6px 11px!important;
+  }
+  #menuScreen .legal-footer a{font-size:8px!important;}
+}
