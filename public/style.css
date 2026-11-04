@@ -3548,3 +3548,34 @@ body.game-active #bossAlert.gameplay-notice-5s{
  #menuScreen .menu-secondary-actions .menu-action>.menu-nav-icon,
  #menuScreen .menu-secondary-actions .menu-action>.online-cta-icon{right:10px!important}
 }
+
+
+/* TARGETED MENU/MOBILE FIX V18 */
+@media(max-width:700px),(pointer:coarse){
+ #menuScreen[hidden]{display:none!important}
+}
+@media(min-width:701px) and (pointer:fine){
+ #menuScreen .menu-content{width:min(680px,calc(100vw - 48px))!important;max-width:680px!important}
+ #menuScreen .menu-secondary-actions,#menuScreen .primary-btn,#menuScreen .wheel-cta,#menuScreen .resonance-menu-btn,
+ #menuScreen .account-line,#menuScreen .record-row{max-width:680px!important}
+ #menuScreen .menu-action{white-space:normal!important;overflow:visible!important}
+ #menuScreen .menu-action-label,#menuScreen .online-cta-copy strong{overflow:visible!important;text-overflow:clip!important;white-space:normal!important}
+}
+#menuScreen #onlineBtn{
+ border-color:rgba(82,255,164,.62)!important;
+ background:linear-gradient(135deg,rgba(18,116,70,.34),rgba(5,58,39,.28))!important;
+ box-shadow:0 0 18px rgba(63,255,151,.18),inset 0 0 20px rgba(74,255,164,.06)!important;
+}
+#menuScreen #onlineBtn:hover{border-color:rgba(100,255,178,.9)!important;box-shadow:0 0 24px rgba(63,255,151,.28)!important}
+#menuScreen #playBtn{
+ border-color:rgba(218,232,239,.54)!important;
+ background:linear-gradient(135deg,rgba(156,174,184,.20),rgba(75,91,103,.18))!important;
+ box-shadow:0 0 17px rgba(218,235,242,.13),inset 0 0 18px rgba(230,244,249,.04)!important;
+}
+#menuScreen #resonanceBtn{
+ border-color:rgba(194,112,255,.72)!important;
+ background:linear-gradient(135deg,rgba(126,47,192,.34),rgba(63,23,112,.30))!important;
+ box-shadow:0 0 20px rgba(184,79,255,.22),inset 0 0 22px rgba(199,111,255,.07)!important;
+ color:#e7c8ff!important;
+}
+#menuScreen #resonanceBtn .resonance-label{width:100%!important;justify-content:center!important}
