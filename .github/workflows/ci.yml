@@ -77,9 +77,13 @@ jobs:
           fi
       - name: Sync game assets
         run: npx cap sync android
-      - name: Build debug APK and validate release AAB
+      - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug bundleRelease
+        run: ./gradlew assembleDebug
+      - name: Validate unsigned release AAB
+        if: env.ANDROID_KEYSTORE_BASE64 == ''
+        working-directory: android
+        run: ./gradlew bundleRelease
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
