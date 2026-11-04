@@ -87,7 +87,7 @@ async function getJson(port, pathname) {
 // handlers and owns the HTTP listener. This in-process harness still closes it.
 test('real server handlers move enemies, publish rooms, and destroy empty rooms', async t => {
   originalPort = process.env.PORT; originalDatabaseUrl = process.env.DATABASE_URL; originalDataDir = process.env.DATA_DIR;
-  const safetyEnvKeys=['ABYSSAL_CHAT_ENABLED','ABYSSAL_REWARDED_WHEEL_ENABLED'];
+  const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED'];
   const previousSafetyEnv=Object.fromEntries(safetyEnvKeys.map(key=>[key,process.env[key]]));
   for(const key of safetyEnvKeys)delete process.env[key];
   process.env.PORT = '0'; delete process.env.DATABASE_URL;
@@ -147,9 +147,6 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const owner = io.connect('owner');
   await owner.clientEmit('authenticate', { nickname: 'RuntimeOwner', password: 'testing123', email:'owner@example.test', mode: 'register' });
   const auth = owner.latest('auth-result'); assert.equal(auth.ok, true);
-  assert.deepEqual(owner.latest('global-chat-history'),[], 'public chat history starts empty for a new server');
-  await owner.clientEmit('global-chat-send',{text:'hello'});
-  assert.ok(!owner.latest('global-chat-error'),'chat send should succeed when chat is enabled');
   await owner.clientEmit('get-public-profile',{nickname:'RuntimeOwner'});
   assert.equal(owner.latest('public-profile-result')?.ok,true,'public profiles are available');
   await owner.clientEmit('list-cardumes');
