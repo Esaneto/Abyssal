@@ -928,7 +928,7 @@ socket.on('global-chat-send',(payload={})=>{
     globalChatRate.set(socket.id,recent);return socket.emit('global-chat-error',{message:'Você está transmitindo rápido demais. Aguarde um pouco.'});
    }
    const screened=screenChatMessage(payload?.text,CHAT_MESSAGE_LIMIT);
-   if(!screened.ok)return socket.emit('global-chat-error',{message:screened.reason==='contact_or_link'?'Não envie links, telefone ou contatos pessoais no chat.':'A mensagem foi recusada pelo filtro de segurança.'});
+   if(!screened.ok){const filterMessages={contact_or_link:'Não envie links, telefone, email ou contatos pessoais no chat.',profanity:'A mensagem contém linguagem bloqueada pelo filtro de segurança.',threat:'A mensagem foi bloqueada por conter ameaça.',grooming_or_off_platform_contact:'A mensagem foi bloqueada para proteger a comunidade.',repeated_characters:'Evite spam ou repetição excessiva de caracteres.',empty:'Digite uma mensagem antes de enviar.'};return socket.emit('global-chat-error',{reason:screened.reason,message:filterMessages[screened.reason]||'A mensagem foi recusada pelo filtro de segurança.'});}
    const text=screened.text;
    recent.push(now);globalChatRate.set(socket.id,recent);
    const user=users[socket.data.userKey];
