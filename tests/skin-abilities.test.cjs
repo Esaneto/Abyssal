@@ -529,3 +529,12 @@ test('core menu navigation handlers remain registered after initialization guard
  assert.ok(server.includes("rooms.set(PVP_ROOM_ID"));
  assert.ok(server.includes("socket.on('create-room'"));
 });
+
+
+test('legal links stay restored and pinned to bottom-left menu corner',()=>{
+ const html=read('public/index.html'),css=read('public/style.css');
+ for(const href of ['/terms.html','/privacy.html','/community.html','/store-policy.html'])assert.ok(html.includes('href="'+href+'"'));
+ assert.match(css,/LEGAL FOOTER FINAL ANCHOR V24/);
+ assert.match(css,/#menuScreen \.menu-footer\{[\s\S]*?position:fixed!important;[\s\S]*?left:max\(12px,[\s\S]*?right:auto!important;[\s\S]*?top:auto!important;[\s\S]*?bottom:max\(10px,/);
+ assert.match(css,/#menuScreen\[hidden\] \.menu-footer\{display:none!important;\}/);
+});
