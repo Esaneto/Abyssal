@@ -124,3 +124,11 @@ test('paid skin ownership survives session restoration and shop refreshes author
   assert.match(game, /if\(r\.account\)\{window\.dispatchEvent\(new CustomEvent\('abyssal-account-data'/);
   assert.match(game, /equipped\?\(english\?'EQUIPPED':'EQUIPADA'\):owned\?\(english\?'EQUIP':'EQUIPAR'\)/);
 });
+
+
+test('maintenance overlay cannot remain latched after transport reconnect', () => {
+  const online = read('public/online.js');
+  assert.match(online, /socket\.on\('connect',\(\)=>\{connected=true;everConnected=true;hideMaintenanceOverlay\(\)/);
+  assert.match(online, /!sessionToken\)\{failReconnect\('Servidor reconectado/);
+  assert.match(online, /if\(reconnectPending\)failReconnect\('Servidor reconectado, mas sua sessão precisa ser validada novamente\.'/);
+});

@@ -201,3 +201,12 @@ test('menu visual system centers semantic icons and clamps mobile volume popup',
  assert.match(final,/\.volume-popup\{[\s\S]*position:fixed!important;[\s\S]*left:10px!important;right:10px!important/);
  assert.match(final,/#menuScreen \.language-setting\{[\s\S]*align-self:center!important/);
 });
+
+
+test('gameplay uses the full viewport with collapsible chrome and platform-specific abyss vignette', () => {
+  const css = read('public/style.css');
+  assert.match(css, /body\.game-active #gameShell\{[\s\S]*position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important/);
+  assert.match(css, /body\.game-active\.hud-collapsed \.topbar\{opacity:0!important/);
+  assert.match(css, /body\.game-active #gameShell::after/);
+  assert.match(css, /@media \(max-width:700px\),\(pointer:coarse\)[\s\S]*body\.game-active #gameShell::after[\s\S]*linear-gradient\(180deg/);
+});
