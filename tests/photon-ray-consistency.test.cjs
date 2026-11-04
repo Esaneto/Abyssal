@@ -36,6 +36,16 @@ test('Cooperative ray endpoints are validated and reconstructed, not enlarged by
  assert.match(server,/shot\.beamLevel=Math\.max\(1,Math\.min\(PhotonRay\.maxLevel/);
 });
 
+test('Remote ray anchors use interpolated peer and enemy positions every render step',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ assert.match(online,/function getPlayerById\(id\)/);
+ assert.match(game,/beam\.remoteBeamKey/);
+ assert.match(game,/getPlayerById\?\.\(beam\.remoteBeamKey\)/);
+ assert.match(game,/onlineEnemyById\.get\(beam\.remoteTargetId\)/);
+ assert.match(game,/Math\.exp\(-dt\*18\)/);
+ assert.match(server,/shot\.beamTargetId=targetId/);
+});
+
 test('PvP photon rays clip both body and core before drawing, without nested line-of-sight stepping',()=>{
  const game=read('public/game.js');
  assert.match(game,/let photonX2=fx\.x2,photonY2=fx\.y2/);
