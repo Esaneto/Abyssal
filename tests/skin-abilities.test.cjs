@@ -384,10 +384,24 @@ test('Abyssal Runic typography and dynamic i18n are global',()=>{
  const html=read('public/index.html');
  const css=read('public/style.css');
  const i18n=read('public/i18n.js');
- assert.ok(html.includes('family=Uncial+Antiqua'));
- assert.ok(css.includes('--abyssal-runic:'));
+ assert.ok(html.includes('family=Pirata+One'));
+ assert.ok(css.includes('--abyssal-runic:"Pirata One"'));
  assert.ok(css.includes('html,body,button,input,select,textarea{font-family:var(--abyssal-runic)!important;}'));
  assert.ok(i18n.includes("attributeFilter:['title','placeholder','aria-label']"));
  assert.ok(i18n.includes("'Tempestade elétrica':'Electric Storm'"));
  assert.doesNotMatch(i18n,/SCHOOAL/);
+});
+
+
+test('Pirata One reaches online CTA and decorative microcopy is removed',()=>{
+ const html=read('public/index.html');
+ const css=read('public/style.css');
+ const game=read('public/game.js');
+ assert.ok(html.includes('family=Pirata+One'));
+ assert.ok(css.includes('#onlineBtn,#onlineBtn *'));
+ assert.doesNotMatch(html,/V\. 3\.5\.12/);
+ assert.doesNotMatch(html,/UMA EXPERIÊNCIA ARCADE ORIGINAL/);
+ assert.doesNotMatch(html,/EXPEDIÇÕES PÚBLICAS E PRIVADAS · ATÉ 6 MERGULHADORES/);
+ assert.doesNotMatch(html,/CATÁLOGO DE CRIATURAS/);
+ assert.doesNotMatch(game,/Uncial Antiqua/);
 });

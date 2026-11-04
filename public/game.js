@@ -900,7 +900,7 @@ function showVictoryModal() {
     modal.id = 'victoryScreenModal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(2,10,18,0.92);backdrop-filter:blur(10px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;animation:notifSlideDown 0.4s ease-out;';
     modal.innerHTML = `
-      <div style="background:linear-gradient(180deg,#0a1e28 0%,#041019 100%);border:2px solid #2ee88a;box-shadow:0 0 35px rgba(46,232,138,0.5);border-radius:16px;max-width:540px;width:100%;padding:28px 24px;text-align:center;color:#fff;font-family:"Uncial Antiqua",Georgia,serif;">
+      <div style="background:linear-gradient(180deg,#0a1e28 0%,#041019 100%);border:2px solid #2ee88a;box-shadow:0 0 35px rgba(46,232,138,0.5);border-radius:16px;max-width:540px;width:100%;padding:28px 24px;text-align:center;color:#fff;font-family:"Pirata One",Georgia,serif;">
         <div style="font-size:42px;margin-bottom:8px;">👑 🐍 👑</div>
         <h2 style="font-size:22px;letter-spacing:0.12em;color:#2ee88a;text-shadow:0 0 14px rgba(46,232,138,0.8);margin-bottom:12px;">VOCÊ CONQUISTOU O ABISMO!</h2>
         <p style="font-size:14px;color:#d5f8ec;line-height:1.6;margin-bottom:18px;">
@@ -2624,7 +2624,7 @@ function drawBossDirectionIndicators(t){
  if(!onlineMode||!player||!canvas)return;
  const bosses=enemies.filter(e=>BOSS_KINDS.includes(e.kind));if(!bosses.length)return;
  const cw=canvas.clientWidth||viewW,ch=canvas.clientHeight||viewH,margin=32;
- ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.font='900 10px "Uncial Antiqua", Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);ctx.font='900 10px "Pirata One", Georgia, serif';ctx.textAlign='center';ctx.textBaseline='middle';
  for(const boss of bosses){
   const sx=(boss.x-cameraX)*worldZoom,sy=(boss.y-cameraY)*worldZoom;
   if(sx>=margin&&sx<=cw-margin&&sy>=margin&&sy<=ch-margin)continue;
