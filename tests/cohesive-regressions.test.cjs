@@ -120,10 +120,10 @@ test('promotional redemption is authenticated and server-authoritative', () => {
   const online = read('public/online.js');
   const server = read('server.js');
   assert.doesNotMatch(game, /abyssal10k/i);
-  assert.match(game, /window\.AbyssalOnline\.redeemCode\(code\)/);
-  assert.match(online, /socket\.emit\('redeem-code'/);
-  assert.match(server, /process\.env\.ABYSSAL_WELCOME_CODE/);
-  assert.match(server, /process\.env\.ABYSSAL_FOUNDER_CODE/);
+  assert.match(game, /window\\.AbyssalOnline\\.redeemCode\\(code\\)/);
+  assert.match(online, /socket\\.emit\\('redeem-code'/);
+  assert.match(server, /process\\.env\\.ABYSSAL_WELCOME_CODE/);
+  assert.match(server, /process\\.env\\.ABYSSAL_FOUNDER_CODE/);
   assert.match(server, /redeemedPromoIds/);
   assert.doesNotMatch(server, /bemvindoabyssal/i);
 });
