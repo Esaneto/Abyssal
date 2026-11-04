@@ -105,13 +105,6 @@ const skinData=[
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
-try{
-  const savedRedeemed=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');
-  if(savedRedeemed.includes('vi-o-nascimento-abyssal')&&!ownedSkins.includes('electriceel')){
-    ownedSkins.push('electriceel');
-    localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));
-  }
-}catch(_){}
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
@@ -3021,33 +3014,11 @@ window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.
   renderShop();
 }else{message.textContent=result.message||'Não foi possível resgatar o código.';}});
 function redeemAbyssalCode(){
- const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim().toLowerCase();
+ const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim();
  if(!message||!input)return;
- if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}if(code!=='bemvindoabyssal'&&code!=='abyssal10k'&&code!=='vi-o-nascimento-abyssal'){message.textContent='CÓDIGO INVÁLIDO. Confira e tente novamente.';input.focus();return;}
- if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.redeemCode(code);return;}
- let redeemed=[];try{const stored=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');if(Array.isArray(stored))redeemed=stored;}catch(_){}
- if(code==='vi-o-nascimento-abyssal'){
-  if(!ownedSkins.includes('electriceel')) ownedSkins.push('electriceel');
-  equippedSkin='electriceel';
-  if(!redeemed.includes(code)){
-    coins+=60000;
-    redeemed.push(code);
-    localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
-  }
-  saveCosmetics();
-  message.textContent='CÓDIGO VALIDADO! SKIN ENGUIA ELÉTRICA DESBLOQUEADA E EQUIPADA!';
-  addNotification('Você resgatou o código histórico "vi-o-nascimento-abyssal"! A skin exclusiva "Enguia Elétrica" está disponível na sua conta.', 'RESGATE CONFIRMADO ⚡', 'promo');
-  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
-  return;
- }
- if(redeemed.includes(code)){message.textContent='ESTE CÓDIGO JÁ FOI RESGATADO NESTE PERFIL.';return;}
-  coins+=10000;
-  redeemed.push(code);
-  localStorage.setItem('abyssalRedeemedCodes',JSON.stringify(redeemed));
-  saveCosmetics();
-  message.textContent='CÓDIGO RESGATADO! +10.000 MOEDAS ABISSAIS.';
-  addNotification('Código promocional resgatado! +10.000 moedas abissais adicionadas.', 'RESGATE CONCLUÍDO ✦', 'promo');
-  input.value='';input.disabled=true;if(redeemCodeBtn)redeemCodeBtn.disabled=true;audio(880,.18,'triangle',.035);renderShop();
+ if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}
+ if(!window.AbyssalOnline?.isAuthenticated()){message.textContent='ENTRE NA SUA CONTA PARA RESGATAR CÓDIGOS.';return;}
+ window.AbyssalOnline.redeemCode(code);
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
@@ -3185,18 +3156,7 @@ window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   coins=Number(a.coins)||0;
   const serverSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];
-  const localRedeemed=[];
-  try{
-    const codes=JSON.parse(localStorage.getItem('abyssalRedeemedCodes')||'[]');
-    if(codes.includes('vi-o-nascimento-abyssal'))localRedeemed.push('electriceel');
-  }catch(_){}
-  try{
-    const localOwned=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'[]');
-    if(localOwned.includes('electriceel'))localRedeemed.push('electriceel');
-    if(localOwned.includes('greensnake'))localRedeemed.push('greensnake');
-  }catch(_){}
-  ownedSkins=[...new Set([...serverSkins,...localRedeemed])];
-  if(!$('shopScreen')?.hidden)renderShop();
+  ownedSkins=[...new Set(serverSkins)];
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;
