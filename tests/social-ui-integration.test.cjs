@@ -19,7 +19,7 @@ test('remaining UGC has in-app reporting wired to human moderation',()=>{
  const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html');
  assert.match(server,/socket\.on\('report-ugc'/);
  assert.match(server,/abyssalelectrongames@gmail\.com/);
- assert.match(server,/CONTEÚDO CAPTURADO NO MOMENTO DA DENÚNCIA/);
+ assert.match(server,/CONTEÚDO \/ PERFIL CAPTURADO/);
  assert.match(online,/openUgcReport\('profile'/);
  assert.match(online,/openUgcReport\('cardume'/);
  assert.match(html,/id="ugcReportScreen"/);
@@ -149,7 +149,7 @@ test('match history keeps ten server-backed matches with participant moderation 
  assert.match(server,/socket\.on\('get-match-history'/);
  assert.match(html,/id="matchHistoryBtn"/);
  assert.match(html,/id="matchHistoryScreen"/);
- assert.match(online,/openPublicProfile\(player\.nickname\)/);
+ assert.match(online,/openPublicProfile\(player\.nickname,\{matchId:match\.id/);
 });
 
 test('public profile like and report actions are inside the identity hero',()=>{
@@ -161,8 +161,8 @@ test('public profile like and report actions are inside the identity hero',()=>{
 
 test('moderation email contains internal ids match evidence recurrence and anti-spam controls',()=>{
  const server=read('server.js'),online=read('public/online.js');
- assert.match(server,/ID interno do denunciante/);
- assert.match(server,/ID interno do alvo/);
+ assert.match(server,/UUID permanente do denunciante/);
+ assert.match(server,/UUID permanente do alvo/);
  assert.match(server,/CONTEXTO DA PARTIDA/);
  assert.match(server,/Denúncias anteriores registradas contra este alvo/);
  assert.match(server,/recent\.length>=8/);
