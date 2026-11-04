@@ -100,6 +100,7 @@
           <button id="rankingsBtn" class="secondary-btn menu-action"><span class="menu-action-label">RANKINGS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg></button>
           <button id="cardumesBtn" class="secondary-btn menu-action"><span class="menu-action-label">CARDUMES</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.5c-2.5-3-6-3-8.5-.5 2.5 2.5 6 2.5 8.5-.5l3 2v-5l-3 2Z"/><path d="M13 15c-2-2-4.5-2-6.5 0 2 2 4.5 2 6.5 0l2 1.5v-4L13 14"/></svg></button>
           <button id="profileBtn" class="secondary-btn menu-action"><span class="menu-action-label">PERFIL & TÍTULOS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
+          <button id="matchHistoryBtn" class="secondary-btn menu-action"><span class="menu-action-label">HISTÓRICO DE PARTIDAS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
           <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal"><span class="menu-action-label">SUPORTE</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></button>
         </div>
         <div class="account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
@@ -428,7 +429,7 @@
         <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
         <div class="profile-hero">
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
-          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div>
+          <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
         </div>
         <div class="profile-stats">
           <div class="profile-stat"><small>MONSTROS DERROTADOS</small><strong id="profileKills">0</strong></div>
@@ -444,9 +445,19 @@
           <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
           <p class="delete-account-warning">NÃO É POSSÍVEL DESFAZER ESTA OPERAÇÃO.</p>
         </section>
-        <div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
+        
         <div id="profileMessage" class="form-message" role="status"></div>
         <button id="profileCloseBtn" class="secondary-btn">VOLTAR AO MENU</button>
+      </div>
+    </section>
+    <section id="matchHistoryScreen" class="screen modal-screen" hidden>
+      <div class="modal-card match-history-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="matchHistoryScreen" aria-label="Fechar histórico">×</button>
+        <div class="eyebrow"><span class="pulse-dot"></span> REGISTRO DE EXPEDIÇÕES</div>
+        <h2>HISTÓRICO DE PARTIDAS</h2>
+        <p class="match-history-intro">Suas 10 partidas online mais recentes. Abra o perfil de um mergulhador para curtir ou denunciar.</p>
+        <div id="matchHistoryList" class="match-history-list" aria-live="polite"></div>
+        <div id="matchHistoryMessage" class="form-message" role="status"></div>
+        <button class="secondary-btn" type="button" data-close-screen="matchHistoryScreen">VOLTAR AO MENU</button>
       </div>
     </section>
     <section id="downloadScreen" class="screen modal-screen" hidden>
