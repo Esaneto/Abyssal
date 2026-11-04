@@ -3820,3 +3820,47 @@ body.abyssal-native-shell #fullscreenBtn{
 #sendSupportBtn span{
   color:#fff!important;
 }
+
+
+/* Corrige o botão de tela cheia no mobile: mantém o SVG visível e clicável. */
+@media (max-width:700px), (pointer:coarse){
+  .top-actions #fullscreenBtn{
+    display:inline-flex!important;
+    visibility:visible!important;
+    pointer-events:auto!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:30px!important;
+    min-width:30px!important;
+    height:30px!important;
+    padding:0!important;
+    margin:0!important;
+    border:1px solid var(--line)!important;
+    overflow:visible!important;
+    font-size:0!important;
+  }
+  .top-actions #fullscreenBtn .ui-icon{
+    display:block!important;
+    visibility:visible!important;
+    width:16px!important;
+    height:16px!important;
+    flex:0 0 16px!important;
+  }
+}
+body.abyssal-native-shell .top-actions #fullscreenBtn{
+  display:inline-flex!important;
+  visibility:visible!important;
+  pointer-events:auto!important;
+  width:30px!important;
+  min-width:30px!important;
+  height:30px!important;
+  padding:0!important;
+  margin:0!important;
+  border:1px solid var(--line)!important;
+}
+body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
+  display:block!important;
+  visibility:visible!important;
+  width:16px!important;
+  height:16px!important;
+}
