@@ -455,6 +455,8 @@ async function startAgeAssurance(){
 }
 
 async function purchaseStripe(productId,currency,language='pt'){
+ const nativeAndroid=Boolean(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
+ if(nativeAndroid){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'}}));return;}
  if(!authenticated||!sessionToken){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:'Entre na sua conta antes de comprar.'}}));openLogin();return;}
  try{
   const headers={'Content-Type':'application/json',Authorization:'Bearer '+sessionToken};
