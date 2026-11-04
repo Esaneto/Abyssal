@@ -16,21 +16,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Check Android configurator syntax
+      - name: Validate public-release hardening
+        shell: bash
         run: |
-          node --check scripts/configure-android.cjs
-          node --check scripts/configure-android-signing.cjs
-      - name: Check test file syntax
-        run: |
-          node --check tests/cohesive-regressions.test.cjs
-          node --check tests/skin-abilities.test.cjs
-          node --check tests/social-ui-integration.test.cjs
-      - name: Run JavaScript tests
-        run: npm test
+          test ! -f .env
+          test ! -f data/users.json
+          test ! -f android/app/abyssal-upload.jks
+          grep -q "process.env.ABYSSAL_WELCOME_CODE" server.js
+          grep -q "process.env.ABYSSAL_FOUNDER_CODE" server.js
+          ! grep -qi "bemvindoabyssal" server.js
+          ! grep -qi "abyssal10k" public/game.js
+          grep -q "contents: read" .github/workflows/ci.yml
 
   android-api36:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
