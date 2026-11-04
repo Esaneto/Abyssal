@@ -683,6 +683,26 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // validated; single-hit compatibility uses the same compact lifecycle events.
   if(batch)batch.worldChanged=true;
  }
+ // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
+ // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
+ // while ricochet-generated hits cannot recursively start another chain.
+ if(player&&Number(player.ricochetLevel)>0&&skillId!=='ricochet'){
+  let fromX=Number(enemy.x),fromY=Number(enemy.y);
+  const visited=new Set([Number(enemy.id)]);
+  for(let bounce=0;bounce<Math.min(3,Number(player.ricochetLevel)||0);bounce++){
+   let next=null,nextDistance=Infinity;
+   for(const candidate of w.enemies){
+    if(!candidate||Number(candidate.hp)<=0||visited.has(Number(candidate.id)))continue;
+    const distance=Math.hypot(Number(candidate.x)-fromX,Number(candidate.y)-fromY);
+    if(distance<190/WORLD_ZOOM&&distance<nextDistance){next=candidate;nextDistance=distance;}
+   }
+   if(!next)break;
+   visited.add(Number(next.id));
+   const bounced=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.42),'ricochet',batch,actionId);
+   if(!bounced?.ok)break;
+   fromX=Number(next.x);fromY=Number(next.y);
+  }
+ }
  return damageEvent;
 }
 async function finishRunForSocket(socket,payload={}){
