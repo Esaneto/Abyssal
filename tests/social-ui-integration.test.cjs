@@ -33,3 +33,16 @@ test('account deletion exists both in-app and as a public web request path',()=>
  assert.match(support,/\/api\/account-deletion-request/);
  assert.match(deletion,/Excluir conta do Abyssal/);
 });
+
+
+test('hidden modal screens cannot intercept login or menu controls',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/\.screen\[hidden\],\.modal-screen\[hidden\]\{display:none!important;pointer-events:none!important\}/);
+});
+
+test('download and controls menu utilities remain compact instead of full width',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/#menuScreen \.download-cta,#menuScreen \.controls-cta\{[\s\S]*?width:max-content!important/);
+ assert.match(css,/#menuScreen \.download-cta\{right:10px!important;bottom:44px!important/);
+ assert.match(css,/#menuScreen \.controls-cta\{right:10px!important;bottom:10px!important/);
+});
