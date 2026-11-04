@@ -851,6 +851,34 @@ io.on('connection', socket => {
  });
   socket.on('get-public-profile',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
   socket.on('toggle-profile-like',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('profile-like-result',{ok:false,message:'Os recursos sociais estão temporariamente indisponíveis durante a revisão de segurança.'});const viewerKey=socket.data.userKey;if(!viewerKey||!users[viewerKey])return socket.emit('profile-like-result',{ok:false,message:'Entre na sua conta para curtir perfis.'});const targetNickname=String(payload.nickname||'').trim();const targetKey=targetNickname.toLowerCase(),target=users[targetKey],viewer=users[viewerKey];if(!target)return socket.emit('profile-like-result',{ok:false,message:'Jogador não encontrado.'});if(targetKey===viewerKey)return socket.emit('profile-like-result',{ok:false,message:'Você não pode curtir seu próprio perfil.'});target.likedBy ||= [];viewer.likedProfiles ||= [];const already=target.likedBy.includes(viewerKey);if(already){target.likedBy=target.likedBy.filter(k=>k!==viewerKey);viewer.likedProfiles=viewer.likedProfiles.filter(k=>k!==targetKey);}else{target.likedBy.push(viewerKey);viewer.likedProfiles.push(targetKey);}saveUsers();socket.emit('profile-like-result',{ok:true,liked:!already,profile:publicProfile(targetKey,viewerKey),account:publicUser(viewer),message:already?'Curtida removida.':'Você curtiu este perfil!'});for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data?.userKey===targetKey){client.emit('account-data',publicUser(target));client.emit('profile-likes-updated',{likesReceived:target.likedBy.length});}});
+  socket.on('report-ugc',async(payload={})=>{
+   const reporterKey=socket.data.userKey,reporter=users[reporterKey];
+   if(!reporter)return socket.emit('ugc-report-result',{ok:false,message:'Entre na sua conta para enviar uma denúncia.'});
+   const type=payload.type==='cardume'?'cardume':'profile';
+   const targetId=String(payload.targetId||'').trim().slice(0,80);
+   const reason=String(payload.reason||'').trim().slice(0,60);
+   const details=String(payload.details||'').trim().replace(/[\u0000-\u001f]/g,' ').slice(0,800);
+   const allowedReasons=new Set(['nome-improprio','assedio','discriminacao','fraude','dados-pessoais','conteudo-ilegal','outro']);
+   if(!targetId||!allowedReasons.has(reason))return socket.emit('ugc-report-result',{ok:false,message:'Selecione um motivo válido para a denúncia.'});
+   let targetLabel='',snapshot='';
+   if(type==='profile'){
+    const target=users[targetId.toLowerCase()];if(!target)return socket.emit('ugc-report-result',{ok:false,message:'Perfil não encontrado.'});
+    if(targetId.toLowerCase()===reporterKey)return socket.emit('ugc-report-result',{ok:false,message:'Você não pode denunciar o próprio perfil.'});
+    targetLabel=target.nickname;snapshot='Nickname: '+target.nickname;
+   }else{
+    const c=cardumes[targetId];if(!c)return socket.emit('ugc-report-result',{ok:false,message:'Cardume não encontrado.'});
+    targetLabel=c.name;snapshot='Nome: '+c.name+'\nDescrição: '+String(c.description||'')+'\nLíder: '+String(c.leader||'');
+   }
+   const apiKey=String(process.env.SENDGRID_API_KEY||''),from=String(process.env.RECOVERY_FROM_EMAIL||'');
+   if(!apiKey||!from)return socket.emit('ugc-report-result',{ok:false,message:'O canal de moderação está temporariamente indisponível.'});
+   const reportId=crypto.randomUUID(),createdAt=new Date().toISOString();
+   const body=['DENÚNCIA DE UGC - ABYSSAL','ID: '+reportId,'Data UTC: '+createdAt,'Denunciante: '+reporter.nickname,'Tipo: '+type,'Alvo: '+targetLabel,'Motivo: '+reason,'','CONTEÚDO CAPTURADO NO MOMENTO DA DENÚNCIA',snapshot,'','DETALHES DO DENUNCIANTE',details||'Não informado','', 'Ação necessária: revisar conteúdo/conta e aplicar medida apropriada conforme Termos e regras da comunidade.'].join('\n');
+   try{
+    const response=await fetch('https://api.sendgrid.com/v3/mail/send',{method:'POST',headers:{Authorization:'Bearer '+apiKey,'Content-Type':'application/json'},body:JSON.stringify({personalizations:[{to:[{email:'abyssalelectrongames@gmail.com'}]}],from:{email:from,name:'Abyssal - Moderação'},subject:'Abyssal | DENÚNCIA | '+reason+' | '+targetLabel,content:[{type:'text/plain',value:body}]})});
+    if(!response.ok)return socket.emit('ugc-report-result',{ok:false,message:'Não foi possível entregar a denúncia ao suporte agora.'});
+    socket.emit('ugc-report-result',{ok:true,reportId,message:'Denúncia enviada ao suporte para análise. Protocolo: '+reportId.slice(0,8).toUpperCase()});
+   }catch(err){console.error('[moderation] Falha ao enviar denúncia:',err.message);socket.emit('ugc-report-result',{ok:false,message:'Falha temporária ao enviar a denúncia.'});}
+  });
   socket.on('get-cardume-details',()=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('cardume-details',{cardume:null,roster:[]});const user=users[socket.data.userKey],c=user&&cardumes[user.cardumeId];if(!c)return socket.emit('cardume-details',{cardume:null,roster:[]});emitCardumeRoster(c);});
 
     const publicCardume = c => ({id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity,createdAt:c.createdAt,open:c.open});
