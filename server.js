@@ -1164,7 +1164,7 @@ io.on('connection', socket => {
    }else{
     const dx=vx*WORLD_WIDTH,dy=vy*WORLD_HEIGHT,speed=Math.hypot(dx,dy);if(speed<30||speed>1800)return;
     const beamRange=294*rangeStrength*rangeMultiplier/WORLD_ZOOM;
-    if(shot.special==='photonRay')shot.effectRadius=beamRange;
+    if(shot.special==='photonRay'){shot.effectRadius=beamRange;shot.beamLevel=Math.max(1,Math.min(3,Math.trunc(Number(payload.beamLevel)||1)));}
     const duration=shot.special==='abyssEye'?12:shot.special==='photonRay'?Math.min(1.05,beamRange/Math.max(1,speed)):1.05,steps=Math.max(8,Math.ceil(speed*duration/12));let targetHit=null,hitX=sx,hitY=sy;
     for(let i=1;i<=steps;i++){const t=duration*i/steps,px=sx+dx*t,py=sy+dy*t;if(px<0||py<0||px>WORLD_WIDTH||py>WORLD_HEIGHT)break;if(pvpRockAt(px,py,4/WORLD_ZOOM))break;for(const target of room.players.values()){if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;if(Math.hypot(px-target.x,py-target.y)<(Number(target.r)||13/WORLD_ZOOM)+5/WORLD_ZOOM){targetHit=target;hitX=px;hitY=py;break;}}if(targetHit)break;}
     if(targetHit&&sameVolley&&shooter.lastShotVolleyTargets?.has(targetHit.id))targetHit=null;
