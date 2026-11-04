@@ -175,6 +175,11 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   await guest.clientEmit('join-room', { roomId });
   assert.equal(guest.latest('room-joined').ok, true);
 
+  let deniedPulse=null;
+  await owner.clientEmit('active-ability',{id:'pulse'},result=>{deniedPulse=result;});
+  assert.equal(deniedPulse?.ok,false,'unowned Q skill is rejected by the server with acknowledgement');
+  assert.equal(deniedPulse?.reason,'invalid-ability');
+
   // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
   let ownerPositionAck = null, guestPositionAck = null;
   await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
@@ -204,6 +209,28 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(health.ok, true);
   assert.equal(health.world.engine, 'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4');
   assert.ok(health.simulation.movingEnemies > 0);
+
+  // A single Photon Ray pulse carries deterministic color, level and a validated
+  // cosmetic endpoint to peers without creating additional per-frame network work.
+  await owner.clientEmit('shared-shot', {
+    x: 1800 / 4800, y: 1100 / 3000, vx: 0.1, vy: 0.1,
+    damage: 1, color: '#000000', beamLevel: 2, special: 'photonRay',
+    beamEndX: 1850 / 4800, beamEndY: 1100 / 3000, volleyId: 'photon-runtime-1'
+  });
+  const photonRelay = guest.latest('shared-shot');
+  assert.equal(photonRelay?.special, 'photonRay', 'co-op Photon Ray reaches the peer');
+  assert.equal(photonRelay?.color, '#ff8df4', 'server overrides client Photon Ray color');
+  assert.equal(photonRelay?.beamLevel, 2, 'remote beam width receives the selected level');
+  assert.ok(Math.abs(photonRelay.beamEndX - 1850 / 4800) < 1e-6, 'remote receives the local target endpoint');
+  await owner.clientEmit('photon-ray-stop');
+  assert.equal(guest.latest('photon-ray-stop')?.fromId,owner.id,'explicit Photon Ray stop reaches only the other client');
+  await owner.clientEmit('shared-shot', {
+    x: 1800 / 4800, y: 1100 / 3000, vx: 0.1, vy: 0.1,
+    damage: 1, beamLevel: 99, special: 'photonRay',
+    beamEndX: 1, beamEndY: 1, volleyId: 'photon-runtime-2'
+  });
+  // The shared-shot rate guard applies even when a client attempts immediate
+  // repetition, so only the first relay above is required for the assertion.
 
   // Exercise the real authoritative damage handler and ACK, not only the render-side prediction.
   const damageTarget = latest.enemies.find(enemy => enemy && Number(enemy.hp) > 6);

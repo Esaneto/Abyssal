@@ -11,6 +11,7 @@ const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const SkinAbilities = require('./skin-abilities');
 const NetCodec = require('./public/net-codec');
+const PhotonRay = require('./public/photon-ray-config');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -535,6 +536,14 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const w=room.world,normalizedId=Number(id),idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');
  const enemy=w.enemies[idx],now=Date.now();
  let requestedDamage=damage;
+ if(skillId==='photonRay'){
+  if(!player)return reject('photon-no-player');
+  const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
+  if(Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y))>range+20/WORLD_ZOOM)return reject('photon-out-of-range');
+  if(now<(Number(player.photonDamageReadyAt)||0))return reject('photon-cooldown');
+  player.photonDamageReadyAt=now+190;
+  requestedDamage=Math.min(requestedDamage,45);
+ }
  if(skillId==='nova'){
   if(!player)return reject('nova-no-player');
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
@@ -1128,6 +1137,7 @@ io.on('connection', socket => {
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
  socket.on('request-host-transfer', () => {});
+ socket.on('photon-ray-stop',()=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(room&&player&&player.alive!==false)socket.to(channelFor(room)).emit('photon-ray-stop',{fromId:socket.id});});
  socket.on('shared-shot', payload => {
   const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false)return;
   const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);
@@ -1137,7 +1147,18 @@ io.on('connection', socket => {
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
    if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>7)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
-  const shot={x,y,vx,vy,color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet','photon','photonRay','nova','abyssEye','echoShot'].includes(payload.special)?payload.special:null,from:socket.data.nickname,fromId:socket.id,at:now};
+  const shot={x,y,vx,vy,color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','ricochet','photon','photonRay','nova','abyssEye','echoShot'].includes(payload.special)?payload.special:null,from:socket.data.nickname,fromId:socket.id,at:now};
+  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
+  if(shot.special==='photonRay'&&payload.beamTargetId!=null){
+   const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
+   const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   if(target&&target.alive!==false&&target.id!==socket.id&&Math.hypot(Number(target.x)-shooter.x,Number(target.y)-shooter.y)<=targetRange+20/WORLD_ZOOM)shot.beamTargetId=targetId;
+  }
+  if(shot.special==='photonRay'&&room.mode!=='pvp'){
+   const endX=Number(payload.beamEndX),endY=Number(payload.beamEndY);
+   const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   if(Number.isFinite(endX)&&Number.isFinite(endY)&&endX>=0&&endX<=1&&endY>=0&&endY<=1&&Math.hypot((endX-x)*WORLD_WIDTH,(endY-y)*WORLD_HEIGHT)<=range+8/WORLD_ZOOM){shot.beamEndX=endX;shot.beamEndY=endY;}
+  }
   if(room.mode==='pvp'){
    const sx=x*WORLD_WIDTH,sy=y*WORLD_HEIGHT,originDistance=Math.hypot(sx-shooter.x,sy-shooter.y);
    if(originDistance>240/WORLD_ZOOM)return;
@@ -1164,7 +1185,7 @@ io.on('connection', socket => {
    }else{
     const dx=vx*WORLD_WIDTH,dy=vy*WORLD_HEIGHT,speed=Math.hypot(dx,dy);if(speed<30||speed>1800)return;
     const beamRange=294*rangeStrength*rangeMultiplier/WORLD_ZOOM;
-    if(shot.special==='photonRay')shot.effectRadius=beamRange;
+    if(shot.special==='photonRay'){shot.effectRadius=beamRange;}
     const duration=shot.special==='abyssEye'?12:shot.special==='photonRay'?Math.min(1.05,beamRange/Math.max(1,speed)):1.05,steps=Math.max(8,Math.ceil(speed*duration/12));let targetHit=null,hitX=sx,hitY=sy;
     for(let i=1;i<=steps;i++){const t=duration*i/steps,px=sx+dx*t,py=sy+dy*t;if(px<0||py<0||px>WORLD_WIDTH||py>WORLD_HEIGHT)break;if(pvpRockAt(px,py,4/WORLD_ZOOM))break;for(const target of room.players.values()){if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;if(Math.hypot(px-target.x,py-target.y)<(Number(target.r)||13/WORLD_ZOOM)+5/WORLD_ZOOM){targetHit=target;hitX=px;hitY=py;break;}}if(targetHit)break;}
     if(targetHit&&sameVolley&&shooter.lastShotVolleyTargets?.has(targetHit.id))targetHit=null;
@@ -1175,7 +1196,8 @@ io.on('connection', socket => {
     }
    }
   }
-  io.to(channelFor(room)).volatile.emit('shared-shot',shot);
+  if(shot.special==='photonRay')io.to(channelFor(room)).emit('shared-shot',shot);
+  else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
  socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability', (payload, acknowledge) => {
@@ -1211,10 +1233,11 @@ io.on('connection', socket => {
   }
   if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
  });
- socket.on('active-ability',payload=>{
+ socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
-  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return;
-  const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return;player.pulseReadyAt=now+14000;
+  const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
+  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
    for(const target of room.players.values()){

@@ -2,7 +2,7 @@
 'use strict';
 const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
-let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map();
+let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,everConnected=false;
 function showMaintenanceOverlay(){if(maintenanceVisible)return;maintenanceVisible=true;const el=$('maintenanceOverlay');if(el)el.hidden=false;}
@@ -140,7 +140,7 @@ function connect(){
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,timeout:8000});
  socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
  startPositionHeartbeat();
- socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;pendingMotion.clear();lastReconcileSeq=0;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
+ socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;pendingMotion.clear();lastReconcileSeq=0;motionRttMs=null;motionJitterMs=null;motionAckCount=0;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
   socket.on('match-history-result',result=>{const msg=$('matchHistoryMessage');if(!result?.ok){if(msg)msg.textContent='Não foi possível carregar o histórico.';return;}renderMatchHistory(result.matches||[]);if(msg)msg.textContent=(result.matches||[]).length+' partida(s) armazenada(s), máximo de 10.';});socket.on('cardumes-list',renderCardumesList);socket.on('cardume-details',showCardumeDetail);socket.on('public-profile-result',result=>{if(result?.ok)showPublicProfile(result.profile);else{const msg=$('cardumeMessage');if(msg)msg.textContent=result?.message||'Perfil indisponível.'}});socket.on('profile-like-result',result=>{if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}if(result?.profile)showPublicProfile(result.profile);else if(result?.message){const msg=$('profileMessage');if(msg)msg.textContent=result.message;}});socket.on('profile-likes-updated',data=>{if(serverAccount&&String($('profileNickname')?.textContent||'').toLowerCase()===String(serverAccount.nickname||'').toLowerCase()){$('profileLikesCount').textContent=profileNumber(data?.likesReceived)+' curtidas';if(serverAccount)serverAccount.likesReceived=profileNumber(data?.likesReceived);}});socket.on('cardume-action-result',result=>{const msg=$('cardumeMessage');if(msg)msg.textContent=result?.message||'Operação concluída.';if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}if(result?.ok){socket.emit('list-cardumes');if(result.account?.cardumeId)socket.emit('get-cardume-details');else showCardumeDirectory();}});
  socket.on('rooms-list',list=>{socketRoomsCache=Array.isArray(list)?list:[];socketRoomsAt=Date.now();publishMergedRooms()});
@@ -201,6 +201,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   data=window.AbyssalNetCodec?.readReconcile?.(data)||data;
   if(!Array.isArray(data)||data.length<4)return;const seq=Number(data[0])||0;if(seq<=lastReconcileSeq)return;lastReconcileSeq=seq;positionAckAt=Date.now();
   const predicted=pendingMotion.get(seq),authoritativeX=Number(data[1]),authoritativeY=Number(data[2]);
+  if(predicted?.sentAt!=null){const sample=Math.max(0,performance.now()-predicted.sentAt);motionJitterMs=motionRttMs==null?0:motionJitterMs*.8+Math.abs(sample-motionRttMs)*.2;motionRttMs=motionRttMs==null?sample:motionRttMs*.8+sample*.2;motionAckCount++;}
   for(const key of pendingMotion.keys())if(key<=seq)pendingMotion.delete(key);
   if(predicted&&Number.isFinite(authoritativeX)&&Number.isFinite(authoritativeY)){
    const dx=authoritativeX-predicted.x,dy=authoritativeY-predicted.y;
@@ -220,7 +221,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);});
  socket.on('gameplay-notice',data=>window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:data||{}})));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
- socket.on('shared-shot',data=>{if(data&&data.from!==account?.nickname)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
+ socket.on('shared-shot',data=>{if(data&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
+ socket.on('photon-ray-stop',data=>{if(data?.fromId&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-photon-stop',{detail:data}))});
  socket.on('peer-skin-ability',data=>{if(data&&typeof data==='object'){data.receivedAt=Date.now();}window.dispatchEvent(new CustomEvent('abyssal-peer-skin-ability',{detail:data||{}}));});
  socket.on('server-message',m=>{if(window.AbyssalGameHooks?.toast)window.AbyssalGameHooks.toast(m)});
  socket.on('account-deletion-result',result=>{
@@ -379,13 +381,13 @@ function startPositionHeartbeat(){
   const seq=++positionSequence;
   // Compact delta-style motion tuple: [seq,x,y,angle,clientSentAt].
   // Static/slow metadata travels separately at 1 Hz instead of repeating 20-30 times/s.
-  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
+  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
   socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
   lastPositionAt=now;positionPacketsSent++;
   if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
 }
-function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent};}
+function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendDamageBatch(hits){
@@ -395,12 +397,13 @@ function sendDamageBatch(hits){
  socket.emit('shared-damage-batch',{hits:valid});return true;
 }
 function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
+function sendPhotonRayStop(){if(socket?.connected&&authenticated&&currentRoom)socket.emit('photon-ray-stop');}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run')}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),arcChainActive:data.arcChainActive===true})}
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
-function sendActiveAbility(id){if(socket?.connected&&authenticated&&currentRoom)socket.emit('active-ability',{id:String(id||'').slice(0,24)})}
+function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
 function requestWorldSnapshot(reason='manual'){if(socket?.connected&&authenticated&&currentRoom)socket.emit('request-world-snapshot',{reason:String(reason||'manual')})}
 function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state')}}
 function sendRunProgress(data){if(socket?.connected&&authenticated)socket.volatile.emit('run-progress',data)}
@@ -464,12 +467,13 @@ function applyPlayerMotion(rows){
  }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
+function getPlayerById(id){const peer=players.get(String(id));return peer?getInterpolatedPeer(peer):null;}
 function sendSkinAbility(data){if(!socket?.connected)return false;socket.emit('skin-ability',data,result=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');});return true;}
 function sendFusion(name){if(!socket?.connected||!authenticated||!currentRoom)return false;socket.emit('fusion-achieved',{name:String(name||'').slice(0,48)});return true;}
 
 updateAccount();
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
