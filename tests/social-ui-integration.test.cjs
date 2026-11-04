@@ -55,8 +55,17 @@ test('moderation socket listener is bound only after the socket is created',()=>
  assert.ok(created>=0&&listener>created,'report listener must not dereference a null socket during startup');
 });
 
-test('mobile hides download controls and fullscreen utilities',()=>{
+
+
+test('mobile keeps download and controls in the top bar but removes fullscreen slot',()=>{
  const css=read('public/style.css');
- assert.match(css,/@media\(max-width:700px\),\(pointer:coarse\)[\s\S]*?#mobileDownloadTopBtn,#mobileControlsTopBtn,#fullscreenBtn/);
- assert.match(css,/#menuScreen #downloadBtn,#menuScreen #controlsBtn[\s\S]*?display:none!important/);
+ assert.match(css,/#mobileDownloadTopBtn,#mobileControlsTopBtn\{[\s\S]*?display:inline-flex!important/);
+ assert.match(css,/#fullscreenBtn\{[\s\S]*?display:none!important[\s\S]*?width:0!important/);
+});
+
+test('resonance is structurally above solo dive in the main menu',()=>{
+ const html=read('public/index.html');
+ assert.ok(html.indexOf('id="resonanceBtn"')<html.indexOf('id="playBtn"'));
+ const css=read('public/style.css');
+ assert.match(css,/#menuScreen #resonanceBtn\{[\s\S]*?position:static!important/);
 });
