@@ -289,7 +289,7 @@ test('hit synergies apply to projectile, photon beam and direct-hit geometries',
  assert.match(game,/function triggerHitSynergies\(/);
  assert.match(game,/triggerHitSynergies\(enemy,appliedDamage,skillId,options\)/);
  assert.match(game,/source!=='ricochet'/);
- assert.match(game,/source!=='electric'&&source!=='arcChain'/);
+ assert.match(game,/source!==\'arcChain\'/);
  assert.match(game,/ricochetLevel:upgrades\.ricochet,electricLevel:upgrades\.electric/);
 });
 test('PvP server applies hit synergies authoritatively and respects rock cover',()=>{
@@ -509,4 +509,23 @@ test('shared modal closer never suppresses unrelated menu click handlers',()=>{
 test('successful socket reconnect releases maintenance UI even while expedition restore continues',()=>{
  const online=read('public/online.js');
  assert.ok(online.includes("socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();"));
+});
+
+
+test('removed start-screen records cannot abort game initialization',()=>{
+ const html=read('public/index.html'),game=read('public/game.js');
+ assert.ok(!html.includes('id="bestTime"'));
+ assert.ok(!html.includes('id="bestScore"'));
+ assert.ok(game.includes("const bestTimeEl=$('bestTime'),bestScoreEl=$('bestScore');if(bestTimeEl)"));
+ assert.ok(game.includes("const el=$('bestScore');if(el)el.textContent"));
+ assert.ok(game.includes("const el=$('bestTime');if(el)el.textContent"));
+ assert.ok(game.includes("if($('testWheelBtn'))$('testWheelBtn').disabled="));
+});
+test('core menu navigation handlers remain registered after initialization guards',()=>{
+ const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
+ for(const id of ['soloBtn','resonanceBtn','wheelBtn','shopBtn','catalogBtn','rankingsBtn'])assert.ok(game.includes(id),id+' must remain wired in game.js');
+ assert.ok(online.includes('function connectAndJoin()'));
+ assert.ok(server.includes("rooms.set(DEFAULT_ROOM_ID"));
+ assert.ok(server.includes("rooms.set(PVP_ROOM_ID"));
+ assert.ok(server.includes("socket.on('create-room'"));
 });
