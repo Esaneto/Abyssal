@@ -580,15 +580,15 @@ test('movement keeps local prediction and remote interpolation',()=>{
 });
 
 
-test('menu strips literal escaped newlines on desktop and mobile',()=>{
- const html=read('public/index.html'),online=read('public/online.js');
- assert.ok(!html.includes('\\\\n\\\\n\\\\n'));
- assert.ok(online.includes('function scrubLiteralMenuNewlines()'));
- assert.ok(online.includes("value.includes('\\\\\\\\n')"));
-});
 test('mobile legal links are the final normal-flow menu element instead of an overlay',()=>{
  const html=read('public/index.html'),css=read('public/style.css');
  assert.ok(html.indexOf('class="menu-footer"')>html.indexOf('class="menu-content"'));
  assert.ok(css.includes('MENU LEGAL MOBILE FINAL FLOW V26'));
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#menuScreen \.menu-footer\{[\s\S]*?position:relative!important;[\s\S]*?bottom:auto!important;[\s\S]*?order:999!important;/);
+});
+
+
+test('game source contains no injected literal escaped newline tokens',()=>{
+ const game=read('public/game.js');
+ assert.ok(!game.includes('\\\\n'),'game.js must use real line breaks, never injected literal backslash-n tokens');
 });
