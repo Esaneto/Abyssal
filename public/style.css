@@ -4353,3 +4353,26 @@ body.game-active.hud-collapsed #toggleHudBtn{opacity:1!important;pointer-events:
    box-shadow:none;
  }
 }
+
+
+/* GAMEPLAY HUD V7: reserve the floating topbar only while it is visible. */
+body.game-active{--match-ui-top:calc(max(8px,env(safe-area-inset-top)) + 64px)}
+body.game-active.hud-collapsed{--match-ui-top:max(10px,env(safe-area-inset-top))}
+@media (min-width:701px) and (pointer:fine){
+ body.game-active:not(.mobile-game-active) .hud{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.game-active:not(.mobile-game-active) #toggleHudBtn{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.game-active:not(.mobile-game-active) #endDiveBtn{top:calc(var(--match-ui-top) + 44px)!important;transition:top .2s ease!important}
+ body.game-active:not(.mobile-game-active) #bossAlert.boss-alert,
+ body.game-active:not(.mobile-game-active) #abyssalDangerAlert{top:var(--match-ui-top)!important}
+ body.game-active.hud-collapsed:not(.mobile-game-active) #toggleHudBtn{top:var(--match-ui-top)!important}
+}
+@media (max-width:700px),(pointer:coarse){
+ body.game-active{--match-ui-top:calc(max(5px,env(safe-area-inset-top)) + 54px)}
+ body.game-active.hud-collapsed{--match-ui-top:max(7px,env(safe-area-inset-top))}
+ body.mobile-game-active .hud{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.mobile-game-active #toggleHudBtn{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.mobile-game-active #mobilePauseBtn{top:var(--match-ui-top)!important;transition:top .2s ease!important}
+ body.mobile-game-active #selectedSkillsPanel{top:calc(var(--match-ui-top) + 104px)!important;transition:top .2s ease!important}
+ body.mobile-game-active #runEnergyRanking{top:calc(var(--match-ui-top) + 104px)!important;transition:top .2s ease!important}
+}
