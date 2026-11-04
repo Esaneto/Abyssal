@@ -3662,3 +3662,53 @@ body.abyssal-native-shell #fullscreenBtn{
  #menuScreen .menu-content{row-gap:7px!important}
  #menuScreen .menu-secondary-actions{row-gap:7px!important;column-gap:7px!important}
 }
+
+
+/* Menu CTA separation: resonance, solo and online must never visually overlap. */
+#menuScreen #resonanceBtn{margin-bottom:10px!important}
+#menuScreen #playBtn{margin-top:0!important;margin-bottom:10px!important}
+#menuScreen .menu-secondary-actions{margin-top:0!important}
+#menuScreen #onlineBtn.online-cta{margin-top:0!important}
+@media(max-width:700px),(pointer:coarse){
+ #menuScreen #resonanceBtn{margin-bottom:8px!important}
+ #menuScreen #playBtn{margin-bottom:8px!important}
+}
+
+/* Abyssary stats: stable three-badge layout without escaping the creature card. */
+.codex-header-row{align-items:flex-start!important}
+.monster-stats-row{display:flex!important;flex-wrap:wrap!important;justify-content:flex-end!important;gap:5px!important;max-width:100%!important}
+.stat-badge{white-space:nowrap!important;min-width:0!important}
+.stat-spd{background:rgba(91,180,255,.16);border:1px solid rgba(91,180,255,.4);color:#9fd7ff}
+.monster-codex-card{overflow:hidden}
+@media(max-width:600px){
+ .codex-header-row{display:grid!important;grid-template-columns:1fr!important}
+ .monster-stats-row{justify-content:flex-start!important;width:100%!important}
+ .stat-badge{font-size:8px!important;padding:3px 5px!important}
+}
+
+/* Public profile actions: compact controls at the top of the profile content. */
+.profile-top-actions{
+ display:flex!important;
+ align-items:center!important;
+ justify-content:flex-start!important;
+ flex-direction:row!important;
+ flex-wrap:wrap!important;
+ gap:7px!important;
+ margin:0 0 12px!important;
+}
+.profile-top-actions[hidden]{display:none!important}
+.profile-action-btn{
+ width:auto!important;
+ min-width:0!important;
+ height:30px!important;
+ min-height:30px!important;
+ margin:0!important;
+ padding:0 10px!important;
+ border-radius:7px!important;
+ font:800 9px 'DM Mono',monospace!important;
+ letter-spacing:.06em!important;
+}
+.profile-like-btn{border:1px solid rgba(121,243,240,.42);background:rgba(121,243,240,.09);color:#cafffb}
+.profile-report-btn{border:1px solid rgba(255,69,89,.72)!important;background:rgba(151,18,38,.30)!important;color:#ff8392!important}
+.profile-report-btn:hover{background:rgba(197,25,49,.48)!important;border-color:#ff5368!important;color:#fff!important}
+.profile-top-actions #profileLikesCount{margin-left:2px;font-size:9px}
