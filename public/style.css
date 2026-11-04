@@ -3612,3 +3612,15 @@ body.game-active #bossAlert.gameplay-notice-5s{
  color:#fff!important;
  text-shadow:none!important;
 }
+
+/* CHAT SAFETY CONTROLS V19 */
+#menuScreen .global-chat-message-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:7px;border-top:1px solid rgba(115,210,215,.12)}
+#menuScreen .global-chat-message-actions .small-action{min-height:26px;padding:5px 8px;border:1px solid rgba(126,205,215,.24);border-radius:6px;background:rgba(4,18,29,.9);color:#a9d9df;font:700 8px 'DM Mono',monospace;letter-spacing:.06em;cursor:pointer}
+#menuScreen .global-chat-message-actions .global-chat-report{border-color:rgba(255,103,125,.34);color:#ff9bab}
+#menuScreen .global-chat-message-actions .global-chat-block{border-color:rgba(177,157,255,.3);color:#c7b9ff}
+#menuScreen .global-chat-message-actions button:disabled{opacity:.7;cursor:default}
+.chat-report-overlay{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:16px;background:rgba(0,5,12,.82);backdrop-filter:blur(8px)}
+.chat-report-card{width:min(420px,calc(100vw - 28px));padding:20px;border:1px solid rgba(255,102,126,.45);border-radius:14px;background:linear-gradient(155deg,rgba(9,22,35,.99),rgba(28,10,27,.99));box-shadow:0 24px 70px rgba(0,0,0,.65);color:#eaffff}
+.chat-report-card>strong{display:block;color:#ff9bab;font:800 13px 'DM Mono',monospace;letter-spacing:.1em}.chat-report-card>p{color:#9fb9c2;font-size:12px}
+.chat-report-choices{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:14px 0}.chat-report-choices button,.chat-report-cancel{min-height:38px;border:1px solid rgba(122,199,208,.22);border-radius:8px;background:rgba(6,27,40,.9);color:#dffafa;font:700 9px 'DM Mono',monospace;cursor:pointer}.chat-report-choices button:hover{border-color:rgba(255,103,125,.55);background:rgba(73,20,38,.72)}.chat-report-cancel{width:100%;color:#9db9c2}
+@media(max-width:430px){.chat-report-choices{grid-template-columns:1fr}}
