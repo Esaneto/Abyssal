@@ -1174,7 +1174,7 @@ io.on('connection', socket => {
    const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/WORLD_HEIGHT;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/WORLD_HEIGHT,0,1);
-   const hitRadius=5/WORLD_ZOOM+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
+   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
    if(room.mode==='pvp'){
     let changed=false;
     for(const target of room.players.values()){
@@ -1198,7 +1198,7 @@ io.on('connection', socket => {
     try{
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
-      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),(Number(enemy.r)||12/WORLD_ZOOM)+hitRadius))continue;
+      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
       processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay');
      }
     }finally{shooter.photonServerResolving=false;}
