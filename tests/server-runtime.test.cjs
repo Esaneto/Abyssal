@@ -90,6 +90,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED'];
   const previousSafetyEnv=Object.fromEntries(safetyEnvKeys.map(key=>[key,process.env[key]]));
   for(const key of safetyEnvKeys)delete process.env[key];
+  process.env.ABYSSAL_REWARDED_WHEEL_ENABLED='true';
   process.env.PORT = '0'; delete process.env.DATABASE_URL;
   temporaryDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'abyssal-runtime-test-'));
   process.env.DATA_DIR = temporaryDataDir;
