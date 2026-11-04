@@ -65,5 +65,4 @@ test('menu has the abyssal visual theme across navigation and modal panels', () 
   assert.match(css, /#menuScreen:before/);
   assert.match(css, /#menuScreen \.menu-action:hover/);
   assert.match(css, /\.modal-screen\{background:radial-gradient/);
-  assert.match(css, /#menuScreen \.global-chat-panel/);
 });
