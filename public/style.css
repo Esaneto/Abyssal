@@ -3870,3 +3870,38 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
 /* Remove decorative microcopy while retaining gameplay, legal, account and purchase information. */
 .brand small,.joystick-base+small,.mobile-dual-stick>small{font-family:var(--abyssal-runic)!important;}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+
+/* MENU ACCOUNT LAYOUT V17: desktop account/login at the upper-right of the menu card. */
+@media(min-width:701px){
+ #menuScreen .menu-content{position:relative!important;}
+ #menuScreen .menu-account-utility{
+  position:absolute!important;top:18px!important;right:18px!important;z-index:20!important;
+  width:220px!important;max-width:220px!important;margin:0!important;padding:0!important;border:0!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;
+  text-align:right!important;background:transparent!important;
+ }
+ #menuScreen .menu-account-utility #accountStatus{font-size:9px!important;line-height:1.25!important;color:#8aaab9!important;}
+ #menuScreen .menu-account-utility #loginBtn{
+  width:100%!important;min-height:36px!important;padding:8px 12px!important;text-align:center!important;
+  font-family:var(--abyssal-runic)!important;font-size:11px!important;font-weight:700!important;
+ }
+ #menuScreen .menu-language-utility{
+  position:absolute!important;top:88px!important;right:18px!important;z-index:20!important;
+  width:220px!important;max-width:220px!important;margin:0!important;padding:0!important;
+  display:flex!important;justify-content:flex-end!important;gap:8px!important;
+ }
+ #menuScreen .menu-language-utility label{font-family:var(--abyssal-runic)!important;font-size:9px!important;}
+ #menuScreen .menu-language-utility select{width:126px!important;max-width:126px!important;height:34px!important;font-family:var(--abyssal-runic)!important;}
+ #menuScreen .record-row{margin-top:18px!important;}
+ #menuScreen .menu-footer{
+  position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;
+  z-index:12!important;margin:16px 0 0!important;pointer-events:auto!important;
+ }
+ #menuScreen .legal-footer{display:flex!important;flex-wrap:wrap!important;gap:8px 14px!important;pointer-events:auto!important;}
+ #menuScreen .legal-footer a{position:relative!important;z-index:13!important;pointer-events:auto!important;color:#9eb9c7!important;text-decoration:none!important;}
+ #menuScreen .legal-footer a:hover,#menuScreen .legal-footer a:focus-visible{color:#8efff2!important;text-decoration:underline!important;}
+}
+@media(max-width:700px){
+ #menuScreen .menu-footer{pointer-events:auto!important;}
+ #menuScreen .legal-footer,#menuScreen .legal-footer a{pointer-events:auto!important;}
+}

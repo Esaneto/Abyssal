@@ -405,3 +405,15 @@ test('Cinzel reaches online CTA and decorative microcopy is removed',()=>{
  assert.doesNotMatch(html,/CATÁLOGO DE CRIATURAS/);
  assert.doesNotMatch(game,/Uncial Antiqua/);
 });
+
+
+test('desktop menu keeps login above language and legal links clickable',()=>{
+ const html=read('public/index.html');
+ const css=read('public/style.css');
+ assert.ok(html.includes('account-line menu-account-utility'));
+ assert.ok(html.includes('language-setting menu-language-utility'));
+ assert.ok(html.includes('href="/terms.html" target="_blank" rel="noopener"'));
+ assert.ok(css.includes('#menuScreen .menu-account-utility'));
+ assert.ok(css.includes('#menuScreen .menu-language-utility'));
+ assert.ok(css.includes('#menuScreen .legal-footer a{position:relative!important;z-index:13!important;pointer-events:auto!important'));
+});
