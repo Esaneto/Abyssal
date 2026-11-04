@@ -4308,3 +4308,48 @@ button.primary-btn span{
  #upgradeScreen .upgrade-timer-copy strong{font-size:14px}
  #upgradeScreen .upgrade-timer-copy span{font-size:11px}
 }
+
+
+/* Immersive gameplay viewport: the arena owns the full viewport while persistent controls float above it. */
+body.game-active #app{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;max-width:none!important;
+  min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.game-active #gameShell{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100dvh!important;
+  min-height:0!important;border:0!important;margin:0!important;background:#02080d!important;
+}
+body.game-active .topbar{
+  position:fixed!important;z-index:45!important;top:max(8px,env(safe-area-inset-top))!important;
+  left:max(12px,env(safe-area-inset-left))!important;right:max(12px,env(safe-area-inset-right))!important;
+  height:52px!important;padding:0 8px!important;border:0!important;border-radius:12px!important;
+  background:linear-gradient(90deg,rgba(2,9,15,.72),rgba(2,9,15,.28),rgba(2,9,15,.72))!important;
+  backdrop-filter:blur(7px);transition:opacity .2s ease,transform .2s ease!important;
+}
+body.game-active .page-footer{display:none!important}
+body.game-active #gameShell::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.34) 5%,transparent 17%,transparent 83%,rgba(0,0,0,.34) 95%,rgba(0,0,0,.78) 100%),
+    linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.18) 9%,transparent 22%,transparent 78%,rgba(0,0,0,.18) 91%,rgba(0,0,0,.76) 100%);
+  box-shadow:inset 0 0 min(18vw,240px) rgba(0,0,0,.48);
+}
+body.game-active #game{z-index:0}
+body.game-active .hud,body.game-active #selectedSkillsPanel,body.game-active #runEnergyRanking,
+body.game-active #activeAbilities,body.game-active #toggleHudBtn,body.game-active .mobile-pause-btn,
+body.game-active #roomBadge,body.game-active .boss-alert,body.game-active #abyssalDangerAlert,
+body.game-active .mobile-joystick,body.game-active .mobile-dual-stick{z-index:4!important}
+body.game-active.hud-collapsed .topbar{opacity:0!important;transform:translateY(-16px)!important;pointer-events:none!important}
+body.game-active.hud-collapsed #toggleHudBtn{opacity:1!important;pointer-events:auto!important;transform:none!important}
+
+@media (max-width:700px),(pointer:coarse){
+ body.game-active .topbar{
+   top:max(5px,env(safe-area-inset-top))!important;left:max(7px,env(safe-area-inset-left))!important;
+   right:max(7px,env(safe-area-inset-right))!important;height:46px!important;padding:0 5px!important;
+   background:linear-gradient(90deg,rgba(2,9,15,.58),rgba(2,9,15,.16),rgba(2,9,15,.58))!important;
+ }
+ body.game-active #gameShell::after{
+   background:linear-gradient(180deg,rgba(0,0,0,.58) 0%,rgba(0,0,0,.16) 7%,transparent 16%,transparent 84%,rgba(0,0,0,.14) 93%,rgba(0,0,0,.6) 100%);
+   box-shadow:none;
+ }
+}
