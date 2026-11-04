@@ -3988,3 +3988,11 @@ body.abyssal-native-shell .top-actions #fullscreenBtn .ui-icon{
  }
  #menuScreen .menu-language-utility select{width:132px!important;max-width:132px!important;}
 }
+
+
+/* LEGAL FOOTER RESTORE V22 */
+@media(min-width:701px){
+ #menuScreen .menu-footer{position:absolute!important;left:18px!important;right:auto!important;bottom:14px!important;top:auto!important;z-index:34!important;margin:0!important;pointer-events:auto!important;}
+ #menuScreen .legal-footer{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;gap:7px 14px!important;pointer-events:auto!important;}
+ #menuScreen .legal-footer a{pointer-events:auto!important;position:relative!important;z-index:35!important;}
+}
