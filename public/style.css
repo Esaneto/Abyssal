@@ -3519,3 +3519,47 @@ body.game-active #bossAlert.gameplay-notice-5s{
 #notifPanelHeader{background:rgba(0,20,50,.38)!important}
 .notif-item{background:rgba(255,255,255,.025)!important}
 .notif-item:hover{background:rgba(255,255,255,.055)!important}
+
+
+/* UI V20: hidden overlays must never intercept menu/login interactions. */
+.screen[hidden],.modal-screen[hidden]{display:none!important;pointer-events:none!important}
+
+/* Menu utilities: compact content-width controls anchored in the lower-right corner. */
+#menuScreen .download-cta,#menuScreen .controls-cta{
+ position:absolute!important;
+ left:auto!important;
+ width:max-content!important;
+ min-width:0!important;
+ max-width:max-content!important;
+ min-height:28px!important;
+ height:28px!important;
+ padding:4px 9px!important;
+ margin:0!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ gap:6px!important;
+ font-size:9px!important;
+ line-height:1!important;
+ white-space:nowrap!important;
+ border-radius:7px!important;
+ z-index:22!important;
+}
+#menuScreen .download-cta{right:10px!important;bottom:44px!important;top:auto!important}
+#menuScreen .controls-cta{right:10px!important;bottom:10px!important;top:auto!important}
+#menuScreen .download-cta .ui-icon,#menuScreen .controls-cta .ui-icon{width:13px!important;height:13px!important}
+@media(max-width:700px){
+ #menuScreen .download-cta,#menuScreen .controls-cta{
+  position:absolute!important;
+  left:auto!important;
+  width:max-content!important;
+  max-width:calc(100% - 20px)!important;
+  min-width:0!important;
+  min-height:26px!important;
+  height:26px!important;
+  padding:3px 8px!important;
+  font-size:8px!important;
+ }
+ #menuScreen .download-cta{right:8px!important;bottom:40px!important}
+ #menuScreen .controls-cta{right:8px!important;bottom:8px!important}
+}
