@@ -232,6 +232,10 @@ function updateNotifBadge() {
   );
 }
 
+window.addNotification = addNotification;
+window.updateNotifBadge = updateNotifBadge;
+window.openAbyssalNotifications = openNotifPanel;
+
 function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
   addNotification(message, title);
   updateNotifBadge();
