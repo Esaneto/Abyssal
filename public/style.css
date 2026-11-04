@@ -3723,3 +3723,23 @@ body.abyssal-native-shell #fullscreenBtn{
  #menuScreen .menu-secondary-actions{order:23!important;margin-top:8px!important}
  #menuScreen #onlineBtn.online-cta{margin-top:0!important}
 }
+
+
+/* Abyssary stat reading order: centered HP, Damage, Speed from left to right. */
+.monster-stats-row{
+ width:100%!important;
+ max-width:100%!important;
+ display:flex!important;
+ flex-direction:row!important;
+ flex-wrap:wrap!important;
+ align-items:center!important;
+ justify-content:center!important;
+ gap:6px!important;
+ text-align:center!important;
+}
+.monster-stats-row .stat-hp{order:1}
+.monster-stats-row .stat-dmg{order:2}
+.monster-stats-row .stat-spd{order:3}
+@media(max-width:600px){
+ .monster-stats-row{justify-content:center!important}
+}
