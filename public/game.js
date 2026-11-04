@@ -1755,7 +1755,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     if(player.photonRayTimer<=0){
      player.photonRayTimer=beamInterval;
      const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
-     if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,beamEndX:target.x/W,beamEndY:target.y/H,special:'photonRay',volleyId:nextShotVolleyId()});
+     if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:aimCos*900/GAME_WORLD_ZOOM/W,vy:aimSin*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,beamEndX:target.x/W,beamEndY:target.y/H,beamTargetId:target.id,special:'photonRay',volleyId:nextShotVolleyId()});
      if(!isPvpMode){dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);}
     }
    }else player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);
