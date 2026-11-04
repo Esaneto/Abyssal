@@ -1132,11 +1132,11 @@ function spawnEnemy(initial=false,type='common'){
  }
  if(!kind)return null;
  const data=ai?.statsForKind(kind)||({
-  boss:{r:40,hp:2820,speed:52,damage:25,color:'#ff315f',value:55},
-  leviathan:{r:54,hp:4700,speed:44,damage:34,color:'#4ce0d1',value:90},
-  maw:{r:45,hp:3750,speed:58,damage:31,color:'#c16cff',value:75},
-  angler:{r:35,hp:3260,speed:66,damage:28,color:'#ffb45e',value:65},
-  kraken:{r:80,hp:9200,speed:20,damage:38,color:'#8b5cf6',value:180},
+  boss:{r:40,hp:5640,speed:52,damage:25,color:'#ff315f',value:55},
+  leviathan:{r:54,hp:9400,speed:44,damage:34,color:'#4ce0d1',value:90},
+  maw:{r:45,hp:7500,speed:58,damage:31,color:'#c16cff',value:75},
+  angler:{r:35,hp:6520,speed:66,damage:28,color:'#ffb45e',value:65},
+  kraken:{r:80,hp:18400,speed:20,damage:38,color:'#8b5cf6',value:180},
   drifter:{r:10,hp:22,speed:51,damage:8,color:'#ff769d',value:1},
   stinger:{r:7,hp:13,speed:88,damage:6,color:'#ffbc78',value:2},
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
@@ -3024,14 +3024,14 @@ function renderCatalog(){
   stinger:{name:'Ferrão de Fenda',color:'#ffbc78',hp:13,speed:125,damage:7,ability:'Arremetida Hipodérmica: velocidade extrema em linha reta com ferrão penetrante.',desc:'Peixe-ferrão veloz de corpo esguio e dentes agulhados que caça em bando.'},
   brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Blindagem Bêntica: carapaça espessa que absorve projéteis e isola passagens.',desc:'Isópode titânico com placas sobrepostas impenetráveis e patas blindadas.'},
   lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Faringe Expansiva: mandíbula que dilata e perseguição incansável nas trevas.',desc:'Enguia gulper predatória que persegue sua presa sem recuar.'},
-  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:240,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
-  boss:{name:'Aberração Abissal',color:'#ff315f',hp:2820,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Entidade coroada por placas calcificadas e braços farpados que esmagam quem se aproxima.'},
-  angler:{name:'Lanterna Mortal',color:'#ffb45e',hp:3260,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Predador arcaico com lanterna incandescente e dentes voltados para dentro.'},
-  maw:{name:'A Boca do Abismo',color:'#c16cff',hp:3750,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Criatura anelar voraz cujo corpo inteiro é uma garganta predatória viva.'},
-  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',hp:4700,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Serpente colóssal com costelas externas que atravessa as fendas mais profundas.'},
-  whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:6000,speed:290,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 290 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
-  kraken:{name:'Kraken do Abismo',color:'#8b5cf6',hp:9200,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Senhor primordial das fossas oceânicas cujos tentáculos envolvem a escuridão.'},
-  devourer:{name:'Devorador do Vazio',color:'#39d8c4',hp:15000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Entidade que distorce as correntes abissais engolindo cardumes e mergulhadores inteiros.'}
+  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
+  boss:{name:'Aberração Abissal',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Entidade coroada por placas calcificadas e braços farpados que esmagam quem se aproxima.'},
+  angler:{name:'Lanterna Mortal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Predador arcaico com lanterna incandescente e dentes voltados para dentro.'},
+  maw:{name:'A Boca do Abismo',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Criatura anelar voraz cujo corpo inteiro é uma garganta predatória viva.'},
+  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Serpente colóssal com costelas externas que atravessa as fendas mais profundas.'},
+  whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
+  kraken:{name:'Kraken do Abismo',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Senhor primordial das fossas oceânicas cujos tentáculos envolvem a escuridão.'},
+  devourer:{name:'Devorador do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Entidade que distorce as correntes abissais engolindo cardumes e mergulhadores inteiros.'}
  };
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
  
