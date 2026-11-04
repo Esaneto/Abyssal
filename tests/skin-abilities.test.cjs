@@ -417,3 +417,33 @@ test('desktop menu keeps login above language and legal links clickable',()=>{
  assert.ok(css.includes('#menuScreen .menu-language-utility'));
  assert.ok(css.includes('#menuScreen .legal-footer a{position:relative!important;z-index:13!important;pointer-events:auto!important'));
 });
+
+
+test('equipped shot is locked for the whole run and cannot fall back to electric mid-run',()=>{
+ const game=read('public/game.js');
+ assert.ok(game.includes("let runShotId='electric'"));
+ assert.ok(game.includes('runShotId=selectedOpeningShot'));
+ assert.ok(game.includes("if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId"));
+ assert.doesNotMatch(game,/find\(id=>RESONANCE_CATEGORIES\.shots\.includes\(id\)&&\(Number\(upgradeLevels\[id\]\)\|\|0\)>0\)/);
+});
+
+test('electric storm chains from its own primary hit and keeps an extended bolt visual',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.ok(game.includes("if((upgrades.electric||0)>0&&source!=='arcChain')"));
+ assert.ok(server.includes("if(Number(attacker.electricLevel)>0&&source!=='arcChain')"));
+ assert.ok(game.includes('boltLength=Math.max(52/GAME_WORLD_ZOOM,speed*.095)'));
+ assert.ok(game.includes('const segments=12'));
+});
+
+test('abyss eye remains a modifier on the PvP server instead of replacing shot identity',()=>{
+ const server=read('server.js');
+ assert.ok(server.includes("shot.modifiers?.abyssEye===true?12"));
+ assert.doesNotMatch(server,/duration=shot\.special==='abyssEye'/);
+});
+
+test('resonance UI uses Abyssal runic typography with a larger menu label',()=>{
+ const css=read('public/style.css');
+ assert.ok(css.includes('.resonance-modal button,'));
+ assert.ok(css.includes('font-family:var(--abyssal-runic)!important;'));
+ assert.ok(css.includes('#menuScreen .resonance-menu-btn{font-size:14px!important;min-height:48px!important;}'));
+});
