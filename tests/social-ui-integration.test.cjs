@@ -139,3 +139,21 @@ test('Abyssary stats are centered in HP damage speed order',()=>{
  assert.match(css,/\.monster-stats-row \.stat-dmg\{order:2\}/);
  assert.match(css,/\.monster-stats-row \.stat-spd\{order:3\}/);
 });
+
+
+test('match history keeps ten server-backed matches with participant moderation path',()=>{
+ const server=read('server.js'),online=read('public/online.js'),html=read('public/index.html');
+ assert.match(server,/matchHistory=.*slice\(0,10\)/);
+ assert.match(server,/damageDealt=.*\+applied/);
+ assert.match(server,/personalBossesKilled=.*\+1/);
+ assert.match(server,/socket\.on\('get-match-history'/);
+ assert.match(html,/id="matchHistoryBtn"/);
+ assert.match(html,/id="matchHistoryScreen"/);
+ assert.match(online,/openPublicProfile\(player\.nickname\)/);
+});
+
+test('public profile like and report actions are inside the identity hero',()=>{
+ const html=read('public/index.html');
+ const hero=html.indexOf('class="profile-hero"'),actions=html.indexOf('id="publicProfileActions"'),stats=html.indexOf('class="profile-stats"');
+ assert.ok(hero>=0&&actions>hero&&actions<stats);
+});
