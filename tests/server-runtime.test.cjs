@@ -175,6 +175,11 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   await guest.clientEmit('join-room', { roomId });
   assert.equal(guest.latest('room-joined').ok, true);
 
+  let deniedPulse=null;
+  await owner.clientEmit('active-ability',{id:'pulse'},result=>{deniedPulse=result;});
+  assert.equal(deniedPulse?.ok,false,'unowned Q skill is rejected by the server with acknowledgement');
+  assert.equal(deniedPulse?.reason,'invalid-ability');
+
   // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
   let ownerPositionAck = null, guestPositionAck = null;
   await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
