@@ -12,7 +12,7 @@ test('EnemyAI: whiteShark e whiteSharkBoss existem nas estatísticas e não dão
   assert.ok(ws.damage < 100, 'Dano do tubarão branco não pode matar jogador de vida cheia (100 HP)');
 
   assert.ok(wsb, 'Boss Tubarão branco deve existir');
-  assert.equal(wsb.hp, 6000, 'Boss Tubarão branco deve ter 6000 de vida');
+  assert.equal(wsb.hp, 12000, 'Boss Tubarão branco deve ter 12000 de vida');
   assert.ok(wsb.damage < 100, 'Dano do Boss Tubarão branco não pode matar jogador de vida cheia (100 HP)');
   assert.ok(EnemyAI.BOSS_KINDS.includes('whiteSharkBoss'), 'whiteSharkBoss deve estar listado em BOSS_KINDS');
 });
