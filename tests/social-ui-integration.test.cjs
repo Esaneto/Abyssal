@@ -83,3 +83,31 @@ test('UGC modal exists before online client scripts execute',()=>{
  const html=read('public/index.html');
  assert.ok(html.indexOf('id="ugcReportScreen"')<html.indexOf('src="online.js'));
 });
+
+
+test('main menu CTAs keep explicit separation',()=>{
+ const css=read('public/style.css');
+ assert.match(css,/#menuScreen #resonanceBtn\{margin-bottom:10px!important\}/);
+ assert.match(css,/#menuScreen #playBtn\{margin-top:0!important;margin-bottom:10px!important\}/);
+});
+
+test('Abyssary reads current enemy balance and wraps stat badges',()=>{
+ const game=read('public/game.js'),css=read('public/style.css');
+ assert.match(game,/window\.AbyssalEnemyAI\?\.ENEMY_STATS\?\.\[kind\]/);
+ assert.match(game,/live\.dashSpeed \?\? live\.speed/);
+ assert.match(css,/\.monster-stats-row\{display:flex!important;flex-wrap:wrap!important/);
+ assert.match(css,/\.stat-spd\{/);
+});
+
+test('profile safety actions are compact and report is red',()=>{
+ const html=read('public/index.html'),css=read('public/style.css');
+ assert.match(html,/profile-top-actions/);
+ assert.match(html,/profile-report-btn/);
+ assert.match(css,/\.profile-report-btn\{[^}]*rgba\(255,69,89/);
+});
+
+test('owned bundle skins do not keep a residual BRL purchase price',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/const bundleBrlAmount=remaining===6\?4999:0/);
+ assert.match(game,/SKINS ADQUIRIDAS SEM PREÇO/);
+});
