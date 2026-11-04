@@ -6,4 +6,6 @@ Do not commit production credentials, private player data, signing material or e
 
 ## Reporting
 
+Repository security posture last verified after public release.
+
 Please report security vulnerabilities privately to abyssalelectrongames@gmail.com. Do not publish credentials, private player information or active exploitation details in a public issue.
