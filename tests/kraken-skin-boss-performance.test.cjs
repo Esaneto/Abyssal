@@ -88,14 +88,15 @@ test('Kraken identity is consistently glass-blue and no longer uses the smiling 
   assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
 });
 
-test('shop includes one-time abyssal10k redemption for 10,000 coins', () => {
+test('shop redemption delegates rewards to the authenticated server', () => {
   const html = read('public/index.html');
   const game = read('public/game.js');
+  const online = read('public/online.js');
   assert.match(html, /id="redeemCodeInput"/);
   assert.match(html, /id="redeemCodeBtn"/);
-  assert.match(game, /code!=='abyssal10k'/);
-  assert.match(game, /coins\+=10000/);
-  assert.match(game, /abyssalRedeemedCodes/);
+  assert.ok(game.includes('window.AbyssalOnline.redeemCode(code)'));
+  assert.ok(online.includes("socket.emit('redeem-code'"));
+  assert.doesNotMatch(game, /coins\+=10000/);
 });
 
 test('Kraken boss renders the same eight-arm glass-blue silhouette as the player skin', () => {
@@ -114,7 +115,7 @@ test('redeem code input is visible, editable, and can be submitted by Enter', ()
   assert.match(css, /\.redeem-code-controls input\{display:block;position:relative;z-index:5/);
   assert.match(css, /flex-direction:column;align-items:stretch/);
   assert.match(game, /redeemCodeInput.*addEventListener\('keydown'/);
-  assert.match(game, /coins\+=10000/);
+  assert.ok(game.includes('window.AbyssalOnline.redeemCode(code)'));
 });
 
 test('Kraken tentacle poses radiate into all four directions', () => {
@@ -126,7 +127,7 @@ test('Kraken tentacle poses radiate into all four directions', () => {
   assert.ok(poses.some(p => p.ey > 1.0), 'downward arm');
 });
 
-test('redeem code is entered in a dedicated modal',()=>{const html=read('public/index.html'),css=read('public/style.css'),game=read('public/game.js');assert.match(html,/id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen"/);assert.match(game,/openRedeemCodeBtn.*openRedeemCodeModal/);assert.match(game,/coins\+=10000/);assert.match(css,/\.redeem-modal-screen\{z-index:12/);});
+test('redeem code is entered in a dedicated modal',()=>{const html=read('public/index.html'),css=read('public/style.css'),game=read('public/game.js');assert.match(html,/id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen"/);assert.match(game,/openRedeemCodeBtn.*openRedeemCodeModal/);assert.ok(game.includes('window.AbyssalOnline.redeemCode(code)'));assert.match(css,/\.redeem-modal-screen\{z-index:12/);});
 test('prism spread and photon lance upgrades affect projectile creation',()=>{const game=read('public/game.js');assert.match(game,/id:'spread',name:'Rajada Prismática'/);assert.match(game,/id:'photon',name:'Lança de Fótons'/);assert.match(game,/if\(activeShot==='spread'\)/);assert.match(game,/shotSpeed=430\*shotBalanceValue\(activeShot,'speed',shotLevel,1\)\/GAME_WORLD_ZOOM/);});
 
 
