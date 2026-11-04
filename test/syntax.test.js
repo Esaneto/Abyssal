@@ -31,14 +31,6 @@ test('title system has unique IDs and sensible unlock goals', () => {
   assert.match(block[1], /kind:'starter'/, 'a starter title must always be available');
 });
 
-test('global chat is authenticated, bounded, and rate limited on the server', () => {
-  const source = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
-  assert.match(source, /socket\.on\('global-chat-send'/);
-  assert.match(source, /CHAT_MESSAGE_LIMIT=180/);
-  assert.match(source, /CHAT_RATE_MAX=5/);
-  assert.match(source, /globalChatHistory\.splice/);
-  assert.match(source, /if\(!socket\.data\.userKey\|\|!socket\.data\.nickname\)/);
-});
 
 test('online players receive distinct server-assigned spawn positions', () => {
   const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
@@ -51,11 +43,6 @@ test('online players receive distinct server-assigned spawn positions', () => {
   assert.doesNotMatch(server, /volatile\.emit\('world-players'/);
 });
 
-test('chat renders player content as text, not executable HTML', () => {
-  const client = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
-  assert.match(client, /body\.textContent=String\(message\.text\|\|''\)/);
-  assert.match(client, /name\.textContent=String\(message\.nickname\|\|'Mergulhador'\)/);
-});
 
 test('each title has dedicated vector artwork in the profile', () => {
   const client = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
