@@ -1468,6 +1468,7 @@ let shutdownStarted = false;
 async function shutdown(signal) {
  if (shutdownStarted) return; shutdownStarted = true;
  console.log(`[shutdown] ${signal}: fechando conexões e salvando dados pendentes…`);
+ try{io.emit('server-maintenance',{reason:'deploy',message:'Atualização em andamento. Reconectando automaticamente…'});await new Promise(resolve=>setTimeout(resolve,450));}catch(_){}
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
   let deployRuns=0;for(const client of (io.sockets?.sockets?.values?.()||[]))if(stashDeployRun(client))deployRuns++;if(deployRuns)saveUsers();
