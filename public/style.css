@@ -3572,6 +3572,19 @@ body.game-active #bossAlert.gameplay-notice-5s{
  background:linear-gradient(135deg,rgba(156,174,184,.20),rgba(75,91,103,.18))!important;
  box-shadow:0 0 17px rgba(218,235,242,.13),inset 0 0 18px rgba(230,244,249,.04)!important;
 }
+#menuScreen #playBtn{
+ position:relative;
+ justify-content:center!important;
+ text-align:center!important;
+ color:#f7ffff!important;
+ text-shadow:0 0 4px rgba(255,255,255,.98),0 0 10px rgba(205,250,255,.95),0 0 22px rgba(105,235,255,.82)!important;
+}
+#menuScreen #playBtn span{
+ position:absolute;
+ right:18px;
+ top:50%;
+ transform:translateY(-50%);
+}
 #menuScreen #resonanceBtn{
  border-color:rgba(194,112,255,.72)!important;
  background:linear-gradient(135deg,rgba(126,47,192,.34),rgba(63,23,112,.30))!important;
