@@ -18,14 +18,14 @@
     stinger: Object.freeze({ r: 7, hp: 13, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
     brute: Object.freeze({ r: 16, hp: 65, speed: 30, damage: 15, color: '#bd88ff', value: 4 }),
     lurker: Object.freeze({ r: 20, hp: 100, speed: 43, damage: 18, color: '#6e8dff', value: 6 }),
-    whiteShark: Object.freeze({ r: 24, hp: 300, speed: 0, damage: 28, dashSpeed: 240, color: '#91c4ce', value: 24 }),
-    boss: Object.freeze({ r: 40, hp: 2820, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
-    angler: Object.freeze({ r: 35, hp: 3260, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
-    maw: Object.freeze({ r: 45, hp: 3750, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
-    leviathan: Object.freeze({ r: 54, hp: 4700, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
-    whiteSharkBoss: Object.freeze({ r: 62, hp: 6000, speed: 0, damage: 45, dashSpeed: 290, color: '#68a8b8', value: 140 }),
-    kraken: Object.freeze({ r: 80, hp: 9200, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
-    devourer: Object.freeze({ r: 78, hp: 15000, speed: 14, damage: 42, color: '#39d8c4', value: 260 })
+    whiteShark: Object.freeze({ r: 24, hp: 300, speed: 0, damage: 28, dashSpeed: 300, color: '#91c4ce', value: 24 }),
+    boss: Object.freeze({ r: 40, hp: 5640, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
+    angler: Object.freeze({ r: 35, hp: 6520, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
+    maw: Object.freeze({ r: 45, hp: 7500, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
+    leviathan: Object.freeze({ r: 54, hp: 9400, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
+    whiteSharkBoss: Object.freeze({ r: 62, hp: 12000, speed: 0, damage: 45, dashSpeed: 350, color: '#68a8b8', value: 140 }),
+    kraken: Object.freeze({ r: 80, hp: 18400, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
+    devourer: Object.freeze({ r: 78, hp: 30000, speed: 14, damage: 42, color: '#39d8c4', value: 260 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
