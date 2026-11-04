@@ -222,6 +222,8 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(photonRelay?.color, '#ff8df4', 'server overrides client Photon Ray color');
   assert.equal(photonRelay?.beamLevel, 2, 'remote beam width receives the selected level');
   assert.ok(Math.abs(photonRelay.beamEndX - 1850 / 4800) < 1e-6, 'remote receives the local target endpoint');
+  await owner.clientEmit('photon-ray-stop');
+  assert.equal(guest.latest('photon-ray-stop')?.fromId,owner.id,'explicit Photon Ray stop reaches only the other client');
   await owner.clientEmit('shared-shot', {
     x: 1800 / 4800, y: 1100 / 3000, vx: 0.1, vy: 0.1,
     damage: 1, beamLevel: 99, special: 'photonRay',
