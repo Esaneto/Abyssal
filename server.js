@@ -152,7 +152,7 @@ const TITLE_DEFINITIONS=[
  ];
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
- function publicUser(u) { u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length }; }
+ function publicUser(u) { u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, redeemedCodes:u.redeemedCodes||[], cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, matchHistory:u.matchHistory }; }
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
@@ -309,11 +309,23 @@ const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
-function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, score: 0, level: 1, settled: false }; }
+function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, settled: false, historySaved:false }; }
+function ensureMatchParticipant(room,p){
+ if(!room||!p)return null;room.matchParticipants ||= new Map();
+ const key=String(p.userKey||p.nickname||p.id);let row=room.matchParticipants.get(key);
+ if(!row){row={key,nickname:String(p.nickname||'Mergulhador').slice(0,18),bossesKilled:0,damage:0,joinedAt:Date.now()};room.matchParticipants.set(key,row);}
+ return row;
+}
+function saveMatchHistoryForUser(user,room,run){
+ if(!user||!room||!run||run.historySaved)return;
+ const participants=[...(room.matchParticipants?.values?.()||[])].map(p=>({nickname:p.nickname,bossesKilled:Math.max(0,Math.floor(Number(p.bossesKilled)||0)),damage:Math.max(0,Math.round(Number(p.damage)||0))})).sort((a,b)=>b.damage-a.damage||b.bossesKilled-a.bossesKilled||a.nickname.localeCompare(b.nickname));
+ const record={id:String(run.id||crypto.randomUUID()),roomId:room.id,roomName:room.name||room.id,mode:room.mode==='pvp'?'pvp':'coop',playedAt:new Date().toISOString(),participants};
+ user.matchHistory=[record,...(Array.isArray(user.matchHistory)?user.matchHistory:[]).filter(x=>String(x?.id)!==record.id)].slice(0,10);run.historySaved=true;
+}
 function makeWorldState(){return WorldSimulation.createWorldState();}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={}){
  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
- return {id,name,mode:mode==='pvp'?'pvp':'coop',isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0};
+ return {id,name,mode:mode==='pvp'?'pvp':'coop',isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
@@ -608,7 +620,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
- enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  // Giro do Nilo: mesma intensidade e vetor radial da habilidade solo.
  // O ângulo não é alterado pelo impacto.
  if(skillId==='armoredgator-spin' && player){
@@ -629,7 +641,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null){
   if(killer){
    killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
    killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
-   if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;
+   if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;if(boss&&player?.runStats&&!player.runStats.settled){player.runStats.personalBossesKilled=(Number(player.runStats.personalBossesKilled)||0)+1;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.bossesKilled=(Number(historyRow.bossesKilled)||0)+1;}
    scheduleTitleStatsSave();
    if(batch)batch.accountUpdated=true;
    else socket.emit('account-data',publicUser(killer));
@@ -671,7 +683,7 @@ async function finishRunForSocket(socket,payload={}){
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
- run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;
+ run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;saveMatchHistoryForUser(user,room,run);
  if(member)member.runStats=run;else socket.data.runStats=run;
  settlePeriods();
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
@@ -951,7 +963,7 @@ io.on('connection', socket => {
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const spawnX=clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};
+  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:spawnX,y:spawnY,r:13/WORLD_ZOOM,angle:0,hp:maxHp,maxHp,alive:true,shieldCharges:initialShieldCharges,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:makeRunStats()};ensureMatchParticipant(room,p);
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   socket.emit('room-joined',{ok:true,room:publicRoomInfo(room),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -1109,6 +1121,7 @@ io.on('connection', socket => {
   } else socket.data.runStats=makeRunStats();
  });
  socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
+ socket.on('get-match-history',()=>{const u=users[socket.data.userKey];socket.emit('match-history-result',{ok:Boolean(u),matches:Array.isArray(u?.matchHistory)?u.matchHistory.slice(0,10):[]});});
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
