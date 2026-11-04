@@ -128,9 +128,7 @@ async function initializePersistence() {
  else await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('cardumes',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(cardumes)]);
  if (stored.global_chat && typeof stored.global_chat === 'object' && !Array.isArray(stored.global_chat)) {
   globalChatHistory.splice(0, globalChatHistory.length, ...(Array.isArray(stored.global_chat.messages) ? stored.global_chat.messages.slice(-CHAT_HISTORY_LIMIT) : []));
-  globalChatDayKey = String(stored.global_chat.dayKey || globalChatDayKey);
  } else persistGlobalChat();
- resetGlobalChatIfNewDay();
  console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas; chat global restaurado.`);
 }
 async function flushPersistence() { await persistenceQueue; }
@@ -220,23 +218,7 @@ const globalChatHistory=[];
 const globalChatRate=new Map();
 const CHAT_HISTORY_LIMIT=50,CHAT_MESSAGE_LIMIT=180,CHAT_RATE_WINDOW_MS=10000,CHAT_RATE_MAX=5,CHAT_MIN_INTERVAL_MS=900;
 const CHAT_TITLE_IDS=new Set(TITLE_DEFINITIONS.map(t=>t.id));
-function saoPauloDayKey(date = new Date()) {
- const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
- const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
- return `${values.year}-${values.month}-${values.day}`;
-}
-let globalChatDayKey = saoPauloDayKey();
-function persistGlobalChat() { persistState('global_chat', { dayKey: globalChatDayKey, messages: globalChatHistory.slice(-CHAT_HISTORY_LIMIT) }); }
-function resetGlobalChatIfNewDay() {
- const today = saoPauloDayKey();
- if (globalChatDayKey === today) return false;
- globalChatHistory.length = 0;
- globalChatDayKey = today;
- persistGlobalChat();
- io.emit('global-chat-reset', { dayKey: today });
- console.log(`[chat] Histórico global reiniciado à meia-noite de São Paulo (${today}).`);
- return true;
-}
+function persistGlobalChat() { persistState('global_chat', { messages: globalChatHistory.slice(-CHAT_HISTORY_LIMIT) }); }
 function publicChatMessage(message){return {id:message.id,nickname:message.nickname,titleId:message.titleId,text:message.text,at:message.at};}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
@@ -1395,7 +1377,6 @@ socket.on('global-chat-send',(payload={})=>{
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 // Detecta a virada do dia em America/Sao_Paulo; o boot também corrige dias perdidos após spin-down.
-setInterval(resetGlobalChatIfNewDay, 30 * 1000).unref();
 setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heartbeat falhou:',err.message)),5000).unref();
 async function boot() {
  await initializePersistence();
