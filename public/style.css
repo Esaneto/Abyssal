@@ -3624,3 +3624,12 @@ body.game-active #bossAlert.gameplay-notice-5s{
 .chat-report-card>strong{display:block;color:#ff9bab;font:800 13px 'DM Mono',monospace;letter-spacing:.1em}.chat-report-card>p{color:#9fb9c2;font-size:12px}
 .chat-report-choices{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:14px 0}.chat-report-choices button,.chat-report-cancel{min-height:38px;border:1px solid rgba(122,199,208,.22);border-radius:8px;background:rgba(6,27,40,.9);color:#dffafa;font:700 9px 'DM Mono',monospace;cursor:pointer}.chat-report-choices button:hover{border-color:rgba(255,103,125,.55);background:rgba(73,20,38,.72)}.chat-report-cancel{width:100%;color:#9db9c2}
 @media(max-width:430px){.chat-report-choices{grid-template-columns:1fr}}
+
+/* Compact social safety controls */
+#menuScreen .global-chat-message-actions{justify-content:flex-end;gap:4px;margin-top:4px;padding-top:3px;border-top:0}
+#menuScreen .global-chat-message-actions .small-action{min-height:20px;padding:2px 5px;font-size:7px;line-height:1;opacity:.78}
+#menuScreen .global-chat-message-actions .small-action:hover,#menuScreen .global-chat-message-actions .small-action:focus-visible{opacity:1}
+.public-profile-actions{flex-wrap:wrap;gap:7px}
+.profile-safety-btn{border:1px solid rgba(177,157,255,.28);border-radius:6px;background:rgba(5,20,30,.75);color:#c7b9ff;padding:6px 8px;font:700 8px 'DM Mono',monospace;letter-spacing:.04em;cursor:pointer}
+.profile-safety-btn.is-report{border-color:rgba(255,103,125,.3);color:#ff9bab}
+.profile-safety-btn.is-blocked{border-color:rgba(94,225,230,.34);color:#9cece7}
