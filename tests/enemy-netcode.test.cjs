@@ -80,8 +80,8 @@ test('movement extrapolation bridges the reliable snapshot baseline without free
   const next = reconcileSnapshot(state, [{ id: 99, kind: 'drifter', x: 108, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 100, interpolationMs: 100 });
   const held = renderedPosition(next[0], 800);
   assert.ok(held.x > 108, 'enemy continues briefly along its last authoritative velocity');
-  assert.equal(held.x, 144, 'extrapolation bridges a 450ms delayed-packet window');
-  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 450);
+  assert.equal(held.x, 122.4, 'extrapolation stays bounded during a delayed mobile packet window');
+  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 180);
 });
 
 
@@ -89,6 +89,6 @@ test('compact snapshots derive enemy velocity and keep motion through a high-lat
   let state = reconcileSnapshot([], [{ id: 100, kind: 'drifter', x: 100, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 0 });
   state = reconcileSnapshot(state, [{ id: 100, kind: 'drifter', x: 110, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 100, interpolationMs: 100 });
   assert.equal(state[0].vx, 100, 'velocity is estimated from consecutive server positions');
-  assert.ok(renderedPosition(state[0], 600).x > 110, 'a 500ms gap does not freeze the enemy at its last snapshot');
+  assert.ok(renderedPosition(state[0], 600).x > 110, 'a delayed packet briefly continues the last authoritative motion');
   assert.ok(renderedPosition(state[0], 900).x <= 155, 'prediction remains bounded against stale server state');
 });
