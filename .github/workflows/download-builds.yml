@@ -46,7 +46,7 @@ jobs:
           name: abyssal-windows-installer
           path: desktop/dist/Abyssal-Setup.exe
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 3
       - name: Promote validated installer to stable release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: pwsh
