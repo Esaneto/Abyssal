@@ -173,6 +173,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  // listener a minimized client could be killed server-side but still look alive on resume.
  socket.on('player-vitals',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-vitals',{detail:data||{}}));});
  socket.on('pvp-hit',data=>{window.dispatchEvent(new CustomEvent('abyssal-pvp-hit',{detail:data||{}}));});
+ socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
  socket.on('world-enemy-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated',{detail:data}));});
  socket.on('world-enemies-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated-batch',{detail:Array.isArray(data)?data:[]}));});
