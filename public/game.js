@@ -2647,9 +2647,29 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  fill(()=>{c.moveTo(-3.10*r,wave*r);c.lineTo(-3.38*r,(wave-.26)*r);c.lineTo(-3.29*r,wave*r);c.lineTo(-3.42*r,(wave+.27)*r);c.closePath()},color,'rgba(237,186,255,.55)',Math.max(1,r*.025),6);
  stroke(()=>{c.moveTo(-2.99*r,wave*r);c.bezierCurveTo(-2.15*r,(wave-.03)*r,-1.38*r,.02*r,-.81*r,.01*r)},Math.max(.7,r*.023),'rgba(255,208,255,.54)',7)};
  const oarfishRibbon=()=>{const wave=Math.sin(t*.003)*.09;
- fill(()=>{c.moveTo(-3.15*r,wave*r);c.bezierCurveTo(-2.7*r,(-.16+wave)*r,-1.86*r,-.2*r,-1.15*r,-.21*r);c.bezierCurveTo(-.3*r,-.25*r,.54*r,-.24*r,1.12*r,-.05*r);c.lineTo(1.17*r,.06*r);c.bezierCurveTo(.36*r,.23*r,-.42*r,.2*r,-1.25*r,.16*r);c.bezierCurveTo(-2.03*r,.15*r,-2.74*r,(.21+wave)*r,-3.15*r,wave*r);c.closePath()},bodyGrad(color),'rgba(225,255,249,.64)',Math.max(1,r*.032),14);
- for(let i=0;i<26;i++){const x=-2.97+i*.151,h=.24+(1-i/26)*.36;stroke(()=>{c.moveTo(x*r,-.13*r);c.quadraticCurveTo((x-.045)*r,(-.13-h*.6)*r,(x-.09)*r,(-.13-h)*r)},Math.max(.75,r*.018),i<7?'#ff668f':'#86f9ee',7)}
- for(let i=0;i<12;i++){const x=(-2.75+i*.29)*r;stroke(()=>{c.moveTo(x,-.085*r);c.lineTo(x+.02*r,.105*r)},Math.max(.6,r*.014),'rgba(232,255,248,.35)',2)}};
+
+ // A fine, flexible tail broadens progressively into a substantial oarfish head.
+ fill(()=>{
+  c.moveTo(-3.25*r,wave*r);
+  c.bezierCurveTo(-2.96*r,(wave-.055)*r,-2.3*r,-.115*r,-1.5*r,-.16*r);
+  c.bezierCurveTo(-.62*r,-.23*r,.22*r,-.34*r,.89*r,-.27*r);
+  c.quadraticCurveTo(1.19*r,-.21*r,1.28*r,-.055*r);
+  c.quadraticCurveTo(1.19*r,.18*r,.77*r,.28*r);
+  c.bezierCurveTo(.07*r,.31*r,-.7*r,.18*r,-1.52*r,.135*r);
+  c.bezierCurveTo(-2.39*r,.07*r,-2.97*r,(wave+.065)*r,-3.25*r,wave*r);
+  c.closePath();
+ },bodyGrad(color),'rgba(225,255,249,.7)',Math.max(1,r*.033),14);
+ // Preserve the iridescent cyan and rose dorsal fin as the body tapers.
+ for(let i=0;i<26;i++){
+  const q=i/25,x=-3.0+i*.155,h=.11+.46*Math.pow(q,.8);
+  stroke(()=>{c.moveTo(x*r,(-.10-.16*q)*r);c.quadraticCurveTo((x-.05)*r,(-.12-.16*q-h*.55)*r,(x-.095)*r,(-.12-.16*q-h)*r)},
+   Math.max(.72,r*.018),i<7?'#ff668f':'#86f9ee',7);
+ }
+ for(let i=0;i<12;i++){
+  const q=i/11,x=(-2.75+i*.29)*r,span=(.045+.095*q)*r;
+  stroke(()=>{c.moveTo(x,-span);c.lineTo(x+.022*r,span)},Math.max(.6,r*.014),'rgba(232,255,248,.35)',2);
+ }
+};
  const lureOnly=(lx,ly)=>{c.save();c.globalAlpha=1;const rr=r*.67,g=c.createRadialGradient(lx*r,ly*r,0,lx*r,ly*r,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff6b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowColor='#ffda70';c.shadowBlur=12*glowScale;c.beginPath();c.arc(lx*r,ly*r,rr,0,Math.PI*2);c.fill();c.restore()};
 
  const blueRingOctopus=()=>{const phase=t*.0028;
@@ -2738,7 +2758,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let k=0;k<5;k++){const xx=(-.52+k*.26)*r;stroke(()=>{c.moveTo(xx,-.62*r);c.quadraticCurveTo(xx-.03*r,-.35*r,xx+.03*r,-.14*r)},Math.max(.7,r*.025),'rgba(218,255,255,.55)',3)}
    eye(.24,-.25,r*.075);
    } else if(id==='leviathan'){
-   oarfishRibbon();fill(()=>{c.ellipse(.79*r,-.02*r,.27*r,.2*r,-.04,0,Math.PI*2)},'#ead7d8','#fff4f2',Math.max(.8,r*.028),8);eye(.83,-.07,r*.045,'#ffe9ef');gills(.47,-.1,3);
+   oarfishRibbon();
+   fill(()=>{c.ellipse(.85*r,-.015*r,.4*r,.28*r,-.03,0,Math.PI*2)},'#ead7d8','#fff4f2',Math.max(.9,r*.028),8);
+   fill(()=>{c.ellipse(.62*r,.045*r,.18*r,.11*r,-.03,0,Math.PI*2)},'rgba(255,231,236,.38)',null,0,2);
+   eye(.98,-.11,r*.047,'#ffe9ef');gills(.5,-.14,3);
   } else if(id==='voidwing'){
    // Manta ray: broad paired pectoral wings and a long tapering tail.
    fill(()=>{c.moveTo(-.7*r,-.18*r);c.quadraticCurveTo(-.05*r,-.4*r,.48*r,-.2*r);c.lineTo(1.0*r,-.02*r);c.quadraticCurveTo(.56*r,.02*r,.34*r,.22*r);c.quadraticCurveTo(.08*r,.5*r,-.22*r,.28*r);c.lineTo(-1.32*r,.84*r);c.quadraticCurveTo(-1.05*r,.25*r,-.9*r,.08*r);c.lineTo(-1.32*r,-.82*r);c.quadraticCurveTo(-1.02*r,-.3*r,-.7*r,-.18*r);c.closePath()},bodyGrad(color),'rgba(230,255,255,.62)',Math.max(1,r*.04),14);
@@ -2888,7 +2911,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   c.save();c.fillStyle='#f5fff3';for(let tooth=0;tooth<14;tooth++){const xx=(-.03+tooth*.095)*r;c.beginPath();c.moveTo(xx,-.63*r);c.lineTo(xx+.04*r,-.34*r);c.lineTo(xx+.085*r,-.64*r);c.closePath();c.fill();c.beginPath();c.moveTo(xx,.68*r);c.lineTo(xx+.04*r,.39*r);c.lineTo(xx+.085*r,.69*r);c.closePath();c.fill();}c.restore();
   eye(.2,-.52,r*.07,'#e8fff9');eye(.75,-.43,r*.06,'#befff5');gills(-.7,-.25,4);
  } else if(kind==='leviathan'){
-  oarfishRibbon();fill(()=>{c.ellipse(.82*r,-.02*r,.3*r,.21*r,-.04,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(.9,r*.026),7);eye(.9,-.07,r*.044,'#bafff3');gills(.5,-.1,3);
+  oarfishRibbon();
+  fill(()=>{c.ellipse(.88*r,-.015*r,.43*r,.3*r,-.04,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(1,r*.03),9);
+  fill(()=>{c.ellipse(.64*r,.06*r,.21*r,.12*r,-.03,0,Math.PI*2)},'rgba(209,255,243,.32)',null,0,2);
+  eye(1.03,-.11,r*.052,'#bafff3');gills(.51,-.14,4);
   } else if(kind==='maw'){
   eelTail();fill(()=>{c.ellipse(-.07*r,0,.98*r,.91*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(240,199,255,.46)',Math.max(1,r*.04),9);
   c.save();c.fillStyle='#080713';c.strokeStyle='#ff92e1';c.lineWidth=Math.max(1.5,r*.075);c.shadowBlur=14;c.shadowColor=color;c.beginPath();c.ellipse(.2*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.2,0,.52,.59,18,1.05);eye(.52,-.12,r*.055,'#f4d5ff');
