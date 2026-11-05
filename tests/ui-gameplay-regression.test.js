@@ -201,3 +201,26 @@ test('successful room join has an atomic DOM-safe path into gameplay', () => {
  assert.match(game,/if\(toggle\)toggle\.hidden=false/);
  assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao ativar gameplay:'/);
 });
+
+
+test('authoritative room join commits menu exit before fallible arena setup', () => {
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const start=game.indexOf('function enterOnlineGameplay');
+ const end=game.indexOf('function activateOnlineEntry',start);
+ const handler=game.slice(start,end);
+ assert.ok(handler.indexOf("node.hidden=true")>=0);
+ assert.ok(handler.indexOf("document.body.classList.add('game-active')")>=0);
+ assert.ok(handler.indexOf('try{createArenaRocks();}')>=0);
+ assert.ok(handler.indexOf("node.hidden=true")<handler.indexOf('try{createArenaRocks();}'));
+ assert.ok(handler.indexOf("document.body.classList.add('game-active')")<handler.indexOf('try{createArenaRocks();}'));
+});
+
+test('online entry fallback cannot return the client to a visible menu after server acceptance', () => {
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ const start=game.indexOf('function activateOnlineEntry');
+ const end=game.indexOf("window.addEventListener('abyssal-room-joined'",start);
+ const handler=game.slice(start,end);
+ assert.match(handler,/if\(menu\)menu\.hidden=true/);
+ assert.match(handler,/onlineMode=true;gameState='playing'/);
+ assert.match(handler,/return true/);
+});
