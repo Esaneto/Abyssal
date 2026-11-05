@@ -52,5 +52,5 @@ test('creature previews do not reintroduce the shared orbit frame and cache vers
   assert.match(html,/marine-species\.js\?v=4/);
   assert.match(html,/marine-renderer\.js\?v=3/);
   assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
-  assert.match(html,/game\.js\?v=4\.4\.10/);
+  assert.match(html,/game\.js\?v=4\.4\.11/);
 });
