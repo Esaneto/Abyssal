@@ -20,6 +20,7 @@
   const ellipse=(x,y,rx,ry,rot=0)=>{c.save();c.fillStyle=bodyPaint;c.beginPath();c.ellipse(x,y,rx,ry,rot,0,Math.PI*2);c.fill();c.stroke();c.restore();};
   const line=(points,width=null,color=null)=>{c.save();if(width!=null)c.lineWidth=width;if(color)c.strokeStyle=color;c.beginPath();points.forEach(([px,py],i)=>i?c.lineTo(px,py):c.moveTo(px,py));c.stroke();c.restore();};
   const polygon=(points,fill=null,stroke=null)=>{c.save();c.fillStyle=resolveFill(fill);if(stroke)c.strokeStyle=stroke;c.beginPath();points.forEach(([px,py],i)=>i?c.lineTo(px,py):c.moveTo(px,py));c.closePath();c.fill();c.stroke();c.restore();};
+  const fill=(draw,paint=null,stroke=null,width=.055)=>{c.save();c.fillStyle=resolveFill(paint);if(stroke)c.strokeStyle=stroke;c.lineWidth=width;c.beginPath();draw();c.fill();if(stroke)c.stroke();c.restore();};
   const eye=(ex,ey,scale=.075)=>{c.save();c.fillStyle='#07121a';c.beginPath();c.ellipse(ex,ey,scale,scale*.9,0,0,Math.PI*2);c.fill();c.restore();};
   const gills=(x0,y0,count=4,spacing=.095,height=.22)=>{for(let i=0;i<count;i++)line([[x0-i*spacing,y0-height/2],[x0-i*spacing,y0+height/2]],.035,'rgba(224,242,240,.56)');};
 
