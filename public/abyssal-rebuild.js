@@ -331,6 +331,8 @@ function applyDepthState(state){
 
 function bindDepthState(){
   window.addEventListener('abyssal-depth-state',function(event){applyDepthState(event.detail||{});});
+  window.addEventListener('abyssal-room-joined',function(event){if(event.detail?.room?.mode==='pvp')applyDepthState({bossesDefeated:0,depth:0,zone:null,event:null});});
+  window.addEventListener('abyssal-room-left',function(){applyDepthState({bossesDefeated:0,depth:350,zone:window.AbyssalExpeditionRules?.zoneForBosses?.(0)||null,event:null});});
 }
 
 function bindExpeditionCheckpoints(){
