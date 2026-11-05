@@ -7,12 +7,6 @@ const root=path.join(__dirname,'..');
 const game=fs.readFileSync(path.join(root,'public/game.js'),'utf8');
 const css=fs.readFileSync(path.join(root,'public/style.css'),'utf8');
 
-test('camera uses a shared world-area reference instead of platform-specific zoom',()=>{
- assert.match(game,/FAIR_VIEW_REFERENCE/);
- assert.match(game,/FAIR_VIEW_WORLD_AREA/);
- assert.match(game,/Math\.sqrt\(viewportArea\/FAIR_VIEW_WORLD_AREA\)/);
- assert.doesNotMatch(game,/isMobileDevice\(\)\s*\?\s*\.5\s*:\s*\.78/);
-});
 
 test('mobile UI has explicit portrait and landscape layouts',()=>{
  assert.match(css,/@media \(max-width:700px\) and \(orientation:portrait\)/);
@@ -69,10 +63,6 @@ test('end dive return clears game-active state',()=>{
  assert.match(game,/const returnToMenu=\(result\)=>\{onlineMode=false;setMobileGameActive\(false\);document\.body\.classList\.remove\('game-active'\)/);
 });
 
-test('mobile camera pulls farther back than desktop fair-area baseline',()=>{
- const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
- assert.match(game,/mobileViewport\?clamp\(fairZoom\*\.82,\.25,\.72\):clamp\(fairZoom,\.34,1\.12\)/);
-});
 test('mobile menu utilities do not use fixed positioning in final layout',()=>{
  const final=css.slice(css.lastIndexOf('MOBILE V7'));
  assert.match(final,/#menuScreen \.download-cta,#menuScreen \.controls-cta\{\s*position:static!important/);
@@ -221,9 +211,17 @@ test('match HUD reserves topbar space and reclaims it when chrome is collapsed',
 });
 
 
-test('fullscreen resize preserves isotropic world scale instead of area-shrinking gameplay', () => {
-  const game = read('public/game.js');
-  const zoom = game.slice(game.indexOf('function desiredWorldZoom'), game.indexOf('function desiredMapFactor'));
-  assert.match(zoom, /heightZoom=Math\.max\(300,viewH\)\/\(FAIR_VIEW_REFERENCE\.height\/FAIR_VIEW_REFERENCE\.zoom\)/);
-  assert.doesNotMatch(zoom, /viewportArea|Math\.sqrt\(viewportArea/);
+
+test('fullscreen expands field of view without changing world scale',()=>{
+ const game=read('public/game.js');
+ const zoom=game.slice(game.indexOf('function desiredWorldZoom'),game.indexOf('function desiredMapFactor'));
+ assert.match(zoom,/return mobileViewport\?\.64:FAIR_VIEW_REFERENCE\.zoom/);
+ assert.doesNotMatch(zoom,/viewW|viewH|viewportArea|Math\.sqrt/);
+});
+
+test('mobile match HUD starts at safe-area top regardless of collapsed chrome',()=>{
+ const css=read('public/style.css');
+ const final=css.slice(css.lastIndexOf('MOBILE MATCH HUD V18'));
+ assert.match(final,/body\.game-active,\s*body\.game-active\.hud-collapsed\{--match-ui-top:max\(7px,env\(safe-area-inset-top\)\)\}/);
+ assert.match(final,/body\.mobile-game-active \.hud\{top:var\(--match-ui-top\)!important\}/);
 });
