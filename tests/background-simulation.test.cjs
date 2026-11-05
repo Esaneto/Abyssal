@@ -245,3 +245,11 @@ test('ricochet only participates in canonical shot damage', () => {
  assert.match(server,/RICOCHET_SHOT_SKILLS=new Set\(\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]\)/);
  assert.match(server,/RICOCHET_SHOT_SKILLS\.has\(String\(skillId\|\|''\)\)/);
 });
+
+
+test('maintenance reconnect cannot remain forever waiting for session-resumed', () => {
+ assert.match(online,/if\(reconnectPending&&reconnectTarget\)\{armReconnectWatchdog\(\);resumeSessionForReconnect\(\);\}/);
+ assert.match(online,/reconnectSessionAttempts>=5/);
+ assert.match(online,/setTimeout\(\(\)=>\{reconnectSessionRetry=null;if\(reconnectPending&&!authenticated&&socket\?\.connected\)resumeSessionForReconnect\(\);\},1800\)/);
+ assert.match(online,/if\(reconnectSessionRetry\)\{clearTimeout\(reconnectSessionRetry\);reconnectSessionRetry=null;\}/);
+});
