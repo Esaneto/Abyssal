@@ -53,7 +53,7 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.match(html,/marine-renderer\.js\?v=10/);
  assert.match(html,/abyssal-boss-renderer\.js\?v=4/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
- assert.match(html,/game\.js\?v=4\.4\.18/);
+ assert.match(html,/game\.js\?v=4\.4\.19/);
 });
 
 test('squid and octopus variants use separate species-level anatomy',()=>{
