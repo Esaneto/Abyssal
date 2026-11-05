@@ -175,11 +175,20 @@ test('floating damage numbers render in fixed screen pixels independent of camer
 
 
 test('deploy resume does not depend on stale onlineMode ordering', () => {
- assert.match(game, /const canResume=Boolean\(d\.reconnected&&d\.resumedRun&&player&&gameState!=='menu'&&gameState!=='over'\)/);
+ assert.match(game, /const canResume=Boolean\(d\.reconnected&&d\.resumedRun&&player\)/);
  assert.doesNotMatch(game, /d\.reconnected&&d\.resumedRun&&onlineMode&&player/);
 });
 
 test('Q and E ignore keyboard auto-repeat', () => {
  assert.match(game, /!e\.repeat&&\(e\.key==='q'\|\|e\.key==='Q'\)/);
  assert.match(game, /!e\.repeat&&\(e\.key==='e'\|\|e\.key==='E'\)/);
+});
+
+
+test('deploy resume explicitly restores the gameplay visual state even if client transiently entered menu', () => {
+ const handler=game.slice(game.indexOf("window.addEventListener('abyssal-room-joined'"),game.indexOf("window.addEventListener('abyssal-room-created'"));
+ assert.match(handler,/screens\.forEach\(id=>\$\(id\)\.hidden=true\)/);
+ assert.match(handler,/document\.body\.classList\.add\('game-active'\)/);
+ assert.match(handler,/\$\('toggleHudBtn'\)\.hidden=false/);
+ assert.match(handler,/setMobileGameActive\(true\)/);
 });
