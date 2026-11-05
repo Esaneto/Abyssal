@@ -6,11 +6,11 @@ const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
  violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:390,testOnly:false},
- leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:1690},
+ leviathan:{name:'Eco do Peixe-Remo Leviatã',nameEn:'Oarfish Leviathan Echo',brl:1690},
  kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:1890},
- aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:1490},
- angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:1290},
- maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:1490},
+ aberration:{name:'Eco do Polvo-de-Anéis-Azuis',nameEn:'Blue-Ringed Octopus Echo',brl:1490},
+ angler:{name:'Núcleo do Peixe-Pescador',nameEn:'Anglerfish Core',brl:1290},
+ maw:{name:'Fragmento da Enguia-Pelícano',nameEn:'Pelican Eel Fragment',brl:1490},
  devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:1990},
  reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:590},
  hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:590},
