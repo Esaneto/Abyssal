@@ -412,3 +412,27 @@ body.abyss-event-resonance_bloom .abyss-event-banner strong{color:#7df5df}
 }
 
 body:not(.game-active) .abyss-map-interact{display:none!important}
+
+/* Ocean sinkhole: a broad flooded limestone rim surrounding a dark shaft. */
+body.abyss-rebuild-ready #menuScreen{background:radial-gradient(ellipse at 75% 35%,#12607188,transparent 60%),linear-gradient(165deg,#092e40,#03121e 75%);overflow-y:auto}
+.abyss-gate{height:min(58vw,540px);pointer-events:auto;cursor:pointer}
+.abyss-gate::before{inset:16% 0 12%;border-radius:48% 52% 46% 54%;background:radial-gradient(ellipse,#010914 40%,#062232 48%,#176477 52%,#399a9b 54%,#174d5b 58%,#0a3545 66%,transparent 70%);animation:none;transform:rotate(-9deg)}
+.abyss-gate::after{inset:26% 12% 23%;border-radius:50%;background:repeating-conic-gradient(from 20deg,#26667844 0deg 2deg,transparent 3deg 14deg);box-shadow:inset 0 22px 28px #248a9944,inset 0 -55px 55px #000c;animation:none}
+.abyss-gate-depth{inset:29% 17% 27%;border-radius:50%;background:radial-gradient(ellipse at 50% 5%,#0c354a,#010711 70%)}
+.abyss-gate-rim,.abyss-gate-eye{display:none}
+.abyss-gate-content{margin-top:4%;width:76%}
+.abyss-gate-kicker,.abyss-gate-content p{display:none}
+.abyss-gate-content strong{font-size:clamp(18px,2.4vw,30px);letter-spacing:.15em}
+.abyss-gate-button{background:transparent;border-color:#7ed6df66;margin-top:18px}
+.abyss-gate:hover::before{filter:drop-shadow(0 0 26px #33d4df44)}
+.abyss-descent-panel,.abyss-checkpoint-panel{overflow-y:auto}
+.abyss-descent-dialog,.abyss-checkpoint-card{max-height:calc(100dvh - 40px);overflow-y:auto}
+body:not(.game-active) .abyss-depth-meter{display:none!important}
+.abyss-event-banner{top:auto;bottom:160px;max-width: min(360px,80vw)}
+@media(max-width:900px){
+ .abyss-gate{height:340px;flex-shrink:0;margin:16px auto}
+ body.abyss-rebuild-ready #menuScreen .menu-content{width:100%;max-width:540px}
+ .abyss-depth-meter{top:150px;right:8px;min-width:0;max-width:130px}
+ .abyss-depth-meter small{max-width:110px}
+ .abyss-event-banner{bottom:210px}
+}

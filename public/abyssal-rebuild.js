@@ -87,7 +87,8 @@ function createGate(){
 
   document.body.appendChild(panel);
 
-  var close=function(){panel.hidden=true;};
+  var close=function(){panel.hidden=true;$('abyssGateButton')?.focus();};
+  gate.addEventListener('click',function(e){if(e.target!==$('abyssGateButton'))$('abyssGateButton').click();});
   $('abyssGateButton')?.addEventListener('click',function(){
     panel.hidden=false;
     var first=panel.querySelector('[data-mode="solo"]');

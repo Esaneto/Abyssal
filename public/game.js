@@ -2416,11 +2416,20 @@ function drawAbyssalCaveMap(t){
   const palette=room.type==='boss'?['#020106','#260813','#ff315f']:room.type==='elite'?['#030207','#1b0b17','#ff496d']:room.type==='hub'?['#02070b','#09232a','#63e9de']:room.type==='landing'?['#01050a','#071927','#4cb9ff']:room.type==='start'?['#020806','#0b241f','#5cff82']:room.type==='event'?['#03020a','#15112a','#ad7cff']:['#020609','#09202a','#58c6c8'];
   ctx.fillStyle=palette[0];ctx.strokeStyle='rgba(3,5,9,.98)';ctx.lineWidth=46/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx+20,room.ry+20,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle=palette[1];ctx.strokeStyle=palette[2]+'33';ctx.lineWidth=7/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.92,room.ry*.91,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.globalAlpha=.14;ctx.strokeStyle=palette[2];ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.72,room.ry*.67,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-  if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);drawCaveRoomSignal(room,t);
+  // Mineral shelves and benthic life frame the navigable water, without map icons.
+  for(let i=0;i<48;i++){
+   const a=i*Math.PI*2/48,noise=Math.sin(i*127.1+room.x)*.5+.5;
+   const x=room.x+Math.cos(a)*room.rx*(.94+noise*.07),y=room.y+Math.sin(a)*room.ry*(.94+noise*.07);
+   const r=16+noise*24;
+   ctx.fillStyle=i%3===0?'#16343d':'#0b202c';ctx.strokeStyle='#25434b';ctx.lineWidth=2;
+   ctx.beginPath();for(let j=0;j<7;j++){const b=j*Math.PI*2/7,rr=r*(.75+.25*Math.sin(j*7+i));const px=x+Math.cos(b)*rr,py=y+Math.sin(b)*rr*.7;j?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.closePath();ctx.fill();ctx.stroke();
+   if(i%4===0){ctx.strokeStyle='rgba(64,192,182,.45)';ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x-12,y-18,x+5,y-35);ctx.moveTo(x,y-12);ctx.lineTo(x+13,y-24);ctx.stroke();}
+  }
+  const water=ctx.createRadialGradient(room.x-room.rx*.3,room.y-room.ry*.4,0,room.x,room.y,room.rx);
+  water.addColorStop(0,'rgba(34,121,139,.12)');water.addColorStop(1,'rgba(0,8,18,0)');ctx.fillStyle=water;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.9,room.ry*.9,0,0,Math.PI*2);ctx.fill();
+  drawCaveRoomSignal(room,t);
  }
  drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);drawMapPortal(layout.portals.landing,t);
- const boss=layout.portals.boss;if(boss)drawCaveGlyph(boss.x,boss.y,'boss',t,1.6);
  ctx.restore();
  return true;
 }
