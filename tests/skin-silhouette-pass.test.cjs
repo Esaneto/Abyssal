@@ -22,30 +22,42 @@ test('skin rarity visuals and rarity filter are removed',()=>{
 test('pelican eel skin and boss keep the mouth and gain a long eel body',()=>{
  const skinStart=game.indexOf("}else if(id==='maw'){"),skinEnd=game.indexOf("}else{",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='maw'){"),bossEnd=game.indexOf(" } else if(kind==='whiteShark'",bossStart);
- assert.ok(skinStart>0&&skinEnd>skinStart&&bossStart>0&&bossEnd>bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
- assert.match(skin,/-2\.45\*r/);assert.match(boss,/-2\.65\*r/);
+ assert.ok(skinStart>0&&skinEnd>skinStart&&bossStart>0&&bossEnd>bossStart);
+ assert.match(game,/const eelTail=\(\)=>/);
+ assert.match(game,/-3\.12\*r/);
+ assert.match(skin,/eelTail\(\)/);assert.match(boss,/eelTail\(\)/);
  assert.match(skin,/ellipse\(\.12\*r,0,\.56\*r,\.63\*r/);
  assert.match(boss,/ellipse\(\.2\*r,0,\.56\*r,\.63\*r/);
+
 });
 
 test('oarfish leviathan uses a ribbon body and continuous dorsal crest while preserving its palette',()=>{
  const skinStart=game.indexOf("} else if(id==='leviathan'){"),skinEnd=game.indexOf("} else if(id==='voidwing'){",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='leviathan'){"),bossEnd=game.indexOf(" } else if(kind==='maw'){",bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
+ assert.ok(skinStart>0&&skinEnd>skinStart&&bossStart>0&&bossEnd>bossStart);
  assert.match(game,/id:'leviathan',name:'Eco do Peixe-Remo Leviatã',color:'#ff668f'/);
- assert.match(skin,/for\(let i=0;i<18;i\+\+\)/);assert.match(skin,/#ff668f/);
- assert.match(boss,/for\(let i=0;i<22;i\+\+\)/);assert.match(boss,/-3\.25\*r/);
+ assert.match(game,/const oarfishRibbon=\(\)=>/);
+ assert.match(game,/for\(let i=0;i<26;i\+\+\)/);assert.match(game,/#ff668f/);
+ assert.match(skin,/oarfishRibbon\(\)/);assert.match(boss,/oarfishRibbon\(\)/);
+
 });
 
 test('blue-ring octopus is blue with eight downward arms and black damaging ink',()=>{
  const skinStart=game.indexOf("if(id==='aberration'){"),skinEnd=game.indexOf("}else if(id==='angler'){",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='boss'){"),bossEnd=game.indexOf(" } else if(kind==='devourer'){",bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
+ const helperStart=game.indexOf("const blueRingOctopus="),helperEnd=game.indexOf("if(playerCreature){",helperStart);
+ const helper=game.slice(helperStart,helperEnd);
+ assert.ok(helperStart>0&&helperEnd>helperStart);
  assert.match(game,/id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis',color:'#338cff'/);
- assert.match(skin,/for\(let i=0;i<8;i\+\+\)/);assert.match(skin,/1\.48\+\(i%2\)\*\.16/);
- assert.match(boss,/for\(let i=0;i<8;i\+\+\)/);assert.match(boss,/2\.05\+\(i%3\)\*\.18/);
+ assert.match(skin,/blueRingOctopus\(\)/);assert.match(boss,/blueRingOctopus\(\)/);
+ assert.match(helper,/for\(let arm=0;arm<8;arm\+\+\)/);
+ assert.match(helper,/c2y:1\.5/);assert.match(helper,/ey:2\.22\+\(arm%3\)\*\.16/);
+ assert.match(helper,/#348fe7/);assert.match(helper,/#67ddff/);
  assert.match(game,/type:'ink-trail'/);assert.match(game,/blue-ring-ink/);
+
 });
 
 test('anglerfish has a huge open mouth, luminous lure and exact camouflage cycle',()=>{
@@ -54,7 +66,10 @@ test('anglerfish has a huge open mouth, luminous lure and exact camouflage cycle
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
  assert.match(skin,/1\.28\*r,-\.34\*r/);assert.match(boss,/1\.42\*r,-\.38\*r/);
  assert.match(skin,/globalCompositeOperation='lighter'/);assert.match(boss,/globalCompositeOperation='lighter'/);
+ assert.match(game,/const lureOnly=/);assert.match(game,/lureOnly\(\.55,-1\.18\)/);
  assert.match(game,/phase<3000/);assert.match(game,/phase<13000/);assert.match(game,/phase<16000/);assert.match(game,/%26000/);
+ assert.match(game,/anglerConcealed/);
+
 });
 
 test('Kraken identity and eight-arm silhouette remain untouched',()=>{
