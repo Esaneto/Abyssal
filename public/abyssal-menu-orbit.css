@@ -1084,7 +1084,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actio
   filter:brightness(1.18)!important;
 }
 /* Controls are still callable from the existing top-bar gamepad shortcut. */
-body:not(.game-active) #menuScreen .abyss-orbit-extras #controlsBtn.menu-hidden-utility{
+body:not(.game-active) #menuScreen .abyss-orbit-extras #controlsBtn[hidden]{
   display:none!important;visibility:hidden!important;pointer-events:none!important;
 }
 
