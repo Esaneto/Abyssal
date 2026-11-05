@@ -1006,3 +1006,146 @@ Se uma nova especie for adicionada, ela exige no mesmo commit:
 6. efeito visual;
 7. teste correspondente;
 8. atualizacao deste handoff quando houver nova regra estrutural.
+
+
+## 24. Coleções x famílias, economia por raridade, presença visual e pressão inimiga - 2026-11-05
+
+Esta seção substitui qualquer interpretação anterior que tratava "Assinatura Abyssal" como família biológica exclusiva.
+
+### Coleção e família são dimensões diferentes
+
+A loja agora distingue:
+- coleção;
+- família biológica;
+- raridade;
+- tipo de desbloqueio.
+
+`SKIN_TAXONOMY` em `public/game.js` é a fonte canônica para skins legadas.
+
+Exemplos:
+- Medusa-Coroa Violeta: família `jelly`, coleção `signature`;
+- Lula-Vampira Carmesim: família `squid`, coleção `signature`;
+- Manta do Nada: família `ray`, coleção `signature`;
+- Peixe-Olho-de-Barril: família `fish`, coleção `signature`;
+- Náutilo Soberano: família `mollusc`, coleção `signature`;
+- Moréia Esmeralda Colossal: família `eel`, coleções `signature` e `mission`.
+
+Uma skin pode e deve aparecer simultaneamente:
+- em sua coleção;
+- em sua família biológica.
+
+Não voltar a um único campo de categoria mutuamente exclusivo.
+
+### Missões e promoções
+
+`greensnake` é recompensa de 100% de progressão:
+- raridade `colossal`;
+- `unlockType:'mission'`;
+- não pode ser comprada por moedas ou Stripe;
+- continua sendo concedida pela conclusão da progressão.
+
+`electriceel`:
+- coleção `promo`;
+- desbloqueada por código;
+- não deve aparecer como compra de 0 moedas.
+
+Cards de missão e promoção exibem:
+- RECOMPENSA DE MISSÃO;
+- CÓDIGO PROMOCIONAL.
+
+### Economia por raridade
+
+Espécies marinhas usam economia canônica em `public/marine-species.js`.
+
+Moedas-base antes dos ajustes por família/variante:
+- common: 2.400;
+- uncommon: 6.500;
+- rare: 12.500;
+- epic: 24.000;
+- legendary: 42.000;
+- mythic: 68.000.
+
+Regra:
+- common a epic: compra por moedas abissais;
+- legendary e mythic: premium;
+- skins de missão/evento podem ser high tier sem compra.
+
+Premium marinho:
+- legendary: R$ 9,90;
+- mythic variante 8: R$ 14,90;
+- mythic variante 9: R$ 19,90.
+
+Skins legadas lendárias convertidas para premium:
+- Náutilo Soberano: R$ 9,90;
+- Lula-Vampira Carmesim: R$ 10,90;
+- Peixe-Olho-de-Barril: R$ 11,90;
+- Carcereiro das Fossas: R$ 12,90.
+
+Os preços server-side e Stripe precisam permanecer alinhados com a UI.
+
+### Presença visual das skins
+
+`drawSkinPresenceAura()` aumenta presença visual por raridade:
+- aura maior;
+- glow mais forte;
+- contorno energético;
+- partículas orbitais nos tiers altos.
+
+Aplicado:
+- jogador local;
+- jogadores remotos.
+
+`renderMarineAbilityVisual()` amplia o efeito visual com base na raridade.
+Violeta e Tóxica também receberam áreas, partículas e camadas visuais maiores.
+
+Regra:
+raridade alta precisa parecer visualmente rara em gameplay, não apenas no badge da loja.
+
+### Inimigos mais ameaçadores
+
+`drawEnemyThreatAura()`:
+- inimigos comuns têm leitura de ameaça mais clara;
+- elites recebem aura maior, brilho e partículas orbitais.
+
+Pressão física foi fortalecida de forma espelhada em solo e servidor:
+- comum: dano x1,07, velocidade x1,03;
+- elite: dano x1,18, velocidade x1,08, HP x1,12.
+
+Não aumentar hitbox como atalho de dificuldade.
+Mudanças físicas futuras precisam permanecer iguais em `public/game.js` e `world-simulation.js`.
+
+### Filtros da loja
+
+A lista inclui agora:
+- Coleção · Assinatura Abyssal;
+- Coleção · Relíquias;
+- Desbloqueadas por missão;
+- Promocionais;
+- todas as famílias biológicas.
+
+A filtragem usa `skinShopCategories(skin)` e `categories.has(familyFilter)`.
+
+### Testes
+
+Atualizados/criados para proteger:
+- coleções sem esconder família biológica;
+- Assinatura Abyssal separada de Relíquias;
+- Moréia Esmeralda como missão + colossal;
+- escalada de preço por raridade;
+- legendary/mythic premium;
+- preços Stripe;
+- efeitos passivos de raridade;
+- pressão física equivalente entre solo e servidor.
+
+CI:
+- workflow `Abyssal checks v2`;
+- job `syntax-and-tests` verde no commit `58995ce283f5c2ecad6971e33b2a6ae99e93cbf1`.
+
+Cache atual:
+- `style.css?v=4.3.10`;
+- `marine-species.js?v=8`;
+- `marine-abilities.js?v=3`;
+- `marine-renderer.js?v=8`;
+- `abyssal-boss-renderer.js?v=3`;
+- `game.js?v=4.4.16`;
+- `online.js?v=4.4.3`.
