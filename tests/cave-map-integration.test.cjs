@@ -63,3 +63,22 @@ test('PvP retains its dedicated arena instead of inheriting expedition caves',()
  assert.match(game,/function currentMapInteraction\(\)\{[\s\S]*?onlineRoomMode==='pvp'[\s\S]*?return null/);
  assert.match(server,/const expeditionSpawn=room\.mode==='coop'\?/);
 });
+
+test('boss clear unlocks the next cave tier only when the living co-op group gathers at the sigil',()=>{
+ assert.match(server,/\['descent','ascend','next-tier'\]\.includes\(kind\)/);
+ assert.match(server,/reason:'boss-not-cleared'/);
+ assert.match(server,/reason:'group-not-ready'/);
+ assert.match(server,/w\.mapTier=currentTier\+1/);
+ assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,party\.length\)/);
+ assert.match(server,/criticalReason:'map-tier-transition'/);
+ assert.match(game,/requestMapTransition\?\.\('next-tier'/);
+ assert.match(game,/if\(result\.map\)setActiveMapDescriptor\(result\.map\)/);
+});
+
+test('deploy resume preserves deterministic cave seed tier and consumed branch state',()=>{
+ assert.match(server,/const deployWorld=room\.world\?JSON\.parse\(JSON\.stringify\(room\.world\)\):null/);
+ assert.match(server,/roomResume:\{[\s\S]*?world:deployWorld/);
+ assert.match(server,/room\.world=JSON\.parse\(JSON\.stringify\(resumedRun\.roomResume\.world\)\)/);
+ assert.match(world,/eliteRewardClaimedTier/);
+ assert.match(world,/sideEncounterResolvedTier/);
+});
