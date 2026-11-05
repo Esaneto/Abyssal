@@ -192,6 +192,8 @@ const areaEnemyCandidates=[];
 // Reused objects/arrays for the hot enemy-update path (up to 400 entities per frame).
 const soloEnemyMovementResult={};
 const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
+const soloMapNavProxy={x:0,y:0,local:true,skinId:'default',moveSpeed:150/GAME_WORLD_ZOOM,alive:true};
+const soloMapNavTargets=[soloMapNavProxy];
 let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity,lastSoloRankingValue=null;
 const BACKGROUND_BEAM_COLORS=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
 let arenaVortexLayoutKey='',arenaVortexLayoutCache=[],arenaVortexGradientKey='';
@@ -1979,8 +1981,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    else if(e.suctionCooldown<=0){e.suctionActive=true;e.suctionTimer=4;e.suctionCooldown=20;e.suctionPulse=(Number(e.suctionPulse)||0)+1;playDevourerSuction();showToast('SUCÇÃO DO DEVORADOR · AFASTE-SE DA BOCA');}
    if(e.suctionActive){
     e.vx=0;e.vy=0;e.angle=Math.atan2(player.y-e.y,player.x-e.x);
-    for(const creature of enemies){if(creature===e)continue;const pull=window.AbyssalEnemyAI?.suctionPullDelta?.(creature,e,dt);if(!pull||(!pull.dx&&!pull.dy))continue;creature.x=clamp(creature.x+pull.dx,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);creature.y=clamp(creature.y+pull.dy,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);creature.vx=pull.dx/Math.max(dt,.001);creature.vy=pull.dy/Math.max(dt,.001);}
-    const pull=window.AbyssalEnemyAI?.suctionPullDelta?.(player,e,dt);if(pull&&(pull.dx||pull.dy)){player.x=clamp(player.x+pull.dx,player.r,W-player.r);player.y=clamp(player.y+pull.dy,player.r,H-player.r);updateCamera();}
+    for(const creature of enemies){if(creature===e)continue;const pull=window.AbyssalEnemyAI?.suctionPullDelta?.(creature,e,dt);if(!pull||(!pull.dx&&!pull.dy))continue;const moved=mapResolveMove(creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,creature.r*.7));const adx=moved.x-creature.x,ady=moved.y-creature.y;creature.x=moved.x;creature.y=moved.y;creature.vx=adx/Math.max(dt,.001);creature.vy=ady/Math.max(dt,.001);}
+    const pull=window.AbyssalEnemyAI?.suctionPullDelta?.(player,e,dt);if(pull&&(pull.dx||pull.dy)){const moved=mapResolveMove(player.x,player.y,clamp(player.x+pull.dx,player.r,W-player.r),clamp(player.y+pull.dy,player.r,H-player.r),player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;updateCamera();}
     continue;
    }
   }
@@ -1992,9 +1994,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      e.anglerPulse=0;
      const dToP=Math.hypot(player.x-e.x,player.y-e.y);
      if(dToP<320/GAME_WORLD_ZOOM){
-       const pull=22/GAME_WORLD_ZOOM;
-       player.x-=(player.x-e.x)/dToP*pull;
-       player.y-=(player.y-e.y)/dToP*pull;
+       const pull=22/GAME_WORLD_ZOOM,tx=player.x-(player.x-e.x)/dToP*pull,ty=player.y-(player.y-e.y)/dToP*pull;
+       const moved=mapResolveMove(player.x,player.y,tx,ty,player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;
        effects.push({type:'ring',x:e.x,y:e.y,max:90/worldZoom,life:.25,maxLife:.25,color:'#ffcb70'});
      }
    }
@@ -2033,17 +2034,19 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
-   e.x=clamp(e.x+e.kbVx*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);
-   e.y=clamp(e.y+e.kbVy*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);
+   const moved=mapResolveMove(e.x,e.y,e.x+e.kbVx*dt,e.y+e.kbVy*dt,Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;}
    const decay=Math.exp(-dt*6.5);
    e.kbVx*=decay;e.kbVy*=decay;
    if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
   }
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
-   window.AbyssalEnemyAI.moveTowardTarget(e,localTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
+   let movementTargets=localTargets;
+   if(activeMapLayout&&ABYSSAL_MAP){const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}
+   window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
+   if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
-   if(e.paralyzedUntil && performance.now() < e.paralyzedUntil){ /* paralisado */ } else { const dx=target.x-e.x,dy=target.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);e.x=clamp(e.x+dx/d*e.speed*dt,8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);e.y=clamp(e.y+dy/d*e.speed*dt,8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM); }
+   if(e.paralyzedUntil && performance.now() < e.paralyzedUntil){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,e.r*.66)}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y; }
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
@@ -2052,7 +2055,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
- if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}
+ if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}if(onlineRoomMode!=='pvp'&&activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,prevX,prevY,p.x,p.y,Math.max(2,p.r||0))){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);audio(130,.028,'triangle',.004);projectiles.splice(i,1);continue;}
  projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom){if(hit||reachedRange)spawnProjectileDissolve(p.x,p.y,p.color,p.special,false);projectiles.splice(i,1)}}
  for(let i=orbs.length-1;i>=0;i--){
