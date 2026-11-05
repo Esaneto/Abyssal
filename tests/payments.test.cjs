@@ -14,6 +14,10 @@ test('server catalog uses rarity-based BRL prices and a discounted relic bundle'
   ['angler','maw','aberration','leviathan','kraken','devourer'].map(id=>PAID_SKINS[id].brl),
   [1290,1490,1490,1690,1890,1990]
  );
+ assert.deepEqual(
+  ['abyssking','bloodmoon','abyssaleye','deepwarden'].map(id=>PAID_SKINS[id].brl),
+  [990,1090,1190,1290]
+ );
  assert.equal(calculateOrder('violet',[],'brl').amount,390);
  assert.equal(calculateOrder('reefshark',[],'brl').amount,590);
  assert.equal(calculateOrder('boss_bundle',[],'brl').amount,6990);
