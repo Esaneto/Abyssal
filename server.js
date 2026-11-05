@@ -13,6 +13,7 @@ const SkinAbilities = require('./skin-abilities');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
+const { normalizeDatabasePoolConfig } = require('./database-config');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -100,9 +101,9 @@ async function initializePersistence() {
  let Pool;
  try { ({ Pool } = require('pg')); }
  catch { throw new Error('DATABASE_URL foi configurada, mas o pacote pg não foi instalado. Execute npm install e faça um novo deploy.'); }
+ const databasePoolConfig=normalizeDatabasePoolConfig(process.env.DATABASE_URL,process.env.DATABASE_SSL);
  pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === 'disable' ? false : { rejectUnauthorized: false },
+  ...databasePoolConfig,
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000
