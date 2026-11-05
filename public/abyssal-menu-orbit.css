@@ -1248,3 +1248,57 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vor
 body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-current {
   opacity:.27!important;
 }
+
+
+/* V8 · PC vortex animation.
+   Rotate a dedicated HTML layer instead of the filtered/masked SVG itself:
+   shorter cycles make the current visible and avoid compositor stalls on desktop.
+*/
+body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-flow-layer{
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  border-radius:50%!important;
+  transform-origin:50% 50%!important;
+  transform:translateZ(0) rotate(0deg);
+  backface-visibility:hidden;
+  pointer-events:none!important;
+}
+body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-flow-layer .abyss-vortex-streams{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  opacity:.96!important;
+  filter:none!important;
+  animation:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn{
+  font-size:clamp(19px,2.2vw,33px)!important;
+}
+@keyframes abyssCurrentCirculate {
+  from{transform:translateZ(0) rotate(0deg)}
+  to{transform:translateZ(0) rotate(360deg)}
+}
+@media(prefers-reduced-motion:no-preference){
+  body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-flow-layer{
+    animation:abyssCurrentCirculate 12s linear infinite!important;
+    will-change:transform;
+  }
+  body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-current{
+    animation:abyssVortexRotate 18s linear infinite reverse!important;
+    will-change:transform;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-flow-layer,
+  body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-current,
+  body:not(.game-active) #menuScreen #abyssGate .abyss-vortex-streams{
+    animation:none!important;
+    will-change:auto!important;
+  }
+}
