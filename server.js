@@ -264,8 +264,8 @@ function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill
   io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:attacker.id,skillId,serverTime:now}));
   io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:attacker.id,damage:blocked?0:damage,skillId,blocked});return target;
  };
- if(Number(attacker.electricLevel)>0&&source!=='arcChain'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.electricLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<130/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;secondaryHit(next,baseDamage*.34,'electric');visited.add(next.id);from=next;}}
- if(Number(attacker.ricochetLevel)>0&&source!=='ricochet'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.ricochetLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;secondaryHit(next,baseDamage*.42,'ricochet');visited.add(next.id);from=next;}}
+ if(source==='electric'&&Number(attacker.electricLevel)>0){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.electricLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<130/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT,seed:Date.now()+n});secondaryHit(next,baseDamage*.34,'electric');visited.add(next.id);from=next;}}
+ if(Number(attacker.ricochetLevel)>0&&source!=='ricochet'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.ricochetLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT});secondaryHit(next,baseDamage*.42,'ricochet');visited.add(next.id);from=next;}}
 }
 function triggerPvpAberrationEcho(room,target,attacker,now){
  if(!room||!target||target.skinId!=='aberration'||target.aberrationEchoUsed||!attacker)return false;
@@ -699,6 +699,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    }
    if(!next)break;
    visited.add(Number(next.id));
+   io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:socket.id,x1:fromX/WORLD_WIDTH,y1:fromY/WORLD_HEIGHT,x2:Number(next.x)/WORLD_WIDTH,y2:Number(next.y)/WORLD_HEIGHT});
    const bounced=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.42),'ricochet',batch,actionId);
    if(!bounced?.ok)break;
    fromX=Number(next.x);fromY=Number(next.y);
