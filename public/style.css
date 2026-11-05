@@ -4416,3 +4416,32 @@ body.game-active.hud-collapsed{--match-ui-top:max(10px,env(safe-area-inset-top))
 
 /* Authoritative gameplay owns the viewport. The room lobby must never overlay an accepted match. */
 body.game-active #roomsScreen{display:none!important;pointer-events:none!important}
+
+
+/* SHOP SPECIES FILTERS + RARITY V27 */
+.shop-filter-bar{
+ display:grid;grid-template-columns:minmax(180px,1.35fr) repeat(3,minmax(130px,.8fr));
+ gap:8px;margin:10px 0 8px;position:sticky;top:0;z-index:16;
+ padding:10px;background:rgba(3,14,23,.92);border:1px solid rgba(121,243,240,.14);
+ backdrop-filter:blur(10px);
+}
+.shop-filter-search,.shop-filter-select{min-height:38px!important;margin:0!important;font-size:10px!important}
+.shop-filter-summary{min-height:20px;margin:0 0 8px;color:#789aa8;font:9px 'DM Mono',monospace;letter-spacing:.07em}
+.skin-card{position:relative;overflow:hidden}
+.skin-rarity{
+ display:inline-flex;align-items:center;gap:5px;margin:0 0 6px;padding:3px 6px;border:1px solid currentColor;
+ font:700 8px 'DM Mono',monospace;letter-spacing:.1em;text-transform:uppercase;background:rgba(2,9,15,.5)
+}
+.skin-rarity.common{color:#8fa8ae}.skin-rarity.uncommon{color:#73d69c}.skin-rarity.rare{color:#67c7ff}
+.skin-rarity.epic{color:#b78cff}.skin-rarity.legendary{color:#ffb85f}.skin-rarity.mythic{color:#ff6f9d}.skin-rarity.colossal{color:#ff4f67}
+.skin-card[data-rarity="legendary"] .skin-preview,
+.skin-card[data-rarity="mythic"] .skin-preview,
+.skin-card[data-rarity="colossal"] .skin-preview{box-shadow:inset 0 0 26px rgba(255,255,255,.03),0 0 22px color-mix(in srgb,currentColor 18%,transparent)}
+.skin-ability{min-height:72px}
+@media(max-width:900px){
+ .shop-filter-bar{grid-template-columns:1fr 1fr;position:relative}
+}
+@media(max-width:560px){
+ .shop-filter-bar{grid-template-columns:1fr}
+ .shop-filter-search,.shop-filter-select{width:100%}
+}
