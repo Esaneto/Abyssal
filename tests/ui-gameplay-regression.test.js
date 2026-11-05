@@ -157,20 +157,20 @@ test('gameplay canvas follows actual game shell geometry', () => {
 
 test('electric storm is visually distinct from ricochet and uses the same bounce reach', () => {
   assert.match(game, /range=190\/GAME_WORLD_ZOOM/);
-  assert.match(game, /segments=13/);
+  assert.match(game, /const segments=12/);
   assert.match(game, /shadowColor='#31eaff'/);
   assert.match(game, /type:'ricochet-line'.*color:'#f7ff19'/s);
 });
 
 test('mob damage numbers remain readable at fixed screen scale', () => {
-  assert.match(game, /ctx\.font='900 112px var\(--abyssal-runic\),Georgia,serif'/);
+  assert.match(game, /ctx\.font='900 18px Cinzel, Georgia, serif'/);
 });
 
 
 test('floating damage numbers render in fixed screen pixels independent of camera zoom', () => {
  assert.match(game, /screenX=\(worldX-cameraX\)\*worldZoom/);
  assert.match(game, /ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
- assert.match(game, /ctx\.font='900 112px var\(--abyssal-runic\),Georgia,serif'/);
+ assert.match(game, /ctx\.font='900 18px Cinzel, Georgia, serif'/);
  assert.match(game, /number\.tone==='passive'\?'#32cfff':'#ff174d'/);
 });
 
