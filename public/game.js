@@ -1523,7 +1523,7 @@ function applySharedMotion(data){
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  let moved=0;
  for(const row of data.enemies){
-  if(!Array.isArray(row)||row.length<11)continue;
+  if(!Array.isArray(row)||row.length<7)continue;
   const enemy=onlineEnemyById.get(String(row[0]));if(!enemy)continue;
   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H);
   const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):Number(enemy.x)||tx;
