@@ -443,3 +443,92 @@ Proximos passos recomendados:
 3. expandir perfis anatomicos para variantes restantes que ainda parecam proximas demais;
 4. se duas especies continuarem parecendo o mesmo animal quando vistas apenas como silhueta preta, tratar como bug visual;
 5. manter a mesma identidade entre preview da loja e personagem equipado em gameplay.
+
+
+## 18. Auditoria profunda de conflitos visuais e persistencia em 2026-11-05
+
+A auditoria encontrou problemas que nao eram apenas cosmeticos.
+
+### Problemas confirmados e corrigidos
+
+1. Renderer marinho generico
+- causa: `public/marine-renderer.js` usava um template quase unico por familia;
+- tubaroes e peixes chegaram a compartilhar o mesmo branch generico;
+- correcao: perfis anatomicos por especie/variante e separacao de `shark` e `fish`.
+
+2. Preview uniformizando especies
+- causa: `renderCreaturePreview()` desenhava a mesma orbita/anel eliptico em todas as criaturas;
+- correcao: remover o anel dominante, usar sombra discreta e escalas de enquadramento por familia/variante;
+- invariante: anatomia deve dominar o card.
+
+3. Cache podia esconder a correcao
+- causa: `index.html` continuava carregando `marine-renderer.js?v=2` e outras versoes antigas;
+- correcao: bump explicito de cache para renderer, species, skin-abilities e game sempre que esses assets mudarem;
+- regra: alteracao visual em JS/CSS servido diretamente deve atualizar o query version correspondente no HTML.
+
+4. Ownership de skins marine podia ser apagado
+- causa: `save-cosmetics` possuia uma segunda whitelist legada que nao incluia IDs `marine_*`;
+- efeito: uma skin marinha comprada podia ser filtrada da propriedade persistida em um save posterior;
+- correcao: `save-cosmetics` usa agora `allowedSkinIds`, a whitelist canonica que ja inclui todas as especies de `public/marine-species.js`;
+- regra: nunca criar uma segunda whitelist de skins. Toda validacao deve derivar da fonte canonica.
+
+5. Nomes de pagamento divergentes da identidade atual
+- `abysscroc` e `armoredgator` ainda apareciam no modulo de pagamento como identidades antigas;
+- correcao: pagamento, loja e nomes canonicos foram alinhados para Tubarao-Touro Estuarino e Caranguejo-Ferradura Couracado.
+
+6. Boss roster divergente em habilidades
+- `whiteSharkBoss` estava ausente de `BOSS_KINDS` no modulo compartilhado de skin abilities;
+- efeito: bonus declarados contra bosses podiam nao aplicar ao Tubarao-branco Colossal;
+- correcao aplicada em `skin-abilities.js` e `public/skin-abilities.js`.
+
+7. Cor por familia reforcava clones
+- `marine-species.js` dava a mesma cor a todas as especies de uma familia;
+- correcao: paleta secundaria varia por especie. Anatomia continua sendo o identificador principal.
+
+### Testes adicionados/atualizados
+
+- `tests/marine-renderer-anatomy.test.cjs`
+  - anatomia especifica dos tubaroes;
+  - proibicao do branch compartilhado shark/fish;
+  - proibicao do antigo anel dominante de preview;
+  - verifica versoes atuais de cache.
+
+- `tests/marine-species.test.cjs`
+  - especies marinhas nao colapsam para uma cor por familia;
+  - `save-cosmetics` deve usar `allowedSkinIds` e preservar ownership `marine_*`.
+
+- `tests/skin-abilities.test.cjs`
+  - `whiteSharkBoss` deve ser tratado como boss;
+  - cliente e servidor devem continuar usando o mesmo modulo.
+
+- `tests/payments.test.cjs`
+  - nomes canonicos das skins pagas permanecem alinhados com a loja.
+
+### Branches visuais antigas: NAO MERGEAR EM BLOCO
+
+Na auditoria, estas branches estavam fortemente divergentes da main:
+- `visual-skins-full-redesign-v2`: centenas de commits atras;
+- `visual-skins-skills-redesign`: centenas de commits atras;
+- `marine-fauna-identity-pass`: divergente;
+- `abyssal-skin-silhouette-pass`: divergente;
+- `abyssal-rebuild-expedition-skins`: divergente.
+
+Regra:
+- nao fazer merge wholesale dessas branches na main atual;
+- se houver codigo util nelas, comparar arquivo/commit e fazer cherry-pick ou port manual isolado;
+- antes de portar, verificar se a mudanca ja foi superada pelo renderer canonico atual;
+- nunca permitir que uma branch antiga restaure whitelists, nomes, cache versions, renderer ou gameplay legado.
+
+### Checklist obrigatorio para futuras skins
+
+Antes de considerar uma skin pronta:
+1. ID aceito em `allowedSkinIds`;
+2. ownership sobrevive a `save-cosmetics`;
+3. se paga, existe em `PAID_SKINS`/checkout;
+4. habilidade descrita existe de verdade em `skin-abilities` ou logica autoritativa correspondente;
+5. preview e gameplay usam a mesma anatomia;
+6. silhueta continua reconhecivel sem cor;
+7. cache version foi atualizado;
+8. desktop e mobile foram validados;
+9. teste de regressao cobre a nova regra;
+10. este handoff e atualizado se houver decisao estrutural nova.
