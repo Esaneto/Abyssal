@@ -244,6 +244,8 @@ test('blue-ring ink and angler camouflage replace the old aberration and angler 
  assert.match(sim,/p\.skinId==='angler'&&anglerInvisibleAt\(now\)/);
  assert.doesNotMatch(server,/triggerPvpAberrationEcho/);
  assert.doesNotMatch(sim,/aberrationEchoTriggered/);
+ assert.match(game,/function enemyHiddenFromAutoTarget/);
+ assert.match(game,/if\(enemyHiddenFromAutoTarget\(e\)\)continue/);
 });
 
 test('PvP authoritative damage applies skin and learned defensive passives',()=>{
