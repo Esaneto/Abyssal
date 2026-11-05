@@ -476,42 +476,43 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     if (enemy.kind === 'angler') {
       enemy.anglerPulse = (Number(enemy.anglerPulse) || 0) + dt;
-      if (enemy.anglerPulse >= 3.8) {
+      if (enemy.anglerPulse >= 3.4) {
         enemy.anglerPulse = 0;
-        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'lure-pulse',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:320/WORLD_ZOOM,color:enemy.color});
+        const lureRadius=350/WORLD_ZOOM;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'lure-pulse',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:lureRadius,color:enemy.color});
         for (const target of validPlayers) {
           const dx = Number(enemy.x) - Number(target.x), dy = Number(enemy.y) - Number(target.y), distance = Math.hypot(dx, dy);
-          if (!distance || distance > 320 / WORLD_ZOOM) continue;
-          const step = Math.min(distance, 22 / WORLD_ZOOM), desiredX = Number(target.x) + dx / distance * step, desiredY = Number(target.y) + dy / distance * step;
+          if (!distance || distance > lureRadius) continue;
+          const step = Math.min(distance, 34 / WORLD_ZOOM), desiredX = Number(target.x) + dx / distance * step, desiredY = Number(target.y) + dy / distance * step;
           const moved = riftMode ? AbyssalMap.resolveMove(mapLayout, Number(target.x), Number(target.y), desiredX, desiredY, Math.max(10, Number(target.r) || 13 / WORLD_ZOOM)) : { x: clamp(desiredX, 0, WORLD_WIDTH), y: clamp(desiredY, 0, WORLD_HEIGHT) };
           const actualDx = moved.x - Number(target.x), actualDy = moved.y - Number(target.y);target.x = moved.x;target.y = moved.y;
-          playerSuctionPulls.push({ playerId: target.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: 1 });
-          const hit=bossAbilityHit(enemy,target,8,now,'lure-pulse');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
+          playerSuctionPulls.push({ playerId: target.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: 1.35 });
+          const hit=bossAbilityHit(enemy,target,12,now,'lure-pulse');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
         }
       }
     }
     if(enemy.kind==='boss'){
       enemy.neuroPulse=(Number(enemy.neuroPulse)||0)+dt;
-      if(enemy.neuroPulse>=5.2){
-        enemy.neuroPulse=0;const radius=245/WORLD_ZOOM;
+      if(enemy.neuroPulse>=4.7){
+        enemy.neuroPulse=0;const radius=270/WORLD_ZOOM;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'neuro-ring',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
-        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,13,now,'neuro-ring',{neurotoxinMs:1800});if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,18,now,'neuro-ring',{neurotoxinMs:2400});if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if(enemy.kind==='maw'){
       enemy.mawAbilityTimer=(Number(enemy.mawAbilityTimer)||0)+dt;
-      if(enemy.mawAbilityTimer>=4.6){
-        enemy.mawAbilityTimer=0;const radius=185/WORLD_ZOOM;
+      if(enemy.mawAbilityTimer>=4.0){
+        enemy.mawAbilityTimer=0;const radius=205/WORLD_ZOOM;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'gulper-chomp',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
-        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,16,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,24,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if(enemy.kind==='leviathan'){
       enemy.pressureWaveTimer=(Number(enemy.pressureWaveTimer)||0)+dt;
-      if(enemy.pressureWaveTimer>=5.4){
-        enemy.pressureWaveTimer=0;const length=430/WORLD_ZOOM,width=58/WORLD_ZOOM,ang=Number(enemy.angle)||0,x2=enemy.x+Math.cos(ang)*length,y2=enemy.y+Math.sin(ang)*length;
+      if(enemy.pressureWaveTimer>=4.8){
+        enemy.pressureWaveTimer=0;const length=480/WORLD_ZOOM,width=72/WORLD_ZOOM,ang=Number(enemy.angle)||0,x2=enemy.x+Math.cos(ang)*length,y2=enemy.y+Math.sin(ang)*length;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'pressure-lance',x:enemy.x,y:enemy.y,angle:ang,radius:length,color:enemy.color});
-        for(const target of validPlayers){if(segmentDistance(Number(target.x),Number(target.y),enemy.x,enemy.y,x2,y2)>width)continue;const hit=bossAbilityHit(enemy,target,15,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(segmentDistance(Number(target.x),Number(target.y),enemy.x,enemy.y,x2,y2)>width)continue;const hit=bossAbilityHit(enemy,target,22,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if (enemy.kind === 'devourer' && enemy.suctionActive) {
@@ -642,9 +643,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const contactRadius = target.clientHidden === true ? rawContactRadius : Math.max(1, rawContactRadius - contactSafetyMargin);
     if (contactDistance > contactRadius) continue;
 
-    // Spend the attack cooldown even when blocked by invulnerability so a pack cannot
-    // repeatedly evaluate the same contact every frame.
-    const attackInterval = BOSS_KINDS.includes(enemy.kind) ? 1.15 : enemy.kind === 'stinger' ? 0.72 : 0.92;
+    // Contact attacks now expose a species identity without widening hitboxes.
+    const contactProfile={
+      drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},
+      stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},
+      brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},
+      lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}
+    }[enemy.kind]||null;
+    const attackInterval = BOSS_KINDS.includes(enemy.kind) ? 1.15 : (contactProfile?.cooldown ?? .92);
     enemy.attackCd = attackInterval;
     if ((Number(target.invulnerableUntil) || 0) > now) continue;
 
@@ -656,13 +662,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       blocked = true;
     } else {
       const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
-      const requestedDamage = Math.max(1, Math.round(baseDamage * SkinAbilities.incomingDamageMultiplier(target.skinId)));
+      const contactPower = contactProfile?.power || 1;
+      const requestedDamage = Math.max(1, Math.round(baseDamage * contactPower * SkinAbilities.incomingDamageMultiplier(target.skinId)));
       const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
       target.maxHp = Math.max(1, Number(target.maxHp) || 100);
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
       appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
       target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
-      if (enemy.kind === 'boss' && appliedDamage > 0) { target.neurotoxinUntil = now + 1300; neurotoxinMs = 1300; }
+      const contactNeuro=Math.max(enemy.kind==='boss'?1300:0,Number(contactProfile?.neuro)||0);
+      if (contactNeuro > 0 && appliedDamage > 0) { target.neurotoxinUntil = now + contactNeuro; neurotoxinMs = contactNeuro; }
       if (target.skinId === 'aberration' && !target.aberrationEchoUsed) {
         target.aberrationEchoUsed = true;
         aberrationEchoTriggered = true;
@@ -691,7 +699,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, aberrationEchoTriggered, neurotoxinMs, hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, aberrationEchoTriggered, neurotoxinMs, skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
