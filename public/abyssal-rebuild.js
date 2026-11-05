@@ -97,7 +97,7 @@ function createGate(){
   panel.addEventListener('click',function(e){if(e.target===panel)close();});
   var solo=panel.querySelector('[data-mode="solo"]');
   var group=panel.querySelector('[data-mode="group"]');
-  if(solo)solo.addEventListener('click',function(){close();var b=$('playBtn');if(b)b.click();});
+  if(solo)solo.addEventListener('click',function(){close();updateDepthMeter(0);var b=$('playBtn');if(b)b.click();});
   if(group)group.addEventListener('click',function(){close();var b=$('onlineBtn');if(b)b.click();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden)close();});
 }
@@ -221,10 +221,103 @@ function retitleMenu(){
   if(intro)intro.textContent='Seu sinal atravessou uma região apagada dos mapas. O fundo respondeu. Agora cada descida revela algo que preferia continuar escondido.';
 }
 
+
+function createExpeditionUI(){
+  if($('abyssExpeditionCheckpoint'))return;
+
+  var hud=$('hud');
+  if(hud){
+    var meter=document.createElement('div');
+    meter.id='abyssDepthMeter';
+    meter.className='abyss-depth-meter';
+    meter.hidden=true;
+    meter.innerHTML='<small>PROFUNDIDADE</small><strong id="abyssDepthValue">350 m</strong><span id="abyssRiskValue">SAQUE · 100%</span>';
+    hud.appendChild(meter);
+  }
+
+  var panel=document.createElement('section');
+  panel.id='abyssExpeditionCheckpoint';
+  panel.className='abyss-checkpoint-panel';
+  panel.hidden=true;
+  panel.innerHTML=
+    '<div class="abyss-checkpoint-card" role="dialog" aria-modal="true" aria-labelledby="abyssCheckpointTitle">'+
+      '<span class="abyss-checkpoint-signal">SINAL ESTÁVEL · JANELA DE EXTRAÇÃO</span>'+
+      '<h2 id="abyssCheckpointTitle">VOCÊ PODE SUBIR.</h2>'+
+      '<p id="abyssCheckpointLore">A pressão abaixo deste ponto está aumentando.</p>'+
+      '<div class="abyss-checkpoint-stats">'+
+        '<div><small>PROFUNDIDADE</small><strong id="abyssCheckpointDepth">1.000 m</strong></div>'+
+        '<div><small>BÔNUS SE EXTRAIR</small><strong id="abyssCheckpointBonus">+15%</strong></div>'+
+        '<div><small>SE O SINAL FOR PERDIDO</small><strong>65% DO SAQUE FINAL</strong></div>'+
+      '</div>'+
+      '<div class="abyss-checkpoint-actions">'+
+        '<button id="abyssContinueBtn" class="abyss-checkpoint-descend" type="button"><strong>CONTINUAR DESCENDO</strong><span id="abyssContinueHint">A próxima zona paga mais.</span></button>'+
+        '<button id="abyssExtractBtn" class="abyss-checkpoint-extract" type="button"><strong>VOLTAR À SUPERFÍCIE</strong><span>Garantir o saque e encerrar esta expedição.</span></button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(panel);
+
+  $('abyssContinueBtn')?.addEventListener('click',function(){
+    panel.hidden=true;
+    window.AbyssalGameHooks?.continueExpedition?.();
+  });
+  $('abyssExtractBtn')?.addEventListener('click',function(){
+    panel.hidden=true;
+    var meter=$('abyssDepthMeter');if(meter)meter.hidden=true;
+    window.AbyssalGameHooks?.extractExpedition?.();
+  });
+}
+
+function expeditionDepthForBosses(bosses){
+  return 350+Math.max(0,Number(bosses)||0)*650;
+}
+
+function updateDepthMeter(bosses){
+  var meter=$('abyssDepthMeter');
+  if(!meter)return;
+  var count=Math.max(0,Number(bosses)||0);
+  meter.hidden=false;
+  var depth=$('abyssDepthValue');
+  var risk=$('abyssRiskValue');
+  if(depth)depth.textContent=expeditionDepthForBosses(count).toLocaleString('pt-BR')+' m';
+  if(risk)risk.textContent='EXTRAÇÃO · +'+Math.round(Math.min(.75,count*.15)*100)+'%';
+}
+
+function bindExpeditionCheckpoints(){
+  window.addEventListener('abyssal-expedition-checkpoint',function(event){
+    var detail=event.detail||{};
+    var bosses=Math.max(1,Number(detail.bossesKilled)||1);
+    updateDepthMeter(bosses);
+    window.setTimeout(function(){
+      var state=window.AbyssalGameHooks?.expeditionState?.();
+      if(!state?.active)return;
+      if(!window.AbyssalGameHooks?.pauseExpedition?.())return;
+
+      var panel=$('abyssExpeditionCheckpoint');
+      if(!panel)return;
+
+      var depth=$('abyssCheckpointDepth');
+      var bonus=$('abyssCheckpointBonus');
+      var hint=$('abyssContinueHint');
+      var lore=$('abyssCheckpointLore');
+
+      if(depth)depth.textContent=expeditionDepthForBosses(bosses).toLocaleString('pt-BR')+' m';
+      if(bonus)bonus.textContent='+'+Math.round(Math.min(.75,bosses*.15)*100)+'%';
+      if(hint)hint.textContent='Desça até '+expeditionDepthForBosses(bosses+1).toLocaleString('pt-BR')+' m e aumente o bônus.';
+      if(lore)lore.textContent=bosses>=4?'Há algo se movendo abaixo da zona mapeada.':bosses>=2?'O sonar está registrando formas maiores abaixo de você.':'A pressão abaixo deste ponto está aumentando.';
+
+      panel.hidden=false;
+      $('abyssContinueBtn')?.focus();
+    },700);
+  });
+}
+
+
 function init(){
   document.body.classList.add('abyss-rebuild-ready');
   retitleMenu();
   createGate();
+  createExpeditionUI();
+  bindExpeditionCheckpoints();
   watchShop();
 }
 
