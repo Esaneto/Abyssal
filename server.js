@@ -12,6 +12,7 @@ const WorldSimulation = require('./world-simulation');
 const SkinAbilities = require('./skin-abilities');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
+const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -375,6 +376,17 @@ async function roomListForClients(){
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
 app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.5.9',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.5.9',directoryFallback:true});}});
 function randomRoomId(){let id;do{id=crypto.randomBytes(3).toString('hex').toUpperCase()}while(rooms.has(id));return id;}
+function worldDepthState(world){
+ if(!world)return {bossesDefeated:0,depth:350,zone:null,event:null};
+ const bossesDefeated=Math.max(0,Math.floor(Number(world.bossesDefeated)||0));
+ const zone=ExpeditionRules.zoneForBosses(bossesDefeated);
+ return {
+  bossesDefeated,
+  depth:ExpeditionRules.depthForBosses(bossesDefeated),
+  zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
+  event:WorldSimulation.currentDepthEvent(world)
+ };
+}
 function getRoomSnapshot(room, metadata = {}){
  if(!room?.world)return null;
  const world=room.world;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
@@ -385,7 +397,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,depthState:worldDepthState(world),criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -697,7 +709,12 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(batch)batch.orbs.push({...orb});
    else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...orb});
   }
-  if(boss){awardWorldBossCoins(room);if(player?.skinId==='devourer')player.devourerVacuumUntil=Date.now()+5000;}
+  if(boss){
+   WorldSimulation.startDepthEvent(w,Math.random);
+   io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+   awardWorldBossCoins(room);
+   if(player?.skinId==='devourer')player.devourerVacuumUntil=Date.now()+5000;
+  }
   if(player?.skinId==='coral'&&player.alive!==false){
    const healed=Math.min(4,Math.max(0,player.maxHp-player.hp));
    if(healed>0){player.hp+=healed;socket.emit('player-vitals',playerVitalsPayload(player,{reason:'regeneration',healed,serverTime:Date.now()}));}
@@ -800,6 +817,7 @@ function tickRoom(room, now) {
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
  const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
+ if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
 
  // Full snapshots are reserved for periodic recovery. Entity creation, damage and orb
  // lifecycle changes use compact reliable events; motion stays volatile and view-scoped.
