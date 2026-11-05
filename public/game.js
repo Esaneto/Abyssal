@@ -795,7 +795,7 @@ function gameplayNoticeKey(kind,title,text){
  return [kind,String(title||'').trim().toLowerCase(),String(text||'').trim().toLowerCase()].join('|');
 }
 function enqueueGameplayNotice(kind,title,text='',priority=0){
- const allowed=new Set(['boss','fusion','join','death']);if(!allowed.has(kind))return;
+ const allowed=new Set(['boss','fusion','join','death','cave']);if(!allowed.has(kind))return;
  const now=Date.now(),key=gameplayNoticeKey(kind,title,text),last=gameplayNoticeRecent.get(key)||0;
  // Network relays and local prediction can report the same semantic event twice.
  // Suppress identical notices across the active 5s display plus a short relay margin.
@@ -810,12 +810,13 @@ function pumpGameplayNotice(){
  const item=gameplayNoticeQueue.shift(),el=$('bossAlert');if(!el)return;
  gameplayNoticeActive=true;el.dataset.noticeKind=item.kind;
  const kicker=$('bossAlertKicker'),title=$('bossAlertTitle'),copy=$('bossAlertText');
- if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':'SINAL PERDIDO · ECO INTERROMPIDO';
+ if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':item.kind==='cave'?'ECO DA CAVERNA · ESCOLHA DE RISCO':'SINAL PERDIDO · ECO INTERROMPIDO';
  if(title)title.textContent=item.title;if(copy)copy.textContent=item.text;
  el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
  clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
 function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function showBossAlert(kind,id=null,threat=0,force=false){
  if(onlineMode&&onlineRoomMode==='pvp')return;
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
@@ -1270,7 +1271,7 @@ function chooseSoloSpawnRoom(){
  const allowed=lower?new Set(['landing','boss']):new Set(['common','event','hub']);
  const candidates=map.rooms.filter(room=>{
   if(!allowed.has(room.type))return false;
-  const cap=EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)||0;
+  const cap=(EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)??0);
   if(cap<=0)return false;
   let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
   return count<cap;
@@ -1278,7 +1279,7 @@ function chooseSoloSpawnRoom(){
  if(!candidates.length)return null;
  const weighted=[];
  for(const room of candidates){
-  const cap=Math.max(1,EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)||1);
+  const cap=Math.max(1,(EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)??1));
   let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
   const open=Math.max(.08,1-count/cap),tickets=Math.max(1,Math.round(open*(room.type==='event'?3:room.type==='hub'?4:6)));
   for(let i=0;i<tickets;i++)weighted.push(room.id);
