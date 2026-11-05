@@ -187,6 +187,10 @@ function spawnEnemy(world, options = {}) {
     }
     if (eliteId) stats = ExpeditionRules.applyEliteStats(stats, eliteId);
   }
+  if(type!=='boss'){
+    const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
+    stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
+  }
   if (type === 'boss') {
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
