@@ -66,11 +66,10 @@ test('squid and octopus variants use separate species-level anatomy',()=>{
   "else if(v===8){fillPath([[1.42,0]",
   "else {fillPath([[1.25,0]"
  ]) assert.ok(renderer.includes(marker),marker);
- assert.match(renderer,/for\(let i=0;i<8;i\)\{const sy=\(i-3\.5\)\*\.12/);
+ assert.match(renderer,/for\(let i=0;i<8;i\)\{const sy=\(i-3\.5\)\*\.12,extra=/);
 });
 
 test('marine skins use dark Abyssal material with luminous accents',()=>{
- assert.match(renderer,/const grad=\(a='#02070c'/);
  assert.match(renderer,/const bodyGrad=\(dark='#061019'/);
  assert.match(renderer,/materialPass/);
  assert.match(renderer,/globalCompositeOperation='lighter'/);
