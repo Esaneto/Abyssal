@@ -114,6 +114,16 @@ function ensureMapInteractionButton(){
  button.addEventListener('click',()=>activateMapInteraction());
  $('gameShell')?.appendChild(button);return button;
 }
+function checkSoloCaveEncounter(){
+ if(onlineMode||!player||!activeMapLayout||!EXPEDITION_RULES||soloSideEncounterTier===activeMapTier)return;
+ const room=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);if(room?.id!=='event')return;
+ const encounter=EXPEDITION_RULES.sideEncounterFor?.(activeMapSeed,activeMapTier);if(!encounter)return;
+ soloSideEncounterTier=activeMapTier;
+ window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{...encounter,tier:activeMapTier}}));
+ if(encounter.type==='treasure'){addOrb(room.x,room.y,28+activeMapTier*7);return;}
+ const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4));
+ for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:encounter.type==='trap'&&i<2});
+}
 function currentMapInteraction(){
  if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
  const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
@@ -1254,27 +1264,41 @@ function offerUpgrade(){
   else{clearUpgradeCountdown();gameState='playing';$('upgradeScreen').hidden=true;}
  },25000);
 }
-function spawnEnemy(initial=false,type='common'){
+function chooseSoloSpawnRoom(){
+ const map=ensureSoloMap();if(!map||!player||!EXPEDITION_RULES)return null;
+ const playerRoom=ABYSSAL_MAP?.roomAt?.(map,player.x,player.y),lower=Number(playerRoom?.depth)>=7;
+ const allowed=lower?new Set(['landing','boss']):new Set(['common','event','hub']);
+ const candidates=map.rooms.filter(room=>{
+  if(!allowed.has(room.type))return false;
+  const cap=EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)||0;
+  if(cap<=0)return false;
+  let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
+  return count<cap;
+ });
+ if(!candidates.length)return null;
+ const weighted=[];
+ for(const room of candidates){
+  const cap=Math.max(1,EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)||1);
+  let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
+  const open=Math.max(.08,1-count/cap),tickets=Math.max(1,Math.round(open*(room.type==='event'?3:room.type==='hub'?4:6)));
+  for(let i=0;i<tickets;i++)weighted.push(room.id);
+ }
+ return weighted[Math.floor(Math.random()*weighted.length)]||candidates[0].id;
+}
+function spawnEnemy(initial=false,type='common',options={}){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
  const bossCount=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length,commonCount=enemies.length-bossCount;
  const isBossType = type === 'boss' || BOSS_KINDS.includes(type);
  if(isBossType&&(bossCount>=MAX_BOSSES||enemies.length>=MAX_ENEMIES))return null;
  if(!isBossType&&commonCount>=MAX_COMMON_ENEMIES)return null;
- // Shared catalog + spawn-point logic: solo and online use identical anatomy, stats and corner vortices.
- const ai=window.AbyssalEnemyAI;
- const activeKinds=enemies.map(e=>e.kind);
+ const ai=window.AbyssalEnemyAI,map=ensureSoloMap(),activeKinds=enemies.map(e=>e.kind);
+ let point=map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun,roomId:options.roomId}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)});
+ let ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||null;
  let kind;
- if(BOSS_KINDS.includes(type)){
-  kind = type;
- } else if(type==='boss'){
-  kind = ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
- } else {
-  kind = EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
- }
- if(kind==='whiteShark'){
-  const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;
-  if(whiteSharkCount>=10)kind='drifter';
- }
+ if(BOSS_KINDS.includes(type))kind=type;
+ else if(type==='boss')kind=ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
+ else kind=EXPEDITION_RULES?.chooseCommonKindForRoom?.(Math.random,ecologyRoom,activeMapTier,soloDepthEventId)||EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
+ if(kind==='whiteShark'){const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;if(whiteSharkCount>=10)kind='lurker';}
  if(!kind)return null;
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#ff315f',value:55},
@@ -1288,22 +1312,25 @@ function spawnEnemy(initial=false,type='common'){
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  })[kind];
  let eliteId=null;
- if(!isBossType&&!initial&&EXPEDITION_RULES){eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);}
- if(isBossType){
-  // Preserve the ordered base HP tiers in solo just as in the online simulation.
-  data.hp = Math.round(data.hp * getBossCycleMultiplier());
-  // A progressão por ciclo altera somente a vida; dano e velocidade base do boss são preservados.
-  lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
+ if(!isBossType&&!initial&&EXPEDITION_RULES){
+  eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
+  if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
+  if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
  }
- const map=ensureSoloMap();const point=map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':eliteId?'elite':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)});
+ if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
+ if(eliteId&&!options.roomId&&!isBossType){
+  point=ABYSSAL_MAP.spawnPoint(map,{type:'elite',random:Math.random,bossesDefeated:bossKillsThisRun});
+  ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||ecologyRoom;
+ }
+ if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
  const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
- enemies.push(enemy);
- discoverCodexMonsters([kind]);
+ enemies.push(enemy);discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
 }
+
 function burst(x,y,color,n=10,force=100){
  n=Math.min(Math.max(0,Math.floor(n)),Math.max(0,particleBudget()-particles.length));
  for(let i=0;i<n;i++){
@@ -1734,7 +1761,13 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
- discoverCodexMonsters([e.kind]);if(!onlineMode){const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1;const xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):Math.round(e.value*eventXp);addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
+ discoverCodexMonsters([e.kind]);if(!onlineMode){
+ const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):Math.round(e.value*eventXp);addOrb(e.x,e.y,xpValue);
+ if(!killedBoss&&e.eliteId&&e.spawnRoomId==='elite'&&soloEliteRewardTier!==activeMapTier){
+  soloEliteRewardTier=activeMapTier;addOrb(e.x,e.y,EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18);
+  window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
+ }
+}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
@@ -1877,7 +1910,7 @@ function update(dt){
 
 player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&equippedSkin==='devourer'&&player.devourerVacuumUntil>performance.now()){for(const orb of orbs){const d=Math.hypot(player.x-orb.x,player.y-orb.y);if(d>1&&d<760/GAME_WORLD_ZOOM){const pull=Math.min(d,dt*(110+Math.max(0,760/GAME_WORLD_ZOOM-d)*.22));orb.x+=(player.x-orb.x)/d*pull;orb.y+=(player.y-orb.y)/d*pull;}}}
- if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
+ if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common',{roomId:chooseSoloSpawnRoom()});const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
  // Spawn de boss solo gerenciado exclusivamente pelo sistema de progressão (updateBossProgressionStep).
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');effects.push({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
