@@ -3245,7 +3245,32 @@ window.AbyssalGameHooks={
  sharedXp:applySharedXp,
 };
 function renderCreaturePreview(canvas,kind,color,skin=null){
- if(!canvas)return;const c=canvas.getContext('2d');if(!c)return;const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);const bg=c.createRadialGradient(w*.5,h*.45,2,w*.5,h*.5,Math.max(w,h)*.65);bg.addColorStop(0,'#102d40');bg.addColorStop(1,'#030913');c.fillStyle=bg;c.fillRect(0,0,w,h);c.save();c.strokeStyle='rgba(130,232,239,.16)';c.lineWidth=1;c.beginPath();c.ellipse(w*.5,h*.64,w*.3,h*.16,0,0,Math.PI*2);c.stroke();c.restore();const previewRadius=skin?.id==='kraken'?Math.min(w*.105,h*.17):Math.min(w*.145,h*.235);drawCreature(w*.5,h*.47,previewRadius,-.2,color,kind,performance.now(),!!skin,0,c,skin);}
+ if(!canvas)return;
+ const c=canvas.getContext('2d');if(!c)return;
+ const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);
+ const bg=c.createRadialGradient(w*.48,h*.42,2,w*.5,h*.5,Math.max(w,h)*.7);
+ bg.addColorStop(0,'#0d2637');bg.addColorStop(.62,'#06121d');bg.addColorStop(1,'#020812');
+ c.fillStyle=bg;c.fillRect(0,0,w,h);
+ // Do not wrap every species in the same orbit/ring. The anatomy must dominate the preview.
+ c.save();c.globalAlpha=.16;c.fillStyle=color;c.beginPath();c.ellipse(w*.5,h*.72,w*.21,h*.055,0,0,Math.PI*2);c.fill();c.restore();
+ let scale=1;
+ if(skin?.family){
+  const family=String(skin.family),variant=Number(skin.variant)||0;
+  if(family==='shark')scale=variant===5||variant===7?.72:.82;
+  else if(family==='eel')scale=.72;
+  else if(family==='ray')scale=.72;
+  else if(family==='octopus'||family==='squid'||family==='jelly')scale=.68;
+  else if(family==='crustacean')scale=variant===5?.62:.76;
+  else if(family==='fish')scale=variant===9?.68:.82;
+  else if(family==='benthic')scale=.74;
+  else if(family==='mollusc')scale=.78;
+ }
+ if(kind==='leviathan')scale=.68;
+ else if(kind==='kraken'||kind==='devourer')scale=.7;
+ else if(kind==='maw')scale=.78;
+ const previewRadius=Math.min(w*.145,h*.235)*scale;
+ drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
+}
 function drawWheel(){
  const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[20,50,100,300,600,1000],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('MOEDAS',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
 function animateWheelToPrize(reward,grant=true){
