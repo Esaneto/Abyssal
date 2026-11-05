@@ -253,3 +253,9 @@ test('maintenance reconnect cannot remain forever waiting for session-resumed', 
  assert.match(online,/setTimeout\(\(\)=>\{reconnectSessionRetry=null;if\(reconnectPending&&!authenticated&&socket\?\.connected\)resumeSessionForReconnect\(\);\},1800\)/);
  assert.match(online,/if\(reconnectSessionRetry\)\{clearTimeout\(reconnectSessionRetry\);reconnectSessionRetry=null;\}/);
 });
+
+
+test('transient session validation failure does not erase persisted login token', () => {
+ assert.match(online,/const explicitlyExpired=\/expir\|inválid\|invalid\/i/);
+ assert.match(online,/if\(explicitlyExpired\)\{sessionToken='';localStorage\.removeItem\('abyssalSessionToken'\);\}/);
+});
