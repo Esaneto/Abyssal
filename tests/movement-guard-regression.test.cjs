@@ -12,9 +12,10 @@ test('player positions pass terrain and movement envelope before PvP orb collect
  const handler=server.slice(start,end);
  const terrain=handler.indexOf("reason:'terrain'");
  const movement=handler.indexOf('consumeMovementBudget');
- const assignment=handler.indexOf('p.x=clamp(x');
+ const caveResolution=handler.indexOf('AbyssalMap.resolveMove');
+ const assignment=handler.indexOf('p.x=clamp(acceptedX');
  const pickup=handler.indexOf('collectPvpOrbsNearPlayer(room,p,p.x,p.y)');
- assert.ok(terrain>=0&&movement>terrain&&assignment>movement&&pickup>assignment);
+ assert.ok(terrain>=0&&movement>terrain&&caveResolution>movement&&assignment>caveResolution&&pickup>assignment);
  assert.doesNotMatch(handler,/collectPvpOrbsNearPlayer\(room,p,x,y\)/);
 });
 
