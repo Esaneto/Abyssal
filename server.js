@@ -531,12 +531,15 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  if(emitResult)socket.emit('world-left');
  if(room.players.size===0){
-  // Empty arenas must stop simulating immediately and release all enemy/particle-like state.
-  clearRoomWorld(room);
-  if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
-  if(roomId!==DEFAULT_ROOM_ID&&roomId!==PVP_ROOM_ID){
-   rooms.delete(roomId);deletingRoomIds.add(roomId);pendingRoomDeletion.add(roomId);
-   deleteRoomRow(roomId).then(()=>broadcastRooms()).catch(err=>console.error('[rooms] limpeza da sala vazia:',err.message));
+  const maintenanceHold=shutdownStarted&&Number(room.maintenanceHoldUntil)>Date.now();
+  if(!maintenanceHold){
+   // Normal empty-room rule: outside maintenance, an arena with no players ends immediately.
+   clearRoomWorld(room);
+   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
+   if(roomId!==DEFAULT_ROOM_ID&&roomId!==PVP_ROOM_ID){
+    rooms.delete(roomId);deletingRoomIds.add(roomId);pendingRoomDeletion.add(roomId);
+    deleteRoomRow(roomId).then(()=>broadcastRooms()).catch(err=>console.error('[rooms] limpeza da sala vazia:',err.message));
+   }
   }
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
@@ -1535,6 +1538,7 @@ let shutdownStarted = false;
 async function shutdown(signal) {
  if (shutdownStarted) return; shutdownStarted = true;
  console.log(`[shutdown] ${signal}: preservando expedições e transferindo clientes…`);
+ const activeRooms=[...rooms.values()].filter(room=>room.players.size>0);const maintenanceHoldUntil=Date.now()+5*60*1000;if(activeRooms.length){for(const room of activeRooms)room.maintenanceHoldUntil=maintenanceHoldUntil;console.log(`[shutdown] ${activeRooms.length} partida(s) ativa(s): estado protegido por 5 minutos para retomada após manutenção.`);}
  const hardStop = setTimeout(() => process.exit(1), 8000); hardStop.unref();
  try {
   // Snapshot active runs before notifying or disconnecting clients. A deploy must never
