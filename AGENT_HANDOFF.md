@@ -85,10 +85,11 @@ PR base ja mergeado:
 - PR #182: `feat: replace empty expedition rectangle with descending abyssal cave`
 - merge commit: `5344feef85962a11c6c14e68006b1c33c833a883`
 
-PR de continuidade:
+PR de continuidade JA MERGEADO:
 - PR #183: `feat: deepen Abyssal cave retention with ecology, branches and tiers`
-- branch: `abyssal-cave-retention-tiers`
-- base: `main@5344feef85962a11c6c14e68006b1c33c833a883`
+- merge commit: `0362eccfcbf234ca59ee3cf5afdda82869a1bd65`
+- branch de trabalho: `abyssal-cave-retention-tiers`
+- base original: `main@5344feef85962a11c6c14e68006b1c33c833a883`
 
 Modulo compartilhado:
 - `public/abyssal-map.js`
@@ -223,7 +224,7 @@ Cobrem:
 O workflow `Abyssal checks v2` passou no commit:
 `cb5264355bb601a58a754400d6aa1205c8c16f6d`
 
-Esse SHA e anterior apenas a atualizacao documental deste handoff. Se houver commits posteriores, verificar o workflow do HEAD mais recente.
+Esse SHA passou toda a suite antes do merge. O PR #183 foi mergeado em `0362eccfcbf234ca59ee3cf5afdda82869a1bd65` e esse mesmo commit foi implantado no Render com status `live`.
 
 Antes de mergear alteracao relevante:
 1. aguardar `Abyssal checks v2`;
@@ -231,7 +232,21 @@ Antes de mergear alteracao relevante:
 3. nao afrouxar teste de seguranca so para ficar verde;
 4. conferir sintaxe de `server.js`, `world-simulation.js`, `public/game.js`, `public/online.js`, `public/abyssal-map.js` e `public/abyssal-expedition-rules.js`.
 
-## 10. O que foi concluido da lista antiga
+
+## 10. Deploy atual no Render
+
+Servico:
+- nome: `Abyssal`;
+- branch: `main`;
+- commit de codigo implantado: `0362eccfcbf234ca59ee3cf5afdda82869a1bd65`;
+- deploy: `dep-dbm3htrm8hqs73eklmf0`;
+- status confirmado: `live`;
+- build concluido sem vulnerabilidades de npm reportadas;
+- servidor iniciou com PostgreSQL ativo e sem logs de nivel error logo apos o deploy.
+
+IMPORTANTE: em 2026-11-05 o servico estava com `autoDeploy: no` e `autoDeployTrigger: off`. Nao assumir que push/merge em `main` entra no ar automaticamente. Depois de qualquer mudanca de codigo destinada a producao, verificar a configuracao atual do Render e, se o auto-deploy continuar desligado, disparar o deploy manualmente e confirmar o commit implantado.
+
+## 11. O que foi concluido da lista antiga
 
 Concluidos no PR #183:
 1. densidade por sala/profundidade;
@@ -254,7 +269,7 @@ Permanece como validacao operacional:
 
 Nao remover nem mascarar esse item como "feito" sem executar dois clientes reais.
 
-## 11. Procedimento para o proximo agente
+## 12. Procedimento para o proximo agente
 
 1. Abrir este arquivo primeiro.
 2. Conferir PR/commit mais recente relacionado a cave/tier.
@@ -267,7 +282,7 @@ Nao remover nem mascarar esse item como "feito" sem executar dois clientes reais
 9. Ao encontrar falha, classificar como logica, teste desatualizado, performance ou divergencia cliente/servidor antes de corrigir.
 10. Atualizar este arquivo quando uma decisao arquitetural mudar.
 
-## 12. Principio de produto
+## 13. Principio de produto
 
 O problema original era um mapa principal grande, vazio e sem motivo para explorar.
 
