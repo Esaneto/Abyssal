@@ -2672,6 +2672,79 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
 };
  const lureOnly=(lx,ly)=>{c.save();c.globalAlpha=1;const rr=r*.67,g=c.createRadialGradient(lx*r,ly*r,0,lx*r,ly*r,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff6b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowColor='#ffda70';c.shadowBlur=12*glowScale;c.beginPath();c.arc(lx*r,ly*r,rr,0,Math.PI*2);c.fill();c.restore()};
 
+
+ // Shared anatomical rendering: the boss and its skin have the same enormous open gape.
+ const drawAnglerAnatomy=(colossal=false)=>{
+  const u=colossal?1.08:1,lureX=colossal?.62:.55,lureY=colossal?-1.27:-1.18;
+  fin([[-1.02,.02],[-1.62,-.45],[-1.44,.04],[-1.6,.42]],color);
+  fin([[-.63,-.38],[-.33,-.94],[-.06,-.37]],color);
+  fin([[-.48,.3],[-.74,.7],[-.05,.47]],color);
+  // Thick cranial mass and cheeks, keeping the original warm amber palette.
+  fill(()=>{c.moveTo(-1.17*r,0);c.bezierCurveTo(-1.12*r,-.54*r,-.54*r,-.83*r,.08*r,-.72*r);
+   c.bezierCurveTo(.65*r,-.69*r,.84*r,-.32*r,.8*r,.11*r);
+   c.bezierCurveTo(.64*r,.64*r,-.25*r,.72*r,-.86*r,.39*r);
+   c.quadraticCurveTo(-1.16*r,.22*r,-1.17*r,0);c.closePath()},
+   bodyGrad(color),'rgba(255,219,165,.73)',Math.max(1.1,r*.045),13);
+  // A cavernous red-maroon throat, not a flat black mouth or black triangles.
+  const throat=c.createRadialGradient(.66*r,.08*r,.06*r,.72*r,.08*r,.85*r);
+  throat.addColorStop(0,'#a9475b');throat.addColorStop(.42,'#672436');
+  throat.addColorStop(.78,'#351422');throat.addColorStop(1,'#210c19');
+  fill(()=>{c.moveTo(.04*r,-.17*r);c.bezierCurveTo(.47*r,-.49*r,1.25*r,-.61*r,1.58*u*r,-.48*r);
+   c.quadraticCurveTo(1.69*u*r,.06*r,1.6*u*r,.59*r);
+   c.bezierCurveTo(1.06*r,.78*r,.4*r,.61*r,.02*r,.19*r);c.closePath()},
+   throat,'rgba(255,158,118,.75)',Math.max(1.2,r*.043),9);
+  fill(()=>{c.moveTo(.31*r,.25*r);c.bezierCurveTo(.68*r,.29*r,1.04*r,.55*r,1.36*r,.43*r);
+   c.quadraticCurveTo(.96*r,.66*r,.42*r,.48*r);c.closePath()},
+   'rgba(194,69,84,.63)','rgba(248,142,139,.28)',Math.max(.6,r*.012),3);
+  for(let k=0;k<4;k++){const q=k/3;
+   stroke(()=>{c.moveTo((.25+.15*q)*r,-(.09+.11*q)*r);
+    c.quadraticCurveTo((.58+.13*q)*r,(.03+.12*q)*r,(.45+.13*q)*r,(.27+.11*q)*r)},
+    Math.max(.65,r*.016),'rgba(245,128,120,.38)',2);
+  }
+  // Upper jaw arches sharply upward, visibly separate from the lower jaw.
+  fill(()=>{c.moveTo(-.12*r,-.32*r);
+   c.bezierCurveTo(.23*r,-.96*r,.99*r,-.92*r,1.55*u*r,-.57*r);
+   c.quadraticCurveTo(1.63*u*r,-.46*r,1.48*u*r,-.39*r);
+   c.bezierCurveTo(1.0*r,-.61*r,.46*r,-.37*r,.11*r,-.075*r);
+   c.quadraticCurveTo(-.07*r,-.08*r,-.12*r,-.32*r);c.closePath()},
+   bodyGrad('#d18a42'),'rgba(255,231,180,.86)',Math.max(1.1,r*.045),12);
+  // The lower jaw hangs down, leaving a clear, very large gap.
+  fill(()=>{c.moveTo(.04*r,.18*r);
+   c.bezierCurveTo(.48*r,.54*r,1.09*r,.82*r,1.55*u*r,.48*r);
+   c.quadraticCurveTo(1.64*u*r,.58*r,1.48*u*r,.74*r);
+   c.bezierCurveTo(.94*r,1.02*r,.3*r,.75*r,-.07*r,.3*r);c.closePath()},
+   bodyGrad('#b97037'),'rgba(255,214,156,.86)',Math.max(1.1,r*.045),12);
+  // Needle-teeth follow both jaws instead of ringing a dark circular patch.
+  c.save();c.fillStyle='#fff6d9';c.shadowColor='#ffcf94';c.shadowBlur=5*glowScale;
+  for(let i=0;i<11;i++){const q=i/10,tx=(.34+1.13*q)*r;
+   const top=(-.16-.27*q+.045*Math.sin(q*Math.PI))*r;
+   const bottom=(.23+.23*q+.055*Math.sin(q*Math.PI))*r;
+   const fang=(i%4===1?.2:.13)*r*(.8+.3*q);
+   c.beginPath();c.moveTo(tx-.043*r,top-.025*r);
+   c.quadraticCurveTo(tx,top+fang*.68,tx+.03*r,top+fang);
+   c.lineTo(tx+.052*r,top-.012*r);c.closePath();c.fill();
+   c.beginPath();c.moveTo(tx-.045*r,bottom+.025*r);
+   c.quadraticCurveTo(tx,bottom-fang*.72,tx+.025*r,bottom-fang);
+   c.lineTo(tx+.05*r,bottom+.01*r);c.closePath();c.fill();
+  }c.restore();
+  // Heavy forehead, gill folds and a small, focused predator eye.
+  stroke(()=>{c.moveTo(-.64*r,-.43*r);c.bezierCurveTo(-.27*r,-.64*r,.05*r,-.59*r,.36*r,-.47*r)},
+   Math.max(.8,r*.038),'rgba(255,240,194,.69)',6);
+  for(let g=0;g<3;g++){const gx=(-.66+g*.13)*r;
+   stroke(()=>{c.moveTo(gx,-.15*r);c.quadraticCurveTo(gx-.09*r,-.01*r,gx-.03*r,.22*r)},
+    Math.max(.75,r*.024),'rgba(96,37,34,.68)',2);}
+  eye(.02,-.42,r*(colossal?.085:.075),'#fff0b4');
+  // Lure coordinates deliberately stay unchanged for lure-only camouflage.
+  stroke(()=>{c.moveTo(-.12*r,-.61*r);c.quadraticCurveTo(.04*r,-1.36*r,lureX*r,lureY*r)},
+   Math.max(1.3,r*.055),'#ffcc74',10);
+  c.save();c.globalCompositeOperation='lighter';
+  const glowR=r*(.18+.025*Math.sin(t*.008));
+  const lamp=c.createRadialGradient(lureX*r,lureY*r,1,lureX*r,lureY*r,glowR*2.7);
+  lamp.addColorStop(0,'#fff');lamp.addColorStop(.18,'#fffbd7');
+  lamp.addColorStop(.46,'#ffd763');lamp.addColorStop(1,'rgba(255,142,45,0)');
+  c.fillStyle=lamp;c.beginPath();c.arc(lureX*r,lureY*r,glowR*2.7,0,Math.PI*2);c.fill();c.restore();
+ };
+
  const blueRingOctopus=()=>{const phase=t*.0028;
   for(let arm=0;arm<8;arm++){const offset=arm-3.5,sway=Math.sin(phase+arm*.72)*.19;
    krakenArm({sx:offset*.16,sy:.22,c1x:offset*.22+sway*.4,c1y:.76,c2x:offset*.26-sway,c2y:1.5,ex:offset*.29+sway*.7,ey:2.22+(arm%3)*.16},arm,phase);}
@@ -2840,12 +2913,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    if(id==='aberration'){
     blueRingOctopus();
    }else if(id==='angler'){
-    fin([[-.95,0],[-1.55,-.4],[-1.4,.06],[-1.5,.38]],color);
-    fill(()=>{c.ellipse(-.34*r,0,.86*r,.66*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(255,231,177,.52)',Math.max(1,r*.035),10);
-    fill(()=>{c.moveTo(-.05*r,-.06*r);c.quadraticCurveTo(.56*r,-.78*r,1.28*r,-.34*r);c.lineTo(1.02*r,-.04*r);c.lineTo(.04*r,.02*r);c.closePath()},'#07101a','#ffe0a4',Math.max(1,r*.035),6);
-    fill(()=>{c.moveTo(.04*r,.04*r);c.lineTo(1.03*r,.04*r);c.lineTo(1.3*r,.42*r);c.quadraticCurveTo(.55*r,.78*r,-.06*r,.1*r);c.closePath()},'#050910','#ffe0a4',Math.max(1,r*.035),6);
-    teeth(.55,.02,.68,.36,14,.95);stroke(()=>{c.moveTo(-.15*r,-.5*r);c.quadraticCurveTo(.02*r,-1.25*r,.55*r,-1.18*r)},Math.max(1,r*.055),'#ffd36f',10);
-    c.save();c.globalCompositeOperation='lighter';const lr=r*(.16+.025*Math.sin(t*.008));const lamp=c.createRadialGradient(.55*r,-1.18*r,1,.55*r,-1.18*r,lr*2.4);lamp.addColorStop(0,'#fff');lamp.addColorStop(.2,'#fff6a9');lamp.addColorStop(.52,'#ffcc55');lamp.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=lamp;c.beginPath();c.arc(.55*r,-1.18*r,lr*2.4,0,Math.PI*2);c.fill();c.restore();eye(.3,-.32,r*.055,'#fff0a4');
+    drawAnglerAnatomy(false);
    }else if(id==='maw'){
     eelTail();fill(()=>{c.ellipse(-.05*r,0,.91*r,.86*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(238,197,255,.48)',Math.max(1,r*.04),8);
     c.save();c.fillStyle='#050611';c.strokeStyle='#f0c5ff';c.lineWidth=Math.max(1,r*.05);c.beginPath();c.ellipse(.12*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.12,0,.52,.58,16,.8);eye(.65,-.15,r*.05,'#ffeaff');
@@ -2862,7 +2930,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   }
   if(id==='angler'&&renderContext===ctx&&gameState==='playing'&&anglerVisibilityAlpha(Date.now())<.999)lureOnly(.55,-1.18);
   // Fine luminous lateral line makes skin previews look like the live character.
-  if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
+  if(!['royal','glacier','abyssaleye','angler'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
   c.restore();return;
  }
 
@@ -2936,16 +3004,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
     c.save();c.strokeStyle='#7be9ff';c.lineWidth=Math.max(1,r*.03);c.shadowBlur=12*glowScale;c.shadowColor='#4be1ff';c.beginPath();c.moveTo(-.9*r,-.2*r);c.lineTo(.4*r,-.2*r);c.stroke();c.restore();
   }
  } else if(kind==='angler'){
-  fin([[-.92,0],[-1.58,-.42],[-1.42,.03],[-1.55,.38]],color);fin([[-.5,-.31],[-.28,-.86],[-.02,-.3]],color);
-  fill(()=>{c.ellipse(-.35*r,0,.9*r,.68*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(255,230,176,.5)',Math.max(1,r*.034),12);
-  fill(()=>{c.moveTo(-.04*r,-.04*r);c.quadraticCurveTo(.6*r,-.86*r,1.42*r,-.38*r);c.lineTo(1.08*r,-.03*r);c.lineTo(.02*r,.02*r);c.closePath()},'#050b13','#ffd59a',Math.max(1.1,r*.04),7);
-  fill(()=>{c.moveTo(.02*r,.04*r);c.lineTo(1.08*r,.04*r);c.lineTo(1.43*r,.46*r);c.quadraticCurveTo(.58*r,.86*r,-.05*r,.1*r);c.closePath()},'#02070d','#ffd59a',Math.max(1.1,r*.04),7);
-  teeth(.61,.02,.76,.4,16,1.08);stroke(()=>{c.moveTo(-.14*r,-.5*r);c.quadraticCurveTo(.02*r,-1.34*r,.62*r,-1.27*r)},Math.max(1.6,r*.06),'#ffcb70',12);
-  c.save();c.globalCompositeOperation='lighter';const pulseSize=r*.19*(1+Math.sin(t*.008)*.12);const lamp=c.createRadialGradient(.62*r,-1.27*r,1,.62*r,-1.27*r,pulseSize*2.7);lamp.addColorStop(0,'#fff');lamp.addColorStop(.18,'#fff9b8');lamp.addColorStop(.48,'#ffd05b');lamp.addColorStop(1,'rgba(255,142,45,0)');c.fillStyle=lamp;c.beginPath();c.arc(.62*r,-1.27*r,pulseSize*2.7,0,Math.PI*2);c.fill();c.restore();eye(.34,-.34,r*.055,'#fff3c5');
-
+  drawAnglerAnatomy(true);
  }
  // Bioluminescent side line and paired sensory pores unify the species without flattening silhouettes.
- if(kind!=='drifter'&&kind!=='maw')stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.55)',5);
+ if(!['drifter','maw','angler'].includes(kind))stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.55)',5);
  c.restore();
 }
 function drawArenaTerrain(t){
