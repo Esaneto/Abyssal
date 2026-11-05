@@ -40,10 +40,11 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   assert.doesNotMatch(game, /legalAgeConsent/, 'a self-attestation checkbox must not be presented as age verification');
   assert.match(game, /class="skin-ability"/);
   const server = read('server.js');
-  assert.match(server, /kraken:30000/);
+  assert.match(server, /stripeOnlySkins = new Set\(\[[^\]]*'kraken'[^\]]*\]\)/);
   assert.match(server, /player\.skinId!=='kraken'/);
-  for (const [id,price] of [['aberration',16000],['angler',19000],['maw',22000],['devourer',35000]]) {
-    assert.match(server, new RegExp(`${id}:${price}`));
+  const coinPrices=(server.match(/const prices = \{([^}]+)\}/)||[])[1]||'';
+  for (const id of ['kraken','aberration','angler','maw','devourer']) {
+    assert.doesNotMatch(coinPrices,new RegExp('(?:^|\\s|,)'+id+':'));
     assert.match(server, new RegExp(`'${id}'`));
   }
 });
