@@ -4,6 +4,28 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
+const networkDebugEnabled=(()=>{try{return new URLSearchParams(location.search).get('abyssalDebug')==='1';}catch(_){return false;}})();
+let netDiagWindowAt=performance.now(),netDiagSent=0,netDiagReceived=0,netDiagSentBytes=0,netDiagReceivedBytes=0,netDiagRates={sentPerSec:0,receivedPerSec:0,sentBytesPerSec:0,receivedBytesPerSec:0};
+const netDiagEncoder=typeof TextEncoder!=='undefined'?new TextEncoder():null;
+function diagnosticBytes(values){
+ if(!networkDebugEnabled)return 0;let total=0;
+ for(const value of values){
+  if(value instanceof ArrayBuffer)total+=value.byteLength;
+  else if(ArrayBuffer.isView(value))total+=value.byteLength;
+  else try{const raw=JSON.stringify(value);total+=netDiagEncoder?netDiagEncoder.encode(raw).byteLength:raw.length*2;}catch(_){}
+ }
+ return total;
+}
+function updateNetworkDiagnosticWindow(){
+ if(!networkDebugEnabled)return;const now=performance.now(),elapsed=now-netDiagWindowAt;if(elapsed<1000)return;
+ const scale=1000/Math.max(1,elapsed);netDiagRates={sentPerSec:Number((netDiagSent*scale).toFixed(1)),receivedPerSec:Number((netDiagReceived*scale).toFixed(1)),sentBytesPerSec:Math.round(netDiagSentBytes*scale),receivedBytesPerSec:Math.round(netDiagReceivedBytes*scale)};
+ netDiagWindowAt=now;netDiagSent=0;netDiagReceived=0;netDiagSentBytes=0;netDiagReceivedBytes=0;
+}
+function attachNetworkDiagnostics(target){
+ if(!networkDebugEnabled||!target||target.__abyssalNetworkDiagnostics)return;target.__abyssalNetworkDiagnostics=true;
+ target.onAny?.((_event,...args)=>{netDiagReceived++;netDiagReceivedBytes+=diagnosticBytes(args);updateNetworkDiagnosticWindow();});
+ target.onAnyOutgoing?.((_event,...args)=>{netDiagSent++;netDiagSentBytes+=diagnosticBytes(args);updateNetworkDiagnosticWindow();});
+}
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,maintenanceFailSafe=null,everConnected=false,activeRoomPassword='',reconnectTarget=null,reconnectPending=false,reconnectFallbackUsed=false,reconnectWatchdog=null,reconnectSessionRetry=null,reconnectSessionAttempts=0;
 function showMaintenanceOverlay(message='Reconectando ao servidor automaticamente…'){maintenanceVisible=true;const status=$('maintenanceStatusText');if(status)status.textContent=message;const el=$('maintenanceOverlay');if(el)el.hidden=false;if(!maintenanceFailSafe)maintenanceFailSafe=setTimeout(()=>{maintenanceFailSafe=null;if(!maintenanceVisible)return;if(reconnectPending)failReconnect('A reconexão automática excedeu o tempo limite. O menu foi liberado para você tentar novamente.');else{hideMaintenanceOverlay();window.dispatchEvent(new CustomEvent('abyssal-reconnect-failed',{detail:{ok:false,message:'Servidor indisponível por tempo demais. Tente novamente pelo menu online.'}}));}},180000);}
 function hideMaintenanceOverlay(){maintenanceVisible=false;if(maintenanceTimer){clearTimeout(maintenanceTimer);maintenanceTimer=null;}if(maintenanceFailSafe){clearTimeout(maintenanceFailSafe);maintenanceFailSafe=null;}const el=$('maintenanceOverlay');if(el)el.hidden=true;}
@@ -146,6 +168,7 @@ function connect(){
  if(socket){if(!socket.connected)socket.connect();return socket;}
  if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:3500,randomizationFactor:.35,timeout:8000});
+ attachNetworkDiagnostics(socket);
  socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
  startPositionHeartbeat();
  socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();if(reconnectPending&&reconnectTarget&&sessionToken)showMaintenanceOverlay('Servidor encontrado. Restaurando sessão e expedição…');else if(reconnectPending&&reconnectTarget&&!sessionToken)failReconnect('Servidor reconectado. Entre novamente para continuar a expedição.');localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;pendingMotion.clear();lastReconcileSeq=0;motionRttMs=null;motionJitterMs=null;motionAckCount=0;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');if(reconnectPending&&reconnectTarget){armReconnectWatchdog();resumeSessionForReconnect();}else socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
@@ -408,7 +431,7 @@ function startPositionHeartbeat(){
   if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
 }
-function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount};}
+function getPositionDiagnostics(){updateNetworkDiagnosticWindow();return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount,...(networkDebugEnabled?netDiagRates:{})};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendDamageBatch(hits){
