@@ -2028,7 +2028,7 @@ function update(dt){
    if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
     ink.damageTimer=.5;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
     const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10))dealEnemyDamage(e,4,'blue-ring-ink',{visual:false,silentSound:true});
+    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=450){e.blueRingInkHitAt=now;dealEnemyDamage(e,4,'blue-ring-ink',{visual:false,silentSound:true});}
    }
   }
 
@@ -2238,8 +2238,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    e.inkTrailTimer=(Number(e.inkTrailTimer)||0)+dt;
    if(e.inkTrailTimer>=.45){
     e.inkTrailTimer=0;const radius=76/GAME_WORLD_ZOOM;
-    renderBossAbilityVisual({abilityId:'ink-trail',x:e.x-Math.cos(e.angle||0)*e.r*.72,y:e.y-Math.sin(e.angle||0)*e.r*.72,angle:e.angle||0,radius,color:'#07101d'});
-    if(Math.hypot(player.x-e.x,player.y-e.y)<=radius+player.r&&player.invuln<=0){hurtPlayer(6);shake=5;}
+    const ix=e.x-Math.cos(e.angle||0)*e.r*.72,iy=e.y-Math.sin(e.angle||0)*e.r*.72;
+    renderBossAbilityVisual({abilityId:'ink-trail',x:ix,y:iy,angle:e.angle||0,radius,color:'#07101d'});
+    if(Math.hypot(player.x-ix,player.y-iy)<=radius+player.r&&player.invuln<=0){hurtPlayer(6);shake=5;}
    }
   }
   // Peixe-pescador: a antiga isca ofensiva foi substituída pela camuflagem cíclica.
