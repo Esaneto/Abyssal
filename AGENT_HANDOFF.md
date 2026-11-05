@@ -354,3 +354,33 @@ Criterio de aceite:
 - ao abrir o catalogo sem ler os nomes, deve ser possivel distinguir a maioria das skins apenas pela silhueta;
 - ao equipar duas skins diferentes, o jogador deve perceber imediatamente mudanca anatomica real, nao apenas cor;
 - preview e gameplay devem usar a mesma identidade visual da skin.
+
+
+## 15. Direcao visual canonica: priorizar o novo design em todo o jogo
+
+Decisao de produto em 2026-11-05:
+- o design antigo deve ser considerado ultrapassado;
+- qualquer trabalho novo deve priorizar o visual mais recente e coerente com a identidade abissal/marinha atual;
+- renderers, componentes, cards, HUDs, menus, criaturas, skins, bosses, efeitos e cenarios antigos devem ser migrados progressivamente para a nova linguagem visual, desde que isso nao quebre gameplay, performance, saves, compras ou netcode.
+
+Regra de implementacao:
+1. Quando houver dois caminhos visuais para a mesma entidade, considerar o novo renderer como fonte canonica.
+2. O renderer antigo deve permanecer apenas quando necessario para compatibilidade temporaria, nunca como referencia estetica para novas features.
+3. Nao criar novas skins, monstros, bosses, menus ou efeitos usando o estilo antigo apenas porque ja existe codigo pronto.
+4. Sempre que uma entidade ainda depender do renderer legado, avaliar se pode ser portada para o novo sistema sem alterar sua logica de gameplay.
+5. Preservar IDs, ownership, Stripe, progressao, habilidades, hitboxes, dano, velocidade e comportamento de rede durante migracoes visuais.
+6. A diferenca entre entidades deve vir de anatomia, silhueta, materiais, locomocao, bioluminescencia e efeitos proprios, nao apenas de troca de cor.
+7. O novo visual deve continuar legivel em escala pequena, em desktop e mobile, e nao pode custar regressao relevante de FPS ou aumentar trafego de rede.
+8. Se o novo renderer ainda nao cobrir uma entidade, a tarefa correta e expandi-lo, nao reforcar o legado.
+
+Prioridade pratica para o proximo agente:
+- consolidar skins no novo renderer;
+- depois monstros comuns e elites;
+- depois bosses e reliquias;
+- depois HUD, cards, menus e feedback visual que ainda destoem;
+- por fim remover ou isolar codigo legado que nao seja mais utilizado.
+
+Criterio de aceite visual:
+- o jogo deve parecer feito por um unico sistema de arte e nao por camadas de estilos antigos e novos misturados;
+- nenhuma skin nova deve parecer uma recoloracao de uma criatura antiga;
+- nenhuma tela nova deve herdar layout/ornamentos antigos se ja houver uma linguagem visual nova equivalente.
