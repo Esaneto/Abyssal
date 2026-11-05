@@ -37,25 +37,38 @@ var SPECIMENS=[
 var activeFilter='all';
 
 // Correntes desenhadas uma vez em SVG; a animação fica a cargo do compositor CSS.
+// Correntes de comprimentos e curvaturas irregulares: geometria estática e leve.
 function buildVortexStreams(){
-  var streams=[];
-  var count=16,steps=74;
+  var streams=[],count=11,steps=84;
+  function noise(seed){var a=Math.sin(seed*127.1+31.7)*43758.5453;return a-Math.floor(a);}
   for(var arm=0;arm<count;arm++){
-    var parts=[];
+    var outer=207+noise(arm+3)*37;
+    var twist=1.32+noise(arm+19)*.76;
+    var phase=(arm+noise(arm+37)*.75)/count*Math.PI*2;
+    var thickness=1.5+noise(arm+12)*3.3;
+    var path=[];
     for(var step=0;step<=steps;step++){
-      var progress=step/steps;
-      var angle=Math.PI*2*(arm/count+progress*1.48);
-      var radius=234*Math.pow(1-progress,1.22)+5;
+      var t=step/steps;
+      var radius=outer*Math.pow(1-t,1.11)+7;
+      var angle=phase+(twist*Math.PI*2*t)+
+        Math.sin(t*12.4+arm*2.9)*(.055+.044*noise(arm+8))*(1-t)+
+        Math.sin(t*26.9+arm*1.6)*.017*(1-t);
       var x=260+Math.cos(angle)*radius;
-      var y=260+Math.sin(angle)*radius;
-      parts.push((step?'L':'M')+x.toFixed(1)+' '+y.toFixed(1));
+      var y=260+Math.sin(angle)*radius+
+        Math.sin(t*8.1+arm*3.2)*6*(1-t);
+      path.push((step?'L':'M')+x.toFixed(1)+' '+y.toFixed(1));
     }
-    var tone=arm%4===0?'#ac69ff':(arm%3===0?'#86f4ff':'#00c9ff');
-    var alpha=(arm%4===0?.43:.64);
-    streams.push('<path d="'+parts.join(' ')+'" fill="none" stroke="'+tone+'" stroke-opacity="'+alpha+'" stroke-width="'+(arm%3===0?3.3:1.8)+'" stroke-linecap="round"/>');
+    var tone=arm%4===0?'#a65bfa':arm%3===0?'#82e9ff':'#08bcf6';
+    var opacity=(.35+noise(arm+27)*.45).toFixed(2);
+    var d=path.join(' ');
+    // Um traço luminoso e um reflexo fino substituem os antigos anéis concêntricos.
+    streams.push('<path d="'+d+'" fill="none" stroke="'+tone+
+      '" stroke-opacity="'+opacity+'" stroke-width="'+thickness.toFixed(1)+
+      '" stroke-linecap="round"/>');
+    if(arm%2===0)streams.push('<path d="'+d+'" fill="none" stroke="#acf6ff" stroke-opacity=".19" stroke-width=".75"/>');
   }
-  return '<svg class="abyss-vortex-streams" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+
-    '<g>'+streams.join('')+'</g></svg>';
+  return '<svg class="abyss-vortex-streams" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g>'+
+    streams.join('')+'</g></svg>';
 }
 
 function createGate(){
