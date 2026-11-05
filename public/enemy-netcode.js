@@ -90,7 +90,7 @@
     const minX = Number.isFinite(Number(options.minX)) ? Number(options.minX) : 0;
     const minY = Number.isFinite(Number(options.minY)) ? Number(options.minY) : 0;
     const now = Number.isFinite(Number(options.now)) ? Number(options.now) : (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    const interpolationMs = clamp(Number(options.interpolationMs) || 100, 50, 160);
+    const interpolationMs = clamp(Number(options.interpolationMs) || 72, 45, 120);
     const list = Array.isArray(incomingEnemies) ? incomingEnemies : [];
     const criticalIds = new Set((Array.isArray(options.criticalIds) ? options.criticalIds : []).map(String));
     return list.filter(raw => raw && raw.id != null).map(raw => {
@@ -103,7 +103,7 @@
       const sampleMs = old ? Math.max(50, Math.min(250, now - (Number.isFinite(oldReceivedAt) ? oldReceivedAt : now))) : interpolationMs;
       // Adapt visual blend time to observed snapshot spacing, smoothing jitter without
       // adding packets or running a second client-side simulation. Keep the lag bounded.
-      const adaptiveInterpolationMs = old && !critical ? clamp(Math.max(interpolationMs, sampleMs + 12), 60, 145) : interpolationMs;
+      const adaptiveInterpolationMs = old && !critical ? clamp(Math.max(52, Math.min(interpolationMs, sampleMs * 0.62)), 52, 90) : interpolationMs;
       const oldServerX = Number(old?.serverX), oldServerY = Number(old?.serverY);
       const measuredVx = old ? (serverX - (Number.isFinite(oldServerX) ? oldServerX : Number(old.x) || serverX)) / (sampleMs / 1000) : Number(raw.vx) || 0;
       const measuredVy = old ? (serverY - (Number.isFinite(oldServerY) ? oldServerY : Number(old.y) || serverY)) / (sampleMs / 1000) : Number(raw.vy) || 0;
