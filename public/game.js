@@ -778,8 +778,8 @@ function playDevourerSuction(){
 let abyssalAlertTimer = null;
 function getBossDisplayName(kind) {
   const n = {
-    boss: 'ABERRAÇÃO ABISSAL', leviathan: 'LEVIATÃ DAS FOSSAS', maw: 'A BOCA DO ABISMO',
-    angler: 'LANTERNA MORTAL', kraken: 'KRAKEN DO ABISMO', devourer: 'DEVORADOR DO VAZIO',
+    boss: 'CEFALÓPODE CALCIFICADO', leviathan: 'PEIXE-REMO LEVIATÃ', maw: 'ENGUIA-PELÍCANO COLOSSAL',
+    angler: 'PEIXE-PESCADOR ABISSAL', kraken: 'LULA-KRAKEN DAS FOSSAS', devourer: 'LULA-COLOSSAL DO VAZIO',
     whiteSharkBoss: 'TUBARÃO-BRANCO COLOSSAL', whiteShark: 'TUBARÃO-BRANCO'
   };
   return n[kind] || kind.toUpperCase();
@@ -822,12 +822,12 @@ function showBossAlert(kind,id=null,threat=0,force=false){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
  if(!force&&alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
-  boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
-  leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
-  maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],
-  angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],
-  kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],
-  devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],
+  boss:['☠ CEFALÓPODE CALCIFICADO','BRAÇOS FARPADOS E PLACAS MINERAIS FECHARAM A CÂMARA. ELE SENTE A CORRENTE.'],
+  leviathan:['☠ PEIXE-REMO LEVIATÃ','UM CORPO PELÁGICO COLOSSAL CORTA A FOSSA. A PRESSÃO MUDA COM CADA CURVA.'],
+  maw:['☠ ENGUIA-PELÍCANO COLOSSAL','A GARGANTA SE EXPANDEU. O ECO DESAPARECE DENTRO DELA.'],
+  angler:['☠ PEIXE-PESCADOR ABISSAL','A LUZ É UMA ISCA. OS DENTES JÁ ESTÃO FECHANDO.'],
+  kraken:['☠ LULA-KRAKEN DAS FOSSAS','OITO BRAÇOS VARREM A CÂMARA EM ESPIRAL. NÃO FIQUE ENTRE AS VENTOSAS.'],
+  devourer:['☠ LULA-COLOSSAL DO VAZIO','O MANTO CONTRAIU. A CORRENTE INVERTEU E TUDO ESTÁ SENDO PUXADO.'],
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
  };
 
@@ -2366,6 +2366,25 @@ function drawCaveGlyph(x,y,type,t,scale=1){
  }
  ctx.restore();
 }
+function drawCaveBranchSignal(corridor,t){
+ if(!corridor?.optional)return;
+ const targetId=String(corridor.b||''),isElite=targetId==='elite',encounter=!isElite?EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier):null;
+ const x=corridor.x1+(corridor.x2-corridor.x1)*.42,y=corridor.y1+(corridor.y2-corridor.y1)*.42;
+ const color=isElite?'#ff5b78':'#b98aff',title=isElite?'DESVIO ELITE':'ECO LATERAL';
+ const detail=isElite?'RISCO MÁXIMO · CACHE DE ELITE':`${encounter?.risk||'INCERTO'} · ${encounter?.reward||'RECOMPENSA DESCONHECIDA'}`;
+ ctx.save();ctx.translate(x,y);ctx.globalAlpha=.72+.10*Math.sin(t*.003+x*.002);ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillStyle='rgba(1,5,11,.78)';ctx.strokeStyle=color;ctx.lineWidth=1.5/GAME_WORLD_ZOOM;const w=210/GAME_WORLD_ZOOM,h=48/GAME_WORLD_ZOOM;ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,9/GAME_WORLD_ZOOM);ctx.fill();ctx.stroke();
+ ctx.fillStyle=color;ctx.font=`800 ${12/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,0,-7/GAME_WORLD_ZOOM);
+ ctx.fillStyle='#d8eef1';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,0,9/GAME_WORLD_ZOOM);ctx.restore();
+}
+function drawCaveRoomSignal(room,t){
+ if(!room||!['elite','event','boss'].includes(room.type))return;
+ let color='#a98cff',title=String(room.signal||'ECO ABISSAL'),detail=String(room.reward||'RECOMPENSA');
+ if(room.type==='elite'){color='#ff5b78';detail='RISCO '+String(room.risk||5)+' · '+String(room.reward||'CACHE DE ELITE');}
+ else if(room.type==='event'){const encounter=EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier);color=encounter?.accent||'#b98aff';detail=String(encounter?.risk||'INCERTO')+' · '+String(encounter?.reward||room.reward||'ANOMALIA');}
+ else {color='#ff315f';const cleared=onlineMode?onlineBossesDefeated:bossKillsThisRun;detail=cleared>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind))?'SIGILO ABERTO · PRÓXIMA CAMADA':'BOSS · BLOQUEIA A DESCIDA';}
+ ctx.save();ctx.globalAlpha=.65+.08*Math.sin(t*.0025+room.x*.001);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.font=`800 ${11/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,room.x,room.y-room.ry*.62);ctx.fillStyle='#d7edf0';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,room.x,room.y-room.ry*.62+17/GAME_WORLD_ZOOM);ctx.restore();
+}
 function drawMapPortal(portal,t){
  if(!portal)return;
  ctx.save();ctx.translate(portal.x,portal.y);const pulse=.92+.08*Math.sin(t*.003+(portal.x+portal.y)*.002),r=portal.r*pulse;
@@ -2388,7 +2407,7 @@ function drawAbyssalCaveMap(t){
   if(!visible)continue;
   ctx.strokeStyle='rgba(0,1,4,.96)';ctx.lineWidth=corridor.width*2.28;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
   ctx.strokeStyle=corridor.optional?'rgba(23,22,35,.96)':'rgba(8,25,34,.98)';ctx.lineWidth=corridor.width*1.62;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
-  ctx.strokeStyle=corridor.optional?'rgba(163,92,180,.12)':'rgba(91,194,199,.09)';ctx.lineWidth=Math.max(2,corridor.width*.055);ctx.stroke();
+  ctx.strokeStyle=corridor.optional?'rgba(163,92,180,.12)':'rgba(91,194,199,.09)';ctx.lineWidth=Math.max(2,corridor.width*.055);ctx.stroke();if(corridor.optional)drawCaveBranchSignal(corridor,t);
  }
  for(const room of layout.rooms){
   if(room.x+room.rx<cameraX-350||room.x-room.rx>cameraX+viewW/worldZoom+350||room.y+room.ry<cameraY-350||room.y-room.ry>cameraY+viewH/worldZoom+350)continue;
@@ -2396,7 +2415,7 @@ function drawAbyssalCaveMap(t){
   ctx.fillStyle=palette[0];ctx.strokeStyle='rgba(3,5,9,.98)';ctx.lineWidth=46/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx+20,room.ry+20,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle=palette[1];ctx.strokeStyle=palette[2]+'33';ctx.lineWidth=7/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.92,room.ry*.91,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.globalAlpha=.14;ctx.strokeStyle=palette[2];ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.72,room.ry*.67,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-  if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);
+  if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);drawCaveRoomSignal(room,t);
  }
  drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);drawMapPortal(layout.portals.landing,t);
  const boss=layout.portals.boss;if(boss)drawCaveGlyph(boss.x,boss.y,'boss',t,1.6);
@@ -3412,13 +3431,13 @@ function renderCatalog(){
   brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Blindagem Bêntica: carapaça espessa que absorve projéteis e isola passagens.',desc:'Isópode titânico com placas sobrepostas impenetráveis e patas blindadas.'},
   lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Faringe Expansiva: mandíbula que dilata e perseguição incansável nas trevas.',desc:'Enguia gulper predatória que persegue sua presa sem recuar.'},
   whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
-  boss:{name:'Aberração Abissal',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Entidade coroada por placas calcificadas e braços farpados que esmagam quem se aproxima.'},
-  angler:{name:'Lanterna Mortal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Predador arcaico com lanterna incandescente e dentes voltados para dentro.'},
-  maw:{name:'A Boca do Abismo',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Criatura anelar voraz cujo corpo inteiro é uma garganta predatória viva.'},
-  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Serpente colóssal com costelas externas que atravessa as fendas mais profundas.'},
+  boss:{name:'Cefalópode Calcificado',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Cefalópode abissal fictício inspirado em polvos cirrados, com placas mineralizadas e braços farpados.'},
+  angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Peixe-pescador de águas profundas ampliado a escala colossal, com ilício bioluminescente e dentes recurvados.'},
+  maw:{name:'Enguia-Pelícano Colossal',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Enguia-pelícano colossal inspirada em gulper eels, com boca expansível capaz de engolir presas enormes.'},
+  leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Peixe-remo abissal fictício de corpo extremamente alongado que atravessa corredores estreitos das fossas.'},
   whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
-  kraken:{name:'Kraken do Abismo',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Senhor primordial das fossas oceânicas cujos tentáculos envolvem a escuridão.'},
-  devourer:{name:'Devorador do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Entidade que distorce as correntes abissais engolindo cardumes e mergulhadores inteiros.'}
+  kraken:{name:'Lula-Kraken das Fossas',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Lula gigantesca inspirada em cefalópodes de profundidade, com oito braços usados em varreduras circulares.'},
+  devourer:{name:'Lula-Colossal do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Lula-colossal fictícia cujo manto gera um pulso de sucção capaz de inverter correntes locais.'}
  };
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
