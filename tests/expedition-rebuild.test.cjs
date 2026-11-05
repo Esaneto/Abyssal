@@ -33,6 +33,8 @@ test('depth and event UI remains cosmetic and does not add gameplay network traf
  assert.match(rebuild,/abyssEventBanner/);
  assert.match(rebuild,/abyssEventAtmosphere/);
  assert.match(rebuild,/abyssZoneValue/);
+ assert.match(rebuild,/abyssal-room-joined[\s\S]*mode==='pvp'[\s\S]*event:null/);
+ assert.match(css,/body:not\(\.game-active\) \.abyss-event-atmosphere/);
  assert.doesNotMatch(rebuild,/socket\.emit|sendPosition|sendDamageBatch|requestAnimationFrame\([^)]*send/);
  const eventCss=css.slice(css.indexOf('Depth zones + rare events'));
  assert.match(eventCss,/abyss-event-predator_migration/);
