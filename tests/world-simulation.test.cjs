@@ -9,8 +9,11 @@ test('rift encounters are finite and enter through real walkable cave chambers',
   world.mapSeed=CaveMap.seedValue('initial-horde-test');
   Sim.initializeWorld(world, 1000, () => 0.25);
   const layout=Sim.mapLayoutFor(world);
-  assert.ok(world.enemies.length > 40);
-  assert.equal(world.enemies.filter(e=>AI.BOSS_KINDS.includes(e.kind)).length,1);
+  assert.equal(world.enemies.length,0,'unvisited chambers stay dormant');
+  const shoal=layout.rooms.find(room=>room.id==='shoal'),player={id:'p',x:shoal.x,y:shoal.y,alive:true,hp:100,maxHp:100};
+  Sim.tickWorld(world,[player],1050,()=>.25);
+  assert.equal(world.enemies.length,7);
+  assert.equal(world.enemies.filter(e=>AI.BOSS_KINDS.includes(e.kind)).length,0);
   assert.equal(world.riftEncountersSeeded,true);
   assert.ok(world.enemies.every(e => CaveMap.isWalkable(layout,e.x,e.y,12)));
   assert.ok(world.enemies.every(e => e.spawnCorner==null));
@@ -211,14 +214,15 @@ test('Estuarine Bull Shark defense reduces the strengthened authoritative drifte
 
 test('XP orbs spawn at the exact enemy coordinates and bosses drop larger, higher-value orbs', () => {
   const world = Sim.createWorldState(1000);
-  const common = { id: 10, kind: 'drifter', x: 700, y: 900, value: AI.statsForKind('drifter').value };
-  const boss = { id: 11, kind: 'leviathan', x: 1700, y: 1200, value: AI.statsForKind('leviathan').value };
+  const commonStats=AI.statsForKind('drifter'),bossStats=AI.statsForKind('leviathan');
+  const common = { id: 10, kind: 'drifter', x: 700, y: 900, r:commonStats.r,value:commonStats.value };
+  const boss = { id: 11, kind: 'leviathan', x: 1700, y: 1200, r:bossStats.r,value:bossStats.value };
   const smallOrb = Sim.spawnXpOrb(world, common);
   const bossOrb = Sim.spawnXpOrb(world, boss);
   assert.deepEqual([smallOrb.x, smallOrb.y], [common.x, common.y]);
   assert.deepEqual([bossOrb.x, bossOrb.y], [boss.x, boss.y]);
-  assert.equal(smallOrb.value, common.value);
-  assert.equal(bossOrb.value, boss.value);
+  assert.ok(smallOrb.value>=common.value);
+  assert.ok(bossOrb.value>boss.value);
   assert.ok(bossOrb.r > smallOrb.r, 'stronger enemies create visibly larger XP orbs');
 });
 

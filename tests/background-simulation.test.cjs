@@ -78,7 +78,7 @@ test('solo orb pickup and co-op server award feed the same gainXp function', () 
   assert.match(game, /gainXp\(o\.value,'orb'\)/);
   assert.match(game, /function applySharedXp\(data\)[\s\S]*?gainXp\(Math\.max\(0,Number\(data\.value\)\|\|0\),'shared'\)/);
   assert.match(online, /socket\.on\('shared-xp-award',[\s\S]*?sharedXp/);
-  assert.match(game, /function addOrb\(x,y,value\)[\s\S]*?xpOrbRadius/);
+  assert.match(game, /function addOrb\(x,y,value,sourceRadius=10\)[\s\S]*?Math\.sqrt\(Math\.max\(1,Number\(sourceRadius\)/);
 });
 
 test('authoritative movement is lossy-but-fresh, while collision verification keeps a reliable attacker frame', () => {

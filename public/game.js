@@ -86,17 +86,18 @@ let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStor
 let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let soloDepthEventId=null,soloDepthEventEndsAt=0,pendingSoloDepthEventId=null;
 let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
-let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false;
+let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 let sharkWakeTrails=[],inkTrails=[];
 function setActiveMapDescriptor(descriptor){
- if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;return null;}
+ if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=4800;H=3000;return null;}
  const seed=Number(descriptor?.seed);
  if(!Number.isFinite(seed))return activeMapLayout;
  const tier=Math.max(0,Math.floor(Number(descriptor?.tier)||0));
  if(activeMapLayout&&activeMapSeed===seed&&activeMapTier===tier)return activeMapLayout;
  activeMapSeed=seed;activeMapTier=tier;activeMapLayout=ABYSSAL_MAP.createLayout(seed,tier);
+ W=Number(activeMapLayout.width)||4800;H=Number(activeMapLayout.height)||3000;backgroundGradientCache=null;backgroundBloomCache=null;createDecor();updateCamera();
  return activeMapLayout;
 }
 function ensureSoloMap(){
@@ -124,7 +125,7 @@ function checkSoloCaveEncounter(){
  window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{...encounter,tier:activeMapTier}}));
  if(encounter.type==='treasure'){addOrb(room.x,room.y,28+activeMapTier*7);return;}
  const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
- for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:encounter.type==='trap'&&i<2});
+ for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:false});
 }
 function currentMapInteraction(){
  if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
@@ -482,7 +483,7 @@ function resize(){
  const nativeDpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1:1.45);
  dpr=Math.max(1,nativeDpr*adaptiveDprScale);
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
- W=4800;H=3000;mapFactor=1.7;
+ W=Number(activeMapLayout?.width)||4800;H=Number(activeMapLayout?.height)||3000;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1;
  if(player){player.x*=sx;player.y*=sy;player.r=13/GAME_WORLD_ZOOM;player.moveSpeed=150/GAME_WORLD_ZOOM;player.x=clamp(player.x,24/GAME_WORLD_ZOOM,W-24/GAME_WORLD_ZOOM);player.y=clamp(player.y,24/GAME_WORLD_ZOOM,H-24/GAME_WORLD_ZOOM);}
  for(const list of [enemies,orbs,particles,projectiles])for(const o of list){if(Number.isFinite(o.x))o.x*=sx;if(Number.isFinite(o.y))o.y*=sy;if(Number.isFinite(o.x1))o.x1*=sx;if(Number.isFinite(o.x2))o.x2*=sx;if(Number.isFinite(o.y1))o.y1*=sy;if(Number.isFinite(o.y2))o.y2*=sy;if(Number.isFinite(o.interpFromX))o.interpFromX*=sx;if(Number.isFinite(o.interpFromY))o.interpFromY*=sy;if(Number.isFinite(o.interpTargetX))o.interpTargetX*=sx;if(Number.isFinite(o.interpTargetY))o.interpTargetY*=sy;}
@@ -1189,7 +1190,7 @@ function showVictoryModal() {
 function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
- expeditionMode=isRiftRun();expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;if(requestedRunMode==='rift')ensureSoloMap();}else if(onlineRoomMode!=='rift'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
+ expeditionMode=isRiftRun();expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;W=4800;H=3000;if(requestedRunMode==='rift')ensureSoloMap();}else if(onlineRoomMode!=='rift'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=4800;H=3000;}
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
@@ -1411,7 +1412,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  })[kind];
  let eliteId=null;
  if(!isBossType&&!initial&&EXPEDITION_RULES){
-  eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
+  eliteId=map?null:EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
   if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
   if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
  }
@@ -1435,10 +1436,18 @@ function spawnEnemy(initial=false,type='common',options={}){
 
 function seedSoloRiftEncounters(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout)return;
- const populations={shoal:5,trench:7,lantern:7,junction:8,elite:3,event:5,hub:6,landing:7};
- for(const [roomId,count] of Object.entries(populations))for(let i=0;i<count;i++)spawnEnemy(false,'common',{roomId,forceElite:roomId==='elite'});
- spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:true});
+ soloRiftActivatedRooms=new Set();
  spawnTimer=Infinity;nextBossAt=Infinity;
+}
+
+const SOLO_RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:0,hub:10,landing:15,elite:5});
+function activateSoloRiftRoomEncounter(){
+ if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout||!player)return;
+ const room=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);if(!room||room.id==='start'||soloRiftActivatedRooms.has(room.id))return;
+ soloRiftActivatedRooms.add(room.id);
+ if(room.id==='boss'){spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:false});return;}
+ const count=SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
+ for(let i=0;i<count;i++)spawnEnemy(false,'common',{roomId:room.id,forceElite:room.id==='elite'});
 }
 
 function burst(x,y,color,n=10,force=100){
@@ -1448,7 +1457,7 @@ function burst(x,y,color,n=10,force=100){
   p.x=x;p.y=y;p.vx=Math.cos(a)*s;p.vy=Math.sin(a)*s;p.life=life;p.max=life;p.r=rand(1,3.5);p.color=color;particles.push(p);
  }
 }
-function addOrb(x,y,value){const r=(window.AbyssalEnemyAI?.xpOrbRadius?.(value)||Math.min(15,4+Math.sqrt(Math.max(1,value))))/GAME_WORLD_ZOOM;orbs.push({id:`solo-${Math.random().toString(36).slice(2)}`,x,y,r,value,phase:rand(0,6.28),life:25})}
+function addOrb(x,y,value,sourceRadius=10){const scaledValue=Math.max(1,Math.round(Number(value)||1)),r=clamp(3.8+Math.sqrt(scaledValue)*.9+Math.sqrt(Math.max(1,Number(sourceRadius)||10))*.9,4.5,30)/GAME_WORLD_ZOOM;orbs.push({id:`solo-${Math.random().toString(36).slice(2)}`,x,y,r,value:scaledValue,phase:rand(0,6.28),life:25})}
 function hurtPlayer(dmg){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
  const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?.2:0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0)endGame();
@@ -1885,9 +1894,9 @@ function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
  discoverCodexMonsters([e.kind]);if(!onlineMode){
- const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):Math.round(e.value*eventXp);addOrb(e.x,e.y,xpValue);
+ const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55)));addOrb(e.x,e.y,xpValue,e.r*GAME_WORLD_ZOOM);
  if(!killedBoss&&e.eliteId&&e.spawnRoomId==='elite'&&soloEliteRewardTier!==activeMapTier){
-  soloEliteRewardTier=activeMapTier;addOrb(e.x,e.y,EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18);
+  soloEliteRewardTier=activeMapTier;addOrb(e.x,e.y,EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18,e.r*GAME_WORLD_ZOOM);
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
@@ -1938,6 +1947,7 @@ function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  updateMapInteraction();
+ if(!onlineMode)activateSoloRiftRoomEncounter();
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
    // Correntezas ambientais removidas: o movimento depende apenas dos comandos do jogador.
@@ -2297,7 +2307,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
-   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(e.eliteId&&e.spawnRoomId==='elite'&&playerRoom?.id!=='elite'){const room=activeMapLayout.rooms.find(item=>item.id==='elite');soloMapNavProxy.x=room?.x??e.x;soloMapNavProxy.y=room?.y??e.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}else{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(e.spawnRoomId&&playerRoom?.id!==e.spawnRoomId){const room=activeMapLayout.rooms.find(item=>item.id===e.spawnRoomId);soloMapNavProxy.x=room?.x??e.x;soloMapNavProxy.y=room?.y??e.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}else{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
@@ -2542,8 +2552,8 @@ function drawMapPortal(portal,t){
   ctx.globalAlpha=.62;ctx.strokeStyle='#7dd6ff';for(let ring=0;ring<3;ring++){ctx.beginPath();ctx.ellipse(0,0,r*(.72-ring*.16),r*(.48-ring*.11),0,t*.0007+ring*.8,t*.0007+ring*.8+Math.PI*1.45);ctx.stroke();}
  }else{
   const color=portal.type==='start'?'#65ff85':'#55bfff';ctx.globalAlpha=.76;ctx.strokeStyle=color;ctx.lineWidth=4/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:16;ctx.shadowColor=color;
-  ctx.beginPath();ctx.arc(0,0,r*.72,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=t*.0012+q*Math.PI*4.6,rr=r*(.62*(1-q)+.08);const px=Math.cos(a)*rr,py=Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
+  ctx.fillStyle='rgba(0,13,28,.72)';ctx.beginPath();ctx.ellipse(0,0,r*.8,r*.55,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  for(let arm=0;arm<5;arm++){ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=arm*Math.PI*2/5-t*.0012+q*Math.PI*4.8,rr=r*(.7*(1-q)+.06);const px=Math.cos(a)*rr,py=Math.sin(a)*rr*.68;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
  }
  ctx.restore();
 }
@@ -2904,22 +2914,24 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.ellipse(.12*r,0,.7*r,.62*r,0,0,Math.PI*2)},bodyGrad('#b74468'),'rgba(255,177,200,.7)',Math.max(1,r*.04),9);
    c.save();c.fillStyle='#170817';c.strokeStyle='#ff8fb3';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.ellipse(.35*r,0,.28*r,.34*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.35,0,.25,.3,10,.7);eye(.05,-.25,r*.045,'#ffd2df');
   } else if(id==='bloodmoon'){
-   // Pale deep-sea fangfish with a huge split jaw.
-   fin([[-1.1,0],[-1.62,-.42],[-1.53,.05],[-1.68,.38]] ,color);fin([[-.3,-.34],[-.05,-.88],[.18,-.31]],color);
-   fill(()=>{c.moveTo(-1.2*r,0);c.quadraticCurveTo(-.78*r,-.6*r,.05*r,-.48*r);c.lineTo(.75*r,-.17*r);c.lineTo(.98*r,.02*r);c.lineTo(.56*r,.12*r);c.quadraticCurveTo(-.4*r,.55*r,-1.2*r,0)},bodyGrad(color),'rgba(255,224,232,.5)',Math.max(1,r*.04),12);
-   fill(()=>{c.moveTo(.38*r,-.05*r);c.quadraticCurveTo(.8*r,-.42*r,.93*r,-.18*r);c.lineTo(.75*r,.02*r);c.lineTo(.97*r,.27*r);c.quadraticCurveTo(.63*r,.32*r,.38*r,.12*r);c.closePath()},'#06111d','#ffbec9',Math.max(1,r*.045),8);
-   for(let i=0;i<5;i++){const xx=(.47+i*.085)*r;fin([[xx/r,-.08],[xx/r-.035,.035],[xx/r+.035,.035]],'#fff0e7','#ffbec9');fin([[xx/r,.12],[xx/r-.03,.02],[xx/r+.03,.02]],'#fff0e7','#ffbec9')}eye(.36,-.25,r*.06,'#ffedf2');
+   // Vampire squid: muscular mantle, paired fins and eight arms joined by a dark web.
+   fin([[-.1,-.3],[.45,-.95],[.8,-.32]],'#853d65','#d68ba0');
+   fin([[-.1,.3],[.45,.95],[.8,.32]],'#853d65','#d68ba0');
+   fill(()=>{c.moveTo(-.48*r,-.38*r);c.bezierCurveTo(-.1*r,-.85*r,1.15*r,-.6*r,1.18*r,0);c.bezierCurveTo(1.15*r,.6*r,-.1*r,.85*r,-.48*r,.38*r);c.closePath()},bodyGrad('#843d5d'),'#d5a0b5',Math.max(1,r*.035),4);
+   fill(()=>{c.moveTo(-.36*r,-.38*r);for(let i=0;i<=8;i++){const a=-1.05+i*.2625;c.lineTo((-1.1-Math.cos(a)*.42)*r,Math.sin(a)*.96*r);}c.lineTo(-.36*r,.38*r);c.closePath()},bodyGrad('#42243f'),'#a3587a',Math.max(.8,r*.025),2);
+   for(let i=0;i<8;i++){const yy=(i-3.5)*.21;stroke(()=>{c.moveTo(-.32*r,yy*.38*r);c.bezierCurveTo(-.8*r,yy*.7*r,-1.26*r,yy*r,(-1.55+.12*Math.sin(t*.003+i))*r,yy*1.2*r)},Math.max(1.5,r*.075),'#99516e',3);}
+   eye(-.25,-.28,r*.14,'#86d8ef');eye(-.25,.28,r*.12,'#86d8ef');
   } else if(id==='solar'){
    // Solar core: compact armored sunfish with a corona of rigid golden rays.
    for(let i=0;i<14;i++){const a=i*Math.PI/7,inner=.66,outer=i%2?1.0:1.18;fill(()=>{c.moveTo(Math.cos(a-.08)*inner*r,Math.sin(a-.08)*inner*r);c.lineTo(Math.cos(a)*outer*r,Math.sin(a)*outer*r);c.lineTo(Math.cos(a+.08)*inner*r,Math.sin(a+.08)*inner*r);c.closePath()},'#b66c24','#ffe7a1',Math.max(.7,r*.025),6);}
    fill(()=>{c.ellipse(0,0,.72*r,.62*r,0,0,Math.PI*2)},bodyGrad('#d68b31'),'rgba(255,236,164,.82)',Math.max(1.2,r*.05),14);
    c.save();const g=c.createRadialGradient(.1*r,-.08*r,1,.1*r,-.08*r,.48*r);g.addColorStop(0,'#fffce1');g.addColorStop(.4,'#ffd86a');g.addColorStop(1,'rgba(255,148,44,.12)');c.fillStyle=g;c.beginPath();c.arc(.1*r,-.08*r,.48*r,0,Math.PI*2);c.fill();c.restore();eye(.38,-.17,r*.055,'#fff4bc');
   } else if(id==='violet'){
-   // Violet specter: translucent horned ghost, deliberately unlike any ordinary fish.
-   for(let i=0;i<5;i++){const yy=(-.35+i*.18);tentacle(-.48,yy,-.85,yy-.12,-1.08,yy+.18,-1.38,yy+(i-2)*.12,.65);}
-   fill(()=>{c.moveTo(-.55*r,.38*r);c.bezierCurveTo(-.82*r,-.15*r,-.55*r,-.7*r,.02*r,-.72*r);c.bezierCurveTo(.58*r,-.7*r,.82*r,-.25*r,.7*r,.28*r);c.quadraticCurveTo(.18*r,.65*r,-.55*r,.38*r);c.closePath()},bodyGrad('#7650b8'),'rgba(221,199,255,.72)',Math.max(1.1,r*.045),16);
-   fin([[.12,-.58],[.35,-1.16],[.52,-.5]],'#6c4ca7','#e1d1ff');fin([[.45,-.42],[.78,-.92],[.7,-.28]],'#6c4ca7','#e1d1ff');
-   c.save();c.globalAlpha=.6;c.fillStyle='#c9a8ff';c.shadowBlur=16*glowScale;c.shadowColor='#a56dff';c.beginPath();c.ellipse(.08*r,.03*r,.34*r,.42*r,0,0,Math.PI*2);c.fill();c.restore();eye(.18,-.13,r*.07,'#f0e6ff');
+   // Crown jelly: a scalloped muscular bell and trailing oral arms, with no fish fins.
+   for(let i=0;i<12;i++){const yy=(i-5.5)*.105;stroke(()=>{c.moveTo(-.22*r,yy*r);c.bezierCurveTo(-.85*r,(yy+.12*Math.sin(t*.002+i))*r,-1.3*r,(yy*1.5-.1)*r,(-1.65-.2*Math.sin(i))*r,(yy*1.7+.12*Math.sin(t*.003+i))*r)},Math.max(.6,r*.026),i%2?'#8b6eb5':'#bca1dc',2);}
+   fill(()=>{c.moveTo(-.35*r,-.67*r);c.bezierCurveTo(.45*r,-.94*r,1.05*r,-.52*r,1.06*r,0);c.bezierCurveTo(1.05*r,.52*r,.45*r,.94*r,-.35*r,.67*r);for(let i=0;i<=8;i++)c.lineTo((-.35-.12*Math.sin(i*Math.PI/2))*r,(.67-i*.1675)*r);c.closePath()},bodyGrad('#645282'),'#b3a3d0',Math.max(1,r*.035),4);
+   for(let i=-2;i<=2;i++)stroke(()=>{c.moveTo(.86*r,0);c.quadraticCurveTo(.48*r,i*.26*r,-.28*r,i*.25*r)},Math.max(.7,r*.025),'rgba(180,206,239,.5)',2);
+   fill(()=>c.ellipse(.35*r,0,.23*r,.37*r,0,0,Math.PI*2),'rgba(153,123,196,.4)',null,0,0);
   } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
    if(id==='aberration'){
     blueRingOctopus();
@@ -3823,7 +3835,7 @@ window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classLi
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
 window.addEventListener('abyssal-reconnect-failed',ev=>{onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
-window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
+window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;W=4800;H=3000;createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 function handleRoomsClosed(){onlineMode=false;if(gameState==='menu'){setMobileGameActive(false);document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;}}
 window.addEventListener('abyssal-modal-closed',ev=>{if(ev.detail?.screenId==='roomsScreen')handleRoomsClosed();});

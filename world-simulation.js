@@ -15,7 +15,7 @@ function anglerInvisibleAt(nowMs=Date.now()){
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
-    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false,
+    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {},
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
@@ -184,7 +184,7 @@ function spawnEnemy(world, options = {}) {
   let stats = EnemyAI.statsForKind(kind);
   let eliteId = null;
   if (type !== 'boss' && !initial) {
-    eliteId = ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
+    eliteId = layout ? null : ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
     if (options.forceElite && !eliteId) {
       const eliteIds = ['carapace','frenzy','spectral'];
       eliteId = eliteIds[Math.floor(random() * eliteIds.length)] || 'carapace';
@@ -234,10 +234,11 @@ function spawnXpOrb(world, enemy) {
   world.orbs ||= [];
   world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
   const eventId = world.activeEventId && Number(world.eventEndsAt) > Number(world.elapsed) ? world.activeEventId : null;
-  const value = Math.max(1, Math.round((Number(enemy.value) || 1) * ExpeditionRules.eventXpMultiplier(eventId)));
+  const sizeScale = clamp((Number(enemy.r) || 10) / 10, .65, 10);
+  const value = Math.max(1, Math.round((Number(enemy.value) || 1) * ExpeditionRules.eventXpMultiplier(eventId) * (.65 + sizeScale * .55)));
   const orb = {
     id: world.nextOrbId, x: Number(enemy.x) || 0, y: Number(enemy.y) || 0,
-    r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(value) : Math.min(15, 4 + Math.sqrt(value)),
+    r: clamp(3.8 + Math.sqrt(value) * .9 + Math.sqrt(Math.max(1, Number(enemy.r) || 10)) * .9, 4.5, 30),
     value, phase: 0, life: 25, sourceEnemyId: enemy.id,
     sourceKind: enemy.kind
   };
@@ -280,16 +281,31 @@ function seedRiftEncounters(world, random = Math.random) {
   if (!world || world.mode !== 'rift' || world.riftEncountersSeeded) return [];
   world.riftEncountersSeeded = true;
   world.nextBossAt = Infinity;
-  const spawned = [];
-  const populations = { shoal: 5, trench: 7, lantern: 7, junction: 8, elite: 3, event: 5, hub: 6, landing: 7 };
-  for (const [roomId, count] of Object.entries(populations)) {
-    for (let i = 0; i < count; i++) {
-      const enemy = spawnEnemy(world, { type: roomId === 'elite' ? 'elite' : 'common', roomId, forceElite: roomId === 'elite', random });
-      if (enemy) spawned.push(enemy);
+  world.riftActivatedRooms = {};
+  return [];
+}
+
+const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:0,hub:10,landing:15,elite:5});
+function activateRiftEncounters(world,players,random=Math.random){
+  if(!world||world.mode!=='rift')return [];
+  const layout=mapLayoutFor(world);if(!layout)return [];
+  world.riftActivatedRooms ||= {};
+  const spawned=[];
+  for(const player of players||[]){
+    const room=AbyssalMap.roomAt(layout,Number(player.x),Number(player.y));
+    if(!room||room.id==='start'||world.riftActivatedRooms[room.id])continue;
+    world.riftActivatedRooms[room.id]=true;
+    if(room.id==='boss'){
+      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.max(0,Number(world.mapTier)||0)%BOSS_KINDS.length],roomId:'boss',random});
+      if(boss)spawned.push(boss);
+      continue;
+    }
+    const count=RIFT_ROOM_POPULATIONS[room.id]||0;
+    for(let i=0;i<count;i++){
+      const enemy=spawnEnemy(world,{type:room.id==='elite'?'elite':'common',roomId:room.id,forceElite:room.id==='elite',random});
+      if(enemy)spawned.push(enemy);
     }
   }
-  const boss = spawnEnemy(world, { type: 'boss', kindOverride: BOSS_KINDS[Math.floor(Math.max(0, Number(world.mapTier) || 0)) % BOSS_KINDS.length], roomId: 'boss', random });
-  if (boss) spawned.push(boss);
   return spawned;
 }
 
@@ -340,6 +356,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const initialSpawns = initializeWorld(world, now, random);
   const spawnedEnemies = [...initialSpawns];
   if (riftMode && !world.riftEncountersSeeded) spawnedEnemies.push(...seedRiftEncounters(world, random));
+  if (riftMode) spawnedEnemies.push(...activateRiftEncounters(world, validPlayers, random));
   const previousTick = Number(world.lastTick) || now;
   // The server runs this ticker independently of browser rendering. Clamp a single
   // catch-up step to avoid huge jumps after GC or brief event-loop contention.
@@ -392,7 +409,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         } else {
           const count = Math.max(1, Math.min(9, Math.floor(Number(encounter.ambushCount) || 4)));
           for (let i = 0; i < count && world.enemies.length < MAX_ENEMIES; i++) {
-            const ambusher = spawnEnemy(world, { type: 'common', roomId: 'event', forceElite: encounter.type === 'trap' && i < 2, random });
+            const ambusher = spawnEnemy(world, { type: 'common', roomId: 'event', forceElite: false, random });
             if (ambusher) spawnedEnemies.push(ambusher);
           }
         }
@@ -439,7 +456,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const defeatedPlayers = [];
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
-  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: WORLD_HEIGHT - 8 / WORLD_ZOOM, stopDistance: 0 };
+  const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
@@ -566,8 +583,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let movementTargets=targetablePlayers;
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
-      if(enemy.eliteId&&enemy.spawnRoomId==='elite'&&targetRoom?.id!=='elite'){
-        movementNavigationProxy.x=mapLayout.rooms.find(room=>room.id==='elite')?.x??enemy.x;movementNavigationProxy.y=mapLayout.rooms.find(room=>room.id==='elite')?.y??enemy.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;movementTargets=movementNavigationTargets;
+      const homeRoom=mapLayout.rooms.find(room=>room.id===enemy.spawnRoomId);
+      if(homeRoom&&targetRoom?.id!==homeRoom.id){
+        movementNavigationProxy.x=homeRoom.x;movementNavigationProxy.y=homeRoom.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;movementTargets=movementNavigationTargets;
       }else{
       const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
       if(!nav.direct){
@@ -801,4 +819,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };

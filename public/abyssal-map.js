@@ -6,8 +6,8 @@
   'use strict';
 
   const WORLD_WIDTH=4800;
-  const WORLD_HEIGHT=3000;
-  const VERSION=4;
+  const WORLD_HEIGHT=9000;
+  const VERSION=5;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
@@ -29,16 +29,16 @@
   }
 
   const ROOM_BLUEPRINTS=Object.freeze([
-    Object.freeze({id:'start',type:'start',x:2400,y:155,rx:265,ry:125,depth:0}),
-    Object.freeze({id:'shoal',type:'common',x:2150,y:455,rx:280,ry:145,depth:1}),
-    Object.freeze({id:'trench',type:'common',x:2600,y:750,rx:300,ry:150,depth:2}),
-    Object.freeze({id:'lantern',type:'common',x:2260,y:1045,rx:285,ry:145,depth:3}),
-    Object.freeze({id:'junction',type:'common',x:2690,y:1340,rx:310,ry:150,depth:4}),
-    Object.freeze({id:'elite',type:'elite',x:2200,y:1635,rx:285,ry:145,depth:5}),
-    Object.freeze({id:'event',type:'event',x:2580,y:1930,rx:290,ry:145,depth:6}),
-    Object.freeze({id:'hub',type:'hub',x:2250,y:2225,rx:310,ry:155,depth:7}),
-    Object.freeze({id:'landing',type:'landing',x:2590,y:2510,rx:300,ry:145,depth:8}),
-    Object.freeze({id:'boss',type:'boss',x:2400,y:2800,rx:470,ry:175,depth:9})
+    Object.freeze({id:'start',type:'start',x:2400,y:220,rx:290,ry:150,depth:0}),
+    Object.freeze({id:'shoal',type:'common',x:2100,y:1180,rx:470,ry:270,depth:1}),
+    Object.freeze({id:'trench',type:'common',x:2700,y:2180,rx:520,ry:290,depth:2}),
+    Object.freeze({id:'lantern',type:'common',x:2150,y:3180,rx:500,ry:280,depth:3}),
+    Object.freeze({id:'junction',type:'common',x:2720,y:4180,rx:540,ry:300,depth:4}),
+    Object.freeze({id:'event',type:'event',x:2180,y:5180,rx:530,ry:290,depth:5}),
+    Object.freeze({id:'hub',type:'hub',x:2660,y:6180,rx:560,ry:310,depth:6}),
+    Object.freeze({id:'landing',type:'landing',x:2200,y:7100,rx:540,ry:300,depth:7}),
+    Object.freeze({id:'elite',type:'elite',x:2660,y:7850,rx:620,ry:340,depth:8}),
+    Object.freeze({id:'boss',type:'boss',x:2400,y:8660,rx:1050,ry:440,depth:9})
   ]);
 
   const ROOM_PROFILES=Object.freeze({
@@ -59,17 +59,18 @@
     Object.freeze({a:'shoal',b:'trench',width:175}),
     Object.freeze({a:'trench',b:'lantern',width:175}),
     Object.freeze({a:'lantern',b:'junction',width:175}),
-    Object.freeze({a:'junction',b:'elite',width:145}),
-    Object.freeze({a:'elite',b:'event',width:145}),
+    Object.freeze({a:'junction',b:'event',width:150}),
     Object.freeze({a:'event',b:'hub',width:150}),
     Object.freeze({a:'hub',b:'landing',width:150}),
-    Object.freeze({a:'landing',b:'boss',width:220})
+    Object.freeze({a:'landing',b:'elite',width:165}),
+    Object.freeze({a:'elite',b:'boss',width:210})
   ]);
 
   function createLayout(seed='abyssal',tier=0){
     const tierNumber=Math.max(0,Math.floor(Number(tier)||0));
     // Tier 0 preserves the original map exactly. Deeper tiers derive a new lateral
     // topology from the same expedition seed without ever changing the downward Y order.
+    const descentScale=1+tierNumber*.25;
     const baseSeed=seedValue(seed);
     const random=rngFromSeed(tierNumber===0?baseSeed:seedValue(baseSeed+':tier:'+tierNumber));
     const roomOffsets=new Map();
@@ -85,7 +86,7 @@
       x=clamp(x,base.rx+80,WORLD_WIDTH-base.rx-80);
       const scale=1+Math.min(.12,tierNumber*.012);
       const profile=ROOM_PROFILES[base.id]||ROOM_PROFILES.shoal;
-      return Object.freeze({...base,x:Math.round(x),rx:Math.round(base.rx*scale),ry:Math.round(base.ry*scale),risk:profile.risk,densityCap:profile.densityCap,reward:profile.reward,signal:profile.signal});
+      return Object.freeze({...base,x:Math.round(x),y:Math.round(220+(base.y-220)*descentScale),rx:Math.round(base.rx*scale),ry:Math.round(base.ry*scale),risk:profile.risk,densityCap:profile.densityCap,reward:profile.reward,signal:profile.signal});
     });
     const byId=id=>rooms.find(room=>room.id===id);
     const corridors=EDGE_BLUEPRINTS.map((edge,index)=>{
@@ -103,17 +104,17 @@
     const hub=byId('hub'),landing=byId('landing'),start=byId('start'),boss=byId('boss');
     const portals=Object.freeze({
       start:Object.freeze({id:'start-vortex',type:'start',x:start.x-120,y:start.y-20,r:72}),
-      surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-185,y:boss.y+25,r:76,unlockedAfterBosses:tierNumber+1}),
+      surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-360,y:boss.y+80,r:105,unlockedAfterBosses:tierNumber+1}),
       descent:null,
       landing:null,
-      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+185,y:boss.y+25,r:96,unlockedAfterBosses:tierNumber+1})
+      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+360,y:boss.y+80,r:150,unlockedAfterBosses:tierNumber+1})
     });
     return Object.freeze({
       version:VERSION,
       seed:seedValue(seed),
       tier:tierNumber,
       width:WORLD_WIDTH,
-      height:WORLD_HEIGHT,
+      height:Math.ceil(WORLD_HEIGHT*descentScale),
       rooms:Object.freeze(rooms),
       corridors:Object.freeze(corridors),
       portals,

@@ -17,10 +17,7 @@ test('authoritative common and boss spawns are inside their cave chambers',()=>{
 
 test('authoritative elite metadata sends elite creatures to the optional chamber',()=>{
  const world=Simulation.createWorldState(1000,'rift');
- world.bossesDefeated=7;
- world.activeEventId='black_current';world.eventEndsAt=30;
- const values=[.2,.01,.2,.2,.2,.2,.2,.2,.2],random=()=>values.shift()??.2;
- const elite=Simulation.spawnEnemy(world,{type:'common',random});
+ const elite=Simulation.spawnEnemy(world,{type:'elite',roomId:'elite',forceElite:true,random:()=>.2});
  assert.ok(elite);
  assert.ok(elite.eliteId);
  assert.equal(elite.spawnRoomId,'elite');
@@ -36,15 +33,17 @@ test('map cache is deterministic and excluded from serialized deploy state',()=>
 });
 
 test('rift encounters do not respawn and a new tier receives one fresh population',()=>{
- const world=Simulation.createWorldState(5000,'rift'),player={id:'p',x:620,y:260,alive:true,hp:100,maxHp:100,moveSpeed:150};
+ const world=Simulation.createWorldState(5000,'rift'),layout=Simulation.mapLayoutFor(world),shoal=layout.rooms.find(room=>room.id==='shoal'),player={id:'p',x:shoal.x,y:shoal.y,alive:true,hp:100,maxHp:100,moveSpeed:150};
  Simulation.initializeWorld(world,5000,()=>.3);
- assert.equal(world.enemies.find(enemy=>['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'].includes(enemy.kind))?.kind,'boss');
- world.enemies=[];world.lastTick=5000;
+ assert.equal(world.enemies.length,0);
+ world.lastTick=5000;
+ const first=Simulation.tickWorld(world,[player],5050,()=>.3);
+ assert.equal(first.spawnedEnemies.length,7);
+ world.enemies=[];
  for(let i=1;i<=80;i++)Simulation.tickWorld(world,[player],5000+i*50,()=>.3);
  assert.equal(world.enemies.length,0);
  world.mapTier=1;world.riftEncountersSeeded=false;
  const result=Simulation.tickWorld(world,[player],9100,()=>.3);
- assert.ok(result.spawnedEnemies.length>40);
- assert.equal(result.spawnedBosses.length,1);
- assert.equal(result.spawnedBosses[0].kind,'angler');
+ assert.equal(result.spawnedEnemies.length,7);
+ assert.equal(result.spawnedBosses.length,0);
 });

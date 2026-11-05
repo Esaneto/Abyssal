@@ -56,7 +56,7 @@ test('encounter spawn roles map to common elite and deepest boss chambers',()=>{
 });
 
 test('the rift is a single descending route instead of a labyrinth',()=>{
- const layout=Map.createLayout('descent',0),route=['start','shoal','trench','lantern','junction','elite','event','hub','landing','boss'];
+ const layout=Map.createLayout('descent',0),route=['start','shoal','trench','lantern','junction','event','hub','landing','elite','boss'];
  assert.equal(layout.corridors.length,route.length-1);
  assert.equal(Map.roomPath(layout,'start','boss').join('>'),route.join('>'));
  assert.ok(route.map(id=>layout.rooms.find(room=>room.id===id).y).every((y,index,list)=>index===0||y>list[index-1]));
