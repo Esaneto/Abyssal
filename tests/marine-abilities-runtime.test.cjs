@@ -57,3 +57,29 @@ test('weak bosses have authoritative physical abilities and synchronized visuals
 test('approved boss trio remains excluded from redesign routing',()=>{
  assert.match(game,/!\['whiteSharkBoss','kraken','devourer'\]\.includes\(kind\)/);
 });
+
+
+test('Abyssal collection remains visible through biological taxonomy and mission rewards are top tier',()=>{
+ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
+ for(const row of [
+  "violet:{family:'jelly',collections:['signature']}",
+  "bloodmoon:{family:'squid',collections:['signature']}",
+  "voidwing:{family:'ray',collections:['signature']}",
+  "abyssaleye:{family:'fish',collections:['signature']}",
+  "abyssking:{family:'mollusc',collections:['signature']}",
+  "greensnake:{family:'eel',collections:['signature','mission'],unlockType:'mission'}"
+ ])assert.ok(game.includes(row),row);
+ assert.match(game,/greensnake:'colossal'/);
+ assert.match(game,/categories\.has\(familyFilter\)/);
+ assert.match(html,/value="mission"/);
+ assert.match(html,/value="promo"/);
+});
+
+test('enemy pressure is stronger in both authoritative and solo simulation',()=>{
+ const world=fs.readFileSync(path.join(root,'world-simulation.js'),'utf8');
+ assert.match(world,/physicalScale=eliteId\?1\.18:1\.07/);
+ assert.match(world,/speedScale=eliteId\?1\.08:1\.03/);
+ assert.match(game,/physicalScale=eliteId\?1\.18:1\.07/);
+ assert.match(game,/drawEnemyThreatAura/);
+ assert.match(game,/drawSkinPresenceAura/);
+});
