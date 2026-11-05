@@ -505,7 +505,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Use a 30 s recovery interval instead of resending every enemy/orb every 5 s.
   if (sendReliableSnapshot) world.reliableSnapshotTimer = 30;
   if (sendPlayers) world.playerSnapshotTimer = 1;
-  if (sendOrbSnapshot) world.orbSnapshotTimer = 0.5;
+  if (sendOrbSnapshot) world.orbSnapshotTimer = 0.25;
   return {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
