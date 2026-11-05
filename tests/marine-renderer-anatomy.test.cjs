@@ -49,11 +49,11 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.ok(start>=0&&end>start);
  assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
  assert.match(preview,/The anatomy must dominate the preview/);
- assert.match(html,/marine-species\.js\?v=8/);
- assert.match(html,/marine-renderer\.js\?v=8/);
+ assert.match(html,/marine-species\.js\?v=9/);
+ assert.match(html,/marine-renderer\.js\?v=9/);
  assert.match(html,/abyssal-boss-renderer\.js\?v=3/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
- assert.match(html,/game\.js\?v=4\.4\.16/);
+ assert.match(html,/game\.js\?v=4\.4\.17/);
 });
 
 test('squid and octopus variants use separate species-level anatomy',()=>{
@@ -113,10 +113,10 @@ test('marine preview scale matches signature Abyssal visual weight',()=>{
  const start=game.indexOf(" if(skin?.family){",game.indexOf('function renderCreaturePreview('));
  const end=game.indexOf(" if(kind==='leviathan')",start);
  const block=game.slice(start,end);
- assert.match(block,/family==='eel'\)scale=\.86/);
- assert.match(block,/family==='octopus'\|\|family==='squid'\)scale=\.8/);
- assert.match(block,/family==='fish'\)scale=variant===9\?\.74:\.88/);
- assert.match(block,/\(variant===5\|\|variant===7\)\?\.76:\.9/);
+ assert.match(block,/family==='eel'\)scale=\.96/);
+ assert.match(block,/family==='octopus'\|\|family==='squid'\)scale=\.94/);
+ assert.match(block,/family==='fish'\)scale=variant===9\?\.8:\.98/);
+ assert.match(block,/\(variant===5\|\|variant===7\)\?\.8:1\.0/);
 });
 
 
@@ -133,4 +133,27 @@ test('every marine species receives a named signature-art key',()=>{
 test('renderer includes explicit signature art for all 100 profiles',()=>{
  const species=require('../public/marine-species').species;
  for(const s of species)assert.ok(renderer.includes("case '"+s.art.key+"'"),s.art.key);
+});
+
+
+test('every family receives signature mass and expression before decorative markings',()=>{
+ assert.match(renderer,/const signatureMassPass=\(\)=>/);
+ assert.match(renderer,/Signature Abyssal principle: expression and mass come before decorative markings/);
+ assert.match(renderer,/signatureMassPass\(\);\n signatureArt\(\);/);
+ for(const family of ['shark','ray','eel','squid','octopus','jelly','crustacean','fish','benthic','mollusc']){
+  assert.ok(renderer.includes("if(family==='"+family+"'")||renderer.includes("else if(family==='"+family+"'"),family);
+ }
+});
+
+test('signature mass pass gives expressive faces and exaggerated silhouettes',()=>{
+ for(const marker of [
+  'const face=(x0,y0,rx,ry',
+  'const glowCore=(x0,y0,rx,ry',
+  'const crown=(count,centerX,baseY,width,height)',
+  "if(v===5){fillPath([[-.92,-.02],[-1.55,-.4],[-2.25,-1.5]",
+  "if(v===6){fillPath([[.88,-.12],[1.95,-.04]",
+  "if(v===6){glowCore(.88,.08,.34,.26",
+  "if(v===7){for(const sy of [-1,1])stroke([[-.35,sy*.12],[-2.45,sy*.78]",
+  "if(v===3)for(let i=0;i<8;i++){const a=i*Math.PI/4"
+ ]) assert.ok(renderer.includes(marker),marker);
 });
