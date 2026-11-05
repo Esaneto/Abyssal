@@ -135,9 +135,10 @@ test('maintenance overlay cannot remain latched after transport reconnect', () =
 
 
 test('resonance taxonomy separates shots, damaging passives and non-damaging buffs', () => {
-  assert.match(gameSource, /shots:\['electric','pierce','spread','photon','photonRay','echoShot'\]/);
-  assert.match(gameSource, /passive:\['burst','nova','repulse','ricochet'\]/);
+  assert.match(gameSource, /shots:\\['electric','pierce','spread','photon','photonRay','nova','echoShot'\\]/);
+  assert.match(gameSource, /passive:\\['burst','ricochet'\\]/);
   assert.match(gameSource, /buffs:\['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'\]/);
+  assert.doesNotMatch(gameSource, /id:'repulse'/);
   assert.doesNotMatch(gameSource, /defensive:\[/);
   assert.match(gameSource, /\['passive','PASSIVAS'\],\['buffs','BUFFS'\]/);
 });
@@ -150,4 +151,16 @@ test('damage numbers use red for shots and blue for damaging passives', () => {
 test('gameplay canvas follows actual game shell geometry', () => {
   assert.match(gameSource, /new ResizeObserver\(\(\)=>\{if\(document\.body\.classList\.contains\('game-active'\)\)resize\(\);\}\)/);
   assert.match(gameSource, /canvas\.style\.width=viewW\+'px';canvas\.style\.height=viewH\+'px'/);
+});
+
+
+test('electric storm is visually distinct from ricochet and uses the same bounce reach', () => {
+  assert.match(gameSource, /range=190\/GAME_WORLD_ZOOM/);
+  assert.match(gameSource, /segments=13/);
+  assert.match(gameSource, /shadowColor='#31eaff'/);
+  assert.match(gameSource, /type:'ricochet-line'.*color:'#f7ff19'/s);
+});
+
+test('mob damage numbers remain readable at gameplay zoom', () => {
+  assert.match(gameSource, /Math\.max\(18,23\/worldZoom\)/);
 });
