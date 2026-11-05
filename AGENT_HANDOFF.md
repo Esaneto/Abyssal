@@ -695,3 +695,105 @@ Cache atual apos este pass:
 - `game.js?v=4.4.14`.
 
 Toda futura alteracao visual deve atualizar este handoff e os testes correspondentes.
+
+
+## 22. Arte por especie: Kraken/Tubarao Boss/Devorador como referencia canonica - 2026-11-05
+
+Decisao de produto apos nova comparacao visual:
+- Kraken Boss, Tubarao Boss e Devorador sao a referencia principal de identidade artistica do jogo;
+- o objetivo nao e copiar a forma desses tres, mas copiar o nivel de autoria visual: silhueta propria, expressao, camada interna, contraste, brilho localizado e leitura imediata;
+- nenhuma especie marinha pode parecer apenas uma variacao de cor ou um desenho naturalista simplificado.
+
+Pesquisa anatomica usada como criterio:
+- tubarao-raposa: lobo superior da cauda extremamente alongado;
+- tubarao-baleia: cabeca larga, boca frontal e padrao de pontos/barras;
+- enguia-pelicano: boca e bolsa gular expansivel dominando a cabeca;
+- peixe-tripe: raios de nadadeira extremamente alongados usados como apoio;
+- vampire squid: membranas entre os bracos criando uma capa;
+- outras especies seguem o mesmo principio: converter o traço biologico mais reconhecivel em assinatura visual Abyssal.
+
+### Fonte canonica dos perfis
+
+`public/marine-species.js` agora possui `visualProfiles` com 100 perfis unicos.
+Cada especie recebe:
+- `art.key`: assinatura visual unica;
+- `art.tone`: tom dominante da especie.
+
+Exemplos:
+- `thresher-whip`;
+- `pelican-gape`;
+- `vampire-cloak`;
+- `tripod-stilts`;
+- `blue-rings`;
+- `mantis-hammer`;
+- `scalyfoot-armor`.
+
+Regra:
+- nunca remover `art.key` nem voltar a derivar identidade apenas de `family` + `variant`;
+- cada nova especie futura precisa receber uma chave de arte propria.
+
+### Linguagem de cor
+
+O renderer marinho nao usa mais gradiente-vinheta como material principal.
+`public/marine-renderer.js` usa um unico tom dominante em multiplas opacidades:
+- massa escura;
+- preenchimento translucido do mesmo tom;
+- contorno do mesmo tom mais claro;
+- brilho localizado do mesmo tom;
+- fotoforos e marcas internas derivadas do mesmo tom.
+
+Isso segue a leitura do Kraken, que cria profundidade com um conjunto restrito de cores e fortes variacoes de luz/transparencia.
+
+Regra:
+- nao reintroduzir `createLinearGradient` ou `createRadialGradient` no renderer marinho como atalho generico;
+- gradientes especificos so podem voltar quando forem parte essencial da identidade de uma especie e nao um efeito compartilhado.
+
+### Assinatura visual por especie
+
+`signatureArt()` contem um `case` explicito para cada uma das 100 chaves de arte.
+
+Essas assinaturas adicionam traços biologicos que permanecem reconheciveis em miniatura:
+- listras;
+- manchas;
+- caudas;
+- rostros;
+- espinhos;
+- membranas;
+- olhos desiguais;
+- bocas expansivas;
+- aneis;
+- fotoforos;
+- pernas;
+- placas;
+- tentaculos;
+- bracos filtradores;
+- conchas e armaduras.
+
+Criterio de regressao:
+se duas especies puderem ser confundidas ao esconder nome/preco, o renderer ainda esta errado.
+
+### Testes
+
+`tests/marine-renderer-anatomy.test.cjs` agora verifica:
+- ausencia de gradientes genericos;
+- perfis de arte unicos;
+- presenca de um `case` de assinatura para cada uma das 100 especies;
+- cache atual do renderer;
+- familias e anatomias criticas.
+
+`tests/marine-species.test.cjs` verifica:
+- 100 `art.key` unicos;
+- diversidade de tons dentro de cada familia;
+- proibicao de retorno a recolors genericos.
+
+O workflow `Abyssal checks v2` passou no commit:
+`7ba078f38af381636db4120fb11a6b446f688637`.
+
+Cache apos este pass:
+- `marine-species.js?v=5`;
+- `marine-renderer.js?v=7`.
+
+Preservar sem redesign:
+- `whiteSharkBoss`;
+- `kraken`;
+- `devourer`.
