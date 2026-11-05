@@ -5,21 +5,21 @@ const path = require('path');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
- violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:390,testOnly:false},
- leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:1690},
- kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:1890},
- aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:1490},
- angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:1290},
- maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:1490},
- devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:1990},
- reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:590},
- hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:590},
- abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:690},
- armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:690},
- abyssking:{name:'Náutilo Soberano',nameEn:'Sovereign Nautilus',brl:990},
- bloodmoon:{name:'Lula-Vampira Carmesim',nameEn:'Crimson Vampire Squid',brl:1090},
- abyssaleye:{name:'Peixe-Olho-de-Barril',nameEn:'Barreleye',brl:1190},
- deepwarden:{name:'Carcereiro das Fossas',nameEn:'Trench Warden',brl:1290}
+ violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:690,testOnly:false},
+ leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:2190},
+ kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:2490},
+ aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:1790},
+ angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:1690},
+ maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:1890},
+ devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:2790},
+ reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:690},
+ hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:790},
+ abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:990},
+ armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:990},
+ abyssking:{name:'Náutilo Soberano',nameEn:'Sovereign Nautilus',brl:1290},
+ bloodmoon:{name:'Lula-Vampira Carmesim',nameEn:'Crimson Vampire Squid',brl:1390},
+ abyssaleye:{name:'Peixe-Olho-de-Barril',nameEn:'Barreleye',brl:1490},
+ deepwarden:{name:'Carcereiro das Fossas',nameEn:'Trench Warden',brl:1590}
 };
 for(const species of require('./public/marine-species').species){if(species.paid)PAID_SKINS[species.id]={name:species.name,nameEn:species.name,brl:species.brl};}
 function calculateOrder(productId, ownedSkins, currency='brl') {
@@ -29,7 +29,7 @@ function calculateOrder(productId, ownedSkins, currency='brl') {
  const owned=new Set(Array.isArray(ownedSkins)?ownedSkins.map(String):[]);
  if(productId==='boss_bundle'){
   const skinIds=BOSS_SKINS.filter(id=>!owned.has(id));
-  const full=6990;
+  const full=9990;
   const regular=skinIds.reduce((sum,id)=>sum+(Number(PAID_SKINS[id]?.brl)||0),0);
   const brlAmount=skinIds.length?(skinIds.length===BOSS_SKINS.length?Math.min(full,regular):regular):0;
   return {productId:productId,skinIds:skinIds,amount:toMinorUnits(brlAmount),brlAmount,currency:code};
@@ -119,7 +119,7 @@ function registerPaymentRoutes(options) {
   }
  });
 
- app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:6990},liveEnabled:liveSalesReady()});});
+ app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:9990},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=process.env.STRIPE_SECRET_KEY;
