@@ -79,6 +79,7 @@ function discoverCodexSkill(skillId){
 }
 let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
+let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 let sharkWakeTrails=[];
@@ -87,7 +88,7 @@ const skinData=[
 {id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Um espectro luminescente com cornos de energia violeta.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
 {id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
 {id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
-{id:'leviathan',name:'Leviatã Cego',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Uma réplica cega do Leviatã das Fossas: corpo serpentino colossal, placas dorsais ósseas, crânio pálido e fendas sensoriais no lugar dos olhos.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
+{id:'leviathan',name:'Eco do Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Um vestígio biológico do Leviatã das Fossas: placas ósseas, crânio pálido e fendas sensoriais preservam apenas uma fração da entidade verdadeira.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
 {id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
 {id:'abyssking',name:'Rei do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
 {id:'royal',name:'Abismo Real',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
@@ -97,15 +98,15 @@ const skinData=[
 {id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma entidade translúcida das fossas, com manto vítreo, núcleo visceral, oito tentáculos e olhos vermelhos que brilham na escuridão.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
- {id:'aberration',name:'Máscara da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'A carapaça óssea e os apêndices curvos da primeira entidade colossal.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
- {id:'angler',name:'Lanterna Mortal',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'A isca incandescente e a mandíbula de agulhas do peixe-pescador abissal.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
- {id:'maw',name:'Mandíbula da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Uma boca circular de dentes radiais, cercada por filamentos de caça.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
- {id:'devourer',name:'Devorador do Vazio',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'A silhueta bojuda e a boca descomunal da criatura que engole correntes inteiras.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
+{id:'kraken',name:'Eco do Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma ressonância orgânica do Kraken, com manto vítreo e tentáculos reduzidos. A entidade verdadeira permanece nas fossas.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
+ {id:'aberration',name:'Casca da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Uma carapaça óssea vazia da primeira entidade colossal. Rachaduras carmesim ainda reagem à presença de ameaças.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
+ {id:'angler',name:'Núcleo da Lanterna',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Um fragmento vivo da Lanterna Mortal. A isca incandescente continua atraindo organismos para a mandíbula de agulhas.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
+ {id:'maw',name:'Fragmento da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Um fragmento da Boca do Abismo: dentes radiais e filamentos de caça comprimidos em uma forma controlável.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
+ {id:'devourer',name:'Núcleo Devorador',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Um núcleo residual do Devorador do Vazio. A água ao redor ainda parece ser puxada para sua boca descomunal.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
-{id:'abysscroc',name:'Jacaré-açu',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Corpo pesado, focinho largo em U, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
-{id:'armoredgator',name:'Crocodilo-do-nilo',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Perfil alongado, focinho em V, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
+{id:'abysscroc',name:'Predador de Mangue',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Predador anfíbio de águas turvas, focinho largo, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
+{id:'armoredgator',name:'Couraçado de Estuário',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Caçador costeiro de perfil alongado, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
 {id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Uma serpente colossal das profundezas, esculpida em escamas de jade reluzentes com olhos de âmbar.',ability:'Veneno corrosivo: ataques envenenam criaturas atingidas.'},
   {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Predadora bioelétrica de corpo alongado, ventre luminoso e pulsos ciano que percorrem a linha lateral.',ability:'Descarga Estática: ataques paralisam brevemente as criaturas atingidas.'},
 ];
@@ -245,9 +246,13 @@ function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
 function showEndOfRun(coinsEarned) {
   // Notificação de moedas enviada apenas uma vez ao fim da partida
   const amount = Number(coinsEarned) || 0;
-  const msg = amount > 0
-    ? 'Expedição encerrada! Você acumulou ' + amount.toLocaleString('pt-BR') + ' moedas abissais nesta partida.'
-    : 'O mergulho terminou. Volte às profundezas para acumular mais moedas abissais!';
+  const msg = expeditionMode
+    ? (expeditionExtracted
+      ? 'Extração concluída. Você garantiu ' + amount.toLocaleString('pt-BR') + ' moedas de conclusão antes de voltar à superfície.'
+      : 'Seu sinal foi perdido. Apenas 65% da recompensa final da expedição foi preservada: ' + amount.toLocaleString('pt-BR') + ' moedas.')
+    : (amount > 0
+      ? 'Expedição encerrada! Você acumulou ' + amount.toLocaleString('pt-BR') + ' moedas abissais nesta partida.'
+      : 'O mergulho terminou. Volte às profundezas para acumular mais moedas abissais!');
   addNotification(msg, 'FIM DE MERGULHO ⚓', 'coins');
   updateNotifBadge();
 }
@@ -942,6 +947,7 @@ function showVictoryModal() {
 function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
+ expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
@@ -1587,7 +1593,7 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;updateHud();}
- discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();}
+ discoverCodexMonsters([e.kind]);if(!onlineMode){const xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):e.value;addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
@@ -2120,23 +2126,44 @@ function updateHud(force=true){
  setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode)renderSoloEnergyRanking();
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
+function renderRunEndPresentation(){
+ const extracted=Boolean(expeditionMode&&expeditionExtracted),eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
+ if(extracted){
+  if(eyebrow){eyebrow.classList.remove('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL RECUPERADO';}
+  if(title)title.innerHTML='VOCÊ VOLTOU.<br><em>POR ENQUANTO.</em>';
+  if(copy)copy.textContent='A cápsula alcançou a superfície com o saque desta descida. O sonar continua registrando atividade abaixo da sua última profundidade.';
+  if(revive)revive.hidden=true;
+  if(again)again.textContent='DESCER NOVAMENTE';
+  if(menu)menu.textContent='VOLTAR À SUPERFÍCIE';
+ }else{
+  if(eyebrow){eyebrow.classList.add('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL PERDIDO';}
+  if(title)title.innerHTML='O ABISMO<br><em>RECLAMA.</em>';
+  if(copy)copy.textContent='Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.';
+  if(revive)revive.hidden=false;
+  if(again)again.textContent='ENCERRAR E MERGULHAR NOVAMENTE';
+  if(menu)menu.textContent='ENCERRAR MERGULHO E VOLTAR AO MENU';
+ }
+}
 function endGame(){
  if(gameState==='over'||gameState==='menu')return;
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
- const earnedCoins=Math.max(5,Math.floor(score/35)+level*2);
+ const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
+ const expeditionMultiplier=expeditionMode?(expeditionExtracted?1+Math.min(.75,bossKillsThisRun*.15):.65):1;
+ const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
  if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
  else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
- else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=true;}
+ else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=false;}
  showEndOfRun(earnedCoins);
  updateNotifBadge();
  if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
+ renderRunEndPresentation();
  gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
- $('saveStatus').textContent=runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO';burst(player.x,player.y,'#ff7796',35,210);audio(95,.5,'sawtooth',.04);
+ $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'SINAL PERDIDO · PARTE DO SAQUE FOI DEIXADA NO FUNDO'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
@@ -2817,7 +2844,7 @@ window.addEventListener('abyssal-revive-result',event=>{
  if(!result.ok)return;
  hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
 });
-function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun};}
+function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
 function returnToMainMenu(){runResultPending=false;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
 $('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
 $('againBtn').addEventListener('click',()=>{
@@ -2899,6 +2926,11 @@ window.AbyssalGameHooks={
  worldHeight:()=>H,
  worldZoom:()=>worldZoom,
  skinId:()=>equippedSkin,
+ expeditionState:()=>({active:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier,bossesKilled:bossKillsThisRun,elapsed,score}),
+ pauseExpedition:()=>{if(!expeditionMode||onlineMode||gameState!=='playing')return false;gameState='paused';$('pauseBtn').hidden=true;return true;},
+ resumeExpedition:()=>{if(!expeditionMode||onlineMode||gameState!=='paused')return false;gameState='playing';$('pauseBtn').hidden=false;last=performance.now();return true;},
+ continueExpedition:()=>{if(!expeditionMode||onlineMode)return false;expeditionRiskTier=Math.max(expeditionRiskTier,bossKillsThisRun);if(gameState==='paused'){gameState='playing';$('pauseBtn').hidden=false;last=performance.now();}return true;},
+ extractExpedition:()=>{if(!expeditionMode||onlineMode||!['playing','paused'].includes(gameState))return false;expeditionExtracted=true;if($('pauseScreen'))$('pauseScreen').hidden=true;endGame();return true;},
  skinForId:id=>skinData.find(s=>s.id===id)||skinData[0],
  toast:message=>showToast(message),
  remoteHit:data=>{if(!player)return;const tx=data.x*W,ty=data.y*H;let nearest=null,bd=Infinity;for(const e of enemies){const d=Math.hypot(e.x-tx,e.y-ty);if(d<bd){bd=d;nearest=e}}if(nearest&&bd<100/GAME_WORLD_ZOOM){effects.push({type:'beam',x1:tx,y1:ty,x2:nearest.x,y2:nearest.y,life:.14,maxLife:.14,color:'#bba8ff'});burst(nearest.x,nearest.y,'#bba8ff',5,60);}},
@@ -2984,17 +3016,28 @@ function renderShop(){
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
  const english=gameLanguage==='en';
  const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'ABYSSAL<br><em>RELICS</em>':'VESTÍGIOS<br><em>DO ABISMO</em>';
- const englishNames={violet:'Violet Wraith',leviathan:'Blind Leviathan',kraken:'Abyss Kraken',aberration:'Aberration Mask',angler:'Deadly Lantern',maw:'Rift Maw',devourer:'Void Devourer',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Black Caiman',armoredgator:'Nile Crocodile'};
+ const englishNames={violet:'Violet Wraith',leviathan:'Leviathan Echo',kraken:'Kraken Echo',aberration:'Aberration Husk',angler:'Lantern Core',maw:'Rift Fragment',devourer:'Devourer Core',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Mangrove Predator',armoredgator:'Estuary Armored Hunter'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'Broad snout, short legs, powerful tail and armored back of a black caiman.',armoredgator:'Pointed snout, rugged scales and dorsal armor inspired by the Nile crocodile.'};
  const englishAbilities={reefshark:'Pelagic slash: a short high-speed dash leaves a blue wake that damages enemies crossed.',hammerhead:'Electroreception: attract experience orbs from 50% farther away.',abysscroc:'Ambush bite: a low explosive lunge deals cone damage in front.',armoredgator:'Nile roll: a tail spin knocks nearby enemies back with a shockwave.'};
- skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),bossIds=['leviathan','kraken','aberration','angler','maw','devourer'],predatorIds=['reefshark','hammerhead','abysscroc','armoredgator'],brlAmount=skin.id==='violet'?100:(bossIds.includes(skin.id)?999:(predatorIds.includes(skin.id)?499:skin.price)),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name;
+ const paidBrl=Object.freeze({violet:390,reefshark:590,hammerhead:590,abysscroc:690,armoredgator:690,angler:1290,maw:1490,aberration:1490,leviathan:1690,kraken:1890,devourer:1990});
+ skinData.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name;
     const isGreensnake = skin.id === 'greensnake';
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
 const card=document.createElement('div');card.className='skin-card'+(owned?' owned':'')+(equipped?' equipped':'');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.'}</p><button ${equipped?'disabled':''}>${equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
         updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
- const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];const remaining=bundleIds.filter(id=>!ownedSkins.includes(id)).length;const bundleBrlAmount=remaining===6?4999:null;const bundleAmount=shopCurrency==='brl'?bundleBrlAmount:Math.round(bundleBrlAmount*Number(shopRates[shopCurrency]||0));const bundleNames={leviathan:'Leviatã Cego',kraken:'Kraken do Abismo',aberration:'Máscara da Aberração',angler:'Lanterna Mortal',maw:'Mandíbula da Fenda',devourer:'Devorador do Vazio'};bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Pacote dos seis bosses</strong><p>Uma coleção abissal com artefatos vivos e animação exclusiva.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 skins restantes · ${remaining===6?'DESCONTO DO PACOTE COMPLETO':'preço individual das skins restantes'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'CONTEÚDO COMPLETO':remaining<6?(english?'OWNED SKINS HIDDEN FROM PRICE':'SKINS ADQUIRIDAS SEM PREÇO'):`${english?'BUY BUNDLE':'COMPRAR PACOTE'} · ${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`}</button>`;bundle.querySelector('button').addEventListener('click',()=>{if(remaining)openSkinPurchaseConfirm('boss_bundle','Pacote dos Seis Bosses',`${(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível'))}`,true);});grid.appendChild(bundle);
+ const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';
+ const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
+ const remainingIds=bundleIds.filter(id=>!ownedSkins.includes(id)),remaining=remainingIds.length;
+ const regularRemaining=remainingIds.reduce((sum,id)=>sum+(Number(paidBrl[id])||0),0);
+ const bundleBrlAmount=remaining===6?Math.min(6990,regularRemaining):regularRemaining;
+ const bundleAmount=shopCurrency==='brl'?bundleBrlAmount:Math.round(bundleBrlAmount*Number(shopRates[shopCurrency]||0));
+ const bundlePrice=(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency]))?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(bundleAmount/100):(english?'Rate unavailable':'Cotação indisponível');
+ const bundleNames={leviathan:'Eco do Leviatã',kraken:'Eco do Kraken',aberration:'Casca da Aberração',angler:'Núcleo da Lanterna',maw:'Fragmento da Fenda',devourer:'Núcleo Devorador'};
+ bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Coleção · Relíquias do Abismo</strong><p>Vestígios vivos dos seis grandes horrores. As entidades verdadeiras continuam reservadas às profundezas.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 relíquias restantes · ${remaining===6?'PACOTE COMPLETO COM DESCONTO':'somente relíquias ainda não adquiridas'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'COLEÇÃO COMPLETA':`${english?'BUY RELICS':'ADQUIRIR RELÍQUIAS'} · ${bundlePrice}`}</button>`;
+ bundle.querySelector('button').addEventListener('click',()=>{if(remaining)openSkinPurchaseConfirm('boss_bundle','Coleção · Relíquias do Abismo',bundlePrice,true);});
+ grid.appendChild(bundle);
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.innerHTML='';metaShopItems.forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();
 }

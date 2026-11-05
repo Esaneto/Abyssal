@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
+const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 const online = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
 const game = fs.readFileSync(path.join(root, 'public', 'game.js'), 'utf8');
@@ -118,7 +119,7 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
 
 
 test('deploy reconnect keeps maintenance visible until the authoritative room is restored', () => {
-  assert.match(online, /if\(!reconnectPending\)hideMaintenanceOverlay\(\);else showMaintenanceOverlay/);
+  assert.match(online, /hideMaintenanceOverlay\(\);if\(reconnectPending&&reconnectTarget&&sessionToken\)showMaintenanceOverlay/);
   assert.match(online, /showMaintenanceOverlay\('Expedição restaurada\. Sincronizando o mundo…'\)/);
   assert.match(online, /window\.dispatchEvent\(new CustomEvent\('abyssal-room-joined'/);
 });
@@ -128,8 +129,8 @@ test('deploy reconnect cannot leave the maintenance overlay pending forever', ()
   assert.match(online, /function armReconnectWatchdog\(\)/);
   assert.match(online, /setTimeout\(\(\)=>\{if\(reconnectPending\)failReconnect/);
   assert.match(online, /},15000\)/);
-  assert.match(online, /if\(reconnectPending\)failReconnect\('Sua sessão expirou durante a atualização/);
-  assert.match(online, /socket\.on\('room-joined',data=>\{if\(!data\?\.ok\)return;clearReconnectWatchdog\(\)/);
+  assert.match(online, /if\(reconnectPending\)failReconnect\('O servidor voltou, mas a expedição não respondeu a tempo/);
+  assert.match(online, /function handleRoomJoined\(data\)\{if\(!data\?\.ok\)return false;[\s\S]*?clearReconnectWatchdog\(\)/);
 });
 
 
@@ -157,7 +158,7 @@ test('maintenance deadline allows normal Render deploy startup before fallback',
 
 test('ricochet is universal, straight neon and replicated by server while electric chaining stays electric-only',()=>{
  const server=read('server.js'),game=read('public/game.js'),online=read('public/online.js');
- assert.match(server,/Number\(player\.ricochetLevel\)>0&&skillId!=='ricochet'/);
+ assert.match(server,/Number\(player\.ricochetLevel\)>0&&RICOCHET_SHOT_SKILLS\.has\(String\(skillId\|\|''\)\)/);
  assert.match(server,/type:'ricochet-line'/);
  assert.match(server,/source==='electric'&&Number\(attacker\.electricLevel\)>0/);
  assert.match(game,/source==='electric'&&\(upgrades\.electric\|\|0\)>0/);

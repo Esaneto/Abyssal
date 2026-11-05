@@ -6,6 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const game = read('public/game.js');
 
 test('browser scripts parse before menu event handlers are wired', () => {
   assert.doesNotThrow(() => new vm.Script(read('public/game.js'), { filename: 'public/game.js' }));
@@ -135,8 +136,8 @@ test('maintenance overlay cannot remain latched after transport reconnect', () =
 
 
 test('resonance taxonomy separates shots, damaging passives and non-damaging buffs', () => {
-  assert.match(game, /shots:\\['electric','pierce','spread','photon','photonRay','nova','echoShot'\\]/);
-  assert.match(game, /passive:\\['burst','ricochet'\\]/);
+  assert.match(game, /shots:\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]/);
+  assert.match(game, /passive:\['burst','ricochet'\]/);
   assert.match(game, /buffs:\['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'\]/);
   assert.doesNotMatch(game, /id:'repulse'/);
   assert.doesNotMatch(game, /defensive:\[/);
@@ -156,20 +157,20 @@ test('gameplay canvas follows actual game shell geometry', () => {
 
 test('electric storm is visually distinct from ricochet and uses the same bounce reach', () => {
   assert.match(game, /range=190\/GAME_WORLD_ZOOM/);
-  assert.match(game, /segments=13/);
+  assert.match(game, /const segments=12/);
   assert.match(game, /shadowColor='#31eaff'/);
   assert.match(game, /type:'ricochet-line'.*color:'#f7ff19'/s);
 });
 
 test('mob damage numbers remain readable at fixed screen scale', () => {
-  assert.match(game, /ctx\.font='900 112px var\(--abyssal-runic\),Georgia,serif'/);
+  assert.match(game, /ctx\.font='900 18px Cinzel, Georgia, serif'/);
 });
 
 
 test('floating damage numbers render in fixed screen pixels independent of camera zoom', () => {
  assert.match(game, /screenX=\(worldX-cameraX\)\*worldZoom/);
  assert.match(game, /ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
- assert.match(game, /ctx\.font='900 112px var\(--abyssal-runic\),Georgia,serif'/);
+ assert.match(game, /ctx\.font='900 18px Cinzel, Georgia, serif'/);
  assert.match(game, /number\.tone==='passive'\?'#32cfff':'#ff174d'/);
 });
 
@@ -186,10 +187,10 @@ test('Q and E ignore keyboard auto-repeat', () => {
 
 
 test('deploy resume explicitly restores the gameplay visual state even if client transiently entered menu', () => {
- const handler=game.slice(game.indexOf("window.addEventListener('abyssal-room-joined'"),game.indexOf("window.addEventListener('abyssal-room-created'"));
- assert.match(handler,/screens\.forEach\(id=>\$\(id\)\.hidden=true\)/);
+ const handler=game.slice(game.indexOf('function enterOnlineGameplay'),game.indexOf('function activateOnlineEntry'));
+ assert.match(handler,/for\(const id of \[\.\.\.screens,'roomsScreen','loginScreen'\]\)/);
  assert.match(handler,/document\.body\.classList\.add\('game-active'\)/);
- assert.match(handler,/\$\('toggleHudBtn'\)\.hidden=false/);
+ assert.match(handler,/if\(toggle\)toggle\.hidden=false/);
  assert.match(handler,/setMobileGameActive\(true\)/);
 });
 
@@ -199,7 +200,7 @@ test('successful room join has an atomic DOM-safe path into gameplay', () => {
  assert.match(game,/for\(const id of \[\.\.\.screens,'roomsScreen','loginScreen'\]\)/);
  assert.match(game,/if\(hud\)hud\.hidden=false/);
  assert.match(game,/if\(toggle\)toggle\.hidden=false/);
- assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao ativar gameplay:'/);
+ assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao inicializar gameplay após confirmação da sala:'/);
 });
 
 

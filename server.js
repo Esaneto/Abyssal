@@ -766,9 +766,9 @@ async function finishRunForSocket(socket,payload={}){
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
- const earned=Math.min(50000,Math.max(5,Math.floor(score/35)+level*2));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(extracted?1+Math.min(.75,bossesKilled*.15):.65):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,account:publicUser(user),rankings:rankingPayload(),message:`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Sinal perdido: ${bossesKilled} boss(es) abatido(s). 65% da recompensa de conclusão foi preservada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 function tickRoom(room, now) {

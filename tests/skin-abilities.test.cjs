@@ -139,7 +139,8 @@ test('electric shot has deterministic lightning geometry and reduced chain damag
  const game=read('public/game.js');
  assert.ok(game.includes("type:'electric-arc'"));
  assert.ok(game.includes("chainDamage:[0,.38,.34,.30]"));
- assert.ok(game.includes("Math.sin((Number(fx.seed)||0)*.17+s*2.2)"));
+ assert.ok(game.includes("phase=(p.travelled||0)*.095"));
+ assert.ok(game.includes("Math.sin(phase+s*2.7)*5.5"));
  assert.ok(!game.includes("if(p.special==='electric'){ctx.strokeStyle='#eaffff';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(p.x-p.vx*.025,p.y-p.vy*.025);ctx.lineTo(p.x+rand(-4,4)"));
 });
 
@@ -163,7 +164,7 @@ test('abyss lance and photon lance have opposite silhouettes and travel profiles
 
 test('passive and defensive skills expose readable gameplay feedback',()=>{
  const game=read('public/game.js');
- for(const token of ["type:'regen-pulse'","type:'ward-collapse'","type:'ricochet-arc'","upgrades.lastStand>0&&hp/maxHp<=.3","if(upgrades.predator>0)","if(upgrades.shell>0)","if(upgradeLevels.magnet>0)"]) assert.ok(game.includes(token),token);
+ for(const token of ["type:'regen-pulse'","type:'ward-collapse'","type:'ricochet-line'","upgrades.lastStand>0&&hp/maxHp<=.3","if(upgrades.predator>0)","if(upgrades.shell>0)","if(upgradeLevels.magnet>0)"]) assert.ok(game.includes(token),token);
 });
 
 
@@ -265,7 +266,8 @@ test('combat feedback has typed two-second damage numbers and five-second blood 
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
  assert.match(game,/tone,life:2,maxLife:2/);
  assert.match(game,/life:5,maxLife:5/);
- assert.match(game,/#39ff72/);
+ assert.match(game,/#8f1028/);
+ assert.match(game,/#c4213c/);
  assert.match(game,/#32cfff/);
  assert.match(game,/#ff174d/);
  assert.match(game,/abyssal-pvp-hit/);
@@ -289,7 +291,8 @@ test('hit synergies apply to projectile, photon beam and direct-hit geometries',
  assert.match(game,/function triggerHitSynergies\(/);
  assert.match(game,/triggerHitSynergies\(enemy,appliedDamage,skillId,options\)/);
  assert.match(game,/source!=='ricochet'/);
- assert.match(game,/source!==\'arcChain\'/);
+ assert.match(game,/if\(!primaryTarget\|\|!Number\.isFinite\(baseDamage\)\|\|baseDamage<=0\|\|options\.secondary\)return/);
+ assert.match(game,/source==='electric'/);
  assert.match(game,/ricochetLevel:upgrades\.ricochet,electricLevel:upgrades\.electric/);
 });
 test('PvP server applies hit synergies authoritatively and respects rock cover',()=>{
@@ -329,7 +332,7 @@ test('Q Pulse uses authoritative online damage and PvP wall occlusion',()=>{
  assert.match(online,/socket\.timeout\(3000\)\.emit\('active-ability'/);
  assert.match(server,/socket\.on\('active-ability'/);
  assert.match(server,/pvpSegmentHitsRock\(player\.x,player\.y,target\.x,target\.y/);
- assert.match(server,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse'\)/);
+ assert.match(server,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse',batch,'',enemyLookup\)/);
 });
 test('Gravitational Nova has mode-aware cadence enforced by client and server',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
@@ -429,8 +432,8 @@ test('equipped shot is locked for the whole run and cannot fall back to electric
 
 test('electric storm chains from its own primary hit and keeps an extended bolt visual',()=>{
  const game=read('public/game.js'),server=read('server.js');
- assert.ok(game.includes("if((upgrades.electric||0)>0&&source!=='arcChain')"));
- assert.ok(server.includes("if(Number(attacker.electricLevel)>0&&source!=='arcChain')"));
+ assert.ok(game.includes("if(source==='electric'&&(upgrades.electric||0)>0&&!onlineMode)"));
+ assert.ok(server.includes("if(source==='electric'&&Number(attacker.electricLevel)>0)"));
  assert.ok(game.includes('boltLength=Math.max(52/GAME_WORLD_ZOOM,speed*.095)'));
  assert.ok(game.includes('const segments=12'));
 });
@@ -523,7 +526,7 @@ test('removed start-screen records cannot abort game initialization',()=>{
 });
 test('core menu navigation handlers remain registered after initialization guards',()=>{
  const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
- for(const id of ['soloBtn','resonanceBtn','wheelBtn','shopBtn','catalogBtn','rankingsBtn'])assert.ok(game.includes(id),id+' must remain wired in game.js');
+ for(const id of ['playBtn','resonanceBtn','wheelBtn','shopBtn','catalogBtn','rankingsBtn'])assert.ok(game.includes(id),id+' must remain wired in game.js');
  assert.ok(online.includes('function connectAndJoin()'));
  assert.ok(server.includes("rooms.set(DEFAULT_ROOM_ID"));
  assert.ok(server.includes("rooms.set(PVP_ROOM_ID"));

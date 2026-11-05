@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"> 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"> 
-<link rel="stylesheet" href="style.css?v=4.3.8">
+<link rel="stylesheet" href="style.css?v=4.3.8">\n<link rel="stylesheet" href="abyssal-rebuild.css?v=1">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#061522">
 <meta name="mobile-web-app-capable" content="yes">
@@ -196,9 +196,9 @@
 
     <section id="gameOverScreen" class="screen modal-screen" hidden>
       <div class="modal-card compact-card">
-        <div class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
-        <h2>O ABISMO<br><em>RECLAMA.</em></h2>
-        <p>Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.</p>
+        <div id="gameOverEyebrow" class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
+        <h2 id="gameOverTitle">O ABISMO<br><em>RECLAMA.</em></h2>
+        <p id="gameOverCopy">Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.</p>
         <div class="results">
           <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
@@ -540,7 +540,7 @@
 <script src="photon-ray-config.js?v=2"></script>
 <script src="game.js?v=4.4.4"></script>
 <script src="net-codec.js?v=4.2.0"></script>
-<script src="online.js?v=4.4.0"></script>
+<script src="online.js?v=4.4.0"></script>\n<script src="abyssal-rebuild.js?v=1"></script>
 <script>
   if(window.__abyssalFullscreenHandlerReady)return;
   const button=document.getElementById('fullscreenBtn');
