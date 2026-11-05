@@ -233,7 +233,7 @@ function expireSoloDepthEventIfNeeded(){
 }
 
 const RELIC_SKIN_IDS=new Set(['leviathan','kraken','aberration','angler','maw','devourer']);
-const ABYSSAL_SIGNATURE_IDS=new Set(['default','violet','solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','greensnake']);
+const ABYSSAL_SIGNATURE_IDS=new Set(['abyssking','bloodmoon','abyssaleye','greensnake']);
 const SKIN_TAXONOMY=Object.freeze({
  default:{collections:['signature']},
  violet:{family:'jelly',collections:['signature']},
@@ -264,18 +264,18 @@ const SKIN_TAXONOMY=Object.freeze({
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
 {id:'violet',name:'Medusa-Coroa Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Cnidário abissal fictício inspirado em medusas-coroa, com lóbulos violetas bioluminescentes.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
-{id:'solar',name:'Ouriço Solar',color:'#ffd078',price:4800,paid:false,shape:'spikes',desc:'Ouriço-do-mar de profundidade com espinhos dourados e fotóforos que pulsam como um pequeno sol.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
-{id:'toxic',name:'Anêmona Tóxica',color:'#a7ff78',price:14000,paid:false,shape:'tentacles',desc:'Anêmona abissal fictícia com tentáculos urticantes e glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
+{id:'solar',name:'Ouriço Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Ouriço-do-mar de profundidade com espinhos dourados e fotóforos que pulsam como um pequeno sol.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
+{id:'toxic',name:'Anêmona Tóxica',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Anêmona abissal fictícia com tentáculos urticantes e glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
 {id:'leviathan',name:'Eco do Peixe-Remo Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Vestígio biológico do Peixe-Remo Leviatã: corpo laminar, crista sensorial e placas pálidas preservam uma fração da criatura colossal.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
-{id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:22000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
-{id:'abyssking',name:'Náutilo Soberano',color:'#8b7cff',price:1290,paid:true,shape:'king',desc:'Náutilo abissal fictício cuja concha segmentada forma uma coroa mineral em torno do núcleo violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
-{id:'royal',name:'Pérola Regente',color:'#ff78d0',price:36000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
-{id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:42000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
-{id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:18000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
-{id:'bloodmoon',name:'Lula-Vampira Carmesim',color:'#ff3c66',price:1390,paid:true,shape:'fangs',desc:'Cefalópode inspirado na lula-vampira, com membranas escuras, braços denticulados e fotóforos carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
-{id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:48000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
-{id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:1490,paid:true,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
-{id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:1590,paid:true,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
+{id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
+{id:'abyssking',name:'Náutilo Soberano',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Náutilo abissal fictício cuja concha segmentada forma uma coroa mineral em torno do núcleo violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
+{id:'royal',name:'Pérola Regente',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
+{id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
+{id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
+{id:'bloodmoon',name:'Lula-Vampira Carmesim',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Cefalópode inspirado na lula-vampira, com membranas escuras, braços denticulados e fotóforos carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
+{id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
+{id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
+{id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
 {id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Casca do Cefalópode Calcificado',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Carapaça mineralizada vazia do Cefalópode Calcificado. Rachaduras carmesim ainda reagem à presença de ameaças.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal. O ilício incandescente continua atraindo organismos para a mandíbula de agulhas.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
@@ -289,8 +289,6 @@ const skinData=[
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
-const MarineAbilities=window.AbyssalMarineAbilities;
-skinData.push(...(window.AbyssalMarineSpecies?.species||[]));
 const SHOP_RARITY_ORDER=['common','uncommon','rare','epic','legendary','mythic','colossal'];
 const SHOP_RARITY_LABELS={common:'COMUM',uncommon:'INCOMUM',rare:'RARO',epic:'ÉPICO',legendary:'LENDÁRIO',mythic:'MÍTICO',colossal:'COLOSSAL'};
 const SHOP_SPECIAL_RARITY=Object.freeze({
@@ -299,7 +297,7 @@ const SHOP_SPECIAL_RARITY=Object.freeze({
  reefshark:'rare',hammerhead:'rare',abysscroc:'epic',armoredgator:'epic',electriceel:'legendary',greensnake:'colossal',
  leviathan:'legendary',aberration:'legendary',angler:'legendary',maw:'legendary',kraken:'mythic',devourer:'mythic'
 });
-function skinShopRarity(skin){return skin?.rarity||MarineAbilities?.profileFor?.(skin?.id)?.rarity||SHOP_SPECIAL_RARITY[skin?.id]||'uncommon';}
+function skinShopRarity(skin){return skin?.rarity||SHOP_SPECIAL_RARITY[skin?.id]||'uncommon';}
 function skinShopTaxonomy(skin){
  const meta=SKIN_TAXONOMY[skin?.id]||{};
  const family=skin?.family||meta.family||null;
@@ -1935,59 +1933,6 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
  const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
 }
-function renderMarineAbilityVisual(profile,x,y,angle,targets=[]){
- if(!profile)return;
- const color=profile.color||'#79f3f0',visualBoost=1.28+Math.max(0,profile.rarityRank)*.11+(profile.paid?0.08:0),radius=profile.radius/GAME_WORLD_ZOOM*visualBoost,kind=profile.kind;
- const ring=(scale=1,life=.42)=>{effects.push({type:'ring',x,y,r:0,max:radius*scale,life,maxLife:life,color});if(profile.rarityRank>=3)effects.push({type:'ring',x,y,r:0,max:radius*scale*.72,life:life*.78,maxLife:life*.78,color:profile.paid?'#f4efff':'#bffcff'});};
- const beam=(a,len=radius,life=.28)=>effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*len,y2:y+Math.sin(a)*len,life,maxLife:life,color});
- if(['pulse','aura','veil','armor','blast','trap','pull'].includes(kind)){ring(kind==='trap'?.72:1,kind==='trap'?.9:.45);burst(x,y,color,18+profile.rarityRank*3,105+profile.rarityRank*16);}
- if(kind==='spines'){ring(.72,.36);for(let i=0;i<Math.max(6,profile.beams+4);i++)beam(angle+i*Math.PI*2/Math.max(6,profile.beams+4),radius*.92,.3);burst(x,y,color,22,145);}
- if(['dash','lance'].includes(kind)){beam(angle,radius*(kind==='lance'?1.35:1),.34);effects.push({type:'ring',x:x+Math.cos(angle)*radius*.55,y:y+Math.sin(angle)*radius*.55,r:0,max:radius*.18,life:.3,maxLife:.3,color});burst(x+Math.cos(angle)*radius*.7,y+Math.sin(angle)*radius*.7,color,14,150);}
- if(kind==='cone'){ring(.55,.3);for(let i=-2;i<=2;i++)beam(angle+i*.19,radius*(1-Math.abs(i)*.07),.28);burst(x+Math.cos(angle)*radius*.55,y+Math.sin(angle)*radius*.55,color,17,135);}
- if(kind==='sweep'){for(let i=-4;i<=4;i++)beam(angle+i*.22,radius*.82,.3);ring(.82,.34);burst(x,y,color,20,155);}
- if(['multi','chain','grasp','rage','mark'].includes(kind)){
-  ring(.55,.3);
-  if(targets.length){for(const target of targets)effects.push({type:'beam',x1:x,y1:y,x2:target.x,y2:target.y,life:.3,maxLife:.3,color});}
-  else for(let i=0;i<Math.max(3,profile.beams);i++)beam(angle+i*Math.PI*2/Math.max(3,profile.beams),radius*.72,.26);
-  burst(x,y,color,16+profile.beams*2,125);
- }
-}
-function triggerMarineSpeciesAbility(profile){
- if(!profile||!player)return;
- const radius=profile.radius/GAME_WORLD_ZOOM,angle=Number(player.angle)||0,kind=profile.kind;
- const alive=enemies.filter(e=>e&&e.hp>0),selected=[];
- const addTarget=e=>{if(e&&!selected.includes(e))selected.push(e);};
- if(['pulse','aura','veil','armor','blast','spines','trap','pull'].includes(kind)){
-  for(const e of alive)if(Math.hypot(e.x-player.x,e.y-player.y)<=radius+(e.r||0))addTarget(e);
- }else if(['dash','lance'].includes(kind)){
-  const length=radius*(kind==='lance'?1.35:1),x2=player.x+Math.cos(angle)*length,y2=player.y+Math.sin(angle)*length;
-  for(const e of alive)if(marineAbilityLineDistance(e.x,e.y,player.x,player.y,x2,y2)<=(e.r||10)+18/GAME_WORLD_ZOOM)addTarget(e);
- }else if(kind==='cone'){
-  for(const e of alive){const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>radius+(e.r||0))continue;const delta=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle)));if(delta<=.62)addTarget(e);}
- }else if(kind==='sweep'){
-  for(const e of alive)if(Math.hypot(e.x-player.x,e.y-player.y)<=radius*.86+(e.r||0))addTarget(e);
- }else{
-  alive.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(row=>row.d<=radius).sort((a,b)=>a.d-b.d).slice(0,Math.max(1,profile.beams)).forEach(row=>addTarget(row.e));
- }
- const maxTargets=kind==='rage'?8:kind==='multi'||kind==='chain'||kind==='grasp'?Math.max(3,profile.beams):kind==='mark'?1:24;
- const finalTargets=selected.slice(0,maxTargets),baseDamage=profile.damage*(1+Math.min(.35,profile.rarityRank*.055));
- for(let i=0;i<finalTargets.length;i++){
-  const target=finalTargets[i],falloff=(kind==='chain'||kind==='multi')?Math.max(.48,1-i*.1):1;
-  dealEnemyDamage(target,baseDamage*falloff,'marine-'+profile.kind,{silentSound:true});
-  if(kind==='trap'&&!onlineMode)target.poisonTimer=Math.max(Number(target.poisonTimer)||0,2.4);
-  if(kind==='mark')target.hit=Math.max(Number(target.hit)||0,.38);
- }
- renderMarineAbilityVisual(profile,player.x,player.y,angle,finalTargets);
- if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:equippedSkin,x:player.x/W,y:player.y/H,angle});
- playSkillSound(kind==='lance'||kind==='dash'?'pierce':kind==='spines'||kind==='multi'?'burst':'pulse','trigger');
-}
-function updateMarineSpeciesAbility(dt){
- const profile=MarineAbilities?.profileFor?.(equippedSkin);if(!profile||!player)return;
- player.marineAbilityCooldown=(Number.isFinite(player.marineAbilityCooldown)?player.marineAbilityCooldown:Math.min(1.4,profile.cooldown*.22))-dt;
- if(player.marineAbilityCooldown>0)return;
- player.marineAbilityCooldown=profile.cooldown;
- triggerMarineSpeciesAbility(profile);
-}
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
@@ -2053,7 +1998,6 @@ function update(dt){
     burst(player.x,player.y,'#bd91ff',42,190);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:285/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:'#cfa8ff'});effects.push({type:'beam',x1:player.x-52/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+52/GAME_WORLD_ZOOM,y2:player.y,life:.32,maxLife:.32,color:'#f0c7ff'});
     for(const target of pulseTargets){dealEnemyDamage(target.e,22,'violet-resonance',{visual:true});burst(target.e.x,target.e.y,'#d7b7ff',7,75);}
    }
-   updateMarineSpeciesAbility(dt);
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
@@ -2670,18 +2614,13 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
- if(skin?.family&&window.drawMarineSpecies){window.drawMarineSpecies(c,skin,x,y,r,angle,t);return;}
- if(!playerCreature&&BOSS_KINDS.includes(kind)&&!['whiteSharkBoss','kraken','devourer'].includes(kind)&&window.drawAbyssalBoss){window.drawAbyssalBoss(c,{kind,color,x,y,r,angle,t});return;}
  const boss=BOSS_KINDS.includes(kind);
- const glowScale=playerCreature?.16:boss?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
+ const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=1;
- const skinRarity=playerCreature?skinShopRarity(skin):'common',skinRank=playerCreature?({common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5}[skinRarity]||0):0,skinFamily=playerCreature?(skinShopFamily(skin)||skin?.shape||'signature'):null;
- const mixHex=(a,b,t)=>{const parse=v=>{const m=String(v||'').match(/^#([0-9a-f]{6})$/i);if(!m)return null;const n=parseInt(m[1],16);return [(n>>16)&255,(n>>8)&255,n&255]};const A=parse(a),B=parse(b);if(!A||!B)return a;return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
- const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);if(playerCreature||boss){const deep=mixHex(base,'#02070d',boss?.72:.8),mid=mixHex(base,'#102a35',boss?.52:.62);g.addColorStop(0,hit>0?'#ffffff':mid);g.addColorStop(.24,hit>0?'#ffffff':deep);g.addColorStop(.52,deep);g.addColorStop(.78,mid);g.addColorStop(1,'#01050a');}else{g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');}return g};
- const structuralOutline=playerCreature||boss,separator='rgba(1,6,12,.88)';
- const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.lineCap='round';c.lineJoin='round';if(structuralOutline){c.strokeStyle=separator;c.lineWidth=Math.max(width*1.28,width+.35);c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=width;c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
- const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){if(structuralOutline){c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(width*1.35,width+.45);c.lineJoin='round';c.stroke();}c.globalAlpha=playerCreature?Math.min(.52,.24+skinRank*.055):boss?.42:1;c.strokeStyle=strokeStyle;c.lineWidth=Math.max(.7,width*.72);c.lineJoin='round';c.shadowBlur=blur*glowScale*.45;c.shadowColor=strokeStyle;c.stroke()}c.restore()};
+ const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
+ const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
+ const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){c.strokeStyle=strokeStyle;c.lineWidth=width;c.lineJoin='round';c.stroke()}c.restore()};
  const body=(rx,ry,cy=0,base=color)=>fill(()=>c.ellipse(0,cy,r*rx*pulse,r*ry*pulse,0,0,Math.PI*2),bodyGrad(base),`rgba(224,255,255,.46)`,Math.max(1,r*.035),12);
  const fin=(points,col=color,edge='rgba(225,255,255,.55)')=>fill(()=>{c.moveTo(points[0][0]*r,points[0][1]*r);for(let i=1;i<points.length;i++)c.lineTo(points[i][0]*r,points[i][1]*r);c.closePath()},`rgba(8,30,46,.9)`,edge,Math.max(1,r*.035),8);
  const tentacle=(sx,sy,c1x,c1y,c2x,c2y,ex,ey,w=1, suckers=false)=>{
@@ -2693,15 +2632,13 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let j=0;j<=18;j++){const q=j/18,mt=1-q;const x=mt*mt*mt*pose.sx+3*mt*mt*q*pose.c1x+3*mt*q*q*pose.c2x+q*q*q*pose.ex;const y=mt*mt*mt*pose.sy+3*mt*mt*q*pose.c1y+3*mt*q*q*pose.c2y+q*q*q*pose.ey;points.push({x:x*r,y:y*r,t:q});}
    const left=[],right=[];
    for(let j=0;j<points.length;j++){const p=points[j],prev=points[Math.max(0,j-1)],next=points[Math.min(points.length-1,j+1)],dx=next.x-prev.x,dy=next.y-prev.y,len=Math.hypot(dx,dy)||1;const width=r*(.115*Math.pow(1-p.t,1.22)+.008);const nx=-dy/len,ny=dx/len;left.push([p.x+nx*width,p.y+ny*width]);right.push([p.x-nx*width,p.y-ny*width]);}
-   c.save();c.beginPath();left.forEach((p,j)=>j?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));for(let j=right.length-1;j>=0;j--)c.lineTo(right[j][0],right[j][1]);c.closePath();c.fillStyle=bodyGrad(color);c.shadowBlur=(playerCreature||boss)?8*glowScale:0;c.shadowColor=color;c.fill();if(structuralOutline){c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(1.4,r*.035);c.stroke();}c.strokeStyle='rgba(130,255,231,.74)';c.lineWidth=Math.max(.8,r*.016);c.stroke();
+   c.save();c.beginPath();left.forEach((p,j)=>j?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));for(let j=right.length-1;j>=0;j--)c.lineTo(right[j][0],right[j][1]);c.closePath();c.fillStyle=bodyGrad(color);c.shadowBlur=(playerCreature||boss)?8*glowScale:0;c.shadowColor=color;c.fill();c.strokeStyle='rgba(130,255,231,.62)';c.lineWidth=Math.max(.8,r*.016);c.stroke();
    c.shadowBlur=3*glowScale;c.fillStyle='#caffef';for(let j=3;j<=11;j+=2){const p=points[j],width=r*(.115*Math.pow(1-p.t,1.22)+.008);c.beginPath();c.ellipse(p.x,p.y,Math.max(.65,width*.23),Math.max(.5,width*.16),Math.atan2(points[Math.min(18,j+1)].y-p.y,points[Math.min(18,j+1)].x-p.x),0,Math.PI*2);c.fill();}c.restore();
   };
   const eye=(ex,ey,er=r*.09,iris='#e6ffff')=>{c.save();c.fillStyle='#020a12';c.beginPath();c.ellipse(ex*r,ey*r,er*1.3,er*1.65,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=12*glowScale;c.shadowColor=iris;c.beginPath();c.arc(ex*r+er*.2,ey*r-er*.18,er*.5,0,Math.PI*2);c.fill();c.restore()};
  const teeth=(cx,cy,rx,ry,count=8,scale=1,reverse=false)=>{c.save();c.fillStyle='#f6fbec';c.shadowBlur=7*glowScale;c.shadowColor='#ffb4bb';for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2,tx=cx+Math.cos(a)*rx,ty=cy+Math.sin(a)*ry,innerX=cx+Math.cos(a)*rx*.68,innerY=cy+Math.sin(a)*ry*.68;c.beginPath();c.moveTo(tx*r,ty*r);c.lineTo((innerX+Math.cos(a+.2)*.09*scale)*r,(innerY+Math.sin(a+.2)*.09*scale)*r);c.lineTo((innerX+Math.cos(a-.2)*.09*scale)*r,(innerY+Math.sin(a-.2)*.09*scale)*r);c.closePath();c.fill()}c.restore()};
  const gills=(x0=-.2,y0=-.28,count=3,side=1)=>{for(let i=0;i<count;i++){const xx=x0+i*.12;stroke(()=>{c.moveTo(xx*r,y0*r);c.quadraticCurveTo((xx-.12)*r,(y0+.13)*r,(xx-.06)*r,(y0+.22)*r)},Math.max(.7,r*.028),'rgba(194,255,248,.72)',4)}};
  const finRay=(x0,y0,x1,y1,x2,y2,col=color)=>fin([[x0,y0],[x1,y1],[x2,y2]],col,'rgba(230,255,249,.48)');
- const emitPath=(draw,width,col,intensity=1)=>{c.save();c.globalCompositeOperation='lighter';const breathe=.82+.18*Math.sin(t*.0043+skinRank*.7);c.beginPath();draw();c.strokeStyle=col;c.shadowColor=col;c.globalAlpha=.22*intensity*breathe;c.lineWidth=width*2.1;c.shadowBlur=Math.max(3,r*.12)*glowScale;c.stroke();c.globalAlpha=.74*intensity*breathe;c.lineWidth=width;c.shadowBlur=Math.max(1,r*.04)*glowScale;c.stroke();c.globalAlpha=.9;c.strokeStyle='#efffff';c.lineWidth=Math.max(.55,width*.22);c.shadowBlur=0;c.stroke();c.restore()};
- const emitNode=(ex,ey,rx,ry,col,intensity=1)=>{c.save();c.globalCompositeOperation='lighter';const breathe=.84+.16*Math.sin(t*.0048+(ex+ey)*3);c.fillStyle=col;c.shadowColor=col;c.globalAlpha=.15*intensity*breathe;c.shadowBlur=Math.max(4,r*.14)*glowScale;c.beginPath();c.ellipse(ex*r,ey*r,rx*r*1.3,ry*r*1.3,0,0,Math.PI*2);c.fill();c.globalAlpha=.58*intensity*breathe;c.shadowBlur=Math.max(1,r*.05)*glowScale;c.beginPath();c.ellipse(ex*r,ey*r,rx*r*.7,ry*r*.7,0,0,Math.PI*2);c.fill();c.globalAlpha=.9;c.fillStyle='#f4ffff';c.shadowBlur=0;c.beginPath();c.ellipse((ex-rx*.12)*r,(ey-ry*.14)*r,rx*r*.15,ry*r*.14,0,0,Math.PI*2);c.fill();c.restore()};
 
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
@@ -2884,42 +2821,17 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
    body(.85,.72,0,color);eye(.3,-.16,r*.06);
   }
-  // Official Abyssal signature: rarity is emitted by anatomy, never by an orbiting cosmetic ring.
-  const emissionPrimary=id==='solar'?'#ffbf3e':id==='toxic'?'#92ff4f':id==='bloodmoon'?'#ff315f':id==='greensnake'?'#35ff9b':id==='abyssking'||id==='royal'?'#b477ff':id==='angler'?'#ffd36d':id==='maw'?'#d35cff':id==='devourer'?'#63fff0':id==='leviathan'?'#61eaff':color;
-  const emissionSecondary=id==='bloodmoon'||id==='aberration'?'#ff7896':id==='solar'?'#fff08a':id==='toxic'||id==='greensnake'?'#d7ff73':id==='abyssking'||id==='royal'||id==='maw'?'#ff78dc':'#8cf8ff';
-  const intensity=.68+skinRank*.1+(skin?.paid?.08:0);
-  if(skinFamily==='shark'||skinFamily==='fish'){
-   emitPath(()=>{c.moveTo(-.58*r,.04*r);c.quadraticCurveTo(-.05*r,.17*r,.5*r,.03*r)},Math.max(.8,r*.022),emissionPrimary,intensity);
-   for(let i=0;i<Math.max(2,Math.min(5,skinRank+1));i++)emitPath(()=>{const xx=(.3-i*.085)*r;c.moveTo(xx,-.23*r);c.lineTo(xx-.04*r,.15*r)},Math.max(.55,r*.014),emissionPrimary,.48*intensity);
-  }else if(skinFamily==='eel'){
-   emitPath(()=>{c.moveTo(-1.8*r,-.03*r);c.bezierCurveTo(-1.15*r,-.22*r,-.35*r,.16*r,.72*r,-.04*r)},Math.max(.8,r*.024),emissionPrimary,intensity);
-   if(skinRank>=3)for(let i=0;i<4;i++)emitNode(-.82+i*.36,.12,.035,.022,i%2?emissionPrimary:emissionSecondary,.62*intensity);
-  }else if(skinFamily==='squid'||skinFamily==='octopus'){
-   emitNode(.05,-.55,.22,.28,emissionPrimary,intensity);
-   for(let i=0;i<3+Math.min(4,skinRank);i++){const a=-1.15+i*(2.3/Math.max(1,2+Math.min(4,skinRank)));emitNode(-.2-Math.cos(a)*(.25+i*.035),Math.sin(a)*(.18+i*.022),.035,.024,i%2?emissionPrimary:emissionSecondary,.7*intensity);}
-  }else if(skinFamily==='jelly'){
-   emitNode(0,-.18,.27,.2,emissionPrimary,intensity);for(let i=0;i<3+Math.min(3,skinRank);i++){const xx=-.38+i*(.76/Math.max(1,2+Math.min(3,skinRank)));emitPath(()=>{c.moveTo(xx*r,-.05*r);c.quadraticCurveTo(xx*.9*r,.4*r,xx*1.05*r,.88*r)},Math.max(.55,r*.014),emissionPrimary,.46*intensity);}
-  }else if(skinFamily==='crustacean'){
-   for(const side of [-1,1])for(let i=0;i<2+Math.min(3,skinRank);i++)emitNode(-.42+i*.24,side*(.31+i*.025),.035,.024,emissionPrimary,.62*intensity);
-   emitPath(()=>{c.moveTo(-.48*r,0);c.lineTo(.48*r,0)},Math.max(.6,r*.016),emissionSecondary,.38*intensity);
-  }else if(skinFamily==='ray'){
-   for(const side of [-1,1])emitPath(()=>{c.moveTo(-.48*r,0);c.quadraticCurveTo(-.06*r,side*.4*r,.62*r,side*.54*r)},Math.max(.7,r*.02),emissionPrimary,.7*intensity);
-   if(id==='electriceel'){emitNode(.12,-.28,.28,.16,'#5df6ff',1);emitNode(.12,.28,.28,.16,'#5df6ff',1);}
-  }else if(skinFamily==='benthic'){
-   const count=4+Math.min(5,skinRank);for(let i=0;i<count;i++){const a=i*Math.PI*2/count;emitNode(Math.cos(a)*.52,Math.sin(a)*.42,.035,.035,i%2?emissionPrimary:emissionSecondary,.65*intensity);}
-  }else if(skinFamily==='mollusc'){
-   emitPath(()=>{c.moveTo(-.46*r,-.1*r);c.bezierCurveTo(-.18*r,-.34*r,.26*r,-.34*r,.58*r,.02*r)},Math.max(.7,r*.02),emissionPrimary,.72*intensity);
-   emitNode(.12,0,.2,.18,emissionSecondary,.6*intensity);
-  }else{
-   emitNode(.05,-.1,.24,.2,emissionPrimary,.72*intensity);
+  // Rarity signatures distinguish collectible forms without changing hitboxes or abilities.
+  if(RELIC_SKIN_IDS.has(id)){
+   c.save();c.globalAlpha=.52+.12*Math.sin(t*.003);c.strokeStyle='#d9b5ff';c.lineWidth=Math.max(.8,r*.025);c.setLineDash([Math.max(2,r*.14),Math.max(2,r*.11)]);c.shadowBlur=lowPowerRendering?0:8*glowScale;c.shadowColor='#a45dff';
+   c.beginPath();c.ellipse(-.04*r,0,1.22*r,1.02*r,t*.00034,0,Math.PI*2);c.stroke();c.setLineDash([]);
+   for(let k=0;k<3;k++){const a=t*.0007+k*Math.PI*2/3;c.fillStyle=k===0?'#f0d9ff':'#a98cff';c.beginPath();c.arc(Math.cos(a)*1.2*r,Math.sin(a)*.98*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();}
+   c.restore();
+  }else if(ABYSSAL_SIGNATURE_IDS.has(id)){
+   c.save();c.globalAlpha=.34+.09*Math.sin(t*.0024);c.strokeStyle=id==='bloodmoon'?'#ff6f89':id==='greensnake'?'#6fffb1':'#9ca4ff';c.lineWidth=Math.max(.7,r*.02);c.beginPath();c.arc(0,0,1.12*r,t*.00025,t*.00025+Math.PI*1.45);c.stroke();c.restore();
   }
-  // Relic skins get one unique organ of light, matching their boss ancestry.
-  if(id==='kraken')emitNode(0,-.72,.2,.3,'#ba6cff',.9);
-  else if(id==='leviathan')emitPath(()=>{c.moveTo(-2.2*r,-.2*r);c.bezierCurveTo(-1.4*r,-.48*r,-.45*r,-.4*r,.55*r,-.18*r)},Math.max(1,r*.028),'#61eaff',.9);
-  else if(id==='angler')emitNode(.48,-1.04,.14,.14,'#ffd36d',1);
-  else if(id==='maw')emitNode(.12,0,.42,.46,'#d35cff',.82);
-  else if(id==='devourer')emitNode(.48,.02,.48,.5,'#ff315f',.74);
-  else if(id==='aberration'){for(let i=0;i<4;i++)emitPath(()=>{c.moveTo((-.38+i*.22)*r,-.32*r);c.lineTo((-.28+i*.2)*r,.3*r)},Math.max(.6,r*.017),'#ff315f',.62);}
+  // Fine luminous lateral line makes skin previews look like the live character.
+  if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
   c.restore();return;
  }
 
@@ -2957,12 +2869,11 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   fin([[-1.8,.06],[-2.32,-.2],[-2.1,.12],[-2.28,.32]],color);fill(()=>{c.moveTo(.35*r,-.1*r);c.quadraticCurveTo(.8*r,-.48*r,1.08*r,-.2*r);c.lineTo(.68*r,.08*r);c.lineTo(1.05*r,.36*r);c.quadraticCurveTo(.58*r,.42*r,.35*r,.13*r);c.closePath()},'#050b16','#96acff',Math.max(1,r*.045),8);
   for(let i=0;i<6;i++){const xx=(.42+i*.085)*r;fin([[xx/r,-.13],[xx/r-.03,.02],[xx/r+.03,.02]],'#eff3ff');fin([[xx/r,.1],[xx/r-.03,.0],[xx/r+.03,.0]],'#eff3ff')};for(let i=0;i<5;i++){const xx=(-1.35+i*.28)*r;stroke(()=>{c.moveTo(xx,-.22*r);c.lineTo((xx-.05*r),.23*r)},Math.max(.7,r*.025),'rgba(196,218,255,.7)',3)}eye(.45,-.28,r*.06,'#d6deff');
  } else if(kind==='boss'){
-  // Giant blue-ringed octopus: hooked arms, warning rings and a mineralized mantle.
+  // Aberração Abissal: horned abyssal cephalopod with a bone mask and fan of hooked arms.
   for(let i=0;i<10;i++){const side=i<5?-1:1,j=i%5,sy=(-.4+j*.2);tentacle(-.48,sy,side*.3,sy+.18,side*(.9+j*.12),sy+.55,side*(1.25+j*.18),sy+.9,.95,true)}
   fill(()=>{c.moveTo(-.75*r,-.22*r);c.lineTo(-.56*r,-.75*r);c.lineTo(-.15*r,-.6*r);c.lineTo(.1*r,-.92*r);c.lineTo(.38*r,-.55*r);c.lineTo(.78*r,-.38*r);c.lineTo(.72*r,.18*r);c.lineTo(.25*r,.48*r);c.lineTo(-.38*r,.4*r);c.closePath()},bodyGrad(color),'#ffb8ca',Math.max(1.5,r*.055),16);
   fill(()=>{c.moveTo(-.47*r,-.28*r);c.lineTo(-.25*r,-.58*r);c.lineTo(.02*r,-.44*r);c.lineTo(.28*r,-.6*r);c.lineTo(.52*r,-.22*r);c.lineTo(.42*r,.2*r);c.lineTo(0,.32*r);c.lineTo(-.38*r,.15*r);c.closePath()},'#d9e5e0','#fff1f2',Math.max(1.2,r*.04),7);
   c.save();c.fillStyle='#10121d';c.beginPath();c.ellipse(.08*r,.03*r,.28*r,.26*r,0,0,Math.PI*2);c.fill();c.restore();for(let side of [-1,1]){fin([[-.5,side*.12],[-1.0,side*.32],[-.7,side*.43]],'#ff7896');fin([[.05,side*.3],[.25,side*.62],[.42,side*.3]],'#ff7896')}eye(.02,-.15,r*.075,'#fff2f5');eye(.25,-.04,r*.045,'#ffdb83');
-  c.save();c.strokeStyle='#39c8ff';c.lineWidth=Math.max(1.1,r*.04);c.shadowBlur=14*glowScale;c.shadowColor='#19aaff';for(let i=0;i<9;i++){const a=i*2.399+t*.00018,rr=.18+(i%3)*.15;c.beginPath();c.arc((-.18+Math.cos(a)*rr)*r,(-.17+Math.sin(a)*rr*.78)*r,Math.max(1.5,r*(.055+(i%2)*.018)),0,Math.PI*2);c.stroke();}c.restore();
  } else if(kind==='devourer'){
   // A broad-bodied pelican eel with a distended throat pouch and a cavernous mouth.
   fin([[-1.2,0],[-1.8,-.38],[-1.65,.08],[-1.82,.4]],color);fin([[-.42,-.58],[-.15,-1.12],[.12,-.48]],color);fin([[-.35,.5],[-.08,1.02],[.28,.48]],color);
@@ -3005,16 +2916,9 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   fill(()=>{c.moveTo(.22*r,-.05*r);c.lineTo(.88*r,-.14*r);c.lineTo(.65*r,.1*r);c.lineTo(.93*r,.36*r);c.lineTo(.25*r,.25*r);c.closePath()},'#080f19','#ffd7a0',Math.max(1,r*.04),8);for(let i=0;i<6;i++){const xx=(.3+i*.085)*r;fin([[xx/r,-.08],[xx/r-.025,.08],[xx/r+.03,.02]],'#fff4d5')}
   stroke(()=>{c.moveTo(-.05*r,-.47*r);c.quadraticCurveTo(.02*r,-1.14*r,.48*r,-1.14*r)},Math.max(1.5,r*.065),'#ffcb70',14);c.save();const pulseSize=r*.14*(1+Math.sin(t*.009)*.12);const lamp=c.createRadialGradient(.48*r,-1.14*r,1,.48*r,-1.14*r,pulseSize*2);lamp.addColorStop(0,'#fffde4');lamp.addColorStop(.35,'#ffd277');lamp.addColorStop(1,'rgba(255,147,55,0)');c.fillStyle=lamp;c.beginPath();c.arc(.48*r,-1.14*r,pulseSize*2,0,Math.PI*2);c.fill();c.restore();eye(.43,-.32,r*.055,'#fff3c5');
  }
- // Hostile bioluminescence is anatomical too. Legacy bosses keep their unique organs instead of a generic halo.
- if(kind==='kraken'){
-  emitNode(0,-.68,.2,.28,'#a968ff',.92);for(let i=0;i<6;i++)emitNode(-.42+i*.17,.22,.03,.022,i%2?'#ff4f7d':'#61eaff',.72);
- }else if(kind==='devourer'){
-  emitNode(.62,.05,.52,.54,'#ff315f',.78);for(let i=0;i<5;i++)emitPath(()=>{const xx=(-.7+i*.28)*r;c.moveTo(xx,-.42*r);c.quadraticCurveTo(xx-.05*r,.08*r,xx+.02*r,.68*r)},Math.max(.7,r*.017),'#62ffe9',.46);
- }else if(kind==='whiteSharkBoss'){
-  emitPath(()=>{c.moveTo(-.88*r,-.18*r);c.lineTo(.42*r,-.18*r)},Math.max(.9,r*.023),'#5cecff',.8);for(let i=0;i<5;i++)emitPath(()=>{const xx=(-.32+i*.08)*r;c.moveTo(xx,-.28*r);c.lineTo(xx-.035*r,.18*r)},Math.max(.6,r*.015),'#5cecff',.58);emitNode(.82,-.16,.07,.07,'#ff315f',.95);
- }else if(kind!=='drifter'&&!boss){
-  stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.42)',4);
- }
+ // Bioluminescent side line and paired sensory pores unify the species without flattening silhouettes.
+ if(kind!=='drifter'&&kind!=='maw')stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.55)',5);
+ if(boss){c.save();c.strokeStyle=color;c.lineWidth=Math.max(1.2,r*.035);c.shadowBlur=17;c.shadowColor=color;c.beginPath();c.ellipse(0,0,r*1.46,r*1.27,0,t*.0007,t*.0007+Math.PI*1.7);c.stroke();c.restore()}
  c.restore();
 }
 function drawArenaTerrain(t){
@@ -3570,21 +3474,21 @@ function renderShop(){
  const englishNames={violet:'Violet Wraith',leviathan:'Leviathan Echo',kraken:'Kraken Echo',aberration:'Aberration Husk',angler:'Lantern Core',maw:'Rift Fragment',devourer:'Devourer Core',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Estuarine Bull Shark',armoredgator:'Armored Horseshoe Crab'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'A robust estuarine bull shark adapted to shallow channels, turbid water and sudden frontal bursts.',armoredgator:'A mineral-armored horseshoe crab with a broad carapace and a long defensive telson.'};
  const englishAbilities={reefshark:'Pelagic slash: a short high-speed dash leaves a blue wake that damages enemies crossed.',hammerhead:'Electroreception: attract experience orbs from 50% farther away.',abysscroc:'Estuarine charge: a short explosive burst deals cone damage in front.',armoredgator:'Telson sweep: a defensive spin knocks nearby enemies back with a shockwave.'};
- const paidBrl=Object.freeze({violet:690,reefshark:690,hammerhead:790,abysscroc:990,armoredgator:990,abyssking:1290,bloodmoon:1390,abyssaleye:1490,deepwarden:1590,angler:1690,aberration:1790,maw:1890,leviathan:2190,kraken:2490,devourer:2790});
+ const paidBrl=Object.freeze({violet:390,reefshark:590,hammerhead:590,abysscroc:690,armoredgator:690,angler:1290,maw:1490,aberration:1490,leviathan:1690,kraken:1890,devourer:1990});
  const searchEl=$('shopSearchInput'),rarityEl=$('shopRarityFilter'),familyEl=$('shopFamilyFilter'),ownershipEl=$('shopOwnershipFilter');
  for(const el of [searchEl,rarityEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
  const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),rarityFilter=rarityEl?.value||'all',familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
  const visibleSkins=skinData.filter(skin=>{
-  const owned=ownedSkins.includes(skin.id),rarity=skinShopRarity(skin),categories=skinShopCategories(skin),haystack=(skin.name+' '+skin.desc+' '+(MarineAbilities?.profileFor?.(skin.id)?.title||skin.ability||'')).toLocaleLowerCase('pt-BR');
+  const owned=ownedSkins.includes(skin.id),rarity=skinShopRarity(skin),categories=skinShopCategories(skin),haystack=(skin.name+' '+skin.desc+' '+(skin.ability||'')).toLocaleLowerCase('pt-BR');
   return (!query||haystack.includes(query))&&(rarityFilter==='all'||rarity===rarityFilter)&&(familyFilter==='all'||categories.has(familyFilter))&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>shopRarityRank(skinShopRarity(a))-shopRarityRank(skinShopRarity(b))||String(a.name).localeCompare(String(b.name),'pt-BR'));
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES · ORDENADOS DO MENOS RARO AO MAIS RARO`;
- visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name,marineAbility=MarineAbilities?.profileFor?.(skin.id),rarity=skinShopRarity(skin),rarityLabel=SHOP_RARITY_LABELS[rarity]||rarity.toUpperCase();
+ visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name,rarity=skinShopRarity(skin),rarityLabel=SHOP_RARITY_LABELS[rarity]||rarity.toUpperCase();
     const isGreensnake = skin.id === 'greensnake';
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');card.className='skin-card'+(owned?' owned':'')+(equipped?' equipped':'');card.dataset.rarity=rarity;const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><span class="skin-rarity ${rarity}">${rarityLabel}</span><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${marineAbility?.description||(english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):skin.ability||'Uma adaptação rara das profundezas.')}</p><button ${equipped?'disabled':''}>${purchaseLabel}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
+const card=document.createElement('div');card.className='skin-card'+(owned?' owned':'')+(equipped?' equipped':'');card.dataset.rarity=rarity;const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><span class="skin-rarity ${rarity}">${rarityLabel}</span><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${english?(englishAbilities[skin.id]||skin.ability||'A rare adaptation of the deep.'):(skin.ability||'Uma adaptação rara das profundezas.')}</p><button ${equipped?'disabled':''}>${purchaseLabel}</button>`;renderCreaturePreview(card.querySelector('canvas'),'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
         updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');audio(760,.12,'triangle',.03)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
  const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
@@ -3794,9 +3698,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   } else if(skin==='abysscroc'){
     effects.push({type:'ring',x:px,y:py,r:0,max:210/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#79bd83'});
     burst(px,py,'#79bd83',28,175);
-  } else if(MarineAbilities?.profileFor?.(skin)){
-    renderMarineAbilityVisual(MarineAbilities.profileFor(skin),px,py,angle,[]);
-  } else {
+} else {
     // Fallback visual para outros IDs de skin quando o evento de habilidade for enviado.
     const reach=(skin==='devourer'?320:skin==='greensnake'?210:skin==='electriceel'?165:125)/GAME_WORLD_ZOOM;
     effects.push({type:'ring',x:px,y:py,r:0,max:reach,life:.4,maxLife:.4,color:skinColor});
