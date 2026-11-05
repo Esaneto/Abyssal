@@ -1529,7 +1529,7 @@ function applySharedMotion(data){
   const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):Number(enemy.x)||tx;
   const previousServerY=Number.isFinite(Number(enemy.serverY))?Number(enemy.serverY):Number(enemy.y)||ty;
   const current=window.AbyssalEnemyNetcode?.renderedPosition?.(enemy,now)||currentInterpolatedEnemyPosition(enemy,now);
-  const sampleMs=clamp(now-(Number(enemy.snapshotReceivedAt)||now),50,250),visualDuration=clamp(sampleMs*.58,52,82);
+  const sampleMs=Number.isFinite(Number(enemy.snapshotReceivedAt))?clamp(now-Number(enemy.snapshotReceivedAt),50,250):serverInterval,visualDuration=clamp(sampleMs*.58,52,82);
   enemy.x=current.x;enemy.y=current.y;enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
   enemy.interpFromX=current.x;enemy.interpFromY=current.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=visualDuration;
   // Compact server packets don't carry velocity. Estimate it from authoritative
