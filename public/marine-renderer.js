@@ -8,14 +8,20 @@
 // 3) accent color is secondary bioluminescence, never a flat recolor;
 // 4) every family must remain readable at shop-preview scale and gameplay scale.
 window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
- const v=Math.max(0,Math.min(9,Number(s.variant)||0)),family=String(s.family||'fish'),accent=s.color||'#70e9df',phase=t*.002+v*.71;
+ const v=Math.max(0,Math.min(9,Number(s.variant)||0)),family=String(s.family||'fish'),art=s.art||{},accent=art.tone||s.color||'#70e9df',phase=t*.002+v*.71;
  c.save();c.translate(x,y);c.rotate(Number(angle)||0);c.scale(r,r);c.lineCap='round';c.lineJoin='round';
 
- const bodyGrad=(dark='#061019',mid='#17313a',light=accent)=>{
-   const g=c.createLinearGradient(-1.6,-.9,1.45,.8);
-   g.addColorStop(0,dark);g.addColorStop(.27,mid);g.addColorStop(.54,light);g.addColorStop(.72,mid);g.addColorStop(1,'#02070c');return g;
+ const hexRgb=value=>{
+  const m=String(value||'').trim().match(/^#([0-9a-f]{6})$/i);
+  if(!m)return [112,233,223];
+  const n=parseInt(m[1],16);return [(n>>16)&255,(n>>8)&255,n&255];
  };
- const glassGrad=()=>{const g=c.createRadialGradient(-.18,-.22,.02,.05,0,1.15);g.addColorStop(0,'rgba(225,255,255,.78)');g.addColorStop(.2,accent);g.addColorStop(.52,'rgba(39,94,111,.72)');g.addColorStop(1,'rgba(1,10,17,.94)');return g;};
+ const rgb=hexRgb(accent);
+ const tone=(alpha=.5,boost=0)=>`rgba(${Math.min(255,rgb[0]+boost)},${Math.min(255,rgb[1]+boost)},${Math.min(255,rgb[2]+boost)},${alpha})`;
+ // Deliberately monochromatic: Kraken-style depth comes from one dominant hue used
+ // at multiple opacities, not a vignette gradient that makes every skin feel alike.
+ const bodyGrad=()=>tone(.34);
+ const glassGrad=()=>tone(.18);
  const path=(pts,close=true)=>{c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));if(close)c.closePath();};
  const fillPath=(pts,paint=bodyGrad(),edge='rgba(190,238,235,.52)',w=.045)=>{c.save();path(pts);c.fillStyle=paint;c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=w;c.stroke();}c.restore();};
  const ellipse=(ex,ey,rx,ry,rot=0,paint=bodyGrad(),edge='rgba(190,238,235,.5)',w=.045)=>{c.save();c.beginPath();c.ellipse(ex,ey,rx,ry,rot,0,Math.PI*2);c.fillStyle=paint;c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=w;c.stroke();}c.restore();};
