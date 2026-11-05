@@ -13,7 +13,7 @@ const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 
 test('descent gate is loaded as a lightweight client-only menu layer',()=>{
  assert.match(index,/abyssal-rebuild\.css\?v=2/);
- assert.match(index,/abyssal-rebuild\.js\?v=4/);
+ assert.match(index,/abyssal-rebuild\.js\?v=5/);
  assert.match(rebuild,/DESCIDA ABISSAL/);
  assert.match(rebuild,/DESCER SOZINHO/);
  assert.match(rebuild,/DESCER EM CARDUME/);
