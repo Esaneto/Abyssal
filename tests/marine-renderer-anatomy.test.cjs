@@ -53,7 +53,7 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.match(html,/marine-renderer\.js\?v=6/);
  assert.match(html,/abyssal-boss-renderer\.js\?v=2/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
- assert.match(html,/game\.js\?v=4\.4\.13/);
+ assert.match(html,/game\.js\?v=4\.4\.14/);
 });
 
 test('squid and octopus variants use separate species-level anatomy',()=>{
@@ -98,4 +98,15 @@ test('eel family cannot regress to a bare colored spline',()=>{
  assert.match(renderer,/if\(v===3\)\{ \/\/ dragon moray/);
  assert.match(renderer,/if\(v===7\)\{ \/\/ saw eel/);
  assert.match(renderer,/ellipse\(.72,0,v===5\?\.5:\.44/);
+});
+
+
+test('marine preview scale matches signature Abyssal visual weight',()=>{
+ const start=game.indexOf(" if(skin?.family){",game.indexOf('function renderCreaturePreview('));
+ const end=game.indexOf(" if(kind==='leviathan')",start);
+ const block=game.slice(start,end);
+ assert.match(block,/family==='eel'\)scale=\.86/);
+ assert.match(block,/family==='octopus'\|\|family==='squid'\)scale=\.8/);
+ assert.match(block,/family==='fish'\)scale=variant===9\?\.74:\.88/);
+ assert.match(block,/\(variant===5\|\|variant===7\)\?\.76:\.9/);
 });
