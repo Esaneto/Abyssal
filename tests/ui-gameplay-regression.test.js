@@ -192,3 +192,12 @@ test('deploy resume explicitly restores the gameplay visual state even if client
  assert.match(handler,/\$\('toggleHudBtn'\)\.hidden=false/);
  assert.match(handler,/setMobileGameActive\(true\)/);
 });
+
+
+test('successful room join has an atomic DOM-safe path into gameplay', () => {
+ assert.match(game,/function enterOnlineGameplay\(data\)/);
+ assert.match(game,/for\(const id of \[\.\.\.screens,'roomsScreen','loginScreen'\]\)/);
+ assert.match(game,/if\(hud\)hud\.hidden=false/);
+ assert.match(game,/if\(toggle\)toggle\.hidden=false/);
+ assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao ativar gameplay:'/);
+});
