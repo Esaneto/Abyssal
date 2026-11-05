@@ -4376,3 +4376,15 @@ body.game-active.hud-collapsed{--match-ui-top:max(10px,env(safe-area-inset-top))
  body.mobile-game-active #selectedSkillsPanel{top:calc(var(--match-ui-top) + 104px)!important;transition:top .2s ease!important}
  body.mobile-game-active #runEnergyRanking{top:calc(var(--match-ui-top) + 104px)!important;transition:top .2s ease!important}
 }
+
+
+/* MOBILE MATCH HUD V18: gameplay already owns the full viewport, so HUD starts at the safe-area top. */
+@media (max-width:700px),(pointer:coarse){
+ body.game-active,
+ body.game-active.hud-collapsed{--match-ui-top:max(7px,env(safe-area-inset-top))}
+ body.mobile-game-active .hud{top:var(--match-ui-top)!important}
+ body.mobile-game-active #toggleHudBtn{top:var(--match-ui-top)!important}
+ body.mobile-game-active #mobilePauseBtn{top:var(--match-ui-top)!important}
+ body.mobile-game-active #selectedSkillsPanel,
+ body.mobile-game-active #runEnergyRanking{top:calc(var(--match-ui-top) + 104px)!important}
+}
