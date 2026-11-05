@@ -202,6 +202,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('pvp-hit',data=>{window.dispatchEvent(new CustomEvent('abyssal-pvp-hit',{detail:data||{}}));});
  socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
+ socket.on('boss-ability-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-boss-ability-visual',{detail:data||{}}));});
  socket.on('world-enemy-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated',{detail:data}));});
  socket.on('world-enemies-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated-batch',{detail:Array.isArray(data)?data:[]}));});
  socket.on('world-xp-orb-spawned',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orb-spawned',{detail:data||{}}));});
