@@ -199,7 +199,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  });
  socket.on('session-resumed',result=>{
   if(reconnectSessionRetry){clearTimeout(reconnectSessionRetry);reconnectSessionRetry=null;}
-  if(!result?.ok){sessionToken='';localStorage.removeItem('abyssalSessionToken');authenticated=false;serverAccount=null;$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage('Sua sessão expirou. Entre novamente para acessar o perfil.',true);if(reconnectPending)failReconnect('Sua sessão expirou durante a atualização. Entre novamente para continuar.');else hideMaintenanceOverlay();return;}
+  if(!result?.ok){authenticated=false;serverAccount=null;const explicitlyExpired=/expir|inválid|invalid/i.test(String(result?.message||''));if(explicitlyExpired){sessionToken='';localStorage.removeItem('abyssalSessionToken');}$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage(explicitlyExpired?'Sua sessão expirou. Entre novamente para acessar o perfil.':'Não foi possível validar sua sessão agora. Tentaremos novamente na próxima conexão.',true);if(reconnectPending)failReconnect(explicitlyExpired?'Sua sessão expirou durante a atualização. Entre novamente para continuar.':'O servidor voltou, mas não conseguiu validar a sessão nesta tentativa.');else hideMaintenanceOverlay();return;}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);refreshKidGate();
