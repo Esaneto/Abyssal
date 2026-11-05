@@ -5,17 +5,17 @@ const path = require('path');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
- violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:100,testOnly:false},
- leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:999},
- kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:999},
- aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:999},
- angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:999},
- maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:999},
- devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:999},
- reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:499},
- hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:499},
- abysscroc:{name:'Predador de Mangue',nameEn:'Mangrove Predator',brl:499},
- armoredgator:{name:'Couraçado de Estuário',nameEn:'Estuary Armored Hunter',brl:499}
+ violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:390,testOnly:false},
+ leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:1690},
+ kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:1890},
+ aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:1490},
+ angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:1290},
+ maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:1490},
+ devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:1990},
+ reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:590},
+ hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:590},
+ abysscroc:{name:'Predador de Mangue',nameEn:'Mangrove Predator',brl:690},
+ armoredgator:{name:'Couraçado de Estuário',nameEn:'Estuary Armored Hunter',brl:690}
 };
 function calculateOrder(productId, ownedSkins, currency='brl') {
  if (String(currency).toLowerCase() !== 'brl') throw new Error('Unsupported currency');
@@ -24,8 +24,9 @@ function calculateOrder(productId, ownedSkins, currency='brl') {
  const owned=new Set(Array.isArray(ownedSkins)?ownedSkins.map(String):[]);
  if(productId==='boss_bundle'){
   const skinIds=BOSS_SKINS.filter(id=>!owned.has(id));
-  const full=4999;
-  const brlAmount=skinIds.length?(skinIds.length===BOSS_SKINS.length?full:999*skinIds.length):0;
+  const full=6990;
+  const regular=skinIds.reduce((sum,id)=>sum+(Number(PAID_SKINS[id]?.brl)||0),0);
+  const brlAmount=skinIds.length?(skinIds.length===BOSS_SKINS.length?Math.min(full,regular):regular):0;
   return {productId:productId,skinIds:skinIds,amount:toMinorUnits(brlAmount),brlAmount,currency:code};
  }
  const product=PAID_SKINS[productId];
@@ -113,7 +114,7 @@ function registerPaymentRoutes(options) {
   }
  });
 
- app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:4999},liveEnabled:liveSalesReady()});});
+ app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:6990},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=process.env.STRIPE_SECRET_KEY;
