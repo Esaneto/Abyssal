@@ -118,12 +118,35 @@
 
   const drawCephalopod=()=>{
    const squid=s.family==='squid',oct=s.family==='octopus';
-   const arms=oct?8:10;
-   for(let i=0;i<arms;i++){const yy=(i-(arms-1)/2)*.105;c.save();c.lineWidth=oct?.075:.055;c.strokeStyle=s.color;c.beginPath();c.moveTo(-.25,yy*.55);c.bezierCurveTo(-.85,yy*1.7,-1.35,yy*2+Math.sin(phase+i)*.18,-1.8-(i%3)*.12,yy*2.4);c.stroke();c.restore();}
-   if(squid){polygon([[1.25,0],[.32,-.58],[-.48,-.27],[-.48,.27],[.32,.58]],s.color);polygon([[.28,-.38],[-.1,-.78],[.55,-.34]],s.color);polygon([[.28,.38],[-.1,.78],[.55,.34]],s.color);}
-   else ellipse(.32,0,v===6?.55:.72,v===6?.82:.62);
-   if(oct&&v===6){polygon([[.25,-.55],[-.18,-1.05],[-.05,-.4]],s.color);polygon([[.25,.55],[-.18,1.05],[-.05,.4]],s.color);}
-   eye(.48,-.18,.055);
+   const arm=(sy,len,width=.055,curve=.2)=>{c.save();c.lineWidth=width;c.strokeStyle=s.color;c.beginPath();c.moveTo(-.28,sy*.35);c.bezierCurveTo(-.7,sy*.8,-1.15,sy*1.5+Math.sin(phase+sy*8)*curve,-len,sy*2.15);c.stroke();c.restore();};
+   if(squid){
+    // Every squid variant has a different mantle/fin/arm silhouette.
+    const lengths=[1.55,1.7,1.85,1.62,1.48,1.72,1.35,2.25,2.05,1.9];
+    for(let i=0;i<10;i++){const sy=(i-4.5)*.095,feeding=i===0||i===9;arm(sy,feeding?lengths[v]+.55:lengths[v],feeding?.04:.06,feeding?.1:.16);}
+    if(v===0){polygon([[1.18,0],[.32,-.5],[-.42,-.24],[-.42,.24],[.32,.5]],s.color);polygon([[.2,-.32],[-.05,-.66],[.5,-.3]],s.color);polygon([[.2,.32],[-.05,.66],[.5,.3]],s.color);}
+    else if(v===1){polygon([[1.08,0],[.36,-.42],[-.4,-.22],[-.4,.22],[.36,.42]],s.color);for(let i=0;i<7;i++)line([[-.1+i*.16,-.28],[-.1+i*.16,.28]],.025,'rgba(120,255,242,.55)');}
+    else if(v===2){polygon([[1.3,0],[.2,-.64],[-.5,-.3],[-.5,.3],[.2,.64]],s.color);polygon([[.1,-.4],[-.28,-.88],[.55,-.36]],s.color);polygon([[.1,.4],[-.28,.88],[.55,.36]],s.color);}
+    else if(v===3){polygon([[1.08,0],[.15,-.82],[-.42,-.22],[-.42,.22],[.15,.82]],s.color);polygon([[.36,-.38],[.72,-.88],[.76,-.2]],s.color);polygon([[.36,.38],[.72,.88],[.76,.2]],s.color);}
+    else if(v===4){fill(()=>{c.moveTo(1.05,0);c.bezierCurveTo(.8,-.62,.2,-.88,-.38,-.5);c.quadraticCurveTo(-.62,0,-.38,.5);c.bezierCurveTo(.2,.88,.8,.62,1.05,0);},'rgba(154,174,167,.72)','rgba(220,245,238,.6)');polygon([[.35,-.5],[-.08,-.92],[.55,-.45]],s.color);polygon([[.35,.5],[-.08,.92],[.55,.45]],s.color);}
+    else if(v===5){polygon([[1.02,0],[.28,-.48],[-.5,-.28],[-.5,.28],[.28,.48]],s.color);for(let i=0;i<6;i++)node?.();}
+    else if(v===6){fill(()=>{c.moveTo(.88,0);c.bezierCurveTo(.7,-.46,.18,-.62,-.42,-.34);c.quadraticCurveTo(-.58,0,-.42,.34);c.bezierCurveTo(.18,.62,.7,.46,.88,0);},s.color,'rgba(220,232,230,.55)');polygon([[.14,-.36],[-.18,-.78],[.5,-.32]],s.color);polygon([[.14,.36],[-.18,.78],[.5,.32]],s.color);}
+    else if(v===7){polygon([[.86,0],[.2,-.34],[-.55,-.18],[-.55,.18],[.2,.34]],s.color);for(let side of [-1,1])line([[-.25,side*.16],[-1.3,side*.55],[-2.1,side*.72]],.035,s.color);}
+    else if(v===8){polygon([[1.42,0],[.35,-.72],[-.6,-.32],[-.6,.32],[.35,.72]],s.color);polygon([[.1,-.48],[-.35,-1.0],[.7,-.42]],s.color);polygon([[.1,.48],[-.35,1.0],[.7,.42]],s.color);}
+    else {polygon([[1.25,0],[.42,-.86],[-.62,-.34],[-.62,.34],[.42,.86]],s.color);for(let i=0;i<4;i++)line([[-.25+i*.28,-.42],[-.18+i*.28,.42]],.035,'rgba(210,238,230,.4)');}
+    eye(.46,-.16,v===9?.075:.055);
+   } else {
+    const arms=8;for(let i=0;i<arms;i++){const sy=(i-3.5)*.12,extra=v===4?i%2*.42:0;arm(sy,1.55+extra+(v===8?.25:0),v===5?.045:.075,.22);}
+    if(v===0)ellipse(.3,0,.72,.62);
+    else if(v===1){ellipse(.28,0,.62,.54);for(let i=0;i<5;i++)line([[-.1+i*.14,-.5],[.05+i*.12,.5]],.025,'rgba(230,244,232,.42)');}
+    else if(v===2){ellipse(.32,0,.58,.5);polygon([[.4,-.42],[.8,-.76],[.55,-.26]],s.color);polygon([[.4,.42],[.8,.76],[.55,.26]],s.color);}
+    else if(v===3){ellipse(.3,0,.66,.58);for(let i=0;i<8;i++){const a=i*Math.PI/4;c.save();c.strokeStyle='#43d9ff';c.lineWidth=.035;c.beginPath();c.arc(.3+Math.cos(a)*.26,Math.sin(a)*.24,.055,0,Math.PI*2);c.stroke();c.restore();}}
+    else if(v===4){ellipse(.26,0,.48,.72);polygon([[.18,-.56],[-.26,-1.2],[-.06,-.4]],s.color);polygon([[.18,.56],[-.26,1.2],[-.06,.4]],s.color);}
+    else if(v===5){c.save();c.globalAlpha=.72;ellipse(.3,0,.6,.74);c.restore();for(let i=0;i<6;i++)line([[-.15+i*.12,-.6],[-.05+i*.1,.6]],.02,'rgba(190,245,255,.5)');}
+    else if(v===6||v===7){ellipse(.24,0,.5,.64);polygon([[.14,-.52],[-.28,-1.08],[-.02,-.38]],s.color);polygon([[.14,.52],[-.28,1.08],[-.02,.38]],s.color);}
+    else if(v===8){ellipse(.28,0,.58,.5);for(let i=0;i<7;i++)arm((i-3)*.12,1.85+i*.04,.06,.16);}
+    else {ellipse(.26,0,.78,.7);for(let i=0;i<6;i++)line([[-.5+i*.18,-.55],[-.45+i*.16,.55]],.035,'rgba(215,235,224,.34)');}
+    eye(.46,-.17,.06);
+   }
   };
 
   const drawJelly=()=>{
@@ -186,6 +209,19 @@
    case 'mollusc':drawMollusc();break;
    default:ellipse(0,0,.8,.55);eye(.45,-.15,.05);
   }
+
+  // Abyssal material pass: mineral seams, photophores and scar-like asymmetry.
+  // This is deliberately secondary to silhouette, but prevents flat recolor skins.
+  c.save();
+  c.globalCompositeOperation='lighter';
+  c.fillStyle=v%2?'rgba(90,238,226,.55)':'rgba(216,118,178,.42)';
+  c.shadowBlur=.16;c.shadowColor=c.fillStyle;
+  const nodeCount=3+(v%4);
+  for(let i=0;i<nodeCount;i++){const nx=-.55+i*(1.1/Math.max(1,nodeCount-1)),ny=(i%2?.18:-.18)+(v%3)*.025;c.beginPath();c.arc(nx,ny,.018+(i%2)*.007,0,Math.PI*2);c.fill();}
+  c.restore();
+  c.save();c.strokeStyle='rgba(220,238,230,.22)';c.lineWidth=.022;
+  for(let i=0;i<2+(v%3);i++){c.beginPath();c.moveTo(-.45+i*.28,-.22);c.lineTo(-.34+i*.27,.22);c.stroke();}
+  c.restore();
 
   c.restore();
  };
