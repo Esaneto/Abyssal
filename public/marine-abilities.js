@@ -53,7 +53,7 @@ const catalog=root.AbyssalMarineSpecies||(typeof module!=='undefined'&&module.ex
 for(const species of catalog?.species||[]){
  const v=Math.max(0,Math.min(9,Number(species.variant)||0)),family=species.family;
  const kind=kinds[family]?.[v]||'pulse',title=titles[family]?.[v]||species.name;
- const rarity=rarityForVariant(v);
+ const rarity=species.rarity||rarityForVariant(v);
  const rank=RARITY_ORDER.indexOf(rarity);
  const cooldown=Math.max(3.6,8.8-v*.38-rank*.18);
  const damage=10+v*2+rank*4;
