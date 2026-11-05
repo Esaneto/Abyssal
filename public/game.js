@@ -280,6 +280,8 @@ const skinData=[
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
  {id:'maw',name:'Fragmento da Enguia-Pelícano',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Fragmento da Enguia-Pelícano Colossal: preserva a enorme boca expansível e agora revela o corpo longo e serpentiforme da espécie.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
  {id:'devourer',name:'Núcleo da Lula-Colossal',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Núcleo residual da Lula-Colossal do Vazio. O manto ainda produz uma corrente de sucção ao redor da criatura.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
+{id:'saltcroc',name:'Crocodilo-Marinho',color:'#537f87',price:6500,paid:false,shape:'crocodile',desc:'Rostro longo em V, escamas dorsais e cauda muscular. Interpretação abissal do crocodilo-marinho.',ability:'Mandíbula marinha: +10% de dano a curta distância.'},
+{id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:6500,paid:false,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.',ability:'Escamas do estuário: reduz em 10% o dano recebido.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
 {id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.',ability:'Investida Estuarina: executa uma arrancada curta com dano frontal. A pele reforçada reduz em 15% o dano recebido.'},
@@ -1427,7 +1429,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  }
  if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
+ const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  enemies.push(enemy);discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;if(!options.silentBoss)showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
@@ -1522,7 +1524,7 @@ function applyOnlinePlayerVitals(data){
   if(data.targetWasHidden===true)alignPlayerToAuthoritativeContact(data);
   if(!contactSourceReady){
    window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');
-   
+
   }
  }
  const receivedAt=Number(data.serverTime)||Date.now();
@@ -2031,12 +2033,13 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = 0.55;
+      bubble.damageTimer = 0.275;
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)) {
-          dealEnemyDamage(e, 1, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=275) {
+          e.wakeHitAt=performance.now();
+          dealEnemyDamage(e, 2, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
@@ -2048,9 +2051,9 @@ function update(dt){
    const ink=inkTrails[i];ink.life-=dt;ink.damageTimer=(Number(ink.damageTimer)||0)-dt;
    if(ink.life<=0){inkTrails.splice(i,1);continue;}
    if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
-    ink.damageTimer=.5;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
+    ink.damageTimer=.275;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
     const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=450){e.blueRingInkHitAt=now;dealEnemyDamage(e,4,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
+    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=275){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
    }
   }
 
@@ -2234,6 +2237,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(Math.hypot(e.x-bx,e.y-by)>.02)onlineVisualMovingEnemies++;
    continue;
   }
+  if(activeMapLayout&&Date.now()-(e.spawnedAt||0)<3000)continue;
   if(e.kind==='kraken'){
    e.krakenSweepTimer=Math.max(0,(Number(e.krakenSweepTimer)||0)-dt);
    if(e.krakenSweepTimer<=0){
@@ -2258,11 +2262,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   // Habilidades colossais: os mesmos números e geometrias usados pelo servidor autoritativo.
   if(!onlineMode&&e.kind==='boss'){
    e.inkTrailTimer=(Number(e.inkTrailTimer)||0)+dt;
-   if(e.inkTrailTimer>=.45){
+   if(e.inkTrailTimer>=.275){
     e.inkTrailTimer=0;const radius=76/GAME_WORLD_ZOOM;
     const ix=e.x-Math.cos(e.angle||0)*e.r*.72,iy=e.y-Math.sin(e.angle||0)*e.r*.72;
     renderBossAbilityVisual({abilityId:'ink-trail',x:ix,y:iy,angle:e.angle||0,radius,color:'#07101d'});
-    if(Math.hypot(player.x-ix,player.y-iy)<=radius+player.r&&player.invuln<=0){hurtPlayer(6);shake=5;}
+    if(Math.hypot(player.x-ix,player.y-iy)<=radius+player.r&&player.invuln<=0){hurtPlayer(2);shake=5;}
    }
   }
   // Peixe-pescador: a antiga isca ofensiva foi substituída pela camuflagem cíclica.
@@ -2307,7 +2311,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
-   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(e.spawnRoomId&&playerRoom?.id!==e.spawnRoomId){const room=activeMapLayout.rooms.find(item=>item.id===e.spawnRoomId);soloMapNavProxy.x=room?.x??e.x;soloMapNavProxy.y=room?.y??e.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}else{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
@@ -2807,14 +2811,22 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(.28*r,-.18*r);c.lineTo(.6*r,-.28*r);c.lineTo(1.1*r,-.27*r);c.lineTo(1.12*r,-.08*r);c.lineTo(.96*r,0);c.lineTo(1.12*r,.08*r);c.lineTo(1.1*r,.27*r);c.lineTo(.6*r,.28*r);c.lineTo(.28*r,.17*r);c.closePath()},bodyGrad(color),'rgba(226,251,255,.85)',Math.max(1,r*.04),10);
    eye(.82,-.22,r*.06,'#e8ffff');eye(.82,.22,r*.06,'#e8ffff');gills(-.36,-.18,4);
   } else if(id==='abysscroc'){
-   // Bull shark silhouette: stout fusiform body, blunt snout, broad pectorals and powerful caudal fin.
-   const sway=Math.sin(t*.0048)*.06;
-   fill(()=>{c.moveTo(-1.55*r,sway*r);c.bezierCurveTo(-1.05*r,-.42*r,-.2*r,-.5*r,.72*r,-.3*r);c.quadraticCurveTo(1.32*r,-.17*r,1.55*r,0);c.quadraticCurveTo(1.3*r,.18*r,.72*r,.31*r);c.bezierCurveTo(-.2*r,.5*r,-1.05*r,.42*r,-1.55*r,sway*r);c.closePath()},bodyGrad('#4f665f'),'rgba(193,220,211,.72)',Math.max(1,r*.04),8);
-   fin([[-.95,-.03],[-1.65,-.72],[-1.48,.02]],'#3d514c','#9ebbb3');fin([[-.95,.03],[-1.65,.72],[-1.48,-.02]],'#3d514c','#9ebbb3');
-   fin([[-.08,-.31],[-.38,-.9],[.25,-.34]],'#405852','#9fbeb7');
-   fill(()=>{c.moveTo(-1.48*r,sway*r);c.lineTo(-2.08*r,-.62*r);c.lineTo(-1.9*r,sway*r);c.lineTo(-2.08*r,.62*r);c.closePath()},'#405851','rgba(170,205,194,.62)',Math.max(1,r*.03),4);
-   fill(()=>{c.ellipse(.83*r,0,.48*r,.31*r,0,0,Math.PI*2)},bodyGrad('#5b7169'),'rgba(205,229,220,.7)',Math.max(1,r*.035),5);
-   eye(.94,-.22,r*.05,'#dceee8');eye(.94,.22,r*.05,'#dceee8');gills(.52,-.23,4);
+   // Bull shark silhouette: heavy shoulders, blunt snout, broad pectorals and a powerful caudal fin.
+   fin([[-.9,0],[-1.8,-.8],[-1.55,0],[-1.72,.5]],color);
+   fin([[-.4,-.25],[-.35,-1.05],[.25,-.3]],color);
+   fin([[.25,.2],[-.45,.95],[.65,.35]],color);
+   fill(()=>{c.moveTo(-1.2*r,0);c.bezierCurveTo(-.7*r,-.62*r,.7*r,-.7*r,1.25*r,-.23*r);c.quadraticCurveTo(1.53*r,0,1.24*r,.25*r);c.bezierCurveTo(.4*r,.65*r,-.7*r,.5*r,-1.2*r,0)},bodyGrad('#608e9b'),'#b7dbe0',Math.max(1,r*.035),3);
+   fill(()=>{c.moveTo(-.9*r,.12*r);c.quadraticCurveTo(.3*r,.2*r,1.25*r,.08*r);c.quadraticCurveTo(.6*r,.6*r,-.9*r,.12*r)},'#a2bfc4',null,0,0);
+   gills(.2,-.23,5);eye(.94,-.18,r*.07,'#c8f5fa');
+   stroke(()=>{c.moveTo(.85*r,.15*r);c.quadraticCurveTo(1.1*r,.23*r,1.28*r,.06*r)},r*.035,'#132e40',0);
+  } else if(id==='saltcroc'||id==='blackcaiman'){
+   const caiman=id==='blackcaiman',jaw=caiman?.32:.18;
+   for(const side of [-1,1])for(const xx of [-.55,.35])fill(()=>{c.moveTo(xx*r,side*.22*r);c.lineTo((xx-.25)*r,side*.72*r);c.lineTo((xx+.14)*r,side*.61*r);c.lineTo((xx+.25)*r,side*.24*r);c.closePath()},bodyGrad(color),'#759daa',r*.025,1);
+   fill(()=>{c.moveTo(-.5*r,-.35*r);c.bezierCurveTo(-1.1*r,-.28*r,-1.65*r,Math.sin(t*.004)*.3*r,-2.3*r,.08*r);c.quadraticCurveTo(-1.3*r,.5*r,-.4*r,.38*r);c.closePath()},bodyGrad(color),'#739ca5',r*.03,2);
+   body(.9,.43,0,color);
+   fill(()=>{c.moveTo(.35*r,-.38*r);c.lineTo(1.65*r,-jaw*r);c.quadraticCurveTo(1.9*r,0,1.65*r,jaw*r);c.lineTo(.35*r,.38*r);c.closePath()},bodyGrad(color),'#a2c6ce',r*.035,2);
+   for(let i=-3;i<=2;i++)for(const side of [-1,1])fill(()=>c.ellipse(i*.2*r,side*.16*r,.12*r,.09*r,0,0,Math.PI*2),'#294957','#6a98a4',r*.018,0);
+   for(const side of [-1,1]){eye(.55,side*.27,r*.07,'#8ce9e7');for(let i=0;i<6;i++)fill(()=>{const xx=(.85+i*.13)*r;c.moveTo(xx,side*jaw*r);c.lineTo(xx+.05*r,side*(jaw-.07)*r);c.lineTo(xx+.08*r,side*jaw*r);c.closePath()},'#ceddd5',null,0,0);}
   } else if(id==='armoredgator'){
    // Horseshoe crab silhouette: domed prosoma, smaller abdomen and a long telson used by the spin ability.
    const pulse=.98+.02*Math.sin(t*.0042);
@@ -3114,26 +3126,6 @@ function draw(t){
  for(const p of projectiles){if(p.x<cameraX-70/worldZoom||p.x>cameraX+viewW/worldZoom+70/worldZoom||p.y<cameraY-70/worldZoom||p.y>cameraY+viewH/worldZoom+70/worldZoom)continue;ctx.save();const trail=p.allyShot?'#9bbcff':(p.special==='pierce'?'#ffd36b':p.special==='ricochet'?'#ffad55':p.special==='electric'?'#45e9ff':p.special==='photon'?'#ff8df4':p.color);ctx.strokeStyle=trail;ctx.lineCap='round';ctx.lineWidth=p.special==='pierce'?Math.max(3,p.r*1.25):p.allyShot?5.5:p.special==='electric'?Math.max(2.2,p.r*.72):p.special==='photon'?Math.max(2,p.r*.75):p.r*1.55;ctx.shadowBlur=lowPowerRendering?0:(p.special?13:p.allyShot?12:7);ctx.shadowColor=trail;const trailScale=p.special==='photon'?.035:p.special==='pierce'?.105:p.special==='electric'?.04:.045;ctx.beginPath();ctx.moveTo(p.x-p.vx*trailScale,p.y-p.vy*trailScale);ctx.lineTo(p.x,p.y);ctx.stroke();if(p.special==='electric'){const speed=Math.hypot(p.vx,p.vy)||1,ux=p.vx/speed,uy=p.vy/speed,nx=-uy,ny=ux,phase=(p.travelled||0)*.095,boltLength=Math.max(52/GAME_WORLD_ZOOM,speed*.095);ctx.strokeStyle='rgba(220,255,255,.98)';ctx.lineWidth=Math.max(1.5/GAME_WORLD_ZOOM,p.r*.48);ctx.beginPath();const segments=12;for(let s=0;s<=segments;s++){const q=s/segments,back=boltLength*(1-q),edge=Math.sin(Math.PI*q),bend=(Math.sin(phase+s*2.7)*5.5+Math.sin(phase*.57+s*5.1)*2.3)*edge/GAME_WORLD_ZOOM,xx=p.x-ux*back+nx*bend,yy=p.y-uy*back+ny*bend;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}ctx.stroke();ctx.strokeStyle='rgba(69,233,255,.72)';ctx.lineWidth=Math.max(3/GAME_WORLD_ZOOM,p.r*.9);ctx.globalAlpha*=.45;ctx.stroke();ctx.globalAlpha/=.45;ctx.fillStyle='#f7ffff';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1.6/GAME_WORLD_ZOOM,p.r*.42),0,Math.PI*2);ctx.fill();}else if(p.special==='pierce'){const pa=Math.atan2(p.vy,p.vx),ux=Math.cos(pa),uy=Math.sin(pa),nx=-uy,ny=ux;ctx.fillStyle='#fff0a8';ctx.beginPath();ctx.moveTo(p.x+ux*p.r*2.4,p.y+uy*p.r*2.4);ctx.lineTo(p.x-ux*p.r*.9+nx*p.r*.82,p.y-uy*p.r*.9+ny*p.r*.82);ctx.lineTo(p.x-ux*p.r*1.7,p.y-uy*p.r*1.7);ctx.lineTo(p.x-ux*p.r*.9-nx*p.r*.82,p.y-uy*p.r*.9-ny*p.r*.82);ctx.closePath();ctx.fill();ctx.strokeStyle='#b87825';ctx.lineWidth=1/worldZoom;ctx.stroke();}else if(p.special==='photon'){const pa=Math.atan2(p.vy,p.vx);ctx.fillStyle='#ffffff';ctx.beginPath();ctx.ellipse(p.x,p.y,p.r*1.9,p.r*.46,pa,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ff8df4';ctx.lineWidth=1/worldZoom;ctx.beginPath();ctx.moveTo(p.x-Math.cos(pa)*p.r*3.4,p.y-Math.sin(pa)*p.r*3.4);ctx.lineTo(p.x+Math.cos(pa)*p.r*1.7,p.y+Math.sin(pa)*p.r*1.7);ctx.stroke();}else{ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}
  if(p.allyShot){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-p.vx*.018,p.y-p.vy*.018);ctx.lineTo(p.x+rand(-3,3),p.y+rand(-3,3));ctx.lineTo(p.x,p.y);ctx.stroke()}
  ctx.restore()}
- for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if(!anglerConcealed)drawEnemyThreatAura(e,t);drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);if(!anglerConcealed)drawHostileSpeciesEffect(e,t);if(e.eliteId&&!anglerConcealed)drawEliteMarker(e,t);
-  if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();const kr=e.r*(2.85+Number(e.krakenTelegraph)*.85);ctx.strokeStyle='rgba(213,180,255,.92)';ctx.shadowBlur=16/GAME_WORLD_ZOOM;ctx.shadowColor='#9a5cff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,7/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,kr,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);for(let arm=0;arm<8;arm++){const a=arm*Math.PI/4+t*.00022;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*e.r*.8,e.y+Math.sin(a)*e.r*.8);ctx.lineTo(e.x+Math.cos(a)*kr,e.y+Math.sin(a)*kr);ctx.stroke();}ctx.restore();}
-  if (!anglerConcealed && e.paralyzedUntil && performance.now() < e.paralyzedUntil) {
-    ctx.save();
-    ctx.strokeStyle = '#38e8ff';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    const sparks = 4;
-    for (let s = 0; s < sparks; s++) {
-      const sa = (s / sparks) * Math.PI * 2 + (t * 0.02);
-      const sr1 = e.r * 0.7;
-      const sr2 = e.r * 1.35;
-      ctx.moveTo(e.x + Math.cos(sa) * sr1, e.y + Math.sin(sa) * sr1);
-      ctx.lineTo(e.x + Math.cos(sa + 0.3) * (sr1 + sr2) * 0.5, e.y + Math.sin(sa + 0.3) * (sr1 + sr2) * 0.5);
-      ctx.lineTo(e.x + Math.cos(sa) * sr2, e.y + Math.sin(sa) * sr2);
-    }
-    ctx.stroke();
-    ctx.restore();
-  }if(e.kind==='devourer'&&e.suctionActive)drawDevourerSuction(e,t);if(!anglerConcealed&&(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind))){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?16:8)/worldZoom,e.r*2,(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?6:3)/worldZoom);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font=`bold ${14/worldZoom}px sans-serif`;ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-25/worldZoom)}}}
- 
   // Renderizar esteira de bolhas pelágicas do tubarão (duração de 5s)
   for (const b of sharkWakeTrails) {
     if (b.x < cameraX - 40/worldZoom || b.x > cameraX + viewW/worldZoom + 40/worldZoom ||
@@ -3159,9 +3151,9 @@ function draw(t){
   for(const ink of inkTrails){
    if(ink.x<cameraX-80/worldZoom||ink.x>cameraX+viewW/worldZoom+80/worldZoom||ink.y<cameraY-80/worldZoom||ink.y>cameraY+viewH/worldZoom+80/worldZoom)continue;
    const lifeRatio=clamp(ink.life/ink.maxLife,0,1),spread=1+(1-lifeRatio)*.32;
-   ctx.save();ctx.globalAlpha=.18+.48*lifeRatio;ctx.fillStyle='rgba(0,2,8,.94)';ctx.shadowBlur=lowPowerRendering?0:12/GAME_WORLD_ZOOM;ctx.shadowColor='#00030a';
-   ctx.beginPath();ctx.ellipse(ink.x,ink.y,ink.r*spread,ink.r*(.68+.2*spread),Math.sin((ink.x+ink.y)*.013)*.35,0,Math.PI*2);ctx.fill();
-   ctx.globalAlpha=.24*lifeRatio;ctx.strokeStyle='#2f73ff';ctx.lineWidth=Math.max(.7,1.4/GAME_WORLD_ZOOM);ctx.stroke();ctx.restore();
+   ctx.save();ctx.globalAlpha=.65*lifeRatio;ctx.fillStyle='rgba(0,2,8,.45)';ctx.shadowBlur=lowPowerRendering?0:12/GAME_WORLD_ZOOM;ctx.shadowColor='#00030a';
+   ctx.beginPath();ctx.arc(ink.x,ink.y,ink.r*(.6+.4*(1-lifeRatio)),0,Math.PI*2);ctx.fill();
+   ctx.globalAlpha=.24*lifeRatio;ctx.strokeStyle='#536c80';ctx.lineWidth=Math.max(.7,1.4/GAME_WORLD_ZOOM);ctx.stroke();ctx.restore();
   }
 
   for(const fx of effects){ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=fx.type==='photon-ray'?clamp(fx.life/.065,0,1):clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);let photonX2=fx.x2,photonY2=fx.y2;if(fx.type==='photon-ray'&&onlineRoomMode==='pvp'&&projectileHitsPvpWall(fx.x1,fx.y1,photonX2,photonY2,Math.max(1,Number(fx.width)||3))){let lo=0,hi=1;for(let step=0;step<9;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(fx.x1,fx.y1,fx.x1+(fx.x2-fx.x1)*mid,fx.y1+(fx.y2-fx.y1)*mid,Math.max(1,Number(fx.width)||3)))hi=mid;else lo=mid;}photonX2=fx.x1+(fx.x2-fx.x1)*lo;photonY2=fx.y1+(fx.y2-fx.y1)*lo;}ctx.beginPath();if(fx.type==='occluded-ring'){
@@ -3176,6 +3168,27 @@ function draw(t){
   for(const d of pool.droplets||[]){ctx.globalAlpha=q*(.28+Math.min(.28,d.r/pool.r));ctx.beginPath();ctx.ellipse(Math.cos(d.a)*d.d,Math.sin(d.a)*d.d,d.r*d.stretch,d.r,d.a,0,Math.PI*2);ctx.fill();}
   ctx.restore();
  }
+
+ for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):1;drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed)drawHostileSpeciesEffect(e,t);if(e.eliteId&&!anglerConcealed)drawEliteMarker(e,t);
+  if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();const kr=e.r*(2.85+Number(e.krakenTelegraph)*.85);ctx.strokeStyle='rgba(213,180,255,.92)';ctx.shadowBlur=16/GAME_WORLD_ZOOM;ctx.shadowColor='#9a5cff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,7/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,kr,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);for(let arm=0;arm<8;arm++){const a=arm*Math.PI/4+t*.00022;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*e.r*.8,e.y+Math.sin(a)*e.r*.8);ctx.lineTo(e.x+Math.cos(a)*kr,e.y+Math.sin(a)*kr);ctx.stroke();}ctx.restore();}
+  if (!anglerConcealed && e.paralyzedUntil && performance.now() < e.paralyzedUntil) {
+    ctx.save();
+    ctx.strokeStyle = '#38e8ff';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    const sparks = 4;
+    for (let s = 0; s < sparks; s++) {
+      const sa = (s / sparks) * Math.PI * 2 + (t * 0.02);
+      const sr1 = e.r * 0.7;
+      const sr2 = e.r * 1.35;
+      ctx.moveTo(e.x + Math.cos(sa) * sr1, e.y + Math.sin(sa) * sr1);
+      ctx.lineTo(e.x + Math.cos(sa + 0.3) * (sr1 + sr2) * 0.5, e.y + Math.sin(sa + 0.3) * (sr1 + sr2) * 0.5);
+      ctx.lineTo(e.x + Math.cos(sa) * sr2, e.y + Math.sin(sa) * sr2);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }if(e.kind==='devourer'&&e.suctionActive)drawDevourerSuction(e,t);if(!anglerConcealed&&(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind))){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?16:8)/worldZoom,e.r*2,(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?6:3)/worldZoom);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font=`bold ${14/worldZoom}px sans-serif`;ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-25/worldZoom)}}}
+
  for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='skin'?'#52ff86':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
  const particleShadowBlur=0;for(const p of particles){if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
  if(player){for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0){drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);}if(upgradeLevels.speed>0&&(Math.abs(player.x-(player.trail.at(-1)?.x??player.x))>0||player.trail.length>1)){ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#68f4d7';ctx.lineWidth=(1.2+upgradeLevels.speed*.35)/worldZoom;for(let i=0;i<2+Math.min(3,upgradeLevels.speed);i++){const a=(player.angle||0)+Math.PI+(i-(1+upgradeLevels.speed)/2)*.22,len=(18+upgradeLevels.speed*6)/worldZoom;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*player.r*.8,player.y+Math.sin(a)*player.r*.8);ctx.lineTo(player.x+Math.cos(a)*len,player.y+Math.sin(a)*len);ctx.stroke();}ctx.restore();}if(upgradeLevels.magnet>0){ctx.save();ctx.globalAlpha=.12+.025*Math.sin(t*.004);ctx.strokeStyle='#a98cff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([3/worldZoom,8/worldZoom]);ctx.beginPath();ctx.arc(player.x,player.y,Math.min(92/GAME_WORLD_ZOOM,26/GAME_WORLD_ZOOM+upgradeLevels.magnet*13/GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}if(upgrades.shell>0){ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#90b8b0';ctx.lineWidth=2/worldZoom;const plates=Math.min(6,2+upgrades.shell);for(let i=0;i<plates;i++){const a=t*.00018+i*Math.PI*2/plates,r=player.r*1.7;ctx.beginPath();ctx.arc(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r,3.2/worldZoom,0,Math.PI*2);ctx.stroke();}ctx.restore();}if(upgrades.lastStand>0&&hp/maxHp<=.3){ctx.save();ctx.globalAlpha=.38+.18*Math.sin(t*.014);ctx.strokeStyle='#ff4d6d';ctx.lineWidth=2.3/worldZoom;ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.55,0,Math.PI*2);ctx.stroke();ctx.restore();}if(upgrades.predator>0){ctx.save();ctx.globalAlpha=.15;ctx.strokeStyle='#ff6b78';ctx.lineWidth=1/worldZoom;const marks=Math.min(5,2+upgrades.predator);for(let i=0;i<marks;i++){const a=t*.00032+i*Math.PI*2/marks,r=player.r*1.9;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r);ctx.lineTo(player.x+Math.cos(a)*r*1.13,player.y+Math.sin(a)*r*1.13);ctx.stroke();}ctx.restore();}if(upgrades.shield>0){const chargeCount=Math.min(3,Math.max(0,Math.floor(upgrades.shield)));const shieldPulse=1+Math.sin(t*.008)*.025;ctx.save();ctx.globalAlpha=.18+chargeCount*.045;ctx.fillStyle='#73efff';ctx.strokeStyle='#9cf8ff';ctx.lineWidth=1.8/worldZoom;ctx.shadowBlur=10/worldZoom;ctx.shadowColor='#64eaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*(2.05+chargeCount*.08)*shieldPulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.42+chargeCount*.08;ctx.stroke();ctx.restore();}if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();if(!upgrades.abyssEye){ctx.arc(player.x,player.y,getFiringRange(),0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
@@ -3739,14 +3752,14 @@ function renderCatalog(){
  };
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
- 
+
  const renderMonster=([k,m])=>{
   const known=codex.monsters.includes(k);
   const hpBadge = `<span class="stat-badge stat-hp" title="Vitalidade Máxima"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> <b>${m.hp.toLocaleString('pt-BR')}</b> HP</span>`;
   const dmgBadge = `<span class="stat-badge stat-dmg" title="Dano ao Jogador"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M14.5 2.5l7 7-14 14H3v-4.5l11.5-11.5zm3.5 3.5l-2-2-10 10V16h2l10-10z"/></svg> <b>${m.damage}</b> DANO</span>`;
    const spdBadge = `<span class="stat-badge stat-spd" title="Velocidade de Deslocamento"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg> <b>${m.speed}</b> VELOCIDADE</span>`;
   const abilityBox = `<div class="codex-ability-box"><span class="codex-ability-tag">HABILIDADE</span> <span class="codex-ability-text">${escapeHtml(m.ability)}</span></div>`;
-  
+
   return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}">
    <div class="codex-preview monster-preview" style="--preview:${m.color}">
      <canvas width="180" height="112" data-monster-preview="${k}" aria-label="Prévia real de ${known?m.name:'uma criatura não identificada'}"></canvas>

@@ -222,7 +222,7 @@ function spawnEnemy(world, options = {}) {
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
-    spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, eliteId,
+    spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   world.enemies.push(enemy);
@@ -463,6 +463,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const targetablePlayers = [];
   for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now && !(p.skinId==='angler'&&anglerInvisibleAt(now))) targetablePlayers.push(p);
   for (const enemy of world.enemies) {
+    if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
     if (enemy.kind === 'kraken') {
@@ -498,14 +499,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Angler ability is now camouflage; visibility is deterministic and handled by the renderer/target selection.
     if(enemy.kind==='boss'){
       enemy.inkTrailTimer=(Number(enemy.inkTrailTimer)||0)+dt;
-      if(enemy.inkTrailTimer>=.45){
+      if(enemy.inkTrailTimer>=.275){
         enemy.inkTrailTimer=0;const radius=76/WORLD_ZOOM;
         const tx=enemy.x-Math.cos(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
         const ty=enemy.y-Math.sin(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'ink-trail',x:tx,y:ty,angle:enemy.angle||0,radius,color:'#07101d'});
         for(const target of validPlayers){
           if(Math.hypot(Number(target.x)-tx,Number(target.y)-ty)>radius+(Number(target.r)||13/WORLD_ZOOM))continue;
-          const hit=bossAbilityHit(enemy,target,6,now,'ink-trail');
+          const hit=bossAbilityHit(enemy,target,2,now,'ink-trail');
           if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
         }
       }
@@ -583,10 +584,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let movementTargets=targetablePlayers;
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
-      const homeRoom=mapLayout.rooms.find(room=>room.id===enemy.spawnRoomId);
-      if(homeRoom&&targetRoom?.id!==homeRoom.id){
-        movementNavigationProxy.x=homeRoom.x;movementNavigationProxy.y=homeRoom.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;movementTargets=movementNavigationTargets;
-      }else{
+      {
       const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
       if(!nav.direct){
         movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;

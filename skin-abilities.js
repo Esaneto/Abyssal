@@ -8,6 +8,7 @@ const LONG_RANGE = 260;
 
 function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
   let multiplier = 1;
+  if(skinId==='saltcroc'&&Number(distance)<=CLOSE_RANGE)multiplier*=1.10;
   const boss = BOSS_KINDS.has(String(enemyKind || ''));
   const d = Number.isFinite(Number(distance)) ? Number(distance) : Infinity;
   if (skinId === 'reefshark' && !boss) multiplier *= 1.15;
@@ -20,6 +21,7 @@ function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
 }
 
 function incomingDamageMultiplier(skinId) {
+  if (skinId === 'blackcaiman') return 0.90;
   if (skinId === 'deepwarden') return 0.82;
   if (skinId === 'abysscroc') return 0.85;
   if (skinId === 'leviathan') return 0.92;

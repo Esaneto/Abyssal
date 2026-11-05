@@ -37,8 +37,8 @@ test('boss and elite placement have dedicated chambers',()=>{
  assert.match(world,/AbyssalMap\.spawnPoint\(layout, \{ type: 'elite'/);
  assert.match(game,/if\(eliteId&&!options\.roomId&&!isBossType\)/);
  assert.match(game,/ABYSSAL_MAP\.spawnPoint\(map,\{type:'elite'/);
- assert.match(world,/homeRoom&&targetRoom\?\.id!==homeRoom.id/);
- assert.match(game,/e\.spawnRoomId&&playerRoom\?\.id!==e\.spawnRoomId/);
+ assert.doesNotMatch(world,/homeRoom&&targetRoom\?\.id!==homeRoom.id/);
+ assert.doesNotMatch(game,/e\.spawnRoomId&&playerRoom\?\.id!==e\.spawnRoomId/);
 });
 
 test('descent portals use F or a contextual mobile button and server validation',()=>{
