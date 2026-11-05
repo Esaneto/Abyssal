@@ -15,9 +15,10 @@ window.drawAbyssalBoss=function(c,opts){
  const grad=(a='#02070c',b='#152a35',accent=color)=>{
    const g=c.createLinearGradient(-1.8,-1,1.6,1);g.addColorStop(0,a);g.addColorStop(.28,b);g.addColorStop(.52,accent);g.addColorStop(.7,b);g.addColorStop(1,'#010409');return g;
  };
- const fill=(draw,paint=grad(),edge='rgba(205,245,241,.56)',w=.05,glow=0)=>{c.save();c.beginPath();draw();c.fillStyle=paint;if(glow){c.shadowBlur=glow;c.shadowColor=edge;}c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=w;c.stroke();}c.restore();};
+ const separator='rgba(1,6,12,.92)';
+ const fill=(draw,paint=grad(),edge='rgba(205,245,241,.64)',w=.05,glow=0)=>{c.save();c.beginPath();draw();c.fillStyle=paint;if(glow){c.shadowBlur=glow;c.shadowColor=edge;}c.fill();if(edge){c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(w*2.05,.075);c.stroke();c.strokeStyle=edge;c.lineWidth=w;if(glow){c.shadowBlur=glow*.55;c.shadowColor=edge;}c.stroke();}c.restore();};
  const poly=(pts,paint=grad(),edge='rgba(205,245,241,.5)',w=.045)=>fill(()=>{pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();},paint,edge,w);
- const stroke=(draw,w=.045,col='rgba(180,237,233,.66)',glow=0)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=w;if(glow){c.shadowBlur=glow;c.shadowColor=col;}c.stroke();c.restore();};
+ const stroke=(draw,w=.045,col='rgba(180,237,233,.72)',glow=0)=>{c.save();c.beginPath();draw();if(w>=.035){c.strokeStyle=separator;c.lineWidth=w*1.9;c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=w;if(glow){c.shadowBlur=glow;c.shadowColor=col;}c.stroke();c.restore();};
  const eye=(ex,ey,size=.085,iris=color)=>{c.save();c.fillStyle='#010409';c.beginPath();c.ellipse(ex,ey,size*1.35,size,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=.18;c.shadowColor=iris;c.beginPath();c.arc(ex+size*.18,ey-size*.08,size*.42,0,Math.PI*2);c.fill();c.restore();};
  const node=(nx,ny,size=.03,col=color)=>{c.save();c.globalCompositeOperation='lighter';c.fillStyle=col;c.shadowBlur=.15;c.shadowColor=col;c.beginPath();c.arc(nx,ny,size*(.85+.18*pulse),0,Math.PI*2);c.fill();c.restore();};
  const mouth=(mx,my,rx,ry)=>{c.save();c.fillStyle='#010308';c.strokeStyle='rgba(230,242,235,.4)';c.lineWidth=.035;c.beginPath();c.ellipse(mx,my,rx,ry,0,0,Math.PI*2);c.fill();c.stroke();c.restore();};
