@@ -532,3 +532,27 @@ Antes de considerar uma skin pronta:
 8. desktop e mobile foram validados;
 9. teste de regressao cobre a nova regra;
 10. este handoff e atualizado se houver decisao estrutural nova.
+
+
+## 19. Fechamento da auditoria: testes, cache e copia residual
+
+Depois das correcoes da secao 18, a suite revelou dois testes antigos que fixavam literalmente `game.js?v=4.4.8`.
+Isso causava falha toda vez que um cache bust legitimo atualizava a versao do asset.
+
+Correcao:
+- `tests/cave-map-integration.test.cjs` agora valida que `abyssal-map.js` carregue antes de `game.js` sem depender de versao fixa;
+- `tests/expedition-rebuild.test.cjs` faz o mesmo para `abyssal-expedition-rules.js`;
+- regra permanente: testes de ordem de scripts devem validar ordem/contrato, nao congelar query-version de outro asset.
+
+Tambem foi removida copia residual de crocodiliano no ingles:
+- `abysscroc`: Estuarine Bull Shark / Estuarine charge;
+- `armoredgator`: Armored Horseshoe Crab / Telson sweep;
+- `game.js` foi invalidado para `v=4.4.11`.
+
+Validacao:
+- no commit `53e188318778b031911b892cef05e9a438c68382`, o job `syntax-and-tests` do workflow `Abyssal checks v2` concluiu com sucesso;
+- isso inclui `npm test` completo apos as correcoes de renderer, ownership, habilidades, nomes, cache e testes;
+- builds Android/Windows sao pipelines separados e podem continuar processando depois da validacao logica. Falha de empacotamento deve ser diagnosticada separadamente e nunca mascarada como falha de gameplay.
+
+Regra adicional:
+- ao fazer cache bump, pesquisar testes que fixem a versao literal do asset e substitui-los por verificacao de contrato sempre que o numero em si nao for o requisito.
