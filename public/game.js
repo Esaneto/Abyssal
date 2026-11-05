@@ -1937,8 +1937,8 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
 }
 function renderMarineAbilityVisual(profile,x,y,angle,targets=[]){
  if(!profile)return;
- const color=profile.color||'#79f3f0',visualBoost=1.18+Math.max(0,profile.rarityRank)*.08,radius=profile.radius/GAME_WORLD_ZOOM*visualBoost,kind=profile.kind;
- const ring=(scale=1,life=.42)=>effects.push({type:'ring',x,y,r:0,max:radius*scale,life,maxLife:life,color});
+ const color=profile.color||'#79f3f0',visualBoost=1.28+Math.max(0,profile.rarityRank)*.11+(profile.paid?.08:0),radius=profile.radius/GAME_WORLD_ZOOM*visualBoost,kind=profile.kind;
+ const ring=(scale=1,life=.42)=>{effects.push({type:'ring',x,y,r:0,max:radius*scale,life,maxLife:life,color});if(profile.rarityRank>=3)effects.push({type:'ring',x,y,r:0,max:radius*scale*.72,life:life*.78,maxLife:life*.78,color:profile.paid?'#f4efff':'#bffcff'});};
  const beam=(a,len=radius,life=.28)=>effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*len,y2:y+Math.sin(a)*len,life,maxLife:life,color});
  if(['pulse','aura','veil','armor','blast','trap','pull'].includes(kind)){ring(kind==='trap'?.72:1,kind==='trap'?.9:.45);burst(x,y,color,18+profile.rarityRank*3,105+profile.rarityRank*16);}
  if(kind==='spines'){ring(.72,.36);for(let i=0;i<Math.max(6,profile.beams+4);i++)beam(angle+i*Math.PI*2/Math.max(6,profile.beams+4),radius*.92,.3);burst(x,y,color,22,145);}
@@ -2322,7 +2322,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    e.sharkWake=(e.sharkWake||0)+dt;
    if(e.sharkWake>0.15){
      e.sharkWake=0;
-     effects.push({type:'beam',x1:e.x-Math.cos(e.angle||0)*28,y1:e.y-Math.sin(e.angle||0)*28,x2:e.x+Math.cos(e.angle||0)*10,y2:e.y+Math.sin(e.angle||0)*10,life:.22,maxLife:.22,color:'#68a8b8'});
+     const sa=e.angle||0,nx=Math.cos(sa+Math.PI/2),ny=Math.sin(sa+Math.PI/2);for(const off of [-8,0,8])effects.push({type:'beam',x1:e.x-Math.cos(sa)*42/GAME_WORLD_ZOOM+nx*off/GAME_WORLD_ZOOM,y1:e.y-Math.sin(sa)*42/GAME_WORLD_ZOOM+ny*off/GAME_WORLD_ZOOM,x2:e.x+Math.cos(sa)*18/GAME_WORLD_ZOOM+nx*off/GAME_WORLD_ZOOM,y2:e.y+Math.sin(sa)*18/GAME_WORLD_ZOOM+ny*off/GAME_WORLD_ZOOM,life:.28,maxLife:.28,color:off===0?'#eaffff':'#68a8b8',width:(off===0?4:2.4)/GAME_WORLD_ZOOM});
    }
   }
   // 5. Bruto: carapaça endurecida reflete fragmentos ao tomar hit
@@ -2349,7 +2349,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||1));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;if(e.kind==='boss')player.neurotoxinUntil=performance.now()+1300;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;if(e.kind==='boss')player.neurotoxinUntil=performance.now()+1300;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  rebuildEnemyCollisionGrid();
@@ -3023,9 +3023,9 @@ function drawArenaTerrain(t){
 function drawDevourerSuction(enemy,t){
  if(!enemy||!enemy.suctionActive)return;
  const range=1240/GAME_WORLD_ZOOM,mouthX=enemy.r*.55,elapsed=(Number(enemy.suctionPulse)||0)*1.7+t*.001;
- const strands=lowPowerRendering?7:12;
+ const strands=lowPowerRendering?9:16;
  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
- ctx.strokeStyle='#8df9ee';ctx.lineWidth=2.2/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:10/GAME_WORLD_ZOOM;ctx.shadowColor='#47e4d5';
+ ctx.strokeStyle='#8df9ee';ctx.lineWidth=2.8/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:16/GAME_WORLD_ZOOM;ctx.shadowColor='#47e4d5';
  for(let i=0;i<strands;i++){
   const a=i*Math.PI*2/strands+elapsed*.55,outer=range*(.72+.22*Math.sin(elapsed*1.7+i));
   const sx=Math.cos(a)*outer,sy=Math.sin(a)*outer*.72,midX=Math.cos(a+.55)*outer*.5,midY=Math.sin(a+.55)*outer*.38;
@@ -3033,7 +3033,7 @@ function drawDevourerSuction(enemy,t){
   const travel=(t*.00065+i*.137)%1,px=sx+(mouthX-sx)*travel,py=sy*(1-travel)+(Math.sin(a+elapsed)*enemy.r*.16)*travel;
   ctx.globalAlpha=.45+.3*Math.sin(elapsed*4+i);ctx.fillStyle=i%2?'#d9fff8':'#6bf2e4';ctx.beginPath();ctx.arc(px,py,(2.2+(i%3))/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.fill();
  }
- ctx.globalAlpha=.28;ctx.strokeStyle='#7ff8e9';for(let ring=0;ring<3;ring++){const radius=range*(.28+ring*.25);ctx.beginPath();ctx.ellipse(0,0,radius,radius*.72,elapsed*.14+ring*.4,0,Math.PI*2);ctx.stroke();}
+ ctx.globalAlpha=.34;ctx.strokeStyle='#7ff8e9';for(let ring=0;ring<5;ring++){const radius=range*(.18+ring*.18);ctx.beginPath();ctx.ellipse(0,0,radius,radius*.72,elapsed*.14+ring*.4,0,Math.PI*2);ctx.stroke();}
  ctx.restore();
 }
 function drawHostileSpeciesEffect(enemy,t){
@@ -3062,7 +3062,7 @@ function draw(t){
  if(p.allyShot){ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(p.x-p.vx*.018,p.y-p.vy*.018);ctx.lineTo(p.x+rand(-3,3),p.y+rand(-3,3));ctx.lineTo(p.x,p.y);ctx.stroke()}
  ctx.restore()}
  for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*(e.kind==='kraken'?2.8:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.15:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;drawEnemyThreatAura(e,t);drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);drawHostileSpeciesEffect(e,t);if(e.eliteId)drawEliteMarker(e,t);
-  if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();ctx.strokeStyle='rgba(213,180,255,.82)';ctx.lineWidth=2.2/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,9/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,e.r*(2.7+Number(e.krakenTelegraph)*.75),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
+  if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();const kr=e.r*(2.85+Number(e.krakenTelegraph)*.85);ctx.strokeStyle='rgba(213,180,255,.92)';ctx.shadowBlur=16/GAME_WORLD_ZOOM;ctx.shadowColor='#9a5cff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,7/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,kr,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);for(let arm=0;arm<8;arm++){const a=arm*Math.PI/4+t*.00022;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*e.r*.8,e.y+Math.sin(a)*e.r*.8);ctx.lineTo(e.x+Math.cos(a)*kr,e.y+Math.sin(a)*kr);ctx.stroke();}ctx.restore();}
   if (e.paralyzedUntil && performance.now() < e.paralyzedUntil) {
     ctx.save();
     ctx.strokeStyle = '#38e8ff';
