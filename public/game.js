@@ -1167,14 +1167,14 @@ function spawnEnemy(initial=false,type='common'){
  } else if(type==='boss'){
   kind = ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
  } else {
-  kind = ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
+  kind = EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
  }
  if(kind==='whiteShark'){
   const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;
   if(whiteSharkCount>=10)kind='drifter';
  }
  if(!kind)return null;
- const data=ai?.statsForKind(kind)||({
+ let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#ff315f',value:55},
   leviathan:{r:54,hp:9400,speed:44,damage:34,color:'#4ce0d1',value:90},
   maw:{r:45,hp:7500,speed:58,damage:31,color:'#c16cff',value:75},
@@ -1185,6 +1185,8 @@ function spawnEnemy(initial=false,type='common'){
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  })[kind];
+ let eliteId=null;
+ if(!isBossType&&!initial&&EXPEDITION_RULES){eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);}
  if(isBossType){
   // Preserve the ordered base HP tiers in solo just as in the online simulation.
   data.hp = Math.round(data.hp * getBossCycleMultiplier());
@@ -1193,9 +1195,10 @@ function spawnEnemy(initial=false,type='common'){
  }
  const point=ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)};
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
+ const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  enemies.push(enemy);
  discoverCodexMonsters([kind]);
+ if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
 }
