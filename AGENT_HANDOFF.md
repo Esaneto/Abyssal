@@ -311,3 +311,46 @@ A pergunta para toda nova feature de mapa continua sendo:
 "isso cria uma decisao, uma descoberta, um risco, uma recompensa ou um motivo concreto para continuar a descida?"
 
 Se a resposta for nao, provavelmente e decoracao e nao resolve retencao.
+
+
+## 14. Handoff de skins: divergencia visual observada em producao
+
+Observacao do usuario em 2026-11-05:
+- o catalogo exibe muitas skins, mas varias parecem compartilhar praticamente o mesmo visual;
+- nao assumir que isso significa ausencia de trabalho visual: a main contem renderizacoes especificas e testes de silhueta para varias skins.
+
+Evidencias ja verificadas na main:
+- `public/game.js` possui branches visuais especificas para varias skins, incluindo `kraken`, `royal`, `toxic`, `thorn`, `coral`, `bloodmoon`, `reefshark`, `hammerhead` e outras;
+- `tests/skin-silhouette-pass.test.cjs` valida que algumas skins mantenham silhuetas realmente distintas;
+- `renderShop()` chama `renderCreaturePreview(..., skin)`, que por sua vez chama `drawCreature(..., skin)` passando o objeto completo da skin;
+- dentro de `drawCreature()`, skins que possuem `skin.family` podem ser desviadas para `window.drawMarineSpecies` quando esse renderer esta disponivel;
+- portanto, o problema relatado pode estar no renderer marinho/family, em um fallback visual compartilhado, em dados de skin que apontam para a mesma familia/silhueta, ou em cache/deploy, e nao necessariamente no renderer legado de `drawCreature()`.
+
+Regra para o proximo agente/Codex:
+1. Antes de redesenhar skins do zero, rastrear cada skin do catalogo desde `skinData`/fonte de especie ate `renderCreaturePreview()` e o renderer efetivamente usado.
+2. Mapear quais skins entram no caminho legado de `drawCreature()` e quais entram em `window.drawMarineSpecies`.
+3. Verificar se skins diferentes compartilham a mesma chave de familia, anatomia-base ou fallback e por isso ficam visualmente iguais.
+4. Preservar IDs internos, ownership, precos, Stripe, habilidades e saves. Corrigir somente a identidade visual quando o problema for de renderer.
+5. Cada skin deve ter leitura de silhueta propria em tamanho de gameplay, nao apenas mudanca de cor, brilho ou pequenos adornos.
+6. Priorizar anatomia marinha real: peixe-pescador, peixe-vibora, peixe-dragao, peixe-machado, barreleye, peixe-ogro, peixe-tripe, peixe-caracol hadal, enguia-pelicano, enguia-cobra, moreias, lulas, polvos, sifonoforos, medusas, raias, tubaroes e outros grupos marinhos coerentes.
+7. Nao alterar hitbox, dano, velocidade ou netcode apenas para diferenciar visualmente uma skin.
+8. Validar a mesma skin em dois lugares: preview da loja e personagem real em gameplay. Uma skin nao esta concluida se so parece correta no card.
+9. Adicionar ou ampliar testes de regressao para impedir que skins distintas voltem a compartilhar a mesma silhueta-base por acidente.
+10. Depois da correcao, revisar desktop e mobile. Em escala pequena, diferencas devem continuar legiveis.
+
+Sequencia de investigacao recomendada:
+- `public/game.js`: `skinData`, `renderShop()`, `renderCreaturePreview()`, `drawCreature()`;
+- localizar a definicao de `window.drawMarineSpecies` e a fonte das skins com `family`;
+- comparar visualmente IDs diferentes que hoje parecem clones;
+- confirmar se o deploy esta servindo o mesmo SHA da main antes de concluir que o renderer falhou.
+
+Nao fazer:
+- nao substituir todas as skins por um unico template com paletas diferentes;
+- nao remover as branches visuais ja distintas do renderer legado;
+- nao renomear IDs persistidos;
+- nao tocar em multiplayer, autoridade de servidor ou fluxo de dano para resolver um problema puramente visual.
+
+Criterio de aceite:
+- ao abrir o catalogo sem ler os nomes, deve ser possivel distinguir a maioria das skins apenas pela silhueta;
+- ao equipar duas skins diferentes, o jogador deve perceber imediatamente mudanca anatomica real, nao apenas cor;
+- preview e gameplay devem usar a mesma identidade visual da skin.
