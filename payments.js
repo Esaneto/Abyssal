@@ -6,16 +6,16 @@ const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
  violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:100,testOnly:false},
- leviathan:{name:'Leviatã Cego',nameEn:'Blind Leviathan',brl:999},
- kraken:{name:'Kraken do Abismo',nameEn:'Abyss Kraken',brl:999},
- aberration:{name:'Máscara da Aberração',nameEn:'Aberration Mask',brl:999},
- angler:{name:'Lanterna Mortal',nameEn:'Deadly Lantern',brl:999},
- maw:{name:'Mandíbula da Fenda',nameEn:'Rift Maw',brl:999},
- devourer:{name:'Devorador do Vazio',nameEn:'Void Devourer',brl:999},
+ leviathan:{name:'Eco do Leviatã',nameEn:'Leviathan Echo',brl:999},
+ kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:999},
+ aberration:{name:'Casca da Aberração',nameEn:'Aberration Husk',brl:999},
+ angler:{name:'Núcleo da Lanterna',nameEn:'Lantern Core',brl:999},
+ maw:{name:'Fragmento da Fenda',nameEn:'Rift Fragment',brl:999},
+ devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:999},
  reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:499},
  hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:499},
- abysscroc:{name:'Jacaré-açu',nameEn:'Black Caiman',brl:499},
- armoredgator:{name:'Crocodilo-do-nilo',nameEn:'Nile Crocodile',brl:499}
+ abysscroc:{name:'Predador de Mangue',nameEn:'Mangrove Predator',brl:499},
+ armoredgator:{name:'Couraçado de Estuário',nameEn:'Estuary Armored Hunter',brl:499}
 };
 function calculateOrder(productId, ownedSkins, currency='brl') {
  if (String(currency).toLowerCase() !== 'brl') throw new Error('Unsupported currency');
