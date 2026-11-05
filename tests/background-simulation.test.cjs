@@ -218,3 +218,17 @@ test('deploy reconnect still refreshes persisted run again before restoring the 
  assert.match(server,/refreshDeployResumeFromPersistence\(socket\.data\.userKey\)/);
  assert.match(server,/rooms\.get\(id\)\|\|restoreDeployRoom\(u,id\)/);
 });
+
+
+test('active matches receive a five minute maintenance hold before empty-room cleanup', () => {
+ assert.match(server,/maintenanceHoldUntil=Date\.now\(\)\+5\*60\*1000/);
+ assert.match(server,/shutdownStarted&&Number\(room\.maintenanceHoldUntil\)>Date\.now\(\)/);
+ assert.match(server,/if\(!maintenanceHold\)[\s\S]*clearRoomWorld\(room\)/);
+ assert.match(server,/expiresAt:Date\.now\(\)\+5\*60\*1000/);
+});
+
+test('floating red and blue damage numbers are substantially larger and outlined', () => {
+ assert.match(game,/Math\.max\(54,72\/worldZoom\)/);
+ assert.match(game,/number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+ assert.match(game,/ctx\.lineWidth=5\/worldZoom/);
+});
