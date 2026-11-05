@@ -35,6 +35,13 @@ test('extraction is server-accounted and death preserves only part of completion
  assert.match(server,/Sinal perdido:.*65% da recompensa/);
 });
 
+test('successful extraction has its own result state and cannot offer a revive ad',()=>{
+ assert.match(game,/function renderRunEndPresentation\(\)/);
+ assert.match(game,/VOCÊ VOLTOU\.<br><em>POR ENQUANTO\.<\/em>/);
+ assert.match(game,/if\(revive\)revive\.hidden=true/);
+ assert.match(game,/DESCER NOVAMENTE/);
+});
+
 test('boss collection is framed as relics instead of playable full bosses',()=>{
  for(const name of ['Eco do Leviatã','Eco do Kraken','Casca da Aberração','Núcleo da Lanterna','Fragmento da Fenda','Núcleo Devorador']){
   assert.ok(game.includes(name),name+' should be present in the playable collection');
