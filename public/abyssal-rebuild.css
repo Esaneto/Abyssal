@@ -410,3 +410,5 @@ body.abyss-event-resonance_bloom .abyss-event-banner strong{color:#7df5df}
     font-size:10px;
   }
 }
+
+body:not(.game-active) .abyss-map-interact{display:none!important}
