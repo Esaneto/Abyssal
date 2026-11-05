@@ -22,7 +22,7 @@ test('server catalog uses rarity-based BRL prices and a discounted relic bundle'
  assert.equal(calculateOrder('boss_bundle',BOSS_SKINS,'brl').amount,0);
  assert.deepEqual(
   [PAID_SKINS.reefshark.name,PAID_SKINS.hammerhead.name,PAID_SKINS.abysscroc.name,PAID_SKINS.armoredgator.name],
-  ['Tubarão-branco','Tubarão-martelo','Predador de Mangue','Couraçado de Estuário']
+  ['Tubarão-branco','Tubarão-martelo','Tubarão-Touro Estuarino','Caranguejo-Ferradura Couraçado']
  );
  assert.deepEqual(
   [PAID_SKINS.leviathan.name,PAID_SKINS.kraken.name,PAID_SKINS.aberration.name],
