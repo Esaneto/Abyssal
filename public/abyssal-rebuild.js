@@ -7,31 +7,31 @@ window.__abyssalRebuildV1=true;
 var $=function(id){return document.getElementById(id);};
 
 var SPECIMENS=[
-  {id:'default',tier:'core',habitat:'Núcleo',rarity:'ORIGEM',name:'Luz Abissal',lore:'O primeiro brilho. Pequeno demais para explicar por que as outras coisas o seguem.'},
-  {id:'violet',tier:'deep',habitat:'Mesopelágico',rarity:'RARA',name:'Espectro Violeta',lore:'Uma forma espectral que parece existir alguns centímetros fora da água.'},
-  {id:'solar',tier:'core',habitat:'Zona fótica',rarity:'INCOMUM',name:'Núcleo Solar',lore:'Fragmentos de luz presos em uma criatura que nunca deveria ter visto o sol.'},
-  {id:'toxic',tier:'deep',habitat:'Fendas sulfurosas',rarity:'RARA',name:'Lodo Tóxico',lore:'As glândulas verdes continuam pulsando mesmo depois de separadas do hospedeiro.'},
-  {id:'leviathan',tier:'relic',habitat:'Fossa hadal',rarity:'RELÍQUIA',name:'Eco do Leviatã',lore:'Não é o Leviatã. É apenas o que ficou preso em você depois de encontrá-lo.'},
-  {id:'thorn',tier:'deep',habitat:'Recife negro',rarity:'RARA',name:'Coroa de Espinhos',lore:'Coral predatório calcificado em torno de um núcleo ainda consciente.'},
-  {id:'abyssking',tier:'abyssal',habitat:'Setor interditado',rarity:'ABISSAL',name:'Soberano do Vazio',lore:'Uma coroa não significa que exista um reino. Às vezes significa que algo venceu tudo ao redor.'},
-  {id:'royal',tier:'deep',habitat:'Talude profundo',rarity:'RARA',name:'Pérola Regente',lore:'Organismos luminescentes orbitam a criatura como se reconhecessem autoridade.'},
-  {id:'glacier',tier:'deep',habitat:'Águas polares',rarity:'RARA',name:'Glaciar Fantasma',lore:'Cristais marinhos crescem sem reduzir a temperatura da água ao redor.'},
-  {id:'coral',tier:'deep',habitat:'Recife afótico',rarity:'RARA',name:'Jardim Carnívoro',lore:'Não é um jardim. É uma colônia que aprendeu a caçar.'},
-  {id:'bloodmoon',tier:'abyssal',habitat:'Zona de pressão',rarity:'ABISSAL',name:'Lua Sangrenta',lore:'A mandíbula fica mais visível quando o organismo está perto da morte.'},
-  {id:'voidwing',tier:'deep',habitat:'Coluna oceânica',rarity:'RARA',name:'Manta do Nada',lore:'Membranas amplas cortam a água sem produzir o deslocamento esperado.'},
-  {id:'abyssaleye',tier:'abyssal',habitat:'Desconhecido',rarity:'ABISSAL',name:'Olho do Insondável',lore:'O registro mostra a mesma íris olhando para câmeras instaladas em pontos diferentes.'},
-  {id:'deepwarden',tier:'deep',habitat:'Fundo rochoso',rarity:'RARA',name:'Carcereiro das Fossas',lore:'Placas minerais se fecharam sobre um organismo que ainda tenta sair.'},
-  {id:'kraken',tier:'relic',habitat:'Fossa hadal',rarity:'RELÍQUIA',name:'Eco do Kraken',lore:'O Kraken permanece lá embaixo. Isto é somente uma memória biológica dos seus tentáculos.'},
-  {id:'aberration',tier:'relic',habitat:'Setor 07',rarity:'RELÍQUIA',name:'Casca da Aberração',lore:'Uma carapaça vazia. Ninguém conseguiu provar que a criatura a abandonou voluntariamente.'},
-  {id:'angler',tier:'relic',habitat:'Zona batial',rarity:'RELÍQUIA',name:'Núcleo da Lanterna',lore:'A isca continua acesa. Coisas menores ainda se aproximam dela.'},
-  {id:'maw',tier:'relic',habitat:'Fendas tectônicas',rarity:'RELÍQUIA',name:'Fragmento da Fenda',lore:'Uma mandíbula incompleta que ainda tenta fechar sobre qualquer fonte de calor.'},
-  {id:'devourer',tier:'relic',habitat:'Sem registro',rarity:'RELÍQUIA',name:'Núcleo Devorador',lore:'A pressão cai ao redor dele, como se a água estivesse sendo puxada para dentro.'},
-  {id:'reefshark',tier:'surface',habitat:'Mar aberto',rarity:'PELÁGICA',name:'Tubarão-branco',lore:'Um predador perfeito não precisa parecer monstruoso para ser temido.'},
-  {id:'hammerhead',tier:'surface',habitat:'Plataforma continental',rarity:'PELÁGICA',name:'Tubarão-martelo',lore:'O cefalofólio percebe movimentos que os olhos ainda não alcançaram.'},
-  {id:'abysscroc',tier:'surface',habitat:'Manguezal',rarity:'COSTEIRA',name:'Predador de Mangue',lore:'Um caçador anfíbio adaptado a águas turvas e ataques de curta distância.'},
-  {id:'armoredgator',tier:'surface',habitat:'Estuário',rarity:'COSTEIRA',name:'Couraçado de Estuário',lore:'O dorso blindado transforma a superfície da água em uma armadura móvel.'},
-  {id:'greensnake',tier:'abyssal',habitat:'Fossa esmeralda',rarity:'LENDÁRIA',name:'Serpente Esmeralda',lore:'Uma forma reservada aos que provaram que o fundo também pode ser conquistado.'},
-  {id:'electriceel',tier:'surface',habitat:'Águas tropicais',rarity:'BIOELÉTRICA',name:'Enguia Elétrica',lore:'Descargas percorrem a linha lateral antes de qualquer movimento de ataque.'}
+  {id:'default',tier:'core',habitat:'Núcleo',classTag:'NÚCLEO',name:'Luz Abissal',lore:'O primeiro brilho. Pequeno demais para explicar por que as outras coisas o seguem.'},
+  {id:'violet',tier:'deep',habitat:'Mesopelágico',classTag:'ESPECTRAL',name:'Espectro Violeta',lore:'Uma forma espectral que parece existir alguns centímetros fora da água.'},
+  {id:'solar',tier:'core',habitat:'Zona fótica',classTag:'SOLAR',name:'Núcleo Solar',lore:'Fragmentos de luz presos em uma criatura que nunca deveria ter visto o sol.'},
+  {id:'toxic',tier:'deep',habitat:'Fendas sulfurosas',classTag:'TÓXICA',name:'Lodo Tóxico',lore:'As glândulas verdes continuam pulsando mesmo depois de separadas do hospedeiro.'},
+  {id:'leviathan',tier:'relic',habitat:'Fossa hadal',classTag:'RELÍQUIA',name:'Eco do Leviatã',lore:'Não é o Leviatã. É apenas o que ficou preso em você depois de encontrá-lo.'},
+  {id:'thorn',tier:'deep',habitat:'Recife negro',classTag:'CALCIFICADA',name:'Coroa de Espinhos',lore:'Coral predatório calcificado em torno de um núcleo ainda consciente.'},
+  {id:'abyssking',tier:'abyssal',habitat:'Setor interditado',classTag:'ABISSAL',name:'Soberano do Vazio',lore:'Uma coroa não significa que exista um reino. Às vezes significa que algo venceu tudo ao redor.'},
+  {id:'royal',tier:'deep',habitat:'Talude profundo',classTag:'SIMBIÓTICA',name:'Pérola Regente',lore:'Organismos luminescentes orbitam a criatura como se reconhecessem autoridade.'},
+  {id:'glacier',tier:'deep',habitat:'Águas polares',classTag:'POLAR',name:'Glaciar Fantasma',lore:'Cristais marinhos crescem sem reduzir a temperatura da água ao redor.'},
+  {id:'coral',tier:'deep',habitat:'Recife afótico',classTag:'COLONIAL',name:'Jardim Carnívoro',lore:'Não é um jardim. É uma colônia que aprendeu a caçar.'},
+  {id:'bloodmoon',tier:'abyssal',habitat:'Zona de pressão',classTag:'ABISSAL',name:'Lua Sangrenta',lore:'A mandíbula fica mais visível quando o organismo está perto da morte.'},
+  {id:'voidwing',tier:'deep',habitat:'Coluna oceânica',classTag:'PELÁGICA',name:'Manta do Nada',lore:'Membranas amplas cortam a água sem produzir o deslocamento esperado.'},
+  {id:'abyssaleye',tier:'abyssal',habitat:'Desconhecido',classTag:'ABISSAL',name:'Olho do Insondável',lore:'O registro mostra a mesma íris olhando para câmeras instaladas em pontos diferentes.'},
+  {id:'deepwarden',tier:'deep',habitat:'Fundo rochoso',classTag:'BLINDADA',name:'Carcereiro das Fossas',lore:'Placas minerais se fecharam sobre um organismo que ainda tenta sair.'},
+  {id:'kraken',tier:'relic',habitat:'Fossa hadal',classTag:'RELÍQUIA',name:'Eco do Kraken',lore:'O Kraken permanece lá embaixo. Isto é somente uma memória biológica dos seus tentáculos.'},
+  {id:'aberration',tier:'relic',habitat:'Setor 07',classTag:'RELÍQUIA',name:'Casca da Aberração',lore:'Uma carapaça vazia. Ninguém conseguiu provar que a criatura a abandonou voluntariamente.'},
+  {id:'angler',tier:'relic',habitat:'Zona batial',classTag:'RELÍQUIA',name:'Núcleo da Lanterna',lore:'A isca continua acesa. Coisas menores ainda se aproximam dela.'},
+  {id:'maw',tier:'relic',habitat:'Fendas tectônicas',classTag:'RELÍQUIA',name:'Fragmento da Fenda',lore:'Uma mandíbula incompleta que ainda tenta fechar sobre qualquer fonte de calor.'},
+  {id:'devourer',tier:'relic',habitat:'Sem registro',classTag:'RELÍQUIA',name:'Núcleo Devorador',lore:'A pressão cai ao redor dele, como se a água estivesse sendo puxada para dentro.'},
+  {id:'reefshark',tier:'surface',habitat:'Mar aberto',classTag:'PELÁGICA',name:'Tubarão-branco',lore:'Um predador perfeito não precisa parecer monstruoso para ser temido.'},
+  {id:'hammerhead',tier:'surface',habitat:'Plataforma continental',classTag:'PELÁGICA',name:'Tubarão-martelo',lore:'O cefalofólio percebe movimentos que os olhos ainda não alcançaram.'},
+  {id:'abysscroc',tier:'surface',habitat:'Manguezal',classTag:'COSTEIRA',name:'Predador de Mangue',lore:'Um caçador anfíbio adaptado a águas turvas e ataques de curta distância.'},
+  {id:'armoredgator',tier:'surface',habitat:'Estuário',classTag:'COSTEIRA',name:'Couraçado de Estuário',lore:'O dorso blindado transforma a superfície da água em uma armadura móvel.'},
+  {id:'greensnake',tier:'abyssal',habitat:'Fossa esmeralda',classTag:'MISSÃO',name:'Serpente Esmeralda',lore:'Uma forma reservada aos que provaram que o fundo também pode ser conquistado.'},
+  {id:'electriceel',tier:'surface',habitat:'Águas tropicais',classTag:'BIOELÉTRICA',name:'Enguia Elétrica',lore:'Descargas percorrem a linha lateral antes de qualquer movimento de ataque.'}
 ];
 
 var activeFilter='all';
@@ -177,7 +177,7 @@ function decorateCards(){
       var ability=card.querySelector('.skin-ability');
       card.insertBefore(meta,ability||card.querySelector('button'));
     }
-    meta.innerHTML='<span class="abyss-specimen-badge '+spec.tier+'">'+spec.rarity+'</span><span class="abyss-specimen-badge">'+spec.habitat+'</span>';
+    meta.innerHTML='<span class="abyss-specimen-badge '+spec.tier+'">CLASSE · '+spec.classTag+'</span><span class="abyss-specimen-badge">HABITAT · '+spec.habitat+'</span>';
 
     var lore=card.querySelector('.abyss-specimen-lore');
     if(!lore){
