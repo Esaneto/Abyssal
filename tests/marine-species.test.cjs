@@ -16,3 +16,13 @@ test('marine catalog does not collapse each family into one color and server pre
  assert.match(server,/filter\(x => allowedSkinIds\.has\(x\)\)/);
  assert.doesNotMatch(server,/const allowed = new Set\(\['default','violet','solar','toxic'/);
 });
+
+
+test('all 100 marine species have unique art identities, not generic family recolors',()=>{
+ assert.equal(new Set(species.map(s=>s.art?.key)).size,100);
+ for(const family of new Set(species.map(s=>s.family))){
+  const rows=species.filter(s=>s.family===family);
+  assert.equal(new Set(rows.map(s=>s.art?.key)).size,rows.length,family);
+  assert.ok(new Set(rows.map(s=>s.art?.tone)).size>=8,family);
+ }
+});
