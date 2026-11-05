@@ -1403,6 +1403,10 @@ function spawnEnemy(initial=false,type='common',options={}){
   if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
   if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
  }
+ if(!isBossType){
+  const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
+  data={...data,damage:Math.max(1,Math.round(Number(data.damage||1)*physicalScale)),speed:Number(data.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(data.hp||1)*hpScale))};
+ }
  if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
  if(eliteId&&!options.roomId&&!isBossType){
   point=ABYSSAL_MAP.spawnPoint(map,{type:'elite',random:Math.random,bossesDefeated:bossKillsThisRun});
