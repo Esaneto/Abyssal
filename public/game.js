@@ -2652,6 +2652,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  for(let i=0;i<12;i++){const x=(-2.75+i*.29)*r;stroke(()=>{c.moveTo(x,-.085*r);c.lineTo(x+.02*r,.105*r)},Math.max(.6,r*.014),'rgba(232,255,248,.35)',2)}};
  const lureOnly=(lx,ly)=>{c.save();c.globalAlpha=1;const rr=r*.67,g=c.createRadialGradient(lx*r,ly*r,0,lx*r,ly*r,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff6b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowColor='#ffda70';c.shadowBlur=12*glowScale;c.beginPath();c.arc(lx*r,ly*r,rr,0,Math.PI*2);c.fill();c.restore()};
 
+ const blueRingOctopus=()=>{const phase=t*.0028;
+  for(let arm=0;arm<8;arm++){const offset=arm-3.5,sway=Math.sin(phase+arm*.72)*.19;
+   krakenArm({sx:offset*.16,sy:.22,c1x:offset*.22+sway*.4,c1y:.76,c2x:offset*.26-sway,c2y:1.5,ex:offset*.29+sway*.7,ey:2.22+(arm%3)*.16},arm,phase);}
+  const mantle=c.createRadialGradient(-.22*r,-.7*r,.05*r,0,-.25*r,1.1*r);mantle.addColorStop(0,'#a5dfff');mantle.addColorStop(.22,'#348fe7');mantle.addColorStop(.68,'#1763bf');mantle.addColorStop(1,'#092657');
+  fill(()=>{c.moveTo(-.82*r,.15*r);c.bezierCurveTo(-.88*r,-.48*r,-.59*r,-1.35*r,0,-1.4*r);c.bezierCurveTo(.59*r,-1.35*r,.88*r,-.48*r,.82*r,.15*r);c.quadraticCurveTo(.35*r,.58*r,0,.55*r);c.quadraticCurveTo(-.35*r,.58*r,-.82*r,.15*r);c.closePath()},mantle,'rgba(133,212,255,.85)',Math.max(1.2,r*.043),14);
+  for(let i=0;i<18;i++){const theta=i*2.399,px=Math.cos(theta)*(.26+(i%4)*.095),py=-.36+Math.sin(theta)*(.25+(i%3)*.11);c.save();c.strokeStyle='#67ddff';c.lineWidth=Math.max(1.1,r*.04);c.shadowBlur=11*glowScale;c.shadowColor='#13aaff';c.beginPath();c.arc(px*r,py*r,r*(.048+(i%3)*.01),0,Math.PI*2);c.stroke();c.restore();}
+  eye(-.26,-.2,r*.062,'#e8ffff');eye(.26,-.2,r*.062,'#e8ffff');
+ };
+
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
   if(id==='kraken'){
@@ -2806,10 +2815,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    c.save();c.globalAlpha=.6;c.fillStyle='#c9a8ff';c.shadowBlur=16*glowScale;c.shadowColor='#a56dff';c.beginPath();c.ellipse(.08*r,.03*r,.34*r,.42*r,0,0,Math.PI*2);c.fill();c.restore();eye(.18,-.13,r*.07,'#f0e6ff');
   } else if(id==='aberration'||id==='angler'||id==='maw'||id==='devourer'){
    if(id==='aberration'){
-    for(let i=0;i<8;i++){const sx=-.52+i*.15,sway=Math.sin(t*.004+i)*.16;tentacle(sx,.18,sx+sway*.3,.55,sx-sway,.98,sx+sway*.8,1.48+(i%2)*.16,.82,true);}
-    fill(()=>{c.ellipse(0,-.22*r,.72*r,.62*r,0,0,Math.PI*2)},bodyGrad('#236fd8'),'rgba(116,190,255,.65)',Math.max(1,r*.035),10);
-    for(let i=0;i<11;i++){const a=i*2.23,px=Math.cos(a)*.48,py=-.2+Math.sin(a)*.38;c.save();c.strokeStyle='#27c8ff';c.shadowBlur=10*glowScale;c.shadowColor='#006dff';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.arc(px*r,py*r,Math.max(1.5,r*.065),0,Math.PI*2);c.stroke();c.restore();}
-    eye(-.22,-.3,r*.055,'#d8f5ff');eye(.22,-.3,r*.055,'#d8f5ff');
+    blueRingOctopus();
    }else if(id==='angler'){
     fin([[-.95,0],[-1.55,-.4],[-1.4,.06],[-1.5,.38]],color);
     fill(()=>{c.ellipse(-.34*r,0,.86*r,.66*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(255,231,177,.52)',Math.max(1,r*.035),10);
@@ -2871,10 +2877,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   fin([[-1.8,.06],[-2.32,-.2],[-2.1,.12],[-2.28,.32]],color);fill(()=>{c.moveTo(.35*r,-.1*r);c.quadraticCurveTo(.8*r,-.48*r,1.08*r,-.2*r);c.lineTo(.68*r,.08*r);c.lineTo(1.05*r,.36*r);c.quadraticCurveTo(.58*r,.42*r,.35*r,.13*r);c.closePath()},'#050b16','#96acff',Math.max(1,r*.045),8);
   for(let i=0;i<6;i++){const xx=(.42+i*.085)*r;fin([[xx/r,-.13],[xx/r-.03,.02],[xx/r+.03,.02]],'#eff3ff');fin([[xx/r,.1],[xx/r-.03,.0],[xx/r+.03,.0]],'#eff3ff')};for(let i=0;i<5;i++){const xx=(-1.35+i*.28)*r;stroke(()=>{c.moveTo(xx,-.22*r);c.lineTo((xx-.05*r),.23*r)},Math.max(.7,r*.025),'rgba(196,218,255,.7)',3)}eye(.45,-.28,r*.06,'#d6deff');
  } else if(kind==='boss'){
-  for(let i=0;i<8;i++){const sx=-.58+i*.165,sway=Math.sin(t*.0034+i*1.3)*.2;tentacle(sx,.22,sx+sway*.25,.7,sx-sway,1.3,sx+sway*.72,2.05+(i%3)*.18,.95,true);}
-  fill(()=>{c.moveTo(-.82*r,.18*r);c.bezierCurveTo(-.9*r,-.55*r,-.55*r,-1.05*r,0,-1.12*r);c.bezierCurveTo(.58*r,-1.05*r,.9*r,-.52*r,.82*r,.18*r);c.quadraticCurveTo(.4*r,.52*r,0,.55*r);c.quadraticCurveTo(-.42*r,.5*r,-.82*r,.18*r);c.closePath()},bodyGrad('#236fd8'),'rgba(105,188,255,.62)',Math.max(1.2,r*.036),12);
-  for(let i=0;i<16;i++){const a=i*2.11,px=Math.cos(a)*(.28+(i%3)*.12),py=-.27+Math.sin(a)*(.3+(i%2)*.12);c.save();c.strokeStyle=i%4===0?'#a8efff':'#24baff';c.shadowBlur=12*glowScale;c.shadowColor='#006cff';c.lineWidth=Math.max(1.1,r*.034);c.beginPath();c.arc(px*r,py*r,Math.max(1.8,r*(.05+(i%3)*.012)),0,Math.PI*2);c.stroke();c.restore();}
-  eye(-.26,-.2,r*.05,'#dffaff');eye(.26,-.2,r*.05,'#dffaff');
+  blueRingOctopus();
   } else if(kind==='devourer'){
   // A broad-bodied pelican eel with a distended throat pouch and a cavernous mouth.
   fin([[-1.2,0],[-1.8,-.38],[-1.65,.08],[-1.82,.4]],color);fin([[-.42,-.58],[-.15,-1.12],[.12,-.48]],color);fin([[-.35,.5],[-.08,1.02],[.28,.48]],color);
