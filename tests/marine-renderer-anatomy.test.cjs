@@ -1,0 +1,40 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+
+const root=path.resolve(__dirname,'..');
+const renderer=fs.readFileSync(path.join(root,'public','marine-renderer.js'),'utf8');
+
+test('marine renderer keeps species anatomy distinct inside the shark family',()=>{
+  for(const marker of [
+    'Whale shark: broad blunt head',
+    'Basking shark: cavernous open mouth',
+    'Shortfin mako: torpedo body',
+    'Thresher: upper caudal lobe dominates total silhouette',
+    'Goblin: flattened blade-like rostrum',
+    'Frilled shark: eel-like body',
+    'Lantern shark: compact deep-sea profile',
+    'Greenland shark: very thick, slow, blunt body'
+  ]) assert.ok(renderer.includes(marker),marker);
+});
+
+test('marine renderer no longer collapses shark and fish into one shared generic branch',()=>{
+  assert.doesNotMatch(renderer,/case 'shark':case 'fish'/);
+  assert.match(renderer,/case 'shark':drawShark\(\);break;/);
+  assert.match(renderer,/case 'fish':drawFish\(\);break;/);
+});
+
+test('canonical marine renderer documents anatomy-first identity as an invariant',()=>{
+  assert.match(renderer,/species identity must come from anatomy first, not color/);
+  assert.match(renderer,/If silhouettes collapse into a shared family template, that is a regression/);
+});
+
+test('deep-sea fish variants preserve iconic silhouettes',()=>{
+  assert.match(renderer,/hatchetfish/);
+  assert.match(renderer,/black dragonfish/);
+  assert.match(renderer,/viper\/fangfish/);
+  assert.match(renderer,/hadal snailfish/);
+  assert.match(renderer,/tripod fish/);
+});
