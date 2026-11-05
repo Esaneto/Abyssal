@@ -544,6 +544,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
+const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
 function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
@@ -721,7 +722,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
- if(player&&Number(player.ricochetLevel)>0&&skillId!=='ricochet'){
+ if(player&&Number(player.ricochetLevel)>0&&RICOCHET_SHOT_SKILLS.has(String(skillId||''))){
   let fromX=Number(enemy.x),fromY=Number(enemy.y);
   const visited=new Set([Number(enemy.id)]);
   for(let bounce=0;bounce<Math.min(3,Number(player.ricochetLevel)||0);bounce++){
@@ -1394,7 +1395,12 @@ io.on('connection', socket => {
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
   }else{
    const targets=room.world.enemies.filter(enemy=>Math.hypot(enemy.x-player.x,enemy.y-player.y)<radius).slice(0,96);
-   for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse');
+   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false};
+   for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse',batch);
+   if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
+   if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
+   if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
+   if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('account-data',publicUser(account));}
   }
  });
  socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});

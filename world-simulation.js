@@ -500,8 +500,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
   const sendOrbSnapshot = sendSnapshot && world.orbSnapshotTimer <= 0;
-  if (sendSnapshot) world.snapshotTimer = 0.1;
-  // Full-world recovery snapshots are expensive; lifecycle events and 10 Hz motion keep clients current.
+  if (sendSnapshot) world.snapshotTimer = 0.125;
+  // Full-world recovery snapshots are expensive; lifecycle events and 8 Hz interpolated motion keep clients current.
   // Use a 30 s recovery interval instead of resending every enemy/orb every 5 s.
   if (sendReliableSnapshot) world.reliableSnapshotTimer = 30;
   if (sendPlayers) world.playerSnapshotTimer = 1;
