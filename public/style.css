@@ -4388,3 +4388,26 @@ body.game-active.hud-collapsed{--match-ui-top:max(10px,env(safe-area-inset-top))
  body.mobile-game-active #selectedSkillsPanel,
  body.mobile-game-active #runEnergyRanking{top:calc(var(--match-ui-top) + 104px)!important}
 }
+
+
+/* MATCH EDGE LAYOUT V19: end-dive owns bottom-right; desktop damage ranking grows upward above it. */
+@media (min-width:701px) and (pointer:fine){
+ body.game-active:not(.mobile-game-active) #endDiveBtn{
+  position:fixed!important;left:auto!important;right:14px!important;top:auto!important;bottom:14px!important;
+  width:190px!important;max-width:190px!important;transform:none!important;
+ }
+ body.game-active:not(.mobile-game-active) #runEnergyRanking{
+  left:auto!important;right:14px!important;top:auto!important;bottom:62px!important;
+  width:190px!important;max-width:190px!important;
+  max-height:calc(100dvh - 76px)!important;overflow-y:auto!important;
+ }
+}
+@media (max-width:700px),(pointer:coarse){
+ body.mobile-game-active #endDiveBtn{
+  position:fixed!important;left:auto!important;right:var(--game-safe-right)!important;
+  top:auto!important;bottom:var(--game-safe-bottom)!important;transform:none!important;
+ }
+ body.mobile-game-active #mobileAimStick.dual-stick-visible{
+  bottom:calc(var(--game-safe-bottom) + 54px)!important;
+ }
+}
