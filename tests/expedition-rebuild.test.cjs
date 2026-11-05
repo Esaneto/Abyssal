@@ -12,8 +12,8 @@ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
 const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 
 test('descent gate is loaded as a lightweight client-only menu layer',()=>{
- assert.match(index,/abyssal-rebuild\.css\?v=1/);
- assert.match(index,/abyssal-rebuild\.js\?v=1/);
+ assert.match(index,/abyssal-rebuild\.css\?v=2/);
+ assert.match(index,/abyssal-rebuild\.js\?v=2/);
  assert.match(rebuild,/DESCIDA ABISSAL/);
  assert.match(rebuild,/DESCER SOZINHO/);
  assert.match(rebuild,/DESCER EM CARDUME/);
@@ -24,7 +24,7 @@ test('descent gate is loaded as a lightweight client-only menu layer',()=>{
 
 test('depth rules load before gameplay and literal newline escape debris is absent',()=>{
  assert.match(index,/abyssal-expedition-rules\.js\?v=2/);
- assert.ok(index.indexOf('abyssal-expedition-rules.js?v=2')<index.indexOf('game.js?v=4.4.5'));
+ assert.ok(index.indexOf('abyssal-expedition-rules.js?v=2')<index.indexOf('game.js?v=4.4.7'));
  assert.doesNotMatch(index,/\\\\n/);
 });
 
@@ -33,7 +33,7 @@ test('depth and event UI remains cosmetic and does not add gameplay network traf
  assert.match(rebuild,/abyssEventBanner/);
  assert.match(rebuild,/abyssEventAtmosphere/);
  assert.match(rebuild,/abyssZoneValue/);
- assert.match(rebuild,/abyssal-room-joined[\s\S]*mode==='pvp'[\s\S]*event:null/);
+ assert.match(rebuild,/abyssal-room-joined[\s\S]*mode!=='rift'[\s\S]*event:null/);
  assert.match(css,/body:not\(\.game-active\) \.abyss-event-atmosphere/);
  assert.doesNotMatch(rebuild,/socket\.emit|sendPosition|sendDamageBatch|requestAnimationFrame\([^)]*send/);
  const eventCss=css.slice(css.indexOf('Depth zones + rare events'));
@@ -43,9 +43,10 @@ test('depth and event UI remains cosmetic and does not add gameplay network traf
  assert.doesNotMatch(eventCss,/backdrop-filter/);
 });
 
-test('solo expedition checkpoints are isolated from online play',()=>{
- assert.match(game,/expeditionMode=!onlineMode/);
- assert.match(game,/if\(!onlineMode&&expeditionMode\).*abyssal-expedition-checkpoint/);
+test('rift expedition is explicit and its exits replace the old boss checkpoint overlay',()=>{
+ assert.match(game,/expeditionMode=isRiftRun\(\)/);
+ assert.doesNotMatch(game,/dispatchEvent\(new CustomEvent\('abyssal-expedition-checkpoint'/);
+ assert.match(game,/clearedBosses>activeMapTier&&!bossAlive/);
  assert.match(game,/pauseExpedition:\(\)=>\{if\(!expeditionMode\|\|onlineMode/);
  assert.match(server,/const expedition=Boolean\(!member&&payload\.expedition===true\)/);
 });

@@ -7,7 +7,7 @@
 
   const WORLD_WIDTH=4800;
   const WORLD_HEIGHT=3000;
-  const VERSION=2;
+  const VERSION=3;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
@@ -62,6 +62,7 @@
     Object.freeze({a:'junction',b:'hub',width:195}),
     Object.freeze({a:'junction',b:'elite',width:135,optional:true}),
     Object.freeze({a:'lantern',b:'event',width:135,optional:true}),
+    Object.freeze({a:'hub',b:'landing',width:155}),
     Object.freeze({a:'landing',b:'boss',width:220})
   ]);
 
@@ -89,17 +90,25 @@
       return Object.freeze({...base,x:Math.round(x),rx:Math.round(base.rx*scale),ry:Math.round(base.ry*scale),risk:profile.risk,densityCap:profile.densityCap,reward:profile.reward,signal:profile.signal});
     });
     const byId=id=>rooms.find(room=>room.id===id);
-    const corridors=EDGE_BLUEPRINTS.map(edge=>{
+    const corridors=EDGE_BLUEPRINTS.map((edge,index)=>{
       const a=byId(edge.a),b=byId(edge.b);
-      return Object.freeze({...edge,x1:a.x,y1:a.y,x2:b.x,y2:b.y});
+      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length;
+      const bend=(random()-.5)*(edge.optional?360:260)+(index%2?1:-1)*85;
+      const path=Object.freeze([
+        Object.freeze({x:a.x,y:a.y}),
+        Object.freeze({x:Math.round(a.x+dx*.33+nx*bend),y:Math.round(a.y+dy*.33+ny*bend)}),
+        Object.freeze({x:Math.round(a.x+dx*.68-nx*bend*.55),y:Math.round(a.y+dy*.68-ny*bend*.55)}),
+        Object.freeze({x:b.x,y:b.y})
+      ]);
+      return Object.freeze({...edge,x1:a.x,y1:a.y,x2:b.x,y2:b.y,path});
     });
     const hub=byId('hub'),landing=byId('landing'),start=byId('start'),boss=byId('boss');
     const portals=Object.freeze({
       start:Object.freeze({id:'start-vortex',type:'start',x:start.x-120,y:start.y-20,r:72}),
-      surface:Object.freeze({id:'surface-vortex',type:'surface',x:hub.x-155,y:hub.y+20,r:78}),
-      descent:Object.freeze({id:'descent-hole',type:'descent',x:hub.x+175,y:hub.y+22,r:84,targetX:landing.x,targetY:landing.y-40}),
-      landing:Object.freeze({id:'descent-landing',type:'landing',x:landing.x,y:landing.y-40,r:88,targetX:hub.x+175,targetY:hub.y+22}),
-      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x,y:boss.y,r:110,unlockedAfterBosses:tierNumber+1})
+      surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-185,y:boss.y+25,r:76,unlockedAfterBosses:tierNumber+1}),
+      descent:null,
+      landing:null,
+      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+185,y:boss.y+25,r:96,unlockedAfterBosses:tierNumber+1})
     });
     return Object.freeze({
       version:VERSION,
@@ -143,7 +152,9 @@
   function pointInCorridor(corridor,x,y,padding=0){
     if(!corridor)return false;
     const radius=Math.max(20,Number(corridor.width)-padding);
-    return pointSegmentDistance(x,y,corridor.x1,corridor.y1,corridor.x2,corridor.y2)<=radius;
+    const path=Array.isArray(corridor.path)&&corridor.path.length>1?corridor.path:[{x:corridor.x1,y:corridor.y1},{x:corridor.x2,y:corridor.y2}];
+    for(let i=1;i<path.length;i++)if(pointSegmentDistance(x,y,path[i-1].x,path[i-1].y,path[i].x,path[i].y)<=radius)return true;
+    return false;
   }
 
   function isWalkable(layout,x,y,padding=0){
@@ -245,6 +256,8 @@
     const path=roomPath(layout,fromRoom.id,toRoom.id,Boolean(options.includePortal));
     if(path.length<2)return {x:fromRoom.x,y:fromRoom.y,direct:false,blocked:true};
     const next=layout.rooms.find(room=>room.id===path[1]);
+    const edge=layout.corridors.find(item=>(item.a===fromRoom.id&&item.b===next?.id)||(item.b===fromRoom.id&&item.a===next?.id));
+    if(edge?.path?.length){const points=edge.a===fromRoom.id?edge.path:[...edge.path].reverse();const waypoint=points[1];return {x:waypoint.x,y:waypoint.y,direct:false,roomId:next?.id};}
     return next?{x:next.x,y:next.y,direct:false,roomId:next.id}:{x:toX,y:toY,direct:true};
   }
 

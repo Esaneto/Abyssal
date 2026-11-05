@@ -319,6 +319,7 @@ function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPo
 function showRooms(){
  const s=connect();if(!s)return;
  const screen=$('roomsScreen');if(screen)screen.hidden=false;
+ const mode=$('roomModeInput');if(mode)mode.value=window.AbyssalPreferredRoomMode==='rift'?'rift':'coop';
  const message=$('roomsMessage');if(message)message.textContent='Sondando expedições ativas…';
  refreshRoomsHttp();
  const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
@@ -345,7 +346,7 @@ function joinRoom(roomId='MAR-ABERTO',password='',options={}){
 function createRoom(data={}){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Entre na sua conta antes de criar uma sala.'}}));return false;}
  const isPrivate=Boolean(data.isPrivate),password=String(data.password||'');if(isPrivate&&(password.length<4||password.length>64)){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'}}));return false;}
- pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:data.mode==='pvp'?'pvp':'coop'});return true;
+ pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:['pvp','rift'].includes(data.mode)?data.mode:'coop'});return true;
 }
 function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}
@@ -538,6 +539,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
  $('profileBtn')?.addEventListener('click',()=>openProfile());
  $('matchHistoryBtn')?.addEventListener('click',()=>openMatchHistory());
  $('onlineBtn')?.addEventListener('click',()=>{
+  window.AbyssalPreferredRoomMode='coop';
   if(authenticated)showRooms();
   else connectAndJoin();
  });

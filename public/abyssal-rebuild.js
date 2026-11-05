@@ -98,14 +98,19 @@ function createGate(){
   panel.addEventListener('click',function(e){if(e.target===panel)close();});
   var solo=panel.querySelector('[data-mode="solo"]');
   var group=panel.querySelector('[data-mode="group"]');
-  if(solo)solo.addEventListener('click',function(){close();updateDepthMeter(0);var b=$('playBtn');if(b)b.click();});
-  if(group)group.addEventListener('click',function(){close();var b=$('onlineBtn');if(b)b.click();});
+  if(solo)solo.addEventListener('click',function(){close();updateDepthMeter(0);window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));});
+  if(group)group.addEventListener('click',function(){close();window.AbyssalPreferredRoomMode='rift';var mode=$('roomModeInput');if(mode)mode.value='rift';window.AbyssalOnline?.connectAndJoin?.();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden)close();});
 }
 
 function ensureShopChrome(){
   var grid=$('skinGrid');
   if(!grid)return;
+
+  if(!$('marineSearch')){
+    var search=document.createElement('input');search.id='marineSearch';search.type='search';search.placeholder='Buscar espécie ou habilidade';search.setAttribute('aria-label','Buscar espécie ou habilidade');search.className='text-field';
+    grid.before(search);search.addEventListener('input',function(){var term=search.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();Array.from(grid.children).forEach(function(card){card.hidden=!card.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(term);});});
+  }
 
   var heading=document.querySelector('#shopScreen .shop-heading h2');
   if(heading)heading.innerHTML='CATÁLOGO<br><em>DE ESPÉCIMES</em>';
@@ -156,14 +161,14 @@ function decorateCards(){
 
   cards.forEach(function(card,index){
     var spec=SPECIMENS[index];
-    if(!spec)return;
+    if(!spec){const extra=window.AbyssalMarineSpecies?.species[index-SPECIMENS.length];if(extra){card.dataset.skinId=extra.id;card.dataset.abyssTier=extra.tier;card.classList.toggle('abyss-filtered-out',activeFilter!=='all'&&activeFilter!==extra.tier);}return;}
 
     card.dataset.skinId=spec.id;
     card.dataset.abyssTier=spec.tier;
     card.classList.toggle('abyss-filtered-out',activeFilter!=='all'&&spec.tier!==activeFilter);
 
     var title=card.querySelector(':scope > strong');
-    if(title)title.textContent=spec.name;
+    // Canonical species names belong to the gameplay catalog, never the legacy lore table.
 
     var meta=card.querySelector('.abyss-specimen-meta');
     if(!meta){
@@ -181,7 +186,7 @@ function decorateCards(){
       var ability2=card.querySelector('.skin-ability');
       card.insertBefore(lore,ability2||card.querySelector('button'));
     }
-    lore.textContent=spec.lore;
+    lore.textContent='';
   });
 
   var bundle=grid.querySelector('.boss-bundle-card');
@@ -293,12 +298,13 @@ function updateDepthMeter(bosses,state){
   var meter=$('abyssDepthMeter');
   if(!meter)return;
   var count=Math.max(0,Number(bosses)||0);
-  if(window.AbyssalGameHooks?.roomMode?.()==='pvp'){meter.hidden=true;return;}
+  var roomMode=window.AbyssalGameHooks?.roomMode?.();
+  var solo=window.AbyssalGameHooks?.expeditionState?.()?.active===true;
+  if(roomMode==='pvp'||(!solo&&roomMode!=='rift')){meter.hidden=true;return;}
   meter.hidden=false;
   var depth=$('abyssDepthValue');
   var risk=$('abyssRiskValue');
   var zone=$('abyssZoneValue');
-  var solo=window.AbyssalGameHooks?.expeditionState?.()?.active===true;
   var zoneData=state?.zone||window.AbyssalExpeditionRules?.zoneForBosses?.(count)||null;
   var depthValue=Number(state?.depth);
   if(!Number.isFinite(depthValue))depthValue=expeditionDepthForBosses(count);
@@ -332,7 +338,7 @@ function applyDepthState(state){
 
 function bindDepthState(){
   window.addEventListener('abyssal-depth-state',function(event){applyDepthState(event.detail||{});});
-  window.addEventListener('abyssal-room-joined',function(event){if(event.detail?.room?.mode==='pvp')applyDepthState({bossesDefeated:0,depth:0,zone:null,event:null});});
+  window.addEventListener('abyssal-room-joined',function(event){if(event.detail?.room?.mode!=='rift')applyDepthState({bossesDefeated:0,depth:0,zone:null,event:null});});
   window.addEventListener('abyssal-room-left',function(){applyDepthState({bossesDefeated:0,depth:350,zone:window.AbyssalExpeditionRules?.zoneForBosses?.(0)||null,event:null});});
 }
 

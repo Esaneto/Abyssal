@@ -9,8 +9,9 @@ const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-function createWorldState(now = Date.now()) {
+function createWorldState(now = Date.now(), mode = 'classic') {
   return {
+    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false,
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
@@ -24,7 +25,7 @@ function createWorldState(now = Date.now()) {
 }
 
 function mapLayoutFor(world) {
-  if (!world) return null;
+  if (!world || world.mode !== 'rift') return null;
   const seed = Number(world.mapSeed) || AbyssalMap.seedValue(world.worldId || Date.now());
   const tier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   const key = seed + ':' + tier;
@@ -154,10 +155,10 @@ function spawnEnemy(world, options = {}) {
   if (type !== 'boss' && countCommons(world) >= MAX_COMMON_ENEMIES) return null;
 
   const layout = mapLayoutFor(world);
-  let point = AbyssalMap.spawnPoint(layout, {
+  let point = layout ? AbyssalMap.spawnPoint(layout, {
     type: type === 'boss' ? 'boss' : type,
     initial, random, bossesDefeated: world.bossesDefeated, roomId: options.roomId
-  });
+  }) : EnemyAI.chooseSpawnPoint(random, initial ? world.nextEnemyId % 4 : null, WORLD_WIDTH, WORLD_HEIGHT);
   let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
@@ -167,7 +168,7 @@ function spawnEnemy(world, options = {}) {
     kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else {
-    kind = ExpeditionRules.chooseCommonKindForRoom
+    kind = layout && ExpeditionRules.chooseCommonKindForRoom
       ? ExpeditionRules.chooseCommonKindForRoom(random, ecologyRoom, world.mapTier, world.activeEventId)
       : ExpeditionRules.chooseCommonKind(random, world.bossesDefeated, world.activeEventId);
     if (kind === 'whiteShark') {
@@ -199,7 +200,7 @@ function spawnEnemy(world, options = {}) {
 
   // Random elite mutations belong to the optional elite chamber. Explicit room encounters
   // keep their elites inside that room so a side-branch trap cannot leak into the main path.
-  if (eliteId && !options.roomId && type !== 'elite') {
+  if (layout && eliteId && !options.roomId && type !== 'elite') {
     point = AbyssalMap.spawnPoint(layout, { type: 'elite', random, bossesDefeated: world.bossesDefeated });
     ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || ecologyRoom;
   }
@@ -263,7 +264,25 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0;
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
+  if (world.mode === 'rift') return seedRiftEncounters(world, random);
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
+}
+
+function seedRiftEncounters(world, random = Math.random) {
+  if (!world || world.mode !== 'rift' || world.riftEncountersSeeded) return [];
+  world.riftEncountersSeeded = true;
+  world.nextBossAt = Infinity;
+  const spawned = [];
+  const populations = { shoal: 5, trench: 7, lantern: 7, junction: 8, elite: 3, event: 5, hub: 6, landing: 7 };
+  for (const [roomId, count] of Object.entries(populations)) {
+    for (let i = 0; i < count; i++) {
+      const enemy = spawnEnemy(world, { type: roomId === 'elite' ? 'elite' : 'common', roomId, forceElite: roomId === 'elite', random });
+      if (enemy) spawned.push(enemy);
+    }
+  }
+  const boss = spawnEnemy(world, { type: 'boss', roomId: 'boss', random });
+  if (boss) spawned.push(boss);
+  return spawned;
 }
 
 const movementNavigationProxy={x:0,y:0,moveSpeed:150/WORLD_ZOOM,skinId:'default',alive:true};
@@ -271,6 +290,7 @@ const movementNavigationTargets=[movementNavigationProxy];
 
 function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const mapLayout = mapLayoutFor(world);
+  const riftMode = world.mode === 'rift';
   const validPlayers = Array.isArray(players)
     ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
     : [];
@@ -284,6 +304,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   const initialSpawns = initializeWorld(world, now, random);
   const spawnedEnemies = [...initialSpawns];
+  if (riftMode && !world.riftEncountersSeeded) spawnedEnemies.push(...seedRiftEncounters(world, random));
   const previousTick = Number(world.lastTick) || now;
   // The server runs this ticker independently of browser rendering. Clamp a single
   // catch-up step to avoid huge jumps after GC or brief event-loop contention.
@@ -320,7 +341,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   const spawnedRewardOrbs = [];
   let sideEncounter = null;
-  if (Number(world.sideEncounterResolvedTier) !== Number(world.mapTier)) {
+  if (riftMode && Number(world.sideEncounterResolvedTier) !== Number(world.mapTier)) {
     const eventRoom = mapLayout?.rooms?.find(room => room.id === 'event');
     const entrant = eventRoom && validPlayers.find(player => AbyssalMap.roomAt(mapLayout, Number(player.x), Number(player.y))?.id === 'event');
     if (entrant) {
@@ -346,16 +367,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
-  if (commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
-    const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
-    const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
+  if (!riftMode && commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
+    const spawned = spawnEnemy(world, { type: 'common', random });
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.35;
-  } else if (world.commonSpawnTimer <= 0) {
+  } else if (!riftMode && world.commonSpawnTimer <= 0) {
     if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
-      const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
-      const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
+      const spawned = spawnEnemy(world, { type: 'common', random });
       if (spawned) spawnedEnemies.push(spawned);
     }
     commonCount = countCommons(world);
@@ -366,7 +385,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   const spawnedBosses = [];
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
-  if (world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
+  if (!riftMode && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
     if (world.enemies.length < MAX_ENEMIES) {
       const boss = spawnEnemy(world, { type: 'boss', random });
       if (boss) {
@@ -430,7 +449,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if (creature === enemy) continue;
         const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
         if (pull.dx || pull.dy) {
-          const moved=AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7));
+          const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):{x:clamp(creature.x+pull.dx,0,WORLD_WIDTH),y:clamp(creature.y+pull.dy,0,WORLD_HEIGHT)};
           const actualDx=moved.x-creature.x,actualDy=moved.y-creature.y;
           creature.x=moved.x;creature.y=moved.y;
           creature.vx=actualDx/Math.max(dt,0.001);creature.vy=actualDy/Math.max(dt,0.001);
@@ -439,7 +458,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       for (const player of validPlayers) {
         const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
         if (!pull.dx && !pull.dy) continue;
-        const moved=AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM));
+        const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):{x:clamp(Number(player.x)+pull.dx,0,WORLD_WIDTH),y:clamp(Number(player.y)+pull.dy,0,WORLD_HEIGHT)};
         const actualDx=moved.x-Number(player.x),actualDy=moved.y-Number(player.y);
         player.x=moved.x;player.y=moved.y;
         playerSuctionPulls.push({ playerId: player.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: pull.strength });
@@ -450,7 +469,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Giro do Nilo: mesmo passo de impulso do modo solo, antes da IA normal.
     // Não muda o ângulo nem interrompe o movimento normal de perseguição.
     if (enemy.kbVx || enemy.kbVy) {
-      const moved=AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72));
+      const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72)):{x:clamp(Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,0,WORLD_WIDTH),y:clamp(Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,0,WORLD_HEIGHT),blocked:false};
       enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;}
       const decay = Math.exp(-dt * 6.5);
       enemy.kbVx = (Number(enemy.kbVx) || 0) * decay;
@@ -467,6 +486,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
     let actualTarget=null,nearestTargetDistance=Infinity;
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
+    let movement;
+    if (!riftMode) {
+      movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+      if (!movement.moved && actualTarget && dt > 0) {
+        movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
+        if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+      }
+      movement.target = actualTarget;
+    } else {
     let movementTargets=targetablePlayers;
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
@@ -481,7 +509,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
-    const movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
+    movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
     const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
     enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
     if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;}
@@ -495,6 +523,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         enemy.x=fallback.x;enemy.y=fallback.y;movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
         if(movement.moved)world.movementRecoveryCount=(world.movementRecoveryCount||0)+1;
       }
+    }
     }
     if (movement.moved) movedEnemyCount++;
 
@@ -703,10 +732,10 @@ function startDepthEvent(world, random = Math.random) {
 }
 
 function resetWorldState(world, now = Date.now()) {
-  const fresh = createWorldState(now);
+  const fresh = createWorldState(now, world?.mode);
   for (const key of Object.keys(world || {})) delete world[key];
   Object.assign(world || {}, fresh);
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };

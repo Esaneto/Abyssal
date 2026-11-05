@@ -6,7 +6,7 @@ const AbyssalMap=require('../public/abyssal-map.js');
 const World=require('../world-simulation.js');
 
 test('400-entity cave navigation remains bounded and inside walkable geometry',()=>{
- const now=9000,world=World.createWorldState(now);
+ const now=9000,world=World.createWorldState(now,'rift');
  world.initialized=true;world.mapSeed=73003;world.mapTier=2;world.elapsed=80;world.lastTick=now-50;world.nextBossAt=Infinity;world.commonSpawnTimer=999;world.sideEncounterResolvedTier=2;world.enemies=[];world.nextEnemyId=0;
  const rooms=['shoal','trench','lantern','junction','event','hub','landing','boss'];
  let cursor=0;

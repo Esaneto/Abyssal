@@ -4,13 +4,14 @@ const AI = require('../public/enemy-ai.js');
 const Sim = require('../world-simulation.js');
 const CaveMap = require('../public/abyssal-map.js');
 
-test('initial co-op horde enters through real walkable cave chambers', () => {
-  const world = Sim.createWorldState(1000);
+test('rift encounters are finite and enter through real walkable cave chambers', () => {
+  const world = Sim.createWorldState(1000,'rift');
   world.mapSeed=CaveMap.seedValue('initial-horde-test');
   Sim.initializeWorld(world, 1000, () => 0.25);
   const layout=Sim.mapLayoutFor(world);
-  assert.equal(world.enemies.length, 3);
-  assert.ok(world.enemies.every(e => ['shoal','trench'].includes(e.spawnRoomId)));
+  assert.ok(world.enemies.length > 40);
+  assert.equal(world.enemies.filter(e=>AI.BOSS_KINDS.includes(e.kind)).length,1);
+  assert.equal(world.riftEncountersSeeded,true);
   assert.ok(world.enemies.every(e => CaveMap.isWalkable(layout,e.x,e.y,12)));
   assert.ok(world.enemies.every(e => e.spawnCorner==null));
 });
@@ -110,7 +111,7 @@ test('empty rooms do not advance time or simulate, and reset releases their enem
 });
 
 test('online mobs use the shared contact radius and remain visible beside the player', () => {
-  const world = Sim.createWorldState(1000);
+  const world = Sim.createWorldState(1000,'rift');
   world.mapSeed=CaveMap.seedValue('contact-range-test');
   world.initialized = true;
   world.lastTick = 1000;
@@ -133,7 +134,7 @@ test('online mobs use the shared contact radius and remain visible beside the pl
 
 
 test('a stationary player does not cause the whole online horde to freeze at contact', () => {
-  const world = Sim.createWorldState(1000);
+  const world = Sim.createWorldState(1000,'rift');
   world.mapSeed=CaveMap.seedValue('stationary-contact-test');
   world.initialized = true;
   world.lastTick = 1000;

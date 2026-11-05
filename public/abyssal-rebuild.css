@@ -13,7 +13,7 @@ body.abyss-rebuild-ready #menuScreen .menu-content{
   z-index:6;
 }
 body.abyss-rebuild-ready #menuScreen #playBtn,
-body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
+body.abyss-rebuild-ready #menuScreen .online-cta{display:flex !important}
 
 .abyss-gate{
   position:absolute;z-index:5;right:clamp(34px,5.4vw,110px);top:50%;
@@ -136,6 +136,11 @@ body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
 .abyss-specimen-badge.abyssal{color:#ff93aa;border-color:rgba(255,76,113,.24)}
 .abyss-specimen-lore{color:#6f8992 !important;font-size:10px !important;line-height:1.45 !important;margin-top:2px !important}
 .skin-card.abyss-filtered-out{display:none !important}
+.skin-card[hidden]{display:none!important}
+#marineSearch{margin:12px 0;width:100%;min-height:44px}
+.skin-card>p,.skin-card .skin-ability{font-family:system-ui,sans-serif;font-variant:normal;text-transform:none;letter-spacing:normal;line-height:1.5}
+.room-empty{padding:22px;border:1px solid rgba(88,214,207,.24);background:rgba(2,17,28,.72);color:#8fc8ca;text-align:center;letter-spacing:.1em;line-height:1.6}
+.room-row.rift-room{border-color:rgba(95,218,211,.35);box-shadow:inset 3px 0 rgba(95,218,211,.35)}
 
 @keyframes abyssGateBreath{0%,100%{transform:scale(.985,.99);filter:drop-shadow(0 0 34px rgba(0,0,0,.82))}50%{transform:scale(1.015,1.025);filter:drop-shadow(0 0 52px rgba(0,0,0,.92))}}
 @keyframes abyssGatePulse{0%,100%{opacity:.45;transform:scale(.96)}50%{opacity:.9;transform:scale(1.025)}}
@@ -414,7 +419,7 @@ body.abyss-event-resonance_bloom .abyss-event-banner strong{color:#7df5df}
 body:not(.game-active) .abyss-map-interact{display:none!important}
 
 /* Ocean sinkhole: a broad flooded limestone rim surrounding a dark shaft. */
-body.abyss-rebuild-ready #menuScreen{background:radial-gradient(ellipse at 75% 35%,#12607188,transparent 60%),linear-gradient(165deg,#092e40,#03121e 75%);overflow-y:auto}
+body.abyss-rebuild-ready #menuScreen{background:#03121e url('ocean-entry.svg') center/cover no-repeat;overflow-y:auto}
 .abyss-gate{height:min(58vw,540px);pointer-events:auto;cursor:pointer}
 .abyss-gate::before{inset:16% 0 12%;border-radius:48% 52% 46% 54%;background:radial-gradient(ellipse,#010914 40%,#062232 48%,#176477 52%,#399a9b 54%,#174d5b 58%,#0a3545 66%,transparent 70%);animation:none;transform:rotate(-9deg)}
 .abyss-gate::after{inset:26% 12% 23%;border-radius:50%;background:repeating-conic-gradient(from 20deg,#26667844 0deg 2deg,transparent 3deg 14deg);box-shadow:inset 0 22px 28px #248a9944,inset 0 -55px 55px #000c;animation:none}
@@ -425,6 +430,13 @@ body.abyss-rebuild-ready #menuScreen{background:radial-gradient(ellipse at 75% 3
 .abyss-gate-content strong{font-size:clamp(18px,2.4vw,30px);letter-spacing:.15em}
 .abyss-gate-button{background:transparent;border-color:#7ed6df66;margin-top:18px}
 .abyss-gate:hover::before{filter:drop-shadow(0 0 26px #33d4df44)}
+.abyss-gate::before,.abyss-gate::after,.abyss-gate-depth{display:none}
+body.abyss-rebuild-ready #menuScreen .menu-fauna{display:none}
+body.abyss-rebuild-ready #menuScreen .menu-content{background:linear-gradient(90deg,#03111ed9,#03111e55);padding:24px;border-radius:8px}
+.abyss-gate{right:4%;width:48%;top:52%}
+.abyss-gate-content strong{font-size:clamp(18px,2vw,26px)}
+.abyss-gate-button{background:#03111e88;min-height:48px}
+.abyss-depth-meter{position:relative;top:auto!important;right:auto!important;max-width:none!important;margin-top:10px;text-align:left}
 .abyss-descent-panel,.abyss-checkpoint-panel{overflow-y:auto}
 .abyss-descent-dialog,.abyss-checkpoint-card{max-height:calc(100dvh - 40px);overflow-y:auto}
 body:not(.game-active) .abyss-depth-meter{display:none!important}

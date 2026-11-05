@@ -23,6 +23,8 @@ const ABYSSAL_MAP=window.AbyssalMap;
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
+let requestedRunMode='classic';
+const isRiftRun=()=>onlineMode?onlineRoomMode==='rift':requestedRunMode==='rift';
 let runShotId='electric';
 let runResonanceIds=[];
 const RESONANCE_STORAGE_KEY='abyssalResonancePresets';
@@ -89,7 +91,7 @@ let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 let sharkWakeTrails=[];
 function setActiveMapDescriptor(descriptor){
- if(onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;return null;}
+ if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;return null;}
  const seed=Number(descriptor?.seed);
  if(!Number.isFinite(seed))return activeMapLayout;
  const tier=Math.max(0,Math.floor(Number(descriptor?.tier)||0));
@@ -98,7 +100,7 @@ function setActiveMapDescriptor(descriptor){
  return activeMapLayout;
 }
 function ensureSoloMap(){
- if(onlineMode||!ABYSSAL_MAP)return activeMapLayout;
+ if(onlineMode||requestedRunMode!=='rift'||!ABYSSAL_MAP)return activeMapLayout;
  if(!activeMapLayout){runSeed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;setActiveMapDescriptor({seed:runSeed,tier:0});}
  return activeMapLayout;
 }
@@ -129,9 +131,9 @@ function currentMapInteraction(){
  const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
  if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
  if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
- if(portals.surface&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
  const clearedBosses=onlineMode?onlineBossesDefeated:bossKillsThisRun;
  const bossAlive=enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ if(portals.surface&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
  if(portals.boss&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'ROMPER PARA A PRÓXIMA CAMADA',hint:'F · DESCER MAIS FUNDO'};
  return null;
 }
@@ -169,6 +171,7 @@ function activateMapInteraction(){
   }
   activeMapTier+=1;setActiveMapDescriptor({seed:activeMapSeed,tier:activeMapTier});tierDescentPending=false;progressionDistance=0;
   enemies=[];orbs=[];projectiles=[];effects=[];enemyCollisionGrid.clear();
+  seedSoloRiftEncounters();
   const spawn=ABYSSAL_MAP.startSpawn(activeMapLayout,0,1);
   return applyMapTransition('next-tier',spawn.x,spawn.y);
  }
@@ -252,6 +255,7 @@ const skinData=[
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
+skinData.push(...(window.AbyssalMarineSpecies?.species||[]));
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
@@ -874,7 +878,7 @@ function updateProgressionTrackUI() {
   var track = $('bossProgressionTrack');
   if (!track) return;
   // A arena PvP não possui ciclos de bosses nem progressão de expedição.
-  if (onlineMode && onlineRoomMode === 'pvp') { track.style.display = 'none'; return; }
+  if ((onlineMode && onlineRoomMode === 'pvp') || isRiftRun()) { track.style.display = 'none'; return; }
   track.style.display = 'block';
   var hpBonusPercent = Math.round(bossProgressionCycle * 20);
   var xpBonusPercent = Math.round(bossProgressionCycle * 2);
@@ -1094,11 +1098,11 @@ function showVictoryModal() {
 function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
- expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;ensureSoloMap();}else if(onlineRoomMode==='pvp'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
+ expeditionMode=isRiftRun();expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;if(requestedRunMode==='rift')ensureSoloMap();}else if(onlineRoomMode!=='rift'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
- if(!onlineMode)publishSoloDepthState();
+ if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
 runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
@@ -1115,7 +1119,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';startAmbientMusic();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode)for(let i=0;i<3;i++)spawnEnemy(true);if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
 }
 const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Amplifica o núcleo ofensivo: +50% de dano dos disparos por nível. O brilho de impacto fica mais intenso conforme a potência cresce.',apply:()=>upgrades.power*=1.5},
@@ -1330,8 +1334,16 @@ function spawnEnemy(initial=false,type='common',options={}){
  const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  enemies.push(enemy);discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
- if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
+ if(BOSS_KINDS.includes(kind)){lastBossKind=kind;if(!options.silentBoss)showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
+}
+
+function seedSoloRiftEncounters(){
+ if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout)return;
+ const populations={shoal:5,trench:7,lantern:7,junction:8,elite:3,event:5,hub:6,landing:7};
+ for(const [roomId,count] of Object.entries(populations))for(let i=0;i<count;i++)spawnEnemy(false,'common',{roomId,forceElite:roomId==='elite'});
+ spawnEnemy(false,'boss',{roomId:'boss',silentBoss:true});
+ spawnTimer=Infinity;nextBossAt=Infinity;
 }
 
 function burst(x,y,color,n=10,force=100){
@@ -1770,7 +1782,7 @@ function killEnemy(i){
   soloEliteRewardTier=activeMapTier;addOrb(e.x,e.y,EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18);
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
-}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
+}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
@@ -1876,7 +1888,7 @@ function update(dt){
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;updateBossProgressionStep(dt);}else{updateBossProgressionStep(dt);}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   let areaGridReady=false;
@@ -1913,7 +1925,7 @@ function update(dt){
 
 player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&equippedSkin==='devourer'&&player.devourerVacuumUntil>performance.now()){for(const orb of orbs){const d=Math.hypot(player.x-orb.x,player.y-orb.y);if(d>1&&d<760/GAME_WORLD_ZOOM){const pull=Math.min(d,dt*(110+Math.max(0,760/GAME_WORLD_ZOOM-d)*.22));orb.x+=(player.x-orb.x)/d*pull;orb.y+=(player.y-orb.y)/d*pull;}}}
- if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){const roomId=chooseSoloSpawnRoom();if(roomId)spawnEnemy(false,'common',{roomId});const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
+ if(!onlineMode&&requestedRunMode!=='rift'&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
  // Spawn de boss solo gerenciado exclusivamente pelo sistema de progressão (updateBossProgressionStep).
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');effects.push({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
@@ -2402,13 +2414,20 @@ function drawMapPortal(portal,t){
 }
 function drawAbyssalCaveMap(t){
  const layout=activeMapLayout;if(!layout||onlineRoomMode==='pvp')return false;
+ const caveCleared=(onlineMode?onlineBossesDefeated:bossKillsThisRun)>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ if(window.AbyssalTerrain){
+  window.AbyssalTerrain.draw(ctx,layout,cameraX,cameraY,viewW/worldZoom,viewH/worldZoom,t);
+  drawMapPortal(layout.portals.start,t);if(caveCleared){drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.boss,t);}
+  return true;
+ }
  ctx.fillStyle='#01040a';ctx.fillRect(0,0,W,H);
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
  for(const corridor of layout.corridors){
   const visible=corridor.x2>=cameraX-500&&corridor.x1<=cameraX+viewW/worldZoom+500&&Math.max(corridor.y1,corridor.y2)>=cameraY-500&&Math.min(corridor.y1,corridor.y2)<=cameraY+viewH/worldZoom+500;
   if(!visible)continue;
-  ctx.strokeStyle='rgba(0,1,4,.96)';ctx.lineWidth=corridor.width*2.28;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
-  ctx.strokeStyle=corridor.optional?'rgba(23,22,35,.96)':'rgba(8,25,34,.98)';ctx.lineWidth=corridor.width*1.62;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
+  const path=corridor.path||[{x:corridor.x1,y:corridor.y1},{x:corridor.x2,y:corridor.y2}];
+  ctx.strokeStyle='rgba(0,1,4,.96)';ctx.lineWidth=corridor.width*2.28;ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
+  ctx.strokeStyle=corridor.optional?'rgba(23,22,35,.96)':'rgba(8,25,34,.98)';ctx.lineWidth=corridor.width*1.62;ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
   ctx.strokeStyle=corridor.optional?'rgba(163,92,180,.12)':'rgba(91,194,199,.09)';ctx.lineWidth=Math.max(2,corridor.width*.055);ctx.stroke();if(corridor.optional)drawCaveBranchSignal(corridor,t);
  }
  for(const room of layout.rooms){
@@ -2429,7 +2448,7 @@ function drawAbyssalCaveMap(t){
   water.addColorStop(0,'rgba(34,121,139,.12)');water.addColorStop(1,'rgba(0,8,18,0)');ctx.fillStyle=water;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.9,room.ry*.9,0,0,Math.PI*2);ctx.fill();
   drawCaveRoomSignal(room,t);
  }
- drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);drawMapPortal(layout.portals.landing,t);
+ drawMapPortal(layout.portals.start,t);if(caveCleared){drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.boss,t);}
  ctx.restore();
  return true;
 }
@@ -2472,8 +2491,9 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
+ if(skin?.family&&window.drawMarineSpecies){window.drawMarineSpecies(c,skin,x,y,r,angle,t);return;}
  const boss=BOSS_KINDS.includes(kind);
- const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
+ const glowScale=playerCreature?.16:boss?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=1;
  const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
@@ -3095,7 +3115,8 @@ window.addEventListener('abyssal-revive-result',event=>{
 });
 function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
 function returnToMainMenu(){runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
-$('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
+$('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
+window.addEventListener('abyssal-start-rift-solo',()=>{requestedRunMode='rift';onlineMode=false;startGame()});
 $('againBtn').addEventListener('click',()=>{
  const shouldRestartOnline = wasOnlineModeOnDeath;
  const proceedRestart = () => {
@@ -3492,7 +3513,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
     burst(px,py,skinColor,16,120);
   }
 });
-function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=d.room?.mode==='pvp'?'pvp':'coop';onlineMode=true;
+function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':'classic';onlineMode=true;
  // room-joined is authoritative. Commit the UI transition before any fallible arena/game setup.
  for(const id of [...screens,'roomsScreen','loginScreen']){const node=$(id);if(node)node.hidden=true;}
  document.body.classList.add('game-active');
@@ -3504,17 +3525,17 @@ window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classLi
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
 window.addEventListener('abyssal-reconnect-failed',ev=>{onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
-window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
+window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 function handleRoomsClosed(){onlineMode=false;if(gameState==='menu'){setMobileGameActive(false);document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;}}
 window.addEventListener('abyssal-modal-closed',ev=>{if(ev.detail?.screenId==='roomsScreen')handleRoomsClosed();});
 $('refreshRoomsBtn')?.addEventListener('click',()=>window.AbyssalOnline?.requestRooms());
 $('roomPrivateCheck')?.addEventListener('change',e=>{$('roomPasswordField').hidden=!e.target.checked});
-$('createRoomBtn')?.addEventListener('click',()=>window.AbyssalOnline?.createRoom({name:$('roomNameInput').value,capacity:Number($('roomCapacityInput').value),isPrivate:$('roomPrivateCheck').checked,password:$('roomPasswordInput').value,mode:$('roomModeInput')?.value==='pvp'?'pvp':'coop'}));
+$('createRoomBtn')?.addEventListener('click',()=>{const selected=$('roomModeInput')?.value;window.AbyssalOnline?.createRoom({name:$('roomNameInput').value,capacity:Number($('roomCapacityInput').value),isPrivate:$('roomPrivateCheck').checked,password:$('roomPasswordInput').value,mode:['pvp','rift'].includes(selected)?selected:'coop'});});
 $('joinRoomCodeBtn')?.addEventListener('click',()=>window.AbyssalOnline?.joinRoom($('roomCodeInput').value,$('roomJoinPasswordInput').value));
 window.addEventListener('abyssal-rooms-list',ev=>renderRoomList(ev.detail||[]));
 window.addEventListener('abyssal-room-action-error',ev=>{const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'Não foi possível realizar essa ação.';});
-function renderRoomList(rooms){const root=$('roomsList');if(!root)return;let list=Array.isArray(rooms)?rooms:[];if(!list.length)list=[{id:'MAR-ABERTO',name:'Mar Aberto',playerCount:0,capacity:6,isPrivate:false,fallback:true,joinable:true}];root.innerHTML=list.map(r=>{const full=(Number(r.playerCount)||0)>=(Number(r.capacity)||6),privateRoom=Boolean(r.isPrivate),pvp=r.mode==='pvp',remote=r.joinable===false,label=pvp?'⚠ ARENA PvP · PERIGO':privateRoom?'PRIVADA · SENHA':(r.id==='MAR-ABERTO'?'SALA PÚBLICA PADRÃO':'PÚBLICA'),buttonDisabled=full||remote,buttonText=full?'LOTADA':remote?'OUTRA INSTÂNCIA':privateRoom?'SENHA':'ENTRAR';return `<article class="room-row${privateRoom?' room-row-private':''}${pvp?' pvp-room':''}"><div><b>${pvp?'⚠ ':privateRoom?'🔒 ':''}${escapeHtml(r.name||'Sala Abissal')}</b><small>${Number(r.playerCount)||0}/${Number(r.capacity)||6} mergulhadores · ${label}${Number.isFinite(Number(r.elapsed))&&Number(r.elapsed)>0?' · '+fmtTime(Number(r.elapsed)):''}</small></div><button type="button" class="room-join-btn" data-room-id="${escapeHtml(r.id)}" data-private="${privateRoom?'1':'0'}" data-joinable="${remote?'0':'1'}" ${buttonDisabled?'disabled':''}>${buttonText}</button></article>`}).join('');root.querySelectorAll('[data-room-id]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.roomId;const code=$('roomCodeInput'),password=$('roomJoinPasswordInput'),section=root.closest('.room-modal')?.querySelector('.room-join-code'),msg=$('roomsMessage');if(code)code.value=id;if(btn.dataset.joinable==='0'){if(msg)msg.textContent='Esta expedição está registrada, mas pertence a outro processo do servidor e não pode ser conectada por esta instância.';return;}if(btn.dataset.private==='1'){if(msg)msg.textContent='EXPEDIÇÃO SELADA. Informe a senha para romper o lacre e entrar.';section?.scrollIntoView({behavior:'smooth',block:'nearest'});password?.focus();return;}window.AbyssalOnline?.joinRoom(id,'');}));}
+function renderRoomList(rooms){const root=$('roomsList');if(!root)return;const riftLobby=window.AbyssalPreferredRoomMode==='rift';let list=(Array.isArray(rooms)?rooms:[]).filter(room=>riftLobby?room.mode==='rift':room.mode!=='rift');if(!list.length&&!riftLobby)list=[{id:'MAR-ABERTO',name:'Mar Aberto',mode:'coop',playerCount:0,capacity:6,isPrivate:false,fallback:true,joinable:true}];if(!list.length){root.innerHTML='<div class="room-empty">NENHUMA FENDA ATIVA · CRIE UMA EXPEDIÇÃO PARA ABRIR ESTA ROTA.</div>';return;}root.innerHTML=list.map(r=>{const full=(Number(r.playerCount)||0)>=(Number(r.capacity)||6),privateRoom=Boolean(r.isPrivate),pvp=r.mode==='pvp',rift=r.mode==='rift',remote=r.joinable===false,label=rift?'FENDA · EXPLORAÇÃO FINITA':pvp?'⚠ ARENA PvP · PERIGO':privateRoom?'PRIVADA · SENHA':(r.id==='MAR-ABERTO'?'SALA PÚBLICA PADRÃO':'PÚBLICA'),buttonDisabled=full||remote,buttonText=full?'LOTADA':remote?'OUTRA INSTÂNCIA':privateRoom?'SENHA':'ENTRAR';return `<article class="room-row${privateRoom?' room-row-private':''}${pvp?' pvp-room':''}${rift?' rift-room':''}"><div><b>${rift?'⌁ ':pvp?'⚠ ':privateRoom?'🔒 ':''}${escapeHtml(r.name||'Sala Abissal')}</b><small>${Number(r.playerCount)||0}/${Number(r.capacity)||6} mergulhadores · ${label}${Number.isFinite(Number(r.elapsed))&&Number(r.elapsed)>0?' · '+fmtTime(Number(r.elapsed)):''}</small></div><button type="button" class="room-join-btn" data-room-id="${escapeHtml(r.id)}" data-private="${privateRoom?'1':'0'}" data-joinable="${remote?'0':'1'}" ${buttonDisabled?'disabled':''}>${buttonText}</button></article>`}).join('');root.querySelectorAll('[data-room-id]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.roomId;const code=$('roomCodeInput'),password=$('roomJoinPasswordInput'),section=root.closest('.room-modal')?.querySelector('.room-join-code'),msg=$('roomsMessage');if(code)code.value=id;if(btn.dataset.joinable==='0'){if(msg)msg.textContent='Esta expedição está registrada, mas pertence a outro processo do servidor e não pode ser conectada por esta instância.';return;}if(btn.dataset.private==='1'){if(msg)msg.textContent='EXPEDIÇÃO SELADA. Informe a senha para romper o lacre e entrar.';section?.scrollIntoView({behavior:'smooth',block:'nearest'});password?.focus();return;}window.AbyssalOnline?.joinRoom(id,'');}));}
 
 $('loginCancelBtn').addEventListener('click',()=>{$('loginScreen').hidden=true});
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});

@@ -332,11 +332,12 @@ const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
+for(const species of require('./public/marine-species').species)allowedSkinIds.add(species.id);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
-function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:room.mode==='pvp'?'pvp':'coop',roomResume:{id:room.id,name:room.name||room.id,mode:room.mode==='pvp'?'pvp':'coop',isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
-function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===(room.mode==='pvp'?'pvp':'coop');if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
-function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
+function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
+function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===normalizeRoomMode(room.mode);if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
+function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
 function ensureMatchParticipant(room,p){
  if(!room||!p)return null;room.matchParticipants ||= new Map();
  const key=String(p.userKey||p.nickname||p.id);let row=room.matchParticipants.get(key);
@@ -346,13 +347,15 @@ function ensureMatchParticipant(room,p){
 function saveMatchHistoryForUser(user,room,run){
  if(!user||!room||!run||run.historySaved)return;
  const participants=[...(room.matchParticipants?.values?.()||[])].map(p=>({nickname:p.nickname,bossesKilled:Math.max(0,Math.floor(Number(p.bossesKilled)||0)),damage:Math.max(0,Math.round(Number(p.damage)||0))})).sort((a,b)=>b.damage-a.damage||b.bossesKilled-a.bossesKilled||a.nickname.localeCompare(b.nickname));
- const record={id:String(run.id||crypto.randomUUID()),roomId:room.id,roomName:room.name||room.id,mode:room.mode==='pvp'?'pvp':'coop',playedAt:new Date().toISOString(),participants};
+ const record={id:String(run.id||crypto.randomUUID()),roomId:room.id,roomName:room.name||room.id,mode:room.mode,playedAt:new Date().toISOString(),participants};
  user.matchHistory=[record,...(Array.isArray(user.matchHistory)?user.matchHistory:[]).filter(x=>String(x?.id)!==record.id)].slice(0,10);run.historySaved=true;
 }
-function makeWorldState(){return WorldSimulation.createWorldState();}
+function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':'coop';}
+function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':'classic');}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={}){
  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
- return {id,name,mode:mode==='pvp'?'pvp':'coop',isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
+ mode=normalizeRoomMode(mode);
+ return {id,name,mode,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
@@ -360,7 +363,7 @@ function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.ro
 function channelFor(room){return `abyss-room:${room.id}`;}
 function publicRoomInfo(room){
  const bossCount=room.world.enemies.filter(e=>isBossKind(e.kind)).length;
- return {id:room.id,code:room.id,name:room.name,mode:room.mode==='pvp'?'pvp':'coop',isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
+ return {id:room.id,code:room.id,name:room.name,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
 }
 function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===DEFAULT_ROOM_ID?0:id===PVP_ROOM_ID?1:2;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
 function roomList(){return sortRoomInfos([...rooms.values()].map(publicRoomInfo));}
@@ -404,7 +407,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0},depthState:worldDepthState(world),criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -515,7 +518,7 @@ function ensureWorld(room){
 }
 function clearRoomWorld(room){
  if(!room)return;
- room.world=WorldSimulation.createWorldState(Date.now());
+ room.world=makeWorldState(room.mode);
 }
 function scheduleUnjoinedRoomExpiry(room,delay=30000){
  if(!room||room.id===DEFAULT_ROOM_ID||room.id===PVP_ROOM_ID)return;
@@ -1068,7 +1071,7 @@ io.on('connection', socket => {
   payload=payload&&typeof payload==='object'?payload:{};
   const name=String(payload.name||'Expedição Abissal').trim().replace(/[<>]/g,'').slice(0,28)||'Expedição Abissal';
   const capacity=Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Math.floor(Number(payload.capacity)||6)));
-  const isPrivate=Boolean(payload.isPrivate),password=String(payload.password||''),mode=payload.mode==='pvp'?'pvp':'coop';
+  const isPrivate=Boolean(payload.isPrivate),password=String(payload.password||''),mode=normalizeRoomMode(payload.mode);
   if(isPrivate&&(password.length<4||password.length>64))return socket.emit('room-created',{ok:false,message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'});
   if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
   const id=randomRoomId(),room=makeRoom({id,name,isPrivate,password,capacity,mode});rooms.set(id,room);
@@ -1103,9 +1106,9 @@ io.on('connection', socket => {
   const occupiedSpawnSlots=new Set([...room.players.values()].map(player=>Number(player.spawnSlot)).filter(Number.isInteger));
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
-  const expeditionSpawn=room.mode==='coop'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
+  const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
-  const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,WORLD_HEIGHT-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
+  const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,WORLD_HEIGHT-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:WORLD_HEIGHT,worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,aberrationEchoUsed:false,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};socket.emit('room-joined',joined);ack(joined);
@@ -1142,7 +1145,7 @@ io.on('connection', socket => {
   const movement=consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
-  if(room.mode==='coop'){
+  if(room.mode==='rift'){
    const layout=WorldSimulation.mapLayoutFor(room.world),resolved=AbyssalMap.resolveMove(layout,previousX,previousY,x,y,Math.max(10,Number(p.r)||13/WORLD_ZOOM));
    acceptedX=resolved.x;acceptedY=resolved.y;
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
@@ -1187,7 +1190,7 @@ io.on('connection', socket => {
  socket.on('map-transition',(payload={},acknowledge)=>{
   const reply=data=>{if(typeof acknowledge==='function')try{acknowledge(data)}catch{};socket.emit('map-transition-result',data);};
   const room=socketRoom(socket),p=room?.players.get(socket.id);
-  if(!room||room.mode!=='coop'||!p||p.alive===false)return reply({ok:false,reason:'unavailable'});
+  if(!room||room.mode!=='rift'||!p||p.alive===false)return reply({ok:false,reason:'unavailable'});
   const kind=String(payload?.kind||''),layout=WorldSimulation.mapLayoutFor(room.world),now=Date.now();
   if(!layout||!['descent','ascend','next-tier'].includes(kind))return reply({ok:false,reason:'invalid-transition'});
   if(now-(Number(p.lastMapTransitionAt)||0)<850)return reply({ok:false,reason:'cooldown'});
@@ -1200,7 +1203,7 @@ io.on('connection', socket => {
    const party=livingPlayers(room);
    const allReady=party.every(peer=>Math.hypot(Number(peer.x)-source.x,Number(peer.y)-source.y)<=Number(source.r)+(Number(peer.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM);
    if(!allReady)return reply({ok:false,reason:'group-not-ready'});
-   w.mapTier=currentTier+1;w.enemies=[];w.orbs=[];w.commonSpawnTimer=.45;w.nextBossAt=(Number(w.elapsed)||0)+(100/3.8);
+   w.mapTier=currentTier+1;w.enemies=[];w.orbs=[];w.commonSpawnTimer=Infinity;w.nextBossAt=Infinity;w.riftEncountersSeeded=false;
    w.snapshotTimer=0;w.reliableSnapshotTimer=0;w.orbSnapshotTimer=0;w.sideEncounterId=null;
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
    party.forEach((peer,index)=>{
@@ -1578,9 +1581,11 @@ io.on('connection', socket => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
   const stripeOnlySkins = new Set(['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
   const requestedId=String(payload.id||'');
+  const marineSpecies=require('./public/marine-species').byId[requestedId];
+  if(marineSpecies?.paid)stripeOnlySkins.add(requestedId);
   if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Esta skin exige checkout hospedado e confirmação de pagamento.'});
   const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000, aberration:16000, angler:19000, maw:22000, devourer:35000 };
-  const id = String(payload.id || ''), price = prices[id];
+  const id = String(payload.id || ''), price = marineSpecies&&!marineSpecies.paid?marineSpecies.coins:prices[id];
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Skin indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });
   if ((u.coins || 0) < price) return socket.emit('purchase-result', { ok:false, message:'Moedas abissais insuficientes.', account:publicUser(u) });

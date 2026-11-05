@@ -23,13 +23,15 @@ test('seed variation changes lateral room shapes without inverting depth',()=>{
  }
 });
 
-test('hub and landing require the blue descent portal instead of a normal corridor',()=>{
+test('the expedition is one continuous cave and both exits sit behind the boss',()=>{
  const layout=Map.createLayout('portal-depth',0);
- assert.equal(layout.corridors.some(edge=>new Set([edge.a,edge.b]).has('hub')&&new Set([edge.a,edge.b]).has('landing')),false);
+ assert.equal(layout.corridors.some(edge=>new Set([edge.a,edge.b]).has('hub')&&new Set([edge.a,edge.b]).has('landing')),true);
  const hub=layout.rooms.find(room=>room.id==='hub'),landing=layout.rooms.find(room=>room.id==='landing');
- assert.equal(Map.segmentWalkable(layout,hub.x,hub.y,landing.x,landing.y,12),false);
- assert.equal(Map.isWalkable(layout,layout.portals.descent.targetX,layout.portals.descent.targetY,12),true);
- assert.equal(Map.isWalkable(layout,layout.portals.landing.targetX,layout.portals.landing.targetY,12),true);
+ assert.equal(Map.roomPath(layout,hub.id,landing.id).join('>'),'hub>landing');
+ assert.equal(layout.portals.descent,null);
+ assert.equal(layout.portals.landing,null);
+ assert.equal(Map.roomAt(layout,layout.portals.surface.x,layout.portals.surface.y)?.id,'boss');
+ assert.equal(Map.roomAt(layout,layout.portals.boss.x,layout.portals.boss.y)?.id,'boss');
 });
 
 test('walkable geometry blocks empty rectangle space and slides along cave walls',()=>{

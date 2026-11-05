@@ -38,6 +38,12 @@ function fireRateMultiplier(skinId) { return skinId === 'solar' ? 1.18 : 1; }
 function orbExperienceMultiplier(skinId) { return skinId === 'default' ? 1.12 : skinId === 'royal' ? 1.25 : 1; }
 function magnetRangeMultiplier(skinId) { return skinId === 'hammerhead' ? 1.5 : skinId === 'devourer' ? 1.35 : 1; }
 
-const api = Object.freeze({ BOSS_KINDS, CLOSE_RANGE, LONG_RANGE, damageMultiplier, incomingDamageMultiplier, enemySpeedMultiplier, movementMultiplier, targetRangeMultiplier, fireRateMultiplier, orbExperienceMultiplier, magnetRangeMultiplier });
+const marineCatalog=typeof module!=='undefined'&&module.exports?require(require('node:path').join(__dirname,require('node:path').basename(__dirname)==='public'?'marine-species':'public/marine-species')):window.AbyssalMarineSpecies;
+const abilityFunctions={ BOSS_KINDS, CLOSE_RANGE, LONG_RANGE, damageMultiplier, incomingDamageMultiplier, enemySpeedMultiplier, movementMultiplier, targetRangeMultiplier, fireRateMultiplier, orbExperienceMultiplier, magnetRangeMultiplier };
+for(const [method,stat] of Object.entries({damageMultiplier:'damage',incomingDamageMultiplier:'defense',movementMultiplier:'movement',targetRangeMultiplier:'range',fireRateMultiplier:'fireRate',orbExperienceMultiplier:'experience',magnetRangeMultiplier:'magnet'})){
+ const original=abilityFunctions[method];
+ abilityFunctions[method]=function(id,...args){const s=marineCatalog?.byId[id];return s?.stat===stat?1+(stat==='defense'?-1:1)*s.bonus/100:original(id,...args);};
+}
+const api = Object.freeze(abilityFunctions);
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 if (typeof window !== 'undefined') window.AbyssalSkinAbilities = api;

@@ -17,6 +17,7 @@ const PAID_SKINS = {
  abysscroc:{name:'Predador de Mangue',nameEn:'Mangrove Predator',brl:690},
  armoredgator:{name:'Couraçado de Estuário',nameEn:'Estuary Armored Hunter',brl:690}
 };
+for(const species of require('./public/marine-species').species){if(species.paid)PAID_SKINS[species.id]={name:species.name,nameEn:species.name,brl:species.brl};}
 function calculateOrder(productId, ownedSkins, currency='brl') {
  if (String(currency).toLowerCase() !== 'brl') throw new Error('Unsupported currency');
  const code='brl';

@@ -9,7 +9,7 @@ test('tier 0 remains downward while deeper tiers vary laterally from the same se
  const tier0=AbyssalMap.createLayout(73191,0);
  const tier1=AbyssalMap.createLayout(73191,1);
  const tier1Again=AbyssalMap.createLayout(73191,1);
- assert.equal(tier0.version,2);
+ assert.equal(tier0.version,3);
  assert.deepEqual(tier1.rooms.map(r=>[r.id,r.x,r.y]),tier1Again.rooms.map(r=>[r.id,r.x,r.y]));
  assert.ok(tier1.rooms.some((room,i)=>room.x!==tier0.rooms[i].x));
  const main=['start','shoal','trench','lantern','junction','hub'];
@@ -42,7 +42,7 @@ test('side encounter is deterministic per expedition seed and tier',()=>{
 });
 
 test('forced physical room controls fauna spawn location and remains walkable',()=>{
- const world=World.createWorldState(1000);
+ const world=World.createWorldState(1000,'rift');
  world.initialized=true;world.mapSeed=401;world.mapTier=2;world.bossesDefeated=2;world.enemies=[];world.nextEnemyId=0;
  const enemy=World.spawnEnemy(world,{type:'common',roomId:'landing',random:()=>0.42});
  const map=World.mapLayoutFor(world);
@@ -53,7 +53,7 @@ test('forced physical room controls fauna spawn location and remains walkable',(
 });
 
 test('density selector keeps upper and lower portal layers separated',()=>{
- const world=World.createWorldState(2000);world.initialized=true;world.mapSeed=812;world.mapTier=0;world.enemies=[];
+ const world=World.createWorldState(2000,'rift');world.initialized=true;world.mapSeed=812;world.mapTier=0;world.enemies=[];
  const map=World.mapLayoutFor(world),upper=map.rooms.find(r=>r.id==='junction'),lower=map.rooms.find(r=>r.id==='landing');
  const upperRoom=World.chooseDensitySpawnRoom(world,[{x:upper.x,y:upper.y,alive:true}],()=>0.2);
  const lowerRoom=World.chooseDensitySpawnRoom(world,[{x:lower.x,y:lower.y,alive:true}],()=>0.2);
@@ -62,7 +62,7 @@ test('density selector keeps upper and lower portal layers separated',()=>{
 });
 
 test('entering the optional event room resolves exactly one deterministic encounter per tier',()=>{
- const now=5000,world=World.createWorldState(now);
+ const now=5000,world=World.createWorldState(now,'rift');
  world.initialized=true;world.mapSeed=12001;world.mapTier=1;world.elapsed=12;world.lastTick=now-50;world.nextBossAt=Infinity;world.commonSpawnTimer=999;world.enemies=[];world.orbs=[];world.nextEnemyId=0;world.nextOrbId=0;world.sideEncounterResolvedTier=-1;
  const map=World.mapLayoutFor(world),room=map.rooms.find(r=>r.id==='event');
  const player={id:'p1',x:room.x,y:room.y,r:13/1.55,moveSpeed:150/1.55,skinId:'default',alive:true,hp:100,maxHp:100,shieldCharges:0,invulnerableUntil:0};
