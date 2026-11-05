@@ -4412,3 +4412,7 @@ body.game-active.hud-collapsed{--match-ui-top:max(10px,env(safe-area-inset-top))
   bottom:calc(var(--game-safe-bottom) + 54px)!important;
  }
 }
+
+
+/* Authoritative gameplay owns the viewport. The room lobby must never overlay an accepted match. */
+body.game-active #roomsScreen{display:none!important;pointer-events:none!important}
