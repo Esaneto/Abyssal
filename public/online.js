@@ -193,6 +193,7 @@ function connect(){
 socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:result}));});
  socket.on('wheel-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:result}));});
  socket.on('world-depth-state',data=>{window.dispatchEvent(new CustomEvent('abyssal-depth-state',{detail:data||{}}));});
+ socket.on('world-cave-signal',data=>{window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:data||{}}));});
  socket.on('world-enemy-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged',{detail:data||{}}));});
  socket.on('world-enemies-damaged',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-damaged-batch',{detail:Array.isArray(data)?data:[]}));});
  // Server-owned HP/shields are sent reliably. Bridge them to the game UI; without this

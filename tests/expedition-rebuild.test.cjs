@@ -23,8 +23,8 @@ test('descent gate is loaded as a lightweight client-only menu layer',()=>{
 
 
 test('depth rules load before gameplay and literal newline escape debris is absent',()=>{
- assert.match(index,/abyssal-expedition-rules\.js\?v=1/);
- assert.ok(index.indexOf('abyssal-expedition-rules.js?v=1')<index.indexOf('game.js?v=4.4.4'));
+ assert.match(index,/abyssal-expedition-rules\.js\?v=2/);
+ assert.ok(index.indexOf('abyssal-expedition-rules.js?v=2')<index.indexOf('game.js?v=4.4.5'));
  assert.doesNotMatch(index,/\\\\n/);
 });
 
@@ -65,7 +65,7 @@ test('successful extraction has its own result state and cannot offer a revive a
 });
 
 test('boss collection is framed as relics instead of playable full bosses',()=>{
- for(const name of ['Eco do Leviatã','Eco do Kraken','Casca da Aberração','Núcleo da Lanterna','Fragmento da Fenda','Núcleo Devorador']){
+ for(const name of ['Eco do Peixe-Remo Leviatã','Eco da Lula-Kraken','Casca do Cefalópode Calcificado','Núcleo do Peixe-Pescador','Fragmento da Enguia-Pelícano','Núcleo da Lula-Colossal']){
   assert.ok(game.includes(name),name+' should be present in the playable collection');
  }
  assert.match(rebuild,/RELÍQUIAS/);

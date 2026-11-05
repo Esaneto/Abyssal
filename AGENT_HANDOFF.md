@@ -8,11 +8,11 @@ Este arquivo e a fonte de continuidade tecnica do projeto. Leia antes de modific
 
 Abyssal e um jogo HTML5/JavaScript com Node.js + Socket.IO, multiplayer em tempo real, deploy no Render e empacotamento Android.
 
-A prioridade geral e:
-1. gameplay responsivo e sem sensacao de input lag;
-2. servidor autoritativo sem sacrificar a resposta visual local;
-3. exploracao que prenda o jogador por risco, curiosidade, progressao e descida;
-4. identidade visual e criaturas coerentes com o oceano e o abismo;
+Prioridades:
+1. gameplay responsivo, sem input lag perceptivel;
+2. servidor autoritativo sem sacrificar resposta visual local;
+3. exploracao que prenda por risco, curiosidade, progressao e descida;
+4. identidade visual e criaturas coerentes com oceano e abismo;
 5. estabilidade suficiente para publicacao e operacao real.
 
 ## 2. Regra de produto para criaturas
@@ -20,20 +20,43 @@ A prioridade geral e:
 Direcao obrigatoria para novas criaturas, monstros, elites, skins e bosses:
 
 - Priorizar fauna marinha abissal real ou fortemente inspirada nela.
-- Quando as boas referencias abissais naturais se esgotarem, expandir para fauna marinha de outras zonas, incluindo mesopelagica, batial, pelagica, recifes e superficie.
-- Evitar criaturas genericas de fantasia terrestre quando houver um equivalente marinho interessante.
-- A anatomia pode ser estilizada e monstruosa, mas deve manter uma leitura biologica/oceanica.
-- Bosses devem parecer formas de vida ou lendas marinhas adaptadas ao universo Abyssal, nao personagens aleatorios desconectados do mar.
-- Skins podem reinterpretar especies reais com mutacoes, bioluminescencia, pressao, toxinas, eletricidade, blindagem, camuflagem e outras adaptacoes plausiveis para o universo.
+- Quando as boas referencias abissais se esgotarem, expandir para fauna mesopelagica, batial, pelagica, recifes, superficie e estuarios marinhos.
+- Evitar fantasia terrestre quando houver equivalente marinho interessante.
+- A anatomia pode ser monstruosa, mas precisa manter leitura biologica/oceanica.
+- Skins podem reinterpretar especies reais com bioluminescencia, pressao, toxinas, eletricidade, blindagem, camuflagem e outras adaptacoes do universo Abyssal.
+- IDs internos de skins compradas nao devem ser renomeados sem migracao de conta. A identidade visual e o nome de exibicao podem mudar mantendo o ID.
 
-Exemplos de referencias fortes para explorar no futuro:
-peixe-vibora, peixe-dragao, enguia-pelicano, peixe-ogro, tubarao-charuto, tubarao-duende, quimera, lula-vampira, lula-colossal, isopode-gigante, siphonophora, medusas profundas, pepino-do-mar, caranguejo-yeti, peixe-bolha, peixe-lanterna, peixe-machado, peixe-tripode, peixe-pescador, moraias, raias, mantas, tubaroes, moreias, polvos, lulas, crustaceos e cnidarios.
+A revisao de 2026-11-05 substituiu os quatro casos claramente fora da direcao marinha sem quebrar IDs/ownership:
+- `abysscroc` -> Tubarao-Touro Estuarino;
+- `armoredgator` -> Caranguejo-Ferradura Couracado;
+- `greensnake` -> Moreia Esmeralda Colossal;
+- `electriceel` -> Raia-Eletrica Abissal.
+
+Outras identidades foram reforcadas:
+- Medusa-Coroa Violeta;
+- Ourico Solar;
+- Anemona Toxica;
+- Nautilo Soberano;
+- Lula-Vampira Carmesim;
+- Peixe-Olho-de-Barril;
+- reliquias dos bosses com nomes coerentes com a fauna.
+
+Bosses agora sao apresentados como:
+- Cefalopode Calcificado;
+- Peixe-Pescador Abissal;
+- Enguia-Pelicano Colossal;
+- Peixe-Remo Leviata;
+- Tubarao-Branco;
+- Lula-Kraken das Fossas;
+- Lula-Colossal do Vazio.
+
+Os IDs, stats, hitboxes, ownership, Stripe e habilidades existentes foram preservados.
 
 ## 3. Regra de produto para o mapa
 
 Nao voltar ao antigo "quadradao vazio".
 
-A estrutura atual segue uma DESCIDA ABISSAL:
+A estrutura segue uma DESCIDA ABISSAL:
 - progressao principal sempre avanca para baixo no eixo Y;
 - salas organicas conectadas por corredores;
 - desvios laterais opcionais;
@@ -42,34 +65,40 @@ A estrutura atual segue uma DESCIDA ABISSAL:
 - hub antes da descida profunda;
 - poco azul de descida;
 - camada inferior separada fisicamente;
-- boss sempre no ponto mais profundo;
-- vortex de superficie para extracao;
-- paredes sao colisao real, nao apenas decoracao;
-- monstros e jogadores nao devem atravessar pedra;
-- projeteis PvE tambem devem respeitar a geometria;
-- PvP continua usando sua arena propria, sem herdar a caverna PvE.
+- boss no ponto mais profundo;
+- sigilo do boss abre a camada seguinte depois da vitoria;
+- vortex de superficie permite extracao;
+- paredes sao colisao real;
+- monstros, jogadores e projeteis PvE respeitam pedra;
+- PvP mantem arena propria.
 
-A intencao de retencao e criar decisoes:
-- seguir pelo caminho principal;
-- arriscar um desvio por elite/recompensa;
-- extrair o saque;
-- ou descer mais fundo em busca de boss/progressao.
+A intencao e sempre criar decisoes:
+- seguir o caminho principal;
+- arriscar elite/cache;
+- entrar no eco lateral;
+- extrair;
+- ou reunir o grupo no sigilo e descer para outra camada.
 
-## 4. Arquitetura do mapa implementada
+## 4. Estado atual da arquitetura do mapa
 
-Branch de desenvolvimento:
-`abyssal-descending-cave-map`
+PR base ja mergeado:
+- PR #182: `feat: replace empty expedition rectangle with descending abyssal cave`
+- merge commit: `5344feef85962a11c6c14e68006b1c33c833a883`
 
-Base da branch:
-`main@2ec03037b23715f579f6744f53c63ba073240c20`
+PR de continuidade:
+- PR #183: `feat: deepen Abyssal cave retention with ecology, branches and tiers`
+- branch: `abyssal-cave-retention-tiers`
+- base: `main@5344feef85962a11c6c14e68006b1c33c833a883`
 
 Modulo compartilhado:
-`public/abyssal-map.js`
+- `public/abyssal-map.js`
+- VERSION atual: 2
 
-Esse modulo e usado no browser e no servidor. Nao duplicar a geometria em dois lugares.
+Nao duplicar geometria entre browser e servidor.
 
 Funcoes importantes:
 - `createLayout(seed, tier)`
+- `roomProfile(...)`
 - `isWalkable(...)`
 - `segmentWalkable(...)`
 - `resolveMove(...)`
@@ -78,148 +107,171 @@ Funcoes importantes:
 - `spawnPoint(...)`
 - `startSpawn(...)`
 
-O servidor transmite apenas identificacao compacta do mapa:
+O servidor transmite apenas identidade compacta:
 `{ version, seed, tier }`
 
-O cliente recria a mesma geometria deterministicamente. Nao enviar a lista completa de salas a cada snapshot.
+Tier 0 preserva o layout original do PR #182. Tiers posteriores usam o mesmo seed de expedicao mais o numero do tier para variar lateralmente o desenho sem inverter a ordem descendente em Y.
 
-## 5. Integracao cliente/servidor atual
+## 5. Ecologia, densidade e risco/recompensa
 
-### Servidor
+`public/abyssal-map.js` contem `ROOM_PROFILES` com risco, teto de densidade, recompensa e sinal por sala.
 
-Arquivos:
-- `server.js`
-- `world-simulation.js`
+`public/abyssal-expedition-rules.js` contem:
+- `ROOM_ECOLOGY`;
+- `SIDE_ENCOUNTERS`;
+- `zoneForRoom(...)`;
+- `roomWeights(...)`;
+- `chooseCommonKindForRoom(...)`;
+- `roomDensityCap(...)`;
+- `roomRewardMultiplier(...)`;
+- `eliteRoomBonusValue(...)`;
+- `sideEncounterFor(seed,tier)`.
 
-O servidor:
-- cria/recupera o layout por `WorldSimulation.mapLayoutFor(world)`;
-- nasce jogadores de co-op na sala inicial;
-- valida movimento do jogador contra a caverna;
-- mantem o envelope anti-teleporte;
-- nasce inimigos dentro de salas reais;
-- nasce elites na sala opcional de elite;
-- nasce bosses na sala final;
-- faz IA navegar pelo grafo de salas/corredores;
-- valida transicoes de descida/subida;
-- nao permite teleportar pelo poco apenas enviando coordenada falsa.
+A fauna comum agora depende da profundidade fisica da sala e do tier, nao apenas de bosses derrotados.
+
+O spawn normal respeita teto de densidade das salas ativas. Quando as salas atingem o teto, nao existe fallback que vaze novos mobs por fora da regra.
+
+O desvio lateral `event` resolve exatamente um encontro deterministico por tier:
+- `resonance_cache`: tesouro/cache de XP;
+- `viper_nest`: emboscada;
+- `pressure_vent`: armadilha de pressao com elites.
+
+A sala `elite` concede um cache extra uma vez por tier.
+
+Cliente e servidor usam seed/tier para chegar ao mesmo encontro sem enviar estrutura pesada pela rede.
+
+## 6. Progressao entre camadas
+
+Depois de derrotar o boss da camada:
+- nao nasce outro boss naquela mesma camada;
+- o sigilo final passa a oferecer `next-tier`;
+- no solo, o jogador decide quando descer;
+- no co-op, o servidor exige que todos os jogadores vivos estejam reunidos no sigilo;
+- o servidor valida boss derrotado, ausencia de boss vivo, proximidade e grupo pronto;
+- ao descer, `mapTier` incrementa;
+- inimigos/orbes da camada antiga sao limpos;
+- o layout e regenerado deterministicamente;
+- todos os jogadores vivos nascem juntos no inicio da nova camada;
+- prediction/reconciliation nao e substituida por teleporte cliente-autoritativo.
 
 Evento Socket.IO:
 `map-transition`
 
-Transicoes autorizadas:
+Transicoes:
 - `descent`
 - `ascend`
+- `next-tier`
 
-O servidor exige proximidade real do portal e destino caminhavel.
+## 7. Regras de multiplayer que NAO podem regredir
 
-### Cliente
+Preservar:
+- movimento local imediato;
+- servidor autoritativo;
+- client-side prediction;
+- server reconciliation;
+- envelope anti-teleporte;
+- Q/E com resposta visual imediata;
+- dano/HP autoritativo;
+- ordem correta de validacao de posicao antes de pickup/efeito PvP;
+- paredes bloqueando movimento e projeteis;
+- sem clamps gigantes permissivos.
 
-Arquivos:
-- `public/game.js`
-- `public/online.js`
-- `public/abyssal-rebuild.css`
-- `public/index.html`
+Nao reintroduzir espera de round-trip para mover o jogador.
 
-O cliente:
-- carrega `abyssal-map.js` antes de `game.js`;
-- reconstrui o mapa a partir do seed recebido;
-- usa a mesma geometria para colisao local;
-- renderiza caverna escura, salas, corredores, sinais e portais;
-- usa F no PC para interagir com portal;
-- mostra botao contextual no mobile;
-- envia transicao online ao servidor para validacao;
-- no solo executa a mesma transicao local;
-- usa o vortex de superficie para extracao;
-- reutiliza o fluxo existente de finalizacao online em vez de criar uma segunda rotina de salvamento.
+A transicao de tier e uma excecao discreta e validada pelo servidor, assim como os portais existentes. Ela nao muda o modelo normal de movimento.
 
-## 6. Regras de multiplayer que NAO podem regredir
+## 8. Reconexao e manutencao
 
-A mudanca imediatamente anterior, ja mergeada em main, foi:
-`fix: reject impossible movement before authoritative PvP pickups`
-merge base atual:
-`2ec03037b23715f579f6744f53c63ba073240c20`
+O restore de deploy salva `room.world` inteiro por serializacao JSON e restaura o mesmo mundo dentro da janela de 5 minutos.
 
-Regras:
-- movimento local precisa responder imediatamente;
-- servidor continua autoritativo;
-- nao reintroduzir espera por round-trip para mover o proprio jogador;
-- reconciliacao deve corrigir fraude/colisao sem congelar input;
-- Q/E e habilidades precisam ter feedback visual imediato, com confirmacao do servidor;
-- movimento impossivel/teleporte deve ser rejeitado;
-- no PvP, coleta e efeitos nao podem ser resolvidos antes da validacao de posicao/parede;
-- nao trocar o envelope anti-teleporte por clamps gigantes permissivos;
-- testes antigos que "teleportavam" jogadores foram corrigidos para caminhar em passos validos.
+Isso preserva:
+- `mapSeed`;
+- `mapTier`;
+- `bossesDefeated`;
+- `sideEncounterResolvedTier`;
+- `eliteRewardClaimedTier`;
+- inimigos/orbes e demais campos serializaveis do mundo.
 
-## 7. Comportamento especial de encontros
+Ha teste explicito em `tests/cave-map-integration.test.cjs` cobrindo que a rota de deploy resume continue preservando o mundo deterministico.
 
-- Elite e opcional: se nasceu na sala `elite`, fica defendendo a propria sala ate o jogador entrar nela.
-- Boss nasce na sala `boss`.
-- Boss nao pode atravessar o poco para perseguir jogador que ainda nao desceu.
-- Hub e landing nao possuem corredor fisico normal entre si.
-- A unica passagem e a transicao pelo poco/vortex.
-- Isso e intencional e faz parte da estrutura de risco/progressao.
+Nao trocar esse restore por uma recriacao vazia do mapa.
 
-## 8. Testes adicionados
+## 9. Testes relevantes
 
-Arquivos:
+Arquivos principais:
 - `tests/abyssal-map.test.cjs`
 - `tests/cave-map-integration.test.cjs`
 - `tests/cave-world-simulation.test.cjs`
+- `tests/cave-retention-tiers.test.cjs`
+- `tests/cave-navigation-performance.test.cjs`
 
 Cobrem:
-- progressao principal sempre descendente;
-- boss como sala mais profunda;
-- variacao lateral por seed sem inverter profundidade;
-- hub e landing separados por portal;
-- colisao de parede;
-- spawns comuns/elite/boss;
-- grafo de navegacao;
-- compartilhamento do mapa por seed;
-- integracao cliente/servidor;
-- validacao de portal;
-- separacao do mapa PvP.
+- progressao descendente;
+- variacao lateral deterministica por tier;
+- boss na profundidade final;
+- hub/landing separados por portal;
+- colisao;
+- spawns e navegacao;
+- ecologia por sala;
+- densidade superior/inferior;
+- encontros laterais deterministas;
+- cache de elite;
+- transicao de tier em grupo;
+- restore de seed/tier no deploy;
+- navegacao com 400 entidades.
 
-Antes de mergear qualquer alteracao relevante:
-1. executar/aguardar o workflow `Abyssal checks v2`;
+O workflow `Abyssal checks v2` passou no commit:
+`cb5264355bb601a58a754400d6aa1205c8c16f6d`
+
+Esse SHA e anterior apenas a atualizacao documental deste handoff. Se houver commits posteriores, verificar o workflow do HEAD mais recente.
+
+Antes de mergear alteracao relevante:
+1. aguardar `Abyssal checks v2`;
 2. investigar qualquer falha;
-3. nao "corrigir" teste afrouxando uma regra de seguranca sem entender a causa;
-4. conferir sintaxe de `server.js`, `world-simulation.js`, `public/game.js`, `public/online.js` e `public/abyssal-map.js`.
+3. nao afrouxar teste de seguranca so para ficar verde;
+4. conferir sintaxe de `server.js`, `world-simulation.js`, `public/game.js`, `public/online.js`, `public/abyssal-map.js` e `public/abyssal-expedition-rules.js`.
 
-## 9. Pontos que ainda devem ser avaliados depois desta PR
+## 10. O que foi concluido da lista antiga
 
-Nao assumir que estes itens ja estao concluídos so porque o mapa base existe:
+Concluidos no PR #183:
+1. densidade por sala/profundidade;
+2. recompensa especifica de elite;
+3. evento/tesouro/armadilha lateral;
+4. multiplas camadas/tier;
+5. sinalizacao de risco/recompensa;
+6. fauna por profundidade fisica;
+7. revisao sistematica da identidade marinha atual;
+8. teste de performance com 400 entidades;
+10. preservacao de seed/layout no reconnect/deploy resume.
 
-1. Balanceamento de densidade por sala e profundidade.
-2. Recompensa especifica da sala de elite.
-3. Eventos/tesouros/armadilhas no desvio lateral.
-4. Progressao entre multiplas camadas/tier de mapa.
-5. Sinalizacao mais forte de "risco x recompensa" antes do desvio.
-6. Fauna distribuida por zona de profundidade, e nao apenas por RNG global.
-7. Revisao sistematica de todos os monstros/skins/bosses para a direcao biologica marinha definida acima.
-8. Teste de performance com 400 inimigos dentro da nova navegacao.
-9. Teste real multiusuario apos deploy, principalmente reconciliacao perto de paredes e uso de Q/E enquanto atravessa corredores.
-10. Confirmar que reconexao/manutencao preserva o seed/layout da expedicao restaurada.
+Permanece como validacao operacional:
+9. teste real multiusuario pos-deploy com pelo menos dois clientes reais, especialmente:
+   - reconciliacao perto de paredes;
+   - Q/E atravessando corredores;
+   - reunir grupo no sigilo;
+   - troca para `next-tier`;
+   - reconnect durante uma expedicao em tier > 0.
 
-## 10. Procedimento para o proximo agente
+Nao remover nem mascarar esse item como "feito" sem executar dois clientes reais.
 
-Ao iniciar um novo chat/agente:
+## 11. Procedimento para o proximo agente
 
 1. Abrir este arquivo primeiro.
-2. Ler `public/abyssal-map.js`.
-3. Ler os tres testes de cave map.
-4. Verificar a branch/main e o ultimo PR relacionado a "descending cave".
-5. Conferir o workflow mais recente antes de alterar codigo.
+2. Conferir PR/commit mais recente relacionado a cave/tier.
+3. Ler `public/abyssal-map.js` e `public/abyssal-expedition-rules.js`.
+4. Ler os cinco testes de cave listados acima.
+5. Verificar workflow mais recente.
 6. Preservar cliente preditivo + servidor autoritativo.
-7. Nao substituir a caverna por um retangulo decorado.
-8. Continuar a direcao de fauna marinha descrita na secao 2.
-9. Se encontrar uma falha, identificar se e logica, teste antigo, performance ou divergencia cliente/servidor antes de aplicar patch.
-10. Atualizar este arquivo quando uma decisao arquitetural importante mudar.
+7. Nao substituir a caverna por retangulo decorado.
+8. Continuar a fauna marinha.
+9. Ao encontrar falha, classificar como logica, teste desatualizado, performance ou divergencia cliente/servidor antes de corrigir.
+10. Atualizar este arquivo quando uma decisao arquitetural mudar.
 
-## 11. Contexto de produto que motivou a mudanca
+## 12. Principio de produto
 
-O problema original era que o mapa principal ainda parecia um quadrado grande, vazio e sem motivo para explorar. A mudanca nao e cosmetica: a exploracao deve criar curiosidade, escolha, risco e vontade de continuar descendo.
+O problema original era um mapa principal grande, vazio e sem motivo para explorar.
 
-O principio para decidir novas features de mapa e:
+A pergunta para toda nova feature de mapa continua sendo:
 "isso cria uma decisao, uma descoberta, um risco, uma recompensa ou um motivo concreto para continuar a descida?"
 
-Se a resposta for nao, provavelmente e apenas decoracao e nao resolve o problema de retencao.
+Se a resposta for nao, provavelmente e decoracao e nao resolve retencao.

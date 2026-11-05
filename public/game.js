@@ -83,7 +83,8 @@ let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineCl
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
 let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let soloDepthEventId=null,soloDepthEventEndsAt=0,pendingSoloDepthEventId=null;
-let activeMapLayout=null,activeMapSeed=0,activeMapTier=0;
+let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
+let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false;
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 let sharkWakeTrails=[];
@@ -113,16 +114,30 @@ function ensureMapInteractionButton(){
  button.addEventListener('click',()=>activateMapInteraction());
  $('gameShell')?.appendChild(button);return button;
 }
+function checkSoloCaveEncounter(){
+ if(onlineMode||!player||!activeMapLayout||!EXPEDITION_RULES||soloSideEncounterTier===activeMapTier)return;
+ const room=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);if(room?.id!=='event')return;
+ const encounter=EXPEDITION_RULES.sideEncounterFor?.(activeMapSeed,activeMapTier);if(!encounter)return;
+ soloSideEncounterTier=activeMapTier;
+ window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{...encounter,tier:activeMapTier}}));
+ if(encounter.type==='treasure'){addOrb(room.x,room.y,28+activeMapTier*7);return;}
+ const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
+ for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:encounter.type==='trap'&&i<2});
+}
 function currentMapInteraction(){
  if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
  const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
  if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
  if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
  if(portals.surface&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
+ const clearedBosses=onlineMode?onlineBossesDefeated:bossKillsThisRun;
+ const bossAlive=enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ if(portals.boss&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'ROMPER PARA A PRÓXIMA CAMADA',hint:'F · DESCER MAIS FUNDO'};
  return null;
 }
 function updateMapInteraction(force=false){
  const now=performance.now();if(!force&&now-mapInteractionLastCheck<100)return;mapInteractionLastCheck=now;
+ if(!onlineMode)checkSoloCaveEncounter();
  const button=ensureMapInteractionButton(),interaction=currentMapInteraction();mapInteractionType=interaction?.type||null;
  if(!button)return;
  button.hidden=!interaction;
@@ -131,8 +146,12 @@ function updateMapInteraction(force=false){
 function applyMapTransition(kind,x,y){
  if(!player||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;
  player.x=Number(x);player.y=Number(y);if(player.trail)player.trail.length=0;updateCamera();mapInteractionBusy=false;updateMapInteraction(true);
- burst(player.x,player.y,kind==='descent'?'#55bfff':'#73f5df',lowPowerRendering?10:18,110);audio(kind==='descent'?180:430,.18,'sine',.025);
- showToast(kind==='descent'?'VOCÊ DESCEU PARA UMA CAMADA MAIS PROFUNDA':'VÓRTICE DE RETORNO ATIVADO');return true;
+ const tierShift=kind==='next-tier';
+ burst(player.x,player.y,tierShift?'#a66cff':kind==='descent'?'#55bfff':'#73f5df',lowPowerRendering?10:18,110);
+ audio(tierShift?95:kind==='descent'?180:430,.18,'sine',.025);
+ if(tierShift)enqueueGameplayNotice('cave',`CAMADA ${activeMapTier+1} ALCANÇADA`,'A pressão mudou. A fauna e as rotas desta descida não serão as mesmas.',70);
+ else showToast(kind==='descent'?'VOCÊ DESCEU PARA UMA CAMADA MAIS PROFUNDA':'VÓRTICE DE RETORNO ATIVADO');
+ return true;
 }
 function activateMapInteraction(){
  if(mapInteractionBusy)return false;
@@ -142,6 +161,17 @@ function activateMapInteraction(){
   if(onlineMode){const button=$('endDiveBtn');if(button){button.click();return true;}mapInteractionBusy=false;return false;}
   expeditionExtracted=true;mapInteractionBusy=false;endGame();return true;
  }
+ if(interaction.type==='next-tier'){
+  if(onlineMode){
+   mapInteractionBusy=true;
+   const sent=window.AbyssalOnline?.requestMapTransition?.('next-tier',result=>{if(result?.ok===false){mapInteractionBusy=false;const reason=String(result.reason||'');enqueueGameplayNotice('cave','A PASSAGEM NÃO CEDEU',reason==='group-not-ready'?'Todo o cardume precisa se reunir no sigilo do boss.':reason==='boss-alive'?'A criatura colossal ainda domina esta camada.':'Derrote o boss desta camada e aproxime-se do sigilo.',85);updateMapInteraction(true);}});
+   if(!sent){mapInteractionBusy=false;return false;}return true;
+  }
+  activeMapTier+=1;setActiveMapDescriptor({seed:activeMapSeed,tier:activeMapTier});tierDescentPending=false;progressionDistance=0;
+  enemies=[];orbs=[];projectiles=[];effects=[];enemyCollisionGrid.clear();
+  const spawn=ABYSSAL_MAP.startSpawn(activeMapLayout,0,1);
+  return applyMapTransition('next-tier',spawn.x,spawn.y);
+ }
  const portal=interaction.type==='descent'?activeMapLayout?.portals?.descent:activeMapLayout?.portals?.landing;
  if(!portal)return false;
  if(onlineMode){
@@ -149,10 +179,16 @@ function activateMapInteraction(){
   const sent=window.AbyssalOnline?.requestMapTransition?.(interaction.type,result=>{if(result?.ok===false){mapInteractionBusy=false;showToast(result.reason==='too-far'?'CHEGUE MAIS PERTO DO VÓRTICE':'A PASSAGEM NÃO RESPONDEU');updateMapInteraction(true);}});
   if(!sent){mapInteractionBusy=false;return false;}return true;
  }
- const target=interaction.type==='descent'?{x:portal.targetX,y:portal.targetY}:{x:portal.targetX,y:portal.targetY};
- return applyMapTransition(interaction.type,target.x,target.y);
+ return applyMapTransition(interaction.type,portal.targetX,portal.targetY);
 }
-window.addEventListener('abyssal-map-transition',event=>{const result=event.detail||{};if(result.ok)applyMapTransition(result.kind,result.x,result.y);else{mapInteractionBusy=false;updateMapInteraction(true);}});
+window.addEventListener('abyssal-map-transition',event=>{
+ const result=event.detail||{};
+ if(result.ok){
+  if(result.map)setActiveMapDescriptor(result.map);
+  if(result.kind==='next-tier'){enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();projectiles=[];effects=[];enemyCollisionGrid.clear();tierDescentPending=false;progressionDistance=0;}
+  applyMapTransition(result.kind,result.x,result.y);
+ }else{mapInteractionBusy=false;updateMapInteraction(true);}
+});
 function soloDepthState(){
  const bosses=Math.max(0,Number(bossKillsThisRun)||0),zone=EXPEDITION_RULES?.zoneForBosses?.(bosses)||null;
  const eventConfig=soloDepthEventId?EXPEDITION_RULES?.eventConfig?.(soloDepthEventId):null;
@@ -162,6 +198,8 @@ function soloDepthState(){
  }:null;
  return {
   bossesDefeated:bosses,
+  mapTier:activeMapTier,
+  nextTierUnlocked:bosses>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind)),
   depth:EXPEDITION_RULES?.depthForBosses?.(bosses)??(350+bosses*650),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event
@@ -188,30 +226,30 @@ const RELIC_SKIN_IDS=new Set(['leviathan','kraken','aberration','angler','maw','
 const ABYSSAL_SIGNATURE_IDS=new Set(['abyssking','bloodmoon','abyssaleye','greensnake']);
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
-{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Um espectro luminescente com cornos de energia violeta.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
-{id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
-{id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
-{id:'leviathan',name:'Eco do Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Um vestígio biológico do Leviatã das Fossas: placas ósseas, crânio pálido e fendas sensoriais preservam apenas uma fração da entidade verdadeira.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
+{id:'violet',name:'Medusa-Coroa Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Cnidário abissal fictício inspirado em medusas-coroa, com lóbulos violetas bioluminescentes.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
+{id:'solar',name:'Ouriço Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Ouriço-do-mar de profundidade com espinhos dourados e fotóforos que pulsam como um pequeno sol.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
+{id:'toxic',name:'Anêmona Tóxica',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Anêmona abissal fictícia com tentáculos urticantes e glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
+{id:'leviathan',name:'Eco do Peixe-Remo Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Vestígio biológico do Peixe-Remo Leviatã: corpo laminar, crista sensorial e placas pálidas preservam uma fração da criatura colossal.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
 {id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
-{id:'abyssking',name:'Soberano do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
+{id:'abyssking',name:'Náutilo Soberano',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Náutilo abissal fictício cuja concha segmentada forma uma coroa mineral em torno do núcleo violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
 {id:'royal',name:'Pérola Regente',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
 {id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
 {id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
-{id:'bloodmoon',name:'Lua Sangrenta',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Uma mandíbula dupla e presas pálidas sob um brilho carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
+{id:'bloodmoon',name:'Lula-Vampira Carmesim',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Cefalópode inspirado na lula-vampira, com membranas escuras, braços denticulados e fotóforos carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
 {id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
-{id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
+{id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'kraken',name:'Eco do Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma ressonância orgânica do Kraken, com manto vítreo e tentáculos reduzidos. A entidade verdadeira permanece nas fossas.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
- {id:'aberration',name:'Casca da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Uma carapaça óssea vazia da primeira entidade colossal. Rachaduras carmesim ainda reagem à presença de ameaças.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
- {id:'angler',name:'Núcleo da Lanterna',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Um fragmento vivo da Lanterna Mortal. A isca incandescente continua atraindo organismos para a mandíbula de agulhas.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
- {id:'maw',name:'Fragmento da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Um fragmento da Boca do Abismo: dentes radiais e filamentos de caça comprimidos em uma forma controlável.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
- {id:'devourer',name:'Núcleo Devorador',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Um núcleo residual do Devorador do Vazio. A água ao redor ainda parece ser puxada para sua boca descomunal.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
+{id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
+ {id:'aberration',name:'Casca do Cefalópode Calcificado',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Carapaça mineralizada vazia do Cefalópode Calcificado. Rachaduras carmesim ainda reagem à presença de ameaças.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
+ {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal. O ilício incandescente continua atraindo organismos para a mandíbula de agulhas.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
+ {id:'maw',name:'Fragmento da Enguia-Pelícano',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Fragmento da Enguia-Pelícano Colossal: boca expansível, dentes recurvados e filamentos de caça comprimidos em forma controlável.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
+ {id:'devourer',name:'Núcleo da Lula-Colossal',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Núcleo residual da Lula-Colossal do Vazio. O manto ainda produz uma corrente de sucção ao redor da criatura.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
-{id:'abysscroc',name:'Predador de Mangue',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Predador anfíbio de águas turvas, focinho largo, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
-{id:'armoredgator',name:'Couraçado de Estuário',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Caçador costeiro de perfil alongado, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
-{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Uma serpente colossal das profundezas, esculpida em escamas de jade reluzentes com olhos de âmbar.',ability:'Veneno corrosivo: ataques envenenam criaturas atingidas.'},
-  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Predadora bioelétrica de corpo alongado, ventre luminoso e pulsos ciano que percorrem a linha lateral.',ability:'Descarga Estática: ataques paralisam brevemente as criaturas atingidas.'},
+{id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.',ability:'Investida Estuarina: executa uma arrancada curta com dano frontal. A pele reforçada reduz em 15% o dano recebido.'},
+{id:'armoredgator',name:'Caranguejo-Ferradura Couraçado',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Artrópode marinho blindado inspirado no caranguejo-ferradura, com carapaça mineralizada e télson longo.',ability:'Varredura do Télson: uma rotação defensiva repele inimigos próximos e libera uma onda de impacto.'},
+{id:'greensnake',name:'Moréia Esmeralda Colossal',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Moréia oceânica colossal de pele verde-jade, corpo sinuoso e mandíbula dupla inspirada nas faringes das moréias.',ability:'Muco corrosivo: ataques contaminam criaturas atingidas e causam dano contínuo.'},
+  {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
@@ -228,7 +266,7 @@ let controlAimAngle=0;
 const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'];
-const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'KRAKEN · SENHOR DAS FOSSAS',devourer:'DEVORADOR DO VAZIO'});
+const BOSS_LABELS=Object.freeze({boss:'CEFALÓPODE CALCIFICADO',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
 const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável','shoal-founder':'Fundador do Cardume','supporter-of-the-depths':'Apoio das Profundezas','abyssal-famous':'Nome Conhecido','abyssal-icon':'Ícone do Abismo','living-legend':'Lenda Viva','abyssal-patron':'Patrono do Abismo','boss-abyssal':'Boss Abyssal'});
 const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
 const particlePool=[];
@@ -742,8 +780,8 @@ function playDevourerSuction(){
 let abyssalAlertTimer = null;
 function getBossDisplayName(kind) {
   const n = {
-    boss: 'ABERRAÇÃO ABISSAL', leviathan: 'LEVIATÃ DAS FOSSAS', maw: 'A BOCA DO ABISMO',
-    angler: 'LANTERNA MORTAL', kraken: 'KRAKEN DO ABISMO', devourer: 'DEVORADOR DO VAZIO',
+    boss: 'CEFALÓPODE CALCIFICADO', leviathan: 'PEIXE-REMO LEVIATÃ', maw: 'ENGUIA-PELÍCANO COLOSSAL',
+    angler: 'PEIXE-PESCADOR ABISSAL', kraken: 'LULA-KRAKEN DAS FOSSAS', devourer: 'LULA-COLOSSAL DO VAZIO',
     whiteSharkBoss: 'TUBARÃO-BRANCO COLOSSAL', whiteShark: 'TUBARÃO-BRANCO'
   };
   return n[kind] || kind.toUpperCase();
@@ -759,7 +797,7 @@ function gameplayNoticeKey(kind,title,text){
  return [kind,String(title||'').trim().toLowerCase(),String(text||'').trim().toLowerCase()].join('|');
 }
 function enqueueGameplayNotice(kind,title,text='',priority=0){
- const allowed=new Set(['boss','fusion','join','death']);if(!allowed.has(kind))return;
+ const allowed=new Set(['boss','fusion','join','death','cave']);if(!allowed.has(kind))return;
  const now=Date.now(),key=gameplayNoticeKey(kind,title,text),last=gameplayNoticeRecent.get(key)||0;
  // Network relays and local prediction can report the same semantic event twice.
  // Suppress identical notices across the active 5s display plus a short relay margin.
@@ -774,23 +812,24 @@ function pumpGameplayNotice(){
  const item=gameplayNoticeQueue.shift(),el=$('bossAlert');if(!el)return;
  gameplayNoticeActive=true;el.dataset.noticeKind=item.kind;
  const kicker=$('bossAlertKicker'),title=$('bossAlertTitle'),copy=$('bossAlertText');
- if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':'SINAL PERDIDO · ECO INTERROMPIDO';
+ if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':item.kind==='cave'?'ECO DA CAVERNA · ESCOLHA DE RISCO':'SINAL PERDIDO · ECO INTERROMPIDO';
  if(title)title.textContent=item.title;if(copy)copy.textContent=item.text;
  el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
  clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
 function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function showBossAlert(kind,id=null,threat=0,force=false){
  if(onlineMode&&onlineRoomMode==='pvp')return;
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
  if(!force&&alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
-  boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
-  leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
-  maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],
-  angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],
-  kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],
-  devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],
+  boss:['☠ CEFALÓPODE CALCIFICADO','BRAÇOS FARPADOS E PLACAS MINERAIS FECHARAM A CÂMARA. ELE SENTE A CORRENTE.'],
+  leviathan:['☠ PEIXE-REMO LEVIATÃ','UM CORPO PELÁGICO COLOSSAL CORTA A FOSSA. A PRESSÃO MUDA COM CADA CURVA.'],
+  maw:['☠ ENGUIA-PELÍCANO COLOSSAL','A GARGANTA SE EXPANDEU. O ECO DESAPARECE DENTRO DELA.'],
+  angler:['☠ PEIXE-PESCADOR ABISSAL','A LUZ É UMA ISCA. OS DENTES JÁ ESTÃO FECHANDO.'],
+  kraken:['☠ LULA-KRAKEN DAS FOSSAS','OITO BRAÇOS VARREM A CÂMARA EM ESPIRAL. NÃO FIQUE ENTRE AS VENTOSAS.'],
+  devourer:['☠ LULA-COLOSSAL DO VAZIO','O MANTO CONTRAIU. A CORRENTE INVERTEU E TUDO ESTÁ SENDO PUXADO.'],
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
  };
 
@@ -907,6 +946,8 @@ function updateBossProgressionStep(dt) {
     return;
   }
 
+  if(tierDescentPending){updateProgressionTrackUI();return;}
+
   // Progresso avança com o tempo de sobrevivência
   progressionDistance += dt * 3.8; // ~26 segundos entre bosses
   if (progressionDistance >= 100) {
@@ -946,6 +987,7 @@ function onProgressionBossDefeated(bossEntity) {
   progressionPausedForBoss = false;
   activeBossEntity = null;
   progressionDistance = 0;
+  tierDescentPending = true;
   bossCycleIndex++;
 
   // Checar se completou o ciclo de bosses
@@ -996,7 +1038,7 @@ function triggerAbyssalVictory() {
   if (!ownedSkins.includes('greensnake')) {
     ownedSkins.push('greensnake');
     saveCosmetics();
-    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Serpente Esmeralda"!', 'NOVA SKIN LENDÁRIA OBTIDA 🐍', 'skin');
+    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Moréia Esmeralda Colossal"!', 'NOVA SKIN LENDÁRIA OBTIDA', 'skin');
   }
 
   // Notificar servidor se estiver online ou autenticado
@@ -1030,8 +1072,8 @@ function showVictoryModal() {
         </div>
         <div style="background:rgba(46,232,138,0.12);border:1px solid #2ee88a;border-radius:10px;padding:12px 14px;margin-bottom:22px;text-align:left;">
           <div style="color:#2ee88a;font-weight:700;font-size:13px;letter-spacing:0.06em;margin-bottom:4px;">✦ SKIN EXCLUSIVA CONCEDIDA:</div>
-          <div style="font-size:15px;font-weight:800;color:#2ee88a;">Serpente Esmeralda (Colossal)</div>
-          <p style="font-size:12px;color:#a0dac3;margin-top:4px;line-height:1.4;">Inspirada nas grandes serpentes marinhas de jade com mandíbulas afiadas e rastro venenoso.</p>
+          <div style="font-size:15px;font-weight:800;color:#2ee88a;">Moréia Esmeralda Colossal</div>
+          <p style="font-size:12px;color:#a0dac3;margin-top:4px;line-height:1.4;">Inspirada em moréias oceânicas de corpo sinuoso, mandíbula faríngea e muco bioluminescente corrosivo.</p>
         </div>
         <button id="victoryContinueBtn" style="background:#2ee88a;color:#04140d;font-weight:800;font-size:13px;letter-spacing:0.1em;border:none;border-radius:8px;padding:12px 28px;cursor:pointer;box-shadow:0 0 16px rgba(46,232,138,0.6);transition:transform 0.15s ease;">
           GLÓRIA AO CONQUISTADOR
@@ -1052,7 +1094,7 @@ function showVictoryModal() {
 function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
- expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;if(!onlineMode){activeMapLayout=null;ensureSoloMap();}else if(onlineRoomMode==='pvp'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
+ expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;ensureSoloMap();}else if(onlineRoomMode==='pvp'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
@@ -1225,27 +1267,41 @@ function offerUpgrade(){
   else{clearUpgradeCountdown();gameState='playing';$('upgradeScreen').hidden=true;}
  },25000);
 }
-function spawnEnemy(initial=false,type='common'){
+function chooseSoloSpawnRoom(){
+ const map=ensureSoloMap();if(!map||!player||!EXPEDITION_RULES)return null;
+ const playerRoom=ABYSSAL_MAP?.roomAt?.(map,player.x,player.y),lower=Number(playerRoom?.depth)>=7;
+ const allowed=lower?new Set(['landing','boss']):new Set(['common','event','hub']);
+ const candidates=map.rooms.filter(room=>{
+  if(!allowed.has(room.type))return false;
+  const cap=(EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)??0);
+  if(cap<=0)return false;
+  let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
+  return count<cap;
+ });
+ if(!candidates.length)return null;
+ const weighted=[];
+ for(const room of candidates){
+  const cap=Math.max(1,(EXPEDITION_RULES.roomDensityCap?.(room,activeMapTier,1)??Number(room.densityCap)??1));
+  let count=0;for(const enemy of enemies)if(!BOSS_KINDS.includes(enemy.kind)&&enemy.spawnRoomId===room.id)count++;
+  const open=Math.max(.08,1-count/cap),tickets=Math.max(1,Math.round(open*(room.type==='event'?3:room.type==='hub'?4:6)));
+  for(let i=0;i<tickets;i++)weighted.push(room.id);
+ }
+ return weighted[Math.floor(Math.random()*weighted.length)]||candidates[0].id;
+}
+function spawnEnemy(initial=false,type='common',options={}){
  if(!player||enemies.length>=MAX_ENEMIES)return null;
  const bossCount=enemies.filter(e=>BOSS_KINDS.includes(e.kind)).length,commonCount=enemies.length-bossCount;
  const isBossType = type === 'boss' || BOSS_KINDS.includes(type);
  if(isBossType&&(bossCount>=MAX_BOSSES||enemies.length>=MAX_ENEMIES))return null;
  if(!isBossType&&commonCount>=MAX_COMMON_ENEMIES)return null;
- // Shared catalog + spawn-point logic: solo and online use identical anatomy, stats and corner vortices.
- const ai=window.AbyssalEnemyAI;
- const activeKinds=enemies.map(e=>e.kind);
+ const ai=window.AbyssalEnemyAI,map=ensureSoloMap(),activeKinds=enemies.map(e=>e.kind);
+ let point=map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun,roomId:options.roomId}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)});
+ let ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||null;
  let kind;
- if(BOSS_KINDS.includes(type)){
-  kind = type;
- } else if(type==='boss'){
-  kind = ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
- } else {
-  kind = EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
- }
- if(kind==='whiteShark'){
-  const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;
-  if(whiteSharkCount>=10)kind='drifter';
- }
+ if(BOSS_KINDS.includes(type))kind=type;
+ else if(type==='boss')kind=ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
+ else kind=EXPEDITION_RULES?.chooseCommonKindForRoom?.(Math.random,ecologyRoom,activeMapTier,soloDepthEventId)||EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
+ if(kind==='whiteShark'){const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;if(whiteSharkCount>=10)kind='lurker';}
  if(!kind)return null;
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#ff315f',value:55},
@@ -1259,22 +1315,25 @@ function spawnEnemy(initial=false,type='common'){
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  })[kind];
  let eliteId=null;
- if(!isBossType&&!initial&&EXPEDITION_RULES){eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);}
- if(isBossType){
-  // Preserve the ordered base HP tiers in solo just as in the online simulation.
-  data.hp = Math.round(data.hp * getBossCycleMultiplier());
-  // A progressão por ciclo altera somente a vida; dano e velocidade base do boss são preservados.
-  lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;
+ if(!isBossType&&!initial&&EXPEDITION_RULES){
+  eliteId=EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
+  if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
+  if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
  }
- const map=ensureSoloMap();const point=map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':eliteId?'elite':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)});
+ if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
+ if(eliteId&&!options.roomId&&!isBossType){
+  point=ABYSSAL_MAP.spawnPoint(map,{type:'elite',random:Math.random,bossesDefeated:bossKillsThisRun});
+  ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||ecologyRoom;
+ }
+ if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
  const enemy={id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
- enemies.push(enemy);
- discoverCodexMonsters([kind]);
+ enemies.push(enemy);discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
 }
+
 function burst(x,y,color,n=10,force=100){
  n=Math.min(Math.max(0,Math.floor(n)),Math.max(0,particleBudget()-particles.length));
  for(let i=0;i<n;i++){
@@ -1705,7 +1764,13 @@ function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos cli
 function killEnemy(i){
  const e=enemies[i];
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
- discoverCodexMonsters([e.kind]);if(!onlineMode){const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1;const xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):Math.round(e.value*eventXp);addOrb(e.x,e.y,xpValue);}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
+ discoverCodexMonsters([e.kind]);if(!onlineMode){
+ const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,xpValue=killedBoss?Math.round(e.value*getBossXpMultiplier()):Math.round(e.value*eventXp);addOrb(e.x,e.y,xpValue);
+ if(!killedBoss&&e.eliteId&&e.spawnRoomId==='elite'&&soloEliteRewardTier!==activeMapTier){
+  soloEliteRewardTier=activeMapTier;addOrb(e.x,e.y,EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18);
+  window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
+ }
+}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;window.dispatchEvent(new CustomEvent('abyssal-expedition-checkpoint',{detail:{kind:e.kind,bossesKilled:bossKillsThisRun,score,elapsed,riskTier:expeditionRiskTier}}));}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
  enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
@@ -1848,7 +1913,7 @@ function update(dt){
 
 player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
  if(!onlineMode&&equippedSkin==='devourer'&&player.devourerVacuumUntil>performance.now()){for(const orb of orbs){const d=Math.hypot(player.x-orb.x,player.y-orb.y);if(d>1&&d<760/GAME_WORLD_ZOOM){const pull=Math.min(d,dt*(110+Math.max(0,760/GAME_WORLD_ZOOM-d)*.22));orb.x+=(player.x-orb.x)/d*pull;orb.y+=(player.y-orb.y)/d*pull;}}}
- if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
+ if(!onlineMode&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<MAX_COMMON_ENEMIES&&enemies.length<MAX_ENEMIES){const roomId=chooseSoloSpawnRoom();if(roomId)spawnEnemy(false,'common',{roomId});const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
  // Spawn de boss solo gerenciado exclusivamente pelo sistema de progressão (updateBossProgressionStep).
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');effects.push({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
@@ -2303,6 +2368,25 @@ function drawCaveGlyph(x,y,type,t,scale=1){
  }
  ctx.restore();
 }
+function drawCaveBranchSignal(corridor,t){
+ if(!corridor?.optional)return;
+ const targetId=String(corridor.b||''),isElite=targetId==='elite',encounter=!isElite?EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier):null;
+ const x=corridor.x1+(corridor.x2-corridor.x1)*.42,y=corridor.y1+(corridor.y2-corridor.y1)*.42;
+ const color=isElite?'#ff5b78':'#b98aff',title=isElite?'DESVIO ELITE':'ECO LATERAL';
+ const detail=isElite?'RISCO MÁXIMO · CACHE DE ELITE':`${encounter?.risk||'INCERTO'} · ${encounter?.reward||'RECOMPENSA DESCONHECIDA'}`;
+ ctx.save();ctx.translate(x,y);ctx.globalAlpha=.72+.10*Math.sin(t*.003+x*.002);ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillStyle='rgba(1,5,11,.78)';ctx.strokeStyle=color;ctx.lineWidth=1.5/GAME_WORLD_ZOOM;const w=210/GAME_WORLD_ZOOM,h=48/GAME_WORLD_ZOOM;ctx.beginPath();ctx.roundRect(-w/2,-h/2,w,h,9/GAME_WORLD_ZOOM);ctx.fill();ctx.stroke();
+ ctx.fillStyle=color;ctx.font=`800 ${12/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,0,-7/GAME_WORLD_ZOOM);
+ ctx.fillStyle='#d8eef1';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,0,9/GAME_WORLD_ZOOM);ctx.restore();
+}
+function drawCaveRoomSignal(room,t){
+ if(!room||!['elite','event','boss'].includes(room.type))return;
+ let color='#a98cff',title=String(room.signal||'ECO ABISSAL'),detail=String(room.reward||'RECOMPENSA');
+ if(room.type==='elite'){color='#ff5b78';detail='RISCO '+String(room.risk||5)+' · '+String(room.reward||'CACHE DE ELITE');}
+ else if(room.type==='event'){const encounter=EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier);color=encounter?.accent||'#b98aff';detail=String(encounter?.risk||'INCERTO')+' · '+String(encounter?.reward||room.reward||'ANOMALIA');}
+ else {color='#ff315f';const cleared=onlineMode?onlineBossesDefeated:bossKillsThisRun;detail=cleared>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind))?'SIGILO ABERTO · PRÓXIMA CAMADA':'BOSS · BLOQUEIA A DESCIDA';}
+ ctx.save();ctx.globalAlpha=.65+.08*Math.sin(t*.0025+room.x*.001);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.font=`800 ${11/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,room.x,room.y-room.ry*.62);ctx.fillStyle='#d7edf0';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,room.x,room.y-room.ry*.62+17/GAME_WORLD_ZOOM);ctx.restore();
+}
 function drawMapPortal(portal,t){
  if(!portal)return;
  ctx.save();ctx.translate(portal.x,portal.y);const pulse=.92+.08*Math.sin(t*.003+(portal.x+portal.y)*.002),r=portal.r*pulse;
@@ -2325,7 +2409,7 @@ function drawAbyssalCaveMap(t){
   if(!visible)continue;
   ctx.strokeStyle='rgba(0,1,4,.96)';ctx.lineWidth=corridor.width*2.28;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
   ctx.strokeStyle=corridor.optional?'rgba(23,22,35,.96)':'rgba(8,25,34,.98)';ctx.lineWidth=corridor.width*1.62;ctx.beginPath();ctx.moveTo(corridor.x1,corridor.y1);ctx.lineTo(corridor.x2,corridor.y2);ctx.stroke();
-  ctx.strokeStyle=corridor.optional?'rgba(163,92,180,.12)':'rgba(91,194,199,.09)';ctx.lineWidth=Math.max(2,corridor.width*.055);ctx.stroke();
+  ctx.strokeStyle=corridor.optional?'rgba(163,92,180,.12)':'rgba(91,194,199,.09)';ctx.lineWidth=Math.max(2,corridor.width*.055);ctx.stroke();if(corridor.optional)drawCaveBranchSignal(corridor,t);
  }
  for(const room of layout.rooms){
   if(room.x+room.rx<cameraX-350||room.x-room.rx>cameraX+viewW/worldZoom+350||room.y+room.ry<cameraY-350||room.y-room.ry>cameraY+viewH/worldZoom+350)continue;
@@ -2333,7 +2417,7 @@ function drawAbyssalCaveMap(t){
   ctx.fillStyle=palette[0];ctx.strokeStyle='rgba(3,5,9,.98)';ctx.lineWidth=46/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx+20,room.ry+20,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.fillStyle=palette[1];ctx.strokeStyle=palette[2]+'33';ctx.lineWidth=7/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.92,room.ry*.91,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.globalAlpha=.14;ctx.strokeStyle=palette[2];ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.72,room.ry*.67,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
-  if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);
+  if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);drawCaveRoomSignal(room,t);
  }
  drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);drawMapPortal(layout.portals.landing,t);
  const boss=layout.portals.boss;if(boss)drawCaveGlyph(boss.x,boss.y,'boss',t,1.6);
@@ -2437,81 +2521,43 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(.28*r,-.18*r);c.lineTo(.6*r,-.28*r);c.lineTo(1.1*r,-.27*r);c.lineTo(1.12*r,-.08*r);c.lineTo(.96*r,0);c.lineTo(1.12*r,.08*r);c.lineTo(1.1*r,.27*r);c.lineTo(.6*r,.28*r);c.lineTo(.28*r,.17*r);c.closePath()},bodyGrad(color),'rgba(226,251,255,.85)',Math.max(1,r*.04),10);
    eye(.82,-.22,r*.06,'#e8ffff');eye(.82,.22,r*.06,'#e8ffff');gills(-.36,-.18,4);
   } else if(id==='abysscroc'){
-   // Black caiman / Jacaré-açu: focinho curto e muito largo em U, olhos/narinas no topo,
-   // corpo negro robusto, osteodermos baixos e cauda lateralmente comprimida.
-   const swim=Math.sin(t*.0038)*.035,tailWave=Math.sin(t*.0048)*.12;
-   fill(()=>{c.moveTo(-.62*r,-.2*r);c.bezierCurveTo(-1.08*r,-.25*r,-1.65*r,(-.2+tailWave)*r,-2.22*r,tailWave*r);c.bezierCurveTo(-1.64*r,(.22+tailWave)*r,-1.02*r,.29*r,-.58*r,.23*r);c.closePath()},bodyGrad('#182a22'),'rgba(106,139,104,.68)',Math.max(1,r*.035),5);
-   fill(()=>{c.ellipse(-.08*r,swim*r,.92*r,.39*r,0,0,Math.PI*2)},bodyGrad('#24382d'),'rgba(122,151,111,.72)',Math.max(1,r*.04),7);
-   // Low paired scutes, closer to a caiman/alligator armored back than triangular fantasy spikes.
-   for(let row=0;row<2;row++)for(let plate=0;plate<6;plate++){const px=(-.72+plate*.27)*r,py=(-.16+row*.3)*r;fill(()=>{c.roundRect(px-r*.09,py-r*.055,r*.18,r*.11,r*.035)},plate%2?'#314839':'#3b5140','rgba(151,167,126,.35)',Math.max(.5,r*.012),0);}
-   // Signature rounded head: compact U-shaped skull with elevated eye ridges and terminal nostrils.
-   fill(()=>{c.moveTo(.38*r,-.31*r);c.quadraticCurveTo(.92*r,-.38*r,1.34*r,-.29*r);c.quadraticCurveTo(1.58*r,-.2*r,1.6*r,0);c.quadraticCurveTo(1.58*r,.2*r,1.34*r,.29*r);c.quadraticCurveTo(.9*r,.38*r,.38*r,.31*r);c.closePath()},bodyGrad('#2d4434'),'rgba(164,184,138,.75)',Math.max(1,r*.04),6);
-   fill(()=>{c.moveTo(.48*r,.05*r);c.quadraticCurveTo(1.05*r,.14*r,1.56*r,.08*r);c.quadraticCurveTo(1.31*r,.3*r,.48*r,.25*r);c.closePath()},'#151d18','rgba(125,145,108,.42)',Math.max(.6,r*.015),1);
-   for(const side of [-1,1]){fill(()=>c.ellipse(.62*r,side*.24*r,r*.14,r*.085,0,0,Math.PI*2),'#344b39','#1b2a21',Math.max(.6,r*.015),0);eye(.62,side*.25,r*.052,'#e0b35a');}
-   for(const side of [-1,1])fill(()=>c.ellipse(1.38*r,side*.11*r,r*.035,r*.026,0,0,Math.PI*2),'#0b1310',null,0,0);
-   // Four short limbs remain tucked alongside the body in a swimming posture.
-   for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.45+leg*.62)*r,ly=side*.27*r;c.save();c.strokeStyle='#23382b';c.lineWidth=Math.max(2,r*.08);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.08*r,side*.53*r);c.lineTo(lx+.13*r,side*.61*r);c.stroke();c.restore();}
+   // Bull shark silhouette: stout fusiform body, blunt snout, broad pectorals and powerful caudal fin.
+   const sway=Math.sin(t*.0048)*.06;
+   fill(()=>{c.moveTo(-1.55*r,sway*r);c.bezierCurveTo(-1.05*r,-.42*r,-.2*r,-.5*r,.72*r,-.3*r);c.quadraticCurveTo(1.32*r,-.17*r,1.55*r,0);c.quadraticCurveTo(1.3*r,.18*r,.72*r,.31*r);c.bezierCurveTo(-.2*r,.5*r,-1.05*r,.42*r,-1.55*r,sway*r);c.closePath()},bodyGrad('#4f665f'),'rgba(193,220,211,.72)',Math.max(1,r*.04),8);
+   fin([[-.95,-.03],[-1.65,-.72],[-1.48,.02]],'#3d514c','#9ebbb3');fin([[-.95,.03],[-1.65,.72],[-1.48,-.02]],'#3d514c','#9ebbb3');
+   fin([[-.08,-.31],[-.38,-.9],[.25,-.34]],'#405852','#9fbeb7');
+   fill(()=>{c.moveTo(-1.48*r,sway*r);c.lineTo(-2.08*r,-.62*r);c.lineTo(-1.9*r,sway*r);c.lineTo(-2.08*r,.62*r);c.closePath()},'#405851','rgba(170,205,194,.62)',Math.max(1,r*.03),4);
+   fill(()=>{c.ellipse(.83*r,0,.48*r,.31*r,0,0,Math.PI*2)},bodyGrad('#5b7169'),'rgba(205,229,220,.7)',Math.max(1,r*.035),5);
+   eye(.94,-.22,r*.05,'#dceee8');eye(.94,.22,r*.05,'#dceee8');gills(.52,-.23,4);
   } else if(id==='armoredgator'){
-   // Nile crocodile / Crocodilo-do-nilo: focinho mais estreito em V, dentes inferiores visíveis,
-   // cabeça comprida, escudos dorsais altos e cauda longa de natação.
-   const tailWave=Math.sin(t*.0045)*.11;
-   fill(()=>{c.moveTo(-.7*r,-.17*r);c.bezierCurveTo(-1.18*r,-.22*r,-1.72*r,(-.19+tailWave)*r,-2.32*r,tailWave*r);c.bezierCurveTo(-1.7*r,(.2+tailWave)*r,-1.15*r,.25*r,-.64*r,.2*r);c.closePath()},bodyGrad('#62583b'),'rgba(198,181,132,.66)',Math.max(1,r*.035),5);
-   fill(()=>{c.ellipse(-.08*r,0,.9*r,.34*r,0,0,Math.PI*2)},bodyGrad('#756746'),'rgba(215,195,142,.7)',Math.max(1,r*.04),7);
-   // Paired rectangular/keeled osteoderms, not oversized triangular fins.
-   for(let plate=0;plate<7;plate++){const px=(-.72+plate*.23)*r;for(const side of [-1,1])fill(()=>{c.moveTo((px/r-.09)*r,side*.08*r);c.lineTo((px/r-.03)*r,side*.2*r);c.lineTo((px/r+.09)*r,side*.19*r);c.lineTo((px/r+.12)*r,side*.07*r);c.closePath()},plate%2?'#a18c58':'#b39b61','rgba(67,58,38,.62)',Math.max(.5,r*.012),0);}
-   // Long V-shaped rostrum. The jaw narrows toward the nose.
-   fill(()=>{c.moveTo(.35*r,-.24*r);c.lineTo(.82*r,-.2*r);c.lineTo(1.68*r,-.07*r);c.lineTo(1.82*r,0);c.lineTo(1.68*r,.07*r);c.lineTo(.82*r,.2*r);c.lineTo(.35*r,.24*r);c.closePath()},bodyGrad('#8a7950'),'rgba(230,211,158,.78)',Math.max(1,r*.035),5);
-   fill(()=>{c.moveTo(.58*r,.02*r);c.lineTo(1.73*r,-.015*r);c.lineTo(1.62*r,.105*r);c.lineTo(.58*r,.14*r);c.closePath()},'#201c15','rgba(223,205,156,.4)',Math.max(.5,r*.012),1);
-   for(const side of [-1,1])eye(.47,side*.205,r*.05,'#f0c766');
-   for(const side of [-1,1])fill(()=>c.ellipse(1.58*r,side*.045*r,r*.025,r*.018,0,0,Math.PI*2),'#14120e',null,0,0);
-   // Crocodile signature: visible teeth from both jaws remain interlocking with mouth closed.
-   for(let tooth=0;tooth<9;tooth++){const tx=(.72+tooth*.105)*r,side=tooth%2?1:-1;fill(()=>{c.moveTo(tx,side*.025*r);c.lineTo(tx+.035*r,side*.12*r);c.lineTo(tx+.068*r,side*.028*r);c.closePath()},'#f4ebcf','rgba(73,65,46,.55)',Math.max(.4,r*.01),0);}
-   for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.43+leg*.6)*r,ly=side*.24*r;c.save();c.strokeStyle='#6c6040';c.lineWidth=Math.max(2,r*.07);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.03*r,side*.49*r);c.lineTo(lx+.17*r,side*.58*r);c.stroke();c.restore();}
+   // Horseshoe crab silhouette: domed prosoma, smaller abdomen and a long telson used by the spin ability.
+   const pulse=.98+.02*Math.sin(t*.0042);
+   fill(()=>{c.moveTo(-.85*r,0);c.quadraticCurveTo(-.72*r,-.78*r,.18*r,-.86*r);c.quadraticCurveTo(1.08*r,-.72*r,1.3*r,0);c.quadraticCurveTo(1.08*r,.72*r,.18*r,.86*r);c.quadraticCurveTo(-.72*r,.78*r,-.85*r,0);c.closePath()},bodyGrad('#8f7c50'),'rgba(235,211,158,.74)',Math.max(1,r*.045),8);
+   fill(()=>{c.ellipse(-.56*r,0,.45*r,.56*r,0,0,Math.PI*2)},bodyGrad('#6d6044'),'rgba(211,190,143,.58)',Math.max(1,r*.03),4);
+   stroke(()=>{c.moveTo(-.86*r,0);c.lineTo(-2.25*r,0)},Math.max(2,r*.075),'#c8ad6f',6);
+   fill(()=>{c.moveTo(-2.3*r,0);c.lineTo(-1.95*r,-.09*r);c.lineTo(-1.95*r,.09*r);c.closePath()},'#e0c17b','rgba(255,235,187,.6)',Math.max(.7,r*.02),4);
+   for(const side of [-1,1])for(let leg=0;leg<4;leg++){const x=(-.45+leg*.28)*r,y=side*(.28+leg*.045)*r;stroke(()=>{c.moveTo(x,y);c.lineTo(x-.18*r,side*.64*r);c.lineTo(x+.05*r,side*.72*r)},Math.max(1,r*.035),'rgba(192,164,105,.78)',2);}
+   eye(.48,-.5,r*.035,'#f6d889');eye(.48,.5,r*.035,'#f6d889');
+   c.save();c.globalAlpha=.18;c.strokeStyle='#ffe29a';c.lineWidth=Math.max(.7,r*.018);c.beginPath();c.ellipse(.18*r,0,.84*r*pulse,.7*r*pulse,0,0,Math.PI*2);c.stroke();c.restore();
     } else if(id==='electriceel'){
-   // Bioelectric eel: low, continuous silhouette with a long anal fin and travelling organ pulses.
-   const swim=Math.sin(t*.0046)*.055,tail=Math.sin(t*.0062)*.16;
-   fill(()=>{c.moveTo(-2.35*r,tail*r);c.bezierCurveTo(-1.72*r,(-.16+swim)*r,-.82*r,-.28*r,.12*r,-.24*r);c.bezierCurveTo(.62*r,-.22*r,1.12*r,-.14*r,1.38*r,-.03*r);c.quadraticCurveTo(1.5*r,0,1.38*r,.08*r);c.bezierCurveTo(.68*r,.27*r,-.35*r,.32*r,-1.18*r,.24*r);c.bezierCurveTo(-1.72*r,.18*r,-2.06*r,(.12+tail)*r,-2.35*r,tail*r);c.closePath()},bodyGrad('#176e86'),'rgba(95,245,255,.86)',Math.max(1.1,r*.035),12);
-   // Electric eels lack the tall shark-like dorsal fin. The long ventral fin drives the swimming motion.
-   fill(()=>{c.moveTo(-1.72*r,.19*r);c.bezierCurveTo(-.9*r,(.48+swim)*r,.28*r,.43*r,1.08*r,.17*r);c.bezierCurveTo(.25*r,.31*r,-.82*r,.34*r,-1.72*r,.19*r);c.closePath()},'rgba(41,173,193,.42)','rgba(119,255,247,.42)',Math.max(.7,r*.018),3);
-   eye(1.02,-.105,r*.045,'#d9ffff');
-   // Organ pulses travel from tail to head instead of flickering randomly each frame.
-   c.save();c.globalCompositeOperation='lighter';for(let k=0;k<7;k++){const phase=(t*.00055+k/7)%1,px=(-1.85+phase*2.85)*r,py=Math.sin(phase*9+t*.004)*.075*r,alpha=.25+.55*Math.sin(phase*Math.PI);c.globalAlpha=Math.max(.12,alpha);c.fillStyle=k%2?'#8ffff8':'#b9d8ff';c.shadowBlur=12*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(px,py,Math.max(1,r*.045),Math.max(.7,r*.022),0,0,Math.PI*2);c.fill();}c.restore();
-   for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-1.15+k*.78)*r,sy=Math.sin(phase)*.13*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+Math.sin(phase*1.7)*.16*r,sy+Math.cos(phase*1.3)*.18*r);c.lineTo(sx+.3*r,sy+Math.sin(phase*2.2)*.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.9)',8);}
+   // Electric ray / torpedo ray: rounded disc, short tail and paired electric organs.
+   const flap=Math.sin(t*.0052)*.08;
+   fill(()=>{c.moveTo(-.55*r,0);c.bezierCurveTo(-.25*r,(-.95-flap)*r,.72*r,-1.02*r,1.22*r,-.24*r);c.quadraticCurveTo(1.48*r,0,1.22*r,.24*r);c.bezierCurveTo(.72*r,1.02*r,-.25*r,(.95+flap)*r,-.55*r,0);c.closePath()},bodyGrad('#2a8aa0'),'rgba(153,248,255,.82)',Math.max(1.1,r*.04),12);
+   fill(()=>{c.moveTo(-.48*r,-.12*r);c.lineTo(-2.05*r,-.18*r);c.lineTo(-2.28*r,0);c.lineTo(-2.05*r,.18*r);c.lineTo(-.48*r,.12*r);c.closePath()},bodyGrad('#176e86'),'rgba(112,226,239,.62)',Math.max(1,r*.03),5);
+   fin([[-1.72,-.12],[-2.02,-.48],[-1.55,-.15]],'#237d91','#7befff');fin([[-1.72,.12],[-2.02,.48],[-1.55,.15]],'#237d91','#7befff');
+   eye(.62,-.24,r*.045,'#e8ffff');eye(.62,.24,r*.045,'#e8ffff');
+   for(const side of [-1,1]){c.save();c.globalCompositeOperation='lighter';c.globalAlpha=.42+.22*Math.sin(t*.006+side);c.fillStyle='#65f8ff';c.shadowBlur=14*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(.14*r,side*.28*r,.3*r,.18*r,0,0,Math.PI*2);c.fill();c.restore();}
+   for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-.55+k*.42)*r,sy=Math.sin(phase)*.18*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+.12*r,sy-.18*r);c.lineTo(sx+.25*r,sy+.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.92)',8);}
   } else if(id==='greensnake'){
-   // Serpente Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
-   const segWave = Math.sin(t * 0.006) * 0.15;
-   fill(()=>{
-     c.moveTo(-2.4*r, segWave*r);
-     c.quadraticCurveTo(-1.8*r, -0.45*r + segWave*r, -0.9*r, -0.38*r);
-     c.quadraticCurveTo(0, -0.28*r - segWave*r, 0.85*r, -0.15*r);
-     c.lineTo(1.35*r, 0);
-     c.lineTo(0.85*r, 0.18*r);
-     c.quadraticCurveTo(0, 0.35*r + segWave*r, -0.9*r, 0.3*r);
-     c.quadraticCurveTo(-1.8*r, 0.4*r - segWave*r, -2.4*r, segWave*r);
-     c.closePath();
-   }, bodyGrad('#2ee88a'), 'rgba(180,255,210,.9)', Math.max(1.3, r*.05), 16);
-   for(let s=0; s<9; s++){
-     const sx = (-1.8 + s * 0.34) * r;
-     const sy = Math.sin(t*0.005 + s*0.6) * 0.08 * r;
-     fin([[sx/r, -0.1 + sy/r], [sx/r + 0.08, -0.38 + sy/r], [sx/r + 0.16, -0.1 + sy/r]], '#187845', '#79ffba');
-   }
-   fill(()=>{
-     c.moveTo(0.55*r, -0.22*r);
-     c.lineTo(1.25*r, -0.18*r);
-     c.lineTo(1.55*r, 0);
-     c.lineTo(1.25*r, 0.18*r);
-     c.lineTo(0.55*r, 0.22*r);
-     c.closePath();
-   }, bodyGrad('#3af597'), 'rgba(215,255,230,.95)', Math.max(1.1, r*.04), 8);
-   eye(0.9, -0.18, r*0.07, '#ffc83b');
-   eye(0.9, 0.18, r*0.07, '#ffc83b');
-   stroke(()=>{
-     c.moveTo(1.52*r, 0);
-     c.lineTo(1.8*r, 0);
-     c.lineTo(1.95*r, -0.06*r);
-     c.moveTo(1.8*r, 0);
-     c.lineTo(1.95*r, 0.06*r);
-   }, Math.max(1.2, r*0.025), '#ff4d6d', 4);
+   // Giant emerald moray: continuous dorsal fin, sinuous body and a compact predatory head.
+   const wave=Math.sin(t*.006)*.16;
+   fill(()=>{c.moveTo(-2.35*r,wave*r);c.bezierCurveTo(-1.65*r,(-.34+wave)*r,-.72*r,-.33*r,.2*r,-.25*r);c.bezierCurveTo(.74*r,-.22*r,1.13*r,-.2*r,1.38*r,-.08*r);c.quadraticCurveTo(1.56*r,0,1.38*r,.11*r);c.bezierCurveTo(.68*r,.3*r,-.45*r,.36*r,-1.28*r,.28*r);c.bezierCurveTo(-1.82*r,.24*r,-2.1*r,(.16+wave)*r,-2.35*r,wave*r);c.closePath()},bodyGrad('#20935e'),'rgba(136,255,190,.84)',Math.max(1.2,r*.04),12);
+   fill(()=>{c.moveTo(-2.05*r,(.02+wave)*r);c.bezierCurveTo(-1.28*r,(-.55+wave)*r,-.15*r,-.47*r,.74*r,-.29*r);c.bezierCurveTo(-.15*r,-.34*r,-1.2*r,-.34*r,-2.05*r,(.02+wave)*r);c.closePath()},'rgba(59,240,143,.34)','rgba(137,255,192,.38)',Math.max(.7,r*.018),4);
+   fill(()=>{c.moveTo(.52*r,-.24*r);c.quadraticCurveTo(1.18*r,-.32*r,1.56*r,0);c.quadraticCurveTo(1.17*r,.34*r,.52*r,.25*r);c.closePath()},bodyGrad('#2ee88a'),'rgba(201,255,224,.9)',Math.max(1,r*.035),7);
+   fill(()=>{c.moveTo(.86*r,.02*r);c.lineTo(1.52*r,.02*r);c.quadraticCurveTo(1.2*r,.2*r,.78*r,.17*r);c.closePath()},'#102c20','rgba(159,255,201,.42)',Math.max(.6,r*.014),1);
+   for(let tooth=0;tooth<5;tooth++){const tx=(.95+tooth*.1)*r;fill(()=>{c.moveTo(tx,.02*r);c.lineTo(tx+.035*r,.105*r);c.lineTo(tx+.07*r,.02*r);c.closePath()},'#effff5',null,0,0);}
+   eye(.98,-.18,r*.055,'#ffc84a');eye(.98,.18,r*.055,'#ffc84a');
+   c.save();c.globalAlpha=.3+.12*Math.sin(t*.005);c.strokeStyle='#61ffac';c.shadowBlur=8*glowScale;c.shadowColor='#2ee88a';c.lineWidth=Math.max(.8,r*.02);c.beginPath();c.moveTo(-1.7*r,0);c.quadraticCurveTo(-.4*r,.18*r,.72*r,.02*r);c.stroke();c.restore();
   } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.
    for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
@@ -2888,7 +2934,7 @@ function drawBossDirectionIndicators(t){
   const dx=sx-cw/2,dy=sy-ch/2,ax=Math.max(1,Math.abs(dx)),ay=Math.max(1,Math.abs(dy));
   const scale=Math.min((cw/2-margin)/ax,(ch/2-margin)/ay),x=clamp(cw/2+dx*scale,margin,cw-margin),y=clamp(ch/2+dy*scale,margin,ch-margin),angle=Math.atan2(dy,dx);
   ctx.save();ctx.translate(x,y);ctx.rotate(angle);const pulse=1+Math.sin(t*.012)*.12;ctx.fillStyle='#ff315f';ctx.shadowBlur=18;ctx.shadowColor='#ff174d';ctx.beginPath();ctx.moveTo(12*pulse,0);ctx.lineTo(-7,-7);ctx.lineTo(-4,0);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.restore();
-  ctx.save();ctx.fillStyle='#ffd7e0';ctx.shadowBlur=8;ctx.shadowColor='#ff315f';ctx.fillText(boss.kind==='boss'?'ABERRAÇÃO ABISSAL':'BOSS ABISSAL',x,y+18);ctx.restore();
+  ctx.save();ctx.fillStyle='#ffd7e0';ctx.shadowBlur=8;ctx.shadowColor='#ff315f';ctx.fillText(boss.kind==='boss'?'CEFALÓPODE CALCIFICADO':'BOSS ABISSAL',x,y+18);ctx.restore();
  }
  ctx.restore();
 }
@@ -3349,13 +3395,13 @@ function renderCatalog(){
   brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Blindagem Bêntica: carapaça espessa que absorve projéteis e isola passagens.',desc:'Isópode titânico com placas sobrepostas impenetráveis e patas blindadas.'},
   lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Faringe Expansiva: mandíbula que dilata e perseguição incansável nas trevas.',desc:'Enguia gulper predatória que persegue sua presa sem recuar.'},
   whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
-  boss:{name:'Aberração Abissal',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Entidade coroada por placas calcificadas e braços farpados que esmagam quem se aproxima.'},
-  angler:{name:'Lanterna Mortal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Predador arcaico com lanterna incandescente e dentes voltados para dentro.'},
-  maw:{name:'A Boca do Abismo',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Criatura anelar voraz cujo corpo inteiro é uma garganta predatória viva.'},
-  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Serpente colóssal com costelas externas que atravessa as fendas mais profundas.'},
+  boss:{name:'Cefalópode Calcificado',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Cefalópode abissal fictício inspirado em polvos cirrados, com placas mineralizadas e braços farpados.'},
+  angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Peixe-pescador de águas profundas ampliado a escala colossal, com ilício bioluminescente e dentes recurvados.'},
+  maw:{name:'Enguia-Pelícano Colossal',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Enguia-pelícano colossal inspirada em gulper eels, com boca expansível capaz de engolir presas enormes.'},
+  leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Peixe-remo abissal fictício de corpo extremamente alongado que atravessa corredores estreitos das fossas.'},
   whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
-  kraken:{name:'Kraken do Abismo',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Senhor primordial das fossas oceânicas cujos tentáculos envolvem a escuridão.'},
-  devourer:{name:'Devorador do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Entidade que distorce as correntes abissais engolindo cardumes e mergulhadores inteiros.'}
+  kraken:{name:'Lula-Kraken das Fossas',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Lula gigantesca inspirada em cefalópodes de profundidade, com oito braços usados em varreduras circulares.'},
+  devourer:{name:'Lula-Colossal do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Lula-colossal fictícia cujo manto gera um pulso de sucção capaz de inverter correntes locais.'}
  };
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};

@@ -18,6 +18,7 @@ function createWorldState(now = Date.now()) {
     playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
     activeEventId: null, eventEndsAt: 0, eventSerial: 0,
+    eliteRewardClaimedTier: -1, sideEncounterResolvedTier: -1, sideEncounterId: null, sideEncounterSerial: 0,
     mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0
   };
 }
@@ -111,12 +112,53 @@ function forceAdvanceEnemy(enemy, players, dt) {
   return Math.hypot(x - oldX, y - oldY) >= 0.05;
 }
 
+function roomPopulation(world, roomId) {
+  let count = 0;
+  for (const enemy of world?.enemies || []) if (!BOSS_KINDS.includes(enemy.kind) && enemy.spawnRoomId === roomId) count++;
+  return count;
+}
+
+function chooseDensitySpawnRoom(world, players, random = Math.random) {
+  const layout = mapLayoutFor(world);
+  if (!layout) return null;
+  const upper = [], lower = [];
+  for (const player of players || []) {
+    const room = AbyssalMap.roomAt(layout, Number(player.x), Number(player.y));
+    if (room && room.depth >= 7) lower.push(player); else upper.push(player);
+  }
+  const useLower = lower.length > 0 && (upper.length === 0 || random() < lower.length / Math.max(1, lower.length + upper.length));
+  const allowedTypes = useLower ? new Set(['landing','boss']) : new Set(['common','event','hub']);
+  const candidates = layout.rooms.filter(room => {
+    if (!allowedTypes.has(room.type)) return false;
+    const cap = ExpeditionRules.roomDensityCap(room, world.mapTier, world.roomPlayerCount || players?.length || 1);
+    return cap > 0 && roomPopulation(world, room.id) < cap;
+  });
+  if (!candidates.length) return null;
+  // Bias toward the same physical depth as the active group while keeping side chambers discoverable.
+  const weighted = [];
+  for (const room of candidates) {
+    const population = roomPopulation(world, room.id);
+    const cap = Math.max(1, ExpeditionRules.roomDensityCap(room, world.mapTier, world.roomPlayerCount || players?.length || 1));
+    const openRatio = Math.max(.08, 1 - population / cap);
+    const tickets = Math.max(1, Math.round(openRatio * (room.type === 'event' ? 3 : room.type === 'hub' ? 4 : 6)));
+    for (let i = 0; i < tickets; i++) weighted.push(room);
+  }
+  return weighted[Math.floor(random() * weighted.length)]?.id || candidates[0].id;
+}
+
 function spawnEnemy(world, options = {}) {
   const { type = 'common', initial = false, random = Math.random } = options;
   if (!world || world.enemies.length >= MAX_ENEMIES) return null;
   const bosses = countBosses(world);
   if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
   if (type !== 'boss' && countCommons(world) >= MAX_COMMON_ENEMIES) return null;
+
+  const layout = mapLayoutFor(world);
+  let point = AbyssalMap.spawnPoint(layout, {
+    type: type === 'boss' ? 'boss' : type,
+    initial, random, bossesDefeated: world.bossesDefeated, roomId: options.roomId
+  });
+  let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
   if (options.kindOverride) {
@@ -125,10 +167,12 @@ function spawnEnemy(world, options = {}) {
     kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else {
-    kind = ExpeditionRules.chooseCommonKind(random, world.bossesDefeated, world.activeEventId);
+    kind = ExpeditionRules.chooseCommonKindForRoom
+      ? ExpeditionRules.chooseCommonKindForRoom(random, ecologyRoom, world.mapTier, world.activeEventId)
+      : ExpeditionRules.chooseCommonKind(random, world.bossesDefeated, world.activeEventId);
     if (kind === 'whiteShark') {
       const whiteSharkCount = world.enemies.filter(e => e.kind === 'whiteShark').length;
-      if (whiteSharkCount >= 10) kind = 'drifter';
+      if (whiteSharkCount >= 10) kind = 'lurker';
     }
   }
 
@@ -136,10 +180,13 @@ function spawnEnemy(world, options = {}) {
   let eliteId = null;
   if (type !== 'boss' && !initial) {
     eliteId = ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
+    if (options.forceElite && !eliteId) {
+      const eliteIds = ['carapace','frenzy','spectral'];
+      eliteId = eliteIds[Math.floor(random() * eliteIds.length)] || 'carapace';
+    }
     if (eliteId) stats = ExpeditionRules.applyEliteStats(stats, eliteId);
   }
   if (type === 'boss') {
-    // A cada ciclo completo de sete bosses, somente a vida recebe +20%.
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
@@ -149,9 +196,16 @@ function spawnEnemy(world, options = {}) {
     world.bossSpawnCount++;
     world.lastBossKind = kind;
   }
-  // Expedition enemies now emerge from actual cave chambers instead of the empty rectangular perimeter.
-  const layout = mapLayoutFor(world);
-  const point = AbyssalMap.spawnPoint(layout, { type: type==='boss'?'boss':eliteId?'elite':type, initial, random, bossesDefeated: world.bossesDefeated });
+
+  // Random elite mutations belong to the optional elite chamber. Explicit room encounters
+  // keep their elites inside that room so a side-branch trap cannot leak into the main path.
+  if (eliteId && !options.roomId && type !== 'elite') {
+    point = AbyssalMap.spawnPoint(layout, { type: 'elite', random, bossesDefeated: world.bossesDefeated });
+    ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || ecologyRoom;
+  }
+  const rewardMultiplier = type === 'boss' ? 1 : (ExpeditionRules.roomRewardMultiplier?.(ecologyRoom, world.mapTier) || 1);
+  stats.value = Math.max(1, Math.round((Number(stats.value) || 1) * rewardMultiplier));
+
   const id = ++world.nextEnemyId;
   const enemy = {
     id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
@@ -183,6 +237,21 @@ function spawnXpOrb(world, enemy) {
   return orb;
 }
 
+function spawnRewardOrb(world, x, y, value, sourceKind='cave-reward', sourceEnemyId=null) {
+  if (!world) return null;
+  world.orbs ||= [];
+  world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
+  const amount = Math.max(1, Math.round(Number(value) || 1));
+  const orb = {
+    id: world.nextOrbId, x: Number(x) || 0, y: Number(y) || 0,
+    r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(amount) : Math.min(15, 4 + Math.sqrt(amount)),
+    value: amount, phase: 0, life: 32, sourceEnemyId, sourceKind
+  };
+  world.orbs.push(orb);
+  if (world.orbs.length > 220) world.orbs.splice(0, world.orbs.length - 220);
+  return orb;
+}
+
 function initializeWorld(world, now = Date.now(), random = Math.random) {
   if (world.initialized) return [];
   world.initialized = true;
@@ -191,6 +260,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
   world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
+  world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0;
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
@@ -248,16 +318,44 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
+  const spawnedRewardOrbs = [];
+  let sideEncounter = null;
+  if (Number(world.sideEncounterResolvedTier) !== Number(world.mapTier)) {
+    const eventRoom = mapLayout?.rooms?.find(room => room.id === 'event');
+    const entrant = eventRoom && validPlayers.find(player => AbyssalMap.roomAt(mapLayout, Number(player.x), Number(player.y))?.id === 'event');
+    if (entrant) {
+      const encounter = ExpeditionRules.sideEncounterFor?.(world.mapSeed, world.mapTier);
+      if (encounter) {
+        world.sideEncounterResolvedTier = Number(world.mapTier) || 0;
+        world.sideEncounterId = encounter.id;
+        world.sideEncounterSerial = (Number(world.sideEncounterSerial) || 0) + 1;
+        sideEncounter = { id: encounter.id, type: encounter.type, name: encounter.name, subtitle: encounter.subtitle, risk: encounter.risk, reward: encounter.reward, accent: encounter.accent, serial: world.sideEncounterSerial, tier: world.mapTier };
+        if (encounter.type === 'treasure') {
+          const orb = spawnRewardOrb(world, eventRoom.x, eventRoom.y, 28 + Math.max(0, Number(world.mapTier) || 0) * 7, 'resonance-cache');
+          if (orb) spawnedRewardOrbs.push(orb);
+        } else {
+          const count = Math.max(1, Math.min(9, Math.floor(Number(encounter.ambushCount) || 4)));
+          for (let i = 0; i < count && world.enemies.length < MAX_ENEMIES; i++) {
+            const ambusher = spawnEnemy(world, { type: 'common', roomId: 'event', forceElite: encounter.type === 'trap' && i < 2, random });
+            if (ambusher) spawnedEnemies.push(ambusher);
+          }
+        }
+      }
+    }
+  }
+
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
   if (commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
-    const spawned = spawnEnemy(world, { type: 'common', random });
+    const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
+    const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.35;
   } else if (world.commonSpawnTimer <= 0) {
     if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
-      const spawned = spawnEnemy(world, { type: 'common', random });
+      const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
+      const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
       if (spawned) spawnedEnemies.push(spawned);
     }
     commonCount = countCommons(world);
@@ -571,7 +669,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
@@ -611,4 +709,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };

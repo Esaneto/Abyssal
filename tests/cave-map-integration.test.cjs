@@ -8,8 +8,8 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const index=read('public/index.html'),game=read('public/game.js'),server=read('server.js'),online=read('public/online.js'),world=read('world-simulation.js'),css=read('public/abyssal-rebuild.css');
 
 test('shared cave geometry loads before gameplay and is used by solo plus server',()=>{
- assert.ok(index.indexOf('abyssal-map.js?v=1')>0);
- assert.ok(index.indexOf('abyssal-map.js?v=1')<index.indexOf('game.js?v=4.4.4'));
+ assert.ok(index.indexOf('abyssal-map.js?v=2')>0);
+ assert.ok(index.indexOf('abyssal-map.js?v=2')<index.indexOf('game.js?v=4.4.5'));
  assert.match(game,/const ABYSSAL_MAP=window\.AbyssalMap/);
  assert.match(world,/require\('\.\/public\/abyssal-map\.js'\)/);
  assert.match(server,/require\('\.\/public\/abyssal-map\.js'\)/);
@@ -31,8 +31,11 @@ test('co-op spawn collision and enemy simulation all use cave geometry',()=>{
 });
 
 test('boss and elite placement have dedicated chambers',()=>{
- assert.match(world,/type: type==='boss'\?'boss':eliteId\?'elite':type/);
- assert.match(game,/type:isBossType\?'boss':eliteId\?'elite':'common'/);
+ assert.match(world,/type: type === 'boss' \? 'boss' : type/);
+ assert.match(world,/if \(eliteId && !options\.roomId && type !== 'elite'\)/);
+ assert.match(world,/AbyssalMap\.spawnPoint\(layout, \{ type: 'elite'/);
+ assert.match(game,/if\(eliteId&&!options\.roomId&&!isBossType\)/);
+ assert.match(game,/ABYSSAL_MAP\.spawnPoint\(map,\{type:'elite'/);
  assert.match(world,/enemy\.eliteId&&enemy\.spawnRoomId==='elite'/);
  assert.match(game,/e\.eliteId&&e\.spawnRoomId==='elite'/);
 });
@@ -59,4 +62,23 @@ test('PvP retains its dedicated arena instead of inheriting expedition caves',()
  assert.match(game,/onlineRoomMode==='pvp'\)\{activeMapLayout=null/);
  assert.match(game,/function currentMapInteraction\(\)\{[\s\S]*?onlineRoomMode==='pvp'[\s\S]*?return null/);
  assert.match(server,/const expeditionSpawn=room\.mode==='coop'\?/);
+});
+
+test('boss clear unlocks the next cave tier only when the living co-op group gathers at the sigil',()=>{
+ assert.match(server,/\['descent','ascend','next-tier'\]\.includes\(kind\)/);
+ assert.match(server,/reason:'boss-not-cleared'/);
+ assert.match(server,/reason:'group-not-ready'/);
+ assert.match(server,/w\.mapTier=currentTier\+1/);
+ assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,party\.length\)/);
+ assert.match(server,/criticalReason:'map-tier-transition'/);
+ assert.match(game,/requestMapTransition\?\.\('next-tier'/);
+ assert.match(game,/if\(result\.map\)setActiveMapDescriptor\(result\.map\)/);
+});
+
+test('deploy resume preserves deterministic cave seed tier and consumed branch state',()=>{
+ assert.match(server,/const deployWorld=room\.world\?JSON\.parse\(JSON\.stringify\(room\.world\)\):null/);
+ assert.match(server,/roomResume:\{[\s\S]*?world:deployWorld/);
+ assert.match(server,/room\.world=JSON\.parse\(JSON\.stringify\(resumedRun\.roomResume\.world\)\)/);
+ assert.match(world,/eliteRewardClaimedTier/);
+ assert.match(world,/sideEncounterResolvedTier/);
 });
