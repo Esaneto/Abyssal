@@ -1,18 +1,441 @@
-/* Submerged navigation: surface light above an abyssal whirlpool. */
-body:not(.game-active) #menuScreen{background:radial-gradient(ellipse at 50% -8%,#9af8ff88 0, #0095c144 17%,transparent 45%),radial-gradient(ellipse at 50% 75%,#064b9633,transparent 50%),linear-gradient(155deg,#020c1b,#04233b 45%,#010712);overflow:auto;isolation:isolate}
-body:not(.game-active) #menuScreen:before{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-conic-gradient(from 165deg at 50% -10%,transparent 0deg 9deg,#28c7ed09 10deg 14deg,transparent 15deg 23deg);mask-image:linear-gradient(#000,transparent);z-index:-1}
-body:not(.game-active) #menuScreen .menu-content{width:100%;max-width:none;padding:26px 32px;box-sizing:border-box}
-body:not(.game-active) #menuScreen h1{font-size:clamp(25px,3.2vw,52px);max-width:440px;margin:18px 0;color:#c6f6ff;text-shadow:0 0 22px #118edb}
-body:not(.game-active) #menuScreen .intro{position:absolute;left:32px;bottom:65px;max-width:300px;font-size:14px;border-left:3px solid #57dfff;padding-left:16px}
-body:not(.game-active) #menuScreen .menu-secondary-actions{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:10px auto;max-width:1150px;background:transparent;border:0;z-index:3}
-body:not(.game-active) #menuScreen .menu-action{flex:0 1 165px;min-height:72px;background:linear-gradient(160deg,#062e4eed,#020d21e8);border:1px solid #218ec5;border-bottom-color:#9e68e8;box-shadow:0 6px 18px #0008;border-radius:12px;transition:transform .2s,box-shadow .2s}
-body:not(.game-active) #menuScreen .menu-action:hover{transform:translateY(-7px);box-shadow:0 0 22px #10cafa55}
-body:not(.game-active) #playBtn{display:block;width:250px;max-width:80%;margin:12px auto;background:linear-gradient(#125a81,#05233d);border:1px solid #72f4ff;box-shadow:0 0 24px #1ec9ff55;font-size:20px;min-height:65px}
-body:not(.game-active) #resonanceBtn,body:not(.game-active) #wheelBtn{max-width:240px;display:inline-flex;margin:4px}
-body:not(.game-active) #abyssGate{position:relative;inset:auto;margin:20px auto 130px;width:min(650px,80vw);height:260px;transform:perspective(700px) rotateX(22deg);border-radius:50%;background:radial-gradient(ellipse,#00010a 25%,#03102d 45%,#076eab 60%,#082154 65%,transparent 72%);box-shadow:0 0 70px #005cc944;border:0;z-index:1}
-body:not(.game-active) #abyssGate .abyss-gate-rim{inset:0;border-radius:50%;background:repeating-conic-gradient(from 20deg,#50dcff99 0deg,transparent 12deg,#3030bd55 22deg,transparent 35deg);mask-image:radial-gradient(ellipse,transparent 43%,#000 58%,transparent 72%);animation:abyssOrbit 32s linear infinite}
-body:not(.game-active) #abyssGate .abyss-gate-content{position:absolute;inset:30% 10%;text-align:center;z-index:3}
-body:not(.game-active) #abyssGate .abyss-gate-depth{background:transparent}
-@keyframes abyssOrbit{to{rotate:360deg}}
-@media(max-width:700px){body:not(.game-active) #menuScreen .menu-content{padding:18px}body:not(.game-active) #menuScreen .menu-action{flex-basis:42%;min-height:58px}body:not(.game-active) #menuScreen .intro{position:relative;left:auto;bottom:auto;margin:18px 0}body:not(.game-active) #abyssGate{height:210px;margin-bottom:90px}body:not(.game-active) #menuScreen h1{margin-top:30px}}
-@media(prefers-reduced-motion:reduce){body:not(.game-active) #abyssGate .abyss-gate-rim{animation:none}}
+/*
+ * ABYSSAL: radial navigation and sinking-current vortex.
+ * This stylesheet loads LAST and is intentionally scoped to the menu.
+ * Gameplay, gameplay HUD, other screens and their input handlers stay intact.
+ */
+
+body:not(.game-active) #menuScreen{
+  isolation:isolate!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  position:absolute!important;
+  inset:0!important;
+  background:
+    radial-gradient(ellipse 48% 24% at 50% -5%,rgba(91,243,255,.57),rgba(0,135,191,.2) 53%,transparent 100%),
+    radial-gradient(ellipse 47% 55% at 50% 54%,rgba(7,76,156,.43),rgba(0,13,41,.17) 64%,transparent 85%),
+    radial-gradient(ellipse 90% 75% at 50% 95%,rgba(0,44,95,.36),transparent 75%),
+    linear-gradient(165deg,#010716 0%,#042342 42%,#01091c 78%,#01040d 100%)!important;
+}
+body:not(.game-active) #menuScreen::before{
+  content:"";position:absolute!important;inset:0!important;z-index:0!important;
+  pointer-events:none!important;opacity:.57!important;
+  background:
+    repeating-conic-gradient(from 174deg at 50% -18%,transparent 0deg 8deg,rgba(70,228,255,.065) 9deg 10deg,transparent 11deg 18deg),
+    radial-gradient(circle at 17% 76%,rgba(21,132,229,.25),transparent 30%),
+    radial-gradient(circle at 86% 80%,rgba(68,27,130,.22),transparent 32%)!important;
+  mask-image:linear-gradient(#000 4%,transparent 88%)!important;
+}
+body:not(.game-active) #menuScreen::after{
+  content:"";position:absolute!important;inset:0!important;z-index:0!important;
+  pointer-events:none!important;
+  background:linear-gradient(90deg,rgba(0,2,10,.54),transparent 24%,transparent 76%,rgba(0,2,10,.54))!important;
+}
+body:not(.game-active) #menuScreen .menu-fauna{display:none!important}
+body:not(.game-active) #menuScreen .menu-content{
+  position:relative!important;z-index:2!important;
+  box-sizing:border-box!important;display:block!important;
+  width:100%!important;max-width:none!important;height:100%!important;
+  min-height:610px!important;max-height:none!important;
+  margin:0!important;padding:0!important;overflow:visible!important;
+  border:0!important;border-radius:0!important;background:none!important;
+}
+body:not(.game-active) #menuScreen .eyebrow{
+  position:absolute!important;z-index:7!important;top:20px!important;left:clamp(18px,3vw,48px)!important;
+  width:auto!important;max-width:310px!important;
+  margin:0!important;color:#8fdfff!important;font-size:9px!important;
+  letter-spacing:.14em!important;text-align:left!important;
+}
+body:not(.game-active) #menuScreen h1{
+  position:absolute!important;z-index:7!important;top:43px!important;left:clamp(18px,3vw,48px)!important;
+  width:280px!important;max-width:28vw!important;
+  margin:0!important;padding:0!important;
+  font-size:clamp(27px,3vw,45px)!important;line-height:1.05!important;
+  letter-spacing:-.035em!important;text-align:left!important;color:#effbff!important;
+  text-shadow:0 0 30px rgba(0,167,255,.28)!important;
+}
+body:not(.game-active) #menuScreen h1 em{
+  color:#91eaff!important;text-shadow:0 0 17px rgba(24,203,255,.7)!important;
+}
+body:not(.game-active) #menuScreen .intro{
+  position:absolute!important;z-index:7!important;
+  left:clamp(18px,3vw,48px)!important;bottom:68px!important;top:auto!important;
+  width:265px!important;max-width:26vw!important;margin:0!important;
+  padding:0 0 0 15px!important;border-left:3px solid #23dafe!important;
+  color:#9ad5f0!important;font-size:clamp(10px,.82vw,13px)!important;
+  line-height:1.65!important;text-align:left!important;
+}
+
+/* All primary menu actions share ONE orbit as their containing block. */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation{
+  --orbit-card-width:clamp(143px,12vw,195px);
+  position:relative!important;display:block!important;
+  box-sizing:border-box!important;width:min(1270px,97%)!important;
+  max-width:none!important;height:clamp(560px,calc(100dvh - 168px),780px)!important;
+  min-height:560px!important;margin:36px auto 0!important;
+  padding:0!important;z-index:3!important;isolation:isolate!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation::before{
+  content:"";position:absolute;left:50%;top:50%;width:76%;height:77%;
+  transform:translate(-50%,-50%) rotateX(50deg);border-radius:50%;
+  border:1px solid rgba(16,181,255,.32);
+  box-shadow:0 0 26px rgba(0,163,241,.1),inset 0 0 35px rgba(9,150,251,.08);
+  pointer-events:none;z-index:0;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation::after{
+  content:"";position:absolute;left:50%;top:50%;width:59%;height:63%;
+  transform:translate(-50%,-50%) rotateX(43deg);border-radius:50%;
+  border:1px solid rgba(92,80,253,.24);pointer-events:none;z-index:0;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions{
+  display:contents!important;position:static!important;
+  width:auto!important;max-width:none!important;height:auto!important;
+  margin:0!important;padding:0!important;background:none!important;border:0!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action{
+  position:absolute!important;z-index:6!important;inset:auto!important;
+  left:var(--orbit-x,50%)!important;top:var(--orbit-y,50%)!important;
+  transform:translate(-50%,-50%)!important;
+  box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
+  justify-content:center!important;align-items:center!important;gap:7px!important;
+  width:var(--orbit-width,var(--orbit-card-width))!important;
+  max-width:var(--orbit-width,var(--orbit-card-width))!important;
+  min-width:0!important;min-height:75px!important;height:auto!important;
+  margin:0!important;padding:11px 8px!important;
+  border:1px solid rgba(42,195,255,.63)!important;
+  border-radius:16px!important;
+  background:linear-gradient(153deg,rgba(6,44,84,.95),rgba(1,13,35,.9) 62%,rgba(15,17,63,.9))!important;
+  box-shadow:inset 0 1px rgba(171,247,255,.09),0 12px 31px rgba(0,0,0,.43),0 0 16px rgba(0,174,255,.13)!important;
+  color:#d5f6ff!important;text-align:center!important;
+  text-shadow:none!important;white-space:normal!important;
+  font-size:clamp(9px,.83vw,12px)!important;font-weight:700!important;
+  line-height:1.25!important;letter-spacing:.04em!important;
+  transition:background .18s ease,border-color .18s ease,box-shadow .18s ease,filter .18s ease!important;
+  pointer-events:auto!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action:focus-visible,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn:focus-visible,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn:focus-visible,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn:focus-visible{
+  outline:2px solid rgba(146,246,255,.94)!important;outline-offset:3px!important;
+  border-color:#8cffff!important;filter:brightness(1.18)!important;
+  box-shadow:0 0 27px rgba(2,198,255,.44),inset 0 1px rgba(227,255,255,.24)!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.menu-nav-icon,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.online-cta-icon{
+  position:static!important;order:-1!important;display:block!important;
+  flex:0 0 auto!important;grid-column:auto!important;
+  width:25px!important;height:25px!important;color:#76e8ff!important;
+  margin:0 auto!important;filter:drop-shadow(0 0 5px rgba(24,192,255,.28));
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.menu-action-label,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.online-cta-copy{
+  position:static!important;display:block!important;
+  width:100%!important;max-width:100%!important;margin:0!important;grid-column:auto!important;
+  text-align:center!important;white-space:normal!important;overflow-wrap:anywhere!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .online-cta-copy strong{
+  font-size:inherit!important;text-align:center!important;color:inherit!important;letter-spacing:inherit!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn{
+  --orbit-x:50%;--orbit-y:6%;--orbit-width:clamp(210px,19vw,278px);
+  min-height:86px!important;border:2px solid #48eaff!important;
+  border-radius:19px!important;
+  font-size:clamp(15px,1.5vw,23px)!important;letter-spacing:.055em!important;
+  color:#fff!important;
+  background:linear-gradient(160deg,rgba(8,90,160,.96),rgba(0,39,97,.93),rgba(7,33,76,.94))!important;
+  box-shadow:0 0 31px rgba(6,213,255,.55),inset 0 0 30px rgba(10,201,255,.2)!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn>span:last-child{
+  display:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #onlineBtn{
+  --orbit-x:25%;--orbit-y:19%;
+  border-color:rgba(57,234,181,.7)!important;color:#afffdf!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #shopBtn{--orbit-x:75%;--orbit-y:19%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #rankingsBtn{--orbit-x:13%;--orbit-y:33%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #catalogBtn{--orbit-x:87%;--orbit-y:33%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #cardumesBtn{--orbit-x:8%;--orbit-y:49%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn{
+  --orbit-x:92%;--orbit-y:49%;
+  border-color:rgba(172,116,255,.66)!important;color:#e0caff!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #profileBtn{--orbit-x:13%;--orbit-y:65%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn{
+  --orbit-x:87%;--orbit-y:65%;
+  border-color:rgba(163,114,253,.67)!important;color:#eedfff!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #matchHistoryBtn{--orbit-x:25%;--orbit-y:79%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #supportBtn{--orbit-x:75%;--orbit-y:79%}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn .resonance-label{
+  display:flex!important;flex-direction:column!important;gap:6px!important;
+  width:100%!important;align-items:center!important;justify-content:center!important;
+  text-align:center!important;font-size:inherit!important;letter-spacing:inherit!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn .ui-icon{
+  display:block!important;width:23px!important;height:23px!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-icon{
+  width:27px!important;height:27px!important;flex:0 0 auto!important;
+  margin:0 auto!important;border:0!important;background:none!important;box-shadow:none!important;
+  color:#cb9aff!important;font-size:24px!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-copy{
+  width:100%!important;flex:0 0 auto!important;min-width:0!important;
+  text-align:center!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-copy strong{
+  font-size:inherit!important;letter-spacing:inherit!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-prizes,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-arrow{display:none!important}
+
+/* The trench is an actual layered funnel: revolving streams collapse into a black central shaft. */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate{
+  position:absolute!important;z-index:2!important;inset:auto!important;
+  display:block!important;left:50%!important;top:51%!important;
+  width:min(46%,575px)!important;height:auto!important;aspect-ratio:1!important;
+  min-width:300px!important;margin:0!important;border:0!important;border-radius:50%!important;
+  padding:0!important;transform:translate(-50%,-50%)!important;
+  background:none!important;box-shadow:none!important;filter:none!important;
+  opacity:1!important;overflow:visible!important;pointer-events:auto!important;
+}
+body:not(.game-active) #menuScreen #abyssGate::before,
+body:not(.game-active) #menuScreen #abyssGate::after,
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-rim,
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-depth,
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-eye{display:none!important}
+body:not(.game-active) #menuScreen .abyss-vortex-plane{
+  position:absolute!important;inset:3%!important;overflow:hidden!important;
+  border-radius:50%!important;isolation:isolate!important;
+  transform:perspective(850px) rotateX(35deg) scale(1.12);
+  background:
+    radial-gradient(circle at 50% 50%,#00020d 0 12%,#020722 19%,transparent 33%),
+    repeating-radial-gradient(circle at 50%,transparent 0 14px,rgba(4,45,107,.17) 16px 20px,transparent 27px 38px),
+    conic-gradient(from 68deg,#00327d,#0ff0ff 8%,#040c4d 18%,#1a48ad 26%,#1a0b65 33%,#03c9ff 43%,#061d64 53%,#0057c1 66%,#9a48fd 76%,#003881 85%,#00caff 93%,#00327d 100%)!important;
+  box-shadow:inset 0 0 32px #000c,inset 0 0 80px rgba(0,2,25,.96),0 0 50px rgba(0,149,253,.45)!important;
+  pointer-events:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-plane::before{
+  content:"";position:absolute;z-index:1;inset:-11%;border-radius:50%;
+  background:repeating-conic-gradient(from 45deg,
+    rgba(5,154,255,.15) 0deg 6deg,transparent 10deg 24deg,
+    rgba(162,76,255,.3) 29deg 31deg,transparent 37deg 58deg);
+  mask-image:radial-gradient(circle,transparent 0 21%,#000 36% 81%,transparent 97%);
+  animation:abyssVortexRotate 30s linear infinite;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-plane::after{
+  content:"";position:absolute;z-index:1;inset:2%;border-radius:50%;
+  background:radial-gradient(circle,transparent 0 39%,rgba(30,218,255,.06) 42%,transparent 53%,rgba(90,28,224,.14) 66%,transparent 79%);
+  box-shadow:inset 0 0 25px rgba(1,5,25,.96);
+  pointer-events:none;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-current{
+  position:absolute;inset:-6%;border-radius:50%;z-index:0;
+  background:repeating-conic-gradient(from 12deg,
+    transparent 0deg 11deg,rgba(0,230,255,.52) 13deg 14deg,
+    transparent 19deg 34deg,rgba(107,58,255,.25) 36deg 39deg,transparent 45deg 58deg);
+  mask-image:radial-gradient(circle,transparent 0 22%,#000 38% 72%,transparent 91%);
+  animation:abyssVortexRotate 22s linear infinite reverse;
+  opacity:.87;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-streams{
+  position:absolute;z-index:2;inset:0;width:100%;height:100%;overflow:visible;
+  animation:abyssVortexRotate 38s linear infinite;
+  opacity:.87;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-shaft{
+  position:absolute;z-index:3;left:50%;top:50%;width:41%;height:41%;
+  transform:translate(-50%,-50%)!important;border-radius:50%;
+  background:radial-gradient(circle at 50%,#000006 0 36%,#000314 55%,rgba(2,8,31,.92) 66%,transparent 76%);
+  box-shadow:inset 0 0 44px #000,0 0 35px rgba(0,3,22,.94);
+}
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-content{
+  position:absolute!important;z-index:4!important;left:50%!important;right:auto!important;
+  top:83%!important;bottom:auto!important;inset-inline:auto!important;
+  transform:translateX(-50%)!important;display:block!important;width:210px!important;
+  margin:0!important;padding:0!important;text-align:center!important;pointer-events:auto!important;
+}
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-kicker,
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-content strong,
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-content p{display:none!important}
+body:not(.game-active) #menuScreen #abyssGate #abyssGateButton{
+  display:block!important;width:100%!important;min-height:45px!important;
+  border:1px solid rgba(89,222,255,.8)!important;border-radius:999px!important;
+  background:linear-gradient(145deg,rgba(2,40,91,.97),rgba(4,16,43,.97))!important;
+  color:#c9f7ff!important;text-align:center!important;font-size:11px!important;
+  letter-spacing:.065em!important;text-shadow:0 0 9px rgba(0,181,255,.24)!important;
+  box-shadow:0 0 20px rgba(2,131,255,.29),inset 0 0 20px rgba(26,130,220,.17)!important;
+}
+body:not(.game-active) #menuScreen #abyssGate #abyssGateButton:focus-visible,
+body:not(.game-active) #menuScreen #abyssGate #abyssGateButton:hover{
+  outline:2px solid #97eeff!important;outline-offset:3px!important;
+}
+@keyframes abyssVortexRotate{to{transform:rotate(360deg)}}
+
+/* Corner controls remain outside the orbit. */
+@media(min-width:1001px) and (pointer:fine){
+  body:not(.game-active) #menuScreen .menu-account-utility{
+    position:absolute!important;z-index:18!important;top:25px!important;
+    right:clamp(16px,2.8vw,42px)!important;width:210px!important;
+    max-width:210px!important;margin:0!important;
+  }
+  body:not(.game-active) #menuScreen .menu-language-utility{
+    position:absolute!important;z-index:18!important;top:108px!important;
+    right:clamp(16px,2.8vw,42px)!important;
+  }
+  body:not(.game-active) #menuScreen .menu-footer{
+    position:absolute!important;left:clamp(18px,3vw,48px)!important;
+    bottom:15px!important;right:auto!important;margin:0!important;z-index:19!important;
+  }
+}
+
+/* Portrait / tablet: a spacious central sinkhole first, symmetric touch-safe actions beneath. */
+@media(max-width:1000px),(pointer:coarse){
+  body:not(.game-active) #menuScreen{overflow-y:auto!important;overflow-x:hidden!important;}
+  body:not(.game-active) #menuScreen .menu-content{
+    position:relative!important;display:flex!important;flex-direction:column!important;
+    align-items:center!important;justify-content:flex-start!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    width:100%!important;padding:18px 12px 0!important;row-gap:0!important;
+    overflow:visible!important;
+  }
+  body:not(.game-active) #menuScreen .eyebrow{
+    position:relative!important;top:auto!important;left:auto!important;order:0!important;
+    align-self:center!important;width:100%!important;max-width:520px!important;
+    text-align:center!important;justify-content:center!important;margin:0 0 5px!important;
+  }
+  body:not(.game-active) #menuScreen h1{
+    position:relative!important;top:auto!important;left:auto!important;order:1!important;
+    width:100%!important;max-width:520px!important;margin:0 0 8px!important;
+    font-size:clamp(26px,6vw,38px)!important;line-height:1.08!important;text-align:center!important;
+  }
+  body:not(.game-active) #menuScreen .intro{
+    position:relative!important;top:auto!important;bottom:auto!important;left:auto!important;
+    order:2!important;margin:0 auto 14px!important;width:min(460px,94%)!important;
+    max-width:460px!important;padding:0!important;border:0!important;
+    font-size:11px!important;text-align:center!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation{
+    position:relative!important;order:3!important;
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    align-items:stretch!important;column-gap:9px!important;row-gap:10px!important;
+    width:min(540px,100%)!important;max-width:540px!important;
+    min-height:0!important;height:auto!important;margin:0 auto!important;
+    padding:clamp(292px,77vw,365px) 0 0!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation::before{
+    left:50%;top:132px;width:min(95%,480px);height:225px;
+    transform:translate(-50%,-50%) rotateX(49deg);
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation::after{display:none}
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions{
+    order:5!important;grid-column:1/-1!important;
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;position:relative!important;width:100%!important;
+    margin:0!important;padding:0!important;max-width:none!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action{
+    position:relative!important;inset:auto!important;left:auto!important;top:auto!important;
+    transform:none!important;display:flex!important;flex-direction:row!important;
+    width:100%!important;max-width:100%!important;min-height:54px!important;
+    margin:0!important;padding:10px 9px!important;border-radius:12px!important;
+    gap:7px!important;font-size:10px!important;line-height:1.32!important;
+    text-align:center!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #playBtn{
+    order:1!important;grid-column:1/-1!important;min-height:62px!important;
+    width:100%!important;font-size:17px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn{
+    order:2!important;grid-column:1!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn{
+    order:3!important;grid-column:2!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action{
+    min-height:56px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.menu-nav-icon,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.online-cta-icon{
+    order:-1!important;display:block!important;width:20px!important;height:20px!important;
+    flex:0 0 20px!important;margin:0!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.menu-action-label,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action>.online-cta-copy{
+    flex:1!important;min-width:0!important;text-align:center!important;font-size:10px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn .resonance-label{
+    flex-direction:row!important;gap:6px!important;font-size:10px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #resonanceBtn .ui-icon{
+    width:18px!important;height:18px!important;flex:0 0 18px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-icon{
+    width:21px!important;height:21px!important;font-size:20px!important;margin:0!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #wheelBtn .wheel-cta-copy{
+    width:auto!important;flex:1!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate{
+    top:0!important;left:50%!important;width:min(84vw,350px)!important;
+    height:auto!important;min-width:0!important;aspect-ratio:1!important;
+    transform:translateX(-50%)!important;
+  }
+  body:not(.game-active) #menuScreen #abyssGate .abyss-gate-content{
+    top:81%!important;width:min(200px,66%)!important;
+  }
+  body:not(.game-active) #menuScreen .menu-account-utility{
+    order:4!important;position:relative!important;inset:auto!important;
+    z-index:8!important;width:min(540px,100%)!important;max-width:540px!important;
+    margin:16px auto 6px!important;padding:0!important;text-align:center!important;
+    align-items:center!important;justify-content:center!important;
+  }
+  body:not(.game-active) #menuScreen .menu-language-utility{
+    position:relative!important;inset:auto!important;z-index:8!important;
+    width:min(540px,calc(100% - 24px))!important;max-width:540px!important;
+    margin:8px auto 0!important;display:flex!important;justify-content:center!important;
+    align-items:center!important;
+  }
+  body:not(.game-active) #menuScreen .menu-language-utility select{
+    min-height:36px!important;height:36px!important;width:144px!important;max-width:144px!important;
+  }
+  body:not(.game-active) #menuScreen .menu-footer{
+    position:relative!important;inset:auto!important;order:999!important;
+    display:block!important;width:calc(100% - 24px)!important;max-width:none!important;
+    margin:20px 12px max(14px,env(safe-area-inset-bottom))!important;
+    padding:12px 0 0!important;border-top:1px solid rgba(102,223,255,.2)!important;
+    z-index:20!important;background:transparent!important;
+  }
+  body:not(.game-active) #menuScreen .legal-footer{justify-content:center!important}
+  body:not(.game-active) #menuScreen .desktop-menu-utility{display:none!important}
+}
+@media(max-width:390px){
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation{
+    padding-top:292px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions .menu-action{
+    font-size:9px!important;padding:9px 6px!important;gap:4px!important;
+  }
+}
+@media(max-height:650px) and (min-width:1001px) and (pointer:fine){
+  body:not(.game-active) #menuScreen .menu-content{min-height:640px!important}
+  body:not(.game-active) #menuScreen .intro{bottom:45px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  body:not(.game-active) #menuScreen .abyss-vortex-streams,
+  body:not(.game-active) #menuScreen .abyss-vortex-current,
+  body:not(.game-active) #menuScreen .abyss-vortex-plane::before{
+    animation:none!important;
+  }
+}
