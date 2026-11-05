@@ -21,6 +21,26 @@ test('descent gate is loaded as a lightweight client-only menu layer',()=>{
  assert.match(css,/prefers-reduced-motion:reduce/);
 });
 
+
+test('depth rules load before gameplay and literal newline escape debris is absent',()=>{
+ assert.match(index,/abyssal-expedition-rules\.js\?v=1/);
+ assert.ok(index.indexOf('abyssal-expedition-rules.js?v=1')<index.indexOf('game.js?v=4.4.4'));
+ assert.doesNotMatch(index,/\\\\n/);
+});
+
+test('depth and event UI remains cosmetic and does not add gameplay network traffic',()=>{
+ assert.match(rebuild,/abyssal-depth-state/);
+ assert.match(rebuild,/abyssEventBanner/);
+ assert.match(rebuild,/abyssEventAtmosphere/);
+ assert.match(rebuild,/abyssZoneValue/);
+ assert.doesNotMatch(rebuild,/socket\.emit|sendPosition|sendDamageBatch|requestAnimationFrame\([^)]*send/);
+ const eventCss=css.slice(css.indexOf('Depth zones + rare events'));
+ assert.match(eventCss,/abyss-event-predator_migration/);
+ assert.match(eventCss,/abyss-event-black_current/);
+ assert.match(eventCss,/abyss-event-resonance_bloom/);
+ assert.doesNotMatch(eventCss,/backdrop-filter/);
+});
+
 test('solo expedition checkpoints are isolated from online play',()=>{
  assert.match(game,/expeditionMode=!onlineMode/);
  assert.match(game,/if\(!onlineMode&&expeditionMode\).*abyssal-expedition-checkpoint/);
