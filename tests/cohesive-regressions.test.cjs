@@ -135,7 +135,7 @@ test('new shooter upgrades and photon online shot type remain wired', () => {
   assert.match(game, /id:'photon',name:'Lança de Fótons'/);
   assert.match(game, /upgrades\.spread/);
   assert.match(game, /upgrades\.photon/);
-  assert.match(server, /'pierce','electric','ricochet','photon'/);
+  assert.match(server, /'pierce','electric','spread','photon','photonRay','nova','echoShot'/);
 });
 
 
