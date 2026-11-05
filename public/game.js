@@ -2126,6 +2126,24 @@ function updateHud(force=true){
  setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode)renderSoloEnergyRanking();
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
+function renderRunEndPresentation(){
+ const extracted=Boolean(expeditionMode&&expeditionExtracted),eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
+ if(extracted){
+  if(eyebrow){eyebrow.classList.remove('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL RECUPERADO';}
+  if(title)title.innerHTML='VOCÊ VOLTOU.<br><em>POR ENQUANTO.</em>';
+  if(copy)copy.textContent='A cápsula alcançou a superfície com o saque desta descida. O sonar continua registrando atividade abaixo da sua última profundidade.';
+  if(revive)revive.hidden=true;
+  if(again)again.textContent='DESCER NOVAMENTE';
+  if(menu)menu.textContent='VOLTAR À SUPERFÍCIE';
+ }else{
+  if(eyebrow){eyebrow.classList.add('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL PERDIDO';}
+  if(title)title.innerHTML='O ABISMO<br><em>RECLAMA.</em>';
+  if(copy)copy.textContent='Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.';
+  if(revive)revive.hidden=false;
+  if(again)again.textContent='ENCERRAR E MERGULHAR NOVAMENTE';
+  if(menu)menu.textContent='ENCERRAR MERGULHO E VOLTAR AO MENU';
+ }
+}
 function endGame(){
  if(gameState==='over'||gameState==='menu')return;
  wasOnlineModeOnDeath=Boolean(onlineMode);
@@ -2140,6 +2158,7 @@ function endGame(){
  updateNotifBadge();
  if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
+ renderRunEndPresentation();
  gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
