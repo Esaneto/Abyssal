@@ -19,7 +19,7 @@
     brute: Object.freeze({ r: 16, hp: 65, speed: 30, damage: 15, color: '#bd88ff', value: 4 }),
     lurker: Object.freeze({ r: 20, hp: 100, speed: 43, damage: 18, color: '#6e8dff', value: 6 }),
     whiteShark: Object.freeze({ r: 24, hp: 300, speed: 0, damage: 28, dashSpeed: 300, color: '#91c4ce', value: 24 }),
-    boss: Object.freeze({ r: 40, hp: 5640, speed: 52, damage: 25, color: '#ff315f', value: 55 }),
+    boss: Object.freeze({ r: 40, hp: 5640, speed: 52, damage: 25, color: '#338cff', value: 55 }),
     angler: Object.freeze({ r: 35, hp: 6520, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
     maw: Object.freeze({ r: 45, hp: 7500, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     leviathan: Object.freeze({ r: 54, hp: 9400, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
