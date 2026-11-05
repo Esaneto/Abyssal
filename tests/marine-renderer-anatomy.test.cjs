@@ -49,8 +49,8 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.ok(start>=0&&end>start);
  assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
  assert.match(preview,/The anatomy must dominate the preview/);
- assert.match(html,/marine-species\.js\?v=4/);
- assert.match(html,/marine-renderer\.js\?v=6/);
+ assert.match(html,/marine-species\.js\?v=5/);
+ assert.match(html,/marine-renderer\.js\?v=7/);
  assert.match(html,/abyssal-boss-renderer\.js\?v=2/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
  assert.match(html,/game\.js\?v=4\.4\.14/);
@@ -70,7 +70,7 @@ test('squid and octopus variants use separate species-level anatomy',()=>{
 });
 
 test('marine skins use dark Abyssal material with luminous accents',()=>{
- assert.match(renderer,/const bodyGrad=\(dark='#061019'/);
+ assert.match(renderer,/Deliberately monochromatic/);\n assert.match(renderer,/const bodyGrad=\(\)=>tone\(\.34\)/);\n assert.doesNotMatch(renderer,/createLinearGradient/);\n assert.doesNotMatch(renderer,/createRadialGradient/);
  assert.match(renderer,/materialPass/);
  assert.match(renderer,/globalCompositeOperation='lighter'/);
  assert.match(renderer,/scars/);
@@ -109,4 +109,17 @@ test('marine preview scale matches signature Abyssal visual weight',()=>{
  assert.match(block,/family==='octopus'\|\|family==='squid'\)scale=\.8/);
  assert.match(block,/family==='fish'\)scale=variant===9\?\.74:\.88/);
  assert.match(block,/\(variant===5\|\|variant===7\)\?\.76:\.9/);
+});
+
+
+test('every marine species receives a named signature-art key',()=>{
+ const species=require('../public/marine-species').species;
+ assert.equal(new Set(species.map(s=>s.art?.key)).size,100);
+ assert.equal(new Set(species.map(s=>s.art?.tone)).size>=40,true);
+ for(const s of species){assert.ok(s.art?.key,s.id);assert.ok(/^#[0-9a-f]{6}$/i.test(s.art?.tone||''),s.id);}
+});
+
+test('renderer includes explicit signature art for all 100 profiles',()=>{
+ const species=require('../public/marine-species').species;
+ for(const s of species)assert.ok(renderer.includes("case '"+s.art.key+"'"),s.art.key);
 });
