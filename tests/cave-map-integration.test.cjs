@@ -57,6 +57,6 @@ test('surface vortex reuses the existing safe run-finalization path',()=>{
 
 test('PvP retains its dedicated arena instead of inheriting expedition caves',()=>{
  assert.match(game,/onlineRoomMode==='pvp'\)\{activeMapLayout=null/);
- assert.match(game,/if\(!activeMapLayout\|\|onlineRoomMode==='pvp'\|\|!ABYSSAL_MAP\)return null/);
+ assert.match(game,/function currentMapInteraction\(\)\{[\s\S]*?onlineRoomMode==='pvp'[\s\S]*?return null/);
  assert.match(server,/const expeditionSpawn=room\.mode==='coop'\?/);
 });
