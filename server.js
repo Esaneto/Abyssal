@@ -1601,12 +1601,12 @@ io.on('connection', socket => {
  });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
-  const stripeOnlySkins = new Set(['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
+  const stripeOnlySkins = new Set(['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','abyssking','bloodmoon','abyssaleye','deepwarden']);
   const requestedId=String(payload.id||'');
   const marineSpecies=require('./public/marine-species').byId[requestedId];
   if(marineSpecies?.paid)stripeOnlySkins.add(requestedId);
   if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Esta skin exige checkout hospedado e confirmação de pagamento.'});
-  const prices = { violet:1000, solar:2500, toxic:4000, leviathan:6500, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000, kraken:30000, aberration:16000, angler:19000, maw:22000, devourer:35000 };
+  const prices = { violet:1000, solar:3500, toxic:8000, leviathan:6500, thorn:15000, royal:26000, glacier:28000, coral:12000, voidwing:32000, kraken:30000, aberration:16000, angler:19000, maw:22000, devourer:35000 };
   const id = String(payload.id || ''), price = marineSpecies&&!marineSpecies.paid?marineSpecies.coins:prices[id];
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Skin indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });
