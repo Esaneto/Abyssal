@@ -27,7 +27,7 @@ test('server catalog preserves the original BRL prices and discounted relic bund
  );
  assert.deepEqual(
   [PAID_SKINS.leviathan.name,PAID_SKINS.kraken.name,PAID_SKINS.aberration.name],
-  ['Eco do Leviatã','Eco do Kraken','Casca da Aberração']
+  ['Eco do Peixe-Remo Leviatã','Eco do Kraken','Eco do Polvo-de-Anéis-Azuis']
  );
  assert.throws(()=>calculateOrder('reefshark',[],'usd'),/Unsupported currency/);
  assert.throws(()=>calculateOrder('reefshark',[],'eur'),/Unsupported currency/);
