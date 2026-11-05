@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
+const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const server = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 const online = fs.readFileSync(path.join(root, 'public', 'online.js'), 'utf8');
 const game = fs.readFileSync(path.join(root, 'public', 'game.js'), 'utf8');
