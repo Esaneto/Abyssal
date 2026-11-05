@@ -164,3 +164,11 @@ test('electric storm is visually distinct from ricochet and uses the same bounce
 test('mob damage numbers remain readable at gameplay zoom', () => {
   assert.match(game, /Math\.max\(18,23\/worldZoom\)/);
 });
+
+
+test('floating damage numbers render in fixed screen pixels independent of camera zoom', () => {
+ assert.match(game, /screenX=\(worldX-cameraX\)\*worldZoom/);
+ assert.match(game, /ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
+ assert.match(game, /ctx\.font='900 72px var\(--abyssal-runic\),Georgia,serif'/);
+ assert.match(game, /number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+});
