@@ -2505,6 +2505,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
  if(skin?.family&&window.drawMarineSpecies){window.drawMarineSpecies(c,skin,x,y,r,angle,t);return;}
+ if(!playerCreature&&BOSS_KINDS.includes(kind)&&window.drawAbyssalBoss){window.drawAbyssalBoss(c,{kind,color,x,y,r,angle,t});return;}
  const boss=BOSS_KINDS.includes(kind);
  const glowScale=playerCreature?.16:boss?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
