@@ -1149,3 +1149,82 @@ Cache atual:
 - `abyssal-boss-renderer.js?v=3`;
 - `game.js?v=4.4.16`;
 - `online.js?v=4.4.3`.
+
+
+## 25. Rebuild visual por massa e expressão, não por detalhe superficial - 2026-11-05
+
+Motivo:
+- nova captura mostrou que as espécies marinhas ainda pareciam derivadas de um mesmo molde, apesar de já terem perfis de cor e detalhes próprios;
+- o problema visual real estava na prioridade do renderer: corpo-base primeiro, pequenos detalhes depois;
+- a referência canônica continua sendo a linguagem das Assinaturas Abyssal, Kraken Boss, Tubarão Boss e Devorador.
+
+Correção aplicada em `public/marine-renderer.js`:
+- novo `signatureMassPass()`;
+- executado antes de `signatureArt()`;
+- adiciona massa corporal, cabeça, olhos, boca, núcleo, coroas, espinhos, membranas, caudas e apêndices exagerados por família/variante;
+- todas as 10 famílias passam pelo mass pass:
+  - shark;
+  - ray;
+  - eel;
+  - squid;
+  - octopus;
+  - jelly;
+  - crustacean;
+  - fish;
+  - benthic;
+  - mollusc.
+
+Princípio:
+- expressão e massa vêm antes de marcações decorativas;
+- olhos e bocas devem ser legíveis em preview;
+- silhueta deve continuar diferente mesmo em escala pequena;
+- padrões luminosos entram depois da anatomia;
+- se duas espécies da mesma família parecerem o mesmo corpo com cor diferente, isso é regressão.
+
+Exemplos explícitos do novo pass:
+- tubarão-raposa recebe lobo caudal exagerado;
+- tubarão-duende recebe rostro frontal muito maior;
+- tubarão-baleia recebe cabeça/massa frontal grande e pontos luminosos;
+- peregrino recebe boca frontal muito maior;
+- enguia-pelicano recebe massa de mandíbula/bolsa gular;
+- lulas de braços longos recebem braços visivelmente desproporcionais;
+- polvo de anéis azuis recebe anéis mais fortes sobre um manto mais presente;
+- peixe-tripé recebe pernas/radios muito mais longos;
+- crustáceos ganham carapaça, olhos duplos e apêndices/claws maiores conforme espécie;
+- bentônicos e moluscos recebem núcleo/forma central mais forte e apêndices próprios.
+
+Cor:
+- `public/marine-species.js` agora gera paletas mais saturadas e contrastadas;
+- base preserva mais o tom original;
+- sombra ficou quase preta;
+- rim light mais claro;
+- glow mais saturado;
+- accent usa uma segunda cor mais contrastante;
+- não voltar para pastel lavado.
+
+Preview:
+- `renderCreaturePreview()` foi ampliado por família;
+- espécies agora ocupam mais área do card, aproximando o peso visual das Assinaturas Abyssal.
+
+Cache após este pass:
+- `marine-species.js?v=9`;
+- `marine-renderer.js?v=9`;
+- `game.js?v=4.4.17`.
+
+Testes:
+- `tests/marine-renderer-anatomy.test.cjs` exige:
+  - `signatureMassPass()`;
+  - execução antes de `signatureArt()`;
+  - todas as famílias cobertas;
+  - marcadores explícitos de silhuetas exageradas;
+  - escalas novas de preview;
+  - versões atuais de cache.
+
+Validação:
+- workflow `Abyssal checks v2`;
+- job `syntax-and-tests` concluiu com sucesso no commit `8bb03538e82d213928bb3caaa6738df72a384a39`.
+
+Regra para futuros agentes:
+- não resolver diferença entre espécies apenas com mais padrões, glow ou mudança de cor;
+- primeiro alterar massa, cabeça, olhos, boca, apêndices, cauda e proporções;
+- só depois aplicar assinatura cromática.
