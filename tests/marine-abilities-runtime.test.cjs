@@ -100,5 +100,7 @@ test('common enemies and redesigned bosses expose stronger named physical attack
  for(const marker of ["skillId:'bio-shock'","skillId:'venom-spine'","skillId:'crusher-claw'","skillId:'gulper-bite'"])assert.ok(simulation.includes(marker),marker);
  for(const marker of ["bossAbilityHit(enemy,target,18,now,'neuro-ring'","bossAbilityHit(enemy,target,12,now,'lure-pulse'","bossAbilityHit(enemy,target,24,now,'gulper-chomp'","bossAbilityHit(enemy,target,22,now,'pressure-lance'"])assert.ok(simulation.includes(marker),marker);
  assert.match(game,/function renderHostileContactAbility\(data\)/);
- assert.match(game,/hurtPlayer\(e\.damage\*\(cp\?\.power\|\|1\)\)/);
+ assert.match(game,/hurtPlayer\(e\.damage\*\(cp\?\.power\|\|\(e\.kind==='kraken'/);
+ assert.match(game,/whiteSharkBoss'\?1\.15/);
+ assert.match(game,/devourer'&&e\.suctionActive\?1\.2/);
 });
