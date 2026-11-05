@@ -55,14 +55,14 @@ for(const species of catalog?.species||[]){
  const kind=kinds[family]?.[v]||'pulse',title=titles[family]?.[v]||species.name;
  const rarity=species.rarity||rarityForVariant(v);
  const rank=RARITY_ORDER.indexOf(rarity),paid=Boolean(species.paid);
- const cooldown=Number(Math.max(3.2,8.6-v*.42-rank*.28-(paid?.35:0)).toFixed(1));
+ const cooldown=Number(Math.max(3.2,8.6-v*.42-rank*.28-(paid?0.35:0)).toFixed(1));
  const damage=Math.round(12+v*3.1+rank*6.5+(paid?8:0));
  const radius=Math.round(155+v*11+rank*20+(paid?18:0));
  const beams=2+(v%3)+Math.floor(Math.max(0,rank)/2)+(paid?1:0);
  const powerScore=Math.round((damage*1.9)+(radius*.16)+(beams*7)+(10-cooldown)*10);
  profiles[species.id]=Object.freeze({
   id:'ability_'+species.art.key,title,kind,rarity,rarityRank:rank,cooldown,damage,radius,powerScore,paid,
-  beams,duration:.42+rank*.1+(paid?.12:0),
+  beams,duration:.42+rank*.1+(paid?0.12:0),
   color:species.art?.tone||species.color,
   description:descriptionFor(kind,title,damage,radius,cooldown,beams)
  });
