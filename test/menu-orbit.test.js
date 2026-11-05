@@ -48,7 +48,7 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=6/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=7/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
@@ -182,4 +182,29 @@ test('cursor hotspot is exactly its rendered center for all interactive elements
   const cursors=[...css.matchAll(/cursor:url\('abyssal-tentacle-cursor\.svg\?v=3'\) (\d+) (\d+),crosshair!important/g)];
   assert.ok(cursors.length>=3,'menu and game should share one cursor reference');
   for(const m of cursors){assert.equal(Number(m[1]),16);assert.equal(Number(m[2]),16)}
+});
+
+
+test('desktop vortex spins with a separate composited layer while reduced motion remains accessible',()=>{
+  const js=read('public/abyssal-rebuild.js');
+  const css=read('public/abyssal-menu-orbit.css');
+  const html=read('public/index.html');
+  assert.match(js,/class="abyss-vortex-flow-layer"/);
+  assert.match(js,/class="abyss-vortex-flow-layer" aria-hidden="true"[^']*'\+buildVortexStreams/);
+  assert.match(css,/@keyframes abyssCurrentCirculate/);
+  assert.match(css,/@media\(prefers-reduced-motion:no-preference\)/);
+  assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
+  assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(html,/abyssal-rebuild\.js\?v=5/);
+});
+
+test('main menu play and abyss gate have their requested labels',()=>{
+  const html=read('public/index.html');
+  const rebuild=read('public/abyssal-rebuild.js');
+  const i18n=read('public/i18n.js');
+  assert.match(html,/id="playBtn"[^>]*>MERGULHAR <span>/);
+  assert.match(rebuild,/id="abyssGateButton"[^>]*>ABISMO<\/button>/);
+  assert.match(i18n,/'MERGULHAR':'DIVE'/);
+  assert.match(i18n,/'MERGULHAR':'BUCEAR'/);
 });
