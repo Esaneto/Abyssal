@@ -122,7 +122,7 @@ test('PvP movement stream prioritizes low latency without reliable packet backlo
  const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
  assert.match(online,/isPvp\?1000\/30:1000\/20/);
- assert.match(online,/interpDuration:isPvp\?58:105/);
+ assert.match(online,/interpDuration:isPvp\?36:58/);
  assert.match(online,/socket\.volatile\.emit\('player-motion-input'/);
  assert.match(server,/playerMotionIntervalMs=room\.mode==='pvp'\?40:75/);
  assert.match(server,/volatile\.emit\('player-motion'/);
