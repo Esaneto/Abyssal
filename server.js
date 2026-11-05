@@ -16,7 +16,7 @@ const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
-const { consumeMovementBudget } = require('./movement-envelope');
+const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -1171,6 +1171,27 @@ io.on('connection', socket => {
   const decoded=NetCodec.readInput(row);if(decoded)return handlePlayerPosition(decoded,null,true);
   if(!Array.isArray(row)||row.length<4)return;
   handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])},null,true);
+ });
+ socket.on('map-transition',(payload={},acknowledge)=>{
+  const reply=data=>{if(typeof acknowledge==='function')try{acknowledge(data)}catch{};socket.emit('map-transition-result',data);};
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!room||room.mode!=='coop'||!p||p.alive===false)return reply({ok:false,reason:'unavailable'});
+  const kind=String(payload?.kind||''),layout=WorldSimulation.mapLayoutFor(room.world),now=Date.now();
+  if(!layout||!['descent','ascend'].includes(kind))return reply({ok:false,reason:'invalid-transition'});
+  if(now-(Number(p.lastMapTransitionAt)||0)<850)return reply({ok:false,reason:'cooldown'});
+  const source=kind==='descent'?layout.portals.descent:layout.portals.landing;
+  const target=kind==='descent'
+   ? {x:Number(layout.portals.descent.targetX),y:Number(layout.portals.descent.targetY)}
+   : {x:Number(layout.portals.landing.targetX),y:Number(layout.portals.landing.targetY)};
+  const proximity=Math.hypot(Number(p.x)-source.x,Number(p.y)-source.y),allowedRadius=Number(source.r)+(Number(p.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM;
+  if(!Number.isFinite(proximity)||proximity>allowedRadius)return reply({ok:false,reason:'too-far'});
+  if(!AbyssalMap.isWalkable(layout,target.x,target.y,Math.max(10,Number(p.r)||13/WORLD_ZOOM)))return reply({ok:false,reason:'invalid-destination'});
+  p.x=target.x;p.y=target.y;p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=now+120;p.lastPositionAt=now;p.lastMapTransitionAt=now;
+  p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
+  const result={ok:true,kind,x:p.x,y:p.y,serverTime:now};
+  io.to(socket.id).emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,p.x,p.y,true));
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+  reply(result);
  });
  socket.on('player-net-meta',meta=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!meta||typeof meta!=='object')return;
