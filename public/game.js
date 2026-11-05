@@ -187,31 +187,31 @@ function expireSoloDepthEventIfNeeded(){
 const RELIC_SKIN_IDS=new Set(['leviathan','kraken','aberration','angler','maw','devourer']);
 const ABYSSAL_SIGNATURE_IDS=new Set(['abyssking','bloodmoon','abyssaleye','greensnake']);
 const skinData=[
-{id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
-{id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Um espectro luminescente com cornos de energia violeta.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
-{id:'solar',name:'Núcleo Solar',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Espinhos dourados como fragmentos de uma estrela afogada.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
-{id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
-{id:'leviathan',name:'Eco do Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Um vestígio biológico do Leviatã das Fossas: placas ósseas, crânio pálido e fendas sensoriais preservam apenas uma fração da entidade verdadeira.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
-{id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
-{id:'abyssking',name:'Soberano do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
-{id:'royal',name:'Pérola Regente',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
-{id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
+{id:'default',name:'Ctenóforo Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Ctenóforo translúcido com fileiras ciliadas bioluminescentes e longos filamentos de captura.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
+{id:'violet',name:'Medusa-Coroa Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Medusa de águas profundas com sino violeta, lóbulos elevados e tentáculos que pulsam como uma coroa viva.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
+{id:'solar',name:'Peixe-Sol Dourado',color:'#ffd078',price:2500,paid:false,shape:'spikes',desc:'Peixe oceânico compacto reinterpretado com raios dérmicos dourados e tecido fotóforo.',ability:'Sobrecarga solar: dispara 18% mais rápido.'},
+{id:'toxic',name:'Medusa Tóxica',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Medusa gelatinosa com sacos de toxina fluorescente e tentáculos carregados de células urticantes.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
+{id:'leviathan',name:'Eco do Peixe-Remo',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Vestígio do Peixe-Remo Leviatã: corpo serpentiforme, crista dorsal alongada e placas alteradas pela pressão.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
+{id:'thorn',name:'Estrela Coroa-de-Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Estrela-do-mar predatória coberta por espinhos longos e placas calcárias defensivas.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
+{id:'abyssking',name:'Soberano do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Cefalópode abissal coroado por placas calcificadas, com seis braços sensoriais e fotóforos violetas.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
+{id:'royal',name:'Pérola Regente',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Colônia de sifonóforos com flutuador em forma de coroa e uma cadeia de zooides perolados.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
+{id:'glacier',name:'Ctenóforo Glacial',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Ctenóforo angular de águas frias, com fileiras ciliadas azul-gelo e membranas cristalinas.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
 {id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
-{id:'bloodmoon',name:'Lua Sangrenta',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Uma mandíbula dupla e presas pálidas sob um brilho carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
-{id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
-{id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
-{id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
+{id:'bloodmoon',name:'Peixe-Ogro Carmesim',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Predador batipelágico de mandíbula desproporcional e presas longas que permanecem visíveis mesmo com a boca fechada.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
+{id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Manta oceânica de membranas violetas, nadadeiras peitorais largas e cauda longa adaptada à escuridão.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
+{id:'abyssaleye',name:'Medusa-Olho Abissal',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Organismo radial transparente com olho tubular central e oito tentáculos sensoriais bioluminescentes.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
+{id:'deepwarden',name:'Isópode Couraçado',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Crustáceo bentônico com placas segmentadas, pernas de ancoragem e carapaça mineralizada pela pressão.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
 {id:'kraken',name:'Eco do Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma ressonância orgânica do Kraken, com manto vítreo e tentáculos reduzidos. A entidade verdadeira permanece nas fossas.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
- {id:'aberration',name:'Casca da Aberração',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Uma carapaça óssea vazia da primeira entidade colossal. Rachaduras carmesim ainda reagem à presença de ameaças.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
- {id:'angler',name:'Núcleo da Lanterna',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Um fragmento vivo da Lanterna Mortal. A isca incandescente continua atraindo organismos para a mandíbula de agulhas.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
- {id:'maw',name:'Fragmento da Fenda',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Um fragmento da Boca do Abismo: dentes radiais e filamentos de caça comprimidos em uma forma controlável.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
- {id:'devourer',name:'Núcleo Devorador',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Um núcleo residual do Devorador do Vazio. A água ao redor ainda parece ser puxada para sua boca descomunal.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
+ {id:'aberration',name:'Casca da Lula-Vampira',color:'#ff315f',price:16000,paid:true,shape:'aberration',desc:'Manto calcificado de uma lula-vampira colossal, com membranas retraídas e ganchos cefalópodes ainda reativos.',ability:'Carapaça da Aberração: reduz em 12% todo dano recebido; ao sofrer o primeiro impacto do mergulho, libera uma onda de repulsão.'},
+ {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo de um peixe-pescador abissal; o ilício bioluminescente continua atraindo presas para dentes inclinados para dentro.',ability:'Isca predatória: +25% de dano a longa distância e +15% de alcance de aquisição de alvos.'},
+ {id:'maw',name:'Fragmento da Anêmona',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Fragmento de uma anêmona hadal predatória, com disco oral dentado e tentáculos de captura comprimidos numa forma controlável.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
+ {id:'devourer',name:'Núcleo da Enguia-Pelicano',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Tecido residual de uma enguia-pelicano hadal colossal, com bolsa gular expansível e boca desproporcional.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
-{id:'abysscroc',name:'Predador de Mangue',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Predador anfíbio de águas turvas, focinho largo, cauda musculosa e osteodermos escuros.',ability:'Mordida de Emboscada: executa uma arrancada curta com dano frontal. A carapaça reduz em 15% o dano recebido.'},
-{id:'armoredgator',name:'Couraçado de Estuário',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Caçador costeiro de perfil alongado, dentes aparentes e fileiras altas de escudos dorsais.',ability:'Giro do Nilo: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
-{id:'greensnake',name:'Serpente Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Uma serpente colossal das profundezas, esculpida em escamas de jade reluzentes com olhos de âmbar.',ability:'Veneno corrosivo: ataques envenenam criaturas atingidas.'},
-  {id:'electriceel',name:'Enguia Elétrica',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Predadora bioelétrica de corpo alongado, ventre luminoso e pulsos ciano que percorrem a linha lateral.',ability:'Descarga Estática: ataques paralisam brevemente as criaturas atingidas.'},
+{id:'abysscroc',name:'Peixe-Crocodilo Negro',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Peixe bentônico de cabeça achatada, camuflagem escura e grandes nadadeiras peitorais, inspirado nos crocodilefishes de recife.',ability:'Emboscada Bêntica: executa uma arrancada curta com dano frontal. A pele reforçada reduz em 15% o dano recebido.'},
+{id:'armoredgator',name:'Peixe-Crocodilo Couraçado',color:'#b59a65',price:499,paid:true,shape:'crocodile',desc:'Predador de fundo com crânio largo, placas dérmicas e nadadeiras peitorais blindadas que lembram uma couraça de recife.',ability:'Varredura Caudal: a rotação da cauda repele inimigos próximos e libera uma onda de impacto.'},
+{id:'greensnake',name:'Moreia Esmeralda',color:'#2ee88a',price:0,paid:false,shape:'serpent',desc:'Moreia colossal de pele verde-jade, corpo serpentiforme e mandíbula dupla adaptada às fendas profundas.',ability:'Muco corrosivo: ataques envenenam criaturas atingidas.'},
+  {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia-torpedo adaptada à escuridão, com disco muscular e órgãos elétricos que acendem em pulsos ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
@@ -228,7 +228,7 @@ let controlAimAngle=0;
 const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'];
-const BOSS_LABELS=Object.freeze({boss:'ABERRAÇÃO ABISSAL',leviathan:'LEVIATÃ DAS FOSSAS',maw:'A BOCA DO ABISMO',angler:'LANTERNA MORTAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'KRAKEN · SENHOR DAS FOSSAS',devourer:'DEVORADOR DO VAZIO'});
+const BOSS_LABELS=Object.freeze({boss:'LULA-VAMPIRA OSSÁRIA',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ANÊMONA DA FENDA',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-DUENDE COLOSSAL',kraken:'LULA-COLOSSAL · KRAKEN DAS FOSSAS',devourer:'ENGUIA-PELICANO HADAL'});
 const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável','shoal-founder':'Fundador do Cardume','supporter-of-the-depths':'Apoio das Profundezas','abyssal-famous':'Nome Conhecido','abyssal-icon':'Ícone do Abismo','living-legend':'Lenda Viva','abyssal-patron':'Patrono do Abismo','boss-abyssal':'Boss Abyssal'});
 const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
 const particlePool=[];
@@ -741,11 +741,7 @@ function playDevourerSuction(){
 // === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade sólido) ===
 let abyssalAlertTimer = null;
 function getBossDisplayName(kind) {
-  const n = {
-    boss: 'ABERRAÇÃO ABISSAL', leviathan: 'LEVIATÃ DAS FOSSAS', maw: 'A BOCA DO ABISMO',
-    angler: 'LANTERNA MORTAL', kraken: 'KRAKEN DO ABISMO', devourer: 'DEVORADOR DO VAZIO',
-    whiteSharkBoss: 'TUBARÃO-BRANCO COLOSSAL', whiteShark: 'TUBARÃO-BRANCO'
-  };
+  const n = {...BOSS_LABELS, whiteShark:'TUBARÃO-BRANCO PELÁGICO'};
   return n[kind] || kind.toUpperCase();
 }
 function showAbyssalAlert(text, subtitle = '') {
@@ -785,13 +781,13 @@ function showBossAlert(kind,id=null,threat=0,force=false){
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
  if(!force&&alertedBossIds.has(key))return;alertedBossIds.add(key);if(alertedBossIds.size>64)alertedBossIds=new Set([...alertedBossIds].slice(-32));
  const names={
-  boss:['☠ ABERRAÇÃO ABISSAL','ALGO RASGOU A ESCURIDÃO. ELE SENTE SEU CALOR. CORRA.'],
-  leviathan:['☠ O LEVIATÃ DAS FOSSAS','A PRESSÃO EXPLODIU. UMA CRIATURA COLOSSAL EMERGE DO FUNDO. NÃO HÁ SAÍDA.'],
-  maw:['☠ A BOCA DO ABISMO','ESSE ECO NÃO FOI SEU. ESSA GARGANTA NÃO TEM FUNDO. NADE.'],
-  angler:['☠ A LANTERNA MORTAL','A LUZ É UMA MENTIRA. OS DENTES JÁ ESTÃO FECHANDO.'],
-  kraken:['☠ KRAKEN DO ABISMO','OITO BRAÇOS ENVOLVEM AS TREVAS. VOCÊ JÁ ESTÁ DENTRO DELE.'],
-  devourer:['☠ O DEVORADOR DO VAZIO','A CORRENTE INVERTEU. O OCEANO INTEIRO ESTÁ SENDO ENGOLIDO.'],
-  whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
+  boss:['☠ LULA-VAMPIRA OSSÁRIA','O MANTO SE ABRIU. DEZ BRAÇOS CALCIFICADOS FECHAM A PASSAGEM.'],
+  leviathan:['☠ PEIXE-REMO LEVIATÃ','UM CORPO IMPOSSIVELMENTE LONGO CORTA A TRINCHEIRA. NÃO FIQUE NA LINHA DELE.'],
+  maw:['☠ ANÊMONA DA FENDA','O FUNDO SE ABRIU EM TENTÁCULOS. A BOCA NO CENTRO NÃO É PEDRA.'],
+  angler:['☠ PEIXE-PESCADOR ABISSAL','A LUZ É UMA ISCA. QUANDO ELA SE APROXIMA, A MANDÍBULA JÁ ESTÁ ABERTA.'],
+  kraken:['☠ LULA-COLOSSAL · KRAKEN','OITO BRAÇOS COBREM A CÂMARA. AS VENTOSAS JÁ ENCONTRARAM SEU RASTRO.'],
+  devourer:['☠ ENGUIA-PELICANO HADAL','A GARGANTA SE EXPANDIU. A CORRENTE INVERTEU NA DIREÇÃO DA BOCA.'],
+  whiteSharkBoss:['☠ TUBARÃO-DUENDE COLOSSAL','O ROSTRO SURGIU DA ESCURIDÃO. A MANDÍBULA PROJETÁVEL VEM LOGO ATRÁS.']
  };
 
  const [title,copy]=names[kind]||['☠ PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
@@ -996,7 +992,7 @@ function triggerAbyssalVictory() {
   if (!ownedSkins.includes('greensnake')) {
     ownedSkins.push('greensnake');
     saveCosmetics();
-    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Serpente Esmeralda"!', 'NOVA SKIN LENDÁRIA OBTIDA 🐍', 'skin');
+    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Moreia Esmeralda"!', 'NOVA SKIN LENDÁRIA OBTIDA 🐍', 'skin');
   }
 
   // Notificar servidor se estiver online ou autenticado
@@ -1030,7 +1026,7 @@ function showVictoryModal() {
         </div>
         <div style="background:rgba(46,232,138,0.12);border:1px solid #2ee88a;border-radius:10px;padding:12px 14px;margin-bottom:22px;text-align:left;">
           <div style="color:#2ee88a;font-weight:700;font-size:13px;letter-spacing:0.06em;margin-bottom:4px;">✦ SKIN EXCLUSIVA CONCEDIDA:</div>
-          <div style="font-size:15px;font-weight:800;color:#2ee88a;">Serpente Esmeralda (Colossal)</div>
+          <div style="font-size:15px;font-weight:800;color:#2ee88a;">Moreia Esmeralda (Colossal)</div>
           <p style="font-size:12px;color:#a0dac3;margin-top:4px;line-height:1.4;">Inspirada nas grandes serpentes marinhas de jade com mandíbulas afiadas e rastro venenoso.</p>
         </div>
         <button id="victoryContinueBtn" style="background:#2ee88a;color:#04140d;font-weight:800;font-size:13px;letter-spacing:0.1em;border:none;border-radius:8px;padding:12px 28px;cursor:pointer;box-shadow:0 0 16px rgba(46,232,138,0.6);transition:transform 0.15s ease;">
@@ -2478,7 +2474,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    c.save();c.globalCompositeOperation='lighter';for(let k=0;k<7;k++){const phase=(t*.00055+k/7)%1,px=(-1.85+phase*2.85)*r,py=Math.sin(phase*9+t*.004)*.075*r,alpha=.25+.55*Math.sin(phase*Math.PI);c.globalAlpha=Math.max(.12,alpha);c.fillStyle=k%2?'#8ffff8':'#b9d8ff';c.shadowBlur=12*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(px,py,Math.max(1,r*.045),Math.max(.7,r*.022),0,0,Math.PI*2);c.fill();}c.restore();
    for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-1.15+k*.78)*r,sy=Math.sin(phase)*.13*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+Math.sin(phase*1.7)*.16*r,sy+Math.cos(phase*1.3)*.18*r);c.lineTo(sx+.3*r,sy+Math.sin(phase*2.2)*.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.9)',8);}
   } else if(id==='greensnake'){
-   // Serpente Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
+   // Moreia Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
    const segWave = Math.sin(t * 0.006) * 0.15;
    fill(()=>{
      c.moveTo(-2.4*r, segWave*r);
@@ -3344,19 +3340,19 @@ function renderCatalog(){
  const el=$('catalogScreen'),grid=$('catalogGrid');if(!el||!grid)return;el.hidden=false;
  const codex=getAbyssalCodex();
  const monsterData={
-  drifter:{name:'Errante Luminescente',color:'#ff769d',hp:22,speed:51,damage:8,ability:'Emissão Bio-Ondulatória: grupos sincronizados que avançam em ondas luminescentes.',desc:'Ctenóforo translúcido que avança em cardumes rítmicos pelas fossas externas.'},
-  stinger:{name:'Ferrão de Fenda',color:'#ffbc78',hp:13,speed:125,damage:7,ability:'Arremetida Hipodérmica: velocidade extrema em linha reta com ferrão penetrante.',desc:'Peixe-ferrão veloz de corpo esguio e dentes agulhados que caça em bando.'},
-  brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Blindagem Bêntica: carapaça espessa que absorve projéteis e isola passagens.',desc:'Isópode titânico com placas sobrepostas impenetráveis e patas blindadas.'},
-  lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Faringe Expansiva: mandíbula que dilata e perseguição incansável nas trevas.',desc:'Enguia gulper predatória que persegue sua presa sem recuar.'},
-  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
-  boss:{name:'Aberração Abissal',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Ganchos Cefalópodes: tentáculos curvados e máscara óssea que repelem mergulhadores.',desc:'Entidade coroada por placas calcificadas e braços farpados que esmagam quem se aproxima.'},
-  angler:{name:'Lanterna Mortal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: atrai com brilho hipnótico antes de fechar mandíbulas de agulha.',desc:'Predador arcaico com lanterna incandescente e dentes voltados para dentro.'},
-  maw:{name:'A Boca do Abismo',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Fome Circular: anel contínuo de dentes radiais que devora correntes inteiras.',desc:'Criatura anelar voraz cujo corpo inteiro é uma garganta predatória viva.'},
-  leviathan:{name:'Leviatã das Fossas',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Domínio de Trincheira: espinhas dorsais monumentais que bloqueiam rotas de fuga.',desc:'Serpente colóssal com costelas externas que atravessa as fendas mais profundas.'},
-  whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
-  kraken:{name:'Kraken do Abismo',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Senhor primordial das fossas oceânicas cujos tentáculos envolvem a escuridão.'},
-  devourer:{name:'Devorador do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Entidade que distorce as correntes abissais engolindo cardumes e mergulhadores inteiros.'}
- };
+  drifter:{name:'Ctenóforo-Fantasma',color:'#ff769d',hp:22,speed:51,damage:8,ability:'Fileiras Ciliadas: o cardume pulsa em ondas e muda de direção como uma colônia luminosa.',desc:'Ctenóforo translúcido de águas profundas, com tentáculos finos e fileiras de cílios bioluminescentes.'},
+  stinger:{name:'Peixe-Víbora',color:'#ffbc78',hp:13,speed:125,damage:7,ability:'Arremetida de Presas: aceleração curta e agressiva com mandíbula longa e dentes de agulha.',desc:'Predador mesopelágico inspirado nos viperfish, com corpo esguio, fotóforos e dentes que ultrapassam a mandíbula.'},
+  brute:{name:'Isópode-Gigante',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Blindagem Bêntica: placas sobrepostas absorvem impacto e tornam o avanço lento, mas resistente.',desc:'Crustáceo de fundo inspirado nos isópodes gigantes, com carapaça segmentada e múltiplas pernas de ancoragem.'},
+  lurker:{name:'Enguia-Pelicano',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Bolsa Gular: abre a mandíbula muito além do diâmetro do corpo para capturar presas na escuridão.',desc:'Enguia de águas profundas inspirada na gulper eel, com cauda fina e boca expansível.'},
+  whiteShark:{name:'Tubarão-Branco Pelágico',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Pelágica: acelera em linha reta e muda de direção ao encontrar uma parede.',desc:'Predador de águas abertas que domina as camadas superiores e só aparece em grande profundidade durante migrações raras.'},
+  boss:{name:'Lula-Vampira Ossária',color:'#ff315f',hp:5640,speed:52,damage:25,ability:'Manto Ossificado: braços unidos por membranas e ganchos calcificados fecham a câmara ao redor da presa.',desc:'Cefalópode colossal inspirado na lula-vampira, deformado pela pressão e coberto por placas pálidas.'},
+  angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Isca Bioluminescente: o ilício atrai o mergulhador antes de uma mandíbula repleta de dentes curvados.',desc:'Predador batipelágico inspirado nos anglerfish, com corpo escuro, isca luminosa e dentes voltados para dentro.'},
+  maw:{name:'Anêmona da Fenda',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Disco Oral: tentáculos cercam uma boca radial que se contrai e gera uma onda de choque curta.',desc:'Anêmona hadal mutada em organismo móvel, com disco oral dentado e tentáculos de captura.'},
+  leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Corpo de Trincheira: a forma serpentiforme e a longa crista dorsal ocupam corredores inteiros.',desc:'Mutação colossal inspirada no peixe-remo, com corpo comprimido, crista extensa e placas alteradas pela pressão.'},
+  whiteSharkBoss:{name:'Tubarão-Duende Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Investida Rostral: dispara em linha reta; ao tocar a parede, reposiciona o rostro e lança outra investida.',desc:'Versão colossal inspirada no tubarão-duende, com rostro alongado e mandíbula projetável que emerge da escuridão.'},
+  kraken:{name:'Lula-Colossal Kraken',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito braços largos cercam a presa depois de um telegraph visual.',desc:'Cefalópode de fossa inspirado em lulas colossais e polvos de vidro, com manto translúcido e braços de grande alcance.'},
+  devourer:{name:'Enguia-Pelicano Hadal',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Sucção da Bolsa Gular: expande a boca e inverte a corrente ao redor a cada ciclo de caça.',desc:'Forma hadal extrema da enguia-pelicano, com garganta expansível, boca cavernosa e corpo adaptado à pressão.'}
+ }
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
  
