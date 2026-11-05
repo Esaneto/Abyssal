@@ -4,6 +4,28 @@ const $=id=>document.getElementById(id);
 let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
+const networkDebugEnabled=(()=>{try{return new URLSearchParams(location.search).get('abyssalDebug')==='1';}catch(_){return false;}})();
+let netDiagWindowAt=performance.now(),netDiagSent=0,netDiagReceived=0,netDiagSentBytes=0,netDiagReceivedBytes=0,netDiagRates={sentPerSec:0,receivedPerSec:0,sentBytesPerSec:0,receivedBytesPerSec:0};
+const netDiagEncoder=typeof TextEncoder!=='undefined'?new TextEncoder():null;
+function diagnosticBytes(values){
+ if(!networkDebugEnabled)return 0;let total=0;
+ for(const value of values){
+  if(value instanceof ArrayBuffer)total+=value.byteLength;
+  else if(ArrayBuffer.isView(value))total+=value.byteLength;
+  else try{const raw=JSON.stringify(value);total+=netDiagEncoder?netDiagEncoder.encode(raw).byteLength:raw.length*2;}catch(_){}
+ }
+ return total;
+}
+function updateNetworkDiagnosticWindow(){
+ if(!networkDebugEnabled)return;const now=performance.now(),elapsed=now-netDiagWindowAt;if(elapsed<1000)return;
+ const scale=1000/Math.max(1,elapsed);netDiagRates={sentPerSec:Number((netDiagSent*scale).toFixed(1)),receivedPerSec:Number((netDiagReceived*scale).toFixed(1)),sentBytesPerSec:Math.round(netDiagSentBytes*scale),receivedBytesPerSec:Math.round(netDiagReceivedBytes*scale)};
+ netDiagWindowAt=now;netDiagSent=0;netDiagReceived=0;netDiagSentBytes=0;netDiagReceivedBytes=0;
+}
+function attachNetworkDiagnostics(target){
+ if(!networkDebugEnabled||!target||target.__abyssalNetworkDiagnostics)return;target.__abyssalNetworkDiagnostics=true;
+ target.onAny?.((_event,...args)=>{netDiagReceived++;netDiagReceivedBytes+=diagnosticBytes(args);updateNetworkDiagnosticWindow();});
+ target.onAnyOutgoing?.((_event,...args)=>{netDiagSent++;netDiagSentBytes+=diagnosticBytes(args);updateNetworkDiagnosticWindow();});
+}
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,maintenanceFailSafe=null,everConnected=false,activeRoomPassword='',reconnectTarget=null,reconnectPending=false,reconnectFallbackUsed=false,reconnectWatchdog=null,reconnectSessionRetry=null,reconnectSessionAttempts=0;
 function showMaintenanceOverlay(message='Reconectando ao servidor automaticamente…'){maintenanceVisible=true;const status=$('maintenanceStatusText');if(status)status.textContent=message;const el=$('maintenanceOverlay');if(el)el.hidden=false;if(!maintenanceFailSafe)maintenanceFailSafe=setTimeout(()=>{maintenanceFailSafe=null;if(!maintenanceVisible)return;if(reconnectPending)failReconnect('A reconexão automática excedeu o tempo limite. O menu foi liberado para você tentar novamente.');else{hideMaintenanceOverlay();window.dispatchEvent(new CustomEvent('abyssal-reconnect-failed',{detail:{ok:false,message:'Servidor indisponível por tempo demais. Tente novamente pelo menu online.'}}));}},180000);}
 function hideMaintenanceOverlay(){maintenanceVisible=false;if(maintenanceTimer){clearTimeout(maintenanceTimer);maintenanceTimer=null;}if(maintenanceFailSafe){clearTimeout(maintenanceFailSafe);maintenanceFailSafe=null;}const el=$('maintenanceOverlay');if(el)el.hidden=true;}
@@ -146,6 +168,7 @@ function connect(){
  if(socket){if(!socket.connected)socket.connect();return socket;}
  if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:3500,randomizationFactor:.35,timeout:8000});
+ attachNetworkDiagnostics(socket);
  socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
  startPositionHeartbeat();
  socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();if(reconnectPending&&reconnectTarget&&sessionToken)showMaintenanceOverlay('Servidor encontrado. Restaurando sessão e expedição…');else if(reconnectPending&&reconnectTarget&&!sessionToken)failReconnect('Servidor reconectado. Entre novamente para continuar a expedição.');localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;pendingMotion.clear();lastReconcileSeq=0;motionRttMs=null;motionJitterMs=null;motionAckCount=0;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');if(reconnectPending&&reconnectTarget){armReconnectWatchdog();resumeSessionForReconnect();}else socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
@@ -155,8 +178,7 @@ function connect(){
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(!result||result.ok)return;if(reconnectPending&&reconnectTarget&&!reconnectFallbackUsed){reconnectFallbackUsed=true;const fallback=reconnectTarget.mode==='pvp'?'MAR-VERMELHO':'MAR-ABERTO';reconnectTarget={...reconnectTarget,id:fallback,password:''};setMessage('A sala anterior foi reiniciada no deploy. Retomando na arena padrão…');joinRoom(fallback,'',{reconnect:true});return;}failReconnect(result?.message||'A expedição não pôde ser retomada automaticamente.');window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}));});
- function reportEntryStage(stage){try{const rooms=$('roomsScreen'),menu=$('menuScreen');fetch('/api/client-entry-diagnostic',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage,state:{roomsHidden:rooms?rooms.hidden:null,menuHidden:menu?menu.hidden:null,gameActive:document.body.classList.contains('game-active'),gameState:String(window.AbyssalGameState||''),onlineVersion:'4.3.8'}}),keepalive:true}).catch(()=>{});}catch(_){}}
-function handleRoomJoined(data){if(!data?.ok)return false;reportEntryStage('room-joined-received');const roomId=String(data.room?.id||'').toUpperCase();if(currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;reportEntryStage('rooms-hidden-before-game-event');try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}const entryDetail={...data,reconnected:wasReconnect};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));reportEntryStage('game-event-dispatched');queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);setTimeout(()=>socket?.connected&&requestWorldSnapshot(wasReconnect?'deploy-reconnect':'room-join'),180);return true;}
+ function handleRoomJoined(data){if(!data?.ok)return false;const roomId=String(data.room?.id||'').toUpperCase();if(currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}const entryDetail={...data,reconnected:wasReconnect};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);setTimeout(()=>socket?.connected&&requestWorldSnapshot(wasReconnect?'deploy-reconnect':'room-join'),180);return true;}
  socket.on('room-joined',handleRoomJoined);
  socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
@@ -408,7 +430,7 @@ function startPositionHeartbeat(){
   if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  },1000/60);
 }
-function getPositionDiagnostics(){return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount};}
+function getPositionDiagnostics(){updateNetworkDiagnosticWindow();return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount,...(networkDebugEnabled?netDiagRates:{})};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
 function sendDamage(id,damage,skillId=null){if(!socket?.connected||!authenticated||!currentRoom)return false;const numericId=Number(id),amount=Number(damage);if(!Number.isSafeInteger(numericId)||!Number.isFinite(amount)||amount<=0)return false;socket.emit('shared-damage',{id:numericId,damage:Math.min(1000,amount),skillId:String(skillId||'').slice(0,32)});return true;}
 function sendDamageBatch(hits){
@@ -466,14 +488,25 @@ function renderRankings(data){
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getInterpolatedPeer(p,now=performance.now()){
- const duration=Math.max(1,Number(p.interpDuration)||1),t=Math.max(0,Math.min(1,(now-(Number(p.interpAt)||now))/duration));
- return {...p,x:Number(p.fromX)+(Number(p.targetX)-Number(p.fromX))*t,y:Number(p.fromY)+(Number(p.targetY)-Number(p.fromY))*t};
+ const duration=Math.max(1,Number(p.interpDuration)||1),elapsed=Math.max(0,now-(Number(p.interpAt)||now)),t=Math.max(0,Math.min(1,elapsed/duration));
+ const fromX=Number(p.fromX)||0,fromY=Number(p.fromY)||0,targetX=Number(p.targetX)||0,targetY=Number(p.targetY)||0;
+ let x=fromX+(targetX-fromX)*t,y=fromY+(targetY-fromY)*t;
+ if(t>=1){
+  // Bridge short packet gaps instead of visually freezing another player at the last sample.
+  // Extrapolation is deliberately bounded so authority remains with the server.
+  const extraMs=Math.min(Number(p.peerExtrapolationMs)||90,Math.max(0,elapsed-duration));
+  x=targetX+(Number(p.velocityX)||0)*(extraMs/1000);y=targetY+(Number(p.velocityY)||0)*(extraMs/1000);
+ }
+ return {...p,x,y};
 }
 function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?58:105};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
+ const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(isPvp?40:75),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
+ let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
+ const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?36:58,sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?70:95};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});

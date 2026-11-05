@@ -106,7 +106,8 @@ test('room traffic uses compact player motion, slower roster recovery and thrott
   assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
   assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
   assert.match(server,/orbScope:recipient\?'view':'all'/);
-  assert.match(game,/orbDuration=clamp\(Number\(data\.orbIntervalMs\)\|\|500,400,650\)/);
+  assert.match(game,/orbInterval=clamp\(Number\(data\.orbIntervalMs\)\|\|250,120,650\)/);
+  assert.match(game,/visualDuration=clamp\(orbInterval\*\.55,90,150\)/);
   assert.match(game,/data\.orbScope!=='view'/);
   assert.match(server,/emit\('world-xp-orbs-expired',expiredOrbIds\)/);
   assert.match(server,/socket\.on\('shared-damage-batch'/);
@@ -227,17 +228,17 @@ test('empty live rooms always close while deploy snapshots remain resumable for 
  assert.match(server,/pendingRunResume=\{[\s\S]*expiresAt:Date\.now\(\)\+5\*60\*1000/);
 });
 
-test('floating red and blue damage numbers are substantially larger and outlined', () => {
- assert.match(game,/112px/);
+test('floating red and blue damage numbers use the current compact readable scale', () => {
+ assert.match(game,/900 18px Cinzel, Georgia, serif/);
  assert.match(game,/number\.tone==='passive'\?'#32cfff':'#ff174d'/);
- assert.match(game,/ctx\.lineWidth=6/);
+ assert.match(game,/ctx\.lineWidth=1/);
 });
 
 
 test('online pulse batches PvE damage instead of broadcasting every target independently', () => {
  const handler=server.slice(server.indexOf("socket.on('active-ability'"),server.indexOf("socket.on('shared-damage'"));
  assert.match(handler,/const batch=\{damaged:\[\],defeated:\[\],orbs:\[\],accountUpdated:false,worldChanged:false\}/);
- assert.match(handler,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse',batch\)/);
+ assert.match(handler,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse',batch,'',enemyLookup\)/);
  assert.match(handler,/world-enemies-damaged/);
 });
 

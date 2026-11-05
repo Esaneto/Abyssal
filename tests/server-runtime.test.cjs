@@ -246,7 +246,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   // A dead common enemy creates one shared XP orb. The two clients see the same orb,
   // but the server awards the XP only to the player who reaches it first.
-  const xpTarget = owner.latest('game-snapshot').enemies.find(e => e && !['boss','leviathan','maw','angler'].includes(e.kind));
+  const xpTarget = owner.latest('game-snapshot').enemies.find(e => e && !['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer'].includes(e.kind));
   assert.ok(xpTarget, 'a common enemy should be available for the XP-drop integration test');
   const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
   const guestXpAwardsBefore = guest.all('shared-xp-award').length;

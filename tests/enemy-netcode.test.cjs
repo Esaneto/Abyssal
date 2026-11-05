@@ -37,21 +37,22 @@ test('new server coordinates are smoothly interpolated instead of being left at 
   assert.equal(second[0].x, 250); assert.equal(second[0].y, 300, 'interpolation starts from last displayed position');
   assert.equal(second[0].interpTargetX, 450); assert.equal(second[0].interpTargetY, 500);
   assert.equal(second[0].hp, 8);
-  const halfway = renderedPosition(second[0], 166);
-  assert.equal(halfway.x, 350); assert.equal(halfway.y, 400);
+  const responsive = renderedPosition(second[0], 166);
+  assert.ok(responsive.x > 400 && responsive.y > 400, 'short interpolation closes most of the visual gap within one frame window');
   const arrived = renderedPosition(second[0], 232);
-  assert.equal(arrived.x, 452.2); assert.equal(arrived.y, 502.2, 'bounded prediction follows the last server velocity after interpolation');
+  assert.ok(arrived.x >= 450 && arrived.x <= 470);
+  assert.ok(arrived.y >= 500 && arrived.y <= 520, 'bounded prediction follows the last server velocity after interpolation');
 });
 
 test('repeated snapshots converge to the latest authoritative position without a ghost hit position', () => {
   let state = reconcileSnapshot([], [{ id: 25, kind: 'drifter', x: 260, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 0 });
   state = reconcileSnapshot(state, [{ id: 25, kind: 'drifter', x: 360, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 100, interpolationMs: 100 });
   const midway = renderedPosition(state[0], 156);
-  assert.equal(midway.x, 310);
+  assert.ok(midway.x > 340 && midway.x < 360, 'short interpolation approaches the newest authoritative sample quickly');
   const next = reconcileSnapshot([{...state[0],x:midway.x,y:midway.y}], [{ id: 25, kind: 'drifter', x: 420, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 156, interpolationMs: 100 });
-  assert.equal(next[0].interpFromX, 310);
+  assert.equal(next[0].interpFromX, midway.x);
   assert.equal(next[0].interpTargetX, 420);
-  assert.equal(renderedPosition(next[0], 256).x, 420);
+  assert.ok(renderedPosition(next[0], 256).x >= 420 && renderedPosition(next[0], 256).x < 440);
 });
 
 test('a delayed older snapshot cannot restore HP after a confirmed server hit', () => {
@@ -91,4 +92,12 @@ test('compact snapshots derive enemy velocity and keep motion through a high-lat
   assert.equal(state[0].vx, 100, 'velocity is estimated from consecutive server positions');
   assert.ok(renderedPosition(state[0], 600).x > 110, 'a delayed packet briefly continues the last authoritative motion');
   assert.ok(renderedPosition(state[0], 900).x <= 155, 'prediction remains bounded against stale server state');
+});
+
+
+test('adaptive enemy interpolation stays below one authoritative motion interval', () => {
+  let state = reconcileSnapshot([], [{ id: 301, kind: 'drifter', x: 100, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 0, interpolationMs: 72 });
+  state = reconcileSnapshot(state, [{ id: 301, kind: 'drifter', x: 120, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 125, interpolationMs: 72 });
+  assert.ok(state[0].interpDuration <= 90);
+  assert.ok(state[0].interpDuration < 125, 'visual interpolation must not deliberately lag a full 8 Hz packet interval');
 });
