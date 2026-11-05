@@ -73,3 +73,39 @@ test('reference-inspired interface centers vortex and keeps extra features reach
   assert.match(interactions,/popup\.classList\.add\('active'\)/);
   assert.match(interactions,/if\(event\.key==='Escape'\)/);
 });
+
+
+test('orbital navigation is a direct fullscreen menu child, not a narrow legacy menu column', () => {
+  const html=read('public/index.html');
+  const css=read('public/abyssal-menu-orbit.css');
+  const section=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('<section id="hud"'));
+  const columnClose=section.indexOf('      </div>');
+  const navStart=section.indexOf('<nav class="abyss-orbit-navigation"');
+  assert.ok(navStart>columnClose,'orbit must no longer be inside menu-content');
+  assert.match(section,/<div class="menu-content">[\s\S]*?<\/h1>\s*<\/div>\s*<nav class="abyss-orbit-navigation"/);
+  assert.match(css,/#menuScreen > \.abyss-orbit-navigation\s*\{[\s\S]*?width:100vw!important/);
+  assert.match(css,/#menuScreen > \.abyss-orbit-navigation #abyssGate\s*\{[\s\S]*?left:50%!important;top:50%!important/);
+});
+
+test('cursor is an aiming crosshair centered on a purple dot, even when hovering over the gate',()=>{
+  const cursor=read('public/abyssal-tentacle-cursor.svg');
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(cursor,/width="48" height="48" viewBox="0 0 48 48"/);
+  assert.match(cursor,/rotate\(270 24 24\)/);
+  assert.match(cursor,/<circle cx="24" cy="24" r="3\.5"/);
+  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=2'\) 24 24,crosshair!important/);
+  assert.match(css,/#abyssGate \*/);
+});
+
+test('crocodile and caiman require real payment rather than coins',()=>{
+  const game=read('public/game.js');
+  const server=read('server.js');
+  const payments=read('payments.js');
+  for(const id of ['saltcroc','blackcaiman']){
+    assert.match(game,new RegExp("id:'"+id+"'[^\\n]*price:999,paid:true"));
+    assert.match(game,new RegExp("paidBrl=Object\\.freeze\\(\\{[^\\n]*"+id+":999"));
+    assert.match(payments,new RegExp(id+":\\{[^\\n]*brl:999"));
+    assert.match(server,new RegExp("stripeOnlySkins = new Set\\(\\[[^\\n]*'"+id+"'"));
+    assert.doesNotMatch(server,new RegExp("const prices = \\{[^\\n]*\\b"+id+":"));
+  }
+});
