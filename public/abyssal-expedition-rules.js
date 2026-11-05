@@ -55,6 +55,37 @@
     })
   });
 
+  const ROOM_ECOLOGY=Object.freeze({
+    start:Object.freeze({drifter:1.30,stinger:.80,brute:.45,lurker:.30,whiteShark:.12}),
+    shoal:Object.freeze({drifter:1.35,stinger:1.10,brute:.72,lurker:.55,whiteShark:.25}),
+    trench:Object.freeze({drifter:.92,stinger:1.28,brute:1.18,lurker:.86,whiteShark:.52}),
+    lantern:Object.freeze({drifter:1.12,stinger:1.06,brute:.88,lurker:1.45,whiteShark:.45}),
+    junction:Object.freeze({drifter:.86,stinger:1.08,brute:1.20,lurker:1.18,whiteShark:.72}),
+    elite:Object.freeze({drifter:.42,stinger:.92,brute:1.48,lurker:1.52,whiteShark:.78}),
+    event:Object.freeze({drifter:.62,stinger:1.22,brute:1.08,lurker:1.38,whiteShark:.86}),
+    hub:Object.freeze({drifter:.72,stinger:.96,brute:1.20,lurker:1.22,whiteShark:.72}),
+    landing:Object.freeze({drifter:.38,stinger:.88,brute:1.38,lurker:1.46,whiteShark:1.18}),
+    boss:Object.freeze({drifter:.18,stinger:.64,brute:1.42,lurker:1.55,whiteShark:1.42})
+  });
+
+  const SIDE_ENCOUNTERS=Object.freeze({
+    resonance_cache:Object.freeze({
+      id:'resonance_cache',type:'treasure',name:'BERÇÁRIO DE RESSONÂNCIA',
+      subtitle:'Uma colônia bioluminescente acumulou energia sem atrair um predador.',
+      risk:'BAIXO',reward:'CACHE DE EXPERIÊNCIA',accent:'#62f5dc',ambushCount:0
+    }),
+    viper_nest:Object.freeze({
+      id:'viper_nest',type:'ambush',name:'NINHO DE PEIXES-VÍBORA',
+      subtitle:'O eco lateral parece vazio. Dentes fotóforos respondem quando você entra.',
+      risk:'ALTO',reward:'FAUNA VALIOSA',accent:'#ff718b',ambushCount:5
+    }),
+    pressure_vent:Object.freeze({
+      id:'pressure_vent',type:'trap',name:'FUMAROLA DE PRESSÃO',
+      subtitle:'A passagem sela atrás do mergulhador e uma corrente quente desperta o enxame.',
+      risk:'MÁXIMO',reward:'ELITES + FRAGMENTOS',accent:'#c08cff',ambushCount:7
+    })
+  });
+
   const EVENTS=Object.freeze({
     predator_migration:Object.freeze({
       id:'predator_migration',name:'MIGRAÇÃO DE PREDADORES',
@@ -72,6 +103,60 @@
       accent:'#62f5dc',duration:18,eliteBonus:.035,spawnIntervalMultiplier:.86,xpMultiplier:1.35
     })
   });
+
+  function mixSeed(input){
+    const text=String(input??'abyssal');let h=2166136261>>>0;
+    for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}
+    h^=h>>>16;h=Math.imul(h,0x7feb352d);h^=h>>>15;return h>>>0;
+  }
+
+  function zoneForRoom(room,tier=0){
+    const depth=Math.max(0,Math.floor(Number(room?.depth)||0));
+    const tierNumber=Math.max(0,Math.floor(Number(tier)||0));
+    return ZONES[clamp(Math.floor((depth+tierNumber*2)/2),0,ZONES.length-1)]||ZONES[0];
+  }
+
+  function roomWeights(room,tier=0,eventId=null){
+    const zone=zoneForRoom(room,tier);
+    const weights={...zone.weights};
+    const ecology=ROOM_ECOLOGY[String(room?.id||'')]||null;
+    if(ecology)for(const kind of COMMON_KINDS)weights[kind]*=Number(ecology[kind])||1;
+    if(eventId==='predator_migration'){weights.whiteShark*=2.8;weights.stinger*=1.25;weights.drifter*=.55;}
+    else if(eventId==='black_current'){weights.lurker*=1.85;weights.brute*=1.45;weights.drifter*=.72;}
+    else if(eventId==='resonance_bloom'){weights.stinger*=1.18;weights.brute*=1.12;}
+    return weights;
+  }
+
+  function chooseCommonKindForRoom(random=Math.random,room=null,tier=0,eventId=null){
+    const weights=roomWeights(room,tier,eventId);let total=0;
+    for(const kind of COMMON_KINDS)total+=Math.max(0,Number(weights[kind])||0);
+    if(total<=0)return 'drifter';
+    let roll=clamp(Number(random())||0,0,.999999999)*total;
+    for(const kind of COMMON_KINDS){roll-=Math.max(0,Number(weights[kind])||0);if(roll<0)return kind;}
+    return COMMON_KINDS[COMMON_KINDS.length-1];
+  }
+
+  function roomDensityCap(room,tier=0,playerCount=1){
+    const base=Math.max(0,Math.floor(Number(room?.densityCap)||0));
+    if(base<=0)return 0;
+    const tierScale=1+Math.min(.30,Math.max(0,Math.floor(Number(tier)||0))*.045);
+    const groupScale=1+Math.min(.28,(Math.max(1,Math.floor(Number(playerCount)||1))-1)*.055);
+    return Math.max(1,Math.round(base*tierScale*groupScale));
+  }
+
+  function roomRewardMultiplier(room,tier=0){
+    const depth=Math.max(0,Math.floor(Number(room?.depth)||0));
+    return 1+Math.min(.55,depth*.035+Math.max(0,Math.floor(Number(tier)||0))*.04);
+  }
+
+  function eliteRoomBonusValue(tier=0){
+    return 18+Math.min(42,Math.max(0,Math.floor(Number(tier)||0))*6);
+  }
+
+  function sideEncounterFor(seed,tier=0){
+    const roll=(mixSeed(String(seed)+':'+Math.max(0,Math.floor(Number(tier)||0))+':side')%1000)/1000;
+    return roll<.34?SIDE_ENCOUNTERS.resonance_cache:roll<.72?SIDE_ENCOUNTERS.viper_nest:SIDE_ENCOUNTERS.pressure_vent;
+  }
 
   function normalizeBosses(value){
     return Math.max(0,Math.floor(Number(value)||0));
@@ -181,8 +266,8 @@
   }
 
   return Object.freeze({
-    ZONES,ELITES,EVENTS,COMMON_KINDS,
-    depthForBosses,zoneForBosses,eventConfig,eliteConfig,
+    ZONES,ELITES,EVENTS,ROOM_ECOLOGY,SIDE_ENCOUNTERS,COMMON_KINDS,
+    depthForBosses,zoneForBosses,zoneForRoom,roomWeights,chooseCommonKindForRoom,roomDensityCap,roomRewardMultiplier,eliteRoomBonusValue,sideEncounterFor,eventConfig,eliteConfig,
     commonWeights,chooseCommonKind,eliteChance,chooseElite,applyEliteStats,
     chooseEvent,eventSpawnIntervalMultiplier,eventXpMultiplier
   });
