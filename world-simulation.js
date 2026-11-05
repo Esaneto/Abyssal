@@ -8,6 +8,10 @@ const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+function anglerInvisibleAt(nowMs=Date.now()){
+  const phase=((Number(nowMs)||0)%26000+26000)%26000;
+  return phase>=3000&&phase<13000;
+}
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
@@ -440,7 +444,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
   const targetablePlayers = [];
-  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now) targetablePlayers.push(p);
+  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now && !(p.skinId==='angler'&&anglerInvisibleAt(now))) targetablePlayers.push(p);
   for (const enemy of world.enemies) {
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
@@ -474,29 +478,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         enemy.suctionPulse = (Number(enemy.suctionPulse) || 0) + 1;
       }
     }
-    if (enemy.kind === 'angler') {
-      enemy.anglerPulse = (Number(enemy.anglerPulse) || 0) + dt;
-      if (enemy.anglerPulse >= 3.4) {
-        enemy.anglerPulse = 0;
-        const lureRadius=350/WORLD_ZOOM;
-        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'lure-pulse',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:lureRadius,color:enemy.color});
-        for (const target of validPlayers) {
-          const dx = Number(enemy.x) - Number(target.x), dy = Number(enemy.y) - Number(target.y), distance = Math.hypot(dx, dy);
-          if (!distance || distance > lureRadius) continue;
-          const step = Math.min(distance, 34 / WORLD_ZOOM), desiredX = Number(target.x) + dx / distance * step, desiredY = Number(target.y) + dy / distance * step;
-          const moved = riftMode ? AbyssalMap.resolveMove(mapLayout, Number(target.x), Number(target.y), desiredX, desiredY, Math.max(10, Number(target.r) || 13 / WORLD_ZOOM)) : { x: clamp(desiredX, 0, WORLD_WIDTH), y: clamp(desiredY, 0, WORLD_HEIGHT) };
-          const actualDx = moved.x - Number(target.x), actualDy = moved.y - Number(target.y);target.x = moved.x;target.y = moved.y;
-          playerSuctionPulls.push({ playerId: target.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: 1.35 });
-          const hit=bossAbilityHit(enemy,target,12,now,'lure-pulse');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
-        }
-      }
-    }
+    // Angler ability is now camouflage; visibility is deterministic and handled by the renderer/target selection.
     if(enemy.kind==='boss'){
-      enemy.neuroPulse=(Number(enemy.neuroPulse)||0)+dt;
-      if(enemy.neuroPulse>=4.7){
-        enemy.neuroPulse=0;const radius=270/WORLD_ZOOM;
-        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'neuro-ring',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
-        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,18,now,'neuro-ring',{neurotoxinMs:2400});if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+      enemy.inkTrailTimer=(Number(enemy.inkTrailTimer)||0)+dt;
+      if(enemy.inkTrailTimer>=.45){
+        enemy.inkTrailTimer=0;const radius=76/WORLD_ZOOM;
+        const tx=enemy.x-Math.cos(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
+        const ty=enemy.y-Math.sin(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'ink-trail',x:tx,y:ty,angle:enemy.angle||0,radius,color:'#07101d'});
+        for(const target of validPlayers){
+          if(Math.hypot(Number(target.x)-tx,Number(target.y)-ty)>radius+(Number(target.r)||13/WORLD_ZOOM))continue;
+          const hit=bossAbilityHit(enemy,target,6,now,'ink-trail');
+          if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
+        }
       }
     }
     if(enemy.kind==='maw'){
@@ -654,7 +648,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     enemy.attackCd = attackInterval;
     if ((Number(target.invulnerableUntil) || 0) > now) continue;
 
-    let appliedDamage = 0, blocked = false, aberrationEchoTriggered = false, neurotoxinMs = 0;
+    let appliedDamage = 0, blocked = false, neurotoxinMs = 0;
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
     if (shieldCharges > 0) {
       target.shieldCharges = shieldCharges - 1;
@@ -669,22 +663,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
       appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
       target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
-      const contactNeuro=Math.max(enemy.kind==='boss'?1300:0,Number(contactProfile?.neuro)||0);
+      const contactNeuro=Math.max(0,Number(contactProfile?.neuro)||0);
       if (contactNeuro > 0 && appliedDamage > 0) { target.neurotoxinUntil = now + contactNeuro; neurotoxinMs = contactNeuro; }
-      if (target.skinId === 'aberration' && !target.aberrationEchoUsed) {
-        target.aberrationEchoUsed = true;
-        aberrationEchoTriggered = true;
-        const radius = 210 / WORLD_ZOOM;
-        for (const nearby of world.enemies) {
-          if (!nearby) continue;
-          const dx = Number(nearby.x) - Number(target.x), dy = Number(nearby.y) - Number(target.y), d = Math.hypot(dx, dy);
-          if (d > 0.001 && d <= radius) {
-            const push = Math.min(95 / WORLD_ZOOM, (radius - d) * 0.62 + 24 / WORLD_ZOOM);
-            nearby.x = clamp(nearby.x + dx / d * push, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
-            nearby.y = clamp(nearby.y + dy / d * push, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
-          }
-        }
-      }
+
       if (target.hp <= 0) {
         target.alive = false;
         world.playerDefeatCount = (world.playerDefeatCount || 0) + 1;
@@ -699,7 +680,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, aberrationEchoTriggered, neurotoxinMs, skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, neurotoxinMs, skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
