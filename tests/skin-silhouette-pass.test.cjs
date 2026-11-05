@@ -30,8 +30,18 @@ test('boss relic cosmetics have a shared visual rarity signature without changin
   assert.doesNotMatch(signature,/damage|hp|maxHp|speed|sendShot|socket|emit/);
 });
 
-test('abyssal signature set remains separate from boss relic cosmetics',()=>{
-  assert.match(game,/const ABYSSAL_SIGNATURE_IDS=new Set\(\['abyssking','bloodmoon','abyssaleye','greensnake'\]\)/);
+test('Abyssal signature collection remains distinct from relics while also mapping to biological families',()=>{
+  const match=game.match(/const ABYSSAL_SIGNATURE_IDS=new Set\(\[([^\]]+)\]\)/);
+  assert.ok(match);
+  const ids=match[1].match(/'([^']+)'/g).map(value=>value.slice(1,-1));
+  for(const id of ['default','violet','solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','greensnake'])assert.ok(ids.includes(id),id);
+  for(const relic of ['leviathan','kraken','aberration','angler','maw','devourer'])assert.equal(ids.includes(relic),false,relic);
+  assert.match(game,/violet:\{family:'jelly',collections:\['signature'\]\}/);
+  assert.match(game,/bloodmoon:\{family:'squid',collections:\['signature'\]\}/);
+  assert.match(game,/voidwing:\{family:'ray',collections:\['signature'\]\}/);
+  assert.match(game,/abyssaleye:\{family:'fish',collections:\['signature'\]\}/);
+  assert.match(game,/abyssking:\{family:'mollusc',collections:\['signature'\]\}/);
+  assert.match(game,/greensnake:\{family:'eel',collections:\['signature','mission'\],unlockType:'mission'\}/);
   assert.match(game,/else if\(ABYSSAL_SIGNATURE_IDS\.has\(id\)\)/);
 });
 
