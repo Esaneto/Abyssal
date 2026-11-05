@@ -190,6 +190,126 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
    ellipse(0,0,.9,.5);ribs(7,-.55,.17);for(let side of [-1,1])for(let i=0;i<4;i++)stroke([[-.55+i*.25,side*.3],[-.65+i*.25,side*.62]],.03,bodyGrad());eye(.58,-.18,.04);materialPass(1);
  };
 
+ const signatureArt=()=>{
+  const k=String(art.key||'');
+  const line=(pts,w=.025,a=.72)=>stroke(pts,w,tone(a,18),.08);
+  const dot=(x0,y0,sz=.022,a=.82)=>pore(x0,y0,sz,tone(a,24));
+  const arc=(x0,y0,rx,ry,start,end,w=.028,a=.7)=>{c.save();c.strokeStyle=tone(a,22);c.lineWidth=w;c.shadowBlur=.08;c.shadowColor=accent;c.beginPath();c.ellipse(x0,y0,rx,ry,0,start,end);c.stroke();c.restore();};
+  switch(k){
+   // Sharks
+   case 'blue-sickle': line([[-.7,-.08],[.05,-.2],[.72,-.08]],.035);break;
+   case 'tiger-bars': for(let i=0;i<6;i++)line([[-.55+i*.2,-.34],[-.45+i*.2,.34]],.045,.6);break;
+   case 'whale-checker': for(let i=0;i<18;i++)dot(-.62+(i%6)*.22,-.28+Math.floor(i/6)*.28,.018,.72);break;
+   case 'basking-gape': arc(.98,.02,.38,.28,0,Math.PI*2,.05,.85);break;
+   case 'mako-spear': line([[.42,-.04],[1.32,0]],.055,.9);break;
+   case 'thresher-whip': for(let i=0;i<5;i++)dot(-1.0-i*.18,-.12-i*.15,.018,.7);break;
+   case 'goblin-rostrum': line([[.62,-.04],[1.7,-.02]],.04,.85);break;
+   case 'frilled-serpent': for(let i=0;i<6;i++)arc(.35-i*.12,0,.08,.22,-1.1,1.1,.025,.65);break;
+   case 'lantern-photophore': for(let i=0;i<9;i++)dot(-.5+i*.12,.24,.024,.95);break;
+   case 'greenland-heavy': scars(3);arc(-.05,.04,.72,.3,.15,2.85,.03,.38);break;
+   // Rays
+   case 'manta-cephalic': arc(.86,-.08,.28,.18,-1.4,.5,.04,.86);arc(.86,.08,.28,.18,-.5,1.4,.04,.86);break;
+   case 'reef-manta': for(let i=0;i<5;i++)dot(-.4+i*.18,.12,.022,.7);break;
+   case 'spotted-eagle': for(let i=0;i<15;i++)dot(-.55+(i%5)*.26,-.34+Math.floor(i/5)*.34,.018,.76);break;
+   case 'eagle-snout': line([[.55,0],[1.25,0]],.045,.86);break;
+   case 'butterfly-disc': arc(.02,0,.9,.64,Math.PI*.15,Math.PI*.85,.04,.64);break;
+   case 'thornback-spines': for(let i=0;i<7;i++)spike(-.58+i*.18,-.3,.18+(i%2)*.05,-1);break;
+   case 'guitarfish-hybrid': line([[-.92,0],[.85,0]],.03,.56);break;
+   case 'round-disc': for(let i=0;i<8;i++){const a=i*Math.PI/4;dot(Math.cos(a)*.48,Math.sin(a)*.36,.02,.66);}break;
+   case 'sixgill-deep': for(let i=0;i<6;i++)line([[.4-i*.08,-.26],[.35-i*.08,.26]],.024,.62);break;
+   case 'arctic-pale': arc(0,0,.72,.48,0,Math.PI*2,.025,.42);break;
+   // Eels
+   case 'zebra-bars': for(let i=0;i<8;i++)line([[-1.25+i*.24,-.2],[-1.18+i*.24,.2]],.04,.7);break;
+   case 'leopard-spots': for(let i=0;i<10;i++)dot(-1.05+(i%5)*.32,-.12+Math.floor(i/5)*.25,.025,.7);break;
+   case 'ribbon-crests': for(let i=0;i<5;i++)spike(-.7+i*.24,-.22,.2+(i%2)*.12,-1);break;
+   case 'dragon-jaw': arc(.82,.03,.36,.18,-.3,.8,.055,.92);break;
+   case 'garden-thread': for(let i=0;i<4;i++)dot(-.45+i*.27,.07,.016,.72);break;
+   case 'conger-heavy': ribs(5,-.8,.28);break;
+   case 'pelican-gape': arc(.92,.05,.48,.33,0,Math.PI*2,.05,.95);break;
+   case 'saw-rostrum': for(let i=0;i<6;i++)spike(.98+i*.09,-.04,.1,-1);break;
+   case 'snipe-snout': line([[.78,0],[1.5,0]],.04,.9);break;
+   case 'gulper-mouth': arc(.98,.06,.34,.23,0,Math.PI*2,.05,.88);break;
+   // Squid
+   case 'reef-arrow': line([[-.25,0],[1.1,0]],.028,.62);break;
+   case 'luminous-stars': for(let i=0;i<9;i++)dot(-.32+(i%3)*.3,-.25+Math.floor(i/3)*.25,.025,.95);break;
+   case 'humboldt-heavy': scars(2);for(let i=0;i<5;i++)dot(-.38+i*.18,.23,.02,.75);break;
+   case 'diamond-fin': line([[.05,-.58],[.45,0],[.05,.58]],.04,.72);break;
+   case 'cockatoo-glass': arc(.12,0,.65,.48,0,Math.PI*2,.025,.55);break;
+   case 'strawberry-eyes': dot(.42,-.18,.07,.98);dot(.42,.16,.035,.8);break;
+   case 'vampire-cloak': arc(-.15,0,.74,.66,-1.15,1.15,.06,.82);break;
+   case 'longarm-spider': for(let side of [-1,1])line([[-.25,side*.15],[-1.45,side*.62],[-2.15,side*.78]],.026,.72);break;
+   case 'giant-lance': line([[-.45,0],[1.35,0]],.035,.8);break;
+   case 'colossal-hooks': for(let i=0;i<5;i++)arc(-1.0-i*.12,.18+i*.04,.07,.06,-1.2,.8,.025,.85);break;
+   // Octopus
+   case 'common-bulb': for(let i=0;i<5;i++)dot(-.22+i*.13,-.3+(i%2)*.15,.018,.58);break;
+   case 'mimic-stripes': for(let i=0;i<6;i++)arc(.08,0,.22+i*.08,.18+i*.055,-.8,.8,.022,.66);break;
+   case 'coconut-shell': arc(.2,.18,.5,.32,.05,Math.PI-.05,.05,.7);break;
+   case 'blue-rings': for(let i=0;i<8;i++){const a=i*Math.PI/4;arc(.25+Math.cos(a)*.28,Math.sin(a)*.24,.055,.045,0,Math.PI*2,.025,.98);}break;
+   case 'blanket-web': arc(-.1,0,.86,.68,-1.2,1.2,.055,.78);break;
+   case 'glass-core': arc(.28,0,.38,.5,0,Math.PI*2,.025,.55);dot(.2,-.05,.065,.82);break;
+   case 'dumbo-ears': arc(.18,-.44,.32,.28,-1.5,.3,.045,.74);arc(.18,.44,.32,.28,-.3,1.5,.045,.74);break;
+   case 'grimpoteuthis-bell': for(let i=0;i<5;i++)line([[-.25+i*.12,-.55],[-.18+i*.11,.55]],.02,.5);break;
+   case 'sevenarm-asymmetry': line([[-.3,-.08],[-1.75,-.58]],.07,.82);break;
+   case 'pacific-giant': scars(3);for(let i=0;i<6;i++)dot(-.25+i*.12,.28,.022,.64);break;
+   // Jellyfish
+   case 'moon-fourcore': for(const p of [[-.2,-.18],[.2,-.18],[-.2,.12],[.2,.12]])arc(p[0],p[1],.14,.1,0,Math.PI*2,.03,.72);break;
+   case 'compass-radial': for(let i=0;i<8;i++){const a=i*Math.PI/4;line([[0,0],[Math.cos(a)*.65,Math.sin(a)*.5]],.03,.7);}break;
+   case 'friedegg-yolk': dot(.05,-.12,.16,.9);break;
+   case 'lionmane-crown': for(let i=0;i<10;i++){const a=i*Math.PI/5;spike(Math.cos(a)*.54,Math.sin(a)*.34,.22,i<5?-1:1);}break;
+   case 'crystal-glass': arc(0,0,.62,.5,0,Math.PI*2,.025,.46);break;
+   case 'atolla-redring': arc(0,-.05,.48,.34,0,Math.PI*2,.055,.88);break;
+   case 'periphylla-cone': line([[-.42,.02],[0,-.72],[.42,.02]],.04,.78);break;
+   case 'phantom-giant': arc(0,0,.72,.72,0,Math.PI*2,.035,.38);break;
+   case 'fireworks-branches': for(let i=0;i<8;i++){const a=i*Math.PI/4;line([[0,.05],[Math.cos(a)*.74,Math.sin(a)*.5]],.035,.82);}break;
+   case 'hood-cap': arc(0,-.08,.55,.62,Math.PI,Math.PI*2,.055,.82);break;
+   // Crustaceans
+   case 'spiny-lobster': for(let i=0;i<6;i++)spike(-.5+i*.18,-.34,.18,-1);break;
+   case 'american-claws': arc(.78,-.28,.32,.2,-1.2,.8,.07,.78);arc(.78,.28,.32,.2,-.8,1.2,.07,.78);break;
+   case 'cleaner-antennae': for(let side of [-1,1])line([[.55,side*.12],[1.7,side*.62]],.022,.8);break;
+   case 'pistol-claw': arc(.9,.24,.4,.28,-1,.7,.1,.88);break;
+   case 'mantis-hammer': line([[.62,-.16],[1.25,-.5]],.09,.9);line([[.62,.16],[1.25,.5]],.09,.9);break;
+   case 'spider-legs': for(let i=0;i<4;i++)line([[-.1+i*.22,.1],[-.55+i*.15,1.0]],.03,.64);break;
+   case 'yeti-fur': for(let i=0;i<8;i++)line([[-.55+i*.15,-.35],[-.62+i*.15,-.65]],.018,.5);break;
+   case 'isopod-plates': ribs(8,-.7,.19);break;
+   case 'hadal-amphipod': for(let i=0;i<5;i++)spike(-.45+i*.19,-.3,.18,-1);break;
+   case 'vent-shrimp': for(let i=0;i<6;i++)dot(-.45+i*.17,.2,.022,.76);break;
+   // Fish
+   case 'lion-spines': for(let i=0;i<10;i++)spike(-.5+i*.12,-.32,.32+(i%3)*.1,-1);break;
+   case 'sun-disc': arc(0,0,.62,.62,0,Math.PI*2,.045,.65);break;
+   case 'napoleon-brow': arc(.58,-.22,.32,.22,Math.PI,Math.PI*2,.055,.78);break;
+   case 'mandarin-pattern': for(let i=0;i<5;i++)arc(-.35+i*.2,0,.18,.22,0,Math.PI*2,.025,.68);break;
+   case 'hatchet-blade': line([[-.45,-.55],[.45,.48]],.04,.75);break;
+   case 'dragon-black': for(let i=0;i<7;i++)dot(-.65+i*.2,.15,.018,.88);break;
+   case 'viper-fangs': for(let i=0;i<5;i++)line([[.55+i*.07,-.1],[.58+i*.07,.16]],.03,.86);break;
+   case 'fangtooth-head': for(let i=0;i<7;i++)line([[.5+i*.055,-.14],[.54+i*.055,.18]],.035,.9);break;
+   case 'snailfish-soft': arc(.05,0,.68,.42,0,Math.PI*2,.025,.46);break;
+   case 'tripod-stilts': line([[.1,.18],[-.08,1.38]],.04,.8);line([[.45,.18],[.72,1.38]],.04,.8);line([[-.25,.12],[-.55,1.28]],.04,.8);break;
+   // Benthic
+   case 'leopard-cucumber': for(let i=0;i<10;i++)dot(-.7+(i%5)*.32,-.18+Math.floor(i/5)*.34,.024,.7);break;
+   case 'sea-pig-legs': for(let i=0;i<6;i++)line([[-.55+i*.2,.28],[-.6+i*.2,.7]],.05,.72);break;
+   case 'swimming-holothurian': arc(0,0,.82,.4,0,Math.PI*2,.03,.54);break;
+   case 'basket-arms': for(let i=0;i<10;i++){const a=i*Math.PI/5;line([[0,0],[Math.cos(a)*1.05,Math.sin(a)*.88]],.03,.68);}break;
+   case 'brittle-star': for(let i=0;i<5;i++){const a=i*Math.PI*2/5;line([[0,0],[Math.cos(a)*1.15,Math.sin(a)*.95]],.055,.76);}break;
+   case 'crown-star': for(let i=0;i<12;i++){const a=i*Math.PI/6;spike(Math.cos(a)*.52,Math.sin(a)*.42,.28,i<6?-1:1);}break;
+   case 'diadema-spines': for(let i=0;i<18;i++){const a=i*Math.PI/9;line([[Math.cos(a)*.45,Math.sin(a)*.35],[Math.cos(a)*1.25,Math.sin(a)*.95]],.025,.66);}break;
+   case 'pencil-urchin': for(let i=0;i<10;i++){const a=i*Math.PI/5;line([[Math.cos(a)*.4,Math.sin(a)*.32],[Math.cos(a)*1.02,Math.sin(a)*.78]],.07,.72);}break;
+   case 'crinoid-feather': for(let i=0;i<9;i++){const a=-1.2+i*.3;line([[0,.05],[Math.cos(a)*1.0,Math.sin(a)*.95]],.035,.7);}break;
+   case 'harp-sponge': for(let i=0;i<6;i++)line([[-.65,-.45+i*.18],[.3,-.65+i*.18]],.03,.72);break;
+   // Molluscs
+   case 'nautilus-spiral': {c.save();c.strokeStyle=tone(.78,20);c.lineWidth=.035;c.beginPath();for(let i=0;i<55;i++){const a=i*.2,rr=.03+i*.009;c.lineTo(.05+Math.cos(a)*rr,Math.sin(a)*rr);}c.stroke();c.restore();}break;
+   case 'argonaut-shell': arc(.05,0,.58,.52,.2,Math.PI*1.8,.045,.72);break;
+   case 'cuttle-ribbed': ribs(7,-.48,.16);break;
+   case 'flamboyant-warning': for(let i=0;i<7;i++)dot(-.45+i*.15,i%2?.2:-.2,.028,.9);break;
+   case 'sea-bunny-ears': line([[.35,-.2],[.48,-.68]],.05,.76);line([[.55,-.2],[.68,-.68]],.05,.76);break;
+   case 'blue-dragon-wings': for(let side of [-1,1])for(let i=0;i<3;i++)line([[-.05-i*.18,side*.12],[-.45-i*.2,side*(.52+i*.12)]],.045,.78);break;
+   case 'sea-angel-wings': arc(.15,-.22,.42,.28,-1.4,.5,.04,.72);arc(.15,.22,.42,.28,-.5,1.4,.04,.72);break;
+   case 'sea-butterfly-wings': arc(.1,-.18,.52,.3,-1.5,.4,.035,.72);arc(.1,.18,.52,.3,-.4,1.5,.035,.72);break;
+   case 'scalyfoot-armor': ribs(8,-.6,.17);for(let i=0;i<6;i++)dot(-.45+i*.16,.25,.022,.56);break;
+   case 'giant-chiton-plates': ribs(8,-.58,.16);arc(0,0,.75,.42,0,Math.PI*2,.025,.48);break;
+  }
+ };
+
+
  switch(family){
    case 'shark':drawShark();break;
    case 'ray':drawRay();break;
@@ -203,6 +323,7 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
    case 'mollusc':drawMollusc();break;
    default:ellipse(0,0,.8,.5);eye(.45,-.15,.05);materialPass(1);
  }
+ signatureArt();
  c.restore();
 };
 })();
