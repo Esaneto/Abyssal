@@ -26,3 +26,11 @@ test('all 100 marine species have unique art identities, not generic family reco
   assert.ok(new Set(rows.map(s=>s.art?.tone)).size>=8,family);
  }
 });
+
+
+test('rarity is canonical data on every marine species',()=>{
+ const allowed=new Set(['common','uncommon','rare','epic','legendary','mythic']);
+ for(const s of species)assert.ok(allowed.has(s.rarity),s.id);
+ assert.deepEqual(species.filter(s=>s.variant<=1).map(s=>s.rarity),Array(species.filter(s=>s.variant<=1).length).fill('common'));
+ assert.ok(species.some(s=>s.rarity==='mythic'));
+});
