@@ -34,21 +34,21 @@ test('level-up choice uses the shared codex cache and cannot fail on an undefine
   assert.doesNotMatch(handlers, /codex\.skills/);
 });
 
-test('paid predator skins render species-specific great white, black caiman, and Nile crocodile silhouettes', () => {
+test('paid predator skins render species-specific marine silhouettes', () => {
   const game = read('public/game.js');
   const start = game.indexOf('function drawCreature(');
   const end = game.indexOf('\nfunction ', start + 1);
   const renderer = game.slice(start, end < 0 ? undefined : end);
   const white = renderer.slice(renderer.indexOf("id==='reefshark'"), renderer.indexOf("id==='hammerhead'"));
-  const caiman = renderer.slice(renderer.indexOf("id==='abysscroc'"), renderer.indexOf("id==='armoredgator'"));
-  const nile = renderer.slice(renderer.indexOf("id==='armoredgator'"), renderer.indexOf("id==='default'"));
+  const bull = renderer.slice(renderer.indexOf("id==='abysscroc'"), renderer.indexOf("id==='armoredgator'"));
+  const horseshoe = renderer.slice(renderer.indexOf("id==='armoredgator'"), renderer.indexOf("id==='electriceel'"));
   assert.match(white, /countershading/);
   assert.match(white, /crescent tail/);
-  assert.match(caiman, /Black caiman/);
-  assert.match(caiman, /rounded head/);
-  assert.match(nile, /Nile crocodile/);
-  assert.match(nile, /visible teeth/);
-  assert.notEqual(caiman, nile, 'the two crocodilians must not share one silhouette branch');
+  assert.match(bull, /Bull shark silhouette/);
+  assert.match(bull, /blunt snout/);
+  assert.match(horseshoe, /Horseshoe crab silhouette/);
+  assert.match(horseshoe, /long telson/);
+  assert.notEqual(bull, horseshoe, 'marine premium skins must not share one silhouette branch');
 });
 
 test('level-up shows a 25-second countdown and picks a random option if time expires', () => {
