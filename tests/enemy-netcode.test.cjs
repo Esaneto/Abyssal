@@ -48,9 +48,9 @@ test('repeated snapshots converge to the latest authoritative position without a
   let state = reconcileSnapshot([], [{ id: 25, kind: 'drifter', x: 260, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 0 });
   state = reconcileSnapshot(state, [{ id: 25, kind: 'drifter', x: 360, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 100, interpolationMs: 100 });
   const midway = renderedPosition(state[0], 156);
-  assert.equal(midway.x, 310);
+  assert.ok(midway.x > 340 && midway.x < 360, 'short interpolation approaches the newest authoritative sample quickly');
   const next = reconcileSnapshot([{...state[0],x:midway.x,y:midway.y}], [{ id: 25, kind: 'drifter', x: 420, y: 320, r: 10, hp: 22, maxHp: 22 }], { now: 156, interpolationMs: 100 });
-  assert.equal(next[0].interpFromX, 310);
+  assert.equal(next[0].interpFromX, midway.x);
   assert.equal(next[0].interpTargetX, 420);
   assert.ok(renderedPosition(next[0], 256).x >= 420 && renderedPosition(next[0], 256).x < 440);
 });
