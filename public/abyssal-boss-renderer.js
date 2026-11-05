@@ -1,101 +1,80 @@
 (function(){
- 'use strict';
- // Canonical boss renderer for hostile colossal fauna.
- // Boss silhouettes must be recognizable without relying on color or UI decoration.
- window.drawAbyssalBoss=function(c,opts){
-  const {kind,color='#6fe8e0',x=0,y=0,r=24,angle=0,t=0}=opts||{};
-  c.save();c.translate(x,y);c.rotate(Number(angle)||0);c.scale(r,r);c.lineJoin='round';c.lineCap='round';
-  const pulse=.5+.5*Math.sin(t*.004);
-  const fill=(draw,base,edge='rgba(210,247,244,.58)',width=.045)=>{c.save();c.beginPath();draw();c.fillStyle=base;c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=width;c.stroke();}c.restore();};
-  const stroke=(draw,width=.045,edge='rgba(173,244,237,.7)',glow=0)=>{c.save();c.beginPath();draw();c.strokeStyle=edge;c.lineWidth=width;if(glow){c.shadowBlur=glow;c.shadowColor=edge;}c.stroke();c.restore();};
-  const poly=(points,base,edge='rgba(210,247,244,.5)')=>fill(()=>{points.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();},base,edge);
-  const eye=(ex,ey,scale=.075,iris='#dff')=>{c.save();c.fillStyle='#01070d';c.beginPath();c.ellipse(ex,ey,scale*1.4,scale,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=.18;c.shadowColor=iris;c.beginPath();c.arc(ex+scale*.2,ey-scale*.05,scale*.42,0,Math.PI*2);c.fill();c.restore();};
-  const tooth=(x0,y0,dir=1,scale=.11)=>poly([[x0-scale*.45,y0],[x0+scale*.45,y0],[x0,y0+dir*scale]],'#edf4e7','rgba(255,255,255,.45)');
-  const node=(nx,ny,size=.035,glow='#68f6ef')=>{c.save();c.fillStyle=glow;c.shadowBlur=.16;c.shadowColor=glow;c.beginPath();c.arc(nx,ny,size*(.8+.3*pulse),0,Math.PI*2);c.fill();c.restore();};
-  const plateLine=(x1,y1,x2,y2)=>stroke(()=>{c.moveTo(x1,y1);c.lineTo(x2,y2);},.028,'rgba(205,232,226,.32)');
-  const dark=(alpha=.92)=>`rgba(2,12,20,${alpha})`;
+'use strict';
 
-  if(kind==='boss'){
-   // Colossal blue-ringed octopus: heavy mineral mantle, eight hooked arms, warning rings.
-   for(let arm=0;arm<8;arm++){
-    const a=Math.PI+((arm-3.5)/7)*Math.PI*.92,sy=(arm-3.5)*.12;
-    stroke(()=>{c.moveTo(-.32,sy*.35);c.bezierCurveTo(-.85,sy*.55+Math.sin(t*.003+arm)*.12,-1.15,Math.sin(a)*.55,-1.65,Math.sin(a)*.95);},.12-(arm%2)*.012,'rgba(48,76,88,.95)');
-    stroke(()=>{c.moveTo(-.33,sy*.35);c.bezierCurveTo(-.75,sy*.48,-1.05,Math.sin(a)*.5,-1.55,Math.sin(a)*.9);},.038,'rgba(77,220,240,.45)');
-   }
-   fill(()=>{c.moveTo(-.42,.18);c.bezierCurveTo(-.78,-.2,-.62,-1.05,-.08,-1.35);c.bezierCurveTo(.5,-1.18,.82,-.72,.75,-.18);c.bezierCurveTo(.72,.35,.35,.62,-.16,.6);c.bezierCurveTo(-.48,.57,-.62,.38,-.42,.18);},'rgba(26,46,59,.98)','rgba(122,230,240,.62)',.06);
-   // mineral crown
-   poly([[-.42,-.82],[-.18,-1.42],[.02,-.9],[.27,-1.5],[.42,-.78]],'rgba(20,31,43,.95)','rgba(117,226,239,.45)');
-   for(let i=0;i<10;i++){const a=i*2.399,rr=.16+(i%3)*.16;c.save();c.strokeStyle='#2bcfff';c.lineWidth=.035;c.shadowBlur=.14;c.shadowColor='#1cb8ff';c.beginPath();c.arc(-.03+Math.cos(a)*rr,-.34+Math.sin(a)*rr*.72,.07+(i%2)*.015,0,Math.PI*2);c.stroke();c.restore();}
-   eye(.18,-.2,.1,'#ffedf5');eye(.46,-.11,.07,'#ffbd6f');
-   stroke(()=>{c.moveTo(.1,.16);c.bezierCurveTo(.22,.35,.46,.34,.58,.13);},.06,'#ff9aae',.12);
-   for(let i=0;i<5;i++)tooth(.19+i*.075,.18,1,.07);
-   node(-.42,-.15,.04,'#2bdcff');node(-.36,.1,.035,'#2bdcff');
-  } else if(kind==='angler'){
-   // Anglerfish: enormous skull, cavernous jaw, needle teeth, long illicium.
-   poly([[-1.45,0],[-2.05,-.48],[-1.82,0],[-2.05,.44]],'rgba(24,37,46,.98)','rgba(156,117,68,.38)');
-   fill(()=>{c.moveTo(-1.35,.05);c.bezierCurveTo(-1.1,-.72,-.45,-.95,.25,-.72);c.quadraticCurveTo(.75,-.56,1.12,-.12);c.quadraticCurveTo(.72,.13,.25,.2);c.bezierCurveTo(-.45,.42,-1.05,.35,-1.35,.05);},'rgba(28,34,39,.98)','rgba(232,177,97,.48)',.055);
-   // armored forehead
-   for(let i=0;i<5;i++)poly([[-.88+i*.25,-.55],[-.72+i*.25,-.86],[-.48+i*.25,-.58]],'rgba(49,55,58,.94)','rgba(208,155,84,.34)');
-   fill(()=>{c.moveTo(.12,-.18);c.lineTo(1.15,-.28);c.lineTo(.74,.02);c.lineTo(1.18,.5);c.lineTo(.05,.35);c.closePath();},dark(.98),'rgba(255,202,116,.62)',.06);
-   for(let i=0;i<9;i++){tooth(.17+i*.105,-.17,1,.12);tooth(.15+i*.105,.34,-1,.11);}
-   eye(.32,-.48,.095,'#ffc96d');
-   stroke(()=>{c.moveTo(-.16,-.65);c.bezierCurveTo(-.05,-1.22,.48,-1.52,.92,-1.28);},.055,'#a16e3b');
-   node(.94,-1.27,.11,'#ffd06e');
-   for(let i=0;i<7;i++)node(-.9+i*.22,.22,.026,'#ff9d54');
-  } else if(kind==='maw'){
-   // Pelican eel boss: enormous hinge jaw and black throat pouch.
-   stroke(()=>{c.moveTo(-2.35,0);c.bezierCurveTo(-1.45,-.16,-.62,.18,.1,.02);},.34,'rgba(22,20,34,.98)');
-   poly([[-2.15,0],[-2.55,-.38],[-2.42,0],[-2.55,.38]],'rgba(36,28,50,.98)','rgba(189,111,226,.38)');
-   fill(()=>{c.ellipse(.28,.03,.78,.5,-.04,0,Math.PI*2);},'rgba(31,24,43,.98)','rgba(224,153,255,.55)',.05);
-   // upper and lower jaws
-   fill(()=>{c.moveTo(-.02,-.12);c.bezierCurveTo(.4,-.85,1.22,-.82,1.72,-.3);c.bezierCurveTo(1.15,-.38,.55,-.28,-.02,-.12);},'rgba(42,30,54,.98)','rgba(239,171,255,.65)',.055);
-   fill(()=>{c.moveTo(-.02,.12);c.bezierCurveTo(.42,.9,1.2,.82,1.75,.3);c.bezierCurveTo(1.1,.38,.5,.28,-.02,.12);},'rgba(35,25,49,.98)','rgba(239,171,255,.58)',.055);
-   fill(()=>{c.ellipse(.92,.03,.78,.48,0,0,Math.PI*2);},'#01050b','#8a4da4',.035);
-   for(let i=0;i<10;i++){const xx=.16+i*.145;tooth(xx,-.16,1,.11);tooth(xx,.17,-1,.11);}
-   eye(.16,-.34,.065,'#f5caff');
-   for(let i=0;i<5;i++)node(-1.4+i*.34,.13,.026,'#d68cff');
-  } else if(kind==='leviathan'){
-   // Oarfish leviathan: very long ribbon body, segmented armor, scarlet dorsal crest.
-   fill(()=>{c.moveTo(-3.25,.02);c.bezierCurveTo(-2.3,-.46,-1.3,-.2,-.35,-.34);c.bezierCurveTo(.25,-.42,.82,-.25,1.22,-.04);c.bezierCurveTo(.82,.28,.25,.35,-.48,.3);c.bezierCurveTo(-1.65,.25,-2.45,.48,-3.25,.02);},'rgba(22,47,54,.98)','rgba(126,243,226,.55)',.05);
-   for(let i=0;i<13;i++){const xx=-2.55+i*.26;plateLine(xx,-.27,xx+.05,.27);if(i<11)poly([[xx,-.29],[xx+.07,-.72-(i%3)*.12],[xx+.18,-.28]],i%2?'rgba(102,24,38,.95)':'rgba(131,31,45,.95)','rgba(255,115,131,.42)');}
-   poly([[-3.0,.02],[-3.55,-.38],[-3.34,.02],[-3.58,.38]],'rgba(19,44,52,.98)','rgba(112,231,219,.45)');
-   fill(()=>{c.ellipse(.83,-.02,.43,.3,-.08,0,Math.PI*2);},'rgba(111,149,151,.92)','rgba(219,255,246,.62)',.04);
-   eye(.97,-.13,.055,'#a5fff1');
-   for(let i=0;i<9;i++)node(-2.1+i*.32,.12,.022,'#64f4e3');
-  } else if(kind==='whiteSharkBoss'){
-   // Colossal great white: exaggerated skull, serrated jaw, battle scars and luminous lateral organs.
-   poly([[-1.45,0],[-2.2,-.82],[-1.9,-.08],[-2.28,.72]],'rgba(25,45,54,.98)','rgba(124,203,221,.4)');
-   poly([[-.35,-.36],[-.03,-1.22],[.24,-.4]],'rgba(34,58,68,.98)','rgba(130,208,226,.42)');
-   fill(()=>{c.moveTo(-1.65,.02);c.bezierCurveTo(-1.05,-.55,-.2,-.62,.78,-.32);c.lineTo(1.65,-.06);c.lineTo(.92,.2);c.bezierCurveTo(.08,.58,-1.05,.45,-1.65,.02);},'rgba(35,65,76,.98)','rgba(168,226,238,.62)',.055);
-   fill(()=>{c.moveTo(-.45,.2);c.bezierCurveTo(.3,.48,1.42,.18,1.6,.02);c.bezierCurveTo(1.17,.52,.22,.62,-.62,.35);},'rgba(181,193,187,.92)','rgba(235,247,242,.5)',.035);
-   fill(()=>{c.moveTo(.8,.02);c.quadraticCurveTo(1.45,.02,1.72,.0);c.quadraticCurveTo(1.42,.42,.72,.31);c.closePath();},'#071017','#adc9cc',.035);
-   for(let i=0;i<8;i++)tooth(.92+i*.075,.09,1,.085);
-   eye(.94,-.22,.075,'#ff4058');
-   for(let i=0;i<5;i++)plateLine(-.9+i*.22,-.28,-.75+i*.22,.23);
-   stroke(()=>{c.moveTo(-.78,-.18);c.lineTo(-.3,-.04);c.lineTo(.08,-.2);},.03,'rgba(211,238,240,.52)');
-   for(let i=0;i<7;i++)node(-.7+i*.25,.1,.02,'#66e8ff');
-  } else if(kind==='kraken'){
-   // Trench kraken: spear mantle, two feeding tentacles much longer than the other arms.
-   for(let arm=0;arm<8;arm++){const sy=(arm-3.5)*.1,far=arm===0||arm===7;stroke(()=>{c.moveTo(-.28,sy*.42);c.bezierCurveTo(-.9,sy*.8,-1.35,sy*1.5+(arm%2?.18:-.18),far?-2.85:-1.9,sy*2.1);},far?.08:.105,far?'rgba(111,75,177,.96)':'rgba(73,54,117,.98)');}
-   fill(()=>{c.moveTo(-.45,.18);c.bezierCurveTo(-.72,-.18,-.48,-1.2,.12,-1.7);c.bezierCurveTo(.62,-1.25,.84,-.62,.68,-.05);c.quadraticCurveTo(.42,.5,-.2,.58);c.closePath();},'rgba(27,22,52,.98)','rgba(167,126,255,.6)',.055);
-   poly([[-.22,-1.22],[.12,-1.92],[.34,-1.18]],'rgba(42,31,72,.98)','rgba(188,144,255,.5)');
-   eye(.04,-.34,.1,'#d7c0ff');eye(.36,-.28,.085,'#ff4975');
-   for(let i=0;i<8;i++)node(-.2+i*.11,.18,.025,i%2?'#a67cff':'#55f1e7');
-   stroke(()=>{c.moveTo(-.1,.02);c.bezierCurveTo(.05,.22,.3,.24,.46,.02);},.05,'rgba(236,220,255,.8)');
-  } else if(kind==='devourer'){
-   // Colossal squid: massive mantle, hooked arms, dark beak and internal photophore scars.
-   for(let arm=0;arm<10;arm++){const sy=(arm-4.5)*.105,far=arm===0||arm===9;stroke(()=>{c.moveTo(-.38,sy*.42);c.bezierCurveTo(-.9,sy*.7,-1.45,sy*1.2,far?-2.55:-1.82,sy*1.72+Math.sin(t*.003+arm)*.08);},far?.075:.11,'rgba(36,91,89,.98)');}
-   fill(()=>{c.moveTo(-.52,.15);c.bezierCurveTo(-.8,-.3,-.55,-1.38,.12,-1.72);c.bezierCurveTo(.82,-1.38,1.05,-.55,.75,.02);c.bezierCurveTo(.55,.44,.08,.62,-.52,.15);},'rgba(17,48,48,.98)','rgba(96,233,216,.58)',.06);
-   poly([[-.18,-1.16],[.15,-1.82],[.43,-1.08]],'rgba(24,64,64,.98)','rgba(92,225,211,.45)');
-   fill(()=>{c.ellipse(.22,.1,.36,.26,0,0,Math.PI*2);},'#020709','rgba(84,205,193,.48)',.04);
-   eye(.08,-.34,.09,'#8ffff0');eye(.42,-.28,.075,'#ff5d75');
-   for(let i=0;i<11;i++)node(-.25+(i%4)*.22,-.78+Math.floor(i/4)*.34,.022,i%3?'#55f3df':'#ff657a');
-   stroke(()=>{c.moveTo(-.22,-.82);c.lineTo(.4,.26);c.moveTo(-.08,-1.08);c.lineTo(.55,.02);},.028,'rgba(183,244,235,.3)');
-  } else {
-   fill(()=>{c.ellipse(0,0,1,.55,0,0,Math.PI*2);},dark(.96),'rgba(131,228,220,.55)');
-   eye(.45,-.16,.08);
-  }
+// Only the bosses that still need the new art pass live here.
+// whiteSharkBoss, kraken and devourer intentionally keep their proven legacy visuals.
+const REDESIGNED=new Set(['boss','angler','maw','leviathan']);
+window.AbyssalRedesignedBossKinds=REDESIGNED;
 
-  c.restore();
+window.drawAbyssalBoss=function(c,opts){
+ const {kind,color='#70e9df',x=0,y=0,r=24,angle=0,t=0}=opts||{};
+ if(!REDESIGNED.has(kind))return false;
+ c.save();c.translate(x,y);c.rotate(Number(angle)||0);c.scale(r,r);c.lineCap='round';c.lineJoin='round';
+ const pulse=.5+.5*Math.sin(t*.004);
+
+ const grad=(a='#02070c',b='#152a35',accent=color)=>{
+   const g=c.createLinearGradient(-1.8,-1,1.6,1);g.addColorStop(0,a);g.addColorStop(.28,b);g.addColorStop(.52,accent);g.addColorStop(.7,b);g.addColorStop(1,'#010409');return g;
  };
+ const fill=(draw,paint=grad(),edge='rgba(205,245,241,.56)',w=.05,glow=0)=>{c.save();c.beginPath();draw();c.fillStyle=paint;if(glow){c.shadowBlur=glow;c.shadowColor=edge;}c.fill();if(edge){c.strokeStyle=edge;c.lineWidth=w;c.stroke();}c.restore();};
+ const poly=(pts,paint=grad(),edge='rgba(205,245,241,.5)',w=.045)=>fill(()=>{pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();},paint,edge,w);
+ const stroke=(draw,w=.045,col='rgba(180,237,233,.66)',glow=0)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=w;if(glow){c.shadowBlur=glow;c.shadowColor=col;}c.stroke();c.restore();};
+ const eye=(ex,ey,size=.085,iris=color)=>{c.save();c.fillStyle='#010409';c.beginPath();c.ellipse(ex,ey,size*1.35,size,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=.18;c.shadowColor=iris;c.beginPath();c.arc(ex+size*.18,ey-size*.08,size*.42,0,Math.PI*2);c.fill();c.restore();};
+ const node=(nx,ny,size=.03,col=color)=>{c.save();c.globalCompositeOperation='lighter';c.fillStyle=col;c.shadowBlur=.15;c.shadowColor=col;c.beginPath();c.arc(nx,ny,size*(.85+.18*pulse),0,Math.PI*2);c.fill();c.restore();};
+ const mouth=(mx,my,rx,ry)=>{c.save();c.fillStyle='#010308';c.strokeStyle='rgba(230,242,235,.4)';c.lineWidth=.035;c.beginPath();c.ellipse(mx,my,rx,ry,0,0,Math.PI*2);c.fill();c.stroke();c.restore();};
+ const tooth=(tx,ty,dir=1,sz=.1)=>poly([[tx-sz*.42,ty],[tx+sz*.42,ty],[tx,ty+dir*sz]],'#eef2e7','rgba(255,255,255,.32)',.018);
+ const scar=(x1,y1,x2,y2)=>stroke(()=>{c.moveTo(x1,y1);c.lineTo((x1+x2)/2+.05,(y1+y2)/2-.03);c.lineTo(x2,y2);},.024,'rgba(222,237,231,.24)');
+ const shadow=()=>{c.save();c.globalAlpha=.14;c.fillStyle=color;c.beginPath();c.ellipse(-.1,.9,1.05,.15,0,0,Math.PI*2);c.fill();c.restore();};
+ shadow();
+
+ if(kind==='boss'){
+   // Blue-ringed colossal octopus. Compact mass first, warning rings second.
+   for(let arm=0;arm<8;arm++){
+     const sy=(arm-3.5)*.12,endX=-1.85-(arm%3)*.16,endY=sy*1.9+Math.sin(t*.0028+arm)*.12;
+     stroke(()=>{c.moveTo(-.34,sy*.34);c.bezierCurveTo(-.78,sy*.65,-1.18,sy*1.2,endX,endY);},.13-(arm%2)*.012,grad('#02070b','#122630','#247f8c'));
+     stroke(()=>{c.moveTo(-.38,sy*.32);c.bezierCurveTo(-.8,sy*.62,-1.2,sy*1.16,endX+.05,endY);},.026,'rgba(83,223,239,.46)');
+   }
+   fill(()=>{c.moveTo(-.56,.2);c.bezierCurveTo(-.82,-.2,-.66,-1.02,-.18,-1.34);c.bezierCurveTo(.38,-1.48,.92,-.82,.8,-.13);c.bezierCurveTo(.72,.48,.33,.72,-.2,.66);c.bezierCurveTo(-.56,.61,-.72,.42,-.56,.2);},grad('#02070c','#18303a','#2b7586'),'rgba(125,233,242,.58)',.06,7);
+   poly([[-.42,-.86],[-.2,-1.4],[.02,-.96],[.28,-1.52],[.46,-.82]],grad('#02070c','#1d313b','#475a67'),'rgba(163,218,223,.32)',.035);
+   // luminous warning rings embedded in tissue
+   for(let i=0;i<10;i++){const a=i*2.399,rr=.16+(i%3)*.15;c.save();c.strokeStyle=i%3===0?'#ff4c7a':'#35d9ff';c.lineWidth=.04;c.shadowBlur=.16;c.shadowColor=c.strokeStyle;c.beginPath();c.arc(-.05+Math.cos(a)*rr,-.32+Math.sin(a)*rr*.7,.06+(i%2)*.012,0,Math.PI*2);c.stroke();c.restore();}
+   eye(.15,-.18,.105,'#ffedf4');eye(.43,-.1,.068,'#ff725f');
+   mouth(.31,.22,.24,.09);for(let i=0;i<5;i++)tooth(.16+i*.075,.2,1,.065);
+   scar(-.48,-.05,-.2,.2);node(-.42,.12,.03,'#41e7ff');node(.3,-.55,.026,'#ff5d83');
+ } else if(kind==='angler'){
+   // Head-dominant anglerfish, like a living armored lantern.
+   poly([[-1.25,.04],[-1.95,-.52],[-1.72,-.04],[-2.02,.42]],grad('#02070b','#17232b','#6a4a31'),'rgba(191,141,82,.3)',.035);
+   fill(()=>{c.moveTo(-1.32,.02);c.bezierCurveTo(-1.08,-.82,-.36-0.08,-.88,.2,-.72);c.bezierCurveTo(.7,-.56,1.1,-.2,1.18,.02);c.quadraticCurveTo(.82,.22,.22,.32);c.bezierCurveTo(-.4,.5,-1.05,.38,-1.32,.02);},grad('#02070b','#242725','#8a5a31'),'rgba(244,191,116,.54)',.06,6);
+   for(let i=0;i<5;i++)poly([[-.9+i*.24,-.54],[-.76+i*.24,-.9],[-.5+i*.24,-.57]],grad('#03080c','#2d3030','#765332'),'rgba(205,163,102,.3)',.028);
+   fill(()=>{c.moveTo(.08,-.16);c.lineTo(1.18,-.27);c.lineTo(.72,.02);c.lineTo(1.23,.48);c.lineTo(.02,.34);c.closePath();},'#010409','rgba(255,210,130,.62)',.055,4);
+   for(let i=0;i<9;i++){tooth(.16+i*.105,-.15,1,.115);tooth(.14+i*.105,.33,-1,.1);}
+   eye(.34,-.47,.1,'#ffca67');
+   stroke(()=>{c.moveTo(-.15,-.65);c.bezierCurveTo(-.03,-1.22,.46,-1.48,.92,-1.25);},.055,'rgba(122,88,50,.95)');
+   node(.94,-1.24,.12,'#ffd36d');
+   for(let i=0;i<6;i++)node(-.8+i*.24,.18,.024,i%2?'#ff9e56':'#ffcc74');
+   scar(-.7,-.24,-.25,-.02);
+ } else if(kind==='maw'){
+   // Pelican eel. Long ribbon body + a jaw that is almost the whole head.
+   stroke(()=>{c.moveTo(-2.45,.02);c.bezierCurveTo(-1.72,-.22,-.9,.2,-.08,.03);},.38,grad('#01040a','#151222','#50305d'));
+   poly([[-2.2,.02],[-2.62,-.4],[-2.48,.02],[-2.65,.39]],grad('#01040a','#181526','#50305d'),'rgba(190,128,221,.3)',.03);
+   fill(()=>{c.ellipse(.18,.04,.62,.46,-.03,0,Math.PI*2);},grad('#02050a','#1b1627','#6b3e73'),'rgba(222,157,250,.5)',.05);
+   fill(()=>{c.moveTo(-.05,-.08);c.bezierCurveTo(.34,-.84,1.2,-.86,1.78,-.28);c.bezierCurveTo(1.25,-.36,.58,-.26,-.05,-.08);},grad('#02040a','#1b1324','#713f78'),'rgba(238,169,255,.58)',.055);
+   fill(()=>{c.moveTo(-.04,.12);c.bezierCurveTo(.38,.9,1.25,.86,1.82,.29);c.bezierCurveTo(1.14,.4,.5,.28,-.04,.12);},grad('#010309','#171020','#603569'),'rgba(238,169,255,.55)',.055);
+   mouth(.92,.03,.78,.45);
+   for(let i=0;i<11;i++){tooth(.12+i*.14,-.12,1,.1);tooth(.12+i*.14,.16,-1,.09);}
+   eye(.12,-.34,.068,'#efc8ff');for(let i=0;i<6;i++)node(-1.4+i*.28,.13,.022,'#d887ff');scar(-.95,-.12,-.55,.12);
+ } else if(kind==='leviathan'){
+   // Oarfish leviathan. The silhouette must read as a colossal ribbon, not a normal fish.
+   fill(()=>{c.moveTo(-3.35,.02);c.bezierCurveTo(-2.52,-.52,-1.5,-.19,-.5,-.36);c.bezierCurveTo(.15,-.46,.82,-.27,1.3,-.03);c.bezierCurveTo(.82,.3,.15,.37,-.55,.31);c.bezierCurveTo(-1.72,.24,-2.55,.54,-3.35,.02);},grad('#01060a','#123039','#3e8587'),'rgba(134,241,230,.5)',.05,4);
+   poly([[-3.05,.02],[-3.65,-.38],[-3.42,.02],[-3.7,.38]],grad('#02070b','#112a33','#32696f'),'rgba(104,222,214,.34)',.03);
+   for(let i=0;i<13;i++){
+     const xx=-2.65+i*.27;stroke(()=>{c.moveTo(xx,-.27);c.lineTo(xx+.045,.27);},.022,'rgba(219,238,231,.22)');
+     if(i<11)poly([[xx,-.3],[xx+.08,-.72-(i%3)*.12],[xx+.18,-.29]],grad('#10070b','#4b1623','#9d2b3f'),'rgba(255,116,133,.34)',.025);
+   }
+   fill(()=>{c.ellipse(.82,-.03,.44,.3,-.08,0,Math.PI*2);},grad('#061115','#315359','#7ca7a3'),'rgba(226,255,247,.58)',.04);
+   eye(.98,-.13,.055,'#9dfff1');
+   for(let i=0;i<10;i++)node(-2.2+i*.31,.12,.02,i%3?'#64f4e3':'#ff6c82');
+   scar(-1.45,-.16,-.95,.1);scar(-.65,-.14,-.22,.08);
+ }
+ c.restore();return true;
+};
 })();
