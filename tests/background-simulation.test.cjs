@@ -202,3 +202,19 @@ test('nova is a shot in presets and has authoritative PvP resolution plus shared
  assert.match(server,/if\(shot\.special==='nova'\)[\s\S]*novaShotReadyAt[\s\S]*pvpSegmentHitsRock/);
  assert.match(game,/if\(special==='nova'\)[\s\S]*spawnNovaVisual/);
 });
+
+
+test('session resume refreshes PostgreSQL before validating a rolling-deploy handoff', () => {
+ assert.match(server,/socket\.on\('resume-session',async/);
+ const handler=server.slice(server.indexOf("socket.on('resume-session'"),server.indexOf("socket.on('get-public-profile'"));
+ assert.match(handler,/SELECT state_value FROM abyssal_state WHERE state_key='users'/);
+ assert.match(handler,/freshMatch/);
+ assert.doesNotMatch(handler,/socket\.data\.userKey=key;saveUsers\(\)/);
+ assert.match(handler,/socket\.data\.nickname=user\.nickname;socket\.data\.userKey=key;[\s\S]*socket\.emit\('session-resumed'/);
+});
+
+test('deploy reconnect still refreshes persisted run again before restoring the room', () => {
+ assert.match(server,/payload\.reconnect===true\|\|!u\?\.pendingRunResume/);
+ assert.match(server,/refreshDeployResumeFromPersistence\(socket\.data\.userKey\)/);
+ assert.match(server,/rooms\.get\(id\)\|\|restoreDeployRoom\(u,id\)/);
+});

@@ -915,16 +915,32 @@ io.on('connection', socket => {
   const sessionToken=issueSessionToken(user);saveUsers();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
  });
- socket.on('resume-session',(payload={})=>{
+ socket.on('resume-session',async(payload={})=>{
   const token=String(payload?.token||'');
   if(!/^[a-f0-9]{64}$/i.test(token))return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
   const digest=hashSessionToken(token),now=Date.now();
+  // During a rolling Render deploy the replacement instance boots before the retiring
+  // instance receives SIGTERM. Read PostgreSQL again here so session restoration cannot
+  // overwrite a deploy snapshot that was persisted after this process booted.
+  if(pgPool){
+   try{
+    const result=await pgPool.query("SELECT state_value FROM abyssal_state WHERE state_key='users' LIMIT 1");
+    const persisted=result.rows?.[0]?.state_value;
+    if(persisted&&typeof persisted==='object'){
+     const freshMatch=Object.entries(persisted).find(([,candidate])=>(Array.isArray(candidate?.sessionTokens)?candidate.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
+     if(freshMatch){const [freshKey,freshUser]=freshMatch;users[freshKey]={...(users[freshKey]||{}),...freshUser};}
+    }
+   }catch(err){console.error('[deploy] Falha ao atualizar sessão persistida:',err.message);}
+  }
   const match=Object.entries(users).find(([,user])=>(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).some(item=>item&&Number(item.expiresAt)>now&&safeEqual(item.hash,digest)));
   if(!match)return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
   const [key,user]=match;
   user.sessionTokens=user.sessionTokens.filter(item=>item&&Number(item.expiresAt)>now);
   ensureAccountId(user);user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.redeemedCodes ||= [];user.coins ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};user.likedBy ||= [];user.likedProfiles ||= [];user.equippedTitle ||= 'abyss-drifter';
-  socket.data.nickname=user.nickname;socket.data.userKey=key;saveUsers();
+  socket.data.nickname=user.nickname;socket.data.userKey=key;
+  // Do not rewrite the entire users snapshot here. The reconnecting client joins the
+  // preserved room next; writing stale process memory at this point can erase another
+  // instance's shutdown handoff.
   socket.emit('session-resumed',{ok:true,...publicUser(user)});broadcastCardumeRosters();
  });
   socket.on('get-public-profile',(payload={})=>{if(!SOCIAL_FEATURES_ENABLED)return socket.emit('public-profile-result',{ok:false,message:'Perfis públicos estão temporariamente indisponíveis durante a revisão de segurança.'});const nickname=String(payload.nickname||'').trim();if(!/^[a-zA-Z0-9_]{3,18}$/.test(nickname))return socket.emit('public-profile-result',{ok:false,message:'Perfil indisponível.'});const key=nickname.toLowerCase(),profile=publicProfile(key,socket.data.userKey||null);if(!profile)return socket.emit('public-profile-result',{ok:false,message:'Jogador não encontrado.'});socket.emit('public-profile-result',{ok:true,profile});});
