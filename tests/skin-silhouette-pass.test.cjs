@@ -41,6 +41,9 @@ test('oarfish leviathan uses a ribbon body and continuous dorsal crest while pre
  assert.match(game,/const oarfishRibbon=\(\)=>/);
  assert.match(game,/for\(let i=0;i<26;i\+\+\)/);assert.match(game,/#ff668f/);
  assert.match(skin,/oarfishRibbon\(\)/);assert.match(boss,/oarfishRibbon\(\)/);
+ assert.match(game,/c\.moveTo\(-3\.25\*r,wave\*r\)/);
+ assert.match(game,/c\.ellipse\(\.85\*r,-\.015\*r,\.4\*r,\.28\*r/);
+ assert.match(game,/c\.ellipse\(\.88\*r,-\.015\*r,\.43\*r,\.3\*r/);
 
 });
 
@@ -64,8 +67,18 @@ test('anglerfish has a huge open mouth, luminous lure and exact camouflage cycle
  const skinStart=game.indexOf("}else if(id==='angler'){"),skinEnd=game.indexOf("}else if(id==='maw'){",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='angler'){"),bossEnd=game.indexOf("// Bioluminescent side line",bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
- assert.match(skin,/1\.28\*r,-\.34\*r/);assert.match(boss,/1\.42\*r,-\.38\*r/);
- assert.match(skin,/globalCompositeOperation='lighter'/);assert.match(boss,/globalCompositeOperation='lighter'/);
+ const helperStart=game.indexOf('const drawAnglerAnatomy=');
+ const helperEnd=game.indexOf('const blueRingOctopus=',helperStart);
+ const drawing=game.slice(helperStart,helperEnd);
+ assert.ok(helperStart>0&&helperEnd>helperStart);
+ assert.match(skin,/drawAnglerAnatomy\(false\)/);assert.match(boss,/drawAnglerAnatomy\(true\)/);
+ assert.match(drawing,/throat\.addColorStop\(0,'#a9475b'\)/);
+ assert.match(drawing,/Upper jaw arches sharply upward/);
+ assert.match(drawing,/lower jaw hangs down/);
+ assert.match(drawing,/for\(let i=0;i<11;i\+\+\)/);
+ assert.doesNotMatch(skin,/'#07101a'|'#050910'/);
+ assert.doesNotMatch(boss,/'#050b13'|'#02070d'/);
+ assert.match(drawing,/globalCompositeOperation='lighter'/);
  assert.match(game,/const lureOnly=/);assert.match(game,/lureOnly\(\.55,-1\.18\)/);
  assert.match(game,/phase<3000/);assert.match(game,/phase<13000/);assert.match(game,/phase<16000/);assert.match(game,/%26000/);
  assert.match(game,/anglerConcealed/);
