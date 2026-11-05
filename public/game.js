@@ -262,7 +262,19 @@ const skinData=[
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
+const MarineAbilities=window.AbyssalMarineAbilities;
 skinData.push(...(window.AbyssalMarineSpecies?.species||[]));
+const SHOP_RARITY_ORDER=['common','uncommon','rare','epic','legendary','mythic','colossal'];
+const SHOP_RARITY_LABELS={common:'COMUM',uncommon:'INCOMUM',rare:'RARO',epic:'ÉPICO',legendary:'LENDÁRIO',mythic:'MÍTICO',colossal:'COLOSSAL'};
+const SHOP_SPECIAL_RARITY=Object.freeze({
+ default:'common',solar:'uncommon',violet:'rare',toxic:'rare',thorn:'rare',coral:'rare',royal:'epic',glacier:'epic',
+ voidwing:'epic',abyssaleye:'legendary',deepwarden:'legendary',abyssking:'legendary',bloodmoon:'legendary',
+ reefshark:'rare',hammerhead:'rare',abysscroc:'epic',armoredgator:'epic',electriceel:'epic',greensnake:'mythic',
+ leviathan:'legendary',aberration:'legendary',angler:'legendary',maw:'legendary',kraken:'mythic',devourer:'mythic'
+});
+function skinShopRarity(skin){return MarineAbilities?.profileFor?.(skin?.id)?.rarity||SHOP_SPECIAL_RARITY[skin?.id]||'uncommon';}
+function skinShopFamily(skin){if(skin?.family)return skin.family;if(RELIC_SKIN_IDS.has(skin?.id))return 'relic';return 'signature';}
+function shopRarityRank(rarity){const i=SHOP_RARITY_ORDER.indexOf(rarity);return i<0?999:i;}
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
