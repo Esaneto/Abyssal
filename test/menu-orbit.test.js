@@ -48,17 +48,17 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.match(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=3/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=4/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
-test('cursor is a self-contained SVG with a curled purple tentacle and defined hot spot', () => {
+test('purple tentacle cursor has become a centered aiming reticle', () => {
   const svg=read('public/abyssal-tentacle-cursor.svg');
   const css=read('public/abyssal-menu-orbit.css');
-  assert.match(svg,/<svg[^>]*width="56" height="56"/);
-  assert.match(svg,/#c064ff|#a646fb/);
-  assert.match(svg,/C43 42 49 36 47 28/); // curled tip
-  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg'\) 6 5/);
+  assert.match(svg,/<svg[^>]*width="48" height="48"/);
+  assert.match(svg,/rotate\(270 24 24\)/);
+  assert.match(svg,/cx="24" cy="24" r="3\.5"/);
+  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=2'\) 24 24,crosshair!important/);
 });
 
 test('reference-inspired interface centers vortex and keeps extra features reachable', () => {
