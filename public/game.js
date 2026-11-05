@@ -1302,7 +1302,7 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
  if(!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0||options.secondary)return;
  const source=String(sourceSkill||'physical');
  // Hit modifiers are geometry-agnostic: projectiles, beams and radial attacks all participate.
- if(source==='electric'&&(upgrades.electric||0)>0){
+ if(source==='electric'&&(upgrades.electric||0)>0&&!onlineMode){
   let chains=0,from=primaryTarget;const level=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=190/GAME_WORLD_ZOOM;
   while(chains<level){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<range&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});dealEnemyDamage(next,baseDamage*shotBalanceValue('electric','chainDamage',level,.34),'electric',{secondary:true});visited.add(next.id);from=next;chains++;}
  }
