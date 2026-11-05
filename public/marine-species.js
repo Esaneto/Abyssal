@@ -56,10 +56,23 @@
    ['nautilus-spiral','#b89d72'],['argonaut-shell','#c9a5a0'],['cuttle-ribbed','#7f9f8d'],['flamboyant-warning','#dc6550'],['sea-bunny-ears','#d6c7ba'],['blue-dragon-wings','#4b91d0'],['sea-angel-wings','#83c6d6'],['sea-butterfly-wings','#768ec7'],['scalyfoot-armor','#6d6760'],['giant-chiton-plates','#8b6d56']
   ]
  };
+ const clamp255=n=>Math.max(0,Math.min(255,Math.round(n)));
+ const hexToRgb=hex=>{const n=parseInt(String(hex).replace('#',''),16);return [(n>>16)&255,(n>>8)&255,n&255];};
+ const rgbToHex=rgb=>'#'+rgb.map(v=>clamp255(v).toString(16).padStart(2,'0')).join('');
+ const mix=(a,b,t)=>{const A=hexToRgb(a),B=hexToRgb(b);return rgbToHex(A.map((v,i)=>v+(B[i]-v)*t));};
+ const rotate=(hex,seed)=>{const [r,g,b]=hexToRgb(hex),mode=((seed%3)+3)%3;return rgbToHex(mode===0?[g,b,r]:mode===1?[b,r,g]:[r,b,g]);};
+ const makeArtPalette=(tone,seed)=>Object.freeze({
+  base:mix(tone,'#09111a',.12),
+  shadow:mix(tone,'#02050a',.68),
+  rim:mix(tone,'#ffffff',.42),
+  glow:mix(tone,'#ffffff',.2),
+  accent:mix(rotate(tone,seed),'#ffffff',.08),
+  eye:seed%3===0?'#fff4d7':seed%3===1?'#dffff8':'#ffd8ee'
+ });
  const palette=['#739ba6','#b39b78','#9c8aa3','#b17665','#7b9c87','#6f8fb5','#9b7f9e','#8ca36f','#b58d72','#6f9f9a'];
  const species=families.flatMap(([family,trait,stat,names],f)=>names.map((name,i)=>{
   const id='marine_'+family+'_'+(i+1),paid=i>=8,bonus=(paid?24:8)+i;
-  return Object.freeze({id,name,family,variant:i,stat,bonus,paid,brl:paid?990+(i-8)*500:0,coins:1500+f*350+i*1250,price:paid?990+(i-8)*500:1500+f*350+i*1250,color:visualProfiles[family][i][1],art:Object.freeze({key:visualProfiles[family][i][0],tone:visualProfiles[family][i][1]}),shape:family,desc:name+' · '+trait+'. Interpretação estilizada de fauna marinha.',ability:trait+': '+bonus+'% '+(stat==='defense'?'menos dano recebido':'mais '+labels[stat])+'.',tier:paid?'abyssal':'surface'});
+  return Object.freeze({id,name,family,variant:i,stat,bonus,paid,brl:paid?990+(i-8)*500:0,coins:1500+f*350+i*1250,price:paid?990+(i-8)*500:1500+f*350+i*1250,color:visualProfiles[family][i][1],art:Object.freeze({key:visualProfiles[family][i][0],tone:visualProfiles[family][i][1],palette:makeArtPalette(visualProfiles[family][i][1],f*10+i)}),shape:family,desc:name+' · '+trait+'. Interpretação estilizada de fauna marinha.',ability:trait+': '+bonus+'% '+(stat==='defense'?'menos dano recebido':'mais '+labels[stat])+'.',tier:paid?'abyssal':'surface'});
  }));
  const byId=Object.freeze(Object.fromEntries(species.map(s=>[s.id,s])));
  const api=Object.freeze({species:Object.freeze(species),byId});
