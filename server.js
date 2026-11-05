@@ -215,7 +215,7 @@ if (typeof app.post === 'function') {
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.9',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.9',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,tickProcessing:{lastMs:Number(worldTickLastMs.toFixed(3)),avgMs:Number(worldTickAvgMs.toFixed(3)),maxMs:Number(worldTickMaxMs.toFixed(3))},combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/api/runtime-config', (_req,res)=>res.set('Cache-Control','no-store').json({previewMode:process.env.ABYSSAL_PREVIEW_MODE==='true',realPaymentsEnabled:liveSalesReady(),socialFeaturesEnabled:SOCIAL_FEATURES_ENABLED,randomRewardsEnabled:REWARDED_WHEEL_ENABLED}));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
@@ -313,6 +313,9 @@ const SERVER_INSTANCE_ID = crypto.randomUUID();
 let worldTickCount = 0;
 let lastWorldTickAt = 0;
 let worldTickErrors = 0;
+let worldTickLastMs = 0;
+let worldTickAvgMs = 0;
+let worldTickMaxMs = 0;
 const combatDiagnostics = { damageEvents: 0, appliedHits: 0, rejectedHits: 0, kills: 0, bossSpawns: 0, playerAttacks: 0, playerDefeats: 0, lastDamageAt: null, lastBossSpawnAt: null, lastPlayerAttackAt: null, lastDamageReason: null, lastPlayerHit: null, xpOrbsSpawned: 0, xpOrbsCollected: 0, lastXpOrbPickup: null };
 let worldTicker = null;
 const simulatingRooms = new Set();
@@ -545,15 +548,17 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
 const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
-function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''){
+function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId='',enemyLookup=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
  const reject=(reason)=>{combatDiagnostics.rejectedHits++;combatDiagnostics.lastDamageReason=reason;return {ok:false,id:Number.isFinite(id)?id:null,reason};};
  if(!room||!socket.data.joined)return reject('not-in-room');
  if(!Number.isSafeInteger(id)||!Number.isFinite(damage)||damage<=0||damage>1000)return reject('invalid-hit');
  const player=room.players.get(socket.id);
- const w=room.world,normalizedId=Number(id),idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');
- const enemy=w.enemies[idx],now=Date.now();
+ const w=room.world,normalizedId=Number(id);let idx=-1,enemy=null;
+ if(enemyLookup){enemy=enemyLookup.get(normalizedId)||null;if(!enemy)return reject('enemy-not-found');}
+ else{idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');enemy=w.enemies[idx];}
+ const now=Date.now();
  let requestedDamage=damage;
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
@@ -663,7 +668,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
-  w.enemies.splice(idx,1);combatDiagnostics.kills++;
+  const removeIdx=idx>=0?idx:w.enemies.indexOf(enemy);if(removeIdx>=0)w.enemies.splice(removeIdx,1);if(enemyLookup)enemyLookup.delete(normalizedId);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
   const killer=users[socket.data.userKey];
   if(killer){
@@ -714,7 +719,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(!next)break;
    visited.add(Number(next.id));
    io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:socket.id,x1:fromX/WORLD_WIDTH,y1:fromY/WORLD_HEIGHT,x2:Number(next.x)/WORLD_WIDTH,y2:Number(next.y)/WORLD_HEIGHT,seed:now+chain*97+Number(next.id)});
-   const chained=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.34),'electric-chain',batch,actionId);
+   const chained=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.34),'electric-chain',batch,actionId,enemyLookup);
    if(!chained?.ok)break;
    fromX=Number(next.x);fromY=Number(next.y);
   }
@@ -735,7 +740,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(!next)break;
    visited.add(Number(next.id));
    io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:socket.id,x1:fromX/WORLD_WIDTH,y1:fromY/WORLD_HEIGHT,x2:Number(next.x)/WORLD_WIDTH,y2:Number(next.y)/WORLD_HEIGHT});
-   const bounced=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.42),'ricochet',batch,actionId);
+   const bounced=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.42),'ricochet',batch,actionId,enemyLookup);
    if(!bounced?.ok)break;
    fromX=Number(next.x);fromY=Number(next.y);
   }
@@ -879,13 +884,14 @@ function tickRoom(room, now) {
 
 function worldTick() {
  if(!simulatingRooms.size){if(worldTicker){clearInterval(worldTicker);worldTicker=null;}return;}
- const now=Date.now();worldTickCount++;lastWorldTickAt=now;
+ const tickStarted=process.hrtime.bigint(),now=Date.now();worldTickCount++;lastWorldTickAt=now;
  for(const room of simulatingRooms){
   if(rooms.get(room.id)!==room){simulatingRooms.delete(room);continue;}
   try{tickRoom(room,now);}
   catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
   if(!hasLivingPlayers(room))simulatingRooms.delete(room);
  }
+ const tickMs=Number(process.hrtime.bigint()-tickStarted)/1e6;worldTickLastMs=tickMs;worldTickAvgMs=worldTickAvgMs?worldTickAvgMs*.92+tickMs*.08:tickMs;worldTickMaxMs=Math.max(worldTickMaxMs,tickMs);
  // Only currently occupied, living rooms are visited in the hot 50 ms loop.
  if(!simulatingRooms.size&&worldTicker){clearInterval(worldTicker);worldTicker=null;}
 }
@@ -1296,10 +1302,11 @@ io.on('connection', socket => {
    }else{
     shooter.photonServerResolving=true;
     try{
+     const enemyLookup=new Map((room.world?.enemies||[]).map(enemy=>[Number(enemy.id),enemy]));
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
       if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
-      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId);
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup);
      }
     }finally{shooter.photonServerResolving=false;}
    }
@@ -1396,8 +1403,8 @@ io.on('connection', socket => {
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
   }else{
    const targets=room.world.enemies.filter(enemy=>Math.hypot(enemy.x-player.x,enemy.y-player.y)<radius).slice(0,96);
-   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false};
-   for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse',batch);
+   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
+   for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse',batch,'',enemyLookup);
    if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
    if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
    if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
@@ -1411,10 +1418,10 @@ io.on('connection', socket => {
   if(!room||!socket.data.joined)return ack({ok:false,reason:'not-in-room',accepted:0});
   const hits=Array.isArray(payload?.hits)?payload.hits.slice(0,128):[];
   if(!hits.length)return ack({ok:false,reason:'empty-batch',accepted:0});
-  const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false};
+  const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
   let accepted=0,rejected=0;
   for(const hit of hits){
-   const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch,String(hit?.actionId||'').slice(0,72));
+   const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch,String(hit?.actionId||'').slice(0,72),enemyLookup);
    if(result?.ok)accepted++;else rejected++;
   }
   if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
