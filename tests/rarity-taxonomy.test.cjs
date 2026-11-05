@@ -9,16 +9,16 @@ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
 const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 
-test('specimen lore cannot create a second literal rarity system',()=>{
+test('skin catalog has no rarity system or rarity UI',()=>{
  const start=rebuild.indexOf('var SPECIMENS=['),end=rebuild.indexOf('];',start);
  const block=rebuild.slice(start,end);
  assert.ok(start>=0&&end>start);
  assert.doesNotMatch(block,/rarity:/);
+ assert.doesNotMatch(game,/SHOP_RARITY|skinShopRarity|shopRarityRank|Rarity signatures distinguish collectible forms/);
+ assert.doesNotMatch(html,/shopRarityFilter|Todas as raridades|class="skin-rarity/);
  assert.match(block,/classTag:/);
  assert.match(rebuild,/CLASSE · /);
  assert.match(rebuild,/HABITAT · /);
- assert.doesNotMatch(rebuild,/spec\.rarity/);
- assert.match(html,/abyssal-rebuild\.js\?v=3/);
 });
 
 test('legacy coin prices follow the power hierarchy on client and server',()=>{
