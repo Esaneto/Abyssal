@@ -6,12 +6,20 @@
  // If silhouettes collapse into a shared family template, that is a regression.
  window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
   c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);c.shadowBlur=0;
-  c.lineWidth=.055;c.strokeStyle='#aec4c8';c.fillStyle=s.color;
+  c.lineWidth=.055;c.strokeStyle='rgba(174,210,211,.62)';
 
   const v=Number(s.variant)||0,phase=t*.002+v;
-  const ellipse=(x,y,rx,ry,rot=0)=>{c.beginPath();c.ellipse(x,y,rx,ry,rot,0,Math.PI*2);c.fill();c.stroke();};
+  const bodyPaint=c.createLinearGradient(-1.4,-.75,1.4,.75);
+  bodyPaint.addColorStop(0,'#02080e');
+  bodyPaint.addColorStop(.28,'#0a1c25');
+  bodyPaint.addColorStop(.55,s.color);
+  bodyPaint.addColorStop(.78,'#10242c');
+  bodyPaint.addColorStop(1,'#02070c');
+  c.fillStyle=bodyPaint;
+  const resolveFill=fill=>!fill||fill===s.color?bodyPaint:fill;
+  const ellipse=(x,y,rx,ry,rot=0)=>{c.save();c.fillStyle=bodyPaint;c.beginPath();c.ellipse(x,y,rx,ry,rot,0,Math.PI*2);c.fill();c.stroke();c.restore();};
   const line=(points,width=null,color=null)=>{c.save();if(width!=null)c.lineWidth=width;if(color)c.strokeStyle=color;c.beginPath();points.forEach(([px,py],i)=>i?c.lineTo(px,py):c.moveTo(px,py));c.stroke();c.restore();};
-  const polygon=(points,fill=null,stroke=null)=>{c.save();if(fill)c.fillStyle=fill;if(stroke)c.strokeStyle=stroke;c.beginPath();points.forEach(([px,py],i)=>i?c.lineTo(px,py):c.moveTo(px,py));c.closePath();c.fill();c.stroke();c.restore();};
+  const polygon=(points,fill=null,stroke=null)=>{c.save();c.fillStyle=resolveFill(fill);if(stroke)c.strokeStyle=stroke;c.beginPath();points.forEach(([px,py],i)=>i?c.lineTo(px,py):c.moveTo(px,py));c.closePath();c.fill();c.stroke();c.restore();};
   const eye=(ex,ey,scale=.075)=>{c.save();c.fillStyle='#07121a';c.beginPath();c.ellipse(ex,ey,scale,scale*.9,0,0,Math.PI*2);c.fill();c.restore();};
   const gills=(x0,y0,count=4,spacing=.095,height=.22)=>{for(let i=0;i<count;i++)line([[x0-i*spacing,y0-height/2],[x0-i*spacing,y0+height/2]],.035,'rgba(224,242,240,.56)');};
 
