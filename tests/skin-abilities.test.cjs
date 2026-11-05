@@ -59,16 +59,17 @@ test('browser and server use the same skin ability module', () => {
 });
 
 
-test('eel remains deterministic while emerald serpent keeps its original swimming identity', () => {
+test('marine electric ray and emerald moray render deterministically with preserved mechanics', () => {
   const game=read('public/game.js');
-  const eelStart=game.indexOf("} else if(id==='electriceel'){");
-  const snakeStart=game.indexOf("} else if(id==='greensnake'){");
+  const rayStart=game.indexOf("} else if(id==='electriceel'){");
+  const morayStart=game.indexOf("} else if(id==='greensnake'){");
   const defaultStart=game.indexOf("} else if(id==='default'){");
-  assert.ok(eelStart>0&&snakeStart>eelStart&&defaultStart>snakeStart);
-  assert.doesNotMatch(game.slice(eelStart,snakeStart),/Math\\.random/);
-  assert.ok(game.slice(snakeStart,defaultStart).includes('const segWave = Math.sin(t * 0.006) * 0.15;'));
-  assert.match(game,/Veneno corrosivo: ataques envenenam criaturas atingidas/);
-  assert.match(game,/Descarga Estática: ataques paralisam brevemente as criaturas atingidas/);
+  assert.ok(rayStart>0&&morayStart>rayStart&&defaultStart>morayStart);
+  assert.doesNotMatch(game.slice(rayStart,morayStart),/Math\\.random/);
+  assert.match(game.slice(rayStart,morayStart),/Electric ray \/ torpedo ray/);
+  assert.match(game.slice(morayStart,defaultStart),/Giant emerald moray/);
+  assert.match(game,/Muco corrosivo: ataques contaminam criaturas atingidas/);
+  assert.match(game,/Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas/);
 });
 
 
@@ -168,14 +169,15 @@ test('passive and defensive skills expose readable gameplay feedback',()=>{
 });
 
 
-test('crocodilian skins preserve real-world silhouette differences',()=>{
+test('marine replacements preserve distinct bull shark and horseshoe-crab silhouettes',()=>{
  const game=read('public/game.js');
- const caiman=game.slice(game.indexOf("else if(id==='abysscroc'){"),game.indexOf("else if(id==='armoredgator'){"));
- const croc=game.slice(game.indexOf("else if(id==='armoredgator'){"),game.indexOf("else if(id==='electriceel'){"));
- assert.ok(caiman.includes('U-shaped skull'));
- assert.ok(caiman.includes("bodyGrad('#182a22')"));
- assert.ok(croc.includes('V-shaped rostrum'));
- assert.ok(croc.includes('visible teeth'));
+ const shark=game.slice(game.indexOf("else if(id==='abysscroc'){"),game.indexOf("else if(id==='armoredgator'){"));
+ const horseshoe=game.slice(game.indexOf("else if(id==='armoredgator'){"),game.indexOf("else if(id==='electriceel'){"));
+ assert.ok(shark.includes('Bull shark silhouette'));
+ assert.ok(shark.includes('powerful caudal fin'));
+ assert.ok(horseshoe.includes('Horseshoe crab silhouette'));
+ assert.ok(horseshoe.includes('long telson'));
+ assert.notEqual(shark,horseshoe);
 });
 
 test('resonance adds one new tactical option to every category',()=>{
@@ -208,7 +210,7 @@ test('toxic basic attacks do not poison while emerald serpent still does',()=>{
 
 test('gameplay notifications are queued with boss priority and restricted kinds',()=>{
  const game=read('public/game.js');
- assert.ok(game.includes("new Set(['boss','fusion','join','death'])"));
+ assert.ok(game.includes("new Set(['boss','fusion','join','death','cave'])"));
  assert.ok(game.includes("enqueueGameplayNotice('boss',title,copy,100)"));
  assert.ok(game.includes("gameplayNoticeQueue.sort((a,b)=>b.priority-a.priority||a.at-b.at)"));
 });
