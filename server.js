@@ -301,7 +301,7 @@ function collectPvpOrbsNearPlayer(room,player,x=player?.x,y=player?.y){
   const distance=Math.hypot(Number(x)-Number(orb.x),Number(y)-Number(orb.y));
   const pickupRadius=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+2/WORLD_ZOOM;
   if(!Number.isFinite(distance)||distance>pickupRadius)continue;
-  w.orbs.splice(i,1);collected++;
+  w.orbs.splice(i,1);collected++;creditAuthoritativeXp(player,orb.value);
   io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:orb.id,playerId:player.id,value:orb.value,x:orb.x,y:orb.y});
   io.to(player.id).emit('shared-xp-award',{value:orb.value,source:'orb',orbId:orb.id});
   combatDiagnostics.xpOrbsCollected=(Number(combatDiagnostics.xpOrbsCollected)||0)+1;
@@ -329,7 +329,27 @@ const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
-function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, settled: false, historySaved:false }; }
+function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
+function normalizeRunProgression(run){
+ if(!run||typeof run!=='object')return null;
+ run.authoritativeXp=Math.max(0,Number(run.authoritativeXp)||0);
+ run.authoritativeXpNeed=Math.max(1,Math.floor(Number(run.authoritativeXpNeed)||10));
+ run.pendingUpgradeCredits=Math.max(0,Math.min(64,Math.floor(Number(run.pendingUpgradeCredits)||0)));
+ return run;
+}
+function creditAuthoritativeXp(player,value){
+ const run=normalizeRunProgression(player?.runStats),amount=Math.max(0,Number(value)||0);
+ if(!run||amount<=0)return 0;
+ run.authoritativeXp+=amount;
+ let credits=0;
+ while(run.authoritativeXp>=run.authoritativeXpNeed&&credits<16){
+  run.authoritativeXp-=run.authoritativeXpNeed;
+  run.authoritativeXpNeed=Math.floor(run.authoritativeXpNeed*1.34+3);
+  run.pendingUpgradeCredits=Math.min(64,run.pendingUpgradeCredits+1);
+  credits++;
+ }
+ return credits;
+}
 function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:room.mode==='pvp'?'pvp':'coop',roomResume:{id:room.id,name:room.name||room.id,mode:room.mode==='pvp'?'pvp':'coop',isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
 function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===(room.mode==='pvp'?'pvp':'coop');if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
 function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
@@ -873,6 +893,7 @@ function tickRoom(room, now) {
  for (const pickup of xpCollected) {
   combatDiagnostics.xpOrbsCollected++;
   combatDiagnostics.lastXpOrbPickup={at:new Date(now).toISOString(),orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value};
+  const xpCollector=room.players.get(pickup.playerId);if(xpCollector)creditAuthoritativeXp(xpCollector,pickup.value);
   io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value,x:pickup.x,y:pickup.y});
   io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
  }
@@ -1178,35 +1199,35 @@ io.on('connection', socket => {
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
  });
  socket.on('player-protection', payload => {
-  const room = socketRoom(socket), p = room?.players.get(socket.id);
+  const room = socketRoom(socket), p = room?.players.get(socket.id), u = users[socket.data.userKey];
   if (!p || p.alive === false || !payload || typeof payload !== 'object') return;
-  const seconds = Number(payload.seconds), reason = String(payload.reason || 'gameplay');
+  const seconds = Number(payload.seconds), reason = String(payload.reason || '');
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 25) return;
   const now = Date.now();
-  // Rate-limit gameplay grants and track the skill-selection window so enemy AI can retarget.
   if (reason === 'upgrade-offer') {
-   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now) return;
+   const run=normalizeRunProgression(p.runStats);
+   if (seconds !== 25 || (Number(p.upgradeProtectionUntil) || 0) > now || !run || run.pendingUpgradeCredits<=0) return;
+   run.pendingUpgradeCredits--;
    p.skillSelectingUntil = now + 25000;
    p.upgradeProtectionUntil = now + 25000;
    p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, p.upgradeProtectionUntil);
    return;
   }
   if (reason === 'upgrade-selected') {
-   if (now > (Number(p.upgradeProtectionUntil) || 0) + 1000 || seconds !== 3) return;
+   if (seconds !== 3 || (Number(p.upgradeProtectionUntil) || 0) <= 0 || now > (Number(p.upgradeProtectionUntil) || 0) + 1000) return;
    p.upgradeProtectionUntil = 0;
    p.skillSelectingUntil = 0;
    p.invulnerableUntil = now + 3000;
    return;
   }
   if (reason === 'dash') {
-   if (seconds > 2.0 || now - (Number(p.lastDashProtectionAt) || 0) < 15000) return;
+   if (seconds !== 1.5 || !(Number(u?.metaUpgrades?.dash)>0) || now - (Number(p.lastDashProtectionAt) || 0) < 15000) return;
    p.lastDashProtectionAt = now;
-   p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, now + seconds * 1000);
+   p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, now + 1500);
    return;
   }
-  if (now - (Number(p.lastProtectionRequestAt) || 0) < 1000) return;
-  p.lastProtectionRequestAt = now;
-  p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, now + seconds * 1000);
+  // No generic protection channel: join/reconnect protection is created by the server
+  // when the room member is instantiated, and unknown client reasons are ignored.
  });
  socket.on('request-player-state', () => {
   const room = socketRoom(socket), p = room?.players.get(socket.id);
