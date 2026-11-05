@@ -9,6 +9,7 @@ const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 test('skin damage passives are deterministic and preserve boss/range conditions', () => {
   assert.equal(abilities.damageMultiplier('toxic','common',500,1),1);
   assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
+  assert.equal(abilities.damageMultiplier('leviathan','whiteSharkBoss',500,1),1.4);
   assert.equal(abilities.damageMultiplier('leviathan','common',500,1),1);
   assert.equal(abilities.damageMultiplier('thorn','common',100,1),1.24);
   assert.equal(abilities.damageMultiplier('thorn','common',220,1),1);
