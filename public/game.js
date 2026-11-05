@@ -1842,6 +1842,63 @@ function fire(){
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId(),volleyHitIds=[];
  for(const shotAngle of angles){const damage=shotDamage;const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:volleyHitIds,color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});audio(500,.045,'sine',.008);
 }
+function marineAbilityLineDistance(px,py,ax,ay,bx,by){
+ const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
+ const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
+}
+function renderMarineAbilityVisual(profile,x,y,angle,targets=[]){
+ if(!profile)return;
+ const color=profile.color||'#79f3f0',radius=profile.radius/GAME_WORLD_ZOOM,kind=profile.kind;
+ const ring=(scale=1,life=.42)=>effects.push({type:'ring',x,y,r:0,max:radius*scale,life,maxLife:life,color});
+ const beam=(a,len=radius,life=.28)=>effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*len,y2:y+Math.sin(a)*len,life,maxLife:life,color});
+ if(['pulse','aura','veil','armor','blast','trap','pull'].includes(kind)){ring(kind==='trap'?.72:1,kind==='trap'?.9:.45);burst(x,y,color,18+profile.rarityRank*3,105+profile.rarityRank*16);}
+ if(kind==='spines'){ring(.72,.36);for(let i=0;i<Math.max(6,profile.beams+4);i++)beam(angle+i*Math.PI*2/Math.max(6,profile.beams+4),radius*.92,.3);burst(x,y,color,22,145);}
+ if(['dash','lance'].includes(kind)){beam(angle,radius*(kind==='lance'?1.35:1),.34);effects.push({type:'ring',x:x+Math.cos(angle)*radius*.55,y:y+Math.sin(angle)*radius*.55,r:0,max:radius*.18,life:.3,maxLife:.3,color});burst(x+Math.cos(angle)*radius*.7,y+Math.sin(angle)*radius*.7,color,14,150);}
+ if(kind==='cone'){ring(.55,.3);for(let i=-2;i<=2;i++)beam(angle+i*.19,radius*(1-Math.abs(i)*.07),.28);burst(x+Math.cos(angle)*radius*.55,y+Math.sin(angle)*radius*.55,color,17,135);}
+ if(kind==='sweep'){for(let i=-4;i<=4;i++)beam(angle+i*.22,radius*.82,.3);ring(.82,.34);burst(x,y,color,20,155);}
+ if(['multi','chain','grasp','rage','mark'].includes(kind)){
+  ring(.55,.3);
+  if(targets.length){for(const target of targets)effects.push({type:'beam',x1:x,y1:y,x2:target.x,y2:target.y,life:.3,maxLife:.3,color});}
+  else for(let i=0;i<Math.max(3,profile.beams);i++)beam(angle+i*Math.PI*2/Math.max(3,profile.beams),radius*.72,.26);
+  burst(x,y,color,16+profile.beams*2,125);
+ }
+}
+function triggerMarineSpeciesAbility(profile){
+ if(!profile||!player)return;
+ const radius=profile.radius/GAME_WORLD_ZOOM,angle=Number(player.angle)||0,kind=profile.kind;
+ const alive=enemies.filter(e=>e&&e.hp>0),selected=[];
+ const addTarget=e=>{if(e&&!selected.includes(e))selected.push(e);};
+ if(['pulse','aura','veil','armor','blast','spines','trap','pull'].includes(kind)){
+  for(const e of alive)if(Math.hypot(e.x-player.x,e.y-player.y)<=radius+(e.r||0))addTarget(e);
+ }else if(['dash','lance'].includes(kind)){
+  const length=radius*(kind==='lance'?1.35:1),x2=player.x+Math.cos(angle)*length,y2=player.y+Math.sin(angle)*length;
+  for(const e of alive)if(marineAbilityLineDistance(e.x,e.y,player.x,player.y,x2,y2)<=(e.r||10)+18/GAME_WORLD_ZOOM)addTarget(e);
+ }else if(kind==='cone'){
+  for(const e of alive){const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>radius+(e.r||0))continue;const delta=Math.abs(Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle)));if(delta<=.62)addTarget(e);}
+ }else if(kind==='sweep'){
+  for(const e of alive)if(Math.hypot(e.x-player.x,e.y-player.y)<=radius*.86+(e.r||0))addTarget(e);
+ }else{
+  alive.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(row=>row.d<=radius).sort((a,b)=>a.d-b.d).slice(0,Math.max(1,profile.beams)).forEach(row=>addTarget(row.e));
+ }
+ const maxTargets=kind==='rage'?8:kind==='multi'||kind==='chain'||kind==='grasp'?Math.max(3,profile.beams):kind==='mark'?1:24;
+ const finalTargets=selected.slice(0,maxTargets),baseDamage=profile.damage*(1+Math.min(.35,profile.rarityRank*.055));
+ for(let i=0;i<finalTargets.length;i++){
+  const target=finalTargets[i],falloff=(kind==='chain'||kind==='multi')?Math.max(.48,1-i*.1):1;
+  dealEnemyDamage(target,baseDamage*falloff,'marine-'+profile.kind,{silentSound:true});
+  if(kind==='trap'&&!onlineMode)target.poisonTimer=Math.max(Number(target.poisonTimer)||0,2.4);
+  if(kind==='mark')target.hit=Math.max(Number(target.hit)||0,.38);
+ }
+ renderMarineAbilityVisual(profile,player.x,player.y,angle,finalTargets);
+ if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:equippedSkin,x:player.x/W,y:player.y/H,angle});
+ playSkillSound(kind==='lance'||kind==='dash'?'pierce':kind==='spines'||kind==='multi'?'burst':'pulse','trigger');
+}
+function updateMarineSpeciesAbility(dt){
+ const profile=MarineAbilities?.profileFor?.(equippedSkin);if(!profile||!player)return;
+ player.marineAbilityCooldown=(Number.isFinite(player.marineAbilityCooldown)?player.marineAbilityCooldown:Math.min(1.4,profile.cooldown*.22))-dt;
+ if(player.marineAbilityCooldown>0)return;
+ player.marineAbilityCooldown=profile.cooldown;
+ triggerMarineSpeciesAbility(profile);
+}
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
@@ -1906,6 +1963,7 @@ function update(dt){
     burst(player.x,player.y,'#bd91ff',28,155);effects.push({type:'beam',x1:player.x-34/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+34/GAME_WORLD_ZOOM,y2:player.y,life:.24,maxLife:.24,color:'#d9b7ff'});
     for(const target of pulseTargets){dealEnemyDamage(target.e,22,'violet-resonance',{visual:true});burst(target.e.x,target.e.y,'#d7b7ff',7,75);}
    }
+   updateMarineSpeciesAbility(dt);
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
@@ -3583,6 +3641,8 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   } else if(skin==='abysscroc'){
     effects.push({type:'ring',x:px,y:py,r:0,max:210/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#79bd83'});
     burst(px,py,'#79bd83',28,175);
+  } else if(MarineAbilities?.profileFor?.(skin)){
+    renderMarineAbilityVisual(MarineAbilities.profileFor(skin),px,py,angle,[]);
   } else {
     // Fallback visual para outros IDs de skin quando o evento de habilidade for enviado.
     const reach=(skin==='devourer'?320:skin==='greensnake'?210:skin==='electriceel'?165:125)/GAME_WORLD_ZOOM;
