@@ -37,3 +37,39 @@ test('menu motion has a reduced-motion option and mobile touch layout', () => {
   assert.match(css, /abyss-vortex-shaft/);
   assert.match(css, /pointer-events:auto!important/);
 });
+
+
+test('cinematic menu retains interactive actions with symmetric cards', () => {
+  const html=read('public/index.html');
+  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/);
+  assert.ok(nav);
+  ['abyssSettingsBtn','abyssExitBtn','controlsBtn'].forEach(id=>{
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id+' unique');
+    assert.match(nav[1],new RegExp('id="'+id+'"'));
+  });
+  assert.match(html,/abyssal-menu-interactions\.js\?v=1/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=3/);
+  assert.match(nav[1],/class="abyss-orbit-extras"/);
+});
+
+test('cursor is a self-contained SVG with a curled purple tentacle and defined hot spot', () => {
+  const svg=read('public/abyssal-tentacle-cursor.svg');
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(svg,/<svg[^>]*width="56" height="56"/);
+  assert.match(svg,/#c064ff|#a646fb/);
+  assert.match(svg,/C43 42 49 36 47 28/); // curled tip
+  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg'\) 6 5/);
+});
+
+test('reference-inspired interface centers vortex and keeps extra features reachable', () => {
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(css,/url\('abyssal-ocean-cinema\.svg'\)/);
+  assert.match(css,/#abyssGate\s*\{\s*left:50%!important;top:50%!important/);
+  assert.match(css,/abyss-orbit-extras/);
+  assert.match(css,/@media\(max-width:1000px\),\(pointer:coarse\)/);
+  const interactions=read('public/abyssal-menu-interactions.js');
+  assert.match(interactions,/settings\.addEventListener\('click'/);
+  assert.match(interactions,/exit\.addEventListener\('click'/);
+  assert.match(interactions,/popup\.classList\.add\('active'\)/);
+  assert.match(interactions,/if\(event\.key==='Escape'\)/);
+});
