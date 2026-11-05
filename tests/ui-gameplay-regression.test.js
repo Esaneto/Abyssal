@@ -136,8 +136,8 @@ test('maintenance overlay cannot remain latched after transport reconnect', () =
 
 
 test('resonance taxonomy separates shots, damaging passives and non-damaging buffs', () => {
-  assert.match(game, /shots:\\['electric','pierce','spread','photon','photonRay','nova','echoShot'\\]/);
-  assert.match(game, /passive:\\['burst','ricochet'\\]/);
+  assert.match(game, /shots:\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]/);
+  assert.match(game, /passive:\['burst','ricochet'\]/);
   assert.match(game, /buffs:\['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'\]/);
   assert.doesNotMatch(game, /id:'repulse'/);
   assert.doesNotMatch(game, /defensive:\[/);
@@ -187,10 +187,10 @@ test('Q and E ignore keyboard auto-repeat', () => {
 
 
 test('deploy resume explicitly restores the gameplay visual state even if client transiently entered menu', () => {
- const handler=game.slice(game.indexOf("window.addEventListener('abyssal-room-joined'"),game.indexOf("window.addEventListener('abyssal-room-created'"));
- assert.match(handler,/screens\.forEach\(id=>\$\(id\)\.hidden=true\)/);
+ const handler=game.slice(game.indexOf('function enterOnlineGameplay'),game.indexOf('function activateOnlineEntry'));
+ assert.match(handler,/for\(const id of \[\.\.\.screens,'roomsScreen','loginScreen'\]\)/);
  assert.match(handler,/document\.body\.classList\.add\('game-active'\)/);
- assert.match(handler,/\$\('toggleHudBtn'\)\.hidden=false/);
+ assert.match(handler,/if\(toggle\)toggle\.hidden=false/);
  assert.match(handler,/setMobileGameActive\(true\)/);
 });
 
@@ -200,7 +200,7 @@ test('successful room join has an atomic DOM-safe path into gameplay', () => {
  assert.match(game,/for\(const id of \[\.\.\.screens,'roomsScreen','loginScreen'\]\)/);
  assert.match(game,/if\(hud\)hud\.hidden=false/);
  assert.match(game,/if\(toggle\)toggle\.hidden=false/);
- assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao ativar gameplay:'/);
+ assert.match(game,/catch\(error\)\{console\.error\('\[online-entry\] Falha ao inicializar gameplay após confirmação da sala:'/);
 });
 
 
