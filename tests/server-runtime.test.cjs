@@ -161,7 +161,8 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const created = owner.latest('room-created'); assert.equal(created.ok, true);
   const roomId = created.room.id;
   await owner.clientEmit('join-room', { roomId });
-  assert.equal(owner.latest('room-joined').ok, true);
+  const ownerJoined=owner.latest('room-joined');
+  assert.equal(ownerJoined.ok, true);
 
   const initialSnapshot = owner.latest('game-snapshot') || owner.latest('room-joined').snapshot;
   assert.equal(initialSnapshot.enemies.length, 3);
@@ -173,17 +174,42 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   await guest.clientEmit('list-rooms');
   assert.ok((guest.latest('rooms-list') || []).some(room => room.id === roomId), 'second client sees the room created by first client');
   await guest.clientEmit('join-room', { roomId });
-  assert.equal(guest.latest('room-joined').ok, true);
+  const guestJoined=guest.latest('room-joined');
+  assert.equal(guestJoined.ok, true);
 
   let deniedPulse=null;
   await owner.clientEmit('active-ability',{id:'pulse'},result=>{deniedPulse=result;});
   assert.equal(deniedPulse?.ok,false,'unowned Q skill is rejected by the server with acknowledgement');
   assert.equal(deniedPulse?.reason,'invalid-ability');
 
-  // Feed real client-like absolute world coordinates; then wait for the actual server ticker.
+  // Feed real client-like absolute world coordinates close to the authoritative spawn.
+  // The movement envelope intentionally rejects the old test shortcut that teleported
+  // directly across the map.
   let ownerPositionAck = null, guestPositionAck = null;
-  await owner.clientEmit('player-position', { x: 1800, y: 1100, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
-  await guest.clientEmit('player-position', { x: 2000, y: 1200, angle: 1, viewportWidth: 4000, viewportHeight: 2500, seq: 1, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
+  let ownerSeq=1,guestSeq=1;
+  let ownerTestPos={x:Number(ownerJoined.spawn.x),y:Number(ownerJoined.spawn.y)};
+  let guestTestPos={x:Number(guestJoined.spawn.x),y:Number(guestJoined.spawn.y)};
+  const sendTestPosition=async(socket,state,target,seqRef,extra={})=>{
+    const dx=Number(target.x)-state.x,dy=Number(target.y)-state.y,distance=Math.hypot(dx,dy);
+    const steps=Math.max(1,Math.ceil(distance/90));
+    let ack=null;
+    for(let step=1;step<=steps;step++){
+      if(step>1)await wait(115);
+      const t=step/steps;
+      const x=state.x+dx*t,y=state.y+dy*t;
+      const seq=++seqRef.value;
+      await socket.clientEmit('player-position',{x,y,angle:0,viewportWidth:800,viewportHeight:500,seq,clientEnemyCount:3,clientMovingEnemies:3,clientPredicting:true,clientGameState:'playing',...extra},result=>{ack=result;});
+      assert.equal(ack?.ok,true,'incremental position update is accepted');
+      assert.notEqual(ack?.reason,'movement-envelope','legal incremental movement must stay inside the server envelope');
+    }
+    state.x=Number(target.x);state.y=Number(target.y);
+    return ack;
+  };
+  const ownerSeqRef={value:0},guestSeqRef={value:0};
+  await owner.clientEmit('player-position', { x: ownerTestPos.x+40, y: ownerTestPos.y, angle: 0, viewportWidth: 4000, viewportHeight: 2500, seq: ++ownerSeqRef.value, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { ownerPositionAck = result; });
+  ownerTestPos.x+=40;
+  await guest.clientEmit('player-position', { x: guestTestPos.x-40, y: guestTestPos.y, angle: 1, viewportWidth: 4000, viewportHeight: 2500, seq: ++guestSeqRef.value, clientEnemyCount: 3, clientMovingEnemies: 2, clientPredicting: true, clientGameState: 'playing' }, result => { guestPositionAck = result; });
+  guestTestPos.x-=40;
   assert.equal(ownerPositionAck?.ok, true, 'server acknowledges the player position stream');
   assert.equal(guestPositionAck?.ok, true, 'server acknowledges each co-op player position');
   await waitFor(() => owner.all('enemy-motion').length >= 1, 2500);
@@ -246,10 +272,13 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
 
   // A dead common enemy creates one shared XP orb. The two clients see the same orb,
   // but the server awards the XP only to the player who reaches it first.
-  const xpTarget = owner.latest('game-snapshot').enemies.find(e => e && !['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer'].includes(e.kind));
+  const xpTarget = owner.latest('game-snapshot').enemies
+    .filter(e => e && !['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer'].includes(e.kind))
+    .sort((a,b)=>Math.hypot(a.x-ownerTestPos.x,a.y-ownerTestPos.y)-Math.hypot(b.x-ownerTestPos.x,b.y-ownerTestPos.y))[0];
   assert.ok(xpTarget, 'a common enemy should be available for the XP-drop integration test');
   const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
   const guestXpAwardsBefore = guest.all('shared-xp-award').length;
+  await sendTestPosition(owner,ownerTestPos,{x:xpTarget.x,y:xpTarget.y},ownerSeqRef);
   let killAck = null;
   let remainingHp=Math.max(1,Number(xpTarget.hp)||1);
   for(let hit=0;hit<8&&remainingHp>0;hit++){
@@ -267,8 +296,8 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore, 'killing an enemy does not immediately award XP');
   assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'XP is not broadcast as an award to every player');
   let xpOwnerAck = null, xpGuestAck = null;
-  await owner.clientEmit('player-position', { x: xpOrb.x, y: xpOrb.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: false, clientGameState: 'playing' }, result => { xpOwnerAck = result; });
-  await guest.clientEmit('player-position', { x: 3200, y: 1900, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 2, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: false, clientGameState: 'playing' }, result => { xpGuestAck = result; });
+  xpOwnerAck=await sendTestPosition(owner,ownerTestPos,{x:xpOrb.x,y:xpOrb.y},ownerSeqRef,{clientPredicting:false});
+  xpGuestAck=await sendTestPosition(guest,guestTestPos,{x:guestTestPos.x+80,y:guestTestPos.y+20},guestSeqRef,{clientPredicting:false});
   assert.equal(xpOwnerAck?.ok, true);
   assert.equal(xpGuestAck?.ok, true);
   await waitFor(() => owner.all('shared-xp-award').length > ownerXpAwardsBefore, 2000);
@@ -283,8 +312,9 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const nearestEnemy = currentSnapshot.enemies.find(enemy => String(enemy.id) !== String(xpTarget.id)) || currentSnapshot.enemies[0];
   let frozenPositionAck = null;
   const vitalsBeforeFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length;
+  await sendTestPosition(owner,ownerTestPos,{x:nearestEnemy.x+1,y:nearestEnemy.y},ownerSeqRef);
   await owner.clientEmit('client-visibility', { hidden: true });
-  await owner.clientEmit('player-position', { x: nearestEnemy.x + 1, y: nearestEnemy.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: 3, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
+  await owner.clientEmit('player-position', { x: ownerTestPos.x, y: ownerTestPos.y, angle: 0, viewportWidth: 800, viewportHeight: 500, seq: ++ownerSeqRef.value, clientEnemyCount: 3, clientMovingEnemies: 3, clientPredicting: true, clientGameState: 'playing' }, result => { frozenPositionAck = result; });
   assert.equal(frozenPositionAck?.ok, true);
   await waitFor(() => owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).length > vitalsBeforeFrozen, 6000);
   const damageWhileFrozen = owner.all('player-vitals').filter(v => v?.reason === 'enemy-attack' && Number(v.damage) > 0).at(-1);
