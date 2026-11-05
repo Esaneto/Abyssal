@@ -877,17 +877,6 @@ function renderBossAbilityVisual(data){
  if(id==='ink-trail'){
   inkTrails.push({x,y,r:radius,life:3.4,maxLife:3.4,damageTimer:.45,remote:true,boss:true});if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
   burst(x,y,'#07101d',8,45);
- }else if(id==='neuro-ring'){
-  effects.push({type:'ring',x,y,r:0,max:radius,life:.92,maxLife:.92,color:'#ff315f'});
-  effects.push({type:'ring',x,y,r:0,max:radius*.78,life:.68,maxLife:.68,color:'#36dfff'});
-  effects.push({type:'ring',x,y,r:0,max:radius*.48,life:.46,maxLife:.46,color:'#ff8bc5'});
-  for(let i=0;i<12;i++){const a=i*Math.PI/6;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.94,y2:y+Math.sin(a)*radius*.94,life:.42,maxLife:.42,color:i%2?'#36dfff':'#ff315f',width:4.2/GAME_WORLD_ZOOM});}
-  burst(x,y,'#ff315f',44,220);burst(x,y,'#36dfff',24,150);
- }else if(id==='lure-pulse'){
-  effects.push({type:'ring',x,y,r:0,max:radius,life:1.0,maxLife:1.0,color:'#ffd15e'});
-  effects.push({type:'ring',x,y,r:0,max:radius*.7,life:.72,maxLife:.72,color:'#ff6f9d'});
-  for(let i=-2;i<=2;i++){const a=angle+i*.08;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.94,y2:y+Math.sin(a)*radius*.94,life:.62,maxLife:.62,color:i===0?'#fff5a8':'#ffb45e',width:(i===0?6:3)/GAME_WORLD_ZOOM});}
-  burst(x,y,'#ffad48',36,205);burst(x,y,'#35e7ff',14,120);
  }else if(id==='gulper-chomp'){
   effects.push({type:'ring',x,y,r:0,max:radius,life:.62,maxLife:.62,color:'#d67cff'});
   effects.push({type:'ring',x,y,r:0,max:radius*.82,life:.46,maxLife:.46,color:'#ff58cb'});
@@ -2284,7 +2273,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     burst(e.x,e.y,'#bd88ff',2,30);
   }
 
-  const target=localTarget;
+  const anglerHidden=equippedSkin==='angler'&&anglerInvisibleNow(),target=anglerHidden?{x:e.x,y:e.y}:localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
    const moved=mapResolveMove(e.x,e.y,e.x+e.kbVx*dt,e.y+e.kbVy*dt,Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;}
@@ -2294,8 +2283,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
-   let movementTargets=localTargets;
-   if(activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(e.eliteId&&e.spawnRoomId==='elite'&&playerRoom?.id!=='elite'){const room=activeMapLayout.rooms.find(item=>item.id==='elite');soloMapNavProxy.x=room?.x??e.x;soloMapNavProxy.y=room?.y??e.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}else{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   let movementTargets=anglerHidden?[]:localTargets;
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(e.eliteId&&e.spawnRoomId==='elite'&&playerRoom?.id!=='elite'){const room=activeMapLayout.rooms.find(item=>item.id==='elite');soloMapNavProxy.x=room?.x??e.x;soloMapNavProxy.y=room?.y??e.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}else{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
