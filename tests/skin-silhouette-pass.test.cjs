@@ -42,3 +42,14 @@ test('Kraken identity and eight-arm silhouette are preserved by the rarity pass'
   assert.match(kraken,/for\(let arm=0;arm<8;arm\+\+\)/);
   assert.match(kraken,/Glass-octopus inspired Kraken/);
 });
+
+test('canonical specimen names no longer depend on DOM relabeling',()=>{
+  for(const [id,name] of [
+    ['abyssking','Soberano do Vazio'],
+    ['royal','Pérola Regente'],
+    ['voidwing','Manta do Nada']
+  ]){
+    assert.match(game,new RegExp("\\{id:'"+id+"',name:'"+name+"'"));
+  }
+  assert.doesNotMatch(game,/name:'Rei do Vazio'|name:'Abismo Real'|name:'Asa do Nada'/);
+});
