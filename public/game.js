@@ -2676,10 +2676,12 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const glowScale=playerCreature?.16:boss?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=1;
- const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
- const structuralOutline=playerCreature||boss,separator='rgba(1,6,12,.9)';
- const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.lineCap='round';c.lineJoin='round';if(structuralOutline){c.strokeStyle=separator;c.lineWidth=Math.max(width*1.85,width+1);c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=width;c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
- const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){if(structuralOutline){c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(width*2,width+1.2);c.lineJoin='round';c.stroke();}c.strokeStyle=strokeStyle;c.lineWidth=width;c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle;c.stroke()}c.restore()};
+ const skinRarity=playerCreature?skinShopRarity(skin):'common',skinRank=playerCreature?({common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5}[skinRarity]||0):0,skinFamily=playerCreature?(skinShopFamily(skin)||skin?.shape||'signature'):null;
+ const mixHex=(a,b,t)=>{const parse=v=>{const m=String(v||'').match(/^#([0-9a-f]{6})$/i);if(!m)return null;const n=parseInt(m[1],16);return [(n>>16)&255,(n>>8)&255,n&255]};const A=parse(a),B=parse(b);if(!A||!B)return a;return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
+ const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);if(playerCreature||boss){const deep=mixHex(base,'#02070d',boss?.72:.8),mid=mixHex(base,'#102a35',boss?.52:.62);g.addColorStop(0,hit>0?'#ffffff':mid);g.addColorStop(.24,hit>0?'#ffffff':deep);g.addColorStop(.52,deep);g.addColorStop(.78,mid);g.addColorStop(1,'#01050a');}else{g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');}return g};
+ const structuralOutline=playerCreature||boss,separator='rgba(1,6,12,.88)';
+ const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.lineCap='round';c.lineJoin='round';if(structuralOutline){c.strokeStyle=separator;c.lineWidth=Math.max(width*1.28,width+.35);c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=width;c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
+ const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){if(structuralOutline){c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(width*1.35,width+.45);c.lineJoin='round';c.stroke();}c.globalAlpha=playerCreature?Math.min(.52,.24+skinRank*.055):boss?.42:1;c.strokeStyle=strokeStyle;c.lineWidth=Math.max(.7,width*.72);c.lineJoin='round';c.shadowBlur=blur*glowScale*.45;c.shadowColor=strokeStyle;c.stroke()}c.restore()};
  const body=(rx,ry,cy=0,base=color)=>fill(()=>c.ellipse(0,cy,r*rx*pulse,r*ry*pulse,0,0,Math.PI*2),bodyGrad(base),`rgba(224,255,255,.46)`,Math.max(1,r*.035),12);
  const fin=(points,col=color,edge='rgba(225,255,255,.55)')=>fill(()=>{c.moveTo(points[0][0]*r,points[0][1]*r);for(let i=1;i<points.length;i++)c.lineTo(points[i][0]*r,points[i][1]*r);c.closePath()},`rgba(8,30,46,.9)`,edge,Math.max(1,r*.035),8);
  const tentacle=(sx,sy,c1x,c1y,c2x,c2y,ex,ey,w=1, suckers=false)=>{
@@ -2698,6 +2700,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const teeth=(cx,cy,rx,ry,count=8,scale=1,reverse=false)=>{c.save();c.fillStyle='#f6fbec';c.shadowBlur=7*glowScale;c.shadowColor='#ffb4bb';for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2,tx=cx+Math.cos(a)*rx,ty=cy+Math.sin(a)*ry,innerX=cx+Math.cos(a)*rx*.68,innerY=cy+Math.sin(a)*ry*.68;c.beginPath();c.moveTo(tx*r,ty*r);c.lineTo((innerX+Math.cos(a+.2)*.09*scale)*r,(innerY+Math.sin(a+.2)*.09*scale)*r);c.lineTo((innerX+Math.cos(a-.2)*.09*scale)*r,(innerY+Math.sin(a-.2)*.09*scale)*r);c.closePath();c.fill()}c.restore()};
  const gills=(x0=-.2,y0=-.28,count=3,side=1)=>{for(let i=0;i<count;i++){const xx=x0+i*.12;stroke(()=>{c.moveTo(xx*r,y0*r);c.quadraticCurveTo((xx-.12)*r,(y0+.13)*r,(xx-.06)*r,(y0+.22)*r)},Math.max(.7,r*.028),'rgba(194,255,248,.72)',4)}};
  const finRay=(x0,y0,x1,y1,x2,y2,col=color)=>fin([[x0,y0],[x1,y1],[x2,y2]],col,'rgba(230,255,249,.48)');
+ const emitPath=(draw,width,col,intensity=1)=>{c.save();c.globalCompositeOperation='lighter';const breathe=.82+.18*Math.sin(t*.0043+skinRank*.7);c.beginPath();draw();c.strokeStyle=col;c.shadowColor=col;c.globalAlpha=.22*intensity*breathe;c.lineWidth=width*2.1;c.shadowBlur=Math.max(3,r*.12)*glowScale;c.stroke();c.globalAlpha=.74*intensity*breathe;c.lineWidth=width;c.shadowBlur=Math.max(1,r*.04)*glowScale;c.stroke();c.globalAlpha=.9;c.strokeStyle='#efffff';c.lineWidth=Math.max(.55,width*.22);c.shadowBlur=0;c.stroke();c.restore()};
+ const emitNode=(ex,ey,rx,ry,col,intensity=1)=>{c.save();c.globalCompositeOperation='lighter';const breathe=.84+.16*Math.sin(t*.0048+(ex+ey)*3);c.fillStyle=col;c.shadowColor=col;c.globalAlpha=.15*intensity*breathe;c.shadowBlur=Math.max(4,r*.14)*glowScale;c.beginPath();c.ellipse(ex*r,ey*r,rx*r*1.3,ry*r*1.3,0,0,Math.PI*2);c.fill();c.globalAlpha=.58*intensity*breathe;c.shadowBlur=Math.max(1,r*.05)*glowScale;c.beginPath();c.ellipse(ex*r,ey*r,rx*r*.7,ry*r*.7,0,0,Math.PI*2);c.fill();c.globalAlpha=.9;c.fillStyle='#f4ffff';c.shadowBlur=0;c.beginPath();c.ellipse((ex-rx*.12)*r,(ey-ry*.14)*r,rx*r*.15,ry*r*.14,0,0,Math.PI*2);c.fill();c.restore()};
 
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
@@ -2880,17 +2884,42 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
    body(.85,.72,0,color);eye(.3,-.16,r*.06);
   }
-  // Rarity signatures distinguish collectible forms without changing hitboxes or abilities.
-  if(RELIC_SKIN_IDS.has(id)){
-   c.save();c.globalAlpha=.52+.12*Math.sin(t*.003);c.strokeStyle='#d9b5ff';c.lineWidth=Math.max(.8,r*.025);c.setLineDash([Math.max(2,r*.14),Math.max(2,r*.11)]);c.shadowBlur=lowPowerRendering?0:8*glowScale;c.shadowColor='#a45dff';
-   c.beginPath();c.ellipse(-.04*r,0,1.22*r,1.02*r,t*.00034,0,Math.PI*2);c.stroke();c.setLineDash([]);
-   for(let k=0;k<3;k++){const a=t*.0007+k*Math.PI*2/3;c.fillStyle=k===0?'#f0d9ff':'#a98cff';c.beginPath();c.arc(Math.cos(a)*1.2*r,Math.sin(a)*.98*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();}
-   c.restore();
-  }else if(ABYSSAL_SIGNATURE_IDS.has(id)){
-   c.save();c.globalAlpha=.34+.09*Math.sin(t*.0024);c.strokeStyle=id==='bloodmoon'?'#ff6f89':id==='greensnake'?'#6fffb1':'#9ca4ff';c.lineWidth=Math.max(.7,r*.02);c.beginPath();c.arc(0,0,1.12*r,t*.00025,t*.00025+Math.PI*1.45);c.stroke();c.restore();
+  // Official Abyssal signature: rarity is emitted by anatomy, never by an orbiting cosmetic ring.
+  const emissionPrimary=id==='solar'?'#ffbf3e':id==='toxic'?'#92ff4f':id==='bloodmoon'?'#ff315f':id==='greensnake'?'#35ff9b':id==='abyssking'||id==='royal'?'#b477ff':id==='angler'?'#ffd36d':id==='maw'?'#d35cff':id==='devourer'?'#63fff0':id==='leviathan'?'#61eaff':color;
+  const emissionSecondary=id==='bloodmoon'||id==='aberration'?'#ff7896':id==='solar'?'#fff08a':id==='toxic'||id==='greensnake'?'#d7ff73':id==='abyssking'||id==='royal'||id==='maw'?'#ff78dc':'#8cf8ff';
+  const intensity=.68+skinRank*.1+(skin?.paid?.08:0);
+  if(skinFamily==='shark'||skinFamily==='fish'){
+   emitPath(()=>{c.moveTo(-.58*r,.04*r);c.quadraticCurveTo(-.05*r,.17*r,.5*r,.03*r)},Math.max(.8,r*.022),emissionPrimary,intensity);
+   for(let i=0;i<Math.max(2,Math.min(5,skinRank+1));i++)emitPath(()=>{const xx=(.3-i*.085)*r;c.moveTo(xx,-.23*r);c.lineTo(xx-.04*r,.15*r)},Math.max(.55,r*.014),emissionPrimary,.48*intensity);
+  }else if(skinFamily==='eel'){
+   emitPath(()=>{c.moveTo(-1.8*r,-.03*r);c.bezierCurveTo(-1.15*r,-.22*r,-.35*r,.16*r,.72*r,-.04*r)},Math.max(.8,r*.024),emissionPrimary,intensity);
+   if(skinRank>=3)for(let i=0;i<4;i++)emitNode(-.82+i*.36,.12,.035,.022,i%2?emissionPrimary:emissionSecondary,.62*intensity);
+  }else if(skinFamily==='squid'||skinFamily==='octopus'){
+   emitNode(.05,-.55,.22,.28,emissionPrimary,intensity);
+   for(let i=0;i<3+Math.min(4,skinRank);i++){const a=-1.15+i*(2.3/Math.max(1,2+Math.min(4,skinRank)));emitNode(-.2-Math.cos(a)*(.25+i*.035),Math.sin(a)*(.18+i*.022),.035,.024,i%2?emissionPrimary:emissionSecondary,.7*intensity);}
+  }else if(skinFamily==='jelly'){
+   emitNode(0,-.18,.27,.2,emissionPrimary,intensity);for(let i=0;i<3+Math.min(3,skinRank);i++){const xx=-.38+i*(.76/Math.max(1,2+Math.min(3,skinRank)));emitPath(()=>{c.moveTo(xx*r,-.05*r);c.quadraticCurveTo(xx*.9*r,.4*r,xx*1.05*r,.88*r)},Math.max(.55,r*.014),emissionPrimary,.46*intensity);}
+  }else if(skinFamily==='crustacean'){
+   for(const side of [-1,1])for(let i=0;i<2+Math.min(3,skinRank);i++)emitNode(-.42+i*.24,side*(.31+i*.025),.035,.024,emissionPrimary,.62*intensity);
+   emitPath(()=>{c.moveTo(-.48*r,0);c.lineTo(.48*r,0)},Math.max(.6,r*.016),emissionSecondary,.38*intensity);
+  }else if(skinFamily==='ray'){
+   for(const side of [-1,1])emitPath(()=>{c.moveTo(-.48*r,0);c.quadraticCurveTo(-.06*r,side*.4*r,.62*r,side*.54*r)},Math.max(.7,r*.02),emissionPrimary,.7*intensity);
+   if(id==='electriceel'){emitNode(.12,-.28,.28,.16,'#5df6ff',1);emitNode(.12,.28,.28,.16,'#5df6ff',1);}
+  }else if(skinFamily==='benthic'){
+   const count=4+Math.min(5,skinRank);for(let i=0;i<count;i++){const a=i*Math.PI*2/count;emitNode(Math.cos(a)*.52,Math.sin(a)*.42,.035,.035,i%2?emissionPrimary:emissionSecondary,.65*intensity);}
+  }else if(skinFamily==='mollusc'){
+   emitPath(()=>{c.moveTo(-.46*r,-.1*r);c.bezierCurveTo(-.18*r,-.34*r,.26*r,-.34*r,.58*r,.02*r)},Math.max(.7,r*.02),emissionPrimary,.72*intensity);
+   emitNode(.12,0,.2,.18,emissionSecondary,.6*intensity);
+  }else{
+   emitNode(.05,-.1,.24,.2,emissionPrimary,.72*intensity);
   }
-  // Fine luminous lateral line makes skin previews look like the live character.
-  if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
+  // Relic skins get one unique organ of light, matching their boss ancestry.
+  if(id==='kraken')emitNode(0,-.72,.2,.3,'#ba6cff',.9);
+  else if(id==='leviathan')emitPath(()=>{c.moveTo(-2.2*r,-.2*r);c.bezierCurveTo(-1.4*r,-.48*r,-.45*r,-.4*r,.55*r,-.18*r)},Math.max(1,r*.028),'#61eaff',.9);
+  else if(id==='angler')emitNode(.48,-1.04,.14,.14,'#ffd36d',1);
+  else if(id==='maw')emitNode(.12,0,.42,.46,'#d35cff',.82);
+  else if(id==='devourer')emitNode(.48,.02,.48,.5,'#ff315f',.74);
+  else if(id==='aberration'){for(let i=0;i<4;i++)emitPath(()=>{c.moveTo((-.38+i*.22)*r,-.32*r);c.lineTo((-.28+i*.2)*r,.3*r)},Math.max(.6,r*.017),'#ff315f',.62);}
   c.restore();return;
  }
 
@@ -2976,9 +3005,16 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   fill(()=>{c.moveTo(.22*r,-.05*r);c.lineTo(.88*r,-.14*r);c.lineTo(.65*r,.1*r);c.lineTo(.93*r,.36*r);c.lineTo(.25*r,.25*r);c.closePath()},'#080f19','#ffd7a0',Math.max(1,r*.04),8);for(let i=0;i<6;i++){const xx=(.3+i*.085)*r;fin([[xx/r,-.08],[xx/r-.025,.08],[xx/r+.03,.02]],'#fff4d5')}
   stroke(()=>{c.moveTo(-.05*r,-.47*r);c.quadraticCurveTo(.02*r,-1.14*r,.48*r,-1.14*r)},Math.max(1.5,r*.065),'#ffcb70',14);c.save();const pulseSize=r*.14*(1+Math.sin(t*.009)*.12);const lamp=c.createRadialGradient(.48*r,-1.14*r,1,.48*r,-1.14*r,pulseSize*2);lamp.addColorStop(0,'#fffde4');lamp.addColorStop(.35,'#ffd277');lamp.addColorStop(1,'rgba(255,147,55,0)');c.fillStyle=lamp;c.beginPath();c.arc(.48*r,-1.14*r,pulseSize*2,0,Math.PI*2);c.fill();c.restore();eye(.43,-.32,r*.055,'#fff3c5');
  }
- // Bioluminescent side line and paired sensory pores unify the species without flattening silhouettes.
- if(kind!=='drifter'&&kind!=='maw')stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.55)',5);
- if(boss){c.save();c.strokeStyle=color;c.lineWidth=Math.max(1.2,r*.035);c.shadowBlur=17;c.shadowColor=color;c.beginPath();c.ellipse(0,0,r*1.46,r*1.27,0,t*.0007,t*.0007+Math.PI*1.7);c.stroke();c.restore()}
+ // Hostile bioluminescence is anatomical too. Legacy bosses keep their unique organs instead of a generic halo.
+ if(kind==='kraken'){
+  emitNode(0,-.68,.2,.28,'#a968ff',.92);for(let i=0;i<6;i++)emitNode(-.42+i*.17,.22,.03,.022,i%2?'#ff4f7d':'#61eaff',.72);
+ }else if(kind==='devourer'){
+  emitNode(.62,.05,.52,.54,'#ff315f',.78);for(let i=0;i<5;i++)emitPath(()=>{const xx=(-.7+i*.28)*r;c.moveTo(xx,-.42*r);c.quadraticCurveTo(xx-.05*r,.08*r,xx+.02*r,.68*r)},Math.max(.7,r*.017),'#62ffe9',.46);
+ }else if(kind==='whiteSharkBoss'){
+  emitPath(()=>{c.moveTo(-.88*r,-.18*r);c.lineTo(.42*r,-.18*r)},Math.max(.9,r*.023),'#5cecff',.8);for(let i=0;i<5;i++)emitPath(()=>{const xx=(-.32+i*.08)*r;c.moveTo(xx,-.28*r);c.lineTo(xx-.035*r,.18*r)},Math.max(.6,r*.015),'#5cecff',.58);emitNode(.82,-.16,.07,.07,'#ff315f',.95);
+ }else if(kind!=='drifter'&&!boss){
+  stroke(()=>{c.moveTo(-.45*r,.06*r);c.quadraticCurveTo(-.05*r,.22*r,.42*r,.07*r)},Math.max(.8,r*.028),'rgba(211,255,246,.42)',4);
+ }
  c.restore();
 }
 function drawArenaTerrain(t){
