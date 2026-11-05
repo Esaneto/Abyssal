@@ -880,27 +880,51 @@ function renderBossAbilityVisual(data){
  const d=data||{},x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
  const color=d.color||'#79f3f0',angle=Number(d.angle)||0,radius=Math.max(40/GAME_WORLD_ZOOM,Number(d.radius)||180/GAME_WORLD_ZOOM),id=String(d.abilityId||'');
  if(id==='neuro-ring'){
-  effects.push({type:'ring',x,y,r:0,max:radius,life:.72,maxLife:.72,color:'#ff436d'});
-  effects.push({type:'ring',x,y,r:0,max:radius*.68,life:.5,maxLife:.5,color:'#36dfff'});
-  for(let i=0;i<8;i++){const a=i*Math.PI/4;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.88,y2:y+Math.sin(a)*radius*.88,life:.34,maxLife:.34,color:i%2?'#36dfff':'#ff436d'});}
-  burst(x,y,'#ff436d',28,170);
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.92,maxLife:.92,color:'#ff315f'});
+  effects.push({type:'ring',x,y,r:0,max:radius*.78,life:.68,maxLife:.68,color:'#36dfff'});
+  effects.push({type:'ring',x,y,r:0,max:radius*.48,life:.46,maxLife:.46,color:'#ff8bc5'});
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.94,y2:y+Math.sin(a)*radius*.94,life:.42,maxLife:.42,color:i%2?'#36dfff':'#ff315f',width:4.2/GAME_WORLD_ZOOM});}
+  burst(x,y,'#ff315f',44,220);burst(x,y,'#36dfff',24,150);
  }else if(id==='lure-pulse'){
-  effects.push({type:'ring',x,y,r:0,max:radius,life:.85,maxLife:.85,color:'#ffd16d'});
-  effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*radius*.85,y2:y+Math.sin(angle)*radius*.85,life:.55,maxLife:.55,color:'#fff0a8'});
-  burst(x,y,'#ffad48',22,150);
+  effects.push({type:'ring',x,y,r:0,max:radius,life:1.0,maxLife:1.0,color:'#ffd15e'});
+  effects.push({type:'ring',x,y,r:0,max:radius*.7,life:.72,maxLife:.72,color:'#ff6f9d'});
+  for(let i=-2;i<=2;i++){const a=angle+i*.08;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.94,y2:y+Math.sin(a)*radius*.94,life:.62,maxLife:.62,color:i===0?'#fff5a8':'#ffb45e',width:(i===0?6:3)/GAME_WORLD_ZOOM});}
+  burst(x,y,'#ffad48',36,205);burst(x,y,'#35e7ff',14,120);
  }else if(id==='gulper-chomp'){
-  effects.push({type:'ring',x,y,r:0,max:radius,life:.48,maxLife:.48,color:'#d67cff'});
-  effects.push({type:'ring',x,y,r:radius*.82,max:radius*.22,life:.28,maxLife:.28,color:'#ff70ce'});
-  for(let i=-3;i<=3;i++){const a=angle+i*.18;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.78,y2:y+Math.sin(a)*radius*.78,life:.24,maxLife:.24,color:'#f0a2ff'});}
-  burst(x,y,'#c16cff',30,180);
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.62,maxLife:.62,color:'#d67cff'});
+  effects.push({type:'ring',x,y,r:0,max:radius*.82,life:.46,maxLife:.46,color:'#ff58cb'});
+  effects.push({type:'ring',x,y,r:radius*.72,max:radius*.3,life:.34,maxLife:.34,color:'#8ffcff'});
+  for(let i=-5;i<=5;i++){const a=angle+i*.14;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.9,y2:y+Math.sin(a)*radius*.9,life:.32,maxLife:.32,color:i%2?'#f0a2ff':'#ff62cf',width:3.4/GAME_WORLD_ZOOM});}
+  burst(x,y,'#c16cff',46,230);burst(x,y,'#ff62cf',18,135);
  }else if(id==='pressure-lance'){
-  const reach=radius;
-  effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*reach,y2:y+Math.sin(angle)*reach,life:.52,maxLife:.52,color:'#6fffe7'});
-  effects.push({type:'beam',x1:x+Math.cos(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,y1:y+Math.sin(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*reach+Math.cos(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,y2:y+Math.sin(angle)*reach+Math.sin(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,life:.38,maxLife:.38,color:'#ff5578'});
-  burst(x+Math.cos(angle)*reach*.7,y+Math.sin(angle)*reach*.7,'#4ce0d1',24,190);
+  const reach=radius,nx=Math.cos(angle+Math.PI/2),ny=Math.sin(angle+Math.PI/2);
+  for(const offset of [-28,0,28])effects.push({type:'beam',x1:x+nx*offset/GAME_WORLD_ZOOM,y1:y+ny*offset/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*reach+nx*offset/GAME_WORLD_ZOOM,y2:y+Math.sin(angle)*reach+ny*offset/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:offset===0?'#efffff':offset<0?'#6fffe7':'#ff5578',width:(offset===0?7:4)/GAME_WORLD_ZOOM});
+  effects.push({type:'ring',x:x+Math.cos(angle)*reach,y:y+Math.sin(angle)*reach,r:0,max:68/GAME_WORLD_ZOOM,life:.45,maxLife:.45,color:'#6fffe7'});
+  burst(x+Math.cos(angle)*reach*.72,y+Math.sin(angle)*reach*.72,'#4ce0d1',38,240);
  }else{
   effects.push({type:'ring',x,y,r:0,max:radius,life:.45,maxLife:.45,color});burst(x,y,color,18,130);
  }
+}
+function renderHostileContactAbility(data){
+ const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
+ if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
+ if(skill==='bio-shock'||kind==='drifter'){
+  effects.push({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
+  for(let i=0;i<6;i++){const a=i*Math.PI/3;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*1.65,y2:y+Math.sin(a)*radius*1.65,life:.3,maxLife:.3,color:i%2?'#ff7caf':'#74f7ff',width:2.6/GAME_WORLD_ZOOM});}
+  burst(x,y,'#74f7ff',18,105);
+ }else if(skill==='venom-spine'||kind==='stinger'){
+  const a=Number(d.angle)||0;for(let i=-2;i<=2;i++){const q=a+i*.16;effects.push({type:'beam',x1:x-Math.cos(q)*radius*.4,y1:y-Math.sin(q)*radius*.4,x2:x+Math.cos(q)*radius*2.0,y2:y+Math.sin(q)*radius*2.0,life:.32,maxLife:.32,color:i===0?'#fff0a4':'#ff8d58',width:(i===0?4:2.4)/GAME_WORLD_ZOOM});}
+  burst(x,y,'#ff9a55',16,120);
+ }else if(skill==='crusher-claw'||kind==='brute'){
+  effects.push({type:'ring',x,y,r:0,max:radius*1.85,life:.52,maxLife:.52,color:'#bd88ff'});
+  effects.push({type:'ring',x,y,r:0,max:radius*1.25,life:.34,maxLife:.34,color:'#f1d6ff'});
+  burst(x,y,'#bd88ff',24,135);
+ }else if(skill==='gulper-bite'||kind==='lurker'){
+  effects.push({type:'ring',x,y,r:0,max:radius*1.95,life:.44,maxLife:.44,color:'#6e8dff'});
+  for(let i=-3;i<=3;i++){const q=(Number(d.angle)||0)+i*.16;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(q)*radius*1.65,y2:y+Math.sin(q)*radius*1.65,life:.26,maxLife:.26,color:'#9caeff',width:2.8/GAME_WORLD_ZOOM});}
+  burst(x,y,'#6e8dff',20,125);
+ }else{effects.push({type:'ring',x,y,r:0,max:radius*1.5,life:.35,maxLife:.35,color});}
 }
 function showBossAlert(kind,id=null,threat=0,force=false){
  if(onlineMode&&onlineRoomMode==='pvp')return;
@@ -1515,7 +1539,8 @@ function applyOnlinePlayerVitals(data){
  if((data.reason==='enemy-attack'||data.reason==='boss-ability'||data.reason==='pvp-hit'||data.reason==='pvp-defeat')&&Number(data.damage)>0){spawnDamageNumber(player.x,player.y,Number(data.damage),damageTone(data.skillId));
   if(contactSourceReady)revealOnlineContactSource(data);
   else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
-  shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);
+  if(data.source==='enemy'&&data.enemyId!=null)renderHostileContactAbility(data);
+  shake=Math.max(shake,data.source==='boss-ability'?10:7);damageFlash=.24;burst(player.x,player.y,'#ff668d',16,125);audio(115,.14,'sawtooth',.025);
  }else if(data.reason==='shield-block'||data.reason==='pvp-shield'||data.blocked){
   if(contactSourceReady)revealOnlineContactSource(data);
   burst(player.x,player.y,'#7ceff2',16,110);playSkillSound('shield','trigger');
@@ -2254,47 +2279,42 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     continue;
    }
   }
-  // Habilidades ativas reais dos monstros e bosses:
-  // Polvo-de-anéis-azuis: pulso neurotóxico radial com telegraph bicolor.
+  // Habilidades colossais: os mesmos números e geometrias usados pelo servidor autoritativo.
   if(!onlineMode&&e.kind==='boss'){
    e.neuroPulse=(e.neuroPulse||0)+dt;
-   if(e.neuroPulse>=5.2){
-    e.neuroPulse=0;const radius=245/GAME_WORLD_ZOOM;
+   if(e.neuroPulse>=4.7){
+    e.neuroPulse=0;const radius=270/GAME_WORLD_ZOOM;
     renderBossAbilityVisual({abilityId:'neuro-ring',x:e.x,y:e.y,angle:e.angle||0,radius,color:e.color||'#ff315f'});
-    if(Math.hypot(player.x-e.x,player.y-e.y)<=radius&&player.invuln<=0){hurtPlayer(13);player.neurotoxinUntil=performance.now()+1800;shake=8;}
+    if(Math.hypot(player.x-e.x,player.y-e.y)<=radius&&player.invuln<=0){hurtPlayer(18);player.neurotoxinUntil=performance.now()+2400;shake=10;}
    }
   }
-  // 1. Angler (Lanterna): puxão hipnótico de curto alcance
   if(!onlineMode&&e.kind==='angler'){
    e.anglerPulse=(e.anglerPulse||0)+dt;
-   if(e.anglerPulse>3.8){
-     e.anglerPulse=0;
-     const dToP=Math.hypot(player.x-e.x,player.y-e.y);
-     if(dToP<320/GAME_WORLD_ZOOM){
-       const pull=22/GAME_WORLD_ZOOM,tx=player.x-(player.x-e.x)/dToP*pull,ty=player.y-(player.y-e.y)/dToP*pull;
-       const moved=mapResolveMove(player.x,player.y,tx,ty,player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;
-       renderBossAbilityVisual({abilityId:'lure-pulse',x:e.x,y:e.y,angle:Math.atan2(player.y-e.y,player.x-e.x),radius:320/GAME_WORLD_ZOOM,color:e.color||'#ffb45e'});
+   if(e.anglerPulse>3.4){
+     e.anglerPulse=0;const dToP=Math.hypot(player.x-e.x,player.y-e.y),radius=350/GAME_WORLD_ZOOM;
+     renderBossAbilityVisual({abilityId:'lure-pulse',x:e.x,y:e.y,angle:Math.atan2(player.y-e.y,player.x-e.x),radius,color:e.color||'#ffb45e'});
+     if(dToP>0&&dToP<radius){
+       const pull=34/GAME_WORLD_ZOOM,tx=player.x-(player.x-e.x)/dToP*pull,ty=player.y-(player.y-e.y)/dToP*pull;
+       const moved=mapResolveMove(player.x,player.y,tx,ty,player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;updateCamera();
+       if(player.invuln<=0){hurtPlayer(12);shake=8;}
      }
    }
   }
-  // 2. Maw (A Boca do Abismo): mordida expansiva com micro-onda de choque
   if(!onlineMode&&e.kind==='maw'){
    e.mawChomp=(e.mawChomp||0)+dt;
-   if(e.mawChomp>4.5){
-     e.mawChomp=0;
-     renderBossAbilityVisual({abilityId:'gulper-chomp',x:e.x,y:e.y,angle:e.angle||0,radius:185/GAME_WORLD_ZOOM,color:e.color||'#c16cff'});
-     const dToP=Math.hypot(player.x-e.x,player.y-e.y);
-     if(dToP<185/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(16);shake=8;}
+   if(e.mawChomp>=4.0){
+     e.mawChomp=0;const radius=205/GAME_WORLD_ZOOM;
+     renderBossAbilityVisual({abilityId:'gulper-chomp',x:e.x,y:e.y,angle:e.angle||0,radius,color:e.color||'#c16cff'});
+     if(Math.hypot(player.x-e.x,player.y-e.y)<radius&&player.invuln<=0){hurtPlayer(24);shake=11;}
    }
   }
-  // 3. Leviathan (Leviatã): tremor de trincheira com rastro
   if(!onlineMode&&e.kind==='leviathan'){
    e.leviTrail=(e.leviTrail||0)+dt;e.pressureWaveTimer=(e.pressureWaveTimer||0)+dt;
-   if(e.leviTrail>0.25){e.leviTrail=0;effects.push({type:'ring',x:e.x,y:e.y,max:40/worldZoom,life:.3,maxLife:.3,color:'#4ce0d1'});}
-   if(e.pressureWaveTimer>=5.4){
-    e.pressureWaveTimer=0;const reach=430/GAME_WORLD_ZOOM,ang=e.angle||0,x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
+   if(e.leviTrail>0.2){e.leviTrail=0;effects.push({type:'ring',x:e.x,y:e.y,max:52/worldZoom,life:.36,maxLife:.36,color:'#4ce0d1'});}
+   if(e.pressureWaveTimer>=4.8){
+    e.pressureWaveTimer=0;const reach=480/GAME_WORLD_ZOOM,ang=e.angle||0,x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
     renderBossAbilityVisual({abilityId:'pressure-lance',x:e.x,y:e.y,angle:ang,radius:reach,color:e.color||'#4ce0d1'});
-    if(marineAbilityLineDistance(player.x,player.y,e.x,e.y,x2,y2)<=58/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(15);shake=9;}
+    if(marineAbilityLineDistance(player.x,player.y,e.x,e.y,x2,y2)<=72/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(22);shake=12;}
    }
   }
   // 4. White Shark Boss: rastro de corte de barbatanas
@@ -2329,7 +2349,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd = (e.attackCd || 0) - dt; if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){if(player.invuln<=0){hurtPlayer(e.damage);if(e.kind==='boss')player.neurotoxinUntil=performance.now()+1300;}e.attackCd=e.kind==='stinger'?.8:e.kind==='kraken'?.95:1.1;}}
+  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||1));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;if(e.kind==='boss')player.neurotoxinUntil=performance.now()+1300;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  rebuildEnemyCollisionGrid();
