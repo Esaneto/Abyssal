@@ -387,6 +387,8 @@ function worldDepthState(world){
  const zone=ExpeditionRules.zoneForBosses(bossesDefeated);
  return {
   bossesDefeated,
+  mapTier:Math.max(0,Math.floor(Number(world.mapTier)||0)),
+  nextTierUnlocked:bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
   depth:ExpeditionRules.depthForBosses(bossesDefeated),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event:WorldSimulation.currentDepthEvent(world)
@@ -714,7 +716,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(batch)batch.orbs.push({...orb});
    else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...orb});
   }
-  if(boss){
+  if(!boss&&enemy.eliteId&&enemy.spawnRoomId==='elite'&&Number(w.eliteRewardClaimedTier)!==Number(w.mapTier)){
+   w.eliteRewardClaimedTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
+   const bonus=WorldSimulation.spawnRewardOrb(w,enemy.x,enemy.y,ExpeditionRules.eliteRoomBonusValue?.(w.mapTier)||18,'elite-cache',enemy.id);
+   if(bonus){combatDiagnostics.xpOrbsSpawned++;if(batch)batch.orbs.push({...bonus});else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...bonus});}
+   io.to(channelFor(room)).emit('world-cave-signal',{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:w.mapTier});
+  }
+ if(boss){
    WorldSimulation.startDepthEvent(w,Math.random);
    io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
    awardWorldBossCoins(room);
@@ -819,10 +827,13 @@ function tickRoom(room, now) {
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
+ const spawnedRewardOrbs = Array.isArray(result.spawnedRewardOrbs) ? result.spawnedRewardOrbs : [];
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
  const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
  if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+ if(spawnedRewardOrbs.length){combatDiagnostics.xpOrbsSpawned+=spawnedRewardOrbs.length;io.to(channelFor(room)).emit('world-xp-orbs-spawned',spawnedRewardOrbs.map(orb=>({...orb})));}
+ if(result.sideEncounter)io.to(channelFor(room)).emit('world-cave-signal',result.sideEncounter);
 
  // Full snapshots are reserved for periodic recovery. Entity creation, damage and orb
  // lifecycle changes use compact reliable events; motion stays volatile and view-scoped.
@@ -1177,21 +1188,39 @@ io.on('connection', socket => {
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(!room||room.mode!=='coop'||!p||p.alive===false)return reply({ok:false,reason:'unavailable'});
   const kind=String(payload?.kind||''),layout=WorldSimulation.mapLayoutFor(room.world),now=Date.now();
-  if(!layout||!['descent','ascend'].includes(kind))return reply({ok:false,reason:'invalid-transition'});
+  if(!layout||!['descent','ascend','next-tier'].includes(kind))return reply({ok:false,reason:'invalid-transition'});
   if(now-(Number(p.lastMapTransitionAt)||0)<850)return reply({ok:false,reason:'cooldown'});
+  if(kind==='next-tier'){
+   const w=room.world,source=layout.portals.boss,requesterRadius=Number(source?.r||110)+(Number(p.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM;
+   if(!source||Math.hypot(Number(p.x)-source.x,Number(p.y)-source.y)>requesterRadius)return reply({ok:false,reason:'too-far'});
+   if(w.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)))return reply({ok:false,reason:'boss-alive'});
+   const currentTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
+   if(Math.max(0,Math.floor(Number(w.bossesDefeated)||0))<=currentTier)return reply({ok:false,reason:'boss-not-cleared'});
+   const party=livingPlayers(room);
+   const allReady=party.every(peer=>Math.hypot(Number(peer.x)-source.x,Number(peer.y)-source.y)<=Number(source.r)+(Number(peer.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM);
+   if(!allReady)return reply({ok:false,reason:'group-not-ready'});
+   w.mapTier=currentTier+1;w.enemies=[];w.orbs=[];w.commonSpawnTimer=.45;w.nextBossAt=(Number(w.elapsed)||0)+(100/3.8);
+   w.snapshotTimer=0;w.reliableSnapshotTimer=0;w.orbSnapshotTimer=0;w.sideEncounterId=null;
+   const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
+   party.forEach((peer,index)=>{
+    const spawn=AbyssalMap.startSpawn(nextLayout,index,party.length);
+    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;
+    io.to(peer.id).emit('map-transition-result',{ok:true,kind:'next-tier',x:peer.x,y:peer.y,map:descriptor,tier:w.mapTier,serverTime:now});
+   });
+   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+   io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));broadcastWorld(room,{criticalReason:'map-tier-transition'});
+   if(typeof acknowledge==='function')try{acknowledge({ok:true,kind:'next-tier',x:p.x,y:p.y,map:descriptor,tier:w.mapTier,serverTime:now});}catch{}
+   return;
+  }
   const source=kind==='descent'?layout.portals.descent:layout.portals.landing;
-  const target=kind==='descent'
-   ? {x:Number(layout.portals.descent.targetX),y:Number(layout.portals.descent.targetY)}
-   : {x:Number(layout.portals.landing.targetX),y:Number(layout.portals.landing.targetY)};
+  const target=kind==='descent'?{x:Number(layout.portals.descent.targetX),y:Number(layout.portals.descent.targetY)}:{x:Number(layout.portals.landing.targetX),y:Number(layout.portals.landing.targetY)};
   const proximity=Math.hypot(Number(p.x)-source.x,Number(p.y)-source.y),allowedRadius=Number(source.r)+(Number(p.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM;
   if(!Number.isFinite(proximity)||proximity>allowedRadius)return reply({ok:false,reason:'too-far'});
   if(!AbyssalMap.isWalkable(layout,target.x,target.y,Math.max(10,Number(p.r)||13/WORLD_ZOOM)))return reply({ok:false,reason:'invalid-destination'});
-  p.x=target.x;p.y=target.y;p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=now+120;p.lastPositionAt=now;p.lastMapTransitionAt=now;
-  p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
+  p.x=target.x;p.y=target.y;p.velocityX=0;p.velocityY=0;p.positionResumeGraceUntil=now+120;p.lastPositionAt=now;p.lastMapTransitionAt=now;p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
   const result={ok:true,kind,x:p.x,y:p.y,serverTime:now};
   io.to(socket.id).emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,p.x,p.y,true));
-  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
-  reply(result);
+  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));reply(result);
  });
  socket.on('player-net-meta',meta=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!meta||typeof meta!=='object')return;
