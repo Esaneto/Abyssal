@@ -797,3 +797,212 @@ Preservar sem redesign:
 - `whiteSharkBoss`;
 - `kraken`;
 - `devourer`.
+
+
+## 23. Habilidades por especie, raridade, filtros e bosses autoritativos - 2026-11-05
+
+Esta secao complementa e prevalece sobre regras anteriores que tratavam as 100 especies apenas como passivos por familia.
+
+### Paleta visual por especie
+
+`public/marine-species.js` e a fonte canonica de identidade.
+Cada especie possui:
+- `art.key` unico;
+- `art.tone`;
+- `art.palette.base`;
+- `art.palette.shadow`;
+- `art.palette.rim`;
+- `art.palette.glow`;
+- `art.palette.accent`;
+- `art.palette.eye`;
+- `rarity` canonica.
+
+A direcao anterior estritamente monocromatica foi substituida.
+O renderer pode e deve usar gradientes internos para modelar volume, desde que sejam construidos a partir da paleta individual da especie e nao sejam a mesma vinheta generica aplicada a todas.
+
+Regra visual:
+- silhueta propria;
+- cor-base propria;
+- sombra propria;
+- cor secundaria de contraste;
+- glow localizado;
+- assinatura biologica/fantastica unica.
+
+Kraken Boss, Tubarao Boss e Devorador continuam como referencias de qualidade e nao devem ser redesenhados.
+
+### Habilidades unicas das 100 especies
+
+Novo modulo canonico:
+`public/marine-abilities.js`
+
+Ele define 100 perfis, um para cada `marine_*`.
+Cada perfil possui:
+- id de habilidade;
+- titulo unico;
+- tipo de geometria;
+- cooldown;
+- dano;
+- raio;
+- quantidade de feixes;
+- raridade;
+- cor;
+- descricao.
+
+Tipos atuais:
+- dash;
+- cone;
+- aura;
+- multi;
+- lance;
+- sweep;
+- armor;
+- pulse;
+- chain;
+- veil;
+- mark;
+- trap;
+- pull;
+- grasp;
+- rage;
+- blast;
+- spines.
+
+`public/game.js` executa essas habilidades automaticamente durante a partida.
+Elas causam dano real via `dealEnemyDamage()`, portanto usam o fluxo autoritativo de dano online ja existente.
+O mesmo evento envia `sendSkinAbility` para que outros clientes vejam o efeito.
+
+Regra:
+habilidade escrita sem efeito fisico e sem efeito visual e bug.
+
+### Bosses que receberam mecanica autoritativa
+
+Preservar visuais e mecanicas aprovadas de:
+- `whiteSharkBoss`;
+- `kraken`;
+- `devourer`.
+
+Os quatro bosses abaixo usam o renderer novo e agora tambem possuem habilidades fisicas no servidor:
+
+`boss`
+- `neuro-ring`;
+- pulso neurotoxico radial;
+- dano real + neurotoxina;
+- telegraph vermelho/ciano.
+
+`angler`
+- `lure-pulse`;
+- isca hipnotica;
+- atracao fisica + dano;
+- telegraph dourado e feixe da isca.
+
+`maw`
+- `gulper-chomp`;
+- mordida/bolsa gular expansiva;
+- dano radial;
+- mandibula e onda violeta/magenta.
+
+`leviathan`
+- `pressure-lance`;
+- onda de pressao linear;
+- dano por geometria de segmento;
+- feixes turquesa/vermelho.
+
+Arquivos autoritativos:
+- `world-simulation.js`;
+- `server.js`;
+- `public/online.js`;
+- `public/game.js`.
+
+O servidor transmite `boss-ability-visual` e `player-vitals` com `reason:'boss-ability'`.
+Nao devolver esses danos ao cliente como logica local no multiplayer.
+
+### Raridade canonica
+
+Raridades de especies marinhas:
+1. `common`;
+2. `uncommon`;
+3. `rare`;
+4. `epic`;
+5. `legendary`;
+6. `mythic`.
+
+A propriedade `species.rarity` e canonica.
+`public/marine-abilities.js` deve consumi-la, nao manter classificacao concorrente.
+
+Skins antigas usam `SHOP_SPECIAL_RARITY` em `public/game.js` enquanto nao forem migradas para um catalogo canonico proprio.
+
+### Filtros da loja
+
+A loja agora possui:
+- busca textual;
+- filtro de raridade;
+- filtro de familia;
+- filtro por possuido / nao possuido.
+
+IDs:
+- `shopSearchInput`;
+- `shopRarityFilter`;
+- `shopFamilyFilter`;
+- `shopOwnershipFilter`;
+- `shopFilterSummary`.
+
+`renderShop()`:
+- filtra antes de renderizar;
+- ordena por raridade do menos raro ao mais raro;
+- usa nome como desempate;
+- mostra badge de raridade em cada card;
+- exibe a descricao da habilidade unica para skins marinhas.
+
+Nao voltar a renderizar `skinData` diretamente sem passar pelo filtro/ordenacao.
+
+### Arquivos de estilo e cache
+
+Assets apos este pass:
+- `style.css?v=4.3.9`;
+- `marine-species.js?v=7`;
+- `marine-abilities.js?v=3`;
+- `marine-renderer.js?v=8`;
+- `abyssal-boss-renderer.js?v=3`;
+- `game.js?v=4.4.15`;
+- `online.js?v=4.4.3`.
+
+Ao alterar qualquer um desses arquivos servidos diretamente, atualizar seu query-version correspondente.
+
+### Testes novos/importantes
+
+- `tests/marine-abilities-runtime.test.cjs`;
+- `tests/marine-renderer-anatomy.test.cjs`;
+- `tests/marine-species.test.cjs`;
+- `tests/abyssal-boss-renderer.test.cjs`.
+
+Protegem:
+- 100 habilidades unicas;
+- raridade;
+- filtros;
+- ordenacao;
+- dano fisico;
+- replicacao visual;
+- habilidades de bosses;
+- paletas completas;
+- preservacao do trio aprovado;
+- identidade de cor dos quatro bosses refeitos.
+
+### Regra para agentes futuros
+
+Nao simplificar por conveniencia:
+- 100 especies para um unico bonus de familia;
+- uma unica cor por familia;
+- uma unica geometria de habilidade;
+- efeitos apenas textuais;
+- bosses apenas com descricao sem telegraph;
+- loja sem ordenacao ou filtros.
+
+Se uma nova especie for adicionada, ela exige no mesmo commit:
+1. `art.key`;
+2. paleta completa;
+3. raridade;
+4. habilidade;
+5. efeito fisico;
+6. efeito visual;
+7. teste correspondente;
+8. atualizacao deste handoff quando houver nova regra estrutural.
