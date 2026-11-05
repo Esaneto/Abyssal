@@ -12,31 +12,31 @@
       id:'twilight',minBosses:0,name:'LIMIAR DA LUZ',shortName:'LIMIAR',
       subtitle:'A última zona em que o oceano ainda lembra a superfície.',
       accent:'#78e8e4',eliteChance:.02,
-      weights:Object.freeze({drifter:.45,stinger:.23,brute:.17,lurker:.10,whiteShark:.05})
+      weights:Object.freeze({drifter:.46,stinger:.20,brute:.12,lurker:.10,whiteShark:.12})
     }),
     Object.freeze({
       id:'mesopelagic',minBosses:1,name:'ZONA MESOPELÁGICA',shortName:'MESOPELÁGICA',
       subtitle:'A luz desaparece. O movimento abaixo de você não.',
       accent:'#73bfff',eliteChance:.045,
-      weights:Object.freeze({drifter:.34,stinger:.25,brute:.20,lurker:.14,whiteShark:.07})
+      weights:Object.freeze({drifter:.28,stinger:.32,brute:.18,lurker:.19,whiteShark:.03})
     }),
     Object.freeze({
       id:'midnight',minBosses:3,name:'ZONA DA MEIA-NOITE',shortName:'MEIA-NOITE',
       subtitle:'Predadores maiores começam a seguir o seu sinal.',
       accent:'#9d79ff',eliteChance:.075,
-      weights:Object.freeze({drifter:.23,stinger:.24,brute:.24,lurker:.19,whiteShark:.10})
+      weights:Object.freeze({drifter:.20,stinger:.31,brute:.24,lurker:.24,whiteShark:.01})
     }),
     Object.freeze({
       id:'hadal',minBosses:5,name:'FENDA HADAL',shortName:'HADAL',
       subtitle:'A pressão muda a anatomia de tudo que continua vivo.',
       accent:'#d165ff',eliteChance:.11,
-      weights:Object.freeze({drifter:.15,stinger:.23,brute:.27,lurker:.22,whiteShark:.13})
+      weights:Object.freeze({drifter:.12,stinger:.25,brute:.32,lurker:.31,whiteShark:0})
     }),
     Object.freeze({
       id:'unknown',minBosses:7,name:'SETOR INSONDÁVEL',shortName:'INSONDÁVEL',
       subtitle:'Nenhuma expedição deveria registrar atividade abaixo daqui.',
       accent:'#ff5c84',eliteChance:.145,
-      weights:Object.freeze({drifter:.10,stinger:.20,brute:.28,lurker:.25,whiteShark:.17})
+      weights:Object.freeze({drifter:.08,stinger:.22,brute:.34,lurker:.36,whiteShark:0})
     })
   ]);
 
@@ -103,7 +103,10 @@
     const zone=zoneForBosses(bosses);
     const weights={...zone.weights};
     if(eventId==='predator_migration'){
-      weights.whiteShark*=2.8;weights.stinger*=1.25;weights.drifter*=.55;
+      // A pelagic migration can force a rare surface predator deeper than normal, but
+      // white sharks never become the default hadal fauna.
+      const sharkIncursion=zone.id==='twilight'?.24:zone.id==='mesopelagic'?.10:zone.id==='midnight'?.045:.02;
+      weights.whiteShark=Math.max(weights.whiteShark*2.2,sharkIncursion);weights.stinger*=1.25;weights.drifter*=.55;
     }else if(eventId==='black_current'){
       weights.lurker*=1.85;weights.brute*=1.45;weights.drifter*=.72;
     }else if(eventId==='resonance_bloom'){
