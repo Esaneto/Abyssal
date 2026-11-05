@@ -7,7 +7,7 @@
 
   const WORLD_WIDTH=4800;
   const WORLD_HEIGHT=3000;
-  const VERSION=1;
+  const VERSION=2;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
@@ -41,6 +41,19 @@
     Object.freeze({id:'boss',type:'boss',x:3850,y:2680,rx:520,ry:250,depth:8})
   ]);
 
+  const ROOM_PROFILES=Object.freeze({
+    start:Object.freeze({risk:0,densityCap:0,reward:'PONTO SEGURO',signal:'SINAL DE SUPERFÍCIE'}),
+    shoal:Object.freeze({risk:1,densityCap:44,reward:'FRAGMENTOS COMUNS',signal:'FAUNA PELÁGICA'}),
+    trench:Object.freeze({risk:2,densityCap:52,reward:'FRAGMENTOS +12%',signal:'PRESSÃO EM ALTA'}),
+    lantern:Object.freeze({risk:2,densityCap:58,reward:'FAUNA BIOLUMINESCENTE',signal:'LUZES NO ESCURO'}),
+    junction:Object.freeze({risk:3,densityCap:64,reward:'ROTA DE PROGRESSÃO',signal:'CORRENTES CRUZADAS'}),
+    elite:Object.freeze({risk:5,densityCap:10,reward:'CACHE DE ELITE',signal:'ASSINATURA VERMELHA'}),
+    event:Object.freeze({risk:4,densityCap:18,reward:'ANOMALIA / TESOURO',signal:'ECO INSTÁVEL'}),
+    hub:Object.freeze({risk:2,densityCap:34,reward:'EXTRAÇÃO OU DESCIDA',signal:'CÂMARA DE DECISÃO'}),
+    landing:Object.freeze({risk:4,densityCap:54,reward:'FRAGMENTOS +28%',signal:'CAMADA INFERIOR'}),
+    boss:Object.freeze({risk:5,densityCap:14,reward:'ABRIR PRÓXIMA CAMADA',signal:'PRESSÃO COLOSSAL'})
+  });
+
   const EDGE_BLUEPRINTS=Object.freeze([
     Object.freeze({a:'start',b:'shoal',width:185}),
     Object.freeze({a:'shoal',b:'trench',width:175}),
@@ -53,8 +66,11 @@
   ]);
 
   function createLayout(seed='abyssal',tier=0){
-    const random=rngFromSeed(seed);
     const tierNumber=Math.max(0,Math.floor(Number(tier)||0));
+    // Tier 0 preserves the original map exactly. Deeper tiers derive a new lateral
+    // topology from the same expedition seed without ever changing the downward Y order.
+    const baseSeed=seedValue(seed);
+    const random=rngFromSeed(tierNumber===0?baseSeed:seedValue(baseSeed+':tier:'+tierNumber));
     const roomOffsets=new Map();
     for(const base of ROOM_BLUEPRINTS){
       if(base.id==='start'||base.id==='hub'||base.id==='landing'||base.id==='boss'){
@@ -68,8 +84,9 @@
       if(base.id==='elite')x=clamp(x,760,1450);
       if(base.id==='event')x=clamp(x,3650,4250);
       x=clamp(x,base.rx+80,WORLD_WIDTH-base.rx-80);
-      const scale=1+Math.min(.08,tierNumber*.008);
-      return Object.freeze({...base,x:Math.round(x),rx:Math.round(base.rx*scale),ry:Math.round(base.ry*scale)});
+      const scale=1+Math.min(.12,tierNumber*.012);
+      const profile=ROOM_PROFILES[base.id]||ROOM_PROFILES.shoal;
+      return Object.freeze({...base,x:Math.round(x),rx:Math.round(base.rx*scale),ry:Math.round(base.ry*scale),risk:profile.risk,densityCap:profile.densityCap,reward:profile.reward,signal:profile.signal});
     });
     const byId=id=>rooms.find(room=>room.id===id);
     const corridors=EDGE_BLUEPRINTS.map(edge=>{
@@ -82,7 +99,7 @@
       surface:Object.freeze({id:'surface-vortex',type:'surface',x:hub.x-155,y:hub.y+20,r:78}),
       descent:Object.freeze({id:'descent-hole',type:'descent',x:hub.x+175,y:hub.y+22,r:84,targetX:landing.x,targetY:landing.y-40}),
       landing:Object.freeze({id:'descent-landing',type:'landing',x:landing.x,y:landing.y-40,r:88,targetX:hub.x+175,targetY:hub.y+22}),
-      boss:Object.freeze({id:'boss-sigil',type:'boss',x:boss.x,y:boss.y,r:110})
+      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x,y:boss.y,r:110,unlockedAfterBosses:tierNumber+1})
     });
     return Object.freeze({
       version:VERSION,
@@ -97,6 +114,16 @@
       startRoomId:'start',
       hubRoomId:'hub'
     });
+  }
+
+  function roomProfile(roomOrId,tier=0){
+    const id=typeof roomOrId==='string'?roomOrId:roomOrId?.id;
+    const room=typeof roomOrId==='object'&&roomOrId?roomOrId:ROOM_BLUEPRINTS.find(item=>item.id===id);
+    const base=ROOM_PROFILES[id]||ROOM_PROFILES.shoal;
+    const tierNumber=Math.max(0,Math.floor(Number(tier)||0));
+    const depth=Math.max(0,Math.floor(Number(room?.depth)||0));
+    const zoneIndex=clamp(Math.floor((depth+tierNumber*2)/2),0,4);
+    return Object.freeze({...base,id:id||'unknown',depth,zoneIndex,densityCap:Math.round(base.densityCap*(1+Math.min(.35,tierNumber*.05)))});
   }
 
   function pointSegmentDistance(px,py,ax,ay,bx,by){
@@ -232,13 +259,19 @@
     const type=String(options.type||'common');
     const bosses=Math.max(0,Math.floor(Number(options.bossesDefeated)||0));
     let candidates;
-    if(type==='boss')candidates=['boss'];
-    else if(type==='elite')candidates=['elite'];
-    else if(options.initial)candidates=['shoal','trench'];
-    else if(bosses>=5)candidates=['junction','lantern','event','elite','hub'];
-    else if(bosses>=3)candidates=['trench','lantern','junction','event'];
-    else if(bosses>=1)candidates=['shoal','trench','lantern','junction'];
-    else candidates=['shoal','trench','lantern'];
+    const forcedRoomId=String(options.roomId||'');
+    if(forcedRoomId&&layout.rooms.some(room=>room.id===forcedRoomId))candidates=[forcedRoomId];
+    else if(Array.isArray(options.allowedRoomIds)&&options.allowedRoomIds.length){
+      candidates=options.allowedRoomIds.filter(id=>layout.rooms.some(room=>room.id===id));
+      if(!candidates.length)candidates=null;
+    }
+    if(!candidates&&type==='boss')candidates=['boss'];
+    else if(!candidates&&type==='elite')candidates=['elite'];
+    else if(!candidates&&options.initial)candidates=['shoal','trench'];
+    else if(!candidates&&bosses>=5)candidates=['junction','lantern','event','elite','hub','landing'];
+    else if(!candidates&&bosses>=3)candidates=['trench','lantern','junction','event','landing'];
+    else if(!candidates&&bosses>=1)candidates=['shoal','trench','lantern','junction'];
+    else if(!candidates)candidates=['shoal','trench','lantern'];
     const room=nearestRoom(layout,0,0,[candidates[Math.floor(random()*candidates.length)]])||layout.rooms[0];
     const angle=random()*Math.PI*2,radial=Math.sqrt(random())*.56;
     return {
@@ -258,8 +291,8 @@
   }
 
   return Object.freeze({
-    VERSION,WORLD_WIDTH,WORLD_HEIGHT,ROOM_BLUEPRINTS,EDGE_BLUEPRINTS,
-    seedValue,rngFromSeed,createLayout,pointSegmentDistance,pointInRoom,pointInCorridor,
+    VERSION,WORLD_WIDTH,WORLD_HEIGHT,ROOM_BLUEPRINTS,ROOM_PROFILES,EDGE_BLUEPRINTS,
+    seedValue,rngFromSeed,createLayout,roomProfile,pointSegmentDistance,pointInRoom,pointInCorridor,
     isWalkable,segmentWalkable,resolveMove,roomAt,nearestRoom,roomPath,navigationTarget,
     pointInPortal,spawnPoint,startSpawn
   });
