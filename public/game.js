@@ -121,7 +121,7 @@ function checkSoloCaveEncounter(){
  soloSideEncounterTier=activeMapTier;
  window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{...encounter,tier:activeMapTier}}));
  if(encounter.type==='treasure'){addOrb(room.x,room.y,28+activeMapTier*7);return;}
- const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4));
+ const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
  for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:encounter.type==='trap'&&i<2});
 }
 function currentMapInteraction(){
@@ -198,6 +198,8 @@ function soloDepthState(){
  }:null;
  return {
   bossesDefeated:bosses,
+  mapTier:activeMapTier,
+  nextTierUnlocked:bosses>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind)),
   depth:EXPEDITION_RULES?.depthForBosses?.(bosses)??(350+bosses*650),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event
