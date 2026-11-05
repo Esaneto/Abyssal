@@ -151,7 +151,7 @@ function spawnEnemy(world, options = {}) {
   }
   // Expedition enemies now emerge from actual cave chambers instead of the empty rectangular perimeter.
   const layout = mapLayoutFor(world);
-  const point = AbyssalMap.spawnPoint(layout, { type, initial, random, bossesDefeated: world.bossesDefeated });
+  const point = AbyssalMap.spawnPoint(layout, { type: type==='boss'?'boss':eliteId?'elite':type, initial, random, bossesDefeated: world.bossesDefeated });
   const id = ++world.nextEnemyId;
   const enemy = {
     id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
