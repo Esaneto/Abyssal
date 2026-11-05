@@ -11,7 +11,7 @@ var SPECIMENS=[
   {id:'violet',tier:'deep',habitat:'Mesopelágico',classTag:'ESPECTRAL',name:'Espectro Violeta',lore:'Uma forma espectral que parece existir alguns centímetros fora da água.'},
   {id:'solar',tier:'core',habitat:'Zona fótica',classTag:'SOLAR',name:'Núcleo Solar',lore:'Fragmentos de luz presos em uma criatura que nunca deveria ter visto o sol.'},
   {id:'toxic',tier:'deep',habitat:'Fendas sulfurosas',classTag:'TÓXICA',name:'Lodo Tóxico',lore:'As glândulas verdes continuam pulsando mesmo depois de separadas do hospedeiro.'},
-  {id:'leviathan',tier:'relic',habitat:'Fossa hadal',classTag:'RELÍQUIA',name:'Eco do Leviatã',lore:'Não é o Leviatã. É apenas o que ficou preso em você depois de encontrá-lo.'},
+  {id:'leviathan',tier:'relic',habitat:'Fossa hadal',classTag:'RELÍQUIA',name:'Eco do Peixe-Remo Leviatã',lore:'Uma fita colossal de carne e crista luminosa, moldada a partir do peixe-remo das profundezas.'},
   {id:'thorn',tier:'deep',habitat:'Recife negro',classTag:'CALCIFICADA',name:'Coroa de Espinhos',lore:'Coral predatório calcificado em torno de um núcleo ainda consciente.'},
   {id:'abyssking',tier:'abyssal',habitat:'Setor interditado',classTag:'ABISSAL',name:'Soberano do Vazio',lore:'Uma coroa não significa que exista um reino. Às vezes significa que algo venceu tudo ao redor.'},
   {id:'royal',tier:'deep',habitat:'Talude profundo',classTag:'SIMBIÓTICA',name:'Pérola Regente',lore:'Organismos luminescentes orbitam a criatura como se reconhecessem autoridade.'},
@@ -22,9 +22,9 @@ var SPECIMENS=[
   {id:'abyssaleye',tier:'abyssal',habitat:'Desconhecido',classTag:'ABISSAL',name:'Olho do Insondável',lore:'O registro mostra a mesma íris olhando para câmeras instaladas em pontos diferentes.'},
   {id:'deepwarden',tier:'deep',habitat:'Fundo rochoso',classTag:'BLINDADA',name:'Carcereiro das Fossas',lore:'Placas minerais se fecharam sobre um organismo que ainda tenta sair.'},
   {id:'kraken',tier:'relic',habitat:'Fossa hadal',classTag:'RELÍQUIA',name:'Eco do Kraken',lore:'O Kraken permanece lá embaixo. Isto é somente uma memória biológica dos seus tentáculos.'},
-  {id:'aberration',tier:'relic',habitat:'Setor 07',classTag:'RELÍQUIA',name:'Casca da Aberração',lore:'Uma carapaça vazia. Ninguém conseguiu provar que a criatura a abandonou voluntariamente.'},
-  {id:'angler',tier:'relic',habitat:'Zona batial',classTag:'RELÍQUIA',name:'Núcleo da Lanterna',lore:'A isca continua acesa. Coisas menores ainda se aproximam dela.'},
-  {id:'maw',tier:'relic',habitat:'Fendas tectônicas',classTag:'RELÍQUIA',name:'Fragmento da Fenda',lore:'Uma mandíbula incompleta que ainda tenta fechar sobre qualquer fonte de calor.'},
+  {id:'aberration',tier:'relic',habitat:'Fossa abissal',classTag:'RELÍQUIA',name:'Eco do Polvo-de-Anéis-Azuis',lore:'Manto azul e anéis bioluminescentes denunciam a criatura antes que a tinta negra apague o caminho atrás dela.'},
+  {id:'angler',tier:'relic',habitat:'Zona batial',classTag:'RELÍQUIA',name:'Núcleo do Peixe-Pescador',lore:'A boca permanece escancarada enquanto a isca pulsa. Depois, o corpo inteiro desaparece na água escura.'},
+  {id:'maw',tier:'relic',habitat:'Fendas tectônicas',classTag:'RELÍQUIA',name:'Fragmento da Enguia-Pelícano',lore:'A mandíbula descomunal permanece intacta, agora ligada ao corpo longo e afilado da enguia-pelícano.'},
   {id:'devourer',tier:'relic',habitat:'Sem registro',classTag:'RELÍQUIA',name:'Núcleo Devorador',lore:'A pressão cai ao redor dele, como se a água estivesse sendo puxada para dentro.'},
   {id:'reefshark',tier:'surface',habitat:'Mar aberto',classTag:'PELÁGICA',name:'Tubarão-branco',lore:'Um predador perfeito não precisa parecer monstruoso para ser temido.'},
   {id:'hammerhead',tier:'surface',habitat:'Plataforma continental',classTag:'PELÁGICA',name:'Tubarão-martelo',lore:'O cefalofólio percebe movimentos que os olhos ainda não alcançaram.'},
@@ -124,7 +124,7 @@ function ensureShopChrome(){
   if(!document.querySelector('#shopScreen .abyss-skin-filters')){
     var intro=document.createElement('p');
     intro.className='abyss-specimen-intro';
-    intro.textContent='Formas comuns sobrevivem perto da luz. As Relíquias carregam apenas vestígios dos horrores que continuam nas fossas. Chefes e elites verdadeiros não são domesticados.';
+    intro.textContent='Formas costeiras sobrevivem perto da luz. As Relíquias carregam apenas vestígios dos horrores que continuam nas fossas. Chefes e elites verdadeiros não são domesticados.';
 
     var filters=document.createElement('div');
     filters.className='abyss-skin-filters';
