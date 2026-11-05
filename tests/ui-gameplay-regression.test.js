@@ -6,6 +6,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+const game = read('public/game.js');
 
 test('browser scripts parse before menu event handlers are wired', () => {
   assert.doesNotThrow(() => new vm.Script(read('public/game.js'), { filename: 'public/game.js' }));
