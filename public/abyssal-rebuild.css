@@ -163,3 +163,82 @@ body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
   .abyss-gate::before,.abyss-gate::after,.abyss-gate-rim,.abyss-gate-depth::before,.abyss-gate-depth::after,.abyss-gate-eye{animation:none !important}
   .abyss-gate-eye{display:none}
 }
+
+
+/* Expedition risk/reward checkpoint */
+.abyss-depth-meter{
+  position:absolute;
+  right:0;
+  top:94px;
+  min-width:146px;
+  padding:10px 12px;
+  border:1px solid rgba(101,255,233,.16);
+  background:linear-gradient(145deg,rgba(3,14,22,.78),rgba(7,24,31,.72));
+  text-align:right;
+  pointer-events:none;
+  backdrop-filter:blur(5px);
+}
+.abyss-depth-meter[hidden]{display:none !important}
+.abyss-depth-meter small{display:block;color:#6f8f98;font-size:8px;letter-spacing:.15em}
+.abyss-depth-meter strong{display:block;color:#dffcf8;font-family:"Cinzel",serif;font-size:17px;letter-spacing:.08em;margin-top:3px}
+.abyss-depth-meter span{display:block;color:#72e9dc;font-size:8px;font-weight:800;letter-spacing:.12em;margin-top:4px}
+
+.abyss-checkpoint-panel{
+  position:fixed;z-index:5100;inset:0;display:grid;place-items:center;padding:20px;
+  background:radial-gradient(circle at 50% 36%,rgba(11,43,47,.76),rgba(0,4,9,.95) 70%);
+  backdrop-filter:blur(8px);
+}
+.abyss-checkpoint-panel[hidden]{display:none !important}
+.abyss-checkpoint-card{
+  width:min(760px,94vw);
+  padding:clamp(24px,4vw,42px);
+  border:1px solid rgba(107,255,236,.22);
+  background:
+    radial-gradient(circle at 50% -30%,rgba(88,255,229,.11),transparent 46%),
+    linear-gradient(160deg,rgba(7,24,31,.99),rgba(2,9,15,.99));
+  box-shadow:0 28px 100px rgba(0,0,0,.72),inset 0 0 60px rgba(0,0,0,.25);
+}
+.abyss-checkpoint-signal{display:block;text-align:center;color:#7df3e5;font-size:9px;font-weight:900;letter-spacing:.22em}
+.abyss-checkpoint-card h2{
+  margin:10px 0 8px;text-align:center;color:#edf9f8;font-family:"Cinzel",serif;
+  font-size:clamp(28px,5vw,48px);letter-spacing:.07em;
+}
+.abyss-checkpoint-card>p{text-align:center;color:#859ea7;font-size:12px;margin:0 0 24px}
+.abyss-checkpoint-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;
+}
+.abyss-checkpoint-stats>div{
+  padding:14px 12px;border:1px solid rgba(112,192,196,.12);background:rgba(4,15,22,.68);
+}
+.abyss-checkpoint-stats small{display:block;color:#607c86;font-size:8px;letter-spacing:.12em;margin-bottom:5px}
+.abyss-checkpoint-stats strong{display:block;color:#dffaf6;font-size:12px;letter-spacing:.04em}
+.abyss-checkpoint-actions{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}
+.abyss-checkpoint-actions button{
+  min-height:94px;padding:16px 18px;text-align:left;border-radius:3px;cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,background .18s ease;
+}
+.abyss-checkpoint-actions button strong{display:block;font-family:"Cinzel",serif;font-size:14px;letter-spacing:.08em;margin-bottom:7px}
+.abyss-checkpoint-actions button span{display:block;font-size:10px;line-height:1.45}
+.abyss-checkpoint-descend{
+  border:1px solid rgba(255,75,108,.28);
+  background:linear-gradient(145deg,rgba(52,13,24,.72),rgba(13,8,16,.88));
+  color:#ffdce4;
+}
+.abyss-checkpoint-descend span{color:#c38694}
+.abyss-checkpoint-extract{
+  border:1px solid rgba(92,244,220,.28);
+  background:linear-gradient(145deg,rgba(11,51,50,.72),rgba(6,20,25,.9));
+  color:#dffff9;
+}
+.abyss-checkpoint-extract span{color:#7ba9a7}
+.abyss-checkpoint-actions button:hover,
+.abyss-checkpoint-actions button:focus-visible{transform:translateY(-2px);outline:none}
+.abyss-checkpoint-descend:hover,.abyss-checkpoint-descend:focus-visible{border-color:rgba(255,82,115,.62)}
+.abyss-checkpoint-extract:hover,.abyss-checkpoint-extract:focus-visible{border-color:rgba(100,255,232,.65)}
+
+@media (max-width:700px){
+  .abyss-depth-meter{top:82px;right:10px;min-width:125px;padding:8px 10px}
+  .abyss-checkpoint-stats{grid-template-columns:1fr}
+  .abyss-checkpoint-actions{grid-template-columns:1fr}
+  .abyss-checkpoint-actions button{min-height:78px}
+}
