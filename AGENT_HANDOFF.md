@@ -556,3 +556,44 @@ Validacao:
 
 Regra adicional:
 - ao fazer cache bump, pesquisar testes que fixem a versao literal do asset e substitui-los por verificacao de contrato sempre que o numero em si nao for o requisito.
+
+
+## 20. Correcao visual apos validacao por captura real em 2026-11-05
+
+O usuario enviou capturas reais do Abyssario e da loja e confirmou duas falhas que os testes anteriores nao detectavam:
+- bosses ainda pareciam o renderer antigo;
+- muitas skins novas pareciam recoloracoes planas e nao seguiam a linguagem visual do Abyssal.
+
+Correcao estrutural:
+- novo arquivo canonico: `public/abyssal-boss-renderer.js`;
+- todos os bosses hostis de `BOSS_KINDS` sao desviados por `drawCreature()` para `window.drawAbyssalBoss`;
+- o renderer legado de boss permanece apenas como fallback temporario e nao deve receber novas features;
+- bosses cobertos: `boss`, `angler`, `maw`, `leviathan`, `whiteSharkBoss`, `kraken`, `devourer`.
+
+Direcao visual dos bosses:
+- Polvo-de-aneis-azuis: manto mineral pesado + oito bracos em gancho + aneis de alerta;
+- Peixe-pescador: cranio enorme + boca cavernosa + dentes-agulha + ilicio;
+- Enguia-pelicano: mandibula articulada enorme + bolsa gular negra;
+- Peixe-remo Leviata: corpo em fita extremamente longo + placas segmentadas + crista dorsal escarlate;
+- Tubarao-branco Colossal: cranio exagerado + mandibula serrilhada + cicatrizes + linha lateral bioluminescente;
+- Kraken: manto em forma de lanca + dois tentaculos alimentares muito mais longos;
+- Lula-colossal: manto macico + bracos com ganchos + bico escuro + fotoforos internos.
+
+Skins marinhas:
+- `public/marine-renderer.js` agora aplica perfis de lula e polvo por variante, em vez de um unico corpo com mudanca de cor;
+- a cor da skin deixou de ser a pintura plana do corpo;
+- o corpo usa material escuro com gradiente abissal e a cor passa a funcionar como acento/bioluminescencia;
+- ha passe secundario de veios minerais, fotoforos e assimetria de cicatriz;
+- manter a regra: silhueta primeiro, material depois, cor por ultimo.
+
+Testes:
+- `tests/abyssal-boss-renderer.test.cjs` exige renderer dedicado para todos os bosses e marcadores anatomicos unicos;
+- `tests/marine-renderer-anatomy.test.cjs` exige variantes de lulas/polvos e material escuro abissal;
+- o job `syntax-and-tests` passou no commit `3b598b48a57118fdf6a4993658a6fc6e4e142721`.
+
+Deploy:
+- servico Render: `srv-dbgliuon74is73cqnbag`;
+- workspace confirmado: `tea-dbgl4q0u01pc73aep1lg`;
+- autoDeploy estava desativado;
+- deploy manual com cache limpo disparado para o commit `3b598b48a57118fdf6a4993658a6fc6e4e142721`;
+- deploy ID: `dep-dbmba8p42hec73e6l800`.
