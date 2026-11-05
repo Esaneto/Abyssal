@@ -196,14 +196,16 @@ test('server contact radius exactly matches the visible solo sprite collision an
   assert.ok(Number.isFinite(hit.contactDistance)&&Number.isFinite(hit.contactRadius));
 });
 
-test('Black Caiman passive reduces authoritative contact damage by 15 percent', () => {
+test('Estuarine Bull Shark defense reduces the strengthened authoritative drifter shock', () => {
   const stats=AI.statsForKind('drifter');
   const enemy={id:92,kind:'drifter',x:1000,y:1000,r:stats.r,speed:stats.speed/AI.WORLD_ZOOM,hp:stats.hp,maxHp:stats.hp,damage:20,color:stats.color,phase:0,attackCd:0};
-  const player={id:'p-caiman',x:1000,y:1000,r:13/AI.WORLD_ZOOM,hp:100,maxHp:100,alive:true,skinId:'abysscroc',shieldCharges:0,invulnerableUntil:0,lastPositionAt:1050,velocityX:0,velocityY:0,clientHidden:false};
+  const player={id:'p-bull-shark',x:1000,y:1000,r:13/AI.WORLD_ZOOM,hp:100,maxHp:100,alive:true,skinId:'abysscroc',shieldCharges:0,invulnerableUntil:0,lastPositionAt:1050,velocityX:0,velocityY:0,clientHidden:false};
   const world=Sim.createWorldState(1000);world.initialized=true;world.lastTick=1000;world.nextBossAt=999999;world.commonSpawnTimer=999999;world.enemies=[enemy];world.nextEnemyId=92;
   const result=Sim.tickWorld(world,[player],1050);
-  assert.equal(result.playerHits.find(hit=>hit.playerId===player.id)?.damage,17);
-  assert.equal(player.hp,83);
+  const hit=result.playerHits.find(row=>row.playerId===player.id);
+  assert.equal(hit?.skillId,'bio-shock');
+  assert.equal(hit?.damage,18);
+  assert.equal(player.hp,82);
 });
 
 
