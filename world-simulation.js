@@ -288,6 +288,33 @@ function seedRiftEncounters(world, random = Math.random) {
 const movementNavigationProxy={x:0,y:0,moveSpeed:150/WORLD_ZOOM,skinId:'default',alive:true};
 const movementNavigationTargets=[movementNavigationProxy];
 
+function bossAbilityHit(enemy,target,rawDamage,now,abilityId,{neurotoxinMs=0}={}){
+ if(!enemy||!target||target.alive===false)return null;
+ let blocked=false,damage=0;
+ target.maxHp=Math.max(1,Number(target.maxHp)||100);
+ if((Number(target.shieldCharges)||0)>0){
+  target.shieldCharges=Math.max(0,Number(target.shieldCharges)-1);blocked=true;target.invulnerableUntil=now+350;
+ }else if(now>=(Number(target.invulnerableUntil)||0)){
+  const requested=Math.max(1,Number(rawDamage)||1)*(SkinAbilities.incomingDamageMultiplier(target.skinId)||1);
+  const before=Math.max(0,Number(target.hp)||target.maxHp);
+  damage=Math.min(before,requested);target.hp=Math.max(0,before-damage);target.invulnerableUntil=now+520;
+  if(neurotoxinMs>0&&damage>0)target.neurotoxinUntil=now+neurotoxinMs;
+  if(target.hp<=0)target.alive=false;
+ }
+ return {
+  playerId:target.id,enemyId:enemy.id,enemyKind:enemy.kind,abilityId,
+  enemyX:Number(enemy.x),enemyY:Number(enemy.y),enemyColor:enemy.color,
+  damage,blocked,neurotoxinMs:damage>0?neurotoxinMs:0,
+  hp:Math.max(0,Number(target.hp)||0),maxHp:target.maxHp,
+  shieldCharges:clamp(Math.floor(Number(target.shieldCharges)||0),0,3),
+  alive:target.alive!==false,invulnerabilityMs:Math.max(0,(Number(target.invulnerableUntil)||0)-now)
+ };
+}
+function segmentDistance(px,py,ax,ay,bx,by){
+ const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
+ const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
+}
+
 function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const mapLayout = mapLayoutFor(world);
   const riftMode = world.mode === 'rift';
@@ -399,6 +426,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   let movedEnemyCount = 0;
   const playerHits = [];
   const playerSuctionPulls = [];
+  const bossAbilityHits = [];
+  const bossAbilityEvents = [];
   const defeatedPlayers = [];
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
@@ -445,6 +474,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       enemy.anglerPulse = (Number(enemy.anglerPulse) || 0) + dt;
       if (enemy.anglerPulse >= 3.8) {
         enemy.anglerPulse = 0;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'lure-pulse',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:320/WORLD_ZOOM,color:enemy.color});
         for (const target of validPlayers) {
           const dx = Number(enemy.x) - Number(target.x), dy = Number(enemy.y) - Number(target.y), distance = Math.hypot(dx, dy);
           if (!distance || distance > 320 / WORLD_ZOOM) continue;
@@ -452,7 +482,32 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           const moved = riftMode ? AbyssalMap.resolveMove(mapLayout, Number(target.x), Number(target.y), desiredX, desiredY, Math.max(10, Number(target.r) || 13 / WORLD_ZOOM)) : { x: clamp(desiredX, 0, WORLD_WIDTH), y: clamp(desiredY, 0, WORLD_HEIGHT) };
           const actualDx = moved.x - Number(target.x), actualDy = moved.y - Number(target.y);target.x = moved.x;target.y = moved.y;
           playerSuctionPulls.push({ playerId: target.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: 1 });
+          const hit=bossAbilityHit(enemy,target,8,now,'lure-pulse');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
         }
+      }
+    }
+    if(enemy.kind==='boss'){
+      enemy.neuroPulse=(Number(enemy.neuroPulse)||0)+dt;
+      if(enemy.neuroPulse>=5.2){
+        enemy.neuroPulse=0;const radius=245/WORLD_ZOOM;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'neuro-ring',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
+        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,13,now,'neuro-ring',{neurotoxinMs:1800});if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+      }
+    }
+    if(enemy.kind==='maw'){
+      enemy.mawAbilityTimer=(Number(enemy.mawAbilityTimer)||0)+dt;
+      if(enemy.mawAbilityTimer>=4.6){
+        enemy.mawAbilityTimer=0;const radius=185/WORLD_ZOOM;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'gulper-chomp',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
+        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,16,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+      }
+    }
+    if(enemy.kind==='leviathan'){
+      enemy.pressureWaveTimer=(Number(enemy.pressureWaveTimer)||0)+dt;
+      if(enemy.pressureWaveTimer>=5.4){
+        enemy.pressureWaveTimer=0;const length=430/WORLD_ZOOM,width=58/WORLD_ZOOM,ang=Number(enemy.angle)||0,x2=enemy.x+Math.cos(ang)*length,y2=enemy.y+Math.sin(ang)*length;
+        bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'pressure-lance',x:enemy.x,y:enemy.y,angle:ang,radius:length,color:enemy.color});
+        for(const target of validPlayers){if(segmentDistance(Number(target.x),Number(target.y),enemy.x,enemy.y,x2,y2)>width)continue;const hit=bossAbilityHit(enemy,target,15,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if (enemy.kind === 'devourer' && enemy.suctionActive) {
@@ -713,7 +768,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
