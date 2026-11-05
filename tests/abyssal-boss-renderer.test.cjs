@@ -10,7 +10,7 @@ const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
 
 test('only weak colossal bosses route through the dedicated redesign renderer',()=>{
  assert.match(game,/BOSS_KINDS\.includes\(kind\)&&!\['whiteSharkBoss','kraken','devourer'\]\.includes\(kind\)&&window\.drawAbyssalBoss/);
- assert.match(html,/abyssal-boss-renderer\.js\?v=2/);
+ assert.match(html,/abyssal-boss-renderer\.js\?v=3/);
  for(const kind of ['boss','angler','maw','leviathan'])assert.ok(boss.includes("'"+kind+"'"),kind);
 });
 
@@ -28,4 +28,9 @@ test('redesigned bosses have unique anatomy markers',()=>{
   'Long ribbon body + a jaw that is almost the whole head',
   'colossal ribbon, not a normal fish'
  ]) assert.ok(boss.includes(marker),marker);
+});
+
+
+test('redesigned bosses expose high-contrast secondary colors and luminous organs',()=>{
+ for(const marker of ['#35e7ff','#ff4b7d','#ff5ba7','#69f5ff','#ff5fcf','#6fffe9'])assert.ok(boss.includes(marker),marker);
 });
