@@ -130,7 +130,7 @@ test('deploy reconnect cannot leave the maintenance overlay pending forever', ()
   assert.match(online, /setTimeout\(\(\)=>\{if\(reconnectPending\)failReconnect/);
   assert.match(online, /},15000\)/);
   assert.match(online, /if\(reconnectPending\)failReconnect\('O servidor voltou, mas a expedição não respondeu a tempo/);
-  assert.match(online, /socket\.on\('room-joined',data=>\{if\(!data\?\.ok\)return;clearReconnectWatchdog\(\)/);
+  assert.match(online, /function handleRoomJoined\(data\)\{if\(!data\?\.ok\)return false;[\s\S]*?clearReconnectWatchdog\(\)/);
 });
 
 
