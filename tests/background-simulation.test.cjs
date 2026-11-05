@@ -178,3 +178,27 @@ test('authoritative electric chain is broadcast to the whole room', () => {
   assert.match(server, /distance<190\/WORLD_ZOOM/);
   assert.match(server, /io\.to\(channelFor\(room\)\)\.emit\('hit-synergy-visual',\{type:'electric-arc'/);
 });
+
+
+test('online build transport preserves combat levels required by co-op and PvP authority', () => {
+ assert.match(online,/function sendBuild[\s\S]*ricochetLevel:[\s\S]*electricLevel:[\s\S]*shellLevel:[\s\S]*lastStandLevel:/);
+ assert.match(server,/p\.ricochetLevel = clamp/);
+ assert.match(server,/p\.electricLevel = clamp/);
+ assert.match(server,/source==='electric'&&Number\(attacker\.electricLevel\)>0/);
+ assert.match(server,/Number\(attacker\.ricochetLevel\)>0&&source!=='ricochet'/);
+});
+
+test('shared electric and ricochet visuals are room-wide in co-op and PvP', () => {
+ const electricBroadcasts=(server.match(/emit\('hit-synergy-visual',\{type:'electric-arc'/g)||[]).length;
+ const ricochetBroadcasts=(server.match(/emit\('hit-synergy-visual',\{type:'ricochet-line'/g)||[]).length;
+ assert.ok(electricBroadcasts>=2,'electric must broadcast in PvE and PvP');
+ assert.ok(ricochetBroadcasts>=2,'ricochet must broadcast in PvE and PvP');
+ assert.match(online,/socket\.on\('hit-synergy-visual'/);
+ assert.match(game,/abyssal-hit-synergy-visual/);
+});
+
+test('nova is a shot in presets and has authoritative PvP resolution plus shared remote visual', () => {
+ assert.match(game,/shots:\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]/);
+ assert.match(server,/if\(shot\.special==='nova'\)[\s\S]*novaShotReadyAt[\s\S]*pvpSegmentHitsRock/);
+ assert.match(game,/if\(special==='nova'\)[\s\S]*spawnNovaVisual/);
+});
