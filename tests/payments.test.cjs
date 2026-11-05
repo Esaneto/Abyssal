@@ -4,29 +4,26 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,PAID_SKINS,BOSS_SKINS,TERMS_VERSION}=require('../payments');
 
-test('server catalog uses rarity-based BRL prices and a discounted relic bundle',()=>{
- assert.equal(PAID_SKINS.violet.brl,690);assert.equal(PAID_SKINS.violet.testOnly,false);
+test('server catalog preserves the original BRL prices and discounted relic bundle',()=>{
+ assert.equal(PAID_SKINS.violet.brl,390);assert.equal(PAID_SKINS.violet.testOnly,false);
  assert.deepEqual(
   ['reefshark','hammerhead','abysscroc','armoredgator'].map(id=>PAID_SKINS[id].brl),
-  [690,790,990,990]
+  [590,590,690,690]
  );
  assert.deepEqual(
   ['angler','maw','aberration','leviathan','kraken','devourer'].map(id=>PAID_SKINS[id].brl),
-  [1690,1890,1790,2190,2490,2790]
+  [1290,1490,1490,1690,1890,1990]
  );
- assert.deepEqual(
-  ['abyssking','bloodmoon','abyssaleye','deepwarden'].map(id=>PAID_SKINS[id].brl),
-  [1290,1390,1490,1590]
- );
- assert.equal(calculateOrder('violet',[],'brl').amount,690);
- assert.equal(calculateOrder('reefshark',[],'brl').amount,690);
- assert.equal(calculateOrder('boss_bundle',[],'brl').amount,9990);
- assert.equal(calculateOrder('boss_bundle',['leviathan'],'brl').amount,10650);
- assert.equal(calculateOrder('boss_bundle',['leviathan','kraken'],'brl').amount,8160);
+ for(const id of ['abyssking','bloodmoon','abyssaleye','deepwarden'])assert.equal(PAID_SKINS[id],undefined,id);
+ assert.equal(calculateOrder('violet',[],'brl').amount,390);
+ assert.equal(calculateOrder('reefshark',[],'brl').amount,590);
+ assert.equal(calculateOrder('boss_bundle',[],'brl').amount,6990);
+ assert.equal(calculateOrder('boss_bundle',['leviathan'],'brl').amount,8150);
+ assert.equal(calculateOrder('boss_bundle',['leviathan','kraken'],'brl').amount,6260);
  assert.equal(calculateOrder('boss_bundle',BOSS_SKINS,'brl').amount,0);
  assert.deepEqual(
   [PAID_SKINS.reefshark.name,PAID_SKINS.hammerhead.name,PAID_SKINS.abysscroc.name,PAID_SKINS.armoredgator.name],
-  ['Tubarão-branco','Tubarão-martelo','Tubarão-Touro Estuarino','Caranguejo-Ferradura Couraçado']
+  ['Tubarão-branco','Tubarão-martelo','Predador de Mangue','Couraçado de Estuário']
  );
  assert.deepEqual(
   [PAID_SKINS.leviathan.name,PAID_SKINS.kraken.name,PAID_SKINS.aberration.name],
