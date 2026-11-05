@@ -24,9 +24,10 @@
  'Náutilo-comum','Argonauta','Sépia-comum','Sépia-flamejante','Coelho-do-mar','Dragão-azul','Anjo-do-mar','Borboleta-do-mar','Caracol-de-pé-escamoso','Quitão-gigante']]
  ];
  const labels={damage:'dano',movement:'velocidade',fireRate:'cadência',defense:'redução de dano',magnet:'alcance de coleta',range:'alcance de aquisição',experience:'experiência'};
+ const palette=['#739ba6','#b39b78','#9c8aa3','#b17665','#7b9c87','#6f8fb5','#9b7f9e','#8ca36f','#b58d72','#6f9f9a'];
  const species=families.flatMap(([family,trait,stat,names],f)=>names.map((name,i)=>{
   const id='marine_'+family+'_'+(i+1),paid=i>=8,bonus=(paid?24:8)+i;
-  return Object.freeze({id,name,family,variant:i,stat,bonus,paid,brl:paid?990+(i-8)*500:0,coins:1500+f*350+i*1250,price:paid?990+(i-8)*500:1500+f*350+i*1250,color:['#739ba6','#b39b78','#9c8aa3','#b17665','#7b9c87'][f%5],shape:family,desc:name+' · '+trait+'. Interpretação estilizada de fauna marinha.',ability:trait+': '+bonus+'% '+(stat==='defense'?'menos dano recebido':'mais '+labels[stat])+'.',tier:paid?'abyssal':'surface'});
+  return Object.freeze({id,name,family,variant:i,stat,bonus,paid,brl:paid?990+(i-8)*500:0,coins:1500+f*350+i*1250,price:paid?990+(i-8)*500:1500+f*350+i*1250,color:palette[(f*3+i)%palette.length],shape:family,desc:name+' · '+trait+'. Interpretação estilizada de fauna marinha.',ability:trait+': '+bonus+'% '+(stat==='defense'?'menos dano recebido':'mais '+labels[stat])+'.',tier:paid?'abyssal':'surface'});
  }));
  const byId=Object.freeze(Object.fromEntries(species.map(s=>[s.id,s])));
  const api=Object.freeze({species:Object.freeze(species),byId});
