@@ -67,7 +67,7 @@ test('successful extraction has its own result state and cannot offer a revive a
 });
 
 test('boss collection is framed as relics instead of playable full bosses',()=>{
- for(const name of ['Eco do Peixe-Remo Leviatã','Eco da Lula-Kraken','Casca do Cefalópode Calcificado','Núcleo do Peixe-Pescador','Fragmento da Enguia-Pelícano','Núcleo da Lula-Colossal']){
+ for(const name of ['Eco do Peixe-Remo Leviatã','Eco da Lula-Kraken','Eco do Polvo-de-Anéis-Azuis','Núcleo do Peixe-Pescador','Fragmento da Enguia-Pelícano','Núcleo da Lula-Colossal']){
   assert.ok(game.includes(name),name+' should be present in the playable collection');
  }
  assert.match(rebuild,/RELÍQUIAS/);
