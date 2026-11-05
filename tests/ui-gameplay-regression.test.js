@@ -224,3 +224,12 @@ test('online entry fallback cannot return the client to a visible menu after ser
  assert.match(handler,/onlineMode=true;gameState='playing'/);
  assert.match(handler,/return true/);
 });
+
+
+test('online reconnect retry state used during room join is declared', () => {
+ const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
+ assert.match(online,/reconnectSessionRetry=null/);
+ assert.match(online,/reconnectSessionAttempts=0/);
+ assert.ok(online.indexOf('reconnectSessionRetry=null') < online.indexOf('function clearReconnectWatchdog'));
+ assert.ok(online.indexOf('reconnectSessionAttempts=0') < online.indexOf('function clearReconnectWatchdog'));
+});
