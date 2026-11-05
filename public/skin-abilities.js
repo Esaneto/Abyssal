@@ -2,7 +2,7 @@
 
 // Regras passivas de skins: funções puras compartilhadas entre cliente e servidor.
 // Distâncias são recebidas em unidades do mundo; não dependem de Canvas ou Socket.IO.
-const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','kraken','devourer']);
+const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer']);
 const CLOSE_RANGE = 170;
 const LONG_RANGE = 260;
 
