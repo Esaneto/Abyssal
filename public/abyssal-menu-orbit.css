@@ -761,7 +761,7 @@ body:not(.game-active) #menuScreen .desktop-menu-utility{display:none!important}
   html body #app canvas,
   html body .abyss-descent-panel button,
   html body .abyss-cinematic-dialog button{
-    cursor:url('abyssal-tentacle-cursor.svg') 6 5, pointer!important;
+    cursor:url('abyssal-tentacle-cursor.svg?v=2') 24 24,crosshair!important;
   }
   html body #app input:not([type="range"]),html body #app textarea{
     cursor:text!important;
@@ -1005,4 +1005,174 @@ body:not(.game-active) #menuScreen .abyss-vortex-shaft{
     left:auto!important;right:auto!important;top:auto!important;
     margin:12px auto 0!important;
   }
+}
+
+
+/* V6 · Six meaningful menu choices. All former card handlers stay intact. */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #onlineBtn{
+  --orbit-x:29%;--orbit-y:31%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn{
+  --orbit-x:71%;--orbit-y:31%;
+  --orbit-width:clamp(130px,14vw,205px);
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #rankingsBtn{
+  --orbit-x:19%;--orbit-y:48.5%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn{
+  --orbit-x:81%;--orbit-y:48.5%;
+  --orbit-width:clamp(130px,14vw,205px);
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #shopBtn{
+  --orbit-x:29%;--orbit-y:68%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #profileBtn{
+  --orbit-x:71%;--orbit-y:68%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn{
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:7px!important;
+  position:absolute!important;left:var(--orbit-x)!important;top:var(--orbit-y)!important;
+  inset-inline:auto!important;bottom:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:var(--orbit-width)!important;max-width:var(--orbit-width)!important;
+  min-height:89px!important;height:clamp(89px,10.5vh,118px)!important;
+  margin:0!important;padding:13px 9px!important;
+  border:2px solid rgba(52,217,255,.86)!important;
+  border-radius:38% 38% 15% 15% / 24% 24% 24% 24%!important;
+  background:linear-gradient(160deg,rgba(0,46,97,.89),rgba(2,12,37,.93) 76%)!important;
+  box-shadow:0 0 23px rgba(0,175,255,.42),inset 0 0 20px rgba(40,146,255,.15),0 11px 25px #0009!important;
+  color:#e3f7ff!important;font-family:"Cinzel",serif!important;
+  font-size:clamp(12px,1.16vw,17px)!important;font-weight:700!important;
+  text-align:center!important;line-height:1.12!important;
+  white-space:normal!important;animation:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn{
+  border-color:rgba(139,103,254,.85)!important;
+  box-shadow:0 0 23px rgba(137,72,255,.38),inset 0 0 19px rgba(118,37,221,.18)!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn .resonance-label,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-copy{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;max-width:100%!important;align-items:center!important;
+  justify-content:center!important;margin:0!important;padding:0!important;
+  color:inherit!important;text-align:center!important;
+  font-size:inherit!important;line-height:1.1!important;
+  white-space:normal!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-copy strong{
+  color:inherit!important;font-size:inherit!important;
+  font-weight:700!important;letter-spacing:.025em!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn .ui-icon,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-icon{
+  display:block!important;order:-1!important;
+  width:27px!important;height:27px!important;flex:0 0 27px!important;
+  margin:0 auto!important;color:#98e8ff!important;font-size:27px!important;
+  background:none!important;border:0!important;box-shadow:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-prizes,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-arrow{
+  display:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn:focus-visible,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn:focus-visible{
+  outline:2px solid #d9ffff!important;outline-offset:3px!important;
+  filter:brightness(1.18)!important;
+}
+/* Controls are still callable from the existing top-bar gamepad shortcut. */
+body:not(.game-active) #menuScreen .abyss-orbit-extras #controlsBtn.menu-hidden-utility{
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+}
+
+/* V6 · Organic descending currents, not identical concentric hoops. */
+body:not(.game-active) #menuScreen .abyss-vortex-plane{
+  background:
+    radial-gradient(ellipse 38% 42% at 49% 52%,#000107 0%,#010516 40%,transparent 90%),
+    conic-gradient(from 19deg at 51% 48%,
+      #001331 0deg,#063a6c 36deg,#0066a4 66deg,
+      #083b85 82deg,#2b1272 111deg,#021b53 139deg,
+      #0079ad 173deg,#00294d 203deg,#061540 236deg,
+      #41248c 272deg,#021937 311deg,#035783 345deg,#001331 360deg)!important;
+  box-shadow:inset 0 0 44px rgba(0,1,17,.95),0 0 37px rgba(0,137,224,.25)!important;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-plane::before{
+  opacity:0!important;animation:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-current{
+  opacity:.44!important;
+  background:conic-gradient(from 42deg at 49% 52%,
+    transparent 0 39deg,rgba(12,198,255,.27) 73deg,transparent 123deg,
+    rgba(144,81,251,.2) 195deg,transparent 248deg,
+    rgba(18,157,233,.32) 310deg,transparent 360deg)!important;
+  mask-image:radial-gradient(ellipse,#000 0 75%,transparent 98%)!important;
+  animation:abyssVortexRotate 37s linear infinite reverse!important;
+}
+body:not(.game-active) #menuScreen .abyss-vortex-streams{
+  opacity:.93!important;
+  filter:drop-shadow(0 0 3px rgba(30,198,255,.27))!important;
+  animation:abyssVortexRotate 33s linear infinite!important;
+  mask-image:radial-gradient(circle,#000 0 73%,transparent 97%);
+}
+body:not(.game-active) #menuScreen .abyss-vortex-shaft{
+  width:31%!important;height:32%!important;
+  border-radius:53% 47% 50% 51%!important;
+  background:radial-gradient(ellipse at 47% 53%,#000 0 58%,#00010a 69%,transparent 100%)!important;
+  box-shadow:inset 0 0 24px #000,0 0 31px rgba(0,1,14,.86)!important;
+}
+/* The fenda is the focal CTA, centered over the exact black core. */
+body:not(.game-active) #menuScreen #abyssGate .abyss-gate-content{
+  position:absolute!important;z-index:12!important;
+  inset:auto!important;left:50%!important;top:50%!important;
+  bottom:auto!important;right:auto!important;
+  transform:translate(-50%,-50%)!important;
+  width:min(205px,65%)!important;max-width:none!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  margin:0!important;padding:0!important;
+}
+body:not(.game-active) #menuScreen #abyssGate #abyssGateButton{
+  width:100%!important;min-height:46px!important;
+  padding:10px 15px!important;
+  color:#d8f8ff!important;font-size:11px!important;
+  border:1px solid rgba(83,206,255,.82)!important;border-radius:999px!important;
+  background:rgba(1,13,37,.92)!important;
+  box-shadow:0 0 18px rgba(0,196,252,.25),inset 0 0 12px rgba(0,97,172,.12)!important;
+  pointer-events:auto!important;
+}
+
+/* V6 · The old CSS mixed different cursor assets and hotspots (6,5 versus 24,24).
+   Never let browser substitute an offset pointer when crossing nested buttons. */
+@media(hover:hover) and (pointer:fine){
+  html body,html body *:not(input):not(textarea):not([contenteditable="true"]){
+    cursor:url('abyssal-tentacle-cursor.svg?v=2') 24 24,crosshair!important;
+  }
+  html body input:not([type="range"]),html body textarea,
+  html body [contenteditable="true"]{cursor:text!important;}
+}
+@media(max-width:1000px),(pointer:coarse){
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn{
+    position:relative!important;inset:auto!important;
+    left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;
+    transform:none!important;
+    width:100%!important;max-width:none!important;min-width:0!important;
+    min-height:70px!important;height:70px!important;
+    padding:8px 6px!important;gap:5px!important;
+    font-size:11px!important;border-radius:18px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn .resonance-label,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-copy{
+    gap:4px!important;
+  }
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn .ui-icon,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn .wheel-cta-icon{
+    width:22px!important;height:22px!important;flex:0 0 22px!important;font-size:22px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body:not(.game-active) #menuScreen .abyss-vortex-streams,
+  body:not(.game-active) #menuScreen .abyss-vortex-current{animation:none!important;}
 }
