@@ -104,7 +104,7 @@ test('online gameplay uses compact motion deltas between reliable full snapshots
   assert.match(server, /function getRoomMotionSnapshot\(room, options = \{\}\)/);
   assert.match(server, /volatile\.emit\('enemy-motion',motion\)/);
   assert.match(server, /Math\.round\(Number\(e\.x\)\|\|0\),Math\.round\(Number\(e\.y\)\|\|0\)/);
-  assert.match(game, /row\.length<11/);
+  assert.match(game, /row\.length<7/);
   assert.match(game, /const incomingRevision=Math\.max\(0,Number\(row\[4\]\)\|\|0\)/);
   assert.match(online, /socket\.on\('enemy-motion'/);
   assert.match(game, /function applySharedMotion\(data\)/);
