@@ -889,3 +889,9 @@ body:not(.game-active) #menuScreen .desktop-menu-utility{display:none!important}
     animation:none!important;
   }
 }
+
+
+/* Preserve legacy utility identifier while presenting Controles as a real orbit card. */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #controlsBtn.desktop-menu-utility{
+  display:flex!important;visibility:visible!important;pointer-events:auto!important;
+}
