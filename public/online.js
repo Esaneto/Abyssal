@@ -466,14 +466,25 @@ function renderRankings(data){
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function getInterpolatedPeer(p,now=performance.now()){
- const duration=Math.max(1,Number(p.interpDuration)||1),t=Math.max(0,Math.min(1,(now-(Number(p.interpAt)||now))/duration));
- return {...p,x:Number(p.fromX)+(Number(p.targetX)-Number(p.fromX))*t,y:Number(p.fromY)+(Number(p.targetY)-Number(p.fromY))*t};
+ const duration=Math.max(1,Number(p.interpDuration)||1),elapsed=Math.max(0,now-(Number(p.interpAt)||now)),t=Math.max(0,Math.min(1,elapsed/duration));
+ const fromX=Number(p.fromX)||0,fromY=Number(p.fromY)||0,targetX=Number(p.targetX)||0,targetY=Number(p.targetY)||0;
+ let x=fromX+(targetX-fromX)*t,y=fromY+(targetY-fromY)*t;
+ if(t>=1){
+  // Bridge short packet gaps instead of visually freezing another player at the last sample.
+  // Extrapolation is deliberately bounded so authority remains with the server.
+  const extraMs=Math.min(Number(p.peerExtrapolationMs)||90,Math.max(0,elapsed-duration));
+  x=targetX+(Number(p.velocityX)||0)*(extraMs/1000);y=targetY+(Number(p.velocityY)||0)*(extraMs/1000);
+ }
+ return {...p,x,y};
 }
 function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?58:105};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
+ const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(isPvp?40:75),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
+ let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
+ const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?36:58,sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?70:95};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
