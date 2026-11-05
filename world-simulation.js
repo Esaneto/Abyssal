@@ -2,6 +2,7 @@
 const EnemyAI = require('./public/enemy-ai.js');
 const SkinAbilities = require('./skin-abilities');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
+const AbyssalMap = require('./public/abyssal-map.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -16,8 +17,21 @@ function createWorldState(now = Date.now()) {
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
-    activeEventId: null, eventEndsAt: 0, eventSerial: 0
+    activeEventId: null, eventEndsAt: 0, eventSerial: 0,
+    mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0
   };
+}
+
+function mapLayoutFor(world) {
+  if (!world) return null;
+  const seed = Number(world.mapSeed) || AbyssalMap.seedValue(world.worldId || Date.now());
+  const tier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
+  const key = seed + ':' + tier;
+  if (world.__mapLayoutKey !== key || !world.__mapLayout) {
+    Object.defineProperty(world, '__mapLayout', { value: AbyssalMap.createLayout(seed, tier), writable: true, configurable: true, enumerable: false });
+    Object.defineProperty(world, '__mapLayoutKey', { value: key, writable: true, configurable: true, enumerable: false });
+  }
+  return world.__mapLayout;
 }
 
 function countBosses(world) { return world.enemies.filter(e => BOSS_KINDS.includes(e.kind)); }
@@ -135,9 +149,9 @@ function spawnEnemy(world, options = {}) {
     world.bossSpawnCount++;
     world.lastBossKind = kind;
   }
-  // First wave deliberately enters through different fixed corner vortices. Later waves choose a current randomly.
-  const corner = initial ? world.nextEnemyId % 4 : null;
-  const point = EnemyAI.chooseSpawnPoint(random, corner, WORLD_WIDTH, WORLD_HEIGHT);
+  // Expedition enemies now emerge from actual cave chambers instead of the empty rectangular perimeter.
+  const layout = mapLayoutFor(world);
+  const point = AbyssalMap.spawnPoint(layout, { type, initial, random, bossesDefeated: world.bossesDefeated });
   const id = ++world.nextEnemyId;
   const enemy = {
     id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
@@ -145,7 +159,7 @@ function spawnEnemy(world, options = {}) {
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
-    spawnCorner: point.corner, eliteId,
+    spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, eliteId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   world.enemies.push(enemy);
@@ -177,11 +191,16 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
   world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
+  world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
 }
 
+const movementNavigationProxy={x:0,y:0,moveSpeed:150/WORLD_ZOOM,skinId:'default',alive:true};
+const movementNavigationTargets=[movementNavigationProxy];
+
 function tickWorld(world, players, now = Date.now(), random = Math.random) {
+  const mapLayout = mapLayoutFor(world);
   const validPlayers = Array.isArray(players)
     ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
     : [];
@@ -313,18 +332,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if (creature === enemy) continue;
         const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
         if (pull.dx || pull.dy) {
-          creature.x = clamp(creature.x + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
-          creature.y = clamp(creature.y + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
-          creature.vx = pull.dx / Math.max(dt, 0.001);
-          creature.vy = pull.dy / Math.max(dt, 0.001);
+          const moved=AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7));
+          const actualDx=moved.x-creature.x,actualDy=moved.y-creature.y;
+          creature.x=moved.x;creature.y=moved.y;
+          creature.vx=actualDx/Math.max(dt,0.001);creature.vy=actualDy/Math.max(dt,0.001);
         }
       }
       for (const player of validPlayers) {
         const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
         if (!pull.dx && !pull.dy) continue;
-        player.x = clamp(Number(player.x) + pull.dx, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
-        player.y = clamp(Number(player.y) + pull.dy, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
-        playerSuctionPulls.push({ playerId: player.id, dx: pull.dx, dy: pull.dy, bossId: enemy.id, strength: pull.strength });
+        const moved=AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM));
+        const actualDx=moved.x-Number(player.x),actualDy=moved.y-Number(player.y);
+        player.x=moved.x;player.y=moved.y;
+        playerSuctionPulls.push({ playerId: player.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: pull.strength });
       }
       continue;
     }
@@ -332,8 +352,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Giro do Nilo: mesmo passo de impulso do modo solo, antes da IA normal.
     // Não muda o ângulo nem interrompe o movimento normal de perseguição.
     if (enemy.kbVx || enemy.kbVy) {
-      enemy.x = clamp(Number(enemy.x) + (Number(enemy.kbVx) || 0) * dt, 8 / WORLD_ZOOM, WORLD_WIDTH - 8 / WORLD_ZOOM);
-      enemy.y = clamp(Number(enemy.y) + (Number(enemy.kbVy) || 0) * dt, 8 / WORLD_ZOOM, WORLD_HEIGHT - 8 / WORLD_ZOOM);
+      const moved=AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72));
+      enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;}
       const decay = Math.exp(-dt * 6.5);
       enemy.kbVx = (Number(enemy.kbVx) || 0) * decay;
       enemy.kbVy = (Number(enemy.kbVy) || 0) * decay;
@@ -347,10 +367,31 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       continue;
     }
     movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
-    const movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
-    if (!movement.moved && targetablePlayers.length && dt > 0) {
-      movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
-      if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+    let actualTarget=null,nearestTargetDistance=Infinity;
+    for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
+    let movementTargets=targetablePlayers;
+    if(actualTarget){
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      if(!nav.direct){
+        movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;
+        movementTargets=movementNavigationTargets;
+      }
+    }
+    const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
+    const movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
+    const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+    enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
+    if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;}
+    movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
+    movement.target=actualTarget;
+    if (!movement.moved && actualTarget && dt > 0) {
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      if(nav&&Math.hypot(nav.x-enemy.x,nav.y-enemy.y)>1){
+        const dx=nav.x-enemy.x,dy=nav.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.5*dt,d);
+        const fallback=AbyssalMap.resolveMove(mapLayout,enemy.x,enemy.y,enemy.x+dx/d*step,enemy.y+dy/d*step,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+        enemy.x=fallback.x;enemy.y=fallback.y;movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
+        if(movement.moved)world.movementRecoveryCount=(world.movementRecoveryCount||0)+1;
+      }
     }
     if (movement.moved) movedEnemyCount++;
 
@@ -565,4 +606,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor };
