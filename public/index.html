@@ -313,6 +313,25 @@
           
         </div>
         <h3 class="shop-section-title">✦ FORMAS DE VIDA · PRÉVIA EM COMBATE</h3>
+        <div class="shop-filter-bar" aria-label="Filtros da loja">
+          <input id="shopSearchInput" class="text-field shop-filter-search" type="search" placeholder="Buscar espécie..." autocomplete="off">
+          <select id="shopRarityFilter" class="text-field shop-filter-select" aria-label="Filtrar por raridade">
+            <option value="all">Todas as raridades</option>
+            <option value="common">Comum</option><option value="uncommon">Incomum</option><option value="rare">Raro</option>
+            <option value="epic">Épico</option><option value="legendary">Lendário</option><option value="mythic">Mítico</option><option value="colossal">Colossal</option>
+          </select>
+          <select id="shopFamilyFilter" class="text-field shop-filter-select" aria-label="Filtrar por família">
+            <option value="all">Todas as famílias</option>
+            <option value="signature">Assinaturas Abyssal</option><option value="relic">Relíquias</option><option value="shark">Tubarões</option>
+            <option value="ray">Raias</option><option value="eel">Enguias e moreias</option><option value="squid">Lulas</option>
+            <option value="octopus">Polvos</option><option value="jelly">Medusas</option><option value="crustacean">Crustáceos</option>
+            <option value="fish">Peixes</option><option value="benthic">Bentônicos</option><option value="mollusc">Moluscos</option>
+          </select>
+          <select id="shopOwnershipFilter" class="text-field shop-filter-select" aria-label="Filtrar por propriedade">
+            <option value="all">Todos</option><option value="owned">Possuídos</option><option value="locked">Não possuídos</option>
+          </select>
+        </div>
+        <div id="shopFilterSummary" class="shop-filter-summary" aria-live="polite"></div>
         <div id="skinGrid" class="skin-grid"></div>
         <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste moedas abissais para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
         <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
@@ -535,6 +554,7 @@
 <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
 <script src="i18n.js?v=3"></script>
 <script src="marine-species.js?v=5"></script>
+<script src="marine-abilities.js?v=1"></script>
 <script src="marine-renderer.js?v=7"></script>
 <script src="abyssal-boss-renderer.js?v=2"></script>
 <script src="skin-abilities.js?v=3.7.2"></script>
