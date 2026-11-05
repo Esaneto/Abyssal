@@ -81,7 +81,8 @@ function createGate(){
   gate.setAttribute('aria-label','Entrada para a Descida Abissal');
   gate.innerHTML=
     '<div class="abyss-vortex-plane" aria-hidden="true">'+
-      '<div class="abyss-vortex-current"></div>'+buildVortexStreams()+
+      '<div class="abyss-vortex-current"></div>'+
+      '<div class="abyss-vortex-flow-layer" aria-hidden="true">'+buildVortexStreams()+'</div>'+
       '<div class="abyss-vortex-shaft"></div>'+ 
     '</div>'+ 
     '<div class="abyss-gate-rim" aria-hidden="true"></div>'+
@@ -90,7 +91,7 @@ function createGate(){
       '<span class="abyss-gate-kicker">SINAL ABAIXO DO LIMITE CARTOGRAFADO</span>'+
       '<strong>DESCIDA ABISSAL</strong>'+
       '<p>Quanto mais fundo você for, maior a recompensa. Voltar ainda é uma escolha.</p>'+
-      '<button id="abyssGateButton" class="abyss-gate-button" type="button">ABRIR A FENDA</button>'+
+      '<button id="abyssGateButton" class="abyss-gate-button" type="button">ABISMO</button>'+
     '</div>';
 
   var orbit=menu.querySelector('.abyss-orbit-navigation');
