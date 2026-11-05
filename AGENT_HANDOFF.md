@@ -384,3 +384,62 @@ Criterio de aceite visual:
 - o jogo deve parecer feito por um unico sistema de arte e nao por camadas de estilos antigos e novos misturados;
 - nenhuma skin nova deve parecer uma recoloracao de uma criatura antiga;
 - nenhuma tela nova deve herdar layout/ornamentos antigos se ja houver uma linguagem visual nova equivalente.
+
+
+## 16. Regra permanente de continuidade entre agentes
+
+Toda mudanca estrutural ou visual relevante deve deixar contexto suficiente para o proximo agente continuar sem adivinhar.
+
+Obrigatorio apos alteracoes em gameplay, netcode, mapa, renderer, skins, bosses, UI, deploy, autenticacao, monetizacao ou persistencia:
+1. registrar no `AGENT_HANDOFF.md` o que mudou e por que;
+2. registrar os arquivos e funcoes principais envolvidos;
+3. listar invariantes que nao podem regredir;
+4. registrar testes adicionados ou atualizados;
+5. registrar riscos conhecidos, pendencias e validacoes ainda nao executadas;
+6. quando houver migracao, dizer explicitamente qual sistema e canonico e qual ficou legado;
+7. evitar instrucoes vagas como "melhorar depois": indicar o proximo ponto tecnico concreto;
+8. nunca apagar contexto antigo ainda relevante apenas para deixar o handoff menor.
+
+Se uma mudanca futura contradizer uma decisao anterior:
+- documentar a nova decisao;
+- explicar o motivo;
+- indicar quais regras antigas foram substituidas;
+- preservar compatibilidade ou migrar dados quando necessario.
+
+Objetivo desta regra:
+um novo agente deve conseguir ler o repositorio e este handoff e entender o estado real do projeto antes de escrever codigo.
+
+## 17. Correcao do renderer marinho em 2026-11-05
+
+Problema confirmado visualmente no catalogo:
+- especies diferentes da mesma familia usavam praticamente a mesma silhueta;
+- tubarao-baleia, peregrino, mako, raposa, duende e cobra pareciam o mesmo tubarao com pequenas variacoes;
+- a causa estava em `public/marine-renderer.js`, que tinha um unico template para `shark` e outro template generico compartilhado com `fish`.
+
+Correcao aplicada:
+- `public/marine-renderer.js` agora usa anatomia especifica por variante para as especies mais distintas;
+- tubarao-baleia: corpo robusto, cabeca larga, boca frontal e manchas;
+- peregrino: boca filtradora muito aberta e grandes fendas branquiais;
+- mako: corpo fusiforme, focinho pontudo e cauda de alta velocidade;
+- raposa: lobo superior da cauda extremamente alongado;
+- duende: rostro longo e mandibula projetavel;
+- cobra: corpo anguilliforme;
+- lanterna: forma compacta, olho grande e fotoforos;
+- Groenlandia: corpo grosso, lento e focinho rombudo;
+- familias ray, eel, squid/octopus, jelly, crustacean, fish, benthic e mollusc tambem receberam diferenciacao anatomica adicional.
+
+Invariante visual novo:
+"species identity must come from anatomy first, not color."
+
+Teste:
+- `tests/marine-renderer-anatomy.test.cjs`
+- impede retorno ao branch generico `case 'shark':case 'fish'`;
+- exige marcadores de anatomia especifica para os principais tubaroes;
+- exige que o renderer documente explicitamente a regra anatomy-first.
+
+Proximos passos recomendados:
+1. validar visualmente catalogo e gameplay em desktop e mobile;
+2. remover ou reduzir elementos de preview que ainda dominem a silhueta, como anel/orbita decorativa comum;
+3. expandir perfis anatomicos para variantes restantes que ainda parecam proximas demais;
+4. se duas especies continuarem parecendo o mesmo animal quando vistas apenas como silhueta preta, tratar como bug visual;
+5. manter a mesma identidade entre preview da loja e personagem equipado em gameplay.
