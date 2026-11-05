@@ -371,10 +371,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movementTargets=targetablePlayers;
     if(actualTarget){
+      const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
+      if(enemy.eliteId&&enemy.spawnRoomId==='elite'&&targetRoom?.id!=='elite'){
+        movementNavigationProxy.x=mapLayout.rooms.find(room=>room.id==='elite')?.x??enemy.x;movementNavigationProxy.y=mapLayout.rooms.find(room=>room.id==='elite')?.y??enemy.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;movementTargets=movementNavigationTargets;
+      }else{
       const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
       if(!nav.direct){
         movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;
         movementTargets=movementNavigationTargets;
+      }
       }
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
