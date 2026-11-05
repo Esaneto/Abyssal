@@ -39,7 +39,8 @@ window.drawAbyssalBoss=function(c,opts){
    for(let i=0;i<10;i++){const a=i*2.399,rr=.16+(i%3)*.15;c.save();c.strokeStyle=i%3===0?'#ff4c7a':'#35d9ff';c.lineWidth=.04;c.shadowBlur=.16;c.shadowColor=c.strokeStyle;c.beginPath();c.arc(-.05+Math.cos(a)*rr,-.32+Math.sin(a)*rr*.7,.06+(i%2)*.012,0,Math.PI*2);c.stroke();c.restore();}
    eye(.15,-.18,.105,'#ffedf4');eye(.43,-.1,.068,'#ff725f');
    mouth(.31,.22,.24,.09);for(let i=0;i<5;i++)tooth(.16+i*.075,.2,1,.065);
-   scar(-.48,-.05,-.2,.2);node(-.42,.12,.03,'#41e7ff');node(.3,-.55,.026,'#ff5d83');
+   scar(-.48,-.05,-.2,.2);node(-.42,.12,.04,'#41e7ff');node(.3,-.55,.035,'#ff5d83');
+   for(let i=0;i<5;i++){const a=-1.1+i*.55;stroke(()=>{c.moveTo(-.08,-.42);c.lineTo(-.08+Math.cos(a)*.72,-.42+Math.sin(a)*.52);},.024,i%2?'#ff4b7d':'#35e7ff',.12);}
  } else if(kind==='angler'){
    // Head-dominant anglerfish, like a living armored lantern.
    poly([[-1.25,.04],[-1.95,-.52],[-1.72,-.04],[-2.02,.42]],grad('#02070b','#17232b','#6a4a31'),'rgba(191,141,82,.3)',.035);
@@ -50,7 +51,9 @@ window.drawAbyssalBoss=function(c,opts){
    eye(.34,-.47,.1,'#ffca67');
    stroke(()=>{c.moveTo(-.15,-.65);c.bezierCurveTo(-.03,-1.22,.46,-1.48,.92,-1.25);},.055,'rgba(122,88,50,.95)');
    node(.94,-1.24,.12,'#ffd36d');
-   for(let i=0;i<6;i++)node(-.8+i*.24,.18,.024,i%2?'#ff9e56':'#ffcc74');
+   for(let i=0;i<6;i++)node(-.8+i*.24,.18,.03,i%2?'#29f2e5':'#ffcc74');
+   stroke(()=>{c.moveTo(-.86,.28);c.bezierCurveTo(-.35,.48,.38,.42,.84,.18);},.04,'#ff5ba7',.16);
+   node(.94,-1.24,.16,'#fff06a');node(.72,-.78,.045,'#35e7ff');
    scar(-.7,-.24,-.25,-.02);
  } else if(kind==='maw'){
    // Pelican eel. Long ribbon body + a jaw that is almost the whole head.
@@ -61,7 +64,9 @@ window.drawAbyssalBoss=function(c,opts){
    fill(()=>{c.moveTo(-.04,.12);c.bezierCurveTo(.38,.9,1.25,.86,1.82,.29);c.bezierCurveTo(1.14,.4,.5,.28,-.04,.12);},grad('#010309','#171020','#603569'),'rgba(238,169,255,.55)',.055);
    mouth(.92,.03,.78,.45);
    for(let i=0;i<11;i++){tooth(.12+i*.14,-.12,1,.1);tooth(.12+i*.14,.16,-1,.09);}
-   eye(.12,-.34,.068,'#efc8ff');for(let i=0;i<6;i++)node(-1.4+i*.28,.13,.022,'#d887ff');scar(-.95,-.12,-.55,.12);
+   eye(.12,-.34,.078,'#8ffcff');for(let i=0;i<7;i++)node(-1.48+i*.26,.13,.028,i%2?'#69f5ff':'#ff68d8');
+   stroke(()=>{c.ellipse(.92,.03,.86,.52,0,0,Math.PI*2);},.045,'#ff5fcf',.18);
+   scar(-.95,-.12,-.55,.12);
  } else if(kind==='leviathan'){
    // Oarfish leviathan. The silhouette must read as a colossal ribbon, not a normal fish.
    fill(()=>{c.moveTo(-3.35,.02);c.bezierCurveTo(-2.52,-.52,-1.5,-.19,-.5,-.36);c.bezierCurveTo(.15,-.46,.82,-.27,1.3,-.03);c.bezierCurveTo(.82,.3,.15,.37,-.55,.31);c.bezierCurveTo(-1.72,.24,-2.55,.54,-3.35,.02);},grad('#01060a','#123039','#3e8587'),'rgba(134,241,230,.5)',.05,4);
@@ -72,7 +77,9 @@ window.drawAbyssalBoss=function(c,opts){
    }
    fill(()=>{c.ellipse(.82,-.03,.44,.3,-.08,0,Math.PI*2);},grad('#061115','#315359','#7ca7a3'),'rgba(226,255,247,.58)',.04);
    eye(.98,-.13,.055,'#9dfff1');
-   for(let i=0;i<10;i++)node(-2.2+i*.31,.12,.02,i%3?'#64f4e3':'#ff6c82');
+   for(let i=0;i<11;i++)node(-2.35+i*.3,.12,.027,i%3?'#64f4e3':'#ff4f72');
+   stroke(()=>{c.moveTo(-2.9,-.18);c.bezierCurveTo(-1.9,-.5,-.6,-.46,.72,-.18);},.035,'#ff4269',.15);
+   stroke(()=>{c.moveTo(-2.8,.2);c.bezierCurveTo(-1.8,.42,-.4,.38,.65,.16);},.03,'#6fffe9',.12);
    scar(-1.45,-.16,-.95,.1);scar(-.65,-.14,-.22,.08);
  }
  c.restore();return true;
