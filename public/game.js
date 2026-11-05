@@ -842,6 +842,32 @@ function pumpGameplayNotice(){
 }
 function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
+function renderBossAbilityVisual(data){
+ const d=data||{},x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ const color=d.color||'#79f3f0',angle=Number(d.angle)||0,radius=Math.max(40/GAME_WORLD_ZOOM,Number(d.radius)||180/GAME_WORLD_ZOOM),id=String(d.abilityId||'');
+ if(id==='neuro-ring'){
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.72,maxLife:.72,color:'#ff436d'});
+  effects.push({type:'ring',x,y,r:0,max:radius*.68,life:.5,maxLife:.5,color:'#36dfff'});
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.88,y2:y+Math.sin(a)*radius*.88,life:.34,maxLife:.34,color:i%2?'#36dfff':'#ff436d'});}
+  burst(x,y,'#ff436d',28,170);
+ }else if(id==='lure-pulse'){
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.85,maxLife:.85,color:'#ffd16d'});
+  effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*radius*.85,y2:y+Math.sin(angle)*radius*.85,life:.55,maxLife:.55,color:'#fff0a8'});
+  burst(x,y,'#ffad48',22,150);
+ }else if(id==='gulper-chomp'){
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.48,maxLife:.48,color:'#d67cff'});
+  effects.push({type:'ring',x,y,r:radius*.82,max:radius*.22,life:.28,maxLife:.28,color:'#ff70ce'});
+  for(let i=-3;i<=3;i++){const a=angle+i*.18;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.78,y2:y+Math.sin(a)*radius*.78,life:.24,maxLife:.24,color:'#f0a2ff'});}
+  burst(x,y,'#c16cff',30,180);
+ }else if(id==='pressure-lance'){
+  const reach=radius;
+  effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*reach,y2:y+Math.sin(angle)*reach,life:.52,maxLife:.52,color:'#6fffe7'});
+  effects.push({type:'beam',x1:x+Math.cos(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,y1:y+Math.sin(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*reach+Math.cos(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,y2:y+Math.sin(angle)*reach+Math.sin(angle+Math.PI/2)*18/GAME_WORLD_ZOOM,life:.38,maxLife:.38,color:'#ff5578'});
+  burst(x+Math.cos(angle)*reach*.7,y+Math.sin(angle)*reach*.7,'#4ce0d1',24,190);
+ }else{
+  effects.push({type:'ring',x,y,r:0,max:radius,life:.45,maxLife:.45,color});burst(x,y,color,18,130);
+ }
+}
 function showBossAlert(kind,id=null,threat=0,force=false){
  if(onlineMode&&onlineRoomMode==='pvp')return;
  const key=id==null?`${kind}:${Math.floor(performance.now()/1000)}`:`${kind}:${String(id)}`;
@@ -1448,7 +1474,7 @@ function applyOnlinePlayerVitals(data){
  if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
  if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,30);
  if(Number(data.neurotoxinMs)>0)player.neurotoxinUntil=performance.now()+Math.min(3000,Number(data.neurotoxinMs));
- if((data.reason==='enemy-attack'||data.reason==='pvp-hit'||data.reason==='pvp-defeat')&&Number(data.damage)>0){spawnDamageNumber(player.x,player.y,Number(data.damage),damageTone(data.skillId));
+ if((data.reason==='enemy-attack'||data.reason==='boss-ability'||data.reason==='pvp-hit'||data.reason==='pvp-defeat')&&Number(data.damage)>0){spawnDamageNumber(player.x,player.y,Number(data.damage),damageTone(data.skillId));
   if(contactSourceReady)revealOnlineContactSource(data);
   else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
   shake=Math.max(shake,6);damageFlash=.22;burst(player.x,player.y,'#ff668d',12,100);audio(115,.14,'sawtooth',.025);
@@ -2190,8 +2216,17 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
   }
   // Habilidades ativas reais dos monstros e bosses:
+  // Polvo-de-anéis-azuis: pulso neurotóxico radial com telegraph bicolor.
+  if(!onlineMode&&e.kind==='boss'){
+   e.neuroPulse=(e.neuroPulse||0)+dt;
+   if(e.neuroPulse>=5.2){
+    e.neuroPulse=0;const radius=245/GAME_WORLD_ZOOM;
+    renderBossAbilityVisual({abilityId:'neuro-ring',x:e.x,y:e.y,angle:e.angle||0,radius,color:e.color||'#ff315f'});
+    if(Math.hypot(player.x-e.x,player.y-e.y)<=radius&&player.invuln<=0){hurtPlayer(13);player.neurotoxinUntil=performance.now()+1800;shake=8;}
+   }
+  }
   // 1. Angler (Lanterna): puxão hipnótico de curto alcance
-  if(e.kind==='angler'){
+  if(!onlineMode&&e.kind==='angler'){
    e.anglerPulse=(e.anglerPulse||0)+dt;
    if(e.anglerPulse>3.8){
      e.anglerPulse=0;
@@ -2199,26 +2234,28 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      if(dToP<320/GAME_WORLD_ZOOM){
        const pull=22/GAME_WORLD_ZOOM,tx=player.x-(player.x-e.x)/dToP*pull,ty=player.y-(player.y-e.y)/dToP*pull;
        const moved=mapResolveMove(player.x,player.y,tx,ty,player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;
-       effects.push({type:'ring',x:e.x,y:e.y,max:90/worldZoom,life:.25,maxLife:.25,color:'#ffcb70'});
+       renderBossAbilityVisual({abilityId:'lure-pulse',x:e.x,y:e.y,angle:Math.atan2(player.y-e.y,player.x-e.x),radius:320/GAME_WORLD_ZOOM,color:e.color||'#ffb45e'});
      }
    }
   }
   // 2. Maw (A Boca do Abismo): mordida expansiva com micro-onda de choque
-  if(e.kind==='maw'){
+  if(!onlineMode&&e.kind==='maw'){
    e.mawChomp=(e.mawChomp||0)+dt;
    if(e.mawChomp>4.5){
      e.mawChomp=0;
-     burst(e.x,e.y,'#c16cff',12,110);
+     renderBossAbilityVisual({abilityId:'gulper-chomp',x:e.x,y:e.y,angle:e.angle||0,radius:185/GAME_WORLD_ZOOM,color:e.color||'#c16cff'});
      const dToP=Math.hypot(player.x-e.x,player.y-e.y);
-     if(dToP<160/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(12);shake=6;}
+     if(dToP<185/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(16);shake=8;}
    }
   }
   // 3. Leviathan (Leviatã): tremor de trincheira com rastro
-  if(e.kind==='leviathan'){
-   e.leviTrail=(e.leviTrail||0)+dt;
-   if(e.leviTrail>0.25){
-     e.leviTrail=0;
-     effects.push({type:'ring',x:e.x,y:e.y,max:40/worldZoom,life:.3,maxLife:.3,color:'#4ce0d1'});
+  if(!onlineMode&&e.kind==='leviathan'){
+   e.leviTrail=(e.leviTrail||0)+dt;e.pressureWaveTimer=(e.pressureWaveTimer||0)+dt;
+   if(e.leviTrail>0.25){e.leviTrail=0;effects.push({type:'ring',x:e.x,y:e.y,max:40/worldZoom,life:.3,maxLife:.3,color:'#4ce0d1'});}
+   if(e.pressureWaveTimer>=5.4){
+    e.pressureWaveTimer=0;const reach=430/GAME_WORLD_ZOOM,ang=e.angle||0,x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
+    renderBossAbilityVisual({abilityId:'pressure-lance',x:e.x,y:e.y,angle:ang,radius:reach,color:e.color||'#4ce0d1'});
+    if(marineAbilityLineDistance(player.x,player.y,e.x,e.y,x2,y2)<=58/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(15);shake=9;}
    }
   }
   // 4. White Shark Boss: rastro de corte de barbatanas
@@ -3384,6 +3421,9 @@ window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Ar
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
+window.addEventListener('abyssal-boss-ability-visual',ev=>{
+ const d=ev.detail||{};renderBossAbilityVisual({abilityId:d.abilityId,x:Number(d.x)*W,y:Number(d.y)*H,angle:Number(d.angle)||0,radius:Number(d.radius)||0,color:d.color});
+});
 window.addEventListener('abyssal-boss-warning',ev=>{
  const d=ev.detail||{};if(!d.kind)return;
  if(onlineMode&&onlineRoomMode==='pvp')return;
