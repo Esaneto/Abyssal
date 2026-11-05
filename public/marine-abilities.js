@@ -28,24 +28,24 @@ const kinds={
  benthic:['aura','dash','veil','multi','sweep','spines','spines','spines','multi','trap'],
  mollusc:['armor','veil','pulse','rage','dash','multi','dash','multi','armor','armor']
 };
-const descriptionFor=(kind,title)=>({
- dash:title+': avanço explosivo que corta uma linha de inimigos.',
- cone:title+': ataque frontal em cone com forte impacto.',
- aura:title+': campo pulsante que fere criaturas próximas.',
- multi:title+': múltiplos raios bioluminescentes atingem alvos ao redor.',
- lance:title+': descarga linear de grande alcance.',
- sweep:title+': varredura ampla em arco ao redor do corpo.',
- armor:title+': pulso defensivo que repele ameaças e reduz pressão ao redor.',
- pulse:title+': explosão radial periódica de energia.',
- chain:title+': salta entre vários alvos próximos.',
- veil:title+': véu bioluminescente explode ao redor do corpo.',
- mark:title+': marca o alvo mais próximo e detona energia concentrada.',
- trap:title+': cria uma zona persistente de dano.',
- pull:title+': campo de sucção visual seguido por dano em área.',
- grasp:title+': braços espectrais golpeiam vários inimigos.',
- rage:title+': descarga agressiva de múltiplos impactos.',
- blast:title+': detonação curta de alta intensidade.',
- spines:title+': espinhos energéticos irradiam em todas as direções.'
+const descriptionFor=(kind,title,damage,radius,cooldown,beams)=>({
+ dash:`${title}: avança até ${radius}px e causa ${damage} de dano aos inimigos atravessados. Recarga ${cooldown}s.`,
+ cone:`${title}: golpeia um cone frontal de ${radius}px por ${damage} de dano. Recarga ${cooldown}s.`,
+ aura:`${title}: libera um campo de ${radius}px que causa ${damage} de dano ao redor. Recarga ${cooldown}s.`,
+ multi:`${title}: dispara ${beams} feixes contra alvos próximos, até ${damage} de dano por acerto inicial. Recarga ${cooldown}s.`,
+ lance:`${title}: perfura uma linha de até ${radius}px causando ${damage} de dano. Recarga ${cooldown}s.`,
+ sweep:`${title}: varre o entorno em arco e causa ${damage} de dano em até ${radius}px. Recarga ${cooldown}s.`,
+ armor:`${title}: rompe a pressão ao redor em ${radius}px e causa ${damage} de dano às ameaças próximas. Recarga ${cooldown}s.`,
+ pulse:`${title}: detona uma onda radial de ${radius}px causando ${damage} de dano. Recarga ${cooldown}s.`,
+ chain:`${title}: salta por até ${beams} alvos próximos, começando com ${damage} de dano. Recarga ${cooldown}s.`,
+ veil:`${title}: abre um véu bioluminescente de ${radius}px e causa ${damage} de dano em área. Recarga ${cooldown}s.`,
+ mark:`${title}: marca o alvo mais próximo e detona ${damage} de dano a até ${radius}px. Recarga ${cooldown}s.`,
+ trap:`${title}: cria uma zona de ${radius}px que causa ${damage} de dano e mantém pressão no local. Recarga ${cooldown}s.`,
+ pull:`${title}: puxa a ameaça para um campo de ${radius}px e causa ${damage} de dano. Recarga ${cooldown}s.`,
+ grasp:`${title}: projeta ${beams} braços contra inimigos próximos, causando ${damage} de dano no primeiro impacto. Recarga ${cooldown}s.`,
+ rage:`${title}: descarrega até ${Math.max(4,beams+2)} impactos ao redor, com ${damage} de dano-base. Recarga ${cooldown}s.`,
+ blast:`${title}: explode em curto alcance por ${damage} de dano dentro de ${radius}px. Recarga ${cooldown}s.`,
+ spines:`${title}: lança espinhos em todas as direções e causa ${damage} de dano em até ${radius}px. Recarga ${cooldown}s.`
 }[kind]||title);
 
 const profiles=Object.create(null);
@@ -54,15 +54,17 @@ for(const species of catalog?.species||[]){
  const v=Math.max(0,Math.min(9,Number(species.variant)||0)),family=species.family;
  const kind=kinds[family]?.[v]||'pulse',title=titles[family]?.[v]||species.name;
  const rarity=species.rarity||rarityForVariant(v);
- const rank=RARITY_ORDER.indexOf(rarity);
- const cooldown=Math.max(3.6,8.8-v*.38-rank*.18);
- const damage=10+v*2+rank*4;
- const radius=150+v*9+rank*14;
+ const rank=RARITY_ORDER.indexOf(rarity),paid=Boolean(species.paid);
+ const cooldown=Number(Math.max(3.2,8.6-v*.42-rank*.28-(paid?.35:0)).toFixed(1));
+ const damage=Math.round(12+v*3.1+rank*6.5+(paid?8:0));
+ const radius=Math.round(155+v*11+rank*20+(paid?18:0));
+ const beams=2+(v%3)+Math.floor(Math.max(0,rank)/2)+(paid?1:0);
+ const powerScore=Math.round((damage*1.9)+(radius*.16)+(beams*7)+(10-cooldown)*10);
  profiles[species.id]=Object.freeze({
-  id:'ability_'+species.art.key,title,kind,rarity,rarityRank:rank,cooldown,damage,radius,
-  beams:2+(v%4),duration:.35+rank*.08,
+  id:'ability_'+species.art.key,title,kind,rarity,rarityRank:rank,cooldown,damage,radius,powerScore,paid,
+  beams,duration:.42+rank*.1+(paid?.12:0),
   color:species.art?.tone||species.color,
-  description:descriptionFor(kind,title)
+  description:descriptionFor(kind,title,damage,radius,cooldown,beams)
  });
 }
 const api=Object.freeze({profiles:Object.freeze(profiles),RARITY_ORDER,RARITY_LABELS,profileFor:id=>profiles[id]||null});
