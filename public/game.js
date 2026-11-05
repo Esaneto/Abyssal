@@ -233,7 +233,34 @@ function expireSoloDepthEventIfNeeded(){
 }
 
 const RELIC_SKIN_IDS=new Set(['leviathan','kraken','aberration','angler','maw','devourer']);
-const ABYSSAL_SIGNATURE_IDS=new Set(['abyssking','bloodmoon','abyssaleye','greensnake']);
+const ABYSSAL_SIGNATURE_IDS=new Set(['default','violet','solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','greensnake']);
+const SKIN_TAXONOMY=Object.freeze({
+ default:{collections:['signature']},
+ violet:{family:'jelly',collections:['signature']},
+ solar:{family:'benthic',collections:['signature']},
+ toxic:{family:'benthic',collections:['signature']},
+ thorn:{family:'benthic',collections:['signature']},
+ abyssking:{family:'mollusc',collections:['signature']},
+ royal:{family:'mollusc',collections:['signature']},
+ glacier:{collections:['signature']},
+ coral:{family:'benthic',collections:['signature']},
+ bloodmoon:{family:'squid',collections:['signature']},
+ voidwing:{family:'ray',collections:['signature']},
+ abyssaleye:{family:'fish',collections:['signature']},
+ deepwarden:{family:'crustacean',collections:['signature']},
+ greensnake:{family:'eel',collections:['signature','mission'],unlockType:'mission'},
+ electriceel:{family:'ray',collections:['promo'],unlockType:'promo'},
+ reefshark:{family:'shark',collections:['shop']},
+ hammerhead:{family:'shark',collections:['shop']},
+ abysscroc:{family:'shark',collections:['shop']},
+ armoredgator:{family:'crustacean',collections:['shop']},
+ leviathan:{family:'fish',collections:['relic']},
+ kraken:{family:'squid',collections:['relic']},
+ aberration:{family:'mollusc',collections:['relic']},
+ angler:{family:'fish',collections:['relic']},
+ maw:{family:'eel',collections:['relic']},
+ devourer:{family:'squid',collections:['relic']}
+});
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
 {id:'violet',name:'Medusa-Coroa Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Cnidário abissal fictício inspirado em medusas-coroa, com lóbulos violetas bioluminescentes.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
@@ -269,11 +296,18 @@ const SHOP_RARITY_LABELS={common:'COMUM',uncommon:'INCOMUM',rare:'RARO',epic:'É
 const SHOP_SPECIAL_RARITY=Object.freeze({
  default:'common',solar:'uncommon',violet:'rare',toxic:'rare',thorn:'rare',coral:'rare',royal:'epic',glacier:'epic',
  voidwing:'epic',abyssaleye:'legendary',deepwarden:'legendary',abyssking:'legendary',bloodmoon:'legendary',
- reefshark:'rare',hammerhead:'rare',abysscroc:'epic',armoredgator:'epic',electriceel:'epic',greensnake:'mythic',
+ reefshark:'rare',hammerhead:'rare',abysscroc:'epic',armoredgator:'epic',electriceel:'legendary',greensnake:'colossal',
  leviathan:'legendary',aberration:'legendary',angler:'legendary',maw:'legendary',kraken:'mythic',devourer:'mythic'
 });
-function skinShopRarity(skin){return MarineAbilities?.profileFor?.(skin?.id)?.rarity||SHOP_SPECIAL_RARITY[skin?.id]||'uncommon';}
-function skinShopFamily(skin){if(skin?.family)return skin.family;if(RELIC_SKIN_IDS.has(skin?.id))return 'relic';return 'signature';}
+function skinShopRarity(skin){return skin?.rarity||MarineAbilities?.profileFor?.(skin?.id)?.rarity||SHOP_SPECIAL_RARITY[skin?.id]||'uncommon';}
+function skinShopTaxonomy(skin){
+ const meta=SKIN_TAXONOMY[skin?.id]||{};
+ const family=skin?.family||meta.family||null;
+ const collections=[...(Array.isArray(meta.collections)?meta.collections:[]),...(skin?.collection?[skin.collection]:[])];
+ return {family,collections:[...new Set(collections)]};
+}
+function skinShopCategories(skin){const tax=skinShopTaxonomy(skin),set=new Set(tax.collections);if(tax.family)set.add(tax.family);return set;}
+function skinShopFamily(skin){return skinShopTaxonomy(skin).family||skinShopTaxonomy(skin).collections[0]||'signature';}
 function shopRarityRank(rarity){const i=SHOP_RARITY_ORDER.indexOf(rarity);return i<0?999:i;}
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
@@ -3462,8 +3496,8 @@ function renderShop(){
  for(const el of [searchEl,rarityEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
  const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),rarityFilter=rarityEl?.value||'all',familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
  const visibleSkins=skinData.filter(skin=>{
-  const owned=ownedSkins.includes(skin.id),rarity=skinShopRarity(skin),family=skinShopFamily(skin),haystack=(skin.name+' '+skin.desc+' '+(MarineAbilities?.profileFor?.(skin.id)?.title||skin.ability||'')).toLocaleLowerCase('pt-BR');
-  return (!query||haystack.includes(query))&&(rarityFilter==='all'||rarity===rarityFilter)&&(familyFilter==='all'||family===familyFilter)&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
+  const owned=ownedSkins.includes(skin.id),rarity=skinShopRarity(skin),categories=skinShopCategories(skin),haystack=(skin.name+' '+skin.desc+' '+(MarineAbilities?.profileFor?.(skin.id)?.title||skin.ability||'')).toLocaleLowerCase('pt-BR');
+  return (!query||haystack.includes(query))&&(rarityFilter==='all'||rarity===rarityFilter)&&(familyFilter==='all'||categories.has(familyFilter))&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>shopRarityRank(skinShopRarity(a))-shopRarityRank(skinShopRarity(b))||String(a.name).localeCompare(String(b.name),'pt-BR'));
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES · ORDENADOS DO MENOS RARO AO MAIS RARO`;
  visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name,marineAbility=MarineAbilities?.profileFor?.(skin.id),rarity=skinShopRarity(skin),rarityLabel=SHOP_RARITY_LABELS[rarity]||rarity.toUpperCase();
