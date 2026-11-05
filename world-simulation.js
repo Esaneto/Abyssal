@@ -347,13 +347,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
   if (commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
-    const spawned = spawnEnemy(world, { type: 'common', roomId: chooseDensitySpawnRoom(world, validPlayers, random), random });
+    const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
+    const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.35;
   } else if (world.commonSpawnTimer <= 0) {
     if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
-      const spawned = spawnEnemy(world, { type: 'common', roomId: chooseDensitySpawnRoom(world, validPlayers, random), random });
+      const roomId = chooseDensitySpawnRoom(world, validPlayers, random);
+      const spawned = roomId ? spawnEnemy(world, { type: 'common', roomId, random }) : null;
       if (spawned) spawnedEnemies.push(spawned);
     }
     commonCount = countCommons(world);
