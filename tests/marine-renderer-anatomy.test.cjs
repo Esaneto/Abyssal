@@ -69,11 +69,16 @@ test('squid and octopus variants use separate species-level anatomy',()=>{
  assert.ok(renderer.includes('for(let i=0;i<8;i++){const sy=(i-3.5)*.12,extra='));
 });
 
-test('marine skins use dark Abyssal material with luminous accents',()=>{
- assert.match(renderer,/Deliberately monochromatic/);
- assert.match(renderer,/const bodyGrad=\(\)=>tone\(\.34\)/);
- assert.doesNotMatch(renderer,/createLinearGradient/);
- assert.doesNotMatch(renderer,/createRadialGradient/);
+test('marine skins use signature-style multi-color volume and luminous accents',()=>{
+ assert.match(renderer,/Signature-skin color language/);
+ assert.match(renderer,/const bodyGrad=/);
+ assert.match(renderer,/createLinearGradient/);
+ assert.match(renderer,/createRadialGradient/);
+ assert.match(renderer,/palette\.shadow/);
+ assert.match(renderer,/palette\.base/);
+ assert.match(renderer,/palette\.accent/);
+ assert.match(renderer,/palette\.rim/);
+ assert.match(renderer,/palette\.glow/);
  assert.match(renderer,/materialPass/);
  assert.match(renderer,/globalCompositeOperation='lighter'/);
  assert.match(renderer,/scars/);
@@ -119,7 +124,10 @@ test('every marine species receives a named signature-art key',()=>{
  const species=require('../public/marine-species').species;
  assert.equal(new Set(species.map(s=>s.art?.key)).size,100);
  assert.equal(new Set(species.map(s=>s.art?.tone)).size>=40,true);
- for(const s of species){assert.ok(s.art?.key,s.id);assert.ok(/^#[0-9a-f]{6}$/i.test(s.art?.tone||''),s.id);}
+ for(const s of species){
+  assert.ok(s.art?.key,s.id);assert.ok(/^#[0-9a-f]{6}$/i.test(s.art?.tone||''),s.id);
+  for(const key of ['base','shadow','rim','glow','accent','eye'])assert.match(String(s.art?.palette?.[key]||''),/^#[0-9a-f]{6}$/i,s.id+':'+key);
+ }
 });
 
 test('renderer includes explicit signature art for all 100 profiles',()=>{
