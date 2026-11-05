@@ -265,6 +265,7 @@ body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
   animation:abyssEventAtmosphere 5.8s ease-in-out infinite alternate;
 }
 .abyss-event-atmosphere[hidden]{display:none!important}
+body:not(.game-active) .abyss-event-atmosphere,body:not(.game-active) .abyss-event-banner{display:none!important}
 
 .abyss-event-banner{
   position:fixed;
