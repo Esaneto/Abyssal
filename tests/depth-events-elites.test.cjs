@@ -87,8 +87,8 @@ test('starting an event stores only compact world state and exposes a reusable d
   let i=0;
   const event=Simulation.startDepthEvent(world,()=>seq[i++]??.1);
   assert.ok(event);
-  assert.equal(event.id,'predator_migration');
-  assert.equal(world.activeEventId,'predator_migration');
+  assert.equal(event.id,'black_current');
+  assert.equal(world.activeEventId,'black_current');
   assert.ok(world.eventEndsAt>world.elapsed);
-  assert.equal(Simulation.currentDepthEvent(world).id,'predator_migration');
+  assert.equal(Simulation.currentDepthEvent(world).id,'black_current');
 });
