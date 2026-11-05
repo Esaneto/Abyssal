@@ -233,3 +233,10 @@ test('online reconnect retry state used during room join is declared', () => {
  assert.ok(online.indexOf('reconnectSessionRetry=null') < online.indexOf('function clearReconnectWatchdog'));
  assert.ok(online.indexOf('reconnectSessionAttempts=0') < online.indexOf('function clearReconnectWatchdog'));
 });
+
+
+test('damage indicator canvas font uses a valid concrete family at 220px', () => {
+ const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+ assert.match(game,/ctx\.font='900 220px Cinzel, Georgia, serif'/);
+ assert.doesNotMatch(game,/ctx\.font='900 220px var\(--abyssal-runic\)/);
+});
