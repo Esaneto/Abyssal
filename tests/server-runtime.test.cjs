@@ -251,9 +251,15 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
   const guestXpAwardsBefore = guest.all('shared-xp-award').length;
   let killAck = null;
-  await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: Math.max(1000,Number(xpTarget.hp)||0) }, result => { killAck = result; });
-  assert.equal(killAck?.ok, true, 'the server accepts damage that kills a common enemy');
-  assert.equal(killAck.killed, true, 'the server confirms the enemy was killed');
+  let remainingHp=Math.max(1,Number(xpTarget.hp)||1);
+  for(let hit=0;hit<8&&remainingHp>0;hit++){
+    const chunk=Math.min(1000,remainingHp);
+    await owner.clientEmit('shared-damage', { id: xpTarget.id, damage: chunk }, result => { killAck = result; });
+    assert.equal(killAck?.ok, true, 'the server accepts each bounded damage chunk');
+    if(killAck?.killed)break;
+    remainingHp=Math.max(0,Number(killAck?.hp)||0);
+  }
+  assert.equal(killAck?.killed, true, 'the server confirms the enemy was killed');
   const xpOrb = owner.latest('world-xp-orb-spawned');
   assert.ok(xpOrb && String(xpOrb.sourceEnemyId) === String(xpTarget.id), 'the server sends the dropped XP orb as a compact lifecycle event');
   const guestXpOrb = guest.latest('world-xp-orb-spawned');
