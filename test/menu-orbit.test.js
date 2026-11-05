@@ -48,17 +48,17 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=5/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=6/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
 test('purple tentacle cursor has become a centered aiming reticle', () => {
   const svg=read('public/abyssal-tentacle-cursor.svg');
   const css=read('public/abyssal-menu-orbit.css');
-  assert.match(svg,/<svg[^>]*width="48" height="48"/);
+  assert.match(svg,/<svg[^>]*width="32" height="32"/);
   assert.match(svg,/rotate\(270 24 24\)/);
   assert.match(svg,/cx="24" cy="24" r="3\.5"/);
-  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=2'\) 24 24,crosshair!important/);
+  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=3'\) 16 16,crosshair!important/);
 });
 
 test('reference-inspired interface centers vortex and keeps extra features reachable', () => {
@@ -89,10 +89,10 @@ test('orbital navigation is a direct fullscreen menu child, not a narrow legacy 
 test('cursor is an aiming crosshair centered on a purple dot, even when hovering over the gate',()=>{
   const cursor=read('public/abyssal-tentacle-cursor.svg');
   const css=read('public/abyssal-menu-orbit.css');
-  assert.match(cursor,/width="48" height="48" viewBox="0 0 48 48"/);
+  assert.match(cursor,/width="32" height="32" viewBox="0 0 48 48"/);
   assert.match(cursor,/rotate\(270 24 24\)/);
   assert.match(cursor,/<circle cx="24" cy="24" r="3\.5"/);
-  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=2'\) 24 24,crosshair!important/);
+  assert.match(css,/cursor:url\('abyssal-tentacle-cursor\.svg\?v=3'\) 16 16,crosshair!important/);
   assert.match(css,/#abyssGate \*/);
 });
 
@@ -137,9 +137,49 @@ test('portal has deterministic uneven currents and the fenda button sits at its 
 test('cursor references use one asset and one hot spot to avoid hover jumps',()=>{
   const css=read('public/abyssal-menu-orbit.css');
   assert.doesNotMatch(css,/cursor:url\('abyssal-tentacle-cursor\.svg'\) 6 5/);
-  const cursors=[...css.matchAll(/cursor:url\('abyssal-tentacle-cursor\.svg(?:\?v=2)?'\) ([0-9]+) ([0-9]+),\s*([a-z-]+)!important/g)];
+  const cursors=[...css.matchAll(/cursor:url\('abyssal-tentacle-cursor\.svg(?:\?v=3)?'\) ([0-9]+) ([0-9]+),\s*([a-z-]+)!important/g)];
   assert.ok(cursors.length>=3,'cursor should be applied across menu and UI');
   for(const [,x,y,fallback] of cursors){
-    assert.equal(x,'24');assert.equal(y,'24');assert.equal(fallback,'crosshair');
+    assert.equal(x,'16');assert.equal(y,'16');assert.equal(fallback,'crosshair');
   }
+});
+
+
+test('three promoted buttons inherit the exact old configuration, controls and exit slots',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-menu-orbit.css');
+  const orbit=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
+  const choices=orbit.match(/<div class="menu-secondary-actions">([\s\S]*?)<\/div>/)[1];
+  const slots={
+    resonanceBtn:['71%','31%'],
+    wheelBtn:['81%','48.5%'],
+    profileBtn:['71%','68%']
+  };
+  for(const [id,[x,y]] of Object.entries(slots)){
+    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
+    assert.match(choices,new RegExp('id="'+id+'"'));
+    const rule=new RegExp('#'+id+'\\s*\\{\\s*--orbit-x:'+x.replace('%','%')+';--orbit-y:'+y.replace('%','%')+';');
+    assert.match(css,rule,id+' should use its retired card slot');
+  }
+  assert.doesNotMatch(choices,/id="(?:abyssSettingsBtn|abyssExitBtn|controlsBtn)"/);
+  assert.doesNotMatch(css,/inset-inline:auto!important;bottom:auto!important;/);
+});
+
+test('ocean depth center fades without an opaque black disc overlay',()=>{
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(css,/#abyssGate \.abyss-vortex-shaft\s*\{[\s\S]*?display:none!important/);
+  assert.match(css,/-webkit-mask-image:radial-gradient\(ellipse at 50% 52%,/);
+  assert.match(css,/rgba\(0,10,30,\.55\) 20%/);
+  assert.match(css,/rgba\(0,13,37,\.22\) 32%/);
+  assert.match(css,/transparent 58%\)!important/);
+});
+
+test('cursor hotspot is exactly its rendered center for all interactive elements',()=>{
+  const css=read('public/abyssal-menu-orbit.css');
+  const svg=read('public/abyssal-tentacle-cursor.svg');
+  assert.match(svg,/width="32" height="32" viewBox="0 0 48 48"/);
+  assert.match(svg,/<circle cx="24" cy="24" r="1\.4"/);
+  const cursors=[...css.matchAll(/cursor:url\('abyssal-tentacle-cursor\.svg\?v=3'\) (\d+) (\d+),crosshair!important/g)];
+  assert.ok(cursors.length>=3,'menu and game should share one cursor reference');
+  for(const m of cursors){assert.equal(Number(m[1]),16);assert.equal(Number(m[2]),16)}
 });
