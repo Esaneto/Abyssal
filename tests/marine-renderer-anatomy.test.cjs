@@ -49,11 +49,11 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.ok(start>=0&&end>start);
  assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
  assert.match(preview,/The anatomy must dominate the preview/);
- assert.match(html,/marine-species\.js\?v=7/);
+ assert.match(html,/marine-species\.js\?v=8/);
  assert.match(html,/marine-renderer\.js\?v=8/);
  assert.match(html,/abyssal-boss-renderer\.js\?v=3/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
- assert.match(html,/game\.js\?v=4\.4\.15/);
+ assert.match(html,/game\.js\?v=4\.4\.16/);
 });
 
 test('squid and octopus variants use separate species-level anatomy',()=>{
