@@ -257,11 +257,9 @@ updateNotifBadge();
 const FAIR_VIEW_REFERENCE=Object.freeze({width:1366,height:768,zoom:.78});
 const FAIR_VIEW_WORLD_AREA=(FAIR_VIEW_REFERENCE.width*FAIR_VIEW_REFERENCE.height)/(FAIR_VIEW_REFERENCE.zoom*FAIR_VIEW_REFERENCE.zoom);
 function desiredWorldZoom(){
- // Keep projection isotropic across browser/fullscreen aspect-ratio changes.
- // Height anchors apparent creature/world scale; extra fullscreen width reveals more sea instead of shrinking the whole scene.
- const heightZoom=Math.max(300,viewH)/(FAIR_VIEW_REFERENCE.height/FAIR_VIEW_REFERENCE.zoom);
- // Touch screens still receive tactical pullback because controls cover part of the arena.
- return mobileViewport?clamp(heightZoom*.82,.25,.72):clamp(heightZoom,.34,1.12);
+ // Fixed world scale: resizing or entering fullscreen never stretches, shrinks or zooms gameplay.
+ // Every additional viewport pixel becomes additional field of view.
+ return mobileViewport?.64:FAIR_VIEW_REFERENCE.zoom;
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
