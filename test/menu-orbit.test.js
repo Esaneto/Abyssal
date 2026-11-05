@@ -43,12 +43,12 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
   const html=read('public/index.html');
   const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/);
   assert.ok(nav);
-  ['abyssSettingsBtn','abyssExitBtn','controlsBtn'].forEach(id=>{
+  ['resonanceBtn','wheelBtn','profileBtn','controlsBtn'].forEach(id=>{
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id+' unique');
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
-  assert.match(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=4/);
+  assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=5/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
@@ -67,11 +67,10 @@ test('reference-inspired interface centers vortex and keeps extra features reach
   assert.match(css,/#abyssGate\s*\{\s*left:50%!important;top:50%!important/);
   assert.match(css,/abyss-orbit-extras/);
   assert.match(css,/@media\(max-width:1000px\),\(pointer:coarse\)/);
-  const interactions=read('public/abyssal-menu-interactions.js');
-  assert.match(interactions,/settings\.addEventListener\('click'/);
-  assert.match(interactions,/exit\.addEventListener\('click'/);
-  assert.match(interactions,/popup\.classList\.add\('active'\)/);
-  assert.match(interactions,/if\(event\.key==='Escape'\)/);
+  const game=read('public/game.js'),online=read('public/online.js');
+  assert.match(game,/\$\('resonanceBtn'\)\?\.addEventListener\('click'/);
+  assert.match(game,/\$\('wheelBtn'\)\?\.addEventListener\('click'/);
+  assert.match(online,/\$\('profileBtn'\)\?\.addEventListener\('click'/);
 });
 
 
@@ -107,5 +106,40 @@ test('crocodile and caiman require real payment rather than coins',()=>{
     assert.match(payments,new RegExp(id+":\\{[^\\n]*brl:999"));
     assert.match(server,new RegExp("stripeOnlySkins = new Set\\(\\[[^\\n]*'"+id+"'"));
     assert.doesNotMatch(server,new RegExp("const prices = \\{[^\\n]*\\b"+id+":"));
+  }
+});
+
+
+test('six central choices are the existing game actions without duplicated extra buttons',()=>{
+  const html=read('public/index.html');
+  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
+  const primary=nav.match(/<div class="menu-secondary-actions">([\s\S]*?)<\/div>/)[1];
+  const extras=nav.match(/<div class="abyss-orbit-extras"[^>]*>([\s\S]*?)<\/div>/)[1];
+  for(const id of ['onlineBtn','resonanceBtn','rankingsBtn','wheelBtn','shopBtn','profileBtn']){
+    assert.match(primary,new RegExp('id="'+id+'"'),id+' is a main card');
+    assert.doesNotMatch(extras,new RegExp('id="'+id+'"'),id+' is not duplicated below');
+  }
+  for(const id of ['abyssSettingsBtn','abyssExitBtn']){
+    assert.doesNotMatch(html,new RegExp('id="'+id+'"'),id+' redundant entry removed');
+  }
+  assert.match(extras,/id="controlsBtn"[^>]*hidden/);
+});
+
+test('portal has deterministic uneven currents and the fenda button sits at its center',()=>{
+  const js=read('public/abyssal-rebuild.js');
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(js,/count=11,steps=84/);
+  assert.match(js,/var outer=207\+noise/);
+  assert.match(css,/#abyssGate \.abyss-gate-content\{\s*position:absolute!important;z-index:12!important;[\s\S]*?top:50%!important/);
+  assert.match(css,/\.abyss-vortex-plane::before\{\s*opacity:0!important/);
+});
+
+test('cursor references use one asset and one hot spot to avoid hover jumps',()=>{
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.doesNotMatch(css,/cursor:url\('abyssal-tentacle-cursor\.svg'\) 6 5/);
+  const cursors=[...css.matchAll(/cursor:url\('abyssal-tentacle-cursor\.svg(?:\?v=2)?'\) ([0-9]+) ([0-9]+),\s*([a-z-]+)!important/g)];
+  assert.ok(cursors.length>=3,'cursor should be applied across menu and UI');
+  for(const [,x,y,fallback] of cursors){
+    assert.equal(x,'24');assert.equal(y,'24');assert.equal(fallback,'crosshair');
   }
 });
