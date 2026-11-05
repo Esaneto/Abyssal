@@ -66,7 +66,8 @@ test('boss-heavy scenes avoid full enemy redraws and all-to-all projectile check
   assert.match(game, /projectileCandidates\.push\(enemy\)/);
   assert.match(game, /if\(e\.hp>0&&!p\.hitIds\.includes\(e\.id\)/);
   assert.match(game, /particlePool\.pop\(\)/);
-  assert.match(game, /if\(hit>0\)\{c\.globalAlpha=clamp\(hit\*2\.6/);
+  assert.match(game, /if\(hit>0&&\(kind!=='angler'/);
+  assert.match(game, /c\.globalAlpha=clamp\(hit\*2\.6,0,\.45\)/);
   assert.match(game, /burst\(newBoss\.x,newBoss\.y,newBoss\.color,newBoss\.kind==='kraken'\?26:32,230\)/);
 });
 
