@@ -50,7 +50,20 @@ test('creature previews do not reintroduce the shared orbit frame and cache vers
   assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
   assert.match(preview,/The anatomy must dominate the preview/);
   assert.match(html,/marine-species\.js\?v=4/);
-  assert.match(html,/marine-renderer\.js\?v=3/);
+  assert.match(html,/marine-renderer\.js\?v=4/);
   assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
-  assert.match(html,/game\.js\?v=4\.4\.11/);
+  assert.match(html,/game\.js\?v=4\.4\.12/);
+});
+
+
+test('squid and octopus variants use species-level body plans rather than one recolored template',()=>{
+  for(const marker of [
+    'Every squid variant has a different mantle/fin/arm silhouette',
+    "if(v===0){polygon([[1.18,0]",
+    "else if(v===3){polygon([[1.08,0]",
+    "else if(v===7){polygon([[.86,0]",
+    "else if(v===8){polygon([[1.42,0]",
+    "else {polygon([[1.25,0]"
+  ]) assert.ok(renderer.includes(marker),marker);
+  assert.match(renderer,/Abyssal material pass: mineral seams, photophores and scar-like asymmetry/);
 });
