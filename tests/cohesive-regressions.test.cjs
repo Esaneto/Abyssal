@@ -39,6 +39,18 @@ test('Render deploy reconnect restores the active expedition instead of leaving 
   assert.match(server, /spawn:\{x:p\.x,y:p\.y\}/);
 });
 
+test('restored room join is never discarded as a duplicate while reconnect is pending', () => {
+  const online = read('public/online.js');
+  const start = online.indexOf('function handleRoomJoined(data)');
+  const end = online.indexOf("socket.on('room-joined',handleRoomJoined)", start);
+  assert.ok(start >= 0 && end > start, 'room join handler boundaries exist');
+  const handler = online.slice(start, end);
+  assert.match(handler, /if\(!reconnectPending&&currentRoom/);
+  assert.match(handler, /reconnectPending=false/);
+  assert.match(handler, /abyssal-room-joined/);
+  assert.match(handler, /hideMaintenanceOverlay\(\)/);
+});
+
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
   const game = read('public/game.js');
   assert.match(game, /FAIR_VIEW_REFERENCE/);
