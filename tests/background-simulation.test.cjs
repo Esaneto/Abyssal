@@ -139,3 +139,17 @@ test('deploy shutdown persists runs before forcing old WebSockets to reconnect',
   assert.ok(shutdown.indexOf('await flushPersistence()') < shutdown.indexOf('io.disconnectSockets(true)'));
   assert.ok(shutdown.indexOf('io.disconnectSockets(true)') < shutdown.indexOf('server.close(resolve)'));
 });
+
+test('deploy reconnect preserves the shared room world and does not consume mismatched resumes',()=>{
+ const server=read('server.js');
+ assert.match(server,/roomResume:\{id:room\.id[\s\S]*world:deployWorld/);
+ assert.match(server,/function restoreDeployRoom\(user,requestedId\)/);
+ assert.match(server,/room\.world=JSON\.parse\(JSON\.stringify\(meta\.world\)\)/);
+ assert.match(server,/saved\.roomId===room\.id/);
+ const take=server.slice(server.indexOf('function takeDeployRun'),server.indexOf('function restoreDeployRoom'));
+ assert.ok(take.indexOf('const valid=') < take.indexOf('delete user.pendingRunResume'));
+});
+
+test('maintenance deadline allows normal Render deploy startup before fallback',()=>{
+ assert.match(online,/\},180000\);/);
+});
