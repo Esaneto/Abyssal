@@ -597,3 +597,101 @@ Deploy:
 - autoDeploy estava desativado;
 - deploy manual com cache limpo disparado para o commit `3b598b48a57118fdf6a4993658a6fc6e4e142721`;
 - deploy ID: `dep-dbmba8p42hec73e6l800`.
+
+
+## 21. Direcao visual corrigida por comparacao real de capturas - 2026-11-05
+
+Esta secao SUPERA parcialmente a secao 20 no que diz respeito aos bosses.
+
+O usuario comparou a loja atual com as skins de assinatura antigas do Abyssal e definiu a referencia visual correta:
+- as skins de assinatura como Luz Abissal, Medusa-Coroa Violeta, Ourico Solar, Anemona Toxica, Eco do Peixe-Remo Leviata e Coroa de Espinhos possuem mais identidade visual;
+- o objetivo nao e copiar suas formas, e sim preservar o mesmo nivel de volume, textura, contraste, leitura de silhueta e personalidade;
+- especies novas nao podem parecer ilustracoes naturais simplificadas, linhas finas ou recolors.
+
+### Bosses que NAO devem ser redesenhados
+
+Preservar o renderer estabelecido para:
+- `whiteSharkBoss` - Tubarao Boss;
+- `kraken` - Kraken Boss;
+- `devourer` - Devorador.
+
+Esses tres foram aprovados visualmente pelo usuario.
+No maximo corrigir defeito pontual de contorno, proporcao, clipping ou brilho. Nao substituir sua anatomia nem identidade.
+
+A partir desta revisao, `drawCreature()` envia ao novo `window.drawAbyssalBoss` somente:
+- `boss`;
+- `angler`;
+- `maw`;
+- `leviathan`.
+
+### Bosses que foram refeitos
+
+`public/abyssal-boss-renderer.js` foi simplificado para conter apenas os quatro bosses que ainda precisavam de redesign:
+- Polvo-de-aneis-azuis Colossal: massa compacta, manto mineral, bracos grossos e aneis luminosos integrados ao tecido;
+- Peixe-Pescador Abissal: cabeca dominante, cranio blindado, boca enorme, dentes-agulha e isca luminosa;
+- Enguia-Pelicano Colossal: corpo em fita e mandibula articulada que domina a cabeca;
+- Peixe-Remo Leviata: corpo colossal em fita, placas, crista dorsal e fotoforos.
+
+### Redesign das 100 especies marinhas
+
+`public/marine-renderer.js` foi reconstruido como renderer canonico de skins marinhas.
+
+Contrato visual:
+1. silhueta/anatomia identifica a especie;
+2. corpo escuro organico/mineral identifica o universo Abyssal;
+3. cor serve como bioluminescencia secundaria, nao pintura plana;
+4. detalhes internos criam volume: olhos, boca, dentes, placas, nervuras, espinhos, membranas, fotoforos e cicatrizes;
+5. cada familia tem variantes anatomicas proprias;
+6. nenhuma enguia pode regredir para uma linha colorida com uma cabeca;
+7. preview e gameplay continuam usando o mesmo renderer.
+
+Familias cobertas:
+- tubaroes;
+- raias;
+- enguias/moreias/congros;
+- lulas;
+- polvos;
+- medusas;
+- crustaceos;
+- peixes;
+- bentonicos;
+- moluscos.
+
+### Presenca no card
+
+`renderCreaturePreview()` tambem foi corrigido:
+- especies marinhas agora ocupam mais area do card, aproximando seu peso visual das skins de assinatura;
+- foi corrigida uma expressao ternaria ambigua do scale de tubaroes;
+- familias longas continuam com escala reduzida apenas quando necessario para evitar clipping.
+
+### Invariantes
+
+Nao alterar para resolver arte:
+- hitbox;
+- dano;
+- habilidade;
+- ownership;
+- preco;
+- Stripe;
+- save;
+- netcode;
+- movimento.
+
+Nao reintroduzir:
+- corpo inteiro pintado pela cor da skin;
+- uma unica anatomia por familia;
+- enguias como linhas finas;
+- boss comum ampliado;
+- orbita decorativa dominante no preview;
+- renderer novo sobre `whiteSharkBoss`, `kraken` ou `devourer`.
+
+Testes relevantes:
+- `tests/marine-renderer-anatomy.test.cjs`;
+- `tests/abyssal-boss-renderer.test.cjs`.
+
+Cache atual apos este pass:
+- `marine-renderer.js?v=6`;
+- `abyssal-boss-renderer.js?v=2`;
+- `game.js?v=4.4.14`.
+
+Toda futura alteracao visual deve atualizar este handoff e os testes correspondentes.
