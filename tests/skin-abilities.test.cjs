@@ -14,7 +14,7 @@ test('skin damage passives are deterministic and preserve boss/range conditions'
   assert.equal(abilities.damageMultiplier('thorn','common',100,1),1.24);
   assert.equal(abilities.damageMultiplier('thorn','common',220,1),1);
   assert.equal(abilities.damageMultiplier('bloodmoon','common',500,.35),1.3);
-  assert.equal(abilities.damageMultiplier('angler','common',300,1),1.25);
+  assert.equal(abilities.damageMultiplier('angler','common',300,1),1);
   assert.equal(abilities.damageMultiplier('maw','common',100,1),1.3);
 });
 
@@ -100,15 +100,15 @@ test('Kraken skin uses animated contact-damage tentacles', () => {
 });
 
 
-test('premium boss skins expose meaningful verified combat advantages',()=>{
+test('relic skins keep established passives except the two replaced by active species abilities',()=>{
  const abilities=require('../public/skin-abilities');
  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
- assert.equal(abilities.damageMultiplier('angler','drifter',300,1),1.25);
+ assert.equal(abilities.damageMultiplier('angler','drifter',300,1),1);
  assert.equal(abilities.damageMultiplier('maw','drifter',100,1),1.3);
  assert.equal(abilities.damageMultiplier('devourer','kraken',300,1),1.2);
- assert.equal(abilities.incomingDamageMultiplier('aberration'),.88);
+ assert.equal(abilities.incomingDamageMultiplier('aberration'),1);
  assert.equal(abilities.incomingDamageMultiplier('kraken'),.9);
- assert.equal(abilities.targetRangeMultiplier('angler'),1.15);
+ assert.equal(abilities.targetRangeMultiplier('angler'),1);
  assert.equal(abilities.magnetRangeMultiplier('devourer'),1.35);
 });
 
@@ -123,7 +123,8 @@ test('paid skin copy matches implemented white shark and boss-skin mechanics',()
  const game=read('public/game.js');
  assert.ok(game.includes('Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos'));
  assert.ok(game.includes('Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'));
- assert.ok(game.includes('Isca predatória: +25% de dano a longa distância e +15% de alcance'));
+ assert.ok(game.includes('Camuflagem abissal: fade-out por 3 s, 10 s invisível, fade-in por 3 s e 10 s de recarga.'));
+ assert.ok(game.includes('Tinta abissal: ao nadar, deixa um rastro de tinta negra'));
  assert.ok(game.includes('Mordida de fenda: +30% de dano contra inimigos próximos'));
 });
 
@@ -230,15 +231,19 @@ test('rankings expose settlement timestamps for client countdowns',()=>{
  assert.ok(online.includes('RECOMPENSA EM'));
 });
 
-test('Aberration Mask keeps 12% mitigation and first-hit echo repels the attacker',()=>{
- assert.equal(abilities.incomingDamageMultiplier('aberration'),0.88);
- const sim=fs.readFileSync(path.join(__dirname,'..','world-simulation.js'),'utf8');
- assert.match(sim,/aberrationEchoTriggered = true/);
- assert.doesNotMatch(sim,/nearby\.id === enemy\.id/);
- assert.match(sim,/damage: appliedDamage, blocked, aberrationEchoTriggered/);
- const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
- assert.match(server,/if\(hit\.aberrationEchoTriggered\)/);
- assert.match(server,/skin:'aberration'/);
+test('blue-ring ink and angler camouflage replace the old aberration and angler passives',()=>{
+ const game=read('public/game.js'),sim=read('world-simulation.js'),server=read('server.js');
+ assert.equal(abilities.incomingDamageMultiplier('aberration'),1);
+ assert.equal(abilities.damageMultiplier('angler','common',300,1),1);
+ assert.equal(abilities.targetRangeMultiplier('angler'),1);
+ assert.match(game,/type:'ink-trail'/);
+ assert.match(game,/blue-ring-ink/);
+ assert.match(server,/type==='ink-trail'/);
+ assert.match(server,/source:'blue-ring-ink'/);
+ assert.match(sim,/abilityId:'ink-trail'/);
+ assert.match(sim,/p\.skinId==='angler'&&anglerInvisibleAt\(now\)/);
+ assert.doesNotMatch(server,/triggerPvpAberrationEcho/);
+ assert.doesNotMatch(sim,/aberrationEchoTriggered/);
 });
 
 test('PvP authoritative damage applies skin and learned defensive passives',()=>{
@@ -248,7 +253,8 @@ test('PvP authoritative damage applies skin and learned defensive passives',()=>
  assert.match(server,/SkinAbilities\.incomingDamageMultiplier\(target\?\.skinId\)/);
  assert.match(server,/shellLevel\*\.08/);
  assert.match(server,/lastStandLevel/);
- assert.match(server,/triggerPvpAberrationEcho/);
+ assert.doesNotMatch(server,/triggerPvpAberrationEcho/);
+ assert.match(server,/room\.world\.inkTrails/);
  assert.match(server,/bubbleDamage=pvpDamageAmount/);
 });
 test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
