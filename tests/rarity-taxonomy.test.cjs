@@ -22,15 +22,15 @@ test('specimen lore cannot create a second literal rarity system',()=>{
 });
 
 test('legacy coin prices follow the power hierarchy on client and server',()=>{
- const expected={solar:4800,toxic:14000,coral:18000,thorn:22000,royal:36000,glacier:42000,voidwing:48000};
+ const expected={solar:2500,toxic:4000,coral:6000,thorn:8000,abyssking:10000,royal:12000,glacier:13000,bloodmoon:9000,voidwing:15000,abyssaleye:18000,deepwarden:14000};
  for(const [id,price] of Object.entries(expected)){
   assert.ok(game.includes("id:'"+id+"'")&&game.includes("price:"+price),id);
   assert.ok(server.includes(id+':'+price),id);
  }
 });
 
-test('premium fallback prices rise with stronger legacy skins',()=>{
- const marker="const paidBrl=Object.freeze({violet:690,reefshark:690,hammerhead:790,abysscroc:990,armoredgator:990,abyssking:1290,bloodmoon:1390,abyssaleye:1490,deepwarden:1590,angler:1690,aberration:1790,maw:1890,leviathan:2190,kraken:2490,devourer:2790});";
+test('premium fallback prices preserve the original BRL table',()=>{
+ const marker="const paidBrl=Object.freeze({violet:390,reefshark:590,hammerhead:590,abysscroc:690,armoredgator:690,angler:1290,maw:1490,aberration:1490,leviathan:1690,kraken:1890,devourer:1990});";
  assert.ok(game.includes(marker));
 });
 
