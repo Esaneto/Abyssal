@@ -3257,14 +3257,16 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
  let scale=1;
  if(skin?.family){
   const family=String(skin.family),variant=Number(skin.variant)||0;
-  if(family==='shark')scale=variant===5||variant===7?.72:.82;
-  else if(family==='eel')scale=.72;
-  else if(family==='ray')scale=.72;
-  else if(family==='octopus'||family==='squid'||family==='jelly')scale=.68;
-  else if(family==='crustacean')scale=variant===5?.62:.76;
-  else if(family==='fish')scale=variant===9?.68:.82;
-  else if(family==='benthic')scale=.74;
-  else if(family==='mollusc')scale=.78;
+  // Marine skins should occupy the card with the same visual weight as signature Abyssal skins.
+  if(family==='shark')scale=(variant===5||variant===7)?.76:.9;
+  else if(family==='eel')scale=.86;
+  else if(family==='ray')scale=.8;
+  else if(family==='octopus'||family==='squid')scale=.8;
+  else if(family==='jelly')scale=.76;
+  else if(family==='crustacean')scale=variant===5?.68:.82;
+  else if(family==='fish')scale=variant===9?.74:.88;
+  else if(family==='benthic')scale=.8;
+  else if(family==='mollusc')scale=.84;
  }
  if(kind==='leviathan')scale=.68;
  else if(kind==='kraken'||kind==='devourer')scale=.7;
