@@ -45,7 +45,7 @@ test('Kraken identity and eight-arm silhouette are preserved by the rarity pass'
 
 test('canonical specimen names no longer depend on DOM relabeling',()=>{
   for(const [id,name] of [
-    ['abyssking','Soberano do Vazio'],
+    ['abyssking','Náutilo Soberano'],
     ['royal','Pérola Regente'],
     ['voidwing','Manta do Nada']
   ]){
