@@ -1562,8 +1562,9 @@ io.on('connection', socket => {
  socket.on('save-cosmetics', payload => {
   const u = users[socket.data.userKey];
   if (!u || !payload) return;
-  const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
-  u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])];
+  // Keep ownership filtering aligned with the canonical server whitelist, including
+  // all generated marine species. Never maintain a second legacy-only whitelist here.
+  u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowedSkinIds.has(x))])];
   // A conclusão dos ciclos finais concede a Moréia Esmeralda Colossal à conta.
   // O cliente envia esta confirmação ao concluir a conquista; a skin é registrada
   // no perfil antes de aceitar uma solicitação para equipá-la.
