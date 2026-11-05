@@ -318,6 +318,7 @@ function anglerVisibilityAlpha(nowMs=Date.now()){
  return 1;
 }
 function anglerInvisibleNow(nowMs=Date.now()){const phase=((Number(nowMs)||0)%26000+26000)%26000;return phase>=3000&&phase<13000;}
+function enemyHiddenFromAutoTarget(enemy,nowMs=Date.now()){return Boolean(enemy&&enemy.kind==='angler'&&anglerInvisibleNow(nowMs));}
 
 const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável','shoal-founder':'Fundador do Cardume','supporter-of-the-depths':'Apoio das Profundezas','abyssal-famous':'Nome Conhecido','abyssal-icon':'Ícone do Abismo','living-legend':'Lenda Viva','abyssal-patron':'Patrono do Abismo','boss-abyssal':'Boss Abyssal'});
 const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
@@ -1904,7 +1905,7 @@ function fire(){
  if(onlineRoomMode==='pvp'){
   const peers=window.AbyssalOnline?.getPlayers?.()||[];
   for(const peer of peers){if(!peer||peer.alive===false)continue;const d=Math.hypot((Number(peer.x)||0)-player.x,(Number(peer.y)||0)-player.y);if(d<maxRange&&d<bd){target=peer;bd=d;}}
- }else for(const e of enemies){const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
+ }else for(const e of enemies){if(enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
  const mouseAimMode=isPcMouseAimMode(),aimedMode=mouseAimMode||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
  if(!target&&!aimedMode)return;
  if(mouseAimMode)updateMouseAimFromCursor();
@@ -2116,7 +2117,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    let nearest=null,nearestDistance=beamRange*beamRange;
    for(const candidate of candidates){
-    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
+    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0)||(!isPvpMode&&enemyHiddenFromAutoTarget(candidate)))continue;
     const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=dx*dx+dy*dy;
     if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
    }
@@ -2132,7 +2133,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    const candidates=isPvpMode?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
    let nearest=null,nearestDistance=beamRange;
    for(const candidate of candidates){
-    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0))continue;
+    if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0)||(!isPvpMode&&enemyHiddenFromAutoTarget(candidate)))continue;
     const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=Math.hypot(dx,dy);
     if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
    }
