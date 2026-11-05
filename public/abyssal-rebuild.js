@@ -231,7 +231,7 @@ function createExpeditionUI(){
     meter.id='abyssDepthMeter';
     meter.className='abyss-depth-meter';
     meter.hidden=true;
-    meter.innerHTML='<small>PROFUNDIDADE</small><strong id="abyssDepthValue">350 m</strong><span id="abyssRiskValue">SAQUE · 100%</span>';
+    meter.innerHTML='<small id="abyssZoneValue">LIMIAR DA LUZ</small><strong id="abyssDepthValue">350 m</strong><span id="abyssRiskValue">SAQUE · 100%</span>';
     hud.appendChild(meter);
   }
 
@@ -256,6 +256,22 @@ function createExpeditionUI(){
     '</div>';
   document.body.appendChild(panel);
 
+  var atmosphere=document.createElement('div');
+  atmosphere.id='abyssEventAtmosphere';
+  atmosphere.className='abyss-event-atmosphere';
+  atmosphere.hidden=true;
+  atmosphere.setAttribute('aria-hidden','true');
+  document.body.appendChild(atmosphere);
+
+  var eventBanner=document.createElement('aside');
+  eventBanner.id='abyssEventBanner';
+  eventBanner.className='abyss-event-banner';
+  eventBanner.hidden=true;
+  eventBanner.setAttribute('role','status');
+  eventBanner.setAttribute('aria-live','polite');
+  eventBanner.innerHTML='<small>ANOMALIA DA PROFUNDEZA</small><strong id="abyssEventName"></strong><span id="abyssEventCopy"></span>';
+  document.body.appendChild(eventBanner);
+
   $('abyssContinueBtn')?.addEventListener('click',function(){
     panel.hidden=true;
     window.AbyssalGameHooks?.continueExpedition?.();
@@ -271,22 +287,57 @@ function expeditionDepthForBosses(bosses){
   return 350+Math.max(0,Number(bosses)||0)*650;
 }
 
-function updateDepthMeter(bosses){
+var lastDepthState=null;
+function updateDepthMeter(bosses,state){
   var meter=$('abyssDepthMeter');
   if(!meter)return;
   var count=Math.max(0,Number(bosses)||0);
+  if(window.AbyssalGameHooks?.roomMode?.()==='pvp'){meter.hidden=true;return;}
   meter.hidden=false;
   var depth=$('abyssDepthValue');
   var risk=$('abyssRiskValue');
-  if(depth)depth.textContent=expeditionDepthForBosses(count).toLocaleString('pt-BR')+' m';
-  if(risk)risk.textContent='EXTRAÇÃO · +'+Math.round(Math.min(.75,count*.15)*100)+'%';
+  var zone=$('abyssZoneValue');
+  var solo=window.AbyssalGameHooks?.expeditionState?.()?.active===true;
+  var zoneData=state?.zone||window.AbyssalExpeditionRules?.zoneForBosses?.(count)||null;
+  var depthValue=Number(state?.depth);
+  if(!Number.isFinite(depthValue))depthValue=expeditionDepthForBosses(count);
+  if(depth)depth.textContent=Math.round(depthValue).toLocaleString('pt-BR')+' m';
+  if(zone)zone.textContent=zoneData?.name||'PROFUNDIDADE NÃO CARTOGRAFADA';
+  if(risk)risk.textContent=state?.event?.name?('EVENTO · '+state.event.name):(solo?'EXTRAÇÃO · +'+Math.round(Math.min(.75,count*.15)*100)+'%':'EXPEDIÇÃO · '+(zoneData?.shortName||'CO-OP'));
+}
+
+function applyDepthState(state){
+  if(!state||typeof state!=='object')return;
+  lastDepthState=state;
+  var bosses=Math.max(0,Number(state.bossesDefeated)||0);
+  updateDepthMeter(bosses,state);
+
+  var banner=$('abyssEventBanner'),atmosphere=$('abyssEventAtmosphere'),event=state.event||null;
+  document.body.classList.remove('abyss-event-predator_migration','abyss-event-black_current','abyss-event-resonance_bloom');
+  if(!event){
+    if(banner)banner.hidden=true;
+    if(atmosphere)atmosphere.hidden=true;
+    return;
+  }
+  document.body.classList.add('abyss-event-'+String(event.id||'').replace(/[^a-z0-9_-]/gi,''));
+  if(atmosphere)atmosphere.hidden=false;
+  if(banner){
+    var name=$('abyssEventName'),copy=$('abyssEventCopy');
+    if(name)name.textContent=event.name||'ANOMALIA';
+    if(copy)copy.textContent=event.subtitle||'O ambiente mudou.';
+    banner.hidden=false;
+  }
+}
+
+function bindDepthState(){
+  window.addEventListener('abyssal-depth-state',function(event){applyDepthState(event.detail||{});});
 }
 
 function bindExpeditionCheckpoints(){
   window.addEventListener('abyssal-expedition-checkpoint',function(event){
     var detail=event.detail||{};
     var bosses=Math.max(1,Number(detail.bossesKilled)||1);
-    updateDepthMeter(bosses);
+    updateDepthMeter(bosses,lastDepthState);
     window.setTimeout(function(){
       var state=window.AbyssalGameHooks?.expeditionState?.();
       if(!state?.active)return;
@@ -318,6 +369,7 @@ function init(){
   createGate();
   createExpeditionUI();
   bindExpeditionCheckpoints();
+  bindDepthState();
   watchShop();
 }
 
