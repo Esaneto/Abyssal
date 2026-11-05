@@ -24,7 +24,7 @@ test('descent gate is loaded as a lightweight client-only menu layer',()=>{
 
 test('depth rules load before gameplay and literal newline escape debris is absent',()=>{
  assert.match(index,/abyssal-expedition-rules\.js\?v=2/);
- assert.ok(index.indexOf('abyssal-expedition-rules.js?v=2')<index.indexOf('game.js?v=4.4.7'));
+ assert.ok(index.indexOf('abyssal-expedition-rules.js?v=2')<index.indexOf('game.js?v=4.4.8'));
  assert.doesNotMatch(index,/\\\\n/);
 });
 

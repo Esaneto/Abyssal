@@ -7,7 +7,7 @@
 
   const WORLD_WIDTH=4800;
   const WORLD_HEIGHT=3000;
-  const VERSION=3;
+  const VERSION=4;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
@@ -29,16 +29,16 @@
   }
 
   const ROOM_BLUEPRINTS=Object.freeze([
-    Object.freeze({id:'start',type:'start',x:620,y:260,rx:320,ry:215,depth:0}),
-    Object.freeze({id:'shoal',type:'common',x:1250,y:560,rx:355,ry:225,depth:1}),
-    Object.freeze({id:'trench',type:'common',x:2150,y:880,rx:390,ry:235,depth:2}),
-    Object.freeze({id:'lantern',type:'common',x:3340,y:1120,rx:390,ry:245,depth:3}),
-    Object.freeze({id:'junction',type:'common',x:2550,y:1430,rx:360,ry:225,depth:4}),
-    Object.freeze({id:'elite',type:'elite',x:1100,y:1700,rx:335,ry:220,depth:5,optional:true}),
-    Object.freeze({id:'event',type:'event',x:4050,y:1550,rx:300,ry:210,depth:5,optional:true}),
-    Object.freeze({id:'hub',type:'hub',x:2520,y:1950,rx:445,ry:280,depth:6}),
-    Object.freeze({id:'landing',type:'landing',x:3050,y:2390,rx:335,ry:210,depth:7}),
-    Object.freeze({id:'boss',type:'boss',x:3850,y:2680,rx:520,ry:250,depth:8})
+    Object.freeze({id:'start',type:'start',x:2400,y:155,rx:265,ry:125,depth:0}),
+    Object.freeze({id:'shoal',type:'common',x:2150,y:455,rx:280,ry:145,depth:1}),
+    Object.freeze({id:'trench',type:'common',x:2600,y:750,rx:300,ry:150,depth:2}),
+    Object.freeze({id:'lantern',type:'common',x:2260,y:1045,rx:285,ry:145,depth:3}),
+    Object.freeze({id:'junction',type:'common',x:2690,y:1340,rx:310,ry:150,depth:4}),
+    Object.freeze({id:'elite',type:'elite',x:2200,y:1635,rx:285,ry:145,depth:5}),
+    Object.freeze({id:'event',type:'event',x:2580,y:1930,rx:290,ry:145,depth:6}),
+    Object.freeze({id:'hub',type:'hub',x:2250,y:2225,rx:310,ry:155,depth:7}),
+    Object.freeze({id:'landing',type:'landing',x:2590,y:2510,rx:300,ry:145,depth:8}),
+    Object.freeze({id:'boss',type:'boss',x:2400,y:2800,rx:470,ry:175,depth:9})
   ]);
 
   const ROOM_PROFILES=Object.freeze({
@@ -59,10 +59,10 @@
     Object.freeze({a:'shoal',b:'trench',width:175}),
     Object.freeze({a:'trench',b:'lantern',width:175}),
     Object.freeze({a:'lantern',b:'junction',width:175}),
-    Object.freeze({a:'junction',b:'hub',width:195}),
-    Object.freeze({a:'junction',b:'elite',width:135,optional:true}),
-    Object.freeze({a:'lantern',b:'event',width:135,optional:true}),
-    Object.freeze({a:'hub',b:'landing',width:155}),
+    Object.freeze({a:'junction',b:'elite',width:145}),
+    Object.freeze({a:'elite',b:'event',width:145}),
+    Object.freeze({a:'event',b:'hub',width:150}),
+    Object.freeze({a:'hub',b:'landing',width:150}),
     Object.freeze({a:'landing',b:'boss',width:220})
   ]);
 
@@ -74,16 +74,14 @@
     const random=rngFromSeed(tierNumber===0?baseSeed:seedValue(baseSeed+':tier:'+tierNumber));
     const roomOffsets=new Map();
     for(const base of ROOM_BLUEPRINTS){
-      if(base.id==='start'||base.id==='hub'||base.id==='landing'||base.id==='boss'){
+      if(base.id==='start'||base.id==='boss'){
         roomOffsets.set(base.id,0);
       }else{
-        roomOffsets.set(base.id,(random()-.5)*(base.optional?260:220));
+        roomOffsets.set(base.id,(random()-.5)*180);
       }
     }
     const rooms=ROOM_BLUEPRINTS.map(base=>{
       let x=base.x+(roomOffsets.get(base.id)||0);
-      if(base.id==='elite')x=clamp(x,760,1450);
-      if(base.id==='event')x=clamp(x,3650,4250);
       x=clamp(x,base.rx+80,WORLD_WIDTH-base.rx-80);
       const scale=1+Math.min(.12,tierNumber*.012);
       const profile=ROOM_PROFILES[base.id]||ROOM_PROFILES.shoal;
@@ -92,12 +90,12 @@
     const byId=id=>rooms.find(room=>room.id===id);
     const corridors=EDGE_BLUEPRINTS.map((edge,index)=>{
       const a=byId(edge.a),b=byId(edge.b);
-      const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length;
-      const bend=(random()-.5)*(edge.optional?360:260)+(index%2?1:-1)*85;
+      const dx=b.x-a.x,dy=b.y-a.y;
+      const bend=(random()-.5)*180+(index%2?1:-1)*55;
       const path=Object.freeze([
         Object.freeze({x:a.x,y:a.y}),
-        Object.freeze({x:Math.round(a.x+dx*.33+nx*bend),y:Math.round(a.y+dy*.33+ny*bend)}),
-        Object.freeze({x:Math.round(a.x+dx*.68-nx*bend*.55),y:Math.round(a.y+dy*.68-ny*bend*.55)}),
+        Object.freeze({x:Math.round(a.x+dx*.33+bend),y:Math.round(a.y+dy*.33)}),
+        Object.freeze({x:Math.round(a.x+dx*.68-bend*.55),y:Math.round(a.y+dy*.68)}),
         Object.freeze({x:b.x,y:b.y})
       ]);
       return Object.freeze({...edge,x1:a.x,y1:a.y,x2:b.x,y2:b.y,path});
@@ -266,6 +264,13 @@
     return Math.hypot(Number(x)-portal.x,Number(y)-portal.y)<=Math.max(8,portal.r-padding);
   }
 
+  function depthAt(layout,x,y){
+    if(!layout)return 0;
+    const start=layout.rooms.find(room=>room.id==='start'),boss=layout.rooms.find(room=>room.id==='boss');
+    const progress=clamp((Number(y)-Number(start?.y||0))/Math.max(1,Number(boss?.y||layout.height)-Number(start?.y||0)),0,1);
+    return layout.tier*350+progress*350;
+  }
+
   function spawnPoint(layout,options={}){
     if(!layout)return {x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5,roomId:null};
     const random=typeof options.random==='function'?options.random:Math.random;
@@ -307,6 +312,6 @@
     VERSION,WORLD_WIDTH,WORLD_HEIGHT,ROOM_BLUEPRINTS,ROOM_PROFILES,EDGE_BLUEPRINTS,
     seedValue,rngFromSeed,createLayout,roomProfile,pointSegmentDistance,pointInRoom,pointInCorridor,
     isWalkable,segmentWalkable,resolveMove,roomAt,nearestRoom,roomPath,navigationTarget,
-    pointInPortal,spawnPoint,startSpawn
+    pointInPortal,depthAt,spawnPoint,startSpawn
   });
 });

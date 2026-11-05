@@ -280,7 +280,7 @@ function seedRiftEncounters(world, random = Math.random) {
       if (enemy) spawned.push(enemy);
     }
   }
-  const boss = spawnEnemy(world, { type: 'boss', roomId: 'boss', random });
+  const boss = spawnEnemy(world, { type: 'boss', kindOverride: BOSS_KINDS[Math.floor(Math.max(0, Number(world.mapTier) || 0)) % BOSS_KINDS.length], roomId: 'boss', random });
   if (boss) spawned.push(boss);
   return spawned;
 }
@@ -441,6 +441,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         enemy.suctionPulse = (Number(enemy.suctionPulse) || 0) + 1;
       }
     }
+    if (enemy.kind === 'angler') {
+      enemy.anglerPulse = (Number(enemy.anglerPulse) || 0) + dt;
+      if (enemy.anglerPulse >= 3.8) {
+        enemy.anglerPulse = 0;
+        for (const target of validPlayers) {
+          const dx = Number(enemy.x) - Number(target.x), dy = Number(enemy.y) - Number(target.y), distance = Math.hypot(dx, dy);
+          if (!distance || distance > 320 / WORLD_ZOOM) continue;
+          const step = Math.min(distance, 22 / WORLD_ZOOM), desiredX = Number(target.x) + dx / distance * step, desiredY = Number(target.y) + dy / distance * step;
+          const moved = riftMode ? AbyssalMap.resolveMove(mapLayout, Number(target.x), Number(target.y), desiredX, desiredY, Math.max(10, Number(target.r) || 13 / WORLD_ZOOM)) : { x: clamp(desiredX, 0, WORLD_WIDTH), y: clamp(desiredY, 0, WORLD_HEIGHT) };
+          const actualDx = moved.x - Number(target.x), actualDy = moved.y - Number(target.y);target.x = moved.x;target.y = moved.y;
+          playerSuctionPulls.push({ playerId: target.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: 1 });
+        }
+      }
+    }
     if (enemy.kind === 'devourer' && enemy.suctionActive) {
       // The Devourer holds position while drawing every nearby creature and player
       // toward its mouth. Pull is authoritative online and mirrored by the solo client.
@@ -575,7 +589,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     enemy.attackCd = attackInterval;
     if ((Number(target.invulnerableUntil) || 0) > now) continue;
 
-    let appliedDamage = 0, blocked = false, aberrationEchoTriggered = false;
+    let appliedDamage = 0, blocked = false, aberrationEchoTriggered = false, neurotoxinMs = 0;
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
     if (shieldCharges > 0) {
       target.shieldCharges = shieldCharges - 1;
@@ -589,6 +603,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
       appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
       target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
+      if (enemy.kind === 'boss' && appliedDamage > 0) { target.neurotoxinUntil = now + 1300; neurotoxinMs = 1300; }
       if (target.skinId === 'aberration' && !target.aberrationEchoUsed) {
         target.aberrationEchoUsed = true;
         aberrationEchoTriggered = true;
@@ -617,7 +632,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, aberrationEchoTriggered, hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, aberrationEchoTriggered, neurotoxinMs, hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,

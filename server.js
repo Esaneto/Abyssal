@@ -392,7 +392,7 @@ function worldDepthState(world){
   bossesDefeated,
   mapTier:Math.max(0,Math.floor(Number(world.mapTier)||0)),
   nextTierUnlocked:bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
-  depth:ExpeditionRules.depthForBosses(bossesDefeated),
+  depth:Math.max(0,Math.floor(Number(world.mapTier)||0))*350+(bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))?350:0),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event:WorldSimulation.currentDepthEvent(world)
  };

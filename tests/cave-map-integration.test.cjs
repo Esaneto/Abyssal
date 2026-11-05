@@ -8,8 +8,8 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const index=read('public/index.html'),game=read('public/game.js'),server=read('server.js'),online=read('public/online.js'),world=read('world-simulation.js'),css=read('public/abyssal-rebuild.css');
 
 test('shared cave geometry loads before gameplay and is used by solo plus server',()=>{
- assert.ok(index.indexOf('abyssal-map.js?v=3')>0);
- assert.ok(index.indexOf('abyssal-map.js?v=3')<index.indexOf('game.js?v=4.4.7'));
+ assert.ok(index.indexOf('abyssal-map.js?v=4')>0);
+ assert.ok(index.indexOf('abyssal-map.js?v=4')<index.indexOf('game.js?v=4.4.8'));
  assert.match(game,/const ABYSSAL_MAP=window\.AbyssalMap/);
  assert.match(world,/require\('\.\/public\/abyssal-map\.js'\)/);
  assert.match(server,/require\('\.\/public\/abyssal-map\.js'\)/);

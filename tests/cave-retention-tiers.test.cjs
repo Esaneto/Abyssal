@@ -9,7 +9,7 @@ test('tier 0 remains downward while deeper tiers vary laterally from the same se
  const tier0=AbyssalMap.createLayout(73191,0);
  const tier1=AbyssalMap.createLayout(73191,1);
  const tier1Again=AbyssalMap.createLayout(73191,1);
- assert.equal(tier0.version,3);
+ assert.equal(tier0.version,4);
  assert.deepEqual(tier1.rooms.map(r=>[r.id,r.x,r.y]),tier1Again.rooms.map(r=>[r.id,r.x,r.y]));
  assert.ok(tier1.rooms.some((room,i)=>room.x!==tier0.rooms[i].x));
  const main=['start','shoal','trench','lantern','junction','hub'];

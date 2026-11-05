@@ -55,12 +55,14 @@ test('encounter spawn roles map to common elite and deepest boss chambers',()=>{
  for(const point of [common,elite,boss])assert.equal(Map.isWalkable(layout,point.x,point.y,16),true);
 });
 
-test('optional encounter branches are lateral but never deeper than the final boss',()=>{
- const layout=Map.createLayout('branches',0),elite=layout.rooms.find(r=>r.id==='elite'),event=layout.rooms.find(r=>r.id==='event'),boss=layout.rooms.find(r=>r.id==='boss');
- assert.equal(elite.optional,true);
- assert.equal(event.optional,true);
- assert.ok(elite.y<boss.y&&event.y<boss.y);
- assert.ok(Math.abs(elite.x-event.x)>1500);
+test('the rift is a single descending route instead of a labyrinth',()=>{
+ const layout=Map.createLayout('descent',0),route=['start','shoal','trench','lantern','junction','elite','event','hub','landing','boss'];
+ assert.equal(layout.corridors.length,route.length-1);
+ assert.equal(Map.roomPath(layout,'start','boss').join('>'),route.join('>'));
+ assert.ok(route.map(id=>layout.rooms.find(room=>room.id===id).y).every((y,index,list)=>index===0||y>list[index-1]));
+ for(const corridor of layout.corridors)assert.ok(corridor.path.every((point,index,list)=>index===0||point.y>=list[index-1].y));
+ assert.equal(Math.round(Map.depthAt(layout,layout.rooms[0].x,layout.rooms[0].y)),0);
+ assert.equal(Math.round(Map.depthAt(layout,layout.rooms.at(-1).x,layout.rooms.at(-1).y)),350);
 });
 
 test('navigation stays on the cave graph instead of cutting through solid rock',()=>{
