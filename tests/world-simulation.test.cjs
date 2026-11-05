@@ -2,14 +2,17 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const AI = require('../public/enemy-ai.js');
 const Sim = require('../world-simulation.js');
+const CaveMap = require('../public/abyssal-map.js');
 
-test('initial co-op horde enters through three distinct fixed corner vortices', () => {
+test('initial co-op horde enters through real walkable cave chambers', () => {
   const world = Sim.createWorldState(1000);
+  world.mapSeed=CaveMap.seedValue('initial-horde-test');
   Sim.initializeWorld(world, 1000, () => 0.25);
+  const layout=Sim.mapLayoutFor(world);
   assert.equal(world.enemies.length, 3);
-  assert.deepEqual(world.enemies.map(e => e.spawnCorner), [0, 1, 2]);
-  assert.ok(world.enemies.every(e => e.x < 500 || e.x > AI.WORLD_WIDTH - 500));
-  assert.ok(world.enemies.every(e => e.y < 500 || e.y > AI.WORLD_HEIGHT - 500));
+  assert.ok(world.enemies.every(e => ['shoal','trench'].includes(e.spawnRoomId)));
+  assert.ok(world.enemies.every(e => CaveMap.isWalkable(layout,e.x,e.y,12)));
+  assert.ok(world.enemies.every(e => e.spawnCorner==null));
 });
 
 test('authoritative online simulation moves enemies continuously toward a world-unit player', () => {
@@ -108,37 +111,40 @@ test('empty rooms do not advance time or simulate, and reset releases their enem
 
 test('online mobs use the shared contact radius and remain visible beside the player', () => {
   const world = Sim.createWorldState(1000);
+  world.mapSeed=CaveMap.seedValue('contact-range-test');
   world.initialized = true;
   world.lastTick = 1000;
   world.nextBossAt = 99999;
   world.commonSpawnTimer = 99999;
+  const room=Sim.mapLayoutFor(world).rooms.find(item=>item.id==='shoal');
   const stats = AI.statsForKind('drifter');
-  const enemy = { id: 1, kind: 'drifter', x: 1000, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
+  const enemy = { id: 1, kind: 'drifter', x: room.x-100, y: room.y, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
   world.enemies = [enemy];
   world.nextEnemyId = 1;
-  const player = { id: 'p1', x: 1100, y: 1000 };
+  const player = { id: 'p1', x: room.x, y: room.y, r:13/AI.WORLD_ZOOM, moveSpeed:150/AI.WORLD_ZOOM, alive:true, hp:10000, maxHp:10000 };
   for (let i = 1; i <= 40; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
   const sharedContactRadius = (stats.r + 13 + 8) / AI.WORLD_ZOOM;
   assert.ok(distance > 0, 'enemy must not settle at the exact player coordinate');
   assert.ok(distance < sharedContactRadius, 'enemy remains within contact/damage range');
   assert.ok(distance >= sharedContactRadius * 0.55, 'enemy remains outside the exact player center');
-  assert.ok(distance < sharedContactRadius, 'enemy circles inside player contact range');
   assert.ok(world.movingEnemyCount > 0, 'enemy continues orbiting instead of freezing after contact');
 });
 
 
 test('a stationary player does not cause the whole online horde to freeze at contact', () => {
   const world = Sim.createWorldState(1000);
+  world.mapSeed=CaveMap.seedValue('stationary-contact-test');
   world.initialized = true;
   world.lastTick = 1000;
   world.nextBossAt = 999999;
   world.commonSpawnTimer = 999999;
+  const room=Sim.mapLayoutFor(world).rooms.find(item=>item.id==='shoal');
   const stats = AI.statsForKind('drifter');
-  const enemy = { id: 7, kind: 'drifter', x: 900, y: 1000, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
+  const enemy = { id: 7, kind: 'drifter', x: room.x-100, y: room.y, r: stats.r, speed: stats.speed / AI.WORLD_ZOOM, hp: stats.hp, maxHp: stats.hp, phase: 0, attackCd: 0 };
   world.enemies = [enemy];
   world.nextEnemyId = 7;
-  const player = { id: 'p1', x: 1000, y: 1000, hp: 10000, maxHp: 10000, alive: true, shieldCharges: 0 };
+  const player = { id: 'p1', x: room.x, y: room.y, r:13/AI.WORLD_ZOOM, moveSpeed:150/AI.WORLD_ZOOM, hp: 10000, maxHp: 10000, alive: true, shieldCharges: 0 };
   for (let i = 1; i <= 700; i++) Sim.tickWorld(world, [player], 1000 + i * 50, Math.random);
   assert.ok(world.movingEnemyCount > 0, 'enemy keeps moving even after reaching a stationary player');
   assert.ok(Math.hypot(enemy.x - player.x, enemy.y - player.y) < (stats.r + 13 + 8) / AI.WORLD_ZOOM, 'enemy remains inside attack distance');
