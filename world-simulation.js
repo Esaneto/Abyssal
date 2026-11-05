@@ -1,6 +1,7 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
 const SkinAbilities = require('./skin-abilities');
+const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -14,7 +15,8 @@ function createWorldState(now = Date.now()) {
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
     playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
-    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0
+    movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
+    activeEventId: null, eventEndsAt: 0, eventSerial: 0
   };
 }
 
@@ -109,14 +111,19 @@ function spawnEnemy(world, options = {}) {
     kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else {
-    kind = EnemyAI.chooseCommonKind(random);
+    kind = ExpeditionRules.chooseCommonKind(random, world.bossesDefeated, world.activeEventId);
     if (kind === 'whiteShark') {
       const whiteSharkCount = world.enemies.filter(e => e.kind === 'whiteShark').length;
       if (whiteSharkCount >= 10) kind = 'drifter';
     }
   }
 
-  const stats = EnemyAI.statsForKind(kind);
+  let stats = EnemyAI.statsForKind(kind);
+  let eliteId = null;
+  if (type !== 'boss' && !initial) {
+    eliteId = ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
+    if (eliteId) stats = ExpeditionRules.applyEliteStats(stats, eliteId);
+  }
   if (type === 'boss') {
     // A cada ciclo completo de sete bosses, somente a vida recebe +20%.
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
@@ -138,7 +145,7 @@ function spawnEnemy(world, options = {}) {
     value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
-    spawnCorner: point.corner,
+    spawnCorner: point.corner, eliteId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   world.enemies.push(enemy);
@@ -149,7 +156,8 @@ function spawnXpOrb(world, enemy) {
   if (!world || !enemy) return null;
   world.orbs ||= [];
   world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
-  const value = Math.max(1, Math.round(Number(enemy.value) || 1));
+  const eventId = world.activeEventId && Number(world.eventEndsAt) > Number(world.elapsed) ? world.activeEventId : null;
+  const value = Math.max(1, Math.round((Number(enemy.value) || 1) * ExpeditionRules.eventXpMultiplier(eventId)));
   const orb = {
     id: world.nextOrbId, x: Number(enemy.x) || 0, y: Number(enemy.y) || 0,
     r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(value) : Math.min(15, 4 + Math.sqrt(value)),
@@ -168,6 +176,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
+  world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
 }
@@ -193,6 +202,12 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   world.lastTick = now;
   world.elapsed += dt;
   world.tickCount++;
+  let eventEnded = null;
+  if (world.activeEventId && Number(world.eventEndsAt) > 0 && world.elapsed >= Number(world.eventEndsAt)) {
+    eventEnded = { id: world.activeEventId, serial: Number(world.eventSerial) || 0, endedAt: world.elapsed };
+    world.activeEventId = null;
+    world.eventEndsAt = 0;
+  }
 
   // Server-authoritative passive regeneration: it continues even if a player's tab is hidden.
   const playerHeals = [];
@@ -228,7 +243,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     commonCount = countCommons(world);
     const spawnRamp = clamp(world.elapsed / 300, 0, 1);
-    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp);
+    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
     world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.17, spawnInterval) : 0.12;
   }
 
@@ -510,9 +525,37 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
+}
+
+function currentDepthEvent(world) {
+  if (!world || !world.activeEventId || !(Number(world.eventEndsAt) > Number(world.elapsed))) return null;
+  const config = ExpeditionRules.eventConfig(world.activeEventId);
+  if (!config) return null;
+  return {
+    id: config.id,
+    name: config.name,
+    subtitle: config.subtitle,
+    accent: config.accent,
+    serial: Number(world.eventSerial) || 0,
+    startedAt: Math.max(0, Number(world.eventEndsAt) - Number(config.duration || 0)),
+    endsAt: Number(world.eventEndsAt) || 0,
+    remaining: Math.max(0, (Number(world.eventEndsAt) || 0) - (Number(world.elapsed) || 0))
+  };
+}
+
+function startDepthEvent(world, random = Math.random) {
+  if (!world) return null;
+  const eventId = ExpeditionRules.chooseEvent(random, world.bossesDefeated);
+  if (!eventId) return null;
+  const config = ExpeditionRules.eventConfig(eventId);
+  if (!config) return null;
+  world.activeEventId = eventId;
+  world.eventEndsAt = (Number(world.elapsed) || 0) + Math.max(1, Number(config.duration) || 1);
+  world.eventSerial = (Number(world.eventSerial) || 0) + 1;
+  return currentDepthEvent(world);
 }
 
 function resetWorldState(world, now = Date.now()) {
@@ -522,4 +565,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, spawnEnemy, spawnXpOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent };

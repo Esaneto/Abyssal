@@ -176,7 +176,6 @@ body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
   background:linear-gradient(145deg,rgba(3,14,22,.78),rgba(7,24,31,.72));
   text-align:right;
   pointer-events:none;
-  backdrop-filter:blur(5px);
 }
 .abyss-depth-meter[hidden]{display:none !important}
 .abyss-depth-meter small{display:block;color:#6f8f98;font-size:8px;letter-spacing:.15em}
@@ -241,4 +240,124 @@ body.abyss-rebuild-ready #menuScreen .online-cta{display:none !important}
   .abyss-checkpoint-stats{grid-template-columns:1fr}
   .abyss-checkpoint-actions{grid-template-columns:1fr}
   .abyss-checkpoint-actions button{min-height:78px}
+}
+
+
+/* Depth zones + rare events. Gameplay visuals stay compositor-friendly:
+   opacity/gradients only, no backdrop filters and no per-frame DOM writes. */
+.abyss-depth-meter small{
+  max-width:190px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.abyss-event-atmosphere{
+  position:fixed;
+  z-index:17;
+  inset:0;
+  pointer-events:none;
+  opacity:.42;
+  background:
+    linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.14)),
+    radial-gradient(circle at 82% 72%,rgba(113,255,232,.08),transparent 38%);
+  mix-blend-mode:screen;
+  animation:abyssEventAtmosphere 5.8s ease-in-out infinite alternate;
+}
+.abyss-event-atmosphere[hidden]{display:none!important}
+body:not(.game-active) .abyss-event-atmosphere,body:not(.game-active) .abyss-event-banner{display:none!important}
+
+.abyss-event-banner{
+  position:fixed;
+  z-index:120;
+  top:max(78px,calc(env(safe-area-inset-top) + 70px));
+  left:50%;
+  width:min(470px,calc(100vw - 32px));
+  transform:translateX(-50%);
+  padding:10px 14px 11px;
+  border:1px solid rgba(112,245,231,.22);
+  background:linear-gradient(180deg,rgba(4,16,23,.94),rgba(3,10,17,.94));
+  box-shadow:0 12px 32px rgba(0,0,0,.38);
+  text-align:center;
+  pointer-events:none;
+  animation:abyssEventBannerIn .42s ease both;
+}
+.abyss-event-banner[hidden]{display:none!important}
+.abyss-event-banner small{
+  display:block;
+  color:#6c8a93;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.18em;
+}
+.abyss-event-banner strong{
+  display:block;
+  margin-top:4px;
+  color:#dffbf7;
+  font-family:"Cinzel",serif;
+  font-size:13px;
+  letter-spacing:.09em;
+}
+.abyss-event-banner span{
+  display:block;
+  margin-top:3px;
+  color:#8ca5ad;
+  font-size:9px;
+  line-height:1.35;
+}
+
+body.abyss-event-predator_migration .abyss-event-atmosphere{
+  background:
+    linear-gradient(180deg,rgba(255,39,77,.018),rgba(37,0,8,.12)),
+    radial-gradient(circle at 78% 62%,rgba(255,55,86,.12),transparent 42%);
+}
+body.abyss-event-predator_migration .abyss-event-banner{
+  border-color:rgba(255,103,128,.34);
+  box-shadow:0 12px 32px rgba(0,0,0,.38),inset 0 1px rgba(255,116,137,.06);
+}
+body.abyss-event-predator_migration .abyss-event-banner strong{color:#ff91a4}
+
+body.abyss-event-black_current .abyss-event-atmosphere{
+  background:
+    linear-gradient(180deg,rgba(27,7,53,.04),rgba(5,1,13,.20)),
+    radial-gradient(circle at 20% 74%,rgba(158,105,255,.13),transparent 44%);
+}
+body.abyss-event-black_current .abyss-event-banner{
+  border-color:rgba(177,127,255,.34);
+  box-shadow:0 12px 32px rgba(0,0,0,.42),inset 0 1px rgba(180,132,255,.06);
+}
+body.abyss-event-black_current .abyss-event-banner strong{color:#c6a7ff}
+
+body.abyss-event-resonance_bloom .abyss-event-atmosphere{
+  background:
+    linear-gradient(180deg,rgba(61,255,211,.018),rgba(0,40,35,.11)),
+    radial-gradient(circle at 74% 72%,rgba(76,255,215,.14),transparent 43%);
+}
+body.abyss-event-resonance_bloom .abyss-event-banner{
+  border-color:rgba(96,248,218,.34);
+  box-shadow:0 12px 32px rgba(0,0,0,.38),inset 0 1px rgba(102,255,225,.06);
+}
+body.abyss-event-resonance_bloom .abyss-event-banner strong{color:#7df5df}
+
+@keyframes abyssEventAtmosphere{
+  from{opacity:.30}
+  to{opacity:.48}
+}
+@keyframes abyssEventBannerIn{
+  from{opacity:0;transform:translate(-50%,-8px)}
+  to{opacity:1;transform:translate(-50%,0)}
+}
+
+@media (max-width:700px){
+  .abyss-event-banner{
+    top:max(52px,calc(env(safe-area-inset-top) + 48px));
+    width:min(390px,calc(100vw - 20px));
+    padding:8px 10px 9px;
+  }
+  .abyss-event-banner span{font-size:8px}
+  .abyss-depth-meter small{max-width:140px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .abyss-event-atmosphere,.abyss-event-banner{animation:none!important}
 }
