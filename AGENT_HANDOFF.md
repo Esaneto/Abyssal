@@ -31,6 +31,17 @@ Regras obrigatorias a partir deste ponto:
 - `abyssking`, `bloodmoon`, `abyssaleye` e `deepwarden` voltaram a ser skins de moedas, como antes da reprecificacao.
 - Nao alterar preco BRL junto com uma revisao visual. Economia e arte devem ser aprovadas separadamente.
 
+## 0.1 QUATRO ESPECIES COLOSSAIS APROVADAS EM 2026-11-05
+
+Implementacao atual aprovada:
+- `maw` = Enguia-Pelicano Colossal. A boca anterior foi preservada e skin + boss ganharam corpo longo de enguia.
+- `leviathan` = Peixe-Remo Leviata. Manter as cores e brilho estabelecidos; a leitura anatomica deve ser de peixe-remo, com corpo fitiforme e crista dorsal continua.
+- `boss` / `aberration` = Polvo-de-Aneis-Azuis Colossal. Cor dominante azul, oito bracos pendentes para baixo. A habilidade antiga de neurotoxina/repulsao foi substituida por rastro persistente de tinta negra que causa dano.
+- `angler` = Peixe-Pescador Abissal. Boca enorme permanentemente aberta e isca luminosa. Camuflagem automatica em ciclo de 26 s: 3 s fade-out, 10 s invisivel, 3 s fade-in e 10 s visivel em recarga. Durante os 10 s ocultos, IA PvE nao persegue a skin e disparo automatico nao seleciona o boss.
+- Raridade de skins foi removida da loja e do renderer: sem filtro, badge, aura, ordenacao ou assinatura visual por raridade.
+- Familias/colecoes como superficie, profundidade e reliquias continuam apenas como taxonomia/categoria, nao como raridade.
+- Precos BRL NAO foram alterados por esta revisao. Continuam usando a tabela original registrada na secao de rollback.
+
 ## 1. Objetivo do projeto
 
 Abyssal e um jogo HTML5/JavaScript com Node.js + Socket.IO, multiplayer em tempo real, deploy no Render e empacotamento Android.
