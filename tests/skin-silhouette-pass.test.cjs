@@ -8,7 +8,7 @@ const game=fs.readFileSync(path.join(root,'public','game.js'),'utf8');
 
 test('Royal skin is a siphonophore colony instead of reusing the starter bell silhouette',()=>{
   const start=game.indexOf("else if(id==='royal')");
-  const end=game.indexOf("else if(id==='glacier')",start);
+  const end=game.indexOf("else if(id==='toxic')",start);
   assert.ok(start>=0&&end>start);
   const royal=game.slice(start,end);
   assert.match(royal,/colonial siphonophore/);
