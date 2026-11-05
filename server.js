@@ -40,7 +40,6 @@ app.use((request,response,next)=>{
  next();
 });
 app.use(express.json({limit:'16kb'}));
-app.post('/api/client-entry-diagnostic',(req,res)=>{const body=req.body&&typeof req.body==='object'?req.body:{};const stage=String(body.stage||'').slice(0,64);const state=body.state&&typeof body.state==='object'?body.state:{};console.log('[client-entry]',JSON.stringify({stage,roomsHidden:Boolean(state.roomsHidden),gameActive:Boolean(state.gameActive),menuHidden:Boolean(state.menuHidden),gameState:String(state.gameState||'').slice(0,24),onlineVersion:String(state.onlineVersion||'').slice(0,24)}));res.status(204).end();});
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
