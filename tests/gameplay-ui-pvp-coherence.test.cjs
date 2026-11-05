@@ -20,8 +20,8 @@ test('notification bell has a concrete unread dot controlled by state',()=>{
  assert.match(css,/\.notification-badge-dot\[hidden\]/);
 });
 
-test('gameplay notices are queued and limited to boss fusion join and death',()=>{
- assert.match(game,/new Set\(\['boss','fusion','join','death'\]\)/);
+test('gameplay notices are queued and limited to gameplay-critical kinds including cave choices',()=>{
+ assert.match(game,/new Set\(\['boss','fusion','join','death','cave'\]\)/);
  assert.match(game,/gameplayNoticeQueue\.sort\(\(a,b\)=>b\.priority-a\.priority/);
  assert.match(server,/kind:'death'[\s\S]{0,220}foi engolido pelas profundezas/);
  assert.match(server,/kind:'fusion'[\s\S]{0,220}fundiu habilidades/);
