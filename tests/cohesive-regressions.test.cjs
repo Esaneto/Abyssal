@@ -179,7 +179,8 @@ test('online damage rejects stale-room hits quietly and avoids per-hit acknowled
 test('solo enemy movement uses the shared AI while online movement stays authoritative', () => {
   const game = read('public/game.js');
   assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
-  assert.match(game, /moveTowardTarget\(e,localTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult\)/);
+  assert.match(game, /let movementTargets=localTargets/);
+  assert.match(game, /moveTowardTarget\(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult\)/);
   assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
 });
 
