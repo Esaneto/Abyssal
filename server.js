@@ -126,6 +126,18 @@ async function initializePersistence() {
  console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
 }
 async function flushPersistence() { await persistenceQueue; }
+async function refreshDeployResumeFromPersistence(userKey){
+ if(!pgPool||!userKey)return users[userKey]||null;
+ try{
+  const result=await pgPool.query("SELECT state_value FROM abyssal_state WHERE state_key='users' LIMIT 1");
+  const persisted=result.rows?.[0]?.state_value;
+  const fresh=persisted&&typeof persisted==='object'?persisted[userKey]:null;
+  if(fresh?.pendingRunResume&&Number(fresh.pendingRunResume.expiresAt)>=Date.now()){
+   users[userKey]={...(users[userKey]||{}),...fresh,pendingRunResume:fresh.pendingRunResume};
+  }
+ }catch(err){console.error('[deploy] Falha ao atualizar retomada persistida:',err.message);}
+ return users[userKey]||null;
+}
 function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
@@ -264,7 +276,7 @@ function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill
   io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'pvp',damage:blocked?0:damage,attackerId:attacker.id,skillId,serverTime:now}));
   io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:attacker.id,damage:blocked?0:damage,skillId,blocked});return target;
  };
- if(source==='electric'&&Number(attacker.electricLevel)>0){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.electricLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<130/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT,seed:Date.now()+n});secondaryHit(next,baseDamage*.34,'electric');visited.add(next.id);from=next;}}
+ if(source==='electric'&&Number(attacker.electricLevel)>0){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.electricLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT,seed:Date.now()+n});secondaryHit(next,baseDamage*.34,'electric');visited.add(next.id);from=next;}}
  if(Number(attacker.ricochetLevel)>0&&source!=='ricochet'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.ricochetLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT});secondaryHit(next,baseDamage*.42,'ricochet');visited.add(next.id);from=next;}}
 }
 function triggerPvpAberrationEcho(room,target,attacker,now){
@@ -684,6 +696,25 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // validated; single-hit compatibility uses the same compact lifecycle events.
   if(batch)batch.worldChanged=true;
  }
+ // Tempestade elétrica is also resolved here online so every client sees the same distorted arc.
+ if(player&&skillId==='electric'&&Number(player.electricLevel)>0){
+  let fromX=Number(enemy.x),fromY=Number(enemy.y);
+  const visited=new Set([Number(enemy.id)]);
+  for(let chain=0;chain<Math.min(3,Number(player.electricLevel)||0);chain++){
+   let next=null,nextDistance=Infinity;
+   for(const candidate of w.enemies){
+    if(!candidate||Number(candidate.hp)<=0||visited.has(Number(candidate.id)))continue;
+    const distance=Math.hypot(Number(candidate.x)-fromX,Number(candidate.y)-fromY);
+    if(distance<190/WORLD_ZOOM&&distance<nextDistance){next=candidate;nextDistance=distance;}
+   }
+   if(!next)break;
+   visited.add(Number(next.id));
+   io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:socket.id,x1:fromX/WORLD_WIDTH,y1:fromY/WORLD_HEIGHT,x2:Number(next.x)/WORLD_WIDTH,y2:Number(next.y)/WORLD_HEIGHT,seed:now+chain*97+Number(next.id)});
+   const chained=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.34),'electric-chain',batch,actionId);
+   if(!chained?.ok)break;
+   fromX=Number(next.x);fromY=Number(next.y);
+  }
+ }
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
@@ -986,7 +1017,8 @@ io.on('connection', socket => {
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
   const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase();
-  const u=users[socket.data.userKey];
+  let u=users[socket.data.userKey];
+  if(payload.reconnect===true||!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
   const room=rooms.get(id)||restoreDeployRoom(u,id);
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
@@ -1418,7 +1450,7 @@ io.on('connection', socket => {
    u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};
    u.titleStats.conqueror = true;
   }
-  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','repulse','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
+  if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
   if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;
   saveUsers();
   socket.emit('account-data', publicUser(u));
