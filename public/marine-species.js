@@ -72,13 +72,15 @@
  const mix=(a,b,t)=>{const A=hexToRgb(a),B=hexToRgb(b);return rgbToHex(A.map((v,i)=>v+(B[i]-v)*t));};
  const rotate=(hex,seed)=>{const [r,g,b]=hexToRgb(hex),mode=((seed%3)+3)%3;return rgbToHex(mode===0?[g,b,r]:mode===1?[b,r,g]:[r,b,g]);};
  const makeArtPalette=(tone,seed)=>Object.freeze({
-  // Signature Abyssal language: saturated body, near-black shadow, bright rim and a contrasting second hue.
-  base:mix(tone,'#071019',.03),
-  shadow:mix(tone,'#010208',.8),
-  rim:mix(tone,'#ffffff',.58),
-  glow:mix(tone,'#ffffff',.1),
-  accent:mix(rotate(tone,seed+1),'#ffffff',.02),
-  eye:seed%3===0?'#fff1aa':seed%3===1?'#bffff8':'#ffbfdc'
+  // Official Abyssal 70/20/10 language:
+  // dark organic matter, a restrained structural hue, then concentrated living emission.
+  base:mix(tone,'#061019',.72),
+  shadow:mix(tone,'#010207',.9),
+  structure:mix(tone,'#102431',.48),
+  accent:mix(rotate(tone,seed+1),'#0b1721',.32),
+  glow:mix(tone,'#ffffff',.08),
+  rim:mix(tone,'#ffffff',.42),
+  eye:seed%3===0?'#fff0a8':seed%3===1?'#b9fff4':'#ffb6dc'
  });
  const palette=['#739ba6','#b39b78','#9c8aa3','#b17665','#7b9c87','#6f8fb5','#9b7f9e','#8ca36f','#b58d72','#6f9f9a'];
  const species=families.flatMap(([family,trait,stat,names],f)=>names.map((name,i)=>{
