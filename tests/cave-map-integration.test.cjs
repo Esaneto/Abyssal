@@ -8,8 +8,8 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const index=read('public/index.html'),game=read('public/game.js'),server=read('server.js'),online=read('public/online.js'),world=read('world-simulation.js'),css=read('public/abyssal-rebuild.css');
 
 test('shared cave geometry loads before gameplay and is used by solo plus server',()=>{
- assert.ok(index.indexOf('abyssal-map.js?v=1')>0);
- assert.ok(index.indexOf('abyssal-map.js?v=1')<index.indexOf('game.js?v=4.4.4'));
+ assert.ok(index.indexOf('abyssal-map.js?v=2')>0);
+ assert.ok(index.indexOf('abyssal-map.js?v=2')<index.indexOf('game.js?v=4.4.5'));
  assert.match(game,/const ABYSSAL_MAP=window\.AbyssalMap/);
  assert.match(world,/require\('\.\/public\/abyssal-map\.js'\)/);
  assert.match(server,/require\('\.\/public\/abyssal-map\.js'\)/);
@@ -31,8 +31,11 @@ test('co-op spawn collision and enemy simulation all use cave geometry',()=>{
 });
 
 test('boss and elite placement have dedicated chambers',()=>{
- assert.match(world,/type: type==='boss'\?'boss':eliteId\?'elite':type/);
- assert.match(game,/type:isBossType\?'boss':eliteId\?'elite':'common'/);
+ assert.match(world,/type: type === 'boss' \? 'boss' : type/);
+ assert.match(world,/if \(eliteId && !options\.roomId && type !== 'elite'\)/);
+ assert.match(world,/AbyssalMap\.spawnPoint\(layout, \{ type: 'elite'/);
+ assert.match(game,/if\(eliteId&&!options\.roomId&&!isBossType\)/);
+ assert.match(game,/ABYSSAL_MAP\.spawnPoint\(map,\{type:'elite'/);
  assert.match(world,/enemy\.eliteId&&enemy\.spawnRoomId==='elite'/);
  assert.match(game,/e\.eliteId&&e\.spawnRoomId==='elite'/);
 });
