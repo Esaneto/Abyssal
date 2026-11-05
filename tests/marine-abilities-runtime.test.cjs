@@ -20,9 +20,9 @@ test('every marine species has a unique active ability profile and rarity',()=>{
   const profile=abilities.profileFor(s.id);
   assert.ok(profile,s.id);
   assert.ok(abilities.RARITY_ORDER.includes(profile.rarity),s.id);
-  assert.ok(profile.cooldown>=3.5&&profile.cooldown<=9,s.id);
-  assert.ok(profile.damage>0&&profile.radius>0,s.id);
-  assert.ok(profile.description.includes(profile.title),s.id);
+  assert.ok(profile.cooldown>=3.2&&profile.cooldown<=9,s.id);
+  assert.ok(profile.damage>0&&profile.radius>0&&profile.powerScore>0,s.id);
+  assert.ok(profile.description.includes(profile.title),s.id);assert.match(profile.description,/Recarga \d+(?:\.\d+)?s\./,s.id);
  }
 });
 
@@ -82,4 +82,23 @@ test('enemy pressure is stronger in both authoritative and solo simulation',()=>
  assert.match(game,/physicalScale=eliteId\?1\.18:1\.07/);
  assert.match(game,/drawEnemyThreatAura/);
  assert.match(game,/drawSkinPresenceAura/);
+});
+
+
+test('paid and high-rarity marine abilities are mechanically stronger',()=>{
+ const rows=species.map(s=>({s,p:abilities.profileFor(s.id)}));
+ const epic=rows.filter(x=>x.s.rarity==='epic').map(x=>x.p.powerScore);
+ const legendary=rows.filter(x=>x.s.rarity==='legendary').map(x=>x.p.powerScore);
+ const mythic=rows.filter(x=>x.s.rarity==='mythic').map(x=>x.p.powerScore);
+ const avg=a=>a.reduce((n,v)=>n+v,0)/a.length;
+ assert.ok(avg(legendary)>avg(epic));
+ assert.ok(avg(mythic)>avg(legendary));
+ for(const {s,p} of rows.filter(x=>x.s.paid)){assert.equal(p.paid,true,s.id);assert.ok(p.damage>=60,s.id);}
+});
+
+test('common enemies and redesigned bosses expose stronger named physical attacks',()=>{
+ for(const marker of ["skillId:'bio-shock'","skillId:'venom-spine'","skillId:'crusher-claw'","skillId:'gulper-bite'"])assert.ok(simulation.includes(marker),marker);
+ for(const marker of ["bossAbilityHit(enemy,target,18,now,'neuro-ring'","bossAbilityHit(enemy,target,12,now,'lure-pulse'","bossAbilityHit(enemy,target,24,now,'gulper-chomp'","bossAbilityHit(enemy,target,22,now,'pressure-lance'"])assert.ok(simulation.includes(marker),marker);
+ assert.match(game,/function renderHostileContactAbility\(data\)/);
+ assert.match(game,/hurtPlayer\(e\.damage\*\(cp\?\.power\|\|1\)\)/);
 });
