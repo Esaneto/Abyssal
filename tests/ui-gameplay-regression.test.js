@@ -235,8 +235,8 @@ test('online reconnect retry state used during room join is declared', () => {
 });
 
 
-test('damage indicator canvas font uses a valid concrete family at 220px', () => {
+test('damage indicator canvas font uses the current valid concrete 18px family', () => {
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/ctx\.font='900 220px Cinzel, Georgia, serif'/);
- assert.doesNotMatch(game,/ctx\.font='900 220px var\(--abyssal-runic\)/);
+ assert.match(game,/ctx\.font='900 18px Cinzel, Georgia, serif'/);
+ assert.doesNotMatch(game,/ctx\.font='900 18px var\(--abyssal-runic\)/);
 });
