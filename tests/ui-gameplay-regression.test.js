@@ -169,6 +169,17 @@ test('mob damage numbers remain readable at gameplay zoom', () => {
 test('floating damage numbers render in fixed screen pixels independent of camera zoom', () => {
  assert.match(game, /screenX=\(worldX-cameraX\)\*worldZoom/);
  assert.match(game, /ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
- assert.match(game, /ctx\.font='900 72px var\(--abyssal-runic\),Georgia,serif'/);
+ assert.match(game, /ctx\\.font='900 112px var\\(--abyssal-runic\\),Georgia,serif'/);
  assert.match(game, /number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+});
+
+
+test('deploy resume does not depend on stale onlineMode ordering', () => {
+ assert.match(game, /const canResume=Boolean\(d\.reconnected&&d\.resumedRun&&player&&gameState!=='menu'&&gameState!=='over'\)/);
+ assert.doesNotMatch(game, /d\.reconnected&&d\.resumedRun&&onlineMode&&player/);
+});
+
+test('Q and E ignore keyboard auto-repeat', () => {
+ assert.match(game, /!e\.repeat&&\(e\.key==='q'\|\|e\.key==='Q'\)/);
+ assert.match(game, /!e\.repeat&&\(e\.key==='e'\|\|e\.key==='E'\)/);
 });
