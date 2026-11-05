@@ -662,7 +662,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       blocked = true;
     } else {
       const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
-      const contactPower = contactProfile?.power || 1;
+      const contactPower = contactProfile?.power || (enemy.kind==='kraken'&&enemy.krakenSweepActive?1.25:enemy.kind==='whiteSharkBoss'?1.15:enemy.kind==='devourer'&&enemy.suctionActive?1.2:1);
       const requestedDamage = Math.max(1, Math.round(baseDamage * contactPower * SkinAbilities.incomingDamageMultiplier(target.skinId)));
       const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
       target.maxHp = Math.max(1, Number(target.maxHp) || 100);
