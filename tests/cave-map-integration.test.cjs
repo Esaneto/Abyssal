@@ -9,7 +9,8 @@ const index=read('public/index.html'),game=read('public/game.js'),server=read('s
 
 test('shared cave geometry loads before gameplay and is used by solo plus server',()=>{
  assert.ok(index.indexOf('abyssal-map.js?v=4')>0);
- const mapScript=index.search(/abyssal-map\.js\?v=\d+(?:\.\d+)*/),gameScript=index.search(/game\.js\?v=\d+(?:\.\d+)*/);\n assert.ok(mapScript>=0&&gameScript>=0&&mapScript<gameScript);
+ const mapScript=index.search(/abyssal-map\.js\?v=\d+(?:\.\d+)*/),gameScript=index.search(/game\.js\?v=\d+(?:\.\d+)*/);
+ assert.ok(mapScript>=0&&gameScript>=0&&mapScript<gameScript);
  assert.match(game,/const ABYSSAL_MAP=window\.AbyssalMap/);
  assert.match(world,/require\('\.\/public\/abyssal-map\.js'\)/);
  assert.match(server,/require\('\.\/public\/abyssal-map\.js'\)/);
