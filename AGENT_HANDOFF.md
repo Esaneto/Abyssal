@@ -233,6 +233,27 @@ Antes de mergear alteracao relevante:
 4. conferir sintaxe de `server.js`, `world-simulation.js`, `public/game.js`, `public/online.js`, `public/abyssal-map.js` e `public/abyssal-expedition-rules.js`.
 
 
+## 10.1. Pass visual do Codex incorporado ao estado canonico
+
+Commit incorporado:
+- `b78a95e31616c7c7069b9ce814263acc8734ef56`
+- mensagem: `feat: ocean sinkhole menu and submerged cave scenery`
+
+Esse commit foi feito diretamente na `main` e esta sendo assumido como parte oficial do Abyssal a partir deste ponto.
+
+Mudancas canonicas introduzidas:
+- `public/abyssal-rebuild.css`: o portal/menu da Descida Abissal virou um grande sumidouro oceanico inundado, com ajustes de responsividade e posicionamento de HUD/eventos;
+- `public/abyssal-rebuild.js`: toda a area visual do gate ficou clicavel e o foco retorna ao botao ao fechar o painel;
+- `public/game.js`: salas da caverna passaram a receber bordas minerais, vida bentonica e iluminacao de agua; glifos decorativos antigos de salas/boss foram removidos em favor do ambiente fisico.
+
+Regra de continuidade:
+- nao reverter esse pass visual ao estilo de "icones em sala" sem motivo funcional;
+- novas melhorias devem partir desse sumidouro e dessa caverna submersa;
+- preservar a geometria compartilhada, colisao, tiers, ecologia, recompensas e autoridade de servidor ja implementadas;
+- esse commit nao deve ser tratado como experimento isolado ou trabalho externo pendente. Ele faz parte do baseline atual.
+
+O deploy Render `dep-dbm3nsgu01pc738alt9g` publicou esse commit e chegou a status `live`.
+
 ## 10. Deploy atual no Render
 
 Servico:
