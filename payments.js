@@ -15,7 +15,11 @@ const PAID_SKINS = {
  reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:590},
  hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:590},
  abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:690},
- armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:690}
+ armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:690},
+ abyssking:{name:'Náutilo Soberano',nameEn:'Sovereign Nautilus',brl:990},
+ bloodmoon:{name:'Lula-Vampira Carmesim',nameEn:'Crimson Vampire Squid',brl:1090},
+ abyssaleye:{name:'Peixe-Olho-de-Barril',nameEn:'Barreleye',brl:1190},
+ deepwarden:{name:'Carcereiro das Fossas',nameEn:'Trench Warden',brl:1290}
 };
 for(const species of require('./public/marine-species').species){if(species.paid)PAID_SKINS[species.id]={name:species.name,nameEn:species.name,brl:species.brl};}
 function calculateOrder(productId, ownedSkins, currency='brl') {
