@@ -228,7 +228,20 @@ test('active matches receive a five minute maintenance hold before empty-room cl
 });
 
 test('floating red and blue damage numbers are substantially larger and outlined', () => {
- assert.match(game,/Math\.max\(54,72\/worldZoom\)/);
+ assert.match(game,/112px/);
  assert.match(game,/number\.tone==='passive'\?'#32cfff':'#ff174d'/);
  assert.match(game,/ctx\.lineWidth=5\/worldZoom/);
+});
+
+
+test('online pulse batches PvE damage instead of broadcasting every target independently', () => {
+ const handler=server.slice(server.indexOf("socket.on('active-ability'"),server.indexOf("socket.on('shared-damage'"));
+ assert.match(handler,/const batch=\{damaged:\[\],defeated:\[\],orbs:\[\],accountUpdated:false,worldChanged:false\}/);
+ assert.match(handler,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse',batch\)/);
+ assert.match(handler,/world-enemies-damaged/);
+});
+
+test('ricochet only participates in canonical shot damage', () => {
+ assert.match(server,/RICOCHET_SHOT_SKILLS=new Set\(\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]\)/);
+ assert.match(server,/RICOCHET_SHOT_SKILLS\.has\(String\(skillId\|\|''\)\)/);
 });
