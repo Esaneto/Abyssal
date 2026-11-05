@@ -106,6 +106,53 @@ function mapResolveMove(fromX,fromY,toX,toY,padding=0){
  return ABYSSAL_MAP.resolveMove(activeMapLayout,fromX,fromY,toX,toY,padding);
 }
 
+let mapInteractionType=null,mapInteractionLastCheck=0,mapInteractionBusy=false;
+function ensureMapInteractionButton(){
+ let button=$('abyssMapInteractBtn');if(button)return button;
+ button=document.createElement('button');button.id='abyssMapInteractBtn';button.type='button';button.hidden=true;button.className='abyss-map-interact';
+ button.addEventListener('click',()=>activateMapInteraction());
+ $('gameShell')?.appendChild(button);return button;
+}
+function currentMapInteraction(){
+ if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
+ const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
+ if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
+ if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
+ if(portals.surface&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
+ return null;
+}
+function updateMapInteraction(force=false){
+ const now=performance.now();if(!force&&now-mapInteractionLastCheck<100)return;mapInteractionLastCheck=now;
+ const button=ensureMapInteractionButton(),interaction=currentMapInteraction();mapInteractionType=interaction?.type||null;
+ if(!button)return;
+ button.hidden=!interaction;
+ if(interaction){const label=(mobileViewport?'':'F · ')+interaction.label;if(button.textContent!==label)button.textContent=label;button.dataset.kind=interaction.type;}
+}
+function applyMapTransition(kind,x,y){
+ if(!player||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;
+ player.x=Number(x);player.y=Number(y);if(player.trail)player.trail.length=0;updateCamera();mapInteractionBusy=false;updateMapInteraction(true);
+ burst(player.x,player.y,kind==='descent'?'#55bfff':'#73f5df',lowPowerRendering?10:18,110);audio(kind==='descent'?180:430,.18,'sine',.025);
+ showToast(kind==='descent'?'VOCÊ DESCEU PARA UMA CAMADA MAIS PROFUNDA':'VÓRTICE DE RETORNO ATIVADO');return true;
+}
+function activateMapInteraction(){
+ if(mapInteractionBusy)return false;
+ const interaction=currentMapInteraction();if(!interaction)return false;
+ if(interaction.type==='surface'){
+  mapInteractionBusy=true;
+  if(onlineMode){const button=$('endDiveBtn');if(button){button.click();return true;}mapInteractionBusy=false;return false;}
+  expeditionExtracted=true;mapInteractionBusy=false;endGame();return true;
+ }
+ const portal=interaction.type==='descent'?activeMapLayout?.portals?.descent:activeMapLayout?.portals?.landing;
+ if(!portal)return false;
+ if(onlineMode){
+  mapInteractionBusy=true;
+  const sent=window.AbyssalOnline?.requestMapTransition?.(interaction.type,result=>{if(result?.ok===false){mapInteractionBusy=false;showToast(result.reason==='too-far'?'CHEGUE MAIS PERTO DO VÓRTICE':'A PASSAGEM NÃO RESPONDEU');updateMapInteraction(true);}});
+  if(!sent){mapInteractionBusy=false;return false;}return true;
+ }
+ const target=interaction.type==='descent'?{x:portal.targetX,y:portal.targetY}:{x:portal.targetX,y:portal.targetY};
+ return applyMapTransition(interaction.type,target.x,target.y);
+}
+window.addEventListener('abyssal-map-transition',event=>{const result=event.detail||{};if(result.ok)applyMapTransition(result.kind,result.x,result.y);else{mapInteractionBusy=false;updateMapInteraction(true);}});
 function soloDepthState(){
  const bosses=Math.max(0,Number(bossKillsThisRun)||0),zone=EXPEDITION_RULES?.zoneForBosses?.(bosses)||null;
  const eventConfig=soloDepthEventId?EXPEDITION_RULES?.eventConfig?.(soloDepthEventId):null;
@@ -1701,6 +1748,7 @@ function fire(){
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
+ updateMapInteraction();
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
    // Correntezas ambientais removidas: o movimento depende apenas dos comandos do jogador.
@@ -2262,7 +2310,7 @@ function drawMapPortal(portal,t){
   ctx.globalAlpha=.88;ctx.fillStyle='#01050c';ctx.strokeStyle='#4db8ff';ctx.lineWidth=5/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:18;ctx.shadowColor='#3caeff';ctx.beginPath();ctx.ellipse(0,0,r,r*.72,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   ctx.globalAlpha=.62;ctx.strokeStyle='#7dd6ff';for(let ring=0;ring<3;ring++){ctx.beginPath();ctx.ellipse(0,0,r*(.72-ring*.16),r*(.48-ring*.11),0,t*.0007+ring*.8,t*.0007+ring*.8+Math.PI*1.45);ctx.stroke();}
  }else{
-  const color=portal.type==='start'?'#65ff85':'#72f5df';ctx.globalAlpha=.76;ctx.strokeStyle=color;ctx.lineWidth=4/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:16;ctx.shadowColor=color;
+  const color=portal.type==='start'?'#65ff85':portal.type==='landing'?'#69bfff':'#72f5df';ctx.globalAlpha=.76;ctx.strokeStyle=color;ctx.lineWidth=4/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:16;ctx.shadowColor=color;
   ctx.beginPath();ctx.arc(0,0,r*.72,0,Math.PI*2);ctx.stroke();
   ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=t*.0012+q*Math.PI*4.6,rr=r*(.62*(1-q)+.08);const px=Math.cos(a)*rr,py=Math.sin(a)*rr;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
  }
@@ -2287,7 +2335,7 @@ function drawAbyssalCaveMap(t){
   ctx.globalAlpha=.14;ctx.strokeStyle=palette[2];ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(room.x,room.y,room.rx*.72,room.ry*.67,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
   if(room.type==='common'||room.type==='event'||room.type==='elite'||room.type==='boss')drawCaveGlyph(room.x,room.y,room.type,t,room.type==='boss'?1.25:1);
  }
- drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);
+ drawMapPortal(layout.portals.start,t);drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.descent,t);drawMapPortal(layout.portals.landing,t);
  const boss=layout.portals.boss;if(boss)drawCaveGlyph(boss.x,boss.y,'boss',t,1.6);
  ctx.restore();
  return true;
@@ -2960,7 +3008,7 @@ function setupDualStickEvents(){
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
-window.addEventListener('keydown',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
+window.addEventListener('keydown',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 let adAudioWasRunning=false;
@@ -2991,7 +3039,7 @@ window.addEventListener('abyssal-revive-result',event=>{
  hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
 });
 function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
-function returnToMainMenu(){runResultPending=false;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
+function returnToMainMenu(){runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
 $('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
 $('againBtn').addEventListener('click',()=>{
  const shouldRestartOnline = wasOnlineModeOnDeath;
