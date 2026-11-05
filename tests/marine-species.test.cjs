@@ -34,3 +34,17 @@ test('rarity is canonical data on every marine species',()=>{
  assert.deepEqual(species.filter(s=>s.variant<=1).map(s=>s.rarity),Array(species.filter(s=>s.variant<=1).length).fill('common'));
  assert.ok(species.some(s=>s.rarity==='mythic'));
 });
+
+
+test('rarity controls premium access and abyssal coin escalation',()=>{
+ const rank={common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5};
+ for(const family of new Set(species.map(s=>s.family))){
+  const rows=species.filter(s=>s.family===family).sort((a,b)=>a.variant-b.variant);
+  for(let i=1;i<rows.length;i++)assert.ok(rows[i].coins>rows[i-1].coins,family+':'+i);
+  for(const s of rows){
+   assert.equal(s.paid,rank[s.rarity]>=4,s.id);
+   assert.equal(s.unlockType,s.paid?'premium':'coins',s.id);
+   if(s.paid)assert.ok(s.brl>=990,s.id);
+  }
+ }
+});
