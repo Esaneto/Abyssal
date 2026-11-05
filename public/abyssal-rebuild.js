@@ -161,7 +161,7 @@ function decorateCards(){
 
   cards.forEach(function(card,index){
     var spec=SPECIMENS[index];
-    if(!spec){const extra=window.AbyssalMarineSpecies?.species[index-SPECIMENS.length];if(extra){card.dataset.skinId=extra.id;card.dataset.abyssTier=extra.tier;card.classList.toggle('abyss-filtered-out',activeFilter!=='all'&&activeFilter!==extra.tier);}return;}
+    if(!spec)return;
 
     card.dataset.skinId=spec.id;
     card.dataset.abyssTier=spec.tier;
