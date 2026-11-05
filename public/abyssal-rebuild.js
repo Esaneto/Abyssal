@@ -36,6 +36,28 @@ var SPECIMENS=[
 
 var activeFilter='all';
 
+// Correntes desenhadas uma vez em SVG; a animação fica a cargo do compositor CSS.
+function buildVortexStreams(){
+  var streams=[];
+  var count=16,steps=74;
+  for(var arm=0;arm<count;arm++){
+    var parts=[];
+    for(var step=0;step<=steps;step++){
+      var progress=step/steps;
+      var angle=Math.PI*2*(arm/count+progress*1.48);
+      var radius=234*Math.pow(1-progress,1.22)+5;
+      var x=260+Math.cos(angle)*radius;
+      var y=260+Math.sin(angle)*radius;
+      parts.push((step?'L':'M')+x.toFixed(1)+' '+y.toFixed(1));
+    }
+    var tone=arm%4===0?'#ac69ff':(arm%3===0?'#86f4ff':'#00c9ff');
+    var alpha=(arm%4===0?.43:.64);
+    streams.push('<path d="'+parts.join(' ')+'" fill="none" stroke="'+tone+'" stroke-opacity="'+alpha+'" stroke-width="'+(arm%3===0?3.3:1.8)+'" stroke-linecap="round"/>');
+  }
+  return '<svg class="abyss-vortex-streams" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+
+    '<g>'+streams.join('')+'</g></svg>';
+}
+
 function createGate(){
   var menu=$('menuScreen');
   if(!menu||$('abyssGate'))return;
@@ -45,6 +67,10 @@ function createGate(){
   gate.className='abyss-gate';
   gate.setAttribute('aria-label','Entrada para a Descida Abissal');
   gate.innerHTML=
+    '<div class="abyss-vortex-plane" aria-hidden="true">'+
+      '<div class="abyss-vortex-current"></div>'+buildVortexStreams()+
+      '<div class="abyss-vortex-shaft"></div>'+ 
+    '</div>'+ 
     '<div class="abyss-gate-rim" aria-hidden="true"></div>'+
     '<div class="abyss-gate-depth" aria-hidden="true"><span class="abyss-gate-eye"></span></div>'+
     '<div class="abyss-gate-content">'+
@@ -54,8 +80,9 @@ function createGate(){
       '<button id="abyssGateButton" class="abyss-gate-button" type="button">ABRIR A FENDA</button>'+
     '</div>';
 
-  var fauna=menu.querySelector('.menu-fauna');
-  menu.insertBefore(gate,fauna||menu.lastChild);
+  var orbit=menu.querySelector('.abyss-orbit-navigation');
+  if(orbit)orbit.appendChild(gate);
+  else { var fauna=menu.querySelector('.menu-fauna');menu.insertBefore(gate,fauna||menu.lastChild); }
 
   var panel=document.createElement('section');
   panel.id='abyssDescentPanel';
