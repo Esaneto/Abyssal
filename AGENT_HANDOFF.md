@@ -4,6 +4,33 @@ Atualizado em: 2026-11-05
 
 Este arquivo e a fonte de continuidade tecnica do projeto. Leia antes de modificar gameplay, multiplayer, mapa, criaturas, skins, bosses, deploy ou fluxo de publicacao.
 
+## 0. ESTADO VISUAL APROVADO APOS ROLLBACK DE 2026-11-05
+
+A expansao em massa de especies marinhas foi rejeitada visualmente e removida da main.
+
+Regras obrigatorias a partir deste ponto:
+- Nao recriar `marine-species.js`, `marine-renderer.js` ou um catalogo grande de especies sem pedido explicito.
+- Novas especies devem ser adicionadas UMA POR UMA.
+- Cada nova especie deve ser revisada no gameplay e na loja antes de adicionar a seguinte.
+- As skins que ja existiam voltaram ao renderer legado/provado de `drawCreature()`.
+- Nao engrossar contornos das skins existentes.
+- Nao aplicar glow global ou uma nova direcao visual em lote nas skins existentes sem aprovacao visual previa.
+- Os precos BRL originais foram restaurados e devem ser tratados como baseline:
+  - Violeta R$ 3,90
+  - Tubarao-branco R$ 5,90
+  - Tubarao-martelo R$ 5,90
+  - Tubarao-Touro Estuarino R$ 6,90
+  - Caranguejo-Ferradura Couracado R$ 6,90
+  - Peixe-Pescador R$ 12,90
+  - Enguia-Pelicano R$ 14,90
+  - Cefalopode Calcificado R$ 14,90
+  - Leviata R$ 16,90
+  - Kraken R$ 18,90
+  - Devorador R$ 19,90
+  - Bundle dos seis bosses R$ 69,90
+- `abyssking`, `bloodmoon`, `abyssaleye` e `deepwarden` voltaram a ser skins de moedas, como antes da reprecificacao.
+- Nao alterar preco BRL junto com uma revisao visual. Economia e arte devem ser aprovadas separadamente.
+
 ## 1. Objetivo do projeto
 
 Abyssal e um jogo HTML5/JavaScript com Node.js + Socket.IO, multiplayer em tempo real, deploy no Render e empacotamento Android.
@@ -323,8 +350,9 @@ Evidencias ja verificadas na main:
 - `public/game.js` possui branches visuais especificas para varias skins, incluindo `kraken`, `royal`, `toxic`, `thorn`, `coral`, `bloodmoon`, `reefshark`, `hammerhead` e outras;
 - `tests/skin-silhouette-pass.test.cjs` valida que algumas skins mantenham silhuetas realmente distintas;
 - `renderShop()` chama `renderCreaturePreview(..., skin)`, que por sua vez chama `drawCreature(..., skin)` passando o objeto completo da skin;
-- dentro de `drawCreature()`, skins que possuem `skin.family` podem ser desviadas para `window.drawMarineSpecies` quando esse renderer esta disponivel;
-- portanto, o problema relatado pode estar no renderer marinho/family, em um fallback visual compartilhado, em dados de skin que apontam para a mesma familia/silhueta, ou em cache/deploy, e nao necessariamente no renderer legado de `drawCreature()`.
+- o catalogo de especies em massa e o renderer `window.drawMarineSpecies` foram removidos;
+- as skins atuais passam novamente pelo renderer legado `drawCreature()`;
+- qualquer nova especie futura deve ganhar implementacao isolada e ser aprovada antes da proxima.
 
 Regra para o proximo agente/Codex:
 1. Antes de redesenhar skins do zero, rastrear cada skin do catalogo desde `skinData`/fonte de especie ate `renderCreaturePreview()` e o renderer efetivamente usado.
