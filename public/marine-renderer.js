@@ -46,8 +46,8 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
  const shadow=()=>{c.save();c.globalAlpha=.14;c.fillStyle=accent;c.beginPath();c.ellipse(-.05,.7,.72,.12,0,0,Math.PI*2);c.fill();c.restore();};
  const materialPass=(density=1)=>{
    c.save();c.globalCompositeOperation='lighter';for(let i=0;i<3+density+(v%3);i++){const px=-.5+i*(1.05/(2+density+v%3)),py=(i%2?.14:-.16)+(v%2)*.03;pore(px,py,.014+(i%2)*.006,i%3===0?palette.accent:palette.glow);}c.restore();
-   scars(1+(v%3===0?1:0));
-   c.save();c.globalAlpha=.32;c.strokeStyle=palette.rim;c.lineWidth=.018;c.beginPath();c.ellipse(.05,-.03,.46,.24,-.18,Math.PI*.1,Math.PI*.92);c.stroke();c.restore();
+   // Generic scratches were visually incoherent. Surface lines now follow body volume instead.
+   c.save();c.globalAlpha=.28;c.strokeStyle=palette.rim;c.lineWidth=.018;c.beginPath();c.ellipse(.05,-.03,.46,.24,-.18,Math.PI*.1,Math.PI*.92);c.stroke();c.restore();
  };
 
  shadow();
@@ -340,6 +340,17 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
   }
  };
 
+ const rarityPass=()=>{
+  const rank={common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5}[String(s.rarity||'common')]||0;
+  if(rank<3)return;
+  const paid=Boolean(s.paid),strength=(rank-2)+(paid?1:0);
+  c.save();c.globalCompositeOperation='lighter';
+  c.globalAlpha=.18+strength*.07;c.strokeStyle=palette.glow;c.lineWidth=.025+.007*strength;c.shadowBlur=.12+.04*strength;c.shadowColor=palette.glow;
+  c.beginPath();c.ellipse(-.03,0,.92+strength*.08,.62+strength*.055,t*.00018,0,Math.PI*2);c.stroke();
+  const nodes=2+strength*2;for(let i=0;i<nodes;i++){const a=t*.00045+i*Math.PI*2/nodes,rr=.88+strength*.08;c.fillStyle=i%2?palette.accent:palette.rim;c.beginPath();c.arc(Math.cos(a)*rr,Math.sin(a)*rr*.68,.018+.005*strength,0,Math.PI*2);c.fill();}
+  if(paid){c.globalAlpha=.3;c.strokeStyle=palette.rim;c.lineWidth=.018;c.beginPath();c.ellipse(.12,-.05,.34+.04*strength,.22+.03*strength,-.28,0,Math.PI*2);c.stroke();}
+  c.restore();
+ };
  const signatureArt=()=>{
   const k=String(art.key||'');
   const line=(pts,w=.025,a=.72)=>stroke(pts,w,a>.8?palette.rim:palette.accent,.12);
@@ -475,6 +486,7 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
  }
  signatureMassPass();
  signatureArt();
+ rarityPass();
  c.restore();
 };
 })();
