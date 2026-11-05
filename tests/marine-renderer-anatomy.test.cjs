@@ -38,3 +38,19 @@ test('deep-sea fish variants preserve iconic silhouettes',()=>{
   assert.match(renderer,/hadal snailfish/);
   assert.match(renderer,/tripod fish/);
 });
+
+test('creature previews do not reintroduce the shared orbit frame and cache versions are current',()=>{
+  const fs=require('node:fs'),path=require('node:path');
+  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
+  const html=fs.readFileSync(path.join(__dirname,'..','public','index.html'),'utf8');
+  const start=game.indexOf('function renderCreaturePreview(');
+  const end=game.indexOf('function drawWheel()',start);
+  const preview=game.slice(start,end);
+  assert.ok(start>=0&&end>start);
+  assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
+  assert.match(preview,/The anatomy must dominate the preview/);
+  assert.match(html,/marine-species\.js\?v=4/);
+  assert.match(html,/marine-renderer\.js\?v=3/);
+  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
+  assert.match(html,/game\.js\?v=4\.4\.10/);
+});
