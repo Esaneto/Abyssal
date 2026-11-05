@@ -116,6 +116,8 @@ function expireSoloDepthEventIfNeeded(){
  soloDepthEventId=null;soloDepthEventEndsAt=0;publishSoloDepthState();
 }
 
+const RELIC_SKIN_IDS=new Set(['leviathan','kraken','aberration','angler','maw','devourer']);
+const ABYSSAL_SIGNATURE_IDS=new Set(['abyssking','bloodmoon','abyssaleye','greensnake']);
 const skinData=[
 {id:'default',name:'Luz Abissal',color:'#75f8ed',price:0,paid:false,shape:'orb',desc:'Um núcleo vivo de luz bioluminescente, cercado por filamentos de maré.',ability:'Ressonância de retorno: concede 12% mais experiência ao recolher orbes.'},
 {id:'violet',name:'Espectro Violeta',color:'#bd91ff',price:100,paid:true,shape:'horns',desc:'Um espectro luminescente com cornos de energia violeta.',ability:'Ressonância espectral: a cada 10 segundos, libera uma onda violeta que causa dano aos inimigos próximos.'},
@@ -123,12 +125,12 @@ const skinData=[
 {id:'toxic',name:'Lodo Tóxico',color:'#a7ff78',price:4000,paid:false,shape:'tentacles',desc:'Tentáculos ácidos terminados em glândulas que brilham em verde.',ability:'Nuvem tóxica: a cada 5 segundos, libera uma nuvem de veneno que contamina e causa dano contínuo às criaturas próximas.'},
 {id:'leviathan',name:'Eco do Leviatã',color:'#ff668f',price:6500,paid:true,shape:'leviathan',desc:'Um vestígio biológico do Leviatã das Fossas: placas ósseas, crânio pálido e fendas sensoriais preservam apenas uma fração da entidade verdadeira.',ability:'Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'},
 {id:'thorn',name:'Coroa de Espinhos',color:'#ff9b6a',price:8000,paid:false,shape:'coral',desc:'Galhos de coral negro crescem como uma coroa predatória.',ability:'Espinhos reativos: causa 24% mais dano a inimigos próximos.'},
-{id:'abyssking',name:'Rei do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
-{id:'royal',name:'Abismo Real',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
+{id:'abyssking',name:'Soberano do Vazio',color:'#8b7cff',price:10000,paid:false,shape:'king',desc:'Uma coroa óssea sobre um núcleo imperial de luz violeta.',ability:'Escudo régio: começa cada mergulho com uma carga extra de escudo.'},
+{id:'royal',name:'Pérola Regente',color:'#ff78d0',price:12000,paid:false,shape:'halo',desc:'Uma auréola de pérolas luminescentes envolve esta criatura rara.',ability:'Essência da realeza: concede 25% mais experiência ao recolher orbes.'},
 {id:'glacier',name:'Glaciar Fantasma',color:'#91caff',price:13000,paid:false,shape:'crystal',desc:'Cristais de gelo marinho crescem em torno do seu corpo espectral.',ability:'Permafrost: reduz em 26% a velocidade de inimigos próximos.'},
 {id:'coral',name:'Jardim Carnívoro',color:'#ff6f9d',price:6000,paid:false,shape:'coral',desc:'Corais rubros, espinhos calcificados e filamentos de anêmona.',ability:'Jardim vivo: recupera até 4 pontos de vida ao eliminar uma criatura.'},
 {id:'bloodmoon',name:'Lua Sangrenta',color:'#ff3c66',price:9000,paid:false,shape:'fangs',desc:'Uma mandíbula dupla e presas pálidas sob um brilho carmesim.',ability:'Fome rubra: causa 30% mais dano quando a vida cai a 35% ou menos.'},
-{id:'voidwing',name:'Asa do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
+{id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Olho do Insondável',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Uma íris colossal observa em várias direções ao mesmo tempo.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
 {id:'kraken',name:'Eco do Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Uma ressonância orgânica do Kraken, com manto vítreo e tentáculos reduzidos. A entidade verdadeira permanece nas fossas.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
@@ -2428,9 +2430,21 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(-.72*r,0);c.lineTo(-.4*r,-.55*r);c.lineTo(.2*r,-.58*r);c.lineTo(.78*r,-.1*r);c.lineTo(.55*r,.45*r);c.lineTo(-.2*r,.56*r);c.closePath()},bodyGrad(color),'#c3eeff',Math.max(1.2,r*.06),14);
    for(let i=0;i<7;i++){const xx=(-.45+i*.16)*r;stroke(()=>{c.moveTo(xx,-.42*r);c.lineTo((xx+.08)*r,.42*r)},Math.max(.7,r*.026),'rgba(230,253,255,.75)',5)}eye(.38,-.08,r*.05,'#a7ecff');
   } else if(id==='royal'){
-   for(let i=0;i<8;i++){const a=Math.PI+i*Math.PI/7,sx=Math.cos(a)*.5,sy=Math.sin(a)*.48;tentacle(sx,sy,sx-.1,sy+.28,sx+.2,sy+.7,sx+.05,1.18,.8)}
-   fill(()=>{c.moveTo(-.84*r,-.02*r);c.bezierCurveTo(-.85*r,-.62*r,-.44*r,-.88*r,0,-.82*r);c.bezierCurveTo(.47*r,-.88*r,.86*r,-.5*r,.84*r,-.02*r);c.quadraticCurveTo(0,.18*r,-.84*r,-.02*r)},bodyGrad(color),'rgba(255,247,203,.75)',Math.max(1.2,r*.05),14);
-   stroke(()=>{c.ellipse(0,-.8*r,.54*r,.2*r,0,0,Math.PI*2)},Math.max(1.2,r*.065),'#fff0b1',14);for(let i=0;i<9;i++){const a=Math.PI*2*i/9;c.save();c.fillStyle='#fff5bd';c.shadowBlur=10;c.shadowColor='#fff5bd';c.beginPath();c.arc(Math.cos(a)*.54*r,-.8*r+Math.sin(a)*.2*r,Math.max(1.3,r*.045),0,Math.PI*2);c.fill();c.restore()}eye(.25,-.28,r*.06,'#fff3c3');
+   // Royal abyss: a colonial siphonophore rather than another bell jelly.
+   // A pearl-chain spine, crown float and four long feeding ribbons create a unique profile.
+   const royalPulse=.92+.08*Math.sin(t*.0032);
+   for(let i=0;i<6;i++){
+    const px=(-1.22+i*.31)*r,py=Math.sin(t*.0026+i*.8)*.08*r;
+    c.save();c.fillStyle=i%2?'#ffc9ec':'#ffe9b2';c.strokeStyle='rgba(255,244,215,.76)';c.lineWidth=Math.max(.7,r*.022);c.shadowBlur=lowPowerRendering?0:7*glowScale;c.shadowColor='#ffb9df';c.beginPath();c.ellipse(px,py,(.17-i*.008)*r,(.13-i*.006)*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();
+   }
+   for(let side of [-1,1]){
+    tentacle(-.52,side*.12,-.86,side*.43,-1.05,side*.9,-1.42,side*1.34,.72);
+    tentacle(.02,side*.16,-.15,side*.52,.18,side*.92,-.08,side*1.38,.62);
+   }
+   fill(()=>{c.moveTo(-.32*r,-.36*r);c.bezierCurveTo(-.18*r,-.88*r,.3*r,-1.02*r,.62*r,-.62*r);c.bezierCurveTo(.87*r,-.3*r,.83*r,.24*r,.52*r,.48*r);c.bezierCurveTo(.17*r,.67*r,-.25*r,.48*r,-.32*r,-.36*r);c.closePath()},bodyGrad('#c55ea7'),'rgba(255,222,241,.78)',Math.max(1.2,r*.05),13);
+   fill(()=>{c.moveTo(-.02*r,-.65*r);c.lineTo(.12*r,-1.16*r);c.lineTo(.31*r,-.82*r);c.lineTo(.5*r,-1.22*r);c.lineTo(.64*r,-.66*r);c.closePath()},'#7f3979','#ffe4b4',Math.max(1,r*.04),8);
+   c.save();c.globalAlpha=.78;c.strokeStyle='#fff0b8';c.lineWidth=Math.max(1,r*.045);c.shadowBlur=lowPowerRendering?0:10*glowScale;c.shadowColor='#ffd99b';c.beginPath();c.ellipse(.34*r,-.5*r,.55*r*royalPulse,.24*r*royalPulse,-.12,0,Math.PI*2);c.stroke();c.restore();
+   eye(.48,-.3,r*.06,'#fff3c3');
   } else if(id==='toxic'){
    // Toxic sludge: asymmetrical gelatinous predator with acid sacs and dripping pseudopods.
    for(let i=0;i<7;i++){const yy=(-.48+i*.16);tentacle(-.45,yy,-.78,yy+.08,-.9,yy+(i%2?.28:-.22),-1.18-(i%3)*.08,yy+(i-3)*.08,.62);}
@@ -2485,6 +2499,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    // Safe fallback for any future skin: bilateral bell and trailing filaments.
    for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
    body(.85,.72,0,color);eye(.3,-.16,r*.06);
+  }
+  // Rarity signatures distinguish collectible forms without changing hitboxes or abilities.
+  if(RELIC_SKIN_IDS.has(id)){
+   c.save();c.globalAlpha=.52+.12*Math.sin(t*.003);c.strokeStyle='#d9b5ff';c.lineWidth=Math.max(.8,r*.025);c.setLineDash([Math.max(2,r*.14),Math.max(2,r*.11)]);c.shadowBlur=lowPowerRendering?0:8*glowScale;c.shadowColor='#a45dff';
+   c.beginPath();c.ellipse(-.04*r,0,1.22*r,1.02*r,t*.00034,0,Math.PI*2);c.stroke();c.setLineDash([]);
+   for(let k=0;k<3;k++){const a=t*.0007+k*Math.PI*2/3;c.fillStyle=k===0?'#f0d9ff':'#a98cff';c.beginPath();c.arc(Math.cos(a)*1.2*r,Math.sin(a)*.98*r,Math.max(1,r*.035),0,Math.PI*2);c.fill();}
+   c.restore();
+  }else if(ABYSSAL_SIGNATURE_IDS.has(id)){
+   c.save();c.globalAlpha=.34+.09*Math.sin(t*.0024);c.strokeStyle=id==='bloodmoon'?'#ff6f89':id==='greensnake'?'#6fffb1':'#9ca4ff';c.lineWidth=Math.max(.7,r*.02);c.beginPath();c.arc(0,0,1.12*r,t*.00025,t*.00025+Math.PI*1.45);c.stroke();c.restore();
   }
   // Fine luminous lateral line makes skin previews look like the live character.
   if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
