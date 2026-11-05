@@ -153,3 +153,15 @@ test('deploy reconnect preserves the shared room world and does not consume mism
 test('maintenance deadline allows normal Render deploy startup before fallback',()=>{
  assert.match(online,/\},180000\);/);
 });
+
+test('ricochet is universal, straight neon and replicated by server while electric chaining stays electric-only',()=>{
+ const server=read('server.js'),game=read('public/game.js'),online=read('public/online.js');
+ assert.match(server,/Number\(player\.ricochetLevel\)>0&&skillId!=='ricochet'/);
+ assert.match(server,/type:'ricochet-line'/);
+ assert.match(server,/source==='electric'&&Number\(attacker\.electricLevel\)>0/);
+ assert.match(game,/source==='electric'&&\(upgrades\.electric\|\|0\)>0/);
+ assert.match(game,/type:'ricochet-line'[\s\S]*color:'#f7ff19'/);
+ assert.match(game,/fx\.type==='ricochet-line'\)\{ctx\.moveTo\(fx\.x1,fx\.y1\);ctx\.lineTo\(fx\.x2,fx\.y2\)/);
+ assert.match(game,/abyssal-hit-synergy-visual/);
+ assert.match(online,/hit-synergy-visual/);
+});
