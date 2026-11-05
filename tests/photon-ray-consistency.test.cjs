@@ -113,7 +113,7 @@ test('Server is authoritative for multi-target PvE/PvP ray collision',()=>{
 
 test('PvE authoritative damage applies ricochet to Photon Ray and other resolved attacks', () => {
   const server = read('server.js');
-  assert.match(server, /Number\(player\.ricochetLevel\)>0&&skillId!=='ricochet'/);
+  assert.match(server, /Number\(player\.ricochetLevel\)>0&&RICOCHET_SHOT_SKILLS\.has\(String\(skillId\|\|''\)\)/);
   assert.match(server, /processWorldDamage\(socket,Number\(next\.id\),Math\.max\(1,requestedDamage\*\.42\),'ricochet'/);
   assert.match(server, /if\(shot\.special==='photonRay'\)[\s\S]*processWorldDamage\(socket,Number\(enemy\.id\),Math\.min\(45/);
 });
