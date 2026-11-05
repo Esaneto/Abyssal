@@ -696,6 +696,25 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // validated; single-hit compatibility uses the same compact lifecycle events.
   if(batch)batch.worldChanged=true;
  }
+ // Tempestade elétrica is also resolved here online so every client sees the same distorted arc.
+ if(player&&skillId==='electric'&&Number(player.electricLevel)>0){
+  let fromX=Number(enemy.x),fromY=Number(enemy.y);
+  const visited=new Set([Number(enemy.id)]);
+  for(let chain=0;chain<Math.min(3,Number(player.electricLevel)||0);chain++){
+   let next=null,nextDistance=Infinity;
+   for(const candidate of w.enemies){
+    if(!candidate||Number(candidate.hp)<=0||visited.has(Number(candidate.id)))continue;
+    const distance=Math.hypot(Number(candidate.x)-fromX,Number(candidate.y)-fromY);
+    if(distance<190/WORLD_ZOOM&&distance<nextDistance){next=candidate;nextDistance=distance;}
+   }
+   if(!next)break;
+   visited.add(Number(next.id));
+   io.to(channelFor(room)).emit('hit-synergy-visual',{type:'electric-arc',fromId:socket.id,x1:fromX/WORLD_WIDTH,y1:fromY/WORLD_HEIGHT,x2:Number(next.x)/WORLD_WIDTH,y2:Number(next.y)/WORLD_HEIGHT,seed:now+chain*97+Number(next.id)});
+   const chained=processWorldDamage(socket,Number(next.id),Math.max(1,requestedDamage*.34),'electric-chain',batch,actionId);
+   if(!chained?.ok)break;
+   fromX=Number(next.x);fromY=Number(next.y);
+  }
+ }
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
