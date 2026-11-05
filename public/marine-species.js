@@ -26,25 +26,25 @@
  const labels={damage:'dano',movement:'velocidade',fireRate:'cadência',defense:'redução de dano',magnet:'alcance de coleta',range:'alcance de aquisição',experience:'experiência'};
  const visualProfiles={
   shark:[
-   ['blue-sickle','#4ea9d9'],['tiger-bars','#c58a43'],['whale-checker','#5ea7b7'],['basking-gape','#9a8257'],['mako-spear','#4c83d1'],['thresher-whip','#8b6fc7'],['goblin-rostrum','#c06f82'],['frilled-serpent','#78608f'],['lantern-photophore','#46c7ac'],['greenland-heavy','#718c98']],
+   ['blue-sickle','#4ea9d9'],['tiger-bars','#c58a43'],['whale-checker','#5ea7b7'],['basking-gape','#9a8257'],['mako-spear','#4c83d1'],['thresher-whip','#8b6fc7'],['goblin-rostrum','#c06f82'],['frilled-serpent','#78608f'],['lantern-photophore','#46c7ac'],['greenland-heavy','#718c98'],
   ray:[
-   ['manta-cephalic','#5c92cb'],['reef-manta','#68b5b2'],['spotted-eagle','#c49c4f'],['eagle-snout','#7f75c4'],['butterfly-disc','#c96f8d'],['thornback-spines','#967358'],['guitarfish-hybrid','#5f9f86'],['round-disc','#b67a98'],['sixgill-deep','#596eab'],['arctic-pale','#89b9c8']],
+   ['manta-cephalic','#5c92cb'],['reef-manta','#68b5b2'],['spotted-eagle','#c49c4f'],['eagle-snout','#7f75c4'],['butterfly-disc','#c96f8d'],['thornback-spines','#967358'],['guitarfish-hybrid','#5f9f86'],['round-disc','#b67a98'],['sixgill-deep','#596eab'],['arctic-pale','#89b9c8'],
   eel:[
-   ['zebra-bars','#d1b477'],['leopard-spots','#b17a55'],['ribbon-crests','#7b6ee4'],['dragon-jaw','#c94c59'],['garden-thread','#79b88c'],['conger-heavy','#677a8d'],['pelican-gape','#9b68bb'],['saw-rostrum','#d27955'],['snipe-snout','#75a8b3'],['gulper-mouth','#8f5d92']],
+   ['zebra-bars','#d1b477'],['leopard-spots','#b17a55'],['ribbon-crests','#7b6ee4'],['dragon-jaw','#c94c59'],['garden-thread','#79b88c'],['conger-heavy','#677a8d'],['pelican-gape','#9b68bb'],['saw-rostrum','#d27955'],['snipe-snout','#75a8b3'],['gulper-mouth','#8f5d92'],
   squid:[
-   ['reef-arrow','#53a9d8'],['luminous-stars','#53d6d0'],['humboldt-heavy','#c64f4f'],['diamond-fin','#9f80da'],['cockatoo-glass','#7fc3bf'],['strawberry-eyes','#d55f94'],['vampire-cloak','#8b395f'],['longarm-spider','#667bc6'],['giant-lance','#c27055'],['colossal-hooks','#8d3948']],
+   ['reef-arrow','#53a9d8'],['luminous-stars','#53d6d0'],['humboldt-heavy','#c64f4f'],['diamond-fin','#9f80da'],['cockatoo-glass','#7fc3bf'],['strawberry-eyes','#d55f94'],['vampire-cloak','#8b395f'],['longarm-spider','#667bc6'],['giant-lance','#c27055'],['colossal-hooks','#8d3948'],
   octopus:[
-   ['common-bulb','#ba6b54'],['mimic-stripes','#c88b4f'],['coconut-shell','#a87554'],['blue-rings','#3fc7e4'],['blanket-web','#a449b7'],['glass-core','#76c9d8'],['dumbo-ears','#c08db8'],['grimpoteuthis-bell','#8b79c8'],['sevenarm-asymmetry','#9b6676'],['pacific-giant','#9b4b3f']],
+   ['common-bulb','#ba6b54'],['mimic-stripes','#c88b4f'],['coconut-shell','#a87554'],['blue-rings','#3fc7e4'],['blanket-web','#a449b7'],['glass-core','#76c9d8'],['dumbo-ears','#c08db8'],['grimpoteuthis-bell','#8b79c8'],['sevenarm-asymmetry','#9b6676'],['pacific-giant','#9b4b3f'],
   jelly:[
-   ['moon-fourcore','#70d7de'],['compass-radial','#d4717b'],['friedegg-yolk','#e1ae43'],['lionmane-crown','#bb5a4e'],['crystal-glass','#75dce8'],['atolla-redring','#cc4259'],['periphylla-cone','#9954a7'],['phantom-giant','#6a5898'],['fireworks-branches','#4dc0d4'],['hood-cap','#a073bd']],
+   ['moon-fourcore','#70d7de'],['compass-radial','#d4717b'],['friedegg-yolk','#e1ae43'],['lionmane-crown','#bb5a4e'],['crystal-glass','#75dce8'],['atolla-redring','#cc4259'],['periphylla-cone','#9954a7'],['phantom-giant','#6a5898'],['fireworks-branches','#4dc0d4'],['hood-cap','#a073bd'],
   crustacean:[
-   ['spiny-lobster','#c67245'],['american-claws','#a8463f'],['cleaner-antennae','#d87389'],['pistol-claw','#c88b58'],['mantis-hammer','#68b875'],['spider-legs','#96765f'],['yeti-fur','#d7d3b9'],['isopod-plates','#6e7c91'],['hadal-amphipod','#8a5eaa'],['vent-shrimp','#b6b0a3']],
+   ['spiny-lobster','#c67245'],['american-claws','#a8463f'],['cleaner-antennae','#d87389'],['pistol-claw','#c88b58'],['mantis-hammer','#68b875'],['spider-legs','#96765f'],['yeti-fur','#d7d3b9'],['isopod-plates','#6e7c91'],['hadal-amphipod','#8a5eaa'],['vent-shrimp','#b6b0a3'],
   fish:[
-   ['lion-spines','#d45e48'],['sun-disc','#aeb3b0'],['napoleon-brow','#5d9e78'],['mandarin-pattern','#4f88c8'],['hatchet-blade','#6b93aa'],['dragon-black','#3e4d70'],['viper-fangs','#7d4f89'],['fangtooth-head','#8c5d52'],['snailfish-soft','#83b8ba'],['tripod-stilts','#a28768']],
+   ['lion-spines','#d45e48'],['sun-disc','#aeb3b0'],['napoleon-brow','#5d9e78'],['mandarin-pattern','#4f88c8'],['hatchet-blade','#6b93aa'],['dragon-black','#3e4d70'],['viper-fangs','#7d4f89'],['fangtooth-head','#8c5d52'],['snailfish-soft','#83b8ba'],['tripod-stilts','#a28768'],
   benthic:[
-   ['leopard-cucumber','#9c7657'],['sea-pig-legs','#b57991'],['swimming-holothurian','#6e9eb0'],['basket-arms','#9270a8'],['brittle-star','#b47a65'],['crown-star','#bd5444'],['diadema-spines','#614f83'],['pencil-urchin','#a56d49'],['crinoid-feather','#6d9c77'],['harp-sponge','#78a7b0']],
+   ['leopard-cucumber','#9c7657'],['sea-pig-legs','#b57991'],['swimming-holothurian','#6e9eb0'],['basket-arms','#9270a8'],['brittle-star','#b47a65'],['crown-star','#bd5444'],['diadema-spines','#614f83'],['pencil-urchin','#a56d49'],['crinoid-feather','#6d9c77'],['harp-sponge','#78a7b0'],
   mollusc:[
-   ['nautilus-spiral','#b89d72'],['argonaut-shell','#c9a5a0'],['cuttle-ribbed','#7f9f8d'],['flamboyant-warning','#dc6550'],['sea-bunny-ears','#d6c7ba'],['blue-dragon-wings','#4b91d0'],['sea-angel-wings','#83c6d6'],['sea-butterfly-wings','#768ec7'],['scalyfoot-armor','#6d6760'],['giant-chiton-plates','#8b6d56']]
+   ['nautilus-spiral','#b89d72'],['argonaut-shell','#c9a5a0'],['cuttle-ribbed','#7f9f8d'],['flamboyant-warning','#dc6550'],['sea-bunny-ears','#d6c7ba'],['blue-dragon-wings','#4b91d0'],['sea-angel-wings','#83c6d6'],['sea-butterfly-wings','#768ec7'],['scalyfoot-armor','#6d6760'],['giant-chiton-plates','#8b6d56']
   ]
  };
  const palette=['#739ba6','#b39b78','#9c8aa3','#b17665','#7b9c87','#6f8fb5','#9b7f9e','#8ca36f','#b58d72','#6f9f9a'];
