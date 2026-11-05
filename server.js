@@ -708,7 +708,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*(1+completedCycles*0.02));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
    // A barra só reinicia após a derrota do chefe atual.
-   w.nextBossAt=(Number(w.elapsed)||0)+(100/3.8);
+   // Clearing a boss opens the next map tier. Another boss cannot spawn in the old tier.
+   w.nextBossAt=Infinity;
   }
   const orb=WorldSimulation.spawnXpOrb(w,enemy);
   if(orb){
