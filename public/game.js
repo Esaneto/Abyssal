@@ -246,9 +246,13 @@ function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
 function showEndOfRun(coinsEarned) {
   // Notificação de moedas enviada apenas uma vez ao fim da partida
   const amount = Number(coinsEarned) || 0;
-  const msg = amount > 0
-    ? 'Expedição encerrada! Você acumulou ' + amount.toLocaleString('pt-BR') + ' moedas abissais nesta partida.'
-    : 'O mergulho terminou. Volte às profundezas para acumular mais moedas abissais!';
+  const msg = expeditionMode
+    ? (expeditionExtracted
+      ? 'Extração concluída. Você garantiu ' + amount.toLocaleString('pt-BR') + ' moedas de conclusão antes de voltar à superfície.'
+      : 'Seu sinal foi perdido. Apenas 65% da recompensa final da expedição foi preservada: ' + amount.toLocaleString('pt-BR') + ' moedas.')
+    : (amount > 0
+      ? 'Expedição encerrada! Você acumulou ' + amount.toLocaleString('pt-BR') + ' moedas abissais nesta partida.'
+      : 'O mergulho terminou. Volte às profundezas para acumular mais moedas abissais!');
   addNotification(msg, 'FIM DE MERGULHO ⚓', 'coins');
   updateNotifBadge();
 }
@@ -2131,7 +2135,7 @@ function endGame(){
  const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
  if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
  else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
- else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=true;}
+ else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=false;}
  showEndOfRun(earnedCoins);
  updateNotifBadge();
  if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
@@ -2821,7 +2825,7 @@ window.addEventListener('abyssal-revive-result',event=>{
  if(!result.ok)return;
  hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
 });
-function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun};}
+function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
 function returnToMainMenu(){runResultPending=false;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;}
 $('playBtn').addEventListener('click',()=>{onlineMode=false;startGame()});
 $('againBtn').addEventListener('click',()=>{
