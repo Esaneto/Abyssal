@@ -544,6 +544,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
+const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
 function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
@@ -721,8 +722,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
- const ricochetShotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
- if(player&&Number(player.ricochetLevel)>0&&ricochetShotSkills.has(String(skillId||''))){
+ if(player&&Number(player.ricochetLevel)>0&&RICOCHET_SHOT_SKILLS.has(String(skillId||''))){
   let fromX=Number(enemy.x),fromY=Number(enemy.y);
   const visited=new Set([Number(enemy.id)]);
   for(let bounce=0;bounce<Math.min(3,Number(player.ricochetLevel)||0);bounce++){
