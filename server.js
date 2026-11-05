@@ -1531,7 +1531,7 @@ io.on('connection', socket => {
   if (!u || !payload) return;
   const allowed = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake']);
   u.ownedSkins = [...new Set(['default', ...(u.ownedSkins || []).filter(x => allowed.has(x))])];
-  // A conclusão dos ciclos finais concede a Serpente Esmeralda à conta.
+  // A conclusão dos ciclos finais concede a Moreia Esmeralda à conta.
   // O cliente envia esta confirmação ao concluir a conquista; a skin é registrada
   // no perfil antes de aceitar uma solicitação para equipá-la.
   if (payload.conqueror === true) {
@@ -1564,7 +1564,7 @@ io.on('connection', socket => {
   u.redeemedPromoIds=Array.isArray(u.redeemedPromoIds)?u.redeemedPromoIds:[];
   let id='',coinsAwarded=0,skinId=null,message='';
   if(welcome&&code===welcome){id='welcome-10k';coinsAwarded=10000;message='Código resgatado! +10.000 essências.';}
-  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e skin lendária Enguia Elétrica desbloqueada permanentemente!';}
+  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e skin lendária Raia-Elétrica Abissal desbloqueada permanentemente!';}
   else return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
   if(u.redeemedPromoIds.includes(id))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
   u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
