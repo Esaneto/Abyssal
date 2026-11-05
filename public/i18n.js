@@ -580,6 +580,7 @@ const spanishTranslations={
 
 // Canonical gameplay terminology. Dynamic UI uses the same dictionaries as static DOM.
 Object.assign(translations,{
+  'MERGULHAR':'DIVE','ABISMO':'ABYSS',
  'Tempestade elétrica':'Electric Storm','Lança-abismo':'Abyss Spear','Ricochete caótico':'Chaotic Ricochet',
  'Rajada Prismática':'Prismatic Barrage','Lança de Fótons':'Photon Lance','Raio de Fótons':'Photon Ray',
  'Nova gravitacional':'Gravitational Nova','Eco de Maré':'Tidal Echo',
@@ -588,6 +589,7 @@ Object.assign(translations,{
  'Selecione exatamente 1 disparo.':'Select exactly 1 shot.'
 });
 Object.assign(spanishTranslations,{
+  'MERGULHAR':'BUCEAR','ABISMO':'ABISMO',
  'Tempestade elétrica':'Tormenta eléctrica','Lança-abismo':'Lanza abisal','Ricochete caótico':'Rebote caótico',
  'Rajada Prismática':'Ráfaga prismática','Lança de Fótons':'Lanza de fotones','Raio de Fótons':'Rayo de fotones',
  'Nova gravitacional':'Nova gravitacional','Eco de Maré':'Eco de marea',
