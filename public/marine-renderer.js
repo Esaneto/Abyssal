@@ -9,7 +9,9 @@
 // 4) every family must remain readable at shop-preview scale and gameplay scale.
 window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
  const v=Math.max(0,Math.min(9,Number(s.variant)||0)),family=String(s.family||'fish'),art=s.art||{},accent=art.tone||s.color||'#70e9df',phase=t*.002+v*.71;
- const palette=art.palette||{base:accent,shadow:'#031019',rim:'#dffff8',glow:accent,accent,eye:'#ffffff'};
+ const palette=art.palette||{base:'#07151d',shadow:'#010409',structure:'#16333d',rim:'#dffff8',glow:accent,accent,eye:'#ffffff'};
+ const rarityRank={common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5}[String(s.rarity||'common')]||0;
+ const paid=Boolean(s.paid),breath=.84+.16*Math.sin(t*(.0032+rarityRank*.00018)+v*.63),emissionStrength=.58+rarityRank*.085+(paid?.08:0);
  c.save();c.translate(x,y);c.rotate(Number(angle)||0);c.scale(r,r);c.lineCap='round';c.lineJoin='round';
 
  const hexRgb=value=>{
@@ -21,7 +23,7 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
  const tone=(alpha=.5,boost=0)=>`rgba(${Math.min(255,rgb[0]+boost)},${Math.min(255,rgb[1]+boost)},${Math.min(255,rgb[2]+boost)},${alpha})`;
  // Signature-skin color language: deep shadow, saturated body, contrasting accent and luminous rim.
  // The gradient belongs to the creature volume, never to a generic vignette around the card.
- const bodyGrad=(shadow=palette.shadow,base=palette.base,highlight=palette.accent)=>{
+ const bodyGrad=(shadow=palette.shadow,base=palette.base,highlight=palette.structure||palette.accent)=>{
   const g=c.createLinearGradient(-1.35,-.72,1.2,.64);
   g.addColorStop(0,shadow);g.addColorStop(.28,base);g.addColorStop(.56,highlight);g.addColorStop(.76,base);g.addColorStop(1,shadow);return g;
  };
@@ -30,17 +32,17 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
   g.addColorStop(0,palette.rim);g.addColorStop(.18,palette.glow);g.addColorStop(.55,palette.base);g.addColorStop(1,palette.shadow);return g;
  };
  const path=(pts,close=true)=>{c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));if(close)c.closePath();};
- // Two-stage contour language: dark separator for color masses, then a thinner luminous rim.
- const separator='rgba(1,7,12,.9)';
- const contour=(edge,w=.045)=>{if(!edge)return;c.save();c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(w*2.05,.072);c.stroke();c.strokeStyle=edge;c.lineWidth=w;c.stroke();c.restore();};
+ // Material edges stay dark. Light is reserved for anatomical emission zones, not a neon outline.
+ const separator='rgba(1,7,12,.84)';
+ const contour=(edge,w=.045)=>{if(!edge)return;c.save();c.shadowBlur=0;c.strokeStyle=separator;c.lineWidth=Math.max(w*1.42,.052);c.stroke();c.globalAlpha=.16+rarityRank*.035+(paid?.035:0);c.strokeStyle=edge;c.lineWidth=Math.max(w*.5,.016);c.stroke();c.restore();};
  const fillPath=(pts,paint=bodyGrad(),edge=palette.rim,w=.045)=>{c.save();path(pts);c.fillStyle=paint;c.fill();contour(edge,w);c.restore();};
  const ellipse=(ex,ey,rx,ry,rot=0,paint=bodyGrad(),edge=palette.rim,w=.045)=>{c.save();c.beginPath();c.ellipse(ex,ey,rx,ry,rot,0,Math.PI*2);c.fillStyle=paint;c.fill();contour(edge,w);c.restore();};
  const stroke=(pts,w=.045,col='rgba(170,234,230,.62)',glow=0)=>{c.save();path(pts,false);if(w>=.035){c.strokeStyle=separator;c.lineWidth=w*1.85;c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=w;if(glow){c.shadowBlur=glow;c.shadowColor=col;}c.stroke();c.restore();};
  const bezier=(start,c1,c2,end,w=.05,col=accent,glow=0)=>{c.save();c.beginPath();c.moveTo(start[0],start[1]);c.bezierCurveTo(c1[0],c1[1],c2[0],c2[1],end[0],end[1]);if(w>=.035){c.strokeStyle=separator;c.lineWidth=w*1.85;c.shadowBlur=0;c.stroke();}c.strokeStyle=col;c.lineWidth=w;if(glow){c.shadowBlur=glow;c.shadowColor=col;}c.stroke();c.restore();};
  const eye=(ex,ey,size=.075,iris=palette.eye)=>{c.save();c.fillStyle='#02070b';c.beginPath();c.ellipse(ex,ey,size*1.3,size,0,0,Math.PI*2);c.fill();c.fillStyle=iris;c.shadowBlur=.16;c.shadowColor=iris;c.beginPath();c.arc(ex+size*.18,ey-size*.08,size*.42,0,Math.PI*2);c.fill();c.restore();};
  const mouth=(x0,y0,rx,ry,teeth=0)=>{c.save();c.fillStyle='#010409';c.strokeStyle='rgba(223,237,229,.42)';c.lineWidth=.03;c.beginPath();c.ellipse(x0,y0,rx,ry,0,0,Math.PI*2);c.fill();c.stroke();if(teeth){c.fillStyle='#eef3e7';for(let i=0;i<teeth;i++){const a=(i/(teeth-1)-.5)*Math.PI*.82,tx=x0+Math.cos(a)*rx*.84,ty=y0+Math.sin(a)*ry*.72;c.beginPath();c.moveTo(tx,ty);c.lineTo(tx-.035,ty+(i%2?.09:-.09));c.lineTo(tx+.035,ty+(i%2?.09:-.09));c.closePath();c.fill();}}c.restore();};
- const fin=(pts,alpha=.92)=>fillPath(pts,bodyGrad(palette.shadow,palette.base,palette.accent),palette.rim,.035);
- const pore=(px,py,sz=.022,col=palette.glow)=>{c.save();c.fillStyle=col;c.shadowBlur=.12;c.shadowColor=col;c.globalCompositeOperation='lighter';c.beginPath();c.arc(px,py,sz,0,Math.PI*2);c.fill();c.restore();};
+ const fin=(pts,alpha=.92)=>fillPath(pts,bodyGrad(palette.shadow,palette.base,palette.structure||palette.accent),palette.rim,.035);
+ const pore=(px,py,sz=.022,col=palette.glow)=>{c.save();c.globalCompositeOperation='lighter';c.fillStyle=col;c.shadowColor=col;c.globalAlpha=.2*emissionStrength;c.shadowBlur=.08;c.beginPath();c.arc(px,py,sz*2.25,0,Math.PI*2);c.fill();c.globalAlpha=Math.min(1,.72*emissionStrength);c.shadowBlur=.035;c.beginPath();c.arc(px,py,sz*1.05,0,Math.PI*2);c.fill();c.globalAlpha=.92;c.fillStyle=palette.rim;c.shadowBlur=0;c.beginPath();c.arc(px,py,Math.max(.006,sz*.34),0,Math.PI*2);c.fill();c.restore();};
  const pores=(count=5,y=.12,start=-.48,end=.48)=>{for(let i=0;i<count;i++)pore(start+(end-start)*(i/Math.max(1,count-1)),y+(i%2?.035:-.035),.018+(i%3)*.004);};
  const scars=(count=2)=>{for(let i=0;i<count;i++){const sx=-.5+i*.28;stroke([[sx,-.22],[sx+.09,-.04],[sx+.17,.18]],.021,'rgba(220,238,231,.2)');}};
  const ribs=(count=5,start=-.45,step=.18)=>{for(let i=0;i<count;i++)stroke([[start+i*step,-.28],[start+i*step+.04,.28]],.022,'rgba(222,241,235,.2)');};
@@ -206,12 +208,15 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
   // Signature Abyssal principle: expression and mass come before decorative markings.
   // These profiles deliberately exaggerate anatomy so silhouettes stay distinct at card size.
   const face=(x0,y0,rx,ry,eyeSize=.075,mx=null,my=.1,mrx=.18,mry=.07,teethCount=0,rot=0)=>{
-   ellipse(x0,y0,rx,ry,rot,bodyGrad(palette.shadow,palette.base,palette.accent),palette.rim,.052);
+   ellipse(x0,y0,rx,ry,rot,bodyGrad(palette.shadow,palette.base,palette.structure||palette.accent),palette.rim,.052);
    eye(x0+rx*.42,y0-ry*.34,eyeSize,palette.eye);
    if(mx!==false)mouth(mx==null?x0+rx*.72:mx,y0+my,mrx,mry,teethCount);
   };
   const glowCore=(x0,y0,rx,ry,col=palette.glow)=>{
-   c.save();c.globalCompositeOperation='lighter';c.globalAlpha=.62;c.fillStyle=col;c.shadowBlur=.22;c.shadowColor=col;c.beginPath();c.ellipse(x0,y0,rx,ry,0,0,Math.PI*2);c.fill();c.restore();
+   c.save();c.globalCompositeOperation='lighter';c.fillStyle=col;c.shadowColor=col;
+   c.globalAlpha=.12*emissionStrength*breath;c.shadowBlur=.15;c.beginPath();c.ellipse(x0,y0,rx*1.22,ry*1.22,0,0,Math.PI*2);c.fill();
+   c.globalAlpha=.48*emissionStrength*breath;c.shadowBlur=.055;c.beginPath();c.ellipse(x0,y0,rx*.82,ry*.82,0,0,Math.PI*2);c.fill();
+   c.globalAlpha=.82;c.fillStyle=palette.rim;c.shadowBlur=0;c.beginPath();c.ellipse(x0-rx*.12,y0-ry*.15,rx*.27,ry*.22,0,0,Math.PI*2);c.fill();c.restore();
   };
   const crown=(count,centerX,baseY,width,height)=>{
    for(let i=0;i<count;i++){const q=count===1?0:i/(count-1),xx=centerX+(q-.5)*width;spike(xx,baseY,height*(.72+(i%3)*.16),-1);}
@@ -227,8 +232,8 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
    if(v===2){glowCore(.18,0,.34,.22,palette.glow);for(let i=0;i<14;i++)pore(-.55+(i%7)*.18,-.28+Math.floor(i/7)*.46,.025,palette.rim);}
    if(v===3){for(let i=0;i<6;i++)stroke([[.3-i*.08,-.35],[.24-i*.08,.34]],.04,palette.rim,.08);}
    if(v===4){fin([[-.18,-.3],[-.02,-1.08],[.19,-.3]]);stroke([[.55,0],[1.68,0]],.045,palette.glow,.16);}
-   if(v===5){fillPath([[-.92,-.02],[-1.55,-.4],[-2.25,-1.5],[-1.56,-.12],[-2.05,.5]],bodyGrad(palette.shadow,palette.base,palette.accent),palette.rim,.04);}
-   if(v===6){fillPath([[.88,-.12],[1.95,-.04],[1.98,.08],[.88,.12]],bodyGrad(palette.shadow,palette.base,palette.accent),palette.rim,.04);glowCore(.85,.02,.18,.11,palette.accent);}
+   if(v===5){fillPath([[-.92,-.02],[-1.55,-.4],[-2.25,-1.5],[-1.56,-.12],[-2.05,.5]],bodyGrad(palette.shadow,palette.base,palette.structure||palette.accent),palette.rim,.04);}
+   if(v===6){fillPath([[.88,-.12],[1.95,-.04],[1.98,.08],[.88,.12]],bodyGrad(palette.shadow,palette.base,palette.structure||palette.accent),palette.rim,.04);glowCore(.85,.02,.18,.11,palette.accent);}
    if(v===7){crown(6,-.25,-.25,1.15,.24);stroke([[-1.0,0],[-2.05,.15]],.15,palette.base,.04);}
    if(v===8){for(let i=0;i<10;i++)pore(-.45+i*.11,.27,.03,i%2?palette.glow:palette.accent);glowCore(.62,-.13,.12,.1,palette.eye);}
    if(v===9){ribs(6,-.5,.18);fin([[-.08,.31],[-.5,.72],[.48,.35]]);}
@@ -344,21 +349,46 @@ window.drawMarineSpecies=function(c,s,x,y,r,angle,t){
  };
 
  const rarityPass=()=>{
-  const rank={common:0,uncommon:1,rare:2,epic:3,legendary:4,mythic:5}[String(s.rarity||'common')]||0;
-  if(rank<3)return;
-  const paid=Boolean(s.paid),strength=(rank-2)+(paid?1:0);
-  c.save();c.globalCompositeOperation='lighter';
-  c.globalAlpha=.18+strength*.07;c.strokeStyle=palette.glow;c.lineWidth=.025+.007*strength;c.shadowBlur=.12+.04*strength;c.shadowColor=palette.glow;
-  c.beginPath();c.ellipse(-.03,0,.92+strength*.08,.62+strength*.055,t*.00018,0,Math.PI*2);c.stroke();
-  const nodes=2+strength*2;for(let i=0;i<nodes;i++){const a=t*.00045+i*Math.PI*2/nodes,rr=.88+strength*.08;c.fillStyle=i%2?palette.accent:palette.rim;c.beginPath();c.arc(Math.cos(a)*rr,Math.sin(a)*rr*.68,.018+.005*strength,0,Math.PI*2);c.fill();}
-  if(paid){c.globalAlpha=.3;c.strokeStyle=palette.rim;c.lineWidth=.018;c.beginPath();c.ellipse(.12,-.05,.34+.04*strength,.22+.03*strength,-.28,0,Math.PI*2);c.stroke();}
-  c.restore();
+  // Rarity is expressed through biological light density, never through a generic orbiting aura.
+  if(rarityRank<=0)return;
+  const power=(.74+rarityRank*.11+(paid?.12:0))*breath;
+  const emitLine=(pts,w=.025,col=palette.glow,alpha=.72)=>{c.save();c.globalCompositeOperation='lighter';c.globalAlpha=alpha*power;c.shadowColor=col;c.shadowBlur=.055+rarityRank*.012;path(pts,false);c.strokeStyle=col;c.lineWidth=w;c.stroke();c.globalAlpha=Math.min(1,alpha*power*.9);c.shadowBlur=0;c.strokeStyle=palette.rim;c.lineWidth=Math.max(.008,w*.28);c.stroke();c.restore();};
+  if(family==='shark'||family==='fish'){
+   emitLine([[-.62,.08],[-.18,.16],[.3,.08],[.72,.02]],.028);
+   const gills=rarityRank>=2?4:2;for(let i=0;i<gills;i++)emitLine([[.34-i*.075,-.22],[.29-i*.075,.16]],.018,palette.glow,.5);
+   if(rarityRank>=4)for(let i=0;i<4;i++)pore(-.15+i*.22,.2,.018,palette.glow);
+  }else if(family==='eel'){
+   emitLine([[-1.65,-.05],[-1.05,-.18],[-.35,.12],[.34,-.08],[.82,-.03]],.03);
+   if(rarityRank>=3)for(let i=0;i<5;i++)pore(-.85+i*.34,.12,.018,i%2?palette.glow:palette.accent);
+  }else if(family==='squid'||family==='octopus'){
+   glowCore(.18,-.06,.18+.025*rarityRank,.15+.018*rarityRank,palette.glow);
+   const nodes=2+rarityRank;for(let i=0;i<nodes;i++){const a=-1.05+i*(2.1/Math.max(1,nodes-1));pore(-.12-Math.cos(a)*(.34+i*.025),Math.sin(a)*(.22+i*.02),.016+(rarityRank*.002),i%2?palette.glow:palette.accent);}
+  }else if(family==='jelly'){
+   glowCore(0,-.14,.22+.035*rarityRank,.15+.025*rarityRank,palette.glow);
+   for(let i=0;i<2+rarityRank;i++){const x=-.34+i*(.68/Math.max(1,1+rarityRank));emitLine([[x,-.12],[x*.9,.24],[x*1.05,.62]],.014,palette.glow,.42);}
+  }else if(family==='crustacean'){
+   for(const side of [-1,1])for(let i=0;i<2+Math.min(3,rarityRank);i++)pore(-.42+i*.24,side*(.28+i*.025),.017,palette.glow);
+   if(rarityRank>=3)emitLine([[-.5,0],[-.05,.1],[.48,0]],.026,palette.accent,.52);
+  }else if(family==='ray'){
+   for(const side of [-1,1])emitLine([[-.5,0],[-.05,side*.34],[.58,side*.55]],.024,palette.glow,.58);
+   if(rarityRank>=4)glowCore(.05,0,.16,.1,palette.glow);
+  }else if(family==='benthic'){
+   const count=3+rarityRank;for(let i=0;i<count;i++){const a=i*Math.PI*2/count;pore(Math.cos(a)*(.34+.04*rarityRank),Math.sin(a)*(.28+.035*rarityRank),.017,palette.glow);}
+  }else if(family==='mollusc'){
+   emitLine([[-.42,-.1],[-.05,-.28],[.4,-.14],[.58,.04]],.026,palette.glow,.6);
+   if(rarityRank>=3)for(let i=0;i<3;i++)pore(-.2+i*.24,.2,.018,palette.accent);
+  }
+  if(paid){
+   // Premium forms get a second living wavelength, but still only on anatomy.
+   c.save();c.globalCompositeOperation='lighter';c.globalAlpha=.34*breath;c.strokeStyle=palette.accent;c.shadowBlur=.07;c.shadowColor=palette.accent;c.lineWidth=.018;
+   c.beginPath();c.ellipse(.18,-.05,.28,.17,-.22,Math.PI*.2,Math.PI*1.55);c.stroke();c.restore();
+  }
  };
  const signatureArt=()=>{
   const k=String(art.key||'');
-  const line=(pts,w=.025,a=.72)=>stroke(pts,w,a>.8?palette.rim:palette.accent,.12);
+  const line=(pts,w=.025,a=.72)=>stroke(pts,w,a>.82?palette.rim:a>.62?palette.glow:palette.accent,a>.7?.09:.035);
   const dot=(x0,y0,sz=.022,a=.82)=>pore(x0,y0,sz,a>.88?palette.rim:palette.glow);
-  const arc=(x0,y0,rx,ry,start,end,w=.028,a=.7)=>{c.save();c.globalAlpha=Math.max(.45,a);c.strokeStyle=a>.82?palette.rim:palette.accent;c.lineWidth=w;c.shadowBlur=.14;c.shadowColor=palette.glow;c.beginPath();c.ellipse(x0,y0,rx,ry,0,start,end);c.stroke();c.restore();};
+  const arc=(x0,y0,rx,ry,start,end,w=.028,a=.7)=>{c.save();c.globalCompositeOperation='lighter';c.globalAlpha=(.24+a*.46)*emissionStrength*breath;c.strokeStyle=a>.82?palette.rim:a>.62?palette.glow:palette.accent;c.lineWidth=w;c.shadowBlur=.05+.07*a;c.shadowColor=palette.glow;c.beginPath();c.ellipse(x0,y0,rx,ry,0,start,end);c.stroke();c.globalAlpha=.62;c.shadowBlur=0;c.strokeStyle=palette.rim;c.lineWidth=Math.max(.008,w*.25);c.stroke();c.restore();};
   switch(k){
    // Sharks
    case 'blue-sickle': line([[-.7,-.08],[.05,-.2],[.72,-.08]],.035);break;
