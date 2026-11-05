@@ -1937,7 +1937,7 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
 }
 function renderMarineAbilityVisual(profile,x,y,angle,targets=[]){
  if(!profile)return;
- const color=profile.color||'#79f3f0',visualBoost=1.28+Math.max(0,profile.rarityRank)*.11+(profile.paid?.08:0),radius=profile.radius/GAME_WORLD_ZOOM*visualBoost,kind=profile.kind;
+ const color=profile.color||'#79f3f0',visualBoost=1.28+Math.max(0,profile.rarityRank)*.11+(profile.paid?0.08:0),radius=profile.radius/GAME_WORLD_ZOOM*visualBoost,kind=profile.kind;
  const ring=(scale=1,life=.42)=>{effects.push({type:'ring',x,y,r:0,max:radius*scale,life,maxLife:life,color});if(profile.rarityRank>=3)effects.push({type:'ring',x,y,r:0,max:radius*scale*.72,life:life*.78,maxLife:life*.78,color:profile.paid?'#f4efff':'#bffcff'});};
  const beam=(a,len=radius,life=.28)=>effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*len,y2:y+Math.sin(a)*len,life,maxLife:life,color});
  if(['pulse','aura','veil','armor','blast','trap','pull'].includes(kind)){ring(kind==='trap'?.72:1,kind==='trap'?.9:.45);burst(x,y,color,18+profile.rarityRank*3,105+profile.rarityRank*16);}
