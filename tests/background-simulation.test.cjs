@@ -165,3 +165,16 @@ test('ricochet is universal, straight neon and replicated by server while electr
  assert.match(game,/abyssal-hit-synergy-visual/);
  assert.match(online,/hit-synergy-visual/);
 });
+
+
+test('deploy reconnect refreshes pending run from PostgreSQL after the new instance booted', () => {
+  assert.match(serverSource, /async function refreshDeployResumeFromPersistence\(userKey\)/);
+  assert.match(serverSource, /payload\.reconnect===true.*refreshDeployResumeFromPersistence/s);
+  assert.match(serverSource, /state_key='users'/);
+});
+
+test('authoritative electric chain is broadcast to the whole room', () => {
+  assert.match(serverSource, /skillId==='electric'.*electricLevel/s);
+  assert.match(serverSource, /distance<190\/WORLD_ZOOM/);
+  assert.match(serverSource, /io\.to\(channelFor\(room\)\)\.emit\('hit-synergy-visual',\{type:'electric-arc'/);
+});
