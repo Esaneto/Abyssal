@@ -761,7 +761,7 @@ body:not(.game-active) #menuScreen .desktop-menu-utility{display:none!important}
   html body #app canvas,
   html body .abyss-descent-panel button,
   html body .abyss-cinematic-dialog button{
-    cursor:url('abyssal-tentacle-cursor.svg?v=2') 24 24,crosshair!important;
+    cursor:url('abyssal-tentacle-cursor.svg?v=3') 16 16,crosshair!important;
   }
   html body #app input:not([type="range"]),html body #app textarea{
     cursor:text!important;
@@ -962,7 +962,7 @@ body:not(.game-active) #menuScreen .abyss-vortex-shaft{
   html body .abyss-descent-panel *,
   html body .abyss-cinematic-dialog,
   html body .abyss-cinematic-dialog *{
-    cursor:url('abyssal-tentacle-cursor.svg?v=2') 24 24,crosshair!important;
+    cursor:url('abyssal-tentacle-cursor.svg?v=3') 16 16,crosshair!important;
   }
   html body #app input:not([type="range"]),
   html body #app textarea,
@@ -1034,7 +1034,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actio
   display:flex!important;flex-direction:column!important;align-items:center!important;
   justify-content:center!important;gap:7px!important;
   position:absolute!important;left:var(--orbit-x)!important;top:var(--orbit-y)!important;
-  inset-inline:auto!important;bottom:auto!important;
+  right:auto!important;bottom:auto!important;
   transform:translate(-50%,-50%)!important;
   width:var(--orbit-width)!important;max-width:var(--orbit-width)!important;
   min-height:89px!important;height:clamp(89px,10.5vh,118px)!important;
@@ -1147,7 +1147,7 @@ body:not(.game-active) #menuScreen #abyssGate #abyssGateButton{
    Never let browser substitute an offset pointer when crossing nested buttons. */
 @media(hover:hover) and (pointer:fine){
   html body,html body *:not(input):not(textarea):not([contenteditable="true"]){
-    cursor:url('abyssal-tentacle-cursor.svg?v=2') 24 24,crosshair!important;
+    cursor:url('abyssal-tentacle-cursor.svg?v=3') 16 16,crosshair!important;
   }
   html body input:not([type="range"]),html body textarea,
   html body [contenteditable="true"]{cursor:text!important;}
@@ -1175,4 +1175,76 @@ body:not(.game-active) #menuScreen #abyssGate #abyssGateButton{
 @media(prefers-reduced-motion:reduce){
   body:not(.game-active) #menuScreen .abyss-vortex-streams,
   body:not(.game-active) #menuScreen .abyss-vortex-current{animation:none!important;}
+}
+
+
+/*
+ * V7 - FADED OCEAN TRENCH AND PRECISE ORBIT PLACEMENT
+ * Convergent currents fade into the ocean instead of making an opaque black disc.
+ * Ressonancia, Roleta and Perfil take the exact slots of Settings, Controls, Exit.
+ */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn {
+  --orbit-x:71%;--orbit-y:31%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn {
+  --orbit-x:81%;--orbit-y:48.5%;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #profileBtn {
+  --orbit-x:71%;--orbit-y:68%;
+}
+@media(min-width:1001px) and (pointer:fine){
+  /* Earlier inset-inline:auto reset left for these two custom card layouts. */
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #resonanceBtn,
+  body:not(.game-active) #menuScreen .abyss-orbit-navigation .menu-secondary-actions #wheelBtn {
+    position:absolute!important;
+    inset:auto!important;
+    left:var(--orbit-x)!important;top:var(--orbit-y)!important;
+    transform:translate(-50%,-50%)!important;
+    width:var(--orbit-width)!important;
+  }
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-plane {
+  /* This circle contains the currents, but its perimeter fades into the scenery. */
+  border-radius:49% 51% 53% 47%!important;
+  background:conic-gradient(from 19deg at 51% 48%,
+    rgba(0,18,49,.55) 0deg,rgba(5,60,108,.75) 36deg,
+    rgba(0,97,154,.78) 66deg,rgba(7,48,104,.82) 82deg,
+    rgba(43,18,114,.70) 111deg,rgba(2,27,82,.83) 139deg,
+    rgba(0,121,173,.86) 173deg,rgba(0,40,81,.71) 203deg,
+    rgba(6,21,64,.75) 236deg,rgba(65,36,140,.76) 272deg,
+    rgba(2,25,55,.74) 311deg,rgba(3,87,131,.82) 345deg,
+    rgba(0,18,49,.55) 360deg)!important;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 52%,
+    #000 0 45%,rgba(0,0,0,.93) 59%,
+    rgba(0,0,0,.58) 76%,rgba(0,0,0,.2) 89%,transparent 100%)!important;
+  mask-image:radial-gradient(ellipse at 50% 52%,
+    #000 0 45%,rgba(0,0,0,.93) 59%,
+    rgba(0,0,0,.58) 76%,rgba(0,0,0,.2) 89%,transparent 100%)!important;
+  box-shadow:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-shaft {
+  /* An opaque child was the 'black ball' seen above the panorama. */
+  display:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-plane::after {
+  content:""!important;position:absolute!important;inset:0!important;
+  z-index:4!important;
+  border-radius:49% 51% 53% 47%!important;
+  background:radial-gradient(ellipse at 49% 52%,
+    rgba(0,3,14,.95) 0%,rgba(0,5,19,.81) 10%,
+    rgba(0,10,30,.55) 20%,rgba(0,13,37,.22) 32%,
+    rgba(0,20,44,.07) 43%,transparent 58%)!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-streams {
+  mask-image:radial-gradient(ellipse at 50% 52%,
+    transparent 0 6%,#000 22% 71%,
+    rgba(0,0,0,.6) 87%,transparent 99%)!important;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 52%,
+    transparent 0 6%,#000 22% 71%,
+    rgba(0,0,0,.6) 87%,transparent 99%)!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-vortex-current {
+  opacity:.27!important;
 }
