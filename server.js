@@ -417,21 +417,23 @@ function getRoomMotionSnapshot(room, options = {}){
   const paddingX=viewWidth*.22,paddingY=viewHeight*.22;
   bounds={left:cameraX-paddingX,right:cameraX+viewWidth+paddingX,top:cameraY-paddingY,bottom:cameraY+viewHeight+paddingY};
  }
- // Enemy motion is global for every room member. Rendering remains camera-culled on the client, but
- // positions must stay warm off-screen or a mob appears to teleport when it enters a small mobile viewport.
- const enemies=world.enemies;
+ // Near entities stay at the full 8 Hz motion cadence. Off-screen entities receive
+ // a 2 Hz keep-warm sample so they cannot teleport when approaching the viewport, while
+ // avoiding a full 400-enemy payload for every recipient on every motion tick.
+ const motionNow=Date.now(),sendFar=!recipient||motionNow-(Number(recipient.lastFarMotionAt)||0)>=500;
+ if(recipient&&sendFar)recipient.lastFarMotionAt=motionNow;
+ const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
  const visibleOrbs=recipient?(world.orbs||[]).filter(orb=>orb.x>=bounds.left&&orb.x<=bounds.right&&orb.y>=bounds.top&&orb.y<=bounds.bottom):(world.orbs||[]);
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
-  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,intervalMs:100,
-  enemies:enemies.map(e=>[
-   e.id,Math.round(Number(e.x)||0),Math.round(Number(e.y)||0),Number(e.hp)||0,Number(e.damageRevision)||0,
-   Math.round((Number(e.angle)||0)*100)/100,Math.round((Number(e.phase)||0)*100)/100,
-   e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,
-   Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100,
-   e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100
-  ]),
-  ...(options.includeOrbs?{orbIntervalMs:500,orbScope:recipient?'view':'all',orbs:visibleOrbs.slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
+  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:125,
+  enemies:enemies.map(e=>{
+   const base=[e.id,Math.round(Number(e.x)||0),Math.round(Number(e.y)||0),Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*100)/100,Math.round((Number(e.phase)||0)*100)/100];
+   if(e.kind==='devourer')return [...base,e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100];
+   if(e.kind==='kraken')return [...base,false,0,0,0,e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100];
+   return base;
+  }),
+  ...(options.includeOrbs?{orbIntervalMs:250,orbScope:recipient?'view':'all',orbs:visibleOrbs.slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
  };
 }
 function getRoomSpawnSnapshot(room, spawnedEnemies = []){
