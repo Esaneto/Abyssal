@@ -65,7 +65,8 @@ test('horde hot paths reuse collision buckets and movement results', () => {
   assert.match(game, /enemyCollisionBuckets\[enemyCollisionBucketCount\]/);
   assert.match(game, /key=gy\*65536\+gx/);
   assert.match(ai, /reusableResult\s*=\s*null/);
-  assert.match(simulation, /EnemyAI\.moveTowardTarget\(enemy,\s*targetablePlayers,\s*dt,\s*movementOptions,\s*movementResult\)/);
+  assert.match(simulation, /const movementNavigationTargets=\[movementNavigationProxy\]/);
+  assert.match(simulation, /EnemyAI\.moveTowardTarget\(enemy,\s*movementTargets,\s*dt,\s*movementOptions,\s*movementResult\)/);
   assert.match(simulation, /resolvedContactTarget/);
 });
 
