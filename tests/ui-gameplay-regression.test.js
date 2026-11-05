@@ -132,3 +132,22 @@ test('maintenance overlay cannot remain latched after transport reconnect', () =
   assert.match(online, /!sessionToken\)\{failReconnect\('Servidor reconectado/);
   assert.match(online, /if\(reconnectPending\)failReconnect\('Servidor reconectado, mas sua sessão precisa ser validada novamente\.'/);
 });
+
+
+test('resonance taxonomy separates shots, damaging passives and non-damaging buffs', () => {
+  assert.match(gameSource, /shots:\['electric','pierce','spread','photon','photonRay','echoShot'\]/);
+  assert.match(gameSource, /passive:\['burst','nova','repulse','ricochet'\]/);
+  assert.match(gameSource, /buffs:\['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'\]/);
+  assert.doesNotMatch(gameSource, /defensive:\[/);
+  assert.match(gameSource, /\['passive','PASSIVAS'\],\['buffs','BUFFS'\]/);
+});
+
+test('damage numbers use red for shots and blue for damaging passives', () => {
+  assert.match(gameSource, /number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+  assert.match(gameSource, /RESONANCE_CATEGORIES\.passive\.includes\(id\).*return 'passive'/s);
+});
+
+test('gameplay canvas follows actual game shell geometry', () => {
+  assert.match(gameSource, /new ResizeObserver\(\(\)=>\{if\(document\.body\.classList\.contains\('game-active'\)\)resize\(\);\}\)/);
+  assert.match(gameSource, /canvas\.style\.width=viewW\+'px';canvas\.style\.height=viewH\+'px'/);
+});
