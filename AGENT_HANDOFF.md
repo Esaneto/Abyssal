@@ -1228,3 +1228,286 @@ Regra para futuros agentes:
 - não resolver diferença entre espécies apenas com mais padrões, glow ou mudança de cor;
 - primeiro alterar massa, cabeça, olhos, boca, apêndices, cauda e proporções;
 - só depois aplicar assinatura cromática.
+
+
+## 26. Raridade única, poder x preço e identidade de habilidades - 2026-11-05
+
+Esta seção substitui qualquer regra anterior que permita duas raridades visíveis simultaneamente.
+
+### Um único sistema de raridade
+
+Fonte econômica:
+- `species.rarity` para as 100 espécies marinhas;
+- `SHOP_SPECIAL_RARITY` para skins legadas ainda não migradas.
+
+Valores econômicos:
+- common;
+- uncommon;
+- rare;
+- epic;
+- legendary;
+- mythic;
+- `colossal` permanece reservado à recompensa de missão especial `greensnake`.
+
+`public/abyssal-rebuild.js` NÃO possui mais campo de lore chamado `rarity`.
+A metadata de lore usa:
+- `classTag`;
+- `habitat`.
+
+Cards desse sistema mostram:
+- `CLASSE · ...`;
+- `HABITAT · ...`.
+
+Nunca voltar a usar COMUM, RARA, LENDÁRIA etc. como segundo badge de lore. Isso conflita visualmente com a raridade econômica da loja.
+
+### Riscos e marcas corporais
+
+`public/marine-renderer.js` não aplica mais `scars()` automaticamente dentro de `materialPass()`.
+
+Regra:
+- riscos, cicatrizes ou linhas corporais só podem existir quando forem anatomia, textura ou assinatura explícita daquela espécie;
+- não adicionar riscos aleatórios para "dar textura";
+- superfície deve seguir volume do corpo.
+
+### Visual por raridade
+
+Novo `rarityPass()` em `public/marine-renderer.js`:
+- common/uncommon/rare: anatomia e assinatura normal;
+- epic: ganha presença luminosa adicional;
+- legendary: mais nós luminosos e maior campo de assinatura;
+- mythic: presença máxima;
+- skins premium recebem uma camada interna extra.
+
+A raridade alta precisa ser visivelmente mais especial, sem mudar hitbox.
+
+### Habilidades marinhas por poder real
+
+`public/marine-abilities.js` agora calcula:
+- cooldown;
+- damage;
+- radius;
+- beams;
+- duration;
+- `powerScore`;
+- `paid`.
+
+Fórmula atual:
+- cooldown diminui conforme variante, raridade e premium;
+- dano aumenta com variante + raridade + bônus premium;
+- raio aumenta com variante + raridade + bônus premium;
+- número de feixes/alvos sobe nos tiers altos.
+
+Descrições deixam de ser genéricas.
+Elas devem informar diretamente:
+- o que a habilidade faz;
+- alcance;
+- dano;
+- quantidade de alvos quando aplicável;
+- recarga.
+
+Exemplo de regra:
+`<nome>: perfura uma linha de Xpx causando Y de dano. Recarga Zs.`
+
+### Habilidades de inimigos comuns
+
+Sem aumentar hitbox:
+
+`drifter`
+- `bio-shock`;
+- power x1.08;
+- cooldown 0.95 s;
+- neurochoque 650 ms;
+- VFX radial ciano/magenta.
+
+`stinger`
+- `venom-spine`;
+- power x1.16;
+- cooldown 0.64 s;
+- neurotoxina 1100 ms;
+- VFX de ferrões/feixes.
+
+`brute`
+- `crusher-claw`;
+- power x1.28;
+- cooldown 1.05 s;
+- VFX de impacto duplo roxo.
+
+`lurker`
+- `gulper-bite`;
+- power x1.22;
+- cooldown 0.84 s;
+- VFX de mordida/mandíbula azul.
+
+Servidor envia `skillId` no evento de contato para o cliente renderizar o efeito correto.
+
+### Bosses não aprovados como referência
+
+Continuam no renderer dedicado:
+- `boss`;
+- `angler`;
+- `maw`;
+- `leviathan`.
+
+Foram refinados novamente sem riscos genéricos:
+- Polvo de anéis: dois braços caçadores dominantes, órgãos de alerta maiores, linhas de pressão bicolor;
+- Angler: isca maior, leque de guelras e glow de garganta;
+- Maw: bolsa gular visível, mandíbula magenta maior, nós internos;
+- Leviathan: linhas dorsais/ventrais fortes, placas inferiores e olho luminoso.
+
+### Poder dos quatro bosses refeitos
+
+`boss / neuro-ring`
+- recarga 4.7 s;
+- raio 270 px;
+- dano 18;
+- neurotoxina 2.4 s.
+
+`angler / lure-pulse`
+- recarga 3.4 s;
+- raio 350 px;
+- puxão 34 px;
+- dano 12;
+- força de puxão 1.35.
+
+`maw / gulper-chomp`
+- recarga 4.0 s;
+- raio 205 px;
+- dano 24.
+
+`leviathan / pressure-lance`
+- recarga 4.8 s;
+- alcance 480 px;
+- largura 72 px;
+- dano 22.
+
+Solo e servidor devem permanecer numericamente alinhados.
+
+### Bosses de referência preservados
+
+NÃO redesenhar:
+- `whiteSharkBoss`;
+- `kraken`;
+- `devourer`.
+
+Somente efeitos e poder de habilidade foram amplificados:
+- Kraken: telegraph com 8 linhas radiais e sweep com multiplicador x1.25 durante contato ativo;
+- White Shark Boss: esteira visual tripla e contato x1.15;
+- Devourer: sucção com mais strands/anéis e contato x1.20 durante sucção.
+
+### Economia das 100 espécies marinhas
+
+Coin base:
+- common: 2.800;
+- uncommon: 7.800;
+- rare: 16.800;
+- epic: 32.000;
+- legendary: referência 52.000;
+- mythic: referência 82.000.
+
+O preço final inclui:
+- família;
+- variante;
+- `powerIndex`.
+
+Legendary e Mythic continuam premium.
+
+Premium marinho:
+- legendary começa em R$ 12,90;
+- mythic variante 8: R$ 18,90;
+- mythic variante 9: R$ 24,90.
+
+### Preços premium legados atuais
+
+- Violeta: R$ 6,90;
+- Tubarão-branco: R$ 6,90;
+- Tubarão-martelo: R$ 7,90;
+- Tubarão-Touro Estuarino: R$ 9,90;
+- Caranguejo-Ferradura Couraçado: R$ 9,90;
+- Náutilo Soberano: R$ 12,90;
+- Lula-Vampira Carmesim: R$ 13,90;
+- Peixe-Olho-de-Barril: R$ 14,90;
+- Carcereiro das Fossas: R$ 15,90;
+- Núcleo da Lanterna: R$ 16,90;
+- Casca da Aberração: R$ 17,90;
+- Fragmento da Fenda: R$ 18,90;
+- Eco do Leviatã: R$ 21,90;
+- Eco do Kraken: R$ 24,90;
+- Núcleo Devorador: R$ 27,90.
+
+Boss bundle:
+- R$ 99,90 quando nenhum boss do pacote é possuído;
+- quando alguns já são possuídos, cobrar apenas soma dos restantes.
+
+Bosses premium NÃO pertencem ao mapa de preços por moedas no servidor.
+Eles devem permanecer em `stripeOnlySkins`.
+
+### Preços por moedas de skins legadas atuais
+
+- Ouriço Solar: 4.800;
+- Anêmona Tóxica: 14.000;
+- Jardim Carnívoro: 18.000;
+- Coroa de Espinhos: 22.000;
+- Pérola Regente: 36.000;
+- Glaciar Fantasma: 42.000;
+- Manta do Nada: 48.000.
+
+Cliente e servidor devem permanecer idênticos.
+
+### VFX globais das skins
+
+`renderMarineAbilityVisual()` usa atualmente:
+- boost base 1.28;
+- +0.11 por rank de raridade;
+- +0.08 premium.
+
+Epic+ recebe anel interno adicional.
+Premium recebe maior presença visual.
+
+### Cache atual
+
+- `abyssal-rebuild.js?v=3`;
+- `marine-species.js?v=10`;
+- `marine-abilities.js?v=5`;
+- `marine-renderer.js?v=10`;
+- `abyssal-boss-renderer.js?v=4`;
+- `game.js?v=4.4.19`.
+
+### Testes importantes
+
+- `tests/rarity-taxonomy.test.cjs`:
+  - proíbe segundo sistema literal de raridade;
+  - protege preços cliente/servidor;
+  - protege hierarquia premium;
+  - protege VFX dos bosses de referência.
+
+- `tests/marine-abilities-runtime.test.cjs`:
+  - powerScore;
+  - descrições numéricas;
+  - paid/high-tier mais fortes;
+  - ataques únicos de inimigos;
+  - bosses reforçados.
+
+- `tests/world-simulation.test.cjs`:
+  - valida `bio-shock` com defesa de skin aplicada após o buff.
+
+- `tests/payments.test.cjs`:
+  - protege preços premium e bundle.
+
+- `tests/kraken-skin-boss-performance.test.cjs`:
+  - exige bosses pagos fora do mapa de moedas.
+
+Validação final desta rodada:
+- workflow `Abyssal checks v2`;
+- run `42090508010`;
+- job `syntax-and-tests` concluiu com sucesso no commit `6a2a87f2f5a3d3ae5e69d6c2d920b4bf3f0ba6df`.
+
+### Regra para futuros agentes
+
+Não reintroduzir:
+- raridade de lore concorrendo com raridade econômica;
+- riscos genéricos automáticos;
+- habilidade descrita sem números claros;
+- habilidade visual sem efeito físico correspondente;
+- boss premium dentro do mapa de preços por moedas;
+- skin muito poderosa com preço inferior a skins claramente menos fortes;
+- premium visualmente indistinguível de tier comum.
