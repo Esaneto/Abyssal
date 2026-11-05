@@ -2433,81 +2433,50 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    fill(()=>{c.moveTo(.28*r,-.18*r);c.lineTo(.6*r,-.28*r);c.lineTo(1.1*r,-.27*r);c.lineTo(1.12*r,-.08*r);c.lineTo(.96*r,0);c.lineTo(1.12*r,.08*r);c.lineTo(1.1*r,.27*r);c.lineTo(.6*r,.28*r);c.lineTo(.28*r,.17*r);c.closePath()},bodyGrad(color),'rgba(226,251,255,.85)',Math.max(1,r*.04),10);
    eye(.82,-.22,r*.06,'#e8ffff');eye(.82,.22,r*.06,'#e8ffff');gills(-.36,-.18,4);
   } else if(id==='abysscroc'){
-   // Black caiman / Jacaré-açu: focinho curto e muito largo em U, olhos/narinas no topo,
-   // corpo negro robusto, osteodermos baixos e cauda lateralmente comprimida.
-   const swim=Math.sin(t*.0038)*.035,tailWave=Math.sin(t*.0048)*.12;
-   fill(()=>{c.moveTo(-.62*r,-.2*r);c.bezierCurveTo(-1.08*r,-.25*r,-1.65*r,(-.2+tailWave)*r,-2.22*r,tailWave*r);c.bezierCurveTo(-1.64*r,(.22+tailWave)*r,-1.02*r,.29*r,-.58*r,.23*r);c.closePath()},bodyGrad('#182a22'),'rgba(106,139,104,.68)',Math.max(1,r*.035),5);
-   fill(()=>{c.ellipse(-.08*r,swim*r,.92*r,.39*r,0,0,Math.PI*2)},bodyGrad('#24382d'),'rgba(122,151,111,.72)',Math.max(1,r*.04),7);
-   // Low paired scutes, closer to a caiman/alligator armored back than triangular fantasy spikes.
-   for(let row=0;row<2;row++)for(let plate=0;plate<6;plate++){const px=(-.72+plate*.27)*r,py=(-.16+row*.3)*r;fill(()=>{c.roundRect(px-r*.09,py-r*.055,r*.18,r*.11,r*.035)},plate%2?'#314839':'#3b5140','rgba(151,167,126,.35)',Math.max(.5,r*.012),0);}
-   // Signature rounded head: compact U-shaped skull with elevated eye ridges and terminal nostrils.
-   fill(()=>{c.moveTo(.38*r,-.31*r);c.quadraticCurveTo(.92*r,-.38*r,1.34*r,-.29*r);c.quadraticCurveTo(1.58*r,-.2*r,1.6*r,0);c.quadraticCurveTo(1.58*r,.2*r,1.34*r,.29*r);c.quadraticCurveTo(.9*r,.38*r,.38*r,.31*r);c.closePath()},bodyGrad('#2d4434'),'rgba(164,184,138,.75)',Math.max(1,r*.04),6);
-   fill(()=>{c.moveTo(.48*r,.05*r);c.quadraticCurveTo(1.05*r,.14*r,1.56*r,.08*r);c.quadraticCurveTo(1.31*r,.3*r,.48*r,.25*r);c.closePath()},'#151d18','rgba(125,145,108,.42)',Math.max(.6,r*.015),1);
-   for(const side of [-1,1]){fill(()=>c.ellipse(.62*r,side*.24*r,r*.14,r*.085,0,0,Math.PI*2),'#344b39','#1b2a21',Math.max(.6,r*.015),0);eye(.62,side*.25,r*.052,'#e0b35a');}
-   for(const side of [-1,1])fill(()=>c.ellipse(1.38*r,side*.11*r,r*.035,r*.026,0,0,Math.PI*2),'#0b1310',null,0,0);
-   // Four short limbs remain tucked alongside the body in a swimming posture.
-   for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.45+leg*.62)*r,ly=side*.27*r;c.save();c.strokeStyle='#23382b';c.lineWidth=Math.max(2,r*.08);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.08*r,side*.53*r);c.lineTo(lx+.13*r,side*.61*r);c.stroke();c.restore();}
+   // Marine crocodilefish: flattened benthic head, broad pectorals, mottled camouflage and no terrestrial limbs.
+   const swim=Math.sin(t*.0042)*.035,tailWave=Math.sin(t*.0051)*.11;
+   fin([[-1.05,0],[-1.72,-.43],[-1.48,.02],[-1.74,.4]],'#213a31');
+   fin([[-.34,-.22],[-.72,-.82],[.04,-.34]],'#345447');
+   fin([[-.22,.22],[-.72,.82],[.18,.34]],'#345447');
+   fill(()=>{c.moveTo(-1.35*r,tailWave*r);c.bezierCurveTo(-1.02*r,-.34*r,-.35*r,(-.32+swim)*r,.28*r,-.28*r);c.lineTo(.68*r,-.2*r);c.lineTo(.82*r,.2*r);c.quadraticCurveTo(-.24*r,.43*r,-1.35*r,tailWave*r);c.closePath()},bodyGrad('#29483b'),'rgba(119,171,139,.62)',Math.max(1,r*.04),7);
+   // Wide, depressed crocodilefish head with eyes high on the skull.
+   fill(()=>{c.moveTo(.18*r,-.36*r);c.quadraticCurveTo(.82*r,-.5*r,1.45*r,-.27*r);c.lineTo(1.58*r,0);c.lineTo(1.42*r,.28*r);c.quadraticCurveTo(.78*r,.49*r,.18*r,.35*r);c.closePath()},bodyGrad('#365a49'),'rgba(147,190,151,.72)',Math.max(1,r*.04),7);
+   fill(()=>{c.moveTo(.55*r,.04*r);c.quadraticCurveTo(1.05*r,.10*r,1.48*r,.03*r);c.quadraticCurveTo(1.13*r,.28*r,.55*r,.2*r);c.closePath()},'#101a16','rgba(177,205,165,.42)',Math.max(.7,r*.018),2);
+   for(let spot=0;spot<9;spot++){const px=(-.8+(spot%5)*.42)*r,py=((spot%2?1:-1)*(.09+(spot%3)*.065))*r;c.save();c.globalAlpha=.35;c.fillStyle=spot%2?'#172b24':'#708266';c.beginPath();c.ellipse(px,py,.10*r,.055*r,spot*.4,0,Math.PI*2);c.fill();c.restore();}
+   eye(.67,-.26,r*.06,'#e1c66c');eye(.67,.24,r*.05,'#e1c66c');gills(.08,-.18,4);
   } else if(id==='armoredgator'){
-   // Nile crocodile / Crocodilo-do-nilo: focinho mais estreito em V, dentes inferiores visíveis,
-   // cabeça comprida, escudos dorsais altos e cauda longa de natação.
-   const tailWave=Math.sin(t*.0045)*.11;
-   fill(()=>{c.moveTo(-.7*r,-.17*r);c.bezierCurveTo(-1.18*r,-.22*r,-1.72*r,(-.19+tailWave)*r,-2.32*r,tailWave*r);c.bezierCurveTo(-1.7*r,(.2+tailWave)*r,-1.15*r,.25*r,-.64*r,.2*r);c.closePath()},bodyGrad('#62583b'),'rgba(198,181,132,.66)',Math.max(1,r*.035),5);
-   fill(()=>{c.ellipse(-.08*r,0,.9*r,.34*r,0,0,Math.PI*2)},bodyGrad('#756746'),'rgba(215,195,142,.7)',Math.max(1,r*.04),7);
-   // Paired rectangular/keeled osteoderms, not oversized triangular fins.
-   for(let plate=0;plate<7;plate++){const px=(-.72+plate*.23)*r;for(const side of [-1,1])fill(()=>{c.moveTo((px/r-.09)*r,side*.08*r);c.lineTo((px/r-.03)*r,side*.2*r);c.lineTo((px/r+.09)*r,side*.19*r);c.lineTo((px/r+.12)*r,side*.07*r);c.closePath()},plate%2?'#a18c58':'#b39b61','rgba(67,58,38,.62)',Math.max(.5,r*.012),0);}
-   // Long V-shaped rostrum. The jaw narrows toward the nose.
-   fill(()=>{c.moveTo(.35*r,-.24*r);c.lineTo(.82*r,-.2*r);c.lineTo(1.68*r,-.07*r);c.lineTo(1.82*r,0);c.lineTo(1.68*r,.07*r);c.lineTo(.82*r,.2*r);c.lineTo(.35*r,.24*r);c.closePath()},bodyGrad('#8a7950'),'rgba(230,211,158,.78)',Math.max(1,r*.035),5);
-   fill(()=>{c.moveTo(.58*r,.02*r);c.lineTo(1.73*r,-.015*r);c.lineTo(1.62*r,.105*r);c.lineTo(.58*r,.14*r);c.closePath()},'#201c15','rgba(223,205,156,.4)',Math.max(.5,r*.012),1);
-   for(const side of [-1,1])eye(.47,side*.205,r*.05,'#f0c766');
-   for(const side of [-1,1])fill(()=>c.ellipse(1.58*r,side*.045*r,r*.025,r*.018,0,0,Math.PI*2),'#14120e',null,0,0);
-   // Crocodile signature: visible teeth from both jaws remain interlocking with mouth closed.
-   for(let tooth=0;tooth<9;tooth++){const tx=(.72+tooth*.105)*r,side=tooth%2?1:-1;fill(()=>{c.moveTo(tx,side*.025*r);c.lineTo(tx+.035*r,side*.12*r);c.lineTo(tx+.068*r,side*.028*r);c.closePath()},'#f4ebcf','rgba(73,65,46,.55)',Math.max(.4,r*.01),0);}
-   for(const side of [-1,1])for(let leg=0;leg<2;leg++){const lx=(-.43+leg*.6)*r,ly=side*.24*r;c.save();c.strokeStyle='#6c6040';c.lineWidth=Math.max(2,r*.07);c.lineCap='round';c.beginPath();c.moveTo(lx,ly);c.lineTo(lx-.03*r,side*.49*r);c.lineTo(lx+.17*r,side*.58*r);c.stroke();c.restore();}
+   // Armored crocodilefish: reef flathead with dermal ridges, plated back and fan-like pectoral fins.
+   const tailWave=Math.sin(t*.0047)*.09;
+   fin([[-1.12,0],[-1.76,-.4],[-1.52,.01],[-1.77,.38]],'#63583a');
+   fin([[-.36,-.21],[-.86,-.88],[.16,-.35]],'#8f7b4f');
+   fin([[-.28,.21],[-.84,.88],[.2,.34]],'#8f7b4f');
+   fill(()=>{c.moveTo(-1.38*r,tailWave*r);c.bezierCurveTo(-1.05*r,-.31*r,-.35*r,-.32*r,.24*r,-.27*r);c.lineTo(.66*r,-.18*r);c.lineTo(.8*r,.18*r);c.quadraticCurveTo(-.28*r,.4*r,-1.38*r,tailWave*r);c.closePath()},bodyGrad('#756744'),'rgba(213,192,137,.72)',Math.max(1,r*.04),7);
+   // Bony scutes run along the dorsum like a natural suit of armor.
+   for(let plate=0;plate<7;plate++){const px=(-.92+plate*.25)*r;fill(()=>{c.moveTo(px-.11*r,-.22*r);c.lineTo(px-.02*r,-.39*r);c.lineTo(px+.12*r,-.22*r);c.lineTo(px+.09*r,.18*r);c.lineTo(px-.09*r,.18*r);c.closePath()},plate%2?'#a48e58':'#b8a064','rgba(244,222,163,.45)',Math.max(.6,r*.018),2);}
+   fill(()=>{c.moveTo(.15*r,-.33*r);c.quadraticCurveTo(.78*r,-.45*r,1.55*r,-.18*r);c.lineTo(1.68*r,0);c.lineTo(1.5*r,.19*r);c.quadraticCurveTo(.78*r,.44*r,.15*r,.33*r);c.closePath()},bodyGrad('#8b7950'),'rgba(231,211,159,.76)',Math.max(1,r*.04),7);
+   fill(()=>{c.moveTo(.48*r,.02*r);c.lineTo(1.58*r,.01*r);c.lineTo(1.42*r,.18*r);c.lineTo(.5*r,.19*r);c.closePath()},'#211c14','rgba(229,210,161,.36)',Math.max(.6,r*.015),1);
+   for(let tooth=0;tooth<8;tooth++){const tx=(.68+tooth*.1)*r;fin([[tx/r,.03],[tx/r+.025,.13],[tx/r+.05,.03]],'#f4ebcf','#6b6046');}
+   eye(.58,-.245,r*.055,'#f0c766');eye(.58,.22,r*.045,'#f0c766');gills(.04,-.16,4);
     } else if(id==='electriceel'){
-   // Bioelectric eel: low, continuous silhouette with a long anal fin and travelling organ pulses.
-   const swim=Math.sin(t*.0046)*.055,tail=Math.sin(t*.0062)*.16;
-   fill(()=>{c.moveTo(-2.35*r,tail*r);c.bezierCurveTo(-1.72*r,(-.16+swim)*r,-.82*r,-.28*r,.12*r,-.24*r);c.bezierCurveTo(.62*r,-.22*r,1.12*r,-.14*r,1.38*r,-.03*r);c.quadraticCurveTo(1.5*r,0,1.38*r,.08*r);c.bezierCurveTo(.68*r,.27*r,-.35*r,.32*r,-1.18*r,.24*r);c.bezierCurveTo(-1.72*r,.18*r,-2.06*r,(.12+tail)*r,-2.35*r,tail*r);c.closePath()},bodyGrad('#176e86'),'rgba(95,245,255,.86)',Math.max(1.1,r*.035),12);
-   // Electric eels lack the tall shark-like dorsal fin. The long ventral fin drives the swimming motion.
-   fill(()=>{c.moveTo(-1.72*r,.19*r);c.bezierCurveTo(-.9*r,(.48+swim)*r,.28*r,.43*r,1.08*r,.17*r);c.bezierCurveTo(.25*r,.31*r,-.82*r,.34*r,-1.72*r,.19*r);c.closePath()},'rgba(41,173,193,.42)','rgba(119,255,247,.42)',Math.max(.7,r*.018),3);
-   eye(1.02,-.105,r*.045,'#d9ffff');
-   // Organ pulses travel from tail to head instead of flickering randomly each frame.
-   c.save();c.globalCompositeOperation='lighter';for(let k=0;k<7;k++){const phase=(t*.00055+k/7)%1,px=(-1.85+phase*2.85)*r,py=Math.sin(phase*9+t*.004)*.075*r,alpha=.25+.55*Math.sin(phase*Math.PI);c.globalAlpha=Math.max(.12,alpha);c.fillStyle=k%2?'#8ffff8':'#b9d8ff';c.shadowBlur=12*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(px,py,Math.max(1,r*.045),Math.max(.7,r*.022),0,0,Math.PI*2);c.fill();}c.restore();
-   for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-1.15+k*.78)*r,sy=Math.sin(phase)*.13*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+Math.sin(phase*1.7)*.16*r,sy+Math.cos(phase*1.3)*.18*r);c.lineTo(sx+.3*r,sy+Math.sin(phase*2.2)*.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.9)',8);}
+   // Abyssal electric ray: a marine torpedo-ray silhouette with paired electric organs and a whip tail.
+   const flap=Math.sin(t*.0045)*.08;
+   stroke(()=>{c.moveTo(-.52*r,0);c.bezierCurveTo(-1.05*r,.03*r,-1.58*r,flap*r,-2.28*r,(flap*.55)*r)},Math.max(2,r*.09),'#185f72',10);
+   fin([[-1.92,flap*.45],[-2.42,-.22+flap*.45],[-2.18,flap*.45],[-2.42,.22+flap*.45]],'#1d7085','#8ff8ff');
+   fill(()=>{c.moveTo(-.62*r,0);c.quadraticCurveTo(-.42*r,(-.72-flap)*r,.25*r,-.9*r);c.quadraticCurveTo(.92*r,-.7*r,1.28*r,-.08*r);c.quadraticCurveTo(1.02*r,.62*r,.22*r,(.88+flap)*r);c.quadraticCurveTo(-.44*r,.7*r,-.62*r,0);c.closePath()},bodyGrad('#176e86'),'rgba(111,247,255,.82)',Math.max(1.2,r*.045),13);
+   // Paired torpedo organs glow beneath the disc.
+   for(const side of [-1,1]){c.save();c.globalAlpha=.62;c.fillStyle='#83fff5';c.shadowBlur=14*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(.3*r,side*.31*r,.3*r,.18*r,0,0,Math.PI*2);c.fill();c.restore();}
+   eye(.75,-.24,r*.045,'#d9ffff');eye(.75,.22,r*.04,'#d9ffff');
+   for(let arc=0;arc<4;arc++){const phase=t*.006+arc*1.7,sx=(-.2+arc*.28)*r,sy=(arc%2?1:-1)*.38*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+.12*r,sy+Math.sin(phase)*.16*r);c.lineTo(sx+.28*r,sy-Math.cos(phase)*.10*r)},Math.max(.8,r*.018),'rgba(220,255,255,.92)',9);}
   } else if(id==='greensnake'){
-   // Moreia Esmeralda: corpo serpenteante de jade, escamas dorsais brilhantes e olhar ancestral
-   const segWave = Math.sin(t * 0.006) * 0.15;
-   fill(()=>{
-     c.moveTo(-2.4*r, segWave*r);
-     c.quadraticCurveTo(-1.8*r, -0.45*r + segWave*r, -0.9*r, -0.38*r);
-     c.quadraticCurveTo(0, -0.28*r - segWave*r, 0.85*r, -0.15*r);
-     c.lineTo(1.35*r, 0);
-     c.lineTo(0.85*r, 0.18*r);
-     c.quadraticCurveTo(0, 0.35*r + segWave*r, -0.9*r, 0.3*r);
-     c.quadraticCurveTo(-1.8*r, 0.4*r - segWave*r, -2.4*r, segWave*r);
-     c.closePath();
-   }, bodyGrad('#2ee88a'), 'rgba(180,255,210,.9)', Math.max(1.3, r*.05), 16);
-   for(let s=0; s<9; s++){
-     const sx = (-1.8 + s * 0.34) * r;
-     const sy = Math.sin(t*0.005 + s*0.6) * 0.08 * r;
-     fin([[sx/r, -0.1 + sy/r], [sx/r + 0.08, -0.38 + sy/r], [sx/r + 0.16, -0.1 + sy/r]], '#187845', '#79ffba');
-   }
-   fill(()=>{
-     c.moveTo(0.55*r, -0.22*r);
-     c.lineTo(1.25*r, -0.18*r);
-     c.lineTo(1.55*r, 0);
-     c.lineTo(1.25*r, 0.18*r);
-     c.lineTo(0.55*r, 0.22*r);
-     c.closePath();
-   }, bodyGrad('#3af597'), 'rgba(215,255,230,.95)', Math.max(1.1, r*.04), 8);
-   eye(0.9, -0.18, r*0.07, '#ffc83b');
-   eye(0.9, 0.18, r*0.07, '#ffc83b');
-   stroke(()=>{
-     c.moveTo(1.52*r, 0);
-     c.lineTo(1.8*r, 0);
-     c.lineTo(1.95*r, -0.06*r);
-     c.moveTo(1.8*r, 0);
-     c.lineTo(1.95*r, 0.06*r);
-   }, Math.max(1.2, r*0.025), '#ff4d6d', 4);
+   // Giant emerald moray: serpentine marine body, continuous dorsal fin and pharyngeal-looking double jaw.
+   const wave=Math.sin(t*.006)*.14;
+   fill(()=>{c.moveTo(-2.45*r,wave*r);c.bezierCurveTo(-1.72*r,(-.28+wave)*r,-.8*r,-.34*r,.12*r,-.3*r);c.bezierCurveTo(.72*r,-.28*r,1.14*r,-.18*r,1.42*r,-.02*r);c.quadraticCurveTo(1.5*r,.08*r,1.36*r,.18*r);c.bezierCurveTo(.5*r,.4*r,-.5*r,.38*r,-1.35*r,.3*r);c.bezierCurveTo(-1.9*r,.24*r,-2.18*r,(.15+wave)*r,-2.45*r,wave*r);c.closePath()},bodyGrad('#2a9a63'),'rgba(164,255,202,.8)',Math.max(1.2,r*.045),14);
+   // Continuous dorsal membrane is the main moray cue.
+   fill(()=>{c.moveTo(-2.05*r,(wave-.02)*r);c.bezierCurveTo(-1.25*r,-.48*r,-.25*r,-.5*r,.82*r,-.27*r);c.bezierCurveTo(-.1*r,-.34*r,-1.1*r,-.28*r,-2.05*r,(wave-.02)*r);c.closePath()},'rgba(31,126,76,.62)','#79ffba',Math.max(.8,r*.025),5);
+   fill(()=>{c.moveTo(.45*r,-.18*r);c.lineTo(1.38*r,-.08*r);c.lineTo(.94*r,.05*r);c.lineTo(1.4*r,.19*r);c.lineTo(.48*r,.2*r);c.closePath()},'#07150e','rgba(211,255,225,.75)',Math.max(1,r*.035),5);
+   for(let tooth=0;tooth<7;tooth++){const tx=(.58+tooth*.1)*r;fin([[tx/r,-.09],[tx/r+.025,.02],[tx/r+.05,-.08]],'#f0fff1');fin([[tx/r,.12],[tx/r+.02,.02],[tx/r+.045,.12]],'#f0fff1');}
+   for(let spot=0;spot<10;spot++){const px=(-1.65+spot*.27)*r,py=Math.sin(spot*1.8)*.12*r;c.save();c.globalAlpha=.45;c.fillStyle=spot%2?'#7affb5':'#176c45';c.beginPath();c.arc(px,py,Math.max(1,r*.035),0,Math.PI*2);c.fill();c.restore();}
+   eye(.91,-.18,r*.055,'#ffc83b');gills(.25,-.12,2);
   } else if(id==='default'){
    // Comb-jelly bell with six evenly spaced trailing cilia.
    for(let i=0;i<6;i++){const px=-.62+i*.25,side=i%2?-1:1;tentacle(px,.18,px-.08,.62,px+.12,1.12,px+.02,1.42,.9,false)}
@@ -2668,13 +2637,13 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   fin([[-1.8,.06],[-2.32,-.2],[-2.1,.12],[-2.28,.32]],color);fill(()=>{c.moveTo(.35*r,-.1*r);c.quadraticCurveTo(.8*r,-.48*r,1.08*r,-.2*r);c.lineTo(.68*r,.08*r);c.lineTo(1.05*r,.36*r);c.quadraticCurveTo(.58*r,.42*r,.35*r,.13*r);c.closePath()},'#050b16','#96acff',Math.max(1,r*.045),8);
   for(let i=0;i<6;i++){const xx=(.42+i*.085)*r;fin([[xx/r,-.13],[xx/r-.03,.02],[xx/r+.03,.02]],'#eff3ff');fin([[xx/r,.1],[xx/r-.03,.0],[xx/r+.03,.0]],'#eff3ff')};for(let i=0;i<5;i++){const xx=(-1.35+i*.28)*r;stroke(()=>{c.moveTo(xx,-.22*r);c.lineTo((xx-.05*r),.23*r)},Math.max(.7,r*.025),'rgba(196,218,255,.7)',3)}eye(.45,-.28,r*.06,'#d6deff');
  } else if(kind==='boss'){
-  // Aberração Abissal: horned abyssal cephalopod with a bone mask and fan of hooked arms.
+  // Ossified vampire squid: calcified mantle, webbed arm fan and hooked cephalopod limbs.
   for(let i=0;i<10;i++){const side=i<5?-1:1,j=i%5,sy=(-.4+j*.2);tentacle(-.48,sy,side*.3,sy+.18,side*(.9+j*.12),sy+.55,side*(1.25+j*.18),sy+.9,.95,true)}
   fill(()=>{c.moveTo(-.75*r,-.22*r);c.lineTo(-.56*r,-.75*r);c.lineTo(-.15*r,-.6*r);c.lineTo(.1*r,-.92*r);c.lineTo(.38*r,-.55*r);c.lineTo(.78*r,-.38*r);c.lineTo(.72*r,.18*r);c.lineTo(.25*r,.48*r);c.lineTo(-.38*r,.4*r);c.closePath()},bodyGrad(color),'#ffb8ca',Math.max(1.5,r*.055),16);
   fill(()=>{c.moveTo(-.47*r,-.28*r);c.lineTo(-.25*r,-.58*r);c.lineTo(.02*r,-.44*r);c.lineTo(.28*r,-.6*r);c.lineTo(.52*r,-.22*r);c.lineTo(.42*r,.2*r);c.lineTo(0,.32*r);c.lineTo(-.38*r,.15*r);c.closePath()},'#d9e5e0','#fff1f2',Math.max(1.2,r*.04),7);
   c.save();c.fillStyle='#10121d';c.beginPath();c.ellipse(.08*r,.03*r,.28*r,.26*r,0,0,Math.PI*2);c.fill();c.restore();for(let side of [-1,1]){fin([[-.5,side*.12],[-1.0,side*.32],[-.7,side*.43]],'#ff7896');fin([[.05,side*.3],[.25,side*.62],[.42,side*.3]],'#ff7896')}eye(.02,-.15,r*.075,'#fff2f5');eye(.25,-.04,r*.045,'#ffdb83');
  } else if(kind==='devourer'){
-  // A broad-bodied pelican eel with a distended throat pouch and a cavernous mouth.
+  // Hadal pelican eel: distended throat pouch, cavernous mouth and pressure-adapted body.
   fin([[-1.2,0],[-1.8,-.38],[-1.65,.08],[-1.82,.4]],color);fin([[-.42,-.58],[-.15,-1.12],[.12,-.48]],color);fin([[-.35,.5],[-.08,1.02],[.28,.48]],color);
   fill(()=>{c.ellipse(-.1*r,.12*r,1.3*r,1.08*r,-.06,0,Math.PI*2)},bodyGrad(color),'rgba(194,255,244,.8)',Math.max(1.8,r*.055),16);
   fill(()=>{c.ellipse(-.16*r,.58*r,.95*r,.55*r,.02,0,Math.PI*2)},bodyGrad(color),'rgba(144,231,218,.5)',Math.max(1,r*.035),7);
@@ -2683,30 +2652,41 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   c.save();c.fillStyle='#f5fff3';for(let tooth=0;tooth<14;tooth++){const xx=(-.03+tooth*.095)*r;c.beginPath();c.moveTo(xx,-.63*r);c.lineTo(xx+.04*r,-.34*r);c.lineTo(xx+.085*r,-.64*r);c.closePath();c.fill();c.beginPath();c.moveTo(xx,.68*r);c.lineTo(xx+.04*r,.39*r);c.lineTo(xx+.085*r,.69*r);c.closePath();c.fill();}c.restore();
   eye(.2,-.52,r*.07,'#e8fff9');eye(.75,-.43,r*.06,'#befff5');gills(-.7,-.25,4);
  } else if(kind==='leviathan'){
-  // Ancient trench leviathan: colossal plated eel with bony crest, fins and side gills.
+  // Giant oarfish-inspired leviathan: ribbon body, long crest and pressure-hardened plates.
   fill(()=>{c.moveTo(-2.6*r,.02*r);c.quadraticCurveTo(-2.0*r,-.47*r,-1.15*r,-.42*r);c.quadraticCurveTo(-.45*r,-.3*r,.1*r,-.35*r);c.lineTo(.72*r,-.18*r);c.lineTo(1.0*r,.04*r);c.quadraticCurveTo(.35*r,.4*r,-.78*r,.34*r);c.quadraticCurveTo(-1.8*r,.43*r,-2.6*r,.02*r)},bodyGrad(color),'rgba(225,255,250,.66)',Math.max(1.4,r*.045),15);
   fin([[-2.32,.03],[-2.88,-.28],[-2.63,.05],[-2.86,.31]],color);for(let i=0;i<9;i++){const xx=(-1.75+i*.25)*r;fin([[xx/r,-.32],[xx/r-.1,-.78-(i%3===0?.18:0)],[xx/r+.14,-.28]],color,'#d0fff9');stroke(()=>{c.moveTo(xx,-.23*r);c.lineTo((xx-.02*r),.25*r)},Math.max(.8,r*.026),'rgba(231,255,255,.72)',4)}
   fill(()=>{c.ellipse(.68*r,-.04*r,.3*r,.28*r,-.08,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(1,r*.04),10);eye(.76,-.14,r*.055,'#9dfff0');gills(.13,-.18,4);
  } else if(kind==='maw'){
-  // A circular predator: jaw ring, radial teeth, plated lips and short feeding tentacles.
+  // Mobile hadal anemone: radial oral disc, gripping tentacles and pressure-hardened lips.
   for(let i=0;i<8;i++){const a=Math.PI+i*Math.PI/7,sx=Math.cos(a)*.58,sy=Math.sin(a)*.58;tentacle(sx,sy,sx-.18,sy+.22,sx+.15,sy+.54,sx-.1,sy+.82,.85)}
   body(1.05,1.0,0,color);c.save();c.fillStyle='#080713';c.strokeStyle='#ff92e1';c.lineWidth=Math.max(1.5,r*.075);c.shadowBlur=22;c.shadowColor=color;c.beginPath();c.ellipse(.2*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.strokeStyle='rgba(255,220,252,.7)';c.lineWidth=Math.max(1,r*.035);c.beginPath();c.ellipse(.2*r,0,.68*r,.75*r,0,0,Math.PI*2);c.stroke();c.restore();teeth(.2,0,.52,.59,18,1.05);for(let side of [-1,1]){fin([[-.48,side*.35],[-.92,side*.78],[-.35,side*.63]],color);fin([[.55,side*.4],[.9,side*.68],[.73,side*.29]],'#f6bcff')}eye(.52,-.12,r*.055,'#f4d5ff');
  } else if(kind==='whiteShark'||kind==='whiteSharkBoss'){
-  // Tubarão-branco & Boss Tubarão-branco: corpo hidrodinâmico, cauda em foice e barbatana dorsal cortante
-  const isBossShark = kind==='whiteSharkBoss';
-  const sharkBase = isBossShark ? '#68a8b8' : '#91c4ce';
-  fin([[-1.15,-.02],[-1.78,-.52],[-1.52,-.04],[-1.82,.46]], isBossShark?'#2a424d':'#3e5661');
-  fin([[-.38,-.29],[-.12,-1.15],[.12,-.31]], isBossShark?'#375360':'#4f6874');
-  fin([[-.12,.20],[-.58,.84],[.36,.36]], isBossShark?'#2e4753':'#47616d');
-  fin([[.35,.12],[.04,.68],[.65,.26]], isBossShark?'#375360':'#4f6874');
-  fill(()=>{c.moveTo(-1.38*r,0);c.quadraticCurveTo(-1.02*r,-.48*r,-.35*r,-.49*r);c.quadraticCurveTo(.28*r,-.43*r,.88*r,-.18*r);c.lineTo(1.28*r,-.015*r);c.lineTo(.85*r,.13*r);c.quadraticCurveTo(.18*r,.49*r,-.58*r,.35*r);c.quadraticCurveTo(-1.08*r,.26*r,-1.38*r,0)},bodyGrad(sharkBase),isBossShark?'rgba(175,238,255,.9)':'rgba(231,251,255,.78)',Math.max(1.2,r*.045),isBossShark?16:12);
-  fill(()=>{c.moveTo(-.38*r,.205*r);c.quadraticCurveTo(.22*r,.37*r,1.14*r,.045*r);c.quadraticCurveTo(.72*r,.34*r,.08*r,.39*r);c.quadraticCurveTo(-.22*r,.36*r,-.38*r,.205*r)},'#e8ece5','rgba(255,255,255,.7)',Math.max(.8,r*.026),3);
-  fill(()=>{c.moveTo(.88*r,.14*r);c.quadraticCurveTo(1.12*r,.10*r,1.26*r,.03*r);c.quadraticCurveTo(1.03*r,.24*r,.74*r,.22*r);c.closePath()},'#17262d','rgba(255,255,255,.4)',Math.max(.7,r*.02),2);
-  gills(-.47,-.2,5);
-  eye(.82,-.16,r*(isBossShark?.075:.055),isBossShark?'#ff3355':'#07131b');
+  const isBossShark=kind==='whiteSharkBoss';
   if(isBossShark){
-    for(let tooth=0;tooth<7;tooth++){const tx=(.82+tooth*.065)*r;fin([[tx/r,.12],[tx/r+.02,.22],[tx/r+.04,.12]],'#ffffff','#1a2830');}
-    c.save();c.strokeStyle='#7be9ff';c.lineWidth=Math.max(1,r*.03);c.shadowBlur=12*glowScale;c.shadowColor='#4be1ff';c.beginPath();c.moveTo(-.9*r,-.2*r);c.lineTo(.4*r,-.2*r);c.stroke();c.restore();
+   // Goblin shark boss: elongated rostrum, pale deep-sea body and protrusible jaw.
+   const goblin='#8aa9b0';
+   fin([[-1.2,0],[-1.82,-.44],[-1.56,.01],[-1.82,.4]],'#354e55');
+   fin([[-.45,-.25],[-.28,-.76],[-.04,-.28]],'#48656c');
+   fin([[-.15,.2],[-.58,.68],[.3,.32]],'#425e65');
+   fill(()=>{c.moveTo(-1.42*r,0);c.quadraticCurveTo(-1.0*r,-.39*r,-.3*r,-.4*r);c.quadraticCurveTo(.35*r,-.37*r,.82*r,-.2*r);c.lineTo(1.05*r,-.08*r);c.lineTo(.78*r,.16*r);c.quadraticCurveTo(.1*r,.43*r,-.65*r,.31*r);c.quadraticCurveTo(-1.12*r,.24*r,-1.42*r,0)},bodyGrad(goblin),'rgba(214,231,232,.72)',Math.max(1.3,r*.045),15);
+   // Flat blade-like rostrum projects far ahead of the jaw.
+   fill(()=>{c.moveTo(.58*r,-.19*r);c.lineTo(1.78*r,-.1*r);c.lineTo(2.12*r,-.02*r);c.lineTo(1.78*r,.06*r);c.lineTo(.62*r,.02*r);c.closePath()},'#839fa5','rgba(214,241,242,.74)',Math.max(1,r*.03),8);
+   // Protrusible jaw sits below the rostrum and carries needle teeth.
+   fill(()=>{c.moveTo(.56*r,.04*r);c.lineTo(1.42*r,.12*r);c.lineTo(1.62*r,.32*r);c.lineTo(.62*r,.29*r);c.closePath()},'#101c20','rgba(239,224,220,.68)',Math.max(1,r*.035),5);
+   for(let tooth=0;tooth<10;tooth++){const tx=(.7+tooth*.075)*r;fin([[tx/r,.13],[tx/r+.02,.27],[tx/r+.045,.14]],'#fff5ed','#8aa9b0');}
+   gills(-.25,-.16,5);eye(.5,-.2,r*.065,'#ff6379');
+   c.save();c.strokeStyle='#7be9ff';c.lineWidth=Math.max(1,r*.03);c.shadowBlur=12*glowScale;c.shadowColor='#4be1ff';c.beginPath();c.moveTo(-.95*r,-.14*r);c.lineTo(.3*r,-.17*r);c.stroke();c.restore();
+  }else{
+   // Great white shark: pelagic countershading, crescent tail and tall dorsal fin.
+   const sharkBase='#91c4ce';
+   fin([[-1.15,-.02],[-1.78,-.52],[-1.52,-.04],[-1.82,.46]],'#3e5661');
+   fin([[-.38,-.29],[-.12,-1.15],[.12,-.31]],'#4f6874');
+   fin([[-.12,.20],[-.58,.84],[.36,.36]],'#47616d');
+   fin([[.35,.12],[.04,.68],[.65,.26]],'#4f6874');
+   fill(()=>{c.moveTo(-1.38*r,0);c.quadraticCurveTo(-1.02*r,-.48*r,-.35*r,-.49*r);c.quadraticCurveTo(.28*r,-.43*r,.88*r,-.18*r);c.lineTo(1.28*r,-.015*r);c.lineTo(.85*r,.13*r);c.quadraticCurveTo(.18*r,.49*r,-.58*r,.35*r);c.quadraticCurveTo(-1.08*r,.26*r,-1.38*r,0)},bodyGrad(sharkBase),'rgba(231,251,255,.78)',Math.max(1.2,r*.045),12);
+   fill(()=>{c.moveTo(-.38*r,.205*r);c.quadraticCurveTo(.22*r,.37*r,1.14*r,.045*r);c.quadraticCurveTo(.72*r,.34*r,.08*r,.39*r);c.quadraticCurveTo(-.22*r,.36*r,-.38*r,.205*r)},'#e8ece5','rgba(255,255,255,.7)',Math.max(.8,r*.026),3);
+   fill(()=>{c.moveTo(.88*r,.14*r);c.quadraticCurveTo(1.12*r,.10*r,1.26*r,.03*r);c.quadraticCurveTo(1.03*r,.24*r,.74*r,.22*r);c.closePath()},'#17262d','rgba(255,255,255,.4)',Math.max(.7,r*.02),2);
+   gills(-.47,-.2,5);eye(.82,-.16,r*.055,'#07131b');
   }
  } else if(kind==='angler'){
   // Lanternfish horror: armored forehead, gaping toothed jaw, lure, tail and fins.
