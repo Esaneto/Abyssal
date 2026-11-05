@@ -131,6 +131,7 @@ const particlePool=[];
 const hostileSpriteCache=new Map();
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270,enemyCollisionBuckets=[],enemyCollisionBucketCount=0;
 const projectileCandidates=[];
+const areaEnemyCandidates=[];
 // Reused objects/arrays for the hot enemy-update path (up to 400 entities per frame).
 const soloEnemyMovementResult={};
 const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
@@ -497,14 +498,16 @@ window.AbyssalMasterVolume = masterSoundVolume;
 
 window.AbyssalAudioDiagnostics=()=>({contextState:audioCtx?.state||'not-created',musicCreated:Boolean(ambientNodes),musicVolume,masterGain:ambientNodes?.master?.gain?.value??null,gameState,soundOn});
 
+let cachedMusicIntensity=.12,lastMusicIntensitySampleAt=0;
 function getAbyssalMusicIntensity(){
  if(gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))return 0;
  if(progressionPausedForBoss||activeBossEntity||activeBossEntities?.length)return 1;
  if(!player)return .12;
- let nearby=0,threat=0;
- for(const e of enemies){const d=Math.hypot((e.x||0)-player.x,(e.y||0)-player.y);if(d<430/GAME_WORLD_ZOOM){nearby++;threat+=d<180/GAME_WORLD_ZOOM?2:1;}}
+ const now=performance.now();if(now-lastMusicIntensitySampleAt<200)return cachedMusicIntensity;lastMusicIntensitySampleAt=now;
+ let nearby=0,threat=0;const nearSq=(430/GAME_WORLD_ZOOM)**2,urgentSq=(180/GAME_WORLD_ZOOM)**2;
+ for(const e of enemies){const dx=(e.x||0)-player.x,dy=(e.y||0)-player.y,d2=dx*dx+dy*dy;if(d2<nearSq){nearby++;threat+=d2<urgentSq?2:1;}}
  const hpPressure=maxHp>0?1-clamp(hp/maxHp,0,1):0;
- return clamp(.14+nearby*.045+threat*.035+hpPressure*.32,0,.78);
+ cachedMusicIntensity=clamp(.14+nearby*.045+threat*.035+hpPressure*.32,0,.78);return cachedMusicIntensity;
 }
 function createAbyssalNoiseBuffer(ctx,duration=2){
  const length=Math.max(1,Math.floor(ctx.sampleRate*duration)),buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
@@ -1356,6 +1359,31 @@ function currentInterpolatedEnemyPosition(e,now){
  const tx=Number.isFinite(e.interpTargetX)?e.interpTargetX:e.x,ty=Number.isFinite(e.interpTargetY)?e.interpTargetY:e.y;
  return {x:sx+(tx-sx)*t,y:sy+(ty-sy)*t};
 }
+function currentInterpolatedOrbPosition(o,now){
+ if(!o)return {x:0,y:0};
+ const duration=Math.max(1,Number(o.interpDuration)||1),elapsed=Math.max(0,now-(Number(o.interpAt)||now)),t=clamp(elapsed/duration,0,1);
+ const sx=Number.isFinite(o.interpFromX)?o.interpFromX:o.x,sy=Number.isFinite(o.interpFromY)?o.interpFromY:o.y;
+ const tx=Number.isFinite(o.interpTargetX)?o.interpTargetX:o.x,ty=Number.isFinite(o.interpTargetY)?o.interpTargetY:o.y;
+ let x=sx+(tx-sx)*t,y=sy+(ty-sy)*t;
+ if(t>=1){const extra=Math.min(140,Math.max(0,elapsed-duration))/1000;x=tx+(Number(o.vx)||0)*extra;y=ty+(Number(o.vy)||0)*extra;}
+ return {x,y};
+}
+function rebuildEnemyCollisionGrid(){
+ enemyCollisionGrid.clear();enemyCollisionBucketCount=0;enemyCollisionCellSize=270;
+ for(const enemy of enemies){
+  if(!enemy||enemy.hp<=0)continue;
+  const gx=Math.floor(enemy.x/enemyCollisionCellSize),gy=Math.floor(enemy.y/enemyCollisionCellSize),key=gy*65536+gx;
+  let bucket=enemyCollisionGrid.get(key);
+  if(!bucket){bucket=enemyCollisionBuckets[enemyCollisionBucketCount]||(enemyCollisionBuckets[enemyCollisionBucketCount]=[]);bucket.length=0;enemyCollisionBucketCount++;enemyCollisionGrid.set(key,bucket);}
+  bucket.push(enemy);
+ }
+}
+function collectEnemyCandidatesNear(x,y,r,out=areaEnemyCandidates){
+ out.length=0;if(!enemyCollisionGrid.size){for(const enemy of enemies)if(enemy&&enemy.hp>0)out.push(enemy);return out;}
+ const minX=Math.floor((x-r)/enemyCollisionCellSize),maxX=Math.floor((x+r)/enemyCollisionCellSize),minY=Math.floor((y-r)/enemyCollisionCellSize),maxY=Math.floor((y+r)/enemyCollisionCellSize);
+ for(let gy=minY;gy<=maxY;gy++)for(let gx=minX;gx<=maxX;gx++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)out.push(enemy);}
+ return out;
+}
 function observeOnlineServerMotion(data){
  const list=Array.isArray(data.enemies)?data.enemies:[];
  let moved=false;const nextPositions=new Map();
@@ -1381,9 +1409,10 @@ function applySharedOrbs(incomingOrbs,now=performance.now()){
  const list=Array.isArray(incomingOrbs)?incomingOrbs:[];
  orbs=list.filter(raw=>raw&&raw.id!=null).map(raw=>{
   const old=previous.get(String(raw.id));
-  const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H);
-  const from=old?currentInterpolatedEnemyPosition(old,now):{x:tx,y:ty};
-  return {...(old||{}),...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||4)/GAME_WORLD_ZOOM,interpFromX:from.x,interpFromY:from.y,interpTargetX:tx,interpTargetY:ty,interpAt:now,interpDuration:old?500:0,authoritativePosition:true};
+  const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedOrbPosition(old,now):{x:tx,y:ty};
+  const sampleMs=old?clamp(now-(Number(old.snapshotReceivedAt)||now),80,650):250,oldServerX=Number.isFinite(Number(old?.serverX))?Number(old.serverX):tx,oldServerY=Number.isFinite(Number(old?.serverY))?Number(old.serverY):ty;
+  const vx=old?(tx-oldServerX)/(sampleMs/1000):0,vy=old?(ty-oldServerY)/(sampleMs/1000):0;
+  return {...(old||{}),...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||4)/GAME_WORLD_ZOOM,serverX:tx,serverY:ty,vx,vy,snapshotReceivedAt:now,interpFromX:from.x,interpFromY:from.y,interpTargetX:tx,interpTargetY:ty,interpAt:now,interpDuration:old?140:0,authoritativePosition:true};
  });
  onlineOrbById=new Map();for(const orb of orbs)onlineOrbById.set(String(orb.id),orb);
 }
@@ -1448,11 +1477,11 @@ function applySharedSnapshot(data){
  // local movement step. Never assign finite interpolation targets here: draw() uses a
  // finite interpTargetX/Y as a hard set-position operation and would freeze first-spawned mobs.
  if(window.AbyssalEnemyNetcode?.reconcileSnapshot){
-  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/GAME_WORLD_ZOOM,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:100,criticalIds:authoritativeCriticalIds||data.criticalEnemyIds||[]});
+  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/GAME_WORLD_ZOOM,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:72,criticalIds:authoritativeCriticalIds||data.criticalEnemyIds||[]});
  }else{
   // Fallback mirrors the authoritative interpolation module instead of running a
   // second enemy simulation in the browser.
-  enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:serverX,y:serverY};return {...old,...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||12)/GAME_WORLD_ZOOM,serverX,serverY,interpFromX:from.x,interpFromY:from.y,interpTargetX:serverX,interpTargetY:serverY,interpAt:now,interpDuration:(old&&!authoritativeCriticalIds.includes(String(raw.id)))?100:0,authoritativePosition:true};});
+  enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:serverX,y:serverY};return {...old,...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||12)/GAME_WORLD_ZOOM,serverX,serverY,interpFromX:from.x,interpFromY:from.y,interpTargetX:serverX,interpTargetY:serverY,interpAt:now,interpDuration:(old&&!authoritativeCriticalIds.includes(String(raw.id)))?72:0,authoritativePosition:true};});
  }
  onlineEnemyById=new Map();for(const enemy of enemies)onlineEnemyById.set(String(enemy.id),enemy);
  applySharedOrbs(data.orbs,now);
@@ -1490,7 +1519,7 @@ function applySharedMotion(data){
  if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
  lastAuthoritativeSnapshotSeq=sequence;
  if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
- const now=performance.now(),duration=clamp(Number(data.intervalMs)||100,60,160),orbDuration=clamp(Number(data.orbIntervalMs)||500,400,650);
+ const now=performance.now(),serverInterval=clamp(Number(data.intervalMs)||125,50,250),orbInterval=clamp(Number(data.orbIntervalMs)||250,120,650);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  let moved=0;
  for(const row of data.enemies){
@@ -1500,13 +1529,14 @@ function applySharedMotion(data){
   const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):Number(enemy.x)||tx;
   const previousServerY=Number.isFinite(Number(enemy.serverY))?Number(enemy.serverY):Number(enemy.y)||ty;
   const current=window.AbyssalEnemyNetcode?.renderedPosition?.(enemy,now)||currentInterpolatedEnemyPosition(enemy,now);
-  enemy.x=current.x;enemy.y=current.y;enemy.serverX=tx;enemy.serverY=ty;
-  enemy.interpFromX=current.x;enemy.interpFromY=current.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=duration;
+  const sampleMs=clamp(now-(Number(enemy.snapshotReceivedAt)||now),50,250),visualDuration=clamp(sampleMs*.58,52,82);
+  enemy.x=current.x;enemy.y=current.y;enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
+  enemy.interpFromX=current.x;enemy.interpFromY=current.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=visualDuration;
   // Compact server packets don't carry velocity. Estimate it from authoritative
-  // positions so RTT spikes don't make an enemy freeze between snapshots.
+  // sample spacing, not from the shorter visual interpolation window.
   const maxV=(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss')?450:220;
-  enemy.vx=clamp((tx-previousServerX)/(duration/1000),-maxV,maxV);
-  enemy.vy=clamp((ty-previousServerY)/(duration/1000),-maxV,maxV);
+  enemy.vx=clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV);
+  enemy.vy=clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
   const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
   if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[3])||0);enemy.damageRevision=incomingRevision;}
   enemy.angle=Number(row[5])||0;enemy.phase=Number(row[6])||0;
@@ -1519,8 +1549,11 @@ function applySharedMotion(data){
    if(!Array.isArray(row)||row.length<5)continue;
    const id=String(row[0]);activeOrbIds.add(id);
    const orb=onlineOrbById.get(id);if(!orb)continue;
-   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H),current=currentInterpolatedEnemyPosition(orb,now);
-   orb.x=current.x;orb.y=current.y;orb.interpFromX=current.x;orb.interpFromY=current.y;orb.interpTargetX=tx;orb.interpTargetY=ty;orb.interpAt=now;orb.interpDuration=orbDuration;
+   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H),current=currentInterpolatedOrbPosition(orb,now);
+   const previousServerX=Number.isFinite(Number(orb.serverX))?Number(orb.serverX):Number(orb.x)||tx,previousServerY=Number.isFinite(Number(orb.serverY))?Number(orb.serverY):Number(orb.y)||ty;
+   const sampleMs=clamp(now-(Number(orb.snapshotReceivedAt)||now),80,650),visualDuration=clamp(orbInterval*.55,90,150);
+   orb.x=current.x;orb.y=current.y;orb.serverX=tx;orb.serverY=ty;orb.snapshotReceivedAt=now;orb.vx=(tx-previousServerX)/(sampleMs/1000);orb.vy=(ty-previousServerY)/(sampleMs/1000);
+   orb.interpFromX=current.x;orb.interpFromY=current.y;orb.interpTargetX=tx;orb.interpTargetY=ty;orb.interpAt=now;orb.interpDuration=visualDuration;
    orb.phase=Number(row[3])||0;orb.life=Math.max(0,Number(row[4])||0);
   }
   if(data.orbScope!=='view'){
@@ -1535,8 +1568,8 @@ function applySharedDamage(data){ /* Dano é resolvido diretamente no servidor; 
 function applySharedOrbSpawn(raw){
  if(!onlineMode||!raw||raw.id==null)return;
  const now=performance.now(),id=String(raw.id),old=onlineOrbById.get(id);
- const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:tx,y:ty};
- const orb={...(old||{}),...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||4)/GAME_WORLD_ZOOM,interpFromX:from.x,interpFromY:from.y,interpTargetX:tx,interpTargetY:ty,interpAt:now,interpDuration:old?500:0,authoritativePosition:true};
+ const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedOrbPosition(old,now):{x:tx,y:ty};
+ const orb={...(old||{}),...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||4)/GAME_WORLD_ZOOM,serverX:tx,serverY:ty,vx:old?Number(old.vx)||0:0,vy:old?Number(old.vy)||0:0,snapshotReceivedAt:now,interpFromX:from.x,interpFromY:from.y,interpTargetX:tx,interpTargetY:ty,interpAt:now,interpDuration:old?120:0,authoritativePosition:true};
  if(old)Object.assign(old,orb);else orbs.push(orb);
  onlineOrbById.set(id,old||orb);
 }
@@ -1662,13 +1695,16 @@ function update(dt){
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode){spawnTimer-=dt;updateBossProgressionStep(dt);}else{updateBossProgressionStep(dt);}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
+  let areaGridReady=false;
   for (let i = sharkWakeTrails.length - 1; i >= 0; i--) {
     const bubble = sharkWakeTrails[i];
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
       bubble.damageTimer = 0.55;
-      for (const e of enemies) {
+      if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
+      const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
+      for (const e of candidates) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)) {
           dealEnemyDamage(e, 1, 'pelagic-wake', { visual: false, silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
@@ -1945,21 +1981,14 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   e.attackCd = (e.attackCd || 0) - dt; if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){if(player.invuln<=0){hurtPlayer(e.damage);}e.attackCd=e.kind==='stinger'?.8:e.kind==='kraken'?.95:1.1;}}
  }
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
- enemyCollisionGrid.clear();enemyCollisionBucketCount=0;enemyCollisionCellSize=270;
- for(const enemy of enemies){
-  if(enemy.hp<=0)continue;
-  const gx=Math.floor(enemy.x/enemyCollisionCellSize),gy=Math.floor(enemy.y/enemyCollisionCellSize),key=gy*65536+gx;
-  let bucket=enemyCollisionGrid.get(key);
-  if(!bucket){bucket=enemyCollisionBuckets[enemyCollisionBucketCount]||(enemyCollisionBuckets[enemyCollisionBucketCount]=[]);bucket.length=0;enemyCollisionBucketCount++;enemyCollisionGrid.set(key,bucket);}
-  bucket.push(enemy);
- }
+ rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
  if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);audio(150,.035,'triangle',.006);projectiles.splice(i,1);continue;}
  projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)audio(500,.045,'sine',.008);
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom){if(hit||reachedRange)spawnProjectileDissolve(p.x,p.y,p.color,p.special,false);projectiles.splice(i,1)}}
  for(let i=orbs.length-1;i>=0;i--){
   const o=orbs[i];
-  if(onlineMode){o.phase=(Number(o.phase)||0)+dt*3;const op=currentInterpolatedEnemyPosition(o,performance.now());o.x=op.x;o.y=op.y;continue;}
+  if(onlineMode){o.phase=(Number(o.phase)||0)+dt*3;const op=currentInterpolatedOrbPosition(o,performance.now());o.x=op.x;o.y=op.y;continue;}
   o.phase+=dt*3;o.life-=dt;
   let d=Math.hypot(player.x-o.x,player.y-o.y);
   const magnetLevel=Math.max(0,Number(upgradeLevels.magnet)||0);
@@ -2929,15 +2958,16 @@ window.addEventListener('abyssal-boss-warning',ev=>{
 window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
- let bossCount=0;
+ let bossCount=0;const defeatedIds=new Set();
  for(const enemy of defeated){
   if(!enemy||enemy.id==null)continue;
-  onlineEnemyById.delete(String(enemy.id));enemies=enemies.filter(item=>String(item.id)!==String(enemy.id));
+  const id=String(enemy.id);defeatedIds.add(id);onlineEnemyById.delete(id);
   const boss=BOSS_KINDS.includes(enemy.kind)||enemy.boss===true;
   if(boss){bossCount++;bossKillsThisRun++;}
   const x=Number(enemy.x)||W*.5,y=Number(enemy.y)||H*.5;
   burst(x,y,enemy.color||'#8ffff4',boss?(enemy.kind==='kraken'?8:7):2,boss?190:65);
  }
+ if(defeatedIds.size)enemies=enemies.filter(item=>!defeatedIds.has(String(item.id)));
  if(bossCount&&onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated();}
  if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
  audio(bossCount?180:260,.08,'triangle',.025);updateHud();
