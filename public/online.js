@@ -301,7 +301,13 @@ function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRo
 function connectAndJoin(){
  const s=connect();if(!s)return;
  if(authenticated){window.AbyssalOnlinePendingStart=false;showRooms();return;}
- window.AbyssalOnlinePendingStart=true;openLogin();
+ window.AbyssalOnlinePendingStart=true;
+ if(sessionToken){
+  setMessage('Restaurando sua sessão segura…');
+  if(s.connected)s.emit('resume-session',{token:sessionToken});
+  return;
+ }
+ openLogin();
 }
 function joinWorld(roomId='MAR-ABERTO',password=''){return joinRoom(roomId,password)}
 function joinRoom(roomId='MAR-ABERTO',password='',options={}){

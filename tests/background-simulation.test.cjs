@@ -220,11 +220,11 @@ test('deploy reconnect still refreshes persisted run again before restoring the 
 });
 
 
-test('active matches receive a five minute maintenance hold before empty-room cleanup', () => {
- assert.match(server,/maintenanceHoldUntil=Date\.now\(\)\+5\*60\*1000/);
- assert.match(server,/shutdownStarted&&Number\(room\.maintenanceHoldUntil\)>Date\.now\(\)/);
- assert.match(server,/if\(!maintenanceHold\)[\s\S]*clearRoomWorld\(room\)/);
- assert.match(server,/expiresAt:Date\.now\(\)\+5\*60\*1000/);
+test('empty live rooms always close while deploy snapshots remain resumable for five minutes', () => {
+ const removeHandler=server.slice(server.indexOf('function removeFromRoom'),server.indexOf('function processWorldDamage'));
+ assert.match(removeHandler,/if\(room\.players\.size===0\)[\s\S]*clearRoomWorld\(room\)/);
+ assert.doesNotMatch(removeHandler,/maintenanceHoldUntil/);
+ assert.match(server,/pendingRunResume=\{[\s\S]*expiresAt:Date\.now\(\)\+5\*60\*1000/);
 });
 
 test('floating red and blue damage numbers are substantially larger and outlined', () => {
@@ -258,4 +258,12 @@ test('maintenance reconnect cannot remain forever waiting for session-resumed', 
 test('transient session validation failure does not erase persisted login token', () => {
  assert.match(online,/const explicitlyExpired=\/expir\|inválid\|invalid\/i/);
  assert.match(online,/if\(explicitlyExpired\)\{sessionToken='';localStorage\.removeItem\('abyssalSessionToken'\);\}/);
+});
+
+
+test('online entry restores a saved session before falling back to the login screen', () => {
+ const handler=online.slice(online.indexOf('function connectAndJoin()'),online.indexOf('function joinWorld'));
+ assert.match(handler,/if\(sessionToken\)/);
+ assert.match(handler,/if\(s\.connected\)s\.emit\('resume-session',\{token:sessionToken\}\)/);
+ assert.match(handler,/return;[\s\S]*openLogin\(\)/);
 });
