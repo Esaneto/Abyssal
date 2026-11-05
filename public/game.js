@@ -83,7 +83,8 @@ let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineCl
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
 let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let soloDepthEventId=null,soloDepthEventEndsAt=0,pendingSoloDepthEventId=null;
-let activeMapLayout=null,activeMapSeed=0,activeMapTier=0;
+let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
+let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false;
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 let sharkWakeTrails=[];
@@ -119,10 +120,14 @@ function currentMapInteraction(){
  if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
  if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
  if(portals.surface&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
+ const clearedBosses=onlineMode?onlineBossesDefeated:bossKillsThisRun;
+ const bossAlive=enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ if(portals.boss&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'ROMPER PARA A PRÓXIMA CAMADA',hint:'F · DESCER MAIS FUNDO'};
  return null;
 }
 function updateMapInteraction(force=false){
  const now=performance.now();if(!force&&now-mapInteractionLastCheck<100)return;mapInteractionLastCheck=now;
+ if(!onlineMode)checkSoloCaveEncounter();
  const button=ensureMapInteractionButton(),interaction=currentMapInteraction();mapInteractionType=interaction?.type||null;
  if(!button)return;
  button.hidden=!interaction;
@@ -131,8 +136,12 @@ function updateMapInteraction(force=false){
 function applyMapTransition(kind,x,y){
  if(!player||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;
  player.x=Number(x);player.y=Number(y);if(player.trail)player.trail.length=0;updateCamera();mapInteractionBusy=false;updateMapInteraction(true);
- burst(player.x,player.y,kind==='descent'?'#55bfff':'#73f5df',lowPowerRendering?10:18,110);audio(kind==='descent'?180:430,.18,'sine',.025);
- showToast(kind==='descent'?'VOCÊ DESCEU PARA UMA CAMADA MAIS PROFUNDA':'VÓRTICE DE RETORNO ATIVADO');return true;
+ const tierShift=kind==='next-tier';
+ burst(player.x,player.y,tierShift?'#a66cff':kind==='descent'?'#55bfff':'#73f5df',lowPowerRendering?10:18,110);
+ audio(tierShift?95:kind==='descent'?180:430,.18,'sine',.025);
+ if(tierShift)enqueueGameplayNotice('cave',`CAMADA ${activeMapTier+1} ALCANÇADA`,'A pressão mudou. A fauna e as rotas desta descida não serão as mesmas.',70);
+ else showToast(kind==='descent'?'VOCÊ DESCEU PARA UMA CAMADA MAIS PROFUNDA':'VÓRTICE DE RETORNO ATIVADO');
+ return true;
 }
 function activateMapInteraction(){
  if(mapInteractionBusy)return false;
@@ -142,6 +151,17 @@ function activateMapInteraction(){
   if(onlineMode){const button=$('endDiveBtn');if(button){button.click();return true;}mapInteractionBusy=false;return false;}
   expeditionExtracted=true;mapInteractionBusy=false;endGame();return true;
  }
+ if(interaction.type==='next-tier'){
+  if(onlineMode){
+   mapInteractionBusy=true;
+   const sent=window.AbyssalOnline?.requestMapTransition?.('next-tier',result=>{if(result?.ok===false){mapInteractionBusy=false;const reason=String(result.reason||'');enqueueGameplayNotice('cave','A PASSAGEM NÃO CEDEU',reason==='group-not-ready'?'Todo o cardume precisa se reunir no sigilo do boss.':reason==='boss-alive'?'A criatura colossal ainda domina esta camada.':'Derrote o boss desta camada e aproxime-se do sigilo.',85);updateMapInteraction(true);}});
+   if(!sent){mapInteractionBusy=false;return false;}return true;
+  }
+  activeMapTier+=1;setActiveMapDescriptor({seed:activeMapSeed,tier:activeMapTier});tierDescentPending=false;progressionDistance=0;
+  enemies=[];orbs=[];projectiles=[];effects=[];enemyCollisionGrid.clear();
+  const spawn=ABYSSAL_MAP.startSpawn(activeMapLayout,0,1);
+  return applyMapTransition('next-tier',spawn.x,spawn.y);
+ }
  const portal=interaction.type==='descent'?activeMapLayout?.portals?.descent:activeMapLayout?.portals?.landing;
  if(!portal)return false;
  if(onlineMode){
@@ -149,10 +169,16 @@ function activateMapInteraction(){
   const sent=window.AbyssalOnline?.requestMapTransition?.(interaction.type,result=>{if(result?.ok===false){mapInteractionBusy=false;showToast(result.reason==='too-far'?'CHEGUE MAIS PERTO DO VÓRTICE':'A PASSAGEM NÃO RESPONDEU');updateMapInteraction(true);}});
   if(!sent){mapInteractionBusy=false;return false;}return true;
  }
- const target=interaction.type==='descent'?{x:portal.targetX,y:portal.targetY}:{x:portal.targetX,y:portal.targetY};
- return applyMapTransition(interaction.type,target.x,target.y);
+ return applyMapTransition(interaction.type,portal.targetX,portal.targetY);
 }
-window.addEventListener('abyssal-map-transition',event=>{const result=event.detail||{};if(result.ok)applyMapTransition(result.kind,result.x,result.y);else{mapInteractionBusy=false;updateMapInteraction(true);}});
+window.addEventListener('abyssal-map-transition',event=>{
+ const result=event.detail||{};
+ if(result.ok){
+  if(result.map)setActiveMapDescriptor(result.map);
+  if(result.kind==='next-tier'){enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();projectiles=[];effects=[];enemyCollisionGrid.clear();tierDescentPending=false;progressionDistance=0;}
+  applyMapTransition(result.kind,result.x,result.y);
+ }else{mapInteractionBusy=false;updateMapInteraction(true);}
+});
 function soloDepthState(){
  const bosses=Math.max(0,Number(bossKillsThisRun)||0),zone=EXPEDITION_RULES?.zoneForBosses?.(bosses)||null;
  const eventConfig=soloDepthEventId?EXPEDITION_RULES?.eventConfig?.(soloDepthEventId):null;
@@ -907,6 +933,8 @@ function updateBossProgressionStep(dt) {
     return;
   }
 
+  if(tierDescentPending){updateProgressionTrackUI();return;}
+
   // Progresso avança com o tempo de sobrevivência
   progressionDistance += dt * 3.8; // ~26 segundos entre bosses
   if (progressionDistance >= 100) {
@@ -946,6 +974,7 @@ function onProgressionBossDefeated(bossEntity) {
   progressionPausedForBoss = false;
   activeBossEntity = null;
   progressionDistance = 0;
+  tierDescentPending = true;
   bossCycleIndex++;
 
   // Checar se completou o ciclo de bosses
@@ -1052,7 +1081,7 @@ function showVictoryModal() {
 function startGame(){
  document.body.classList.add('game-active');
  runResultPending=false;
- expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;if(!onlineMode){activeMapLayout=null;ensureSoloMap();}else if(onlineRoomMode==='pvp'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
+ expeditionMode=!onlineMode;expeditionExtracted=false;expeditionRiskTier=0;soloDepthEventId=null;soloDepthEventEndsAt=0;pendingSoloDepthEventId=null;soloSideEncounterTier=-1;soloEliteRewardTier=-1;tierDescentPending=false;onlineBossesDefeated=0;if(!onlineMode){activeMapLayout=null;ensureSoloMap();}else if(onlineRoomMode==='pvp'){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;}
  startAmbientMusic();
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
