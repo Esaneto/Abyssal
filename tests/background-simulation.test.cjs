@@ -230,7 +230,7 @@ test('active matches receive a five minute maintenance hold before empty-room cl
 test('floating red and blue damage numbers are substantially larger and outlined', () => {
  assert.match(game,/112px/);
  assert.match(game,/number\.tone==='passive'\?'#32cfff':'#ff174d'/);
- assert.match(game,/ctx\.lineWidth=5\/worldZoom/);
+ assert.match(game,/ctx\.lineWidth=6/);
 });
 
 
