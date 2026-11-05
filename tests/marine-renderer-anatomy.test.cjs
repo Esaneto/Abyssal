@@ -49,11 +49,11 @@ test('creature previews keep anatomy dominant and cache versions current',()=>{
  assert.ok(start>=0&&end>start);
  assert.doesNotMatch(preview,/strokeStyle='rgba\(130,232,239,.16\)'/);
  assert.match(preview,/The anatomy must dominate the preview/);
- assert.match(html,/marine-species\.js\?v=9/);
- assert.match(html,/marine-renderer\.js\?v=9/);
- assert.match(html,/abyssal-boss-renderer\.js\?v=3/);
+ assert.match(html,/marine-species\.js\?v=10/);
+ assert.match(html,/marine-renderer\.js\?v=10/);
+ assert.match(html,/abyssal-boss-renderer\.js\?v=4/);
  assert.match(html,/skin-abilities\.js\?v=3\.7\.2/);
- assert.match(html,/game\.js\?v=4\.4\.17/);
+ assert.match(html,/game\.js\?v=4\.4\.18/);
 });
 
 test('squid and octopus variants use separate species-level anatomy',()=>{
@@ -156,4 +156,15 @@ test('signature mass pass gives expressive faces and exaggerated silhouettes',()
   "if(v===7){for(const sy of [-1,1])stroke([[-.35,sy*.12],[-2.45,sy*.78]",
   "if(v===3)for(let i=0;i<8;i++){const a=i*Math.PI/4"
  ]) assert.ok(renderer.includes(marker),marker);
+});
+
+
+test('generic material pass cannot reintroduce arbitrary scars',()=>{
+ const start=renderer.indexOf('const materialPass='),end=renderer.indexOf('shadow();',start);
+ const block=renderer.slice(start,end);
+ assert.ok(start>=0&&end>start);
+ assert.doesNotMatch(block,/scars\(/);
+ assert.match(block,/Generic scratches were visually incoherent/);
+ assert.match(renderer,/const rarityPass=\(\)=>/);
+ assert.match(renderer,/signatureArt\(\);\n rarityPass\(\);/);
 });
