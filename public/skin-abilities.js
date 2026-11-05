@@ -14,7 +14,6 @@ function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
   if (skinId === 'leviathan' && boss) multiplier *= 1.40;
   if (skinId === 'thorn' && d <= CLOSE_RANGE) multiplier *= 1.24;
   if (skinId === 'bloodmoon' && Number(hpRatio) <= 0.35) multiplier *= 1.30;
-  if (skinId === 'angler' && d >= LONG_RANGE) multiplier *= 1.25;
   if (skinId === 'maw' && d <= CLOSE_RANGE) multiplier *= 1.30;
   if (skinId === 'devourer' && boss) multiplier *= 1.20;
   return multiplier;
@@ -23,7 +22,6 @@ function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
 function incomingDamageMultiplier(skinId) {
   if (skinId === 'deepwarden') return 0.82;
   if (skinId === 'abysscroc') return 0.85;
-  if (skinId === 'aberration') return 0.88;
   if (skinId === 'leviathan') return 0.92;
   if (skinId === 'maw') return 0.94;
   if (skinId === 'kraken') return 0.90;
@@ -33,7 +31,7 @@ function enemySpeedMultiplier(skinId, distance) {
   return skinId === 'glacier' && Number(distance) <= 240 ? 0.74 : 1;
 }
 function movementMultiplier(skinId) { return skinId === 'voidwing' ? 1.18 : 1; }
-function targetRangeMultiplier(skinId) { return skinId === 'abyssaleye' ? 1.20 : skinId === 'angler' ? 1.15 : 1; }
+function targetRangeMultiplier(skinId) { return skinId === 'abyssaleye' ? 1.20 : 1; }
 function fireRateMultiplier(skinId) { return skinId === 'solar' ? 1.18 : 1; }
 function orbExperienceMultiplier(skinId) { return skinId === 'default' ? 1.12 : skinId === 'royal' ? 1.25 : 1; }
 function magnetRangeMultiplier(skinId) { return skinId === 'hammerhead' ? 1.5 : skinId === 'devourer' ? 1.35 : 1; }
