@@ -231,7 +231,7 @@ const translations={
 "Mandíbula da Fenda":"Rift Maw",
 "Uma boca circular de dentes radiais, cercada por filamentos de caça.":"A circular mouth of radial teeth, surrounded by hunting filaments.",
 "Mordida de fenda: aumenta em 12% o dano contra inimigos próximos.":"Rift bite: increases damage against nearby enemies by 12%.",
-"Devorador do Vazio":"Void Devourer",
+"Enguia-Pelicano Hadal":"Void Devourer",
 "A silhueta bojuda e a boca descomunal da criatura que engole correntes inteiras.":"The bloated silhouette and enormous mouth of the creature that swallows entire currents.",
 "Vácuo residual: após eliminar um boss, atrai orbes próximos por alguns segundos.":"Residual vacuum: after eliminating a boss, attracts nearby orbs for a few seconds.",
 "Tubarão-branco":"Great White Shark",
