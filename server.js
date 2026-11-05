@@ -833,6 +833,8 @@ function tickRoom(room, now) {
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
  const spawnedRewardOrbs = Array.isArray(result.spawnedRewardOrbs) ? result.spawnedRewardOrbs : [];
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
+ const bossAbilityHits = Array.isArray(result.bossAbilityHits) ? result.bossAbilityHits : [];
+ const bossAbilityEvents = Array.isArray(result.bossAbilityEvents) ? result.bossAbilityEvents : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
  const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
  if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
@@ -885,6 +887,25 @@ function tickRoom(room, now) {
    dx: Number(pull.dx) || 0, dy: Number(pull.dy) || 0,
    bossId: pull.bossId, strength: Number(pull.strength) || 0
   });
+ }
+ for(const event of bossAbilityEvents){
+  if(!event||!event.abilityId)continue;
+  io.to(channelFor(room)).emit('boss-ability-visual',{
+   bossId:event.bossId,kind:event.kind,abilityId:event.abilityId,
+   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/WORLD_HEIGHT,
+   angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now
+  });
+ }
+ for(const hit of bossAbilityHits){
+  if(!hit?.playerId)continue;
+  io.to(hit.playerId).emit('player-vitals',{
+   ...hit,source:'boss-ability',reason:'boss-ability',skillId:hit.abilityId,serverTime:now
+  });
+  if(hit.alive===false){
+   const defeated=room.players.get(hit.playerId),nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
+   io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi destruído por uma habilidade colossal.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
+   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+  }
  }
  if(expiredOrbIds.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expiredOrbIds);
  // Shared XP orb pickup is decided by the server. A single orb can only be claimed
