@@ -92,7 +92,7 @@ test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressu
   const online = fs.readFileSync(path.join(__dirname, '..', 'public', 'online.js'), 'utf8');
   assert.match(server, /playerMotionIntervalMs=room\.mode==='pvp'\?40:75/);
   assert.match(online, /isPvp\?1000\/30:1000\/20/);
-  assert.match(online, /interpDuration:isPvp\?58:105/);
+  assert.match(online, /interpDuration:isPvp\?36:58/);
 });
 
 test('electric eel rendering is deterministic per frame sample', async () => {
@@ -102,4 +102,13 @@ test('electric eel rendering is deterministic per frame sample', async () => {
   assert.ok(eelStart>0&&snakeStart>eelStart);
   assert.doesNotMatch(game.slice(eelStart,snakeStart), /Math\.random/);
   assert.doesNotMatch(game, /sparkX = \(-1\.4 \+ k \* 0\.65\) \* r \+ rand/);
+});
+
+
+test('multiplayer hot-path avoids repeated full-array work under horde pressure', () => {
+  const game = read('public/game.js');
+  assert.match(game, /const defeatedIds=new Set\(\)/);
+  assert.match(game, /if\(defeatedIds\.size\)enemies=enemies\.filter/);
+  assert.match(game, /lastMusicIntensitySampleAt<200/);
+  assert.match(game, /collectEnemyCandidatesNear\(bubble\.x,bubble\.y/);
 });
