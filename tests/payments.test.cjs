@@ -5,6 +5,11 @@ const crypto=require('node:crypto');
 const {calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,PAID_SKINS,BOSS_SKINS,TERMS_VERSION}=require('../payments');
 
 test('server catalog preserves the original BRL prices and discounted relic bundle',()=>{
+ assert.equal(PAID_SKINS.saltcroc.brl,999);
+ assert.equal(PAID_SKINS.blackcaiman.brl,999);
+ assert.equal(calculateOrder('saltcroc',[]).amount,999);
+ assert.equal(calculateOrder('blackcaiman',[]).amount,999);
+ assert.equal(calculateOrder('saltcroc',['saltcroc']).amount,0);
  assert.equal(PAID_SKINS.violet.brl,390);assert.equal(PAID_SKINS.violet.testOnly,false);
  assert.deepEqual(
   ['reefshark','hammerhead','abysscroc','armoredgator'].map(id=>PAID_SKINS[id].brl),
