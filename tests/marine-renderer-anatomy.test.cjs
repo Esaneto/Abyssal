@@ -70,7 +70,10 @@ test('squid and octopus variants use separate species-level anatomy',()=>{
 });
 
 test('marine skins use dark Abyssal material with luminous accents',()=>{
- assert.match(renderer,/Deliberately monochromatic/);\n assert.match(renderer,/const bodyGrad=\(\)=>tone\(\.34\)/);\n assert.doesNotMatch(renderer,/createLinearGradient/);\n assert.doesNotMatch(renderer,/createRadialGradient/);
+ assert.match(renderer,/Deliberately monochromatic/);
+ assert.match(renderer,/const bodyGrad=\(\)=>tone\(\.34\)/);
+ assert.doesNotMatch(renderer,/createLinearGradient/);
+ assert.doesNotMatch(renderer,/createRadialGradient/);
  assert.match(renderer,/materialPass/);
  assert.match(renderer,/globalCompositeOperation='lighter'/);
  assert.match(renderer,/scars/);
