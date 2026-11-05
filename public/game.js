@@ -276,7 +276,7 @@ const skinData=[
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
 {id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis',color:'#338cff',price:16000,paid:true,shape:'aberration',desc:'Eco controlável do Polvo-de-Anéis-Azuis Colossal, com manto azul, anéis bioluminescentes e braços pendentes.',ability:'Tinta abissal: ao nadar, deixa um rastro de tinta negra que permanece por alguns segundos e causa dano a quem o atravessa.'},
- {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: fade-out por 3 s, 10 s invisível, fade-in por 3 s e 10 s de recarga.'},
+ {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
  {id:'maw',name:'Fragmento da Enguia-Pelícano',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Fragmento da Enguia-Pelícano Colossal: preserva a enorme boca expansível e agora revela o corpo longo e serpentiforme da espécie.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
  {id:'devourer',name:'Núcleo da Lula-Colossal',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Núcleo residual da Lula-Colossal do Vazio. O manto ainda produz uma corrente de sucção ao redor da criatura.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
@@ -922,7 +922,7 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   boss:['☠ POLVO-DE-ANÉIS-AZUIS COLOSSAL','A TINTA NEGRA ESTÁ COBRINDO A ROTA. NÃO ATRAVESSE O RASTRO.'],
   leviathan:['☠ PEIXE-REMO LEVIATÃ','UM CORPO PELÁGICO COLOSSAL CORTA A FOSSA. A PRESSÃO MUDA COM CADA CURVA.'],
   maw:['☠ ENGUIA-PELÍCANO COLOSSAL','A GARGANTA SE EXPANDEU. O ECO DESAPARECE DENTRO DELA.'],
-  angler:['☠ PEIXE-PESCADOR ABISSAL','A BOCA ESTÁ ABERTA. QUANDO O CORPO SUMIR, A ISCA TAMBÉM DESAPARECE.'],
+  angler:['☠ PEIXE-PESCADOR ABISSAL','A BOCA ESTÁ ABERTA. QUANDO O CORPO SUMIR, SÓ A ISCA CONTINUARÁ BRILHANDO.'],
   kraken:['☠ LULA-KRAKEN DAS FOSSAS','OITO BRAÇOS VARREM A CÂMARA EM ESPIRAL. NÃO FIQUE ENTRE AS VENTOSAS.'],
   devourer:['☠ LULA-COLOSSAL DO VAZIO','O MANTO CONTRAIU. A CORRENTE INVERTEU E TUDO ESTÁ SENDO PUXADO.'],
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
@@ -2611,7 +2611,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   let sprite=hostileSpriteCache.get(key);
   if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
   const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?140:220):(BOSS_KINDS.includes(kind)?85:150);if(t-sprite.lastPaint>=refreshInterval){sprite.context.clearRect(0,0,side,side);drawCreature(sprite.center,sprite.center,r,0,color,kind,t,false,0,sprite.context);sprite.lastPaint=t;}
-  c.save();c.translate(Math.round(x),Math.round(y));c.rotate(Number.isFinite(angle)?angle:0);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(hit>0){c.globalAlpha=clamp(hit*2.6,0,.45);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
+  c.save();c.translate(Math.round(x),Math.round(y));c.rotate(Number.isFinite(angle)?angle:0);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0){c.globalAlpha=clamp(hit*2.6,0,.45);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
@@ -2640,6 +2640,17 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const teeth=(cx,cy,rx,ry,count=8,scale=1,reverse=false)=>{c.save();c.fillStyle='#f6fbec';c.shadowBlur=7*glowScale;c.shadowColor='#ffb4bb';for(let i=0;i<count;i++){const a=(i/count)*Math.PI*2,tx=cx+Math.cos(a)*rx,ty=cy+Math.sin(a)*ry,innerX=cx+Math.cos(a)*rx*.68,innerY=cy+Math.sin(a)*ry*.68;c.beginPath();c.moveTo(tx*r,ty*r);c.lineTo((innerX+Math.cos(a+.2)*.09*scale)*r,(innerY+Math.sin(a+.2)*.09*scale)*r);c.lineTo((innerX+Math.cos(a-.2)*.09*scale)*r,(innerY+Math.sin(a-.2)*.09*scale)*r);c.closePath();c.fill()}c.restore()};
  const gills=(x0=-.2,y0=-.28,count=3,side=1)=>{for(let i=0;i<count;i++){const xx=x0+i*.12;stroke(()=>{c.moveTo(xx*r,y0*r);c.quadraticCurveTo((xx-.12)*r,(y0+.13)*r,(xx-.06)*r,(y0+.22)*r)},Math.max(.7,r*.028),'rgba(194,255,248,.72)',4)}};
  const finRay=(x0,y0,x1,y1,x2,y2,col=color)=>fin([[x0,y0],[x1,y1],[x2,y2]],col,'rgba(230,255,249,.48)');
+
+
+ const eelTail=()=>{const wave=Math.sin(t*.0038)*.13;
+ fill(()=>{c.moveTo(-3.12*r,wave*r);c.bezierCurveTo(-2.48*r,(-.2+wave)*r,-1.73*r,-.25*r,-1.16*r,-.23*r);c.quadraticCurveTo(-.55*r,-.28*r,.03*r,-.30*r);c.lineTo(.03*r,.32*r);c.quadraticCurveTo(-.64*r,.25*r,-1.32*r,.22*r);c.bezierCurveTo(-2.06*r,.17*r,-2.58*r,(.13+wave)*r,-3.12*r,wave*r);c.closePath()},bodyGrad(color),'rgba(241,195,255,.62)',Math.max(1,r*.033),10);
+ fill(()=>{c.moveTo(-3.10*r,wave*r);c.lineTo(-3.38*r,(wave-.26)*r);c.lineTo(-3.29*r,wave*r);c.lineTo(-3.42*r,(wave+.27)*r);c.closePath()},color,'rgba(237,186,255,.55)',Math.max(1,r*.025),6);
+ stroke(()=>{c.moveTo(-2.99*r,wave*r);c.bezierCurveTo(-2.15*r,(wave-.03)*r,-1.38*r,.02*r,-.81*r,.01*r)},Math.max(.7,r*.023),'rgba(255,208,255,.54)',7)};
+ const oarfishRibbon=()=>{const wave=Math.sin(t*.003)*.09;
+ fill(()=>{c.moveTo(-3.15*r,wave*r);c.bezierCurveTo(-2.7*r,(-.16+wave)*r,-1.86*r,-.2*r,-1.15*r,-.21*r);c.bezierCurveTo(-.3*r,-.25*r,.54*r,-.24*r,1.12*r,-.05*r);c.lineTo(1.17*r,.06*r);c.bezierCurveTo(.36*r,.23*r,-.42*r,.2*r,-1.25*r,.16*r);c.bezierCurveTo(-2.03*r,.15*r,-2.74*r,(.21+wave)*r,-3.15*r,wave*r);c.closePath()},bodyGrad(color),'rgba(225,255,249,.64)',Math.max(1,r*.032),14);
+ for(let i=0;i<26;i++){const x=-2.97+i*.151,h=.24+(1-i/26)*.36;stroke(()=>{c.moveTo(x*r,-.13*r);c.quadraticCurveTo((x-.045)*r,(-.13-h*.6)*r,(x-.09)*r,(-.13-h)*r)},Math.max(.75,r*.018),i<7?'#ff668f':'#86f9ee',7)}
+ for(let i=0;i<12;i++){const x=(-2.75+i*.29)*r;stroke(()=>{c.moveTo(x,-.085*r);c.lineTo(x+.02*r,.105*r)},Math.max(.6,r*.014),'rgba(232,255,248,.35)',2)}};
+ const lureOnly=(lx,ly)=>{c.save();c.globalAlpha=1;const rr=r*.67,g=c.createRadialGradient(lx*r,ly*r,0,lx*r,ly*r,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff6b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowColor='#ffda70';c.shadowBlur=12*glowScale;c.beginPath();c.arc(lx*r,ly*r,rr,0,Math.PI*2);c.fill();c.restore()};
 
  if(playerCreature){
   // Every skin has a readable, largely bilateral deep-sea silhouette.
@@ -2717,13 +2728,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    stroke(()=>{c.moveTo(-.76*r,-.02*r);c.quadraticCurveTo(0,.28*r,.76*r,-.02*r)},Math.max(1,r*.06),'#dfffff',8);
    for(let k=0;k<5;k++){const xx=(-.52+k*.26)*r;stroke(()=>{c.moveTo(xx,-.62*r);c.quadraticCurveTo(xx-.03*r,-.35*r,xx+.03*r,-.14*r)},Math.max(.7,r*.025),'rgba(218,255,255,.55)',3)}
    eye(.24,-.25,r*.075);
-  } else if(id==='leviathan'){
-   const wave=Math.sin(t*.0042)*.055;
-   fill(()=>{c.moveTo(-2.9*r,wave*r);c.bezierCurveTo(-2.1*r,(-.2+wave)*r,-1.0*r,-.18*r,.12*r,-.2*r);c.quadraticCurveTo(.72*r,-.19*r,1.04*r,-.05*r);c.quadraticCurveTo(.78*r,.19*r,.08*r,.22*r);c.bezierCurveTo(-1.02*r,.22*r,-2.15*r,(.2+wave)*r,-2.9*r,wave*r);c.closePath()},bodyGrad(color),'rgba(255,219,231,.64)',Math.max(1,r*.035),13);
-   for(let i=0;i<18;i++){const xx=-2.2+i*.18,crest=.32+(1-i/18)*.3;stroke(()=>{c.moveTo(xx*r,-.16*r);c.lineTo((xx+.025)*r,(-.16-crest)*r)},Math.max(.65,r*.019),i<5?'#ff9bb5':'#ff668f',8);}
-   fill(()=>{c.ellipse(.79*r,-.02*r,.27*r,.2*r,-.04,0,Math.PI*2)},'#ead7d8','#fff4f2',Math.max(.8,r*.028),8);
-   stroke(()=>{c.moveTo(.58*r,-.17*r);c.quadraticCurveTo(.82*r,-.58*r,1.02*r,-.66*r)},Math.max(.8,r*.024),'#ff87a6',9);
-   eye(.83,-.07,r*.045,'#ffe9ef');gills(.47,-.1,3);
+   } else if(id==='leviathan'){
+   oarfishRibbon();fill(()=>{c.ellipse(.79*r,-.02*r,.27*r,.2*r,-.04,0,Math.PI*2)},'#ead7d8','#fff4f2',Math.max(.8,r*.028),8);eye(.83,-.07,r*.045,'#ffe9ef');gills(.47,-.1,3);
   } else if(id==='voidwing'){
    // Manta ray: broad paired pectoral wings and a long tapering tail.
    fill(()=>{c.moveTo(-.7*r,-.18*r);c.quadraticCurveTo(-.05*r,-.4*r,.48*r,-.2*r);c.lineTo(1.0*r,-.02*r);c.quadraticCurveTo(.56*r,.02*r,.34*r,.22*r);c.quadraticCurveTo(.08*r,.5*r,-.22*r,.28*r);c.lineTo(-1.32*r,.84*r);c.quadraticCurveTo(-1.05*r,.25*r,-.9*r,.08*r);c.lineTo(-1.32*r,-.82*r);c.quadraticCurveTo(-1.02*r,-.3*r,-.7*r,-.18*r);c.closePath()},bodyGrad(color),'rgba(230,255,255,.62)',Math.max(1,r*.04),14);
@@ -2812,11 +2818,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
     teeth(.55,.02,.68,.36,14,.95);stroke(()=>{c.moveTo(-.15*r,-.5*r);c.quadraticCurveTo(.02*r,-1.25*r,.55*r,-1.18*r)},Math.max(1,r*.055),'#ffd36f',10);
     c.save();c.globalCompositeOperation='lighter';const lr=r*(.16+.025*Math.sin(t*.008));const lamp=c.createRadialGradient(.55*r,-1.18*r,1,.55*r,-1.18*r,lr*2.4);lamp.addColorStop(0,'#fff');lamp.addColorStop(.2,'#fff6a9');lamp.addColorStop(.52,'#ffcc55');lamp.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=lamp;c.beginPath();c.arc(.55*r,-1.18*r,lr*2.4,0,Math.PI*2);c.fill();c.restore();eye(.3,-.32,r*.055,'#fff0a4');
    }else if(id==='maw'){
-    const wave=Math.sin(t*.0046)*.1;
-    fill(()=>{c.moveTo(-2.45*r,wave*r);c.bezierCurveTo(-1.8*r,(-.3+wave)*r,-.82*r,-.25*r,.05*r,-.2*r);c.lineTo(.26*r,0);c.lineTo(.04*r,.22*r);c.bezierCurveTo(-.88*r,.32*r,-1.82*r,(.3+wave)*r,-2.45*r,wave*r);c.closePath()},bodyGrad(color),'rgba(238,197,255,.48)',Math.max(.9,r*.028),8);
-    fin([[-2.15,wave],[-2.72,-.28+wave],[-2.5,.02+wave],[-2.72,.3+wave]],color);
-    for(let i=0;i<7;i++){const a=Math.PI+i*Math.PI/6;tentacle(Math.cos(a)*.58,Math.sin(a)*.58,Math.cos(a)*.8,Math.sin(a)*.8,Math.cos(a)*1.12,Math.sin(a)*1.1,Math.cos(a)*1.35,Math.sin(a)*1.2,.7)}
-    body(1.0,.95,0,color);c.save();c.fillStyle='#050611';c.strokeStyle='#f0c5ff';c.lineWidth=Math.max(1,r*.05);c.beginPath();c.ellipse(.12*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.12,0,.52,.58,16,.8);eye(.65,-.15,r*.05,'#ffeaff');
+    eelTail();fill(()=>{c.ellipse(-.05*r,0,.91*r,.86*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(238,197,255,.48)',Math.max(1,r*.04),8);
+    c.save();c.fillStyle='#050611';c.strokeStyle='#f0c5ff';c.lineWidth=Math.max(1,r*.05);c.beginPath();c.ellipse(.12*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.12,0,.52,.58,16,.8);eye(.65,-.15,r*.05,'#ffeaff');
    }else{
     fin([[-1.05,0],[-1.65,-.35],[-1.5,.08],[-1.6,.42]],color);body(1.18,.98,.12,color);
     fill(()=>{c.ellipse(-.1*r,.48*r,.85*r,.48*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(211,255,246,.35)',Math.max(1,r*.035),5);
@@ -2828,6 +2831,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
    body(.85,.72,0,color);eye(.3,-.16,r*.06);
   }
+  if(id==='angler'&&renderContext===ctx&&gameState==='playing'&&anglerVisibilityAlpha(Date.now())<.999)lureOnly(.55,-1.18);
   // Fine luminous lateral line makes skin previews look like the live character.
   if(!['royal','glacier','abyssaleye'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
   c.restore();return;
@@ -2881,16 +2885,10 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   c.save();c.fillStyle='#f5fff3';for(let tooth=0;tooth<14;tooth++){const xx=(-.03+tooth*.095)*r;c.beginPath();c.moveTo(xx,-.63*r);c.lineTo(xx+.04*r,-.34*r);c.lineTo(xx+.085*r,-.64*r);c.closePath();c.fill();c.beginPath();c.moveTo(xx,.68*r);c.lineTo(xx+.04*r,.39*r);c.lineTo(xx+.085*r,.69*r);c.closePath();c.fill();}c.restore();
   eye(.2,-.52,r*.07,'#e8fff9');eye(.75,-.43,r*.06,'#befff5');gills(-.7,-.25,4);
  } else if(kind==='leviathan'){
-  const wave=Math.sin(t*.0038)*.06;
-  fill(()=>{c.moveTo(-3.25*r,wave*r);c.bezierCurveTo(-2.35*r,(-.23+wave)*r,-1.15*r,-.21*r,.18*r,-.22*r);c.quadraticCurveTo(.83*r,-.2*r,1.12*r,-.04*r);c.quadraticCurveTo(.82*r,.2*r,.12*r,.23*r);c.bezierCurveTo(-1.15*r,.24*r,-2.38*r,(.22+wave)*r,-3.25*r,wave*r);c.closePath()},bodyGrad(color),'rgba(221,255,250,.58)',Math.max(1.2,r*.032),13);
-  for(let i=0;i<22;i++){const xx=-2.55+i*.16,crest=.28+(1-i/22)*.42;stroke(()=>{c.moveTo(xx*r,-.18*r);c.lineTo((xx+.02)*r,(-.18-crest)*r)},Math.max(.8,r*.018),i<6?'#ff668f':'#7ffff0',8);}
-  fill(()=>{c.ellipse(.82*r,-.02*r,.3*r,.21*r,-.04,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(.9,r*.026),7);eye(.9,-.07,r*.044,'#bafff3');gills(.5,-.1,3);
+  oarfishRibbon();fill(()=>{c.ellipse(.82*r,-.02*r,.3*r,.21*r,-.04,0,Math.PI*2)},'#d0e9de','#f4fffb',Math.max(.9,r*.026),7);eye(.9,-.07,r*.044,'#bafff3');gills(.5,-.1,3);
   } else if(kind==='maw'){
-  const wave=Math.sin(t*.0044)*.1;
-  fill(()=>{c.moveTo(-2.65*r,wave*r);c.bezierCurveTo(-1.9*r,(-.31+wave)*r,-.9*r,-.28*r,.02*r,-.2*r);c.lineTo(.32*r,0);c.lineTo(.02*r,.23*r);c.bezierCurveTo(-.92*r,.34*r,-1.95*r,(.3+wave)*r,-2.65*r,wave*r);c.closePath()},bodyGrad(color),'rgba(240,199,255,.46)',Math.max(1,r*.026),8);
-  fin([[-2.36,wave],[-2.95,-.3+wave],[-2.7,.02+wave],[-2.95,.31+wave]],color);
-  for(let i=0;i<8;i++){const a=Math.PI+i*Math.PI/7,sx=Math.cos(a)*.58,sy=Math.sin(a)*.58;tentacle(sx,sy,sx-.18,sy+.22,sx+.15,sy+.54,sx-.1,sy+.82,.85)}
-  body(1.05,1.0,0,color);c.save();c.fillStyle='#080713';c.strokeStyle='#ff92e1';c.lineWidth=Math.max(1.5,r*.075);c.shadowBlur=14;c.shadowColor=color;c.beginPath();c.ellipse(.2*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.2,0,.52,.59,18,1.05);eye(.52,-.12,r*.055,'#f4d5ff');
+  eelTail();fill(()=>{c.ellipse(-.07*r,0,.98*r,.91*r,0,0,Math.PI*2)},bodyGrad(color),'rgba(240,199,255,.46)',Math.max(1,r*.04),9);
+  c.save();c.fillStyle='#080713';c.strokeStyle='#ff92e1';c.lineWidth=Math.max(1.5,r*.075);c.shadowBlur=14;c.shadowColor=color;c.beginPath();c.ellipse(.2*r,0,.56*r,.63*r,0,0,Math.PI*2);c.fill();c.stroke();c.restore();teeth(.2,0,.52,.59,18,1.05);eye(.52,-.12,r*.055,'#f4d5ff');
   } else if(kind==='whiteShark'||kind==='whiteSharkBoss'){
   // Tubarão-branco & Boss Tubarão-branco: corpo hidrodinâmico, cauda em foice e barbatana dorsal cortante
   const isBossShark = kind==='whiteSharkBoss';
@@ -2983,7 +2981,7 @@ function drawHostileSpeciesEffect(enemy,t){
  if(enemy.kind==='boss'){
   ctx.globalAlpha=.22+.12*Math.sin(t*.007);ctx.strokeStyle='#32c8ff';ctx.shadowBlur=12;ctx.shadowColor='#1aa8ff';for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(0,0,enemy.r*(1.35+i*.23),enemy.r*(1.05+i*.17),t*.0004+i,0,Math.PI*2);ctx.stroke();}
  }else if(enemy.kind==='angler'){
-  const lureX=enemy.r*.48,lureY=-enemy.r*1.14;ctx.globalAlpha=.35+.3*Math.sin(t*.011);ctx.strokeStyle='#ffd477';for(let i=1;i<=3;i++){ctx.beginPath();ctx.arc(lureX,lureY,enemy.r*(.18+i*.18),0,Math.PI*2);ctx.stroke();}
+  // No outline or halo reveals the camouflaged body: only the lure is visible.
  }else if(enemy.kind==='maw'){
   const cycle=(t%4500)/4500;ctx.globalAlpha=.18+.28*Math.max(0,1-cycle*2);ctx.strokeStyle='#e59aff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(enemy.r*.2,0,enemy.r*(.78+cycle*.85),0,Math.PI*2);ctx.stroke();
  }else if(enemy.kind==='leviathan'){
@@ -3618,7 +3616,7 @@ function renderCatalog(){
   lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Mordida Gular: contato causa 22% mais dano com uma mordida expansiva; recarga 0,84 s.',desc:'Enguia gulper predatória cuja boca se abre além do diâmetro do próprio corpo.'},
   whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
   boss:{name:'Polvo-de-Anéis-Azuis Colossal',color:'#338cff',hp:5640,speed:52,damage:25,ability:'Tinta Abissal: deixa continuamente manchas de tinta negra no trajeto; atravessar o rastro causa dano.',desc:'Polvo colossal azul, coberto por anéis bioluminescentes, com oito braços pendentes e um rastro de tinta letal.'},
-  angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Camuflagem Abissal: 3 s de fade-out, 10 s invisível, 3 s de fade-in e 10 s de recarga.',desc:'Peixe-pescador colossal de boca permanentemente escancarada e isca intensamente bioluminescente.'},
+  angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Camuflagem Abissal: só a isca permanece visível durante 10 s invisível; transições de 3 s e 10 s de recarga.',desc:'Peixe-pescador colossal de boca permanentemente escancarada e isca intensamente bioluminescente.'},
   maw:{name:'Enguia-Pelícano Colossal',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Mordida Gular: a cada 4 s abre a bolsa em 205 px e causa 24 de dano ao redor.',desc:'Enguia-pelícano colossal com bolsa gular expansiva e dentes internos luminescentes.'},
   leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Lança de Pressão: a cada 4,8 s atravessa 480 px em linha, com faixa de 72 px e 22 de dano.',desc:'Peixe-remo colossal que comprime a água em corredores lineares antes de atravessar a fossa.'},
   whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
