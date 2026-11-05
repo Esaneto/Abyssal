@@ -225,3 +225,17 @@ test('mobile match HUD starts at safe-area top regardless of collapsed chrome',(
  assert.match(final,/body\.game-active,\s*body\.game-active\.hud-collapsed\{--match-ui-top:max\(7px,env\(safe-area-inset-top\)\)\}/);
  assert.match(final,/body\.mobile-game-active \.hud\{top:var\(--match-ui-top\)!important\}/);
 });
+
+test('active gameplay rebuilds framebuffer on every viewport resize',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/window\.addEventListener\('resize',\(\)=>\{resize\(\);if\(gameState==='playing'/);
+});
+
+test('final edge layout keeps end dive below desktop ranking and lifts mobile aim only',()=>{
+ const css=read('public/style.css');
+ const final=css.slice(css.lastIndexOf('MATCH EDGE LAYOUT V19'));
+ assert.match(final,/#endDiveBtn\{[\s\S]*bottom:14px!important/);
+ assert.match(final,/#runEnergyRanking\{[\s\S]*bottom:62px!important;[\s\S]*max-height:calc\(100dvh - 76px\)!important/);
+ assert.match(final,/#mobileAimStick\.dual-stick-visible\{[\s\S]*bottom:calc\(var\(--game-safe-bottom\) \+ 54px\)!important/);
+ assert.doesNotMatch(final,/mobile-game-active #runEnergyRanking/);
+});
