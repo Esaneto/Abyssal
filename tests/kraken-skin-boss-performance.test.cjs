@@ -34,7 +34,7 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
-  assert.match(source, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7',price:30000,paid:true/);
+  assert.match(source, /id:'kraken',name:'Eco do Kraken',color:'#4f9fc7',price:30000,paid:true/);
   for (const id of ['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
   assert.match(game, /purchaseStripe\(skin\.id,shopCurrency,gameLanguage\)/);
   assert.doesNotMatch(game, /legalAgeConsent/, 'a self-attestation checkbox must not be presented as age verification');
@@ -83,8 +83,8 @@ test('boss pursuit ramps toward player speed as health falls and never exceeds i
 
 test('Kraken identity is consistently glass-blue and no longer uses the smiling name', () => {
   const game = read('public/game.js');
-  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7'/);
-  assert.match(game, /id:'kraken',name:'Kraken do Abismo',color:'#4f9fc7'/);
+  assert.match(game, /id:'kraken',name:'Eco do Kraken',color:'#4f9fc7'/);
+  assert.match(game, /id:'kraken',name:'Eco do Kraken',color:'#4f9fc7'/);
   assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
 });
 
