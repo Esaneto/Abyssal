@@ -851,6 +851,8 @@ function reviveAtRiftCheckpoint(room,p,now){
  p.invulnerableUntil=now+3200;p.regenAccumulator=0;p.velocityX=0;p.velocityY=0;
  p.positionResumeGraceUntil=now+1650;p.lastPositionAt=now;
  p.lastPositionSeq=Number(p.lastPositionSeq)||0;p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
+ p.riftHazardCooldowns=Object.create(null);
+ io.to(p.id).emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,p.x,p.y,true));
  io.to(p.id).emit('rift-checkpoint-respawn',{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,roomId:cp.roomId,invulnerabilityMs:3200,serverTime:now});
  io.to(p.id).emit('player-vitals',playerVitalsPayload(p,{reason:'rift-checkpoint',serverTime:now+1}));
 }
@@ -1015,6 +1017,12 @@ function tickRoom(room, now) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
  }
  if(room.mode==='rift'){
+  const bossRoom=WorldSimulation.mapLayoutFor(room.world)?.rooms.find(r=>r.id==='boss');
+  const guardians=room.world.enemies.filter(e=>e.kind===RiftHardcore.FINAL_KIND&&e.hp>0);
+  const bossPlayers=[...room.players.values()].filter(p=>p.riftCheckpointRoomId==='boss');
+  if(bossRoom&&guardians.length&&bossPlayers.length&&!bossPlayers.some(p=>p.alive!==false)){
+   for(const guardian of guardians){guardian.hp=guardian.maxHp;guardian.riftPendingAttacks=[];guardian.riftNextAttackAt=0;}
+  }
   let changed=false;
   for(const p of room.players.values())if(p.alive===false){reviveAtRiftCheckpoint(room,p,now);changed=true;}
   if(changed)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
