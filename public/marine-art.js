@@ -22,7 +22,8 @@ function draw(c,x,y,r,angle,s,t,hit){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
  const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
- const frame=Math.floor((Number(t)||0)/115);
+ // Refresh marine anatomy at ~15 FPS, with smooth motion from the game loop.
+ const frame=Math.floor((Number(t)||0)/68);
  let entry=marineSpriteCache.get(key);
  if(!entry){
   const margin=Math.ceil(Math.max(18,r*.9));
@@ -50,7 +51,8 @@ function draw(c,x,y,r,angle,s,t,hit){
 }
 function drawDetails(c,x,y,r,angle,s,t,hit){
  c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);
- const variant=s.morph||1,phase=t*.003,ink='#06131e',light='#bededc';
+ const variant=s.morph||1,phase=(Number(t)||0)*.003,ink='#06131e',light='#bededc';
+ const swim=Math.sin(phase*2.0),strokeSway=Math.sin(phase*.83);
  const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);g.addColorStop(0,hit?'#fff':light);g.addColorStop(.15,s.color);g.addColorStop(.52,s.color);g.addColorStop(.78,'#193641');g.addColorStop(1,ink);
  const path=(fn,fill=g,line='#8bb8bf',width=.025)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(line){c.strokeStyle=line;c.lineWidth=width;c.stroke();}};
  const oval=(x,y,rx,ry,rot=0,fill=g)=>path(()=>c.ellipse(x,y,rx,ry,rot,0,Math.PI*2),fill);
@@ -59,13 +61,27 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  const fin=(points)=>path(()=>{points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();});
  const feeler=(x,y,length,side)=>stroke(()=>{c.moveTo(x,y);c.bezierCurveTo(x-length*.35,y+side*.2,x-length*.7,y+side*.6+Math.sin(phase)*.15,x-length,y+side*.3)},'#8abbb9',.025);
  const tentacles=(count,length,web=false)=>{
-  for(let i=0;i<count;i++){const side=(i-(count-1)/2)/(count/2),wave=Math.sin(phase+i*.8)*.22;
-   const endX=-length*(.65+.3*Math.sin(i*1.7)**2),endY=side*(.7+Math.sin(i*2)*.45);
-   const curve=()=>{c.moveTo(-.25,side*.34);c.bezierCurveTo(-length*.35,side*.7,-length*.8,side*1.6+wave,endX,endY);c.quadraticCurveTo(endX+.15,endY-side*.3,endX+.38,endY-side*.23);};
-   if(web)fin([[0,side*.4],[-length*.5,side*.7+wave],[-length*.35,side*.4]]);
-   stroke(curve,'#102934',.18);stroke(curve,s.color,.11);
-   stroke(curve,'#8dafb0',.025);
-   for(let j=0;j<3;j++)oval(-.4-j*.2,side*(.4+j*.15),.028,.022,0,'#b8d5cd');
+  // Mirror limb pairs around the swimming axis; all tips flow back naturally.
+  if(web)for(const side of [-1,1]){
+   c.globalAlpha=.23;
+   path(()=>{c.moveTo(.04,side*.13);c.bezierCurveTo(-length*.33,side*.25,-length*.65,side*.75,-length*.96,side*(1+.10*swim));c.bezierCurveTo(-length*.48,side*.72,-length*.20,side*.30,.04,side*.13);c.closePath();},s.color,null);
+   c.globalAlpha=1;
+  }
+  for(let i=0;i<count;i++){
+   const rank=Math.floor(i/2),side=i%2===0?-1:1;
+   const spread=.18+rank*.18,tailWave=Math.sin(phase*1.6+rank*.72+side*.4)*.13;
+   const rootX=-.22,rootY=side*spread*.68;
+   const endX=-length*(.83+.055*Math.sin(phase+rank*.6));
+   const endY=side*(.46+rank*.29)+tailWave;
+   const curve=()=>{c.moveTo(rootX,rootY);c.bezierCurveTo(-length*.28,side*(spread+.10),
+      -length*.58,side*(spread+.34)+tailWave*.6,endX,endY);};
+   stroke(curve,'#132c39',.17-rank*.008);
+   stroke(curve,s.color,.10-rank*.004);
+   stroke(curve,'rgba(196,233,223,.70)',.025);
+   for(let j=0;j<3;j++){
+    const q=(j+1)/5,x=-length*(.12+q*.47),y=side*(spread+q*.37)+tailWave*q;
+    oval(x,y,.026,.020,0,'rgba(207,233,229,.76)');
+   }
   }
  };
  const id=s.id;
