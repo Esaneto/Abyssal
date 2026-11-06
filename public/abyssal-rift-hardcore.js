@@ -31,7 +31,7 @@ function idHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.c
 function build(layout,tier=0){
  if(!layout||!Array.isArray(layout.rooms))return [];
  const safeTier=clamp(Math.floor(Number(tier)||0),0,100);
- const key=String(layout.seed||layout.mapSeed||layout.id||'')+':'+safeTier+':'+layout.rooms.map(r=>r.id).join(',');
+ const key=String(layout.seed||layout.mapSeed||layout.id||'')+':'+safeTier+':'+layout.rooms.map(r=>r.id+':'+r.x+':'+r.y).join(',');
  if(layoutCache.has(key))return layoutCache.get(key);
  const hazards=[];
  for(const room of layout.rooms){
@@ -89,8 +89,8 @@ function paintShape(c,trap){
  const r=trap.radius;
  if(trap.type==='tentacle'||trap.type==='electric'){
   const a=trap.angle||0,l=trap.length||300;
-  c.translate(trap.x,trap.y);c.rotate(a);
-  c.beginPath();c.roundRect(-l*.45,-r*.5,l,r,Math.max(8,r*.43));
+  c.save();c.translate(trap.x,trap.y);c.rotate(a);
+  c.beginPath();c.roundRect(-l*.45,-r*.5,l,r,Math.max(8,r*.43));c.restore();
  }else{
   c.beginPath();c.ellipse(trap.x,trap.y,r,r*.82,0,0,Math.PI*2);
  }
