@@ -136,8 +136,8 @@ test('maintenance overlay cannot remain latched after transport reconnect', () =
 
 
 test('resonance taxonomy separates shots, damaging passives and non-damaging buffs', () => {
-  assert.match(game, /shots:\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]/);
-  assert.match(game, /passive:\['burst','ricochet'\]/);
+  assert.match(game, /shots:\['electric','pierce','photon','photonRay','nova','echoShot'\]/);
+  assert.match(game, /passive:\['burst','ricochet','spread'\]/);
   assert.match(game, /buffs:\['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'\]/);
   assert.doesNotMatch(game, /id:'repulse'/);
   assert.doesNotMatch(game, /defensive:\[/);
