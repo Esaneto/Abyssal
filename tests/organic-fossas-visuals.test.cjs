@@ -91,3 +91,35 @@ test('all curated species paint a finite silhouette with family-specific detail,
   }
  }
 });
+
+
+test('every hazard renders at rest, during its distinct warning and during attack without invalid Canvas geometry',()=>{
+ const common=['save','restore','beginPath','closePath','translate','rotate','scale','moveTo','lineTo','arc','ellipse',
+  'quadraticCurveTo','bezierCurveTo','stroke','fill','roundRect','setLineDash','fillRect','strokeRect'];
+ for(const h of hazards){
+  for(const [phase,at] of [['idle',0],['warning',h.period-h.offset-h.active-h.warning*.5],['active',inPhase(h,.5)]]){
+   const paints=[];let shapes=0;
+   const c={globalAlpha:1};
+   for(const m of common)c[m]=(...args)=>{
+    for(const value of args)if(typeof value==='number')assert.ok(Number.isFinite(value),h.id+':'+m);
+    if(['stroke','fill'].includes(m))shapes++;
+   };
+   const gradient={addColorStop(a,b){assert.ok(Number.isFinite(a));assert.ok(typeof b==='string')}};
+   c.createRadialGradient=(...args)=>{assert.ok(args.every(Number.isFinite));return gradient};
+   c.createLinearGradient=(...args)=>{assert.ok(args.every(Number.isFinite));return gradient};
+   for(const key of ['fillStyle','strokeStyle'])Object.defineProperty(c,key,{
+    configurable:true,get(){return this['_'+key]},
+    set(value){this['_'+key]=value;if(typeof value==='string')paints.push(value);}
+   });
+   assert.doesNotThrow(()=>H.draw(c,[h],at),h.id+':'+phase);
+   assert.ok(shapes>=2,'hazard must paint visible shapes: '+h.id+':'+phase);
+   if(h.type!=='tentacle'){
+    assert.ok(!paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
+     'non-tentacle cannot use the filled red attack telegraph: '+h.id);
+   }else if(phase!=='idle'){
+    assert.ok(paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
+     'tentacle must display its red geometry before/while hitting');
+   }
+  }
+ }
+});
