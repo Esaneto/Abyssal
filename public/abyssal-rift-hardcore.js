@@ -178,111 +178,128 @@ function paintedCircle(c,x,y,r,fill,stroke=null,w=1){
  c.beginPath();c.arc(x,y,Math.max(.1,r),0,Math.PI*2);
  if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=w;c.stroke();}
 }
-function ventRock(c,h,s,t){
- const phase=s.phase,warm=phase==='warning',live=phase==='active';
+// The floor uses #031119 / #0b202c / #25434b. These surfaces borrow exactly
+// those tones: dormant traps must be almost indistinguishable from the cave.
+function wallSeam(c,h,t,accent,s,scale=1){
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- c.shadowBlur=live?19:5;c.shadowColor=live?'#f16a26':'#1a3034';
- const rock=c.createRadialGradient(-7,-17,4,0,0,68);
- rock.addColorStop(0,'#68727a');rock.addColorStop(.38,'#394851');rock.addColorStop(.78,'#1d2931');rock.addColorStop(1,'#0b131d');
- c.fillStyle=rock;c.strokeStyle='#6a777d';c.lineWidth=3;
- c.beginPath();c.moveTo(-32,-51);c.lineTo(-17,-69);c.lineTo(7,-58);
- c.lineTo(30,-41);c.lineTo(35,-15);c.lineTo(28,4);c.lineTo(33,36);
- c.lineTo(10,52);c.lineTo(-13,44);c.lineTo(-28,59);c.lineTo(-38,27);c.closePath();c.fill();c.stroke();c.shadowBlur=0;
- c.strokeStyle='#132029';c.lineWidth=4;c.beginPath();c.moveTo(-23,-39);c.lineTo(-9,-18);c.lineTo(-15,6);
- c.moveTo(10,-53);c.lineTo(4,-24);c.lineTo(22,-3);c.stroke();
- for(let i=0;i<8;i++){const a=i*Math.PI/4,cx=Math.cos(a)*26,cy=Math.sin(a)*27;
-  c.strokeStyle=i%2?'#5e6264':'#28323a';c.lineWidth=1.5;c.beginPath();c.moveTo(cx,cy);c.lineTo(cx+9*Math.sin(a+1),cy-10*Math.cos(a+1));c.stroke();}
- const glow=live?1:warm?.65+.32*s.progress:.2;
- const ember=c.createRadialGradient(6,0,1,6,0,24);
- ember.addColorStop(0,'rgba(255,237,159,'+glow+')');
- ember.addColorStop(.48,'rgba(255,102,34,'+Math.min(1,glow*.91)+')');
- ember.addColorStop(1,'rgba(75,18,17,0)');
- c.fillStyle=ember;c.beginPath();c.ellipse(6,0,24,18,0,0,Math.PI*2);c.fill();
- c.fillStyle='#100c14';c.strokeStyle=warm||live?'#f49153':'#765448';c.lineWidth=3;
- c.beginPath();c.ellipse(7,0,12,17,0,0,Math.PI*2);c.fill();c.stroke();
- if(warm||live)for(let i=0;i<6;i++){
-  const p=(i*.187+t*.00033)%1;
-  const x=20+p*(live?Math.min(h.length,170):37),y=Math.sin(i*2.2+t*.008)*16;
-  paintedCircle(c,x,y,1.4+(i%3),i%2?'#ffb461':'#ffd6a1');
+ const intensity=s.phase==='active'?.82:s.phase==='warning'?.27+.37*s.progress:.12;
+ c.globalAlpha=.67;
+ const rock=c.createRadialGradient(-19,-8,1,0,0,61*scale);
+ rock.addColorStop(0,'rgba(2,8,15,.95)');
+ rock.addColorStop(.43,'rgba(5,18,27,.91)');
+ rock.addColorStop(.73,'rgba(11,32,44,.65)');
+ rock.addColorStop(1,'rgba(21,53,62,0)');
+ c.fillStyle=rock;
+ c.beginPath();c.ellipse(-13,0,51*scale,35*scale,0,0,Math.PI*2);c.fill();
+ // Two fracture lines disappear into the geological strata.
+ c.strokeStyle='rgba(45,85,94,.38)';c.lineWidth=2.4;c.lineCap='round';
+ for(const side of [-1,1]){
+  c.beginPath();c.moveTo(-51,side*14);
+  c.bezierCurveTo(-24,side*23,-17,side*16,4,side*18);
+  c.quadraticCurveTo(19,side*15,29,side*6);c.stroke();
+ }
+ const hole=c.createRadialGradient(4,0,2,4,0,29);
+ hole.addColorStop(0,'rgba(0,3,9,.98)');hole.addColorStop(.58,'rgba(4,14,24,.95)');
+ hole.addColorStop(1,'rgba(9,29,41,0)');
+ c.fillStyle=hole;c.beginPath();c.ellipse(0,0,35*scale,22*scale,0,0,Math.PI*2);c.fill();
+ // Barely visible when asleep, localized neon only where the living rock opens.
+ c.globalAlpha=intensity;
+ c.strokeStyle=accent;c.shadowColor=accent;c.shadowBlur=s.phase==='active'?11:5;
+ c.lineWidth=1.2+(s.phase==='active'?1.3:0);
+ c.beginPath();c.moveTo(-13,-14*scale);c.quadraticCurveTo(18,-11*scale,25,0);
+ c.quadraticCurveTo(18,11*scale,-13,14*scale);c.stroke();
+ c.shadowBlur=0;c.restore();
+}
+function ventRock(c,h,s,t){
+ const warm=s.phase==='warning',live=s.phase==='active';
+ wallSeam(c,h,t,'#d77a45',s,.86);
+ c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
+ const pulse=Math.sin(t*.011),intensity=live?1:warm?.24+s.progress*.65:.09;
+ // Molten veins run THROUGH the wall, not around a freestanding boulder.
+ c.strokeStyle='rgba(149,83,49,'+(.22+intensity*.56)+')';
+ c.shadowColor='#ff9851';c.shadowBlur=warm||live?8:0;c.lineWidth=1.2+intensity*1.4;
+ for(const sign of [-1,1]){
+  c.beginPath();c.moveTo(-31,sign*22);
+  c.bezierCurveTo(-14,sign*13,4,sign*(8+pulse*2),12,sign*5);c.stroke();
+ }
+ c.shadowBlur=0;
+ for(let i=0;i<5;i++){
+  const q=(i*.213+t*.0003)%1;
+  if(!warm&&!live)break;
+  paintedCircle(c,9+q*(warm?29:h.length*.9),
+    Math.sin(i*2.4+t*.006)*9*(1+q),1.5+(i%3),
+    i%2?'rgba(255,186,116,.64)':'rgba(255,132,71,.58)');
  }
  if(live){
-  // Jet starts at the wall vent and never comes from a floating floor circle.
-  const length=h.length,half=h.radius*.45,beat=Math.sin(t*.015)*3;
-  const fire=c.createLinearGradient(5,0,length,0);
-  fire.addColorStop(0,'rgba(255,248,199,.99)');
-  fire.addColorStop(.20,'rgba(255,184,66,.94)');
-  fire.addColorStop(.65,'rgba(255,93,31,.74)');
-  fire.addColorStop(1,'rgba(231,69,25,.06)');
-  c.fillStyle=fire;c.shadowBlur=24;c.shadowColor='#f97029';
-  c.beginPath();c.moveTo(8,-16);
-  c.bezierCurveTo(length*.3,-half*.85,length*.75,-half*.62,length+beat,-8);
-  c.quadraticCurveTo(length+10,0,length+beat,8);
-  c.bezierCurveTo(length*.77,half*.61,length*.35,half*.85,8,16);
-  c.closePath();c.fill();
-  c.shadowBlur=9;c.shadowColor='#ffe3a3';c.fillStyle='rgba(255,222,145,.88)';
-  c.beginPath();c.moveTo(15,-5);c.quadraticCurveTo(length*.68,-half*.22,length*.91,0);c.quadraticCurveTo(length*.6,half*.23,15,5);c.closePath();c.fill();c.shadowBlur=0;
-  for(let i=0;i<11;i++){
-   const q=(i*.117+t*.00049)%1,px=length*q,py=Math.sin(i*2.7+t*.008)*half*(.23+q*.5);
-   paintedCircle(c,px,py,2+3*(1-q),i%2?'rgba(255,206,121,.93)':'rgba(255,123,47,.78)');
+  // A narrow feathered hydrothermal flare. The translucent outer envelope
+  // conveys its hit corridor without creating a solid orange cone.
+  const length=h.length,half=h.radius*.49;
+  c.lineCap='round';
+  const flame=c.createLinearGradient(0,0,length,0);
+  flame.addColorStop(0,'rgba(255,195,126,.68)');
+  flame.addColorStop(.22,'rgba(246,126,71,.46)');
+  flame.addColorStop(.74,'rgba(199,78,51,.25)');
+  flame.addColorStop(1,'rgba(198,77,46,0)');
+  c.strokeStyle=flame;c.lineWidth=half*1.35;c.shadowColor='#d77340';c.shadowBlur=10;
+  c.beginPath();c.moveTo(13,0);
+  c.bezierCurveTo(length*.27,-6+4*pulse,length*.73,5*pulse,length,0);c.stroke();
+  c.lineWidth=half*.56;c.strokeStyle='rgba(255,181,101,.52)';c.shadowBlur=3;c.stroke();
+  c.shadowBlur=0;
+  for(let i=0;i<8;i++){
+   const q=(i*.131+t*.00042)%1,xx=length*q;
+   c.strokeStyle=i%2?'rgba(255,199,129,.6)':'rgba(246,142,69,.49)';
+   c.lineWidth=1.4+i%2;c.beginPath();
+   c.moveTo(xx,-half*(.18+.55*q));
+   c.quadraticCurveTo(xx+12,Math.sin(t*.004+i)*5,xx+19,half*(.13+.40*q));c.stroke();
   }
  }
  c.restore();
 }
 function poisonousAnemone(c,h,s,t){
+ wallSeam(c,h,t,'#8fe58c',s,.84);
+ const active=s.phase==='active',warm=s.phase==='warning';
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- const pulse=Math.sin(t*.0037),active=s.phase==='active';
- // Brown-green anchor, firmly rooted in the rock wall.
- c.fillStyle='#1a372c';c.strokeStyle='#587c58';c.lineWidth=2.5;
- c.beginPath();c.ellipse(-10,0,27,33,0,0,Math.PI*2);c.fill();c.stroke();
- c.fillStyle='#3e6947';c.beginPath();c.ellipse(-3,0,15,19,0,0,Math.PI*2);c.fill();
- for(let i=0;i<15;i++){
-  const a=-1.4+i*2.8/14,ext=(35+i%4*7)*(1+.07*pulse),side=Math.sin(i*.9+t*.003)*6;
-  const px=ext*Math.cos(a),py=ext*Math.sin(a);
-  c.beginPath();c.moveTo(-4,0);c.quadraticCurveTo(18,py*.45+side,px,py+side);
-  c.strokeStyle=i%3===0?'#d5ff82':i%2?'#8ee05f':'#2b946b';
-  c.lineWidth=i%4===0?6:3.9;c.lineCap='round';c.shadowBlur=active?8:3;c.shadowColor='#93ff6f';c.stroke();
-  paintedCircle(c,px,py+side,2.5,'#caff9a');
- }
- c.shadowBlur=0;paintedCircle(c,6,0,11,'#163928','#a9eb63',2);
- c.restore();
- if(s.phase==='idle')return;
- if(s.phase==='warning'){
-  // The poison glands light up, no generic red danger circle.
-  c.save();c.globalAlpha=.35+s.progress*.4;
-  for(let i=0;i<8;i++){
-   const a=i*2.4+t*.00045;
-   paintedCircle(c,h.sourceX+Math.cos(a)*32,h.sourceY+Math.sin(a)*32,3+i%3,
-    i%2?'#dbff8f':'#8eff64');
+ const pulse=Math.sin(t*.0045);
+ // Small anemone colony grown into the wall: no oval pot or disconnected leaves.
+ for(let i=0;i<11;i++){
+  const side=i%2?-1:1,rank=Math.floor(i/2),len=22+rank*4;
+  const y=side*(3+rank*3),end=18+len*.7;
+  c.beginPath();c.moveTo(-12,y*.4);
+  c.bezierCurveTo(2,side*(14+rank*1.7),end*.66,side*(20+rank*3)+pulse*2,end,side*(20+rank*3)+pulse*3);
+  c.lineWidth=i%3===0?2.8:2.1;c.lineCap='round';
+  c.strokeStyle=i%3===0?'rgba(111,182,132,.62)':'rgba(48,130,120,.62)';
+  c.stroke();if(warm||active){
+   c.globalAlpha=warm?.25+s.progress*.42:.68;
+   c.strokeStyle=i%3===0?'#a7ff78':'#78dba2';
+   c.lineWidth=.8;c.stroke();c.globalAlpha=1;
   }
-  c.restore();return;
+  paintedCircle(c,end,side*(20+rank*3)+pulse*3,1.3+(i%2)*.4,
+   warm||active?'rgba(156,247,134,.78)':'rgba(64,142,135,.36)');
  }
- const radius=dangerRadius(h,s),p=s.progress;
- c.save();
- // Organic cloud blooming outwards, same lime rings and green particles as the
- // Anêmona Tóxica's existing poison-cloud skill, with additional soft smoke.
- const cloud=c.createRadialGradient(h.x,h.y,radius*.12,h.x,h.y,radius);
- cloud.addColorStop(0,'rgba(162,255,109,.24)');
- cloud.addColorStop(.45,'rgba(91,215,85,.23)');
- cloud.addColorStop(.75,'rgba(68,178,91,.14)');
- cloud.addColorStop(1,'rgba(67,167,87,0)');
- c.fillStyle=cloud;c.beginPath();c.arc(h.x,h.y,radius,0,Math.PI*2);c.fill();
+ c.restore();
+ if(!active)return;
+ const radius=dangerRadius(h,s),coreX=h.x,coreY=h.y;
+ c.save();c.globalAlpha=.9;
+ const cloud=c.createRadialGradient(coreX,coreY,radius*.08,coreX,coreY,radius);
+ cloud.addColorStop(0,'rgba(116,226,107,.23)');
+ cloud.addColorStop(.36,'rgba(83,198,116,.16)');
+ cloud.addColorStop(.77,'rgba(49,151,128,.08)');
+ cloud.addColorStop(1,'rgba(45,134,127,0)');
+ c.fillStyle=cloud;c.beginPath();c.arc(coreX,coreY,radius,0,Math.PI*2);c.fill();
+ // Separate soft smoke ribbons and sparse Anêmona Tóxica green spores.
  for(let i=0;i<7;i++){
-  const a=i*2.399+t*.00018,q=(i+1)/9,rr=radius*(.15+q*.64);
-  c.globalAlpha=.16+.07*Math.sin(t*.003+i);
-  const xx=h.x+Math.cos(a)*rr,yy=h.y+Math.sin(a)*rr;
-  c.fillStyle=i%2?'#a0f38c':'#58bb82';
-  c.beginPath();c.arc(xx,yy,radius*(.19+.025*(i%3)),0,Math.PI*2);c.fill();
+  const a=i*2.399+t*.00015,rr=radius*(.18+(i%4)*.17);
+  const x=coreX+Math.cos(a)*rr,y=coreY+Math.sin(a)*rr;
+  c.globalAlpha=.12+(i%3)*.035;c.fillStyle=i%2?'#98f297':'#67bcab';
+  c.beginPath();c.ellipse(x,y,radius*.21,radius*.12,a,0,Math.PI*2);c.fill();
  }
- c.globalAlpha=.54;
- for(const [index,k] of [[0,1],[1,.68]]){
-  c.strokeStyle=index?'#e0ff74':'#75ff68';c.lineWidth=index?2.8:3.6;
-  c.beginPath();c.arc(h.x,h.y,radius*k,-Math.PI*.8,Math.PI*.85);c.stroke();
- }
- for(let i=0;i<22;i++){
-  const a=i*2.399+t*.00025,rr=radius*(.17+(i%7)/9);
-  c.globalAlpha=.22+(i%4)*.14;
-  paintedCircle(c,h.x+Math.cos(a)*rr,h.y+Math.sin(a)*rr,1.4+i%3,
-   i%3?'#75ff68':'#dfff83');
+ c.globalAlpha=.35;c.lineWidth=1.2;c.strokeStyle='#a7ff78';
+ c.beginPath();c.arc(coreX,coreY,radius*.75,-2.8,.54);c.stroke();
+ for(let i=0;i<15;i++){
+  const a=i*2.399+t*.00023,q=.16+(i%6)*.13;
+  c.globalAlpha=.28+(i%4)*.09;
+  paintedCircle(c,coreX+Math.cos(a)*radius*q,coreY+Math.sin(a)*radius*q,
+    1.1+(i%3)*.5,i%3?'#81de83':'#d1ff9a');
  }
  c.restore();
 }
