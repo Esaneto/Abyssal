@@ -566,7 +566,7 @@ function awardWorldBossCoins(room){
    p.invulnerableUntil=Math.max(Number(p.invulnerableUntil)||0,Date.now()+25000);
    io.to(p.id).emit('first-progression-reward',{ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS});
   }
-  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=35&&grantFinalConquest(u)){
+  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
    io.to(p.id).emit('abyssal-final-victory',{ok:true,skinId:'greensnake',titleId:'abyssal-conqueror'});
   }
   u.coins=(Number(u.coins)||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
@@ -1708,8 +1708,8 @@ io.on('connection', socket => {
   // no perfil antes de aceitar uma solicitação para equipá-la.
   if(payload.conqueror===true){
    const room=socketRoom(socket),run=room?.players.get(socket.id)?.runStats||socket.data.runStats;
-   const reachedFinal=run&&!run.settled&&(Number(run.bossesKilled)||0)>=35&&
-     (room?.mode==='coop'||(!room&&run.mode==='solo'&&Date.now()-(Number(run.startedAt)||Date.now())>=600000));
+   const reachedFinal=run&&!run.settled&&(Number(run.bossesKilled)||0)>=42&&
+     (room?.mode==='coop'||(!room&&run.mode==='solo'&&Date.now()-(Number(run.startedAt)||Date.now())>=900000));
    if(reachedFinal)grantFinalConquest(u);
   }
   if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
