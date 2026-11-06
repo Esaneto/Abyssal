@@ -1,0 +1,93 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const H=require('../public/abyssal-rift-hardcore');
+const Map=require('../public/abyssal-map');
+const curated=require('../public/abyssal-curated-skins').items;
+const root=path.resolve(__dirname,'..');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const layout=Map.createLayout('organic-traps-and-figure-test',7);
+const hazards=H.build(layout,7);
+function inPhase(h,progress){
+ return h.period-h.offset-h.active+h.active*progress;
+}
+test('volcanic rocks originate against walls in mob chambers and narrow corridors',()=>{
+ const rocks=hazards.filter(h=>h.type==='volcano');
+ assert.ok(rocks.some(h=>h.roomId.startsWith('passage:')),'narrow path installations');
+ assert.ok(rocks.some(h=>['shoal','hub','landing'].includes(h.roomId)),'mob room installations');
+ for(const h of rocks){
+  assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),'attached vent origin');
+  assert.ok(h.length>=145&&h.radius<100);
+  assert.equal(H.hit(h,h.x,h.y,0,H.state(h,inPhase(h,.52))),true);
+  assert.equal(H.hit(h,h.x+Math.sin(h.angle)*200,h.y-Math.cos(h.angle)*200),false);
+  const room=layout.rooms.find(r=>r.id===h.roomId);
+  if(room){
+   const boundary=Math.hypot((h.sourceX-room.x)/room.rx,(h.sourceY-room.y)/room.ry);
+   assert.ok(boundary>.87&&boundary<1.01,'source must stay on wall: '+h.id);
+  }else assert.ok(Map.isWalkable(layout,h.sourceX,h.sourceY),'corridor mount in cave');
+ }
+});
+test('anemones are fixed to room walls and their poisonous cloud expands during active period',()=>{
+ const plants=hazards.filter(h=>h.type==='fumarole');
+ assert.ok(plants.length>0);
+ for(const h of plants){
+  assert.ok(Number.isFinite(h.sourceX));
+  const early=H.state(h,inPhase(h,.04)),late=H.state(h,inPhase(h,.9));
+  assert.equal(early.phase,'active');assert.equal(late.phase,'active');
+  const pointX=h.x+h.radius*.81,pointY=h.y;
+  assert.equal(H.hit(h,pointX,pointY,0,early),false);
+  assert.equal(H.hit(h,pointX,pointY,0,late),true);
+ }
+});
+test('deep vortex begins with bubble warning and grows its suction zone gradually',()=>{
+ const v=hazards.find(h=>h.type==='vortex');assert.ok(v);
+ const warn=H.state(v,v.period-v.offset-v.active-v.warning*.55);
+ const early=H.state(v,inPhase(v,.02)),late=H.state(v,inPhase(v,.98));
+ assert.equal(warn.phase,'warning');
+ assert.equal(early.phase,'active');assert.equal(late.phase,'active');
+ assert.equal(H.hit(v,v.x+v.radius*.88,v.y,0,early),false);
+ assert.equal(H.hit(v,v.x+v.radius*.88,v.y,0,late),true);
+});
+test('tentacle locations are deterministic per attack cycle and never hit outside the warning shape',()=>{
+ const tentacles=hazards.filter(h=>h.type==='tentacle');assert.ok(tentacles.length>0);
+ for(const h of tentacles){
+  const attack=H.state(h,inPhase(h,.5)),next=H.state(h,inPhase(h,.5)+h.period);
+  assert.equal(attack.phase,'active');assert.equal(next.cycle,attack.cycle+1);
+  assert.equal(H.hit(h,h.x,h.y,0,attack),true);
+  assert.equal(H.hit(h,h.x+900,h.y+900,0,attack),false);
+  assert.equal(H.hit(h,h.x,h.y,0,attack),H.hit(h,h.x,h.y,0,attack),'replay consistency');
+ }
+});
+test('tutorial illustrations depict the actual hazard warning languages',()=>{
+ const html=read('public/index.html'),guide=read('public/abyssal-tutorials.js'),css=read('public/abyssal-tutorials.css');
+ assert.ok(html.indexOf('abyssal-tutorial-art.js')<html.indexOf('abyssal-tutorials.js'),'art loaded before guide');
+ assert.match(guide,/abyssalGuideHazardGallery/);
+ assert.match(guide,/guide-step-title/);
+ assert.match(css,/abyssal-guide-gallery-item/);
+ const before=globalThis.AbyssalTutorialArt;
+ require('../public/abyssal-tutorial-art');
+ const art=globalThis.AbyssalTutorialArt;
+ for(const kind of ['volcano','poison','vortex','tentacle','checkpoint','final']){
+  const svg=art.render(kind);assert.match(svg,/viewBox="0 0 144 98"/);assert.match(svg,/<svg/);assert.ok(svg.length>450);
+ }
+ assert.match(art.render('tentacle'),/#ff496b/);
+ if(before!==undefined)globalThis.AbyssalTutorialArt=before;
+});
+test('all curated species paint a finite silhouette with family-specific detail, at two swimming frames',()=>{
+ require('../public/marine-art.js');
+ const painter=globalThis.AbyssalMarineArt;
+ const methods=['save','restore','translate','rotate','scale','beginPath','moveTo','lineTo','bezierCurveTo',
+  'quadraticCurveTo','closePath','stroke','fill','ellipse','arc','drawImage','clearRect','fillRect'];
+ for(const skin of curated){
+  for(const tick of [1000,1290]){
+   let pathCalls=0;
+   const ctx={globalAlpha:1,createRadialGradient(){return {addColorStop(){}}}};
+   for(const method of methods)ctx[method]=(...args)=>{
+    for(const v of args)if(typeof v==='number')assert.ok(Number.isFinite(v),skin.id+':'+method);
+    if(['ellipse','bezierCurveTo','quadraticCurveTo'].includes(method))pathCalls++;
+   };
+   assert.doesNotThrow(()=>painter.draw(ctx,80,55,16,0,skin,tick,0),skin.id);
+   assert.ok(pathCalls>=2,'missing anatomy for '+skin.id);
+  }
+ }
+});
