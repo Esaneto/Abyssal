@@ -14,6 +14,12 @@
     var offline=localDesktop||navigator.onLine===false;
     message.hidden=!offline;
     document.documentElement.classList.toggle('abyssal-offline',offline);
+    var onlineButton=document.getElementById('onlineBtn');
+    if(onlineButton){
+      onlineButton.disabled=offline;
+      onlineButton.setAttribute('aria-label',offline?'Multiplayer indisponível sem conexão':'Mergulhar online');
+      onlineButton.title=offline?'Conecte-se à internet para mergulhar online':'';
+    }
     var retry=message.querySelector('button');
     if(retry)retry.hidden=!localDesktop;
   }
