@@ -28,29 +28,71 @@ const ALLOCATION=Object.freeze({
   boss:['tentacle','fumarole','vortex']
 });
 function idHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;}
+function wallMount(room,tag){
+ const theta=(idHash(room.id+':wall:'+tag)%6283)/1000;
+ const bx=room.x+Math.cos(theta)*room.rx*.94,by=room.y+Math.sin(theta)*room.ry*.94;
+ const angle=Math.atan2(room.y-by,room.x-bx);
+ return {sourceX:bx,sourceY:by,angle};
+}
+function hazardAtCycle(h,cycle=0){
+ if(h.type!=='tentacle')return h;
+ // The rift's arms strike a slightly different place every cycle. The cycle
+ // is derived from shared simulation time, so every client sees the SAME mark.
+ const jx=(idHash(h.id+':tentacle-x:'+cycle)%1000)/1000-.5;
+ const jy=(idHash(h.id+':tentacle-y:'+cycle)%1000)/1000-.5;
+ return {...h,x:h.x+jx*62,y:h.y+jy*62,angle:h.angle+jx*.36};
+}
 function build(layout,tier=0){
  if(!layout||!Array.isArray(layout.rooms))return [];
  const safeTier=clamp(Math.floor(Number(tier)||0),0,100);
  const key=String(layout.seed||layout.mapSeed||layout.id||'')+':'+safeTier+':'+layout.rooms.map(r=>r.id+':'+r.x+':'+r.y).join(',');
  if(layoutCache.has(key))return layoutCache.get(key);
  const hazards=[];
+ function add(h,type,roomId,index){
+  const cfg=TYPES[type];
+  hazards.push({...h,id:roomId+':'+index,type,roomId,
+   period:cfg.period,warning:cfg.warning,active:cfg.active,
+   offset:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
+   radius:cfg.radius,length:h.length||cfg.length||0,
+   damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))});
+ }
  for(const room of layout.rooms){
   if(room.id==='start')continue;
-  let choices=ALLOCATION[room.id]||['spikes'];
-  if(room.id==='boss'&&safeTier<3)choices=[];
+  const choices=ALLOCATION[room.id]||['spikes'];
+  if(room.id==='boss'&&safeTier<3)continue;
   const count=Math.min(choices.length,safeTier>=4?3:2);
   for(let i=0;i<count;i++){
    const type=choices[(i+Math.floor(safeTier/3))%choices.length],cfg=TYPES[type];
-   const theta=(i*2.399963+idHash(room.id+':'+i)%120/120)*Math.PI;
-   const radial=room.id==='boss'?.64:.48;
-   const x=room.x+Math.cos(theta)*room.rx*radial;
-   const y=room.y+Math.sin(theta)*room.ry*radial;
-   const angle=(idHash(room.id+':angle:'+i)%628)/100;
-   hazards.push({id:room.id+':'+i,type,roomId:room.id,x,y,
-    angle,period:cfg.period,warning:cfg.warning,active:cfg.active,
-    offset:(idHash(room.id+':timing:'+i+':'+safeTier)%1000)/1000*cfg.period,
-    radius:cfg.radius,length:cfg.length||0,damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))});
+   const theta=(i*2.399963+(idHash(room.id+':'+i)%120)/120)*Math.PI;
+   if(type==='volcano'||type==='fumarole'){
+    // Rock and toxic anemone are visibly ATTACHED TO a chamber wall.
+    const mount=wallMount(room,i);
+    const reach=type==='volcano'?155:86;
+    add({...mount,x:mount.sourceX+Math.cos(mount.angle)*reach*.5,
+     y:mount.sourceY+Math.sin(mount.angle)*reach*.5,
+     length:reach,radius:type==='volcano'?cfg.radius:cfg.radius},type,room.id,i);
+   }else{
+    const radial=room.id==='boss'?.45:room.id==='junction'?.16:.38;
+    const x=room.x+Math.cos(theta)*room.rx*radial;
+    const y=room.y+Math.sin(theta)*room.ry*radial;
+    add({x,y,angle:(idHash(room.id+':angle:'+i)%6283)/1000},type,room.id,i);
+   }
   }
+ }
+ // Wall-mounted volcanic rock along the narrow links between mob rooms.
+ // A one-sided jet leaves a navigable lane and has clear rest intervals.
+ for(const [i,corridor] of (layout.corridors||[]).entries()){
+  if(i===0||i%3!==1||Number(corridor.width)>195)continue;
+  const path=Array.isArray(corridor.path)&&corridor.path.length>2?corridor.path:null;
+  if(!path)continue;
+  const a=path[1],b=path[2],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+  const normalX=-dy/len,normalY=dx/len,side=(idHash('side:'+i+':'+safeTier)%2?1:-1);
+  const px=a.x+dx*.5,py=a.y+dy*.5;
+  const sourceX=px+normalX*side*Number(corridor.width)*.92;
+  const sourceY=py+normalY*side*Number(corridor.width)*.92;
+  const angle=Math.atan2(-normalY*side,-normalX*side),reach=165;
+  add({x:sourceX+Math.cos(angle)*reach*.5,y:sourceY+Math.sin(angle)*reach*.5,
+    sourceX,sourceY,angle,length:reach,radius:76},'volcano','passage:'+corridor.a+'-'+corridor.b,i);
  }
  if(layoutCache.size>16)layoutCache.clear();
  layoutCache.set(key,hazards);
@@ -58,24 +100,35 @@ function build(layout,tier=0){
 }
 function state(hazard,seconds){
  const period=hazard.period||10;
- const p=((Number(seconds||0)+hazard.offset)%period+period)%period;
- if(p>=period-hazard.active)return {phase:'active',progress:clamp((p-(period-hazard.active))/hazard.active,0,1)};
- if(p>=period-hazard.active-hazard.warning)return {phase:'warning',progress:clamp((p-(period-hazard.active-hazard.warning))/hazard.warning,0,1)};
- return {phase:'idle',progress:0};
+ const total=Number(seconds||0)+hazard.offset;
+ const p=((total%period)+period)%period,cycle=Math.floor(total/period);
+ if(p>=period-hazard.active)return {phase:'active',progress:clamp((p-(period-hazard.active))/hazard.active,0,1),cycle};
+ if(p>=period-hazard.active-hazard.warning)return {phase:'warning',progress:clamp((p-(period-hazard.active-hazard.warning))/hazard.warning,0,1),cycle};
+ return {phase:'idle',progress:0,cycle};
 }
 function segmentDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,den=dx*dx+dy*dy;
  const t=den>0?clamp(((px-ax)*dx+(py-ay)*dy)/den,0,1):0;
  return Math.hypot(px-(ax+dx*t),py-(ay+dy*t));
 }
-function hit(hazard,px,py,pad=0){
- const r=hazard.radius+pad,dx=px-hazard.x,dy=py-hazard.y;
- if(hazard.type==='tentacle'||hazard.type==='electric'){
-  const length=hazard.length||300,a=hazard.angle||0;
-  return segmentDistance(px,py,hazard.x-Math.cos(a)*length*.45,hazard.y-Math.sin(a)*length*.45,
-    hazard.x+Math.cos(a)*length*.55,hazard.y+Math.sin(a)*length*.55)<=r*.5;
+function dangerRadius(h,s){
+ if(h.type==='fumarole'&&s?.phase==='active')return Math.max(19,h.radius*Math.sqrt(Math.min(1,(s.progress+.04)*1.35)));
+ if(h.type==='vortex'&&s?.phase==='active')return Math.max(36,h.radius*Math.min(1,(s.progress+.12)*2.1));
+ return h.radius;
+}
+function hit(hazard,px,py,pad=0,phase=null){
+ const h=hazardAtCycle(hazard,phase?.cycle||0),r=dangerRadius(h,phase)+pad;
+ if(h.type==='volcano'&&Number.isFinite(h.sourceX)){
+  const ax=h.sourceX+Math.cos(h.angle)*8,ay=h.sourceY+Math.sin(h.angle)*8;
+  const bx=h.sourceX+Math.cos(h.angle)*h.length,by=h.sourceY+Math.sin(h.angle)*h.length;
+  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*.5+pad;
  }
- return dx*dx+dy*dy<=r*r;
+ if(h.type==='tentacle'||h.type==='electric'){
+  const length=h.length||300,a=h.angle||0;
+  return segmentDistance(px,py,h.x-Math.cos(a)*length*.45,h.y-Math.sin(a)*length*.45,
+   h.x+Math.cos(a)*length*.55,h.y+Math.sin(a)*length*.55)<=h.radius*.5+pad;
+ }
+ return Math.hypot(px-h.x,py-h.y)<=r;
 }
 function checkpoint(layout,x,y,previous='start'){
  const room=layout?.rooms?.find(r=>r.id===previous);
