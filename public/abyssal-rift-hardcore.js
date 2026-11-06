@@ -67,7 +67,7 @@ function build(layout,tier=0){
    if(type==='volcano'||type==='fumarole'){
     // Rock and toxic anemone are visibly ATTACHED TO a chamber wall.
     const mount=wallMount(room,i);
-    const reach=type==='volcano'?155:86;
+    const reach=type==='volcano'?155:58;
     add({...mount,x:mount.sourceX+Math.cos(mount.angle)*reach*.5,
      y:mount.sourceY+Math.sin(mount.angle)*reach*.5,
      length:reach,radius:type==='volcano'?cfg.radius:cfg.radius},type,room.id,i);
