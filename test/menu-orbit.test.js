@@ -48,7 +48,7 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=8/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
@@ -233,8 +233,8 @@ test('Specimen Catalog has a nautical anchor, keeping real shop click action',()
   const html=read('public/index.html');
   const css=read('public/abyssal-menu-orbit.css');
   const js=read('public/abyssal-rebuild.js');
-  assert.match(html,/id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn"/);
-  assert.match(html,/class="menu-nav-icon ui-icon anchor-icon"/);
+  assert.match(html,/id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn tentacle-brown-btn"/);
+  assert.match(html,/class="menu-nav-icon ui-icon tentacle-icon"/);
   assert.match(css,/#shopBtn\.nautical-anchor-btn\{/);
   assert.match(js,/shopLabel\.textContent='CATÁLOGO DE ESPÉCIMES'/);
 });
@@ -249,6 +249,34 @@ test('desktop current uses the browser frame clock even when SVG CSS animations 
   assert.match(js,/water\.style\.setProperty\('transform'/);
   assert.match(js,/if\(document\.hidden\|\|menu\.hidden\|\|document\.body\.classList\.contains\('game-active'\)\)/);
   assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)\{\s*body:not\(\.game-active\) #menuScreen #abyssGate \.abyss-vortex-flow-layer,[\s\S]*?animation:none!important/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=8/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
   assert.match(html,/abyssal-rebuild\.js\?v=6/);
+});
+
+
+test('Specimen Catalog decor is actual curled purple tentacles around a translucent brown card',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-menu-orbit.css');
+  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
+  const shop=nav.match(/<button id="shopBtn"[\s\S]*?<\/button>/)[0];
+  assert.match(shop,/class="specimen-tentacle-frame"/);
+  assert.match(shop,/aria-hidden="true" focusable="false"/);
+  assert.match(shop,/stroke="url\(#specimenArmPurple\)"/);
+  assert.match(shop,/C3 104 10 81 26 70/);
+  assert.match(css,/#shopBtn\.nautical-anchor-btn\.tentacle-brown-btn\{/);
+  assert.match(css,/border:2px solid rgba\(156,103,68,\.95\)!important/);
+  assert.match(css,/rgba\(112,70,38,\.49\)/);
+  assert.match(css,/\.specimen-tentacle-frame\{[\s\S]*?pointer-events:none!important/);
+  assert.match(css,/@media\(max-width:1000px\),\(pointer:coarse\)/);
+});
+
+test('Fossas Abissais has longer spikes, extra cracks and restrained blood red outline',()=>{
+  const css=read('public/abyssal-menu-orbit.css');
+  const js=read('public/abyssal-rebuild.js');
+  assert.match(js,/>FOSSAS ABISSAIS<\/button>/);
+  assert.match(css,/#abyssGate \.abyss-gate-content::before\{/);
+  assert.match(css,/background:rgba\(131,31,37,\.83\)!important/);
+  assert.match(css,/5% 0%,22% 9%,34% 0%/);
+  assert.match(css,/border:2px solid rgba\(140,37,42,\.92\)!important/);
+  assert.match(css,/linear-gradient\(117deg,transparent 0 19%,rgba\(185,190,204,\.54\)/);
 });
