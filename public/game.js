@@ -2747,14 +2747,33 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const boss=BOSS_KINDS.includes(kind);
  const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
- c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);c.globalAlpha=(playerCreature&&id==='angler'&&renderContext===ctx&&gameState==='playing')?anglerVisibilityAlpha(Date.now()):1;
+ c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);
+ // All legacy skins get a restrained locomotion cycle without moving hitboxes:
+ // fish oscillate along their axis, cephalopods pulse, benthic species sway.
+ if(playerCreature){
+  const swimTime=(Number(t)||0)*.0043,beat=Math.sin(swimTime);
+  const swimFish=['reefshark','hammerhead','abysscroc','greensnake','leviathan','maw','angler','devourer','blackcaiman','saltcroc'].includes(id);
+  const swimCephalopod=['kraken','aberration','violet','toxic','voidwing','electriceel'].includes(id);
+  c.translate(0,r*(swimFish?.022:swimCephalopod?.032:.017)*beat);
+  c.scale(1+(swimFish?.013:swimCephalopod?.010:.008)*beat,
+   1+(swimCephalopod?.019:.007)*Math.sin(swimTime*.83));
+ }
+ c.globalAlpha=(playerCreature&&id==='angler'&&renderContext===ctx&&gameState==='playing')?anglerVisibilityAlpha(Date.now()):1;
  const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
  const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
  const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){c.strokeStyle=strokeStyle;c.lineWidth=width;c.lineJoin='round';c.stroke()}c.restore()};
  const body=(rx,ry,cy=0,base=color)=>fill(()=>c.ellipse(0,cy,r*rx*pulse,r*ry*pulse,0,0,Math.PI*2),bodyGrad(base),`rgba(224,255,255,.46)`,Math.max(1,r*.035),12);
- const fin=(points,col=color,edge='rgba(225,255,255,.55)')=>fill(()=>{c.moveTo(points[0][0]*r,points[0][1]*r);for(let i=1;i<points.length;i++)c.lineTo(points[i][0]*r,points[i][1]*r);c.closePath()},`rgba(8,30,46,.9)`,edge,Math.max(1,r*.035),8);
+ const fin=(points,col=color,edge='rgba(225,255,255,.55)')=>fill(()=>{
+  // Tail/pectoral tips flex while their bases stay anchored to the body.
+  const beat=Math.sin((Number(t)||0)*.0052);
+  const point=(p)=>{const rear=playerCreature?Math.max(0,-p[0]-.65):0;
+   return [p[0]*r,(p[1]+Math.sign(p[1]||1)*rear*.065*beat)*r];};
+  const start=point(points[0]);c.moveTo(start[0],start[1]);
+  for(let i=1;i<points.length;i++){const xy=point(points[i]);c.lineTo(xy[0],xy[1]);}
+  c.closePath()},`rgba(8,30,46,.9)`,edge,Math.max(1,r*.035),8);
  const tentacle=(sx,sy,c1x,c1y,c2x,c2y,ex,ey,w=1, suckers=false)=>{
-  stroke(()=>{c.moveTo(sx*r,sy*r);c.bezierCurveTo(c1x*r,c1y*r,c2x*r,c2y*r,ex*r,ey*r)},Math.max(.8,r*.045*w),color,9);
+  const armSway=playerCreature?Math.sin((Number(t)||0)*.0053+sx*1.9+sy*.7)*.10:0;
+  stroke(()=>{c.moveTo(sx*r,sy*r);c.bezierCurveTo(c1x*r,c1y*r,c2x*r,(c2y+armSway*.52)*r,ex*r,(ey+armSway)*r)},Math.max(.8,r*.045*w),color,9);
   if(suckers){c.save();c.fillStyle='#d8fff9';c.shadowBlur=6*glowScale;c.shadowColor=color;for(let j=1;j<=4;j++){const q=j/5,px=(sx*(1-q)**3+3*c1x*q*(1-q)**2+3*c2x*q*q*(1-q)+ex*q**3)*r,py=(sy*(1-q)**3+3*c1y*q*(1-q)**2+3*c2y*q*q*(1-q)+ey*q**3)*r;c.beginPath();c.arc(px,py,Math.max(.7,r*.035),0,Math.PI*2);c.fill()}c.restore()}
  };
    const krakenArm=(pose,armIndex,phase)=>{
@@ -2969,7 +2988,11 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    eye(.24,-.25,r*.075);
    } else if(id==='leviathan'){
    oarfishRibbon();
-   fill(()=>{c.ellipse(.85*r,-.015*r,.4*r,.28*r,-.03,0,Math.PI*2)},'#ead7d8','#fff4f2',Math.max(.9,r*.028),8);
+   // The oarfish head now joins the ribbon, without an isolated round forehead mass.
+   fill(()=>{c.moveTo(.50*r,-.29*r);c.quadraticCurveTo(.96*r,-.33*r,1.24*r,-.08*r);
+    c.quadraticCurveTo(1.32*r,.02*r,1.22*r,.13*r);
+    c.quadraticCurveTo(.94*r,.29*r,.52*r,.24*r);c.closePath()},
+    bodyGrad('#d3bcc5'),'#f6e2ea',Math.max(.9,r*.028),5);
    fill(()=>{c.ellipse(.62*r,.045*r,.18*r,.11*r,-.03,0,Math.PI*2)},'rgba(255,231,236,.38)',null,0,2);
    eye(.98,-.11,r*.047,'#ffe9ef');gills(.5,-.14,3);
   } else if(id==='voidwing'){
@@ -3069,7 +3092,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   }
   if(id==='angler'&&renderContext===ctx&&gameState==='playing'&&anglerVisibilityAlpha(Date.now())<.999)lureOnly(.55,-1.18);
   // Fine luminous lateral line makes skin previews look like the live character.
-  if(!['royal','glacier','abyssaleye','angler'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
+  if(['reefshark','hammerhead','abysscroc','greensnake','leviathan'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
   c.restore();return;
  }
 
