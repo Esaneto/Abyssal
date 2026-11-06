@@ -239,6 +239,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  // Server-owned HP/shields are sent reliably. Bridge them to the game UI; without this
  // listener a minimized client could be killed server-side but still look alive on resume.
  socket.on('player-vitals',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-vitals',{detail:data||{}}));});
+ socket.on('player-damage-number',data=>window.dispatchEvent(new CustomEvent('abyssal-player-damage-number',{detail:data||{}})));
+ socket.on('rift-checkpoint-respawn',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-checkpoint-respawn',{detail:data||{}})));
  socket.on('pvp-hit',data=>{window.dispatchEvent(new CustomEvent('abyssal-pvp-hit',{detail:data||{}}));});
  socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
@@ -587,7 +589,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
   if(payload.progress)socket.emit('run-progress',payload.progress);
   socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
  }
- window.AbyssalOnline={openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());

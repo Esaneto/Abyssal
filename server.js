@@ -15,6 +15,7 @@ const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
+const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
@@ -237,7 +238,7 @@ function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
  return { playerId: player.id, hp: Math.max(0, Number(player.hp) || 0), maxHp: Math.max(1, Number(player.maxHp) || 100), shieldCharges: Math.max(0, Math.min(3, Math.floor(Number(player.shieldCharges) || 0))), alive: player.alive !== false, invulnerabilityMs: Math.max(0, (Number(player.invulnerableUntil) || 0) - Date.now()), ...extra };
 }
-const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer']);
+const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer','riftSmile']);
 const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 400;
 const MAX_BOSSES_PER_ROOM = 4;
@@ -333,6 +334,7 @@ const PVP_ROOM_ID = 'MAR-VERMELHO';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake','saltcroc','blackcaiman']);
 for(const skin of curatedSkins.items)allowedSkinIds.add(skin.id);
+allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
 function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
@@ -391,7 +393,7 @@ function worldDepthState(world){
  return {
   bossesDefeated,
   mapTier:Math.max(0,Math.floor(Number(world.mapTier)||0)),
-  nextTierUnlocked:bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
+  nextTierUnlocked:Number(world.mapTier)<RiftHardcore.FINAL_TIER&&bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
   depth:Math.max(0,Math.floor(Number(world.mapTier)||0))*350+(bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))?350:0),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event:WorldSimulation.currentDepthEvent(world)
@@ -407,7 +409,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -561,8 +563,8 @@ function awardWorldBossCoins(room){
   const u=users[p.userKey];if(!u)continue;
   if(room.mode==='rift'&&p.alive!==false){
    u.titleStats ||= {};u.titleStats.riftBossesDefeated=(Number(u.titleStats.riftBossesDefeated)||0)+1;
-   const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`);
-   io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier});
+   const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`,{final:Number(room.world.mapTier)===RiftHardcore.FINAL_TIER&&room.world.lastBossKind===RiftHardcore.FINAL_KIND});
+   io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier,final:Boolean(chest.final)});
   }
   if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=7&&grantFirstProgressionReward(u)){
    p.invulnerableUntil=Math.max(Number(p.invulnerableUntil)||0,Date.now()+25000);
@@ -837,6 +839,30 @@ async function finishRunForSocket(socket,payload={}){
  const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Sinal perdido: ${bossesKilled} boss(es) abatido(s). 65% da recompensa de conclusão foi preservada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
+
+function reviveAtRiftCheckpoint(room,p,now){
+ const layout=WorldSimulation.mapLayoutFor(room.world);
+ const cp=RiftHardcore.checkpoint(layout,Number(p.x)||0,Number(p.y)||0,p.riftCheckpointRoomId||'start');
+ const roomPoint=layout?.rooms?.find(row=>row.id===cp.roomId);
+ const fallback=roomPoint?{x:roomPoint.x,y:roomPoint.y-Math.min(105,roomPoint.ry*.23)}:AbyssalMap.startSpawn(layout,0,1);
+ const safe=AbyssalMap.isWalkable(layout,cp.x,cp.y,Number(p.r)||13/WORLD_ZOOM)?cp:fallback;
+ p.x=safe.x;p.y=safe.y;p.riftCheckpointRoomId=cp.roomId;
+ p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;
+ p.invulnerableUntil=now+3200;p.regenAccumulator=0;p.velocityX=0;p.velocityY=0;
+ p.positionResumeGraceUntil=now+1650;p.lastPositionAt=now;
+ p.lastPositionSeq=Number(p.lastPositionSeq)||0;p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
+ p.riftHazardCooldowns=Object.create(null);
+ io.to(p.id).emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,p.x,p.y,true));
+ io.to(p.id).emit('rift-checkpoint-respawn',{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,roomId:cp.roomId,invulnerabilityMs:3200,serverTime:now});
+ io.to(p.id).emit('player-vitals',playerVitalsPayload(p,{reason:'rift-checkpoint',serverTime:now+1}));
+}
+function announcePlayerDamage(room,hit){
+ if(Number(hit?.damage)<=0)return;
+ const target=room.players.get(hit.playerId);
+ if(!target)return;
+ io.to(channelFor(room)).emit('player-damage-number',{targetId:target.id,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/roomWorldHeight(room),damage:Number(hit.damage),source:hit.abilityId||hit.enemyKind||'enemy'});
+}
+
 function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
@@ -873,6 +899,10 @@ function tickRoom(room, now) {
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
  // temporarily down and may revive; movement and damage still target living players.
+ if(room.mode==='rift'){
+  const layout=WorldSimulation.mapLayoutFor(room.world);
+  for(const p of activePlayers){const found=AbyssalMap.roomAt(layout,Number(p.x),Number(p.y));if(found)p.riftCheckpointRoomId=found.id;}
+ }
  w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
@@ -938,8 +968,9 @@ function tickRoom(room, now) {
   if(!event||!event.abilityId)continue;
   io.to(channelFor(room)).emit('boss-ability-visual',{
    bossId:event.bossId,kind:event.kind,abilityId:event.abilityId,
-   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/WORLD_HEIGHT,
-   angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now
+   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/roomWorldHeight(room),
+   angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now,
+    shape:event.shape||null,length:Number(event.length)||0,issuedAt:Number(event.issuedAt)||0,hitAt:Number(event.hitAt)||0,attackId:event.id||null,damage:Number(event.damage)||0
   });
  }
  for(const hit of bossAbilityHits){
@@ -947,7 +978,8 @@ function tickRoom(room, now) {
   io.to(hit.playerId).emit('player-vitals',{
    ...hit,source:'boss-ability',reason:'boss-ability',skillId:hit.abilityId,serverTime:now
   });
-  if(hit.alive===false){
+  announcePlayerDamage(room,hit);
+  if(hit.alive===false&&room.mode!=='rift'){
    const defeated=room.players.get(hit.playerId),nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
    io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi destruído por uma habilidade colossal.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -974,7 +1006,8 @@ function tickRoom(room, now) {
   combatDiagnostics.lastPlayerHit = { at: new Date(now).toISOString(), enemyId: hit.enemyId, enemyKind: hit.enemyKind, enemyX: hit.enemyX, enemyY: hit.enemyY, playerX: hit.playerX, playerY: hit.playerY, contactDistance: hit.contactDistance, contactRadius: hit.contactRadius, rawContactRadius: hit.rawContactRadius, contactSafetyMargin: hit.contactSafetyMargin, positionAgeMs: hit.positionAgeMs, targetWasHidden: hit.targetWasHidden, playerVelocityX: room.players.get(hit.playerId)?.velocityX||0, playerVelocityY: room.players.get(hit.playerId)?.velocityY||0, damage: hit.damage, blocked: hit.blocked, worldId: w.worldId, snapshotSeq: contactSnapshotSeq };
   // A reliable full or attacker-only snapshot is always emitted before contact vitals.
   io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: contactSnapshotSeq, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
-  if (!hit.alive) {
+  announcePlayerDamage(room,hit);
+  if (!hit.alive&&room.mode!=='rift') {
    const defeated=room.players.get(hit.playerId);const nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
    io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi engolido pelas profundezas.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
    io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...peer }) => peer));
@@ -982,6 +1015,17 @@ function tickRoom(room, now) {
  }
  for (const heal of result.playerHeals || []) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
+ }
+ if(room.mode==='rift'){
+  const bossRoom=WorldSimulation.mapLayoutFor(room.world)?.rooms.find(r=>r.id==='boss');
+  const guardians=room.world.enemies.filter(e=>e.kind===RiftHardcore.FINAL_KIND&&e.hp>0);
+  const bossPlayers=[...room.players.values()].filter(p=>p.riftCheckpointRoomId==='boss');
+  if(bossRoom&&guardians.length&&bossPlayers.length&&!bossPlayers.some(p=>p.alive!==false)){
+   for(const guardian of guardians){guardian.hp=guardian.maxHp;guardian.riftPendingAttacks=[];guardian.riftNextAttackAt=0;}
+  }
+  let changed=false;
+  for(const p of room.players.values())if(p.alive===false){reviveAtRiftCheckpoint(room,p,now);changed=true;}
+  if(changed)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  }
  if (result.sendPlayers) io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
 }
@@ -1262,6 +1306,7 @@ io.on('connection', socket => {
   if(kind==='next-tier'){
    const w=room.world,source=layout.portals.boss,requesterRadius=Number(source?.r||110)+(Number(p.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM;
    if(!source||Math.hypot(Number(p.x)-source.x,Number(p.y)-source.y)>requesterRadius)return reply({ok:false,reason:'too-far'});
+   if(Number(w.mapTier)>=RiftHardcore.FINAL_TIER)return reply({ok:false,reason:'final-depth'});
    if(w.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)))return reply({ok:false,reason:'boss-alive'});
    const currentTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
    if(Math.max(0,Math.floor(Number(w.bossesDefeated)||0))<=currentTier)return reply({ok:false,reason:'boss-not-cleared'});
@@ -1273,7 +1318,7 @@ io.on('connection', socket => {
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
    party.forEach((peer,index)=>{
     const spawn=AbyssalMap.startSpawn(nextLayout,index,party.length);
-    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;
+    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;peer.riftCheckpointRoomId='start';
     io.to(peer.id).emit('map-transition-result',{ok:true,kind:'next-tier',x:peer.x,y:peer.y,map:descriptor,tier:w.mapTier,serverTime:now});
    });
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -1687,7 +1732,7 @@ io.on('connection', socket => {
    // is client simulated; rewards are always selected and persisted here.
    const run=socket.data.runStats,tier=Number(payload.tier);
    if(room||!run||run.settled||run.mode!=='rift'||!Number.isInteger(tier)||tier<0||tier>=(Number(run.bossesKilled)||0))return reply({ok:false,message:'A derrota do boss ainda não foi registrada. Aguarde e tente novamente.'});
-   id=RiftRewards.grant(u,`solo:${run.id}:${tier}`).id;
+   id=RiftRewards.grant(u,`solo:${run.id}:${tier}`,{final:tier===RiftHardcore.FINAL_TIER&&Number(run.bossesKilled)>RiftHardcore.FINAL_TIER}).id;
   }else{
    const chest=u.riftChests?.find(c=>c.id===id);
    if(!chest)return reply({ok:false,message:'Baú não encontrado.'});
