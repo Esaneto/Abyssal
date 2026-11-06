@@ -289,6 +289,7 @@ const skinData=[
 {id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
+{id:'riftSmileRelic',name:'Vestígio do Sorriso do Abismo',color:'#cc86ff',price:0,paid:false,shape:'kraken',unlockType:'mission',desc:'Relíquia luminosa e translúcida da criatura mais temida das Fossas.',ability:'Tentáculos espectrais da fossa, forma de prestígio da expedição final.'},
 {id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis',color:'#338cff',price:16000,paid:true,shape:'aberration',desc:'Eco controlável do Polvo-de-Anéis-Azuis Colossal, com manto azul, anéis bioluminescentes e braços pendentes.',ability:'Bolhas abissais: ao nadar, deixa bolhas negras de pressão que causam dano rápido a criaturas que as atravessam.'},
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
@@ -327,7 +328,7 @@ let controlAimAngle=0;
 const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'];
-const BOSS_LABELS=Object.freeze({boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
+const BOSS_LABELS=Object.freeze({riftSmile:'O SORRISO DO ABISMO',boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
 function anglerVisibilityAlpha(nowMs=Date.now()){
  const phase=((Number(nowMs)||0)%26000+26000)%26000;
  if(phase<3000)return Math.max(0,1-phase/3000);
@@ -891,7 +892,16 @@ function pumpGameplayNotice(){
 function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function renderBossAbilityVisual(data){
- const d=data||{},x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ const d=data||{};
+ if(RIFT_HARDCORE&&String(d.abilityId||'').startsWith('rift-tentacle-')){
+  const now=performance.now(),id=String(d.attackId||'');
+  const delay=Math.max(0,Math.min(3000,(Number(d.hitAt)||0)-(Number(d.serverTime)||0)));
+  const mark={id,x:Number(d.x)*W,y:Number(d.y)*H,shape:String(d.shape||'circle'),angle:Number(d.angle)||0,radius:Number(d.radius)||105,length:Number(d.length)||0,issuedAt:now,hitAt:now+delay,damage:Number(d.damage)||0};
+  if(String(d.abilityId).endsWith('warning')){if(!riftBossMarks.some(m=>m.id===id))riftBossMarks.push(mark);}
+  else {const existing=riftBossMarks.find(m=>m.id===id);if(existing)existing.impactUntil=now+410;else riftBossMarks.push({...mark,hitAt:now,impactUntil:now+410});burst(mark.x,mark.y,'#a66cff',22,150);}
+  return;
+ }
+ const x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
  const color=d.color||'#79f3f0',angle=Number(d.angle)||0,radius=Math.max(40/GAME_WORLD_ZOOM,Number(d.radius)||180/GAME_WORLD_ZOOM),id=String(d.abilityId||'');
  if(id==='ink-trail'){
   inkTrails.push({x,y,r:radius,life:3.4,maxLife:3.4,damageTimer:.45,remote:true,boss:true});if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
@@ -942,6 +952,7 @@ function showBossAlert(kind,id=null,threat=0,force=false){
   maw:['☠ ENGUIA-PELÍCANO COLOSSAL','A GARGANTA SE EXPANDEU. O ECO DESAPARECE DENTRO DELA.'],
   angler:['☠ PEIXE-PESCADOR ABISSAL','A BOCA ESTÁ ABERTA. QUANDO O CORPO SUMIR, SÓ A ISCA CONTINUARÁ BRILHANDO.'],
   kraken:['☠ LULA-KRAKEN DAS FOSSAS','OITO BRAÇOS VARREM A CÂMARA EM ESPIRAL. NÃO FIQUE ENTRE AS VENTOSAS.'],
+  riftSmile:['☠ O SORRISO DO ABISMO','ELE SORRI NA ESCURIDÃO. MARCAS VERMELHAS ANUNCIAM O ALCANCE DOS TENTÁCULOS.'],
   devourer:['☠ LULA-COLOSSAL DO VAZIO','O MANTO CONTRAIU. A CORRENTE INVERTEU E TUDO ESTÁ SENDO PUXADO.'],
   whiteSharkBoss:['☠ TUBARÃO-BRANCO COLOSSAL','O ÁPICE PREDATÓRIO EMERGIU. VELOCIDADE LETAL. FUJA OU MORRA.']
  };
@@ -1221,6 +1232,7 @@ function startGame(){
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
  if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
+  riftBossMarks=[];riftSoloHazardCooldowns.clear();soloRiftCheckpointRoomId='start';
 runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
@@ -1486,6 +1498,49 @@ function burst(x,y,color,n=10,force=100){
  }
 }
 function addOrb(x,y,value,sourceRadius=10){const scaledValue=Math.max(1,Math.round(Number(value)||1)),r=clamp(3.8+Math.sqrt(scaledValue)*.9+Math.sqrt(Math.max(1,Number(sourceRadius)||10))*.9,4.5,30)/GAME_WORLD_ZOOM;orbs.push({id:`solo-${Math.random().toString(36).slice(2)}`,x,y,r,value:scaledValue,phase:rand(0,6.28),life:25})}
+
+function respawnSoloRiftCheckpoint(){
+ if(!player||!activeMapLayout||!RIFT_HARDCORE)return;
+ const cp=RIFT_HARDCORE.checkpoint(activeMapLayout,player.x,player.y,soloRiftCheckpointRoomId);
+ const room=activeMapLayout.rooms.find(r=>r.id===cp.roomId);
+ const safe=ABYSSAL_MAP.isWalkable(activeMapLayout,cp.x,cp.y,player.r)?cp:{x:room?.x??cp.x,y:(room?.y??cp.y)-Math.min(85,Number(room?.ry)||85)};
+ player.x=safe.x;player.y=safe.y;player.trail.length=0;hp=maxHp;
+ player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
+ burst(player.x,player.y,'#a3eaff',26,160);audio(190,.22,'triangle',.035);
+ enqueueGameplayNotice('cave','CHECKPOINT · '+String(room?.name||cp.roomId).toUpperCase(),'As Fossas o devolveram ao início da sala. Sua expedição continua.',84);
+ updateCamera();updateHud();
+}
+function updateSoloRiftHardcore(dt){
+ if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
+ const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(room)soloRiftCheckpointRoomId=room.id;
+ for(const h of activeRiftHazards){
+  if(RIFT_HARDCORE.state(h,elapsed).phase!=='active'||!RIFT_HARDCORE.hit(h,player.x,player.y,player.r))continue;
+  const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;if(elapsed<cooldown)continue;
+  riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
+  hurtPlayer(h.damage);if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
+  if(h.type==='vortex'){const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1,move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);player.x=move.x;player.y=move.y;}
+ }
+ const now=performance.now();
+ for(const e of enemies){if(e.kind!==RIFT_HARDCORE.FINAL_KIND||e.hp<=0)continue;
+  const inArena=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y)?.id==='boss';
+  if(!inArena)continue;
+  if(!e.riftNextAttackAt)e.riftNextAttackAt=now+1400;
+  if(now>=e.riftNextAttackAt){
+   e.riftAttackSerial=(Number(e.riftAttackSerial)||0)+1;
+   const mark=RIFT_HARDCORE.bossMark(e,[{x:player.x,y:player.y,alive:true}],now);
+   if(mark){e.riftPendingAttacks ||= [];e.riftPendingAttacks.push(mark);riftBossMarks.push(mark);}
+   const hpRatio=e.hp/Math.max(1,e.maxHp);e.riftNextAttackAt=now+(hpRatio<.25?1750:hpRatio<.6?2100:2650);
+  }
+  e.riftPendingAttacks=(e.riftPendingAttacks||[]).filter(mark=>{
+   if(now<mark.hitAt)return true;
+   if(RIFT_HARDCORE.bossHit(mark,player.x,player.y,player.r))hurtPlayer(mark.damage);
+   const visible=riftBossMarks.find(m=>m.id===mark.id);if(visible)visible.impactUntil=now+400;
+   return false;
+  });
+ }
+ riftBossMarks=riftBossMarks.filter(mark=>now<(mark.impactUntil||mark.hitAt+420));
+}
+
 function hurtPlayer(dmg){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
  const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?.2:0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,'received');player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
@@ -2038,7 +2093,7 @@ function update(dt){
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   let areaGridReady=false;
