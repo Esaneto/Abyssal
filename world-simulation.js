@@ -463,7 +463,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       const phase=RiftHardcore.state(hazard,world.elapsed);
       if(phase.phase!=='active')continue;
       for(const target of validPlayers){
-        if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM))continue;
+        if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
         target.riftHazardCooldowns ||= Object.create(null);
         if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
         target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
