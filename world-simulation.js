@@ -298,7 +298,7 @@ function activateRiftEncounters(world,players,random=Math.random){
     if(!room||room.id==='start'||world.riftActivatedRooms[room.id])continue;
     world.riftActivatedRooms[room.id]=true;
     if(room.id==='boss'){
-      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.min(RiftHardcore.FINAL_TIER,Math.max(0,Number(world.mapTier)||0))%BOSS_KINDS.length],roomId:'boss',random});
+      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.max(0,Number(world.mapTier)||0)%BOSS_KINDS.length],roomId:'boss',random});
       if(boss)spawned.push(boss);
       continue;
     }
