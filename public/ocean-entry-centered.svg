@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000">
+ <defs>
+  <linearGradient id="sea" x2="0" y2="1"><stop stop-color="#437f91"/><stop offset=".3" stop-color="#13798b"/><stop offset="1" stop-color="#021722"/></linearGradient>
+  <radialGradient id="shaft"><stop stop-color="#00040c"/><stop offset=".65" stop-color="#001322"/><stop offset=".86" stop-color="#074255"/><stop offset="1" stop-color="#32969c"/></radialGradient>
+  <filter id="reef"><feTurbulence baseFrequency=".013 .025" numOctaves="4" seed="12" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="42"/></filter>
+  <filter id="water"><feTurbulence baseFrequency=".025 .09" numOctaves="3" seed="8"/><feColorMatrix values="0 0 0 0 .18 0 0 0 0 .64 0 0 0 0 .68 0 0 0 .25 0"/></filter>
+  <linearGradient id="shade"><stop stop-color="#010b15" stop-opacity=".95"/><stop offset=".43" stop-color="#010b15" stop-opacity=".2"/><stop offset="1" stop-color="#010b15" stop-opacity="0"/></linearGradient>
+ </defs>
+ <path fill="url(#sea)" d="M0 0h1600v1000H0z"/>
+ <path filter="url(#water)" opacity=".6" d="M0 0h1600v1000H0z"/>
+ <g transform="translate(-240 40)" filter="url(#reef)">
+  <ellipse cx="1040" cy="530" rx="500" ry="310" fill="#1b6b74"/>
+  <ellipse cx="1040" cy="520" rx="450" ry="270" fill="#3c9294"/>
+  <ellipse cx="1040" cy="525" rx="418" ry="248" fill="#155062"/>
+  <ellipse cx="1040" cy="530" rx="397" ry="231" fill="url(#shaft)"/>
+ </g>
+ <path fill="url(#shade)" d="M0 0h1600v1000H0z"/>
+</svg>

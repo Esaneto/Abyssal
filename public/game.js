@@ -234,6 +234,7 @@ function expireSoloDepthEventIfNeeded(){
 }
 
 const SKIN_TAXONOMY=Object.freeze({
+ saltcroc:{family:'reptile',collections:['shop']},blackcaiman:{family:'reptile',collections:['shop']},
  default:{collections:['signature']},
  violet:{family:'jelly',collections:['signature']},
  solar:{family:'benthic',collections:['signature']},
@@ -280,8 +281,8 @@ const skinData=[
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
  {id:'maw',name:'Fragmento da Enguia-Pelícano',color:'#c16cff',price:22000,paid:true,shape:'maw',desc:'Fragmento da Enguia-Pelícano Colossal: preserva a enorme boca expansível e agora revela o corpo longo e serpentiforme da espécie.',ability:'Mordida de fenda: +30% de dano contra inimigos próximos e 6% de redução de dano recebido.'},
  {id:'devourer',name:'Núcleo da Lula-Colossal',color:'#39d8c4',price:35000,paid:true,shape:'devourer',desc:'Núcleo residual da Lula-Colossal do Vazio. O manto ainda produz uma corrente de sucção ao redor da criatura.',ability:'Vácuo residual: +20% de dano contra bosses, +35% de alcance magnético e, após eliminar um boss, atrai orbes por 5 segundos.'},
-{id:'saltcroc',name:'Crocodilo-Marinho',color:'#537f87',price:6500,paid:false,shape:'crocodile',desc:'Rostro longo em V, escamas dorsais e cauda muscular. Interpretação abissal do crocodilo-marinho.',ability:'Mandíbula marinha: +10% de dano a curta distância.'},
-{id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:6500,paid:false,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.',ability:'Escamas do estuário: reduz em 10% o dano recebido.'},
+{id:'saltcroc',name:'Crocodilo-Marinho',color:'#537f87',price:999,paid:true,shape:'crocodile',desc:'Rostro longo em V, escamas dorsais e cauda muscular. Interpretação abissal do crocodilo-marinho.',ability:'Mandíbula soberana: +65% de dano a curta distância e +25% contra bosses.'},
+{id:'blackcaiman',name:'Jacaré-Açu',color:'#425b68',price:999,paid:true,shape:'alligator',desc:'Focinho largo em U, crânio robusto e placas negras iluminadas pelas águas profundas.',ability:'Fortaleza negra: reduz dano em 35% e amplia a velocidade em 20%.'},
 {id:'reefshark',name:'Tubarão-branco',color:'#91c4ce',price:499,paid:true,shape:'greatwhite',desc:'Predador pelágico de dorso cinza, ventre claro, focinho cônico e cauda em crescente.',ability:'Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos que causa dano reduzido a criaturas que o atravessam. Ataques comuns causam +15% de dano contra criaturas que não são bosses.'},
 {id:'hammerhead',name:'Tubarão-martelo',color:'#73b6cd',price:499,paid:true,shape:'hammerhead',desc:'Silhueta reconhecível pelo cefalofólio largo, olhos laterais e nado de varredura.',ability:'Eletrorecepção: amplia em 50% o alcance de atração dos orbes de experiência.'},
 {id:'abysscroc',name:'Tubarão-Touro Estuarino',color:'#518d68',price:499,paid:true,shape:'alligator',desc:'Tubarão costeiro robusto inspirado no tubarão-touro, adaptado a canais rasos, estuários e água turva.',ability:'Investida Estuarina: executa uma arrancada curta com dano frontal. A pele reforçada reduz em 15% o dano recebido.'},
@@ -290,6 +291,7 @@ const skinData=[
   {id:'electriceel',name:'Raia-Elétrica Abissal',color:'#38e8ff',price:0,paid:false,shape:'eel',desc:'Raia marinha inspirada nas torpediniformes, com disco muscular e órgãos bioelétricos pulsando em ciano.',ability:'Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas.'},
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
+skinData.push(...(window.AbyssalCuratedSkins?.items||[]));
 function skinShopTaxonomy(skin){
  const meta=SKIN_TAXONOMY[skin?.id]||{};
  const family=skin?.family||meta.family||null;
@@ -2545,21 +2547,13 @@ function drawCaveRoomSignal(room,t){
 }
 function drawMapPortal(portal,t){
  if(!portal)return;
- ctx.save();ctx.translate(portal.x,portal.y);const pulse=.92+.08*Math.sin(t*.003+(portal.x+portal.y)*.002),r=portal.r*pulse;
- if(portal.type==='tier-descent'){
-  const voidGradient=ctx.createRadialGradient(0,0,r*.05,0,0,r);voidGradient.addColorStop(0,'#000006');voidGradient.addColorStop(.52,'#01040c');voidGradient.addColorStop(.73,'#071425');voidGradient.addColorStop(.88,'#17324a');voidGradient.addColorStop(1,'#02050a');
-  ctx.globalAlpha=.97;ctx.fillStyle=voidGradient;ctx.strokeStyle='#287fc2';ctx.lineWidth=5/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:22;ctx.shadowColor='#249ee8';ctx.beginPath();ctx.ellipse(0,0,r,r*.66,-.08,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-  ctx.strokeStyle='rgba(6,10,18,.96)';ctx.lineWidth=7/GAME_WORLD_ZOOM;for(let i=0;i<13;i++){const a=i*Math.PI*2/13+.18*Math.sin(i*7.1),sx=Math.cos(a)*r*.92,sy=Math.sin(a)*r*.61,reach=r*(1.18+(i%4)*.12);ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(Math.cos(a+.13*(i%2?1:-1))*reach,Math.sin(a+.13*(i%2?1:-1))*reach*.72);ctx.lineTo(Math.cos(a-.08)*reach*1.18,Math.sin(a-.08)*reach*.79);ctx.stroke();}
-  ctx.globalAlpha=.72;ctx.strokeStyle='#69c6ff';ctx.lineWidth=2.2/GAME_WORLD_ZOOM;for(let ring=0;ring<4;ring++){ctx.beginPath();ctx.ellipse(0,0,r*(.7-ring*.13),r*(.42-ring*.075),-.08,t*.001*(ring%2?1:-1)+ring*.7,t*.001*(ring%2?1:-1)+ring*.7+Math.PI*1.55);ctx.stroke();}
- }else if(portal.type==='descent'){
-  ctx.globalAlpha=.88;ctx.fillStyle='#01050c';ctx.strokeStyle='#4db8ff';ctx.lineWidth=5/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:18;ctx.shadowColor='#3caeff';ctx.beginPath();ctx.ellipse(0,0,r,r*.72,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  ctx.globalAlpha=.62;ctx.strokeStyle='#7dd6ff';for(let ring=0;ring<3;ring++){ctx.beginPath();ctx.ellipse(0,0,r*(.72-ring*.16),r*(.48-ring*.11),0,t*.0007+ring*.8,t*.0007+ring*.8+Math.PI*1.45);ctx.stroke();}
- }else{
-  const color=portal.type==='start'?'#65ff85':'#55bfff';ctx.globalAlpha=.76;ctx.strokeStyle=color;ctx.lineWidth=4/GAME_WORLD_ZOOM;ctx.shadowBlur=lowPowerRendering?0:16;ctx.shadowColor=color;
-  ctx.fillStyle='rgba(0,13,28,.72)';ctx.beginPath();ctx.ellipse(0,0,r*.8,r*.55,0,0,Math.PI*2);ctx.fill();ctx.stroke();
-  for(let arm=0;arm<5;arm++){ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=arm*Math.PI*2/5-t*.0012+q*Math.PI*4.8,rr=r*(.7*(1-q)+.06);const px=Math.cos(a)*rr,py=Math.sin(a)*rr*.68;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
- }
- ctx.restore();
+ const descending=portal.type==='tier-descent'||portal.type==='descent',r=portal.r,spin=(descending?1:-1)*t*.00065;
+ ctx.save();ctx.translate(portal.x,portal.y);ctx.scale(1,.68);
+ const g=ctx.createRadialGradient(0,0,r*.05,0,0,r*1.15);g.addColorStop(0,'#00030a');g.addColorStop(.5,'#020b19');g.addColorStop(.76,'#10354c');g.addColorStop(.89,'#36829d');g.addColorStop(1,'rgba(2,12,22,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,r*1.15,0,Math.PI*2);ctx.fill();
+ if(descending){ctx.strokeStyle='#020713';ctx.lineWidth=5/GAME_WORLD_ZOOM;for(let i=0;i<11;i++){const a=i*2.399;ctx.beginPath();ctx.moveTo(Math.cos(a)*r*.85,Math.sin(a)*r*.85);ctx.lineTo(Math.cos(a+.08)*r*1.18,Math.sin(a+.08)*r*1.18);ctx.lineTo(Math.cos(a-.1)*r*1.32,Math.sin(a-.1)*r*1.32);ctx.stroke();}}
+ for(let arm=0;arm<6;arm++){ctx.strokeStyle=arm%2?'#4fbdde':'#1f6897';ctx.lineWidth=(arm%2?1.5:3)/GAME_WORLD_ZOOM;ctx.globalAlpha=.5;ctx.beginPath();for(let i=0;i<=48;i++){const q=i/48,rr=r*(.94*(1-q)+.025),a=arm*Math.PI/3+spin+q*12;const x=Math.cos(a)*rr,y=Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();}
+ for(let i=0;i<18;i++){const q=(t*.00013+i/18)%1,rr=r*(descending?1-q:q),a=i*2.399+spin+q*8;ctx.globalAlpha=Math.sin(q*Math.PI)*.7;ctx.strokeStyle='#9eddec';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(Math.cos(a)*rr,Math.sin(a)*rr,1.5+i%3,0,Math.PI*2);ctx.stroke();}
+ ctx.globalAlpha=1;ctx.fillStyle='#00050e';ctx.beginPath();ctx.arc(0,0,r*.12,0,Math.PI*2);ctx.fill();ctx.restore();
 }
 function drawAbyssalCaveMap(t){
  const layout=activeMapLayout;if(!layout||onlineRoomMode==='pvp')return false;
@@ -2639,7 +2633,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   c.save();c.translate(Math.round(x),Math.round(y));c.rotate(Number.isFinite(angle)?angle:0);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
- const id=skin?.id||'default';
+ const id=skin?.art||skin?.id||'default';
+ if(skin?.art){c.save();const stretch=skin.id==='gharial'?1.18:skin.id==='phantomjelly'?1.25:1;c.translate(x,y);c.rotate(angle||0);c.scale(stretch,1);drawCreature(0,0,r,0,skin.color,kind,t,true,hit,c,{...skin,id:skin.art,art:null},enemyState);
+ c.strokeStyle=skin.color;c.fillStyle=skin.color;c.lineWidth=Math.max(1,r*.045);
+ if(skin.id==='nautilus'){const shell=c.createRadialGradient(0,0,0,0,0,r);shell.addColorStop(0,'#c0d6d4');shell.addColorStop(.5,skin.color);shell.addColorStop(1,'#132d40');c.fillStyle=shell;c.beginPath();c.ellipse(0,0,r,r*.9,0,0,Math.PI*2);c.fill();c.strokeStyle='#b0cfd0';c.beginPath();for(let i=0;i<90;i++){const q=i/90,a=q*15,rr=q*r*.86;i?c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr):c.moveTo(0,0);}c.stroke();}
+ if(skin.id==='dumbo')for(const side of [-1,1]){c.beginPath();c.ellipse(side*r*.8,-r*.5,r*.38,r*.6,side*.6,0,Math.PI*2);c.fill();c.stroke();}
+ if(skin.id==='blanket'){c.globalAlpha=.55;c.beginPath();c.moveTo(0,0);c.bezierCurveTo(-r*2,-r*1.8,-r*2,r*1.8,0,r*.4);c.fill();}
+ if(skin.id==='eagleray')for(let i=0;i<16;i++){const a=i*2.399;c.fillStyle='#a8c7d0';c.beginPath();c.arc(Math.cos(a)*r*.7,Math.sin(a)*r*.55,r*.035,0,Math.PI*2);c.fill();}
+ if(skin.id==='yeticrab')for(const side of [-1,1]){c.beginPath();c.moveTo(.2*r,side*.4*r);c.lineTo(r,side*r);c.lineTo(1.4*r,side*.65*r);c.stroke();for(let i=0;i<8;i++){c.beginPath();c.moveTo((.5+i*.09)*r,side*.8*r);c.lineTo((.4+i*.09)*r,side*1.12*r);c.stroke();}}
+ c.restore();return;}
  const boss=BOSS_KINDS.includes(kind);
  const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
