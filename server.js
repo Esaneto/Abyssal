@@ -604,7 +604,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
+const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','photon','photonRay','nova','echoShot']);
 function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId='',enemyLookup=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
@@ -616,7 +616,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(enemyLookup){enemy=enemyLookup.get(normalizedId)||null;if(!enemy)return reject('enemy-not-found');}
  else{idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');enemy=w.enemies[idx];}
  const now=Date.now();
- let requestedDamage=damage;
+  // Enemies remain invulnerable for the entire emergence animation.
+  if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
+  // Reject hits through solid cave walls on the authoritative server.
+  if(room.mode==='rift'&&player&&AbyssalMap.segmentWalkable&&
+     !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+     return reject('cave-wall-blocked');
+  let requestedDamage=damage;
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
@@ -1505,7 +1511,7 @@ io.on('connection', socket => {
   const now=Date.now(),volleyId=String(payload.volleyId||'').slice(0,64);
    const sameVolley=Boolean(volleyId&&volleyId===shooter.lastShotVolleyId&&now-(Number(shooter.lastShotAt)||0)<90);
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
-   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>7)return;shooter.lastShotVolleyPackets=volleyPackets;}
+   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
   const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
   if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
@@ -1543,7 +1549,15 @@ io.on('connection', socket => {
      if(pvpRockAt(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){length=Math.max(0,distance-4/WORLD_ZOOM);break;}
     }
    }
-   const ex=sx+ux*length,ey=sy+uy*length;
+   if(room.mode==='rift'){
+      const layout=WorldSimulation.mapLayoutFor(room.world);
+      for(let distance=0;distance<=length;distance+=6/WORLD_ZOOM){
+        if(!AbyssalMap.isWalkable(layout,sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
+          length=Math.max(0,distance-6/WORLD_ZOOM);break;
+        }
+      }
+    }
+    const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/shotWorldHeight,0,1);
    const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
