@@ -26,7 +26,7 @@ test('upgrade protection consumes server-earned XP credit',()=>{
  assert.match(handler,/run\.pendingUpgradeCredits<=0/);
  assert.match(handler,/run\.pendingUpgradeCredits--/);
  assert.match(server,/creditRunXp\(player\.runStats,orb\.value\)/);
- assert.match(server,/creditRunXp\(xpCollector\.runStats,pickup\.value\)/);
+ assert.match(server,/creditRunXp\(collector\.runStats,pickup\.value\)/);
 });
 
 test('dash protection requires the owned meta upgrade and exact legitimate duration',()=>{
