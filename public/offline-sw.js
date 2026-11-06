@@ -13,6 +13,7 @@ const GAME_FILES = [
   'abyssal-menu-orbit.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',
+  'offline-ui.css',
   'abyssal-ocean-cinema.svg',
   'ocean-entry.svg',
   'abyssal-tentacle-cursor.svg',
