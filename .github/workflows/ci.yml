@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check scripts/configure-android.cjs
           node --check scripts/configure-android-signing.cjs
+          node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
 
@@ -61,7 +62,7 @@ jobs:
       - name: Install server dependencies
         run: npm ci
       - name: Install Capacitor tooling
-        run: npm install --no-save --package-lock=false @capacitor/core@8 @capacitor/android@8 @capacitor/cli@8
+        run: npm install --no-save --package-lock=false @capacitor/core@8 @capacitor/android@8 @capacitor/cli@8 sharp@0.34.4
       - name: Generate Android project
         run: npx cap add android
       - name: Force API 36
@@ -79,6 +80,8 @@ jobs:
           else
             echo "Play signing secrets not configured yet; debug APK will still be built."
           fi
+      - name: Generate Android launcher icons and adaptive foreground
+        run: node scripts/build-app-icons.cjs --android
       - name: Sync game assets
         run: npx cap sync android
       - name: Build debug APK
