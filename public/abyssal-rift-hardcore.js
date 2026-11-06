@@ -287,95 +287,108 @@ function wallSeam(c,h,t,accent,s,scale=1){
  c.shadowBlur=0;c.restore();
 }
 function ventRock(c,h,s,t){
- const warm=s.phase==='warning',live=s.phase==='active';
- wallSeam(c,h,t,'#d77a45',s,.86);
+ // Volcano is not a separate boulder: it is a hot fracture INSIDE the cave wall.
+ const live=s.phase==='active',warm=s.phase==='warning';
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- const pulse=Math.sin(t*.011),intensity=live?1:warm?.24+s.progress*.65:.09;
- // Molten veins run THROUGH the wall, not around a freestanding boulder.
- c.strokeStyle='rgba(149,83,49,'+(.22+intensity*.56)+')';
- c.shadowColor='#ff9851';c.shadowBlur=warm||live?8:0;c.lineWidth=1.2+intensity*1.4;
+ const glow=live?.85:warm?.15+.54*s.progress:.06;
+ const fissure=c.createRadialGradient(-8,0,2,-9,0,65);
+ fissure.addColorStop(0,'rgba(1,5,10,.96)');
+ fissure.addColorStop(.52,'rgba(6,18,25,.66)');
+ fissure.addColorStop(1,'rgba(12,36,43,0)');
+ c.fillStyle=fissure;c.beginPath();c.ellipse(-13,0,42,32,0,0,Math.PI*2);c.fill();
+ // Black mineral cracks run out into the geology with NO enclosing silhouette.
+ c.lineWidth=3;c.lineCap='round';c.strokeStyle='rgba(1,8,14,.83)';
  for(const sign of [-1,1]){
-  c.beginPath();c.moveTo(-31,sign*22);
-  c.bezierCurveTo(-14,sign*13,4,sign*(8+pulse*2),12,sign*5);c.stroke();
+  c.beginPath();c.moveTo(-44,sign*37);c.bezierCurveTo(-31,sign*27,-9,sign*24,6,sign*11);
+  c.quadraticCurveTo(11,sign*8,17,sign*3);c.stroke();
+  c.strokeStyle='rgba(220,111,66,'+(glow*.58)+')';c.lineWidth=1.7;c.stroke();
  }
- c.shadowBlur=0;
- for(let i=0;i<5;i++){
-  const q=(i*.213+t*.0003)%1;
-  if(!warm&&!live)break;
-  paintedCircle(c,9+q*(warm?29:h.length*.9),
-    Math.sin(i*2.4+t*.006)*9*(1+q),1.5+(i%3),
-    i%2?'rgba(255,186,116,.64)':'rgba(255,132,71,.58)');
+ // An irregular slit is recessed in the wall; its edge is unoutlined.
+ c.fillStyle='rgba(0,3,9,.94)';c.beginPath();
+ c.moveTo(-17,-9);c.quadraticCurveTo(13,-20,23,-3);
+ c.lineTo(13,6);c.quadraticCurveTo(-12,17,-17,-9);c.fill();
+ if(warm||live){
+  const light=c.createRadialGradient(0,0,1,0,0,29);
+  light.addColorStop(0,'rgba(255,211,137,'+glow+')');
+  light.addColorStop(.45,'rgba(249,124,62,'+(glow*.65)+')');
+  light.addColorStop(1,'rgba(255,84,32,0)');
+  c.fillStyle=light;c.beginPath();c.ellipse(3,0,30,21,0,0,Math.PI*2);c.fill();
  }
  if(live){
-  // A narrow feathered hydrothermal flare. The translucent outer envelope
-  // conveys its hit corridor without creating a solid orange cone.
-  const length=h.length,half=h.radius*.49;
-  c.lineCap='round';
-  const flame=c.createLinearGradient(0,0,length,0);
-  flame.addColorStop(0,'rgba(255,195,126,.68)');
-  flame.addColorStop(.22,'rgba(246,126,71,.46)');
-  flame.addColorStop(.74,'rgba(199,78,51,.25)');
-  flame.addColorStop(1,'rgba(198,77,46,0)');
-  c.strokeStyle=flame;c.lineWidth=half*1.35;c.shadowColor='#d77340';c.shadowBlur=10;
-  c.beginPath();c.moveTo(13,0);
-  c.bezierCurveTo(length*.27,-6+4*pulse,length*.73,5*pulse,length,0);c.stroke();
-  c.lineWidth=half*.56;c.strokeStyle='rgba(255,181,101,.52)';c.shadowBlur=3;c.stroke();
-  c.shadowBlur=0;
-  for(let i=0;i<8;i++){
-   const q=(i*.131+t*.00042)%1,xx=length*q;
-   c.strokeStyle=i%2?'rgba(255,199,129,.6)':'rgba(246,142,69,.49)';
-   c.lineWidth=1.4+i%2;c.beginPath();
-   c.moveTo(xx,-half*(.18+.55*q));
-   c.quadraticCurveTo(xx+12,Math.sin(t*.004+i)*5,xx+19,half*(.13+.40*q));c.stroke();
+  const len=h.length,half=h.radius*.5;
+  const jet=c.createLinearGradient(0,0,len,0);
+  jet.addColorStop(0,'rgba(255,235,177,.95)');
+  jet.addColorStop(.09,'rgba(255,160,74,.86)');
+  jet.addColorStop(.53,'rgba(251,111,44,.72)');
+  jet.addColorStop(.88,'rgba(234,85,31,.59)');
+  jet.addColorStop(1,'rgba(255,162,82,.37)');
+  c.strokeStyle=jet;c.lineWidth=half*1.5;c.lineCap='round';
+  c.shadowColor='#ef6b2b';c.shadowBlur=12;c.beginPath();c.moveTo(12,0);
+  const wave=Math.sin(t*.013)*5;
+  c.bezierCurveTo(len*.25,-7+wave,len*.7,6-wave*.8,len-7,0);c.stroke();
+  c.shadowBlur=0;c.strokeStyle='rgba(255,217,153,.79)';c.lineWidth=half*.50;c.stroke();
+  // Spitting pressure jets, not a static flat orange rectangle.
+  for(let i=0;i<16;i++){
+   const q=(i*.136+t*.0006)%1,xx=14+q*(len-18);
+   const yy=Math.sin(i*2.57+t*.009)*half*(.12+.65*q);
+   c.globalAlpha=.3+.53*(1-q*.5);
+   paintedCircle(c,xx,yy,1.5+i%4,i%3?'#ffb672':'#fff0bd');
+  }
+  // Fire splashes on the far wall: particles fan out along the rock face.
+  c.globalAlpha=.8;c.lineCap='round';
+  for(let i=0;i<24;i++){
+   const a=-1.23+i/23*2.46,spread=(7+(i%7)*6)*( .64+.36*Math.sin(t*.012+i));
+   const bx=len-8,by=0,px=bx+Math.cos(a)*spread*.34,py=by+Math.sin(a)*spread;
+   c.strokeStyle=i%3?'rgba(255,162,85,.75)':'rgba(255,231,166,.78)';
+   c.lineWidth=1.3+i%3;c.beginPath();c.moveTo(bx,by);c.lineTo(px,py);c.stroke();
+   paintedCircle(c,px,py,1.5+i%3,'rgba(255,184,95,.66)');
   }
  }
  c.restore();
 }
 function poisonousAnemone(c,h,s,t){
- wallSeam(c,h,t,'#8fe58c',s,.84);
+ wallSeam(c,h,t,'#8fe58c',s,.76);
  const active=s.phase==='active',warm=s.phase==='warning';
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  const pulse=Math.sin(t*.0045);
- // Small anemone colony grown into the wall: no oval pot or disconnected leaves.
  for(let i=0;i<11;i++){
-  const side=i%2?-1:1,rank=Math.floor(i/2),len=22+rank*4;
-  const y=side*(3+rank*3),end=18+len*.7;
+  const side=i%2?-1:1,rank=Math.floor(i/2),len=18+rank*4;
+  const y=side*(3+rank*3),end=10+len*.7;
   c.beginPath();c.moveTo(-12,y*.4);
   c.bezierCurveTo(2,side*(14+rank*1.7),end*.66,side*(20+rank*3)+pulse*2,end,side*(20+rank*3)+pulse*3);
   c.lineWidth=i%3===0?2.8:2.1;c.lineCap='round';
-  c.strokeStyle=i%3===0?'rgba(111,182,132,.62)':'rgba(48,130,120,.62)';
-  c.stroke();if(warm||active){
-   c.globalAlpha=warm?.25+s.progress*.42:.68;
-   c.strokeStyle=i%3===0?'#a7ff78':'#78dba2';
-   c.lineWidth=.8;c.stroke();c.globalAlpha=1;
-  }
-  paintedCircle(c,end,side*(20+rank*3)+pulse*3,1.3+(i%2)*.4,
-   warm||active?'rgba(156,247,134,.78)':'rgba(64,142,135,.36)');
+  c.strokeStyle=i%3===0?'rgba(111,182,132,.62)':'rgba(48,130,120,.62)';c.stroke();
+  if(warm||active){c.globalAlpha=warm?.25+s.progress*.42:.68;c.strokeStyle=i%3===0?'#a7ff78':'#78dba2';c.lineWidth=.8;c.stroke();c.globalAlpha=1;}
+  paintedCircle(c,end,side*(20+rank*3)+pulse*3,1.3+(i%2)*.4,warm||active?'rgba(156,247,134,.78)':'rgba(64,142,135,.36)');
  }
  c.restore();
- if(!active)return;
- const radius=dangerRadius(h,s),coreX=h.x,coreY=h.y;
- c.save();c.globalAlpha=.9;
- const cloud=c.createRadialGradient(coreX,coreY,radius*.08,coreX,coreY,radius);
- cloud.addColorStop(0,'rgba(116,226,107,.23)');
- cloud.addColorStop(.36,'rgba(83,198,116,.16)');
- cloud.addColorStop(.77,'rgba(49,151,128,.08)');
- cloud.addColorStop(1,'rgba(45,134,127,0)');
- c.fillStyle=cloud;c.beginPath();c.arc(coreX,coreY,radius,0,Math.PI*2);c.fill();
- // Separate soft smoke ribbons and sparse Anêmona Tóxica green spores.
- for(let i=0;i<7;i++){
-  const a=i*2.399+t*.00015,rr=radius*(.18+(i%4)*.17);
-  const x=coreX+Math.cos(a)*rr,y=coreY+Math.sin(a)*rr;
-  c.globalAlpha=.12+(i%3)*.035;c.fillStyle=i%2?'#98f297':'#67bcab';
-  c.beginPath();c.ellipse(x,y,radius*.21,radius*.12,a,0,Math.PI*2);c.fill();
+ if(!active||!h.poisonRays?.length)return;
+ const ox=h.poisonOriginX,oy=h.poisonOriginY,fraction=.04+.96*clamp(s.progress,0,1);
+ const radius=(h.maxReach||320)*fraction;
+ c.save();
+ // Fill the entire open, connected water fan. The far contour follows actual
+ // raycasts against cave walls, so no cloud is painted through solid rock.
+ c.beginPath();c.moveTo(ox,oy);
+ for(const ray of h.poisonRays){
+  const len=ray.length*fraction;
+  c.lineTo(ox+Math.cos(ray.angle)*len,oy+Math.sin(ray.angle)*len);
  }
- c.globalAlpha=.35;c.lineWidth=1.2;c.strokeStyle='#a7ff78';
- c.beginPath();c.arc(coreX,coreY,radius*.75,-2.8,.54);c.stroke();
- for(let i=0;i<15;i++){
-  const a=i*2.399+t*.00023,q=.16+(i%6)*.13;
-  c.globalAlpha=.28+(i%4)*.09;
-  paintedCircle(c,coreX+Math.cos(a)*radius*q,coreY+Math.sin(a)*radius*q,
-    1.1+(i%3)*.5,i%3?'#81de83':'#d1ff9a');
+ c.closePath();
+ const cloud=c.createRadialGradient(ox,oy,3,ox,oy,Math.max(8,radius));
+ cloud.addColorStop(0,'rgba(116,226,107,.29)');
+ cloud.addColorStop(.33,'rgba(83,198,116,.22)');
+ cloud.addColorStop(.76,'rgba(49,151,128,.17)');
+ cloud.addColorStop(1,'rgba(45,134,127,.08)');
+ c.fillStyle=cloud;c.fill();
+ // A visible irregular advancing frontier travels until it reaches stone.
+ c.strokeStyle='rgba(145,244,122,.30)';c.lineWidth=1.9;c.stroke();
+ // Anêmona Tóxica spores and translucent smoke, strictly inside the traced fan.
+ for(let i=0;i<30;i++){
+  const ray=h.poisonRays[(i*11)%h.poisonRays.length];
+  const q=.13+((i*7)%17)/19,reach=ray.length*fraction*q;
+  const x=ox+Math.cos(ray.angle)*reach,y=oy+Math.sin(ray.angle)*reach;
+  c.globalAlpha=.16+(i%5)*.08;c.fillStyle=i%3?'#75db95':'#c3fc8c';
+  c.beginPath();c.ellipse(x,y,1.5+(i%4),1+(i%3),ray.angle,0,Math.PI*2);c.fill();
  }
  c.restore();
 }
