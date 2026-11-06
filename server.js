@@ -968,7 +968,7 @@ function tickRoom(room, now) {
   if(!event||!event.abilityId)continue;
   io.to(channelFor(room)).emit('boss-ability-visual',{
    bossId:event.bossId,kind:event.kind,abilityId:event.abilityId,
-   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/WORLD_HEIGHT,
+   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/roomWorldHeight(room),
    angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now,
     shape:event.shape||null,length:Number(event.length)||0,issuedAt:Number(event.issuedAt)||0,hitAt:Number(event.hitAt)||0,attackId:event.id||null,damage:Number(event.damage)||0
   });
