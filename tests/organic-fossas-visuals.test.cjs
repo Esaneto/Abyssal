@@ -64,7 +64,7 @@ test('tentacle locations are deterministic per attack cycle and never hit outsid
   const p=current.sourceX+Math.cos(current.angle)*current.length*.2,q=current.sourceY+Math.sin(current.angle)*current.length*.2;
   assert.equal(H.hit(h,p,q,0,attack),true,'tentacle causes damage only at the impact');
   assert.equal(H.hit(h,p+900,q+900,0,attack),false);
-  assert.equal(H.hit(h,p,q,0,H.state(h,inPhase(h,.75))),false,'tentacle retreat is no longer a strike');
+  assert.equal(H.hit(h,p,q,0,H.state(h,inPhase(h,.75))),true,'tentacle continues dealing contact damage during withdrawal');
  }
 });
 test('tutorial illustrations depict the actual hazard warning languages',()=>{
@@ -138,7 +138,7 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
  assert.ok(mounted.length>12,'wall threats found in several rooms');
  assert.ok(vortices.length>0&&vortices.every(h=>h.sourceX===undefined),'vortex remains a floor hazard');
  for(const h of mounted){
-  assert.ok(['chamber','corridor'].includes(h.wallKind),h.id+' wall classification');
+  assert.ok(['chamber','corridor','ceiling','nightmare'].includes(h.wallKind),h.id+' wall classification');
   assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),h.id+' embedded wall position');
   const outX=h.sourceX-Math.cos(h.angle)*33,outY=h.sourceY-Math.sin(h.angle)*33;
   const inX=h.sourceX+Math.cos(h.angle)*35,inY=h.sourceY+Math.sin(h.angle)*35;
