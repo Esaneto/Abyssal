@@ -30,7 +30,8 @@ test('every skin has distinct ability copy and paid skins use hosted checkout', 
   assert.ok(start >= 0 && end > start);
   const source = game.slice(start, end);
   const skins = [...source.matchAll(/\{id:'([^']+)'[^}]*?ability:'([^']+)'[^}]*\}/gs)];
-  assert.equal(skins.length, 27, 'the catalog includes the original skins, bosses, four predatory skins, greensnake, and electriceel exclusives');
+  assert.equal(skins.length, 28, 'catalog includes the original species plus the new final guardian relic skin');
+  assert.ok(skins.some(match=>match[1]==='riftSmileRelic'));
   for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
   assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
   assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
@@ -87,7 +88,8 @@ test('Kraken identity is consistently glass-blue and no longer uses the smiling 
   const game = read('public/game.js');
   assert.match(game, /id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7'/);
   assert.match(game, /id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7'/);
-  assert.doesNotMatch(game, /Sorriso do Abismo|#52c8b5/);
+  assert.doesNotMatch(game, /#52c8b5/);
+  assert.match(game, /riftSmile:'O SORRISO DO ABISMO'/,'the smiling boss is a separate purple final guardian, never the original glass-blue Kraken');
 });
 
 test('shop redemption delegates rewards to the authenticated server', () => {
