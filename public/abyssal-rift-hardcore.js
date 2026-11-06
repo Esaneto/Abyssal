@@ -529,19 +529,44 @@ function supplementalTrap(c,h,s,t){
  wallSeam(c,h,t,color,s,.84);
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  if(h.type==='spikes'){
-  // Fossilized coral is a woven, low-profile growth in the wall.
-  for(let i=0;i<9;i++){
-   const side=i%2?-1:1,rank=Math.floor(i/2),out=16+rank*9,spread=side*(7+rank*6);
-   c.strokeStyle=live?'rgba(176,212,204,.86)':'rgba(60,121,127,.52)';
-   c.lineWidth=1.8+(i%3)*.5;c.lineCap='round';c.beginPath();
-   c.moveTo(-6,spread*.45);c.quadraticCurveTo(out*.6,spread*.4,out,spread*(live?1.4:warm?1.1:1));c.stroke();
-   c.strokeStyle=live?'rgba(173,227,212,.59)':'rgba(61,121,120,.42)';
-   c.beginPath();c.moveTo(out-7,spread*.73);
-   c.lineTo(out+(live?22:warm?10:2),spread*(live?1.52:1.15));c.stroke();
+  // Wall-to-wall fossil spikes: fast lunge, then retreat slowly.
+  const reach=extension(h,s),long=h.length*reach;
+  // Dormant wall hole and serrated roots remain small and subtle.
+  c.strokeStyle='rgba(61,114,123,.48)';c.lineCap='round';
+  for(let i=0;i<5;i++){
+   const y=(i-2)*10;c.lineWidth=1.8;c.beginPath();c.moveTo(-16,y);
+   c.lineTo(10,y+(i%2?3:-3));c.stroke();
   }
-  if(warm||live){
-   c.globalAlpha=live?.37:.11+.15*s.progress;c.fillStyle='#b0dcd3';
-   c.beginPath();c.ellipse(37,0,h.radius*.64,h.radius*.58,0,0,Math.PI*2);c.fill();
+  if(s.phase==='warning'){
+   c.strokeStyle='rgba(153,200,194,.48)';c.lineWidth=1.5;
+   for(let i=-2;i<=2;i++){const y=i*10;c.beginPath();c.moveTo(0,y);
+    c.lineTo(22+s.progress*16,y+Math.sin(i)*3);c.stroke();}
+  }
+  if(reach>.01&&s.phase==='active'){
+   // Three parallel sharp ribs share one anchored body and one collision lane.
+   for(let row=-1;row<=1;row++){
+    const off=row*14,tip=Math.max(1,long-(Math.abs(row)*12));
+    const g=c.createLinearGradient(0,off,tip,off);
+    g.addColorStop(0,'rgba(34,74,81,.95)');
+    g.addColorStop(.55,'rgba(81,148,151,.87)');
+    g.addColorStop(1,'rgba(193,222,212,.89)');
+    c.fillStyle=g;c.strokeStyle='rgba(127,196,192,.66)';c.lineWidth=1.4;
+    c.beginPath();c.moveTo(-7,off-5);
+    c.lineTo(tip*.64,off-4);c.lineTo(tip,off);
+    c.lineTo(tip*.64,off+4);c.lineTo(-7,off+5);
+    c.closePath();c.fill();c.stroke();
+    for(let i=1;i<=Math.floor(12*reach);i++){
+     const x=tip*i/13,y=off,spur=7+3*(i%3);
+     for(const side of [-1,1]){
+      c.beginPath();c.moveTo(x-4,y);c.lineTo(x-13,y+side*spur);
+      c.lineTo(x+4,y+side*.5);c.closePath();
+      c.fillStyle='rgba(102,159,157,.62)';c.fill();
+     }
+    }
+   }
+   c.shadowBlur=5;c.shadowColor='#8ed4cb';
+   c.lineWidth=2;c.strokeStyle='rgba(200,234,227,.51)';
+   c.beginPath();c.moveTo(5,0);c.lineTo(long,0);c.stroke();c.shadowBlur=0;
   }
  }else if(h.type==='pressure'){
   // Pressure bulges out of a veined vent, not a floor-sized blue indicator.
@@ -607,8 +632,15 @@ function supplementalTrap(c,h,s,t){
 function draw(c,hazards,seconds,view){
  if(!Array.isArray(hazards))return;
  for(const original of hazards){
-  if(view&&(original.x<view.x-440||original.x>view.x+view.w+440||
-    original.y<view.y-440||original.y>view.y+view.h+440))continue;
+  if(view){
+   const extent=Math.max(original.maxReach||0,original.length||0,original.radius||0,160);
+   const anchorX=Number.isFinite(original.sourceX)?original.sourceX:original.x;
+   const anchorY=Number.isFinite(original.sourceY)?original.sourceY:original.y;
+   const endX=original.x,endY=original.y;
+   const xmin=Math.min(anchorX,endX)-extent,xmax=Math.max(anchorX,endX)+extent;
+   const ymin=Math.min(anchorY,endY)-extent,ymax=Math.max(anchorY,endY)+extent;
+   if(xmax<view.x||xmin>view.x+view.w||ymax<view.y||ymin>view.y+view.h)continue;
+  }
   const s=state(original,seconds),h=original;
   if(h.type==='volcano')ventRock(c,h,s,seconds*1000);
   else if(h.type==='fumarole')poisonousAnemone(c,h,s,seconds*1000);
