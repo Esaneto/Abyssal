@@ -1,4 +1,5 @@
 const { app, BrowserWindow, shell, session } = require('electron');
+const path = require('node:path');
 
 const GAME_URL = 'https://abyssal-ej5j.onrender.com';
 const GAME_ORIGIN = new URL(GAME_URL).origin;
@@ -20,6 +21,7 @@ function createWindow() {
     minWidth: 960,
     minHeight: 600,
     backgroundColor: '#061522',
+    icon: path.join(__dirname, 'build', 'icon.ico'),
     autoHideMenuBar: true,
     show: false,
     useContentSize: true,

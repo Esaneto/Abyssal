@@ -17,10 +17,16 @@
   "theme_color": "#061522",
   "icons": [
     {
-      "src": "/abyssal-icon.svg",
+      "src": "/abyssal-icon.svg?v=5",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/abyssal-icon.svg?v=5",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ],
   "categories": [

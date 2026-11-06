@@ -20,6 +20,10 @@ jobs:
         run: |
           npm ci
           npm test
+      - name: Install pinned icon renderer
+        run: npm install --no-save --package-lock=false sharp@0.34.4
+      - name: Create Windows application, shortcut and installer icon
+        run: node scripts/build-app-icons.cjs --desktop
       - name: Install desktop dependencies
         working-directory: desktop
         run: npm install
