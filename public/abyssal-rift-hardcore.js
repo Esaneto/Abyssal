@@ -351,100 +351,140 @@ function deepCurrentPit(c,h,s,t){
  c.restore();
 }
 function tentacleTrap(c,original,s,t){
- const h=hazardAtCycle(original,s.cycle);
- c.save();
- c.strokeStyle='rgba(110,66,130,.65)';c.lineWidth=11;c.lineCap='round';
- c.beginPath();c.moveTo(h.x-20,h.y-16);c.lineTo(h.x+24,h.y+15);c.stroke();
+ const h=hazardAtCycle(original,s.cycle),length=h.length||240,r=h.radius;
+ wallSeam(c,h,t,'#a679c3',s,1.0);
+ if(!Number.isFinite(h.sourceX))return;
+ c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  if(s.phase==='warning'||s.phase==='active'){
-  // This is the ONLY hazard with a red translucent attack footprint.
-  c.save();c.translate(h.x,h.y);c.rotate(h.angle);c.beginPath();
-  c.roundRect(-h.length*.45,-h.radius*.5,h.length,h.radius,h.radius*.42);
-  c.fillStyle=s.phase==='warning'?'rgba(255,34,60,'+(.18+.18*s.progress)+')':'rgba(211,73,128,.35)';
-  c.strokeStyle=s.phase==='warning'?'rgba(255,62,79,.98)':'#e3a1f9';
-  c.lineWidth=s.phase==='warning'?4:3;c.shadowColor='#fc395b';c.shadowBlur=13;c.fill();c.stroke();c.restore();
+  // Only tentacles use the red footprint. It begins at the fissure and
+  // precisely shares the same axis and width as the server-side hit segment.
+  c.beginPath();c.roundRect(0,-r*.5,length,r,Math.max(10,r*.30));
+  c.fillStyle=s.phase==='warning'?'rgba(255,34,60,'+(.09+.13*s.progress)+')':'rgba(211,73,128,.24)';
+  c.strokeStyle=s.phase==='warning'?'rgba(255,62,79,.88)':'rgba(233,152,201,.64)';
+  c.lineWidth=s.phase==='warning'?2.2:1.5;
+  c.shadowColor='#ff4665';c.shadowBlur=6;c.fill();c.stroke();c.shadowBlur=0;
  }
  if(s.phase==='active'){
-  c.save();c.translate(h.x,h.y);c.rotate(h.angle);
-  c.strokeStyle='#4c1b6e';c.lineWidth=h.radius*.70;c.lineCap='round';c.shadowColor='#9d4ac5';c.shadowBlur=14;
-  c.beginPath();c.moveTo(-h.length*.45,0);c.bezierCurveTo(-h.length*.08,-6,h.length*.3,8,h.length*.55,0);c.stroke();
-  c.strokeStyle='#bc77e9';c.lineWidth=h.radius*.29;c.shadowBlur=0;c.stroke();
-  for(let i=0;i<12;i++){
-   const q=i/12,xx=(q-.45)*h.length,yy=Math.sin(i*.5+t*.002)*h.radius*.16;
-   paintedCircle(c,xx,yy,3+i%3,'rgba(226,175,246,.73)');
-  }c.restore();
+  // A translucent serpent arm slides out of the crack. Tip stays inside the mark.
+  const sway=Math.sin(t*.007)*r*.10;
+  c.lineCap='round';c.strokeStyle='rgba(71,25,97,.89)';c.lineWidth=r*.53;
+  c.shadowColor='#a35cbe';c.shadowBlur=10;
+  c.beginPath();c.moveTo(0,0);c.bezierCurveTo(length*.3,sway,length*.63,-sway*.6,length-7,0);c.stroke();
+  c.strokeStyle='rgba(174,117,204,.76)';c.lineWidth=r*.17;c.shadowBlur=2;c.stroke();c.shadowBlur=0;
+  for(let i=1;i<=11;i++){
+   const xx=length*i/12,yy=Math.sin(i*.6+t*.006)*r*.08;
+   c.fillStyle='rgba(197,162,214,.56)';c.beginPath();c.ellipse(xx,yy,2.1,1.5,0,0,Math.PI*2);c.fill();
+  }
  }
  c.restore();
 }
 function rockfallTrap(c,h,s,t){
+ wallSeam(c,h,t,'#7a9da8',s,.92);
  if(s.phase==='idle')return;
- c.save();const x=h.x,y=h.y,r=h.radius;
- const n=s.phase==='active'?7:10;
- for(let i=0;i<n;i++){
-  const a=i*2.399+Math.sin(t*.001+i)*.1,rr=r*(.2+.58*((i*3%11)/11));
-  const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;
-  const size=s.phase==='active'?(16+i%4*4):(3+i%4*2);
-  c.globalAlpha=s.phase==='active'?.95:.35+s.progress*.4;
-  c.fillStyle=s.phase==='active'?'#55606b':'#8c8b86';c.strokeStyle='#9fa0a0';c.lineWidth=2;
-  c.beginPath();c.moveTo(px-size,py);c.lineTo(px-size*.45,py-size);
-  c.lineTo(px+size*.43,py-size*.68);c.lineTo(px+size,py+size*.38);
-  c.lineTo(px-size*.2,py+size*.76);c.closePath();c.fill();c.stroke();
- }
+ const x=h.x,y=h.y,r=h.radius;
+ c.save();
  if(s.phase==='warning'){
-  c.strokeStyle='rgba(183,187,179,.5)';c.lineWidth=1.7;
-  for(let i=0;i<5;i++){const a=i*2.4;c.beginPath();c.moveTo(x+Math.cos(a)*r*.2,y+Math.sin(a)*r*.2);
-   c.lineTo(x+Math.cos(a+.4)*r*.62,y+Math.sin(a+.4)*r*.64);c.stroke();}
+  // Fine loose silt and hairline cracks in the wall warn of rock fragments.
+  c.globalAlpha=.24+.32*s.progress;
+  for(let i=0;i<11;i++){
+   const a=i*2.399,rr=r*(.2+.65*((i*3%11)/11));
+   paintedCircle(c,x+Math.cos(a)*rr,y+Math.sin(a)*rr,
+    1.5+(i%3)*.9,'#79989e');
+  }
+ }else{
+  for(let i=0;i<8;i++){
+   const a=i*2.399+t*.0002,rr=r*(.16+.63*(i%7)/7);
+   const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;
+   const size=5+(i%4)*3;
+   c.globalAlpha=.48+(i%3)*.12;c.fillStyle=i%3?'#1b3643':'#294c57';
+   c.strokeStyle='rgba(95,151,163,.58)';c.lineWidth=1.1;
+   c.beginPath();c.moveTo(px-size,py);c.lineTo(px-size*.3,py-size*.7);
+   c.lineTo(px+size*.55,py-size*.35);c.lineTo(px+size*.9,py+size*.44);
+   c.lineTo(px-size*.35,py+size*.7);c.closePath();c.fill();c.stroke();
+  }
  }
  c.restore();
 }
 function supplementalTrap(c,h,s,t){
- const x=h.x,y=h.y,r=h.radius,live=s.phase==='active',warning=s.phase==='warning';
- c.save();
+ if(!Number.isFinite(h.sourceX))return;
+ const warm=s.phase==='warning',live=s.phase==='active';
+ const color=h.type==='spikes'?'#8caaa9':h.type==='pressure'?'#74bfd5':
+   h.type==='electric'?'#80d6dc':'#80d5c0';
+ wallSeam(c,h,t,color,s,.84);
+ c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  if(h.type==='spikes'){
-  // Fossilized coral colony grows out of floor cracks.
-  c.strokeStyle='#526367';c.lineWidth=2;
-  for(let i=0;i<10;i++){
-   const a=i*2.399,rr=r*(.2+.6*(i%5)/5);
-   c.beginPath();c.moveTo(x,y);c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);c.stroke();
-   const height=live?22:warning?6+12*s.progress:4,px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;
-   c.fillStyle=live?'#bd9aab':'#6c8184';c.strokeStyle=live?'#e5bacb':'#819c9b';
-   c.beginPath();c.moveTo(px-8,py+5);c.lineTo(px,py-height);c.lineTo(px+8,py+5);c.closePath();c.fill();c.stroke();
+  // Fossilized coral is a woven, low-profile growth in the wall.
+  for(let i=0;i<9;i++){
+   const side=i%2?-1:1,rank=Math.floor(i/2),out=16+rank*9,spread=side*(7+rank*6);
+   c.strokeStyle=live?'rgba(176,212,204,.86)':'rgba(60,121,127,.52)';
+   c.lineWidth=1.8+(i%3)*.5;c.lineCap='round';c.beginPath();
+   c.moveTo(-6,spread*.45);c.quadraticCurveTo(out*.6,spread*.4,out,spread*(live?1.4:warm?1.1:1));c.stroke();
+   c.strokeStyle=live?'rgba(173,227,212,.59)':'rgba(61,121,120,.42)';
+   c.beginPath();c.moveTo(out-7,spread*.73);
+   c.lineTo(out+(live?22:warm?10:2),spread*(live?1.52:1.15));c.stroke();
+  }
+  if(warm||live){
+   c.globalAlpha=live?.37:.11+.15*s.progress;c.fillStyle='#b0dcd3';
+   c.beginPath();c.ellipse(37,0,h.radius*.64,h.radius*.58,0,0,Math.PI*2);c.fill();
   }
  }else if(h.type==='pressure'){
-  if(s.phase==='idle'){c.globalAlpha=.14;paintedCircle(c,x,y,r*.28,'#74a7c5');}
-  else{
-   c.strokeStyle=live?'rgba(206,232,255,.92)':'rgba(139,186,230,.53)';
-   c.lineWidth=live?3:2;
-   for(let i=0;i<4;i++){let rr=r*(live?(1-(i+s.progress*.8)%4/4):.22+i*.18);
-    c.beginPath();c.ellipse(x,y,rr,rr*.88,0,0,Math.PI*2);c.stroke();}
-   c.fillStyle='rgba(103,164,218,'+(live?.17:.07)+')';
-   c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
+  // Pressure bulges out of a veined vent, not a floor-sized blue indicator.
+  for(let i=0;i<6;i++){
+   const a=-1.15+i*.46,xx=18+Math.cos(a)*19,yy=Math.sin(a)*27;
+   c.strokeStyle='rgba(74,144,161,.37)';c.lineWidth=2;
+   c.beginPath();c.moveTo(-5,yy*.3);c.quadraticCurveTo(9,yy*.6,xx,yy);c.stroke();
+  }
+  if(warm||live){
+   c.save();c.globalAlpha=live?.4:.18+.1*s.progress;
+   c.lineWidth=live?2.4:1.1;c.strokeStyle=live?'#b1e3ef':'#7faebc';
+   for(let i=0;i<3;i++){
+    const rr=h.radius*(.26+i*.2);
+    c.beginPath();c.arc(h.length*.52,0,rr,-Math.PI*.56,Math.PI*.56);c.stroke();
+   }
+   c.restore();
   }
  }else if(h.type==='lure'){
-  const p=.5+.5*Math.sin(t*.005),shine=live?.12:.6+p*.23;
-  c.shadowBlur=15;c.shadowColor='#8ef5fc';
-  paintedCircle(c,x,y,4+p*4,'rgba(196,255,243,'+shine+')');
+  // A little anemone-like angler lure projecting from a crevice.
+  const pulse=Math.sin(t*.0043),px=24+Math.sin(t*.0018)*3,py=-15+pulse*4;
+  c.lineCap='round';c.strokeStyle='rgba(74,152,155,.55)';c.lineWidth=2;
+  c.beginPath();c.moveTo(-8,0);c.quadraticCurveTo(16,-34,px,py);c.stroke();
+  c.shadowColor='#8de5d6';c.shadowBlur=warm?12:6;
+  paintedCircle(c,px,py,3.2,live?'rgba(124,225,204,.1)':'rgba(127,229,212,.76)');
   c.shadowBlur=0;
-  if(warning){c.strokeStyle='rgba(133,244,252,.56)';c.lineWidth=2;
-   c.beginPath();c.arc(x,y,18+s.progress*32,0,Math.PI*2);c.stroke();}
+  if(warm){
+   c.globalAlpha=.4;c.strokeStyle='#8de5d6';c.lineWidth=1;
+   c.beginPath();c.arc(px,py,13+s.progress*17,0,Math.PI*2);c.stroke();
+  }
   if(live){
-   const gr=c.createRadialGradient(x,y,4,x,y,r);
-   gr.addColorStop(0,'rgba(1,4,16,.93)');gr.addColorStop(.65,'rgba(13,20,46,.65)');gr.addColorStop(1,'rgba(8,22,45,0)');
-   c.fillStyle=gr;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();
-   c.strokeStyle='#a8daef';c.lineWidth=3;
-   for(let i=0;i<10;i++){const a=i*Math.PI/5;let sx=x+Math.cos(a)*r*.75,sy=y+Math.sin(a)*r*.75;
-    c.beginPath();c.moveTo(sx,sy);c.lineTo(x+Math.cos(a+.2)*r*.38,y+Math.sin(a+.2)*r*.38);c.stroke();}
+   const core=c.createRadialGradient(h.length*.5,0,3,h.length*.5,0,h.radius);
+   core.addColorStop(0,'rgba(2,6,17,.66)');
+   core.addColorStop(.55,'rgba(23,57,68,.25)');
+   core.addColorStop(1,'rgba(4,23,30,0)');
+   c.fillStyle=core;c.beginPath();c.arc(h.length*.5,0,h.radius,0,Math.PI*2);c.fill();
+   c.globalAlpha=.48;c.strokeStyle='#91c0c5';c.lineWidth=1.6;
+   for(let i=0;i<6;i++){
+    const a=-1.2+i*.48;
+    c.beginPath();c.moveTo(18,Math.sin(a)*9);
+    c.quadraticCurveTo(45,Math.sin(a)*29,62,Math.sin(a)*41);c.stroke();
+   }
   }
  }else if(h.type==='electric'){
-  const a=h.angle,l=h.length;
-  for(const dir of [-1,1]){const sx=x+Math.cos(a)*l*.45*dir,sy=y+Math.sin(a)*l*.45*dir;
-   c.fillStyle='#1a3d4b';c.strokeStyle='#438896';c.lineWidth=2;
-   c.beginPath();c.moveTo(sx-16,sy+11);c.lineTo(sx,sy-20);c.lineTo(sx+15,sy+13);c.closePath();c.fill();c.stroke();}
-  if(warning||live){c.save();c.translate(x,y);c.rotate(a);
-   c.lineCap='round';c.strokeStyle=live?'#cbf9ff':'rgba(90,223,238,.56)';c.lineWidth=live?4:1.8;
-   c.beginPath();for(let i=0;i<=15;i++){
-    const q=i/15,bend=Math.sin(t*.019+i*2.24)*h.radius*(live?.34:.10)*(1-Math.abs(q-.5));
-    const px=(q-.45)*l;if(!i)c.moveTo(px,bend);else c.lineTo(px,bend);
-   }c.stroke();c.restore();}
+  // Thin bioluminescent filaments on a fissure rather than two loose pylons.
+  for(let i=0;i<5;i++){
+   const side=i%2?-1:1,out=15+i*3,dy=side*(7+i*5);
+   c.strokeStyle='rgba(68,146,155,.46)';c.lineWidth=1.4;
+   c.beginPath();c.moveTo(-8,dy*.6);c.quadraticCurveTo(out*.35,dy*.8,out,dy);c.stroke();
+  }
+  if(warm||live){
+   const len=h.length;
+   c.strokeStyle=live?'rgba(182,240,240,.82)':'rgba(94,180,195,.44)';
+   c.lineWidth=live?2.4:1.1;c.lineCap='round';
+   c.shadowColor='#8bddde';c.shadowBlur=live?11:3;
+   c.beginPath();for(let i=0;i<=16;i++){
+    const q=i/16,bend=Math.sin(t*.012+i*2.47)*h.radius*(live?.25:.08)*(1-Math.abs(q-.5));
+    if(i===0)c.moveTo(q*len,bend);else c.lineTo(q*len,bend);
+   }c.stroke();c.shadowBlur=0;
+  }
  }
  c.restore();
 }
