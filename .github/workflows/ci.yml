@@ -97,7 +97,7 @@ jobs:
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
-      - name: Verify Android APK has the Abyssal native launcher icon
+      - name: Verify Android APK embeds the native anchor launcher
         shell: bash
         run: |
           set -euo pipefail
@@ -105,89 +105,14 @@ jobs:
           AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
           test -x "$AAPT"
           "$AAPT" dump badging "$APK" > android-apk-badging.txt
-          grep -E '^application(-icon-[0-9]+)?:' android-apk-badging.txt
           grep -q 'application-icon-' android-apk-badging.txt
-          unzip -Z1 "$APK" | grep -q 'ic_launcher_round'
-          unzip -Z1 "$APK" | grep -q 'ic_launcher_foreground'
-          ICON_PATH=$(unzip -Z1 "$APK" | grep -E 'res/mipmap-xxhdpi(-v4)?/ic_launcher\.png
-        if: env.ANDROID_KEYSTORE_BASE64 == ''
-        working-directory: android
-        run: ./gradlew bundleRelease
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: abyssal-android-api36-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 3
-      - name: Upload unsigned release AAB validation artifact
-        if: env.ANDROID_KEYSTORE_BASE64 == ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: abyssal-play-release-aab-unsigned
-          path: android/app/build/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
-          retention-days: 3
-      - name: Prepare Play upload signing
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
-        shell: bash
-        run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/abyssal-upload.jks
-      - name: Build signed Play release AAB
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
-        working-directory: android
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ABYSSAL_KEYSTORE_PATH: abyssal-upload.jks
-          ABYSSAL_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ABYSSAL_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ABYSSAL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease
-      - name: Upload signed Play AAB
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: abyssal-play-release-aab
-          path: android/app/build/outputs/bundle/release/app-release.aab
-          if-no-files-found: error
-          retention-days: 3
-      - name: Preserve Android build metadata
-        run: |
-          echo "commit=$GITHUB_SHA" > android-build.txt
-          echo "targetSdk=36" >> android-build.txt
-          echo "artifact=abyssal-android-api36-debug" >> android-build.txt
-      - name: Upload build metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: abyssal-android-build-metadata
-          path: android-build.txt
-      - name: Promote validated APK to stable download release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
-          gh release upload downloads-1 Abyssal-Android.apk --clobber
- | head -1)
-          if [ -z "$ICON_PATH" ]; then
-            echo "Android APK is missing the actual density-specific anchor PNG" >&2
-            exit 1
-          fi
+          unzip -Z1 "$APK" > /tmp/abyssal-apk-files.txt
+          grep -q 'ic_launcher_round' /tmp/abyssal-apk-files.txt
+          grep -q 'ic_launcher_foreground' /tmp/abyssal-apk-files.txt
+          ICON_PATH=$(grep -E "res/mipmap-xxhdpi(-v4)?/ic_launcher[.]png$" /tmp/abyssal-apk-files.txt | head -1)
+          if [ -z "$ICON_PATH" ]; then echo "Missing native APK launcher PNG" >&2; exit 1; fi
           unzip -p "$APK" "$ICON_PATH" > /tmp/abyssal-apk-launcher.png
-          node - <<'NODE'
-          const sharp=require('sharp');
-          sharp('/tmp/abyssal-apk-launcher.png').ensureAlpha().raw()
-            .toBuffer({resolveWithObject:true}).then(({data,info})=>{
-              let violet=0,metallic=0;
-              for(let i=0;i<data.length;i+=info.channels){
-                const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
-                if(a<96)continue;
-                if(r>75&&b>95&&r>g*1.22&&b>g*1.25)violet++;
-                if(r>130&&g>135&&b>145&&Math.abs(r-g)<65)metallic++;
-              }
-              console.log('Embedded Android launcher pixels:',{violet,metallic});
-              if(violet<20||metallic<30)throw Error('Android APK launcher lacks visible purple tentacles or metallic anchor');
-            }).catch(err=>{console.error(err);process.exitCode=1;});
-          NODE
+          node scripts/check-icon-pixels.cjs /tmp/abyssal-apk-launcher.png
       - name: Validate unsigned release AAB
         if: env.ANDROID_KEYSTORE_BASE64 == ''
         working-directory: android
