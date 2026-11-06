@@ -1503,6 +1503,8 @@ function respawnSoloRiftCheckpoint(){
  if(!player||!activeMapLayout||!RIFT_HARDCORE)return;
  const cp=RIFT_HARDCORE.checkpoint(activeMapLayout,player.x,player.y,soloRiftCheckpointRoomId);
  const room=activeMapLayout.rooms.find(r=>r.id===cp.roomId);
+ if(cp.roomId==='boss')for(const boss of enemies)if(boss.kind===RIFT_HARDCORE.FINAL_KIND&&boss.hp>0){boss.hp=boss.maxHp;boss.riftPendingAttacks=[];boss.riftNextAttackAt=0;}
+ riftBossMarks=[];
  const safe=ABYSSAL_MAP.isWalkable(activeMapLayout,cp.x,cp.y,player.r)?cp:{x:room?.x??cp.x,y:(room?.y??cp.y)-Math.min(85,Number(room?.ry)||85)};
  player.x=safe.x;player.y=safe.y;player.trail.length=0;hp=maxHp;
  player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
