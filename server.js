@@ -162,9 +162,12 @@ function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
 const TITLE_DEFINITIONS=[
-  {id:'abyss-drifter',kind:'starter',required:0},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'abyss-drifter',kind:'starter',required:0},{id:'sonar-novice',kind:'kills',required:15},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'lantern-hunter',kind:'kills',required:500},{id:'hadal-executioner',kind:'kills',required:2500},
   {id:'current-hunter',kind:'kills',required:250},{id:'pelagic-executioner',kind:'kills',required:1000},
-  {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50},
+  {id:'first-predator',kind:'bosses',required:3},{id:'leviathan-hunter',kind:'bosses',required:10},{id:'abyss-stalker',kind:'bosses',required:25},{id:'sovereign-abyss',kind:'bosses',required:50},{id:'titan-bane',kind:'bosses',required:100},
+  {id:'cycle-pioneer',kind:'firstProgressionClear',required:1},{id:'rift-cartographer',kind:'riftBossesDefeated',required:3},{id:'hadal-navigator',kind:'riftBossesDefeated',required:12},
+  {id:'veteran-diver',kind:'runsCompleted',required:10},{id:'eternal-explorer',kind:'runsCompleted',required:50},
   {id:'shoal-founder',kind:'cardumesCreated',required:1},
   {id:'supporter-of-the-depths',kind:'likesGiven',required:25},
   {id:'abyssal-famous',kind:'likesReceived',required:10},
@@ -175,7 +178,7 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
@@ -531,14 +534,44 @@ function scheduleUnjoinedRoomExpiry(room,delay=30000){
  },delay);
  room.emptyRoomTimer.unref?.();
 }
+const FIRST_PROGRESSION_REWARD_COINS=50000;
+function grantFirstProgressionReward(user){
+ if(!user||user.firstProgressionRewardClaimed===true)return false;
+ user.firstProgressionRewardClaimed=true;
+ user.coins=(Number(user.coins)||0)+FIRST_PROGRESSION_REWARD_COINS;
+ user.titleStats ||= {};
+ user.titleStats.firstProgressionClear=1;
+ return true;
+}
+function grantFinalConquest(user){
+ if(!user)return false;
+ user.ownedSkins=Array.isArray(user.ownedSkins)?user.ownedSkins:['default'];
+ if(user.ownedSkins.includes('greensnake')&&user.titleStats?.conqueror)return false;
+ if(!user.ownedSkins.includes('greensnake'))user.ownedSkins.push('greensnake');
+ user.titleStats ||= {};user.titleStats.conqueror=1;
+ return true;
+}
 function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
  for(const p of room.players.values()){
+  // Reading a tutorial grants safety, never passive boss-credit farming.
+  if(p.tutorialActive)continue;
   if(p.runStats&&!p.runStats.settled)p.runStats.bossesKilled=(Number(p.runStats.bossesKilled)||0)+1;
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
-  if(room.mode==='rift'&&p.alive!==false){const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`);io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier});}
-  u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
+  if(room.mode==='rift'&&p.alive!==false){
+   u.titleStats ||= {};u.titleStats.riftBossesDefeated=(Number(u.titleStats.riftBossesDefeated)||0)+1;
+   const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`);
+   io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier});
+  }
+  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=7&&grantFirstProgressionReward(u)){
+   p.invulnerableUntil=Math.max(Number(p.invulnerableUntil)||0,Date.now()+25000);
+   io.to(p.id).emit('first-progression-reward',{ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS});
+  }
+  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
+   io.to(p.id).emit('abyssal-final-victory',{ok:true,skinId:'greensnake',titleId:'abyssal-conqueror'});
+  }
+  u.coins=(Number(u.coins)||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
  }
  if(changed)saveUsers();
 }
@@ -790,7 +823,7 @@ async function finishRunForSocket(socket,payload={}){
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
- run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;saveMatchHistoryForUser(user,room,run);
+ run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
  if(member)member.runStats=run;else socket.data.runStats=run;
  settlePeriods();
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
@@ -1140,7 +1173,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};socket.emit('room-joined',joined);ack(joined);
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -1212,8 +1245,9 @@ io.on('connection', socket => {
    if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(p.lastPositionSeq,p.x,p.y,false));}
   }else ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  };
- socket.on('player-position',(payload,acknowledge)=>handlePlayerPosition(payload,acknowledge,false));
+ socket.on('player-position',(payload,acknowledge)=>{if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive)return;handlePlayerPosition(payload,acknowledge,false);});
  socket.on('player-motion-input',row=>{
+  if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive)return;
   const decoded=NetCodec.readInput(row);if(decoded)return handlePlayerPosition(decoded,null,true);
   if(!Array.isArray(row)||row.length<4)return;
   handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])},null,true);
@@ -1277,6 +1311,38 @@ io.on('connection', socket => {
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
  });
+ socket.on('tutorial-preference',payload=>{
+  const u=users[socket.data.userKey],mode=String(payload?.mode||'');
+  if(!u||!['solo','coop','pvp','rift','rift-solo'].includes(mode)||payload?.dismissed!==true)return;
+  u.tutorialDismissedModes=Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[];
+  if(!u.tutorialDismissedModes.includes(mode)){u.tutorialDismissedModes.push(mode);saveUsers();}
+  socket.emit('account-data',publicUser(u));
+ });
+ socket.on('tutorial-state',payload=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!p||p.alive===false||!payload||typeof payload!=='object')return;
+  const now=Date.now();
+  if(payload.open===true){
+   if(p.tutorialOpenUsed||now-(Number(p.joinedAt)||now)>15000)return;
+   p.tutorialOpenUsed=true;p.tutorialActive=true;
+   p.tutorialPreviousProtection=Number(p.invulnerableUntil)||0;
+   p.invulnerableUntil=Number.MAX_SAFE_INTEGER;
+  }else if(p.tutorialActive){
+   p.tutorialActive=false;
+   p.invulnerableUntil=Math.max(now+2000,Math.min(Number(p.tutorialPreviousProtection)||0,now+5000));
+  }
+ });
+ socket.on('claim-first-progression',async(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const user=users[socket.data.userKey],run=socket.data.runStats;
+  if(!user||!run||run.settled||socketRoom(socket)||run.mode!=='solo')return reply({ok:false,message:'Bônus disponível apenas após a campanha Solo clássica.'});
+  if(user.firstProgressionRewardClaimed)return reply({ok:true,awarded:false,alreadyClaimed:true,account:publicUser(user)});
+  if((Number(run.bossesKilled)||0)<7||Date.now()-(Number(run.startedAt)||Date.now())<120000)return reply({ok:false,message:'A primeira barra ainda não foi validada pelo servidor.'});
+  if(!grantFirstProgressionReward(user))return reply({ok:true,awarded:false,alreadyClaimed:true,account:publicUser(user)});
+  saveUsers();await flushPersistence();
+  const account=publicUser(user);socket.emit('account-data',account);
+  reply({ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS,account});
+ });
  socket.on('player-protection', payload => {
   const room = socketRoom(socket), p = room?.players.get(socket.id), u = users[socket.data.userKey];
   if (!p || p.alive === false || !payload || typeof payload !== 'object') return;
@@ -1313,7 +1379,7 @@ io.on('connection', socket => {
   if (!p) return;
   socket.emit('player-vitals', playerVitalsPayload(p, { reason: 'resync', serverTime: Date.now() }));
  });
- socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
+ socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload||room.players.get(socket.id)?.tutorialActive)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
  socket.on('request-world-snapshot',(payload={})=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;
   // Resuming a minimized tab may request a snapshot after server-side death. That must
   // not silently create a new horde or restart the clock; only join/begin-run initializes.
@@ -1353,7 +1419,7 @@ io.on('connection', socket => {
  socket.on('request-host-transfer', () => {});
  socket.on('photon-ray-stop',()=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(room&&player&&player.alive!==false)socket.to(channelFor(room)).emit('photon-ray-stop',{fromId:socket.id});});
  socket.on('shared-shot', payload => {
-  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false)return;
+  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false||shooter.tutorialActive)return;
   const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);
   const shotWorldHeight=roomWorldHeight(room);
   if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;
@@ -1471,13 +1537,14 @@ io.on('connection', socket => {
   if(shot.special==='photonRay')io.to(channelFor(room)).emit('shared-shot',shot);
   else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
- socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
+ socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability', (payload, acknowledge) => {
   const room = socketRoom(socket);
   if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
    if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
    return;
   }
+  if(room.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}
   const skin = String(payload.skin || '').slice(0,32);
   const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
   if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
@@ -1527,7 +1594,7 @@ io.on('connection', socket => {
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
-  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  if(!room||!player||player.alive===false||player.tutorialActive||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
@@ -1551,11 +1618,12 @@ io.on('connection', socket => {
    if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('account-data',publicUser(account));}
   }
  });
- socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
+ socket.on('shared-damage', (payload,acknowledge) => {if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-damage-batch',(payload={},acknowledge)=>{
   const ack=data=>{if(typeof acknowledge==='function')acknowledge(data)};
   const room=socketRoom(socket);
   if(!room||!socket.data.joined)return ack({ok:false,reason:'not-in-room',accepted:0});
+  if(room.players.get(socket.id)?.tutorialActive)return ack({ok:false,reason:'tutorial-active',accepted:0});
   const hits=Array.isArray(payload?.hits)?payload.hits.slice(0,128):[];
   if(!hits.length)return ack({ok:false,reason:'empty-batch',accepted:0});
   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
@@ -1640,10 +1708,11 @@ io.on('connection', socket => {
   // A conclusão dos ciclos finais concede a Moréia Esmeralda Colossal à conta.
   // O cliente envia esta confirmação ao concluir a conquista; a skin é registrada
   // no perfil antes de aceitar uma solicitação para equipá-la.
-  if (payload.conqueror === true) {
-   if (!u.ownedSkins.includes('greensnake')) u.ownedSkins.push('greensnake');
-   u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};
-   u.titleStats.conqueror = true;
+  if(payload.conqueror===true){
+   const room=socketRoom(socket),run=room?.players.get(socket.id)?.runStats||socket.data.runStats;
+   const reachedFinal=run&&!run.settled&&(Number(run.bossesKilled)||0)>=42&&
+     (room?.mode==='coop'||(!room&&run.mode==='solo'&&Date.now()-(Number(run.startedAt)||Date.now())>=900000));
+   if(reachedFinal)grantFinalConquest(u);
   }
   if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
   if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;
