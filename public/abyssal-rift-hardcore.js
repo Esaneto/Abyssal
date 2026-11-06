@@ -28,71 +28,105 @@ const ALLOCATION=Object.freeze({
   boss:['tentacle','fumarole','vortex']
 });
 function idHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;}
-function wallMount(room,tag){
- const theta=(idHash(room.id+':wall:'+tag)%6283)/1000;
- const bx=room.x+Math.cos(theta)*room.rx*.94,by=room.y+Math.sin(theta)*room.ry*.94;
- const angle=Math.atan2(room.y-by,room.x-bx);
- return {sourceX:bx,sourceY:by,angle};
+// Rock and navigable water share the geometry in abyssal-map.js and ocean-terrain.js.
+// All hazards except underwater vortexes are physically attached to the cave boundary.
+const MapGeometry=(typeof module==='object'&&module.exports)?require('./abyssal-map.js'):globalThis.AbyssalMap;
+const WALL_TYPES=new Set(['volcano','fumarole','rockfall','tentacle','pressure','spikes','lure','electric']);
+const WALL_REACH=Object.freeze({volcano:136,fumarole:54,rockfall:62,tentacle:240,pressure:59,spikes:44,lure:37,electric:182});
+function water(layout,x,y,pad=0){return Boolean(MapGeometry?.isWalkable(layout,x,y,pad));}
+function wallMount(layout,room,tag,blocked=[]){
+ // Ellipse boundary is only a candidate. The cave is the UNION of rooms and
+ // winding corridors. Reject any point that is inside an overlapping corridor.
+ const phase=(idHash(room.id+':wall:'+tag)%6283)/1000;
+ for(let j=0;j<40;j++){
+  const theta=phase+j*2.399963229728653,cs=Math.cos(theta),sn=Math.sin(theta);
+  const bx=room.x+cs*room.rx,by=room.y+sn*room.ry;
+  const xx=cs/room.rx,yy=sn/room.ry,norm=Math.hypot(xx,yy)||1;
+  const ox=xx/norm,oy=yy/norm;
+  const sourceX=bx-ox*4,sourceY=by-oy*4;
+  const innerX=bx-ox*42,innerY=by-oy*42;
+  const outerX=bx+ox*28,outerY=by+oy*28;
+  if(!water(layout,sourceX,sourceY)||!water(layout,innerX,innerY)||water(layout,outerX,outerY))continue;
+  if(blocked.some(p=>Math.hypot(sourceX-p.x,sourceY-p.y)<p.r))continue;
+  return {sourceX,sourceY,angle:Math.atan2(-oy,-ox),wallKind:'chamber'};
+ }
+ return null;
+}
+function corridorMount(layout,corridor,index,blocked=[]){
+ // Use the actual piecewise curved corridor, never the center of its chord.
+ const path=corridor.path||[];
+ if(path.length<3)return null;
+ const segment=1;
+ const a=path[segment],b=path[segment+1];
+ const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+ const nx=-dy/len,ny=dx/len,midX=(a.x+b.x)*.5,midY=(a.y+b.y)*.5;
+ const side=idHash('side:'+index+':'+layout.tier)%2?1:-1;
+ for(const sign of [side,-side]){
+  const ox=nx*sign,oy=ny*sign,w=corridor.width;
+  const sx=midX+ox*(w-4),sy=midY+oy*(w-4);
+  if(!water(layout,sx,sy)||!water(layout,midX+ox*(w-44),midY+oy*(w-44))||water(layout,midX+ox*(w+28),midY+oy*(w+28)))continue;
+  if(blocked.some(p=>Math.hypot(sx-p.x,sy-p.y)<p.r))continue;
+  return {sourceX:sx,sourceY:sy,angle:Math.atan2(-oy,-ox),wallKind:'corridor'};
+ }
+ return null;
 }
 function hazardAtCycle(h,cycle=0){
  if(h.type!=='tentacle')return h;
- // The rift's arms strike a slightly different place every cycle. The cycle
- // is derived from shared simulation time, so every client sees the SAME mark.
- const jx=(idHash(h.id+':tentacle-x:'+cycle)%1000)/1000-.5;
- const jy=(idHash(h.id+':tentacle-y:'+cycle)%1000)/1000-.5;
- return {...h,x:h.x+jx*62,y:h.y+jy*62,angle:h.angle+jx*.36};
+ const jitter=(idHash(h.id+':sweep:'+cycle)%1000)/1000-.5;
+ if(Number.isFinite(h.sourceX)){
+  const angle=h.angle+jitter*.42,l=h.length||240;
+  return {...h,angle,x:h.sourceX+Math.cos(angle)*l*.5,y:h.sourceY+Math.sin(angle)*l*.5};
+ }
+ return {...h,x:h.x+jitter*40,y:h.y+jitter*22,angle:h.angle+jitter*.3};
 }
 function build(layout,tier=0){
  if(!layout||!Array.isArray(layout.rooms))return [];
  const safeTier=clamp(Math.floor(Number(tier)||0),0,100);
- const key=String(layout.seed||layout.mapSeed||layout.id||'')+':'+safeTier+':'+layout.rooms.map(r=>r.id+':'+r.x+':'+r.y).join(',');
+ const key=String(layout.seed||layout.mapSeed||layout.id||'')+':'+safeTier+':'+layout.rooms.map(r=>r.id+':'+r.x+':'+r.y).join(',')+
+   ':'+(layout.corridors||[]).map(c=>c.a+':'+c.b+':'+c.width).join(',');
  if(layoutCache.has(key))return layoutCache.get(key);
- const hazards=[];
+ const hazards=[],blocked=[];
+ for(const p of Object.values(layout.portals||{}))if(p)blocked.push({x:p.x,y:p.y,r:(Number(p.r)||0)+145});
+ const start=layout.rooms.find(r=>r.id==='start');
+ if(start)blocked.push({x:start.x,y:start.y,r:260});
  function add(h,type,roomId,index){
-  const cfg=TYPES[type];
-  hazards.push({...h,id:roomId+':'+index,type,roomId,
+  const cfg=TYPES[type],reach=WALL_REACH[type]||0;
+  const point=Number.isFinite(h.sourceX)?
+   {x:h.sourceX+Math.cos(h.angle)*(reach*.5),y:h.sourceY+Math.sin(h.angle)*(reach*.5)}:{x:h.x,y:h.y};
+  hazards.push({...h,...point,id:roomId+':'+index,type,roomId,
    period:cfg.period,warning:cfg.warning,active:cfg.active,
    offset:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
-   radius:cfg.radius,length:h.length||cfg.length||0,
+   radius:type==='volcano'?(h.wallKind==='corridor'?62:82):
+    type==='tentacle'?64:type==='fumarole'?100:type==='electric'?46:
+    type==='spikes'?74:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
+   length:type==='volcano'&&h.wallKind==='corridor'?126:reach||h.length||cfg.length||0,
    damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))});
+  if(Number.isFinite(h.sourceX))blocked.push({x:h.sourceX,y:h.sourceY,r:180});
  }
  for(const room of layout.rooms){
   if(room.id==='start')continue;
   const choices=ALLOCATION[room.id]||['spikes'];
   if(room.id==='boss'&&safeTier<3)continue;
-  const count=Math.min(choices.length,safeTier>=4?3:2);
+  // Two embedded threats per room at the deepest levels; their dormant roots
+  // should read as cave detail rather than a field of floating obstacles.
+  const count=Math.min(choices.length,safeTier>=4?2:1);
   for(let i=0;i<count;i++){
-   const type=choices[(i+Math.floor(safeTier/3))%choices.length],cfg=TYPES[type];
-   const theta=(i*2.399963+(idHash(room.id+':'+i)%120)/120)*Math.PI;
-   if(type==='volcano'||type==='fumarole'){
-    // Rock and toxic anemone are visibly ATTACHED TO a chamber wall.
-    const mount=wallMount(room,i);
-    const reach=type==='volcano'?155:58;
-    add({...mount,x:mount.sourceX+Math.cos(mount.angle)*reach*.5,
-     y:mount.sourceY+Math.sin(mount.angle)*reach*.5,
-     length:reach,radius:type==='volcano'?cfg.radius:cfg.radius},type,room.id,i);
-   }else{
-    const radial=room.id==='boss'?.45:room.id==='junction'?.16:.38;
-    const x=room.x+Math.cos(theta)*room.rx*radial;
-    const y=room.y+Math.sin(theta)*room.ry*radial;
-    add({x,y,angle:(idHash(room.id+':angle:'+i)%6283)/1000},type,room.id,i);
+   const type=choices[(i+Math.floor(safeTier/3))%choices.length];
+   if(type==='vortex'){
+    const a=(idHash(room.id+':pit')%6283)/1000,scale=room.id==='boss'?.19:.14;
+    add({x:room.x+Math.cos(a)*room.rx*scale,y:room.y+Math.sin(a)*room.ry*scale,angle:a},type,room.id,i);
+    continue;
    }
+   const mount=wallMount(layout,room,i+safeTier*.13,blocked);
+   if(mount)add(mount,type,room.id,i);
   }
  }
- // Wall-mounted volcanic rock along the narrow links between mob rooms.
- // A one-sided jet leaves a navigable lane and has clear rest intervals.
- for(const [i,corridor] of (layout.corridors||[]).entries()){
-  if(i===0||i%3!==1||Number(corridor.width)>195)continue;
-  const path=Array.isArray(corridor.path)&&corridor.path.length>2?corridor.path:null;
-  if(!path)continue;
-  const a=path[1],b=path[2],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
-  const normalX=-dy/len,normalY=dx/len,side=(idHash('side:'+i+':'+safeTier)%2?1:-1);
-  const px=a.x+dx*.5,py=a.y+dy*.5;
-  const sourceX=px+normalX*side*Number(corridor.width)*.92;
-  const sourceY=py+normalY*side*Number(corridor.width)*.92;
-  const angle=Math.atan2(-normalY*side,-normalX*side),reach=165;
-  add({x:sourceX+Math.cos(angle)*reach*.5,y:sourceY+Math.sin(angle)*reach*.5,
-    sourceX,sourceY,angle,length:reach,radius:76},'volcano','passage:'+corridor.a+'-'+corridor.b,i);
+ // Narrow-path volcanic vents are placed only where corridor walls are real.
+ // The hot stream leaves a wide traversable strip and never blocks entrances.
+ for(const [i,passage]of (layout.corridors||[]).entries()){
+  if(i===0||i%3!==1||Number(passage.width)>195)continue;
+  const anchor=corridorMount(layout,passage,i,blocked);
+  if(anchor)add(anchor,'volcano','passage:'+passage.a+'-'+passage.b,i);
  }
  if(layoutCache.size>16)layoutCache.clear();
  layoutCache.set(key,hazards);
@@ -117,10 +151,11 @@ function dangerRadius(h,s){
  return h.radius;
 }
 function hit(hazard,px,py,pad=0,phase=null){
- const h=hazardAtCycle(hazard,phase?.cycle||0),r=dangerRadius(h,phase)+pad;
- if(h.type==='volcano'&&Number.isFinite(h.sourceX)){
-  const ax=h.sourceX+Math.cos(h.angle)*8,ay=h.sourceY+Math.sin(h.angle)*8;
-  const bx=h.sourceX+Math.cos(h.angle)*h.length,by=h.sourceY+Math.sin(h.angle)*h.length;
+ const h=hazardAtCycle(hazard,phase?.cycle||0);
+ const r=dangerRadius(h,phase)+pad;
+ if(Number.isFinite(h.sourceX)&&['volcano','tentacle','electric'].includes(h.type)){
+  const len=h.length||130,ax=h.sourceX+Math.cos(h.angle)*8,ay=h.sourceY+Math.sin(h.angle)*8;
+  const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
   return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*.5+pad;
  }
  if(h.type==='tentacle'||h.type==='electric'){
