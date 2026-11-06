@@ -47,7 +47,7 @@ test('depth and event UI remains cosmetic and does not add gameplay network traf
 test('rift expedition is explicit and its exits replace the old boss checkpoint overlay',()=>{
  assert.match(game,/expeditionMode=isRiftRun\(\)/);
  assert.doesNotMatch(game,/dispatchEvent\(new CustomEvent\('abyssal-expedition-checkpoint'/);
- assert.match(game,/clearedBosses>activeMapTier&&!bossAlive/);
+ assert.match(game,/const unlocked=cavePortalsUnlocked\(\)/);
  assert.match(game,/pauseExpedition:\(\)=>\{if\(!expeditionMode\|\|onlineMode/);
  assert.match(server,/const expedition=Boolean\(!member&&payload\.expedition===true\)/);
 });
