@@ -835,7 +835,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
       const orbValue = Math.max(1, Math.round(Number(orb.value) || 1));
       const xpMultiplier = SkinAbilities.orbExperienceMultiplier(collector.skinId);
-      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
+      xpCollected.push({ playerId: collector.id, orbId: orb.id, baseValue:orbValue, shared:riftMode, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
     }
   }
   if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));
