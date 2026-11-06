@@ -1515,36 +1515,55 @@ function respawnSoloRiftCheckpoint(){
 }
 function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
- const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(room)soloRiftCheckpointRoomId=room.id;
+ const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);
+ if(room)soloRiftCheckpointRoomId=room.id;
  for(const h of activeRiftHazards){
   const phase=RIFT_HARDCORE.state(h,elapsed);
-  if(phase.phase!=='active'||!RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase))continue;
-  const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;if(elapsed<cooldown)continue;
-  riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
-  hurtPlayer(h.damage);if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
-  if(h.type==='vortex'){const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1,move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);player.x=move.x;player.y=move.y;}
- }
- const now=performance.now();
- for(const e of enemies){if(e.kind!==RIFT_HARDCORE.FINAL_KIND||e.hp<=0)continue;
-  const inArena=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y)?.id==='boss';
-  if(!inArena)continue;
-  if(!e.riftNextAttackAt)e.riftNextAttackAt=now+1400;
-  if(now>=e.riftNextAttackAt){
-   e.riftAttackSerial=(Number(e.riftAttackSerial)||0)+1;
-   const mark=RIFT_HARDCORE.bossMark(e,[{x:player.x,y:player.y,alive:true}],now);
-   if(mark){e.riftPendingAttacks ||= [];e.riftPendingAttacks.push(mark);riftBossMarks.push(mark);}
-   const hpRatio=e.hp/Math.max(1,e.maxHp);e.riftNextAttackAt=now+(hpRatio<.25?1750:hpRatio<.6?2100:2650);
+  if(h.type==='tentacle'&&phase.phase!=='idle'){
+   const derived=RIFT_HARDCORE.hazardAtCycle(h,phase.cycle);
+   if(!derived.aimed){
+    const sameRoom=room?.id===h.roomId;
+    RIFT_HARDCORE.aimTentacle(h,phase.cycle,sameRoom?player.x:null,sameRoom?player.y:null);
+   }
   }
-  e.riftPendingAttacks=(e.riftPendingAttacks||[]).filter(mark=>{
-   if(now<mark.hitAt)return true;
-   if(RIFT_HARDCORE.bossHit(mark,player.x,player.y,player.r))hurtPlayer(mark.damage);
-   const visible=riftBossMarks.find(m=>m.id===mark.id);if(visible)visible.impactUntil=now+400;
-   return false;
-  });
+  if(phase.phase!=='active')continue;
+  if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
+   const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
+   if(elapsed>=cooldown){
+    riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
+    hurtPlayer(h.damage);
+    if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
+    if(h.type==='vortex'){
+     const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
+     const move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);
+     player.x=move.x;player.y=move.y;
+    }
+   }
+  }
+  // Hazards belong to the world, not to a player's weapon. They can kill
+  // creatures, elites and bosses, except Nightmare's immunity to own arms.
+  for(const enemy of [...enemies]){
+   if(!enemy||enemy.hp<=0||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
+   if(!RIFT_HARDCORE.hit(h,enemy.x,enemy.y,Math.min(43,enemy.r*.48),phase))continue;
+   enemy.riftHazardCooldowns ||= Object.create(null);
+   if(elapsed<(enemy.riftHazardCooldowns[h.id]||0))continue;
+   enemy.riftHazardCooldowns[h.id]=elapsed+(h.type==='tentacle'?.75:1.1);
+   dealEnemyDamage(enemy,h.damage,'rift-hazard-'+h.type,{silentSound:true,secondary:true});
+  }
  }
- riftBossMarks=riftBossMarks.filter(mark=>now<(mark.impactUntil||mark.hitAt+420));
+ // Pesadelo Roxo is static in the chamber, with a distinct lethal head.
+ // Eight environmental tentacles now supply the entire offensive arm pattern.
+ for(const enemy of enemies){
+  if(enemy.kind!==RIFT_HARDCORE.FINAL_KIND||enemy.hp<=0||room?.id!=='boss')continue;
+  const threshold=enemy.r*.85+player.r;
+  if(Math.hypot(player.x-enemy.x,player.y-enemy.y)<threshold&&
+   performance.now()>(enemy.headTouchAt||0)){
+   enemy.headTouchAt=performance.now()+900;
+   hurtPlayer(50);
+  }
+ }
+ riftBossMarks=[];
 }
-
 function hurtPlayer(dmg){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
  const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?.2:0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,'received');player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
@@ -2558,7 +2577,7 @@ function endGame(){
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
- const expeditionMultiplier=expeditionMode?(expeditionExtracted?1+Math.min(.75,bossKillsThisRun*.15):.65):1;
+ const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
  const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
  if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
  else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
@@ -2572,7 +2591,7 @@ function endGame(){
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
- $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'SINAL PERDIDO · PARTE DO SAQUE FOI DEIXADA NO FUNDO'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
+ $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
@@ -3721,6 +3740,12 @@ window.addEventListener('abyssal-world-damaged-batch',ev=>applyWorldEnemyDamageB
 window.addEventListener('abyssal-world-xp-orb-spawned',ev=>applySharedOrbSpawn(ev.detail));
 window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Array.isArray(ev.detail)?ev.detail:[])applySharedOrbSpawn(orb);});
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
+window.addEventListener('abyssal-rift-tentacle-aim',ev=>{
+ const d=ev.detail||{};
+ if(!RIFT_HARDCORE||!Array.isArray(activeRiftHazards))return;
+ const hazard=activeRiftHazards.find(h=>h.id===d.id);
+ if(hazard)RIFT_HARDCORE.aimTentacle(hazard,Number(d.cycle)||0,d.aimX,d.aimY);
+});
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
 window.addEventListener('abyssal-boss-ability-visual',ev=>{
