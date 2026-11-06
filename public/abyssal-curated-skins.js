@@ -28,7 +28,7 @@ const items=[
     "ability": "Mandíbula rítmica: +27% de cadência. Adaptação predatória: +13% de dano.",
     "price": 52000,
     "paid": false,
-    "desc": "Corpo em fita, mandíbula alongada e crista dorsal violeta. Espreita as fraturas onde a luz já desapareceu.",
+    "desc": "Corpo longo em S com pele azul-escura, crista violeta contínua, mandíbula aberta com dentes finos e olhos luminosos. Silhueta de fita reconhecível no movimento.",
     "bonuses": {
       "fireRate": 1.27,
       "damage": 1.13
@@ -46,7 +46,7 @@ const items=[
     "ability": "Manto compressível: reduz dano em 22%. Adaptação predatória: +14% de dano.",
     "price": 58000,
     "paid": false,
-    "desc": "Manto arredondado e duas nadadeiras semelhantes a orelhas. Sua pele compressível suporta a pressão da zona hadal.",
+    "desc": "Manto quase esférico, duas nadadeiras laterais grandes que batem como orelhas, oito braços curtos e olhos expressivos. Um polvo hadal sem a silhueta de Kraken.",
     "bonuses": {
       "defense": 0.78,
       "damage": 1.14
@@ -64,7 +64,7 @@ const items=[
     "ability": "Membrana sensorial: +30% de alcance. Adaptação predatória: +15% de dano.",
     "price": 64000,
     "paid": false,
-    "desc": "Uma membrana extensa une os braços como um manto escuro, abrindo-se para sentir movimentos na água.",
+    "desc": "Duas membranas roxas gigantes em forma de cobertor, bordas onduladas, nervuras aparentes e braços finos nas extremidades; a cabeça é pequena sob o manto.",
     "bonuses": {
       "range": 1.3,
       "damage": 1.15
@@ -82,7 +82,7 @@ const items=[
     "ability": "Coroa de ressonância: +32% de experiência. Adaptação predatória: +16% de dano.",
     "price": 48000,
     "paid": false,
-    "desc": "Campânula carmesim em coroa e tentáculos de alarme. Cada pulso ilumina por instantes a água negra.",
+    "desc": "Campânula circular carmesim com borda serrilhada, dez filamentos radiais e um único tentáculo de alarme extremamente longo; o centro pulsa em vermelho.",
     "bonuses": {
       "experience": 1.32,
       "damage": 1.16
@@ -100,7 +100,7 @@ const items=[
     "ability": "Braços coletores: +65% de alcance de coleta. Adaptação predatória: +17% de dano.",
     "price": 69000,
     "paid": false,
-    "desc": "Campânula ampla e braços orais compridos, tecidos de sombra violeta que recolhem o que deriva na fossa.",
+    "desc": "Medusa gigante translúcida de cúpula ampla e cinco longos braços orais em véus quase invisíveis, acompanhados de filamentos que flutuam pela escuridão.",
     "bonuses": {
       "magnet": 1.65,
       "damage": 1.17
@@ -136,7 +136,7 @@ const items=[
     "ability": "Pressão espiral: +28% de dano. Adaptação predatória: +19% de cadência.",
     "price": 72000,
     "paid": false,
-    "desc": "Concha espiral compartimentada, mineralizada pela pressão, protegendo os tentáculos sensoriais da escuridão.",
+    "desc": "Concha mineral espiralada com câmaras e costelas visíveis, capuz frontal e dezesseis tentáculos sensoriais finos projetados à frente da criatura.",
     "bonuses": {
       "damage": 1.28,
       "fireRate": 1.19
@@ -154,7 +154,7 @@ const items=[
     "ability": "Pinça de agulhas: +34% de dano. Adaptação predatória: +20% de cadência.",
     "price": 80000,
     "paid": false,
-    "desc": "Rostro estreito, dentes finos e cauda musculosa. Reinterpretação fantástica de um gavial adaptado às águas profundas.",
+    "desc": "Corpo de réptil com placas dorsais, quatro membros curtos e cauda propulsora; rostro de gavial muito longo, narina terminal e duas fileiras de dentes-agulha.",
     "bonuses": {
       "damage": 1.34,
       "fireRate": 1.2
