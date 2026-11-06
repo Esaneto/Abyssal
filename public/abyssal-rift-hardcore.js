@@ -11,21 +11,21 @@ const FINAL_TIER=7,FINAL_KIND='riftSmile',FINAL_CHEST_COINS=100000;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const layoutCache=new Map();
 const TYPES=Object.freeze({
-  volcano:{name:'VULCÃO ABISSAL',period:9,warning:1.7,active:1.55,radius:100,damage:24,color:'#ff7341'},
-  fumarole:{name:'FUMAROLA TÓXICA',period:12,warning:1.6,active:3.1,radius:120,damage:12,color:'#8feb78'},
+  volcano:{name:'VULCÃO ABISSAL',period:10.5,warning:1.65,active:2.15,radius:100,damage:24,color:'#ff7341'},
+  fumarole:{name:'FUMAROLA TÓXICA',period:13.5,warning:1.55,active:4.2,radius:120,damage:12,color:'#8feb78'},
   rockfall:{name:'DESMORONAMENTO',period:10,warning:1.45,active:.8,radius:95,damage:31,color:'#d2a3a3'},
-  tentacle:{name:'TENTÁCULO DA FENDA',period:8.8,warning:1.2,active:.7,radius:82,length:320,damage:29,color:'#b873ff'},
+  tentacle:{name:'TENTÁCULO DA FENDA',period:11.5,warning:.8,active:3.6,radius:82,length:320,damage:29,color:'#b873ff'},
   pressure:{name:'PRESSÃO ESMAGADORA',period:11.6,warning:1.7,active:2.2,radius:140,damage:20,color:'#8bb7ff'},
-  spikes:{name:'CORAL FOSSILIZADO',period:8,warning:1.15,active:1.55,radius:108,damage:20,color:'#e48b82'},
-  vortex:{name:'VÓRTICE DE SUCÇÃO',period:13,warning:2,active:3.2,radius:155,damage:10,color:'#68a9e5'},
+  spikes:{name:'CORAL FOSSILIZADO',period:10.8,warning:.75,active:3.7,radius:108,damage:20,color:'#e48b82'},
+  vortex:{name:'VÓRTICE DE SUCÇÃO',period:14.5,warning:2.3,active:4.2,radius:155,damage:10,color:'#68a9e5'},
   lure:{name:'ISCA DA MORTE',period:14,warning:1.1,active:1.4,radius:82,damage:25,color:'#71eaff'},
   electric:{name:'ARCO BIOELÉTRICO',period:10.2,warning:1.2,active:1,radius:59,length:300,damage:24,color:'#8bdfff'}
 });
 const ALLOCATION=Object.freeze({
   shoal:['volcano','spikes'],trench:['fumarole','rockfall'],lantern:['lure','electric'],
-  junction:['vortex','pressure'],event:['rockfall','tentacle'],hub:['volcano','pressure'],
-  landing:['tentacle','volcano','vortex'],elite:['electric','spikes','tentacle'],
-  boss:['tentacle','fumarole','vortex']
+  junction:['pressure','electric'],event:['rockfall','tentacle'],hub:['volcano','pressure'],
+  landing:['tentacle','volcano','spikes'],elite:['electric','spikes','tentacle'],
+  boss:['tentacle','fumarole','pressure']
 });
 function idHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;}
 // Rock and navigable water share the geometry in abyssal-map.js and ocean-terrain.js.
@@ -70,6 +70,56 @@ function corridorMount(layout,corridor,index,blocked=[]){
  }
  return null;
 }
+
+// The ray ends at the FIRST solid wall, not at an arbitrary radius.
+// Per-hazard rays are precomputed at build time; the online tick only reads geometry.
+function traceToWall(layout,x,y,angle,limit=2600){
+ const ux=Math.cos(angle),uy=Math.sin(angle),step=14;
+ let previous=0;
+ for(let d=step;d<=limit+step;d+=step){
+  const current=Math.min(d,limit);
+  if(!water(layout,x+ux*current,y+uy*current,3)){
+   let lo=previous,hi=current;
+   for(let k=0;k<7;k++){
+    const mid=(lo+hi)*.5;
+    if(water(layout,x+ux*mid,y+uy*mid,3))lo=mid;else hi=mid;
+   }
+   return Math.max(12,lo-3);
+  }
+  previous=current;
+  if(current===limit)break;
+ }
+ return limit;
+}
+function wallGeometry(layout,anchor,type){
+ const angle=anchor.angle,sourceX=anchor.sourceX,sourceY=anchor.sourceY;
+ if(type==='volcano'||type==='spikes'||type==='tentacle'||type==='electric'){
+  const reach=traceToWall(layout,sourceX,sourceY,angle,2450);
+  // Entire chamber for fire and retracting spikes; the tentacle uses the
+  // opposite wall as well, but does not reveal itself while dormant.
+  return {...anchor,length:Math.max(40,reach)};
+ }
+ if(type==='fumarole'){
+  const originX=sourceX+Math.cos(angle)*11,originY=sourceY+Math.sin(angle)*11;
+  const rays=Array.from({length:41},(_,i)=>{
+   const a=angle+(-.495+i/40*.99)*Math.PI;
+   return {angle:a,length:traceToWall(layout,originX,originY,a,2700)};
+  });
+  return {...anchor,poisonRays:rays,maxReach:Math.max(...rays.map(r=>r.length)),poisonOriginX:originX,poisonOriginY:originY};
+ }
+ return anchor;
+}
+// Rapid extension and visibly slower retraction. Collision uses the SAME
+// timeline, not the fully extended theoretical hitbox while retracting.
+function extension(h,phase){
+ if(!phase)return 1; // static geometry/introspection remains available
+ if(phase.phase==='idle')return 0;
+ if(phase.phase==='warning')return 0;
+ const q=clamp(phase.progress,0,1);
+ if(h.type==='spikes')return q<.13?Math.sin(q/.13*Math.PI*.5):clamp(1-(q-.13)/.87,0,1);
+ if(h.type==='tentacle')return q<.18?Math.sin(q/.18*Math.PI*.5):q<.28?1:clamp(1-(q-.28)/.72,0,1);
+ return 1;
+}
 function hazardAtCycle(h,cycle=0){
  if(h.type!=='tentacle')return h;
  const jitter=(idHash(h.id+':sweep:'+cycle)%1000)/1000-.5;
@@ -90,16 +140,16 @@ function build(layout,tier=0){
  const start=layout.rooms.find(r=>r.id==='start');
  if(start)blocked.push({x:start.x,y:start.y,r:260});
  function add(h,type,roomId,index){
-  const cfg=TYPES[type],reach=WALL_REACH[type]||0;
+  const cfg=TYPES[type],reach=Number(h.length)>0?Number(h.length):(WALL_REACH[type]||0);
   const point=Number.isFinite(h.sourceX)?
    {x:h.sourceX+Math.cos(h.angle)*(reach*.5),y:h.sourceY+Math.sin(h.angle)*(reach*.5)}:{x:h.x,y:h.y};
   hazards.push({...h,...point,id:roomId+':'+index,type,roomId,
    period:cfg.period,warning:cfg.warning,active:cfg.active,
    offset:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
-   radius:type==='volcano'?(h.wallKind==='corridor'?62:82):
-    type==='tentacle'?64:type==='fumarole'?100:type==='electric'?46:
-    type==='spikes'?74:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
-   length:type==='volcano'&&h.wallKind==='corridor'?126:reach||h.length||cfg.length||0,
+   radius:type==='volcano'?(h.wallKind==='corridor'?49:64):
+    type==='tentacle'?78:type==='fumarole'?120:type==='electric'?46:
+    type==='spikes'?56:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
+   length:reach||cfg.length||0,
    damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))});
   if(Number.isFinite(h.sourceX))blocked.push({x:h.sourceX,y:h.sourceY,r:180});
  }
@@ -112,13 +162,8 @@ function build(layout,tier=0){
   const count=Math.min(choices.length,safeTier>=4?2:1);
   for(let i=0;i<count;i++){
    const type=choices[(i+Math.floor(safeTier/3))%choices.length];
-   if(type==='vortex'){
-    const a=(idHash(room.id+':pit')%6283)/1000,scale=room.id==='boss'?.19:.14;
-    add({x:room.x+Math.cos(a)*room.rx*scale,y:room.y+Math.sin(a)*room.ry*scale,angle:a},type,room.id,i);
-    continue;
-   }
    const mount=wallMount(layout,room,i+safeTier*.13,blocked);
-   if(mount)add(mount,type,room.id,i);
+   if(mount)add(wallGeometry(layout,mount,type),type,room.id,i);
   }
  }
  // Narrow-path volcanic vents are placed only where corridor walls are real.
@@ -126,7 +171,20 @@ function build(layout,tier=0){
  for(const [i,passage]of (layout.corridors||[]).entries()){
   if(i===0||i%3!==1||Number(passage.width)>195)continue;
   const anchor=corridorMount(layout,passage,i,blocked);
-  if(anchor)add(anchor,'volcano','passage:'+passage.a+'-'+passage.b,i);
+  if(anchor)add(wallGeometry(layout,anchor,'volcano'),'volcano','passage:'+passage.a+'-'+passage.b,i);
+ }
+ // The only unattached threat lives ACROSS a corridor, exactly where players
+ // travel. It spans both sides of the narrow passage instead of a mob room.
+ for(const i of [2,5]){
+  const corridor=layout.corridors?.[i],path=corridor?.path;
+  if(!path||path.length<4)continue;
+  const a=path[1],b=path[2],vx=b.x-a.x,vy=b.y-a.y,
+    x=(a.x+b.x)*.5,y=(a.y+b.y)*.5,angle=Math.atan2(vy,vx);
+  if(blocked.some(p=>Math.hypot(p.x-x,p.y-y)<p.r+120))continue;
+  const halfWidth=Math.max(110,Number(corridor.width)||150);
+  add({x,y,angle,passageWidth:halfWidth,axialRadius:Math.min(165,Math.hypot(vx,vy)*.48),
+    acrossRadius:halfWidth*.985,wallKind:'passage-floor'},
+    'vortex','passage:'+corridor.a+'-'+corridor.b,i+1000);
  }
  if(layoutCache.size>16)layoutCache.clear();
  layoutCache.set(key,hazards);
@@ -146,22 +204,40 @@ function segmentDistance(px,py,ax,ay,bx,by){
  return Math.hypot(px-(ax+dx*t),py-(ay+dy*t));
 }
 function dangerRadius(h,s){
- if(h.type==='fumarole'&&s?.phase==='active')return Math.max(19,h.radius*Math.sqrt(Math.min(1,(s.progress+.04)*1.35)));
- if(h.type==='vortex'&&s?.phase==='active')return Math.max(36,h.radius*Math.min(1,(s.progress+.12)*2.1));
+ if(h.type==='fumarole'&&s?.phase==='active')return Math.max(20,(h.maxReach||h.radius)*(s.progress*.98+.02));
+ if(h.type==='vortex'&&s?.phase==='active')return Math.max(24,(h.acrossRadius||h.radius)*Math.min(1,(s.progress+.10)*2.15));
  return h.radius;
 }
 function hit(hazard,px,py,pad=0,phase=null){
- const h=hazardAtCycle(hazard,phase?.cycle||0);
- const r=dangerRadius(h,phase)+pad;
- if(Number.isFinite(h.sourceX)&&['volcano','tentacle','electric'].includes(h.type)){
-  const len=h.length||130,ax=h.sourceX+Math.cos(h.angle)*8,ay=h.sourceY+Math.sin(h.angle)*8;
-  const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
-  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*.5+pad;
+ const h=hazardAtCycle(hazard,phase?.cycle||0),r=dangerRadius(h,phase)+pad;
+ if(phase?.phase==='idle'||phase?.phase==='warning')return false;
+ if(h.type==='vortex'){
+  const cs=Math.cos(h.angle),sn=Math.sin(h.angle),dx=px-h.x,dy=py-h.y;
+  const along=dx*cs+dy*sn,across=-dx*sn+dy*cs;
+  const scale=phase?Math.min(1,(phase.progress+.10)*2.15):1;
+  return (along/(Math.max(22,(h.axialRadius||h.radius)*scale)+pad))**2+
+    (across/(Math.max(22,(h.acrossRadius||h.radius)*scale)+pad))**2<=1;
  }
- if(h.type==='tentacle'||h.type==='electric'){
-  const length=h.length||300,a=h.angle||0;
-  return segmentDistance(px,py,h.x-Math.cos(a)*length*.45,h.y-Math.sin(a)*length*.45,
-   h.x+Math.cos(a)*length*.55,h.y+Math.sin(a)*length*.55)<=h.radius*.5+pad;
+ if(h.type==='fumarole'&&h.poisonRays?.length){
+  const ox=h.poisonOriginX,oy=h.poisonOriginY,dx=px-ox,dy=py-oy,dist=Math.hypot(dx,dy);
+  if(dist<=pad+10)return true;
+  const da=Math.atan2(Math.sin(Math.atan2(dy,dx)-h.angle),Math.cos(Math.atan2(dy,dx)-h.angle));
+  if(Math.abs(da)>Math.PI*.495)return false;
+  const index=(da/Math.PI+.495)/.99*(h.poisonRays.length-1);
+  const lo=Math.max(0,Math.floor(index)),hi=Math.min(h.poisonRays.length-1,lo+1);
+  // Conservative interpolation avoids the visual cloud crossing stone corners.
+  const safeLen=Math.min(h.poisonRays[lo].length,h.poisonRays[hi].length);
+  const fraction=phase?(.04+.96*clamp(phase.progress,0,1)):1;
+  return dist<=safeLen*fraction+pad;
+ }
+ if(Number.isFinite(h.sourceX)&&['volcano','tentacle','spikes','electric'].includes(h.type)){
+  if(h.type==='tentacle'&&phase&&(phase.progress<.175||phase.progress>.31))return false;
+  const extent=(h.type==='spikes'||h.type==='tentacle')?extension(h,phase):1;
+  const length=(h.length||130)*extent;
+  if(length<1)return false;
+  const ax=h.sourceX+Math.cos(h.angle)*6,ay=h.sourceY+Math.sin(h.angle)*6;
+  const bx=h.sourceX+Math.cos(h.angle)*length,by=h.sourceY+Math.sin(h.angle)*length;
+  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:.5)+pad;
  }
  return Math.hypot(px-h.x,py-h.y)<=r;
 }
