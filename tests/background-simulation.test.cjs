@@ -200,7 +200,7 @@ test('shared electric and ricochet visuals are room-wide in co-op and PvP', () =
 });
 
 test('nova is a shot in presets and has authoritative PvP resolution plus shared remote visual', () => {
- assert.match(game,/shots:\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]/);
+ assert.match(game,/shots:\['electric','pierce','photon','photonRay','nova','echoShot'\]/);
  assert.match(server,/if\(shot\.special==='nova'\)[\s\S]*novaShotReadyAt[\s\S]*pvpSegmentHitsRock/);
  assert.match(game,/if\(special==='nova'\)[\s\S]*spawnNovaVisual/);
 });
