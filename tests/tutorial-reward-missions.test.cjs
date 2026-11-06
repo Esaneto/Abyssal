@@ -8,7 +8,7 @@ const server=read('server.js'),game=read('public/game.js'),online=read('public/o
 const marine=read('public/marine-art.js'),guide=read('public/abyssal-tutorials.js');
 test('all game mode tutorials are distinct and have a closable, optional guide',()=>{
  assert.doesNotThrow(()=>new vm.Script(guide));
- for(const mode of ['solo','coop','pvp','rift','rift-solo'])assert.match(guide,new RegExp('\\b'+(mode==='rift-solo'?"'rift-solo'":mode)+':\\{'));
+ for(const mode of ['solo','coop','pvp','rift','rift-solo'])assert.ok(guide.includes((mode==='rift-solo'?"'rift-solo'":mode)+':{'),'tutorial missing '+mode);
  assert.match(guide,/Não mostrar o tutorial novamente/);
  assert.match(guide,/abyssalGuideX/);
  assert.match(guide,/setTutorialActive/);
