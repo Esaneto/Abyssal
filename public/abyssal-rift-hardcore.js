@@ -572,51 +572,55 @@ function deepCurrentPit(c,h,s,t){
  c.restore();
 }
 function tentacleTrap(c,original,s,t){
- const h=hazardAtCycle(original,s.cycle),length=h.length||240,r=h.radius;
- if(!Number.isFinite(h.sourceX))return;
- c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- // It lives in a recessed DARK opening. No purple spawn icon or warning halo.
- const mouth=c.createRadialGradient(-11,0,2,-11,0,42);
- mouth.addColorStop(0,'rgba(0,0,6,.98)');
- mouth.addColorStop(.45,'rgba(1,7,15,.95)');
- mouth.addColorStop(.84,'rgba(5,22,32,.5)');
- mouth.addColorStop(1,'rgba(4,22,30,0)');
- c.fillStyle=mouth;c.beginPath();c.ellipse(-12,0,47,38,0,0,Math.PI*2);c.fill();
- c.strokeStyle='rgba(32,70,82,.42)';c.lineWidth=2;c.beginPath();
- c.ellipse(-9,0,26,22,0,-2.4,2.4);c.stroke();
- // Keep red localized to the impact warning, not to the origin of the tentacle.
- if(s.phase==='warning'&&s.progress>.65){
-  c.globalAlpha=.18+.20*(s.progress-.65)/.35;c.fillStyle='#ff2b51';
-  c.strokeStyle='rgba(255,65,92,.77)';c.lineWidth=2.2;
-  c.beginPath();c.roundRect(8,-r*.47,length-8,r*.94,r*.43);c.fill();c.stroke();
+ const h=hazardAtCycle(original,s.cycle),r=h.radius,points=tentaclePath(original,s);
+ if(!Number.isFinite(h.sourceX)||points.length<2)return;
+ // Dark tear in the cavern; this is where the purple arm is attached.
+ const x=h.sourceX,y=h.sourceY;
+ c.save();
+ const mouth=c.createRadialGradient(x,y,2,x,y,r*.7);
+ mouth.addColorStop(0,'rgba(0,0,6,.99)');mouth.addColorStop(.58,'rgba(2,6,15,.93)');
+ mouth.addColorStop(1,'rgba(7,26,34,0)');
+ c.fillStyle=mouth;c.beginPath();c.ellipse(x,y,r*.72,r*.54,h.angle,0,Math.PI*2);c.fill();
+ c.strokeStyle='rgba(42,78,92,.39)';c.lineWidth=2;c.beginPath();
+ c.ellipse(x,y,r*.53,r*.34,h.angle,-2.7,2.7);c.stroke();
+ if(s.phase==='warning'){
+  // Curved translucent red route, shaped by the position of the closest
+  // player during the warning; it is NOT a straight rectangular hitbox.
+  c.strokeStyle='rgba(255,54,82,'+(.35+.40*s.progress)+')';c.shadowColor='#e8386b';c.shadowBlur=9;
+  c.lineCap='round';c.lineJoin='round';c.beginPath();
+  for(let i=0;i<points.length;i++){
+   if(!i)c.moveTo(points[i].x,points[i].y);else c.lineTo(points[i].x,points[i].y);
+  }
+  c.lineWidth=r*.17;c.stroke();
+  c.strokeStyle='rgba(235,38,74,'+(.10+.17*s.progress)+')';c.lineWidth=r*.98;c.shadowBlur=0;c.stroke();
  }
  if(s.phase==='active'){
-  const reach=extension(h,s),tip=Math.max(2,reach*length);
-  const sway=Math.sin(t*.006)*r*.14;
-  if(reach>.025){
-   // Downstroke comes forward out of the hole, then retracts in a slow
-   // continuous animation. A tapered translucent body and suckers belong
-   // to the same root, not a sprite that blinks into the middle of the map.
-   const grad=c.createLinearGradient(0,-r*.37,0,r*.37);
-   grad.addColorStop(0,'rgba(198,143,240,.61)');
-   grad.addColorStop(.23,'rgba(116,51,165,.82)');
-   grad.addColorStop(.73,'rgba(61,24,105,.86)');
-   grad.addColorStop(1,'rgba(190,125,227,.65)');
-   c.lineCap='round';c.strokeStyle='rgba(15,4,40,.70)';
-   c.lineWidth=r*.84;c.beginPath();c.moveTo(-1,0);
-   c.bezierCurveTo(tip*.34,-r*.17,tip*.66,sway,tip,0);c.stroke();
-   c.strokeStyle=grad;c.lineWidth=r*.69;c.shadowColor='#8e3cba';c.shadowBlur=9;c.stroke();
-   c.shadowBlur=0;
-   c.strokeStyle='rgba(232,181,250,.43)';c.lineWidth=r*.11;
-   c.beginPath();c.moveTo(7,-r*.2);
-   c.bezierCurveTo(tip*.34,-r*.35,tip*.68,sway-r*.15,tip,-r*.06);c.stroke();
-   // Double lines of translucent suckers, tapering near the tip.
-   for(let i=1;i<Math.max(2,Math.floor(17*reach));i++){
-    const q=i/18,x=q*tip,base=Math.sin(q*Math.PI)*r*.32;
+  const reach=extension(h,s),last=Math.min(32,Math.ceil(reach*32));
+  if(last>=1){
+   c.lineCap='round';c.lineJoin='round';
+   for(let i=1;i<=last;i++){
+    const a=points[i-1],b=points[i],p=(i-.5)/32;
+    const width=suctionRadius(h,p)*2;
+    const segmentColor=c.createLinearGradient(a.x-r*.3,a.y-r*.3,b.x+r*.3,b.y+r*.3);
+    segmentColor.addColorStop(0,'rgba(86,28,135,.75)');
+    segmentColor.addColorStop(.54,'rgba(157,82,203,.80)');
+    segmentColor.addColorStop(1,'rgba(195,125,221,.61)');
+    c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();
+    c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
+    c.strokeStyle=segmentColor;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;
+    c.stroke();c.shadowBlur=0;
+    c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
+   }
+   // Two tapering rows of hollow suckers on the visible underside.
+   for(let i=2;i<=last;i+=2){
+    const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
+    const nx=-dy/den,ny=dx/den,p=i/32,thick=suctionRadius(h,p);
     for(const sign of [-1,1]){
-     c.beginPath();c.ellipse(x,sign*base+sway*q*.34,Math.max(1,3.7*(1-q)),Math.max(1,2.1*(1-q)),0,0,Math.PI*2);
-     c.fillStyle='rgba(235,178,244,.58)';c.fill();
-     c.strokeStyle='rgba(66,23,99,.46)';c.lineWidth=.8;c.stroke();
+     const sx=b.x+nx*thick*.63*sign,sy=b.y+ny*thick*.63*sign,rr=Math.max(1.7,thick*.18);
+     c.fillStyle='rgba(215,168,234,.86)';c.strokeStyle='rgba(69,26,113,.79)';
+     c.lineWidth=1.4;c.beginPath();c.ellipse(sx,sy,rr,rr*.79,Math.atan2(dy,dx),0,Math.PI*2);
+     c.fill();c.stroke();
+     c.fillStyle='rgba(56,16,104,.68)';c.beginPath();c.ellipse(sx,sy,rr*.43,rr*.41,0,0,Math.PI*2);c.fill();
     }
    }
   }
@@ -624,29 +628,49 @@ function tentacleTrap(c,original,s,t){
  c.restore();
 }
 function rockfallTrap(c,h,s,t){
- wallSeam(c,h,t,'#7a9da8',s,.92);
- if(s.phase==='idle')return;
- const x=h.x,y=h.y,r=h.radius;
+ if(!Number.isFinite(h.sourceX))return;
+ // Rockfall originates only from a high overhang with water below.
  c.save();
+ c.strokeStyle='rgba(48,88,99,.61)';c.lineWidth=3;c.lineCap='round';
+ c.beginPath();c.moveTo(h.sourceX-51,h.sourceY-13);
+ c.quadraticCurveTo(h.sourceX-16,h.sourceY+7,h.sourceX+31,h.sourceY-11);c.stroke();
+ if(s.phase==='idle'){c.restore();return;}
  if(s.phase==='warning'){
-  // Fine loose silt and hairline cracks in the wall warn of rock fragments.
-  c.globalAlpha=.24+.32*s.progress;
-  for(let i=0;i<11;i++){
-   const a=i*2.399,rr=r*(.2+.65*((i*3%11)/11));
-   paintedCircle(c,x+Math.cos(a)*rr,y+Math.sin(a)*rr,
-    1.5+(i%3)*.9,'#79989e');
+  c.globalAlpha=.26+.48*s.progress;
+  for(let i=0;i<13;i++){
+   const drift=Math.sin(i*2.77+t*.003)*20,fall=s.progress*(17+i%5*13);
+   paintedCircle(c,h.sourceX+(i-6)*9+drift,h.sourceY+fall,1.2+(i%3),'#8da9a8');
   }
+  c.restore();return;
+ }
+ const fall=rockfallState(h,s),fade=fall.fade;
+ if(fade<=0){c.restore();return;}
+ if(!fall.impact){
+  c.save();c.translate(fall.x,fall.y);c.rotate(fall.progress*.8);
+  c.fillStyle='#243c49';c.strokeStyle='#a0abb4';c.lineWidth=2.8;
+  c.shadowColor='#7591a0';c.shadowBlur=7;
+  c.beginPath();c.moveTo(-36,-27);c.lineTo(-10,-42);c.lineTo(25,-28);
+  c.lineTo(39,2);c.lineTo(19,34);c.lineTo(-18,39);c.lineTo(-40,12);c.closePath();
+  c.fill();c.stroke();c.shadowBlur=0;
+  c.strokeStyle='#63818d';c.lineWidth=2;
+  c.beginPath();c.moveTo(-32,-23);c.lineTo(3,-5);c.lineTo(22,-26);c.moveTo(3,-5);
+  c.lineTo(-12,23);c.lineTo(18,31);c.stroke();
+  c.restore();
  }else{
-  for(let i=0;i<8;i++){
-   const a=i*2.399+t*.0002,rr=r*(.16+.63*(i%7)/7);
-   const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr;
-   const size=5+(i%4)*3;
-   c.globalAlpha=.48+(i%3)*.12;c.fillStyle=i%3?'#1b3643':'#294c57';
-   c.strokeStyle='rgba(95,151,163,.58)';c.lineWidth=1.1;
-   c.beginPath();c.moveTo(px-size,py);c.lineTo(px-size*.3,py-size*.7);
-   c.lineTo(px+size*.55,py-size*.35);c.lineTo(px+size*.9,py+size*.44);
-   c.lineTo(px-size*.35,py+size*.7);c.closePath();c.fill();c.stroke();
+  // The impact breaks the boulder into shards that fade out instead of
+  // stopping at the floor as an indestructible solid prop.
+  c.globalAlpha=fade;
+  for(let i=0;i<14;i++){
+   const angle=i*2.399,rad=(1-fade)*(28+(i%5)*13);
+   const xx=fall.x+Math.cos(angle)*rad,yy=fall.y+Math.sin(angle)*rad;
+   const scale=(3+i%4*2)*(.4+fade);
+   c.fillStyle=i%2?'#466474':'#263f4d';c.strokeStyle='rgba(137,165,166,.61)';c.lineWidth=1;
+   c.beginPath();c.moveTo(xx-scale,yy-scale*.5);
+   c.lineTo(xx+scale*.35,yy-scale*1.25);c.lineTo(xx+scale,yy+scale*.52);
+   c.lineTo(xx-scale*.4,yy+scale);c.closePath();c.fill();c.stroke();
   }
+  c.strokeStyle='rgba(155,184,189,'+fade*.45+')';c.lineWidth=2;
+  c.beginPath();c.arc(fall.x,fall.y,25+(1-fade)*39,0,Math.PI*2);c.stroke();
  }
  c.restore();
 }
