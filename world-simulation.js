@@ -3,6 +3,7 @@ const EnemyAI = require('./public/enemy-ai.js');
 const SkinAbilities = require('./skin-abilities');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
+const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -225,6 +226,7 @@ function spawnEnemy(world, options = {}) {
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
+  if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
   world.enemies.push(enemy);
   return enemy;
 }
@@ -296,7 +298,7 @@ function activateRiftEncounters(world,players,random=Math.random){
     if(!room||room.id==='start'||world.riftActivatedRooms[room.id])continue;
     world.riftActivatedRooms[room.id]=true;
     if(room.id==='boss'){
-      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.max(0,Number(world.mapTier)||0)%BOSS_KINDS.length],roomId:'boss',random});
+      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.min(RiftHardcore.FINAL_TIER,Math.max(0,Number(world.mapTier)||0))%BOSS_KINDS.length],roomId:'boss',random});
       if(boss)spawned.push(boss);
       continue;
     }
@@ -454,6 +456,23 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const bossAbilityHits = [];
   const bossAbilityEvents = [];
   const defeatedPlayers = [];
+  // The same procedural geometry is evaluated in solo and on the authoritative server.
+  // Each hazard has a visible warning phase; damage can occur only in its active phase.
+  if(riftMode&&mapLayout){
+    for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
+      if(RiftHardcore.state(hazard,world.elapsed).phase!=='active')continue;
+      for(const target of validPlayers){
+        if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM))continue;
+        target.riftHazardCooldowns ||= Object.create(null);
+        if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
+        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
+        const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
+        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
+        if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
+        if(hazard.type==='vortex'&&target.alive!==false){const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1,pull=16;const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);const ox=moved.x-target.x,oy=moved.y-target.y;target.x=moved.x;target.y=moved.y;playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:'vortex:'+hazard.id,strength:.42});}
+      }
+    }
+  }
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
@@ -466,7 +485,26 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
-    if (enemy.kind === 'kraken') {
+    if(enemy.kind===RiftHardcore.FINAL_KIND){
+       const contenders=targetablePlayers.filter(p=>AbyssalMap.roomAt(mapLayout,Number(p.x),Number(p.y))?.id==='boss');
+       if(!enemy.riftNextAttackAt)enemy.riftNextAttackAt=now+1400;
+       if(contenders.length&&now>=enemy.riftNextAttackAt){
+         enemy.riftAttackSerial=(Number(enemy.riftAttackSerial)||0)+1;
+         const mark=RiftHardcore.bossMark(enemy,contenders,now);
+         if(mark){enemy.riftPendingAttacks ||= [];enemy.riftPendingAttacks.push(mark);bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'rift-tentacle-warning',...mark});}
+         enemy.riftNextAttackAt=now+(enemy.hp/enemy.maxHp<.25?1750:enemy.hp/enemy.maxHp<.6?2100:2650);
+       }
+       for(const mark of enemy.riftPendingAttacks||[]){
+         if(now<mark.hitAt)continue;
+         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'rift-tentacle-strike',...mark});
+         for(const target of contenders){if(!RiftHardcore.bossHit(mark,target.x,target.y,Number(target.r)||13/WORLD_ZOOM))continue;
+           const hit=bossAbilityHit(enemy,target,mark.damage,now,'rift-tentacle');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
+         }
+       }
+       enemy.riftPendingAttacks=(enemy.riftPendingAttacks||[]).filter(mark=>now<mark.hitAt);
+       continue; // The final kraken is rooted; its head never chases or body-collides.
+     }
+     if (enemy.kind === 'kraken') {
       // Slow, readable boss sweep: 2.4 s telegraph, 2.8 s damaging sweep, 4.8 s recovery.
       enemy.krakenSweepTimer = Math.max(0, (Number(enemy.krakenSweepTimer) || 0) - dt);
       if (enemy.krakenSweepTimer <= 0) {
