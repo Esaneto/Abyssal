@@ -21,18 +21,20 @@ function neonForSpecies(color){
 function draw(c,x,y,r,angle,s,t,hit){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
- const key=String(s.id||s.family||'marine')+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
+ const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
  const frame=Math.floor((Number(t)||0)/115);
  let entry=marineSpriteCache.get(key);
  if(!entry){
   const margin=Math.ceil(Math.max(18,r*.9));
+  // Long ribbon bodies and tentacles reach roughly 4.2 radii behind the head.
+  // Extra canvas padding prevents chopping the tail and its neon at the border.
   const cx=Math.ceil(r*5+margin),cy=Math.ceil(r*3+margin);
   const canvas=document.createElement('canvas');
   canvas.width=cx*2;canvas.height=cy*2;
   entry={canvas,context:canvas.getContext('2d'),cx,cy,frame:-1};
   if(!entry.context)return drawDetails(c,x,y,r,angle,s,t,hit);
   marineSpriteCache.set(key,entry);
-  if(marineSpriteCache.size>64)marineSpriteCache.delete(marineSpriteCache.keys().next().value);
+  if(marineSpriteCache.size>32)marineSpriteCache.delete(marineSpriteCache.keys().next().value);
  }
  if(entry.frame!==frame){
   entry.context.clearRect(0,0,entry.canvas.width,entry.canvas.height);
