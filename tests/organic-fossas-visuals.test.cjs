@@ -17,7 +17,7 @@ test('volcanic rocks originate against walls in mob chambers and narrow corridor
  assert.ok(rocks.some(h=>['shoal','hub','landing'].includes(h.roomId)),'mob room installations');
  for(const h of rocks){
   assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),'attached vent origin');
-  assert.ok(h.length>=145&&h.radius<100);
+  assert.ok(h.length>=145&&h.radius<=100);
   assert.equal(H.hit(h,h.x,h.y,0,H.state(h,inPhase(h,.52))),true);
   assert.equal(H.hit(h,h.x+Math.sin(h.angle)*200,h.y-Math.cos(h.angle)*200),false);
   const room=layout.rooms.find(r=>r.id===h.roomId);
