@@ -8,3 +8,10 @@
 #abyssGate .abyss-gate-rim{border-color:#376677;box-shadow:inset 0 7px 15px #071b29,0 0 18px #3faec444;filter:drop-shadow(0 8px 4px #0009)}
 #abyssGate .abyss-vortex-streams{filter:drop-shadow(0 0 3px #46b9da);opacity:.7}
 @media(prefers-reduced-motion:reduce){.treasure-lid,.treasure-light{transition:none}}
+
+#riftChestDialog.final-chest{border:2px solid #edc56d;background:radial-gradient(ellipse at 50% 42%,#50401a,#1c271e 58%,#070d13 90%);box-shadow:0 0 75px #efc65b40,0 25px 100px #000d}
+#riftChestDialog.final-chest h2{color:#fff3ad;text-shadow:0 0 19px #d5b249;letter-spacing:.06em}
+#riftChestDialog.final-chest .treasure-art svg{filter:sepia(.65) saturate(1.4) drop-shadow(0 0 18px #e3ac4b)}
+#riftChestDialog.final-chest .treasure-light{opacity:.7;filter:blur(23px)}
+#riftChestDialog.final-chest.opened .treasure-light{opacity:1}
+#riftChestDialog.final-chest .chest-odds{color:#f5dca2;font-weight:700}
