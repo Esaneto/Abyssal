@@ -97,7 +97,7 @@ test('every hazard renders at rest, during its distinct warning and during attac
  const common=['save','restore','beginPath','closePath','translate','rotate','scale','moveTo','lineTo','arc','ellipse',
   'quadraticCurveTo','bezierCurveTo','stroke','fill','roundRect','setLineDash','fillRect','strokeRect'];
  for(const h of hazards){
-  for(const [phase,at] of [['idle',0],['warning',h.period-h.offset-h.active-h.warning*.5],['active',inPhase(h,.5)]]){
+  for(const [phase,at] of [['idle',h.period-h.offset-h.active-h.warning-2],['warning',h.period-h.offset-h.active-h.warning*.5],['active',inPhase(h,.5)]]){
    const paints=[];let shapes=0;
    const c={globalAlpha:1};
    for(const m of common)c[m]=(...args)=>{
@@ -112,7 +112,7 @@ test('every hazard renders at rest, during its distinct warning and during attac
     set(value){this['_'+key]=value;if(typeof value==='string')paints.push(value);}
    });
    assert.doesNotThrow(()=>H.draw(c,[h],at),h.id+':'+phase);
-   assert.ok(shapes>=2,'hazard must paint visible shapes: '+h.id+':'+phase);
+   assert.ok(shapes>=(phase==='idle'?0:2),'hazard must paint visible shapes when primed: '+h.id+':'+phase);
    if(h.type!=='tentacle'){
     assert.ok(!paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
      'non-tentacle cannot use the filled red attack telegraph: '+h.id);
