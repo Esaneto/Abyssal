@@ -834,9 +834,9 @@ async function finishRunForSocket(socket,payload={}){
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
- const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(extracted?1+Math.min(.75,bossesKilled*.15):.65):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Sinal perdido: ${bossesKilled} boss(es) abatido(s). 65% da recompensa de conclusão foi preservada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 
@@ -912,8 +912,19 @@ function tickRoom(room, now) {
  const bossAbilityHits = Array.isArray(result.bossAbilityHits) ? result.bossAbilityHits : [];
  const bossAbilityEvents = Array.isArray(result.bossAbilityEvents) ? result.bossAbilityEvents : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
+ const riftAims=Array.isArray(result.riftAims)?result.riftAims:[];
+ const environmentDamages=Array.isArray(result.environmentDamages)?result.environmentDamages:[];
+ const environmentKills=Array.isArray(result.environmentKills)?result.environmentKills:[];
  const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
  if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+ // One server-owned curved path per tentacle cycle, synchronized to every observer.
+ for(const aim of riftAims)io.to(channelFor(room)).emit('world-rift-tentacle-aim',aim);
+ for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
+ for(const death of environmentKills){
+  io.to(channelFor(room)).emit('world-enemy-defeated',death);
+  if(death.boss){awardWorldBossCoins(room);WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}
+ }
+ if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
  if(spawnedRewardOrbs.length){combatDiagnostics.xpOrbsSpawned+=spawnedRewardOrbs.length;io.to(channelFor(room)).emit('world-xp-orbs-spawned',spawnedRewardOrbs.map(orb=>({...orb})));}
  if(result.sideEncounter)io.to(channelFor(room)).emit('world-cave-signal',result.sideEncounter);
 
@@ -991,9 +1002,24 @@ function tickRoom(room, now) {
  for (const pickup of xpCollected) {
   combatDiagnostics.xpOrbsCollected++;
   combatDiagnostics.lastXpOrbPickup={at:new Date(now).toISOString(),orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value};
-  const xpCollector=room.players.get(pickup.playerId);if(xpCollector)creditRunXp(xpCollector.runStats,pickup.value);
+  // A rift orb is collected ONCE, but every active expedition member gains XP,
+  // including players who did not touch it. Other modes keep collector-only XP.
   io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value,x:pickup.x,y:pickup.y});
-  io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
+  if(room.mode==='rift'){
+   const collector=room.players.get(pickup.playerId);
+   const base=Math.max(1,Number(pickup.baseValue)||Number(pickup.value)||1);
+   for(const member of room.players.values()){
+    if(member.runStats?.settled)continue;
+    const multiplier=SkinAbilities.orbExperienceMultiplier(member.skinId);
+    const value=Math.max(1,Math.round(base*multiplier));
+    if(member.runStats)creditRunXp(member.runStats,value);
+    io.to(member.id).emit('shared-xp-award',{value,source:'rift-team-orb',orbId:pickup.orbId,collectorId:collector?.id||pickup.playerId});
+   }
+  }else{
+   const collector=room.players.get(pickup.playerId);
+   if(collector)creditRunXp(collector.runStats,pickup.value);
+   io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
+  }
  }
  // Only the authoritative simulation can produce enemy-contact damage. The reliable
  // snapshot with criticalEnemyIds was delivered first, so the attacker already exists at
