@@ -1517,7 +1517,8 @@ function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
  const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(room)soloRiftCheckpointRoomId=room.id;
  for(const h of activeRiftHazards){
-  if(RIFT_HARDCORE.state(h,elapsed).phase!=='active'||!RIFT_HARDCORE.hit(h,player.x,player.y,player.r))continue;
+  const phase=RIFT_HARDCORE.state(h,elapsed);
+  if(phase.phase!=='active'||!RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase))continue;
   const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;if(elapsed<cooldown)continue;
   riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
   hurtPlayer(h.damage);if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
