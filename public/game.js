@@ -334,8 +334,8 @@ function anglerVisibilityAlpha(nowMs=Date.now()){
 function anglerInvisibleNow(nowMs=Date.now()){const phase=((Number(nowMs)||0)%26000+26000)%26000;return phase>=3000&&phase<13000;}
 function enemyHiddenFromAutoTarget(enemy,nowMs=Date.now()){return Boolean(enemy&&enemy.kind==='angler'&&anglerInvisibleNow(nowMs));}
 
-const PROFILE_TITLE_NAMES=Object.freeze({'abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável','shoal-founder':'Fundador do Cardume','supporter-of-the-depths':'Apoio das Profundezas','abyssal-famous':'Nome Conhecido','abyssal-icon':'Ícone do Abismo','living-legend':'Lenda Viva','abyssal-patron':'Patrono do Abismo','boss-abyssal':'Boss Abyssal'});
-const PROFILE_TITLE_COLORS=Object.freeze({'abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
+const PROFILE_TITLE_NAMES=Object.freeze({'sonar-novice':'Eco do Primeiro Sonar','lantern-hunter':'Caçador de Fotóforos','hadal-executioner':'Carrasco Hadal','first-predator':'Primeira Presa Colossal','abyss-stalker':'Perseguidor de Leviatãs','titan-bane':'Flagelo dos Titãs','cycle-pioneer':'Pioneiro dos Sete Selos','rift-cartographer':'Cartógrafo das Fossas','hadal-navigator':'Navegador Hadal','veteran-diver':'Veterano de Expedições','eternal-explorer':'Viajante Insondável','abyss-drifter':'Mergulhador das Fossas','abyss-spark':'Faísca das Fossas','current-hunter':'Caçador de Correntes','pelagic-executioner':'Carrasco Pelágico','leviathan-hunter':'Caçador de Leviatãs','sovereign-abyss':'Soberano do Insondável','shoal-founder':'Fundador do Cardume','supporter-of-the-depths':'Apoio das Profundezas','abyssal-famous':'Nome Conhecido','abyssal-icon':'Ícone do Abismo','living-legend':'Lenda Viva','abyssal-patron':'Patrono do Abismo','boss-abyssal':'Boss Abyssal'});
+const PROFILE_TITLE_COLORS=Object.freeze({'sonar-novice':'#88dfe2','lantern-hunter':'#abf8e8','hadal-executioner':'#ff86ca','first-predator':'#ffe59e','abyss-stalker':'#dbb7ff','titan-bane':'#ffc37d','cycle-pioneer':'#a1ff9d','rift-cartographer':'#83e3fb','hadal-navigator':'#9fcaff','veteran-diver':'#e6d7ff','eternal-explorer':'#ffb8df','abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
 const particlePool=[];
 const hostileSpriteCache=new Map();
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270,enemyCollisionBuckets=[],enemyCollisionBucketCount=0;
@@ -1122,7 +1122,7 @@ function onProgressionCycleCompleted() {
   activeBossEntities = [];
   activeBossEntity = null;
 
-  if (bossProgressionCycle + 1 < PROGRESSION_MAX_CYCLES) {
+  if (bossProgressionCycle < PROGRESSION_MAX_CYCLES) {
     bossProgressionCycle++;
     const hpBonus = bossProgressionCycle * 20;
     const xpBonus = bossProgressionCycle * 2;
@@ -1160,6 +1160,7 @@ function triggerAbyssalVictory() {
 
   // Notificar servidor se estiver online ou autenticado
   if (window.AbyssalOnline?.saveCosmetics) {
+    window.AbyssalOnline.sendRunProgress?.({score,level,bossesKilled:Math.max(35,bossKillsThisRun)});
     window.AbyssalOnline.saveCosmetics({ ownedSkins, conqueror: true, unlockedTitle: 'abyssal-conqueror' });
   }
 
