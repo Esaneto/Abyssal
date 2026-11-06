@@ -1,0 +1,200 @@
+/* Abyssal · Fossas Abissais / Catálogo de Espécimes · 2026-11
+   Visual-only skin: no click interception, no menu structure changes. */
+
+/* FOSSAS: a narrow red outline that drips, instead of a thick red tear. */
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-gate-content{
+  filter:drop-shadow(0 0 2px rgba(99,16,22,.33))!important;
+  isolation:isolate!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-gate-content::before{
+  inset:-1px!important;
+  background:rgba(90,16,21,.62)!important;
+  opacity:.76!important;
+  pointer-events:none!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate .abyss-gate-content::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:-1!important;
+  left:8%!important;right:8%!important;
+  top:calc(100% - 5px)!important;
+  height:17px!important;
+  display:block!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse 2px 4px at 14% 75%,rgba(109,18,25,.85) 0 80%,transparent 100%),
+    radial-gradient(ellipse 3px 4px at 42% 87%,rgba(105,16,24,.8) 0 75%,transparent 100%),
+    radial-gradient(ellipse 2px 4px at 73% 68%,rgba(114,21,27,.76) 0 80%,transparent 100%),
+    linear-gradient(to bottom,rgba(108,17,23,.82),rgba(94,12,17,.68) 76%,transparent) 14% 0/3px 14px no-repeat,
+    linear-gradient(to bottom,rgba(111,22,28,.74),rgba(96,13,21,.6) 80%,transparent) 42% 0/4px 17px no-repeat,
+    linear-gradient(to bottom,rgba(106,20,29,.77),rgba(87,11,17,.56) 75%,transparent) 73% 0/3px 12px no-repeat!important;
+  opacity:.9!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGateButton{
+  border:1px solid rgba(111,28,34,.72)!important;
+  color:#f5f0f2!important;
+  background:
+    linear-gradient(to bottom,rgba(132,19,29,.22) 0%,transparent 34%) 11% 0/3px 29px no-repeat,
+    linear-gradient(to bottom,rgba(119,15,24,.27) 0%,transparent 46%) 35% 0/4px 33px no-repeat,
+    linear-gradient(to bottom,rgba(131,19,29,.20) 0%,transparent 45%) 69% 0/3px 23px no-repeat,
+    linear-gradient(to bottom,rgba(113,17,27,.25) 0%,transparent 42%) 90% 0/3px 29px no-repeat,
+    linear-gradient(140deg,#07080c 0%,#010204 49%,#100b10 100%)!important;
+  box-shadow:inset 0 0 13px rgba(126,20,27,.09),0 0 7px rgba(91,14,19,.12)!important;
+  text-shadow:0 1px 8px #000!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGateButton::after{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+  background:
+    radial-gradient(ellipse 4px 7px at 11% 25%,rgba(133,25,32,.23) 0 70%,transparent 100%),
+    radial-gradient(ellipse 4px 8px at 35% 37%,rgba(129,17,26,.25) 0 68%,transparent 100%),
+    radial-gradient(ellipse 3px 6px at 69% 31%,rgba(117,17,27,.19) 0 70%,transparent 100%),
+    radial-gradient(ellipse 4px 7px at 90% 29%,rgba(132,22,28,.23) 0 70%,transparent 100%),
+    linear-gradient(to bottom,rgba(97,16,22,.14),transparent 32%,rgba(0,0,0,.19))!important;
+  opacity:.9!important;
+}
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGateButton:hover,
+body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGateButton:focus-visible{
+  border-color:rgba(165,39,46,.8)!important;
+  filter:brightness(1.12) drop-shadow(0 0 6px rgba(118,19,24,.17))!important;
+}
+
+/* The room entered through FOSSAS also shares its black/blood-drip identity. */
+.abyss-descent-panel .abyss-descent-dialog{
+  overflow:hidden!important;
+  border:1px solid rgba(102,27,33,.65)!important;
+  background:
+    linear-gradient(180deg,rgba(108,17,24,.17) 0%,transparent 16%),
+    radial-gradient(ellipse at 50% -25%,rgba(117,19,29,.12),transparent 55%),
+    linear-gradient(165deg,rgba(12,11,15,.99),rgba(2,3,7,.99))!important;
+  box-shadow:0 30px 85px rgba(0,0,0,.72),inset 0 0 50px rgba(53,6,12,.13)!important;
+}
+.abyss-descent-panel .abyss-descent-dialog::before{
+  inset:8px!important;
+  border:1px solid rgba(117,30,35,.22)!important;
+  pointer-events:none!important;
+}
+.abyss-descent-panel .abyss-descent-dialog::after{
+  content:""!important;
+  display:block!important;
+  position:absolute!important;top:0!important;left:3%!important;right:3%!important;
+  height:42px!important;z-index:0!important;pointer-events:none!important;
+  opacity:.75!important;
+  background:
+    radial-gradient(ellipse 4px 7px at 13% 71%,rgba(111,16,26,.57) 0 72%,transparent 100%),
+    radial-gradient(ellipse 5px 8px at 39% 88%,rgba(110,18,26,.54) 0 72%,transparent 100%),
+    radial-gradient(ellipse 3px 6px at 72% 67%,rgba(109,16,23,.51) 0 72%,transparent 100%),
+    linear-gradient(to bottom,rgba(111,17,24,.48),rgba(87,10,17,.36) 70%,transparent) 13% 0/5px 29px no-repeat,
+    linear-gradient(to bottom,rgba(117,18,26,.5),rgba(92,13,20,.37) 80%,transparent) 39% 0/6px 39px no-repeat,
+    linear-gradient(to bottom,rgba(106,17,24,.45),rgba(84,12,17,.35) 72%,transparent) 72% 0/4px 25px no-repeat!important;
+}
+.abyss-descent-panel .abyss-descent-dialog > *{
+  position:relative;z-index:1;
+}
+.abyss-descent-panel .abyss-descent-header small{color:#ba7881!important}
+.abyss-descent-panel .abyss-descent-header h2{
+  color:#f2e7e8!important;
+  text-shadow:0 1px 18px rgba(145,25,31,.32)!important;
+}
+.abyss-descent-panel .abyss-descent-choice,
+.abyss-descent-panel .abyss-descent-choice[data-mode="group"]{
+  border:1px solid rgba(115,36,40,.39)!important;
+  background:
+    linear-gradient(to bottom,rgba(113,18,27,.13),transparent 24%),
+    linear-gradient(145deg,rgba(15,11,16,.94),rgba(4,5,9,.97))!important;
+  color:#f0e9e9!important;
+}
+.abyss-descent-panel .abyss-descent-choice:hover,
+.abyss-descent-panel .abyss-descent-choice:focus-visible{
+  border-color:rgba(173,53,59,.68)!important;
+  background:linear-gradient(145deg,rgba(37,12,18,.94),rgba(6,6,10,.97))!important;
+}
+.abyss-descent-panel .abyss-descent-choice .abyss-choice-icon{color:#c88087!important}
+
+/* The shop itself matches the catalogue entry: translucent brown and violet. */
+#shopScreen .shop-modal{
+  border:1px solid rgba(143,94,61,.7)!important;
+  background:
+    radial-gradient(ellipse at 6% 1%,rgba(130,57,179,.13),transparent 32%),
+    radial-gradient(ellipse at 92% 98%,rgba(122,63,155,.09),transparent 29%),
+    linear-gradient(160deg,rgba(66,43,29,.97) 0%,rgba(28,20,20,.98) 58%,rgba(9,11,19,.99) 100%)!important;
+  box-shadow:0 26px 80px rgba(0,0,0,.68),inset 0 0 46px rgba(96,49,30,.11)!important;
+}
+#shopScreen .shop-heading h2,#shopScreen .shop-heading h2 em{color:#f2decf!important}
+#shopScreen .shop-section-title{color:#d9abd9!important}
+#shopScreen .shop-filter-bar{
+  border-color:rgba(151,102,70,.37)!important;
+  background:rgba(39,25,23,.91)!important;
+}
+#shopScreen .shop-filter-summary{color:#caa89f!important}
+#shopScreen .shop-filter-search,
+#shopScreen .shop-filter-select{
+  border-color:rgba(146,92,61,.45)!important;
+  background:rgba(24,18,22,.87)!important;
+  color:#f1e4dc!important;
+}
+
+/* Every species card gets the same corner artwork. The SVG is decoration only;
+   the purchase buttons and canvas previews retain their original listeners. */
+#shopScreen #skinGrid .skin-card{
+  position:relative!important;
+  isolation:isolate!important;
+  overflow:hidden!important;
+  border:1px solid rgba(146,95,65,.67)!important;
+  background:
+    radial-gradient(circle at 1% 2%,rgba(156,73,232,.11),transparent 29%),
+    radial-gradient(circle at 100% 100%,rgba(136,54,209,.11),transparent 32%),
+    linear-gradient(153deg,rgba(98,63,39,.47),rgba(43,29,25,.57) 60%,rgba(19,17,25,.73))!important;
+  box-shadow:inset 0 0 17px rgba(166,94,54,.07),0 6px 16px rgba(0,0,0,.2)!important;
+}
+#shopScreen #skinGrid .skin-card::before{
+  content:""!important;
+  position:absolute!important;inset:0!important;
+  z-index:0!important;display:block!important;
+  pointer-events:none!important;
+  opacity:.78!important;
+  background-image:url('abyssal-specimen-tentacles.svg')!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  background-size:100% 100%!important;
+}
+#shopScreen #skinGrid .skin-card > *{
+  position:relative!important;z-index:1!important;
+}
+#shopScreen #skinGrid .skin-card:hover{
+  border-color:rgba(179,119,82,.93)!important;
+  box-shadow:inset 0 0 22px rgba(166,94,54,.12),0 7px 24px rgba(137,60,193,.15)!important;
+}
+#shopScreen #skinGrid .skin-card.owned{
+  border-color:rgba(98,207,153,.55)!important;
+}
+#shopScreen #skinGrid .skin-card.equipped{
+  border-color:rgba(131,235,178,.82)!important;
+}
+#shopScreen #skinGrid .skin-preview{
+  border-color:rgba(142,90,65,.43)!important;
+  background:
+    radial-gradient(circle at center,rgba(150,71,198,.14),transparent 73%),
+    rgba(12,13,19,.6)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-ability{
+  border-color:rgba(143,86,67,.34)!important;
+  background:rgba(19,16,23,.66)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-ability b{color:#d5abdf!important}
+#shopScreen #skinGrid .skin-card > button:not(:disabled){
+  border-color:rgba(168,108,80,.49)!important;
+  background:linear-gradient(145deg,rgba(84,51,37,.76),rgba(38,27,32,.87))!important;
+  color:#f8e7d8!important;
+}
+#shopScreen #skinGrid .skin-card > button:not(:disabled):hover,
+#shopScreen #skinGrid .skin-card > button:not(:disabled):focus-visible{
+  border-color:rgba(194,124,247,.62)!important;
+  background:linear-gradient(145deg,rgba(104,60,46,.83),rgba(60,29,65,.83))!important;
+}
+@media(max-width:700px){
+  #shopScreen #skinGrid .skin-card::before{opacity:.6!important}
+  #shopScreen #skinGrid .skin-card{border-width:1px!important}
+}
