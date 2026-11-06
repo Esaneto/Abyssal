@@ -3919,7 +3919,34 @@ const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',
 function resonanceCategoryOf(id){for(const [category,ids] of Object.entries(RESONANCE_CATEGORIES))if(ids.includes(id))return category;return 'buffs';}
 function resonanceCounts(ids=resonancePresets[resonanceEditingMode]||[]){return {shots:ids.filter(id=>RESONANCE_CATEGORIES.shots.includes(id)).length,passive:ids.filter(id=>RESONANCE_CATEGORIES.passive.includes(id)).length,buffs:ids.filter(id=>RESONANCE_CATEGORIES.buffs.includes(id)).length,total:ids.length};}
 function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const [category,heading] of [['shots','DISPAROS · ESCOLHA EXATAMENTE 1'],['passive','PASSIVAS'],['buffs','BUFFS']]){const section=document.createElement('section');section.className='resonance-category';const title=document.createElement('h3');title.className='resonance-category-title';title.textContent=heading;section.append(title);const list=document.createElement('div');list.className='resonance-category-list';for(const id of RESONANCE_CATEGORIES[category]){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option resonance-'+category;row.dataset.skill=id;row.title=resonanceSkillDescriptions[id]||'';const input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=resonancePresets[resonanceEditingMode].includes(id);input.setAttribute('aria-label',label);input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(category==='shots'&&!input.checked&&current.includes(id)){input.checked=true;$('resonanceMessage').textContent='Você precisa manter exatamente 1 disparo selecionado.';return;}let next=current.filter(value=>value!==id);if(input.checked){if(category==='shots')next=next.filter(value=>!RESONANCE_CATEGORIES.shots.includes(value));if(next.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite total é de 7 habilidades.';return;}next.push(id);}resonancePresets[resonanceEditingMode]=normalizeResonancePresets({...resonancePresets,[resonanceEditingMode]:next})[resonanceEditingMode];$('resonanceMessage').textContent='';if(category==='shots')renderResonanceChoices();else updateResonanceCount();});const badge=document.createElement('span');badge.className='resonance-skill-icon';badge.textContent=icon;badge.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='resonance-skill-copy';const name=document.createElement('strong');name.textContent=label;const description=document.createElement('small');description.textContent=resonanceSkillDescriptions[id]||'Habilidade de combate abissal.';copy.append(name,description);row.append(input,badge,copy);list.append(row);}section.append(list);root.append(section);}const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>{const active=b.dataset.resonanceMode===resonanceEditingMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}
-function updateResonanceCount(){const counts=resonanceCounts();const el=$('resonanceSelectionCount');if(el)el.textContent=counts.shots+' Disparos · '+counts.passive+' Passivas · '+counts.buffs+' Buffs · '+counts.total+'/7';}
+const RESONANCE_FUSION_RECIPES=Object.freeze([
+ {id:'gravitationalRupture',name:'RUPTURA GRAVITACIONAL',items:[['nova','Nova Gravitacional'],['burst','Pulso de Ruptura']]},
+ {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['power','Pulso Intenso']]},
+ {id:'abyssEye',name:'OLHO DO ABISMO',items:[['pierce','Lança do Abismo'],['range','Olho Profundo']]},
+ {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]}
+]);
+function renderResonanceFusionGuide(){
+ const root=$('resonanceFusionGuide');if(!root)return;
+ const selected=new Set(resonancePresets[resonanceEditingMode]||[]);
+ root.replaceChildren();
+ const title=document.createElement('h3');title.className='resonance-fusion-heading';
+ title.textContent='✦ FUSÕES DE OURO · COMO DESPERTAR';root.append(title);
+ const description=document.createElement('p');description.className='resonance-fusion-explainer';
+ description.textContent='Selecione as duas habilidades exigidas e alcance o nível 3 em ambas durante o mergulho. O disparo único continua valendo.';root.append(description);
+ const grid=document.createElement('div');grid.className='resonance-fusion-grid';root.append(grid);
+ for(const recipe of RESONANCE_FUSION_RECIPES){
+  const entry=document.createElement('article');entry.className='resonance-fusion-recipe';
+  const ready=recipe.items.every(([id])=>selected.has(id));
+  entry.classList.toggle('ready',ready);
+  const name=document.createElement('strong');name.textContent=recipe.name;
+  const combo=document.createElement('p');combo.textContent=recipe.items.map(([,name])=>name+' NV. 3').join(' + ');
+  const status=document.createElement('small');
+  const missing=recipe.items.filter(([id])=>!selected.has(id)).map(([,name])=>name);
+  status.textContent=ready?'✓ CONFIGURAÇÃO PRONTA PARA EVOLUIR':'FALTA NA SELEÇÃO: '+missing.join(' + ');
+  entry.append(name,combo,status);grid.append(entry);
+ }
+}
+function updateResonanceCount(){const counts=resonanceCounts();const el=$('resonanceSelectionCount');if(el)el.textContent=counts.shots+' Disparos · '+counts.passive+' Passivas · '+counts.buffs+' Buffs · '+counts.total+'/7';renderResonanceFusionGuide();}
 $('resonanceBtn')?.addEventListener('click',()=>{resonanceEditingMode='pve';$('resonanceMessage').textContent='';renderResonanceChoices();$('resonanceScreen').hidden=false;});
 document.querySelectorAll('[data-resonance-mode]').forEach(b=>b.addEventListener('click',()=>{resonanceEditingMode=b.dataset.resonanceMode;renderResonanceChoices();$('resonanceMessage').textContent='';}));
 $('saveResonanceBtn')?.addEventListener('click',()=>{const counts=resonanceCounts();if(counts.shots!==1){$('resonanceMessage').textContent='Selecione exatamente 1 disparo.';renderResonanceChoices();return;}if(!resonancePresets[resonanceEditingMode].length){$('resonanceMessage').textContent='Selecione pelo menos uma habilidade.';return;}saveResonancePresets();$('resonanceMessage').textContent='Combinação '+resonanceEditingMode.toUpperCase()+' salva!';updateResonanceCount();});
