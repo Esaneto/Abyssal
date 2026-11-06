@@ -88,7 +88,9 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  // Each original expansion species has its own construction; never recurse into
  // Kraken, Devourer, manta or crocodile artwork with a different color.
  if(id==='eagleray'){
-  feeler(-.6,0,3.2,1);
+  // Long ray tail remains on the centreline instead of curling into a stray appendage.
+  stroke(()=>{c.moveTo(-.63,0);c.bezierCurveTo(-1.45,0,-2.55,strokeSway*.10,-3.45,strokeSway*.15);},'#203a4a',.091);
+  stroke(()=>{c.moveTo(-.63,0);c.bezierCurveTo(-1.45,0,-2.55,strokeSway*.10,-3.45,strokeSway*.15);},'#a0c6cb',.03);
   path(()=>{c.moveTo(1.2,0);c.quadraticCurveTo(.9,-.25,.35,-.3);c.lineTo(-.35,-1.7);c.quadraticCurveTo(-.9,-1.2,-.75,-.25);c.lineTo(-1,0);c.lineTo(-.75,.25);c.quadraticCurveTo(-.9,1.2,-.35,1.7);c.lineTo(.35,.3);c.quadraticCurveTo(.9,.25,1.2,0);});
   for(let i=0;i<28;i++){const side=i%2?1:-1;oval(-.25-(i%4)*.12,side*(.3+(i%7)*.15),.025,.035,0,'#ccddd0');}eye(.65,-.12,.045);eye(.65,.12,.045);
  }else if(id==='ribbonmoray'){
@@ -347,7 +349,14 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   if(id==='whiplash')for(const side of [-1,1])feeler(-.2,side*.3,4,side);
  }else if(s.family==='jelly'){
   if(id!=='combjelly')tentacles(variant===3?12:8,variant===3?3.5:2.2);
-  if(id==='siphonophore')oval(.35,-.55,.72,.33);
+  if(id==='siphonophore'){
+   // Siphonophore's buoyant zooids form a connected chain, not a spare ovoid.
+   for(let j=0;j<5;j++){
+    const xx=.15-j*.29,yy=-.35+Math.sin(phase+j)*.045;
+    oval(xx,yy,.16-j*.014,.12-j*.01,0,'rgba(166,220,243,.35)');
+    stroke(()=>{c.moveTo(xx-.11,yy);c.lineTo(xx-.28,yy+Math.sin(phase+j)*.04);},'#a2d7ee',.024);
+   }
+  }
   path(()=>{c.moveTo(-.2,-.7);c.bezierCurveTo(1.5,-1.0,1.5,1.0,-.2,.7);c.quadraticCurveTo(.1,0,-.2,-.7);});
   for(let i=0;i<7;i++){let y=(i-3)*.16;stroke(()=>{c.moveTo(-.2,y);c.quadraticCurveTo(.8,y*.6,.85,0)},'#9bd4e0',.018);}
   if(id==='combjelly')for(let i=0;i<14;i++)oval(.1+i*.045,Math.sin(i*.7)*.45,.035,.025,0,['#78deff','#d8b3ff','#71efc8'][i%3]);
@@ -406,13 +415,46 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   }
   eye(1.11,-.16,.045);eye(1.11,.16,.045);
  }else if(s.family==='mollusc'){
-  if(id==='bluedragon'){for(const side of [-1,1])for(let i=0;i<8;i++)fin([[.6-i*.2,0],[.3-i*.2,side*(.5+Math.sin(i)*.2)],[.5-i*.2,side*.1]]);oval(0,0,1,.18);}
-  else{oval(.2,.25,1,.3);if(id==='whelk'){fin([[-.3,.3],[-1.5,-.65],[.5,-.5]]);for(let i=0;i<4;i++)oval(-.85+i*.26,-.35+i*.06,.23+i*.05,.3+i*.06);}else oval(-.2,-.1,.8,.75);stroke(()=>{for(let i=0;i<90;i++){const a=i*.17,rr=i/120;const x=-.2+Math.cos(a)*rr,y=-.1+Math.sin(a)*rr;i?c.lineTo(x,y):c.moveTo(x,y);}},'#b7c3af',.055);for(const side of [-1,1])stroke(()=>{c.moveTo(.8,side*.15);c.lineTo(1.2,side*.4)},'#a9ccc4',.045);}
+  if(id==='bluedragon'){
+   // Blue dragon nudibranch: bilateral cerata that fold with each swim stroke.
+   for(const side of [-1,1])for(let i=0;i<8;i++){
+    const xx=.74-i*.22,spread=.43+(i%3)*.14,beat=Math.sin(phase*1.45+i*.58)*.11;
+    path(()=>{c.moveTo(xx,side*.06);c.quadraticCurveTo(xx-.18,side*(spread*.67+beat),
+     xx-.32,side*(spread+beat));c.quadraticCurveTo(xx-.04,side*(spread*.38),xx,side*.06);c.closePath();},
+      i%3?'#478ca8':'#89c7ce','#c2e9e6',.027);
+   }
+   path(()=>{c.moveTo(1.17,-.08);c.bezierCurveTo(.5,-.22,-.35,-.23,-1.3,-.08);
+    c.lineTo(-1.48,0);c.lineTo(-1.3,.08);
+    c.bezierCurveTo(-.35,.23,.5,.22,1.17,.08);c.closePath();},g,'#cee9df',.033);
+  }else{
+   // A single low crawling foot with a coherent conical or spiral shell on it.
+   path(()=>{c.moveTo(1.12,.18);c.bezierCurveTo(.38,.06,-.35,.06,-1.18,.14);
+    c.quadraticCurveTo(-1.47,.53,-.9,.58);
+    c.quadraticCurveTo(.07,.71,1.15,.42);c.closePath();},'#365e62','#8facad',.039);
+   if(id==='whelk'){
+    path(()=>{c.moveTo(-1.19,.13);c.lineTo(-1.67,-.52);
+     c.lineTo(-.66,-.75);c.quadraticCurveTo(.4,-1.02,.64,-.39);
+     c.quadraticCurveTo(.51,.22,-.34,.31);c.closePath();},g,'#d9c9ab',.055);
+   }else{
+    path(()=>{c.moveTo(-1.08,.16);c.bezierCurveTo(-1.27,-.76,-.55,-1.06,.17,-.84);
+     c.quadraticCurveTo(.93,-.60,.71,-.06);
+     c.quadraticCurveTo(.27,.45,-.6,.46);c.closePath();},g,'#d5d7bc',.060);
+   }
+   stroke(()=>{for(let j=0;j<96;j++){
+    const a=j*.155,radius=j*.0086;
+    const px=-.30+Math.cos(a)*radius,py=-.25+Math.sin(a)*radius;
+    if(j)c.lineTo(px,py);else c.moveTo(px,py);
+   }},'#c6ccbd',.06);
+   for(const side of [-1,1])stroke(()=>{c.moveTo(.91,side*.14);
+    c.quadraticCurveTo(1.07,side*.24,1.23,side*(.34+.06*swim));},'#b0d6ca',.05);
+  }
  }else{
   // Benthic radial crowns, articulated arms, and soft-bodied sea cucumbers.
   if(id==='seapig'){for(let i=0;i<6;i++)for(const side of [-1,1])oval(-.65+i*.25,side*.4,.1,.24,side*.4);oval(0,0,1,.43);}
-  else{for(let i=0;i<(id==='basketstar'?5:10);i++){const a=i*Math.PI*2/(id==='basketstar'?5:10);stroke(()=>{c.moveTo(0,0);c.quadraticCurveTo(Math.cos(a+.3)*.7,Math.sin(a+.3)*.7,Math.cos(a)*1.5,Math.sin(a)*1.5)},s.color,.06);if(id==='basketstar')for(const side of [-1,1])for(let j=1;j<4;j++){const d=j*.38;stroke(()=>{c.moveTo(Math.cos(a)*d,Math.sin(a)*d);c.quadraticCurveTo(Math.cos(a+side*.5)*(d+.3),Math.sin(a+side*.5)*(d+.3),Math.cos(a+side*.75)*(d+.5),Math.sin(a+side*.75)*(d+.5))},s.color,.04);}
- for(let j=1;j<6;j++){const d=j*.23;stroke(()=>{c.moveTo(Math.cos(a)*d,Math.sin(a)*d);c.lineTo(Math.cos(a)*d+Math.cos(a+.8)*.24,Math.sin(a)*d+Math.sin(a+.8)*.24)},'#9acdc3',.022);}}oval(0,0,.25,.25);}
+  else{for(let i=0;i<(id==='basketstar'?5:10);i++){const a=i*Math.PI*2/(id==='basketstar'?5:10),wave=Math.sin(phase*.9+i*.57)*.16;stroke(()=>{c.moveTo(0,0);c.quadraticCurveTo(Math.cos(a+.3+wave)*.7,Math.sin(a+.3+wave)*.7,Math.cos(a+wave)*1.5,Math.sin(a+wave)*1.5)},s.color,.06);if(id==='basketstar')for(const side of [-1,1])for(let j=1;j<4;j++){const d=j*.38;stroke(()=>{c.moveTo(Math.cos(a)*d,Math.sin(a)*d);c.quadraticCurveTo(Math.cos(a+side*.5)*(d+.3),Math.sin(a+side*.5)*(d+.3),Math.cos(a+side*.75)*(d+.5),Math.sin(a+side*.75)*(d+.5))},s.color,.04);}
+ for(let j=1;j<6;j++){const d=j*.23,sway=Math.sin(phase*1.1+i*.54+j)*.075;
+ stroke(()=>{c.moveTo(Math.cos(a)*d,Math.sin(a)*d);
+   c.lineTo(Math.cos(a)*d+Math.cos(a+.8+sway)*.24,Math.sin(a)*d+Math.sin(a+.8+sway)*.24)},'#9acdc3',.022);}}oval(0,0,.25,.25);}
  }
  c.restore();
 }
@@ -420,7 +462,8 @@ function wake(c,p,s,t){
  if(s?.renderer!=='marine')return;
  c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);c.strokeStyle=neonForSpecies(s.color);c.lineWidth=Math.max(.7,p.r*.045);
  // Ribbons stay behind the animal. More visible adaptations, readable anatomy.
- for(let j=0;j<3;j++){c.globalAlpha=.12+j*.05;c.beginPath();for(let i=0;i<18;i++){const q=i/17,x=-p.r*(1.5+q*3),y=Math.sin(q*7+t*.004+j)*p.r*(.2+j*.18);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
+ if(!p?.trail?.some?.(point=>Number(point.life)>.06)) {c.restore();return;}
+ for(let j=0;j<3;j++){c.globalAlpha=.10+j*.045;c.beginPath();for(let i=0;i<18;i++){const q=i/17,x=-p.r*(1.5+q*3),y=Math.sin(q*7+t*.004+j)*p.r*(.2+j*.18);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
  c.restore();
 }
 root.AbyssalMarineArt={draw,wake};
