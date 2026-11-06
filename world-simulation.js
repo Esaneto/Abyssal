@@ -197,7 +197,7 @@ function spawnEnemy(world, options = {}) {
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
   }
   if (type === 'boss') {
-    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
+    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
