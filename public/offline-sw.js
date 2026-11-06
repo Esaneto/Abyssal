@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-06-offline-v1';
+const VERSION = '2026-11-06-terrain-v2';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -67,8 +67,21 @@ self.addEventListener('fetch', event => {
     const cacheRequest = new Request(new URL(isNavigation ? 'index.html' : shellPath.slice(1), self.registration.scope));
     // A failed connection must never return API data or a stale authenticated page.
     const cached = await cache.match(cacheRequest, { ignoreSearch: true });
+    // HTML still prefers the network to receive new releases. Cached static
+    // JS/CSS/SVG must not wait 3.5 seconds EACH when a connection is weak:
+    // sequential parser-blocking scripts previously delayed Fossas startup.
+    if (inShell && !isNavigation && cached) {
+      const refresh = fetch(request).then(async response => {
+        if (response.ok && response.type === 'basic') {
+          await cache.put(cacheRequest, response.clone());
+        }
+      }).catch(() => {});
+      event.waitUntil?.(refresh);
+      return cached;
+    }
+    if (isNavigation && cached && typeof navigator !== 'undefined' && navigator.onLine === false) return cached;
     const controller = new AbortController();
-    const deadline = setTimeout(() => controller.abort(), 3500);
+    const deadline = setTimeout(() => controller.abort(), isNavigation ? 1500 : 1200);
     try {
       const response = await fetch(request, { signal: controller.signal });
       if (response.ok && response.type === 'basic') {
