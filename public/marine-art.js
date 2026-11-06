@@ -1,7 +1,52 @@
 (function(root){
 'use strict';
 // New species keep the shaded, sculptural palette of the original large predators.
+// The expanded species use a separate illustrator. Paint a compact alpha sprite
+// first so its neon is cast only from the OUTER silhouette, never from anatomy
+// details (eyes, teeth, seams). Quantized frames avoid repainting every entity at 60 Hz.
+const marineSpriteCache=new Map();
+function neonForSpecies(color){
+ const m=/^#([0-9a-f]{6})$/i.exec(String(color||''));
+ if(!m)return '#77efff';
+ const rgb=[0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16)/255);
+ const lo=Math.min(...rgb),hi=Math.max(...rgb),delta=hi-lo;
+ let hue=0;
+ if(delta>0){
+  if(hi===rgb[0])hue=((rgb[1]-rgb[2])/delta)%6;
+  else if(hi===rgb[1])hue=(rgb[2]-rgb[0])/delta+2;
+  else hue=(rgb[0]-rgb[1])/delta+4;
+ }
+ return 'hsl('+Math.round((hue*60+360)%360)+' 95% 66%)';
+}
 function draw(c,x,y,r,angle,s,t,hit){
+ if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
+ const radius=Math.round(r*2)/2;
+ const key=String(s.id||s.family||'marine')+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
+ const frame=Math.floor((Number(t)||0)/115);
+ let entry=marineSpriteCache.get(key);
+ if(!entry){
+  const margin=Math.ceil(Math.max(18,r*.9));
+  const cx=Math.ceil(r*5+margin),cy=Math.ceil(r*3+margin);
+  const canvas=document.createElement('canvas');
+  canvas.width=cx*2;canvas.height=cy*2;
+  entry={canvas,context:canvas.getContext('2d'),cx,cy,frame:-1};
+  if(!entry.context)return drawDetails(c,x,y,r,angle,s,t,hit);
+  marineSpriteCache.set(key,entry);
+  if(marineSpriteCache.size>64)marineSpriteCache.delete(marineSpriteCache.keys().next().value);
+ }
+ if(entry.frame!==frame){
+  entry.context.clearRect(0,0,entry.canvas.width,entry.canvas.height);
+  drawDetails(entry.context,entry.cx,entry.cy,r,0,s,t,hit);
+  entry.frame=frame;
+ }
+ c.save();
+ c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);
+ c.shadowColor=neonForSpecies(s.color);
+ c.shadowBlur=Math.max(7,Math.min(24,r*.72));
+ c.drawImage(entry.canvas,-entry.cx,-entry.cy);
+ c.restore();
+}
+function drawDetails(c,x,y,r,angle,s,t,hit){
  c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);
  const variant=s.morph||1,phase=t*.003,ink='#06131e',light='#bededc';
  const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);g.addColorStop(0,hit?'#fff':light);g.addColorStop(.15,s.color);g.addColorStop(.52,s.color);g.addColorStop(.78,'#193641');g.addColorStop(1,ink);
@@ -222,7 +267,7 @@ function draw(c,x,y,r,angle,s,t,hit){
 }
 function wake(c,p,s,t){
  if(s?.renderer!=='marine')return;
- c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);c.strokeStyle=s.color;c.lineWidth=Math.max(.7,p.r*.045);
+ c.save();c.translate(p.x,p.y);c.rotate(p.angle||0);c.strokeStyle=neonForSpecies(s.color);c.lineWidth=Math.max(.7,p.r*.045);
  // Ribbons stay behind the animal. More visible adaptations, readable anatomy.
  for(let j=0;j<3;j++){c.globalAlpha=.12+j*.05;c.beginPath();for(let i=0;i<18;i++){const q=i/17,x=-p.r*(1.5+q*3),y=Math.sin(q*7+t*.004+j)*p.r*(.2+j*.18);i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();}
  c.restore();
