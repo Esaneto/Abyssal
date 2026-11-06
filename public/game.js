@@ -855,7 +855,7 @@ function getBossDisplayName(kind) {
   const n = {
     boss: 'POLVO-DE-ANÉIS-AZUIS COLOSSAL', leviathan: 'PEIXE-REMO LEVIATÃ', maw: 'ENGUIA-PELÍCANO COLOSSAL',
     angler: 'PEIXE-PESCADOR ABISSAL', kraken: 'LULA-KRAKEN DAS FOSSAS', devourer: 'LULA-COLOSSAL DO VAZIO',
-    whiteSharkBoss: 'TUBARÃO-BRANCO COLOSSAL', whiteShark: 'TUBARÃO-BRANCO'
+    whiteSharkBoss: 'TUBARÃO-BRANCO COLOSSAL', whiteShark: 'TUBARÃO-BRANCO', riftSmile: 'PESADELO ROXO'
   };
   return n[kind] || kind.toUpperCase();
 }
