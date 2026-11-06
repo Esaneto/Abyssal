@@ -90,9 +90,11 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
     linear-gradient(to bottom,rgba(117,18,26,.5),rgba(92,13,20,.37) 80%,transparent) 39% 0/6px 39px no-repeat,
     linear-gradient(to bottom,rgba(106,17,24,.45),rgba(84,12,17,.35) 72%,transparent) 72% 0/4px 25px no-repeat!important;
 }
-.abyss-descent-panel .abyss-descent-dialog > *{
+.abyss-descent-panel .abyss-descent-header,
+.abyss-descent-panel .abyss-descent-choices{
   position:relative;z-index:1;
 }
+.abyss-descent-panel .abyss-descent-close{z-index:3!important}
 .abyss-descent-panel .abyss-descent-header small{color:#ba7881!important}
 .abyss-descent-panel .abyss-descent-header h2{
   color:#f2e7e8!important;
@@ -160,7 +162,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
   background-position:center!important;
   background-size:100% 100%!important;
 }
-#shopScreen #skinGrid .skin-card > *{
+#shopScreen #skinGrid .skin-card > :not(.boss-bundle-aura){
   position:relative!important;z-index:1!important;
 }
 #shopScreen #skinGrid .skin-card:hover{
