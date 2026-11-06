@@ -1,6 +1,6 @@
 (function(){
  function arrange(){
- const menu=document.getElementById('menuScreen');if(!menu||menu.querySelector('.abyss-orbit-nav'))return;
+ const menu=document.getElementById('menuScreen');if(!menu||menu.querySelector('.abyss-orbit-nav,.abyss-orbit-navigation'))return;
  const ids=['shopBtn','rankingBtn','onlineBtn','playBtn','resonanceBtn','catalogBtn','profileBtn','wheelBtn','supportBtn'];
  const buttons=ids.map(id=>document.getElementById(id)).filter(b=>b&&menu.contains(b));
  // Include the remaining content actions without replacing their event listeners.
