@@ -342,12 +342,42 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   eye(.93,-.12,.066);eye(.93,.12,.066);
   stroke(()=>{c.moveTo(.90,.13);c.quadraticCurveTo(1.19,.22,1.25,.06);},ink,.042);
  }else if(s.family==='octopus'||s.family==='squid'){
-  const squid=s.family==='squid';if(id==='bigfin'){for(let i=0;i<10;i++){const side=(i-4.5)*.17;stroke(()=>{c.moveTo(0,side*.25);c.lineTo(-.7,side);c.lineTo(-3.6-Math.sin(i)*.2,side+.1*Math.sin(phase+i))},'#9bb5b5',.027);}}else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.25:id==='mimic'?2.8:2.2,id==='mimic');
+  const squid=s.family==='squid';if(id==='bigfin'){
+   // Magnapinna: ten appendages emerge from a short mantle, bend at an
+   // unmistakable elbow, then hang as extremely fine trailing filaments.
+   for(let i=0;i<10;i++){
+    const side=(i-4.5)*.16,drift=Math.sin(phase*.72+i*.7)*.18;
+    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
+     c.lineTo(-.76+side*.10,-.98+side*1.4);
+     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#254051',.078);
+    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
+     c.lineTo(-.76+side*.10,-.98+side*1.4);
+     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#b6b1d7',.027);
+   }
+  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.25:id==='mimic'?2.8:2.2,id==='mimic');
   if(squid){fin([[.3,0],[.8,-.9],[1.45,0]]);fin([[.3,0],[.8,.9],[1.45,0]]);oval(.72,0,1,.37);}else if(id==='glassoctopus'){c.globalAlpha=.45;oval(.72,0,1.05,.36);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');}else if(id==='mimic'){oval(.5,0,.72,.32);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);}else oval(.38,0,.53,.48);
   eye(.15,-.25,.085);eye(.15,.25,.085);
   if(id==='bluering'||id==='jewelsquid')for(let i=0;i<18;i++){const a=i*2.399,rr=.1+(i%4)*.12;stroke(()=>c.arc(.5+Math.cos(a)*rr,Math.sin(a)*rr,.065,0,7),'#73e8ff',.035);}
   
   if(id==='whiplash')for(const side of [-1,1])feeler(-.2,side*.3,4,side);
+ }else if(id==='combjelly'){
+  // Ctenophore, not a medusa: translucent egg-like body and eight beating
+  // meridional comb rows. Rhythmic refraction is not an electrical halo.
+  c.globalAlpha=.47;
+  path(()=>{c.moveTo(-.83,0);c.bezierCurveTo(-.91,-.73,.18,-1.03,1.05,-.59);
+   c.quadraticCurveTo(1.46,0,1.05,.59);
+   c.bezierCurveTo(.18,1.03,-.91,.73,-.83,0);c.closePath();},'#6b9fa2','#c2e8e5',.05);
+  c.globalAlpha=1;
+  const colors=['#9fe9ff','#b8a9ff','#a2ffdb','#e0c2ff'];
+  for(let row=0;row<8;row++){
+   const a=row*Math.PI/4,fy=Math.sin(a),z=.2+.8*Math.abs(Math.cos(a));
+   stroke(()=>{c.moveTo(-.49,fy*.23);c.quadraticCurveTo(.30,fy*z,.99,fy*.45);},colors[row%4],.026);
+   for(let j=0;j<10;j++){
+    const x=-.44+j*.144,y=fy*(.24+.18*Math.sin(j/10*Math.PI))*(.6+.4*z);
+    oval(x,y,.028,.025+Math.sin(phase*2.9+j*.5+row)*.014,0,colors[(row+j)%4]);
+   }
+  }
+  oval(.21,0,.36,.19,0,'rgba(208,242,238,.27)');
  }else if(s.family==='jelly'){
   if(id!=='combjelly')tentacles(variant===3?12:8,variant===3?3.5:2.2);
   if(id==='siphonophore'){

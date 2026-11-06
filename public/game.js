@@ -32,8 +32,8 @@ let runShotId='electric';
 let runResonanceIds=[];
 const RESONANCE_STORAGE_KEY='abyssalResonancePresets';
 const RESONANCE_CATEGORIES={
- shots:['electric','pierce','spread','photon','photonRay','nova','echoShot'],
- passive:['burst','ricochet'],
+ shots:['electric','pierce','photon','photonRay','nova','echoShot'],
+ passive:['burst','ricochet','spread'],
  buffs:['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure']
 };
 const BASIC_SKILL_IDS=[...RESONANCE_CATEGORIES.shots,...RESONANCE_CATEGORIES.passive,...RESONANCE_CATEGORIES.buffs];
@@ -290,7 +290,7 @@ const skinData=[
 {id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'riftSmileRelic',name:'Vestígio do Pesadelo Roxo',color:'#cc86ff',price:0,paid:false,shape:'kraken',unlockType:'mission',desc:'Relíquia luminosa e translúcida da criatura mais temida das Fossas.',ability:'Tentáculos espectrais da fossa, forma de prestígio da expedição final.'},
+{id:'riftSmileRelic',name:'Vestígio do Pesadelo Roxo',color:'#cc86ff',price:0,paid:false,shape:'nightmare',unlockType:'mission',desc:'O vestígio jogável do Pesadelo Roxo possui manto craniano anguloso, olhos ameaçadores, dentes longos e seis braços afilados. Não é uma cópia do Kraken.',ability:'Herança do Pesadelo: forma de prestígio com braços translúcidos, sem reproduzir o corpo colossal que ocupa o fundo da arena.'},
 {id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis',color:'#338cff',price:16000,paid:true,shape:'aberration',desc:'Eco controlável do Polvo-de-Anéis-Azuis Colossal, com manto azul, anéis bioluminescentes e braços pendentes.',ability:'Bolhas abissais: ao nadar, deixa bolhas negras de pressão que causam dano rápido a criaturas que as atravessam.'},
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
@@ -1237,8 +1237,8 @@ function startGame(){
 runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:selectedOpeningShot==='spread'?1:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
- upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:selectedOpeningShot==='spread'?1:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
+ upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:5};updateCamera();
@@ -1250,7 +1250,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';startAmbientMusic();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,prismaticLevel:upgrades.spread,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
 const upgradeList=[
@@ -1265,7 +1265,7 @@ const upgradeList=[
  {id:'electric',name:'Tempestade elétrica',icon:'ϟ',desc:'Corrente bioelétrica: dano moderado e 1, 2 ou 3 saltos. Cada salto causa dano reduzido; níveis maiores ampliam o alcance da corrente.',apply:()=>upgrades.electric=Math.min(3,(upgrades.electric||0)+1)},
  {id:'pierce',name:'Lança-abismo',icon:'➶',desc:'Arpão abissal pesado: lento, largo e atravessa 1, 2 ou 3 criaturas adicionais. Sua força está em rasgar fileiras inteiras, não em chegar primeiro ao alvo.',apply:()=>upgrades.pierce=Math.min(3,(upgrades.pierce||0)+1)},
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'Passiva universal: qualquer disparo que acerte um alvo pode ricochetear para outro inimigo próximo. Cada nível adiciona um salto, até 3, marcado por um feixe reto amarelo neon.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
- {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Cobertura em leque: 3, 5 ou 7 fragmentos de baixo dano individual. Forte contra grupos próximos, fraco quando poucos fragmentos acertam o mesmo alvo.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
+ {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Passiva: cada acerto do disparo escolhido espalha dano prismático secundário para até 2, 4 ou 6 criaturas próximas, sem criar outros projéteis nem alterar sua cor, trajetória ou som.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Dardo fotônico de precisão: extremamente veloz, fino e de alto dano em alvo único. Quase não permanece na tela e não perfura fileiras.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
  {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo que atinge todos os alvos atravessados. No Controle 1, mira automaticamente no alvo mais próximo; no Controle 2, acompanha o mouse no PC ou o joystick de mira no celular. Níveis maiores aumentam potência e espessura.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial de alto controle: recarga de 1,8 s no PvE e 2,4 s no PvP. Atinge apenas alvos com caminho radial livre; cobertura bloqueia dano e onda visual.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
@@ -1515,36 +1515,55 @@ function respawnSoloRiftCheckpoint(){
 }
 function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
- const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);if(room)soloRiftCheckpointRoomId=room.id;
+ const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);
+ if(room)soloRiftCheckpointRoomId=room.id;
  for(const h of activeRiftHazards){
   const phase=RIFT_HARDCORE.state(h,elapsed);
-  if(phase.phase!=='active'||!RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase))continue;
-  const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;if(elapsed<cooldown)continue;
-  riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
-  hurtPlayer(h.damage);if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
-  if(h.type==='vortex'){const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1,move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);player.x=move.x;player.y=move.y;}
- }
- const now=performance.now();
- for(const e of enemies){if(e.kind!==RIFT_HARDCORE.FINAL_KIND||e.hp<=0)continue;
-  const inArena=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y)?.id==='boss';
-  if(!inArena)continue;
-  if(!e.riftNextAttackAt)e.riftNextAttackAt=now+1400;
-  if(now>=e.riftNextAttackAt){
-   e.riftAttackSerial=(Number(e.riftAttackSerial)||0)+1;
-   const mark=RIFT_HARDCORE.bossMark(e,[{x:player.x,y:player.y,alive:true}],now);
-   if(mark){e.riftPendingAttacks ||= [];e.riftPendingAttacks.push(mark);riftBossMarks.push(mark);}
-   const hpRatio=e.hp/Math.max(1,e.maxHp);e.riftNextAttackAt=now+(hpRatio<.25?1750:hpRatio<.6?2100:2650);
+  if(h.type==='tentacle'&&phase.phase!=='idle'){
+   const derived=RIFT_HARDCORE.hazardAtCycle(h,phase.cycle);
+   if(!derived.aimed){
+    const sameRoom=room?.id===h.roomId;
+    RIFT_HARDCORE.aimTentacle(h,phase.cycle,sameRoom?player.x:null,sameRoom?player.y:null);
+   }
   }
-  e.riftPendingAttacks=(e.riftPendingAttacks||[]).filter(mark=>{
-   if(now<mark.hitAt)return true;
-   if(RIFT_HARDCORE.bossHit(mark,player.x,player.y,player.r))hurtPlayer(mark.damage);
-   const visible=riftBossMarks.find(m=>m.id===mark.id);if(visible)visible.impactUntil=now+400;
-   return false;
-  });
+  if(phase.phase!=='active')continue;
+  if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
+   const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
+   if(elapsed>=cooldown){
+    riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
+    hurtPlayer(h.damage);
+    if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
+    if(h.type==='vortex'){
+     const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
+     const move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);
+     player.x=move.x;player.y=move.y;
+    }
+   }
+  }
+  // Hazards belong to the world, not to a player's weapon. They can kill
+  // creatures, elites and bosses, except Nightmare's immunity to own arms.
+  for(const enemy of [...enemies]){
+   if(!enemy||enemy.hp<=0||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
+   if(!RIFT_HARDCORE.hit(h,enemy.x,enemy.y,Math.min(43,enemy.r*.48),phase))continue;
+   enemy.riftHazardCooldowns ||= Object.create(null);
+   if(elapsed<(enemy.riftHazardCooldowns[h.id]||0))continue;
+   enemy.riftHazardCooldowns[h.id]=elapsed+(h.type==='tentacle'?.75:1.1);
+   dealEnemyDamage(enemy,h.damage,'rift-hazard-'+h.type,{silentSound:true,secondary:true});
+  }
  }
- riftBossMarks=riftBossMarks.filter(mark=>now<(mark.impactUntil||mark.hitAt+420));
+ // Pesadelo Roxo is static in the chamber, with a distinct lethal head.
+ // Eight environmental tentacles now supply the entire offensive arm pattern.
+ for(const enemy of enemies){
+  if(enemy.kind!==RIFT_HARDCORE.FINAL_KIND||enemy.hp<=0||room?.id!=='boss')continue;
+  const threshold=enemy.r*.85+player.r;
+  if(Math.hypot(player.x-enemy.x,player.y-enemy.y)<threshold&&
+   performance.now()>(enemy.headTouchAt||0)){
+   enemy.headTouchAt=performance.now()+900;
+   hurtPlayer(50);
+  }
+ }
+ riftBossMarks=[];
 }
-
 function hurtPlayer(dmg){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
  const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?.2:0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,'received');player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
@@ -1700,6 +1719,11 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
   let chains=0,from=primaryTarget;const level=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=190/GAME_WORLD_ZOOM;
   while(chains<level){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<range&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});dealEnemyDamage(next,baseDamage*shotBalanceValue('electric','chainDamage',level,.34),'electric',{secondary:true});visited.add(next.id);from=next;chains++;}
  }
+ if(!onlineMode&&Number(upgrades.spread)>0&&RESONANCE_CATEGORIES.shots.includes(String(sourceSkill||''))){
+  const candidates=enemies.filter(other=>other!==primaryTarget&&other.hp>0&&Math.hypot(other.x-primaryTarget.x,other.y-primaryTarget.y)<120/GAME_WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-primaryTarget.x,a.y-primaryTarget.y)-Math.hypot(b.x-primaryTarget.x,b.y-primaryTarget.y));
+  for(const other of candidates.slice(0,Math.min(6,Number(upgrades.spread)*2)))dealEnemyDamage(other,Math.max(1,baseDamage*.24),'prismatic-passive',{secondary:true,silentSound:true,visual:false});
+ }
+
  if((upgrades.ricochet||0)>0&&source!=='ricochet'&&!onlineMode){
   let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-line',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});burst(next.x,next.y,'#f7ff19',8,90);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
  }
@@ -2558,7 +2582,7 @@ function endGame(){
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
- const expeditionMultiplier=expeditionMode?(expeditionExtracted?1+Math.min(.75,bossKillsThisRun*.15):.65):1;
+ const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
  const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
  if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
  else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
@@ -2572,7 +2596,7 @@ function endGame(){
  $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
- $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'SINAL PERDIDO · PARTE DO SAQUE FOI DEIXADA NO FUNDO'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
+ $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
@@ -2743,6 +2767,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
  const skin=playerCreature?(skinOverride||(skinData.find(s=>s.id===equippedSkin)||skinData[0])):null;
  const id=skin?.id||'default';
+ if(playerCreature&&id==='riftSmileRelic'&&RIFT_HARDCORE?.drawNightmareRelic){c.save();c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);RIFT_HARDCORE.drawNightmareRelic(c,0,0,r,t);c.restore();return;}
  if(skin?.renderer==='marine'&&window.AbyssalMarineArt){window.AbyssalMarineArt.draw(c,x,y,r,angle,skin,t,hit);return;}
  const boss=BOSS_KINDS.includes(kind);
  const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
@@ -3721,6 +3746,12 @@ window.addEventListener('abyssal-world-damaged-batch',ev=>applyWorldEnemyDamageB
 window.addEventListener('abyssal-world-xp-orb-spawned',ev=>applySharedOrbSpawn(ev.detail));
 window.addEventListener('abyssal-world-xp-orbs-spawned',ev=>{for(const orb of Array.isArray(ev.detail)?ev.detail:[])applySharedOrbSpawn(orb);});
 window.addEventListener('abyssal-world-xp-orbs-expired',ev=>removeSharedOrbIds(ev.detail));
+window.addEventListener('abyssal-rift-tentacle-aim',ev=>{
+ const d=ev.detail||{};
+ if(!RIFT_HARDCORE||!Array.isArray(activeRiftHazards))return;
+ const hazard=activeRiftHazards.find(h=>h.id===d.id);
+ if(hazard)RIFT_HARDCORE.aimTentacle(hazard,Number(d.cycle)||0,d.aimX,d.aimY);
+});
 window.addEventListener('abyssal-world-xp-orb-collected',ev=>{const d=ev.detail||{};removeSharedOrbIds([d.orbId]);const x=Number(d.x),y=Number(d.y);if(Number.isFinite(x)&&Number.isFinite(y)){burst(x,y,'#b8a7ff',9,70);audio(680,.06,'sine',.012);}});
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
 window.addEventListener('abyssal-boss-ability-visual',ev=>{
@@ -3884,11 +3915,38 @@ $('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('sk
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
 
 const resonanceSkillLabels={power:['✦','Pulso Intenso'],rate:['≋','Ressonância Veloz'],speed:['➤','Propulsão Abissal'],range:['◎','Olho Profundo'],magnet:['⌁','Campo Magnético'],regen:['♧','Membrana Viva'],shield:['◉','Escudo Espectral'],burst:['✺','Pulso de Ruptura'],electric:['ϟ','Tempestade Elétrica'],pierce:['➵','Lança do Abismo'],ricochet:['⤴','Ricochete Caótico'],spread:['✣','Rajada Prismática'],photon:['☄','Lança de Fótons'],photonRay:['⌁⃒','Raio de Fótons'],nova:['⊛','Nova Gravitacional'],echoShot:['⋔','Eco de Maré'],shell:['▰','Carapaça Abissal'],ward:['◇','Véu de Maré'],lastStand:['♥','Último Fôlego'],pressureCocoon:['⬡','Casulo de Pressão'],vitality:['♢','Reserva Vital'],predator:['☠','Instinto Predatório'],closePressure:['⌾','Pressão de Caça']};
-const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+45% de alcance de atração de orbes por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'3, 5 ou 7 fragmentos em leque para cobertura frontal.',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Abaixo de 30% de vida, reduz o dano recebido em 20%.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+8% de todo dano por nível, até 24%.',closePressure:'+8% de dano por nível contra criaturas muito próximas.'};
+const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+45% de alcance de atração de orbes por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'Passiva: dano prismático secundário em criaturas próximas, sem mudar o disparo selecionado.',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Abaixo de 30% de vida, reduz o dano recebido em 20%.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+8% de todo dano por nível, até 24%.',closePressure:'+8% de dano por nível contra criaturas muito próximas.'};
 function resonanceCategoryOf(id){for(const [category,ids] of Object.entries(RESONANCE_CATEGORIES))if(ids.includes(id))return category;return 'buffs';}
 function resonanceCounts(ids=resonancePresets[resonanceEditingMode]||[]){return {shots:ids.filter(id=>RESONANCE_CATEGORIES.shots.includes(id)).length,passive:ids.filter(id=>RESONANCE_CATEGORIES.passive.includes(id)).length,buffs:ids.filter(id=>RESONANCE_CATEGORIES.buffs.includes(id)).length,total:ids.length};}
 function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const [category,heading] of [['shots','DISPAROS · ESCOLHA EXATAMENTE 1'],['passive','PASSIVAS'],['buffs','BUFFS']]){const section=document.createElement('section');section.className='resonance-category';const title=document.createElement('h3');title.className='resonance-category-title';title.textContent=heading;section.append(title);const list=document.createElement('div');list.className='resonance-category-list';for(const id of RESONANCE_CATEGORIES[category]){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option resonance-'+category;row.dataset.skill=id;row.title=resonanceSkillDescriptions[id]||'';const input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=resonancePresets[resonanceEditingMode].includes(id);input.setAttribute('aria-label',label);input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(category==='shots'&&!input.checked&&current.includes(id)){input.checked=true;$('resonanceMessage').textContent='Você precisa manter exatamente 1 disparo selecionado.';return;}let next=current.filter(value=>value!==id);if(input.checked){if(category==='shots')next=next.filter(value=>!RESONANCE_CATEGORIES.shots.includes(value));if(next.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite total é de 7 habilidades.';return;}next.push(id);}resonancePresets[resonanceEditingMode]=normalizeResonancePresets({...resonancePresets,[resonanceEditingMode]:next})[resonanceEditingMode];$('resonanceMessage').textContent='';if(category==='shots')renderResonanceChoices();else updateResonanceCount();});const badge=document.createElement('span');badge.className='resonance-skill-icon';badge.textContent=icon;badge.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='resonance-skill-copy';const name=document.createElement('strong');name.textContent=label;const description=document.createElement('small');description.textContent=resonanceSkillDescriptions[id]||'Habilidade de combate abissal.';copy.append(name,description);row.append(input,badge,copy);list.append(row);}section.append(list);root.append(section);}const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>{const active=b.dataset.resonanceMode===resonanceEditingMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}
-function updateResonanceCount(){const counts=resonanceCounts();const el=$('resonanceSelectionCount');if(el)el.textContent=counts.shots+' Disparos · '+counts.passive+' Passivas · '+counts.buffs+' Buffs · '+counts.total+'/7';}
+const RESONANCE_FUSION_RECIPES=Object.freeze([
+ {id:'gravitationalRupture',name:'RUPTURA GRAVITACIONAL',items:[['nova','Nova Gravitacional'],['burst','Pulso de Ruptura']]},
+ {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['power','Pulso Intenso']]},
+ {id:'abyssEye',name:'OLHO DO ABISMO',items:[['pierce','Lança do Abismo'],['range','Olho Profundo']]},
+ {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]}
+]);
+function renderResonanceFusionGuide(){
+ const root=$('resonanceFusionGuide');if(!root)return;
+ const selected=new Set(resonancePresets[resonanceEditingMode]||[]);
+ root.replaceChildren();
+ const title=document.createElement('h3');title.className='resonance-fusion-heading';
+ title.textContent='✦ FUSÕES DE OURO · COMO DESPERTAR';root.append(title);
+ const description=document.createElement('p');description.className='resonance-fusion-explainer';
+ description.textContent='Selecione as duas habilidades exigidas e alcance o nível 3 em ambas durante o mergulho. O disparo único continua valendo.';root.append(description);
+ const grid=document.createElement('div');grid.className='resonance-fusion-grid';root.append(grid);
+ for(const recipe of RESONANCE_FUSION_RECIPES){
+  const entry=document.createElement('article');entry.className='resonance-fusion-recipe';
+  const ready=recipe.items.every(([id])=>selected.has(id));
+  entry.classList.toggle('ready',ready);
+  const name=document.createElement('strong');name.textContent=recipe.name;
+  const combo=document.createElement('p');combo.textContent=recipe.items.map(([,name])=>name+' NV. 3').join(' + ');
+  const status=document.createElement('small');
+  const missing=recipe.items.filter(([id])=>!selected.has(id)).map(([,name])=>name);
+  status.textContent=ready?'✓ CONFIGURAÇÃO PRONTA PARA EVOLUIR':'FALTA NA SELEÇÃO: '+missing.join(' + ');
+  entry.append(name,combo,status);grid.append(entry);
+ }
+}
+function updateResonanceCount(){const counts=resonanceCounts();const el=$('resonanceSelectionCount');if(el)el.textContent=counts.shots+' Disparos · '+counts.passive+' Passivas · '+counts.buffs+' Buffs · '+counts.total+'/7';renderResonanceFusionGuide();}
 $('resonanceBtn')?.addEventListener('click',()=>{resonanceEditingMode='pve';$('resonanceMessage').textContent='';renderResonanceChoices();$('resonanceScreen').hidden=false;});
 document.querySelectorAll('[data-resonance-mode]').forEach(b=>b.addEventListener('click',()=>{resonanceEditingMode=b.dataset.resonanceMode;renderResonanceChoices();$('resonanceMessage').textContent='';}));
 $('saveResonanceBtn')?.addEventListener('click',()=>{const counts=resonanceCounts();if(counts.shots!==1){$('resonanceMessage').textContent='Selecione exatamente 1 disparo.';renderResonanceChoices();return;}if(!resonancePresets[resonanceEditingMode].length){$('resonanceMessage').textContent='Selecione pelo menos uma habilidade.';return;}saveResonancePresets();$('resonanceMessage').textContent='Combinação '+resonanceEditingMode.toUpperCase()+' salva!';updateResonanceCount();});
@@ -3909,10 +3967,11 @@ function renderCatalog(){
   leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Lança de Pressão: a cada 4,8 s atravessa 480 px em linha, com faixa de 72 px e 22 de dano.',desc:'Peixe-remo colossal que comprime a água em corredores lineares antes de atravessar a fossa.'},
   whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
   kraken:{name:'Lula-Kraken das Fossas',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Lula gigantesca inspirada em cefalópodes de profundidade, com oito braços usados em varreduras circulares.'},
+  riftSmile:{name:'Pesadelo Roxo',color:'#ba61e6',hp:52000,speed:0,damage:50,ability:'Oito tentáculos das paredes com trajetórias curvas que procuram jogadores e causam dano na ida e na volta; 50 de dano por contato com a cabeça.',desc:'Guardião imóvel da última fossa: rosto colossal de presas, corpo espectral abaixo da arena e oito braços que emergem das paredes. Imune aos próprios tentáculos.'},
   devourer:{name:'Lula-Colossal do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Lula-colossal fictícia cujo manto gera um pulso de sucção capaz de inverter correntes locais.'}
  };
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
- const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
+ const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Atrai fragmentos de experiência de mais longe no modo solo.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',spread:'Passiva prismática que espalha dano entre alvos próximos sem alterar o disparo escolhido.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
 
  const renderMonster=([k,m])=>{
   const known=codex.monsters.includes(k);
