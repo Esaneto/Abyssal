@@ -456,23 +456,59 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const bossAbilityHits = [];
   const bossAbilityEvents = [];
   const defeatedPlayers = [];
+  const riftAims=[],environmentDamages=[],environmentKills=[];
   // The same procedural geometry is evaluated in solo and on the authoritative server.
   // Each hazard has a visible warning phase; damage can occur only in its active phase.
   if(riftMode&&mapLayout){
     for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
       const phase=RiftHardcore.state(hazard,world.elapsed);
+      if(hazard.type==='tentacle'&&phase.phase!=='idle'){
+       const derived=RiftHardcore.hazardAtCycle(hazard,phase.cycle);
+       if(!derived.aimed){
+        const target=RiftHardcore.targetNearest(hazard,validPlayers,mapLayout);
+        const aim=RiftHardcore.aimTentacle(hazard,phase.cycle,target?.x,target?.y);
+        if(aim)riftAims.push(aim);
+       }
+      }
       if(phase.phase!=='active')continue;
       for(const target of validPlayers){
         if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
         target.riftHazardCooldowns ||= Object.create(null);
         if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
-        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
+        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
         const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
         const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
         if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
         if(hazard.type==='vortex'&&target.alive!==false){const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1,pull=16;const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);const ox=moved.x-target.x,oy=moved.y-target.y;target.x=moved.x;target.y=moved.y;playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:'vortex:'+hazard.id,strength:.42});}
       }
+
+      // Living foes also occupy the cave. Environmental hazards are neutral;
+      // only Pesadelo Roxo is immune to his own tentacles.
+      for(const enemy of world.enemies){
+       if(enemy.hp<=0||(hazard.type==='tentacle'&&enemy.kind===RiftHardcore.FINAL_KIND))continue;
+       const enemyRadius=Math.min(43,Math.max(6,(Number(enemy.r)||16)*.48));
+       if(!RiftHardcore.hit(hazard,Number(enemy.x),Number(enemy.y),enemyRadius,phase))continue;
+       enemy.riftHazardCooldowns ||= Object.create(null);
+       if(now<(Number(enemy.riftHazardCooldowns[hazard.id])||0))continue;
+       enemy.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?750:1100);
+       const damage=Math.min(Number(enemy.hp)||0,Math.max(1,hazard.damage));
+       if(!damage)continue;
+       enemy.hp=Math.max(0,enemy.hp-damage);enemy.hit=.17;
+       enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+       environmentDamages.push({id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,
+        damage,skillId:'rift-hazard-'+hazard.type,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,
+        enemyColor:enemy.color,killed:enemy.hp<=0});
+       if(enemy.hp<=0){
+        const boss=BOSS_KINDS.includes(enemy.kind);
+        if(boss){world.bossesDefeated=(Number(world.bossesDefeated)||0)+1;world.lastBossKind=enemy.kind;world.nextBossAt=Infinity;}
+        const orb=spawnXpOrb(world,enemy);
+        if(orb)spawnedRewardOrbs.push(orb);
+        environmentKills.push({id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,
+          value:enemy.value,color:enemy.color,boss});
+       }
+      }
     }
+    if(environmentKills.length){const removed=new Set(environmentKills.map(e=>String(e.id)));world.enemies=world.enemies.filter(e=>!removed.has(String(e.id)));}
   }
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
@@ -489,6 +525,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(enemy.kind===RiftHardcore.FINAL_KIND){
        const contenders=targetablePlayers.filter(p=>AbyssalMap.roomAt(mapLayout,Number(p.x),Number(p.y))?.id==='boss');
        if(!enemy.riftNextAttackAt)enemy.riftNextAttackAt=now+1400;
+       for(const target of contenders){
+         if(Math.hypot(enemy.x-target.x,enemy.y-target.y)>enemy.r*.85+(Number(target.r)||13/WORLD_ZOOM))continue;
+         enemy.nightmareHeadCooldowns ||= Object.create(null);
+         if(now<(Number(enemy.nightmareHeadCooldowns[target.id])||0))continue;
+         enemy.nightmareHeadCooldowns[target.id]=now+900;
+         const collision=bossAbilityHit(enemy,target,50,now,'nightmare-head-contact');
+         if(collision){bossAbilityHits.push(collision);if(collision.alive===false)defeatedPlayers.push(target);}
+       }
        if(contenders.length&&now>=enemy.riftNextAttackAt){
          enemy.riftAttackSerial=(Number(enemy.riftAttackSerial)||0)+1;
          const mark=RiftHardcore.bossMark(enemy,contenders,now);
@@ -816,7 +860,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
