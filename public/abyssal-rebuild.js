@@ -91,12 +91,47 @@ function createGate(){
       '<span class="abyss-gate-kicker">SINAL ABAIXO DO LIMITE CARTOGRAFADO</span>'+
       '<strong>DESCIDA ABISSAL</strong>'+
       '<p>Quanto mais fundo você for, maior a recompensa. Voltar ainda é uma escolha.</p>'+
-      '<button id="abyssGateButton" class="abyss-gate-button" type="button">ABISMO</button>'+
+      '<button id="abyssGateButton" class="abyss-gate-button" type="button">FOSSAS ABISSAIS</button>'+
     '</div>';
+
+  // Desktop: Web Animations sometimes stop inside a masked and perspective-rotated
+  // SVG layer. Drive just two transforms directly with requestAnimationFrame.
+  // The mobile layout retains its existing CSS animation.
+  function runDesktopVortex(){
+    var finePointer=window.matchMedia&&window.matchMedia('(hover:hover) and (pointer:fine)');
+    if(!finePointer)return;
+    var flow=gate.querySelector('.abyss-vortex-flow-layer');
+    var water=gate.querySelector('.abyss-vortex-current');
+    if(!flow||!water)return;
+    var last=0,phase=0,handle=0,wasDesktop=false;
+    function tick(now){
+      handle=window.requestAnimationFrame(tick);
+      if(!finePointer.matches){
+        if(wasDesktop){
+          flow.style.removeProperty('transform');
+          water.style.removeProperty('transform');
+          wasDesktop=false;
+        }
+        last=0;return;
+      }
+      wasDesktop=true;
+      if(document.hidden||menu.hidden||document.body.classList.contains('game-active')){
+        last=0;return;
+      }
+      var dt=last?Math.min((now-last)/1000,.08):0;
+      last=now;
+      phase=(phase+dt*30)%360;
+      flow.style.setProperty('transform','translateZ(0) rotate('+phase.toFixed(2)+'deg)','important');
+      water.style.setProperty('transform','translateZ(0) rotate('+(-phase*.68).toFixed(2)+'deg)','important');
+    }
+    handle=window.requestAnimationFrame(tick);
+    window.addEventListener('pagehide',function(){window.cancelAnimationFrame(handle);},{once:true});
+  }
 
   var orbit=menu.querySelector('.abyss-orbit-navigation');
   if(orbit)orbit.appendChild(gate);
   else { var fauna=menu.querySelector('.menu-fauna');menu.insertBefore(gate,fauna||menu.lastChild); }
+  runDesktopVortex();
 
   var panel=document.createElement('section');
   panel.id='abyssDescentPanel';

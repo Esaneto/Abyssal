@@ -48,7 +48,7 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=7/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=8/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
@@ -196,7 +196,7 @@ test('desktop vortex spins with a separate composited layer while reduced motion
   assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
   assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html,/abyssal-rebuild\.js\?v=5/);
+  assert.match(html,/abyssal-rebuild\.js\?v=6/);
 });
 
 test('main menu play and abyss gate have their requested labels',()=>{
@@ -204,7 +204,51 @@ test('main menu play and abyss gate have their requested labels',()=>{
   const rebuild=read('public/abyssal-rebuild.js');
   const i18n=read('public/i18n.js');
   assert.match(html,/id="playBtn"[^>]*>MERGULHAR <span>/);
-  assert.match(rebuild,/id="abyssGateButton"[^>]*>ABISMO<\/button>/);
+  assert.match(rebuild,/id="abyssGateButton"[^>]*>FOSSAS ABISSAIS<\/button>/);
   assert.match(i18n,/'MERGULHAR':'DIVE'/);
   assert.match(i18n,/'MERGULHAR':'BUCEAR'/);
+});
+
+
+test('Fossas Abissais has fractured black styling and translations',()=>{
+  const js=read('public/abyssal-rebuild.js');
+  const css=read('public/abyssal-menu-orbit.css');
+  const translations=read('public/i18n.js');
+  assert.match(js,/>FOSSAS ABISSAIS<\/button>/);
+  assert.match(css,/#abyssGate #abyssGateButton\{[\s\S]*?clip-path:polygon\(/);
+  assert.match(css,/#07090e 0%,#010204 49%,#101117 100%/);
+  assert.match(translations,/'FOSSAS ABISSAIS':'ABYSSAL TRENCHES'/);
+  assert.match(translations,/'FOSSAS ABISSAIS':'FOSAS ABISALES'/);
+});
+
+test('Wheel is golden translucent and Resonance is violet translucent',()=>{
+  const css=read('public/abyssal-menu-orbit.css');
+  assert.match(css,/#wheelBtn\{\s*background:linear-gradient\(145deg,rgba\(255,218,76,\.19\)/);
+  assert.match(css,/border:2px solid rgba\(255,215,65,\.96\)!important/);
+  assert.match(css,/#resonanceBtn\{\s*background:linear-gradient\(150deg,rgba\(147,63,244,\.22\)/);
+  assert.match(css,/border:2px solid rgba\(185,114,255,\.96\)!important/);
+});
+
+test('Specimen Catalog has a nautical anchor, keeping real shop click action',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-menu-orbit.css');
+  const js=read('public/abyssal-rebuild.js');
+  assert.match(html,/id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn"/);
+  assert.match(html,/class="menu-nav-icon ui-icon anchor-icon"/);
+  assert.match(css,/#shopBtn\.nautical-anchor-btn\{/);
+  assert.match(js,/shopLabel\.textContent='CATÁLOGO DE ESPÉCIMES'/);
+});
+
+test('desktop current uses the browser frame clock even when SVG CSS animations freeze',()=>{
+  const js=read('public/abyssal-rebuild.js');
+  const css=read('public/abyssal-menu-orbit.css');
+  const html=read('public/index.html');
+  assert.match(js,/function runDesktopVortex\(\)/);
+  assert.match(js,/window\.requestAnimationFrame\(tick\)/);
+  assert.match(js,/flow\.style\.setProperty\('transform'/);
+  assert.match(js,/water\.style\.setProperty\('transform'/);
+  assert.match(js,/if\(document\.hidden\|\|menu\.hidden\|\|document\.body\.classList\.contains\('game-active'\)\)/);
+  assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)\{\s*body:not\(\.game-active\) #menuScreen #abyssGate \.abyss-vortex-flow-layer,[\s\S]*?animation:none!important/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=8/);
+  assert.match(html,/abyssal-rebuild\.js\?v=6/);
 });
