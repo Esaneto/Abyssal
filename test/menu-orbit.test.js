@@ -196,7 +196,7 @@ test('desktop vortex spins with a separate composited layer while reduced motion
   assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
   assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html,/abyssal-rebuild\.js\?v=5/);
+  assert.match(html,/abyssal-rebuild\.js\?v=6/);
 });
 
 test('main menu play and abyss gate have their requested labels',()=>{
