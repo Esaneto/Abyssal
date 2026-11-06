@@ -221,7 +221,7 @@ function dangerRadius(h,s){
  return h.radius;
 }
 function hit(hazard,px,py,pad=0,phase=null){
- const h=hazardAtCycle(hazard,phase?.cycle||0),r=dangerRadius(h,phase)+pad;
+ const h=phase?hazardAtCycle(hazard,phase.cycle||0):hazard,r=dangerRadius(h,phase)+pad;
  if(phase?.phase==='idle'||phase?.phase==='warning')return false;
  if(h.type==='vortex'){
   const cs=Math.cos(h.angle),sn=Math.sin(h.angle),dx=px-h.x,dy=py-h.y;
@@ -250,6 +250,11 @@ function hit(hazard,px,py,pad=0,phase=null){
   const ax=h.sourceX+Math.cos(h.angle)*6,ay=h.sourceY+Math.sin(h.angle)*6;
   const bx=h.sourceX+Math.cos(h.angle)*length,by=h.sourceY+Math.sin(h.angle)*length;
   return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:.5)+pad;
+ }
+ if(h.type==='tentacle'||h.type==='electric'){
+  const len=h.length||300,a=h.angle||0;
+  return segmentDistance(px,py,h.x-Math.cos(a)*len*.45,h.y-Math.sin(a)*len*.45,
+    h.x+Math.cos(a)*len*.55,h.y+Math.sin(a)*len*.55)<=h.radius*.5+pad;
  }
  return Math.hypot(px-h.x,py-h.y)<=r;
 }
@@ -807,5 +812,5 @@ function drawFinalBoss(c,enemy,now){
  }
  c.restore();
 }
-return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss};
+return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,extension,hazardAtCycle,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss};
 });
