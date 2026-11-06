@@ -89,6 +89,7 @@ let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
 let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
+const SKIN_TRAIL_CADENCE_SECONDS=.35,SKIN_TRAIL_CADENCE_MS=350;
 let sharkWakeTrails=[],inkTrails=[];
 function setActiveMapDescriptor(descriptor){
  if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=4800;H=3000;return null;}
@@ -127,15 +128,19 @@ function checkSoloCaveEncounter(){
  const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
  for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:false});
 }
+function cavePortalsUnlocked(){
+ if(!activeMapLayout||onlineRoomMode==='pvp')return false;
+ const defeated=onlineMode?onlineBossesDefeated:bossKillsThisRun;
+ return defeated>activeMapTier&&!enemies.some(enemy=>enemy.hp>0&&BOSS_KINDS.includes(enemy.kind));
+}
 function currentMapInteraction(){
  if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
  const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
  if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
  if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
- const clearedBosses=onlineMode?onlineBossesDefeated:bossKillsThisRun;
- const bossAlive=enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
- if(portals.surface&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
- if(portals.boss&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'ROMPER PARA A PRÓXIMA CAMADA',hint:'F · DESCER MAIS FUNDO'};
+ const unlocked=cavePortalsUnlocked();
+ if(portals.surface&&unlocked&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
+ if(portals.boss&&unlocked&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'DESCER MAIS FUNDO',hint:'F · PRÓXIMA CAMADA'};
  return null;
 }
 function updateMapInteraction(force=false){
@@ -1755,6 +1760,8 @@ function applySharedSnapshot(data){
  if(data.depthState)window.dispatchEvent(new CustomEvent('abyssal-depth-state',{detail:data.depthState}));
  if(data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
   const defeated=Math.max(0,Math.floor(Number(data.bossesDefeated)||0));
+   // Always use the authoritative world value for online cave portal unlocks.
+   onlineBossesDefeated=defeated;
   const cycleLength=Math.max(1,bossCycleBosses.length||PROGRESSION_CYCLE_BOSS_SEQUENCE.length);
   bossProgressionCycle=Math.floor(defeated/cycleLength);
   bossCycleIndex=defeated%cycleLength;
@@ -1904,7 +1911,7 @@ function killEnemy(i){
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
- enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
+ enemies.splice(i,1);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
 }
 function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
 const SHOT_BALANCE=Object.freeze({
@@ -1962,39 +1969,25 @@ function update(dt){
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
-   if (['reefshark', 'whiteShark'].includes(equippedSkin) && (mx || my)) {
-     if (Math.random() < 0.45) {
-       sharkWakeTrails.push({
-         x: player.x - Math.cos(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-         y: player.y - Math.sin(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-         r: rand(14, 22),
-         life: 5.0,
-         maxLife: 5.0,
-         color: '#7bf5ff'
-       });
-       if (sharkWakeTrails.length > 250) sharkWakeTrails.shift();
-     }
-     // As bolhas locais são criadas a cada frame, mas no online enviamos só 6-7
-     // amostras por segundo para manter o efeito visível sem inundar o WebSocket.
-     if (onlineMode && window.AbyssalOnline?.sendSkinAbility) {
-       player.sharkTrailNetworkTimer = (Number(player.sharkTrailNetworkTimer) || 0) - dt;
-       if (player.sharkTrailNetworkTimer <= 0) {
-         player.sharkTrailNetworkTimer = 0.16;
-         window.AbyssalOnline.sendSkinAbility({
-           type: 'bubble-trail',
-           skin: equippedSkin,
-           x: clamp((player.x - Math.cos(player.angle || 0) * (player.r * 1.1)) / W, 0, 1),
-           y: clamp((player.y - Math.sin(player.angle || 0) * (player.r * 1.1)) / H, 0, 1),
-           angle: player.angle
-         });
-       }
-     }
+   if (['reefshark','whiteShark'].includes(equippedSkin) && (mx || my)) {
+    // Match the poison-serpent's 350 ms cadence, visually and over the network.
+    player.sharkTrailTimer=(Number(player.sharkTrailTimer)||0)-dt;
+    if(player.sharkTrailTimer<=0){
+     player.sharkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS;
+     const bx=player.x-Math.cos(player.angle||0)*(player.r*1.1);
+     const by=player.y-Math.sin(player.angle||0)*(player.r*1.1);
+     sharkWakeTrails.push({x:bx+rand(-6,6),y:by+rand(-6,6),r:rand(14,22),life:5,maxLife:5,color:'#7bf5ff',damageTimer:0});
+     if(sharkWakeTrails.length>250)sharkWakeTrails.shift();
+     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({
+      type:'bubble-trail',skin:equippedSkin,x:clamp(bx/W,0,1),y:clamp(by/H,0,1),angle:player.angle
+     });
+    }
    }
 
    if(equippedSkin==='aberration'&&(mx||my)){
     player.inkTrailTimer=(Number(player.inkTrailTimer)||0)-dt;
     if(player.inkTrailTimer<=0){
-     player.inkTrailTimer=.18;
+     player.inkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS;
      const ix=player.x-Math.cos(player.angle||0)*player.r*1.15,iy=player.y-Math.sin(player.angle||0)*player.r*1.15;
      inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:false,boss:false});
      if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
@@ -2033,11 +2026,11 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = 0.275;
+      bubble.damageTimer = SKIN_TRAIL_CADENCE_SECONDS;
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=275) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=SKIN_TRAIL_CADENCE_MS) {
           e.wakeHitAt=performance.now();
           dealEnemyDamage(e, 2, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
@@ -2051,9 +2044,9 @@ function update(dt){
    const ink=inkTrails[i];ink.life-=dt;ink.damageTimer=(Number(ink.damageTimer)||0)-dt;
    if(ink.life<=0){inkTrails.splice(i,1);continue;}
    if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
-    ink.damageTimer=.275;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
+    ink.damageTimer=SKIN_TRAIL_CADENCE_SECONDS;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
     const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=275){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
+    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=SKIN_TRAIL_CADENCE_MS){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
    }
   }
 
@@ -2063,7 +2056,7 @@ function update(dt){
       e.poisonTimer -= dt;
       e.poisonTick = (e.poisonTick || 0) - dt;
       if (e.poisonTick <= 0) {
-        e.poisonTick = 0.35;
+        e.poisonTick = SKIN_TRAIL_CADENCE_SECONDS;
         dealEnemyDamage(e, 5, 'poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
         burst(e.x + rand(-e.r*0.5, e.r*0.5), e.y + rand(-e.r*0.5, e.r*0.5), '#39ff74', 4, 45);
       }
@@ -2540,7 +2533,7 @@ function drawCaveRoomSignal(room,t){
  let color='#a98cff',title=String(room.signal||'ECO ABISSAL'),detail=String(room.reward||'RECOMPENSA');
  if(room.type==='elite'){color='#ff5b78';detail='RISCO '+String(room.risk||5)+' · '+String(room.reward||'CACHE DE ELITE');}
  else if(room.type==='event'){const encounter=EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier);color=encounter?.accent||'#b98aff';detail=String(encounter?.risk||'INCERTO')+' · '+String(encounter?.reward||room.reward||'ANOMALIA');}
- else {color='#ff315f';const cleared=onlineMode?onlineBossesDefeated:bossKillsThisRun;detail=cleared>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind))?'SIGILO ABERTO · PRÓXIMA CAMADA':'BOSS · BLOQUEIA A DESCIDA';}
+ else {color='#ff315f';detail=cavePortalsUnlocked()?'VÓRTICES LIBERADOS · SUPERFÍCIE OU DESCIDA':'BOSS · BLOQUEIA A DESCIDA';}
  ctx.save();ctx.globalAlpha=.65+.08*Math.sin(t*.0025+room.x*.001);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.font=`800 ${11/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,room.x,room.y-room.ry*.62);ctx.fillStyle='#d7edf0';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,room.x,room.y-room.ry*.62+17/GAME_WORLD_ZOOM);ctx.restore();
 }
 function drawMapPortal(portal,t){
@@ -2559,11 +2552,26 @@ function drawMapPortal(portal,t){
   ctx.fillStyle='rgba(0,13,28,.72)';ctx.beginPath();ctx.ellipse(0,0,r*.8,r*.55,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   for(let arm=0;arm<5;arm++){ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=arm*Math.PI*2/5-t*.0012+q*Math.PI*4.8,rr=r*(.7*(1-q)+.06);const px=Math.cos(a)*rr,py=Math.sin(a)*rr*.68;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
  }
+ if(portal.type==='tier-descent'||portal.type==='surface'){
+  const label=portal.type==='surface'?'VOLTAR À SUPERFÍCIE':'DESCER MAIS FUNDO';
+  const subtitle=portal.type==='surface'?'EXTRAIR RECOMPENSAS':'PRÓXIMA CAMADA';
+  const labelY=r*.82+16/GAME_WORLD_ZOOM;
+  ctx.save();ctx.globalAlpha=1;ctx.shadowBlur=12/GAME_WORLD_ZOOM;
+  ctx.shadowColor=portal.type==='surface'?'#52ffc3':'#41b4ff';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`900 ${15/GAME_WORLD_ZOOM}px Manrope, sans-serif`;
+  ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.strokeStyle='rgba(0,3,12,.97)';
+  ctx.strokeText(label,0,labelY);ctx.fillStyle=portal.type==='surface'?'#82ffcf':'#a4dfff';
+  ctx.fillText(label,0,labelY);
+  ctx.shadowBlur=0;ctx.font=`700 ${10/GAME_WORLD_ZOOM}px Manrope, sans-serif`;
+  ctx.fillStyle='#e8f8ff';ctx.fillText(subtitle,0,labelY+19/GAME_WORLD_ZOOM);
+  ctx.restore();
+ }
  ctx.restore();
 }
 function drawAbyssalCaveMap(t){
  const layout=activeMapLayout;if(!layout||onlineRoomMode==='pvp')return false;
- const caveCleared=(onlineMode?onlineBossesDefeated:bossKillsThisRun)>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ const caveCleared=cavePortalsUnlocked();
  if(window.AbyssalTerrain){
   window.AbyssalTerrain.draw(ctx,layout,cameraX,cameraY,viewW/worldZoom,viewH/worldZoom,t);
   drawMapPortal(layout.portals.start,t);if(caveCleared){drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.boss,t);}
@@ -3573,7 +3581,7 @@ window.addEventListener('abyssal-boss-warning',ev=>{
  if(warningAlreadyShown){pendingProgressionBossWarningKind=null;pendingProgressionBossWarningAt=0;return;}
  showBossAlert(d.kind,d.id,d.threat,true);
 });
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));enemies=enemies.filter(enemy=>String(enemy.id)!==String(e.id));const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();if(!(onlineMode&&onlineRoomMode==='rift'))showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);audio(bosses?180:260,.08,'triangle',.025);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
  let bossCount=0;const defeatedIds=new Set();
@@ -3587,7 +3595,7 @@ window.addEventListener('abyssal-world-defeated-batch',ev=>{
  }
  if(defeatedIds.size)enemies=enemies.filter(item=>!defeatedIds.has(String(item.id)));
  if(bossCount&&onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated();}
- if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
+ if(bossCount&&onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}else if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
  audio(bossCount?180:260,.08,'triangle',.025);updateHud();
 });
 function renderShop(){
@@ -3791,7 +3799,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   // ele não é uma habilidade de recarga e não pode depender do evento de ataque.
   if(d.type==='ink-trail'&&d.skin==='aberration'){
     const ix=clamp(Number(d.x)*W,0,W),iy=clamp(Number(d.y)*H,0,H);
-    inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:.5,remote:true,boss:false});
+    inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:true,boss:false});
     if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
     return;
   }

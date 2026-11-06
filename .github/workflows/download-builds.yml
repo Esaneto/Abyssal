@@ -44,6 +44,28 @@ jobs:
             if (-not (Test-Path $file)) { throw "Missing offline Windows asset: $file" }
           }
           Write-Host "Offline single-player game is packaged with Windows installer."
+      - name: Verify embedded Abyssal icon on EXE and installer
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          foreach ($file in @("desktop/dist/win-unpacked/Abyssal.exe", "desktop/dist/Abyssal-Setup.exe")) {
+            if (-not (Test-Path $file)) { throw "Missing Windows binary: $file" }
+            $icon = [System.Drawing.Icon]::ExtractAssociatedIcon((Resolve-Path $file).Path)
+            if ($null -eq $icon) { throw "Windows executable has no icon: $file" }
+            $bitmap = $icon.ToBitmap()
+            $violet = 0
+            for ($y = 0; $y -lt $bitmap.Height; $y++) {
+              for ($x = 0; $x -lt $bitmap.Width; $x++) {
+                $pixel = $bitmap.GetPixel($x, $y)
+                if ($pixel.A -gt 95 -and $pixel.R -gt 75 -and $pixel.B -gt 95 -and
+                    $pixel.R -gt ($pixel.G * 1.20) -and $pixel.B -gt ($pixel.G * 1.24)) { $violet++ }
+              }
+            }
+            Write-Host "Native icon: $file, $violet violet pixels at $($bitmap.Width)x$($bitmap.Height)"
+            $bitmap.Dispose()
+            $icon.Dispose()
+            if ($violet -lt 3) { throw "Custom violet Abyssal anchor icon was not embedded in $file" }
+          }
       - name: Verify Windows signature when certificate is configured
         if: env.WIN_CSC_LINK != ''
         shell: pwsh
