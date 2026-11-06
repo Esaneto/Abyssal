@@ -239,6 +239,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  // Server-owned HP/shields are sent reliably. Bridge them to the game UI; without this
  // listener a minimized client could be killed server-side but still look alive on resume.
  socket.on('player-vitals',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-vitals',{detail:data||{}}));});
+ socket.on('player-damage-number',data=>window.dispatchEvent(new CustomEvent('abyssal-player-damage-number',{detail:data||{}})));
+ socket.on('rift-checkpoint-respawn',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-checkpoint-respawn',{detail:data||{}})));
  socket.on('pvp-hit',data=>{window.dispatchEvent(new CustomEvent('abyssal-pvp-hit',{detail:data||{}}));});
  socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
