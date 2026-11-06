@@ -29,7 +29,7 @@ function attachNetworkDiagnostics(target){
 let sessionToken=localStorage.getItem('abyssalSessionToken')||'',deferredInstallPrompt=null,maintenanceTimer=null,maintenanceVisible=false,maintenanceFailSafe=null,everConnected=false,activeRoomPassword='',reconnectTarget=null,reconnectPending=false,reconnectFallbackUsed=false,reconnectWatchdog=null,reconnectSessionRetry=null,reconnectSessionAttempts=0;
 function showMaintenanceOverlay(message='Reconectando ao servidor automaticamente…'){maintenanceVisible=true;const status=$('maintenanceStatusText');if(status)status.textContent=message;const el=$('maintenanceOverlay');if(el)el.hidden=false;if(!maintenanceFailSafe)maintenanceFailSafe=setTimeout(()=>{maintenanceFailSafe=null;if(!maintenanceVisible)return;if(reconnectPending)failReconnect('A reconexão automática excedeu o tempo limite. O menu foi liberado para você tentar novamente.');else{hideMaintenanceOverlay();window.dispatchEvent(new CustomEvent('abyssal-reconnect-failed',{detail:{ok:false,message:'Servidor indisponível por tempo demais. Tente novamente pelo menu online.'}}));}},180000);}
 function hideMaintenanceOverlay(){maintenanceVisible=false;if(maintenanceTimer){clearTimeout(maintenanceTimer);maintenanceTimer=null;}if(maintenanceFailSafe){clearTimeout(maintenanceFailSafe);maintenanceFailSafe=null;}const el=$('maintenanceOverlay');if(el)el.hidden=true;}
-function scheduleMaintenanceOverlay(){if(!everConnected||maintenanceVisible||maintenanceTimer)return;maintenanceTimer=setTimeout(()=>{maintenanceTimer=null;if(!connected)showMaintenanceOverlay();},1800);}
+function scheduleMaintenanceOverlay(){if((!window.AbyssalGameHooks?.getPlayerPosition?.()&&!reconnectPending)||!everConnected||maintenanceVisible||maintenanceTimer)return;maintenanceTimer=setTimeout(()=>{maintenanceTimer=null;if(!connected)showMaintenanceOverlay();},1800);}
 function rememberReconnectTarget(){const live=window.AbyssalGameHooks?.getPlayerPosition?.();if(!currentRoom||!live)return;reconnectTarget={id:String(currentRoom.id||'MAR-ABERTO').toUpperCase(),mode:currentRoom.mode==='pvp'?'pvp':'coop',password:activeRoomPassword};reconnectPending=true;reconnectFallbackUsed=false;}
 function clearReconnectWatchdog(){if(reconnectWatchdog){clearTimeout(reconnectWatchdog);reconnectWatchdog=null;}if(reconnectSessionRetry){clearTimeout(reconnectSessionRetry);reconnectSessionRetry=null;}reconnectSessionAttempts=0;}
 function failReconnect(message='A expedição não pôde ser retomada automaticamente.'){clearReconnectWatchdog();reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;hideMaintenanceOverlay();window.dispatchEvent(new CustomEvent('abyssal-reconnect-failed',{detail:{ok:false,message}}));}
@@ -162,11 +162,37 @@ fetch(SERVER_URL+'/api/runtime-config').then(response=>response.ok?response.json
  document.body.prepend(notice);
 }).catch(()=>{});
 function setMessage(message,error=false){const el=$('loginMessage');if(el){el.textContent=message;el.style.color=error?'#ff91a5':'#9ef3de'}}
+let socketClientLoading=null,pendingJoinAfterClient=false;
+function loadSocketClient(){
+ if(typeof window.io==='function')return Promise.resolve(true);
+ if(navigator.onLine===false)return Promise.resolve(false);
+ if(socketClientLoading)return socketClientLoading;
+ socketClientLoading=new Promise(resolve=>{
+  const script=document.createElement('script');
+  script.src='https://cdn.socket.io/4.8.1/socket.io.min.js';
+  script.async=true;script.crossOrigin='anonymous';
+  script.onload=()=>resolve(typeof window.io==='function');
+  script.onerror=()=>resolve(false);
+  document.head.appendChild(script);
+ }).then(ready=>{
+  socketClientLoading=null;
+  if(ready){
+   connect();
+   if(pendingJoinAfterClient){pendingJoinAfterClient=false;connectAndJoin();}
+  }else pendingJoinAfterClient=false;
+  return ready;
+ });
+ return socketClientLoading;
+}
 function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA'}
 function openLogin(){$('loginScreen').hidden=false;setMessage(account?`Último nickname: ${account.nickname}. Digite sua senha para entrar.`:'Crie uma conta ou entre com seu nickname e senha.');if(account)$('nicknameInput').value=account.nickname}
 function connect(){
  if(socket){if(!socket.connected)socket.connect();return socket;}
- if(typeof window.io!=='function'){setMessage('Não foi possível carregar o cliente online. Verifique sua conexão.',true);return null}
+ if(typeof window.io!=='function'){
+  if(navigator.onLine===false)setMessage('Sem internet: solo e Fossas Abissais estão disponíveis offline.',true);
+  else{setMessage('Preparando a conexão online…');loadSocketClient();}
+  return null;
+ }
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:3500,randomizationFactor:.35,timeout:8000});
  attachNetworkDiagnostics(socket);
  socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
@@ -211,9 +237,9 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('world-xp-orb-collected',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orb-collected',{detail:data||{}}));});
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
- socket.on('server-maintenance',data=>{rememberReconnectTarget();showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
- socket.on('connect_error',()=>{connected=false;showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');setMessage('Servidor temporariamente indisponível. Tentando reconectar…',true)});
- socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
+ socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
+ socket.on('connect_error',()=>{connected=false;if(reconnectPending||window.AbyssalGameHooks?.getPlayerPosition?.())showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
+ socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;if(reconnectPending||window.AbyssalGameHooks?.getPlayerPosition?.())showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -327,7 +353,7 @@ function showRooms(){
 }
 function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp();}
 function connectAndJoin(){
- const s=connect();if(!s)return;
+ const s=connect();if(!s){if(navigator.onLine!==false){pendingJoinAfterClient=true;setMessage('Carregando o cliente online…');}else setMessage('Sem internet: entre em MERGULHAR para jogar solo.',true);return;}
  if(authenticated){window.AbyssalOnlinePendingStart=false;showRooms();return;}
  window.AbyssalOnlinePendingStart=true;
  if(sessionToken){
@@ -634,7 +660,8 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  document.addEventListener('click',ev=>{const button=ev.target.closest('[data-equip-title]');if(!button)return;equipTitle(button.dataset.equipTitle)});
 
 
- if(!socket)connect();
+ if(navigator.onLine!==false&&!socket)connect();
+ window.addEventListener('online',()=>{if(!socket?.connected)connect();});
  
  // Handle return from Stripe checkout
  const urlParams = new URLSearchParams(window.location.search);
