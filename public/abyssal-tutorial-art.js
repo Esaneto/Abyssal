@@ -38,7 +38,7 @@ function render(topic){
   cover:'Use as rochas como cobertura',aim:'Mira e disparos',skills:'Habilidades especiais',
   map:'Mapa e caminhos',portals:'Vórtices de passagem',checkpoint:'Retorno ao checkpoint',
   volcano:'Rocha vulcânica expelindo calor',poison:'Anêmona soltando nuvem verde',
-  vortex:'Poço profundo soltando bolhas',tentacle:'Área vermelha do tentáculo',final:'O Sorriso do Abismo',chest:'Baú das Fossas'
+  vortex:'Poço profundo soltando bolhas',tentacle:'Área vermelha do tentáculo',final:'Pesadelo Roxo',chest:'Baú das Fossas'
  }[id]);
 }
 root.AbyssalTutorialArt=Object.freeze({render});
