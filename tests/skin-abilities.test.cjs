@@ -124,7 +124,7 @@ test('paid skin copy matches implemented white shark and boss-skin mechanics',()
  assert.ok(game.includes('Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos'));
  assert.ok(game.includes('Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'));
  assert.ok(game.includes('Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'));
- assert.ok(game.includes('Tinta abissal: ao nadar, deixa um rastro de tinta negra'));
+ assert.ok(game.includes('Bolhas abissais: ao nadar, deixa bolhas negras de pressão'));
  assert.ok(game.includes('Mordida de fenda: +30% de dano contra inimigos próximos'));
 });
 
