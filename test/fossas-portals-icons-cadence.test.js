@@ -51,18 +51,18 @@ test('both physical boss portal destinations are navigable and visually labeled'
  assert.match(game,/drawMapPortal\(layout\.portals\.boss,t\)/);
 });
 
-test('shark bubbles and blue-ring octopus ink share snake poison 350ms cadence across server and client',()=>{
+test('shark and octopus bubbles hit every 100 ms, emit every 200 ms and preserve snake poison at 350 ms',()=>{
  assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.35,SKIN_TRAIL_CADENCE_MS=350/);
  assert.match(server,/SKIN_TRAIL_CADENCE_SECONDS=\.35,SKIN_TRAIL_CADENCE_MS=350/);
- assert.match(game,/player\.sharkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/player\.inkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/bubble\.damageTimer = SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/ink\.damageTimer=SKIN_TRAIL_CADENCE_SECONDS/);
+ assert.match(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
+ assert.match(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
+ assert.match(game,/bubble\.damageTimer = BUBBLE_TRAIL_HIT_SECONDS/);
+ assert.match(game,/ink\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
  assert.match(game,/e\.poisonTick = SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/e\.wakeHitAt\|\|0\)>=SKIN_TRAIL_CADENCE_MS/);
- assert.match(game,/e\.blueRingInkHitAt\)\|\|0\)>=SKIN_TRAIL_CADENCE_MS/);
- assert.match(server,/bubble\.damageTimer=SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(server,/ink\.damageTimer=SKIN_TRAIL_CADENCE_SECONDS/);
+ assert.match(game,/e\.wakeHitAt\|\|0\)>=BUBBLE_TRAIL_HIT_MS/);
+ assert.match(game,/e\.blueRingInkHitAt\)\|\|0\)>=BUBBLE_TRAIL_HIT_MS/);
+ assert.match(server,/bubble\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
+ assert.match(server,/ink\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
  assert.match(server,/reason:'trail-cadence'/);
  const updates=between(game,'// Movimento local responsivo','// Dano contínuo de veneno');
  assert.doesNotMatch(updates,/\.275/,'old uneven 275ms hit cadence must not survive');

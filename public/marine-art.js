@@ -29,36 +29,137 @@ function draw(c,x,y,r,angle,s,t,hit){
   path(()=>{c.moveTo(1.2,0);c.quadraticCurveTo(.9,-.25,.35,-.3);c.lineTo(-.35,-1.7);c.quadraticCurveTo(-.9,-1.2,-.75,-.25);c.lineTo(-1,0);c.lineTo(-.75,.25);c.quadraticCurveTo(-.9,1.2,-.35,1.7);c.lineTo(.35,.3);c.quadraticCurveTo(.9,.25,1.2,0);});
   for(let i=0;i<28;i++){const side=i%2?1:-1;oval(-.25-(i%4)*.12,side*(.3+(i%7)*.15),.025,.035,0,'#ccddd0');}eye(.65,-.12,.045);eye(.65,.12,.045);
  }else if(id==='ribbonmoray'){
-  path(()=>{c.moveTo(1.2,-.12);c.bezierCurveTo(-.2,-.8,-1.6,.8,-3,.1);c.bezierCurveTo(-1.8,1.4,-.2,-.2,1.2,.18);c.closePath();});
-  stroke(()=>{c.moveTo(-3,.1);c.bezierCurveTo(-1.6,.8,-.2,-.8,1,-.15)},'#d5c68b',.065);
-  for(const side of [-1,1])fin([[1,side*.08],[1.45,side*.25],[1.28,0]]);eye(1,-.06,.045);
- }else if(id==='dumbo'){
-  tentacles(8,1.1,true);oval(.45,0,.65,.6);
-  for(const side of [-1,1]){oval(.45,side*.7,.45,.26,side*(.3+Math.sin(phase)*.2));stroke(()=>{c.moveTo(.1,side*.6);c.quadraticCurveTo(.55,side*.9,.8,side*.65)},'#b0bacd',.025);}eye(.05,-.3,.085);eye(.05,.3,.085);
- }else if(id==='blanket'){
-  path(()=>{c.moveTo(.35,0);c.bezierCurveTo(-.2,-.7,-1.6,-1.7,-2.4,-1.2);c.quadraticCurveTo(-1.8,-.5,-2.7,0);c.quadraticCurveTo(-1.8,.5,-2.4,1.2);c.bezierCurveTo(-1.6,1.7,-.2,.7,.35,0);});
-  for(let i=0;i<9;i++)stroke(()=>{const side=(i-4)/4;c.moveTo(.2,0);c.quadraticCurveTo(-1.1,side*.9,-2.4,side*1.2)},'#b58ba8',.03);oval(.5,0,.5,.3);eye(.2,-.18,.065);
- }else if(id==='atolla'){
-  // Serrated crown bell with a single hypertrophied trailing tentacle.
-  tentacles(10,1.7);path(()=>{for(let i=0;i<28;i++){const a=i*Math.PI/14,rr=i%2?.68:.85,x=.25+Math.cos(a)*rr,y=Math.sin(a)*rr;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();});oval(.25,0,.48,.48);
-  for(let i=0;i<12;i++){const a=i*Math.PI/6;oval(.25+Math.cos(a)*.55,Math.sin(a)*.55,.05,.04,0,'#dc8b8b');}feeler(-.4,.4,3.4,1);
- }else if(id==='phantomjelly'){
-  for(let i=0;i<4;i++){const side=(i-1.5)*.35;path(()=>{c.moveTo(.1,side);c.bezierCurveTo(-.6,side+.4,-1.7,side-.4,-3,side+.2);c.lineTo(-2.9,side+.46);c.bezierCurveTo(-1.5,side-.08,-.6,side+.7,.1,side+.2);c.closePath();});}
-  path(()=>{c.moveTo(0,-.85);c.bezierCurveTo(1.8,-.9,1.8,.9,0,.85);c.quadraticCurveTo(.35,0,0,-.85);});stroke(()=>{c.moveTo(.05,-.8);c.quadraticCurveTo(.5,0,.05,.8)},'#b5a5cb',.04);
- }else if(id==='yeticrab'){
+
+   // RIBBON MORAY: an extremely thin, travelling S-body with a high sail crest,
+   // elongated blue-tipped jaws and open fangs, never the generic eel silhouette.
+   const sway=Math.sin(phase*.9)*.29;
+   path(()=>{c.moveTo(1.45,-.17);c.bezierCurveTo(.65,-.35,-.22,-.8,-.92,-.38);c.bezierCurveTo(-1.82,.19,-2.35,-.59+sway,-3.52,-.37+sway);c.lineTo(-3.83,-.05+sway);c.lineTo(-3.48,.10+sway);c.bezierCurveTo(-2.4,.64+sway,-1.7,.66,-.92,.14);c.bezierCurveTo(-.28,-.24,.65,.16,1.45,.17);c.closePath();},g,'#aab9ed',.045);
+   path(()=>{c.moveTo(.93,-.20);c.bezierCurveTo(.4,-.52,-.12,-.86,-.55,-.72);c.lineTo(-1.02,-1.03);c.lineTo(-1.27,-.46);c.bezierCurveTo(-1.9,-.14,-2.5,-.78+sway,-3.52,-.37+sway);c.bezierCurveTo(-2.35,-.68+sway,-1.8,.01,-.9,-.31);c.bezierCurveTo(-.25,-.79,.55,-.4,.93,-.20);c.closePath();},'#7560b6','#c6a4f9',.028);
+   stroke(()=>{c.moveTo(-3.5,-.31+sway);c.bezierCurveTo(-2.35,-.49+sway,-1.7,.44,-.9,-.18);c.bezierCurveTo(-.1,-.59,.55,-.15,1.22,-.10)},'#d9c4a4',.075);
+   for(let i=0;i<13;i++){const x=-2.7+i*.21,y=-.17+Math.sin(i*.62+phase*.25)*.15;oval(x,y,.045,.027,-.25,i%3===0?'#96c9ff':'#5e82d2');}
+   // Separate ribbon-shaped upper/lower jaw and hooked tooth line.
+   path(()=>{c.moveTo(1.02,-.16);c.lineTo(1.75,-.12);c.lineTo(1.57,-.035);c.lineTo(1.07,-.01);c.closePath();},'#506b9b','#d5e7f8',.028);
+   path(()=>{c.moveTo(1.05,.035);c.lineTo(1.76,.14);c.lineTo(1.58,.21);c.lineTo(1.02,.15);c.closePath();},'#33466c','#8ba8df',.027);
+   for(let i=0;i<5;i++)fin([[1.22+i*.085,-.04],[1.27+i*.085,.045],[1.32+i*.085,-.035]]);
+   oval(1.05,-.14,.078,.065,0,'#071523');oval(1.075,-.15,.023,.025,0,'#b1f8ff');
+  }else if(id==='dumbo'){
+
+   // DUMBO: a rounded umbrella mantle, two independently flapping ear fins,
+   // eight SHORT downward trailing arms and huge high-set eyes.
+   for(let arm=0;arm<8;arm++){
+    const side=(arm-3.5)/3.5,w=Math.sin(phase*.7+arm*.82)*.13;
+    stroke(()=>{c.moveTo(-.11,side*.32);c.bezierCurveTo(-.42,side*.49,-.68+w,side*.72,-.95-(arm%3)*.1,side*.88+w);},'#15283d',.125);
+    stroke(()=>{c.moveTo(-.11,side*.32);c.bezierCurveTo(-.42,side*.49,-.68+w,side*.72,-.95-(arm%3)*.1,side*.88+w);},'#a5add5',.076);
+    oval(-.54,side*.66,.027,.022,0,'#c9d7ff');
+   }
+   const flap=Math.sin(phase*1.16)*.17;
+   for(const side of [-1,1]){
+    path(()=>{c.moveTo(.16,side*.28);c.bezierCurveTo(-.14,side*(.65+flap),-.04,side*(1.45+flap),.45,side*(1.56+flap));c.bezierCurveTo(1.14,side*(1.42+flap),1.21,side*(.66+flap),.67,side*.40);c.closePath();},'#7184bd','#cbd6f7',.055);
+    stroke(()=>{c.moveTo(.30,side*.43);c.quadraticCurveTo(.49,side*(1.1+flap),.76,side*(1.3+flap));},'#e0d5ff',.045);
+   }
+   oval(.46,0,.87,.83,0,g);
+   path(()=>{c.moveTo(-.17,-.33);c.bezierCurveTo(.06,-.82,1.19,-.74,1.25,-.12);c.quadraticCurveTo(1.31,.55,.65,.8);c.quadraticCurveTo(.79,.14,-.17,-.33);},'rgba(204,224,247,.18)',null);
+   for(const side of [-1,1]){oval(.96,side*.25,.153,.156,0,'#061321');oval(1.012,side*.265,.062,.062,0,'#ccf5ff');}
+   for(let i=0;i<7;i++)oval(.36+Math.cos(i*2.4)*.55,Math.sin(i*2.4)*.38,.038,.025,0,'#a3d6ed');
+  }else if(id==='blanket'){
+
+   // BLANKET OCTOPUS: very broad translucent draping webs, scalloped curtains
+   // and eight delicate free tips; neither squid nor Kraken arms.
+   const wave=Math.sin(phase*.55)*.23;
+   for(const side of [-1,1]){
+    c.globalAlpha=.8;
+    path(()=>{c.moveTo(.59,side*.13);c.bezierCurveTo(.03,side*.76,-.68,side*(1.65+wave),-1.32,side*(1.91+wave));c.bezierCurveTo(-1.73,side*(1.44+wave),-2.09,side*(2.23+wave),-2.52,side*(1.71+wave));c.bezierCurveTo(-2.88,side*(1.16+wave),-3.21,side*(1.52+wave),-3.54,side*(.88+wave));c.bezierCurveTo(-2.08,side*.4,-.66,side*.22,.59,side*.13);c.closePath();},'#47245e','#b98ac9',.04);
+    c.globalAlpha=1;
+    for(let j=0;j<5;j++){
+     const dy=side*(.22+j*.28);
+     stroke(()=>{c.moveTo(.25,side*.15);c.bezierCurveTo(-.92,side*(.35+j*.16),-2.17,dy+wave*.7,-3.43+j*.12,dy+side*.19+wave);},j%2?'#8f69a9':'#c297d4',.038);
+    }
+    for(let j=0;j<4;j++){const y=side*(.22+j*.24);stroke(()=>{c.moveTo(-2.7,y);c.quadraticCurveTo(-3.18,y+side*.12,-3.69+j*.08,y+side*.38+wave);},'#c09bd2',.028);}
+   }
+   oval(.55,0,.58,.36,0,g);oval(.89,-.15,.11,.09,0,'#e8dfff');oval(.93,-.15,.05,.062,0,'#090a1b');
+   for(let i=0;i<6;i++)oval(.35-(i%3)*.22,(i%2?1:-1)*(.1+(i%3)*.095),.048,.025,0,'#d6b4e9');
+  }else if(id==='atolla'){
+
+   // ATOLLA: a RADIAL saw-tooth bell and a single long defensive antenna.
+   // Crimson warning rings pulse from an otherwise circular body.
+   const pulse=.96+.07*Math.sin(phase*1.5),cx=.23;
+   stroke(()=>{c.moveTo(-.45,0);c.bezierCurveTo(-1.2,-.23,-2.38,.6,-3.62,-.33+Math.sin(phase)*.22);},'#511021',.19);
+   stroke(()=>{c.moveTo(-.45,0);c.bezierCurveTo(-1.2,-.23,-2.38,.6,-3.62,-.33+Math.sin(phase)*.22);},'#ff5276',.087);
+   for(let arm=0;arm<10;arm++){const a=arm*Math.PI*2/10;
+    stroke(()=>{c.moveTo(cx+Math.cos(a)*.63,Math.sin(a)*.63);c.quadraticCurveTo(cx+Math.cos(a)*1.18,Math.sin(a)*1.15,cx+Math.cos(a)*1.55,Math.sin(a)*1.48);},'#9e344f',.035);
+   }
+   path(()=>{for(let j=0;j<48;j++){const a=j*Math.PI/24,rad=(j%3===0?1.08:.86)*pulse;const px=cx+Math.cos(a)*rad,py=Math.sin(a)*rad;j?c.lineTo(px,py):c.moveTo(px,py);}c.closePath();},'#68132b','#ff6587',.05);
+   oval(cx,0,.73*pulse,.73*pulse,0,'#9c2445');
+   for(let j=0;j<16;j++){const a=j*Math.PI/8;stroke(()=>{c.moveTo(cx+Math.cos(a)*.19,Math.sin(a)*.19);c.lineTo(cx+Math.cos(a)*.76,Math.sin(a)*.76)},'#ff8aa4',.055);}
+   oval(cx,0,.30,.30,0,'#2b081d');oval(cx,0,.14,.14,0,'#ffcad5');
+   c.globalAlpha=.6+.24*Math.sin(phase*1.8)**2;
+   stroke(()=>c.arc(cx,0,.61,0,Math.PI*2),'#ffa0bd',.06);c.globalAlpha=1;
+  }else if(id==='phantomjelly'){
+
+   // GIANT PHANTOM: a huge transparent vault, long hanging oral arms and
+   // veiled filaments, unlike the small radial Atolla crown.
+   const drift=Math.sin(phase*.65)*.21;
+   for(let arm=0;arm<5;arm++){
+    const y=(arm-2)*.27;
+    c.globalAlpha=.27+(arm%2)*.15;
+    path(()=>{c.moveTo(.18,y-.13);c.bezierCurveTo(-.83,y-.28,-1.9,y+.31+drift,-3.93+arm*.11,y-.21+drift);c.quadraticCurveTo(-4.24+arm*.11,y+.23+drift,-3.88+arm*.11,y+.36+drift);c.bezierCurveTo(-1.86,y+.58,-.74,y+.22,.18,y+.12);c.closePath();},'#b0b0ef','#d5d5ff',.025);
+    c.globalAlpha=1;
+    stroke(()=>{c.moveTo(.18,y);c.bezierCurveTo(-1.16,y+.1,-2.3,y+.12+drift,-4.16+arm*.08,y+.13+drift);},'#c5c6fc',.024);
+   }
+   for(let a=0;a<10;a++){const side=(a-4.5)*.12;
+    stroke(()=>{c.moveTo(-.17,side);c.bezierCurveTo(-1.3,side*.8,-2.6,side+.12+drift,-3.4,side-.08+drift);},'#a9b6ff',.019);
+   }
+   c.globalAlpha=.54;
+   path(()=>{c.moveTo(-.13,-1.02);c.bezierCurveTo(.53,-1.46,1.71,-1.0,1.73,0);c.bezierCurveTo(1.70,1.05,.53,1.44,-.13,1.02);c.quadraticCurveTo(.48,0,-.13,-1.02);c.closePath();},'#7389bd','#dfebff',.046);
+   c.globalAlpha=1;
+   oval(.82,0,.27,.53,0,'rgba(204,228,255,.32)');
+   for(const side of [-1,1]){stroke(()=>{c.moveTo(.06,side*.8);c.quadraticCurveTo(.72,side*1.03,1.11,side*.63);},'#d4ebff',.048);}
+   for(let j=0;j<7;j++)oval(.65+Math.cos(j*2.1)*.35,Math.sin(j*2.1)*.53,.032,.025,0,'#e2efff');
+  }else if(id==='yeticrab'){
   for(const side of [-1,1]){for(let i=0;i<4;i++)stroke(()=>{c.moveTo(-.15-i*.16,side*.35);c.lineTo(-.4-i*.25,side*.85);c.lineTo(-.05-i*.3,side*1.25)},'#97b0ad',.08);
    stroke(()=>{c.moveTo(.1,side*.3);c.lineTo(.6,side*.8);c.lineTo(1.35,side*.75)},'#a8b8ae',.22);oval(1.4,side*.75,.4,.2);
    for(let i=0;i<18;i++)stroke(()=>{const x=.45+i*.065;c.moveTo(x,side*.75);c.lineTo(x-.06,side*(.98+.09*Math.sin(i*3)))},'#dce1cf',.025);
   }oval(-.2,0,.7,.5);eye(.35,-.2,.04);eye(.35,.2,.04);
  }else if(id==='nautilus'){
-  for(let i=0;i<12;i++)stroke(()=>{const a=(i-6)*.09;c.moveTo(.5,a*.5);c.quadraticCurveTo(1.4,a*2,1.9,a*2.5+Math.sin(phase+i)*.08)},'#b8c8b7',.04);
-  oval(-.2,0,.9,.9);for(let i=0;i<18;i++){const a=i*Math.PI/9;stroke(()=>{c.moveTo(-.2+Math.cos(a)*.5,Math.sin(a)*.5);c.quadraticCurveTo(-.2+Math.cos(a+.15)*.7,Math.sin(a+.15)*.7,-.2+Math.cos(a+.25)*.87,Math.sin(a+.25)*.87)},'#465969',.06);}
-  stroke(()=>{for(let i=0;i<100;i++){const a=i*.15,rr=i*.007;x=-.2+Math.cos(a)*rr;y=Math.sin(a)*rr;i?c.lineTo(x,y):c.moveTo(x,y);}},'#d4d5b9',.035);eye(.68,.14,.07);
- }else if(id==='gharial'){
-  for(const side of [-1,1]){fin([[.1,side*.25],[.5,side*.75],[-.15,side*.6]]);fin([[-.7,side*.25],[-.9,side*.7],[-1.1,side*.45]]);}
-  path(()=>{c.moveTo(.5,-.22);c.lineTo(1.9,-.075);c.quadraticCurveTo(2.2,0,1.9,.075);c.lineTo(.5,.22);c.bezierCurveTo(-.1,.65,-1,.25,-2.6,.1);c.bezierCurveTo(-1.3,-.1,-.3,-.55,.5,-.22);});
-  for(let i=0;i<10;i++){fin([[-1.6+i*.2,-.07],[-1.5+i*.2,-.2],[-1.4+i*.2,-.07]]);if(i<8)stroke(()=>{c.moveTo(.7+i*.14,-.075);c.lineTo(.74+i*.14,.075)},'#c2c9b5',.025);}eye(.48,-.18,.06);eye(.48,.18,.06);
- }else if(s.family==='shark'||s.family==='fish'){
+
+   // NAUTILUS: chambered mineral spiral shell, hood and many fine forward
+   // sensory cirri (not a generic oval snail).
+   for(let arm=0;arm<16;arm++){
+    const y=(arm-7.5)*.061,flow=Math.sin(phase*.8+arm*.75)*.12;
+    stroke(()=>{c.moveTo(.44,y);c.bezierCurveTo(.91,y*1.8,1.54,y*2.2+flow,2.17+(arm%3)*.15,y*2.7+flow);},'#273d53',.073);
+    stroke(()=>{c.moveTo(.44,y);c.bezierCurveTo(.91,y*1.8,1.54,y*2.2+flow,2.17+(arm%3)*.15,y*2.7+flow);},arm%2?'#b9d5cd':'#e2d0a6',.031);
+   }
+   path(()=>{c.moveTo(.38,-.75);c.bezierCurveTo(-.34,-1.45,-1.48,-.95,-1.52,-.01);c.bezierCurveTo(-1.49,.96,-.4,1.45,.35,.71);c.quadraticCurveTo(-.03,0,.38,-.75);c.closePath();},g,'#d0dfd6',.068);
+   for(let j=0;j<19;j++){
+    const a=(j-9)*.17,px=-.65+Math.cos(a)*.73,py=Math.sin(a)*.89;
+    stroke(()=>{c.moveTo(px,py);c.quadraticCurveTo(-.5+Math.cos(a+.2)*.91,Math.sin(a+.2)*1.05,-.65+Math.cos(a+.32)*1.0,Math.sin(a+.32)*1.02);},j%2?'#5c7381':'#aec4bc',.044);
+   }
+   stroke(()=>{for(let j=0;j<100;j++){const a=j*.15,rad=j*.0087,px=-.62+Math.cos(a)*rad,py=Math.sin(a)*rad;j?c.lineTo(px,py):c.moveTo(px,py);}},'#f1d3a1',.10);
+   path(()=>{c.moveTo(.24,-.43);c.lineTo(.81,-.25);c.quadraticCurveTo(1.06,0,.79,.26);c.lineTo(.24,.42);c.closePath();},'#577e88','#cfe0d5',.04);
+   oval(.83,-.2,.094,.083,0,'#06121b');oval(.855,-.22,.031,.029,0,'#d3faff');
+  }else if(id==='gharial'){
+
+   // GHARIAL: very long needle-thin crocodilian rostrum with terminal nasal
+   // knob, interlocking needle teeth, dorsal scutes, paddle limbs and long tail.
+   const twitch=Math.sin(phase*.48)*.15;
+   path(()=>{c.moveTo(-1.7,-.14);c.bezierCurveTo(-2.3,-.26,-2.72,-.37+twitch,-3.25,-.12+twitch);c.lineTo(-3.67,.07+twitch);c.lineTo(-3.19,.19+twitch);c.bezierCurveTo(-2.5,.51,-2.18,.34,-1.66,.18);c.closePath();},'#3d6067','#709a9b',.04);
+   for(const side of [-1,1]){
+    fin([[-.43,side*.28],[-.95,side*.76],[-1.27,side*.63],[-.88,side*.23]]);
+    fin([[.57,side*.21],[.21,side*.71],[-.07,side*.63],[.11,side*.17]]);
+    for(let i=0;i<3;i++)stroke(()=>{const x=-.98+i*.07;c.moveTo(x,side*.62);c.lineTo(x+.18,side*(.7+i*.07));},'#b6d2b8',.035);
+   }
+   path(()=>{c.moveTo(.79,-.28);c.bezierCurveTo(-.22,-.52,-1.30,-.51,-1.77,-.22);c.bezierCurveTo(-2.04,.13,-1.38,.47,-.47,.45);c.quadraticCurveTo(.59,.37,.81,.23);c.closePath();},g,'#a0b5a7',.042);
+   for(let i=0;i<10;i++){const x=-1.43+i*.22;fin([[x,-.36],[x+.1,-.46-(i%3)*.055],[x+.18,-.34]]);}
+   path(()=>{c.moveTo(.67,-.12);c.lineTo(2.73,-.074);c.quadraticCurveTo(2.99,-.02,2.77,.055);c.lineTo(.68,.14);c.closePath();},'#5a7e85','#c7d6cb',.033);
+   path(()=>{c.moveTo(.70,.13);c.lineTo(2.69,.061);c.lineTo(2.53,.18);c.lineTo(.77,.25);c.closePath();},'#294753','#8aafb0',.025);
+   oval(2.72,-.045,.14,.085,0,'#243c43');
+   for(let i=0;i<16;i++){
+    const tx=.91+i*.108;
+    stroke(()=>{c.moveTo(tx,-.055);c.lineTo(tx+.025,.025)},'#f4e9d6',.028);
+    stroke(()=>{c.moveTo(tx,.11);c.lineTo(tx+.027,.039)},'#e3ded1',.022);
+   }
+   for(const side of [-1,1]){oval(.64,side*.23,.112,.089,0,'#10232a');oval(.69,side*.242,.041,.04,0,'#bcffd5');}
+  }else if(s.family==='shark'||s.family==='fish'){
   const shark=s.family==='shark',long=id==='frilled'||id==='blackdragon';
   if(id==='frilled'||id==='blackdragon'){feeler(-.8,0,1.8,1);}else fin([[-1,0],[-1.8,-.75],[-1.5,.03],[-1.8,.55]]);
   if(shark&&id!=='frilled')fin([[-.1,-.25],[-.45,id==='greenland'?-.65:-1],[.35,-.3]]);fin([[.25,.2],[-.35,shark?.65:.42],[.5,.34]]);
