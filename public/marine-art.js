@@ -91,7 +91,8 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   // Long ray tail remains on the centreline instead of curling into a stray appendage.
   stroke(()=>{c.moveTo(-.63,0);c.bezierCurveTo(-1.45,0,-2.55,strokeSway*.10,-3.45,strokeSway*.15);},'#203a4a',.091);
   stroke(()=>{c.moveTo(-.63,0);c.bezierCurveTo(-1.45,0,-2.55,strokeSway*.10,-3.45,strokeSway*.15);},'#a0c6cb',.03);
-  path(()=>{c.moveTo(1.2,0);c.quadraticCurveTo(.9,-.25,.35,-.3);c.lineTo(-.35,-1.7);c.quadraticCurveTo(-.9,-1.2,-.75,-.25);c.lineTo(-1,0);c.lineTo(-.75,.25);c.quadraticCurveTo(-.9,1.2,-.35,1.7);c.lineTo(.35,.3);c.quadraticCurveTo(.9,.25,1.2,0);});
+  const wing=Math.sin(phase*1.3)*.18;
+  path(()=>{c.moveTo(1.2,0);c.quadraticCurveTo(.9,-.25,.35,-.3);c.lineTo(-.35,-1.7-wing);c.quadraticCurveTo(-.9,-1.2-wing*.6,-.75,-.25);c.lineTo(-1,0);c.lineTo(-.75,.25);c.quadraticCurveTo(-.9,1.2+wing*.6,-.35,1.7+wing);c.lineTo(.35,.3);c.quadraticCurveTo(.9,.25,1.2,0);});
   for(let i=0;i<28;i++){const side=i%2?1:-1;oval(-.25-(i%4)*.12,side*(.3+(i%7)*.15),.025,.035,0,'#ccddd0');}eye(.65,-.12,.045);eye(.65,.12,.045);
  }else if(id==='ribbonmoray'){
 
