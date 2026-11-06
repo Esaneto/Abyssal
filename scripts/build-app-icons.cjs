@@ -33,6 +33,23 @@ function write(file,bytes){
 async function png(source,size){
   return sharp(Buffer.from(source)).resize(size,size,{fit:'fill'}).png().toBuffer();
 }
+async function assertVisibleAbyssalIcon(buffer,label){
+  // Validate the actual raster output, not just SVG source or ICO headers.
+  // A transparent, generic Electron/Android icon must fail the build.
+  const {data,info}=await sharp(buffer).resize(96,96).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+  let violet=0,metallic=0,opaque=0;
+  for(let i=0;i<data.length;i+=info.channels){
+    const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
+    if(a<96)continue;
+    opaque++;
+    if(r>75&&b>95&&r>g*1.22&&b>g*1.25)violet++;
+    if(r>130&&g>135&&b>145&&Math.abs(r-g)<65)metallic++;
+  }
+  if(violet<15||metallic<25||opaque<1000){
+    throw new Error(label+' is empty, too dark or missing recognizable anchor/tentacle colors: '+JSON.stringify({violet,metallic,opaque}));
+  }
+  console.log('[icon] verified visible art',label,{violet,metallic,opaque});
+}
 function icoFromPngs(pngImages){
   // Windows ICO header + entries. PNG-in-ICO is natively supported by Windows
   // Vista and newer, and preserves the icon's alpha at each provided size.
@@ -57,6 +74,7 @@ function icoFromPngs(pngImages){
 }
 async function buildWindows(){
   const sizes=[16,24,32,48,64,128,256];
+  await assertVisibleAbyssalIcon(await png(sourceBytes,256),'Windows app icon');
   const icons=[];
   for(const size of sizes)icons.push({size,bytes:await png(sourceBytes,size)});
   const target=path.join(root,'desktop','build','icon.ico');
@@ -73,10 +91,11 @@ async function buildAndroid(){
     throw new Error('Generate the Capacitor Android project before creating its launcher icons.');
   }
   const densities={mdpi:48,hdpi:72,xhdpi:96,xxhdpi:144,xxxhdpi:192};
-  const markBytes=await sharp(Buffer.from(foregroundSource)).resize(240,240,{fit:'fill'}).png().toBuffer();
+  await assertVisibleAbyssalIcon(await png(sourceBytes,192),'Android legacy launcher');
+  const markBytes=await sharp(Buffer.from(foregroundSource)).resize(272,272,{fit:'fill'}).png().toBuffer();
   const adaptive=await sharp({create:{
     width:432,height:432,channels:4,background:{r:0,g:0,b:0,alpha:0}
-  }}).composite([{input:markBytes,left:96,top:96}]).png().toBuffer();
+  }}).composite([{input:markBytes,left:80,top:80}]).png().toBuffer();
 
   for(const [density,launcherSize] of Object.entries(densities)){
     const dir=path.join(res,'mipmap-'+density);
