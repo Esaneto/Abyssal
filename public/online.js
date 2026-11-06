@@ -42,11 +42,22 @@ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();def
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const message=$('downloadInstallMessage');if(message)message.textContent='Abyssal instalado com sucesso neste dispositivo.';});
  const PROFILE_TITLES=[
   {id:'abyss-drifter',name:'Mergulhador das Fossas',icon:'✧',rarity:'COMUM',color:'#79f3f0',description:'Seu primeiro vínculo com as profundezas.',goal:'Disponível desde o início.',kind:'starter'},
+  {id:'sonar-novice',name:'Eco do Primeiro Sonar',icon:'◉',rarity:'COMUM',color:'#88dfe2',description:'O primeiro eco que retornou das profundezas.',goal:'Missão: derrote 15 monstros.',kind:'kills',required:15},
   {id:'abyss-spark',name:'Faísca das Fossas',icon:'◈',rarity:'INCOMUM',color:'#8cf8ff',description:'A luz que sobrevive onde o sol não chega.',goal:'Derrote 50 monstros.',kind:'kills',required:50},
   {id:'current-hunter',name:'Caçador de Correntes',icon:'〰',rarity:'RARO',color:'#b39cff',description:'Você aprendeu a caçar contra a correnteza.',goal:'Derrote 250 monstros.',kind:'kills',required:250},
+  {id:'lantern-hunter',name:'Caçador de Fotóforos',icon:'✺',rarity:'ÉPICO',color:'#abf8e8',description:'Sua rota é iluminada apenas pelos fotóforos das presas.',goal:'Missão: derrote 500 monstros.',kind:'kills',required:500},
+  {id:'hadal-executioner',name:'Carrasco Hadal',icon:'☠',rarity:'LENDÁRIO',color:'#ff86ca',description:'Seu rastro é reconhecido onde a luz não alcança.',goal:'Missão: derrote 2.500 monstros.',kind:'kills',required:2500},
   {id:'pelagic-executioner',name:'Carrasco Pelágico',icon:'✹',rarity:'ÉPICO',color:'#ff829b',description:'Até os predadores recuam ao sentir sua presença.',goal:'Derrote 1.000 monstros.',kind:'kills',required:1000},
+  {id:'first-predator',name:'Primeira Presa Colossal',icon:'♆',rarity:'INCOMUM',color:'#ffe59e',description:'O primeiro gigante caiu diante da sua expedição.',goal:'Missão: derrote 3 bosses.',kind:'bosses',required:3},
+  {id:'abyss-stalker',name:'Perseguidor de Leviatãs',icon:'◈',rarity:'LENDÁRIO',color:'#dbb7ff',description:'Você não perde o rastro dos predadores maiores.',goal:'Missão: derrote 25 bosses.',kind:'bosses',required:25},
+  {id:'titan-bane',name:'Flagelo dos Titãs',icon:'♜',rarity:'MÍTICO',color:'#ffc37d',description:'Seu nome é registrado na queda de cem gigantes.',goal:'Missão: derrote 100 bosses.',kind:'bosses',required:100},
   {id:'leviathan-hunter',name:'Caçador de Leviatãs',icon:'♆',rarity:'ÉPICO',color:'#ffd27a',description:'Um troféu conquistado contra os gigantes do abismo.',goal:'Derrote 10 bosses.',kind:'bosses',required:10},
   {id:'sovereign-abyss',name:'Soberano do Insondável',icon:'♛',rarity:'LENDÁRIO',color:'#e0b7ff',description:'O próprio oceano parece reconhecer seu nome.',goal:'Derrote 50 bosses.',kind:'bosses',required:50},
+  {id:'cycle-pioneer',name:'Pioneiro dos Sete Selos',icon:'✧',rarity:'RARO',color:'#a1ff9d',description:'Venceu sua primeira barra completa de sete bosses.',goal:'Missão: conclua a primeira barra de progressão e resgate 50.000 moedas.',kind:'firstProgressionClear',required:1},
+  {id:'rift-cartographer',name:'Cartógrafo das Fossas',icon:'⌁',rarity:'RARO',color:'#83e3fb',description:'Registrou três passagens vencidas além da luz.',goal:'Missão: vença 3 bosses nas Fossas online.',kind:'riftBossesDefeated',required:3},
+  {id:'hadal-navigator',name:'Navegador Hadal',icon:'⟁',rarity:'LENDÁRIO',color:'#9fcaff',description:'Sua bússola reconhece o caminho sem superfície.',goal:'Missão: vença 12 bosses nas Fossas online.',kind:'riftBossesDefeated',required:12},
+  {id:'veteran-diver',name:'Veterano de Expedições',icon:'⟡',rarity:'RARO',color:'#e6d7ff',description:'Dez expedições encerradas, dez histórias preservadas.',goal:'Missão: finalize 10 mergulhos registrados.',kind:'runsCompleted',required:10},
+  {id:'eternal-explorer',name:'Viajante Insondável',icon:'✦',rarity:'MÍTICO',color:'#ffb8df',description:'Cinquenta mergulhos e ainda há mistérios nas profundezas.',goal:'Missão: finalize 50 mergulhos registrados.',kind:'runsCompleted',required:50},
   {id:'shoal-founder',name:'Fundador do Cardume',icon:'≋',rarity:'RARO',color:'#73e7c3',description:'Você reuniu mergulhadores sob uma mesma bandeira.',goal:'Crie seu primeiro Cardume.',kind:'cardumesCreated',required:1},
   {id:'supporter-of-the-depths',name:'Apoio das Profundezas',icon:'♡',rarity:'RARO',color:'#ff9fca',description:'Você reconhece o valor dos outros mergulhadores.',goal:'Curta 25 perfis de jogadores.',kind:'likesGiven',required:25},
   {id:'abyssal-famous',name:'Nome Conhecido',icon:'✦',rarity:'ÉPICO',color:'#ffb0d9',description:'Sua presença já chamou a atenção da comunidade.',goal:'Receba 10 curtidas no seu perfil.',kind:'likesReceived',required:10},
@@ -65,7 +76,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   'sovereign-abyss':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="35" r="15" fill="currentColor" fill-opacity=".13"/><path d="M11 20 20 27 24 12 32 23 40 12 44 27 53 20 48 38M11 20l4 23 17 12 17-12 4-23"/><path d="M25 35c4-5 10-5 14 0-4 5-10 5-14 0z"/><circle cx="32" cy="35" r="3" fill="currentColor"/><path d="M8 49c5-2 7 2 11 0m26 0c4 2 6-2 11 0"/></svg>',
    'abyssal-conqueror':'<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="32" cy="32" r="22" stroke="#2ee88a" stroke-width="2" fill="#2ee88a" fill-opacity=".15"/><path d="M16 42 Q32 18 48 42 M20 30 Q32 10 44 30 M32 8 L32 56" stroke="#4efca0" stroke-width="2.6"/><circle cx="32" cy="20" r="4" fill="#2ee88a"/><circle cx="32" cy="44" r="3" fill="#ffd078"/></svg>'
  };
- function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK['abyss-drifter'];}
+ function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  let viewedPublicProfile=null;
  function renderProfile(data=serverAccount){
@@ -73,7 +84,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   const root=$('profileTitleGrid');if(!root)return;
   const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
   const received=profileNumber(user.likesReceived),given=profileNumber(user.likesGiven),created=profileNumber(stats.cardumesCreated);
-  const progressFor=t=>t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:((t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')&&Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0);
+  const progressFor=t=>t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:(t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')?(Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0):profileNumber(stats[t.kind]);
   const equipped=user.equippedTitle||'abyss-drifter';
   const unlockedIds=new Set(Array.isArray(user.unlockedTitles)?user.unlockedTitles:PROFILE_TITLES.filter(t=>t.kind==='starter'||progressFor(t)>=t.required).map(t=>t.id));
   // Notificar títulos desbloqueados recém-detectados
@@ -209,6 +220,8 @@ function connect(){
  socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
  socket.on('rift-chest-ready',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-chest',{detail:data})));
+ socket.on('first-progression-reward',data=>window.dispatchEvent(new CustomEvent('abyssal-first-progression-reward',{detail:data||{}})));
+ socket.on('abyssal-final-victory',data=>window.dispatchEvent(new CustomEvent('abyssal-final-victory',{detail:data||{}})));
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
   serverAccount=data;
@@ -477,6 +490,14 @@ function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),arcChainActive:data.arcChainActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
+function setTutorialOpen(open){if(socket?.connected&&authenticated&&currentRoom)socket.emit('tutorial-state',{open:open===true});}
+function setTutorialPreference(mode){if(socket?.connected&&authenticated)socket.emit('tutorial-preference',{mode:String(mode||'').slice(0,16),dismissed:true});}
+function claimFirstProgressionBonus(progress,onResult){
+ if(!socket?.connected||!authenticated){onResult?.({ok:false,message:'Entre em sua conta para resgatar o prêmio único.'});return false;}
+ if(currentRoom){onResult?.({ok:false,message:'A recompensa do modo online é entregue automaticamente pelo servidor.'});return false;}
+ socket.emit('run-progress',progress||{});
+ socket.timeout(12000).emit('claim-first-progression',{mode:'solo'},(err,result)=>{if(!err&&result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}onResult?.(err?{ok:false,message:'Sem confirmação do servidor. Tente novamente.'}:result);});return true;
+}
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
 function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
 function requestWorldSnapshot(reason='manual'){if(socket?.connected&&authenticated&&currentRoom)socket.emit('request-world-snapshot',{reason:String(reason||'manual')})}
@@ -566,7 +587,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
   if(payload.progress)socket.emit('run-progress',payload.progress);
   socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
  }
- window.AbyssalOnline={openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
