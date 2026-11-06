@@ -138,8 +138,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
   color:#f1e4dc!important;
 }
 
-/* Every species card gets the same corner artwork. The SVG is decoration only;
-   the purchase buttons and canvas previews retain their original listeners. */
+/* Only paid species receive tentacles. All species retain the brown glass. */
 #shopScreen #skinGrid .skin-card{
   position:relative!important;
   isolation:isolate!important;
@@ -151,7 +150,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
     linear-gradient(153deg,rgba(98,63,39,.47),rgba(43,29,25,.57) 60%,rgba(19,17,25,.73))!important;
   box-shadow:inset 0 0 17px rgba(166,94,54,.07),0 6px 16px rgba(0,0,0,.2)!important;
 }
-#shopScreen #skinGrid .skin-card::before{
+#shopScreen #skinGrid .skin-card.paid-skin-card::before{
   content:""!important;
   position:absolute!important;inset:0!important;
   z-index:0!important;display:block!important;
@@ -197,7 +196,7 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
   background:linear-gradient(145deg,rgba(104,60,46,.83),rgba(60,29,65,.83))!important;
 }
 @media(max-width:700px){
-  #shopScreen #skinGrid .skin-card::before{opacity:.6!important}
+  #shopScreen #skinGrid .skin-card.paid-skin-card::before{opacity:.6!important}
   #shopScreen #skinGrid .skin-card{border-width:1px!important}
 }
 

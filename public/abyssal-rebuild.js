@@ -141,22 +141,22 @@ function createGate(){
     '<div class="abyss-descent-dialog" role="dialog" aria-modal="true" aria-labelledby="abyssDescentTitle">'+
       '<button id="abyssDescentClose" class="abyss-descent-close" type="button" aria-label="Fechar">×</button>'+
       '<header class="abyss-descent-header">'+
-        '<small>ESCOLHA COMO RESPONDER AO CHAMADO</small>'+
-        '<h2 id="abyssDescentTitle">DESCIDA ABISSAL</h2>'+
-        '<p>O fundo não promete que a subida será possível.</p>'+
+        '<small>ONDE A LUZ NÃO ALCANÇA</small>'+
+        '<h2 id="abyssDescentTitle">FOSSAS ABISSAIS</h2>'+
+        '<p>Escolha como explorar as correntes mais profundas e enfrentar as criaturas que vivem nelas.</p>'+
       '</header>'+
       '<div class="abyss-descent-choices">'+
         '<button class="abyss-descent-choice" data-mode="solo" type="button">'+
-          '<span class="abyss-choice-icon" aria-hidden="true">◌</span>'+
-          '<strong>DESCER SOZINHO</strong>'+
-          '<em>Ninguém voltou para contar o que existe depois da última luz.</em>'+
-          '<small>Expedição solo · resposta imediata</small>'+
+          '<svg class="abyss-choice-icon abyss-fish-icon" viewBox="0 0 92 44" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M23 22C35 9 53 7 69 22C53 37 35 35 23 22Z"/><path d="M23 22 7 12v20l16-10Z"/><path d="m40 12 8-8 10 9M43 31l9 9 9-11"/><circle cx="59" cy="20" r="2.1" fill="currentColor" stroke="none"/></svg>'+
+          '<strong>EXPLORAR SOZINHO</strong>'+
+          '<em>Enfrente a escuridão, descubra espécies desconhecidas e sobreviva por conta própria.</em>'+
+          '<small>Expedição solo · exploração individual</small>'+
         '</button>'+
         '<button class="abyss-descent-choice" data-mode="group" type="button">'+
-          '<span class="abyss-choice-icon" aria-hidden="true">◉ ◉</span>'+
-          '<strong>DESCER EM CARDUME</strong>'+
-          '<em>Os que voltaram trouxeram alguma coisa com eles.</em>'+
-          '<small>Expedição online · tripulação compartilhada</small>'+
+          '<svg class="abyss-choice-icon abyss-fish-icon abyss-fish-school" viewBox="0 0 112 48" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><g transform="translate(0 2)"><path d="M12 13Q23 2 38 13Q23 24 12 13ZM12 13 2 6v14l10-7Z"/><circle cx="32" cy="11" r="1.7" fill="currentColor" stroke="none"/></g><g transform="translate(36 0)"><path d="M15 24Q30 8 49 24Q30 39 15 24ZM15 24 2 15v18l13-9Z"/><circle cx="42" cy="21" r="2" fill="currentColor" stroke="none"/></g><g transform="translate(82 22) scale(.7)"><path d="M12 13Q23 2 38 13Q23 24 12 13ZM12 13 2 6v14l10-7Z"/><circle cx="32" cy="11" r="1.7" fill="currentColor" stroke="none"/></g></svg>'+
+          '<strong>MERGULHAR EM CARDUME</strong>'+
+          '<em>Entre com outros mergulhadores, explore as fossas e enfrente as ameaças em equipe.</em>'+
+          '<small>Expedição online · cardume cooperativo</small>'+
         '</button>'+
       '</div>'+
     '</div>';

@@ -196,7 +196,7 @@ test('desktop vortex spins with a separate composited layer while reduced motion
   assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
   assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html,/abyssal-rebuild\.js\?v=6/);
+  assert.match(html,/abyssal-rebuild\.js\?v=7/);
 });
 
 test('main menu play and abyss gate have their requested labels',()=>{
@@ -250,7 +250,7 @@ test('desktop current uses the browser frame clock even when SVG CSS animations 
   assert.match(js,/if\(document\.hidden\|\|menu\.hidden\|\|document\.body\.classList\.contains\('game-active'\)\)/);
   assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)\{\s*body:not\(\.game-active\) #menuScreen #abyssGate \.abyss-vortex-flow-layer,[\s\S]*?animation:none!important/);
   assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
-  assert.match(html,/abyssal-rebuild\.js\?v=6/);
+  assert.match(html,/abyssal-rebuild\.js\?v=7/);
 });
 
 
@@ -286,7 +286,7 @@ test('Fossas Abissais retains fractured basalt and gains a narrower blood-drip e
   const html=read('public/index.html');
   const css=read('public/abyssal-shop-blood-theme.css');
   const original=read('public/abyssal-menu-orbit.css');
-  assert.match(html,/abyssal-shop-blood-theme\.css\?v=1/);
+  assert.match(html,/abyssal-shop-blood-theme\.css\?v=2/);
   assert.match(original,/#abyssGate \.abyss-gate-content::before/);
   assert.match(css,/#abyssGate \.abyss-gate-content::before\s*\{/);
   assert.match(css,/inset:-1px!important/);
@@ -307,7 +307,7 @@ test('Fossas Abissais interior dialog keeps its controls and uses black blood-dr
   assert.doesNotMatch(css,/\.abyss-descent-panel \.abyss-descent-dialog > \*\s*\{/);
 });
 
-test('the actual shop and every rendered species card use brown glass with purple tentacle corners',()=>{
+test('shop cards use brown glass and only paid species have purple tentacle corners',()=>{
   const html=read('public/index.html');
   const css=read('public/abyssal-shop-blood-theme.css');
   const game=read('public/game.js');
@@ -318,7 +318,7 @@ test('the actual shop and every rendered species card use brown glass with purpl
   assert.match(css,/#shopScreen \.shop-modal\s*\{/);
   assert.match(css,/#shopScreen \.shop-modal::before\s*\{/);
   assert.match(css,/#shopScreen #skinGrid \.skin-card\s*\{/);
-  assert.match(css,/#shopScreen #skinGrid \.skin-card::before\s*\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card\.paid-skin-card::before\s*\{/);
   assert.match(css,/background-image:url\('abyssal-specimen-tentacles\.svg'\)!important/);
   assert.match(css,/pointer-events:none!important/);
   assert.match(css,/#shopScreen #skinGrid \.skin-card\.owned\s*\{/);
@@ -326,4 +326,66 @@ test('the actual shop and every rendered species card use brown glass with purpl
   assert.match(css,/#shopScreen #skinGrid \.skin-card > :not\(\.boss-bundle-aura\)/);
   assert.match(frame,/<svg[^>]*viewBox="0 0 300 420"/);
   assert.match(frame,/translate\(300 420\) scale\(-1 -1\)/);
+});
+
+
+test('Fossas Abissais solo and shoal use fish glyphs, contextual copy and intact handlers',()=>{
+  const js=read('public/abyssal-rebuild.js');
+  const css=read('public/abyssal-interface-harmony.css');
+  const i18n=read('public/i18n.js');
+  assert.match(js,/data-mode="solo"/);
+  assert.match(js,/data-mode="group"/);
+  assert.equal((js.match(/class="abyss-choice-icon abyss-fish-icon/g)||[]).length,2);
+  assert.doesNotMatch(js,/<span class="abyss-choice-icon" aria-hidden="true">(?:◌|◉)/);
+  assert.match(js,/EXPLORAR SOZINHO/);
+  assert.match(js,/MERGULHAR EM CARDUME/);
+  assert.match(js,/FOSSAS ABISSAIS<\/h2>/);
+  assert.match(js,/abyssal-start-rift-solo/);
+  assert.match(js,/connectAndJoin/);
+  assert.match(css,/\.abyss-descent-panel \.abyss-descent-choice \.abyss-fish-icon/);
+  assert.match(i18n,/'MERGULHAR EM CARDUME':'DIVE WITH A SHOAL'/);
+});
+
+test('Fossas Abissais blood glow is reduced without losing narrow drips',()=>{
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(css,/drop-shadow\(0 0 1px rgba\(84,10,17,\.13\)\)/);
+  assert.match(css,/background:rgba\(85,13,19,\.38\)!important;opacity:\.5!important/);
+  assert.match(css,/#abyssGate \.abyss-gate-content::after/);
+  assert.match(css,/#abyssGate #abyssGateButton/);
+});
+
+test('every skin is brown; only paid skin cards keep tentacle ornament',()=>{
+  const game=read('public/game.js');
+  const original=read('public/abyssal-shop-blood-theme.css');
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(game,/skin\.paid\?' paid-skin-card':''/);
+  assert.match(original,/#shopScreen #skinGrid \.skin-card\.paid-skin-card::before\{/);
+  assert.doesNotMatch(original,/#shopScreen #skinGrid \.skin-card::before\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card:not\(\.paid-skin-card\)::before/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card\.paid-skin-card::before/);
+  assert.match(game,/card\.className='skin-card'/);
+});
+
+test('shop abilities and back to menu are brown, redeem code retains distinct styling',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(html,/abyssal-interface-harmony\.css\?v=1/);
+  assert.match(css,/#shopScreen #metaUpgradeGrid \.meta-card/);
+  assert.match(css,/#shopScreen #metaUpgradeGrid \.meta-card>button:not\(:disabled\)/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card \.skin-ability/);
+  assert.match(css,/#shopScreen #shopCloseBtn,#shopScreen #shopTopCloseBtn/);
+  assert.match(css,/#shopScreen #marineSearch/);
+  assert.doesNotMatch(css,/#shopScreen #openRedeemCodeBtn\s*[,{]/);
+  assert.doesNotMatch(css,/#redeemCodeScreen\s*[{,]/);
+});
+
+test('resonance modal including PVP reuses translucent violet button identity',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(html,/id="resonanceScreen"/);
+  assert.match(css,/#resonanceScreen \.resonance-modal\.resonance-pvp-theme/);
+  assert.match(css,/rgba\(183,112,250,\.83\)!important/);
+  assert.match(css,/#resonanceScreen \.resonance-modal \.resonance-skill-option:has\(input:checked\)/);
+  assert.match(css,/#resonanceScreen \.resonance-modal #saveResonanceBtn/);
+  assert.match(css,/#resonanceScreen \.resonance-modal \.resonance-mode-tabs button/);
 });

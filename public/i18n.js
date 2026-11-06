@@ -580,6 +580,14 @@ const spanishTranslations={
 
 // Canonical gameplay terminology. Dynamic UI uses the same dictionaries as static DOM.
 Object.assign(translations,{
+  'ONDE A LUZ NÃO ALCANÇA':'BEYOND THE LAST LIGHT',
+  'Escolha como explorar as correntes mais profundas e enfrentar as criaturas que vivem nelas.':'Choose how to explore the deepest currents and face the creatures within.',
+  'EXPLORAR SOZINHO':'EXPLORE ALONE',
+  'Enfrente a escuridão, descubra espécies desconhecidas e sobreviva por conta própria.':'Face the darkness, discover unknown species and survive on your own.',
+  'Expedição solo · exploração individual':'Solo expedition · individual exploration',
+  'MERGULHAR EM CARDUME':'DIVE WITH A SHOAL',
+  'Entre com outros mergulhadores, explore as fossas e enfrente as ameaças em equipe.':'Dive with other players, explore the trenches and face threats as a team.',
+  'Expedição online · cardume cooperativo':'Online expedition · cooperative shoal',
   'MERGULHAR':'DIVE','ABISMO':'ABYSS','FOSSAS ABISSAIS':'ABYSSAL TRENCHES',
  'Tempestade elétrica':'Electric Storm','Lança-abismo':'Abyss Spear','Ricochete caótico':'Chaotic Ricochet',
  'Rajada Prismática':'Prismatic Barrage','Lança de Fótons':'Photon Lance','Raio de Fótons':'Photon Ray',
@@ -589,6 +597,14 @@ Object.assign(translations,{
  'Selecione exatamente 1 disparo.':'Select exactly 1 shot.'
 });
 Object.assign(spanishTranslations,{
+  'ONDE A LUZ NÃO ALCANÇA':'MÁS ALLÁ DE LA ÚLTIMA LUZ',
+  'Escolha como explorar as correntes mais profundas e enfrentar as criaturas que vivem nelas.':'Elige cómo explorar las corrientes más profundas y enfrentarte a sus criaturas.',
+  'EXPLORAR SOZINHO':'EXPLORAR EN SOLITARIO',
+  'Enfrente a escuridão, descubra espécies desconhecidas e sobreviva por conta própria.':'Enfréntate a la oscuridad, descubre especies desconocidas y sobrevive por tu cuenta.',
+  'Expedição solo · exploração individual':'Expedición individual · exploración en solitario',
+  'MERGULHAR EM CARDUME':'BUCEAR EN BANCO',
+  'Entre com outros mergulhadores, explore as fossas e enfrente as ameaças em equipe.':'Entra con otros buceadores, explora las fosas y enfrenta las amenazas en equipo.',
+  'Expedição online · cardume cooperativo':'Expedición en línea · banco cooperativo',
   'MERGULHAR':'BUCEAR','ABISMO':'ABISMO','FOSSAS ABISSAIS':'FOSAS ABISALES',
  'Tempestade elétrica':'Tormenta eléctrica','Lança-abismo':'Lanza abisal','Ricochete caótico':'Rebote caótico',
  'Rajada Prismática':'Ráfaga prismática','Lança de Fótons':'Lanza de fotones','Raio de Fótons':'Rayo de fotones',
