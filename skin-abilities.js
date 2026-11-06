@@ -4,7 +4,7 @@
 // Distâncias são recebidas em unidades do mundo; não dependem de Canvas ou Socket.IO.
 const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer']);
 const curated=typeof module!=='undefined'&&module.exports?require('./abyssal-curated-skins.js'):globalThis.AbyssalCuratedSkins;
-const trait=(id,stat)=>curated?.byId?.[id]?.stat===stat?curated.byId[id].multiplier:1;
+const trait=(id,stat)=>curated?.byId?.[id]?.bonuses?.[stat]??(curated?.byId?.[id]?.stat===stat?curated.byId[id].multiplier:1);
 const CLOSE_RANGE = 170;
 const LONG_RANGE = 260;
 

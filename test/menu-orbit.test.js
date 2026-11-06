@@ -196,7 +196,7 @@ test('desktop vortex spins with a separate composited layer while reduced motion
   assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
   assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html,/abyssal-rebuild\.js\?v=7/);
+  assert.match(html,/abyssal-rebuild\.js\?v=8/);
 });
 
 test('main menu play and abyss gate have their requested labels',()=>{
@@ -250,7 +250,7 @@ test('desktop current uses the browser frame clock even when SVG CSS animations 
   assert.match(js,/if\(document\.hidden\|\|menu\.hidden\|\|document\.body\.classList\.contains\('game-active'\)\)/);
   assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)\{\s*body:not\(\.game-active\) #menuScreen #abyssGate \.abyss-vortex-flow-layer,[\s\S]*?animation:none!important/);
   assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
-  assert.match(html,/abyssal-rebuild\.js\?v=7/);
+  assert.match(html,/abyssal-rebuild\.js\?v=8/);
 });
 
 
@@ -396,7 +396,7 @@ test('PvE remains blue and PvP remains red, regardless of selected Resonance mod
   const html=read('public/index.html');
   const game=read('public/game.js');
   assert.match(html,/abyssal-interface-harmony\.css\?v=2/);
-  assert.match(html,/game\.js\?v=2026\.11\.6\.3/);
+  assert.match(html,/game\.js\?v=2026\.11\.6\.4/);
   assert.match(css,/button\[data-resonance-mode="pve"\]\{/);
   assert.match(css,/button\[data-resonance-mode="pvp"\]\{/);
   assert.match(css,/rgba\(86,170,255,\.88\)/);

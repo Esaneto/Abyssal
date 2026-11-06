@@ -77,7 +77,7 @@ test('slow offline network cannot delay individual game scripts during cave entr
  const sw=read('public/offline-sw.js');
  const html=read('public/index.html');
  assert.match(html,/ocean-terrain\.js\?v=3/);
- assert.match(sw,/const VERSION = '2026-11-06-curated-v5'/);
+ assert.match(sw,/const VERSION = '2026-11-06-treasure-v6'/);
  assert.match(sw,/if \(inShell && !isNavigation && cached\)/);
  assert.match(sw,/event\.waitUntil\?\.\(refresh\)/);
  assert.match(sw,/return cached;/);

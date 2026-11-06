@@ -1,1 +1,795 @@
-(function(root){const items=[{"id": "eagleray", "name": "Raia-Águia das Fossas", "family": "ray", "art": "voidwing", "color": "#668fa5", "stat": "movement", "multiplier": 1.24, "ability": "Asas de corrente: +24% de velocidade.", "price": 45000, "paid": false, "desc": "Raia-Águia das Fossas — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "ribbonmoray", "name": "Moreia-Fita Noturna", "family": "eel", "art": "greensnake", "color": "#536bb0", "stat": "fireRate", "multiplier": 1.27, "ability": "Mandíbula rítmica: +27% de cadência.", "price": 52000, "paid": false, "desc": "Moreia-Fita Noturna — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "dumbo", "name": "Polvo-Dumbo Hadal", "family": "octopus", "art": "aberration", "color": "#7988b6", "stat": "defense", "multiplier": 0.78, "ability": "Manto compressível: reduz dano em 22%.", "price": 58000, "paid": false, "desc": "Polvo-Dumbo Hadal — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "blanket", "name": "Polvo-Cobertor Sombrio", "family": "octopus", "art": "aberration", "color": "#885f98", "stat": "range", "multiplier": 1.3, "ability": "Membrana sensorial: +30% de alcance.", "price": 64000, "paid": false, "desc": "Polvo-Cobertor Sombrio — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "atolla", "name": "Medusa-Atolla Carmesim", "family": "jelly", "art": "violet", "color": "#a35d78", "stat": "experience", "multiplier": 1.32, "ability": "Coroa de ressonância: +32% de experiência.", "price": 48000, "paid": false, "desc": "Medusa-Atolla Carmesim — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "phantomjelly", "name": "Medusa-Fantasma Gigante", "family": "jelly", "art": "violet", "color": "#68729b", "stat": "magnet", "multiplier": 1.65, "ability": "Braços coletores: +65% de alcance de coleta.", "price": 69000, "paid": false, "desc": "Medusa-Fantasma Gigante — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "yeticrab", "name": "Caranguejo-Yeti Abissal", "family": "crustacean", "art": "deepwarden", "color": "#93a8ae", "stat": "defense", "multiplier": 0.75, "ability": "Cerdas minerais: reduz dano em 25%.", "price": 62000, "paid": false, "desc": "Caranguejo-Yeti Abissal — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "nautilus", "name": "Náutilo da Fossa", "family": "mollusc", "art": "royal", "color": "#789ba4", "stat": "damage", "multiplier": 1.28, "ability": "Pressão espiral: +28% de dano.", "price": 72000, "paid": false, "desc": "Náutilo da Fossa — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}, {"id": "gharial", "name": "Gavial das Águas Negras", "family": "reptile", "art": "saltcroc", "color": "#598b91", "stat": "damage", "multiplier": 1.34, "ability": "Pinça de agulhas: +34% de dano.", "price": 80000, "paid": false, "desc": "Gavial das Águas Negras — anatomia marinha reinterpretada em volumes sombreados e bioluminescência discreta."}];const api={items,byId:Object.fromEntries(items.map(s=>[s.id,s]))};if(typeof module!=="undefined")module.exports=api;root.AbyssalCuratedSkins=api;})(globalThis);
+(function(root){
+const items=[
+  {
+    "id": "eagleray",
+    "name": "Raia-Águia das Fossas",
+    "family": "ray",
+    "color": "#668fa5",
+    "stat": "movement",
+    "multiplier": 1.24,
+    "ability": "Asas de corrente: +24% de velocidade. Adaptação predatória: +12% de dano.",
+    "price": 45000,
+    "paid": false,
+    "desc": "Asas largas pontilhadas, cabeça projetada e cauda longa. A corrente das Fossas passa pelas suas membranas azul-ardósia.",
+    "bonuses": {
+      "movement": 1.24,
+      "damage": 1.12
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "ribbonmoray",
+    "name": "Moreia-Fita Noturna",
+    "family": "eel",
+    "color": "#536bb0",
+    "stat": "fireRate",
+    "multiplier": 1.27,
+    "ability": "Mandíbula rítmica: +27% de cadência. Adaptação predatória: +13% de dano.",
+    "price": 52000,
+    "paid": false,
+    "desc": "Corpo em fita, mandíbula alongada e crista dorsal violeta. Espreita as fraturas onde a luz já desapareceu.",
+    "bonuses": {
+      "fireRate": 1.27,
+      "damage": 1.13
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "dumbo",
+    "name": "Polvo-Dumbo Hadal",
+    "family": "octopus",
+    "color": "#7988b6",
+    "stat": "defense",
+    "multiplier": 0.78,
+    "ability": "Manto compressível: reduz dano em 22%. Adaptação predatória: +14% de dano.",
+    "price": 58000,
+    "paid": false,
+    "desc": "Manto arredondado e duas nadadeiras semelhantes a orelhas. Sua pele compressível suporta a pressão da zona hadal.",
+    "bonuses": {
+      "defense": 0.78,
+      "damage": 1.14
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "blanket",
+    "name": "Polvo-Cobertor Sombrio",
+    "family": "octopus",
+    "color": "#885f98",
+    "stat": "range",
+    "multiplier": 1.3,
+    "ability": "Membrana sensorial: +30% de alcance. Adaptação predatória: +15% de dano.",
+    "price": 64000,
+    "paid": false,
+    "desc": "Uma membrana extensa une os braços como um manto escuro, abrindo-se para sentir movimentos na água.",
+    "bonuses": {
+      "range": 1.3,
+      "damage": 1.15
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "atolla",
+    "name": "Medusa-Atolla Carmesim",
+    "family": "jelly",
+    "color": "#a35d78",
+    "stat": "experience",
+    "multiplier": 1.32,
+    "ability": "Coroa de ressonância: +32% de experiência. Adaptação predatória: +16% de dano.",
+    "price": 48000,
+    "paid": false,
+    "desc": "Campânula carmesim em coroa e tentáculos de alarme. Cada pulso ilumina por instantes a água negra.",
+    "bonuses": {
+      "experience": 1.32,
+      "damage": 1.16
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "phantomjelly",
+    "name": "Medusa-Fantasma Gigante",
+    "family": "jelly",
+    "color": "#68729b",
+    "stat": "magnet",
+    "multiplier": 1.65,
+    "ability": "Braços coletores: +65% de alcance de coleta. Adaptação predatória: +17% de dano.",
+    "price": 69000,
+    "paid": false,
+    "desc": "Campânula ampla e braços orais compridos, tecidos de sombra violeta que recolhem o que deriva na fossa.",
+    "bonuses": {
+      "magnet": 1.65,
+      "damage": 1.17
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "yeticrab",
+    "name": "Caranguejo-Yeti Abissal",
+    "family": "crustacean",
+    "color": "#93a8ae",
+    "stat": "defense",
+    "multiplier": 0.75,
+    "ability": "Cerdas minerais: reduz dano em 25%. Adaptação predatória: +18% de dano.",
+    "price": 62000,
+    "paid": false,
+    "desc": "Carapaça mineral e pinças cobertas por cerdas claras, inspirado nos crustáceos das fontes hidrotermais.",
+    "bonuses": {
+      "defense": 0.75,
+      "damage": 1.18
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "nautilus",
+    "name": "Náutilo da Fossa",
+    "family": "mollusc",
+    "color": "#789ba4",
+    "stat": "damage",
+    "multiplier": 1.28,
+    "ability": "Pressão espiral: +28% de dano. Adaptação predatória: +19% de cadência.",
+    "price": 72000,
+    "paid": false,
+    "desc": "Concha espiral compartimentada, mineralizada pela pressão, protegendo os tentáculos sensoriais da escuridão.",
+    "bonuses": {
+      "damage": 1.28,
+      "fireRate": 1.19
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "gharial",
+    "name": "Gavial das Águas Negras",
+    "family": "reptile",
+    "color": "#598b91",
+    "stat": "damage",
+    "multiplier": 1.34,
+    "ability": "Pinça de agulhas: +34% de dano. Adaptação predatória: +20% de cadência.",
+    "price": 80000,
+    "paid": false,
+    "desc": "Rostro estreito, dentes finos e cauda musculosa. Reinterpretação fantástica de um gavial adaptado às águas profundas.",
+    "bonuses": {
+      "damage": 1.34,
+      "fireRate": 1.2
+    },
+    "collection": "shop",
+    "renderer": "marine"
+  },
+  {
+    "id": "goblin",
+    "name": "Tubarão-Duende",
+    "family": "shark",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.37,
+    "bonuses": {
+      "damage": 1.37,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Tubarão-Duende: +37% de dano, +12% de velocidade.",
+    "price": 85000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Tubarão-Duende: adaptação fantástica às Fossas, com anatomia de tubarão, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "frilled",
+    "name": "Tubarão-Cobra",
+    "family": "shark",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.75,
+    "bonuses": {
+      "defense": 0.75,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Tubarão-Cobra: -25% de dano recebido, +22% de cadência.",
+    "price": 88500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Tubarão-Cobra: adaptação fantástica às Fossas, com anatomia de tubarão, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "greenland",
+    "name": "Tubarão-da-Groenlândia",
+    "family": "shark",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.42,
+    "bonuses": {
+      "range": 1.42,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Tubarão-da-Groenlândia: +42% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 92000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Tubarão-da-Groenlândia: adaptação fantástica às Fossas, com anatomia de tubarão, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "butterflyray",
+    "name": "Raia-Borboleta",
+    "family": "ray",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.4,
+    "bonuses": {
+      "damage": 1.4,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Raia-Borboleta: +40% de dano, +12% de velocidade.",
+    "price": 95500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Raia-Borboleta: adaptação fantástica às Fossas, com anatomia de raia, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "stingray",
+    "name": "Raia-Prego",
+    "family": "ray",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.78,
+    "bonuses": {
+      "defense": 0.78,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Raia-Prego: -22% de dano recebido, +22% de cadência.",
+    "price": 99000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Raia-Prego: adaptação fantástica às Fossas, com anatomia de raia, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "guitarfish",
+    "name": "Raia-Viola",
+    "family": "ray",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.38,
+    "bonuses": {
+      "range": 1.38,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Raia-Viola: +38% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 102500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Raia-Viola: adaptação fantástica às Fossas, com anatomia de raia, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "sawtootheel",
+    "name": "Enguia-Serra",
+    "family": "eel",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.36,
+    "bonuses": {
+      "damage": 1.36,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Enguia-Serra: +36% de dano, +12% de velocidade.",
+    "price": 106000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Enguia-Serra: adaptação fantástica às Fossas, com anatomia de enguia, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "zebramoray",
+    "name": "Moreia-Zebra",
+    "family": "eel",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.74,
+    "bonuses": {
+      "defense": 0.74,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Moreia-Zebra: -26% de dano recebido, +22% de cadência.",
+    "price": 109500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Moreia-Zebra: adaptação fantástica às Fossas, com anatomia de enguia, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "dogtootheel",
+    "name": "Enguia-Dente-de-Cão",
+    "family": "eel",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.41,
+    "bonuses": {
+      "range": 1.41,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Enguia-Dente-de-Cão: +41% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 113000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Enguia-Dente-de-Cão: adaptação fantástica às Fossas, com anatomia de enguia, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "mimic",
+    "name": "Polvo-Mímico",
+    "family": "octopus",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.39,
+    "bonuses": {
+      "damage": 1.39,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Polvo-Mímico: +39% de dano, +12% de velocidade.",
+    "price": 116500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Polvo-Mímico: adaptação fantástica às Fossas, com anatomia de polvo, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "glassoctopus",
+    "name": "Polvo-de-Vidro",
+    "family": "octopus",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.77,
+    "bonuses": {
+      "defense": 0.77,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Polvo-de-Vidro: -23% de dano recebido, +22% de cadência.",
+    "price": 120000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Polvo-de-Vidro: adaptação fantástica às Fossas, com anatomia de polvo, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "bluering",
+    "name": "Polvo-de-Anéis-Azuis",
+    "family": "octopus",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.44,
+    "bonuses": {
+      "range": 1.44,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Polvo-de-Anéis-Azuis: +44% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 123500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Polvo-de-Anéis-Azuis: adaptação fantástica às Fossas, com anatomia de polvo, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "combjelly",
+    "name": "Medusa-Pente",
+    "family": "jelly",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.35,
+    "bonuses": {
+      "damage": 1.35,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Medusa-Pente: +35% de dano, +12% de velocidade.",
+    "price": 127000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Medusa-Pente: adaptação fantástica às Fossas, com anatomia de medusa, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "helmetjelly",
+    "name": "Medusa-Capacete",
+    "family": "jelly",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.73,
+    "bonuses": {
+      "defense": 0.73,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Medusa-Capacete: -27% de dano recebido, +22% de cadência.",
+    "price": 130500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Medusa-Capacete: adaptação fantástica às Fossas, com anatomia de medusa, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "siphonophore",
+    "name": "Caravela Abissal",
+    "family": "jelly",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.4,
+    "bonuses": {
+      "range": 1.4,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Caravela Abissal: +40% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 134000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Caravela Abissal: adaptação fantástica às Fossas, com anatomia de medusa, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "spidercrab",
+    "name": "Caranguejo-Aranha",
+    "family": "crustacean",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.38,
+    "bonuses": {
+      "damage": 1.38,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Caranguejo-Aranha: +38% de dano, +12% de velocidade.",
+    "price": 137500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Caranguejo-Aranha: adaptação fantástica às Fossas, com anatomia de crustáceo, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "deeplobster",
+    "name": "Lagosta-de-Profundidade",
+    "family": "crustacean",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.76,
+    "bonuses": {
+      "defense": 0.76,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Lagosta-de-Profundidade: -24% de dano recebido, +22% de cadência.",
+    "price": 141000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Lagosta-de-Profundidade: adaptação fantástica às Fossas, com anatomia de crustáceo, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "pistolshrimp",
+    "name": "Camarão-Pistola",
+    "family": "crustacean",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.43,
+    "bonuses": {
+      "range": 1.43,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Camarão-Pistola: +43% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 144500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Camarão-Pistola: adaptação fantástica às Fossas, com anatomia de crustáceo, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "scalyfoot",
+    "name": "Caramujo-Vulcânico",
+    "family": "mollusc",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.41,
+    "bonuses": {
+      "damage": 1.41,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Caramujo-Vulcânico: +41% de dano, +12% de velocidade.",
+    "price": 148000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Caramujo-Vulcânico: adaptação fantástica às Fossas, com anatomia de molusco, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "bluedragon",
+    "name": "Lesma-Dragão-Azul",
+    "family": "mollusc",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.72,
+    "bonuses": {
+      "defense": 0.72,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Lesma-Dragão-Azul: -28% de dano recebido, +22% de cadência.",
+    "price": 151500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Lesma-Dragão-Azul: adaptação fantástica às Fossas, com anatomia de molusco, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "whelk",
+    "name": "Búzio das Fossas",
+    "family": "mollusc",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.39,
+    "bonuses": {
+      "range": 1.39,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Búzio das Fossas: +39% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 155000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Búzio das Fossas: adaptação fantástica às Fossas, com anatomia de molusco, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "leatherback",
+    "name": "Tartaruga-de-Couro",
+    "family": "reptile",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.37,
+    "bonuses": {
+      "damage": 1.37,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Tartaruga-de-Couro: +37% de dano, +12% de velocidade.",
+    "price": 158500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Tartaruga-de-Couro: adaptação fantástica às Fossas, com anatomia de réptil aquático, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "seasnake",
+    "name": "Serpente-Marinha",
+    "family": "reptile",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.75,
+    "bonuses": {
+      "defense": 0.75,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Serpente-Marinha: -25% de dano recebido, +22% de cadência.",
+    "price": 162000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Serpente-Marinha: adaptação fantástica às Fossas, com anatomia de réptil aquático, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "hawksbill",
+    "name": "Tartaruga-de-Pente",
+    "family": "reptile",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.42,
+    "bonuses": {
+      "range": 1.42,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Tartaruga-de-Pente: +42% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 165500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Tartaruga-de-Pente: adaptação fantástica às Fossas, com anatomia de réptil aquático, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "jewelsquid",
+    "name": "Lula-Joia",
+    "family": "squid",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.4,
+    "bonuses": {
+      "damage": 1.4,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Lula-Joia: +40% de dano, +12% de velocidade.",
+    "price": 169000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Lula-Joia: adaptação fantástica às Fossas, com anatomia de lula, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "bigfin",
+    "name": "Lula-de-Barbatanas-Longas",
+    "family": "squid",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.78,
+    "bonuses": {
+      "defense": 0.78,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Lula-de-Barbatanas-Longas: -22% de dano recebido, +22% de cadência.",
+    "price": 172500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Lula-de-Barbatanas-Longas: adaptação fantástica às Fossas, com anatomia de lula, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "whiplash",
+    "name": "Lula-Chicote",
+    "family": "squid",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.38,
+    "bonuses": {
+      "range": 1.38,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Lula-Chicote: +38% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 176000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Lula-Chicote: adaptação fantástica às Fossas, com anatomia de lula, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "viperfish",
+    "name": "Peixe-Víbora",
+    "family": "fish",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.36,
+    "bonuses": {
+      "damage": 1.36,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Peixe-Víbora: +36% de dano, +12% de velocidade.",
+    "price": 179500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Peixe-Víbora: adaptação fantástica às Fossas, com anatomia de peixe de profundidade, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "blackdragon",
+    "name": "Peixe-Dragão-Negro",
+    "family": "fish",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.74,
+    "bonuses": {
+      "defense": 0.74,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Peixe-Dragão-Negro: -26% de dano recebido, +22% de cadência.",
+    "price": 183000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Peixe-Dragão-Negro: adaptação fantástica às Fossas, com anatomia de peixe de profundidade, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "hatchetfish",
+    "name": "Peixe-Machado",
+    "family": "fish",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.41,
+    "bonuses": {
+      "range": 1.41,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Peixe-Machado: +41% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 186500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Peixe-Machado: adaptação fantástica às Fossas, com anatomia de peixe de profundidade, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  },
+  {
+    "id": "basketstar",
+    "name": "Estrela-Cesto",
+    "family": "benthic",
+    "color": "#619bad",
+    "stat": "damage",
+    "multiplier": 1.39,
+    "bonuses": {
+      "damage": 1.39,
+      "movement": 1.12
+    },
+    "ability": "Impulso predatório de Estrela-Cesto: +39% de dano, +12% de velocidade.",
+    "price": 190000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 1,
+    "desc": "Estrela-Cesto: adaptação fantástica às Fossas, com anatomia de organismo bentônico, placas sombreadas e fotóforos em azul mineral.",
+    "renderer": "marine"
+  },
+  {
+    "id": "crinoid",
+    "name": "Lírio-do-Mar",
+    "family": "benthic",
+    "color": "#8d709f",
+    "stat": "defense",
+    "multiplier": 0.77,
+    "bonuses": {
+      "defense": 0.77,
+      "fireRate": 1.22
+    },
+    "ability": "Véu de pressão de Lírio-do-Mar: -23% de dano recebido, +22% de cadência.",
+    "price": 193500,
+    "paid": false,
+    "collection": "shop",
+    "morph": 2,
+    "desc": "Lírio-do-Mar: adaptação fantástica às Fossas, com anatomia de organismo bentônico, placas sombreadas e fotóforos em violeta.",
+    "renderer": "marine"
+  },
+  {
+    "id": "seapig",
+    "name": "Pepino-do-Mar Hadal",
+    "family": "benthic",
+    "color": "#51988e",
+    "stat": "range",
+    "multiplier": 1.44,
+    "bonuses": {
+      "range": 1.44,
+      "magnet": 1.55
+    },
+    "ability": "Sentidos da escuridão de Pepino-do-Mar Hadal: +44% de alcance de ataque, +55% de alcance de coleta.",
+    "price": 197000,
+    "paid": false,
+    "collection": "shop",
+    "morph": 3,
+    "desc": "Pepino-do-Mar Hadal: adaptação fantástica às Fossas, com anatomia de organismo bentônico, placas sombreadas e fotóforos em verde profundo.",
+    "renderer": "marine"
+  }
+];
+const api={items,byId:Object.fromEntries(items.map(s=>[s.id,s]))};
+if(typeof module!=="undefined")module.exports=api;root.AbyssalCuratedSkins=api;
+})(globalThis);

@@ -1,3 +1,4 @@
+const RiftRewards=require('./rift-rewards');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -535,6 +536,7 @@ function awardWorldBossCoins(room){
   if(p.runStats&&!p.runStats.settled)p.runStats.bossesKilled=(Number(p.runStats.bossesKilled)||0)+1;
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
+  if(room.mode==='rift'&&p.alive!==false){const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`);io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier});}
   u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
  }
  if(changed)saveUsers();
@@ -1329,7 +1331,7 @@ io.on('connection', socket => {
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'revive',serverTime:now}));
   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
  });
- socket.on('begin-run',()=>{
+ socket.on('begin-run',(payload={})=>{
   if(!socket.data.userKey)return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
@@ -1340,7 +1342,7 @@ io.on('connection', socket => {
    socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'}));
    broadcastWorld(room);
    refreshWorldTicker();
-  } else socket.data.runStats=makeRunStats();
+  } else socket.data.runStats={...makeRunStats(),mode:payload.mode==='rift'?'rift':'solo'};
  });
  socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
  socket.on('get-match-history',()=>{const u=users[socket.data.userKey];socket.emit('match-history-result',{ok:Boolean(u),matches:Array.isArray(u?.matchHistory)?u.matchHistory.slice(0,10):[]});});
@@ -1604,6 +1606,27 @@ io.on('connection', socket => {
    console.error('[account] Falha ao excluir conta:',err.message);
    socket.emit('account-deletion-result',{ok:false,message:'Não foi possível concluir a exclusão agora. Tente novamente mais tarde.'});
   }
+ });
+ socket.on('open-rift-chest',async(payload={},ack)=>{
+  const reply=result=>{if(typeof ack==='function')ack(result);};
+  const u=users[socket.data.userKey];if(!u)return reply({ok:false,message:'Entre na sua conta para abrir o baú.'});
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  let id=String(payload.id||'');
+  if(!id&&room?.mode==='rift'){const chest=u.riftChests?.find(c=>c.key===`${room.world.worldId}:${room.world.mapTier}`);if(chest)id=chest.id;}
+  if(!id){
+   // Local expeditions use the existing reported-run progression. Their combat
+   // is client simulated; rewards are always selected and persisted here.
+   const run=socket.data.runStats,tier=Number(payload.tier);
+   if(room||!run||run.settled||run.mode!=='rift'||!Number.isInteger(tier)||tier<0||tier>=(Number(run.bossesKilled)||0))return reply({ok:false,message:'A derrota do boss ainda não foi registrada. Aguarde e tente novamente.'});
+   id=RiftRewards.grant(u,`solo:${run.id}:${tier}`).id;
+  }else{
+   const chest=u.riftChests?.find(c=>c.id===id);
+   if(!chest)return reply({ok:false,message:'Baú não encontrado.'});
+   if(!chest.reward&&room&&room.mode==='rift'&&p){const bossRoom=WorldSimulation.mapLayoutFor(room.world)?.rooms.find(r=>r.id==='boss');if(p.alive===false||!bossRoom||Math.hypot(p.x-bossRoom.x,p.y-bossRoom.y)>bossRoom.rx)return reply({ok:false,message:'Aproxime-se do baú na caverna do boss.'});}
+  }
+  const result=RiftRewards.open(u,id);saveUsers();
+  try{await flushPersistence();}catch{ return reply({ok:false,message:'Não foi possível confirmar o salvamento. Tente novamente.'}); }
+  socket.emit('account-data',publicUser(u));reply(result);
  });
  socket.on('get-account', () => { const u = users[socket.data.userKey]; if (u) socket.emit('account-data', publicUser(u)); });
   socket.on('equip-title', payload => { const u=users[socket.data.userKey];if(!u||!payload)return;const id=String(payload.id||'');if(!unlockedTitleIds(u).includes(id))return socket.emit('account-data',publicUser(u));u.equippedTitle=id;saveUsers();socket.emit('account-data',publicUser(u));const room=socketRoom(socket),player=room?.players.get(socket.id);if(player){player.titleId=id;io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));} });

@@ -103,7 +103,7 @@
     });
     const hub=byId('hub'),landing=byId('landing'),start=byId('start'),boss=byId('boss');
     const portals=Object.freeze({
-      start:Object.freeze({id:'start-vortex',type:'start',x:start.x-120,y:start.y-20,r:72}),
+      start:Object.freeze({id:'start-vortex',type:'start',x:start.x-120,y:start.y-20,r:96}),
       surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-360,y:boss.y+80,r:105,unlockedAfterBosses:tierNumber+1}),
       descent:null,
       landing:null,

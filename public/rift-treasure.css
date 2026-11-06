@@ -1,0 +1,10 @@
+#riftChestButton{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:70;padding:14px 22px;border:1px solid #e5c365;border-radius:9px;background:#102128;color:#ffe7a0;box-shadow:0 0 25px #c39a3428;font-weight:800}
+#riftChestButton[hidden]{display:none}#riftChestDialog{width:min(440px,88vw);max-height:85dvh;overflow:auto;background:radial-gradient(ellipse at 50% 45%,#19353b,#051018 75%);color:#d6e9e8;border:1px solid #647b73;border-radius:18px;text-align:center;padding:28px;box-shadow:0 25px 100px #000b}#riftChestDialog::backdrop{background:#000b}#riftChestDialog h2{font-size:24px}.chest-close{position:absolute;right:12px;top:8px;background:none;color:#c2dedb;border:0;font-size:25px}.treasure-art{position:relative;isolation:isolate}.treasure-art svg{position:relative;width:100%;max-height:250px}.treasure-lid{transform-origin:150px 115px;transition:transform 1s}.opened .treasure-lid{transform:translateY(-32px) rotate(-9deg)}.treasure-light{position:absolute;inset:5% 10% 18%;background:conic-gradient(from 240deg at 50% 80%,transparent,#ffcc4260,#fff3b6,transparent 70%);filter:blur(12px);opacity:0;transition:opacity 1s}.opened .treasure-light{opacity:1}#riftChestMessage{font-weight:800;color:#ffe9a2;min-height:3em}.chest-odds{font:12px/1.7 sans-serif;color:#9eb9be}#riftChestOpen{padding:12px 36px;background:#d6b65c;color:#102027;border:0;border-radius:8px;font-weight:900}#riftChestOpen:disabled{opacity:.6}
+#abyssDepthValue{font-size:clamp(12px,1.2vw,18px);white-space:normal}
+
+/* Menu entrance: preserve the approved backdrop, deepen the existing opening. */
+#abyssGate .abyss-vortex-plane{filter:drop-shadow(0 18px 18px #000b)}
+#abyssGate .abyss-vortex-shaft{background:radial-gradient(ellipse at 47% 60%,#000108 0 22%,#020a18 42%,#063149 65%,transparent 76%);box-shadow:inset 0 18px 30px #000c}
+#abyssGate .abyss-gate-rim{border-color:#376677;box-shadow:inset 0 7px 15px #071b29,0 0 18px #3faec444;filter:drop-shadow(0 8px 4px #0009)}
+#abyssGate .abyss-vortex-streams{filter:drop-shadow(0 0 3px #46b9da);opacity:.7}
+@media(prefers-reduced-motion:reduce){.treasure-lid,.treasure-light{transition:none}}

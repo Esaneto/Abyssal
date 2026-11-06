@@ -313,7 +313,7 @@ function createExpeditionUI(){
     meter.id='abyssDepthMeter';
     meter.className='abyss-depth-meter';
     meter.hidden=true;
-    meter.innerHTML='<small id="abyssZoneValue">LIMIAR DA LUZ</small><strong id="abyssDepthValue">350 m</strong><span id="abyssRiskValue">SAQUE · 100%</span>';
+    meter.innerHTML='<small id="abyssZoneValue">LIMIAR DA LUZ</small><strong id="abyssDepthValue">0 M de Profundidade ☠</strong><span id="abyssRiskValue">SAQUE · 100%</span>';
     hud.appendChild(meter);
   }
 
@@ -376,7 +376,7 @@ function updateDepthMeter(bosses,state){
   var count=Math.max(0,Number(bosses)||0);
   var roomMode=window.AbyssalGameHooks?.roomMode?.();
   var solo=window.AbyssalGameHooks?.expeditionState?.()?.active===true;
-  if(roomMode==='pvp'||(!solo&&roomMode!=='rift')){meter.hidden=true;return;}
+  if(window.AbyssalGameHooks?.isFossasActive?.()===false||roomMode==='pvp'||(!solo&&roomMode!=='rift')){meter.hidden=true;return;}
   meter.hidden=false;
   var depth=$('abyssDepthValue');
   var risk=$('abyssRiskValue');
@@ -384,7 +384,7 @@ function updateDepthMeter(bosses,state){
   var zoneData=state?.zone||window.AbyssalExpeditionRules?.zoneForBosses?.(count)||null;
   var depthValue=Number(state?.depth);
   if(!Number.isFinite(depthValue))depthValue=expeditionDepthForBosses(count);
-  if(depth)depth.textContent=Math.round(depthValue).toLocaleString('pt-BR')+' m';
+  if(depth)depth.textContent=Math.round(depthValue).toLocaleString('pt-BR')+' M de Profundidade ☠';
   if(zone)zone.textContent=zoneData?.name||'PROFUNDIDADE NÃO CARTOGRAFADA';
   if(risk)risk.textContent=state?.event?.name?('EVENTO · '+state.event.name):(solo?'EXTRAÇÃO · +'+Math.round(Math.min(.75,count*.15)*100)+'%':'EXPEDIÇÃO · '+(zoneData?.shortName||'CO-OP'));
 }
@@ -436,7 +436,7 @@ function bindExpeditionCheckpoints(){
       var hint=$('abyssContinueHint');
       var lore=$('abyssCheckpointLore');
 
-      if(depth)depth.textContent=expeditionDepthForBosses(bosses).toLocaleString('pt-BR')+' m';
+      if(depth)depth.textContent=expeditionDepthForBosses(bosses).toLocaleString('pt-BR')+' M de Profundidade ☠';
       if(bonus)bonus.textContent='+'+Math.round(Math.min(.75,bosses*.15)*100)+'%';
       if(hint)hint.textContent='Desça até '+expeditionDepthForBosses(bosses+1).toLocaleString('pt-BR')+' m e aumente o bônus.';
       if(lore)lore.textContent=bosses>=4?'Há algo se movendo abaixo da zona mapeada.':bosses>=2?'O sonar está registrando formas maiores abaixo de você.':'A pressão abaixo deste ponto está aumentando.';

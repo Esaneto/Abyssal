@@ -208,6 +208,7 @@ function connect(){
  socket.on('room-joined',handleRoomJoined);
  socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
+ socket.on('rift-chest-ready',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-chest',{detail:data})));
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
   serverAccount=data;
@@ -474,7 +475,7 @@ function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;sock
 function sendPhotonRayStop(){if(socket?.connected&&authenticated&&currentRoom)socket.emit('photon-ray-stop');}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
-function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run')}
+function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),arcChainActive:data.arcChainActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
 function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
@@ -560,7 +561,12 @@ function requestMapTransition(kind,onResult){if(!socket?.connected||!authenticat
 updateAccount();
 if(sessionToken)queueMicrotask(()=>connect());
 function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-player');else window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:{ok:false,message:'Conecte-se à sua conta para continuar este mergulho online.'}}));}
- window.AbyssalOnline={openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ function openRiftChest(payload,onResult){
+  if(!socket?.connected||!authenticated){onResult({ok:false,message:'Conecte-se e entre na sua conta para abrir o baú.'});return;}
+  if(payload.progress)socket.emit('run-progress',payload.progress);
+  socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
+ }
+ window.AbyssalOnline={openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
