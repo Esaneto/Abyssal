@@ -325,6 +325,7 @@ function hit(hazard,px,py,pad=0,phase=null){
  const h=phase?hazardAtCycle(hazard,phase.cycle||0):hazard,r=dangerRadius(h,phase)+pad;
  if(phase?.phase==='idle'||phase?.phase==='warning')return false;
  if(h.type==='rockfall'&&Number.isFinite(h.sourceX)){
+  if(!phase)return Math.hypot(px-h.x,py-h.y)<=r; // static shape queries
   const fall=rockfallState(h,phase);
   return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=h.radius+pad;
  }
