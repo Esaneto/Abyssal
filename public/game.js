@@ -89,6 +89,7 @@ let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
 let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
+const SKIN_TRAIL_CADENCE_SECONDS=.35,SKIN_TRAIL_CADENCE_MS=350;
 let sharkWakeTrails=[],inkTrails=[];
 function setActiveMapDescriptor(descriptor){
  if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;W=4800;H=3000;return null;}
@@ -1968,39 +1969,25 @@ function update(dt){
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
    const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
-   if (['reefshark', 'whiteShark'].includes(equippedSkin) && (mx || my)) {
-     if (Math.random() < 0.45) {
-       sharkWakeTrails.push({
-         x: player.x - Math.cos(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-         y: player.y - Math.sin(player.angle || 0) * (player.r * 1.1) + rand(-6, 6),
-         r: rand(14, 22),
-         life: 5.0,
-         maxLife: 5.0,
-         color: '#7bf5ff'
-       });
-       if (sharkWakeTrails.length > 250) sharkWakeTrails.shift();
-     }
-     // As bolhas locais são criadas a cada frame, mas no online enviamos só 6-7
-     // amostras por segundo para manter o efeito visível sem inundar o WebSocket.
-     if (onlineMode && window.AbyssalOnline?.sendSkinAbility) {
-       player.sharkTrailNetworkTimer = (Number(player.sharkTrailNetworkTimer) || 0) - dt;
-       if (player.sharkTrailNetworkTimer <= 0) {
-         player.sharkTrailNetworkTimer = 0.16;
-         window.AbyssalOnline.sendSkinAbility({
-           type: 'bubble-trail',
-           skin: equippedSkin,
-           x: clamp((player.x - Math.cos(player.angle || 0) * (player.r * 1.1)) / W, 0, 1),
-           y: clamp((player.y - Math.sin(player.angle || 0) * (player.r * 1.1)) / H, 0, 1),
-           angle: player.angle
-         });
-       }
-     }
+   if (['reefshark','whiteShark'].includes(equippedSkin) && (mx || my)) {
+    // Match the poison-serpent's 350 ms cadence, visually and over the network.
+    player.sharkTrailTimer=(Number(player.sharkTrailTimer)||0)-dt;
+    if(player.sharkTrailTimer<=0){
+     player.sharkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS;
+     const bx=player.x-Math.cos(player.angle||0)*(player.r*1.1);
+     const by=player.y-Math.sin(player.angle||0)*(player.r*1.1);
+     sharkWakeTrails.push({x:bx+rand(-6,6),y:by+rand(-6,6),r:rand(14,22),life:5,maxLife:5,color:'#7bf5ff',damageTimer:0});
+     if(sharkWakeTrails.length>250)sharkWakeTrails.shift();
+     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({
+      type:'bubble-trail',skin:equippedSkin,x:clamp(bx/W,0,1),y:clamp(by/H,0,1),angle:player.angle
+     });
+    }
    }
 
    if(equippedSkin==='aberration'&&(mx||my)){
     player.inkTrailTimer=(Number(player.inkTrailTimer)||0)-dt;
     if(player.inkTrailTimer<=0){
-     player.inkTrailTimer=.18;
+     player.inkTrailTimer=SKIN_TRAIL_CADENCE_SECONDS;
      const ix=player.x-Math.cos(player.angle||0)*player.r*1.15,iy=player.y-Math.sin(player.angle||0)*player.r*1.15;
      inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:false,boss:false});
      if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
@@ -2039,11 +2026,11 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = 0.275;
+      bubble.damageTimer = SKIN_TRAIL_CADENCE_SECONDS;
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=275) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=SKIN_TRAIL_CADENCE_MS) {
           e.wakeHitAt=performance.now();
           dealEnemyDamage(e, 2, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
@@ -2057,9 +2044,9 @@ function update(dt){
    const ink=inkTrails[i];ink.life-=dt;ink.damageTimer=(Number(ink.damageTimer)||0)-dt;
    if(ink.life<=0){inkTrails.splice(i,1);continue;}
    if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
-    ink.damageTimer=.275;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
+    ink.damageTimer=SKIN_TRAIL_CADENCE_SECONDS;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
     const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=275){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
+    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=SKIN_TRAIL_CADENCE_MS){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
    }
   }
 
@@ -2069,7 +2056,7 @@ function update(dt){
       e.poisonTimer -= dt;
       e.poisonTick = (e.poisonTick || 0) - dt;
       if (e.poisonTick <= 0) {
-        e.poisonTick = 0.35;
+        e.poisonTick = SKIN_TRAIL_CADENCE_SECONDS;
         dealEnemyDamage(e, 5, 'poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
         burst(e.x + rand(-e.r*0.5, e.r*0.5), e.y + rand(-e.r*0.5, e.r*0.5), '#39ff74', 4, 45);
       }
@@ -3812,7 +3799,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
   // ele não é uma habilidade de recarga e não pode depender do evento de ataque.
   if(d.type==='ink-trail'&&d.skin==='aberration'){
     const ix=clamp(Number(d.x)*W,0,W),iy=clamp(Number(d.y)*H,0,H);
-    inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:.5,remote:true,boss:false});
+    inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:true,boss:false});
     if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
     return;
   }
