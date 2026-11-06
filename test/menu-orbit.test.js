@@ -48,7 +48,7 @@ test('cinematic menu retains interactive actions with symmetric cards', () => {
     assert.match(nav[1],new RegExp('id="'+id+'"'));
   });
   assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=7/);
+  assert.match(html,/abyssal-menu-orbit\.css\?v=8/);
   assert.match(nav[1],/class="abyss-orbit-extras"/);
 });
 
