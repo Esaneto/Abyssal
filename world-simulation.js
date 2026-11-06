@@ -533,20 +533,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
          const collision=bossAbilityHit(enemy,target,50,now,'nightmare-head-contact');
          if(collision){bossAbilityHits.push(collision);if(collision.alive===false)defeatedPlayers.push(target);}
        }
-       if(contenders.length&&now>=enemy.riftNextAttackAt){
-         enemy.riftAttackSerial=(Number(enemy.riftAttackSerial)||0)+1;
-         const mark=RiftHardcore.bossMark(enemy,contenders,now);
-         if(mark){enemy.riftPendingAttacks ||= [];enemy.riftPendingAttacks.push(mark);bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'rift-tentacle-warning',...mark});}
-         enemy.riftNextAttackAt=now+(enemy.hp/enemy.maxHp<.25?1750:enemy.hp/enemy.maxHp<.6?2100:2650);
-       }
-       for(const mark of enemy.riftPendingAttacks||[]){
-         if(now<mark.hitAt)continue;
-         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'rift-tentacle-strike',...mark});
-         for(const target of contenders){if(!RiftHardcore.bossHit(mark,target.x,target.y,Number(target.r)||13/WORLD_ZOOM))continue;
-           const hit=bossAbilityHit(enemy,target,mark.damage,now,'rift-tentacle');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
-         }
-       }
-       enemy.riftPendingAttacks=(enemy.riftPendingAttacks||[]).filter(mark=>now<mark.hitAt);
+       // Eight physical curved tentacle hazards anchored to the boss-room walls
+       // replace the old floating linear boss marks. Only the head does 50 on touch.
        continue; // The final kraken is rooted; its head never chases or body-collides.
      }
      if (enemy.kind === 'kraken') {
