@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="abyssal-menu-orbit.css?v=9">
 <link rel="stylesheet" href="abyssal-shop-blood-theme.css?v=2">
 <link rel="stylesheet" href="abyssal-interface-harmony.css?v=2">
+<link rel="stylesheet" href="offline-ui.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -574,7 +575,8 @@
       </div>
     </section>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+<script src="offline-ui.js?v=1"></script>
+<!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=6"></script>
 <script src="skin-abilities.js?v=2026.11.5.3.3.7.2"></script>
 <script src="enemy-ai.js?v=3.7.0"></script>
