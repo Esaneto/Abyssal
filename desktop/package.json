@@ -42,6 +42,15 @@
       "createStartMenuShortcut": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "../public",
+        "to": "offline-web",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   }
 }
