@@ -245,19 +245,53 @@
     return [];
   }
 
+  // Follow traversable corridor waypoints instead of perpetually chasing a player
+  // through a solid wall. Used by both the solo AI and authoritative co-op server.
   function navigationTarget(layout,fromX,fromY,toX,toY,options={}){
     if(!layout)return {x:toX,y:toY,direct:true};
     const padding=Math.max(0,Number(options.padding)||0);
-    if(segmentWalkable(layout,fromX,fromY,toX,toY,padding))return {x:toX,y:toY,direct:true};
+    const clear=(ax,ay,bx,by)=>segmentWalkable(layout,ax,ay,bx,by,padding);
+    if(clear(fromX,fromY,toX,toY))return {x:toX,y:toY,direct:true};
     const fromRoom=roomAt(layout,fromX,fromY)||nearestRoom(layout,fromX,fromY);
     const toRoom=roomAt(layout,toX,toY)||nearestRoom(layout,toX,toY);
-    if(!fromRoom||!toRoom)return {x:toX,y:toY,direct:true};
+    if(!fromRoom||!toRoom)return {x:toX,y:toY,direct:false,blocked:true};
     const path=roomPath(layout,fromRoom.id,toRoom.id,Boolean(options.includePortal));
-    if(path.length<2)return {x:fromRoom.x,y:fromRoom.y,direct:false,blocked:true};
-    const next=layout.rooms.find(room=>room.id===path[1]);
-    const edge=layout.corridors.find(item=>(item.a===fromRoom.id&&item.b===next?.id)||(item.b===fromRoom.id&&item.a===next?.id));
-    if(edge?.path?.length){const points=edge.a===fromRoom.id?edge.path:[...edge.path].reverse();const waypoint=points[1];return {x:waypoint.x,y:waypoint.y,direct:false,roomId:next?.id};}
-    return next?{x:next.x,y:next.y,direct:false,roomId:next.id}:{x:toX,y:toY,direct:true};
+    if(path.length>=2){
+      const next=layout.rooms.find(room=>room.id===path[1]);
+      const edge=layout.corridors.find(item=>(item.a===fromRoom.id&&item.b===next?.id)||(item.b===fromRoom.id&&item.a===next?.id));
+      if(edge?.path?.length){
+        const points=edge.a===fromRoom.id?edge.path:[...edge.path].reverse();
+        // Choose the furthest visible waypoint, NOT always index 1. Re-aiming
+        // at a point already passed created a stationary collision loop.
+        let chosen=null;
+        for(let i=1;i<points.length;i++){
+          const p=points[i];
+          if(clear(fromX,fromY,p.x,p.y))chosen=p;
+        }
+        if(chosen)return {x:chosen.x,y:chosen.y,direct:false,roomId:next?.id};
+        const entry=points[0];
+        if(clear(fromX,fromY,entry.x,entry.y))return {x:entry.x,y:entry.y,direct:false,roomId:next?.id};
+      }
+      if(next&&clear(fromX,fromY,next.x,next.y))return {x:next.x,y:next.y,direct:false,roomId:next.id};
+    }
+    // Same chamber or curved corridor: look for an unobstructed detour using
+    // organic room geometry. Never return the blocked player coordinate.
+    const candidates=[{x:fromRoom.x,y:fromRoom.y}];
+    for(const factor of [.32,.56,.74]){
+      for(let k=0;k<12;k++){
+        const theta=2*Math.PI*k/12,point={x:fromRoom.x+Math.cos(theta)*fromRoom.rx*factor,y:fromRoom.y+Math.sin(theta)*fromRoom.ry*factor};
+        if(isWalkable(layout,point.x,point.y,padding))candidates.push(point);
+      }
+    }
+    let best=null,bestScore=Infinity;
+    for(const point of candidates){
+      const fromDistance=Math.hypot(point.x-fromX,point.y-fromY);
+      if(fromDistance<8||!clear(fromX,fromY,point.x,point.y))continue;
+      const canReachTarget=clear(point.x,point.y,toX,toY);
+      const score=Math.hypot(point.x-toX,point.y-toY)+(canReachTarget?0:900)+fromDistance*.12;
+      if(score<bestScore){bestScore=score;best=point;}
+    }
+    return best?{...best,direct:false,detour:true}:{x:fromRoom.x,y:fromRoom.y,direct:false,blocked:true};
   }
 
   function pointInPortal(portal,x,y,padding=0){
