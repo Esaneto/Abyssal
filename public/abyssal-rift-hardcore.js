@@ -137,6 +137,24 @@ function draw(c,hazards,seconds,view){
    const g=c.createRadialGradient(h.x,h.y,4,h.x,h.y,h.radius*1.15);
    g.addColorStop(0,'rgba(255,251,164,.95)');g.addColorStop(.25,'rgba(255,138,44,.85)');g.addColorStop(1,'rgba(250,45,10,0)');
    c.fillStyle=g;c.globalAlpha=.82;c.beginPath();c.arc(h.x,h.y,h.radius*1.15,0,Math.PI*2);c.fill();
+   // Animated volcanic plume and glowing embers, drawn over the crater warning zone.
+   const time=t*.003;
+   for(let i=0;i<6;i++){
+    const a=i*Math.PI/3+time*.14,xx=h.x+Math.cos(a)*h.radius*.34;
+    const high=(60+35*Math.sin(time*1.8+i))*Math.min(1,h.radius/90);
+    c.beginPath();c.moveTo(xx-16,h.y+12);
+    c.quadraticCurveTo(xx-25,h.y-high*.55,xx+Math.sin(time+i)*12,h.y-high);
+    c.quadraticCurveTo(xx+22,h.y-high*.40,xx+17,h.y+12);
+    c.closePath();c.fillStyle=i%2?'rgba(255,176,44,.82)':'rgba(255,95,18,.88)';c.shadowColor='#ff8d2b';c.shadowBlur=21;c.fill();
+   }
+   for(let i=0;i<12;i++){const a=i*2.399+time*.6,r=h.radius*(.24+.67*((i*7%13)/13));c.fillStyle=i%2?'#ffd680':'#ff652b';c.beginPath();c.arc(h.x+Math.cos(a)*r,h.y+Math.sin(a)*r,2+((i+Math.floor(time))%4),0,Math.PI*2);c.fill();}
+  }else if(h.type==='fumarole'){
+   c.save();c.globalAlpha=.52;c.fillStyle='#b6ef81';c.shadowColor='#a9ed83';c.shadowBlur=24;
+   for(let i=0;i<8;i++){const a=i*2.4+t*.0005,r=h.radius*(.18+i*.08);c.beginPath();c.arc(h.x+Math.cos(a)*r,h.y+Math.sin(a)*r,19+i*1.7,0,Math.PI*2);c.fill();}
+   c.restore();
+  }else if(h.type==='pressure'){
+   c.strokeStyle='rgba(220,240,255,.78)';c.lineWidth=4;
+   for(let i=0;i<3;i++){const q=(i+.5)/3;c.beginPath();c.ellipse(h.x,h.y,h.radius*q,h.radius*q*.82,0,0,Math.PI*2);c.stroke();}
   }else if(h.type==='tentacle'){
    c.strokeStyle='#bd83ef';c.lineWidth=24;c.lineCap='round';
    c.beginPath();const a=h.angle,l=h.length;c.moveTo(h.x-Math.cos(a)*l*.45,h.y-Math.sin(a)*l*.45);
