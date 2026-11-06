@@ -346,10 +346,10 @@ test('Fossas Abissais solo and shoal use fish glyphs, contextual copy and intact
   assert.match(i18n,/'MERGULHAR EM CARDUME':'DIVE WITH A SHOAL'/);
 });
 
-test('Fossas Abissais blood glow is reduced without losing narrow drips',()=>{
+test('Fossas Abissais shortens the red shadow without fading its contour',()=>{
   const css=read('public/abyssal-interface-harmony.css');
-  assert.match(css,/drop-shadow\(0 0 1px rgba\(84,10,17,\.13\)\)/);
-  assert.match(css,/background:rgba\(85,13,19,\.38\)!important;opacity:\.5!important/);
+  assert.match(css,/drop-shadow\(0 0 \.75px rgba\(125,20,30,\.65\)\)/);
+  assert.match(css,/background:rgba\(90,16,21,\.62\)!important;opacity:\.76!important/);
   assert.match(css,/#abyssGate \.abyss-gate-content::after/);
   assert.match(css,/#abyssGate #abyssGateButton/);
 });
@@ -369,7 +369,7 @@ test('every skin is brown; only paid skin cards keep tentacle ornament',()=>{
 test('shop abilities and back to menu are brown, redeem code retains distinct styling',()=>{
   const html=read('public/index.html');
   const css=read('public/abyssal-interface-harmony.css');
-  assert.match(html,/abyssal-interface-harmony\.css\?v=1/);
+  assert.match(html,/abyssal-interface-harmony\.css\?v=2/);
   assert.match(css,/#shopScreen #metaUpgradeGrid \.meta-card/);
   assert.match(css,/#shopScreen #metaUpgradeGrid \.meta-card>button:not\(:disabled\)/);
   assert.match(css,/#shopScreen #skinGrid \.skin-card \.skin-ability/);
@@ -388,4 +388,40 @@ test('resonance modal including PVP reuses translucent violet button identity',(
   assert.match(css,/#resonanceScreen \.resonance-modal \.resonance-skill-option:has\(input:checked\)/);
   assert.match(css,/#resonanceScreen \.resonance-modal #saveResonanceBtn/);
   assert.match(css,/#resonanceScreen \.resonance-modal \.resonance-mode-tabs button/);
+});
+
+
+test('PvE remains blue and PvP remains red, regardless of selected Resonance mode',()=>{
+  const css=read('public/abyssal-interface-harmony.css');
+  const html=read('public/index.html');
+  const game=read('public/game.js');
+  assert.match(html,/abyssal-interface-harmony\.css\?v=2/);
+  assert.match(html,/game\.js\?v=2026\.11\.5\.6/);
+  assert.match(css,/button\[data-resonance-mode="pve"\]\{/);
+  assert.match(css,/button\[data-resonance-mode="pvp"\]\{/);
+  assert.match(css,/rgba\(86,170,255,\.88\)/);
+  assert.match(css,/rgba\(255,92,109,\.87\)/);
+  assert.match(game,/b\.setAttribute\('aria-pressed',String\(active\)\)/);
+  assert.match(game,/b\.classList\.toggle\('active',active\)/);
+});
+
+test('the selected PvE or PvP tab grows, while both unselected tabs keep their regular size',()=>{
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(css,/button\[data-resonance-mode="pve"\]\[aria-pressed="true"\]\{/);
+  assert.match(css,/button\[data-resonance-mode="pvp"\]\[aria-pressed="true"\]\{/);
+  const selected=css.match(/transform:scale\(1\.09\)!important/g)||[];
+  assert.equal(selected.length,2);
+  assert.match(css,/transform:scale\(1\)!important/);
+  assert.match(css,/@media\(max-width:520px\)/);
+  assert.match(css,/transform:scale\(1\.065\)!important/);
+});
+
+test('checked Resonance abilities turn green in both PvE and PvP, including checkbox and labels',()=>{
+  const css=read('public/abyssal-interface-harmony.css');
+  assert.match(css,/\.resonance-pvp-theme \.resonance-skill-option:has\(input:checked\)/);
+  assert.match(css,/border:2px solid rgba\(104,236,155,\.93\)!important/);
+  assert.match(css,/background:linear-gradient\(140deg,rgba\(33,119,68,\.54\)/);
+  assert.match(css,/\.resonance-skill-option input:checked/);
+  assert.match(css,/background:#79efab!important/);
+  assert.match(css,/\.resonance-skill-option:has\(input:checked\) \.resonance-skill-copy strong/);
 });
