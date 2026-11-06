@@ -35,6 +35,15 @@ jobs:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: npm run dist
+      - name: Verify offline game is bundled inside Windows app
+        shell: pwsh
+        run: |
+          $root = "desktop/dist/win-unpacked/resources/offline-web"
+          foreach ($asset in @("index.html", "game.js", "offline-ui.js", "abyssal-map.js")) {
+            $file = Join-Path $root $asset
+            if (-not (Test-Path $file)) { throw "Missing offline Windows asset: $file" }
+          }
+          Write-Host "Offline single-player game is packaged with Windows installer."
       - name: Verify Windows signature when certificate is configured
         if: env.WIN_CSC_LINK != ''
         shell: pwsh

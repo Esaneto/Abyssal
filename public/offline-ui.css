@@ -1,0 +1,47 @@
+/* Offline status appears only in the menu. It must never capture solo controls. */
+#offlineSoloNotice{
+  position:fixed;
+  z-index:38;
+  left:50%;
+  bottom:clamp(43px,6vh,75px);
+  transform:translateX(-50%);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  width:min(610px,calc(100vw - 30px));
+  padding:9px 12px;
+  border:1px solid rgba(166,123,244,.46);
+  border-radius:9px;
+  background:rgba(6,13,30,.92);
+  box-shadow:0 8px 24px rgba(0,0,0,.43);
+  color:#e0d7f9;
+  font:600 10px/1.5 system-ui,sans-serif;
+  letter-spacing:.015em;
+  text-align:center;
+  pointer-events:auto;
+}
+#offlineSoloNotice[hidden]{display:none!important}
+#offlineSoloNotice button{
+  flex:none;
+  border:1px solid rgba(156,102,245,.7);
+  border-radius:5px;
+  padding:7px 8px;
+  background:rgba(68,31,121,.66);
+  color:#f3e5ff;
+  font:700 10px system-ui,sans-serif;
+  cursor:pointer;
+}
+#offlineSoloNotice button:hover,
+#offlineSoloNotice button:focus-visible{
+  border-color:#d4a2ff;
+  background:rgba(116,63,183,.8);
+}
+@media(max-width:700px){
+  #offlineSoloNotice{
+    flex-direction:column;gap:5px;
+    bottom:40px;padding:7px 10px;
+    font-size:9px;
+  }
+  #offlineSoloNotice button{font-size:9px}
+}
