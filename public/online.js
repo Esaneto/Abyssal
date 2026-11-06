@@ -251,6 +251,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('world-xp-orbs-spawned',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orbs-spawned',{detail:Array.isArray(data)?data:[]}));});
  socket.on('world-xp-orbs-expired',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orbs-expired',{detail:Array.isArray(data)?data:[]}));});
  socket.on('world-xp-orb-collected',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-xp-orb-collected',{detail:data||{}}));});
+ socket.on('world-rift-tentacle-aim',data=>{window.dispatchEvent(new CustomEvent('abyssal-rift-tentacle-aim',{detail:data||{}}));});
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
