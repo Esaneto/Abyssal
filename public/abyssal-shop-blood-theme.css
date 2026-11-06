@@ -198,3 +198,23 @@ body:not(.game-active) #menuScreen .abyss-orbit-navigation #abyssGate #abyssGate
   #shopScreen #skinGrid .skin-card::before{opacity:.6!important}
   #shopScreen #skinGrid .skin-card{border-width:1px!important}
 }
+
+
+/* Tentacles in the four regions of the shop panel, distinct from each card. */
+#shopScreen .shop-modal{
+  position:relative!important;
+  isolation:isolate!important;
+}
+#shopScreen .shop-modal::before{
+  content:""!important;
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  z-index:-1!important;
+  pointer-events:none!important;
+  opacity:.35!important;
+  background-image:url('abyssal-specimen-tentacles.svg'),url('abyssal-specimen-tentacles.svg')!important;
+  background-size:min(270px,40%) 310px,min(270px,40%) 310px!important;
+  background-position:left top,right bottom!important;
+  background-repeat:no-repeat!important;
+}
