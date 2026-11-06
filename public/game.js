@@ -127,15 +127,19 @@ function checkSoloCaveEncounter(){
  const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
  for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:false});
 }
+function cavePortalsUnlocked(){
+ if(!activeMapLayout||onlineRoomMode==='pvp')return false;
+ const defeated=onlineMode?onlineBossesDefeated:bossKillsThisRun;
+ return defeated>activeMapTier&&!enemies.some(enemy=>enemy.hp>0&&BOSS_KINDS.includes(enemy.kind));
+}
 function currentMapInteraction(){
  if(!player||!activeMapLayout||onlineRoomMode==='pvp'||gameState!=='playing'||!ABYSSAL_MAP)return null;
  const portals=activeMapLayout.portals||{},padding=player.r+38/GAME_WORLD_ZOOM;
  if(portals.descent&&ABYSSAL_MAP.pointInPortal(portals.descent,player.x,player.y,-padding))return {type:'descent',label:'DESCER MAIS FUNDO',hint:'F · ENTRAR NO POÇO'};
  if(portals.landing&&ABYSSAL_MAP.pointInPortal(portals.landing,player.x,player.y,-padding))return {type:'ascend',label:'VOLTAR AO PATAMAR',hint:'F · SUBIR PELO VÓRTICE'};
- const clearedBosses=onlineMode?onlineBossesDefeated:bossKillsThisRun;
- const bossAlive=enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
- if(portals.surface&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
- if(portals.boss&&clearedBosses>activeMapTier&&!bossAlive&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'ROMPER PARA A PRÓXIMA CAMADA',hint:'F · DESCER MAIS FUNDO'};
+ const unlocked=cavePortalsUnlocked();
+ if(portals.surface&&unlocked&&ABYSSAL_MAP.pointInPortal(portals.surface,player.x,player.y,-padding))return {type:'surface',label:'VOLTAR À SUPERFÍCIE',hint:'F · EXTRAIR O SAQUE'};
+ if(portals.boss&&unlocked&&ABYSSAL_MAP.pointInPortal(portals.boss,player.x,player.y,-padding))return {type:'next-tier',label:'DESCER MAIS FUNDO',hint:'F · PRÓXIMA CAMADA'};
  return null;
 }
 function updateMapInteraction(force=false){
@@ -1755,6 +1759,8 @@ function applySharedSnapshot(data){
  if(data.depthState)window.dispatchEvent(new CustomEvent('abyssal-depth-state',{detail:data.depthState}));
  if(data.bossesDefeated!=null&&Number.isFinite(Number(data.bossesDefeated))){
   const defeated=Math.max(0,Math.floor(Number(data.bossesDefeated)||0));
+   // Always use the authoritative world value for online cave portal unlocks.
+   onlineBossesDefeated=defeated;
   const cycleLength=Math.max(1,bossCycleBosses.length||PROGRESSION_CYCLE_BOSS_SEQUENCE.length);
   bossProgressionCycle=Math.floor(defeated/cycleLength);
   bossCycleIndex=defeated%cycleLength;
@@ -1904,7 +1910,7 @@ function killEnemy(i){
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
- enemies.splice(i,1);audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
+ enemies.splice(i,1);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}audio(e.kind==='brute'?160:260,.055,'triangle',.012);updateHud();
 }
 function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
 const SHOT_BALANCE=Object.freeze({
@@ -2540,7 +2546,7 @@ function drawCaveRoomSignal(room,t){
  let color='#a98cff',title=String(room.signal||'ECO ABISSAL'),detail=String(room.reward||'RECOMPENSA');
  if(room.type==='elite'){color='#ff5b78';detail='RISCO '+String(room.risk||5)+' · '+String(room.reward||'CACHE DE ELITE');}
  else if(room.type==='event'){const encounter=EXPEDITION_RULES?.sideEncounterFor?.(activeMapSeed,activeMapTier);color=encounter?.accent||'#b98aff';detail=String(encounter?.risk||'INCERTO')+' · '+String(encounter?.reward||room.reward||'ANOMALIA');}
- else {color='#ff315f';const cleared=onlineMode?onlineBossesDefeated:bossKillsThisRun;detail=cleared>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind))?'SIGILO ABERTO · PRÓXIMA CAMADA':'BOSS · BLOQUEIA A DESCIDA';}
+ else {color='#ff315f';detail=cavePortalsUnlocked()?'VÓRTICES LIBERADOS · SUPERFÍCIE OU DESCIDA':'BOSS · BLOQUEIA A DESCIDA';}
  ctx.save();ctx.globalAlpha=.65+.08*Math.sin(t*.0025+room.x*.001);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.font=`800 ${11/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(title,room.x,room.y-room.ry*.62);ctx.fillStyle='#d7edf0';ctx.font=`700 ${9/GAME_WORLD_ZOOM}px Manrope, sans-serif`;ctx.fillText(detail,room.x,room.y-room.ry*.62+17/GAME_WORLD_ZOOM);ctx.restore();
 }
 function drawMapPortal(portal,t){
@@ -2559,11 +2565,26 @@ function drawMapPortal(portal,t){
   ctx.fillStyle='rgba(0,13,28,.72)';ctx.beginPath();ctx.ellipse(0,0,r*.8,r*.55,0,0,Math.PI*2);ctx.fill();ctx.stroke();
   for(let arm=0;arm<5;arm++){ctx.beginPath();for(let i=0;i<=34;i++){const q=i/34,a=arm*Math.PI*2/5-t*.0012+q*Math.PI*4.8,rr=r*(.7*(1-q)+.06);const px=Math.cos(a)*rr,py=Math.sin(a)*rr*.68;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();}
  }
+ if(portal.type==='tier-descent'||portal.type==='surface'){
+  const label=portal.type==='surface'?'VOLTAR À SUPERFÍCIE':'DESCER MAIS FUNDO';
+  const subtitle=portal.type==='surface'?'EXTRAIR RECOMPENSAS':'PRÓXIMA CAMADA';
+  const labelY=r*.82+16/GAME_WORLD_ZOOM;
+  ctx.save();ctx.globalAlpha=1;ctx.shadowBlur=12/GAME_WORLD_ZOOM;
+  ctx.shadowColor=portal.type==='surface'?'#52ffc3':'#41b4ff';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`900 ${15/GAME_WORLD_ZOOM}px Manrope, sans-serif`;
+  ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.strokeStyle='rgba(0,3,12,.97)';
+  ctx.strokeText(label,0,labelY);ctx.fillStyle=portal.type==='surface'?'#82ffcf':'#a4dfff';
+  ctx.fillText(label,0,labelY);
+  ctx.shadowBlur=0;ctx.font=`700 ${10/GAME_WORLD_ZOOM}px Manrope, sans-serif`;
+  ctx.fillStyle='#e8f8ff';ctx.fillText(subtitle,0,labelY+19/GAME_WORLD_ZOOM);
+  ctx.restore();
+ }
  ctx.restore();
 }
 function drawAbyssalCaveMap(t){
  const layout=activeMapLayout;if(!layout||onlineRoomMode==='pvp')return false;
- const caveCleared=(onlineMode?onlineBossesDefeated:bossKillsThisRun)>activeMapTier&&!enemies.some(enemy=>BOSS_KINDS.includes(enemy.kind));
+ const caveCleared=cavePortalsUnlocked();
  if(window.AbyssalTerrain){
   window.AbyssalTerrain.draw(ctx,layout,cameraX,cameraY,viewW/worldZoom,viewH/worldZoom,t);
   drawMapPortal(layout.portals.start,t);if(caveCleared){drawMapPortal(layout.portals.surface,t);drawMapPortal(layout.portals.boss,t);}
