@@ -311,16 +311,33 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    eye(.68,side*.12,.049);
   }
  }else if(id==='seasnake'){
-  // Sea snakes have a small reptilian head and a flattened paddle tail.
-  path(()=>{c.moveTo(1.15,-.12);c.bezierCurveTo(.1,-.3,-.4,-.8,-1.2,-.25);c.bezierCurveTo(-2,.3,-2,-.3,-2.5,-.1);c.bezierCurveTo(-2.1,.7,-1.9,.7,-1,.1);c.bezierCurveTo(-.4,-.35,.2,.25,1.15,.12);c.quadraticCurveTo(1.4,0,1.15,-.12);});
-  oval(-2.5,-.06,.45,.26,.4);for(let i=0;i<8;i++)stroke(()=>{const x=-.8+i*.25;c.moveTo(x,-.15);c.lineTo(x+.06,.08)},'#b8ba95',.09);eye(1.13,-.065,.035);
+  // Flattened paddle remains attached to a serpentine, evenly tapered tail.
+  const wave=Math.sin(phase*1.25)*.26;
+  path(()=>{c.moveTo(1.22,-.13);c.bezierCurveTo(.43,-.32,-.35,-.42,-1.04,-.20);
+   c.bezierCurveTo(-1.76,.06,-2.18,-.28+wave*.7,-2.62,wave);
+   c.quadraticCurveTo(-2.08,.46+wave,-1.11,.12);
+   c.bezierCurveTo(-.27,-.18,.46,.29,1.22,.13);c.closePath();},g,'#9cb6a7',.046);
+  path(()=>{c.moveTo(-2.47,wave-.075);c.quadraticCurveTo(-2.98,wave-.45,-3.16,wave);
+   c.quadraticCurveTo(-2.98,wave+.45,-2.47,wave+.075);c.closePath();},'#456d75','#a0cbc2',.036);
+  for(let i=0;i<10;i++){
+   const x=-1.74+i*.24;
+   stroke(()=>{c.moveTo(x,-.17);c.lineTo(x+.06,.15);},'#b8c7a9',.064);
+  }eye(.95,-.085,.043);eye(.95,.085,.043);
  }else if(s.family==='eel'){
-  const wave=Math.sin(phase)*.18;
-  path(()=>{c.moveTo(1,-.24);c.bezierCurveTo(-.5,-.7,-1.3,.6,-2.8,wave);c.bezierCurveTo(-1.6,1.1,-.6,-.05,1,.25);c.quadraticCurveTo(1.4,0,1,-.24);});
-  if(id==='zebramoray'||id==='seasnake')for(let i=0;i<12;i++)stroke(()=>{const x=-2+i*.23;c.moveTo(x,-.12);c.lineTo(x+.12,.25)},'#c0c6b5',.06);
-  if(id==='sawtootheel')for(let i=0;i<10;i++)fin([[-1.6+i*.22,-.08],[-1.7+i*.22,-.3],[-1.5+i*.22,-.08]]);
-  if(id==='dogtootheel')for(let i=0;i<4;i++)fin([[.8+i*.09,.1],[.85+i*.09,.28],[.9+i*.09,.1]]);
-  eye(.91,-.1);stroke(()=>{c.moveTo(.8,.12);c.lineTo(1.25,.05)},ink,.04);
+  const tailWave=Math.sin(phase*1.4)*.34;
+  // Ribbon-like taper; old wide second Bézier loop looked like an extra body mass.
+  path(()=>{c.moveTo(1.18,-.22);
+   c.bezierCurveTo(.46,-.35,-.40,-.48,-.96,-.27);
+   c.bezierCurveTo(-1.66,.02,-2.12,-.29+tailWave*.5,-2.95,tailWave);
+   c.quadraticCurveTo(-2.52,.12+tailWave,-2.10,.20+tailWave*.5);
+   c.bezierCurveTo(-1.35,.41,-.67,.08,.06,.18);
+   c.quadraticCurveTo(.95,.34,1.18,.22);c.closePath();},g,'#a6c9be',.044);
+  stroke(()=>{c.moveTo(-2.75,tailWave);c.bezierCurveTo(-1.80,-.12+tailWave*.4,-.85,-.28,.45,-.15);},'rgba(196,237,216,.5)',.045);
+  if(id==='zebramoray')for(let i=0;i<12;i++)stroke(()=>{const x=-2.1+i*.25;c.moveTo(x,-.19);c.lineTo(x+.14,.23)},'#c0c6b5',.057);
+  if(id==='sawtootheel')for(let i=0;i<9;i++)fin([[-1.6+i*.23,-.22],[-1.69+i*.23,-.36],[-1.45+i*.23,-.22]]);
+  if(id==='dogtootheel')for(let i=0;i<4;i++)fin([[.86+i*.075,.07],[.89+i*.075,.23],[.94+i*.075,.08]]);
+  eye(.93,-.12,.066);eye(.93,.12,.066);
+  stroke(()=>{c.moveTo(.90,.13);c.quadraticCurveTo(1.19,.22,1.25,.06);},ink,.042);
  }else if(s.family==='octopus'||s.family==='squid'){
   const squid=s.family==='squid';if(id==='bigfin'){for(let i=0;i<10;i++){const side=(i-4.5)*.17;stroke(()=>{c.moveTo(0,side*.25);c.lineTo(-.7,side);c.lineTo(-3.6-Math.sin(i)*.2,side+.1*Math.sin(phase+i))},'#9bb5b5',.027);}}else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.25:id==='mimic'?2.8:2.2,id==='mimic');
   if(squid){fin([[.3,0],[.8,-.9],[1.45,0]]);fin([[.3,0],[.8,.9],[1.45,0]]);oval(.72,0,1,.37);}else if(id==='glassoctopus'){c.globalAlpha=.45;oval(.72,0,1.05,.36);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');}else if(id==='mimic'){oval(.5,0,.72,.32);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);}else oval(.38,0,.53,.48);
