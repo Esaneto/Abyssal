@@ -61,6 +61,27 @@
    ],end:'O tempo do mundo solo fica suspenso enquanto este manual estiver na tela.'
   }
  };
+ const STEP_TOPICS=Object.freeze({
+  solo:['move','combat','progress','coins','crown'],
+  coop:['team','combat','progress','coins','skills'],
+  pvp:['duel','cover','aim','skills','coins'],
+  rift:['map','portals','chest','combat','volcano','checkpoint','final'],
+  'rift-solo':['map','portals','chest','skills','poison','checkpoint','final']
+ });
+ const STEP_NAMES=Object.freeze({
+  move:'CONTROLES',combat:'CRIATURAS E DISPAROS',progress:'BARRA DE BOSSES',
+  coins:'MOEDAS E BÔNUS',crown:'CONQUISTA FINAL',team:'EQUIPE ONLINE',
+  duel:'DUELOS',cover:'USE AS ROCHAS',aim:'MIRA PRECISA',skills:'HABILIDADES Q/E',
+  map:'EXPLORE AS CÂMARAS',portals:'VÓRTICES DE PASSAGEM',
+  checkpoint:'RESSURGIMENTO',volcano:'PERIGOS DO CENÁRIO',
+  poison:'VENENO E ARMADILHAS',final:'CHEFE FINAL',chest:'SAQUE E RECOMPENSAS'
+ });
+ const GALLERY=Object.freeze([
+  {topic:'volcano',label:'ROCHA VULCÂNICA'},
+  {topic:'poison',label:'PLANTAS VENENOSAS'},
+  {topic:'vortex',label:'POÇO DE SUCÇÃO'},
+  {topic:'tentacle',label:'AVISO DO TENTÁCULO'}
+ ]);
  const $=id=>document.getElementById(id);
  let guide=null,reward=null,activeMode=null,returnFocus=null;
  function accountKey(){const nickname=root.AbyssalOnline?.getAccount?.()?.nickname;return String(nickname||'convidado').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,60);}
@@ -75,7 +96,7 @@
   guide=document.createElement('section');
   guide.id='abyssalTutorialOverlay';guide.className='abyssal-guide-overlay';guide.hidden=true;
   guide.setAttribute('role','presentation');
-  guide.innerHTML='<article class="abyssal-guide-card" role="dialog" aria-modal="true" aria-labelledby="abyssalGuideTitle" tabindex="-1"><button type="button" class="abyssal-guide-close" id="abyssalGuideX" aria-label="Fechar tutorial">×</button><div class="guide-kicker" id="abyssalGuideKicker"></div><h2 id="abyssalGuideTitle"></h2><p class="guide-intro" id="abyssalGuideIntro"></p><ol id="abyssalGuideSteps"></ol><p class="guide-end" id="abyssalGuideEnd"></p><label class="abyssal-guide-choice"><input type="checkbox" id="abyssalGuideNever"><span>Não mostrar o tutorial novamente.</span></label><div class="abyssal-guide-actions"><button class="abyssal-guide-primary" type="button" id="abyssalGuideStart">COMEÇAR A JOGAR</button></div></article>';
+  guide.innerHTML='<article class="abyssal-guide-card" role="dialog" aria-modal="true" aria-labelledby="abyssalGuideTitle" tabindex="-1"><button type="button" class="abyssal-guide-close" id="abyssalGuideX" aria-label="Fechar tutorial">×</button><div class="guide-kicker" id="abyssalGuideKicker"></div><h2 id="abyssalGuideTitle"></h2><p class="guide-intro" id="abyssalGuideIntro"></p><div id="abyssalGuideHazardGallery" class="abyssal-guide-hazard-gallery" hidden></div><ol id="abyssalGuideSteps"></ol><p class="guide-end" id="abyssalGuideEnd"></p><label class="abyssal-guide-choice"><input type="checkbox" id="abyssalGuideNever"><span>Não mostrar o tutorial novamente.</span></label><div class="abyssal-guide-actions"><button class="abyssal-guide-primary" type="button" id="abyssalGuideStart">COMEÇAR A JOGAR</button></div></article>';
   document.body.appendChild(guide);
   $('abyssalGuideX').addEventListener('click',close);
   $('abyssalGuideStart').addEventListener('click',close);
@@ -98,7 +119,27 @@
   $('abyssalGuideIntro').textContent=def.intro;
   $('abyssalGuideEnd').textContent=def.end;
   $('abyssalGuideNever').checked=false;
-  $('abyssalGuideSteps').replaceChildren(...def.tips.map(content=>{const li=document.createElement('li');li.textContent=content;return li;}));
+  const isRift=mode==='rift'||mode==='rift-solo';
+  const gallery=$('abyssalGuideHazardGallery');gallery.hidden=!isRift;
+  gallery.replaceChildren(...(isRift?GALLERY:[]).map(item=>{
+   const figure=document.createElement('figure');figure.className='abyssal-guide-gallery-item';
+   const art=document.createElement('div');art.className='guide-picture';
+   art.innerHTML=root.AbyssalTutorialArt?.render(item.topic)||'';
+   const label=document.createElement('figcaption');label.textContent=item.label;
+   figure.append(art,label);return figure;
+  }));
+  $('abyssalGuideSteps').replaceChildren(...def.tips.map((content,index)=>{
+   const topic=STEP_TOPICS[mode]?.[index]||'map';
+   const li=document.createElement('li');li.className='abyssal-guide-step-card';
+   const picture=document.createElement('div');picture.className='guide-picture';
+   picture.innerHTML=root.AbyssalTutorialArt?.render(topic)||'';
+   const copy=document.createElement('div');copy.className='guide-step-text';
+   const title=document.createElement('strong');title.className='guide-step-title';
+   title.textContent=String(index+1).padStart(2,'0')+' · '+(STEP_NAMES[topic]||'DICA');
+   const paragraph=document.createElement('p');paragraph.textContent=content;
+   copy.append(title,paragraph);li.append(picture,copy);
+   return li;
+  }));
   guide.hidden=false;document.body.classList.add('abyssal-tutorial-open');
   protect(true);
   $('abyssalGuideX').focus({preventScroll:true});

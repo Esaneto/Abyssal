@@ -42,7 +42,7 @@ test('oarfish leviathan uses a ribbon body and continuous dorsal crest while pre
  assert.match(game,/for\(let i=0;i<26;i\+\+\)/);assert.match(game,/#ff668f/);
  assert.match(skin,/oarfishRibbon\(\)/);assert.match(boss,/oarfishRibbon\(\)/);
  assert.match(game,/c\.moveTo\(-3\.25\*r,wave\*r\)/);
- assert.match(game,/c\.ellipse\(\.85\*r,-\.015\*r,\.4\*r,\.28\*r/);
+ assert.match(skin,/c\.moveTo\(\.50\*r,-\.29\*r\)/,'Leviathan forehead must now be a connected shape, not a detached ellipse');
  assert.match(game,/c\.ellipse\(\.88\*r,-\.015\*r,\.43\*r,\.3\*r/);
 
 });
