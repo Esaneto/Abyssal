@@ -10,6 +10,8 @@
 const FINAL_TIER=7,FINAL_KIND='riftSmile',FINAL_CHEST_COINS=100000;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const layoutCache=new Map();
+const hazardGeometry=new WeakMap();
+const tentacleCycleCache=new WeakMap();
 const TYPES=Object.freeze({
   volcano:{name:'VULCÃO ABISSAL',period:10.5,warning:1.65,active:2.15,radius:100,damage:24,color:'#ff7341'},
   fumarole:{name:'FUMAROLA TÓXICA',period:13.5,warning:1.55,active:4.2,radius:120,damage:12,color:'#8feb78'},
@@ -122,12 +124,21 @@ function extension(h,phase){
 }
 function hazardAtCycle(h,cycle=0){
  if(h.type!=='tentacle')return h;
- const jitter=(idHash(h.id+':sweep:'+cycle)%1000)/1000-.5;
+ const map=hazardGeometry.get(h);
+ const epoch=Math.floor(Number(cycle)||0);
+ let entries=tentacleCycleCache.get(h);
+ if(!entries){entries=new Map();tentacleCycleCache.set(h,entries);}
+ if(entries.has(epoch))return entries.get(epoch);
+ const jitter=(idHash(h.id+':sweep:'+epoch)%1000)/1000-.5;
+ let result;
  if(Number.isFinite(h.sourceX)){
-  const angle=h.angle+jitter*.42,l=h.length||240;
-  return {...h,angle,x:h.sourceX+Math.cos(angle)*l*.5,y:h.sourceY+Math.sin(angle)*l*.5};
- }
- return {...h,x:h.x+jitter*40,y:h.y+jitter*22,angle:h.angle+jitter*.3};
+  const angle=h.angle+jitter*.42;
+  const length=map?traceToWall(map,h.sourceX,h.sourceY,angle,2600):h.length||240;
+  result={...h,angle,length,x:h.sourceX+Math.cos(angle)*length*.5,y:h.sourceY+Math.sin(angle)*length*.5};
+ }else result={...h,x:h.x+jitter*40,y:h.y+jitter*22,angle:h.angle+jitter*.3};
+ if(entries.size>12)entries.clear();
+ entries.set(epoch,result);
+ return result;
 }
 function build(layout,tier=0){
  if(!layout||!Array.isArray(layout.rooms))return [];
@@ -143,14 +154,15 @@ function build(layout,tier=0){
   const cfg=TYPES[type],reach=Number(h.length)>0?Number(h.length):(WALL_REACH[type]||0);
   const point=Number.isFinite(h.sourceX)?
    {x:h.sourceX+Math.cos(h.angle)*(reach*.5),y:h.sourceY+Math.sin(h.angle)*(reach*.5)}:{x:h.x,y:h.y};
-  hazards.push({...h,...point,id:roomId+':'+index,type,roomId,
+  const hazard={...h,...point,id:roomId+':'+index,type,roomId,
    period:cfg.period,warning:cfg.warning,active:cfg.active,
    offset:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
    radius:type==='volcano'?(h.wallKind==='corridor'?49:64):
     type==='tentacle'?78:type==='fumarole'?120:type==='electric'?46:
     type==='spikes'?56:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
    length:reach||cfg.length||0,
-   damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))});
+   damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))};
+  hazards.push(hazard);hazardGeometry.set(hazard,layout);
   if(Number.isFinite(h.sourceX))blocked.push({x:h.sourceX,y:h.sourceY,r:180});
  }
  for(const room of layout.rooms){
