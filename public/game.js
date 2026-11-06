@@ -3163,7 +3163,7 @@ function draw(t){
    const maxLife=Math.max(.1,Number(blob.maxLife)||(dark?4:5));
    const ratio=clamp(Number(blob.life)/maxLife,0,1);
    if(ratio<=0)return;
-   const rad=blob.r*(.64+.33*(1-ratio))*(dark&&blob.boss?.56:1);
+   const rad=blob.r*(.64+.33*(1-ratio))*((dark&&blob.boss)?0.56:1);
    ctx.save();
    ctx.globalAlpha=ratio*(dark?.94:.52);
    ctx.shadowBlur=lowPowerRendering?0:(dark?5:7)/GAME_WORLD_ZOOM;
