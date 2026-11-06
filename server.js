@@ -554,6 +554,8 @@ function grantFinalConquest(user){
 function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
  for(const p of room.players.values()){
+  // Reading a tutorial grants safety, never passive boss-credit farming.
+  if(p.tutorialActive)continue;
   if(p.runStats&&!p.runStats.settled)p.runStats.bossesKilled=(Number(p.runStats.bossesKilled)||0)+1;
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
