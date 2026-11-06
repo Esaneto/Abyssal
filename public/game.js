@@ -1160,7 +1160,7 @@ function triggerAbyssalVictory() {
 
   // Notificar servidor se estiver online ou autenticado
   if (window.AbyssalOnline?.saveCosmetics) {
-    window.AbyssalOnline.sendRunProgress?.({score,level,bossesKilled:Math.max(35,bossKillsThisRun)});
+    window.AbyssalOnline.sendRunProgress?.({score,level,bossesKilled:Math.max(42,bossKillsThisRun)});
     window.AbyssalOnline.saveCosmetics({ ownedSkins, conqueror: true, unlockedTitle: 'abyssal-conqueror' });
   }
 
