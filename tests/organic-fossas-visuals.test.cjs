@@ -17,7 +17,7 @@ test('volcanic rocks originate against walls in mob chambers and narrow corridor
  assert.ok(rocks.some(h=>['shoal','hub','landing'].includes(h.roomId)),'mob room installations');
  for(const h of rocks){
   assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),'attached vent origin');
-  assert.ok(h.length>=145&&h.radius<=100);
+  assert.ok(h.length>=120&&h.radius<=100);
   assert.equal(H.hit(h,h.x,h.y,0,H.state(h,inPhase(h,.52))),true);
   assert.equal(H.hit(h,h.x+Math.sin(h.angle)*200,h.y-Math.cos(h.angle)*200),false);
   const room=layout.rooms.find(r=>r.id===h.roomId);
@@ -120,6 +120,31 @@ test('every hazard renders at rest, during its distinct warning and during attac
     assert.ok(paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
      'tentacle must display its red geometry before/while hitting');
    }
+  }
+ }
+});
+
+test('every non-vortex hazard is embedded at the actual navigable cavern boundary',()=>{
+ const mounted=hazards.filter(h=>h.type!=='vortex'),vortices=hazards.filter(h=>h.type==='vortex');
+ assert.ok(mounted.length>12,'wall threats found in several rooms');
+ assert.ok(vortices.length>0&&vortices.every(h=>h.sourceX===undefined),'vortex remains a floor hazard');
+ for(const h of mounted){
+  assert.ok(['chamber','corridor'].includes(h.wallKind),h.id+' wall classification');
+  assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),h.id+' embedded wall position');
+  const outX=h.sourceX-Math.cos(h.angle)*33,outY=h.sourceY-Math.sin(h.angle)*33;
+  const inX=h.sourceX+Math.cos(h.angle)*35,inY=h.sourceY+Math.sin(h.angle)*35;
+  assert.equal(Map.isWalkable(layout,outX,outY),false,h.id+' backed by real rock, not overlapping a corridor');
+  assert.equal(Map.isWalkable(layout,inX,inY),true,h.id+' enters playable water');
+  const initial=H.hit(h,h.x,h.y,0,H.state(h,inPhase(h,.5)));
+  assert.ok(initial,'hazard center must be inside its own hit region: '+h.id);
+ }
+});
+test('embedded vents do not overlap entrance checkpoints or exit vortices',()=>{
+ for(const h of hazards.filter(h=>h.sourceX!==undefined)){
+  for(const p of Object.values(layout.portals||{})){
+   if(!p)continue;
+   assert.ok(Math.hypot(h.sourceX-p.x,h.sourceY-p.y)>(Number(p.r)||0)+140,
+    h.id+' overlaps a critical passage portal '+p.id);
   }
  }
 });
