@@ -850,17 +850,30 @@ function drawFinalBoss(c,enemy,now){
  fog.addColorStop(.72,'rgba(31,6,67,.11)');
  fog.addColorStop(1,'rgba(16,4,44,0)');
  c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
- // The obscured torso blends into the sea floor; every arm grows from it.
- for(let i=0;i<10;i++){
-  const a=i*Math.PI/5+t*.025,end=r*(2.9+(i%4)*.34),sway=Math.sin(t*.7+i*1.7)*r*.14;
-  const rootX=Math.cos(a)*r*.72,rootY=Math.sin(a)*r*.67;
-  const tipX=Math.cos(a)*end,tipY=Math.sin(a)*end+sway;
-  c.beginPath();c.moveTo(rootX,rootY);
-  c.bezierCurveTo(Math.cos(a+.32)*r*1.42,Math.sin(a+.32)*r*1.74,
-   Math.cos(a-.38)*r*2.43,Math.sin(a-.38)*r*2.21+sway*.4,tipX,tipY);
-  c.strokeStyle='rgba(48,16,97,.28)';c.lineWidth=r*.32;c.lineCap='round';c.stroke();
-  c.strokeStyle='rgba(164,80,225,.25)';c.lineWidth=r*.18;c.stroke();
-  c.strokeStyle='rgba(228,153,255,.11)';c.lineWidth=r*.034;c.stroke();
+ // Eight enormous phantom arms continue beneath the swimming plane toward
+ // the boss-room walls. They are BACKDROP ONLY: zero collision or damage.
+ for(let i=0;i<8;i++){
+  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a);
+  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
+  const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
+  const samples=20,sway=Math.sin(t*.45+i*1.7)*r*.17;
+  for(let k=1;k<=samples;k++){
+   const p0=(k-1)/samples,p1=k/samples;
+   const curve=(p)=>({
+    x:cs*(r*.65+(reach-r*.65)*p)-sn*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI),
+    y:sn*(r*.65+(reach-r*.65)*p)+cs*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI)
+   });
+   const p=curve(p0),q=curve(p1),fade=Math.pow(1-p0,1.35);
+   c.lineCap='round';c.lineWidth=Math.max(2,r*.65*Math.pow(1-p0,.78));
+   c.strokeStyle='rgba(78,25,145,'+(.20*fade)+')';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
+   c.lineWidth=Math.max(1,c.lineWidth*.43);c.strokeStyle='rgba(194,116,244,'+(.12*fade)+')';c.stroke();
+   if(k%3===0)for(const sign of [-1,1]){
+    const dx=q.x-p.x,dy=q.y-p.y,den=Math.hypot(dx,dy)||1;
+    c.strokeStyle='rgba(218,151,246,'+(.16*fade)+')';c.lineWidth=1;
+    c.beginPath();c.ellipse(q.x-sign*dy/den*r*.12*(1-p1),q.y+sign*dx/den*r*.12*(1-p1),
+      Math.max(2,r*.07*(1-p1)),Math.max(1,r*.035*(1-p1)),a,0,Math.PI*2);c.stroke();
+   }
+  }
  }
  // Jagged cranial horns, visible against the darker purple background.
  for(const side of [-1,1]){
@@ -948,5 +961,37 @@ function drawFinalBoss(c,enemy,now){
  }
  c.restore();
 }
-return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,extension,hazardAtCycle,tentaclePath,aimTentacle,targetNearest,suctionRadius,rockfallState,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss};
+// Small, playable relic form; unmistakable Nightmare ancestry without drawing
+// the boss's cavern-wide non-colliding background over each player or store tile.
+function drawNightmareRelic(c,x,y,r,t=0){
+ c.save();c.translate(x,y);const q=Math.sin(t*.003),size=r;
+ for(let arm=0;arm<6;arm++){
+  const sign=arm%2?-1:1,rank=Math.floor(arm/2),end=-r*(1.75+.23*rank),tipY=sign*r*(.52+rank*.39);
+  c.strokeStyle='rgba(114,43,177,.76)';c.lineWidth=Math.max(3,r*(.27-rank*.045));
+  c.lineCap='round';c.beginPath();c.moveTo(-r*.36,sign*r*.22);
+  c.bezierCurveTo(-r*.76,sign*r*.28,-r*1.2,tipY+q*r*.10,end,tipY);c.stroke();
+  c.strokeStyle='rgba(231,170,252,.65)';c.lineWidth=2;c.stroke();
+ }
+ const skin=c.createRadialGradient(-r*.32,-r*.42,r*.05,0,0,r*1.28);
+ skin.addColorStop(0,'#b56dce');skin.addColorStop(.52,'#7a3aa4');skin.addColorStop(1,'#270c4d');
+ c.fillStyle=skin;c.strokeStyle='#e7b9fb';c.lineWidth=Math.max(1.4,r*.068);
+ c.beginPath();c.moveTo(-r*.86,r*.16);c.bezierCurveTo(-r*1.06,-r*.79,r*.9,-r*.96,r*.93,r*.14);
+ c.quadraticCurveTo(r*.65,r*.99,0,r*1.05);c.quadraticCurveTo(-r*.77,r*.96,-r*.86,r*.16);
+ c.fill();c.stroke();
+ for(const side of [-1,1]){
+  c.fillStyle='#140522';c.beginPath();c.moveTo(side*r*.15,-r*.28);
+  c.lineTo(side*r*.78,-r*.40);c.lineTo(side*r*.54,-r*.04);c.closePath();c.fill();
+  c.fillStyle='#f1c5ff';c.beginPath();c.arc(side*r*.44,-r*.22,r*.11,0,Math.PI*2);c.fill();
+ }
+ c.fillStyle='#10021b';c.strokeStyle='#bd7fe5';c.lineWidth=2;
+ c.beginPath();c.moveTo(-r*.62,r*.23);c.quadraticCurveTo(0,r*.6,r*.64,r*.23);
+ c.quadraticCurveTo(0,r*1.03,-r*.62,r*.23);c.fill();c.stroke();
+ for(let i=0;i<9;i++){
+  const fx=(-.50+i*.125)*r;c.fillStyle='#f9e6ff';c.beginPath();
+  c.moveTo(fx-r*.034,r*.43);c.lineTo(fx+r*.039,r*.43);
+  c.lineTo(fx,r*(.56+(i%3)*.05));c.closePath();c.fill();
+ }
+ c.restore();
+}
+return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,extension,hazardAtCycle,tentaclePath,aimTentacle,targetNearest,suctionRadius,rockfallState,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss,drawNightmareRelic};
 });
