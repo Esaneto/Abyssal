@@ -96,10 +96,8 @@ function createWindow() {
     if (!isGameUrl(url)) event.preventDefault();
   });
 
-  let localFallbackStarted = false;
   const loadLocal = () => {
-    if (localFallbackStarted || mainWindow?.isDestroyed()) return;
-    localFallbackStarted = true;
+    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.getURL() === OFFLINE_URL) return;
     mainWindow.loadURL(OFFLINE_URL).catch(error => {
       console.error('[Abyssal] Não foi possível abrir o jogo offline:', error);
     });
