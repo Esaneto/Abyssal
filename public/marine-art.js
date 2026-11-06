@@ -352,14 +352,59 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   for(let i=0;i<7;i++){let y=(i-3)*.16;stroke(()=>{c.moveTo(-.2,y);c.quadraticCurveTo(.8,y*.6,.85,0)},'#9bd4e0',.018);}
   if(id==='combjelly')for(let i=0;i<14;i++)oval(.1+i*.045,Math.sin(i*.7)*.45,.035,.025,0,['#78deff','#d8b3ff','#71efc8'][i%3]);
  }else if(s.family==='crustacean'){
-  for(const side of [-1,1])for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.3-i*.2,side*.25);c.lineTo(-.1-i*.27,side*(id==='spidercrab'?1.3:.8));c.lineTo(.3-i*.4,side*(id==='spidercrab'?1.8:1.1))},'#7c9a9c',.07);
-  for(const side of [-1,1]){const size=id==='pistolshrimp'&&side===1?.7:.4;stroke(()=>{c.moveTo(.4,side*.3);c.lineTo(.9,side*.85)},s.color,.15);oval(1.1,side*.85,size,.25,side*.4);stroke(()=>{c.moveTo(1.1,side*.85);c.lineTo(1.6,side*.8)},ink,.04);}
-  if(id!=='spidercrab'){for(let i=0;i<5;i++)oval(-.6-i*.24,Math.sin(phase+i)*.035,.27,.32-i*.035);fin([[-1.6,0],[-2,-.3],[-1.95,.3]]);feeler(.7,-.2,1.4,-1);}
-  oval(0,0,id==='spidercrab'?.65:.75,.55);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(-.7+i*.2,-.4);c.quadraticCurveTo(-.5+i*.2,0,-.7+i*.2,.4)},'#9cbbb5',.03);
-  eye(.55,-.25);eye(.55,.25);
+  const legStroke=Math.sin(phase*1.34)*.12,tailBeat=Math.sin(phase*1.7)*.14;
+  for(const side of [-1,1]){
+   for(let i=0;i<5;i++){
+    const anchorX=.34-i*.29,rootY=side*.29;
+    const step=legStroke*Math.sin(i+side*.8);
+    stroke(()=>{c.moveTo(anchorX,rootY);
+      c.lineTo(anchorX-.25,side*(.66+i*.07)+step);
+      c.lineTo(anchorX+.04-i*.13,side*(id==='spidercrab'?1.55:1.13)+step);},'#719ba2',.077);
+   }
+  }
+  if(id!=='spidercrab'){
+   // Segmented abdomen is one piece, not five detached oval bulbs.
+   path(()=>{c.moveTo(.36,-.28);
+    c.bezierCurveTo(-.48,-.49,-1.11,-.40,-1.87,tailBeat-.13);
+    c.lineTo(-2.1,tailBeat);
+    c.lineTo(-1.87,tailBeat+.13);
+    c.bezierCurveTo(-1.11,.41,-.48,.49,.36,.28);c.closePath();},
+    '#395b67','#93b5b8',.041);
+   for(let i=0;i<5;i++){
+    const x=-1.51+i*.28,span=.23+.08*i/4;
+    stroke(()=>{c.moveTo(x,-span);c.quadraticCurveTo(x-.08,0,x,span)},'#9db9bc',.032);
+   }
+   fin([[-1.88,tailBeat],[-2.20,tailBeat-.25],[-2.07,tailBeat],[-2.2,tailBeat+.25]]);
+  }
+  for(const side of [-1,1]){
+   const size=id==='pistolshrimp'&&side===1?.63:.34;
+   stroke(()=>{c.moveTo(.23,side*.30);c.lineTo(.68,side*(.66+legStroke));},s.color,.14);
+   oval(.95,side*(.78+legStroke),size,.20,side*.24);
+   stroke(()=>{c.moveTo(1.04,side*(.78+legStroke));c.lineTo(1.40,side*(.70+legStroke));},ink,.039);
+  }
+  path(()=>{c.moveTo(-.67,0);c.bezierCurveTo(-.65,-.62,.20,-.78,.83,-.36);
+   c.quadraticCurveTo(1.11,0,.83,.36);
+   c.bezierCurveTo(.20,.78,-.65,.62,-.67,0);c.closePath();},g,'#b1c5c2',.047);
+  for(let i=0;i<5;i++)stroke(()=>{const x=-.45+i*.22;c.moveTo(x,-.37);c.quadraticCurveTo(x-.13,0,x,.37);},'#9fb8b7',.028);
+  eye(.71,-.25,.058);eye(.71,.25,.058);
  }else if(id==='leatherback'||id==='hawksbill'){
-  for(const side of [-1,1]){fin([[.4,side*.3],[.1,side*1.3],[-.5,side*.65]]);fin([[-.5,side*.3],[-1.2,side*.8],[-.8,side*.2]]);}
-  oval(.95,0,.4,.25);if(id==='hawksbill')fin([[1.1,-.12],[1.55,.02],[1.1,.16]]);oval(-.1,0,id==='leatherback'?1.18:.84,id==='leatherback'?.6:.72);if(id==='hawksbill')for(let i=0;i<7;i++){const a=i*2.4;oval(-.1+Math.cos(a)*.5,Math.sin(a)*.35,.21,.16,a,'#36625a');}for(let i=-2;i<=2;i++)stroke(()=>{c.moveTo(-.9,i*.17);c.quadraticCurveTo(0,i*.27,.6,i*.15)},'#a1b6a5',.03);eye(1.1,-.12,.045);
+  const flap=Math.sin(phase*1.27)*.21;
+  for(const side of [-1,1]){
+   fin([[.43,side*.26],[.03,side*(1.25+flap)],[-.56,side*.62]]);
+   fin([[-.48,side*.30],[-1.15,side*(.78-flap*.42)],[-.86,side*.21]]);
+  }
+  // Head meets the domed shell without a second overlapping body blob.
+  path(()=>{c.moveTo(-1.06,0);c.quadraticCurveTo(-.86,-.70,.08,-.76);
+   c.quadraticCurveTo(.91,-.52,1.25,-.20);
+   c.quadraticCurveTo(1.48,0,1.25,.20);
+   c.quadraticCurveTo(.91,.52,.08,.76);
+   c.quadraticCurveTo(-.86,.70,-1.06,0);c.closePath();},g,'#aac8ba',.049);
+  if(id==='hawksbill')fin([[1.13,-.12],[1.47,0],[1.13,.12]]);
+  for(let i=-3;i<=3;i++){
+   const x=-.75+i*.23;
+   stroke(()=>{c.moveTo(x,-.34);c.quadraticCurveTo(x+.07,0,x,.34)},'#8daea4',.035);
+  }
+  eye(1.11,-.16,.045);eye(1.11,.16,.045);
  }else if(s.family==='mollusc'){
   if(id==='bluedragon'){for(const side of [-1,1])for(let i=0;i<8;i++)fin([[.6-i*.2,0],[.3-i*.2,side*(.5+Math.sin(i)*.2)],[.5-i*.2,side*.1]]);oval(0,0,1,.18);}
   else{oval(.2,.25,1,.3);if(id==='whelk'){fin([[-.3,.3],[-1.5,-.65],[.5,-.5]]);for(let i=0;i<4;i++)oval(-.85+i*.26,-.35+i*.06,.23+i*.05,.3+i*.06);}else oval(-.2,-.1,.8,.75);stroke(()=>{for(let i=0;i<90;i++){const a=i*.17,rr=i/120;const x=-.2+Math.cos(a)*rr,y=-.1+Math.sin(a)*rr;i?c.lineTo(x,y):c.moveTo(x,y);}},'#b7c3af',.055);for(const side of [-1,1])stroke(()=>{c.moveTo(.8,side*.15);c.lineTo(1.2,side*.4)},'#a9ccc4',.045);}
