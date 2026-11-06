@@ -280,3 +280,50 @@ test('Fossas Abissais has longer spikes, extra cracks and restrained blood red o
   assert.match(css,/border:2px solid rgba\(140,37,42,\.92\)!important/);
   assert.match(css,/linear-gradient\(117deg,transparent 0 19%,rgba\(185,190,204,\.54\)/);
 });
+
+
+test('Fossas Abissais retains fractured basalt and gains a narrower blood-drip edge',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-shop-blood-theme.css');
+  const original=read('public/abyssal-menu-orbit.css');
+  assert.match(html,/abyssal-shop-blood-theme\.css\?v=1/);
+  assert.match(original,/#abyssGate \.abyss-gate-content::before/);
+  assert.match(css,/#abyssGate \.abyss-gate-content::before\s*\{/);
+  assert.match(css,/inset:-1px!important/);
+  assert.match(css,/#abyssGate \.abyss-gate-content::after\s*\{/);
+  assert.match(css,/top:calc\(100% - 5px\)!important/);
+  assert.match(css,/background:rgba\(90,16,21,\.62\)!important/);
+  assert.match(css,/#abyssGate #abyssGateButton::after\s*\{/);
+  assert.match(css,/linear-gradient\(140deg,#07080c 0%,#010204 49%,#100b10 100%\)/);
+});
+
+test('Fossas Abissais interior dialog keeps its controls and uses black blood-drip style',()=>{
+  const css=read('public/abyssal-shop-blood-theme.css');
+  const source=read('public/abyssal-rebuild.js');
+  assert.match(source,/class="abyss-descent-dialog"/);
+  assert.match(css,/\.abyss-descent-panel \.abyss-descent-dialog::after\s*\{/);
+  assert.match(css,/\.abyss-descent-panel \.abyss-descent-choice\[data-mode="group"\]/);
+  assert.match(css,/\.abyss-descent-panel \.abyss-descent-close\{z-index:3!important\}/);
+  assert.doesNotMatch(css,/\.abyss-descent-panel \.abyss-descent-dialog > \*\s*\{/);
+});
+
+test('the actual shop and every rendered species card use brown glass with purple tentacle corners',()=>{
+  const html=read('public/index.html');
+  const css=read('public/abyssal-shop-blood-theme.css');
+  const game=read('public/game.js');
+  const frame=read('public/abyssal-specimen-tentacles.svg');
+  assert.match(html,/id="shopScreen"/);
+  assert.match(html,/id="skinGrid" class="skin-grid"/);
+  assert.match(game,/card\.className='skin-card'/);
+  assert.match(css,/#shopScreen \.shop-modal\s*\{/);
+  assert.match(css,/#shopScreen \.shop-modal::before\s*\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card\s*\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card::before\s*\{/);
+  assert.match(css,/background-image:url\('abyssal-specimen-tentacles\.svg'\)!important/);
+  assert.match(css,/pointer-events:none!important/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card\.owned\s*\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card\.equipped\s*\{/);
+  assert.match(css,/#shopScreen #skinGrid \.skin-card > :not\(\.boss-bundle-aura\)/);
+  assert.match(frame,/<svg[^>]*viewBox="0 0 300 420"/);
+  assert.match(frame,/translate\(300 420\) scale\(-1 -1\)/);
+});
