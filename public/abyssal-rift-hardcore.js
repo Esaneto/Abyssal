@@ -686,43 +686,113 @@ function drawBossMark(c,mark,now,active=false){
  c.fill();c.stroke();c.restore();
 }
 function drawFinalBoss(c,enemy,now){
- const x=enemy.x,y=enemy.y,r=enemy.r||140,t=now*.001,pulse=1+Math.sin(t*1.6)*.035;
+ // PES ADELO ROXO: a monstrous translucent kraken face with a giant body
+ // behind the cavern. The former rounded smile is replaced by an angular
+ // mantle, predatory eyelids, asymmetric scars and two rows of hooked teeth.
+ const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
  c.save();c.translate(x,y);
- // An almost invisible kraken mantle below the arena: translucent, not a regular swimming monster.
- const halo=c.createRadialGradient(0,0,r*.5,0,0,r*4.4);
- halo.addColorStop(0,'rgba(140,50,227,.30)');halo.addColorStop(.4,'rgba(62,26,122,.16)');halo.addColorStop(1,'rgba(31,9,73,0)');
- c.fillStyle=halo;c.beginPath();c.arc(0,0,r*4.4,0,Math.PI*2);c.fill();
- for(let arm=0;arm<8;arm++){
-  const a=arm*Math.PI/4+t*.03,end=r*(2.8+(arm%3)*.4);
-  c.beginPath();c.moveTo(Math.cos(a)*r*.68,Math.sin(a)*r*.68);
-  c.bezierCurveTo(Math.cos(a+.6)*r*2,Math.sin(a+.6)*r*2,Math.cos(a-.3)*r*2.5,Math.sin(a-.3)*r*2.5,Math.cos(a)*end,Math.sin(a)*end);
-  c.strokeStyle='rgba(151,72,223,.13)';c.lineWidth=r*.28;c.lineCap='round';c.stroke();
-  c.strokeStyle='rgba(204,144,248,.20)';c.lineWidth=r*.07;c.stroke();
+ const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
+ fog.addColorStop(0,'rgba(188,73,255,.23)');
+ fog.addColorStop(.32,'rgba(77,22,139,.19)');
+ fog.addColorStop(.72,'rgba(31,6,67,.11)');
+ fog.addColorStop(1,'rgba(16,4,44,0)');
+ c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
+ // The obscured torso blends into the sea floor; every arm grows from it.
+ for(let i=0;i<10;i++){
+  const a=i*Math.PI/5+t*.025,end=r*(2.9+(i%4)*.34),sway=Math.sin(t*.7+i*1.7)*r*.14;
+  const rootX=Math.cos(a)*r*.72,rootY=Math.sin(a)*r*.67;
+  const tipX=Math.cos(a)*end,tipY=Math.sin(a)*end+sway;
+  c.beginPath();c.moveTo(rootX,rootY);
+  c.bezierCurveTo(Math.cos(a+.32)*r*1.42,Math.sin(a+.32)*r*1.74,
+   Math.cos(a-.38)*r*2.43,Math.sin(a-.38)*r*2.21+sway*.4,tipX,tipY);
+  c.strokeStyle='rgba(48,16,97,.28)';c.lineWidth=r*.32;c.lineCap='round';c.stroke();
+  c.strokeStyle='rgba(164,80,225,.25)';c.lineWidth=r*.18;c.stroke();
+  c.strokeStyle='rgba(228,153,255,.11)';c.lineWidth=r*.034;c.stroke();
  }
- const skin=c.createRadialGradient(-r*.32,-r*.42,r*.04,0,0,r*1.2);
- skin.addColorStop(0,'rgba(240,187,255,.80)');skin.addColorStop(.38,'rgba(163,77,216,.78)');
- skin.addColorStop(.82,'rgba(84,28,156,.66)');skin.addColorStop(1,'rgba(34,13,77,.57)');
- c.shadowBlur=32;c.shadowColor='#a950f1';c.fillStyle=skin;c.strokeStyle='#c894ff';c.lineWidth=5;
- c.beginPath();c.moveTo(-r*.88,-r*.12);
- c.bezierCurveTo(-r*1.22,-r*.95,r*1.13,-r*1.07,r*.94,-r*.16);
- c.bezierCurveTo(r*1.1,r*.88,r*.48,r*1.16,0,r*.98);
- c.bezierCurveTo(-r*.58,r*1.12,-r*1.16,r*.76,-r*.88,-r*.12);
- c.closePath();c.fill();c.stroke();c.shadowBlur=0;
- for(const sign of [-1,1]){
-  c.save();c.translate(sign*r*.43,-r*.22);c.rotate(sign*.17);
-  c.fillStyle='#180a32';c.beginPath();c.ellipse(0,0,r*.24,r*.29,0,0,Math.PI*2);c.fill();
-  c.shadowColor='#f1adff';c.shadowBlur=19;c.fillStyle='#f8dbff';
-  c.beginPath();c.ellipse(-sign*r*.035,-r*.03,r*.085,r*.13,0,0,Math.PI*2);c.fill();
+ // Jagged cranial horns, visible against the darker purple background.
+ for(const side of [-1,1]){
+  c.save();c.scale(side,1);
+  c.fillStyle='rgba(78,27,122,.91)';c.strokeStyle='rgba(205,124,253,.65)';c.lineWidth=3;
+  c.beginPath();c.moveTo(r*.54,-r*.46);c.bezierCurveTo(r*.99,-r*.93,r*1.43,-r*1.35,r*.83,-r*1.64);
+  c.quadraticCurveTo(r*.99,-r*1.21,r*.34,-r*.82);c.closePath();c.fill();c.stroke();
+  c.beginPath();c.moveTo(r*.71,-r*.05);c.quadraticCurveTo(r*1.36,-r*.44,r*1.38,-r*.13);
+  c.quadraticCurveTo(r*1.32,-r*.34,r*.9,r*.47);c.closePath();
+  c.fillStyle='rgba(82,28,126,.68)';c.fill();c.stroke();
   c.restore();
  }
- // An unsettling, broad smile with individually distinct teeth.
- c.fillStyle='#1c072c';c.strokeStyle='#f1b5ff';c.lineWidth=5;
- c.beginPath();c.moveTo(-r*.65,r*.3);c.quadraticCurveTo(0,r*.7,r*.66,r*.29);
- c.quadraticCurveTo(0,r*1.14,-r*.65,r*.3);c.closePath();c.fill();c.stroke();
- c.fillStyle='#f6e0ff';for(let i=0;i<12;i++){const xx=(i-5.5)*r*.105;
-  c.beginPath();c.moveTo(xx-r*.038,r*.53);c.lineTo(xx+r*.045,r*.53);c.lineTo(xx,r*(.63+(i%3)*.055));c.closePath();c.fill();
+ const skin=c.createRadialGradient(-r*.29,-r*.42,r*.10,0,0,r*1.35);
+ skin.addColorStop(0,'rgba(233,158,253,.89)');
+ skin.addColorStop(.26,'rgba(145,72,213,.83)');
+ skin.addColorStop(.62,'rgba(75,32,147,.88)');
+ skin.addColorStop(.91,'rgba(36,12,84,.92)');
+ skin.addColorStop(1,'rgba(18,6,47,.85)');
+ c.shadowColor='#aa50db';c.shadowBlur=22;c.fillStyle=skin;
+ c.strokeStyle='rgba(199,128,242,.82)';c.lineWidth=4;
+ c.beginPath();c.moveTo(-r*.97,r*.16);
+ c.bezierCurveTo(-r*1.20,-r*.4,-r*.93,-r*1.15,-r*.15,-r*1.04);
+ c.quadraticCurveTo(0,-r*1.24,r*.25,-r*1.09);
+ c.bezierCurveTo(r*.98,-r*1.18,r*1.24,-r*.37,r*.96,r*.20);
+ c.bezierCurveTo(r*1.03,r*.84,r*.53,r*1.10,0,r*1.15);
+ c.bezierCurveTo(-r*.69,r*1.09,-r*1.23,r*.72,-r*.97,r*.16);
+ c.closePath();c.fill();c.stroke();c.shadowBlur=0;
+ // Large faceted forehead and deep creases, a different species from Kraken.
+ c.fillStyle='rgba(202,116,244,.22)';c.beginPath();
+ c.moveTo(-r*.71,-r*.48);c.quadraticCurveTo(0,-r*1.12,r*.65,-r*.47);
+ c.quadraticCurveTo(.0,-r*.69,-r*.71,-r*.48);c.fill();
+ for(const side of [-1,1]){
+  c.save();c.scale(side,1);
+  c.strokeStyle='rgba(34,10,77,.70)';c.lineWidth=6;c.lineCap='round';
+  c.beginPath();c.moveTo(r*.18,-r*.89);c.quadraticCurveTo(r*.29,-r*.60,r*.86,-r*.46);c.stroke();
+  c.beginPath();c.moveTo(r*.30,-r*.69);c.quadraticCurveTo(r*.50,-r*.60,r*.81,-r*.22);c.stroke();
+  // Angled eye cavity gives it a frightening expression, not a cheerful cartoon.
+  c.fillStyle='#110522';c.beginPath();
+  c.moveTo(r*.11,-r*.35);c.quadraticCurveTo(r*.40,-r*.65,r*.82,-r*.39);
+  c.quadraticCurveTo(r*.71,-r*.02,r*.37,-r*.07);c.closePath();c.fill();
+  c.fillStyle='#f4c4ff';c.shadowColor='#db7cff';c.shadowBlur=14;
+  c.beginPath();c.ellipse(r*.47,-r*.29,r*.14,r*.17,side*.18,0,Math.PI*2);c.fill();
+  c.fillStyle='#2e0a56';c.shadowBlur=0;c.beginPath();
+  c.ellipse(r*.50,-r*.29,r*.055,r*.112,side*.18,0,Math.PI*2);c.fill();
+  c.strokeStyle='rgba(248,179,255,.78)';c.lineWidth=3;
+  c.beginPath();c.moveTo(r*.15,-r*.47);c.quadraticCurveTo(r*.46,-r*.66,r*.84,-r*.41);c.stroke();
+  c.restore();
  }
- c.globalAlpha=.7;c.fillStyle='#e9bdff';c.beginPath();c.ellipse(0,-r*.7,r*.48,r*.12,0,0,Math.PI*2);c.fill();
+ // Irregular scars and runic bioluminescent fissures across the upper mantle.
+ c.strokeStyle='rgba(238,161,255,.60)';c.lineWidth=2.7;
+ c.beginPath();c.moveTo(-r*.13,-r*.92);c.lineTo(-r*.24,-r*.66);
+ c.lineTo(-r*.06,-r*.55);c.lineTo(-r*.19,-r*.25);c.stroke();
+ c.strokeStyle='rgba(96,38,160,.62)';c.lineWidth=5;
+ c.beginPath();c.moveTo(r*.14,-r*.87);c.lineTo(r*.10,-r*.61);c.lineTo(r*.27,-r*.51);c.stroke();
+ // A gaping predatory rictus, not a happy crescent. Ivory fangs have staggered
+ // lengths and dark pockets between them, supported by a distinct lower jaw.
+ c.fillStyle='#080316';c.strokeStyle='#b25de0';c.lineWidth=4.4;
+ c.beginPath();c.moveTo(-r*.82,r*.21);
+ c.bezierCurveTo(-r*.58,r*.43,-r*.37,r*.35,0,r*.45);
+ c.bezierCurveTo(r*.36,r*.36,r*.63,r*.32,r*.81,r*.18);
+ c.bezierCurveTo(r*.75,r*.70,r*.36,r*1.02,0,r*.99);
+ c.bezierCurveTo(-r*.43,r*1.02,-r*.76,r*.74,-r*.82,r*.21);
+ c.closePath();c.fill();c.stroke();
+ c.fillStyle='rgba(114,25,130,.56)';c.beginPath();c.ellipse(0,r*.78,r*.45,r*.17,0,0,Math.PI*2);c.fill();
+ for(let i=0;i<15;i++){
+  const x=(-.71+i*.101)*r,edge=Math.abs(i-7)/7,topY=(.39+.10*edge)*r;
+  const toothLength=(.15+(i%4)*.064+(1-edge)*.045)*r;
+  c.fillStyle=i%3?'#f1e3ff':'#fef4ff';
+  c.beginPath();c.moveTo(x-r*.044,topY);
+  c.lineTo(x+r*.041,topY+r*.008);c.lineTo(x-r*.015,topY+toothLength);
+  c.closePath();c.fill();
+ }
+ for(let i=0;i<13;i++){
+  const x=(-.64+i*.107)*r,edge=Math.abs(i-6)/6,bottomY=(.91-.12*edge)*r;
+  const toothLength=(.10+(i%4)*.042)*r;
+  c.fillStyle='#f4daff';c.beginPath();c.moveTo(x-r*.042,bottomY);
+  c.lineTo(x+r*.043,bottomY);c.lineTo(x+.011*r,bottomY-toothLength);
+  c.closePath();c.fill();
+ }
+ // Breathing and flickering cheek veins are subtle; the silhouette remains crisp.
+ c.globalAlpha=.45+.16*pulse;c.strokeStyle='#d896f7';c.lineWidth=2;
+ for(const side of [-1,1]){
+  c.beginPath();c.moveTo(side*r*.76,r*.13);
+  c.quadraticCurveTo(side*r*.93,r*.48,side*r*.66,r*.71);c.stroke();
+ }
  c.restore();
 }
 return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss};
