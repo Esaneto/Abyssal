@@ -1377,7 +1377,7 @@ io.on('connection', socket => {
   if (!p) return;
   socket.emit('player-vitals', playerVitalsPayload(p, { reason: 'resync', serverTime: Date.now() }));
  });
- socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
+ socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload||room.players.get(socket.id)?.tutorialActive)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
  socket.on('request-world-snapshot',(payload={})=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;
   // Resuming a minimized tab may request a snapshot after server-side death. That must
   // not silently create a new horde or restart the clock; only join/begin-run initializes.
@@ -1535,13 +1535,14 @@ io.on('connection', socket => {
   if(shot.special==='photonRay')io.to(channelFor(room)).emit('shared-shot',shot);
   else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
- socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
+ socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability', (payload, acknowledge) => {
   const room = socketRoom(socket);
   if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
    if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
    return;
   }
+  if(room.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}
   const skin = String(payload.skin || '').slice(0,32);
   const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
   if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
@@ -1591,7 +1592,7 @@ io.on('connection', socket => {
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
-  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  if(!room||!player||player.alive===false||player.tutorialActive||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
