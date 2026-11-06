@@ -89,7 +89,7 @@ test('Kraken identity is consistently glass-blue and no longer uses the smiling 
   assert.match(game, /id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7'/);
   assert.match(game, /id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7'/);
   assert.doesNotMatch(game, /#52c8b5/);
-  assert.match(game, /riftSmile:'O SORRISO DO ABISMO'/,'the smiling boss is a separate purple final guardian, never the original glass-blue Kraken');
+  assert.match(game, /riftSmile:'PESADELO ROXO'/,'the smiling boss is a separate purple final guardian, never the original glass-blue Kraken');
 });
 
 test('shop redemption delegates rewards to the authenticated server', () => {

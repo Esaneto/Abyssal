@@ -42,9 +42,9 @@
     'Derrote o boss da camada para liberar os vórtices: um retorna à superfície e outro leva à profundidade seguinte.',
     'Navegue até o vórtice e interaja para escolher seu destino. Sobreviver e extrair o saque vale mais do que perder tudo nas profundezas.',
     'Elites e encontros especiais podem entregar experiência, fragmentos e baús. Fique atento aos sinais da expedição.',
-    'Vulcões, fumarolas, tentáculos, redemoinhos, pressão, eletricidade e desmoronamentos ativam avisos antes de causar dano. Observe os sinais e atravesse durante a pausa.',
+    'Vulcões jorram até a parede oposta; as plantas espalham veneno pela área sem atravessar rochas. Espinhos disparam e recolhem lentamente. Vórtices ocupam corredores. Os tentáculos saem de fendas escuras e são ataques surpresa.',
     'Se morrer, você renasce no início da câmara com proteção temporária, sem abandonar a expedição.',
-    'Na oitava camada, O Sorriso do Abismo exige desviar das marcas vermelhas de seus tentáculos. Sua vitória libera o Baú Mofado Dourado com 100.000 moedas e uma skin garantida.'
+    'Na oitava camada, Pesadelo Roxo exige desviar das marcas vermelhas de seus tentáculos. Sua vitória libera o Baú Mofado Dourado com 100.000 moedas e uma skin garantida.'
    ],end:'Enquanto você lê, está protegido de dano e suas ações ofensivas ficam suspensas.'
   },
   'rift-solo':{
@@ -55,9 +55,9 @@
     'Derrote o boss para ativar dois vórtices: retorno à superfície e descida à próxima camada.',
     'Aproxime-se de um vórtice e interaja para viajar. Você pode extrair o saque ou assumir maior risco e continuar descendo.',
     'Escolha ressonâncias ao subir de nível para se preparar para a pressão crescente.',
-    'Vulcões, fumarolas, desmoronamentos, espinhos, iscas, correntes, pressão e tentáculos mostram avisos antes do impacto. Os tentáculos indicam a área de ataque em vermelho translúcido.',
+    'O fogo espirra até a rocha oposta; o gás verde se espalha por todo o espaço aberto. Espinhos cruzam rapidamente de parede a parede, e vórtices bloqueiam corredores. Tentáculos avançam de buracos escuros e recuam lentamente.',
     'A morte não encerra este mergulho: você retorna ao início da sala, recupera a vida e mantém os upgrades.',
-    'No oitavo patamar, derrote O Sorriso do Abismo para abrir o Baú Mofado Dourado com 100.000 moedas e uma skin garantida.'
+    'No oitavo patamar, derrote Pesadelo Roxo para abrir o Baú Mofado Dourado com 100.000 moedas e uma skin garantida.'
    ],end:'O tempo do mundo solo fica suspenso enquanto este manual estiver na tela.'
   }
  };

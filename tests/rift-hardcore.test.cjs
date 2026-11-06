@@ -36,7 +36,7 @@ test('tentacle warning collision uses exactly the same line geometry as the atta
  assert.equal(H.bossHit(mark,90,0),true);
  assert.equal(H.bossHit(mark,9999,9999),false);
 });
-test('the last layer summons the stationary Sorriso do Abismo with a purple body',()=>{
+test('the last layer summons the stationary Pesadelo Roxo with a purple body',()=>{
  const w=W.createWorldState(0,'rift');w.mapSeed=75443;w.mapTier=H.FINAL_TIER;w.initialized=true;W.seedRiftEncounters(w);
  const layout=W.mapLayoutFor(w),room=layout.rooms.find(r=>r.id==='boss');
  const spawned=W.activateRiftEncounters(w,[{id:'p',x:room.x,y:room.y,hp:100,alive:true}],()=>.5);
