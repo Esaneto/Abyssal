@@ -460,7 +460,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Each hazard has a visible warning phase; damage can occur only in its active phase.
   if(riftMode&&mapLayout){
     for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
-      if(RiftHardcore.state(hazard,world.elapsed).phase!=='active')continue;
+      const phase=RiftHardcore.state(hazard,world.elapsed);
+      if(phase.phase!=='active')continue;
       for(const target of validPlayers){
         if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM))continue;
         target.riftHazardCooldowns ||= Object.create(null);
