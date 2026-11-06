@@ -29,8 +29,8 @@ test('legacy coin prices follow the power hierarchy on client and server',()=>{
  }
 });
 
-test('premium fallback prices preserve the original BRL table',()=>{
- const marker="const paidBrl=Object.freeze({violet:390,reefshark:590,hammerhead:590,abysscroc:690,armoredgator:690,angler:1290,maw:1490,aberration:1490,leviathan:1690,kraken:1890,devourer:1990});";
+test('premium fallback prices match updated crocodilian BRL catalog',()=>{
+ const marker="const paidBrl=Object.freeze({saltcroc:999,blackcaiman:999,violet:390,reefshark:590,hammerhead:590,abysscroc:690,armoredgator:690,angler:1290,maw:1490,aberration:1490,leviathan:1690,kraken:1890,devourer:1990});";
  assert.ok(game.includes(marker));
 });
 

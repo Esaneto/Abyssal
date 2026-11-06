@@ -13,10 +13,10 @@ const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 
 test('descent gate is loaded as a lightweight client-only menu layer',()=>{
  assert.match(index,/abyssal-rebuild\.css\?v=2/);
- assert.match(index,/abyssal-rebuild\.js\?v=3/);
+ assert.match(index,/abyssal-rebuild\.js\?v=7/);
  assert.match(rebuild,/DESCIDA ABISSAL/);
- assert.match(rebuild,/DESCER SOZINHO/);
- assert.match(rebuild,/DESCER EM CARDUME/);
+ assert.match(rebuild,/EXPLORAR SOZINHO/);
+ assert.match(rebuild,/MERGULHAR EM CARDUME/);
  assert.doesNotMatch(rebuild,/socket\.emit|sendPosition|sendDamageBatch/);
  assert.match(css,/prefers-reduced-motion:reduce/);
 });
@@ -47,7 +47,7 @@ test('depth and event UI remains cosmetic and does not add gameplay network traf
 test('rift expedition is explicit and its exits replace the old boss checkpoint overlay',()=>{
  assert.match(game,/expeditionMode=isRiftRun\(\)/);
  assert.doesNotMatch(game,/dispatchEvent\(new CustomEvent\('abyssal-expedition-checkpoint'/);
- assert.match(game,/clearedBosses>activeMapTier&&!bossAlive/);
+ assert.match(game,/const unlocked=cavePortalsUnlocked\(\)/);
  assert.match(game,/pauseExpedition:\(\)=>\{if\(!expeditionMode\|\|onlineMode/);
  assert.match(server,/const expedition=Boolean\(!member&&payload\.expedition===true\)/);
 });

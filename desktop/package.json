@@ -1,6 +1,6 @@
 {
   "name": "abyssal-desktop",
-  "version": "3.5.9",
+  "version": "3.5.10",
   "description": "Abyssal desktop app for Windows",
   "main": "main.cjs",
   "private": true,
@@ -19,23 +19,40 @@
     },
     "files": [
       "main.cjs",
-      "package.json"
+      "package.json",
+      "build/icon.ico"
     ],
     "artifactName": "Abyssal-Setup.exe",
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
-      ]
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "../public",
+        "to": "offline-web",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   }
 }

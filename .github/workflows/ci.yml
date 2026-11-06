@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check scripts/configure-android.cjs
           node --check scripts/configure-android-signing.cjs
+          node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
 
@@ -61,7 +62,7 @@ jobs:
       - name: Install server dependencies
         run: npm ci
       - name: Install Capacitor tooling
-        run: npm install --no-save --package-lock=false @capacitor/core@8 @capacitor/android@8 @capacitor/cli@8
+        run: npm install --no-save --package-lock=false @capacitor/core@8 @capacitor/android@8 @capacitor/cli@8 sharp@0.34.4
       - name: Generate Android project
         run: npx cap add android
       - name: Force API 36
@@ -79,11 +80,39 @@ jobs:
           else
             echo "Play signing secrets not configured yet; debug APK will still be built."
           fi
+      - name: Generate Android launcher icons and adaptive foreground
+        run: node scripts/build-app-icons.cjs --android
       - name: Sync game assets
         run: npx cap sync android
+      - name: Verify offline game is bundled inside Android app
+        run: |
+          test -s android/app/src/main/assets/public/index.html
+          test -s android/app/src/main/assets/public/game.js
+          test -s android/app/src/main/assets/public/offline-ui.js
+          test -s android/app/src/main/assets/public/abyssal-map.js
+          if grep -q '"url"[[:space:]]*:[[:space:]]*"https://abyssal' capacitor.config.json; then
+            echo "Android cannot use a remote-only server.url for offline solo" >&2
+            exit 1
+          fi
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
+      - name: Verify Android APK embeds the native anchor launcher
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" > android-apk-badging.txt
+          grep -q 'application-icon-' android-apk-badging.txt
+          unzip -Z1 "$APK" > /tmp/abyssal-apk-files.txt
+          grep -q 'ic_launcher_round' /tmp/abyssal-apk-files.txt
+          grep -q 'ic_launcher_foreground' /tmp/abyssal-apk-files.txt
+          ICON_PATH=$(grep -E "res/mipmap-xxhdpi(-v4)?/ic_launcher[.]png$" /tmp/abyssal-apk-files.txt | head -1)
+          if [ -z "$ICON_PATH" ]; then echo "Missing native APK launcher PNG" >&2; exit 1; fi
+          unzip -p "$APK" "$ICON_PATH" > /tmp/abyssal-apk-launcher.png
+          node scripts/check-icon-pixels.cjs /tmp/abyssal-apk-launcher.png
       - name: Validate unsigned release AAB
         if: env.ANDROID_KEYSTORE_BASE64 == ''
         working-directory: android

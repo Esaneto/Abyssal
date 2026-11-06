@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
-<link rel="icon" type="image/svg+xml" href="favicon.svg?v=3.5.12">
+<link rel="icon" href="/favicon.svg?v=5" type="image/svg+xml">
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
@@ -18,8 +18,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="icon" href="abyssal-icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="abyssal-icon.svg">
+
+<link rel="apple-touch-icon" href="/abyssal-icon.svg?v=5">
 <!-- Google AdSense / H5 Games: SDK carregado uma única vez para verificação do site e anúncios recompensados -->
 <script async data-ad-client="ca-pub-2314281138409028"
   data-ad-frequency-hint="120s"
@@ -36,7 +36,10 @@
   }});
 })();
 </script>
-<link rel="stylesheet" href="abyssal-menu-orbit.css?v=2">
+<link rel="stylesheet" href="abyssal-menu-orbit.css?v=9">
+<link rel="stylesheet" href="abyssal-shop-blood-theme.css?v=2">
+<link rel="stylesheet" href="abyssal-interface-harmony.css?v=2">
+<link rel="stylesheet" href="offline-ui.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -91,28 +94,53 @@
       <div class="menu-content">
         <div class="eyebrow"><span class="pulse-dot"></span> SINAL DETECTADO · SETOR 07</div>
         <h1>Mergulhadores<br><em>Abissais</em></h1>
-        <p class="intro">Seu sinal atravessou uma região apagada dos mapas. Algo respondeu do fundo — e está vindo na direção da luz.</p>
-        <button id="resonanceBtn" class="secondary-btn resonance-menu-btn" type="button"><span class="resonance-label"><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>RESSONÂNCIA</span></button>
-        <button id="playBtn" class="primary-btn">MERGULHAR SOLO <span>↗</span></button>
-        <button id="wheelBtn" class="wheel-cta" aria-label="Abrir roleta abissal">
+      </div>
+      <nav class="abyss-orbit-navigation" aria-label="Navegação principal do Abyssal">
+          <div class="menu-secondary-actions">
+            <button id="resonanceBtn" class="secondary-btn resonance-menu-btn menu-action" type="button"><span class="resonance-label"><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>RESSONÂNCIA</span></button>
+            <button id="wheelBtn" class="wheel-cta menu-action" aria-label="Abrir roleta abissal">
           <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
         </button>
-        
-        <div class="menu-secondary-actions">
-          <button id="onlineBtn" class="secondary-btn menu-action online-cta"><span class="online-cta-copy"><strong>MERGULHAR ONLINE</strong></span><svg class="online-cta-icon menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-2 2.5L13 7"/><path d="M11 4.5h3.5a6.5 6.5 0 0 1 0 13H13"/><path d="m11 22 2-2.5-2-2.5"/><path d="M13 19.5H9.5a6.5 6.5 0 0 1 0-13H11"/></svg></button>
-          <button id="shopBtn" class="secondary-btn menu-action"><span class="menu-action-label">LOJA DE SKINS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14h18V6l-3-4Z"/><path d="M3 6h18"/><path d="M8 10a4 4 0 0 0 8 0"/></svg></button>
-          <button id="catalogBtn" class="secondary-btn menu-action"><span class="menu-action-label">ABYSSARIO</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8"/><path d="M8 11h5"/></svg></button>
-          <button id="rankingsBtn" class="secondary-btn menu-action"><span class="menu-action-label">RANKINGS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg></button>
-          <button id="cardumesBtn" class="secondary-btn menu-action"><span class="menu-action-label">CARDUMES</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.5c-2.5-3-6-3-8.5-.5 2.5 2.5 6 2.5 8.5-.5l3 2v-5l-3 2Z"/><path d="M13 15c-2-2-4.5-2-6.5 0 2 2 4.5 2 6.5 0l2 1.5v-4L13 14"/></svg></button>
-          <button id="profileBtn" class="secondary-btn menu-action"><span class="menu-action-label">PERFIL & TÍTULOS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
-          <button id="matchHistoryBtn" class="secondary-btn menu-action"><span class="menu-action-label">HISTÓRICO DE PARTIDAS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
-          <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal"><span class="menu-action-label">SUPORTE</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></button>
-        </div>
-        <div class="account-line menu-account-utility"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
-      </div>
+            <button id="profileBtn" class="secondary-btn menu-action"><span class="menu-action-label">PERFIL</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
+            <button id="onlineBtn" class="secondary-btn menu-action online-cta"><span class="online-cta-copy"><strong>MERGULHAR ONLINE</strong></span><svg class="online-cta-icon menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-2 2.5L13 7"/><path d="M11 4.5h3.5a6.5 6.5 0 0 1 0 13H13"/><path d="m11 22 2-2.5-2-2.5"/><path d="M13 19.5H9.5a6.5 6.5 0 0 1 0-13H11"/></svg></button>
+            <button id="rankingsBtn" class="secondary-btn menu-action"><span class="menu-action-label">RANKING</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg></button>
+            <button id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn tentacle-brown-btn" aria-label="Catálogo de Espécimes"><span class="menu-action-label">LOJA</span><svg class="menu-nav-icon ui-icon tentacle-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9C7 5.2 9 3 12 3s5 2.2 5 6v5c0 3.3-2.2 4.6-4 3.1"/><path d="M7 13C2.2 13 3 20 7.6 19c1.7-.4 2.6-2.6.9-3.1M17 13c4.8 0 4 7-0.6 6-1.7-.4-2.6-2.6-.9-3.1"/><path d="M10 16c-3 4-1.4 6 1 5m3-5c3 4 1.4 6-1 5"/><circle cx="10" cy="9.6" r=".65" fill="currentColor" stroke="none"/><circle cx="14" cy="9.6" r=".65" fill="currentColor" stroke="none"/></svg><svg class="specimen-tentacle-frame" viewBox="0 0 260 150" preserveAspectRatio="none" aria-hidden="true" focusable="false" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="specimenArmPurple" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#e19aff"/><stop offset=".44" stop-color="#a646f2"/><stop offset="1" stop-color="#58179d"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 126C3 104 10 81 26 70S49 37 34 23C19 10 10 24 20 34C26 41 34 38 32 30" stroke="#25083d" stroke-width="12"/>
+    <path d="M22 126C3 104 10 81 26 70S49 37 34 23C19 10 10 24 20 34C26 41 34 38 32 30" stroke="url(#specimenArmPurple)" stroke-width="7.5"/>
+    <path d="M237 126C257 108 252 84 236 75S211 40 226 24C240 10 254 25 243 36C237 42 228 39 231 31" stroke="#25083d" stroke-width="12"/>
+    <path d="M237 126C257 108 252 84 236 75S211 40 226 24C240 10 254 25 243 36C237 42 228 39 231 31" stroke="url(#specimenArmPurple)" stroke-width="7.5"/>
+    <path d="M45 143C63 130 54 118 43 116S31 132 43 133C48 133 49 129 46 126" stroke="#25083d" stroke-width="9"/>
+    <path d="M45 143C63 130 54 118 43 116S31 132 43 133C48 133 49 129 46 126" stroke="url(#specimenArmPurple)" stroke-width="5.5"/>
+    <path d="M213 143C195 130 204 118 216 116S229 132 217 133C211 133 210 129 213 126" stroke="#25083d" stroke-width="9"/>
+    <path d="M213 143C195 130 204 118 216 116S229 132 217 133C211 133 210 129 213 126" stroke="url(#specimenArmPurple)" stroke-width="5.5"/>
+  </g>
+  <g fill="#e3b5ff" opacity=".78">
+    <circle cx="17" cy="103" r="2.3"/><circle cx="19" cy="91" r="2.1"/><circle cx="29" cy="72" r="2.1"/><circle cx="35" cy="56" r="1.7"/>
+    <circle cx="243" cy="104" r="2.3"/><circle cx="240" cy="92" r="2.1"/><circle cx="229" cy="76" r="2.1"/><circle cx="221" cy="60" r="1.8"/>
+    <circle cx="49" cy="126" r="1.6"/><circle cx="210" cy="126" r="1.6"/>
+  </g>
+</svg></button>
+          </div>
+          <button id="playBtn" class="primary-btn" aria-label="Mergulhar solo">MERGULHAR <span>↗</span></button>
+          <div class="abyss-orbit-extras" aria-label="Outras opções do Abyssal">
+            <button id="catalogBtn" class="secondary-btn menu-action"><span class="menu-action-label">ABYSSARIO</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8"/><path d="M8 11h5"/></svg></button>
+            <button id="cardumesBtn" class="secondary-btn menu-action"><span class="menu-action-label">CARDUMES</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.5c-2.5-3-6-3-8.5-.5 2.5 2.5 6 2.5 8.5-.5l3 2v-5l-3 2Z"/><path d="M13 15c-2-2-4.5-2-6.5 0 2 2 4.5 2 6.5 0l2 1.5v-4L13 14"/></svg></button>
+            <button id="matchHistoryBtn" class="secondary-btn menu-action"><span class="menu-action-label">HISTÓRICO DE PARTIDAS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
+            <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal"><span class="menu-action-label">SUPORTE</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></button>
+            <button id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility" tabindex="-1" aria-hidden="true" hidden type="button">CONTROLES <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v3.6A4.7 4.7 0 0 0 6.7 18l2.1-2h6.4l2.1 2a4.7 4.7 0 0 0 4.7-4.7V9.7A4.7 4.7 0 0 0 17.3 5Z"/></svg></button>
+          </div>
+        </nav>
+      <p class="intro"><strong>Explore o Abismo.</strong><span>Descubra novas habilidades. Enfrente desafios épicos.</span></p>
+      <div class="account-line menu-account-utility"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
       <div class="language-setting menu-language-utility"><label for="languageSelect">IDIOMA / LANGUAGE</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
       <button id="downloadBtn" class="secondary-btn download-cta desktop-menu-utility" type="button" aria-label="Abrir opções de download">BAIXAR <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
-      <button id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility" type="button">CONTROLES <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v3.6A4.7 4.7 0 0 0 6.7 18l2.1-2h6.4l2.1 2a4.7 4.7 0 0 0 4.7-4.7V9.7A4.7 4.7 0 0 0 17.3 5Z"/></svg></button>
+      
       <div class="menu-fauna" aria-hidden="true">
         <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
         <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
@@ -547,8 +575,9 @@
       </div>
     </section>
 
-<script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
-<script src="i18n.js?v=3"></script>
+<script src="offline-ui.js?v=1"></script>
+<!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
+<script src="i18n.js?v=6"></script>
 <script src="abyssal-curated-skins.js?v=1"></script>
 <script src="skin-abilities.js?v=2026.11.5.3.3.7.2"></script>
 <script src="enemy-ai.js?v=3.7.0"></script>
@@ -557,11 +586,12 @@
 <script src="enemy-netcode.js?v=3.5.13"></script>
 <script src="skill-audio.js?v=3.5.12"></script>
 <script src="photon-ray-config.js?v=2"></script>
-<script src="ocean-terrain.js?v=2"></script>
-<script src="game.js?v=2026.11.5.4"></script>
+<script src="ocean-terrain.js?v=3"></script>
+<script src="game.js?v=2026.11.6.1"></script>
 <script src="net-codec.js?v=4.2.0"></script>
 <script src="online.js?v=4.4.3"></script>
-<script src="abyssal-rebuild.js?v=3"></script>
+<script src="abyssal-rebuild.js?v=7"></script>
+
 <script>
 (()=>{
   if(window.__abyssalFullscreenHandlerReady)return;
