@@ -393,76 +393,103 @@ function poisonousAnemone(c,h,s,t){
  c.restore();
 }
 function deepCurrentPit(c,h,s,t){
- const x=h.x,y=h.y,r=h.radius,active=s.phase==='active',warning=s.phase==='warning';
- c.save();
- // Permanent dark depression on the floor, even when the current is dormant.
- const pit=c.createRadialGradient(x-r*.17,y-r*.12,3,x,y,r*.9);
- pit.addColorStop(0,'#01060e');pit.addColorStop(.38,'#02111d');
- pit.addColorStop(.73,'#0b2940');pit.addColorStop(.93,'rgba(36,76,95,.66)');
- pit.addColorStop(1,'rgba(6,31,48,0)');
- c.fillStyle=pit;c.beginPath();c.ellipse(x,y,r,r*.78,0,0,Math.PI*2);c.fill();
- c.lineWidth=3;c.strokeStyle='rgba(90,153,182,.26)';
- for(let i=0;i<3;i++){c.beginPath();c.ellipse(x,y,r*(.39+i*.18),r*(.25+i*.15),0,0,Math.PI*2);c.stroke();}
- if(warning){
-  // Rising bubbles visibly expand and pop BEFORE the suction begins.
-  for(let i=0;i<16;i++){
-   const q=(i*.19+s.progress*.92)%1;
-   const a=i*2.399+t*.0002,rr=r*(.18+.55*(1-q));
-   const px=x+Math.cos(a)*rr,py=y+Math.sin(a)*rr-q*21;
-   const radius=2.5+7*q;
-   c.globalAlpha=(1-q)*.83;c.lineWidth=1.8;
-   c.strokeStyle=i%3?'#98dff4':'#d9ffff';
-   c.beginPath();c.arc(px,py,radius,0,Math.PI*2);c.stroke();
-   if(q>.78){c.beginPath();for(let b=0;b<4;b++){
-    const ba=b*Math.PI/2+a;c.moveTo(px+Math.cos(ba)*radius,py+Math.sin(ba)*radius);
-    c.lineTo(px+Math.cos(ba)*(radius+5*q),py+Math.sin(ba)*(radius+5*q));
-   }c.stroke();}
-  }
+ // A cross-passage hydraulic sink. Its outer ellipse touches both rock walls
+ // while its central void follows the corridor direction.
+ const rx=h.axialRadius||165,ry=h.acrossRadius||h.radius;
+ c.save();c.translate(h.x,h.y);c.rotate(h.angle||0);
+ const pit=c.createRadialGradient(-rx*.14,-ry*.09,3,0,0,Math.max(rx,ry)*1.05);
+ pit.addColorStop(0,'rgba(0,3,10,.98)');
+ pit.addColorStop(.4,'rgba(1,13,24,.96)');
+ pit.addColorStop(.78,'rgba(6,30,43,.87)');
+ pit.addColorStop(.97,'rgba(24,66,77,.61)');
+ pit.addColorStop(1,'rgba(12,34,48,.04)');
+ c.fillStyle=pit;c.beginPath();c.ellipse(0,0,rx,ry,0,0,Math.PI*2);c.fill();
+ c.strokeStyle='rgba(72,133,150,.28)';c.lineWidth=2;
+ for(let i=0;i<3;i++){
+  const q=.43+i*.21;c.beginPath();c.ellipse(0,0,rx*q,ry*q,0,0,Math.PI*2);c.stroke();
  }
- if(active){
-  const size=dangerRadius(h,s);
-  c.globalAlpha=.23;c.fillStyle='#0d5579';
-  c.beginPath();c.ellipse(x,y,size,size*.85,0,0,Math.PI*2);c.fill();
-  c.globalAlpha=.85;c.lineCap='round';
-  for(let i=0;i<4;i++){
-   const start=t*.0026+i*Math.PI/2,rad=size*(.32+i*.2);
-   c.beginPath();c.arc(x,y,rad,start,start+Math.PI*1.34);
-   c.strokeStyle=i%2?'#6db7d8':'#b8eeff';c.lineWidth=3.5-i*.48;c.stroke();
+ if(s.phase==='warning'){
+  // The bubbles wake first, then pop: the siphon does not activate instantly.
+  for(let i=0;i<22;i++){
+   const q=(i*.17+s.progress*.96)%1,a=i*2.399+t*.00016;
+   const px=Math.cos(a)*rx*(.19+.60*(1-q)),py=Math.sin(a)*ry*(.19+.60*(1-q));
+   const bubbleR=3+8*q;
+   c.globalAlpha=(1-q)*.77;
+   c.strokeStyle=i%3?'#8ad2de':'#d9eff4';c.lineWidth=1.4;
+   c.beginPath();c.arc(px,py,bubbleR,0,Math.PI*2);c.stroke();
+   if(q>.82)for(let j=0;j<4;j++){
+    const theta=j*Math.PI*.5;
+    c.beginPath();c.moveTo(px+Math.cos(theta)*bubbleR,py+Math.sin(theta)*bubbleR);
+    c.lineTo(px+Math.cos(theta)*(bubbleR+5),py+Math.sin(theta)*(bubbleR+5));c.stroke();
+   }
   }
-  for(let i=0;i<15;i++){
-   const q=i/15,a=i*2.399+t*.0035,rad=size*(.15+.79*((i*5%17)/17));
-   paintedCircle(c,x+Math.cos(a)*rad,y+Math.sin(a)*rad*.79,1.8+(i%4),i%3?'#93d7f4':'#e3fbff');
+ }else if(s.phase==='active'){
+  const scale=Math.min(1,(s.progress+.10)*2.15);
+  c.globalAlpha=.23;c.fillStyle='#0c5e80';
+  c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
+  c.globalAlpha=.84;c.lineCap='round';
+  for(let i=0;i<5;i++){
+   const q=.2+i*.16;
+   c.beginPath();c.ellipse(0,0,rx*q*scale,ry*q*scale,t*.0015+i*.4,-2.7,2.3);
+   c.strokeStyle=i%2?'#7cbcca':'#c3e8ef';c.lineWidth=3-i*.35;c.stroke();
   }
-  const eye=c.createRadialGradient(x,y,1,x,y,size*.24);
-  eye.addColorStop(0,'#01050e');eye.addColorStop(.7,'#041d30');eye.addColorStop(1,'rgba(19,75,104,0)');
-  c.fillStyle=eye;c.beginPath();c.arc(x,y,size*.25,0,Math.PI*2);c.fill();
+  for(let i=0;i<18;i++){
+   const angle=i*2.399+t*.0027,q=.18+(i%8)*.098;
+   paintedCircle(c,Math.cos(angle)*rx*q*scale,Math.sin(angle)*ry*q*scale,
+    1.5+(i%4),'rgba(170,223,232,.73)');
+  }
+  c.fillStyle='#01050e';c.beginPath();c.ellipse(0,0,rx*.22*scale,ry*.23*scale,0,0,Math.PI*2);c.fill();
  }
  c.restore();
 }
 function tentacleTrap(c,original,s,t){
  const h=hazardAtCycle(original,s.cycle),length=h.length||240,r=h.radius;
- wallSeam(c,h,t,'#a679c3',s,1.0);
  if(!Number.isFinite(h.sourceX))return;
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- if(s.phase==='warning'||s.phase==='active'){
-  // Only tentacles use the red footprint. It begins at the fissure and
-  // precisely shares the same axis and width as the server-side hit segment.
-  c.beginPath();c.roundRect(0,-r*.5,length,r,Math.max(10,r*.30));
-  c.fillStyle=s.phase==='warning'?'rgba(255,34,60,'+(.09+.13*s.progress)+')':'rgba(211,73,128,.24)';
-  c.strokeStyle=s.phase==='warning'?'rgba(255,62,79,.88)':'rgba(233,152,201,.64)';
-  c.lineWidth=s.phase==='warning'?2.2:1.5;
-  c.shadowColor='#ff4665';c.shadowBlur=6;c.fill();c.stroke();c.shadowBlur=0;
+ // It lives in a recessed DARK opening. No purple spawn icon or warning halo.
+ const mouth=c.createRadialGradient(-11,0,2,-11,0,42);
+ mouth.addColorStop(0,'rgba(0,0,6,.98)');
+ mouth.addColorStop(.45,'rgba(1,7,15,.95)');
+ mouth.addColorStop(.84,'rgba(5,22,32,.5)');
+ mouth.addColorStop(1,'rgba(4,22,30,0)');
+ c.fillStyle=mouth;c.beginPath();c.ellipse(-12,0,47,38,0,0,Math.PI*2);c.fill();
+ c.strokeStyle='rgba(32,70,82,.42)';c.lineWidth=2;c.beginPath();
+ c.ellipse(-9,0,26,22,0,-2.4,2.4);c.stroke();
+ // Keep red localized to the impact warning, not to the origin of the tentacle.
+ if(s.phase==='warning'&&s.progress>.65){
+  c.globalAlpha=.18+.20*(s.progress-.65)/.35;c.fillStyle='#ff2b51';
+  c.strokeStyle='rgba(255,65,92,.77)';c.lineWidth=2.2;
+  c.beginPath();c.roundRect(8,-r*.47,length-8,r*.94,r*.43);c.fill();c.stroke();
  }
  if(s.phase==='active'){
-  // A translucent serpent arm slides out of the crack. Tip stays inside the mark.
-  const sway=Math.sin(t*.007)*r*.10;
-  c.lineCap='round';c.strokeStyle='rgba(71,25,97,.89)';c.lineWidth=r*.53;
-  c.shadowColor='#a35cbe';c.shadowBlur=10;
-  c.beginPath();c.moveTo(0,0);c.bezierCurveTo(length*.3,sway,length*.63,-sway*.6,length-7,0);c.stroke();
-  c.strokeStyle='rgba(174,117,204,.76)';c.lineWidth=r*.17;c.shadowBlur=2;c.stroke();c.shadowBlur=0;
-  for(let i=1;i<=11;i++){
-   const xx=length*i/12,yy=Math.sin(i*.6+t*.006)*r*.08;
-   c.fillStyle='rgba(197,162,214,.56)';c.beginPath();c.ellipse(xx,yy,2.1,1.5,0,0,Math.PI*2);c.fill();
+  const reach=extension(h,s),tip=Math.max(2,reach*length);
+  const sway=Math.sin(t*.006)*r*.14;
+  if(reach>.025){
+   // Downstroke comes forward out of the hole, then retracts in a slow
+   // continuous animation. A tapered translucent body and suckers belong
+   // to the same root, not a sprite that blinks into the middle of the map.
+   const grad=c.createLinearGradient(0,-r*.37,0,r*.37);
+   grad.addColorStop(0,'rgba(198,143,240,.61)');
+   grad.addColorStop(.23,'rgba(116,51,165,.82)');
+   grad.addColorStop(.73,'rgba(61,24,105,.86)');
+   grad.addColorStop(1,'rgba(190,125,227,.65)');
+   c.lineCap='round';c.strokeStyle='rgba(15,4,40,.70)';
+   c.lineWidth=r*.84;c.beginPath();c.moveTo(-1,0);
+   c.bezierCurveTo(tip*.34,-r*.17,tip*.66,sway,tip,0);c.stroke();
+   c.strokeStyle=grad;c.lineWidth=r*.69;c.shadowColor='#8e3cba';c.shadowBlur=9;c.stroke();
+   c.shadowBlur=0;
+   c.strokeStyle='rgba(232,181,250,.43)';c.lineWidth=r*.11;
+   c.beginPath();c.moveTo(7,-r*.2);
+   c.bezierCurveTo(tip*.34,-r*.35,tip*.68,sway-r*.15,tip,-r*.06);c.stroke();
+   // Double lines of translucent suckers, tapering near the tip.
+   for(let i=1;i<Math.max(2,Math.floor(17*reach));i++){
+    const q=i/18,x=q*tip,base=Math.sin(q*Math.PI)*r*.32;
+    for(const sign of [-1,1]){
+     c.beginPath();c.ellipse(x,sign*base+sway*q*.34,Math.max(1,3.7*(1-q)),Math.max(1,2.1*(1-q)),0,0,Math.PI*2);
+     c.fillStyle='rgba(235,178,244,.58)';c.fill();
+     c.strokeStyle='rgba(66,23,99,.46)';c.lineWidth=.8;c.stroke();
+    }
+   }
   }
  }
  c.restore();
