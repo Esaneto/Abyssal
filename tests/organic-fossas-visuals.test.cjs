@@ -60,7 +60,8 @@ test('tentacle locations are deterministic per attack cycle and never hit outsid
  for(const h of tentacles){
   const attack=H.state(h,inPhase(h,.23)),next=H.state(h,inPhase(h,.23)+h.period);
   assert.equal(attack.phase,'active');assert.equal(next.cycle,attack.cycle+1);
-  const p=h.sourceX+Math.cos(h.angle)*h.length*.2,q=h.sourceY+Math.sin(h.angle)*h.length*.2;
+  const current=H.hazardAtCycle(h,attack.cycle);
+  const p=current.sourceX+Math.cos(current.angle)*current.length*.2,q=current.sourceY+Math.sin(current.angle)*current.length*.2;
   assert.equal(H.hit(h,p,q,0,attack),true,'tentacle causes damage only at the impact');
   assert.equal(H.hit(h,p+900,q+900,0,attack),false);
   assert.equal(H.hit(h,p,q,0,H.state(h,inPhase(h,.75))),false,'tentacle retreat is no longer a strike');
@@ -124,9 +125,9 @@ test('every hazard renders at rest, during its distinct warning and during attac
    if(h.type!=='tentacle'){
     assert.ok(!paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
      'non-tentacle cannot use the filled red attack telegraph: '+h.id);
-   }else if(phase!=='idle'){
-    assert.ok(paints.some(col=>col.startsWith('rgba(255,34,60,')||col.startsWith('rgba(211,73,128,')),
-     'tentacle must display its red geometry before/while hitting');
+   }else if(phase==='warning'){
+    assert.ok(!paints.some(col=>col.startsWith('rgba(255,34,60,')),
+     'the hole stays secret during the initial warning, without purple spawn icon');
    }
   }
  }
@@ -145,7 +146,8 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
   assert.equal(Map.isWalkable(layout,inX,inY),true,h.id+' enters playable water');
   const phase=H.state(h,inPhase(h,h.type==='tentacle'?.23:h.type==='spikes'?.16:.5));
   if(h.type!=='fumarole'&&h.type!=='rockfall'&&h.type!=='lure'&&h.type!=='pressure'){
-   const inside=H.hit(h,h.x,h.y,0,phase);
+   const target=h.type==='tentacle'?H.hazardAtCycle(h,phase.cycle):h;
+   const inside=H.hit(h,target.x,target.y,0,phase);
    assert.ok(inside,'hazard center must be within its own active geometry: '+h.id);
   }
  }
@@ -183,8 +185,33 @@ test('volcanoes reach the opposite wall and stop without passing through rock',(
   const afterX=h.sourceX+Math.cos(a)*(d+46);
   const afterY=h.sourceY+Math.sin(a)*(d+46);
   assert.ok(Map.isWalkable(layout,beforeX,beforeY),'flames reach navigable water near the opposite wall');
-  assert.equal(Map.isWalkable(layout,afterX,afterY),false,'jet stops against solid terrain');
+  // The raycast stops at the first obstruction, even if a second cavern opens after it.
+  assert.ok(d>120,'jet travels much farther than the old decorative plume');
   assert.equal(H.hit(h,beforeX,beforeY,0,H.state(h,inPhase(h,.45))),true);
   assert.equal(H.hit(h,afterX,afterY,0,H.state(h,inPhase(h,.45))),false);
+ }
+});
+
+test('the purple tentacle has a hidden wall opening, rapid impact, and prolonged recovery',()=>{
+ const h=hazards.find(item=>item.type==='tentacle');assert.ok(h);
+ const warning=H.state(h,h.period-h.offset-h.active-h.warning*.5);
+ const strike=H.state(h,inPhase(h,.22));
+ const recovery=H.state(h,inPhase(h,.80));
+ assert.equal(H.extension(h,warning),0);
+ assert.ok(H.extension(h,strike)>.99);
+ assert.ok(H.extension(h,recovery)<.5);
+ const cur=H.hazardAtCycle(h,strike.cycle);
+ const x=cur.sourceX+Math.cos(cur.angle)*cur.length*.45,y=cur.sourceY+Math.sin(cur.angle)*cur.length*.45;
+ assert.equal(H.hit(h,x,y,0,warning),false);
+ assert.equal(H.hit(h,x,y,0,strike),true);
+ assert.equal(H.hit(h,x,y,0,recovery),false);
+});
+test('nearly full-width corridor vortex occupies the route rather than a mob chamber',()=>{
+ const vortex=hazards.filter(h=>h.type==='vortex');
+ assert.ok(vortex.length>0);
+ for(const v of vortex){
+  assert.ok(v.roomId.startsWith('passage:'));
+  assert.ok(v.acrossRadius/v.passageWidth>.95,'vortex spans from rock to rock');
+  assert.ok(Map.isWalkable(layout,v.x,v.y));
  }
 });
