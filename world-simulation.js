@@ -412,10 +412,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     commonCount = countCommons(world);
     const spawnRamp = clamp(world.elapsed / 300, 0, 1);
     const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
-    world.commonSpawnTimer = commonCount < MAX_COMMON_ENEMIES ? Math.max(0.17, spawnInterval) : 0.12;
+    world.commonSpawnTimer = commonCount < commonLimitForWorld(world) ? Math.max(0.17, spawnInterval) : 0.35;
   }
 
   const spawnedBosses = [];
+  // Recover pre-fix live rooms whose next boss timer was left at Infinity.
+  // An active boss legitimately keeps the timer at Infinity until defeated.
+  if(!riftMode&&!Number.isFinite(Number(world.nextBossAt))&&countBossCount(world)===0){
+   world.nextBossAt=world.elapsed+100/3.8;
+  }
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
   if (!riftMode && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
     if (world.enemies.length < enemyLimitForWorld(world)) {
