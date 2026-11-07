@@ -61,29 +61,15 @@ test('level-up shows a 25-second countdown and picks a random option if time exp
   assert.match(game, /clearUpgradeCountdown\(\)/);
 });
 
-test('co-op XP orbs visibly move toward the nearest player inside magnet range', () => {
-  const sim = require('../world-simulation');
-  const ai = require('../public/enemy-ai');
-  const world = sim.createWorldState(10000);
-  world.initialized = true;
-  world.lastTick = 10000;
-  world.nextBossAt = 100000;
-  world.commonSpawnTimer = 100000;
-  world.snapshotTimer = 100000;
-  world.reliableSnapshotTimer = 100000;
-  world.playerSnapshotTimer = 100000;
-  const zoom = Number(ai.WORLD_ZOOM) || 1;
-  const distance = 0.65 * 140 / zoom;
-  const initialX = 500 + distance;
-  world.orbs = [{ id: 1, x: initialX, y: 500, r: 4, value: 2, life: 25, phase: 0 }];
-  const player = {
-    id: 'magnet-test-player', x: 500, y: 500, r: 10 / zoom,
-    alive: true, hp: 100, maxHp: 100, magnetStrength: 1,
-    shieldCharges: 0, regenLevel: 0, invulnerableUntil: 0, regenAccumulator: 0
-  };
-  sim.tickWorld(world, [player], 10100, () => 0.5);
-  assert.equal(world.orbs.length, 1, 'test orb should remain available rather than being collected immediately');
-  assert.ok(world.orbs[0].x < initialX - 2, 'a distant orb should move noticeably toward the player in one server tick');
+test('co-op XP is direct and world simulation no longer advances collectible orbs', () => {
+  const simSource = read('world-simulation.js');
+  const serverSource = read('server.js');
+  const onlineSource = read('public/online.js');
+  assert.doesNotMatch(simSource, /orbSnapshotTimer/);
+  assert.doesNotMatch(simSource, /\borbs\s*:/);
+  assert.match(serverSource, /function grantSharedXp\(/);
+  assert.match(serverSource, /emit\('shared-xp-award'/);
+  assert.match(onlineSource, /socket\.on\('shared-xp-award'/);
 });
 
 test('responsive screens avoid visible scrollbars and keep three skill cards in one row', () => {
