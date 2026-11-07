@@ -17,11 +17,11 @@ function anglerInvisibleAt(nowMs=Date.now()){
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
     mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {},
-    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0, xpOrbCollectedCount: 0,
+    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
-    playerSnapshotTimer: 0, orbSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
+    playerSnapshotTimer: 0, tickCount: 0, lastMovementAt: 0,
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
     activeEventId: null, eventEndsAt: 0, eventSerial: 0,
     eliteRewardClaimedTier: -1, sideEncounterResolvedTier: -1, sideEncounterId: null, sideEncounterSerial: 0,
@@ -231,37 +231,11 @@ function spawnEnemy(world, options = {}) {
   return enemy;
 }
 
-function spawnXpOrb(world, enemy) {
-  if (!world || !enemy) return null;
-  world.orbs ||= [];
-  world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
-  const eventId = world.activeEventId && Number(world.eventEndsAt) > Number(world.elapsed) ? world.activeEventId : null;
-  const sizeScale = clamp((Number(enemy.r) || 10) / 10, .65, 10);
-  const value = Math.max(1, Math.round((Number(enemy.value) || 1) * ExpeditionRules.eventXpMultiplier(eventId) * (.65 + sizeScale * .55)));
-  const orb = {
-    id: world.nextOrbId, x: Number(enemy.x) || 0, y: Number(enemy.y) || 0,
-    r: clamp(3.8 + Math.sqrt(value) * .9 + Math.sqrt(Math.max(1, Number(enemy.r) || 10)) * .9, 4.5, 30),
-    value, phase: 0, life: 25, sourceEnemyId: enemy.id,
-    sourceKind: enemy.kind
-  };
-  world.orbs.push(orb);
-  if (world.orbs.length > 220) world.orbs.splice(0, world.orbs.length - 220);
-  return orb;
-}
-
-function spawnRewardOrb(world, x, y, value, sourceKind='cave-reward', sourceEnemyId=null) {
-  if (!world) return null;
-  world.orbs ||= [];
-  world.nextOrbId = Math.max(0, Number(world.nextOrbId) || 0) + 1;
-  const amount = Math.max(1, Math.round(Number(value) || 1));
-  const orb = {
-    id: world.nextOrbId, x: Number(x) || 0, y: Number(y) || 0,
-    r: EnemyAI.xpOrbRadius ? EnemyAI.xpOrbRadius(amount) : Math.min(15, 4 + Math.sqrt(amount)),
-    value: amount, phase: 0, life: 32, sourceEnemyId, sourceKind
-  };
-  world.orbs.push(orb);
-  if (world.orbs.length > 220) world.orbs.splice(0, world.orbs.length - 220);
-  return orb;
+function xpValueForEnemy(world,enemy){
+ if(!world||!enemy)return 0;
+ const eventId=world.activeEventId&&Number(world.eventEndsAt)>Number(world.elapsed)?world.activeEventId:null;
+ const sizeScale=clamp((Number(enemy.r)||10)/10,.65,10);
+ return Math.max(1,Math.round((Number(enemy.value)||1)*ExpeditionRules.eventXpMultiplier(eventId)*(.65+sizeScale*.55)));
 }
 
 function initializeWorld(world, now = Date.now(), random = Math.random) {
@@ -270,11 +244,11 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 100 / 3.8;
   world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
-  world.enemies = []; world.orbs = []; world.nextOrbId = 0; world.xpOrbCollectedCount = 0; world.commonSpawnTimer = 0.8;
+  world.enemies = []; world.commonSpawnTimer = 0.8;
   world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
   world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0;
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
-  world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0; world.orbSnapshotTimer = 0;
+  world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0;
   if (world.mode === 'rift') return seedRiftEncounters(world, random);
   return [spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random }), spawnEnemy(world, { type: 'common', initial: true, random })].filter(Boolean);
 }
@@ -393,7 +367,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
-  const spawnedRewardOrbs = [];
+  const spawnedXpRewards = [];
   let sideEncounter = null;
   if (riftMode && Number(world.sideEncounterResolvedTier) !== Number(world.mapTier)) {
     const eventRoom = mapLayout?.rooms?.find(room => room.id === 'event');
@@ -406,8 +380,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         world.sideEncounterSerial = (Number(world.sideEncounterSerial) || 0) + 1;
         sideEncounter = { id: encounter.id, type: encounter.type, name: encounter.name, subtitle: encounter.subtitle, risk: encounter.risk, reward: encounter.reward, accent: encounter.accent, serial: world.sideEncounterSerial, tier: world.mapTier };
         if (encounter.type === 'treasure') {
-          const orb = spawnRewardOrb(world, eventRoom.x, eventRoom.y, 28 + Math.max(0, Number(world.mapTier) || 0) * 7, 'resonance-cache');
-          if (orb) spawnedRewardOrbs.push(orb);
+          spawnedXpRewards.push({value:28 + Math.max(0, Number(world.mapTier) || 0) * 7,source:'resonance-cache'});
         } else {
           const count = Math.max(1, Math.min(9, Math.floor(Number(encounter.ambushCount) || 4)));
           for (let i = 0; i < count && world.enemies.length < MAX_ENEMIES; i++) {
@@ -510,10 +483,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
        if(enemy.hp<=0){
         const boss=BOSS_KINDS.includes(enemy.kind);
         if(boss){world.bossesDefeated=(Number(world.bossesDefeated)||0)+1;world.lastBossKind=enemy.kind;world.nextBossAt=Infinity;}
-        const orb=spawnXpOrb(world,enemy);
-        if(orb)spawnedRewardOrbs.push(orb);
         environmentKills.push({id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,
-          value:enemy.value,color:enemy.color,boss});
+          value:enemy.value,xpValue:xpValueForEnemy(world,enemy),contributors:enemy.damageContributors||{},color:enemy.color,boss});
        }
       }
     }
@@ -784,80 +755,24 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
-  // Shared XP orbs are server-owned world entities. All co-op clients receive the same
-  // coordinates, lifetime and removal event; only the first player to touch an orb earns it.
-  world.orbs ||= [];
-  const xpCollected = [];
-  const expiredOrbIds = new Set();
-  const expiredOnlyOrbIds = [];
-  for (const orb of world.orbs) {
-    orb.phase = (Number(orb.phase) || 0) + dt * 3;
-    orb.life = (Number(orb.life) || 0) - dt;
-    if (orb.life <= 0) { expiredOrbIds.add(String(orb.id)); expiredOnlyOrbIds.push(String(orb.id)); continue; }
-
-    // Same magnetic pickup idea as solo: the orb is pulled toward the nearest player
-    // with magnet range. Its movement remains authoritative, so every client sees it alike.
-    let magnetTarget = null, magnetDistance = Infinity, magnetRange = 0;
-    for (const p of validPlayers) {
-      const strength = clamp(Number(p.magnetStrength) || 1, 1, 4.5);
-      const range = 140 * strength * SkinAbilities.magnetRangeMultiplier(p.skinId) * (p.skinId === 'devourer' && Number(p.devourerVacuumUntil) > now ? 4 : 1) / WORLD_ZOOM;
-      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
-      if (d < range && d < magnetDistance) {
-        magnetTarget = p; magnetDistance = d; magnetRange = range;
-      }
-    }
-    if (magnetTarget && magnetDistance > 0.001) {
-      const f = clamp((magnetRange - magnetDistance) / Math.max(1, magnetRange), 0, 1);
-      // Keep pickup motion authoritative, but fast enough to visibly answer to the magnet skill.
-      const pullSpeed = (36 + f * 150) * Math.sqrt(Math.max(1, Number(magnetTarget.magnetStrength) || 1)) / WORLD_ZOOM;
-      const pull = Math.min(magnetDistance, dt * pullSpeed);
-      orb.x += (Number(magnetTarget.x) - orb.x) / magnetDistance * pull;
-      orb.y += (Number(magnetTarget.y) - orb.y) / magnetDistance * pull;
-    }
-
-    // If multiple players touch it in one server tick, choose the closest; a stable
-    // ID tie-break makes simultaneous collection deterministic. The orb is removed once.
-    const orbRadiusWorld = Math.max(1, Number(orb.r) || 4) / WORLD_ZOOM;
-    let collector = null, collectorDistance = Infinity;
-    for (const p of validPlayers) {
-      const d = Math.hypot(Number(p.x) - orb.x, Number(p.y) - orb.y);
-      const playerRadius = Math.max(1, Number(p.r) || (13 / WORLD_ZOOM));
-      if (d <= playerRadius + orbRadiusWorld + 4 / WORLD_ZOOM &&
-          (d < collectorDistance || (d === collectorDistance && String(p.id) < String(collector?.id || '\uffff')))) {
-        collector = p; collectorDistance = d;
-      }
-    }
-    if (collector) {
-      expiredOrbIds.add(String(orb.id));
-      world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
-      const orbValue = Math.max(1, Math.round(Number(orb.value) || 1));
-      const xpMultiplier = SkinAbilities.orbExperienceMultiplier(collector.skinId);
-      xpCollected.push({ playerId: collector.id, orbId: orb.id, baseValue:orbValue, shared:riftMode, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
-    }
-  }
-  if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));
-
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
   world.reliableSnapshotTimer = (Number(world.reliableSnapshotTimer) || 0) - dt;
   world.playerSnapshotTimer -= dt;
-  world.orbSnapshotTimer = (Number(world.orbSnapshotTimer) || 0) - dt;
   const sendSnapshot = world.snapshotTimer <= 0;
   const sendReliableSnapshot = world.reliableSnapshotTimer <= 0;
   const sendPlayers = world.playerSnapshotTimer <= 0;
-  const sendOrbSnapshot = sendSnapshot && world.orbSnapshotTimer <= 0;
   if (sendSnapshot) world.snapshotTimer = 0.125;
   // Full-world recovery snapshots are expensive; lifecycle events and 8 Hz interpolated motion keep clients current.
-  // Use a 30 s recovery interval instead of resending every enemy/orb every 5 s.
+  // Use a 30 s recovery interval instead of resending every enemy every 5 s.
   if (sendReliableSnapshot) world.reliableSnapshotTimer = 30;
   if (sendPlayers) world.playerSnapshotTimer = 1;
-  if (sendOrbSnapshot) world.orbSnapshotTimer = 0.25;
   return {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, spawnedXpRewards, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }
@@ -897,4 +812,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, spawnXpOrb, spawnRewardOrb, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };
