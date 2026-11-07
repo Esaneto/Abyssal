@@ -418,8 +418,29 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
      c.lineTo(-.76+side*.10,-.98+side*1.4);
      c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#b6b1d7',.027);
    }
-  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.25:id==='mimic'?2.8:2.2,id==='mimic');
-  if(squid){fin([[.3,0],[.8,-.9],[1.45,0]]);fin([[.3,0],[.8,.9],[1.45,0]]);oval(.72,0,1,.37);}else if(id==='glassoctopus'){c.globalAlpha=.45;oval(.72,0,1.05,.36);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');}else if(id==='mimic'){oval(.5,0,.72,.32);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);}else oval(.38,0,.53,.48);
+  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.65:id==='mimic'?2.8:2.2,id==='mimic');
+  // Continuous eight-arm oral crown: every tentacle root is buried in flesh.
+  path(()=>{c.moveTo(-.39,0);c.bezierCurveTo(-.38,-.45,.18,-.54,.47,-.34);
+   c.quadraticCurveTo(.66,0,.47,.34);c.bezierCurveTo(.18,.54,-.38,.45,-.39,0);
+   c.closePath();},pigment(s.color,'#182b3a',.46),pigment(s.color,'#bddee0',.23),.03);
+  if(squid){
+   for(const side of [-1,1])path(()=>{c.moveTo(.35,side*.17);
+    c.quadraticCurveTo(.75,side*.49,1.32,side*.88);
+    c.quadraticCurveTo(1.26,side*.40,.96,side*.20);c.closePath();
+   },pigment(s.color,'#bfd8e0',.27),pigment(s.color,'#e5e4db',.35),.027);
+   oval(.65,0,.94,.39);
+  }else if(id==='glassoctopus'){
+   c.globalAlpha=.45;oval(.64,0,1.05,.38);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');
+  }else if(id==='mimic'){
+   oval(.48,0,.72,.37);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);
+  }else{
+   // Cephalopod mantle is a pear-shaped muscle with a joined neck.
+   path(()=>{c.moveTo(-.18,-.19);c.bezierCurveTo(.07,-.48,.54,-.65,.86,-.40);
+    c.bezierCurveTo(1.12,-.17,1.11,.19,.84,.40);
+    c.bezierCurveTo(.52,.66,.07,.48,-.18,.19);
+    c.quadraticCurveTo(-.35,0,-.18,-.19);c.closePath();},
+    g,pigment(s.color,'#def3ea',.40),.041);
+  }
   eye(.15,-.25,.085);eye(.15,.25,.085);
   if(id==='bluering'||id==='jewelsquid')for(let i=0;i<18;i++){const a=i*2.399,rr=.1+(i%4)*.12;stroke(()=>c.arc(.5+Math.cos(a)*rr,Math.sin(a)*rr,.065,0,7),'#73e8ff',.035);}
   
