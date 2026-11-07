@@ -47,7 +47,13 @@ function enemySpeedMultiplier(skinId, distance) {
 function movementMultiplier(skinId) { if(trait(skinId,'movement')!==1)return trait(skinId,'movement'); if(skinId==='blackcaiman')return 1.10; return skinId === 'voidwing' ? 1.12 : 1; }
 function targetRangeMultiplier(skinId) { if(trait(skinId,'range')!==1)return trait(skinId,'range'); return skinId === 'abyssaleye' ? 1.15 : 1; }
 function fireRateMultiplier(skinId) { if(trait(skinId,'fireRate')!==1)return trait(skinId,'fireRate'); return skinId === 'solar' ? 1.12 : 1; }
-function orbExperienceMultiplier(skinId) { if(trait(skinId,'experience')!==1)return trait(skinId,'experience'); return skinId === 'default' ? 1.12 : skinId === 'royal' ? 1.18 : 1; }
+function orbExperienceMultiplier(skinId) {
+ // Older magnet/attraction traits now reward direct XP, since XP orbs no
+ // longer exist. Convert a former +30% attraction into +15% personal XP.
+ const experience=trait(skinId,'experience')!==1?trait(skinId,'experience'):skinId==='default'?1.12:skinId==='royal'?1.18:1;
+ const attraction=trait(skinId,'magnet')!==1?trait(skinId,'magnet'):skinId==='hammerhead'?1.30:skinId==='devourer'?1.25:1;
+ return experience*(1+Math.max(0,attraction-1)*.5);
+}
 function magnetRangeMultiplier(skinId) { if(trait(skinId,'magnet')!==1)return trait(skinId,'magnet'); return skinId === 'hammerhead' ? 1.30 : skinId === 'devourer' ? 1.25 : 1; }
 
 const api = Object.freeze({ BOSS_KINDS, CLOSE_RANGE, LONG_RANGE, damageMultiplier, incomingDamageMultiplier, enemySpeedMultiplier, movementMultiplier, targetRangeMultiplier, fireRateMultiplier, orbExperienceMultiplier, magnetRangeMultiplier });
