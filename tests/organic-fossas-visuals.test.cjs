@@ -41,7 +41,7 @@ test('poison plants are fixed to room walls and their toxic cloud expands during
   const d=Math.min(middle.length,neighbor.length)*.5,pointX=ox+Math.cos(middle.angle)*d,pointY=oy+Math.sin(middle.angle)*d;
   assert.equal(H.hit(h,pointX,pointY,0,early),false);
   assert.equal(H.hit(h,pointX,pointY,0,late),true);
-  assert.equal(Map.isWalkable(layout,ox+Math.cos(middle.angle)*(middle.length+35),oy+Math.sin(middle.angle)*(middle.length+35)),false,'cloud stops at a rock wall');
+  assert.equal(H.hit(h,ox+Math.cos(middle.angle)*(middle.length+35),oy+Math.sin(middle.angle)*(middle.length+35),0,late),false,'toxic cloud stops at its traced cave envelope');
  }
 });
 test('deep vortex begins with bubble warning and grows its suction zone gradually',()=>{
