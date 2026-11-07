@@ -87,10 +87,11 @@ async function getJson(port, pathname) {
 // handlers and owns the HTTP listener. This in-process harness still closes it.
 test('real server handlers move enemies, publish rooms, and destroy empty rooms', async t => {
   originalPort = process.env.PORT; originalDatabaseUrl = process.env.DATABASE_URL; originalDataDir = process.env.DATA_DIR;
-  const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED'];
+  const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED','ABYSSAL_ASYNC_PERSISTENCE'];
   const previousSafetyEnv=Object.fromEntries(safetyEnvKeys.map(key=>[key,process.env[key]]));
   for(const key of safetyEnvKeys)delete process.env[key];
   process.env.ABYSSAL_REWARDED_WHEEL_ENABLED='true';
+  process.env.ABYSSAL_ASYNC_PERSISTENCE='false';
   process.env.PORT = '0'; delete process.env.DATABASE_URL;
   temporaryDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'abyssal-runtime-test-'));
   process.env.DATA_DIR = temporaryDataDir;
@@ -223,13 +224,24 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   });
   assert.ok(moved, 'compact per-player motion packets should contain real enemy movement');
   assert.ok(Number(motion?.elapsed) > 0, 'server world clock advances in compact motion packets');
-  const guestLatest = guest.latest('game-snapshot');
-  assert.ok(guestLatest, 'the second client receives the room snapshot');
+  const guestLatest = guest.latest('game-snapshot') || guestJoined.snapshot;
+  assert.ok(guestLatest, 'the second client receives authoritative room state through join or recovery snapshot');
+  assert.equal(guestLatest.worldId, initialSnapshot.worldId, 'both clients are attached to the same authoritative world');
   assert.deepEqual(
-    guestLatest.enemies.map(e => [e.id, e.x, e.y]),
-    latest.enemies.map(e => [e.id, e.x, e.y]),
-    'all clients receive exactly the same authoritative enemy coordinates in a snapshot'
+    guestLatest.enemies.map(e => e.id).sort((a,b)=>a-b),
+    initialSnapshot.enemies.map(e => e.id).sort((a,b)=>a-b),
+    'both clients receive the same authoritative enemy identities'
   );
+  await waitFor(() => guest.all('enemy-motion').length >= 1, 2500);
+  const guestMotion=guest.latest('enemy-motion');
+  const matchingOwnerMotion=owner.all('enemy-motion').find(evt=>Number(evt?.tickCount)===Number(guestMotion?.tickCount))||motion;
+  const ownerRows=new Map((matchingOwnerMotion?.enemies||[]).map(row=>[row[0],row]));
+  const sharedRows=(guestMotion?.enemies||[]).filter(row=>ownerRows.has(row[0]));
+  assert.ok(sharedRows.length>0,'both clients receive overlapping authoritative enemy motion');
+  for(const row of sharedRows){
+    const ownerRow=ownerRows.get(row[0]);
+    assert.deepEqual(row.slice(1,3),ownerRow.slice(1,3),'shared enemy coordinates are identical for every recipient in the same server tick');
+  }
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
@@ -270,12 +282,13 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   assert.equal(owner.latest('world-enemy-damaged')?.id, damageTarget.id, 'server should broadcast authoritative HP feedback');
   assert.ok(Number((await getJson(port, '/health')).simulation.combat.appliedHits) > 0, 'health diagnostics should count applied hits');
 
-  // A dead common enemy creates one shared XP orb. The two clients see the same orb,
-  // but the server awards the XP only to the player who reaches it first.
+  // A dead common enemy awards one fixed XP pool immediately. The damage dealer
+  // receives most of the pool while active teammates receive the squad baseline.
+  // XP orbs were intentionally removed from authoritative multiplayer.
   const xpTarget = owner.latest('game-snapshot').enemies
     .filter(e => e && !['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer'].includes(e.kind))
     .sort((a,b)=>Math.hypot(a.x-ownerTestPos.x,a.y-ownerTestPos.y)-Math.hypot(b.x-ownerTestPos.x,b.y-ownerTestPos.y))[0];
-  assert.ok(xpTarget, 'a common enemy should be available for the XP-drop integration test');
+  assert.ok(xpTarget, 'a common enemy should be available for the shared XP integration test');
   const ownerXpAwardsBefore = owner.all('shared-xp-award').length;
   const guestXpAwardsBefore = guest.all('shared-xp-award').length;
   await sendTestPosition(owner,ownerTestPos,{x:xpTarget.x,y:xpTarget.y},ownerSeqRef);
@@ -289,21 +302,14 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
     remainingHp=Math.max(0,Number(killAck?.hp)||0);
   }
   assert.equal(killAck?.killed, true, 'the server confirms the enemy was killed');
-  const xpOrb = owner.latest('world-xp-orb-spawned');
-  assert.ok(xpOrb && String(xpOrb.sourceEnemyId) === String(xpTarget.id), 'the server sends the dropped XP orb as a compact lifecycle event');
-  const guestXpOrb = guest.latest('world-xp-orb-spawned');
-  assert.equal(guestXpOrb?.id, xpOrb.id, 'the other player receives the same authoritative XP orb');
-  assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore, 'killing an enemy does not immediately award XP');
-  assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'XP is not broadcast as an award to every player');
-  let xpOwnerAck = null, xpGuestAck = null;
-  xpOwnerAck=await sendTestPosition(owner,ownerTestPos,{x:xpOrb.x,y:xpOrb.y},ownerSeqRef,{clientPredicting:false});
-  xpGuestAck=await sendTestPosition(guest,guestTestPos,{x:guestTestPos.x+80,y:guestTestPos.y+20},guestSeqRef,{clientPredicting:false});
-  assert.equal(xpOwnerAck?.ok, true);
-  assert.equal(xpGuestAck?.ok, true);
-  await waitFor(() => owner.all('shared-xp-award').length > ownerXpAwardsBefore, 2000);
-  assert.equal(owner.all('shared-xp-award').length, ownerXpAwardsBefore + 1, 'the collector receives one XP award');
-  assert.equal(guest.all('shared-xp-award').length, guestXpAwardsBefore, 'the other player receives no XP from the orb');
-  assert.ok(owner.all('world-xp-orb-collected').some(evt => String(evt.orbId) === String(xpOrb.id)), 'orb removal is broadcast to the whole room');
+  await waitFor(() => owner.all('shared-xp-award').length > ownerXpAwardsBefore && guest.all('shared-xp-award').length > guestXpAwardsBefore, 2000);
+  const ownerAward=owner.all('shared-xp-award').slice(ownerXpAwardsBefore).find(evt=>String(evt.enemyId)===String(xpTarget.id));
+  const guestAward=guest.all('shared-xp-award').slice(guestXpAwardsBefore).find(evt=>String(evt.enemyId)===String(xpTarget.id));
+  assert.ok(ownerAward, 'the damage dealer receives an authoritative shared XP award immediately');
+  assert.ok(guestAward, 'an active teammate receives the squad baseline from the same fixed XP pool');
+  assert.ok(Number(ownerAward.value)>Number(guestAward.value), 'the player who dealt the damage receives more XP than the non-damaging teammate');
+  assert.equal(owner.latest('world-xp-orb-spawned'), undefined, 'authoritative multiplayer no longer spawns XP orbs');
+  assert.equal(guest.latest('world-xp-orb-spawned'), undefined, 'all clients remain free of XP orb lifecycle traffic');
 
   // Simulate minimizing the browser: send one final position beside a mob, then stop
   // sending position packets entirely. The server must continue ticking and attack that

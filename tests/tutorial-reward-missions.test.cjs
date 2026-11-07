@@ -19,7 +19,7 @@ test('marine skin neon uses original color and alpha silhouette with bounded spr
  assert.match(marine,/neonForSpecies\(s\.color\)/);
  assert.match(marine,/shadowBlur=Math\.max/);
  assert.match(marine,/drawImage\(entry\.canvas/);
- assert.match(marine,/marineSpriteCache\.size>32/);
+ assert.match(marine,/marineSpriteCache\.size>24/);
  assert.match(marine,/String\(s\.color\)/);
  assert.doesNotThrow(()=>new vm.Script(marine));
 });

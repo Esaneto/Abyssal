@@ -29,14 +29,16 @@ test('common enemy motion packets omit boss-only fields and preserve keep-warm r
  assert.match(game,/row\.length<7/);
 });
 
-test('XP motion is authoritative at 4 Hz with bounded client extrapolation',()=>{
+test('XP is awarded directly by the authoritative server without orb motion traffic',()=>{
  const sim=read('world-simulation.js');
  const server=read('server.js');
  const game=read('public/game.js');
- assert.match(sim,/world\.orbSnapshotTimer = 0\.25/);
- assert.match(server,/orbIntervalMs:250/);
- assert.match(game,/function currentInterpolatedOrbPosition/);
- assert.match(game,/Math\.min\(140,Math\.max\(0,elapsed-duration\)\)/);
+ assert.doesNotMatch(sim,/orbSnapshotTimer/);
+ assert.doesNotMatch(sim,/\borbs\s*:/);
+ assert.match(server,/function grantSharedXp\(/);
+ assert.match(server,/emit\('shared-xp-award'/);
+ assert.doesNotMatch(server,/emit\('world-xp-orb/);
+ assert.match(game,/function applySharedXp\(data\)/);
 });
 
 test('authoritative damage batches build one enemy lookup instead of scanning per hit',()=>{

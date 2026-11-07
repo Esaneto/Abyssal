@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
 
-test('player positions pass terrain and movement envelope before PvP orb collection',()=>{
+test('player positions pass terrain and movement envelope before authoritative assignment',()=>{
  const start=server.indexOf('const handlePlayerPosition=(payload');
  const end=server.indexOf("socket.on('player-position'",start);
  assert.ok(start>=0&&end>start);
@@ -14,9 +14,8 @@ test('player positions pass terrain and movement envelope before PvP orb collect
  const movement=handler.indexOf('consumeMovementBudget');
  const caveResolution=handler.indexOf('AbyssalMap.resolveMove');
  const assignment=handler.indexOf('p.x=clamp(acceptedX');
- const pickup=handler.indexOf('collectPvpOrbsNearPlayer(room,p,p.x,p.y)');
- assert.ok(terrain>=0&&movement>terrain&&caveResolution>movement&&assignment>caveResolution&&pickup>assignment);
- assert.doesNotMatch(handler,/collectPvpOrbsNearPlayer\(room,p,x,y\)/);
+ assert.ok(terrain>=0&&movement>terrain&&caveResolution>movement&&assignment>caveResolution);
+ assert.doesNotMatch(handler,/collectPvpOrbsNearPlayer/);
 });
 
 test('movement rejection reconciles compact clients to the authoritative position',()=>{

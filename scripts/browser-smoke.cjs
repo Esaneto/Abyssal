@@ -239,9 +239,16 @@ async function realGameplaySmoke(browser,url){
   }
   console.log('[live-browser] eight cave floors traversed, seven portals, final guardian '+JSON.stringify(journey));
   await sleep(350);
-  const lastFloor=await evaluate(stateExpr);
+  let lastFloor=await evaluate(stateExpr);
+  // The final boss XP may legitimately trigger the level-up modal on the same frame.
+  // Resolve that transient progression state before asserting that the expedition survived.
+  for(let attempt=0;attempt<5&&lastFloor?.gameState==='upgrade';attempt++){
+   const selected=await evaluate('(()=>{const button=document.querySelector("#upgradeChoices .upgrade-card");if(!button)return false;button.click();return true})()');
+   assert.ok(selected,'Final Fossa level-up modal did not expose a selectable skill');
+   await sleep(500);lastFloor=await evaluate(stateExpr);
+  }
   console.log('[live-browser] final-layer-state '+JSON.stringify(lastFloor));
-  assert.equal(lastFloor?.active,true,'Final Fossa boss victory must not stop the game');
+  assert.equal(lastFloor?.active,true,'Final Fossa boss victory must return to active gameplay after progression');
   assert.ok(lastFloor?.depth>=2450,'Final Fossa must report final-layer depth');
   assert.ok(!lastFloor?.errors,'Final Fossa runtime errors: '+lastFloor?.errors);
   await screenshot('live-final-floor');

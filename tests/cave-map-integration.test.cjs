@@ -8,7 +8,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 const index=read('public/index.html'),game=read('public/game.js'),server=read('server.js'),online=read('public/online.js'),world=read('world-simulation.js'),css=read('public/abyssal-rebuild.css');
 
 test('shared cave geometry loads before gameplay and is used by solo plus server',()=>{
- assert.ok(index.indexOf('abyssal-map.js?v=2026.11.5.3')>0);
+ assert.match(index,/abyssal-map\.js\?v=\d+(?:\.\d+)*/);
  const mapScript=index.search(/abyssal-map\.js\?v=\d+(?:\.\d+)*/),gameScript=index.search(/game\.js\?v=\d+(?:\.\d+)*/);
  assert.ok(mapScript>=0&&gameScript>=0&&mapScript<gameScript);
  assert.match(game,/const ABYSSAL_MAP=window\.AbyssalMap/);
@@ -66,12 +66,14 @@ test('classic co-op and PvP remain separate from expedition caves',()=>{
  assert.match(server,/if\(room\.mode==='rift'\)\{/);
 });
 
-test('boss clear unlocks the next cave tier only when the living co-op group gathers at the sigil',()=>{
+test('boss clear moves the living co-op party together without requiring every player on the sigil',()=>{
  assert.match(server,/\['descent','ascend','next-tier'\]\.includes\(kind\)/);
  assert.match(server,/reason:'boss-not-cleared'/);
- assert.match(server,/reason:'group-not-ready'/);
+ assert.match(server,/reason:'no-active-players'/);
+ assert.doesNotMatch(server,/reason:'group-not-ready'/);
  assert.match(server,/w\.mapTier=currentTier\+1/);
- assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,party\.length\)/);
+ assert.match(server,/const travellers=\[\.\.\.room\.players\.values\(\)\]/);
+ assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,travellers\.length\)/);
  assert.match(server,/criticalReason:'map-tier-transition'/);
  assert.match(game,/requestMapTransition\?\.\('next-tier'/);
  assert.match(game,/if\(result\.map\)setActiveMapDescriptor\(result\.map\)/);

@@ -4,8 +4,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
-const { monitorEventLoopDelay } = require('perf_hooks');
+const { Worker } = require('worker_threads');
+const { monitorEventLoopDelay, performance } = require('perf_hooks');
 const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
 eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
@@ -25,6 +27,23 @@ const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const APP_VERSION=require('./package.json').version;
+const HOST_CPU_COUNT=typeof os.availableParallelism==='function'?os.availableParallelism():os.cpus().length;
+const RESOURCE_PROFILE=String(process.env.ABYSSAL_RESOURCE_PROFILE||'generic');
+const HTTP_BACKLOG=clamp(Math.floor(Number(process.env.HTTP_BACKLOG)||1024),128,16384);
+const DATABASE_POOL_MAX=clamp(Math.floor(Number(process.env.DATABASE_POOL_MAX)||5),1,20);
+const LIBUV_THREADPOOL_SIZE=clamp(Math.floor(Number(process.env.UV_THREADPOOL_SIZE)||4),1,128);
+let lastCpuUsage=process.cpuUsage(),lastCpuSampleAt=process.hrtime.bigint(),lastElu=performance.eventLoopUtilization();
+let processCpuSample={processPercent:0,hostCapacityPercent:0},eventLoopUtilizationSample=0;
+const cpuSampler=setInterval(()=>{
+ const now=process.hrtime.bigint(),elapsedUs=Math.max(1,Number(now-lastCpuSampleAt)/1000),usage=process.cpuUsage(lastCpuUsage);
+ const processPercent=((usage.user+usage.system)/elapsedUs)*100;
+ const elu=performance.eventLoopUtilization(lastElu);
+ processCpuSample={processPercent:Number(processPercent.toFixed(2)),hostCapacityPercent:Number((processPercent/Math.max(1,HOST_CPU_COUNT)).toFixed(2))};
+ eventLoopUtilizationSample=Number(elu.utilization.toFixed(4));
+ lastCpuUsage=process.cpuUsage();lastCpuSampleAt=now;lastElu=performance.eventLoopUtilization();
+},1000);
+cpuSampler.unref?.();
 const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
 const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200;
 
@@ -52,7 +71,7 @@ app.use((request,response,next)=>{
 });
 app.use(express.json({limit:'16kb'}));
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
+const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
@@ -72,35 +91,85 @@ let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
 let cardumes = readJson(CARDUMES_FILE, {});
 let pgPool = null;
 let persistenceQueue = Promise.resolve();
-function persistState(key, value) {
- if (!pgPool) return;
- // Queue writes in order and snapshot the value now, so parallel socket events cannot reorder them.
- const serialized = JSON.stringify(value);
- persistenceQueue = persistenceQueue.then(() => pgPool.query(
-  'INSERT INTO abyssal_state (state_key, state_value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = NOW()',
-  [key, serialized]
- )).catch(err => console.error(`[persistence] Falha ao salvar ${key} no PostgreSQL:`, err.message));
+let persistenceWorker = null;
+let persistenceWorkerClosing = false;
+let persistenceWorkerSeq = 0;
+const persistenceWorkerJobs = new Map();
+const ASYNC_PERSISTENCE_ENABLED = process.env.ABYSSAL_ASYNC_PERSISTENCE !== 'false';
+
+function startPersistenceWorker() {
+ if (!ASYNC_PERSISTENCE_ENABLED || persistenceWorker) return;
+ persistenceWorkerClosing=false;
+ try {
+  const worker = new Worker(path.join(__dirname, 'state-persistence-worker.js'));
+  worker.unref?.();
+  worker.on('message', message => {
+   const job = persistenceWorkerJobs.get(Number(message?.id));
+   if (!job) return;
+   persistenceWorkerJobs.delete(Number(message.id));
+   if (message.ok) job.resolve(message);
+   else job.reject(new Error(message.error || 'state persistence worker failed'));
+  });
+  worker.on('error', error => {
+   console.error('[persistence] Worker de serialização falhou:', error.message);
+   for (const job of persistenceWorkerJobs.values()) job.reject(error);
+   persistenceWorkerJobs.clear();
+   persistenceWorker = null;
+  });
+  worker.on('exit', code => {
+   if (persistenceWorker === worker) persistenceWorker = null;
+   if (code !== 0&&!persistenceWorkerClosing) console.warn('[persistence] Worker de serialização encerrou com código', code);
+  });
+  persistenceWorker = worker;
+ } catch (error) {
+  console.warn('[persistence] Worker indisponível; usando fallback assíncrono:', error.message);
+ }
 }
-function saveUsers() {
- try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 }); }
- catch (err) { console.warn('[persistence] Arquivo local indisponível:', err.message); }
- persistState('users', users);
+startPersistenceWorker();
+
+async function fallbackSerializeAndWrite({id,key,value,filePath,pretty,mode}) {
+ const serialized=JSON.stringify(value,null,pretty?2:0);
+ if(filePath){
+  await fs.promises.mkdir(path.dirname(filePath),{recursive:true});
+  const tempPath=`${filePath}.${process.pid}.${id}.tmp`;
+  await fs.promises.writeFile(tempPath,serialized,{encoding:'utf8',mode});
+  await fs.promises.rename(tempPath,filePath);
+ }
+ return {id,key,ok:true,serialized,bytes:Buffer.byteLength(serialized,'utf8')};
 }
+function snapshotState(key,value,filePath,pretty=false,mode=0o600){
+ const id=++persistenceWorkerSeq;
+ if(!persistenceWorker)return fallbackSerializeAndWrite({id,key,value,filePath,pretty,mode});
+ return new Promise((resolve,reject)=>{
+  persistenceWorkerJobs.set(id,{resolve,reject});
+  try{persistenceWorker.postMessage({id,key,value,filePath,pretty,mode});}
+  catch(error){persistenceWorkerJobs.delete(id);reject(error);}
+ });
+}
+function persistState(key,value,filePath,pretty=false,mode=0o600){
+ const snapshotPromise=snapshotState(key,value,filePath,pretty,mode);
+ persistenceQueue=persistenceQueue.then(async()=>{
+  const snapshot=await snapshotPromise;
+  if(pgPool)await pgPool.query(
+   'INSERT INTO abyssal_state (state_key, state_value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = NOW()',
+   [key,snapshot.serialized]
+  );
+ }).catch(err=>console.error(`[persistence] Falha ao salvar ${key}:`,err.message));
+}
+function saveUsers(){persistState('users',users,USERS_FILE,true,0o600);}
 let titleStatsSaveTimer=null;
 function scheduleTitleStatsSave() {
  if(titleStatsSaveTimer)return;
  titleStatsSaveTimer=setTimeout(()=>{titleStatsSaveTimer=null;saveUsers();},2000);
  titleStatsSaveTimer.unref?.();
 }
-function saveCardumes() {
- try { fs.writeFileSync(CARDUMES_FILE, JSON.stringify(cardumes, null, 2), { mode: 0o600 }); }
- catch (err) { console.warn('[persistence] Arquivo de cardumes indisponível:', err.message); }
- persistState('cardumes', cardumes);
-}
-function saveRanks() {
- try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
- catch (err) { console.warn('[persistence] Arquivo de rankings local indisponível:', err.message); }
- persistState('rankings', rankings);
+function saveCardumes(){persistState('cardumes',cardumes,CARDUMES_FILE,true,0o600);}
+function saveRanks(){persistState('rankings',rankings,RANKS_FILE,true,0o600);}
+async function closePersistenceWorker(){
+ if(!persistenceWorker)return;
+ persistenceWorkerClosing=true;
+ const worker=persistenceWorker;persistenceWorker=null;
+ try{await worker.terminate();}catch{}
 }
 async function initializePersistence() {
  if (!process.env.DATABASE_URL) {
@@ -113,9 +182,11 @@ async function initializePersistence() {
  const databasePoolConfig=normalizeDatabasePoolConfig(process.env.DATABASE_URL,process.env.DATABASE_SSL);
  pgPool = new Pool({
   ...databasePoolConfig,
-  max: 5,
+  max: DATABASE_POOL_MAX,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
+  connectionTimeoutMillis: 10000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
@@ -150,7 +221,18 @@ async function refreshDeployResumeFromPersistence(userKey){
  }catch(err){console.error('[deploy] Falha ao atualizar retomada persistida:',err.message);}
  return users[userKey]||null;
 }
-function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
+let passwordHashQueue=Promise.resolve(),passwordHashPending=0;
+const MAX_PENDING_PASSWORD_HASHES=32;
+function hashPassword(password,salt){
+ if(passwordHashPending>=MAX_PENDING_PASSWORD_HASHES)return Promise.resolve(null);
+ passwordHashPending++;
+ const job=passwordHashQueue.then(()=>new Promise(resolve=>crypto.scrypt(password,salt,64,(error,key)=>{
+  if(error){console.error('[auth] scrypt falhou:',error.message);return resolve(null);}
+  resolve(key.toString('hex'));
+ })));
+ passwordHashQueue=job.catch(()=>null);
+ return job.finally(()=>{passwordHashPending=Math.max(0,passwordHashPending-1);});
+}
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
 function issueSessionToken(user) {
@@ -229,7 +311,24 @@ if (typeof app.post === 'function') {
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
-app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:'3.5.9',online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,tickProcessing:{lastMs:Number(worldTickLastMs.toFixed(3)),avgMs:Number(worldTickAvgMs.toFixed(3)),maxMs:Number(worldTickMaxMs.toFixed(3))},combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size,movementGuardRejects}));
+function resourceHealthPayload(){
+ const memory=process.memoryUsage(),load=os.loadavg();
+ return {
+  profile:RESOURCE_PROFILE,
+  node:process.version,
+  pid:process.pid,
+  uptimeSec:Math.floor(process.uptime()),
+  cpu:{available:HOST_CPU_COUNT,processPercent:processCpuSample.processPercent,hostCapacityPercent:processCpuSample.hostCapacityPercent,load1:Number(load[0].toFixed(2)),load5:Number(load[1].toFixed(2)),load15:Number(load[2].toFixed(2))},
+  memory:{rssMB:Number((memory.rss/1048576).toFixed(1)),heapUsedMB:Number((memory.heapUsed/1048576).toFixed(1)),heapTotalMB:Number((memory.heapTotal/1048576).toFixed(1)),externalMB:Number((memory.external/1048576).toFixed(1))},
+  eventLoopUtilization:eventLoopUtilizationSample,
+  authHashPending:passwordHashPending,
+  libuvThreadpoolSize:LIBUV_THREADPOOL_SIZE,
+  persistenceWorker:{enabled:ASYNC_PERSISTENCE_ENABLED,active:Boolean(persistenceWorker),pending:persistenceWorkerJobs.size},
+  databasePoolMax:DATABASE_POOL_MAX,
+  httpBacklog:HTTP_BACKLOG
+ };
+}
+app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:APP_VERSION,online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',resources:resourceHealthPayload(),eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,tickProcessing:{lastMs:Number(worldTickLastMs.toFixed(3)),avgMs:Number(worldTickAvgMs.toFixed(3)),maxMs:Number(worldTickMaxMs.toFixed(3))},combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,tickProcessing:{lastMs:Number((Number(r.tickProcessingLastMs)||0).toFixed(3)),avgMs:Number((Number(r.tickProcessingAvgMs)||0).toFixed(3)),maxMs:Number((Number(r.tickProcessingMaxMs)||0).toFixed(3))},players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size,movementGuardRejects}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/api/runtime-config', (_req,res)=>res.set('Cache-Control','no-store').json({previewMode:process.env.ABYSSAL_PREVIEW_MODE==='true',realPaymentsEnabled:liveSalesReady(),socialFeaturesEnabled:SOCIAL_FEATURES_ENABLED,randomRewardsEnabled:REWARDED_WHEEL_ENABLED}));
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
@@ -401,10 +500,9 @@ function sendKillTitleProgress(socket,immediate=false){
 }
 function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':'coop';}
 function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':'classic');}
-function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={}){
- const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
+function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,capacity=6,mode='coop'}={}){
  mode=normalizeRoomMode(mode);
- return {id,name,mode,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
+ return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
@@ -1130,8 +1228,13 @@ function worldTick() {
  const tickStarted=process.hrtime.bigint(),now=Date.now();worldTickCount++;lastWorldTickAt=now;
  for(const room of simulatingRooms){
   if(rooms.get(room.id)!==room){simulatingRooms.delete(room);continue;}
+  const roomTickStarted=process.hrtime.bigint();
   try{tickRoom(room,now);}
   catch(err){worldTickErrors++;room.world.lastTick=now;console.error(`[simulation] tick failed in room ${room.id}:`,err.stack||err);}
+  const roomTickMs=Number(process.hrtime.bigint()-roomTickStarted)/1e6;
+  room.tickProcessingLastMs=roomTickMs;
+  room.tickProcessingAvgMs=Number(room.tickProcessingAvgMs)>0?Number(room.tickProcessingAvgMs)*.92+roomTickMs*.08:roomTickMs;
+  room.tickProcessingMaxMs=Math.max(Number(room.tickProcessingMaxMs)||0,roomTickMs);
   if(!hasLivingPlayers(room))simulatingRooms.delete(room);
  }
  const tickMs=Number(process.hrtime.bigint()-tickStarted)/1e6;worldTickLastMs=tickMs;worldTickAvgMs=worldTickAvgMs?worldTickAvgMs*.92+tickMs*.08:tickMs;worldTickMaxMs=Math.max(worldTickMaxMs,tickMs);
@@ -1157,12 +1260,15 @@ io.on('connection', socket => {
    if (user) return socket.emit('auth-result', { ok: false, message: 'Este nickname já existe. Use Entrar ou escolha outro nickname.' });
    if(Object.values(users).some(existing=>String(existing?.email||'').toLowerCase()===email))return socket.emit('auth-result',{ok:false,message:'Este email já está vinculado a uma conta.'});
    const salt = crypto.randomBytes(16).toString('hex');
-   user = users[key] = { accountId:crypto.randomUUID(),nickname,email,salt,passwordHash: hashPassword(password, salt), createdAt: new Date().toISOString(), coins: 0, ownedSkins: ['default'], equippedSkin: 'default', metaUpgrades:{}, lastWheelAt:0 };
+   const passwordHash=await hashPassword(password,salt);
+   if(!passwordHash)return socket.emit('auth-result',{ok:false,message:'Não foi possível proteger sua senha agora. Tente novamente.'});
+   if(Object.hasOwn(users,key)||Object.values(users).some(existing=>String(existing?.email||'').toLowerCase()===email))return socket.emit('auth-result',{ok:false,message:'Nickname ou email acabou de ser registrado. Tente outro.'});
+   user = users[key] = { accountId:crypto.randomUUID(),nickname,email,salt,passwordHash, createdAt: new Date().toISOString(), coins: 0, ownedSkins: ['default'], equippedSkin: 'default', metaUpgrades:{}, lastWheelAt:0 };
    saveUsers();
   } else {
    if (!user) return socket.emit('auth-result', { ok: false, message: 'Conta não encontrada. Clique em Criar conta primeiro.' });
-   const candidate = hashPassword(password, user.salt);
-   if (!safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
+   const candidate = await hashPassword(password, user.salt);
+   if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
@@ -1277,7 +1383,10 @@ io.on('connection', socket => {
   const isPrivate=Boolean(payload.isPrivate),password=String(payload.password||''),mode=normalizeRoomMode(payload.mode);
   if(isPrivate&&(password.length<4||password.length>64))return socket.emit('room-created',{ok:false,message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'});
   if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
-  const id=randomRoomId(),room=makeRoom({id,name,isPrivate,password,capacity,mode});rooms.set(id,room);
+  const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
+  const passwordHash=isPrivate?await hashPassword(password,passwordSalt):null;
+  if(isPrivate&&!passwordHash)return socket.emit('room-created',{ok:false,message:'Não foi possível proteger a sala agora. Tente novamente.'});
+  const id=randomRoomId(),room=makeRoom({id,name,isPrivate,passwordSalt,passwordHash,capacity,mode});rooms.set(id,room);
   if(room.cleanupTimer){clearTimeout(room.cleanupTimer);room.cleanupTimer=null;}
   scheduleUnjoinedRoomExpiry(room,30000);
   socket.emit('room-created',{ok:true,room:publicRoomInfo(room),message:`Sala criada. Código para convite: ${id}`});broadcastRooms();io.to(socket.id).emit('rooms-list',await roomListForClients());
@@ -1292,8 +1401,8 @@ io.on('connection', socket => {
   // Only a deploy reconnect needs to recover a pending session from storage.
   if(payload.reconnect===true&&!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
   const room=rooms.get(id)||restoreDeployRoom(u,id);
-  if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
-  if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
+  if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outra instância do servidor e não pode ser acessada por este processo.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
+  if(room.isPrivate){const candidate=await hashPassword(String(payload.password||''),room.passwordSalt);if(!candidate||!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
   const existingRoom=socketRoom(socket);
   if(existingRoom&&existingRoom.id===room.id){const existingPlayer=room.players.get(socket.id);const joined={ok:true,room:publicRoomInfo(room),spawn:existingPlayer?{x:existingPlayer.x,y:existingPlayer.y}:null,resumedRun:false,players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
@@ -2028,7 +2137,7 @@ async function boot() {
  await initializeRoomRegistry();
  settlePeriods();
  await flushPersistence();
- server.listen(PORT, '0.0.0.0', () => console.log(`Abyssal online em http://localhost:${PORT} · persistência: ${pgPool ? 'PostgreSQL' : 'local efêmera'}`));
+ server.listen({port:PORT,host:'0.0.0.0',backlog:HTTP_BACKLOG}, () => console.log(`Abyssal online em http://localhost:${PORT} · persistência: ${pgPool ? 'PostgreSQL' : 'local efêmera'} · perfil: ${RESOURCE_PROFILE} · CPUs: ${HOST_CPU_COUNT}`));
 }
 boot().catch(err => {
  console.error('[boot] O servidor não será iniciado para evitar aceitar contas sem persistência configurada/funcional:', err);
@@ -2055,6 +2164,7 @@ async function shutdown(signal) {
   await flushPersistence();
   if(pgPool&&roomRegistryReady){try{await pgPool.query('DELETE FROM abyssal_rooms WHERE owner_instance=$1',[SERVER_INSTANCE_ID]);}catch(err){console.error('[rooms] limpeza no encerramento:',err.message);}}
   if (pgPool) await pgPool.end();
+  await closePersistenceWorker();
   clearTimeout(hardStop); process.exit(0);
  } catch (err) { console.error('[shutdown] Falha ao finalizar com segurança:', err.message); process.exit(1); }
 }
