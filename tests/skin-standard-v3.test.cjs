@@ -32,8 +32,8 @@ test('boss skins cost R$9.99 and premium tiers use only R$1.99 R$4.99 R$9.99',()
  assert.equal(paid.riftSmileRelic,undefined);
 });
 test('Mar Aberto conquest still awards greensnake at 42 bosses',()=>{
- const server=fs.readFileSync('server.js','utf8'),game=fs.readFileSync('public/game.js','utf8');
- assert.match(server,/runStats\.bossesKilled >= 42/);
+ const server=fs.readFileSync('server.js','utf8'),game=fs.readFileSync('public/game.js','utf8'),html=fs.readFileSync('public/index.html','utf8');
+ assert.match(server,/runStats\.bossesKilled\s*>=\s*42/);
  assert.match(server,/grantFinalConquest\(u\)/);
  assert.match(server,/skinId:'greensnake'/);
  assert.match(game,/ownedSkins\.push\('greensnake'\)/);
@@ -45,7 +45,7 @@ test('standardized skin actives are server-authoritative and manual',()=>{
  assert.match(server,/skin-active-server-only/);
  assert.match(game,/function activateSkinAbility\(/);
  assert.match(game,/e\.key==='r'\|\|e\.key==='R'/);
- assert.match(game,/id="skinActiveBtn"/);
+ assert.match(html,/id="skinActiveBtn"/);
 });
 test('Leviathan projectile telegraphs before PvP damage and toxic cloud uses poison plant visual',()=>{
  const server=fs.readFileSync('server.js','utf8'),game=fs.readFileSync('public/game.js','utf8');
