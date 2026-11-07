@@ -12,7 +12,8 @@
   const WORLD_HEIGHT = 3000;
   const WORLD_ZOOM = 0.78;
   // Bosses ordered from the lowest base HP to the highest.
-  const BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
+  const CLASSIC_BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
+  const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
     stinger: Object.freeze({ r: 7, hp: 13, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
@@ -25,7 +26,8 @@
     leviathan: Object.freeze({ r: 54, hp: 9400, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
     whiteSharkBoss: Object.freeze({ r: 62, hp: 12000, speed: 0, damage: 45, dashSpeed: 350, color: '#68a8b8', value: 140 }),
     kraken: Object.freeze({ r: 80, hp: 18400, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
-    devourer: Object.freeze({ r: 78, hp: 30000, speed: 14, damage: 42, color: '#39d8c4', value: 260 })
+    devourer: Object.freeze({ r: 78, hp: 30000, speed: 14, damage: 42, color: '#39d8c4', value: 260 }),
+    riftSmile: Object.freeze({ r: 154, hp: 52000, speed: 0, damage: 0, color: '#b76cff', value: 700 })
   });
 
   // Radius in screen-logical pixels. Both solo and online convert it once into world units.
@@ -47,10 +49,10 @@
 
   function chooseBossKind(activeKinds = [], random = Math.random, spawnIndex = 0) {
     const active = new Set(activeKinds);
-    if (active.size >= BOSS_KINDS.length) return null;
-    const start = Math.max(0, Math.floor(Number(spawnIndex) || 0)) % BOSS_KINDS.length;
-    for (let offset = 0; offset < BOSS_KINDS.length; offset++) {
-      const kind = BOSS_KINDS[(start + offset) % BOSS_KINDS.length];
+    if (active.size >= CLASSIC_BOSS_KINDS.length) return null;
+    const start = Math.max(0, Math.floor(Number(spawnIndex) || 0)) % CLASSIC_BOSS_KINDS.length;
+    for (let offset = 0; offset < CLASSIC_BOSS_KINDS.length; offset++) {
+      const kind = CLASSIC_BOSS_KINDS[(start + offset) % CLASSIC_BOSS_KINDS.length];
       if (!active.has(kind)) return kind;
     }
     return null;
@@ -75,7 +77,7 @@
     const i = ((Math.floor(Number(index) || 0) % 8) + 8) % 8;
     const angle = -Math.PI / 2 + i * (Math.PI * 2 / 8);
     const sway = Math.sin((Number(phase) || 0) * 0.88 + i * 1.73);
-    const length = 3.35 + 0.32 * Math.sin((Number(phase) || 0) * 0.55 + i * 0.91);
+    const length = 4.35 + 0.42 * Math.sin((Number(phase) || 0) * 0.55 + i * 0.91);
     const sx = Math.cos(angle) * 0.44;
     const sy = 0.25 + Math.sin(angle) * 0.21;
     return {
@@ -148,6 +150,8 @@
 
   /** Move one enemy toward the nearest target. x, y, speed and target coordinates all use world units. */
   function moveTowardTarget(enemy, targets, dt, options = {}, reusableResult = null) {
+    // A static final guardian whose movement is exclusively its tentacle attacks.
+    if(enemy?.kind==='riftSmile'){const result=reusableResult||{};result.moved=false;result.target=null;result.distance=Infinity;result.dx=0;result.dy=0;return result;}
     // Hot path: the server and solo client pass one reusable result object per frame/tick.
     // External callers may omit it and receive a fresh object as before.
     const result = reusableResult || {};

@@ -15,6 +15,7 @@ const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
+const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
@@ -22,7 +23,8 @@ const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const SKIN_TRAIL_CADENCE_SECONDS=.35,SKIN_TRAIL_CADENCE_MS=350;
+const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
+const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200;
 
 const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
 const allowedSocketOrigins = new Set(String(process.env.APP_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean));
@@ -161,9 +163,12 @@ function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }
 function weekKey(d = new Date()) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); x.setUTCDate(x.getUTCDate() + 4 - (x.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); const week = Math.ceil((((x - yearStart) / 86400000) + 1) / 7); return `${x.getUTCFullYear()}-W${String(week).padStart(2, '0')}`; }
 function monthKey(d = new Date()) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`; }
 const TITLE_DEFINITIONS=[
-  {id:'abyss-drifter',kind:'starter',required:0},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'abyss-drifter',kind:'starter',required:0},{id:'sonar-novice',kind:'kills',required:15},{id:'abyss-spark',kind:'kills',required:50},
+  {id:'lantern-hunter',kind:'kills',required:500},{id:'hadal-executioner',kind:'kills',required:2500},
   {id:'current-hunter',kind:'kills',required:250},{id:'pelagic-executioner',kind:'kills',required:1000},
-  {id:'leviathan-hunter',kind:'bosses',required:10},{id:'sovereign-abyss',kind:'bosses',required:50},
+  {id:'first-predator',kind:'bosses',required:3},{id:'leviathan-hunter',kind:'bosses',required:10},{id:'abyss-stalker',kind:'bosses',required:25},{id:'sovereign-abyss',kind:'bosses',required:50},{id:'titan-bane',kind:'bosses',required:100},
+  {id:'cycle-pioneer',kind:'firstProgressionClear',required:1},{id:'rift-cartographer',kind:'riftBossesDefeated',required:3},{id:'hadal-navigator',kind:'riftBossesDefeated',required:12},
+  {id:'veteran-diver',kind:'runsCompleted',required:10},{id:'eternal-explorer',kind:'runsCompleted',required:50},
   {id:'shoal-founder',kind:'cardumesCreated',required:1},
   {id:'supporter-of-the-depths',kind:'likesGiven',required:25},
   {id:'abyssal-famous',kind:'likesReceived',required:10},
@@ -174,7 +179,7 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
@@ -233,7 +238,7 @@ function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
  return { playerId: player.id, hp: Math.max(0, Number(player.hp) || 0), maxHp: Math.max(1, Number(player.maxHp) || 100), shieldCharges: Math.max(0, Math.min(3, Math.floor(Number(player.shieldCharges) || 0))), alive: player.alive !== false, invulnerabilityMs: Math.max(0, (Number(player.invulnerableUntil) || 0) - Date.now()), ...extra };
 }
-const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer']);
+const BOSS_KINDS = new Set(['boss','leviathan','maw','angler','whiteSharkBoss','kraken','devourer','riftSmile']);
 const MAX_PLAYERS_PER_ROOM = 6;
 const MAX_ENEMIES_PER_ROOM = 400;
 const MAX_BOSSES_PER_ROOM = 4;
@@ -271,10 +276,13 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId);
  const shellLevel=clamp(Math.floor(Number(target?.shellLevel)||0),0,3);
  const shellDefense=1-shellLevel*.08;
+ const predatorLevel=clamp(Math.floor(Number(attacker?.predatorLevel)||0),0,3);
+ const preyHpRatio=Number(target?.maxHp)>0?Number(target.hp)/Number(target.maxHp):1;
+ const hunter=1+predatorLevel*.03+(preyHpRatio<=.30?predatorLevel*.06:0);
  const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
  const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
- const lastStandDefense=lowHealth&&lastStandLevel>0?.80:1;
- return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*skinDefense*shellDefense*lastStandDefense);
+ const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
+ return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*hunter*skinDefense*shellDefense*lastStandDefense);
 }
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  if(!room||!attacker||!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0)return;
@@ -329,6 +337,7 @@ const PVP_ROOM_ID = 'MAR-VERMELHO';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
 const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake','saltcroc','blackcaiman']);
 for(const skin of curatedSkins.items)allowedSkinIds.add(skin.id);
+allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
 function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
@@ -387,7 +396,7 @@ function worldDepthState(world){
  return {
   bossesDefeated,
   mapTier:Math.max(0,Math.floor(Number(world.mapTier)||0)),
-  nextTierUnlocked:bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
+  nextTierUnlocked:Number(world.mapTier)<RiftHardcore.FINAL_TIER&&bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))&&!world.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)),
   depth:Math.max(0,Math.floor(Number(world.mapTier)||0))*350+(bossesDefeated>Math.max(0,Math.floor(Number(world.mapTier)||0))?350:0),
   zone:zone?{id:zone.id,name:zone.name,shortName:zone.shortName,subtitle:zone.subtitle,accent:zone.accent}:null,
   event:WorldSimulation.currentDepthEvent(world)
@@ -403,7 +412,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/BOSS_KINDS.size),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -530,14 +539,44 @@ function scheduleUnjoinedRoomExpiry(room,delay=30000){
  },delay);
  room.emptyRoomTimer.unref?.();
 }
+const FIRST_PROGRESSION_REWARD_COINS=50000;
+function grantFirstProgressionReward(user){
+ if(!user||user.firstProgressionRewardClaimed===true)return false;
+ user.firstProgressionRewardClaimed=true;
+ user.coins=(Number(user.coins)||0)+FIRST_PROGRESSION_REWARD_COINS;
+ user.titleStats ||= {};
+ user.titleStats.firstProgressionClear=1;
+ return true;
+}
+function grantFinalConquest(user){
+ if(!user)return false;
+ user.ownedSkins=Array.isArray(user.ownedSkins)?user.ownedSkins:['default'];
+ if(user.ownedSkins.includes('greensnake')&&user.titleStats?.conqueror)return false;
+ if(!user.ownedSkins.includes('greensnake'))user.ownedSkins.push('greensnake');
+ user.titleStats ||= {};user.titleStats.conqueror=1;
+ return true;
+}
 function awardWorldBossCoins(room){
  const seen=new Set();let changed=false;
  for(const p of room.players.values()){
+  // Reading a tutorial grants safety, never passive boss-credit farming.
+  if(p.tutorialActive)continue;
   if(p.runStats&&!p.runStats.settled)p.runStats.bossesKilled=(Number(p.runStats.bossesKilled)||0)+1;
   if(!p.userKey||seen.has(p.userKey))continue;seen.add(p.userKey);
   const u=users[p.userKey];if(!u)continue;
-  if(room.mode==='rift'&&p.alive!==false){const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`);io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier});}
-  u.coins=(u.coins||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
+  if(room.mode==='rift'&&p.alive!==false){
+   u.titleStats ||= {};u.titleStats.riftBossesDefeated=(Number(u.titleStats.riftBossesDefeated)||0)+1;
+   const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`,{final:Number(room.world.mapTier)===RiftHardcore.FINAL_TIER&&room.world.lastBossKind===RiftHardcore.FINAL_KIND});
+   io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier,final:Boolean(chest.final)});
+  }
+  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=7&&grantFirstProgressionReward(u)){
+   p.invulnerableUntil=Math.max(Number(p.invulnerableUntil)||0,Date.now()+25000);
+   io.to(p.id).emit('first-progression-reward',{ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS});
+  }
+  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
+   io.to(p.id).emit('abyssal-final-victory',{ok:true,skinId:'greensnake',titleId:'abyssal-conqueror'});
+  }
+  u.coins=(Number(u.coins)||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
  }
  if(changed)saveUsers();
 }
@@ -568,7 +607,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
+const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','photon','photonRay','nova','echoShot','prismShard']);
 function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId='',enemyLookup=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
@@ -580,7 +619,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(enemyLookup){enemy=enemyLookup.get(normalizedId)||null;if(!enemy)return reject('enemy-not-found');}
  else{idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');enemy=w.enemies[idx];}
  const now=Date.now();
- let requestedDamage=damage;
+  // Enemies remain invulnerable for the entire emergence animation.
+  if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
+  // Reject hits through solid cave walls on the authoritative server.
+  if(room.mode==='rift'&&player&&AbyssalMap.segmentWalkable&&
+     !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+     return reject('cave-wall-blocked');
+  let requestedDamage=damage;
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
@@ -631,22 +676,25 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(distance>190/WORLD_ZOOM)return reject('skin-ability-out-of-range');
   if(now>(Number(player.toxicCloudWindowUntil)||0)){
    if(now<(Number(player.toxicCloudReadyAt)||0))return reject('skin-ability-cooldown');
-   player.toxicCloudReadyAt=now+5000;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
+   player.toxicCloudReadyAt=now+6500;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
   }
   player.toxicCloudTargetIds ||= new Set();if(player.toxicCloudTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,8);
+  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,7);
  }
  if(skillId==='kraken-contact'){
   if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
   const proxy={kind:'kraken',x:Number(player.x),y:Number(player.y),r:(13/WORLD_ZOOM)*1.45,angle:Number(player.angle)||0,phase:(now*.0018)};
   if(!EnemyAI.touchesKrakenTentacle?.(proxy,enemy,1))return reject('skin-ability-out-of-range');
-  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<420)return reject('skin-ability-cooldown');
-  player[key]=now;requestedDamage=Math.min(requestedDamage,24);
+  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<850)return reject('skin-ability-cooldown');
+  player[key]=now;requestedDamage=Math.min(requestedDamage,15);
  }
+ // The white shark only has a passive wake; its retired frontal dash must
+ // not be executable by outdated or modified clients.
+ if(skillId==='reefshark-dash')return reject('skin-ability-removed');
  const predatorSkills={
-  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:34,arc:.48,width:58/WORLD_ZOOM},
-  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:42,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:3000,range:190/WORLD_ZOOM,damage:45,arc:Math.PI,width:0}
+  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:28,arc:.48,width:58/WORLD_ZOOM},
+  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:34,arc:.78,width:120/WORLD_ZOOM},
+  'armoredgator-spin':{skin:'armoredgator',cooldown:9000,range:190/WORLD_ZOOM,damage:27,arc:Math.PI,width:0}
  };
  if(predatorSkills[skillId]){
   const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
@@ -669,10 +717,25 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   player.krakenSweepTargetIds ||= new Set();
   if(player.krakenSweepTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
   player.krakenSweepTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,48);
+  requestedDamage=Math.min(requestedDamage,32);
+ }
+ // Poison damage must belong to the attacking skin and a verified active
+ // status on the server. This prevents arbitrary poison ticks through sockets.
+ if(skillId==='poison-dot'){
+  if(!player||!['greensnake','toxic'].includes(player.skinId)||enemy.poisonOwnerId!==player.id||
+     now>(Number(enemy.poisonedUntil)||0)||now<(Number(enemy.poisonTickReadyAt)||0))
+   return reject('skin-poison-expired');
+  enemy.poisonTickReadyAt=now+750;requestedDamage=Math.min(requestedDamage,2.5);
  }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
+ // Only verified direct strikes may apply/refresh poison. No extra attack
+ // packets are generated; accepted dot damage is resolved like any other hit.
+ if(player?.skinId==='greensnake'&&skillId!=='poison-dot'&&skillId!=='electric-chain'){
+  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
+ }else if(player?.skinId==='toxic'&&skillId==='toxic-cloud'){
+  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
+ }
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  // Varredura do Télson: mesma intensidade e vetor radial da habilidade solo.
@@ -683,7 +746,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   enemy.kbVx=(pushX/pushLength)*620;
   enemy.kbVy=(pushY/pushLength)*620;
  }
- if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
+ if(player?.skinId==='electriceel' && skillId!=='poison-dot' && now>=(Number(enemy.electricStunReadyAt)||0)){enemy.electricStunReadyAt=now+1200;enemy.paralyzedUntil=now+120;}
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
@@ -757,6 +820,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    fromX=Number(next.x);fromY=Number(next.y);
   }
  }
+ // Prism is implemented as actual independently simulated projectiles on the client.
+ // The shared-shot handler receives the complete volley; no invisible damage is injected here.
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
@@ -789,7 +854,7 @@ async function finishRunForSocket(socket,payload={}){
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
- run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;saveMatchHistoryForUser(user,room,run);
+ run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
  if(member)member.runStats=run;else socket.data.runStats=run;
  settlePeriods();
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
@@ -798,11 +863,35 @@ async function finishRunForSocket(socket,payload={}){
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
- const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(extracted?1+Math.min(.75,bossesKilled*.15):.65):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Sinal perdido: ${bossesKilled} boss(es) abatido(s). 65% da recompensa de conclusão foi preservada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
+
+function reviveAtRiftCheckpoint(room,p,now){
+ const layout=WorldSimulation.mapLayoutFor(room.world);
+ const cp=RiftHardcore.checkpoint(layout,Number(p.x)||0,Number(p.y)||0,p.riftCheckpointRoomId||'start');
+ const roomPoint=layout?.rooms?.find(row=>row.id===cp.roomId);
+ const fallback=roomPoint?{x:roomPoint.x,y:roomPoint.y-Math.min(105,roomPoint.ry*.23)}:AbyssalMap.startSpawn(layout,0,1);
+ const safe=AbyssalMap.isWalkable(layout,cp.x,cp.y,Number(p.r)||13/WORLD_ZOOM)?cp:fallback;
+ p.x=safe.x;p.y=safe.y;p.riftCheckpointRoomId=cp.roomId;
+ p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;
+ p.invulnerableUntil=now+3200;p.regenAccumulator=0;p.velocityX=0;p.velocityY=0;
+ p.positionResumeGraceUntil=now+1650;p.lastPositionAt=now;
+ p.lastPositionSeq=Number(p.lastPositionSeq)||0;p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
+ p.riftHazardCooldowns=Object.create(null);
+ io.to(p.id).emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,p.x,p.y,true));
+ io.to(p.id).emit('rift-checkpoint-respawn',{x:p.x,y:p.y,hp:p.hp,maxHp:p.maxHp,roomId:cp.roomId,invulnerabilityMs:3200,serverTime:now});
+ io.to(p.id).emit('player-vitals',playerVitalsPayload(p,{reason:'rift-checkpoint',serverTime:now+1}));
+}
+function announcePlayerDamage(room,hit){
+ if(Number(hit?.damage)<=0)return;
+ const target=room.players.get(hit.playerId);
+ if(!target)return;
+ io.to(channelFor(room)).emit('player-damage-number',{targetId:target.id,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/roomWorldHeight(room),damage:Number(hit.damage),source:hit.abilityId||hit.enemyKind||'enemy'});
+}
+
 function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
@@ -811,17 +900,17 @@ function tickRoom(room, now) {
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
   const w=room.world;w.orbs||=[];w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];w.inkTrails=Array.isArray(w.inkTrails)?w.inkTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=SKIN_TRAIL_CADENCE_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,2,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.6,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
   for(let i=w.inkTrails.length-1;i>=0;i--){
    const ink=w.inkTrails[i];ink.life-=.05;ink.damageTimer=(Number(ink.damageTimer)||0)-.05;
-   if(ink.life<=0){w.inkTrails.splice(i,1);continue;}if(ink.damageTimer>0)continue;ink.damageTimer=SKIN_TRAIL_CADENCE_SECONDS;
+   if(ink.life<=0){w.inkTrails.splice(i,1);continue;}if(ink.damageTimer>0)continue;ink.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;
    const owner=room.players.get(ink.ownerId);if(!owner)continue;
    for(const target of activePlayers){
     if(target.id===ink.ownerId||target.alive===false)continue;
     if(Math.hypot(Number(target.x)-ink.x,Number(target.y)-ink.y)>ink.r+(Number(target.r)||13/WORLD_ZOOM))continue;
-    const hitAt=Date.now();if(hitAt<(Number(target.invulnerableUntil)||0))continue;let blocked=false,damage=0;
+    const hitAt=Date.now();if(hitAt<(Number(target.invulnerableUntil)||0)||hitAt-(Number(target.lastBlackBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;let blocked=false,damage=0;
     if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}
-    else{damage=pvpDamageAmount(owner,target,2,Math.hypot(Number(target.x)-Number(owner.x),Number(target.y)-Number(owner.y)));target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+180;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi envolvido pela tinta abissal.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
+    else{damage=pvpDamageAmount(owner,target,1.6,Math.hypot(Number(target.x)-Number(owner.x),Number(target.y)-Number(owner.y)));target.lastBlackBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi atingido por bolhas negras abissais.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
     io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'blue-ring-ink',damage:blocked?0:damage,attackerId:ink.ownerId,serverTime:hitAt}));
     io.to(channelFor(room)).emit('pvp-hit',{x:ink.x/WORLD_WIDTH,y:ink.y/WORLD_HEIGHT,targetId:target.id,attackerId:ink.ownerId,damage:blocked?0:damage,blocked,source:'blue-ring-ink'});
    }
@@ -839,6 +928,10 @@ function tickRoom(room, now) {
  }
  // Boss difficulty scales to everyone occupying the room, including players who are
  // temporarily down and may revive; movement and damage still target living players.
+ if(room.mode==='rift'){
+  const layout=WorldSimulation.mapLayoutFor(room.world);
+  for(const p of activePlayers){const found=AbyssalMap.roomAt(layout,Number(p.x),Number(p.y));if(found)p.riftCheckpointRoomId=found.id;}
+ }
  w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
@@ -848,8 +941,19 @@ function tickRoom(room, now) {
  const bossAbilityHits = Array.isArray(result.bossAbilityHits) ? result.bossAbilityHits : [];
  const bossAbilityEvents = Array.isArray(result.bossAbilityEvents) ? result.bossAbilityEvents : [];
  const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
+ const riftAims=Array.isArray(result.riftAims)?result.riftAims:[];
+ const environmentDamages=Array.isArray(result.environmentDamages)?result.environmentDamages:[];
+ const environmentKills=Array.isArray(result.environmentKills)?result.environmentKills:[];
  const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
  if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+ // One server-owned curved path per tentacle cycle, synchronized to every observer.
+ for(const aim of riftAims)io.to(channelFor(room)).emit('world-rift-tentacle-aim',aim);
+ for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
+ for(const death of environmentKills){
+  io.to(channelFor(room)).emit('world-enemy-defeated',death);
+  if(death.boss){awardWorldBossCoins(room);WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}
+ }
+ if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
  if(spawnedRewardOrbs.length){combatDiagnostics.xpOrbsSpawned+=spawnedRewardOrbs.length;io.to(channelFor(room)).emit('world-xp-orbs-spawned',spawnedRewardOrbs.map(orb=>({...orb})));}
  if(result.sideEncounter)io.to(channelFor(room)).emit('world-cave-signal',result.sideEncounter);
 
@@ -904,8 +1008,9 @@ function tickRoom(room, now) {
   if(!event||!event.abilityId)continue;
   io.to(channelFor(room)).emit('boss-ability-visual',{
    bossId:event.bossId,kind:event.kind,abilityId:event.abilityId,
-   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/WORLD_HEIGHT,
-   angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now
+   x:Number(event.x)/WORLD_WIDTH,y:Number(event.y)/roomWorldHeight(room),
+   angle:Number(event.angle)||0,radius:Number(event.radius)||0,color:event.color||'#79f3f0',serverTime:now,
+    shape:event.shape||null,length:Number(event.length)||0,issuedAt:Number(event.issuedAt)||0,hitAt:Number(event.hitAt)||0,attackId:event.id||null,damage:Number(event.damage)||0
   });
  }
  for(const hit of bossAbilityHits){
@@ -913,7 +1018,8 @@ function tickRoom(room, now) {
   io.to(hit.playerId).emit('player-vitals',{
    ...hit,source:'boss-ability',reason:'boss-ability',skillId:hit.abilityId,serverTime:now
   });
-  if(hit.alive===false){
+  announcePlayerDamage(room,hit);
+  if(hit.alive===false&&room.mode!=='rift'){
    const defeated=room.players.get(hit.playerId),nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
    io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi destruído por uma habilidade colossal.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -925,9 +1031,24 @@ function tickRoom(room, now) {
  for (const pickup of xpCollected) {
   combatDiagnostics.xpOrbsCollected++;
   combatDiagnostics.lastXpOrbPickup={at:new Date(now).toISOString(),orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value};
-  const xpCollector=room.players.get(pickup.playerId);if(xpCollector)creditRunXp(xpCollector.runStats,pickup.value);
+  // A rift orb is collected ONCE, but every active expedition member gains XP,
+  // including players who did not touch it. Other modes keep collector-only XP.
   io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value,x:pickup.x,y:pickup.y});
-  io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
+  if(room.mode==='rift'){
+   const collector=room.players.get(pickup.playerId);
+   const base=Math.max(1,Number(pickup.baseValue)||Number(pickup.value)||1);
+   for(const member of room.players.values()){
+    if(member.runStats?.settled)continue;
+    const multiplier=SkinAbilities.orbExperienceMultiplier(member.skinId);
+    const value=Math.max(1,Math.round(base*multiplier));
+    if(member.runStats)creditRunXp(member.runStats,value);
+    io.to(member.id).emit('shared-xp-award',{value,source:'rift-team-orb',orbId:pickup.orbId,collectorId:collector?.id||pickup.playerId});
+   }
+  }else{
+   const collector=room.players.get(pickup.playerId);
+   if(collector)creditRunXp(collector.runStats,pickup.value);
+   io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
+  }
  }
  // Only the authoritative simulation can produce enemy-contact damage. The reliable
  // snapshot with criticalEnemyIds was delivered first, so the attacker already exists at
@@ -940,7 +1061,8 @@ function tickRoom(room, now) {
   combatDiagnostics.lastPlayerHit = { at: new Date(now).toISOString(), enemyId: hit.enemyId, enemyKind: hit.enemyKind, enemyX: hit.enemyX, enemyY: hit.enemyY, playerX: hit.playerX, playerY: hit.playerY, contactDistance: hit.contactDistance, contactRadius: hit.contactRadius, rawContactRadius: hit.rawContactRadius, contactSafetyMargin: hit.contactSafetyMargin, positionAgeMs: hit.positionAgeMs, targetWasHidden: hit.targetWasHidden, playerVelocityX: room.players.get(hit.playerId)?.velocityX||0, playerVelocityY: room.players.get(hit.playerId)?.velocityY||0, damage: hit.damage, blocked: hit.blocked, worldId: w.worldId, snapshotSeq: contactSnapshotSeq };
   // A reliable full or attacker-only snapshot is always emitted before contact vitals.
   io.to(hit.playerId).emit('player-vitals', { ...hit, source: 'enemy', worldId: w.worldId, snapshotSeq: contactSnapshotSeq, reason: hit.blocked ? 'shield-block' : 'enemy-attack', serverTime: now });
-  if (!hit.alive) {
+  announcePlayerDamage(room,hit);
+  if (!hit.alive&&room.mode!=='rift') {
    const defeated=room.players.get(hit.playerId);const nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
    io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi engolido pelas profundezas.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
    io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...peer }) => peer));
@@ -948,6 +1070,17 @@ function tickRoom(room, now) {
  }
  for (const heal of result.playerHeals || []) {
   io.to(heal.playerId).emit('player-vitals', { ...heal, reason: 'regeneration', serverTime: now });
+ }
+ if(room.mode==='rift'){
+  const bossRoom=WorldSimulation.mapLayoutFor(room.world)?.rooms.find(r=>r.id==='boss');
+  const guardians=room.world.enemies.filter(e=>e.kind===RiftHardcore.FINAL_KIND&&e.hp>0);
+  const bossPlayers=[...room.players.values()].filter(p=>p.riftCheckpointRoomId==='boss');
+  if(bossRoom&&guardians.length&&bossPlayers.length&&!bossPlayers.some(p=>p.alive!==false)){
+   for(const guardian of guardians){guardian.hp=guardian.maxHp;guardian.riftPendingAttacks=[];guardian.riftNextAttackAt=0;}
+  }
+  let changed=false;
+  for(const p of room.players.values())if(p.alive===false){reviveAtRiftCheckpoint(room,p,now);changed=true;}
+  if(changed)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  }
  if (result.sendPlayers) io.to(channelFor(room)).emit('world-players', [...room.players.values()].map(({ userKey, runStats, ...p }) => p));
 }
@@ -1139,7 +1272,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};socket.emit('room-joined',joined);ack(joined);
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -1211,8 +1344,9 @@ io.on('connection', socket => {
    if(receivedAt-(Number(p.lastReconcileAt)||0)>=200){p.lastReconcileAt=receivedAt;io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(p.lastPositionSeq,p.x,p.y,false));}
   }else ack({ok:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates});
  };
- socket.on('player-position',(payload,acknowledge)=>handlePlayerPosition(payload,acknowledge,false));
+ socket.on('player-position',(payload,acknowledge)=>{if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive)return;handlePlayerPosition(payload,acknowledge,false);});
  socket.on('player-motion-input',row=>{
+  if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive)return;
   const decoded=NetCodec.readInput(row);if(decoded)return handlePlayerPosition(decoded,null,true);
   if(!Array.isArray(row)||row.length<4)return;
   handlePlayerPosition({seq:Number(row[0]),x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])},null,true);
@@ -1227,6 +1361,7 @@ io.on('connection', socket => {
   if(kind==='next-tier'){
    const w=room.world,source=layout.portals.boss,requesterRadius=Number(source?.r||110)+(Number(p.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM;
    if(!source||Math.hypot(Number(p.x)-source.x,Number(p.y)-source.y)>requesterRadius)return reply({ok:false,reason:'too-far'});
+   if(Number(w.mapTier)>=RiftHardcore.FINAL_TIER)return reply({ok:false,reason:'final-depth'});
    if(w.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)))return reply({ok:false,reason:'boss-alive'});
    const currentTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
    if(Math.max(0,Math.floor(Number(w.bossesDefeated)||0))<=currentTier)return reply({ok:false,reason:'boss-not-cleared'});
@@ -1238,7 +1373,7 @@ io.on('connection', socket => {
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
    party.forEach((peer,index)=>{
     const spawn=AbyssalMap.startSpawn(nextLayout,index,party.length);
-    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;
+    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;peer.riftCheckpointRoomId='start';
     io.to(peer.id).emit('map-transition-result',{ok:true,kind:'next-tier',x:peer.x,y:peer.y,map:descriptor,tier:w.mapTier,serverTime:now});
    });
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
@@ -1271,10 +1406,45 @@ io.on('connection', socket => {
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 4.5);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.arcChainActive = payload.arcChainActive === true;
+  p.hadalBeamActive = payload.hadalBeamActive === true;
   p.ricochetLevel = clamp(Math.floor(Number(payload.ricochetLevel) || 0), 0, 3);
+  p.prismaticLevel = clamp(Math.floor(Number(payload.prismaticLevel) || 0), 0, 3);
+  p.predatorLevel = clamp(Math.floor(Number(payload.predatorLevel) || 0), 0, 3);
   p.electricLevel = clamp(Math.floor(Number(payload.electricLevel) || 0), 0, 3);
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
+ });
+ socket.on('tutorial-preference',payload=>{
+  const u=users[socket.data.userKey],mode=String(payload?.mode||'');
+  if(!u||!['solo','coop','pvp','rift','rift-solo'].includes(mode)||payload?.dismissed!==true)return;
+  u.tutorialDismissedModes=Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[];
+  if(!u.tutorialDismissedModes.includes(mode)){u.tutorialDismissedModes.push(mode);saveUsers();}
+  socket.emit('account-data',publicUser(u));
+ });
+ socket.on('tutorial-state',payload=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!p||p.alive===false||!payload||typeof payload!=='object')return;
+  const now=Date.now();
+  if(payload.open===true){
+   if(p.tutorialOpenUsed||now-(Number(p.joinedAt)||now)>15000)return;
+   p.tutorialOpenUsed=true;p.tutorialActive=true;
+   p.tutorialPreviousProtection=Number(p.invulnerableUntil)||0;
+   p.invulnerableUntil=Number.MAX_SAFE_INTEGER;
+  }else if(p.tutorialActive){
+   p.tutorialActive=false;
+   p.invulnerableUntil=Math.max(now+2000,Math.min(Number(p.tutorialPreviousProtection)||0,now+5000));
+  }
+ });
+ socket.on('claim-first-progression',async(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const user=users[socket.data.userKey],run=socket.data.runStats;
+  if(!user||!run||run.settled||socketRoom(socket)||run.mode!=='solo')return reply({ok:false,message:'Bônus disponível apenas após a campanha Solo clássica.'});
+  if(user.firstProgressionRewardClaimed)return reply({ok:true,awarded:false,alreadyClaimed:true,account:publicUser(user)});
+  if((Number(run.bossesKilled)||0)<7||Date.now()-(Number(run.startedAt)||Date.now())<120000)return reply({ok:false,message:'A primeira barra ainda não foi validada pelo servidor.'});
+  if(!grantFirstProgressionReward(user))return reply({ok:true,awarded:false,alreadyClaimed:true,account:publicUser(user)});
+  saveUsers();await flushPersistence();
+  const account=publicUser(user);socket.emit('account-data',account);
+  reply({ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS,account});
  });
  socket.on('player-protection', payload => {
   const room = socketRoom(socket), p = room?.players.get(socket.id), u = users[socket.data.userKey];
@@ -1312,7 +1482,7 @@ io.on('connection', socket => {
   if (!p) return;
   socket.emit('player-vitals', playerVitalsPayload(p, { reason: 'resync', serverTime: Date.now() }));
  });
- socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
+ socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload||room.players.get(socket.id)?.tutorialActive)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
  socket.on('request-world-snapshot',(payload={})=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;
   // Resuming a minimized tab may request a snapshot after server-side death. That must
   // not silently create a new horde or restart the clock; only join/begin-run initializes.
@@ -1352,17 +1522,35 @@ io.on('connection', socket => {
  socket.on('request-host-transfer', () => {});
  socket.on('photon-ray-stop',()=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(room&&player&&player.alive!==false)socket.to(channelFor(room)).emit('photon-ray-stop',{fromId:socket.id});});
  socket.on('shared-shot', payload => {
-  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false)return;
+  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false||shooter.tutorialActive)return;
   const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);
   const shotWorldHeight=roomWorldHeight(room);
   if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;
   const now=Date.now(),volleyId=String(payload.volleyId||'').slice(0,64);
    const sameVolley=Boolean(volleyId&&volleyId===shooter.lastShotVolleyId&&now-(Number(shooter.lastShotAt)||0)<90);
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
-   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>7)return;shooter.lastShotVolleyPackets=volleyPackets;}
+   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
-  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
-  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
+  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  if(shot.special==='nova'&&room.mode!=='pvp'){
+   if(now<(Number(shooter.novaShotReadyAt)||0))return;
+   shooter.novaShotReadyAt=now+1800;
+   shooter.lastNovaVolleyId=volleyId;
+   shooter.novaShardExpiresAt=now+600;
+   shooter.novaShardCount=0;
+   shooter.novaReferenceDamage=Math.min(45,Math.max(1,shot.damage));
+  }
+  if(shot.special==='prismShard'){
+   const rank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3),maxShards=2*rank;
+   // Each fragment must belong to a recently accepted Nova pulse. This also
+   // prevents forging arbitrary high-damage shards or extra projectiles.
+   if(!maxShards||!volleyId||volleyId!==shooter.lastNovaVolleyId||
+      now>(Number(shooter.novaShardExpiresAt)||0)||
+      (Number(shooter.novaShardCount)||0)>=maxShards)return;
+   shooter.novaShardCount=(Number(shooter.novaShardCount)||0)+1;
+   shot.damage=Math.min(shot.damage,Math.max(1,Number(shooter.novaReferenceDamage)||1)*.28/maxShards);
+  }
+  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));shot.hadalBeamActive=shooter.hadalBeamActive===true;}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
    const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
@@ -1397,16 +1585,48 @@ io.on('connection', socket => {
      if(pvpRockAt(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){length=Math.max(0,distance-4/WORLD_ZOOM);break;}
     }
    }
-   const ex=sx+ux*length,ey=sy+uy*length;
+   if(room.mode==='rift'){
+      const layout=WorldSimulation.mapLayoutFor(room.world);
+      for(let distance=0;distance<=length;distance+=6/WORLD_ZOOM){
+        if(!AbyssalMap.isWalkable(layout,sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
+          length=Math.max(0,distance-6/WORLD_ZOOM);break;
+        }
+      }
+    }
+    const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/shotWorldHeight,0,1);
-   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
+   // A single authoritative photon command resolves all Prism side rays.
+   // Clients cannot supply extra beam endpoints or bypass the 190 ms cadence.
+   const prismRank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3);
+   const secondarySegments=[];
+   for(let i=0;i<prismRank*2;i++){
+    const angle=Math.atan2(uy,ux)+(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
+    const dx=Math.cos(angle),dy=Math.sin(angle);
+    let sideLength=beamRange;
+    if(room.mode==='pvp'){
+     for(let d=0;d<=beamRange;d+=4/WORLD_ZOOM){
+      if(pvpRockAt(sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-4/WORLD_ZOOM);break;}
+     }
+    }else if(room.mode==='rift'){
+     const layout=WorldSimulation.mapLayoutFor(room.world);
+     for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
+      if(!AbyssalMap.isWalkable(layout,sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
+     }
+    }
+    secondarySegments.push({x2:sx+dx*sideLength,y2:sy+dy*sideLength});
+   }
+   shot.prismBeams=secondarySegments.map(beam=>({x2:clamp(beam.x2/WORLD_WIDTH,0,1),y2:clamp(beam.y2/shotWorldHeight,0,1)}));
+   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]*(shooter.hadalBeamActive?1.35:1)/(2*WORLD_ZOOM);
    if(room.mode==='pvp'){
     let changed=false;
     for(const target of room.players.values()){
      if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;
-     if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,(Number(target.r)||13/WORLD_ZOOM)+hitRadius))continue;
-     const rawDamage=Math.max(1,Math.min(35,shot.damage||12));
+     const hitRadiusWithTarget=(Number(target.r)||13/WORLD_ZOOM)+hitRadius;
+     const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,hitRadiusWithTarget);
+     const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,target.x,target.y,hitRadiusWithTarget*.88));
+     if(!primaryHit&&!sideHit)continue;
+     const rawDamage=Math.max(1,Math.min(35,shot.damage||12))*(primaryHit?1:.42);
      const damage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(sx-target.x,sy-target.y));
      let blocked=false;
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
@@ -1425,8 +1645,11 @@ io.on('connection', socket => {
      const enemyLookup=new Map((room.world?.enemies||[]).map(enemy=>[Number(enemy.id),enemy]));
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
-      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
-      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup);
+      const hitRadiusWithTarget=Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius;
+      const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget);
+      const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget*.88));
+      if(!primaryHit&&!sideHit)continue;
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12))*(primaryHit?1:.42),'photonRay',null,shot.actionId,enemyLookup);
      }
     }finally{shooter.photonServerResolving=false;}
    }
@@ -1437,6 +1660,8 @@ io.on('connection', socket => {
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
    if(shot.special==='nova'){
     if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
+     shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
+     shooter.novaReferenceDamage=Math.min(35,Math.max(1,shot.damage));
     const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;
@@ -1470,13 +1695,14 @@ io.on('connection', socket => {
   if(shot.special==='photonRay')io.to(channelFor(room)).emit('shared-shot',shot);
   else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
- socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
+ socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
  socket.on('skin-ability', (payload, acknowledge) => {
   const room = socketRoom(socket);
   if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
    if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
    return;
   }
+  if(room.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}
   const skin = String(payload.skin || '').slice(0,32);
   const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
   if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
@@ -1485,12 +1711,12 @@ io.on('connection', socket => {
   }
   const u = users[socket.data.userKey];
   const type = payload.type==='ink-trail'&&skin==='aberration'?'ink-trail':payload.type === 'bubble-trail' && (skin === 'reefshark' || skin === 'whiteShark') ? 'bubble-trail' : 'ability';
-  // Keep received trails in the same 350 ms rhythm as snake poison.
+  // Cap black-octopus and shark bubble emission at 200 ms; hit cadence is 100 ms.
   if(type==='bubble-trail'||type==='ink-trail'){
    const owner=room.players.get(socket.id);
    const key=type==='bubble-trail'?'lastBubbleTrailAt':'lastInkTrailAt';
    const now=Date.now();
-   if(!owner||now-(Number(owner[key])||0)<SKIN_TRAIL_CADENCE_MS*.8){
+   if(!owner||owner.skinId!==skin||Math.hypot(Number(owner.x)-x*WORLD_WIDTH,Number(owner.y)-y*WORLD_HEIGHT)>90/WORLD_ZOOM||now-(Number(owner[key])||0)<BUBBLE_TRAIL_EMIT_MS*.8){
     if(typeof acknowledge==='function')acknowledge({ok:false,reason:'trail-cadence'});
     return;
    }
@@ -1501,7 +1727,7 @@ io.on('connection', socket => {
    const player=room.players.get(socket.id);
    if(player&&(player.skinId==='reefshark'||player.skinId==='whiteShark')){
     room.world.sharkWakeTrails=Array.isArray(room.world.sharkWakeTrails)?room.world.sharkWakeTrails:[];
-    room.world.sharkWakeTrails.push({ownerId:socket.id,x:x*WORLD_WIDTH,y:y*WORLD_HEIGHT,r:18/WORLD_ZOOM,life:5,damageTimer:SKIN_TRAIL_CADENCE_SECONDS});
+    room.world.sharkWakeTrails.push({ownerId:socket.id,x:x*WORLD_WIDTH,y:y*WORLD_HEIGHT,r:18/WORLD_ZOOM,life:5,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
     if(room.world.sharkWakeTrails.length>160)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-160);
    }
   }
@@ -1509,7 +1735,7 @@ io.on('connection', socket => {
    const player=room.players.get(socket.id),ix=x*WORLD_WIDTH,iy=y*WORLD_HEIGHT;
    if(player&&player.skinId==='aberration'&&Math.hypot(Number(player.x)-ix,Number(player.y)-iy)<=90/WORLD_ZOOM){
     room.world.inkTrails=Array.isArray(room.world.inkTrails)?room.world.inkTrails:[];
-    room.world.inkTrails.push({ownerId:socket.id,x:ix,y:iy,r:28/WORLD_ZOOM,life:4,damageTimer:.05});
+    room.world.inkTrails.push({ownerId:socket.id,x:ix,y:iy,r:28/WORLD_ZOOM,life:4,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
     if(room.world.inkTrails.length>180)room.world.inkTrails.splice(0,room.world.inkTrails.length-180);
    }
   }
@@ -1526,7 +1752,7 @@ io.on('connection', socket => {
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
-  if(!room||!player||player.alive===false||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  if(!room||!player||player.alive===false||player.tutorialActive||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
@@ -1550,11 +1776,12 @@ io.on('connection', socket => {
    if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('account-data',publicUser(account));}
   }
  });
- socket.on('shared-damage', (payload,acknowledge) => {const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
+ socket.on('shared-damage', (payload,acknowledge) => {if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
  socket.on('shared-damage-batch',(payload={},acknowledge)=>{
   const ack=data=>{if(typeof acknowledge==='function')acknowledge(data)};
   const room=socketRoom(socket);
   if(!room||!socket.data.joined)return ack({ok:false,reason:'not-in-room',accepted:0});
+  if(room.players.get(socket.id)?.tutorialActive)return ack({ok:false,reason:'tutorial-active',accepted:0});
   const hits=Array.isArray(payload?.hits)?payload.hits.slice(0,128):[];
   if(!hits.length)return ack({ok:false,reason:'empty-batch',accepted:0});
   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
@@ -1618,7 +1845,7 @@ io.on('connection', socket => {
    // is client simulated; rewards are always selected and persisted here.
    const run=socket.data.runStats,tier=Number(payload.tier);
    if(room||!run||run.settled||run.mode!=='rift'||!Number.isInteger(tier)||tier<0||tier>=(Number(run.bossesKilled)||0))return reply({ok:false,message:'A derrota do boss ainda não foi registrada. Aguarde e tente novamente.'});
-   id=RiftRewards.grant(u,`solo:${run.id}:${tier}`).id;
+   id=RiftRewards.grant(u,`solo:${run.id}:${tier}`,{final:tier===RiftHardcore.FINAL_TIER&&Number(run.bossesKilled)>RiftHardcore.FINAL_TIER}).id;
   }else{
    const chest=u.riftChests?.find(c=>c.id===id);
    if(!chest)return reply({ok:false,message:'Baú não encontrado.'});
@@ -1639,10 +1866,11 @@ io.on('connection', socket => {
   // A conclusão dos ciclos finais concede a Moréia Esmeralda Colossal à conta.
   // O cliente envia esta confirmação ao concluir a conquista; a skin é registrada
   // no perfil antes de aceitar uma solicitação para equipá-la.
-  if (payload.conqueror === true) {
-   if (!u.ownedSkins.includes('greensnake')) u.ownedSkins.push('greensnake');
-   u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};
-   u.titleStats.conqueror = true;
+  if(payload.conqueror===true){
+   const room=socketRoom(socket),run=room?.players.get(socket.id)?.runStats||socket.data.runStats;
+   const reachedFinal=run&&!run.settled&&(Number(run.bossesKilled)||0)>=42&&
+     (room?.mode==='coop'||(!room&&run.mode==='solo'&&Date.now()-(Number(run.startedAt)||Date.now())>=900000));
+   if(reachedFinal)grantFinalConquest(u);
   }
   if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
   if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;

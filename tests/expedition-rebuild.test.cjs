@@ -52,11 +52,11 @@ test('rift expedition is explicit and its exits replace the old boss checkpoint 
  assert.match(server,/const expedition=Boolean\(!member&&payload\.expedition===true\)/);
 });
 
-test('extraction is server-accounted and death preserves only part of completion payout',()=>{
- assert.match(game,/expeditionExtracted\?1\+Math\.min\(\.75,bossKillsThisRun\*\.15\):\.65/);
- assert.match(server,/extracted\?1\+Math\.min\(\.75,bossesKilled\*\.15\):\.65/);
+test('extraction is server-accounted with no penalty for returning to surface early',()=>{
+ assert.match(game,/expeditionMultiplier=expeditionMode\?\(1\+Math\.min\(\.75,bossKillsThisRun\*\.15\)\):1/);
+ assert.match(server,/expeditionMultiplier=expedition\?\(1\+Math\.min\(\.75,bossesKilled\*\.15\)\):1/);
  assert.match(game,/extracted:expeditionExtracted/);
- assert.match(server,/Sinal perdido:.*65% da recompensa/);
+ assert.match(server,/Nenhuma penalidade de retirada/);
 });
 
 test('successful extraction has its own result state and cannot offer a revive ad',()=>{

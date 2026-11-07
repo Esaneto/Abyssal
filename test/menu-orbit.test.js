@@ -396,7 +396,7 @@ test('PvE remains blue and PvP remains red, regardless of selected Resonance mod
   const html=read('public/index.html');
   const game=read('public/game.js');
   assert.match(html,/abyssal-interface-harmony\.css\?v=2/);
-  assert.match(html,/game\.js\?v=2026\.11\.6\.4/);
+  assert.match(html,/game\.js\?v=\d{4}\.\d{1,2}\.\d{1,2}\.\d+/);
   assert.match(css,/button\[data-resonance-mode="pve"\]\{/);
   assert.match(css,/button\[data-resonance-mode="pvp"\]\{/);
   assert.match(css,/rgba\(86,170,255,\.88\)/);

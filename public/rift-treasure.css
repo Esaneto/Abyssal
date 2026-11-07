@@ -8,3 +8,33 @@
 #abyssGate .abyss-gate-rim{border-color:#376677;box-shadow:inset 0 7px 15px #071b29,0 0 18px #3faec444;filter:drop-shadow(0 8px 4px #0009)}
 #abyssGate .abyss-vortex-streams{filter:drop-shadow(0 0 3px #46b9da);opacity:.7}
 @media(prefers-reduced-motion:reduce){.treasure-lid,.treasure-light{transition:none}}
+
+#riftChestDialog.final-chest{border:2px solid #edc56d;background:radial-gradient(ellipse at 50% 42%,#50401a,#1c271e 58%,#070d13 90%);box-shadow:0 0 75px #efc65b40,0 25px 100px #000d}
+#riftChestDialog.final-chest h2{color:#fff3ad;text-shadow:0 0 19px #d5b249;letter-spacing:.06em}
+#riftChestDialog.final-chest .treasure-art svg{filter:sepia(.65) saturate(1.4) drop-shadow(0 0 18px #e3ac4b)}
+#riftChestDialog.final-chest .treasure-light{opacity:.7;filter:blur(23px)}
+#riftChestDialog.final-chest.opened .treasure-light{opacity:1}
+#riftChestDialog.final-chest .chest-odds{color:#f5dca2;font-weight:700}
+
+
+/* Shipwreck wood, oxidized iron and algae replace the sterile treasure dialog. */
+#riftChestDialog{border:2px ridge #52624c;border-radius:12px;background:
+ repeating-linear-gradient(177deg,transparent 0 13px,rgba(2,11,12,.22) 14px 16px,transparent 17px 34px),
+ radial-gradient(ellipse at 48% 16%,rgba(92,108,74,.41),transparent 48%),
+ linear-gradient(132deg,#27362c,#0b1b1a 45%,#07121b 95%);
+ box-shadow:inset 0 0 0 5px rgba(12,27,22,.82),inset 0 0 33px #050e10,0 28px 100px #000e}
+#riftChestDialog::before{content:'';pointer-events:none;position:absolute;inset:8px;border:1px dashed rgba(122,143,103,.26);border-radius:5px}
+#riftChestDialog h2{font-family:Georgia,serif;letter-spacing:.065em;color:#d9e1c0;text-shadow:0 2px 2px #020d0e}
+#riftChestDialog .treasure-art{filter:drop-shadow(0 8px 10px #020608)}
+#riftChestDialog .chest-ancient-moss{filter:drop-shadow(0 0 5px rgba(53,144,87,.29))}
+#riftChestDialog .chest-creeping-arms{transform-origin:150px 175px;animation:chestTendrilSway 4.8s ease-in-out infinite alternate}
+#riftChestDialog .chest-wet-grain{mix-blend-mode:multiply}
+#riftChestDialog .chest-odds{color:#b6c2a9;border-top:1px solid rgba(103,137,92,.27);padding-top:9px}
+#riftChestDialog #riftChestOpen{background:linear-gradient(135deg,#a28b54,#d9be81 52%,#8d7546);border:1px solid #ead19f;color:#171d16;box-shadow:inset 0 2px 4px #f8e7ac75,0 4px 12px #0008}
+#riftChestDialog.final-chest{border-color:#b3975e;
+ background:repeating-linear-gradient(174deg,transparent 0 18px,rgba(8,18,10,.3) 19px 21px,transparent 22px 43px),radial-gradient(ellipse at 50% 25%,#6b592936,#131f19 67%,#080d11 99%);
+ box-shadow:inset 0 0 30px #081110,0 0 25px #aa7e3260,0 23px 100px #000d}
+#riftChestDialog.final-chest .chest-creeping-arms{filter:drop-shadow(0 0 5px rgba(173,106,221,.36))}
+#riftChestDialog.final-chest .treasure-art svg{filter:sepia(.45) saturate(1.28) drop-shadow(0 0 18px #b999453d)}
+@keyframes chestTendrilSway{from{transform:rotate(-1deg) scaleX(.99)}to{transform:rotate(1.5deg) scaleX(1.015)}}
+@media(prefers-reduced-motion:reduce){#riftChestDialog .chest-creeping-arms{animation:none}}

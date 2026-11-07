@@ -25,7 +25,7 @@ test('skin-inflicted damage numbers are green while normal shots and other passi
  assert.equal(damageTone('photonRay'),'shot');
  assert.equal(damageTone('bleed-passive'),'passive');
  assert.equal(damageTone('gravitationalRupture'),'passive');
- assert.match(game,/number\.tone==='skin'\?'#52ff86':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+ assert.match(game,/number\.tone==='received'\?'#ff274a':number\.tone==='skin'\?'#52ff86':number\.tone==='poison'\?'#4bff7d':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
 });
 
 test('green periodic skin damage appears without creating a new label every tick',()=>{
@@ -42,6 +42,6 @@ test('green periodic skin damage appears without creating a new label every tick
 test('multiplayer combat and blue-ring ink PvP carry skin damage tone into floating numbers',()=>{
  assert.match(game,/spawnDamageNumber\(enemy\.x,enemy\.y,damage,damageTone\(skillId\)\)/);
  assert.match(game,/spawnDamageNumber\(Number\(data\.enemyX\)\|\|enemy\.x,Number\(data\.enemyY\)\|\|enemy\.y,Number\(data\.damage\),damageTone\(data\.skillId\)\)/);
- assert.match(game,/damageTone\(data\.skillId\|\|data\.source\)/);
- assert.match(game,/damageTone\(d\.skillId\|\|d\.source\)/);
+ assert.match(game,/spawnDamageNumber\(player\.x,player\.y,Number\(data\.damage\),'received'\)/);
+ assert.match(game,/spawnDamageNumber\(px,py,Number\(d\.damage\),'received'\)/);
 });

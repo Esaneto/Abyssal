@@ -74,7 +74,7 @@ test('Arc Chain uses half the former reach and caps targets at eight monsters', 
   const game = read('public/game.js');
   assert.match(game, /const fieldRange=294\*\(upgrades\.range\|\|1\)/);
   assert.match(game, /sort\(\(a,b\)=>dist\(player,a\)-dist\(player,b\)\)\.slice\(0,8\)/);
-  assert.ok(game.includes('Fusão de Tempestade Elétrica + Pulso Intenso no nível 3'));
+  assert.ok(game.includes('Fusão de Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3'));
 });
 
 test('in-game HUD can be collapsed without hiding its arrow and uses 60% opacity', () => {

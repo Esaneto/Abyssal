@@ -54,8 +54,8 @@ test('restored room join is never discarded as a duplicate while reconnect is pe
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
   const game = read('public/game.js');
   assert.match(game, /FAIR_VIEW_REFERENCE/);
-  assert.match(game, /function fire\(\)[\s\S]*?audio\(500,\.045,'sine',\.008\)/);
-  assert.match(game, /if\(p\.special\)audio\(500,\.045,'sine',\.008\)/);
+  assert.match(game, /function fire\(\)[\s\S]*?playWorldSound\('shot-'\+activeShot/);
+  assert.match(game, /if\(p\.special\)playWorldSound\('enemy-hit'/);
 });
 
 test('download, fullscreen, account deletion and PWA entry points remain present', () => {
@@ -193,7 +193,7 @@ test('paired level-three skills fuse into gravitational and electric chain abili
  const game=read('public/game.js');
  assert.match(game,/gravitationalRupture:[\s\S]*?arcChain:/);
  assert.match(game,/upgradeLevels\.burst>=3&&upgradeLevels\.nova>=3/);
- assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.power>=3/);
+ assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.ricochet>=3/);
  assert.match(game,/dealEnemyDamage\(e,10,'gravitationalRupture'\)/);
  assert.match(game,/dealEnemyDamage\(target,16,'arcChain'\)/);
 });

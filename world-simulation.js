@@ -3,6 +3,7 @@ const EnemyAI = require('./public/enemy-ai.js');
 const SkinAbilities = require('./skin-abilities');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
+const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -196,7 +197,7 @@ function spawnEnemy(world, options = {}) {
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
   }
   if (type === 'boss') {
-    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / BOSS_KINDS.length);
+    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
@@ -225,6 +226,7 @@ function spawnEnemy(world, options = {}) {
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
+  if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
   world.enemies.push(enemy);
   return enemy;
 }
@@ -454,6 +456,69 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const bossAbilityHits = [];
   const bossAbilityEvents = [];
   const defeatedPlayers = [];
+  const riftAims=[],environmentDamages=[],environmentKills=[];
+  // The same procedural geometry is evaluated in solo and on the authoritative server.
+  // Each hazard has a visible warning phase; damage can occur only in its active phase.
+  if(riftMode&&mapLayout){
+    for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
+      const phase=RiftHardcore.state(hazard,world.elapsed);
+      if(hazard.type==='tentacle'&&phase.phase!=='idle'){
+       const derived=RiftHardcore.hazardAtCycle(hazard,phase.cycle);
+       if(!derived.aimed){
+        const target=RiftHardcore.targetNearest(hazard,validPlayers,mapLayout);
+        const aim=RiftHardcore.aimTentacle(hazard,phase.cycle,target?.x,target?.y);
+        if(aim)riftAims.push(aim);
+       }
+      }
+      if(phase.phase!=='active')continue;
+      for(const target of validPlayers){
+        if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
+        target.riftHazardCooldowns ||= Object.create(null);
+        // Continuous suction is independent from periodic damage.
+        if((hazard.type==='vortex'||hazard.type==='lure')&&target.alive!==false){
+          const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1;
+          const pull=Math.min(Math.max(0,length-7),(hazard.type==='vortex'?430:190)*dt);
+          const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);
+          const ox=moved.x-target.x,oy=moved.y-target.y;
+          target.x=moved.x;target.y=moved.y;
+          if(ox||oy)playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:hazard.type+':'+hazard.id,strength:hazard.type==='vortex'?.95:.38});
+        }
+        if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
+        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
+        const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
+        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
+        if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
+        
+      }
+
+      // Living foes also occupy the cave. Environmental hazards are neutral;
+      // only Pesadelo Roxo is immune to his own tentacles.
+      for(const enemy of world.enemies){
+       if(enemy.hp<=0||(enemy.spawnedAt&&now-enemy.spawnedAt<3000)||(hazard.type==='tentacle'&&enemy.kind===RiftHardcore.FINAL_KIND))continue;
+       const enemyRadius=Math.min(43,Math.max(6,(Number(enemy.r)||16)*.48));
+       if(!RiftHardcore.hit(hazard,Number(enemy.x),Number(enemy.y),enemyRadius,phase))continue;
+       enemy.riftHazardCooldowns ||= Object.create(null);
+       if(now<(Number(enemy.riftHazardCooldowns[hazard.id])||0))continue;
+       enemy.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?750:1100);
+       const damage=Math.min(Number(enemy.hp)||0,Math.max(1,hazard.damage));
+       if(!damage)continue;
+       enemy.hp=Math.max(0,enemy.hp-damage);enemy.hit=.17;
+       enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+       environmentDamages.push({id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,
+        damage,skillId:'rift-hazard-'+hazard.type,kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,
+        enemyColor:enemy.color,killed:enemy.hp<=0});
+       if(enemy.hp<=0){
+        const boss=BOSS_KINDS.includes(enemy.kind);
+        if(boss){world.bossesDefeated=(Number(world.bossesDefeated)||0)+1;world.lastBossKind=enemy.kind;world.nextBossAt=Infinity;}
+        const orb=spawnXpOrb(world,enemy);
+        if(orb)spawnedRewardOrbs.push(orb);
+        environmentKills.push({id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,
+          value:enemy.value,color:enemy.color,boss});
+       }
+      }
+    }
+    if(environmentKills.length){const removed=new Set(environmentKills.map(e=>String(e.id)));world.enemies=world.enemies.filter(e=>!removed.has(String(e.id)));}
+  }
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: WORLD_WIDTH - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
@@ -466,7 +531,22 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
     enemy.attackCd = Math.max(0, (enemy.attackCd || 0) - dt);
-    if (enemy.kind === 'kraken') {
+    if(enemy.kind===RiftHardcore.FINAL_KIND){
+       const contenders=targetablePlayers.filter(p=>AbyssalMap.roomAt(mapLayout,Number(p.x),Number(p.y))?.id==='boss');
+       if(!enemy.riftNextAttackAt)enemy.riftNextAttackAt=now+1400;
+       for(const target of contenders){
+         if(Math.hypot(enemy.x-target.x,enemy.y-target.y)>enemy.r*.85+(Number(target.r)||13/WORLD_ZOOM))continue;
+         enemy.nightmareHeadCooldowns ||= Object.create(null);
+         if(now<(Number(enemy.nightmareHeadCooldowns[target.id])||0))continue;
+         enemy.nightmareHeadCooldowns[target.id]=now+900;
+         const collision=bossAbilityHit(enemy,target,50,now,'nightmare-head-contact');
+         if(collision){bossAbilityHits.push(collision);if(collision.alive===false)defeatedPlayers.push(target);}
+       }
+       // Eight physical curved tentacle hazards anchored to the boss-room walls
+       // replace the old floating linear boss marks. Only the head does 50 on touch.
+       continue; // The final kraken is rooted; its head never chases or body-collides.
+     }
+     if (enemy.kind === 'kraken') {
       // Slow, readable boss sweep: 2.4 s telegraph, 2.8 s damaging sweep, 4.8 s recovery.
       enemy.krakenSweepTimer = Math.max(0, (Number(enemy.krakenSweepTimer) || 0) - dt);
       if (enemy.krakenSweepTimer <= 0) {
@@ -585,7 +665,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
       {
-      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
       if(!nav.direct){
         movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;
         movementTargets=movementNavigationTargets;
@@ -594,16 +674,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
     movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
-    const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+    const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
     enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
     if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;}
     movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
     movement.target=actualTarget;
     if (!movement.moved && actualTarget && dt > 0) {
-      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
       if(nav&&Math.hypot(nav.x-enemy.x,nav.y-enemy.y)>1){
         const dx=nav.x-enemy.x,dy=nav.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.5*dt,d);
-        const fallback=AbyssalMap.resolveMove(mapLayout,enemy.x,enemy.y,enemy.x+dx/d*step,enemy.y+dy/d*step,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+        const fallback=AbyssalMap.resolveMove(mapLayout,enemy.x,enemy.y,enemy.x+dx/d*step,enemy.y+dy/d*step,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
         enemy.x=fallback.x;enemy.y=fallback.y;movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
         if(movement.moved)world.movementRecoveryCount=(world.movementRecoveryCount||0)+1;
       }
@@ -752,7 +832,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       world.xpOrbCollectedCount = (world.xpOrbCollectedCount || 0) + 1;
       const orbValue = Math.max(1, Math.round(Number(orb.value) || 1));
       const xpMultiplier = SkinAbilities.orbExperienceMultiplier(collector.skinId);
-      xpCollected.push({ playerId: collector.id, orbId: orb.id, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
+      xpCollected.push({ playerId: collector.id, orbId: orb.id, baseValue:orbValue, shared:riftMode, value: Math.max(1, Math.round(orbValue * xpMultiplier)), x: orb.x, y: orb.y, sourceKind: orb.sourceKind || null });
     }
   }
   if (expiredOrbIds.size) world.orbs = world.orbs.filter(orb => !expiredOrbIds.has(String(orb.id)));
@@ -777,7 +857,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     active: true, dt, movedEnemyCount,
     spawnedEnemies,
     spawnedBosses: spawnedEnemies.filter(e => BOSS_KINDS.includes(e.kind)),
-    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
+    playerHits, playerSuctionPulls, bossAbilityHits, bossAbilityEvents, riftAims,environmentDamages,environmentKills, playerHeals, defeatedPlayers, xpCollected, expiredOrbIds: expiredOnlyOrbIds, spawnedRewardOrbs, sideEncounter, eventEnded, sendSnapshot, sendReliableSnapshot, sendPlayers, sendOrbSnapshot,
     tickCount: world.tickCount, elapsed: world.elapsed, stalePositionAttackSkips: world.stalePositionAttackSkips || 0
   };
 }

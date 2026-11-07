@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratório Sonoro | Abyssal</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#071018;color:#dfedef}
+*{box-sizing:border-box}body{margin:0;padding:clamp(16px,4vw,42px);max-width:1200px;margin:auto}
+h1{letter-spacing:.13em;font-size:clamp(28px,4.5vw,45px);margin-bottom:5px}
+h2{font-size:17px;letter-spacing:.10em;color:#86d5cf;margin-top:32px}
+p{line-height:1.55;color:#a7bcc3;max-width:830px}
+a{color:#8de8df}header{border-bottom:1px solid #29414b;padding-bottom:24px}
+.controls{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin:18px 0}
+.controls label{display:flex;align-items:center;gap:10px}
+button{border:1px solid #2a5764;background:linear-gradient(180deg,#123440,#0a2029);color:#e3f5f5;border-radius:10px;padding:13px;text-align:left;cursor:pointer;min-height:65px;display:flex;flex-direction:column;justify-content:center;gap:3px}
+button:hover,button:focus-visible{border-color:#79ecdb;background:#153a45}
+button:active{transform:scale(.99)}button small{color:#81a9b6}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+#status{font:13px ui-monospace,monospace;color:#7ed6cd;padding:8px 12px;border:1px solid #254651;border-radius:8px;min-width:230px}
+input[type="range"]{accent-color:#79d4c8;width:128px}
+</style>
+</head>
+<body>
+<header>
+<a href="/">Voltar ao jogo</a>
+<h1>ABYSSAL · LABORATÓRIO SONORO</h1>
+<p>Ouça os efeitos procedurais novos, individualmente. Os sons são gerados no seu dispositivo, não são arquivos de áudio enviados pelo servidor. O áudio começa somente quando você toca em um botão.</p>
+<div class="controls"><label>Volume <input id="volume" type="range" min="0" max="100" value="65"><output id="volumeValue">65%</output></label>
+<label><input id="lowPower" type="checkbox"> Simular modo econômico (6 vozes)</label><span id="status" aria-live="polite">Pronto para ouvir</span></div>
+</header>
+<main id="library"></main>
+<script src="world-audio.js?v=2026.11.7.23"></script>
+<script>
+(()=>{
+'use strict';
+const source=window.AbyssalWorldAudio;
+const categories=[
+['GRITOS DOS BOSSES · HORROR CINEMATOGRÁFICO',[
+ ['boss-omen','Chegada da entidade','Impacto sombrio antes do grito'],
+ ['boss-boss','Polvo-de-Anéis-Azuis','Grito tóxico e estridente'],
+ ['boss-angler','Peixe-Pescador','Berro metálico de mandíbulas'],
+ ['boss-maw','Enguia-Pelícano','Rugido gutural cavernoso'],
+ ['boss-leviathan','Peixe-Remo Leviatã','Lamento sobrenatural colossal'],
+ ['boss-whiteSharkBoss','Tubarão-Branco','Rosnado feroz e predatório'],
+ ['boss-kraken','Lula-Kraken','Grito fantasmagórico de pesadelo'],
+ ['boss-devourer','Lula-Colossal do Vazio','Uivo demoníaco e sucção'],
+ ['boss-riftSmile','Pesadelo Roxo','Grito infernal crescente']]],
+ ['ÚLTIMOS GRITOS · MORTE DOS BOSSES',[
+ ['boss-death-boss','Polvo-de-Anéis-Azuis','Grito de derrota'],
+ ['boss-death-angler','Peixe-Pescador','Grito final'],
+ ['boss-death-maw','Enguia-Pelícano','Garganta desmoronando'],
+ ['boss-death-leviathan','Peixe-Remo Leviatã','Último lamento'],
+ ['boss-death-whiteSharkBoss','Tubarão-Branco','Último rugido'],
+ ['boss-death-kraken','Lula-Kraken','Grito sufocado de derrota'],
+ ['boss-death-devourer','Lula-Colossal do Vazio','Colapso sobrenatural'],
+ ['boss-death-riftSmile','Pesadelo Roxo','Grito final do pesadelo']]],
+ ['FOGO, LAVA, EXPLOSÕES E CHOQUES',[
+ ['hazard-volcano-warning','Vulcão · pressão','A lava se aproxima'],
+ ['hazard-volcano-active','Vulcão · explosão de fogo','Chamas estourando e crepitando'],
+ ['hazard-volcano-sustain','Vulcão · chamas','Fogo contínuo e estalos'],
+ ['hazard-fumarole-active','Fumarola · vapor','Vapor violento'],
+ ['shot-nova','Nova · explosão','Detonação grave'],
+ ['ability-nova','Onda de explosão','Impacto e estilhaços sonoros'],
+ ['shot-electric','Eletricidade','Estalos energéticos']]],
+ ['ARMADILHAS · AVISO, ATAQUE, CONTINUIDADE E RETORNO',
+[['tentacle','Tentáculo'],['rockfall','Desmoronamento'],['spikes','Coral fossilizado'],
+ ['electric','Arco bioelétrico'],['fumarole','Fumarola tóxica'],
+ ['volcano','Vulcão abissal'],['vortex','Vórtice'],['pressure','Pressão esmagadora'],
+ ['lure','Isca da morte']].flatMap(([type,name])=>[
+  ['hazard-'+type+'-warning',name+' · aviso','Preparação'],
+  ['hazard-'+type+'-active',name+' · ataque','Impacto'],
+  ['hazard-'+type+'-sustain',name+' · ativo','Perigo em andamento'],
+  ['hazard-'+type+'-end',name+' · retorno','Retração ou dissipação']])],
+['COMBATE E HABILIDADES',[
+ ['shot-electric','Tempestade elétrica','Descarga'],['shot-photon','Raio de fótons','Energia'],
+ ['shot-pierce','Perfurante','Impacto cortante'],['shot-spread','Dispersão','Projéteis'],
+ ['shot-echoShot','Eco de Maré','Ressonância'],['shot-nova','Nova','Pulso'],
+ ['shot-ricochet','Ricochete','Desvio'],['player-hit','Dano recebido','Impacto'],
+ ['enemy-hit','Acerto','Contato'],['shield-hit','Escudo','Bloqueio'],
+ ['ability-suction','Sucção','Correnteza'],['ability-dash','Passo Fantasma','Deslocamento'],
+ ['ability-poison','Tinta tóxica','Fluido'],['ability-beam','Laser','Feixe'],
+ ['level-up','Evolução','Recompensa'],['portal','Portal','Travessia']]],
+['MOVIMENTAÇÃO E INTERFACE',[
+ ['swim-fish','Peixe','Água deslocada'],['swim-shark','Tubarão','Nado'],
+ ['swim-ray','Raia','Nadadeiras'],['swim-eel','Enguia','Ondulação'],
+ ['swim-octopus','Polvo','Tentáculos'],['swim-jelly','Medusa','Pulsação'],
+ ['ui-click','Clique','Interface'],['ui-equip','Equipar','Confirmação'],
+ ['ui-purchase','Compra','Recompensa'],['ui-error','Erro','Aviso']]]];
+const root=document.getElementById('library'),volume=document.getElementById('volume');
+let ctx=null;
+for(const [title,items] of categories){
+ const section=document.createElement('section'),header=document.createElement('h2'),grid=document.createElement('div');
+ header.textContent=title;grid.className='grid';
+ for(const [id,label,desc] of items){
+  const b=document.createElement('button');b.type='button';
+  const heading=document.createElement('strong'),detail=document.createElement('small');
+  heading.textContent=label;detail.textContent=desc;b.append(heading,detail);
+  b.addEventListener('click',async()=>{
+   try{
+    ctx ||= new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state!=='running')await ctx.resume();
+    const played=source.play(ctx,id,{volume:Number(volume.value)/100,
+     lowPower:document.getElementById('lowPower').checked});
+    const d=source.inspect(ctx);
+    document.getElementById('status').textContent=played?label+' · tocando':
+     'Intervalo de segurança · tente novamente';
+    document.getElementById('status').title='Vozes ativas: '+d.active+', limitações: '+d.suppressed;
+   }catch(err){document.getElementById('status').textContent='Áudio indisponível neste navegador';}
+  });grid.appendChild(b);
+ }
+ section.append(header,grid);root.append(section);
+}
+volume.addEventListener('input',()=>{document.getElementById('volumeValue').textContent=volume.value+'%';});
+})();
+</script>
+</body>
+</html>

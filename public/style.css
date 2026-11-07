@@ -4445,3 +4445,155 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
  .shop-filter-bar{grid-template-columns:1fr}
  .shop-filter-search,.shop-filter-select{width:100%}
 }
+
+
+/* Golden fusion recipes are guidance, not additional selectable abilities. */
+.resonance-fusion-guide{margin:18px 0 14px;padding:14px;border:1px solid rgba(231,183,79,.48);border-radius:14px;background:radial-gradient(ellipse at 50% 0,rgba(102,68,24,.30),rgba(10,16,25,.80) 74%);box-shadow:inset 0 0 26px rgba(206,151,66,.09)}
+.resonance-fusion-heading{margin:0 0 8px;color:#f5d68c;font:900 13px/1.4 'Manrope',sans-serif;letter-spacing:.07em;text-shadow:0 0 12px #ba7e3070}
+.resonance-fusion-explainer{margin:0 0 11px;color:#dbc9a5;font:500 12px/1.55 'Manrope',sans-serif}
+.resonance-fusion-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.resonance-fusion-recipe{padding:12px;background:linear-gradient(135deg,rgba(28,24,17,.87),rgba(12,23,29,.83));border:1px solid rgba(201,154,76,.25);border-radius:9px;min-width:0}
+.resonance-fusion-recipe strong{display:block;color:#e5bd6e;font-size:12px;letter-spacing:.04em}
+.resonance-fusion-recipe p{margin:7px 0;font-size:12px;color:#efe4ca;line-height:1.45}
+.resonance-fusion-recipe small{display:block;color:#b9afa1;font-size:10px;line-height:1.35}
+.resonance-fusion-recipe.ready{border-color:#ffe2a0;box-shadow:inset 0 0 14px rgba(247,205,105,.13),0 0 12px rgba(219,162,53,.14)}
+.resonance-fusion-recipe.ready small{color:#ffe19a;font-weight:800}
+@media(max-width:570px){.resonance-fusion-grid{grid-template-columns:1fr}.resonance-fusion-guide{padding:10px}}
+
+/* FOSSAS HUD V20: independent safe zones for stats, rankings and resonance.
+   The cave and the player's reticle must remain visible on narrow phones. */
+@media (max-width:700px),(pointer:coarse){
+ body.mobile-game-active .hud{
+  width:min(58vw,290px)!important;max-width:min(58vw,290px)!important;
+  top:max(7px,env(safe-area-inset-top))!important;left:50%!important;right:auto!important;
+  background:transparent!important;box-shadow:none!important;
+  opacity:.94!important;pointer-events:none!important;
+ }
+ body.mobile-game-active .abyss-depth-meter{
+  order:-2!important;position:relative!important;top:auto!important;left:auto!important;right:auto!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;
+  margin:6px 0 8px!important;padding:7px 9px!important;
+  border-radius:7px!important;background:rgba(2,14,24,.78)!important;
+  text-align:center!important;overflow:hidden!important;
+ }
+ body.mobile-game-active .abyss-depth-meter strong{
+  font-size:clamp(10px,3.1vw,13px)!important;letter-spacing:.045em!important;
+  white-space:nowrap!important;
+ }
+ body.mobile-game-active .abyss-depth-meter small,
+ body.mobile-game-active .abyss-depth-meter span{
+  font-size:clamp(7px,2vw,9px)!important;line-height:1.3!important;
+  max-width:100%!important;letter-spacing:.08em!important;
+ }
+ body.mobile-game-active .hud .bars{
+  order:0!important;width:100%!important;max-width:100%!important;
+  margin:0!important;min-width:0!important;
+ }
+ body.mobile-game-active .hud-top{
+  order:1!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  margin-top:6px!important;gap:4px!important;
+ }
+ body.mobile-game-active .hud-stat{
+  padding:4px 2px!important;background:rgba(2,15,26,.85)!important;
+  border:1px solid rgba(125,227,220,.16)!important;
+ }
+ body.mobile-game-active .hud-stat small{font-size:6px!important}
+ body.mobile-game-active .hud-stat strong{font-size:11px!important}
+ body.mobile-game-active #selectedSkillsPanel,
+ body.mobile-game-active #runEnergyRanking{
+  position:fixed!important;top:calc(max(7px,env(safe-area-inset-top)) + 176px)!important;
+  bottom:auto!important;max-height:min(31dvh,230px)!important;
+  opacity:.89!important;overflow-y:auto!important;
+  transform:none!important;transition:opacity .15s ease!important;
+ }
+ body.mobile-game-active #selectedSkillsPanel{
+  left:auto!important;right:var(--game-safe-right)!important;
+  width:clamp(106px,29vw,133px)!important;
+  max-width:calc(38vw - 6px)!important;
+ }
+ body.mobile-game-active #runEnergyRanking{
+  left:var(--game-safe-left)!important;right:auto!important;
+  width:clamp(98px,27vw,126px)!important;
+  max-width:calc(36vw - 6px)!important;
+ }
+ body.mobile-game-active #toggleHudBtn,
+ body.mobile-game-active #mobilePauseBtn{top:max(7px,env(safe-area-inset-top))!important}
+}
+/* Compact in landscape: leave the middle and lower half for steering controls. */
+@media (max-height:520px) and (pointer:coarse) and (orientation:landscape){
+ body.mobile-game-active #selectedSkillsPanel,
+ body.mobile-game-active #runEnergyRanking{
+  top:calc(max(7px,env(safe-area-inset-top)) + 104px)!important;
+  max-height:30dvh!important;
+ }
+ body.mobile-game-active .hud{width:min(50vw,390px)!important;max-width:min(50vw,390px)!important}
+ body.mobile-game-active .abyss-depth-meter{padding:3px 5px!important;margin:0 0 3px!important}
+ body.mobile-game-active .abyss-depth-meter small,
+ body.mobile-game-active .abyss-depth-meter span{display:none!important}
+}
+
+/* FOSSAS DESKTOP HUD V21: safe areas must work even when pointer capability
+   is unknown (headless browser, stylus, desktop accessibility devices). */
+@media (min-width:701px){
+ body.game-active:not(.mobile-game-active) .hud{
+  position:fixed!important;left:16px!important;right:auto!important;
+  top:76px!important;bottom:auto!important;
+  width:min(330px,30vw)!important;max-width:min(330px,30vw)!important;
+  height:auto!important;min-height:0!important;
+  display:flex!important;flex-direction:column!important;
+  transform:none!important;opacity:.93!important;
+  background:transparent!important;box-shadow:none!important;
+  pointer-events:none!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .bars{
+  order:0!important;display:flex!important;flex-direction:column!important;
+  width:100%!important;max-width:100%!important;margin:0!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .bar-label,
+ body.game-active:not(.mobile-game-active) .hud .bar{
+  width:100%!important;max-width:100%!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud .mobile-tip{display:none!important}
+ body.game-active:not(.mobile-game-active) .hud-top{
+  order:1!important;display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  width:100%!important;gap:4px!important;margin-top:6px!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-stat{
+  min-width:0!important;text-align:center!important;
+  padding:6px 3px!important;border-radius:6px!important;
+  background:rgba(3,16,27,.86)!important;
+  border:1px solid rgba(117,229,222,.17)!important;
+ }
+ body.game-active:not(.mobile-game-active) .hud-stat small{font-size:7px!important}
+ body.game-active:not(.mobile-game-active) .hud-stat strong{font-size:12px!important}
+ body.game-active:not(.mobile-game-active) .abyss-depth-meter{
+  order:-1!important;position:relative!important;
+  top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  margin:0 0 10px!important;padding:9px 11px!important;
+  background:rgba(2,13,24,.83)!important;border-radius:8px!important;
+  text-align:center!important;box-sizing:border-box!important;
+ }
+ body.game-active:not(.mobile-game-active) .abyss-depth-meter strong{
+  font-size:14px!important;line-height:1.3!important;
+ }
+ body.game-active:not(.mobile-game-active) #selectedSkillsPanel{
+  position:fixed!important;left:auto!important;right:14px!important;
+  top:76px!important;bottom:auto!important;
+  width:190px!important;max-width:190px!important;
+  max-height:calc(100dvh - 172px)!important;overflow-y:auto!important;
+  transform:none!important;opacity:.90!important;
+ }
+ body.game-active:not(.mobile-game-active) #runEnergyRanking{
+  position:fixed!important;left:auto!important;right:14px!important;
+  top:auto!important;bottom:62px!important;
+  width:190px!important;max-width:190px!important;
+  max-height:min(24dvh,180px)!important;overflow-y:auto!important;
+  transform:none!important;opacity:.90!important;
+ }
+ body.game-active:not(.mobile-game-active) #toggleHudBtn{
+  position:fixed!important;left:auto!important;right:218px!important;
+  top:76px!important;bottom:auto!important;opacity:.86!important;
+ }
+}
