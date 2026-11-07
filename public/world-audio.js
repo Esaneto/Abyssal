@@ -15,7 +15,11 @@
   cooldown:options.cd??175,filter:options.filter??1600,noise:options.noise??0,
   texture:options.texture??'soft',filterType:options.filterType??'lowpass',
   layer:options.layer??0,layerRatio:options.layerRatio??2.04,
-  attack:options.attack??.012,priority:options.priority??45
+  attack:options.attack??.012,priority:options.priority??45,
+  // Vocal formants and four-part pitch contours create horror cries rather
+  // than one descending electronic beep; entirely scheduled in Web Audio.
+  voice:options.voice??null,contour:options.contour??null,
+  formant:options.formant??0,fire:options.fire??0,crackle:options.crackle??0
  });};
  // Quiet interface hierarchy: clicks are brief; purchases have an ascending,
  // recognizable two-tone response; errors always descend.
@@ -37,19 +41,19 @@
  add('enemy-death',{f:235,d:.19,end:.32,texture:'thud',w:'triangle',g:.04,noise:.2,priority:38,cd:145});
  add('wall-hit',{f:260,d:.095,end:.46,texture:'crack',w:'triangle',g:.034,noise:.43,filter:1500,priority:37,cd:120});
  add('shield-hit',{f:520,d:.25,end:1.55,texture:'ring',g:.049,layer:.21,layerRatio:1.79,priority:92,cd:270});
- add('ability-nova',{f:97,d:.64,end:.31,texture:'pressure',w:'sawtooth',g:.061,noise:.37,filter:760,layer:.15,priority:84,cd:650});
+ add('ability-nova',{f:108,d:.73,end:.22,texture:'blast',w:'sawtooth',g:.080,noise:.81,filter:1250,layer:.19,priority:84,cd:650});
  add('ability-beam',{f:910,d:.13,end:.72,texture:'hiss',w:'sine',g:.032,noise:.16,filter:2500,priority:48,cd:110});
  add('ability-suction',{f:130,d:.88,end:2.9,texture:'suction',w:'triangle',g:.063,noise:.53,filter:900,priority:88,cd:820});
  add('ability-dash',{f:340,d:.23,end:2.20,texture:'whoosh',w:'triangle',g:.046,noise:.47,priority:65,cd:290});
  add('ability-poison',{f:205,d:.44,end:.55,texture:'bubble',w:'sine',g:.043,noise:.34,filter:980,priority:55,cd:500});
  // Attacks communicate projectile material, energy and collision separately.
  const SHOTS={
-  electric:[920,.092,.29,'crackle','square',.31,2550],
+  electric:[920,.092,.29,'crackle','square',.48,3150],
   photon:[1120,.17,.46,'ring','sine',.15,3100],
   pierce:[360,.16,2.00,'crack','sawtooth',.23,1900],
   spread:[620,.11,.50,'dry','triangle',.42,2050],
   echoShot:[410,.20,1.75,'shimmer','sine',.25,1700],
-  nova:[192,.33,.28,'pressure','sawtooth',.42,1050],
+  nova:[168,.44,.17,'blast','sawtooth',.85,1300],
   ricochet:[810,.14,1.53,'chime','triangle',.16,2750],
   default:[570,.090,.62,'dry','triangle',.14,1700]
  };
@@ -77,41 +81,61 @@
   rockfall:{f:118,w:'triangle',texture:'rattle',filter:1550,noise:.80,layer:.16,layerRatio:3.25},
   spikes:{f:740,w:'square',texture:'crack',filter:1850,noise:.45,layer:0},
   electric:{f:1350,w:'square',texture:'crackle',filter:3100,noise:.47,layer:.12,layerRatio:1.60},
-  fumarole:{f:210,w:'sine',texture:'hiss',filter:1300,noise:.85,layer:.09,layerRatio:2.50},
-  volcano:{f:100,w:'sawtooth',texture:'pressure',filter:850,noise:.77,layer:.18,layerRatio:2.12},
+  fumarole:{f:210,w:'sine',texture:'steam',filter:1800,noise:.94,layer:.09,layerRatio:2.50},
+  volcano:{f:118,w:'sawtooth',texture:'inferno',filter:1250,noise:.91,layer:.18,layerRatio:2.12},
   vortex:{f:145,w:'triangle',texture:'suction',filter:900,noise:.65,layer:.20,layerRatio:1.39},
   pressure:{f:76,w:'triangle',texture:'thud',filter:650,noise:.43,layer:.18,layerRatio:2.60},
   lure:{f:690,w:'sine',texture:'chime',filter:2250,noise:.18,layer:.29,layerRatio:1.47}
  });
+ // Fictitious horror vocals: shrieks, bellows, wails and demonic roars.
+ // No copyrighted samples, downloads or creature recordings are needed.
+ // These frequencies keep the scream audible on small mobile speakers.
  const ATTACKS=Object.freeze({
-  boss:{f:164,end:.65,texture:'rattle',w:'triangle',noise:.58,filter:1150,layerRatio:4.10}, // blue-ring poison clicks
-  angler:{f:132,end:.42,texture:'hollow',w:'sine',noise:.28,filter:1700,layerRatio:6.40}, // jaw + lure
-  maw:{f:92,end:.32,texture:'throat',w:'sawtooth',noise:.43,filter:560,layerRatio:1.80}, // pelican gullet
-  leviathan:{f:75,end:1.43,texture:'sing',w:'triangle',noise:.13,filter:890,layerRatio:2.15}, // long body resonance
-  whiteSharkBoss:{f:142,end:.39,texture:'whoosh',w:'triangle',noise:.82,filter:1500,layerRatio:2.80}, // rush, not a roar
-  kraken:{f:70,end:.59,texture:'stretch',w:'sawtooth',noise:.59,filter:780,layerRatio:2.40}, // suction and cups
-  devourer:{f:59,end:2.2,texture:'suction',w:'triangle',noise:.64,filter:780,layerRatio:1.87}, // vacuum
-  riftSmile:{f:54,end:.44,texture:'throat',w:'sawtooth',noise:.66,filter:590,layerRatio:3.25} // nightmare rasp
+  boss:{f:195,end:.45,texture:'rattle',voice:'shriek',w:'sawtooth',contour:[.68,1.3,3.05,.41],formant:1900,noise:.48,filter:2750,layerRatio:2.20}, // toxic high-pitch shriek
+  angler:{f:240,end:.33,texture:'crack',voice:'shriek',w:'sawtooth',contour:[.54,1.38,2.75,.40],formant:2200,noise:.28,filter:2700,layerRatio:2.30}, // screaming jaws
+  maw:{f:108,end:.30,texture:'throat',voice:'growl',w:'sawtooth',contour:[.75,1.45,2.05,.31],formant:840,noise:.57,filter:1400,layerRatio:1.60}, // guttural bellow
+  leviathan:{f:114,end:.68,texture:'sing',voice:'wail',w:'triangle',contour:[.78,1.55,2.4,.55],formant:1350,noise:.22,filter:1550,layerRatio:1.82}, // abyssal lament
+  whiteSharkBoss:{f:157,end:.28,texture:'whoosh',voice:'roar',w:'sawtooth',contour:[.8,1.4,2.6,.26],formant:1400,noise:.78,filter:2200,layerRatio:1.93}, // savage snarl
+  kraken:{f:148,end:.43,texture:'stretch',voice:'banshee',w:'sawtooth',contour:[.56,1.62,3.04,.39],formant:1760,noise:.67,filter:2500,layerRatio:2.21}, // tentacled screech
+  devourer:{f:99,end:.25,texture:'suction',voice:'void',w:'sawtooth',contour:[.66,1.8,2.55,.23],formant:1180,noise:.69,filter:1750,layerRatio:2.16}, // demonic suction howl
+  riftSmile:{f:232,end:.21,texture:'throat',voice:'nightmare',w:'sawtooth',contour:[.42,1.25,3.75,.22],formant:2450,noise:.66,filter:3100,layerRatio:2.57} // final nightmare scream
  });
  const BOSS=Object.freeze(Object.fromEntries(Object.entries(ATTACKS).map(([k,v])=>[k,[v.f,v.end,v.filter]])));
  for(const [kind,cfg] of Object.entries(TRAPS)){
-  add('hazard-'+kind+'-warning',{...cfg,f:cfg.f*1.24,d:.46,end:1.26,g:.050,noise:cfg.noise*.42,
+  const pyro=kind==='volcano',steam=kind==='fumarole';
+  add('hazard-'+kind+'-warning',{...cfg,f:cfg.f*1.24,d:pyro?.62:.46,end:1.26,g:.050,noise:cfg.noise*.42,
+   fire:pyro?.30:steam?.18:0,crackle:pyro?.20:0,
    group:'hazard-warning',cd:490,priority:95,attack:.018});
-  add('hazard-'+kind+'-active',{...cfg,d:.61,end:kind==='vortex'?1.67:.46,g:.067,group:'hazard-active',
+  add('hazard-'+kind+'-active',{...cfg,d:pyro?1.20:steam?.92:.61,end:pyro?.23:kind==='vortex'?1.67:.46,g:pyro?.094:.067,
+   texture:pyro?'inferno':steam?'steam':cfg.texture,fire:pyro?.93:steam?.55:0,crackle:pyro?.9:0,group:'hazard-active',
    cd:230,priority:88,attack:.007});
-  add('hazard-'+kind+'-sustain',{...cfg,d:.85,end:kind==='vortex'?1.35:.84,g:.025,noise:cfg.noise*.57,
+  add('hazard-'+kind+'-sustain',{...cfg,d:pyro?1.1:.85,end:kind==='vortex'?1.35:.84,g:pyro?.037:.025,
+   noise:cfg.noise*.57,texture:pyro?'inferno':steam?'steam':cfg.texture,fire:pyro?.67:steam?.35:0,
+   crackle:pyro?.60:0,
    group:'hazard-sustain',cd:550,priority:28,attack:.065,layer:0});
   add('hazard-'+kind+'-end',{...cfg,f:cfg.f*.84,d:.26,end:1.45,g:.025,noise:cfg.noise*.25,
+   fire:pyro?.25:0,crackle:pyro?.30:0,
    group:'hazard-release',cd:200,priority:41,layer:0});
  }
+ // Spawn: a terrifying full vocal. During combat: short violent barks,
+ // snaps and rumbles. Death: a distinct falling cry.
  for(const [kind,cfg] of Object.entries(ATTACKS)){
-  add('boss-'+kind,{...cfg,d:kind==='leviathan'?1.62:1.34,end:cfg.end,g:.100,
-   layer:.23,group:'boss',cd:1250,priority:97,attack:.044});
-  add('boss-attack-'+kind,{...cfg,f:cfg.f*1.43,d:.37,end:cfg.end*.68,g:.069,
-   layer:.14,group:'boss-attack',cd:350,priority:87,attack:.008});
+  const terrible=['riftSmile','kraken','angler','devourer'].includes(kind);
+  add('boss-'+kind,{...cfg,d:kind==='leviathan'?1.95:kind==='riftSmile'?1.78:1.50,
+   g:.106,layer:.30,group:'boss',cd:1350,priority:98,attack:.037});
+  add('boss-attack-'+kind,{...cfg,f:cfg.f*1.34,d:kind==='riftSmile'?.60:.39,
+   end:cfg.end*.68,texture:kind==='whiteSharkBoss'?'crack':cfg.texture,
+   voice:terrible?'snarl':null,contour:terrible?[.82,1.3,1.85,.39]:null,
+   g:.069,layer:.18,group:'boss-attack',cd:520,priority:90,attack:.009});
+  add('boss-death-'+kind,{...cfg,f:cfg.f*.82,d:kind==='riftSmile'?1.90:1.18,
+   contour:[1.4,1.85,.91,.19],voice:cfg.voice,g:.083,noise:cfg.noise*.84,
+   layer:.22,group:'boss-death',cd:1100,priority:91,attack:.015});
  }
  add('boss-defeated',{f:190,d:1.02,end:.29,texture:'throat',w:'triangle',
   noise:.30,layer:.25,layerRatio:1.43,g:.091,priority:88,group:'boss',cd:1100});
+ // A single cinematic pressure boom accents a boss arrival, then falls silent.
+ add('boss-omen',{f:125,d:.70,end:.19,texture:'blast',w:'triangle',g:.064,
+  noise:.52,filter:1150,layer:.19,priority:96,group:'cinematic',cd:1700,attack:.012});
  const PATTERNS=Object.freeze(P),contexts=new WeakMap();
  function state(ctx){let s=contexts.get(ctx);
   if(!s){s={active:0,played:0,suppressed:0,preempted:0,last:Object.create(null),
@@ -121,7 +145,9 @@
  function noiseBuffer(ctx,s){
   if(s.noise)return s.noise;
   if(typeof ctx.createBuffer!=='function')return null;
-  const length=Math.min(14000,Math.round((ctx.sampleRate||44100)*.28));
+  // 0.84 s of deterministic noise avoids an obvious repeating 280 ms hiss.
+  // One cached ~150 KB buffer per AudioContext, not per effect.
+  const length=Math.min(40000,Math.round((ctx.sampleRate||44100)*.84));
   const buf=ctx.createBuffer(1,length,ctx.sampleRate||44100),data=buf.getChannelData(0);
   let seed=0x6d2b79f5;
   for(let i=0;i<length;i++){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
@@ -168,25 +194,56 @@
   function oscillator(frequency,wave,end,amplitude,layer=false){
    const osc=ctx.createOscillator(),env=ctx.createGain();
    const filter=typeof ctx.createBiquadFilter==='function'?ctx.createBiquadFilter():null;
-   osc.type=wave;osc.frequency.setValueAtTime(Math.max(30,frequency),when);
-   const middle=(cfg.texture==='bubble'||cfg.texture==='suction'||cfg.texture==='sing')?
-    Math.max(30,frequency*(end>1?1.28:.87)):Math.max(30,frequency*.81);
-   osc.frequency.exponentialRampToValueAtTime(middle,when+duration*.52);
-   osc.frequency.exponentialRampToValueAtTime(Math.max(25,frequency*end),when+duration);
+   const voice=Boolean(cfg.voice),f=Math.max(30,frequency),contour=cfg.contour;
+   osc.type=voice?(cfg.voice==='wail'?'triangle':'sawtooth'):wave;
+   if(voice&&Array.isArray(contour)&&contour.length===4){
+    // Inhale, painful ascent, screaming peak and descending collapse.
+    const pitch=v=>Math.max(28,Math.min(7500,f*v));
+    osc.frequency.setValueAtTime(pitch(contour[0]),when);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[1]),when+duration*.24);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[2]),when+duration*.58);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[2]*.83),when+duration*.75);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[3]),when+duration);
+   }else{
+    osc.frequency.setValueAtTime(f,when);
+    const middle=(cfg.texture==='bubble'||cfg.texture==='suction'||cfg.texture==='sing')?
+     Math.max(30,f*(end>1?1.28:.87)):Math.max(30,f*.81);
+    osc.frequency.exponentialRampToValueAtTime(middle,when+duration*.52);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(25,f*end),when+duration);
+   }
    env.gain.setValueAtTime(.0001,when);
    const attack=layer?.02:Math.max(.004,Math.min(cfg.attack,duration*.24));
-   env.gain.linearRampToValueAtTime(amplitude,when+attack);
-   if(['crackle','rattle','stretch'].includes(cfg.texture)){
-    const n=cfg.texture==='rattle'?5:3;
-    for(let j=1;j<n;j++){
-     const x=when+attack+(duration-attack)*(j/n);
-     env.gain.setValueAtTime(Math.max(.0001,amplitude*(j%2?.35:.88)),x);
+   if(voice){
+    env.gain.linearRampToValueAtTime(amplitude*.47,when+Math.max(.018,attack));
+    env.gain.linearRampToValueAtTime(amplitude,when+duration*.36);
+    env.gain.setValueAtTime(Math.max(.0001,amplitude*.61),when+duration*.52);
+    env.gain.linearRampToValueAtTime(amplitude*.92,when+duration*.68);
+   }else if(cfg.fire>0||cfg.texture==='blast'){
+    env.gain.linearRampToValueAtTime(amplitude,when+Math.min(.028,duration*.06));
+    for(let j=1;j<=5;j++)env.gain.setValueAtTime(
+     Math.max(.0001,amplitude*(.34+.32*(1+Math.sin(j*3.7)))),when+duration*(.09+j*.125));
+   }else{
+    env.gain.linearRampToValueAtTime(amplitude,when+attack);
+    if(['crackle','rattle','stretch'].includes(cfg.texture)){
+     const n=cfg.texture==='rattle'?5:3;
+     for(let j=1;j<n;j++){
+      const x=when+attack+(duration-attack)*(j/n);
+      env.gain.setValueAtTime(Math.max(.0001,amplitude*(j%2?.35:.88)),x);
+     }
     }
    }
    env.gain.exponentialRampToValueAtTime(.0001,when+duration);
-   if(filter){filter.type=cfg.filterType;filter.frequency.value=cfg.filter;if(filter.Q)filter.Q.value=.73;
-    connect(osc,filter);connect(filter,env);created.push(filter);}
-   else connect(osc,env);
+   if(filter){
+    filter.type=voice?(cfg.voice==='growl'||cfg.voice==='roar'?'lowpass':'bandpass'):cfg.filterType;
+    if(voice&&cfg.formant>0){
+     const center=cfg.formant*(layer?1.23:1);
+     filter.frequency.setValueAtTime(Math.max(180,center*.60),when);
+     filter.frequency.exponentialRampToValueAtTime(Math.max(220,center*1.48),when+duration*.51);
+     filter.frequency.exponentialRampToValueAtTime(Math.max(180,center*.77),when+duration);
+     if(filter.Q)filter.Q.value=cfg.voice==='nightmare'||cfg.voice==='shriek'?1.25:.79;
+    }else{filter.frequency.value=cfg.filter;if(filter.Q)filter.Q.value=.73;}
+    connect(osc,filter);connect(filter,env);created.push(filter);
+   }else connect(osc,env);
    connect(env,output);created.push(env);
    sources.push(osc);osc.start(when);osc.stop(when+duration+.01);
    return osc;
@@ -210,17 +267,45 @@
     if(b){
      const src=ctx.createBufferSource(),ng=ctx.createGain();
      src.buffer=b;src.loop=true;
+     const amplitude=gain*cfg.noise*(cfg.fire>0?.80:.65);
      ng.gain.setValueAtTime(.0001,when);
-     ng.gain.linearRampToValueAtTime(gain*cfg.noise*.65,when+Math.max(.012,cfg.attack));
+     ng.gain.linearRampToValueAtTime(amplitude,when+(cfg.fire>0||cfg.texture==='blast'?.015:Math.max(.012,cfg.attack)));
+     if(cfg.fire>0){
+      // Flame/steam noise rises and flickers with scheduled gain automation.
+      for(let j=1;j<=7;j++){
+       const flicker=Math.sin(j*8.17+cfg.frequency*.013)*.25+.75;
+       ng.gain.setValueAtTime(Math.max(.0001,amplitude*flicker),when+duration*(j/9));
+      }
+     }else if(cfg.texture==='blast'){
+      ng.gain.setValueAtTime(amplitude*.95,when+duration*.13);
+      ng.gain.exponentialRampToValueAtTime(Math.max(.0001,amplitude*.22),when+duration*.55);
+     }
      ng.gain.exponentialRampToValueAtTime(.0001,when+duration);
      if(typeof ctx.createBiquadFilter==='function'){
-      const nf=ctx.createBiquadFilter();nf.type='bandpass';
-      nf.frequency.value=Math.max(140,cfg.filter*(cfg.texture==='hiss'?1.20:.80));
-      if(nf.Q)nf.Q.value=cfg.texture==='hiss'?.46:.8;
+      const nf=ctx.createBiquadFilter();
+      nf.type=cfg.fire>0?'lowpass':'bandpass';
+      nf.frequency.value=Math.max(140,cfg.filter*(cfg.texture==='steam'?1.25:cfg.fire>0?.91:.80));
+      if(nf.Q)nf.Q.value=cfg.texture==='steam'?.42:cfg.fire>0?.65:.8;
       connect(src,nf);connect(nf,ng);created.push(nf);
      }else connect(src,ng);
-     connect(ng,output);created.push(ng);sources.push(src);
-     src.start(when);src.stop(when+duration+.015);
+     connect(ng,output);created.push(ng);
+     if(cfg.crackle>0&&!lowPower&&typeof ctx.createBiquadFilter==='function'){
+      // A second frequency band on the SAME cached noise source pops like embers.
+      const high=ctx.createBiquadFilter(),pop=ctx.createGain();
+      high.type='highpass';high.frequency.value=1400+cfg.crackle*950;
+      pop.gain.setValueAtTime(.0001,when);
+      for(let i=0;i<7;i++){
+       const t=when+duration*(.09+i*.115);
+       const loud=gain*cfg.crackle*(.15+.5*(.5+.5*Math.sin(i*7.9+cfg.frequency)));
+       pop.gain.setValueAtTime(.0001,t);
+       pop.gain.linearRampToValueAtTime(Math.max(.0001,loud),t+.008);
+       pop.gain.exponentialRampToValueAtTime(.0001,t+.042);
+      }
+      pop.gain.setValueAtTime(.0001,when+duration);
+      connect(src,high);connect(high,pop);connect(pop,output);
+      created.push(high,pop);
+     }
+     sources.push(src);src.start(when);src.stop(when+duration+.015);
     }
    }
    let done=false;

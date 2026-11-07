@@ -29,22 +29,40 @@ input[type="range"]{accent-color:#79d4c8;width:128px}
 <label><input id="lowPower" type="checkbox"> Simular modo econômico (6 vozes)</label><span id="status" aria-live="polite">Pronto para ouvir</span></div>
 </header>
 <main id="library"></main>
-<script src="world-audio.js?v=2026.11.7.21"></script>
+<script src="world-audio.js?v=2026.11.7.23"></script>
 <script>
 (()=>{
 'use strict';
 const source=window.AbyssalWorldAudio;
 const categories=[
-['BOSSES · IDENTIDADES',[
-['boss-boss','Polvo-de-Anéis-Azuis','Pulsação venenosa e estalos'],
-['boss-angler','Peixe-Pescador','Mandíbula e isca'],
-['boss-maw','Enguia-Pelícano','Ressonância de garganta'],
-['boss-leviathan','Peixe-Remo Leviatã','Vibração de corpo colossal'],
-['boss-whiteSharkBoss','Tubarão-Branco','Arrancada hidrodinâmica'],
-['boss-kraken','Lula-Kraken','Contração e ventosas'],
-['boss-devourer','Lula-Colossal do Vazio','Sucção crescente'],
-['boss-riftSmile','Pesadelo Roxo','Respiração monstruosa']]],
-['ARMADILHAS · AVISO, ATAQUE, CONTINUIDADE E RETORNO',
+['GRITOS DOS BOSSES · HORROR CINEMATOGRÁFICO',[
+ ['boss-omen','Chegada da entidade','Impacto sombrio antes do grito'],
+ ['boss-boss','Polvo-de-Anéis-Azuis','Grito tóxico e estridente'],
+ ['boss-angler','Peixe-Pescador','Berro metálico de mandíbulas'],
+ ['boss-maw','Enguia-Pelícano','Rugido gutural cavernoso'],
+ ['boss-leviathan','Peixe-Remo Leviatã','Lamento sobrenatural colossal'],
+ ['boss-whiteSharkBoss','Tubarão-Branco','Rosnado feroz e predatório'],
+ ['boss-kraken','Lula-Kraken','Grito fantasmagórico de pesadelo'],
+ ['boss-devourer','Lula-Colossal do Vazio','Uivo demoníaco e sucção'],
+ ['boss-riftSmile','Pesadelo Roxo','Grito infernal crescente']]],
+ ['ÚLTIMOS GRITOS · MORTE DOS BOSSES',[
+ ['boss-death-boss','Polvo-de-Anéis-Azuis','Grito de derrota'],
+ ['boss-death-angler','Peixe-Pescador','Grito final'],
+ ['boss-death-maw','Enguia-Pelícano','Garganta desmoronando'],
+ ['boss-death-leviathan','Peixe-Remo Leviatã','Último lamento'],
+ ['boss-death-whiteSharkBoss','Tubarão-Branco','Último rugido'],
+ ['boss-death-kraken','Lula-Kraken','Grito sufocado de derrota'],
+ ['boss-death-devourer','Lula-Colossal do Vazio','Colapso sobrenatural'],
+ ['boss-death-riftSmile','Pesadelo Roxo','Grito final do pesadelo']]],
+ ['FOGO, LAVA, EXPLOSÕES E CHOQUES',[
+ ['hazard-volcano-warning','Vulcão · pressão','A lava se aproxima'],
+ ['hazard-volcano-active','Vulcão · explosão de fogo','Chamas estourando e crepitando'],
+ ['hazard-volcano-sustain','Vulcão · chamas','Fogo contínuo e estalos'],
+ ['hazard-fumarole-active','Fumarola · vapor','Vapor violento'],
+ ['shot-nova','Nova · explosão','Detonação grave'],
+ ['ability-nova','Onda de explosão','Impacto e estilhaços sonoros'],
+ ['shot-electric','Eletricidade','Estalos energéticos']]],
+ ['ARMADILHAS · AVISO, ATAQUE, CONTINUIDADE E RETORNO',
 [['tentacle','Tentáculo'],['rockfall','Desmoronamento'],['spikes','Coral fossilizado'],
  ['electric','Arco bioelétrico'],['fumarole','Fumarola tóxica'],
  ['volcano','Vulcão abissal'],['vortex','Vórtice'],['pressure','Pressão esmagadora'],
