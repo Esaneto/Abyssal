@@ -705,7 +705,11 @@ function drawNightmareArm(c,points,r,last,opacity=1){
   const p=rim[i];if(!i)c.moveTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
   else c.lineTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
  }
- for(let i=rim.length-1;i>=0;i--){const p=rim[i];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
+ // The moving tip needs a rounded muscular cap, especially at partial
+ // extension; otherwise it ends in a conspicuous flat rectangular cut.
+ const endCap=rim[rim.length-1],normalAngle=Math.atan2(endCap.ny,endCap.nx);
+ c.arc(endCap.x,endCap.y,endCap.thick,normalAngle,normalAngle-Math.PI,true);
+ for(let i=rim.length-2;i>=0;i--){const p=rim[i];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
  c.closePath();
  c.fillStyle=g;c.strokeStyle='rgba(17,4,37,.87)';c.lineWidth=4;
  c.shadowColor='#a451d6';c.shadowBlur=6;c.fill();c.shadowBlur=0;c.stroke();
