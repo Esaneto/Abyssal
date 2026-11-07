@@ -71,7 +71,7 @@ test('audio wiring includes skill, UI, progression, hazard and mobile caps',()=>
   assert.ok(game.includes("'"+event+"'"),'missing call '+event);
  const shell=fs.readFileSync('public/offline-sw.js','utf8');
  const html=fs.readFileSync('public/index.html','utf8');
- assert.match(shell,/2026-11-07-online-response-v22/);
+ assert.match(shell,/2026-11-07-aquatic-motion-v23/);
  assert.match(html,/world-audio\.js\?v=2026\.11\.7\.23/);
 });
 

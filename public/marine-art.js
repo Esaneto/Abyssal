@@ -32,7 +32,7 @@ const BIO_ACCENTS=Object.freeze({
  viperfish:'#b3f3da',blackdragon:'#b0ffdb',combjelly:'#a4ffec',
  bluedragon:'#64dfff',yeticrab:'#d6eee3'
 });
-function draw(c,x,y,r,angle,s,t,hit){
+function draw(c,x,y,r,angle,s,t,hit,motionOverride=null){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
  const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
@@ -57,11 +57,13 @@ function draw(c,x,y,r,angle,s,t,hit){
   entry.frame=frame;
  }
  c.save();
- const motion=root.AbyssalSkinMotion?.pose?.(s,t,1);
- c.translate(x,y);c.rotate((Number.isFinite(angle)?angle:0)+(motion?.roll||0));
+ const motion=motionOverride||root.AbyssalSkinMotion?.pose?.(s,t,.18);
+ const orientation=root.AbyssalSkinMotion?.anatomicalOrientation?.(angle,motion?.family||s?.family)||{facing:1,pitch:Number(angle)||0};
+ const visualPitch=Number.isFinite(Number(motion?.pitch))?Number(motion.pitch):orientation.pitch;
+ c.translate(x,y);c.rotate(visualPitch+(motion?.roll||0));
  // Inexpensive smooth locomotion on every frame. Detailed fins and tendrils
  // still update on the cached 15 FPS anatomical drawing below.
- if(motion){c.translate(0,r*motion.bob);c.scale(motion.stretchX,motion.stretchY);}
+ if(motion){c.scale((Number(motion.facingScale)||orientation.facing||1)*motion.stretchX,motion.stretchY);c.translate(-(motion.recoil||0)*r,r*motion.bob);}
  c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
  // Avoid neon on every anatomical seam: preserve actual body volume.
  c.shadowBlur=Math.max(4,Math.min(13,r*.32));

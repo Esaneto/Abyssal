@@ -19,7 +19,8 @@ test('every skin has a deterministic individual presentation animation without h
   assert.ok(before.stretchY>.80&&before.stretchY<1.20,id+' non-physical scaling');
  }
  assert.ok(motions.size>=Catalog.items.length-2,'species rhythms should not be synchronized');
- assert.match(src,/AbyssalSkinMotion\?\.pose\?\.\(skin,t,1\)/);
+ assert.match(src,/AbyssalSkinMotion\?\.createTracker/);
+ assert.match(src,/applyCreatureVisualTransform\(c,visualMotion,r\)/);
  assert.match(src,/animateVisibleShopSkins/);
  assert.match(src,/lowPowerRendering\|\|isMobileDevice\(\)/);
  assert.match(fs.readFileSync('public/marine-art.js','utf8'),/AbyssalSkinMotion\?\.pose/);
@@ -36,4 +37,5 @@ test('movement profiles distinguish fins, serpentine tails, tentacles, jelly pul
  assert.equal(Motion.familyFor('aberration'),'octopus');
  assert.equal(Motion.familyFor('greensnake'),'eel');
  assert.equal(Motion.familyFor('armoredgator'),'crustacean');
+ assert.equal(Motion.familyFor('abysscroc'),'shark');
 });

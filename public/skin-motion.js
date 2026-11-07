@@ -1,6 +1,7 @@
-/* Animated anatomy profiles for all Abyssal playable skins.
- * No sprite sheets, network packets, dependencies, or per-actor timers.
- * A pose is a deterministic function of skin ID and presentation time. */
+/* Universal aquatic animation profiles for every Abyssal creature.
+ * No sprite sheets, network packets, gameplay mutations, or independent loops.
+ * Poses are deterministic; the optional tracker only smooths render activity
+ * and anatomical facing from positions the game already owns. */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
@@ -30,32 +31,96 @@
   deepwarden:'mollusc',abyssking:'mollusc',solar:'benthic',coral:'benthic',
   thorn:'benthic',glacier:'benthic',royal:'mollusc',default:'signature'
  });
+ const ENEMY_FAMILY=Object.freeze({
+  drifter:'jelly',stinger:'fish',brute:'crustacean',lurker:'eel',whiteShark:'shark',
+  boss:'octopus',angler:'fish',maw:'eel',leviathan:'fish',whiteSharkBoss:'shark',
+  kraken:'octopus',devourer:'squid',riftSmile:'octopus'
+ });
+ const ORIENTATION_LIMIT=Object.freeze({
+  fish:.34,shark:.25,ray:.22,eel:.38,octopus:.16,squid:.20,jelly:.12,
+  crustacean:.10,mollusc:.10,reptile:.22,benthic:.08,signature:.22
+ });
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
  function familyFor(s){
   if(typeof s==='string')return SIGNATURE_FAMILY[s]||'signature';
   return PROFILES[s?.family]?s.family:(SIGNATURE_FAMILY[s?.id]||'signature');
  }
+ function familyForEntity(entity){
+  if(!entity)return 'signature';
+  if(entity.skin)return familyFor(entity.skin);
+  if(PROFILES[entity.family])return entity.family;
+  const kind=String(entity.kind||entity.id||'');
+  if(ENEMY_FAMILY[kind])return ENEMY_FAMILY[kind];
+  if(/shark|tubar/i.test(kind))return 'shark';
+  if(/octo|kraken|polvo|smile/i.test(kind))return 'octopus';
+  if(/squid|lula/i.test(kind))return 'squid';
+  if(/jelly|medus|drifter/i.test(kind))return 'jelly';
+  if(/eel|moray|enguia|maw|lurker/i.test(kind))return 'eel';
+  if(/crab|shrimp|lobster|brute/i.test(kind))return 'crustacean';
+  return familyFor(entity);
+ }
  // Stable ID-based offset gives related species independent swimming rhythms.
  function hashId(id){let value=2166136261;for(const ch of String(id||'abyssal')){value=Math.imul(value^ch.charCodeAt(0),16777619);}return value>>>0;}
- function pose(skin,ms=0,movement=1){
+ function phaseOffsetMs(id){return (hashId(id)%4096)*1.37;}
+ function pose(skin,ms=0,movement=1,attack=0,out=null){
   const family=familyFor(skin),id=typeof skin==='string'?skin:String(skin?.id||family),rig=PROFILES[family];
   const hash=hashId(id),offset=(hash%1024)/1024*Math.PI*2;
   const active=.42+.58*clamp(Number(movement)||0,0,1);
+  const attackAmount=clamp(Number(attack)||0,0,1);
   const time=Math.max(0,Number(ms)||0)*.001*(rig.speed*(.93+(hash%13)*.011));
   const wave=Math.sin(time+offset),recoil=Math.cos(time*1.3+offset*.55);
   const breath=Math.sin(time*.5+offset);
-  return {
-   id,family,phase:time+offset,activity:active,
+  const result=out||{};
+  Object.assign(result,{
+   id,family,phase:time+offset,activity:active,attack:attackAmount,
    bob:rig.bob*wave*active,
    roll:rig.roll*recoil*active,
-   stretchX:1+rig.pulse*breath*active,
-   stretchY:1-rig.pulse*.85*breath*active,
-   tail:rig.tail*recoil*active,
-   fin:rig.fin*Math.sin(time*1.08+offset)*active,
-   arms:rig.fin*Math.cos(time*.76+offset)*active,
+   stretchX:1+rig.pulse*breath*active-attackAmount*.018,
+   stretchY:1-rig.pulse*.85*breath*active+attackAmount*.024,
+   tail:rig.tail*recoil*(active+attackAmount*.18),
+   fin:rig.fin*Math.sin(time*1.08+offset)*(active+attackAmount*.12),
+   arms:rig.fin*Math.cos(time*.76+offset)*(active+attackAmount*.22),
    gait:rig.tail*Math.sin(time*1.95+offset)*active,
+   recoil:attackAmount*.055,
    glow:.78+.22*(.5+.5*Math.sin(time*.58+offset))
-  };
+  });
+  return result;
  }
- return {PROFILES,SIGNATURE_FAMILY,familyFor,hashId,pose};
+ function anatomicalOrientation(angle,family='signature'){
+  let normalized=Number.isFinite(Number(angle))?Number(angle):0;
+  normalized=Math.atan2(Math.sin(normalized),Math.cos(normalized));
+  const facing=Math.cos(normalized)>=0?1:-1;
+  let pitch=facing>0?normalized:Math.atan2(Math.sin(normalized-Math.PI),Math.cos(normalized-Math.PI));
+  const limit=ORIENTATION_LIMIT[family]??ORIENTATION_LIMIT.signature;
+  pitch=clamp(pitch,-limit,limit);
+  return {facing,pitch,limit};
+ }
+ function createTracker({maxEntries=512}={}){
+  const states=new Map();
+  function sample(entity,ms=0){
+   const id=String(entity?.id||entity?.kind||'creature'),family=familyForEntity(entity);
+   let state=states.get(id);
+   if(!state){state={id,family,x:Number(entity?.x)||0,y:Number(entity?.y)||0,at:Number(ms)||0,locomotion:.12,facing:1,facingScale:1,pitch:0,motionAngle:Number(entity?.angle)||0};states.set(id,state);if(states.size>maxEntries)states.delete(states.keys().next().value);}
+   const now=Number(ms)||0,dt=clamp((now-state.at)/1000,.001,.1),x=Number(entity?.x)||0,y=Number(entity?.y)||0;
+   const dx=x-state.x,dy=y-state.y,speed=Math.hypot(dx,dy)/dt,nominal=Math.max(1,Number(entity?.nominalSpeed)||90);
+   const target=entity?.preview ? .18 : clamp(speed/nominal,0,1);
+   const response=target>state.locomotion?8:4;
+   state.locomotion+=(target-state.locomotion)*(1-Math.exp(-response*dt));
+   if(speed>nominal*.025)state.motionAngle=Math.atan2(dy,dx);
+   else if(!Number.isFinite(state.motionAngle))state.motionAngle=Number(entity?.angle)||0;
+   const orientation=anatomicalOrientation(state.motionAngle,family);
+   if(orientation.facing!==state.facing&&Math.abs(Math.cos(state.motionAngle))>.18)state.facing=orientation.facing;
+   state.facingScale+=(state.facing-state.facingScale)*(1-Math.exp(-11*dt));
+   state.pitch+=(orientation.pitch-state.pitch)*(1-Math.exp(-9*dt));
+   state.family=family;state.x=x;state.y=y;state.at=now;
+   state.phaseTime=now+phaseOffsetMs(id);
+   state.attack=clamp(Number(entity?.attack)||0,0,1);
+   pose(state,state.phaseTime,state.locomotion,state.attack,state);
+   return state;
+  }
+  function forget(id){states.delete(String(id));}
+  function clear(){states.clear();}
+  return {sample,forget,clear,size:()=>states.size};
+ }
+ return {PROFILES,SIGNATURE_FAMILY,ENEMY_FAMILY,ORIENTATION_LIMIT,familyFor,familyForEntity,hashId,phaseOffsetMs,pose,anatomicalOrientation,createTracker};
 });
