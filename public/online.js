@@ -443,23 +443,30 @@ $('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')authenticat
 $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('passwordInput').focus()});
 function buildPositionPayload(player){return {x:Number(player.x),y:Number(player.y),angle:Number(player.angle)||0};}
 function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden)};}
-function sendPosition(player){if(!player)return;const payload=buildPositionPayload(player);if(Number.isFinite(payload.x)&&Number.isFinite(payload.y))latestPositionPayload=payload;}
+// One sender for frame updates, heartbeat recovery and shot ordering.
+function flushPosition(force=false){
+ if(!socket?.connected||!authenticated||!currentRoom||!latestPositionPayload)return false;
+ const now=performance.now();if(!force&&now-lastPositionAt<1000/30)return false;
+ // Never queue stale transforms when the transport is congested.
+ if(socket.io?.engine?.transport?.writable===false)return false;
+ const seq=++positionSequence;
+ pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
+ socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
+ lastPositionAt=now;positionPacketsSent++;
+ if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
+ return true;
+}
+function sendPosition(player){
+ if(!player)return;const payload=buildPositionPayload(player);
+ if(Number.isFinite(payload.x)&&Number.isFinite(payload.y)){latestPositionPayload=payload;flushPosition();}
+}
 function startPositionHeartbeat(){
  if(positionHeartbeatTimer)return;
  positionHeartbeatTimer=setInterval(()=>{
   if(!socket?.connected||!authenticated||!currentRoom)return;
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
-  if(!latestPositionPayload)return;
-  const now=performance.now(),isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp',interval=isPvp?1000/30:1000/20;
-  if(now-lastPositionAt<interval)return;
-  const seq=++positionSequence;
-  // Compact delta-style motion tuple: [seq,x,y,angle,clientSentAt].
-  // Static/slow metadata travels separately at 1 Hz instead of repeating 20-30 times/s.
-  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
-  socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
-  lastPositionAt=now;positionPacketsSent++;
-  if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
+  flushPosition();
  },1000/60);
 }
 function getPositionDiagnostics(){updateNetworkDiagnosticWindow();return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount,...(networkDebugEnabled?netDiagRates:{})};}
@@ -471,7 +478,15 @@ function sendDamageBatch(hits){
  if(!valid.length)return false;
  socket.emit('shared-damage-batch',{hits:valid});return true;
 }
-function sendShot(shot){if(!socket?.connected||!authenticated||!shot)return;socket.emit('shared-shot',{...shot,at:Date.now()})}
+function sendShot(shot){
+ if(!socket?.connected||!authenticated||!currentRoom||!shot)return;
+ const live=window.AbyssalGameHooks?.getPlayerPosition?.();
+ if(live)latestPositionPayload=buildPositionPayload(live);
+ // Preserve ordered position -> shot delivery without waiting for an acknowledgement.
+ // Once per frame avoids multiplying input traffic for spread volleys.
+ if(performance.now()-lastPositionAt>=8)flushPosition(true);
+ socket.emit('shared-shot',{...shot,at:Date.now()});
+}
 function sendPhotonRayStop(){if(socket?.connected&&authenticated&&currentRoom)socket.emit('photon-ray-stop');}
 function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('game-snapshot',data)}
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
@@ -535,10 +550,10 @@ function storePlayer(incoming){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
- const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(isPvp?40:75),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
+ const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(1000/30),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
  let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
  const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:isPvp?36:58,sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?70:95};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(16,Math.min(40,sampleMs*.8)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?70:95};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});

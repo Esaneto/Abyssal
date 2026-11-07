@@ -8,7 +8,7 @@ const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
 test('remote players use short interpolation plus bounded jitter extrapolation',()=>{
  const online=read('public/online.js');
- assert.match(online,/interpDuration:isPvp\?36:58/);
+ assert.match(online,/interpDuration:Math\.max\(16,Math\.min\(40,sampleMs\*\.8\)\)/);
  assert.match(online,/peerExtrapolationMs:isPvp\?70:95/);
  assert.match(online,/extraMs=Math\.min\(Number\(p\.peerExtrapolationMs\)\|\|90/);
 });

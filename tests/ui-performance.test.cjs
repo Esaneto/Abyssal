@@ -91,9 +91,9 @@ test('menu title scales to narrow and short screens', () => {
 test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressure', async () => {
   const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
   const online = fs.readFileSync(path.join(__dirname, '..', 'public', 'online.js'), 'utf8');
-  assert.match(server, /playerMotionIntervalMs=room\.mode==='pvp'\?40:75/);
-  assert.match(online, /isPvp\?1000\/30:1000\/20/);
-  assert.match(online, /interpDuration:isPvp\?36:58/);
+  assert.match(server, /playerMotionIntervalMs=1000\/30/);
+  assert.match(online, /now-lastPositionAt<1000\/30/);
+  assert.match(online, /interpDuration:Math\.max\(16,Math\.min\(40,sampleMs\*\.8\)\)/);
 });
 
 test('electric eel rendering is deterministic per frame sample', async () => {

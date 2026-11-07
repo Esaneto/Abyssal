@@ -7,7 +7,7 @@ const path=require('node:path');
 test('hot player movement uses compact volatile tuples and slow metadata channel',()=>{
  const online=fs.readFileSync(path.join(__dirname,'..','public','online.js'),'utf8');
  assert.match(online,/volatile\.emit\('player-motion-input',window\.AbyssalNetCodec\?\.input/);
- assert.match(online,/isPvp\?1000\/30:1000\/20/);
+ assert.match(online,/now-lastPositionAt<1000\/30/);
  assert.match(online,/now-lastNetMetaAt>=1000/);
  assert.match(online,/socket\.volatile\.emit\('player-net-meta',buildNetMeta\(\)\)/);
 });
