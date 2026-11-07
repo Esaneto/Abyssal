@@ -828,7 +828,7 @@ function playSkillSound(skillId,stage='learn'){
  try{
   audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
   if(audioCtx.state==='suspended')audioCtx.resume();
-  window.AbyssalSkillAudio?.play(audioCtx,skillId,{volume:stage==='learn'?.026:.014});
+  window.AbyssalSkillAudio?.play(audioCtx,skillId,{volume:stage==='learn'?.026:.014,lowPower:lowPowerRendering||isMobileDevice()});
  }catch(_){/* áudio sintético é opcional */}
 }
 function playBossCry(kind){
