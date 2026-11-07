@@ -1784,7 +1784,7 @@ function spawnProjectileDissolve(x,y,color='#9bbcff',special=null,blocked=false)
  effects.push({type:'projectile-dissolve',x,y,r:0,max:(blocked?24:18)/GAME_WORLD_ZOOM,life:.24,maxLife:.24,color:palette});
 }
 // Source-based colors prevent skin damage from being confused with weapon hits.
-const SKIN_DAMAGE_SKILLS=new Set(['violet-resonance','toxic-cloud','blue-ring-ink','pelagic-wake','poison-dot','kraken-contact','kraken-sweep','abysscroc-lunge','armoredgator-spin']);
+const SKIN_DAMAGE_SKILLS=new Set(['skin-active-dash','skin-active-cloud','skin-active-trail','skin-active-push','skin-active-poison','skin-active-poison-dot','skin-active-paralysis','skin-active-shot','skin-active-slowShot','skin-active-pulse']);
 const PERIODIC_SKIN_DAMAGE_SKILLS=new Set(['blue-ring-ink','pelagic-wake','poison-dot']);
 function damageTone(skillId=''){
  const id=String(skillId||'');
