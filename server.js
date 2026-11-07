@@ -1390,8 +1390,12 @@ io.on('connection', socket => {
    w.mapTier=currentTier+1;w.enemies=[];w.commonSpawnTimer=Infinity;w.nextBossAt=Infinity;w.riftEncountersSeeded=false;w.riftActivatedRooms={};
    w.snapshotTimer=0;w.reliableSnapshotTimer=0;w.sideEncounterId=null;
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
-   party.forEach((peer,index)=>{
-    const spawn=AbyssalMap.startSpawn(nextLayout,index,party.length);
+   // Every player belongs to the new world tier, including defeated peers.
+   // They remain defeated until revived, but their future respawn must not
+   // retain coordinates from a cave that no longer exists.
+   const travellers=[...room.players.values()];
+   travellers.forEach((peer,index)=>{
+    const spawn=AbyssalMap.startSpawn(nextLayout,index,travellers.length);
     peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+1800;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;peer.riftCheckpointRoomId='start';
     io.to(peer.id).emit('map-transition-result',{ok:true,kind:'next-tier',x:peer.x,y:peer.y,map:descriptor,tier:w.mapTier,serverTime:now});
    });
