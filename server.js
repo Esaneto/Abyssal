@@ -822,6 +822,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
+ combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date(now).toISOString();combatDiagnostics.lastDamageReason='accepted';
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
  enemy.hp=Math.max(0,hpBefore-applied);
  // Overkill cannot count as extra damage for the proportional XP share.
