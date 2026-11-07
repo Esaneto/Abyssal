@@ -74,3 +74,15 @@ test('audio wiring includes skill, UI, progression, hazard and mobile caps',()=>
  assert.match(shell,/2026-11-07-sonic-identity-v19/);
  assert.match(html,/world-audio\.js\?v=2026\.11\.7\.21/);
 });
+
+test('sound laboratory offers standalone listening without loading extra files in the game',()=>{
+ const lab=fs.readFileSync('public/audio-lab.html','utf8');
+ const shell=fs.readFileSync('public/offline-sw.js','utf8');
+ assert.match(lab,/ABYSSAL · LABORATÓRIO SONORO/);
+ assert.match(lab,/AbyssalWorldAudio/);
+ assert.match(lab,/new \(window\.AudioContext\|\|window\.webkitAudioContext\)\(\)/);
+ assert.match(lab,/ctx\.resume\(\)/);
+ assert.match(lab,/source\.play\(ctx,id/);
+ assert.match(lab,/hazard-'\+type\+'-sustain/);
+ assert.doesNotMatch(shell,/'audio-lab\.html'/,'audio lab must not increase the game offline shell download');
+});
