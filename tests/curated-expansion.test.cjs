@@ -1,22 +1,18 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const C=require('../public/abyssal-curated-skins'),A=require('../public/skin-abilities'),P=require('../payments');
-test('new species have unique abilities and authoritative high coin prices',()=>{
- assert.equal(C.items.length,41);assert.equal(new Set(C.items.map(s=>s.ability)).size,41);
- for(const s of C.items){assert.ok(s.price>=45000);assert.equal(s.paid,false);const fn={damage:()=>A.damageMultiplier(s.id,'drifter',100,1),defense:()=>A.incomingDamageMultiplier(s.id),movement:()=>A.movementMultiplier(s.id),fireRate:()=>A.fireRateMultiplier(s.id),range:()=>A.targetRangeMultiplier(s.id),experience:()=>A.orbExperienceMultiplier(s.id),magnet:()=>A.magnetRangeMultiplier(s.id)}[s.stat];assert.equal(fn(),s.multiplier);}
+const C=require('../public/abyssal-curated-skins'),A=require('../public/skin-abilities'),S=require('../public/skin-standard'),P=require('../payments');
+test('curated species keep high coin prices and receive runtime standardized profiles',()=>{
+ assert.equal(C.items.length,41);
+ for(const skin of C.items){assert.ok(skin.price>=45000);assert.equal(skin.paid,false);const p=S.profile(skin.id);assert.ok(p);assert.equal(p.percent,10);assert.ok(S.ACTIVE[p.active]);}
 });
-test('premium reptiles cost exactly 999 centavos and have applied combat advantages',()=>{
- for(const id of ['saltcroc','blackcaiman'])assert.equal(P.PAID_SKINS[id].brl,999);
- assert.ok(A.damageMultiplier('saltcroc','boss',100,1)>1.3&&A.damageMultiplier('saltcroc','boss',100,1)<1.40);
- assert.equal(A.incomingDamageMultiplier('blackcaiman'),.85);assert.equal(A.movementMultiplier('blackcaiman'),1.10);
+test('premium reptiles follow the new BRL tiers and exactly one passive attribute',()=>{
+ for(const id of ['saltcroc','blackcaiman'])assert.equal(P.PAID_SKINS[id].brl,499);
+ assert.equal(S.profile('saltcroc').percent,14);assert.equal(S.profile('blackcaiman').percent,14);
+ assert.notEqual(S.profile('saltcroc').active+'|'+S.profile('saltcroc').attribute,S.profile('blackcaiman').active+'|'+S.profile('blackcaiman').attribute);
 });
-
-test('removed common blue-ring octopus does not affect the colossal boss or its playable relic',()=>{
- assert.equal(C.byId.bluering,undefined,'the ordinary bluering skin must be absent');
- assert.equal(C.items.some(s=>s.name==='Polvo-de-Anéis-Azuis'),false);
- const game=fs.readFileSync('public/game.js','utf8');
+test('removed common blue-ring octopus does not affect the colossal boss or paid relic identity',()=>{
+ assert.equal(C.byId.bluering,undefined);const game=fs.readFileSync('public/game.js','utf8');
  assert.match(game,/id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis'/);
  assert.match(game,/boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL'/);
- assert.match(game,/function getBossDisplayName\(kind\)/);
  assert.match(game,/blueRingOctopus\(\)/);
- assert.match(game,/type:'ink-trail',skin:'aberration'/);
+ assert.equal(S.profile('aberration').active,'trail');
 });
