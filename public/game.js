@@ -1151,7 +1151,9 @@ function onProgressionBossDefeated(bossEntity) {
   progressionPausedForBoss = false;
   activeBossEntity = null;
   progressionDistance = 0;
-  tierDescentPending = true;
+  // The Mar Aberto arena has no tier portal. Requiring a descent here
+  // permanently blocks the next solo boss after the first victory.
+  tierDescentPending = isRiftRun();
   bossCycleIndex++;
 
   // Checar se completou o ciclo de bosses
