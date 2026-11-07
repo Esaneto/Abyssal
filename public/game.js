@@ -4014,13 +4014,24 @@ $('skinPurchaseConfirmModal')?.addEventListener('click', (e) => {
 
 window.addEventListener('abyssal-payment-result',event=>{if(!event.detail?.ok)showToast(event.detail?.message||'PAGAMENTO INDISPONÍVEL');});
 const redeemCodeBtn=$('redeemCodeBtn');
-function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage');if(input){input.disabled=false;input.value='';}if(redeemCodeBtn)redeemCodeBtn.disabled=false;if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
+function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice');if(input){input.disabled=false;input.value='';}if(choice)choice.hidden=true;if(redeemCodeBtn){redeemCodeBtn.disabled=false;redeemCodeBtn.textContent='RESGATAR CÓDIGO';}if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
 function closeRedeemCodeModal(){const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
 $('openRedeemCodeBtn')?.addEventListener('click',openRedeemCodeModal);
 $('redeemCodeCloseBtn')?.addEventListener('click',closeRedeemCodeModal);
 $('redeemCodeBackBtn')?.addEventListener('click',closeRedeemCodeModal);
 $('redeemCodeScreen')?.addEventListener('click',event=>{if(event.target===$('redeemCodeScreen'))closeRedeemCodeModal();});
-window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.detail||{},message=$('redeemCodeMessage'),input=$('redeemCodeInput');if(!message)return;if(result.ok){
+window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.detail||{},message=$('redeemCodeMessage'),input=$('redeemCodeInput'),choice=$('redeemSkinChoice'),select=$('redeemSkinSelect');if(!message)return;
+ if(result.choiceRequired){
+  const eligible=new Set(Array.isArray(result.eligibleSkinIds)?result.eligibleSkinIds:[]);
+  const available=skinData.filter(skin=>eligible.has(skin.id)&&!ownedSkins.includes(skin.id));
+  if(select){select.textContent='';const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Selecione sua skin';select.appendChild(placeholder);for(const skin of available.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))){const option=document.createElement('option');option.value=skin.id;option.textContent=skin.name+(skin.paid?' · PREMIUM':'');select.appendChild(option);}}
+  if(choice)choice.hidden=false;
+  if(input)input.disabled=true;
+  if(redeemCodeBtn){redeemCodeBtn.textContent='DESBLOQUEAR SKIN ESCOLHIDA';redeemCodeBtn.disabled=!available.length;}
+  message.textContent=available.length?(result.message||'Escolha uma skin e confirme o resgate.'):'Você já possui todas as skins elegíveis.';
+  return;
+ }
+ if(result.ok){
   if(result.skinId && !ownedSkins.includes(result.skinId)){
     ownedSkins.push(result.skinId);
     equippedSkin=result.skinId;
@@ -4044,10 +4055,16 @@ window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.
   renderShop();
 }else{message.textContent=result.message||'Não foi possível resgatar o código.';}});
 function redeemAbyssalCode(){
- const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),code=String(input?.value||'').trim();
+ const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice'),skinSelect=$('redeemSkinSelect'),code=String(input?.value||'').trim();
  if(!message||!input)return;
  if(!code){message.textContent='DIGITE UM CÓDIGO PARA RESGATAR.';input.focus();return;}
  if(!window.AbyssalOnline?.isAuthenticated()){message.textContent='ENTRE NA SUA CONTA PARA RESGATAR CÓDIGOS.';return;}
+ if(choice&&!choice.hidden){
+  const skinId=String(skinSelect?.value||'');
+  if(!skinId){message.textContent='ESCOLHA A SKIN ANTES DE CONFIRMAR.';skinSelect?.focus();return;}
+  window.AbyssalOnline.redeemCode(code,skinId);
+  return;
+ }
  window.AbyssalOnline.redeemCode(code);
 }
 if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
