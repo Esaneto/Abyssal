@@ -30,6 +30,16 @@ jobs:
           node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
         run: npm test
+      - name: Check gameplay in real Chromium desktop and mobile viewports
+        run: node scripts/browser-smoke.cjs
+      - name: Upload Fossas visual smoke captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abyssal-fossas-visual-smoke
+          path: test-artifacts/browser-smoke/*.png
+          if-no-files-found: warn
+          retention-days: 3
 
   android-api36:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
