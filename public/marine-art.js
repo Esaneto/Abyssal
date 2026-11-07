@@ -25,7 +25,7 @@ function pigment(color,target,amount){
  return '#'+a.map((v,i)=>Math.round(v*(1-p)+b[i]*p).toString(16).padStart(2,'0')).join('');
 }
 const BIO_ACCENTS=Object.freeze({
- bluering:'#4ce8ff',jewelsquid:'#f2a9f7',atolla:'#ff5679',
+ jewelsquid:'#f2a9f7',atolla:'#ff5679',
  phantomjelly:'#c2c6ff',dumbo:'#a9baf8',blanket:'#b47bfa',
  ribbonmoray:'#a2a7ff',gharial:'#a0d68f',nautilus:'#f3d6a0',
  leatherback:'#a7e5d9',hawksbill:'#e6d29c',hatchetfish:'#d8ecf2',
@@ -94,14 +94,10 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   for(let i=0;i<count;i++){
    const rank=Math.floor(i/2),side=i%2===0?-1:1;
    const spread=.17+rank*.145,tailWave=Math.sin(phase*1.45+rank*.72+side*.41)*.15;
-   // Blue-ring octopus spreads its arms DOWNWARD, not as a squid-like
-   // symmetrical rear fan. Roots remain in the same muscular oral crown.
-   const downward=s.id==='bluering',lane=(i-3.5)/3.5;
    const base={x:-.025,y:side*(.12+rank*.065)};
-   const ctrl1=downward?{x:-length*.10+lane*.20,y:.24+rank*.06}:{x:-length*.20,y:side*(spread+.08)};
-   const ctrl2=downward?{x:-length*.28+lane*.36,y:.74+rank*.13+tailWave*.3}:{x:-length*.56,y:side*(spread+.38)+tailWave*.5};
-   const tip=downward?{x:-length*.35+lane*.55+tailWave*.12,y:1.25+rank*.21+tailWave}
-    :{x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
+   const ctrl1={x:-length*.20,y:side*(spread+.08)};
+   const ctrl2={x:-length*.56,y:side*(spread+.38)+tailWave*.5};
+   const tip={x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
    const points=Array.from({length:21},(_,j)=>{
     const q=j/20,x=bezier(base.x,ctrl1.x,ctrl2.x,tip.x,q),y=bezier(base.y,ctrl1.y,ctrl2.y,tip.y,q);
     const tangentX=3*(1-q)*(1-q)*(ctrl1.x-base.x)+6*(1-q)*q*(ctrl2.x-ctrl1.x)+3*q*q*(tip.x-ctrl2.x);
@@ -515,7 +511,7 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     stroke(limb,i%3===0?'#dbcaec':'#a5a8d3',.020);
     oval(tipX,tipY,.017,.024,0,'rgba(210,218,241,.66)');
    }
-  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.65:id==='mimic'?2.8:2.2,id==='mimic');
+  }else tentacles(8,id==='whiplash'?1.3:id==='mimic'?2.8:2.2,id==='mimic');
   // Continuous eight-arm oral crown: every tentacle root is buried in flesh.
   path(()=>{c.moveTo(-.39,0);c.bezierCurveTo(-.38,-.45,.18,-.54,.47,-.34);
    c.quadraticCurveTo(.66,0,.47,.34);c.bezierCurveTo(.18,.54,-.38,.45,-.39,0);
@@ -539,7 +535,7 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     g,pigment(s.color,'#def3ea',.40),.041);
   }
   eye(.15,-.25,.085);eye(.15,.25,.085);
-  if(id==='bluering'||id==='jewelsquid')for(let i=0;i<18;i++){const a=i*2.399,rr=.1+(i%4)*.12;stroke(()=>c.arc(.5+Math.cos(a)*rr,Math.sin(a)*rr,.065,0,7),'#73e8ff',.035);}
+  if(id==='jewelsquid')for(let i=0;i<18;i++){const a=i*2.399,rr=.1+(i%4)*.12;stroke(()=>c.arc(.5+Math.cos(a)*rr,Math.sin(a)*rr,.065,0,7),'#73e8ff',.035);}
   
   if(id==='whiplash')for(const side of [-1,1])feeler(-.2,side*.3,4,side);
  }else if(id==='combjelly'){
