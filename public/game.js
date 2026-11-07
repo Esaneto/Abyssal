@@ -95,9 +95,8 @@ let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
 let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
-const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
+const SKIN_TRAIL_CADENCE_SECONDS=.75;
 // Bubbles deal damage every 100 ms; emission remains at 200 ms to limit network/particles.
-const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_SECONDS=.20;
 let sharkWakeTrails=[],inkTrails=[];
 function setActiveMapDescriptor(descriptor){
  if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;activeRiftHazards=[];riftBossMarks=[];W=4800;H=3000;return null;}
@@ -2251,14 +2250,14 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = bubble.skinActive ? .60 : BUBBLE_TRAIL_HIT_SECONDS;
+      bubble.damageTimer=.60;
       if(onlineMode){if(bubble.life<=0)sharkWakeTrails.splice(i,1);continue;}
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=(bubble.skinActive?600:BUBBLE_TRAIL_HIT_MS)) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=600) {
           e.wakeHitAt=performance.now();
-          dealEnemyDamage(e, bubble.skinActive ? .9 : 1.6, bubble.skinActive?'skin-active-trail':'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+          dealEnemyDamage(e,.9,'skin-active-trail', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
