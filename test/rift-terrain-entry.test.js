@@ -77,7 +77,7 @@ test('slow offline network cannot delay individual game scripts during cave entr
  const sw=read('public/offline-sw.js');
  const html=read('public/index.html');
  assert.match(html,/ocean-terrain\.js\?v=3/);
- assert.match(sw,/const VERSION = '2026-11-07-remove-blue-ring-v17'/);
+ assert.match(sw,/const VERSION = '2026-11-07-motion-audio-v18'/);
  assert.match(sw,/abyssal-tutorial-art\.js/);
  assert.match(sw,/abyssal-rift-hardcore\.js/);
  assert.match(sw,/if \(inShell && !isNavigation && cached\)/);
