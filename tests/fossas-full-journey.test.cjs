@@ -72,3 +72,9 @@ test('red Kraken-tentacle telegraph grows from faint to solid for at least three
  };
  assert.ok(sample(.2)<sample(.8),'red indicator must increase in opacity, not disappear before impact');
 });
+test('solo descent rebuilds the next cave map instead of reusing the old geometry',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ assert.match(game,/const nextTier=activeMapTier\+1;setActiveMapDescriptor\(\{seed:activeMapSeed,tier:nextTier\}\)/);
+ assert.doesNotMatch(game,/activeMapTier\+=1;setActiveMapDescriptor/);
+});
