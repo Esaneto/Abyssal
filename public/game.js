@@ -2186,7 +2186,7 @@ function applySoloSkinActive(spec){
  }else if(spec.id==='cloud'){
   for(const e of inRange()){e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);dealEnemyDamage(e,spec.damage,'skin-active-cloud',{visual:true});}
  }else if(spec.id==='trail'){
-  player.skinTrailUntil=performance.now()+4000;player.skinTrailTimer=0;
+  for(let i=0;i<5;i++){const bx=player.x-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=player.y-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color:spec.color,damageTimer:0,skinActive:true});}
  }else if(spec.id==='push'){
   for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
  }else if(spec.id==='poison'){
@@ -2235,20 +2235,11 @@ function update(dt){
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
+   if(Date.now()<(Number(player.skinParalyzedUntil)||0)){mx=0;my=0;}
    else if(!isMobileDevice()&&controlSettings.pc==='classic'&&(autoFollowCursor||pointer.down)){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
    if(isPcMouseAimMode())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
-
-   if((mx||my)&&player.skinTrailUntil>performance.now()){
-    player.skinTrailTimer=(Number(player.skinTrailTimer)||0)-dt;
-    if(player.skinTrailTimer<=0){
-     player.skinTrailTimer=.24;
-     const bx=player.x-Math.cos(player.angle||0)*player.r*1.15,by=player.y-Math.sin(player.angle||0)*player.r*1.15;
-     sharkWakeTrails.push({x:bx,y:by,r:16/GAME_WORLD_ZOOM,life:3,maxLife:3,color:currentSkinColor(),damageTimer:0,skinActive:true});
-     if(sharkWakeTrails.length>140)sharkWakeTrails.shift();
-    }
-   }
+   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);updateRiftHazardAudio();publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
@@ -2260,13 +2251,14 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = BUBBLE_TRAIL_HIT_SECONDS;
+      bubble.damageTimer = bubble.skinActive?.60:BUBBLE_TRAIL_HIT_SECONDS;
+      if(onlineMode){if(bubble.life<=0)sharkWakeTrails.splice(i,1);continue;}
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=BUBBLE_TRAIL_HIT_MS) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=(bubble.skinActive?600:BUBBLE_TRAIL_HIT_MS)) {
           e.wakeHitAt=performance.now();
-          dealEnemyDamage(e, 1.6, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+          dealEnemyDamage(e, bubble.skinActive?.9:1.6, bubble.skinActive?'skin-active-trail':'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
@@ -4190,55 +4182,26 @@ $('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true}
 window.addEventListener('abyssal-authenticated',ev=>{if(window.AbyssalOnlinePendingStart&&!ev.detail?.restoringRoom){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;window.AbyssalOnline?.showRooms()}});
 window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))spawnBloodPool(Number(d.x)*W,Number(d.y)*H,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);if(['fusion','join','death'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',d.kind==='fusion'?60:30);});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
-  const d=ev.detail||{};
-  // O rastro de bolhas precisa ser replicado como amostras curtas de posição:
-  // ele não é uma habilidade de recarga e não pode depender do evento de ataque.
-  if(d.type==='ink-trail'&&d.skin==='aberration'){
-    const ix=clamp(Number(d.x)*W,0,W),iy=clamp(Number(d.y)*H,0,H);
-    inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:true,boss:false});
-    if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
-    return;
-  }
-  if(d.type==='bubble-trail' && (d.skin==='reefshark'||d.skin==='whiteShark')){
-    const bx=clamp(Number(d.x)*W,0,W),by=clamp(Number(d.y)*H,0,H);
-    sharkWakeTrails.push({x:bx,y:by,r:rand(14,22),life:5,maxLife:5,color:'#7bf5ff',damageTimer:0,remote:true});
-    if(sharkWakeTrails.length>250)sharkWakeTrails.splice(0,sharkWakeTrails.length-250);
-    return;
-  }
-  // Use as coordenadas normalizadas do instante da habilidade. O snapshot do outro jogador
-  // pode estar atrasado ou representar outra escala de coordenadas.
-  const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H);
-  const angle=Number.isFinite(Number(d.angle))?Number(d.angle):0;
-  const skin=String(d.skin||'');
-  const skinColor=(skinData.find(item=>item.id===skin)||{}).color||'#79f3f0';
-  if(skin==='reefshark'||skin==='whiteShark'){
-    const reach=260/GAME_WORLD_ZOOM;
-    effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(angle)*reach,y2:py+Math.sin(angle)*reach,life:.32,maxLife:.32,color:'#8bd8ec'});
-    effects.push({type:'ring',x:px,y:py,r:0,max:72/GAME_WORLD_ZOOM,life:.32,maxLife:.32,color:'#8bd8ec'});
-    burst(px+Math.cos(angle)*reach*.65,py+Math.sin(angle)*reach*.65,'#8bd8ec',14,120);
-  } else if(skin==='violet'){
-    effects.push({type:'ring',x:px,y:py,r:0,max:230/GAME_WORLD_ZOOM,life:.5,maxLife:.5,color:'#bd91ff'});
-    effects.push({type:'ring',x:px,y:py,r:0,max:285/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:'#cfa8ff'});effects.push({type:'beam',x1:px-52/GAME_WORLD_ZOOM,y1:py,x2:px+52/GAME_WORLD_ZOOM,y2:py,life:.32,maxLife:.32,color:'#f0c7ff'});
-    burst(px,py,'#bd91ff',38,180);
-  } else if(skin==='toxic'){
-    effects.push({type:'ring',x:px,y:py,r:0,max:235/GAME_WORLD_ZOOM,life:1.7,maxLife:1.7,color:'#75ff68'});effects.push({type:'ring',x:px,y:py,r:0,max:160/GAME_WORLD_ZOOM,life:1.05,maxLife:1.05,color:'#e0ff74'});burst(px,py,'#75ff68',40,120);
-  } else if(skin==='kraken'){
-    effects.push({type:'ring',x:px,y:py,r:0,max:280/GAME_WORLD_ZOOM,life:.45,maxLife:.45,color:'#8b5cf6'});
-    for(let i=0;i<8;i++){const a=i*Math.PI/4+angle;effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(a)*280/GAME_WORLD_ZOOM,y2:py+Math.sin(a)*280/GAME_WORLD_ZOOM,life:.28,maxLife:.28,color:'#8b5cf6'});}
-    burst(px,py,'#8b5cf6',20,150);
-  } else if(skin==='armoredgator'){
-    effects.push({type:'ring',x:px,y:py,r:0,max:190/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#c5a66e'});
-    burst(px,py,'#c5a66e',28,175);
-  } else if(skin==='abysscroc'){
-    effects.push({type:'ring',x:px,y:py,r:0,max:210/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color:'#79bd83'});
-    burst(px,py,'#79bd83',28,175);
-} else {
-    // Fallback visual para outros IDs de skin quando o evento de habilidade for enviado.
-    const reach=(skin==='devourer'?320:skin==='greensnake'?210:skin==='electriceel'?165:125)/GAME_WORLD_ZOOM;
-    effects.push({type:'ring',x:px,y:py,r:0,max:reach,life:.4,maxLife:.4,color:skinColor});
-    for(let i=0;i<4;i++){const a=angle+i*Math.PI/2;effects.push({type:'beam',x1:px,y1:py,x2:px+Math.cos(a)*reach*.72,y2:py+Math.sin(a)*reach*.72,life:.22,maxLife:.22,color:skinColor});}
-    burst(px,py,skinColor,16,120);
-  }
+ const d=ev.detail||{},fromId=String(d.fromId||'');
+ if(fromId&&fromId===String(window.AbyssalOnline?.getSocketId?.()||''))return;
+ if(d.type!=='standard-active')return;
+ const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H),angle=Number(d.angle)||0,active=String(d.active||''),color=d.color||'#79f3f0',range=(Number(d.range)||160)/GAME_WORLD_ZOOM;
+ if(active==='cloud')spawnPoisonPlantCloudVisual(px,py,range,color);
+ else if(active==='trail'){for(let i=0;i<5;i++){const bx=px-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=py-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color,damageTimer:0,remote:true,skinActive:true});}}
+ else if(active==='dash'){effects.push({type:'beam',x1:px-Math.cos(angle)*18/GAME_WORLD_ZOOM,y1:py-Math.sin(angle)*18/GAME_WORLD_ZOOM,x2:px+Math.cos(angle)*range,y2:py+Math.sin(angle)*range,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(px,py,color,14,110);}
+ else if(active==='push'||active==='pulse'||active==='paralysis'||active==='poison'){effects.push({type:'ring',x:px,y:py,r:0,max:range,life:.55,maxLife:.55,color});if(active==='paralysis')effects.push({type:'electric-arc',x1:px-range*.45,y1:py,x2:px+range*.45,y2:py,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});burst(px,py,color,16,130);}
+ else if(active==='shield'){effects.push({type:'ward-collapse',x:px,y:py,max:60/GAME_WORLD_ZOOM,life:1,maxLife:1,color});burst(px,py,color,12,90);}
+ else if(active==='shot'||active==='slowShot'){burst(px,py,color,10,90);}
+});
+window.addEventListener('abyssal-skin-shot-telegraph',ev=>{
+ const d=ev.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;
+ if(![x1,y1,x2,y2].every(Number.isFinite))return;
+ effects.push({type:'skin-shot-telegraph',x1,y1,x2,y2,life:.45,maxLife:.45,color:d.color||'#ff334f',width:4/GAME_WORLD_ZOOM});
+});
+window.addEventListener('abyssal-player-skin-status',ev=>{
+ if(!player)return;const d=ev.detail||{},until=Number(d.until)||Date.now();
+ if(d.type==='paralysis'){player.skinParalyzedUntil=Math.max(Number(player.skinParalyzedUntil)||0,until);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:55/GAME_WORLD_ZOOM,life:.52,maxLife:.52,color:'#62edff'});}
+ if(d.type==='slow'){player.skinSlowedUntil=Math.max(Number(player.skinSlowedUntil)||0,until);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:48/GAME_WORLD_ZOOM,life:.65,maxLife:.65,color:'#9bd9ff'});}
 });
 function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':'classic';onlineMode=true;
  // room-joined is authoritative. Commit the UI transition before any fallible arena/game setup.
