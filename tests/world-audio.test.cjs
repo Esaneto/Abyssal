@@ -80,3 +80,10 @@ test('audio and skin animation modules are shipped in offline shell, without soc
  assert.match(game,/playWorldSound\('shot-'/);
  assert.doesNotMatch(game,/send[A-Za-z]+\([^\n]*audio[Cc]ue/);
 });
+
+test('muting the master slider silences even the legacy cues',()=>{
+ const game=fs.readFileSync('public/game.js','utf8');
+ assert.match(game,/slider\.value = Math\.round\(clamp\(masterSoundVolume,0,1\) \* 100\)/);
+ assert.match(game,/if\(!soundOn\|\|masterSoundVolume<=0\|\|document\.hidden\)return/);
+ assert.doesNotMatch(game,/vol \* 2\.8 \* \(masterSoundVolume \|\| 0\.8\)/);
+});
