@@ -867,10 +867,6 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
    awardWorldBossCoins(room);
   }
-  if(player?.skinId==='coral'&&player.alive!==false){
-   const healed=Math.min(4,Math.max(0,player.maxHp-player.hp));
-   if(healed>0){player.hp+=healed;socket.emit('player-vitals',playerVitalsPayload(player,{reason:'regeneration',healed,serverTime:Date.now()}));}
-  }
   // A batch sends one consolidated lifecycle update after every hit has been
   // validated; single-hit compatibility uses the same compact lifecycle events.
   if(batch)batch.worldChanged=true;
@@ -1392,6 +1388,7 @@ io.on('connection', socket => {
   // must not move it back into the active world. ACK without updating the last position
   // so a throttled browser can harmlessly send until it receives the death event.
   if(p.alive===false)return ack({ok:true,dead:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
+  if(Date.now()<(Number(p.skinParalyzedUntil)||0)){socket.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true));return ack({ok:true,blocked:true,reason:'skin-paralyzed',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   const x=Number(payload.x),y=Number(payload.y);if(!Number.isFinite(x)||!Number.isFinite(y))return ack({ok:false,reason:'invalid-coordinates'});
   const incomingSeq=Math.max(0,Math.floor(Number(payload.seq)||0));
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
@@ -1408,7 +1405,8 @@ io.on('connection', socket => {
    return ack({ok:true,blocked:true,reason:'stale-depth-position',seq:p.lastPositionSeq,receivedAt,positionUpdates:p.positionUpdates||0});
   }
   if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'terrain',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
-  const movement=consumeMovementBudget(p,displacement,receivedAt);
+  const skinDashActive=receivedAt<(Number(p.skinDashUntil)||0);
+  const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
   if(room.mode==='rift'){
@@ -1813,58 +1811,83 @@ io.on('connection', socket => {
   else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
  socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
- socket.on('skin-ability', (payload, acknowledge) => {
-  const room = socketRoom(socket);
-  if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
-   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
-   return;
-  }
-  if(room.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}
-  const skin = String(payload.skin || '').slice(0,32);
-  const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
-  if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
-   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'invalid-payload'});
-   return;
-  }
-  const u = users[socket.data.userKey];
-  const type = payload.type==='ink-trail'&&skin==='aberration'?'ink-trail':payload.type === 'bubble-trail' && (skin === 'reefshark' || skin === 'whiteShark') ? 'bubble-trail' : 'ability';
-  // Cap black-octopus and shark bubble emission at 200 ms; hit cadence is 100 ms.
-  if(type==='bubble-trail'||type==='ink-trail'){
-   const owner=room.players.get(socket.id);
-   const key=type==='bubble-trail'?'lastBubbleTrailAt':'lastInkTrailAt';
-   const now=Date.now();
-   if(!owner||owner.skinId!==skin||Math.hypot(Number(owner.x)-x*WORLD_WIDTH,Number(owner.y)-y*WORLD_HEIGHT)>90/WORLD_ZOOM||now-(Number(owner[key])||0)<BUBBLE_TRAIL_EMIT_MS*.8){
-    if(typeof acknowledge==='function')acknowledge({ok:false,reason:'trail-cadence'});
-    return;
-   }
-   owner[key]=now;
-  }
-  const event = {type,from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
-  if(type==='bubble-trail'&&room.mode==='pvp'){
-   const player=room.players.get(socket.id);
-   if(player&&(player.skinId==='reefshark'||player.skinId==='whiteShark')){
+ socket.on('skin-ability',(payload,acknowledge)=>{
+  const room=socketRoom(socket),player=room?.players.get(socket.id);
+  const ack=(ok,reason,extra={})=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now(),...extra});};
+  if(!room||!socket.data.joined||!player||player.alive===false||player.tutorialActive||!payload||typeof payload!=='object')return ack(false,'not-in-room');
+  if(payload.type!=='standard-active')return ack(false,'legacy-skin-ability-removed');
+  const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),spec=SkinStandard.activeSpec(skin);
+  if(!spec||player.skinId!==skin||spec.id!==active)return ack(false,'skin-active-mismatch');
+  if(active==='paralysis'&&!['electriceel','electriceellegacy'].includes(skin))return ack(false,'paralysis-electric-only');
+  const now=Date.now(),ready=Number(player.skinActiveReadyAt)||0;
+  if(now<ready)return ack(false,'skin-active-cooldown',{remainingMs:ready-now});
+  const nx=Number(payload.x),ny=Number(payload.y),angle=clamp(Number(payload.angle)||0,-Math.PI*2,Math.PI*2),worldHeight=roomWorldHeight(room);
+  if(!Number.isFinite(nx)||!Number.isFinite(ny)||nx<0||nx>1||ny<0||ny>1)return ack(false,'skin-active-position');
+  const originX=Number(player.x),originY=Number(player.y);
+  if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>110/WORLD_ZOOM)return ack(false,'skin-active-position');
+  player.skinActiveReadyAt=now+Math.round(Number(spec.cooldown||10)*1000);
+  if(active==='dash')player.skinDashUntil=now+450;
+  if(active==='shield')player.invulnerableUntil=Math.max(Number(player.invulnerableUntil)||0,now+1100);
+
+  const event={type:'standard-active',active,skin,fromId:socket.id,x:originX/WORLD_WIDTH,y:originY/worldHeight,angle,color:spec.color,range:spec.range,serverTime:now,hitAt:(active==='shot'||active==='slowShot')?now+450:now};
+  io.to(channelFor(room)).emit('peer-skin-ability',event);
+
+  const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
+  const radius=(Number(spec.range)||160)/WORLD_ZOOM,ux=Math.cos(angle),uy=Math.sin(angle);
+  const enemies=[...(room.world?.enemies||[])];
+  const canReachEnemy=e=>e&&Number(e.hp)>0&&(!room.mode==='rift'||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
+  const resolveEnemyDamage=(enemy,amount,skillId)=>{
+   if(!enemy||Number(enemy.hp)<=0)return null;player.skinActiveServerResolving=true;
+   try{return processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
+   finally{player.skinActiveServerResolving=false;}
+  };
+  const areaEnemies=()=>enemies.filter(e=>canReachEnemy(e)&&Math.hypot(Number(e.x)-originX,Number(e.y)-originY)<=radius).slice(0,8);
+  const nearestEnemy=()=>enemies.filter(canReachEnemy).map(e=>({e,d:Math.hypot(Number(e.x)-originX,Number(e.y)-originY)})).filter(v=>v.d<=radius).sort((a,b)=>a.d-b.d)[0]?.e||null;
+
+  const livingOpponents=()=>[...room.players.values()].filter(p=>p.id!==player.id&&p.alive!==false);
+  const visiblePvpTargets=()=>livingOpponents().filter(p=>Math.hypot(Number(p.x)-originX,Number(p.y)-originY)<=radius&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).slice(0,6);
+  const hitPvp=(target,amount,skillId)=>applySkinActivePvpDamage(room,player,target,amount,skillId,Date.now());
+
+  if(active==='trail'){
+   const nodes=[];for(let i=0;i<5;i++)nodes.push({x:originX-ux*(18+i*26)/WORLD_ZOOM,y:originY-uy*(18+i*26)/WORLD_ZOOM});
+   if(room.mode==='pvp'){
     room.world.sharkWakeTrails=Array.isArray(room.world.sharkWakeTrails)?room.world.sharkWakeTrails:[];
-    room.world.sharkWakeTrails.push({ownerId:socket.id,x:x*WORLD_WIDTH,y:y*WORLD_HEIGHT,r:18/WORLD_ZOOM,life:5,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
-    if(room.world.sharkWakeTrails.length>160)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-160);
+    for(const node of nodes)room.world.sharkWakeTrails.push({ownerId:player.id,x:node.x,y:node.y,r:20/WORLD_ZOOM,life:3.2,damageTimer:.45,skinActive:true});
+    if(room.world.sharkWakeTrails.length>120)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-120);
+   }else{
+    for(const e of enemies){if(!canReachEnemy(e))continue;if(nodes.some(n=>Math.hypot(Number(e.x)-n.x,Number(e.y)-n.y)<=32/WORLD_ZOOM))resolveEnemyDamage(e,spec.damage,'skin-active-trail');}
    }
-  }
-  if(type==='ink-trail'&&room.mode==='pvp'){
-   const player=room.players.get(socket.id),ix=x*WORLD_WIDTH,iy=y*WORLD_HEIGHT;
-   if(player&&player.skinId==='aberration'&&Math.hypot(Number(player.x)-ix,Number(player.y)-iy)<=90/WORLD_ZOOM){
-    room.world.inkTrails=Array.isArray(room.world.inkTrails)?room.world.inkTrails:[];
-    room.world.inkTrails.push({ownerId:socket.id,x:ix,y:iy,r:28/WORLD_ZOOM,life:4,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
-    if(room.world.inkTrails.length>180)room.world.inkTrails.splice(0,room.world.inkTrails.length-180);
+  }else if(active==='shot'||active==='slowShot'){
+   const ex=originX+ux*radius,ey=originY+uy*radius;
+   io.to(channelFor(room)).emit('skin-shot-telegraph',{fromId:player.id,x1:originX/WORLD_WIDTH,y1:originY/worldHeight,x2:ex/WORLD_WIDTH,y2:ey/worldHeight,color:room.mode==='pvp'?'#ff334f':spec.color,hitAt:now+450,active});
+   setTimeout(()=>{
+    const liveRoom=socketRoom(socket),livePlayer=liveRoom?.players.get(socket.id);if(liveRoom!==room||!livePlayer||livePlayer.alive===false)return;
+    if(room.mode==='pvp'){
+     const target=livingOpponents().filter(p=>lineDistance(Number(p.x),Number(p.y),originX,originY,ex,ey)<=30/WORLD_ZOOM&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
+     if(target){hitPvp(target,spec.damage,'skin-active-'+active);if(active==='slowShot'){target.skinSlowedUntil=Date.now()+2200;io.to(target.id).emit('player-skin-status',{type:'slow',until:target.skinSlowedUntil,multiplier:.62});}}
+    }else{
+     const target=[...(room.world?.enemies||[])].filter(e=>Number(e.hp)>0&&lineDistance(Number(e.x),Number(e.y),originX,originY,ex,ey)<=24/WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
+     if(target){resolveEnemyDamage(target,spec.damage,'skin-active-'+active);if(active==='slowShot')target.skinSlowedUntil=Date.now()+2200;}
+    }
+   },450);
+  }else if(room.mode==='pvp'){
+   const targets=active==='poison'?[visiblePvpTargets()[0]].filter(Boolean):visiblePvpTargets();
+   if(active==='dash'){
+    const ex=originX+ux*radius,ey=originY+uy*radius;for(const target of livingOpponents())if(lineDistance(target.x,target.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)hitPvp(target,spec.damage,'skin-active-dash');
+   }else if(active==='shield'){}
+   else for(const target of targets){
+    const hit=hitPvp(target,spec.damage,'skin-active-'+active);if(!hit)continue;
+    if(active==='paralysis'){target.skinParalyzedUntil=Date.now()+520;io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});}
+    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*62/WORLD_ZOOM,ty=target.y+dy/d*62/WORLD_ZOOM;if(!pvpRockAt(tx,ty,Number(target.r)||13/WORLD_ZOOM)){target.x=tx;target.y=ty;io.to(target.id).emit('player-suction-pull',{dx:dx/d*62/WORLD_ZOOM,dy:dy/d*62/WORLD_ZOOM,bossId:'skin-push',strength:1});}}
+    if(active==='poison'||active==='cloud'){for(const delay of active==='poison'?[800,1600,2400]:[900,1800])setTimeout(()=>{const live=room.players.get(target.id);if(live?.alive!==false)hitPvp(live,1.2,'skin-active-poison-dot');},delay);}
    }
+  }else{
+   if(active==='dash'){const ex=originX+ux*radius,ey=originY+uy*radius;for(const e of enemies)if(canReachEnemy(e)&&lineDistance(e.x,e.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)resolveEnemyDamage(e,spec.damage,'skin-active-dash');}
+   else if(active==='shield'){}
+   else if(active==='poison'){const e=nearestEnemy();if(e){resolveEnemyDamage(e,spec.damage,'skin-active-poison');for(const delay of [800,1600,2400])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}}
+   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='paralysis')e.paralyzedUntil=Date.now()+520;if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}if(active==='cloud')for(const delay of [900,1800])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}
   }
-  // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
-  let delivered = 0;
-  // A chave do Map é o ID real do socket; peer.id pode faltar após reconexões.
-  for(const peerSocketId of room.players.keys()) {
-   if(peerSocketId === socket.id) continue;
-   io.to(peerSocketId).emit('peer-skin-ability', event);
-   delivered++;
-  }
-  if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
+  ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active});
  });
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
