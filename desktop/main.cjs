@@ -3,7 +3,19 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { URL, pathToFileURL } = require('node:url');
 
-const GAME_URL = 'https://abyssal-ej5j.onrender.com';
+function configuredGameUrl() {
+  const explicit = String(process.env.ABYSSAL_NATIVE_SERVER_URL || '').trim();
+  const configPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'offline-web', 'server-config.js')
+    : path.resolve(__dirname, '..', 'public', 'server-config.js');
+  const source = fs.readFileSync(configPath, 'utf8');
+  const match = source.match(/DEFAULT_NATIVE_SERVER_URL\s*=\s*['"]([^'"]+)['"]/);
+  const candidate = explicit || match?.[1] || '';
+  const url = new URL(candidate);
+  if (url.protocol !== 'https:') throw new Error('Abyssal native server URL must use HTTPS');
+  return url.origin;
+}
+const GAME_URL = configuredGameUrl();
 const GAME_ORIGIN = new URL(GAME_URL).origin;
 const OFFLINE_URL = 'abyssal://app/index.html';
 let mainWindow;
