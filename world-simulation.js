@@ -510,7 +510,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
   const targetablePlayers = [];
-  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now && !(p.skinId==='angler'&&anglerInvisibleAt(now))) targetablePlayers.push(p);
+  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now) targetablePlayers.push(p);
   for (const enemy of world.enemies) {
     if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
