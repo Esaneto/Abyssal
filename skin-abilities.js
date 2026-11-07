@@ -5,7 +5,7 @@
 // combination of +damage, +movement and large mitigation. This pure module
 // remains identical on the client and authoritative Node server.
 // Distâncias são recebidas em unidades do mundo; não dependem de Canvas ou Socket.IO.
-const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer']);
+const BOSS_KINDS = new Set(['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile']);
 const curated=typeof module!=='undefined'&&module.exports?require('./abyssal-curated-skins.js'):globalThis.AbyssalCuratedSkins;
 const trait=(id,stat)=>curated?.byId?.[id]?.bonuses?.[stat]??(curated?.byId?.[id]?.stat===stat?curated.byId[id].multiplier:1);
 const CLOSE_RANGE = 170;
@@ -23,6 +23,11 @@ function damageMultiplier(skinId, enemyKind, distance, hpRatio) {
   if (skinId === 'bloodmoon' && Number(hpRatio) <= 0.35) multiplier *= 1.20;
   if (skinId === 'maw' && d <= CLOSE_RANGE) multiplier *= 1.16;
   if (skinId === 'devourer' && boss) multiplier *= 1.12;
+  if (skinId === 'riftSmileRelic' && boss) multiplier *= 1.10;
+  // Damage-over-time and paralysis do not affect other players directly.
+  // These small PvP alternatives keep their skins viable without crowd-control lockout.
+  if (enemyKind === 'player' && skinId === 'greensnake') multiplier *= 1.06;
+  if (enemyKind === 'player' && skinId === 'electriceel') multiplier *= 1.05;
   return multiplier;
 }
 
