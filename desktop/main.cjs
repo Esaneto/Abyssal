@@ -108,19 +108,12 @@ function createWindow() {
     if (!isGameUrl(url)) event.preventDefault();
   });
 
-  const loadLocal = () => {
-    if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.getURL() === OFFLINE_URL) return;
-    mainWindow.loadURL(OFFLINE_URL).catch(error => {
-      console.error('[Abyssal] Não foi possível abrir o jogo offline:', error);
-    });
-  };
-  mainWindow.webContents.on('did-fail-load', (_event, code, description, failedUrl, isMainFrame) => {
-    if (isMainFrame && code !== -3 && String(failedUrl).startsWith(GAME_ORIGIN)) {
-      console.warn('[Abyssal] Servidor indisponível; abrindo modo solo local:', description);
-      loadLocal();
-    }
+  // The installed desktop app always boots from bundled assets.
+  // Account, multiplayer and rankings use GAME_URL only when requested by the web client.
+  // This avoids making app startup depend on DNS, TLS or server availability.
+  mainWindow.loadURL(OFFLINE_URL).catch(error => {
+    console.error('[Abyssal] Não foi possível abrir os assets locais do jogo:', error);
   });
-  mainWindow.loadURL(GAME_URL).catch(loadLocal);
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
