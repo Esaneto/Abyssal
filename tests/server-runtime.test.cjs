@@ -7,6 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const SkinAbilities=require('../public/skin-abilities.js');
 
 // Integration harness: loads the real server.js while replacing only Express and
 // Socket.IO transport adapters. World simulation, room lifecycle and event handlers
@@ -278,7 +279,7 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   const beforeHp = Number(damageTarget.hp);
   await owner.clientEmit('shared-damage', { id: damageTarget.id, damage: 5 }, result => { damageAck = result; });
   assert.equal(damageAck?.ok, true, `server should accept valid damage; received ${JSON.stringify(damageAck)}`);
-  assert.equal(Number(damageAck.hp), beforeHp - 5, 'server-confirmed HP must decrease by the requested damage');
+  assert.equal(Number(damageAck.hp), beforeHp-5*SkinAbilities.damageMultiplier('default',damageTarget.kind), 'server-confirmed HP must include the equipped skin standardized attribute');
   assert.equal(owner.latest('world-enemy-damaged')?.id, damageTarget.id, 'server should broadcast authoritative HP feedback');
   assert.ok(Number((await getJson(port, '/health')).simulation.combat.appliedHits) > 0, 'health diagnostics should count applied hits');
 
