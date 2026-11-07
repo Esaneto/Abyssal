@@ -1533,7 +1533,7 @@ function seedSoloRiftEncounters(){
  spawnTimer=Infinity;nextBossAt=Infinity;
 }
 
-const SOLO_RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:0,hub:10,landing:15,elite:5});
+const SOLO_RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:6,hub:10,landing:15,elite:5});
 function activateSoloRiftRoomEncounter(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout||!player)return;
  const room=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);if(!room||room.id==='start'||soloRiftActivatedRooms.has(room.id))return;
@@ -1594,7 +1594,10 @@ function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
  const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);
  if(room)soloRiftCheckpointRoomId=room.id;
+ const nightmareAlive=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&enemies.some(enemy=>enemy.kind===RIFT_HARDCORE.FINAL_KIND&&enemy.hp>0);
  for(const h of activeRiftHazards){
+  // Nightmare's eight tentacles exist only while the final boss is alive.
+  if(h.type==='tentacle'&&!nightmareAlive)continue;
   const phase=RIFT_HARDCORE.state(h,elapsed);
   if(h.type==='tentacle'&&phase.phase!=='idle'){
    const derived=RIFT_HARDCORE.hazardAtCycle(h,phase.cycle);
@@ -2058,7 +2061,7 @@ function killEnemy(i){
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
  if(equippedSkin==='devourer'&&killedBoss){showToast('DEVORADOR · EXPERIÊNCIA RECEBIDA');}
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+2);
- enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
+ enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){const finalClear=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&e.kind===RIFT_HARDCORE?.FINAL_KIND;if(finalClear){riftBossMarks=[];localHazardSoundPhases.clear();showToast('FOSSAS CONCLUÍDAS · RESGATE O BAÚ FINAL');}else showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
 }
 function getLocalSkinCursorAngle(){
  // Rendering only. Auto-fire and server-authoritative abilities must continue
