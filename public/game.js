@@ -2149,6 +2149,67 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
  const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
 }
+function currentSkinActiveSpec(){return SKIN_STANDARD?.activeSpec?.(equippedSkin)||null;}
+function nearestSkinActiveTarget(range){
+ let best=null,bd=Infinity;
+ for(const e of enemies){if(!e||e.hp<=0)continue;const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<=range&&d<bd){best=e;bd=d;}}
+ return best;
+}
+function spawnPoisonPlantCloudVisual(x,y,radius,color='#7dff73'){
+ effects.push({type:'poison-plant-cloud',x,y,max:radius,life:1.15,maxLife:1.15,color});
+ effects.push({type:'ring',x,y,r:0,max:radius*.92,life:.9,maxLife:.9,color});
+ burst(x,y,color,lowPowerRendering?14:26,135);
+}
+function spawnSkinActiveVisual(spec,angle=Number(player?.angle)||0){
+ if(!player||!spec)return;
+ const x=player.x,y=player.y,r=(Number(spec.range)||150)/GAME_WORLD_ZOOM,color=spec.color||currentSkinColor();
+ if(spec.id==='cloud')spawnPoisonPlantCloudVisual(x,y,r,color);
+ else if(spec.id==='dash'){effects.push({type:'beam',x1:x-Math.cos(angle)*20/GAME_WORLD_ZOOM,y1:y-Math.sin(angle)*20/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(x,y,color,14,110);}
+ else if(spec.id==='trail'){effects.push({type:'ring',x,y,r:0,max:65/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color});burst(x,y,color,10,90);}
+ else if(spec.id==='push'){effects.push({type:'ring',x,y,r:0,max:r,life:.58,maxLife:.58,color});burst(x,y,color,18,150);}
+ else if(spec.id==='poison'){effects.push({type:'ring',x,y,r:0,max:r,life:.52,maxLife:.52,color});burst(x,y,color,15,120);}
+ else if(spec.id==='paralysis'){effects.push({type:'electric-arc',x1:x-r*.45,y1:y,x2:x+r*.45,y2:y,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});effects.push({type:'ring',x,y,r:0,max:r,life:.48,maxLife:.48,color});burst(x,y,color,18,135);}
+ else if(spec.id==='shot'||spec.id==='slowShot'){effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.42,maxLife:.42,color,width:spec.id==='shot'?6/GAME_WORLD_ZOOM:4/GAME_WORLD_ZOOM});burst(x,y,color,12,100);}
+ else if(spec.id==='pulse'){effects.push({type:'ring',x,y,r:0,max:r,life:.62,maxLife:.62,color});effects.push({type:'ring',x,y,r:0,max:r*.62,life:.42,maxLife:.42,color});burst(x,y,color,20,155);}
+ else if(spec.id==='shield'){effects.push({type:'ward-collapse',x,y,max:player.r*3.5,life:1,maxLife:1,color});burst(x,y,color,14,90);}
+}
+function applySoloSkinActive(spec){
+ const angle=Number(player.angle)||0,range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
+ const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-player.x,e.y-player.y)<=range);
+ if(spec.id==='dash'){
+  player.dashTime=Math.max(player.dashTime||0,.42);player.ghostDashUntil=performance.now()+420;
+  for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>range)continue;const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle));if(Math.abs(diff)<.42)dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true});}
+ }else if(spec.id==='cloud'){
+  for(const e of inRange()){e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);dealEnemyDamage(e,spec.damage,'skin-active-cloud',{visual:true});}
+ }else if(spec.id==='trail'){
+  player.skinTrailUntil=performance.now()+4000;player.skinTrailTimer=0;
+ }else if(spec.id==='push'){
+  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
+ }else if(spec.id==='poison'){
+  const target=nearestSkinActiveTarget(range);if(target){target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.2);dealEnemyDamage(target,spec.damage,'skin-active-poison',{visual:true});}
+ }else if(spec.id==='paralysis'){
+  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-paralysis',{visual:true});e.paralyzedUntil=performance.now()+520;}
+ }else if(spec.id==='shot'||spec.id==='slowShot'){
+  const target=nearestSkinActiveTarget(range);if(target){effects.push({type:'skin-shot-telegraph',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0)return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=performance.now()+2200;},420);}
+ }else if(spec.id==='pulse'){
+  for(const e of inRange())dealEnemyDamage(e,spec.damage,'skin-active-pulse',{visual:true});
+ }else if(spec.id==='shield'){
+  player.skinShieldUntil=performance.now()+1100;
+ }
+}
+function activateSkinAbility(){
+ if(!player||gameState!=='playing')return false;
+ const spec=currentSkinActiveSpec();if(!spec)return false;
+ if((Number(player.skinActiveCooldown)||0)>0)return false;
+ player.skinActiveCooldown=Number(spec.cooldown)||10;
+ spawnSkinActiveVisual(spec);
+ if(onlineMode){
+  const sent=window.AbyssalOnline?.sendSkinAbility?.({type:'standard-active',active:spec.id,skin:equippedSkin,x:clamp(player.x/W,0,1),y:clamp(player.y/H,0,1),angle:Number(player.angle)||0});
+  if(!sent){player.skinActiveCooldown=0;updateAbilityButtons(true);return false;}
+ }else applySoloSkinActive(spec);
+ playWorldSound(spec.id==='paralysis'?'ability-beam':spec.id==='dash'?'ability-dash':spec.id==='cloud'||spec.id==='poison'?'ability-poison':spec.id==='shield'?'shield-hit':'ability-nova',player,850,.68);
+ updateAbilityButtons(true);return true;
+}
 let soundMotionSkinId=null,soundMotionFamily='signature';
 function equippedMotionFamily(){
  if(soundMotionSkinId!==equippedSkin){
@@ -2166,7 +2227,7 @@ function update(dt){
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
    // Correntezas ambientais removidas: o movimento depende apenas dos comandos do jogador.
-   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.violetCooldown=Math.max(0,(player.violetCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
+   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.skinActiveCooldown=Math.max(0,(player.skinActiveCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
@@ -2564,9 +2625,10 @@ function updateAbilityButtons(force=false){
  // Cooldown labels only change to tenths of a second; updating the DOM 10x/second is enough.
  if(!force&&now-lastAbilityUiAt<100)return;
  lastAbilityUiAt=now;
- const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),equipped=loadEquippedActiveSkills();
+ const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
  if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
  if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
+ if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||player.skinActiveCooldown>0;skinBtn.hidden=!spec;skinBtn.disabled=disabled;const label=player&&player.skinActiveCooldown>0?`${spec?.name||'SKIN'} ${player.skinActiveCooldown.toFixed(1)}s`:(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DA SKIN'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
@@ -3580,7 +3642,7 @@ function setupDualStickEvents(){
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
-window.addEventListener('keydown',e=>{if(abyssalTutorialActive||isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
+window.addEventListener('keydown',e=>{if(abyssalTutorialActive||isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility();if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 let adAudioWasRunning=false;
@@ -4018,7 +4080,7 @@ if(redeemCodeBtn)redeemCodeBtn.addEventListener('click',redeemAbyssalCode);
 $('redeemCodeInput')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();redeemAbyssalCode();}});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('redeemCodeScreen')?.hidden)closeRedeemCodeModal();});
 
-$('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('skillDashBtn')?.addEventListener('click',()=>activateAbility('dash'));
+$('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('skillDashBtn')?.addEventListener('click',()=>activateAbility('dash'));$('skinActiveBtn')?.addEventListener('click',activateSkinAbility);
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
 
 const resonanceSkillLabels={power:['✦','Pulso Intenso'],rate:['≋','Ressonância Veloz'],speed:['➤','Propulsão Abissal'],range:['◎','Olho Profundo'],magnet:['⌁','Campo Magnético'],regen:['♧','Membrana Viva'],shield:['◉','Escudo Espectral'],burst:['✺','Pulso de Ruptura'],electric:['ϟ','Tempestade Elétrica'],pierce:['➵','Lança do Abismo'],ricochet:['⤴','Ricochete Caótico'],spread:['✣','Rajada Prismática'],photon:['☄','Lança de Fótons'],photonRay:['⌁⃒','Raio de Fótons'],nova:['⊛','Nova Gravitacional'],echoShot:['⋔','Eco de Maré'],shell:['▰','Carapaça Abissal'],ward:['◇','Véu de Maré'],lastStand:['♥','Último Fôlego'],pressureCocoon:['⬡','Casulo de Pressão'],vitality:['♢','Reserva Vital'],predator:['☠','Instinto Predatório'],closePressure:['⌾','Pressão de Caça']};
