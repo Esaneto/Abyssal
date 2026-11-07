@@ -2066,10 +2066,10 @@ function fire(){
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
-function emitPrismaticNovaShards(novaDamage){
+function emitPrismaticNovaShards(novaDamage,sharedVolleyId){
  const rank=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
  if(!player||rank===0)return;
- const count=2*rank,volleyId=nextShotVolleyId(),baseAngle=Number(player.angle)||0;
+ const count=2*rank,volleyId=sharedVolleyId||nextShotVolleyId(),baseAngle=Number(player.angle)||0;
  const speed=420/GAME_WORLD_ZOOM,damage=Math.max(1,Number(novaDamage)||1)*.28/count;
  const radius=4.3/GAME_WORLD_ZOOM,reach=getFiringRange();
  for(let i=0;i<count;i++){
@@ -2322,7 +2322,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
   player.photonRayActive=false;
  }
-  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);emitPrismaticNovaShards(novaDps);playSkillSound('nova','trigger')}}
+  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}const novaVolleyId=nextShotVolleyId();if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:novaVolleyId});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);emitPrismaticNovaShards(novaDps,novaVolleyId);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
