@@ -110,14 +110,16 @@ async function realGameplaySmoke(browser,url){
    await sleep(100);
   }
   assert.ok(port,'Chromium did not open the DevTools port: '+chromeError.slice(-1200));
-  const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
+  console.log('[live-browser] CDP port ready '+port);
+  const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list',{signal:AbortSignal.timeout(5000)})).json();
   const tab=tabs.find(item=>item.type==='page');
   assert.ok(tab?.webSocketDebuggerUrl,'CDP page target unavailable');
   socket=new WebSocket(tab.webSocketDebuggerUrl);
-  await new Promise((resolve,reject)=>{
+  await Promise.race([new Promise((resolve,reject)=>{
    socket.addEventListener('open',resolve,{once:true});
    socket.addEventListener('error',reject,{once:true});
-  });
+  }),new Promise((_,reject)=>setTimeout(()=>reject(new Error('CDP WebSocket open timeout')),7000))]);
+  console.log('[live-browser] WebSocket connected');
   let sequence=0;
   const pending=new Map();
   socket.addEventListener('message',event=>{
@@ -129,7 +131,9 @@ async function realGameplaySmoke(browser,url){
    else resolve(message.result||{});
   });
   const command=(method,params={})=>new Promise((resolve,reject)=>{
-   const id=++sequence;pending.set(id,{resolve,reject});
+   const id=++sequence;
+   const timeout=setTimeout(()=>{pending.delete(id);reject(new Error('CDP timed out on '+method));},8000);
+   pending.set(id,{resolve:value=>{clearTimeout(timeout);resolve(value)},reject:error=>{clearTimeout(timeout);reject(error)}});
    socket.send(JSON.stringify({id,method,params}));
   });
   const evaluate=async(expression)=>{
@@ -144,8 +148,10 @@ async function realGameplaySmoke(browser,url){
    fs.writeFileSync(file,Buffer.from(r.data,'base64'));
    assert.ok(fs.statSync(file).size>10000,'Live screenshot missing: '+name);
   };
+  console.log('[live-browser] CDP enabling domains');
   await command('Page.enable');
   await command('Runtime.enable');
+  console.log('[live-browser] navigating to actual game');
   await command('Page.navigate',{url});
   await sleep(6500);
   let state=await evaluate(stateExpr);
