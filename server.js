@@ -822,6 +822,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    const completedCycles=Math.floor(Math.max(0,Number(w.bossesDefeated)||0)/BOSS_KINDS.size);
    enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*(1+completedCycles*0.02));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
+   if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + SKIN ALEATÓRIA + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
    // Fossas waits for the next tier; Mar Aberto schedules the next
    // boss after another complete progression segment.
    w.nextBossAt=room.mode==='rift'?Infinity:(Number(w.elapsed)||0)+100/3.8;
