@@ -278,7 +278,7 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const shellDefense=1-shellLevel*.08;
  const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
  const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
- const lastStandDefense=lowHealth&&lastStandLevel>0?.80:1;
+ const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
  return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*skinDefense*shellDefense*lastStandDefense);
 }
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
@@ -1385,6 +1385,7 @@ io.on('connection', socket => {
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 4.5);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.arcChainActive = payload.arcChainActive === true;
+  p.hadalBeamActive = payload.hadalBeamActive === true;
   p.ricochetLevel = clamp(Math.floor(Number(payload.ricochetLevel) || 0), 0, 3);
   p.prismaticLevel = clamp(Math.floor(Number(payload.prismaticLevel) || 0), 0, 3);
   p.electricLevel = clamp(Math.floor(Number(payload.electricLevel) || 0), 0, 3);
@@ -1555,7 +1556,7 @@ io.on('connection', socket => {
     const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/shotWorldHeight,0,1);
-   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
+   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]*(shooter.hadalBeamActive?1.35:1)/(2*WORLD_ZOOM);
    if(room.mode==='pvp'){
     let changed=false;
     for(const target of room.players.values()){
