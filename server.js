@@ -688,6 +688,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<850)return reject('skin-ability-cooldown');
   player[key]=now;requestedDamage=Math.min(requestedDamage,15);
  }
+ // The white shark only has a passive wake; its retired frontal dash must
+ // not be executable by outdated or modified clients.
+ if(skillId==='reefshark-dash')return reject('skin-ability-removed');
  const predatorSkills={
   'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:28,arc:.48,width:58/WORLD_ZOOM},
   'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:34,arc:.78,width:120/WORLD_ZOOM},
