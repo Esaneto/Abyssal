@@ -9,3 +9,14 @@ test('premium reptiles cost exactly 999 centavos and have applied combat advanta
  assert.ok(A.damageMultiplier('saltcroc','boss',100,1)>2);
  assert.equal(A.incomingDamageMultiplier('blackcaiman'),.65);assert.equal(A.movementMultiplier('blackcaiman'),1.2);
 });
+
+test('removed common blue-ring octopus does not affect the colossal boss or its playable relic',()=>{
+ assert.equal(C.byId.bluering,undefined,'the ordinary bluering skin must be absent');
+ assert.equal(C.items.some(s=>s.name==='Polvo-de-Anéis-Azuis'),false);
+ const game=fs.readFileSync('public/game.js','utf8');
+ assert.match(game,/id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis'/);
+ assert.match(game,/boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL'/);
+ assert.match(game,/function getBossDisplayName\(kind\)/);
+ assert.match(game,/blueRingOctopus\(\)/);
+ assert.match(game,/type:'ink-trail',skin:'aberration'/);
+});
