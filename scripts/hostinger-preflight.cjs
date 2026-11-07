@@ -21,7 +21,7 @@ const checks = [
   ['vCPU', cpuCount >= 2, `${cpuCount} disponível(is), esperado >= 2`],
   ['RAM', totalRamGiB >= 7.25, `${totalRamGiB.toFixed(2)} GiB, esperado ~8 GiB`],
   ['Node LTS', nodeMajor >= 24 && nodeMajor <= 26, `Node ${process.versions.node}, recomendado 24 ou 26 LTS`],
-  ['libuv threadpool', threadpool >= 8, `UV_THREADPOOL_SIZE=${threadpool}, recomendado 8`],
+  ['libuv threadpool', threadpool >= 4 && threadpool <= 8, `UV_THREADPOOL_SIZE=${threadpool}, recomendado 4 para 2 vCPU`],
   ['resource profile', process.env.ABYSSAL_RESOURCE_PROFILE === 'hostinger-kvm2', `ABYSSAL_RESOURCE_PROFILE=${process.env.ABYSSAL_RESOURCE_PROFILE || '(não definido)'}`]
 ];
 
