@@ -74,11 +74,12 @@ test('mobile zoom uses the requested level and online menu uses the requested na
   }});
 
 
-test('solo orb pickup and co-op server award feed the same gainXp function', () => {
-  assert.match(game, /gainXp\(o\.value,'orb'\)/);
+test('server XP awards feed the client progression path without collectible orbs', () => {
+  assert.match(server, /function grantSharedXp\(/);
+  assert.match(server, /emit\('shared-xp-award'/);
   assert.match(game, /function applySharedXp\(data\)[\s\S]*?gainXp\(Math\.max\(0,Number\(data\.value\)\|\|0\),'shared'\)/);
   assert.match(online, /socket\.on\('shared-xp-award',[\s\S]*?sharedXp/);
-  assert.match(game, /function addOrb\(x,y,value,sourceRadius=10\)[\s\S]*?Math\.sqrt\(Math\.max\(1,Number\(sourceRadius\)/);
+  assert.doesNotMatch(simulation, /orbSnapshotTimer/);
 });
 
 test('authoritative movement is lossy-but-fresh, while collision verification keeps a reliable attacker frame', () => {
@@ -94,27 +95,20 @@ test('authoritative movement is lossy-but-fresh, while collision verification ke
   assert.match(game,/authoritativeSnapshotHistory\.set\(`\$\{worldId\}:\$\{sequence\}`,frame\)/);
 });
 
-test('room traffic uses compact player motion, slower roster recovery and throttled orb snapshots',()=>{
+test('room traffic uses compact player motion, sparse reliable recovery and direct XP',()=>{
   assert.match(server,/getRoomPlayerMotion\(room\)/);
-  assert.match(server,/volatile\.emit\('player-motion',NetCodec\.playerMotion\(motion\)\)/);
+  assert.match(server,/volatile\.emit\('player-motion',NetCodec\.playerMotion\(motion,receivedAt\)\)/);
   assert.match(online,/socket\.on\('player-motion',rows=>applyPlayerMotion\(window\.AbyssalNetCodec\?\.readPlayerMotion\?\.\(rows\)\|\|rows\)\)/);
   assert.match(online,/function applyPlayerMotion\(rows\)/);
   assert.match(simulation,/if \(sendReliableSnapshot\) world\.reliableSnapshotTimer = 30/);
   assert.match(simulation,/if \(sendPlayers\) world\.playerSnapshotTimer = 1/);
-  assert.match(simulation,/const sendOrbSnapshot = sendSnapshot && world\.orbSnapshotTimer <= 0/);
-  assert.match(server,/getRoomMotionSnapshot\(room,\{player:recipient,includeOrbs:Boolean\(result\.sendOrbSnapshot\)\}\)/);
-  assert.match(game,/if\(Array\.isArray\(data\.orbs\)\)\{/);
   assert.match(server,/getRoomSpawnSnapshot\(room,spawnedEnemies\)/);
   assert.match(server,/emit\('world-enemies-spawned',spawnFrame\)/);
-  assert.match(server,/orbScope:recipient\?'view':'all'/);
-  assert.match(game,/orbInterval=clamp\(Number\(data\.orbIntervalMs\)\|\|250,120,650\)/);
-  assert.match(game,/visualDuration=clamp\(orbInterval\*\.55,90,150\)/);
-  assert.match(game,/data\.orbScope!=='view'/);
-  assert.match(server,/emit\('world-xp-orbs-expired',expiredOrbIds\)/);
+  assert.match(server,/function grantSharedXp\(/);
+  assert.doesNotMatch(server,/world-xp-orbs-expired/);
   assert.match(server,/socket\.on\('shared-damage-batch'/);
   assert.match(online,/function sendDamageBatch\(hits\)/);
   assert.match(game,/flushOnlineDamageBatch\(\)/);
-
 });
 
 
@@ -216,7 +210,7 @@ test('session resume refreshes PostgreSQL before validating a rolling-deploy han
 });
 
 test('deploy reconnect still refreshes persisted run again before restoring the room', () => {
- assert.match(server,/payload\.reconnect===true\|\|!u\?\.pendingRunResume/);
+ assert.match(server,/payload\.reconnect===true&&!u\?\.pendingRunResume/);
  assert.match(server,/refreshDeployResumeFromPersistence\(socket\.data\.userKey\)/);
  assert.match(server,/rooms\.get\(id\)\|\|restoreDeployRoom\(u,id\)/);
 });
@@ -238,7 +232,7 @@ test('floating red and blue damage numbers use the current compact readable scal
 
 test('online pulse batches PvE damage instead of broadcasting every target independently', () => {
  const handler=server.slice(server.indexOf("socket.on('active-ability'"),server.indexOf("socket.on('shared-damage'"));
- assert.match(handler,/const batch=\{damaged:\[\],defeated:\[\],orbs:\[\],accountUpdated:false,worldChanged:false\}/);
+ assert.match(handler,/const batch=\{damaged:\[\],defeated:\[\],accountUpdated:false,worldChanged:false\}/);
  assert.match(handler,/processWorldDamage\(socket,Number\(enemy\.id\),baseDamage,'pulse',batch,'',enemyLookup\)/);
  assert.match(handler,/world-enemies-damaged/);
 });
