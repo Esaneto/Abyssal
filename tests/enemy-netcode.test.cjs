@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createMotionWatchdog, reconcileSnapshot, renderedPosition } = require('../public/enemy-netcode.js');
+const { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample } = require('../public/enemy-netcode.js');
 
 function enemyFrame(positions) { return positions.map(([id, x, y]) => ({ id, x, y })); }
 
@@ -81,8 +81,8 @@ test('movement extrapolation bridges the reliable snapshot baseline without free
   const next = reconcileSnapshot(state, [{ id: 99, kind: 'drifter', x: 108, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 100, interpolationMs: 100 });
   const held = renderedPosition(next[0], 800);
   assert.ok(held.x > 108, 'enemy continues briefly along its last authoritative velocity');
-  assert.equal(held.x, 122.4, 'extrapolation stays bounded during a delayed mobile packet window');
-  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 180);
+  assert.equal(held.x, 117.6, 'extrapolation stays bounded during a delayed mobile packet window');
+  assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 120);
 });
 
 
@@ -100,4 +100,15 @@ test('adaptive enemy interpolation stays below one authoritative motion interval
   state = reconcileSnapshot(state, [{ id: 301, kind: 'drifter', x: 120, y: 100, r: 10, hp: 22, maxHp: 22 }], { now: 125, interpolationMs: 72 });
   assert.ok(state[0].interpDuration <= 90);
   assert.ok(state[0].interpDuration < 125, 'visual interpolation must not deliberately lag a full 8 Hz packet interval');
+});
+
+
+test('timestamped motion buffer renders between authoritative samples instead of packet arrival edges', () => {
+  const enemy={id:501,kind:'drifter',x:100,y:100,motionSamples:[]};
+  pushMotionSample(enemy,{x:100,y:100,serverTime:1000,receivedAt:0});
+  pushMotionSample(enemy,{x:110,y:100,serverTime:1050,receivedAt:58});
+  pushMotionSample(enemy,{x:120,y:100,serverTime:1100,receivedAt:101});
+  const buffered=renderedPosition(enemy,140);
+  assert.ok(buffered.x>108&&buffered.x<120,'render point stays inside buffered authoritative history');
+  assert.ok(enemy.motionBufferMs>=70&&enemy.motionBufferMs<=125);
 });

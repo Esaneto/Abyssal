@@ -571,26 +571,52 @@ function renderRankings(data){
  clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=setInterval(()=>{document.querySelectorAll('.ranking-countdown[data-reset]').forEach(el=>el.textContent=rankingCountdown(el.dataset.reset));},1000);
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
+ if(!peer||![x,y,serverTime,receivedAt].every(Number.isFinite))return false;
+ const samples=Array.isArray(peer.motionSamples)?peer.motionSamples:(peer.motionSamples=[]),last=samples[samples.length-1];
+ if(last&&serverTime<=Number(last.serverTime))return false;
+ samples.push({x,y,serverTime,receivedAt});while(samples.length>10)samples.shift();
+ if(last){
+  const serverSpacing=Math.max(16,Math.min(250,serverTime-Number(last.serverTime))),arrivalSpacing=Math.max(0,Math.min(500,receivedAt-Number(last.receivedAt)));
+  const jitter=Math.abs(arrivalSpacing-serverSpacing);
+  peer.motionJitterMs=Number.isFinite(Number(peer.motionJitterMs))?Number(peer.motionJitterMs)*.82+jitter*.18:jitter;
+  const isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
+  peer.motionBufferMs=Math.max(isPvp?50:65,Math.min(isPvp?90:125,(isPvp?58:72)+(Number(peer.motionJitterMs)||0)*1.45));
+ }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?58:72;
+ return true;
+}
 function getInterpolatedPeer(p,now=performance.now()){
+ const samples=Array.isArray(p.motionSamples)?p.motionSamples:null;
+ if(samples&&samples.length>=2){
+  const latest=samples[samples.length-1],serverNow=Number(latest.serverTime)+Math.max(0,now-Number(latest.receivedAt)),renderTime=serverNow-(Number(p.motionBufferMs)||72);
+  if(renderTime<=Number(samples[0].serverTime))return {...p,x:Number(samples[0].x),y:Number(samples[0].y)};
+  let a=samples[0],b=samples[1];
+  for(let i=1;i<samples.length;i++){b=samples[i];if(Number(b.serverTime)>=renderTime){a=samples[i-1];break;}a=b;}
+  if(Number(b.serverTime)>=renderTime&&Number(b.serverTime)>Number(a.serverTime)){
+   const t=Math.max(0,Math.min(1,(renderTime-Number(a.serverTime))/(Number(b.serverTime)-Number(a.serverTime))));
+   return {...p,x:Number(a.x)+(Number(b.x)-Number(a.x))*t,y:Number(a.y)+(Number(b.y)-Number(a.y))*t};
+  }
+  const previous=samples[samples.length-2],dt=Math.max(.001,(Number(latest.serverTime)-Number(previous.serverTime))/1000),maxSpeed=420;
+  let vx=(Number(latest.x)-Number(previous.x))/dt,vy=(Number(latest.y)-Number(previous.y))/dt,speed=Math.hypot(vx,vy);if(speed>maxSpeed){vx=vx/speed*maxSpeed;vy=vy/speed*maxSpeed;}
+  const extraMs=Math.min(90,Math.max(0,renderTime-Number(latest.serverTime)));
+  return {...p,x:Number(latest.x)+vx*extraMs/1000,y:Number(latest.y)+vy*extraMs/1000};
+ }
  const duration=Math.max(1,Number(p.interpDuration)||1),elapsed=Math.max(0,now-(Number(p.interpAt)||now)),t=Math.max(0,Math.min(1,elapsed/duration));
  const fromX=Number(p.fromX)||0,fromY=Number(p.fromY)||0,targetX=Number(p.targetX)||0,targetY=Number(p.targetY)||0;
  let x=fromX+(targetX-fromX)*t,y=fromY+(targetY-fromY)*t;
- if(t>=1){
-  // Bridge short packet gaps instead of visually freezing another player at the last sample.
-  // Extrapolation is deliberately bounded so authority remains with the server.
-  const extraMs=Math.min(Number(p.peerExtrapolationMs)||90,Math.max(0,elapsed-duration));
-  x=targetX+(Number(p.velocityX)||0)*(extraMs/1000);y=targetY+(Number(p.velocityY)||0)*(extraMs/1000);
- }
+ if(t>=1){const extraMs=Math.min(Number(p.peerExtrapolationMs)||90,Math.max(0,elapsed-duration));x=targetX+(Number(p.velocityX)||0)*(extraMs/1000);y=targetY+(Number(p.velocityY)||0)*(extraMs/1000);}
  return {...p,x,y};
 }
-function storePlayer(incoming){
+function storePlayer(incoming,frameServerTime=0){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
  const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
  const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(1000/30),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
  let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
  const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(24,Math.min(isPvp?45:55,sampleMs*1.05)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(24,Math.min(isPvp?45:55,sampleMs*1.05)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85,motionSamples:Array.isArray(old?.motionSamples)?old.motionSamples:[]};
+ pushPeerMotionSample(next,x,y,Number(frameServerTime)||Date.now(),now);
+ players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
@@ -601,7 +627,7 @@ function applyPlayerMotion(rows){
  for(const row of rows){
   if(!Array.isArray(row)||row.length<4)continue;
   const netId=Number(row[0])>>>0,id=playersByNetId.get(netId),peer=id?players.get(id):null;if(!peer||peer.id===localPlayerId)continue;
-  storePlayer({id:peer.id,netId,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0});
+  storePlayer({id:peer.id,netId,x:Number(row[1]),y:Number(row[2]),angle:Number(row[3])||0},frameServerTime);
  }
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}

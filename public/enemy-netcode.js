@@ -11,7 +11,9 @@
   // stop extrapolation quickly so hit geometry does not diverge from the server.
   // Snapshot cadence is 100 ms, but real RTT/jitter can be several times higher.
   // Keep moving briefly through delayed packets instead of freezing at the last point.
-  const MAX_EXTRAPOLATION_MS = 180;
+  const MAX_EXTRAPOLATION_MS = 120;
+  const MOTION_BUFFER_MS = 85;
+  const MOTION_BUFFER_SAMPLES = 8;
 
   function createMotionWatchdog(options = {}) {
     const motionEpsilon = Math.max(0.05, Number(options.motionEpsilon) || 0.35);
@@ -54,8 +56,53 @@
     return { observe, reset, get predicting() { return predicting; }, get diagnostics() { return { ...lastMetrics }; } };
   }
 
+  function pushMotionSample(enemy, sample = {}) {
+    if (!enemy) return false;
+    const x = Number(sample.x), y = Number(sample.y), serverTime = Number(sample.serverTime), receivedAt = Number(sample.receivedAt);
+    if (![x, y, serverTime, receivedAt].every(Number.isFinite)) return false;
+    const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : (enemy.motionSamples = []);
+    const last = samples[samples.length - 1];
+    if (last && serverTime <= Number(last.serverTime)) return false;
+    samples.push({ x, y, serverTime, receivedAt });
+    while (samples.length > MOTION_BUFFER_SAMPLES) samples.shift();
+    if (last) {
+      const spacing = clamp(serverTime - Number(last.serverTime), 30, 250);
+      const arrivalSpacing = clamp(receivedAt - Number(last.receivedAt), 0, 500);
+      const previous = Number(enemy.motionSampleMs);
+      enemy.motionSampleMs = Number.isFinite(previous) ? previous * .82 + spacing * .18 : spacing;
+      const jitter = Math.abs(arrivalSpacing - spacing);
+      enemy.motionJitterMs = Number.isFinite(Number(enemy.motionJitterMs)) ? Number(enemy.motionJitterMs) * .82 + jitter * .18 : jitter;
+      enemy.motionBufferMs = clamp(MOTION_BUFFER_MS + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 125);
+    } else enemy.motionBufferMs = MOTION_BUFFER_MS;
+    return true;
+  }
+
   function renderedPosition(enemy, now) {
     if (!enemy) return { x: 0, y: 0 };
+    const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : null;
+    if (samples && samples.length >= 2) {
+      const latest = samples[samples.length - 1];
+      const serverNow = Number(latest.serverTime) + Math.max(0, now - Number(latest.receivedAt));
+      const renderTime = serverNow - clamp(Number(enemy.motionBufferMs) || MOTION_BUFFER_MS, 70, 125);
+      let a = samples[0], b = samples[1];
+      for (let i = 1; i < samples.length; i++) {
+        b = samples[i];
+        if (Number(b.serverTime) >= renderTime) { a = samples[i - 1]; break; }
+        a = b;
+      }
+      if (renderTime <= Number(samples[0].serverTime)) return { x: Number(samples[0].x), y: Number(samples[0].y) };
+      if (Number(b.serverTime) >= renderTime && Number(b.serverTime) > Number(a.serverTime)) {
+        const t = clamp((renderTime - Number(a.serverTime)) / (Number(b.serverTime) - Number(a.serverTime)), 0, 1);
+        return { x: Number(a.x) + (Number(b.x) - Number(a.x)) * t, y: Number(a.y) + (Number(b.y) - Number(a.y)) * t };
+      }
+      const extraMs = Math.min(MAX_EXTRAPOLATION_MS, Math.max(0, renderTime - Number(latest.serverTime)));
+      const previous = samples[samples.length - 2];
+      const dt = Math.max(.001, (Number(latest.serverTime) - Number(previous.serverTime)) / 1000);
+      const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 380 : 220;
+      const vx = clamp((Number(latest.x) - Number(previous.x)) / dt, -maxV, maxV);
+      const vy = clamp((Number(latest.y) - Number(previous.y)) / dt, -maxV, maxV);
+      return { x: Number(latest.x) + vx * extraMs / 1000, y: Number(latest.y) + vy * extraMs / 1000 };
+    }
     const x = Number(enemy.x), y = Number(enemy.y);
     const fromX = Number(enemy.interpFromX), fromY = Number(enemy.interpFromY);
     const toX = Number(enemy.interpTargetX), toY = Number(enemy.interpTargetY);
@@ -131,5 +178,5 @@
       };
     });
   }
-  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, MAX_EXTRAPOLATION_MS };
+  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample, MAX_EXTRAPOLATION_MS, MOTION_BUFFER_MS };
 });
