@@ -212,50 +212,39 @@ test('Estuarine Bull Shark defense reduces the strengthened authoritative drifte
 });
 
 
-test('XP orbs spawn at the exact enemy coordinates and bosses drop larger, higher-value orbs', () => {
-  const world = Sim.createWorldState(1000);
-  const commonStats=AI.statsForKind('drifter'),bossStats=AI.statsForKind('leviathan');
-  const common = { id: 10, kind: 'drifter', x: 700, y: 900, r:commonStats.r,value:commonStats.value };
-  const boss = { id: 11, kind: 'leviathan', x: 1700, y: 1200, r:bossStats.r,value:bossStats.value };
-  const smallOrb = Sim.spawnXpOrb(world, common);
-  const bossOrb = Sim.spawnXpOrb(world, boss);
-  assert.deepEqual([smallOrb.x, smallOrb.y], [common.x, common.y]);
-  assert.deepEqual([bossOrb.x, bossOrb.y], [boss.x, boss.y]);
-  assert.ok(smallOrb.value>=common.value);
-  assert.ok(bossOrb.value>boss.value);
-  assert.ok(bossOrb.r > smallOrb.r, 'stronger enemies create visibly larger XP orbs');
+test('direct XP value scales with monster type and boss size without spawning orbs', () => {
+ const world=Sim.createWorldState(1000);
+ const commonStats=AI.statsForKind('drifter'),bossStats=AI.statsForKind('leviathan');
+ const common={id:10,kind:'drifter',r:commonStats.r,value:commonStats.value};
+ const boss={id:11,kind:'leviathan',r:bossStats.r,value:bossStats.value};
+ const commonXp=Sim.xpValueForEnemy(world,common);
+ const bossXp=Sim.xpValueForEnemy(world,boss);
+ assert.ok(commonXp>=common.value);
+ assert.ok(bossXp>commonXp);
+ assert.equal('orbs' in world,false,'XP cannot require orb entities');
+ assert.equal(typeof Sim.spawnXpOrb,'undefined');
 });
-
-test('the authoritative XP-orb pickup awards one player only and removes the orb for everyone', () => {
-  const world = Sim.createWorldState(1000);
-  world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 999999;
-  world.enemies = [];
-  world.orbs = [{ id: 77, x: 1000, y: 1000, r: 10, value: 55, phase: 0, life: 25, sourceKind: 'boss' }];
-  const first = { id: 'player-a', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
-  const second = { id: 'player-b', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
-  const result = Sim.tickWorld(world, [second, first], 1050, () => 0.8);
-  assert.equal(result.xpCollected.length, 1, 'an orb can only be collected once per room world');
-  assert.equal(result.xpCollected[0].orbId, 77);
-  assert.equal(result.xpCollected[0].playerId, 'player-a', 'simultaneous pickup uses a stable ID tie-break');
-  assert.equal(result.xpCollected[0].value, 55);
-  assert.equal(world.orbs.length, 0, 'the authoritative orb disappears after collection');
+test('the authoritative world no longer requires XP collection or proximity', () => {
+ const world=Sim.createWorldState(1000);
+ world.initialized=true;world.lastTick=1000;world.nextBossAt=999999;world.commonSpawnTimer=999999;
+ world.enemies=[];
+ const far={id:'player-a',x:500,y:500,r:13/AI.WORLD_ZOOM,alive:true,hp:100,maxHp:100};
+ const near={id:'player-b',x:1000,y:1000,r:13/AI.WORLD_ZOOM,alive:true,hp:100,maxHp:100};
+ const result=Sim.tickWorld(world,[far,near],1050,()=>.8);
+ assert.equal('xpCollected' in result,false);
+ assert.equal('sendOrbSnapshot' in result,false);
+ assert.equal('orbs' in world,false);
 });
-
-test('expired XP orbs emit a distinct removal list without duplicating collected orbs', () => {
-  const world = Sim.createWorldState(1000);
-  world.initialized = true; world.lastTick = 1000; world.nextBossAt = 999999; world.commonSpawnTimer = 999999;
-  world.enemies = [];
-  world.orbs = [
-    { id: 77, x: 1000, y: 1000, r: 4, value: 10, phase: 0, life: 0.01 },
-    { id: 78, x: 2200, y: 1600, r: 4, value: 10, phase: 0, life: 20 }
-  ];
-  const player = { id: 'p1', x: 1000, y: 1000, r: 13 / AI.WORLD_ZOOM, alive: true, hp: 100, maxHp: 100, magnetStrength: 1 };
-  const result = Sim.tickWorld(world, [player], 1050, () => 0.8);
-  assert.deepEqual(result.expiredOrbIds, ['77'], 'only lifetime expiry is sent in the periodic removal event');
-  assert.deepEqual(world.orbs.map(orb => orb.id), [78], 'expired orb is removed while the other orb survives');
-  assert.equal(result.xpCollected.length, 0, 'expired orbs do not grant experience');
+test('world ticks do not simulate or expire XP pickups', () => {
+ const world=Sim.createWorldState(1000);
+ world.initialized=true;world.lastTick=1000;world.nextBossAt=999999;world.commonSpawnTimer=999999;world.enemies=[];
+ const player={id:'p1',x:1000,y:1000,r:13/AI.WORLD_ZOOM,alive:true,hp:100,maxHp:100};
+ const result=Sim.tickWorld(world,[player],1050,()=>.8);
+ assert.equal('expiredOrbIds' in result,false);
+ assert.equal('spawnedRewardOrbs' in result,false);
+ assert.ok(Array.isArray(result.spawnedXpRewards));
+ assert.equal('orbs' in world,false);
 });
-
 test('visible-player contact uses the predicted current position and rejects stale-coordinate ghost hits', () => {
   const makeWorld = () => {
     const world = Sim.createWorldState(1000);
