@@ -16,6 +16,33 @@ const contentTypes={'.html':'text/html; charset=utf-8','.js':'application/javasc
  '.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.jpeg':'image/jpeg',
  '.woff':'font/woff','.woff2':'font/woff2','.mp3':'audio/mpeg','.wav':'audio/wav'};
 const artGallery = "<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>html,body{margin:0;min-height:100%;background:#020b13;color:#e5f6fc;font:14px system-ui}main{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px}section{background:radial-gradient(ellipse at center,#142d38,#06131f 72%);border:1px solid #33505a;border-radius:12px;text-align:center;overflow:hidden}canvas{display:block;width:100%;height:274px}h2{font-size:15px;margin:6px 0 8px;font-weight:600;letter-spacing:.04em}</style></head><body><main>\n<section><canvas id=\"gharial\" width=\"402\" height=\"274\"></canvas><h2>Gavial das Águas Negras</h2></section>\n<section><canvas id=\"leatherback\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Couro</h2></section>\n<section><canvas id=\"hawksbill\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Pente</h2></section>\n<section><canvas id=\"nightmareBoss\" width=\"402\" height=\"274\"></canvas><h2>Pesadelo Roxo, boss</h2></section>\n<section><canvas id=\"nightmareRelic\" width=\"402\" height=\"274\"></canvas><h2>Vestígio do Pesadelo, loja</h2></section>\n<section><canvas id=\"ribbonmoray\" width=\"402\" height=\"274\"></canvas><h2>Moreia-Fita Noturna</h2></section></main>\n<script src=\"/abyssal-curated-skins.js\"></script><script src=\"/marine-art.js\"></script><script src=\"/abyssal-rift-hardcore.js\"></script>\n<script>try{const catalog=window.AbyssalCuratedSkins.byId;for(const id of ['gharial','leatherback','hawksbill','ribbonmoray']){const canvas=document.getElementById(id),ctx=canvas.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';window.AbyssalMarineArt.draw(ctx,id==='ribbonmoray'?265:220,132,id==='ribbonmoray'?44:54,0,catalog[id],1600,false);}window.AbyssalRiftHardcore.drawFinalBoss(document.getElementById('nightmareBoss').getContext('2d'),{x:201,y:140,r:64,hp:100,maxHp:100},1600);window.AbyssalRiftHardcore.drawNightmareRelic(document.getElementById('nightmareRelic').getContext('2d'),201,137,66,1600);document.body.dataset.artStatus='painted';}catch(error){document.body.dataset.artStatus=String(error);}</script></body></html>";
+const localGameSmoke = [
+"// Browser smoke only. Injected by its local HTTP server, never committed to public/game.js.",
+"window.__abyssalSmokeStep = () => {",
+" if(!isRiftRun() || onlineMode || gameState!=='playing' || !activeMapLayout) throw Error('Solo Fossa not active');",
+" const tier=activeMapTier, final=RIFT_HARDCORE.FINAL_TIER, bossRoom=activeMapLayout.rooms.find(r=>r.id==='boss');",
+" if(!bossRoom || tier<0 || tier>final) throw Error('Invalid Fossa tier '+tier);",
+" player.invuln=Math.max(player.invuln,3600);",
+" player.x=bossRoom.x;player.y=bossRoom.y;updateCamera();",
+" activateSoloRiftRoomEncounter();",
+" const activeBosses=enemies.filter(e=>e.hp>0 && BOSS_KINDS.includes(e.kind));",
+" if(activeBosses.length!==1) throw Error('Expected one active boss in tier '+tier+', found '+activeBosses.length);",
+" const boss=activeBosses[0];",
+" if(tier===final && boss.kind!==RIFT_HARDCORE.FINAL_KIND) throw Error('Final guardian mismatch: '+boss.kind);",
+" killEnemy(enemies.indexOf(boss));",
+" if(!cavePortalsUnlocked()) throw Error('Boss victory did not unlock portals in tier '+tier);",
+" const portals=activeMapLayout.portals;",
+" const target=tier===final?portals.surface:portals.boss;",
+" if(!target || !ABYSSAL_MAP.isWalkable(activeMapLayout,target.x,target.y,player.r)) throw Error('Exit sigil outside traversable cave at tier '+tier);",
+" player.x=target.x;player.y=target.y;updateCamera();",
+" const interaction=currentMapInteraction();",
+" const expected=tier===final?'surface':'next-tier';",
+" if(interaction?.type!==expected) throw Error('Wrong portal after boss at tier '+tier+': '+interaction?.type);",
+" if(tier<final && !activateMapInteraction()) throw Error('Descent failed at tier '+tier);",
+" if(tier<final && activeMapTier!==tier+1) throw Error('Transition skipped/duplicated tier '+tier);",
+" return {tier,boss:boss.kind,unlocked:true,exit:interaction.type,nextTier:activeMapTier,bossesKilled:bossKillsThisRun};",
+"};"
+].join('\n');
 const injected=`<script>
 (()=>{
  const errors=[],original=console.error;
@@ -68,6 +95,13 @@ function handler(req,res){
   if(err){res.writeHead(404);res.end('Not found');return;}
   const ext=smoke?'.html':path.extname(filepath);
   if(smoke)data=Buffer.from(data.toString('utf8').replace('</body>',injected+'</body>'));
+  if(pathname==='/game.js'){
+   // Test-only introspection executes real boss death/portal game logic across every tier,
+   // without exposing simulation shortcuts to normal players or the deployed client.
+   const source=data.toString('utf8'),closing=/\\n\\}\\)\\(\\);\\s*$/;
+   assert.ok(closing.test(source),'Browser probe could not find game IIFE closing');
+   data=Buffer.from(source.replace(closing,'\\n'+localGameSmoke+'\\n})();\\n'));
+  }
   res.writeHead(200,{'Content-Type':contentTypes[ext]||'application/octet-stream','Cache-Control':'no-store'});
   res.end(data);
  });
@@ -182,6 +216,24 @@ async function realGameplaySmoke(browser,url){
   };
   await move('deep',2720,4180,135,230);
   await move('boss',2400,8660,315,355);
+  // Full tier progression is exercised inside the running Chromium game. Only the
+  // boss HP reduction is accelerated; spawn, death, unlock and portal logic remain real.
+  const journey=[];
+  for(let tier=0;tier<=7;tier++){
+   const step=await evaluate('window.__abyssalSmokeStep?.()');
+   assert.equal(step?.tier,tier,'Fossa floor sequence must not skip or repeat a tier');
+   assert.equal(step?.unlocked,true,'Boss must open exit sigils');
+   assert.equal(step?.exit,tier===7?'surface':'next-tier');
+   assert.equal(step?.nextTier,Math.min(7,tier+1));
+   journey.push(step);
+  }
+  console.log('[live-browser] eight cave floors traversed, seven portals, final guardian '+JSON.stringify(journey));
+  await sleep(350);
+  const lastFloor=await evaluate(stateExpr);
+  assert.equal(lastFloor?.active,true,'Final Fossa boss victory must not stop the game');
+  assert.ok(lastFloor?.depth>=2450,'Final Fossa must report final-layer depth');
+  assert.ok(!lastFloor?.errors,'Final Fossa runtime errors: '+lastFloor?.errors);
+  await screenshot('live-final-floor');
  }finally{
   if(socket&&socket.readyState<=1)try{socket.close();}catch{}
   chrome.kill('SIGKILL');
