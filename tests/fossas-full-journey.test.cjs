@@ -21,11 +21,14 @@ test('all eight Fossa floors have navigable boss entrances, reachable exit sigil
    assert.ok(Map.roomPath(layout,'start','boss').length>=5,'tier '+tier+' path disconnected');
    const spawn=Map.startSpawn(layout);
    assert.ok(Map.isWalkable(layout,spawn.x,spawn.y,12),'tier '+tier+' spawn blocked');
-   for(const name of ['boss','surface']){
-    const portal=layout.portals[name];
-    assert.ok(portal,'tier '+tier+' missing '+name+' sigil');
-    assert.ok(Map.isWalkable(layout,portal.x,portal.y,12),'tier '+tier+' '+name+' sigil in rock');
-   }
+   const surfacePortal=layout.portals.surface;
+   assert.ok(surfacePortal,'tier '+tier+' missing surface sigil');
+   assert.ok(Map.isWalkable(layout,surfacePortal.x,surfacePortal.y,12),'tier '+tier+' surface sigil in rock');
+   if(tier<Hardcore.FINAL_TIER){
+    const descentPortal=layout.portals.boss;
+    assert.ok(descentPortal,'tier '+tier+' missing descent sigil');
+    assert.ok(Map.isWalkable(layout,descentPortal.x,descentPortal.y,12),'tier '+tier+' descent sigil in rock');
+   }else assert.equal(layout.portals.boss,null,'final Nightmare chamber must not show another descent portal');
    const guardians=World.activateRiftEncounters(world,[{id:'smoke-player',x:boss.x,y:boss.y,hp:100,alive:true}],()=>.5)
     .filter(enemy=>enemy.spawnRoomId==='boss'||enemy.kind===Hardcore.FINAL_KIND||enemy.boss);
    assert.equal(guardians.length,1,'tier '+tier+' should spawn exactly one guardian');
