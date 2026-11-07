@@ -561,6 +561,12 @@ function poisonousAnemone(c,h,s,t){
  const active=s.phase==='active',warm=s.phase==='warning';
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  const pulse=Math.sin(t*.0045);
+ // One rooted, leathery anemone torso; the poison stalks share a real origin.
+ c.fillStyle='rgba(13,44,40,.93)';c.strokeStyle='rgba(83,149,119,.47)';c.lineWidth=2.2;
+ c.beginPath();c.moveTo(-29,-23);c.bezierCurveTo(-14,-36,7,-26,17,-8);
+ c.quadraticCurveTo(31,1,17,11);c.bezierCurveTo(3,28,-16,33,-30,20);
+ c.quadraticCurveTo(-17,3,-29,-23);c.closePath();c.fill();c.stroke();
+ c.fillStyle='rgba(71,156,94,.42)';c.beginPath();c.ellipse(11,0,10,19,0,0,Math.PI*2);c.fill();
  for(let i=0;i<11;i++){
   const side=i%2?-1:1,rank=Math.floor(i/2),len=18+rank*4;
   const y=side*(3+rank*3),end=10+len*.7;
@@ -661,11 +667,34 @@ function drawNightmareArm(c,points,r,last,opacity=1){
  const base=points[0],tip=points[Math.min(last,points.length-1)];
  const g=c.createLinearGradient(base.x-r*.3,base.y-r*.3,tip.x+r*.3,tip.y+r*.3);
  g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
- for(let i=1;i<=last;i++){
-  const a=points[i-1],b=points[i],p=(i-.5)/32,width=suctionRadius({radius:r},p)*2;
-  c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-  c.strokeStyle=g;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;c.stroke();c.shadowBlur=0;
-  c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
+ // One continuous flexible skin. Segment-by-segment strokes formerly left
+ // seams between curved body sections and made submerged arms look disjointed.
+ const rim=[];
+ for(let i=0;i<=last;i++){
+  const prev=points[Math.max(0,i-1)],next=points[Math.min(last,i+1)],p=points[i];
+  const dx=next.x-prev.x,dy=next.y-prev.y,norm=Math.hypot(dx,dy)||1;
+  const thick=suctionRadius({radius:r},i/32);
+  rim.push({x:p.x,y:p.y,nx:-dy/norm,ny:dx/norm,thick});
+ }
+ c.beginPath();
+ for(let i=0;i<rim.length;i++){
+  const p=rim[i];if(!i)c.moveTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
+  else c.lineTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
+ }
+ for(let i=rim.length-1;i>=0;i--){const p=rim[i];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
+ c.closePath();
+ c.fillStyle=g;c.strokeStyle='rgba(17,4,37,.87)';c.lineWidth=4;
+ c.shadowColor='#a451d6';c.shadowBlur=6;c.fill();c.shadowBlur=0;c.stroke();
+ // Bilateral muscular fibres and restrained bioluminescent veins are attached
+ // to the SAME curvature and taper as the body.
+ for(const sign of [-1,1]){
+  c.beginPath();
+  for(let i=0;i<rim.length;i++){
+   const p=rim[i],xx=p.x+p.nx*p.thick*.49*sign,yy=p.y+p.ny*p.thick*.49*sign;
+   if(!i)c.moveTo(xx,yy);else c.lineTo(xx,yy);
+  }
+  c.strokeStyle=sign===1?'rgba(237,174,252,.34)':'rgba(92,35,144,.61)';
+  c.lineWidth=Math.max(1.5,r*.021);c.stroke();
  }
  for(let i=2;i<=last;i+=2){
   const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
@@ -690,7 +719,17 @@ function tentacleTrap(c,original,s,t){
  mouth.addColorStop(0,'rgba(0,0,6,.99)');mouth.addColorStop(.58,'rgba(2,6,15,.93)');
  mouth.addColorStop(1,'rgba(7,26,34,0)');
  c.fillStyle=mouth;c.beginPath();c.ellipse(x,y,r*.72,r*.54,h.angle,0,Math.PI*2);c.fill();
- c.strokeStyle='rgba(42,78,92,.39)';c.lineWidth=2;c.beginPath();
+ // Organic collar is embedded in the basalt; radially folded tissue connects
+ // the root of the moving arm to the wall instead of a floating oval.
+ for(let i=0;i<9;i++){
+  const a=h.angle+(i-4)*.27,reach=r*(.51+.10*Math.sin(i*2.4+t*.0007));
+  c.strokeStyle=i%2?'rgba(73,36,105,.33)':'rgba(121,62,142,.29)';
+  c.lineCap='round';c.lineWidth=2.2+(i%3);
+  c.beginPath();c.moveTo(x+Math.cos(a)*r*.09,y+Math.sin(a)*r*.09);
+  c.quadraticCurveTo(x+Math.cos(a+.22)*reach*.65,y+Math.sin(a+.22)*reach*.65,
+   x+Math.cos(a)*reach,y+Math.sin(a)*reach);c.stroke();
+ }
+ c.strokeStyle='rgba(117,65,139,.42)';c.lineWidth=2;c.beginPath();
  c.ellipse(x,y,r*.53,r*.34,h.angle,-2.7,2.7);c.stroke();
  if(s.phase==='warning'){
   // Curved translucent red route, shaped by the position of the closest
