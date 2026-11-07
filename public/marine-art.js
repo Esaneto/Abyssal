@@ -270,6 +270,15 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     oval(x,y,.106,.074,0,(i+row)%3===0?'#638e7a':'#426e63');
     stroke(()=>{c.moveTo(x-.065,y-.018);c.lineTo(x+.046,y-.021);},'#bfcead',.014);
    }
+
+   // Continuous dorsal ridge connects the tail, torso and narrow skull.
+   stroke(()=>{c.moveTo(-3.64,whip*.84);c.bezierCurveTo(-2.30,whip*.34,-1.22,-.035,.17,-.025);
+    c.quadraticCurveTo(.59,-.034,.96,-.02);},'rgba(164,204,161,.46)',.065);
+   for(let j=0;j<12;j++){
+    const xx=-2.82+j*.25,yy=Math.sin(j*2.2)*.13;
+    path(()=>{c.moveTo(xx-.065,yy-.038);c.lineTo(xx+.015,yy-.084);
+     c.lineTo(xx+.082,yy-.02);c.closePath();},'#335b50',null);
+   }
    // Eyes sit above the cheeks before the long rostrum starts.
    for(const side of [-1,1]){
     oval(.78,side*.24,.175,.145,0,'#24433b');
@@ -436,6 +445,17 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   stroke(()=>{c.moveTo(-2.75,tailWave);c.bezierCurveTo(-1.80,-.12+tailWave*.4,-.85,-.28,.45,-.15);},'rgba(196,237,216,.5)',.045);
   if(id==='zebramoray')for(let i=0;i<12;i++)stroke(()=>{const x=-2.1+i*.25;c.moveTo(x,-.19);c.lineTo(x+.14,.23)},'#c0c6b5',.057);
   if(id==='sawtootheel')for(let i=0;i<9;i++)fin([[-1.6+i*.23,-.22],[-1.69+i*.23,-.36],[-1.45+i*.23,-.22]]);
+
+  if(id==='sawtootheel'){
+   // Sawteeth root in one spine, rather than projecting beyond an empty gap.
+   stroke(()=>{c.moveTo(-2.65,tailWave-.05);c.bezierCurveTo(-1.78,-.40,-.56,-.43,.57,-.25);},
+    '#bbd6ca',.028);
+  }
+  if(id==='dogtootheel'){
+   path(()=>{c.moveTo(.78,.10);c.quadraticCurveTo(1.27,.31,1.46,.20);
+    c.quadraticCurveTo(1.22,.38,.87,.22);c.closePath();},'#315868','#b8d5c7',.032);
+   for(let i=0;i<4;i++)stroke(()=>{const x=1.01+i*.09;c.moveTo(x,-.05);c.lineTo(x+.015,.22);},'#eee6d9',.024);
+  }
   if(id==='dogtootheel')for(let i=0;i<4;i++)fin([[.86+i*.075,.07],[.89+i*.075,.23],[.94+i*.075,.08]]);
   eye(.93,-.12,.066);eye(.93,.12,.066);
   stroke(()=>{c.moveTo(.90,.13);c.quadraticCurveTo(1.19,.22,1.25,.06);},ink,.042);
@@ -585,6 +605,15 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
      stroke(()=>{c.moveTo(x-.14,y);c.lineTo(x+.15,y)},'#d2bf8b',.018);
     }
     for(let k=0;k<8;k++)oval(-1.13+k*.22,.0,.042,.035,0,'#e7d3a2');
+   }
+
+   // Shoulder and hip sockets overlap the rim: all four paddles grow from the body.
+   for(const side of [-1,1]){
+    oval(.42,side*.42,.30,.18,side*.28,leather?'#42656b':'#6e8867');
+    oval(-.74,side*.46,.23,.14,-side*.22,leather?'#385962':'#516f5e');
+    stroke(()=>{c.moveTo(.55,side*.50);
+     c.quadraticCurveTo(.79,side*.88,1.14,side*(1.65+flap));},
+      leather?'rgba(171,220,219,.54)':'rgba(217,209,153,.58)',.033);
    }
    // Clearly separated neck, broad eye-bearing head and hooked beak.
    path(()=>{c.moveTo(.62,-.24);c.bezierCurveTo(1.05,-.35,1.55,-.35,1.76,-.18);
