@@ -1,7 +1,8 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const Marine=require('../public/marine-art.js');
+require('../public/marine-art.js');
+const Marine=globalThis.AbyssalMarineArt;
 const Skins=require('../public/abyssal-curated-skins.js').items;
 const Map=require('../public/abyssal-map.js');
 const Hazards=require('../public/abyssal-rift-hardcore.js');
