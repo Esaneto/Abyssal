@@ -54,8 +54,8 @@ test('restored room join is never discarded as a duplicate while reconnect is pe
 test('mobile zoom and offensive shot sounds follow the requested settings', () => {
   const game = read('public/game.js');
   assert.match(game, /FAIR_VIEW_REFERENCE/);
-  assert.match(game, /function fire\(\)[\s\S]*?audio\(500,\.045,'sine',\.008\)/);
-  assert.match(game, /if\(p\.special\)audio\(500,\.045,'sine',\.008\)/);
+  assert.match(game, /function fire\(\)[\s\S]*?playWorldSound\('shot-'\+activeShot/);
+  assert.match(game, /if\(p\.special\)playWorldSound\('enemy-hit'/);
 });
 
 test('download, fullscreen, account deletion and PWA entry points remain present', () => {

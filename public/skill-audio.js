@@ -33,7 +33,7 @@
     const master = typeof window !== 'undefined' && Number.isFinite(window.AbyssalMasterVolume) ? window.AbyssalMasterVolume : 0.8;
     const volume = Math.max(0, Math.min(.18, (Number(options.volume) || .035) * 2.5 * master));
     try {
-      pattern.notes.forEach((frequency, index) => {
+      pattern.notes.slice(0, options.lowPower ? 2 : undefined).forEach((frequency, index) => {
         const when = start + index * pattern.step;
         const oscillator = context.createOscillator();
         const gain = context.createGain();
