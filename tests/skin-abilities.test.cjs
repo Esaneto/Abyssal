@@ -582,7 +582,7 @@ test('online combat predicts presentation but keeps HP server authoritative',()=
 test('authoritative shots carry correlation ids for photon and PvP reconciliation',()=>{
  const game=read('public/game.js'),server=read('server.js');
  assert.ok(server.includes("actionId:String(payload.actionId||payload.volleyId||'').slice(0,72)"));
- assert.ok(server.includes("processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup)"));
+ assert.ok(server.includes("processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12))*(primaryHit?1:.42),'photonRay',null,shot.actionId,enemyLookup)"));
  assert.ok(game.includes("const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'')"));
 });
 test('movement keeps local prediction and remote interpolation',()=>{
