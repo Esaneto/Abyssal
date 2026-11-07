@@ -261,7 +261,7 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    stroke(()=>{c.moveTo(px,-.29);c.quadraticCurveTo(px-.10,0,px,.29);},'#86aaa4',.022);
   }
   eye(.56,-.25,.062);eye(.56,.25,.062);
-  }}else if(id==='nautilus'){
+  }else if(id==='nautilus'){
 
    // NAUTILUS: chambered mineral spiral shell, hood and many fine forward
    // sensory cirri (not a generic oval snail).
