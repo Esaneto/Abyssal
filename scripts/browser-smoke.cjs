@@ -25,6 +25,15 @@ const injected=`<script>
   const canvas=document.getElementById('game'),active=document.body.classList.contains('game-active');
   document.body.dataset.smokeStatus=active&&canvas&&canvas.width>50&&canvas.height>50&&!document.body.classList.contains('abyssal-tutorial-open')&&document.getElementById('ageTermsScreen')?.hidden!==false?'playing':'not-playing';
   document.body.dataset.smokeCanvas=(canvas?canvas.width+'x'+canvas.height:'missing');
+  const ids=['hud','abyssDepthMeter','runEnergyRanking','selectedSkillsPanel','mobilePauseBtn','toggleHudBtn'];
+  const coords=Object.fromEntries(ids.map(id=>{
+   const el=document.getElementById(id),r=el?.getBoundingClientRect();
+   const style=el?getComputedStyle(el):null;
+   return [id,r?{x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height),display:style.display}:null];
+  }));
+  document.body.dataset.smokeLayout=JSON.stringify(coords);
+  document.body.dataset.smokeMode=document.body.className;
+
   document.body.dataset.smokeError=errors.filter(e=>/Abyssal frame error|ReferenceError|TypeError|SyntaxError/i.test(e)).slice(0,2).join('|').slice(0,180);
  };
  setInterval(check,350);
@@ -92,6 +101,9 @@ async function main(){
    const status=page.match(/data-smoke-status="([^"]+)"/)?.[1];
    const canvas=page.match(/data-smoke-canvas="([^"]+)"/)?.[1];
    const error=page.match(/data-smoke-error="([^"]*)"/)?.[1];
+   const layoutEncoded=page.match(/data-smoke-layout="([^"]+)"/)?.[1]||'';
+   const layout=layoutEncoded?JSON.parse(layoutEncoded.replace(/&quot;/g,'"').replace(/&amp;/g,'&')):{};
+   console.log('[browser-smoke] '+label+' layout '+JSON.stringify(layout));
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
    const screenshot=path.join(output,label+'.png');
