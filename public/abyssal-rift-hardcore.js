@@ -925,42 +925,22 @@ function drawBossMark(c,mark,now,active=false){
  }else{c.moveTo(mark.x,mark.y);c.arc(mark.x,mark.y,mark.radius,mark.angle-1.02,mark.angle+1.02);c.closePath();}
  c.fill();c.stroke();c.restore();
 }
-function drawFinalBoss(c,enemy,now){
- // PES ADELO ROXO: a monstrous translucent kraken face with a giant body
- // behind the cavern. The former rounded smile is replaced by an angular
- // mantle, predatory eyelids, asymmetric scars and two rows of hooked teeth.
- const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
- c.save();c.translate(x,y);
- const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
- fog.addColorStop(0,'rgba(188,73,255,.23)');
- fog.addColorStop(.32,'rgba(77,22,139,.19)');
- fog.addColorStop(.72,'rgba(31,6,67,.11)');
- fog.addColorStop(1,'rgba(16,4,44,0)');
- c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
- // The same material and ventosas are used in the submerged guardian limbs.
- // These arms are scenic and never damage players.
- for(let i=0;i<8;i++){
-  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),normalX=-sn,normalY=cs;
-  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
-  const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
-  const wave=Math.sin(t*.35+i*1.8),curveScale=Math.min(180,reach*.22),points=[];
-  for(let k=0;k<=32;k++){
-   const p=k/32,along=r*.56+(reach-r*.56)*p;
-   const lateral=(Math.sin(p*Math.PI*(3.1+(i%3)*.7)+wave)*.66+
-     Math.sin(p*Math.PI*(5.3+(i%4)*.48)-wave)*.34)*Math.sin(p*Math.PI)*curveScale;
-   points.push({x:cs*along+normalX*lateral,y:sn*along+normalY*lateral});
-  }
-  drawNightmareArm(c,points,r*.76,32,.23);
- }
- // Jagged cranial horns, visible against the darker purple background.
+function drawNightmareKrakenHead(c,r,pulse=0){
+ c.save();
+ // Broad paired squid fins and short bony antennae root the face in a
+ // recognizable cephalopod mantle, rather than a floating theatrical mask.
  for(const side of [-1,1]){
   c.save();c.scale(side,1);
-  c.fillStyle='rgba(78,27,122,.91)';c.strokeStyle='rgba(205,124,253,.65)';c.lineWidth=3;
-  c.beginPath();c.moveTo(r*.54,-r*.46);c.bezierCurveTo(r*.99,-r*.93,r*1.43,-r*1.35,r*.83,-r*1.64);
-  c.quadraticCurveTo(r*.99,-r*1.21,r*.34,-r*.82);c.closePath();c.fill();c.stroke();
-  c.beginPath();c.moveTo(r*.71,-r*.05);c.quadraticCurveTo(r*1.36,-r*.44,r*1.38,-r*.13);
-  c.quadraticCurveTo(r*1.32,-r*.34,r*.9,r*.47);c.closePath();
-  c.fillStyle='rgba(82,28,126,.68)';c.fill();c.stroke();
+  c.fillStyle='rgba(48,17,96,.95)';c.strokeStyle='rgba(202,115,244,.84)';
+  c.lineWidth=Math.max(1.6,r*.036);
+  c.beginPath();c.moveTo(r*.71,-r*.92);
+  c.bezierCurveTo(r*1.16,-r*1.50,r*1.62,-r*1.29,r*1.90,-r*.94);
+  c.bezierCurveTo(r*1.48,-r*1.11,r*1.33,-r*.52,r*1.08,-r*.30);
+  c.closePath();c.fill();c.stroke();
+  c.beginPath();c.moveTo(r*.72,-r*.82);
+  c.bezierCurveTo(r*.98,-r*1.38,r*1.18,-r*1.63,r*1.02,-r*1.86);
+  c.quadraticCurveTo(r*1.40,-r*1.61,r*.96,-r*.74);
+  c.closePath();c.fill();c.stroke();
   c.restore();
  }
  const skin=c.createRadialGradient(-r*.29,-r*.42,r*.10,0,0,r*1.35);
@@ -971,17 +951,17 @@ function drawFinalBoss(c,enemy,now){
  skin.addColorStop(1,'rgba(18,6,47,.85)');
  c.shadowColor='#aa50db';c.shadowBlur=22;c.fillStyle=skin;
  c.strokeStyle='rgba(199,128,242,.82)';c.lineWidth=4;
- // Broad cephalopod mantle tapering down into an oral crown.
- c.beginPath();c.moveTo(-r*1.18,r*.17);
- c.bezierCurveTo(-r*1.44,-r*.36,-r*1.18,-r*1.06,-r*.64,-r*1.13);
- c.bezierCurveTo(-r*.34,-r*1.43,r*.30,-r*1.43,r*.65,-r*1.13);
- c.bezierCurveTo(r*1.18,-r*1.06,r*1.47,-r*.32,r*1.18,r*.17);
- c.bezierCurveTo(r*1.10,r*.53,r*.68,r*.63,r*.72,r*.95);
- c.quadraticCurveTo(r*.40,r*1.10,0,r*1.16);
- c.quadraticCurveTo(-r*.42,r*1.11,-r*.71,r*.93);
- c.bezierCurveTo(-r*.69,r*.61,-r*1.11,r*.53,-r*1.18,r*.17);
+ // An oversized pear-shaped Kraken mantle, narrowing into a distinct
+ // eight-armed oral crown. The original eyes and toothed grin are unchanged.
+ c.beginPath();c.moveTo(-r*.90,r*.59);
+ c.bezierCurveTo(-r*1.40,r*.22,-r*1.48,-r*.74,-r*.94,-r*1.35);
+ c.bezierCurveTo(-r*.54,-r*1.80,r*.54,-r*1.80,r*.94,-r*1.35);
+ c.bezierCurveTo(r*1.48,-r*.74,r*1.40,r*.22,r*.90,r*.59);
+ c.bezierCurveTo(r*.83,r*.87,r*.47,r*1.19,r*.20,r*1.23);
+ c.quadraticCurveTo(0,r*1.38,-r*.20,r*1.23);
+ c.bezierCurveTo(-r*.47,r*1.19,-r*.83,r*.87,-r*.90,r*.59);
  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
- // Large faceted forehead and deep creases, a different species from Kraken.
+ // The same forehead and predatory expression appear on boss and playable relic.
  c.fillStyle='rgba(202,116,244,.22)';c.beginPath();
  c.moveTo(-r*.71,-r*.48);c.quadraticCurveTo(0,-r*1.12,r*.65,-r*.47);
  c.quadraticCurveTo(.0,-r*.69,-r*.71,-r*.48);c.fill();
@@ -1008,6 +988,14 @@ function drawFinalBoss(c,enemy,now){
  c.lineTo(-r*.06,-r*.55);c.lineTo(-r*.19,-r*.25);c.stroke();
  c.strokeStyle='rgba(96,38,160,.62)';c.lineWidth=5;
  c.beginPath();c.moveTo(r*.14,-r*.87);c.lineTo(r*.10,-r*.61);c.lineTo(r*.27,-r*.51);c.stroke();
+ // Segmented muscular collar indicates the root of eight true tentacles.
+ c.strokeStyle='rgba(226,148,255,.48)';c.lineWidth=Math.max(1.1,r*.025);
+ for(const side of [-1,1]){
+  for(let j=0;j<3;j++){
+   c.beginPath();c.moveTo(side*r*(.70+j*.07),r*(.61+j*.12));
+   c.quadraticCurveTo(side*r*(.92+j*.09),r*(.80+j*.12),side*r*(.55+j*.08),r*(1.01+j*.06));c.stroke();
+  }
+ }
  // A gaping predatory rictus, not a happy crescent. Ivory fangs have staggered
  // lengths and dark pockets between them, supported by a distinct lower jaw.
  c.fillStyle='#080316';c.strokeStyle='#b25de0';c.lineWidth=4.4;
@@ -1041,6 +1029,35 @@ function drawFinalBoss(c,enemy,now){
  }
  c.restore();
 }
+function drawFinalBoss(c,enemy,now){
+ // PES ADELO ROXO: the same true cephalopod mantle, face and eight-arm
+ // anatomy as the playable relic, with cavern-scale scenic tentacles.
+ const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
+ c.save();c.translate(x,y);
+ const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
+ fog.addColorStop(0,'rgba(188,73,255,.23)');
+ fog.addColorStop(.32,'rgba(77,22,139,.19)');
+ fog.addColorStop(.72,'rgba(31,6,67,.11)');
+ fog.addColorStop(1,'rgba(16,4,44,0)');
+ c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
+ // The same material and ventosas are used in the submerged guardian limbs.
+ // These arms are scenic and never damage players.
+ for(let i=0;i<8;i++){
+  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),normalX=-sn,normalY=cs;
+  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
+  const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
+  const wave=Math.sin(t*.35+i*1.8),curveScale=Math.min(180,reach*.22),points=[];
+  for(let k=0;k<=32;k++){
+   const p=k/32,along=r*.56+(reach-r*.56)*p;
+   const lateral=(Math.sin(p*Math.PI*(3.1+(i%3)*.7)+wave)*.66+
+     Math.sin(p*Math.PI*(5.3+(i%4)*.48)-wave)*.34)*Math.sin(p*Math.PI)*curveScale;
+   points.push({x:cs*along+normalX*lateral,y:sn*along+normalY*lateral});
+  }
+  drawNightmareArm(c,points,r*.76,32,.23);
+ }
+ drawNightmareKrakenHead(c,r,pulse);
+ c.restore();
+}
 // Small, playable relic form; unmistakable Nightmare ancestry without drawing
 // the boss's cavern-wide non-colliding background over each player or store tile.
 function drawNightmareRelic(c,x,y,r,t=0){
@@ -1056,29 +1073,7 @@ function drawNightmareRelic(c,x,y,r,t=0){
   }
   drawNightmareArm(c,points,r*.24,32,.8);
  }
- const skin=c.createRadialGradient(-r*.32,-r*.42,r*.05,0,0,r*1.28);
- skin.addColorStop(0,'#b56dce');skin.addColorStop(.52,'#7a3aa4');skin.addColorStop(1,'#270c4d');
- c.fillStyle=skin;c.strokeStyle='#e7b9fb';c.lineWidth=Math.max(1.4,r*.068);
- c.beginPath();c.moveTo(-r*1.03,r*.13);
- c.bezierCurveTo(-r*1.25,-r*.40,-r*.93,-r*1.03,-r*.53,-r*1.12);
- c.quadraticCurveTo(0,-r*1.34,r*.53,-r*1.12);
- c.bezierCurveTo(r*.95,-r*1.03,r*1.25,-r*.40,r*1.04,r*.13);
- c.bezierCurveTo(r*.84,r*.70,r*.53,r*.77,0,r*1.08);
- c.bezierCurveTo(-r*.53,r*.77,-r*.84,r*.70,-r*1.03,r*.13);
- c.closePath(); c.fill();c.stroke();
- for(const side of [-1,1]){
-  c.fillStyle='#140522';c.beginPath();c.moveTo(side*r*.15,-r*.28);
-  c.lineTo(side*r*.78,-r*.40);c.lineTo(side*r*.54,-r*.04);c.closePath();c.fill();
-  c.fillStyle='#f1c5ff';c.beginPath();c.arc(side*r*.44,-r*.22,r*.11,0,Math.PI*2);c.fill();
- }
- c.fillStyle='#10021b';c.strokeStyle='#bd7fe5';c.lineWidth=2;
- c.beginPath();c.moveTo(-r*.62,r*.23);c.quadraticCurveTo(0,r*.6,r*.64,r*.23);
- c.quadraticCurveTo(0,r*1.03,-r*.62,r*.23);c.fill();c.stroke();
- for(let i=0;i<9;i++){
-  const fx=(-.50+i*.125)*r;c.fillStyle='#f9e6ff';c.beginPath();
-  c.moveTo(fx-r*.034,r*.43);c.lineTo(fx+r*.039,r*.43);
-  c.lineTo(fx,r*(.56+(i%3)*.05));c.closePath();c.fill();
- }
+ drawNightmareKrakenHead(c,r,q);
  c.restore();
 }
 return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,extension,hazardAtCycle,tentaclePath,aimTentacle,targetNearest,suctionRadius,rockfallState,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss,drawNightmareRelic};
