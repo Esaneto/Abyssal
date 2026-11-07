@@ -18,6 +18,20 @@ function neonForSpecies(color){
  }
  return 'hsl('+Math.round((hue*60+360)%360)+' 95% 66%)';
 }
+// Each species gets its own tissue highlights and bioluminescent accents.
+function pigment(color,target,amount){
+ const parse=hex=>/^#[0-9a-f]{6}$/i.test(String(hex))?[0,1,2].map(i=>parseInt(hex.slice(1+i*2,3+i*2),16)):null;
+ const a=parse(color)||[93,140,151],b=parse(target)||[11,24,35],p=Math.max(0,Math.min(1,amount));
+ return '#'+a.map((v,i)=>Math.round(v*(1-p)+b[i]*p).toString(16).padStart(2,'0')).join('');
+}
+const BIO_ACCENTS=Object.freeze({
+ bluering:'#4ce8ff',jewelsquid:'#f2a9f7',atolla:'#ff5679',
+ phantomjelly:'#c2c6ff',dumbo:'#a9baf8',blanket:'#b47bfa',
+ ribbonmoray:'#a2a7ff',gharial:'#a0d68f',nautilus:'#f3d6a0',
+ leatherback:'#a7e5d9',hawksbill:'#e6d29c',hatchetfish:'#d8ecf2',
+ viperfish:'#b3f3da',blackdragon:'#b0ffdb',combjelly:'#a4ffec',
+ bluedragon:'#64dfff',yeticrab:'#d6eee3'
+});
 function draw(c,x,y,r,angle,s,t,hit){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
@@ -44,16 +58,23 @@ function draw(c,x,y,r,angle,s,t,hit){
  }
  c.save();
  c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);
- c.shadowColor=neonForSpecies(s.color);
- c.shadowBlur=Math.max(7,Math.min(24,r*.72));
+ c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
+ // Avoid neon on every anatomical seam: preserve actual body volume.
+ c.shadowBlur=Math.max(4,Math.min(13,r*.32));
  c.drawImage(entry.canvas,-entry.cx,-entry.cy);
  c.restore();
 }
 function drawDetails(c,x,y,r,angle,s,t,hit){
  c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);
- const variant=s.morph||1,phase=(Number(t)||0)*.003,ink='#06131e',light='#bededc';
+ const variant=s.morph||1,phase=(Number(t)||0)*.003;
+ const ink=pigment(s.color,'#06131e',.85),light=pigment(s.color,'#f3fbef',.61);
  const swim=Math.sin(phase*2.0),strokeSway=Math.sin(phase*.83);
- const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);g.addColorStop(0,hit?'#fff':light);g.addColorStop(.15,s.color);g.addColorStop(.52,s.color);g.addColorStop(.78,'#193641');g.addColorStop(1,ink);
+ const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);
+ g.addColorStop(0,hit?'#ffffff':light);
+ g.addColorStop(.15,pigment(s.color,'#e3ece8',.26));
+ g.addColorStop(.52,s.color);
+ g.addColorStop(.79,pigment(s.color,'#0b1d2b',.57));
+ g.addColorStop(1,ink);
  const path=(fn,fill=g,line='#8bb8bf',width=.025)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(line){c.strokeStyle=line;c.lineWidth=width;c.stroke();}};
  const oval=(x,y,rx,ry,rot=0,fill=g)=>path(()=>c.ellipse(x,y,rx,ry,rot,0,Math.PI*2),fill);
  const stroke=(fn,color=s.color,width=.035)=>path(fn,null,color,width);
@@ -61,26 +82,46 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  const fin=(points)=>path(()=>{points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();});
  const feeler=(x,y,length,side)=>stroke(()=>{c.moveTo(x,y);c.bezierCurveTo(x-length*.35,y+side*.2,x-length*.7,y+side*.6+Math.sin(phase)*.15,x-length,y+side*.3)},'#8abbb9',.025);
  const tentacles=(count,length,web=false)=>{
-  // Mirror limb pairs around the swimming axis; all tips flow back naturally.
+  // Roots are buried in a single oral disk. Arms are continuously tapered
+  // filled ribbons instead of independent thick strokes with exposed seams.
   if(web)for(const side of [-1,1]){
-   c.globalAlpha=.23;
-   path(()=>{c.moveTo(.04,side*.13);c.bezierCurveTo(-length*.33,side*.25,-length*.65,side*.75,-length*.96,side*(1+.10*swim));c.bezierCurveTo(-length*.48,side*.72,-length*.20,side*.30,.04,side*.13);c.closePath();},s.color,null);
+   c.globalAlpha=.20;
+   path(()=>{c.moveTo(.10,side*.12);c.bezierCurveTo(-length*.30,side*.20,-length*.66,side*.78,-length*.94,side*(.91+.09*swim));
+    c.bezierCurveTo(-length*.59,side*.65,-length*.16,side*.28,.10,side*.12);c.closePath();},s.color,null);
    c.globalAlpha=1;
   }
+  const bezier=(a,b,d,e,q)=>{const u=1-q;return u*u*u*a+3*u*u*q*b+3*u*q*q*d+q*q*q*e;};
   for(let i=0;i<count;i++){
    const rank=Math.floor(i/2),side=i%2===0?-1:1;
-   const spread=.18+rank*.18,tailWave=Math.sin(phase*1.6+rank*.72+side*.4)*.13;
-   const rootX=-.22,rootY=side*spread*.68;
-   const endX=-length*(.83+.055*Math.sin(phase+rank*.6));
-   const endY=side*(.46+rank*.29)+tailWave;
-   const curve=()=>{c.moveTo(rootX,rootY);c.bezierCurveTo(-length*.28,side*(spread+.10),
-      -length*.58,side*(spread+.34)+tailWave*.6,endX,endY);};
-   stroke(curve,'#132c39',.17-rank*.008);
-   stroke(curve,s.color,.10-rank*.004);
-   stroke(curve,'rgba(196,233,223,.70)',.025);
-   for(let j=0;j<3;j++){
-    const q=(j+1)/5,x=-length*(.12+q*.47),y=side*(spread+q*.37)+tailWave*q;
-    oval(x,y,.026,.020,0,'rgba(207,233,229,.76)');
+   const spread=.17+rank*.145,tailWave=Math.sin(phase*1.45+rank*.72+side*.41)*.15;
+   // Blue-ring octopus spreads its arms DOWNWARD, not as a squid-like
+   // symmetrical rear fan. Roots remain in the same muscular oral crown.
+   const downward=s.id==='bluering',lane=(i-3.5)/3.5;
+   const base={x:-.025,y:side*(.12+rank*.065)};
+   const ctrl1=downward?{x:-length*.10+lane*.20,y:.24+rank*.06}:{x:-length*.20,y:side*(spread+.08)};
+   const ctrl2=downward?{x:-length*.28+lane*.36,y:.74+rank*.13+tailWave*.3}:{x:-length*.56,y:side*(spread+.38)+tailWave*.5};
+   const tip=downward?{x:-length*.35+lane*.55+tailWave*.12,y:1.25+rank*.21+tailWave}
+    :{x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
+   const points=Array.from({length:21},(_,j)=>{
+    const q=j/20,x=bezier(base.x,ctrl1.x,ctrl2.x,tip.x,q),y=bezier(base.y,ctrl1.y,ctrl2.y,tip.y,q);
+    const tangentX=3*(1-q)*(1-q)*(ctrl1.x-base.x)+6*(1-q)*q*(ctrl2.x-ctrl1.x)+3*q*q*(tip.x-ctrl2.x);
+    const tangentY=3*(1-q)*(1-q)*(ctrl1.y-base.y)+6*(1-q)*q*(ctrl2.y-ctrl1.y)+3*q*q*(tip.y-ctrl2.y);
+    const norm=Math.hypot(tangentX,tangentY)||1,thick=(.14-rank*.011)*Math.pow(1-q,.80)+.009;
+    return {x,y,nx:-tangentY/norm,ny:tangentX/norm,thick};
+   });
+   c.beginPath();
+   points.forEach((p,j)=>j?c.lineTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick):c.moveTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick));
+   for(let j=points.length-1;j>=0;j--){const p=points[j];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
+   c.closePath();
+   c.fillStyle=i%2?pigment(s.color,'#152535',.43):pigment(s.color,'#adbfbc',.19);
+   c.strokeStyle=pigment(s.color,'#d0eee6',.31);c.lineWidth=.022;c.fill();c.stroke();
+   stroke(()=>{const p=points[0];c.moveTo(p.x,p.y);for(let j=1;j<points.length;j++){const p=points[j];c.lineTo(p.x,p.y);}},'rgba(223,238,236,.24)',.014);
+   for(let j=4;j<18;j+=3){
+    const p=points[j];
+    for(const sign of [-1,1]){
+     oval(p.x+p.nx*p.thick*.58*sign,p.y+p.ny*p.thick*.58*sign,
+      Math.max(.010,p.thick*.23),Math.max(.009,p.thick*.20),0,'rgba(208,240,238,.80)');
+    }
    }
   }
  };
@@ -181,12 +222,46 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    oval(.82,0,.27,.53,0,'rgba(204,228,255,.32)');
    for(const side of [-1,1]){stroke(()=>{c.moveTo(.06,side*.8);c.quadraticCurveTo(.72,side*1.03,1.11,side*.63);},'#d4ebff',.048);}
    for(let j=0;j<7;j++)oval(.65+Math.cos(j*2.1)*.35,Math.sin(j*2.1)*.53,.032,.025,0,'#e2efff');
-  }else if(id==='yeticrab'){
-  for(const side of [-1,1]){for(let i=0;i<4;i++)stroke(()=>{c.moveTo(-.15-i*.16,side*.35);c.lineTo(-.4-i*.25,side*.85);c.lineTo(-.05-i*.3,side*1.25)},'#97b0ad',.08);
-   stroke(()=>{c.moveTo(.1,side*.3);c.lineTo(.6,side*.8);c.lineTo(1.35,side*.75)},'#a8b8ae',.22);oval(1.4,side*.75,.4,.2);
-   for(let i=0;i<18;i++)stroke(()=>{const x=.45+i*.065;c.moveTo(x,side*.75);c.lineTo(x-.06,side*(.98+.09*Math.sin(i*3)))},'#dce1cf',.025);
-  }oval(-.2,0,.7,.5);eye(.35,-.2,.04);eye(.35,.2,.04);
- }else if(id==='nautilus'){
+   }else if(id==='yeticrab'){
+  // Kiwa/yeti crab has a broad thorax, four walking-leg pairs and two hairy
+  // chelae. Each leg starts under the shell and each claw has split pincers.
+  const gait=Math.sin(phase*1.3)*.10;
+  for(const side of [-1,1]){
+   for(let i=0;i<4;i++){
+    const rootX=.35-i*.31,rootY=side*.29;
+    const kneeX=rootX-.28, kneeY=side*(.73+i*.11)+gait*(i%2?1:-1);
+    const footX=kneeX-.10-i*.14,footY=side*(1.16+i*.08)+gait*.7;
+    stroke(()=>{c.moveTo(rootX,rootY);c.lineTo(kneeX,kneeY);c.lineTo(footX,footY);},
+     '#507780',.112-i*.008);
+    stroke(()=>{c.moveTo(kneeX,kneeY);c.lineTo(footX,footY);},'#b0d5c8',.033);
+   }
+   // A filled forearm bridges shell and wrist; the split terminal claws
+   // replace disconnected circular pincers.
+   path(()=>{c.moveTo(.31,side*.29);c.quadraticCurveTo(.72,side*.40,.89,side*.72);
+    c.lineTo(1.22,side*.70);c.quadraticCurveTo(.91,side*.94,.74,side*.81);
+    c.quadraticCurveTo(.47,side*.54,.31,side*.29);c.closePath();},
+    '#598384','#cae2d5',.042);
+   path(()=>{c.moveTo(1.12,side*.68);c.quadraticCurveTo(1.42,side*.51,1.77,side*.59);
+    c.quadraticCurveTo(1.49,side*.75,1.57,side*.82);
+    c.quadraticCurveTo(1.82,side*.97,1.93,side*.87);
+    c.quadraticCurveTo(1.58,side*1.17,1.27,side*.95);
+    c.closePath();},'#739a94','#e2ece0',.036);
+   for(let j=0;j<15;j++){
+    const px=.58+j*.077,py=side*(.55+.16*Math.sin(j*.32));
+    stroke(()=>{c.moveTo(px,py);c.lineTo(px-.07,py+side*(.16+(j%3)*.025));},
+     j%3?'#cfe6db':'#9acfc3',.018);
+   }
+  }
+  path(()=>{c.moveTo(-1.01,0);c.bezierCurveTo(-.92,-.56,.21,-.73,.70,-.36);
+   c.quadraticCurveTo(.95,0,.70,.36);
+   c.bezierCurveTo(.21,.73,-.92,.56,-1.01,0);c.closePath();},
+   g,'#c4d9ce',.062);
+  for(let i=0;i<7;i++){
+   const px=-.75+i*.21;
+   stroke(()=>{c.moveTo(px,-.29);c.quadraticCurveTo(px-.10,0,px,.29);},'#86aaa4',.022);
+  }
+  eye(.56,-.25,.062);eye(.56,.25,.062);
+  }else if(id==='nautilus'){
 
    // NAUTILUS: chambered mineral spiral shell, hood and many fine forward
    // sensory cirri (not a generic oval snail).
@@ -233,6 +308,15 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     oval(x,y,.106,.074,0,(i+row)%3===0?'#638e7a':'#426e63');
     stroke(()=>{c.moveTo(x-.065,y-.018);c.lineTo(x+.046,y-.021);},'#bfcead',.014);
    }
+
+   // Continuous dorsal ridge connects the tail, torso and narrow skull.
+   stroke(()=>{c.moveTo(-3.64,whip*.84);c.bezierCurveTo(-2.30,whip*.34,-1.22,-.035,.17,-.025);
+    c.quadraticCurveTo(.59,-.034,.96,-.02);},'rgba(164,204,161,.46)',.065);
+   for(let j=0;j<12;j++){
+    const xx=-2.82+j*.25,yy=Math.sin(j*2.2)*.13;
+    path(()=>{c.moveTo(xx-.065,yy-.038);c.lineTo(xx+.015,yy-.084);
+     c.lineTo(xx+.082,yy-.02);c.closePath();},'#335b50',null);
+   }
    // Eyes sit above the cheeks before the long rostrum starts.
    for(const side of [-1,1]){
     oval(.78,side*.24,.175,.145,0,'#24433b');
@@ -252,6 +336,22 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     fin([[x-.04,.124],[x+.019,.123],[x-.002,.047]]);
    }
    stroke(()=>{c.moveTo(.99,.086);c.quadraticCurveTo(2.1,.092,2.95,.04);},'#cfddbe',.023);
+  }else if(id==='hatchetfish'){
+   // Hatchetfish, not a generic oval: deep ventral keel and narrow dorsal ridge.
+   const beat=Math.sin(phase*1.3)*.10;
+   path(()=>{c.moveTo(-1.36,.03+beat);c.lineTo(-1.75,-.32+beat);
+    c.quadraticCurveTo(-1.58,.05+beat,-1.76,.38+beat);c.closePath();},'#546e81','#dce6e6',.032);
+   path(()=>{c.moveTo(-1.36,-.10);c.bezierCurveTo(-.85,-.20,-.12,-.25,.61,-.24);
+    c.quadraticCurveTo(1.23,-.14,1.38,0);c.quadraticCurveTo(1.12,.22,.68,.31);
+    c.bezierCurveTo(.48,.84,-.22,1.25,-.93,.91);
+    c.quadraticCurveTo(-1.34,.59,-1.36,-.10);c.closePath();},g,'#d9edf0',.056);
+   path(()=>{c.moveTo(-.9,.34);c.quadraticCurveTo(-.18,1.08,.57,.34);
+    c.quadraticCurveTo(.02,.59,-.9,.34);c.closePath();},'rgba(191,234,232,.28)',null);
+   for(let j=0;j<10;j++){
+    const px=-.87+j*.148,py=.40+Math.sin(j/10*Math.PI)*.33;
+    oval(px,py,.042,.028,0,j%3?'#a9e7e5':'#f2f8d4');
+   }
+   oval(.93,-.10,.125,.13,0,'#081625');oval(.96,-.14,.040,.047,0,'#e5f5ff');
   }else if(s.family==='shark'||s.family==='fish'){
   // One continuous tapered silhouette. The earlier oval + disconnected
   // triangles made some sharks look like round masses with unrelated fins.
@@ -296,8 +396,18 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    const tx=.73+j*.068;
    stroke(()=>{c.moveTo(tx,side*.12);c.lineTo(tx+.03,side*.30);},'#f1e3d6',.029);
   }
-  if(id==='hatchetfish'){
-   stroke(()=>{c.moveTo(-.30,thick*.67);c.quadraticCurveTo(.16,thick*1.10,.55,thick*.55);},'#b0d6d8',.044);
+  if(id==='viperfish'){
+   // Projecting upper and lower jaws with elongated needle fangs.
+   path(()=>{c.moveTo(.83,.08);c.quadraticCurveTo(1.44,.36,1.87,.21);
+    c.quadraticCurveTo(1.50,.42,.92,.27);c.closePath();},'#254957','#add7c9',.027);
+   path(()=>{c.moveTo(.91,-.09);c.lineTo(1.72,-.20);
+    c.quadraticCurveTo(1.87,-.16,1.69,-.04);c.lineTo(.89,.01);c.closePath();},'#47757c','#c9e1d4',.026);
+   for(let j=0;j<7;j++){
+    const x=1.01+j*.105;
+    stroke(()=>{c.moveTo(x,-.07);c.lineTo(x+.032,.22);},'#f4ebd6',.025);
+   }
+   stroke(()=>{c.moveTo(-.35,-.15);c.bezierCurveTo(-.60,-.51,-.48,-.68,-.65,-.86);},'#8bd8cb',.031);
+   oval(-.65,-.87,.085,.065,0,'#bdfff1');
   }
   if(id==='greenland')for(let j=0;j<16;j++){
    const px=-1.11+j*.14,yy=Math.sin(j*2.399)*thick*.48;
@@ -306,6 +416,14 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   if(id==='blackdragon'){
    stroke(()=>{c.moveTo(-.27,.16);c.bezierCurveTo(-.54,.33,-.85,.46,-1.03,.42+flap*.5);},'#d9eaa6',.038);
    for(let j=0;j<11;j++)oval(-1.08+j*.17,.18,.024,.024,0,'#9cece1');
+   // Dorsal comb and chin barbel remain attached to the fish silhouette.
+   for(let j=0;j<10;j++){
+    const px=-1.43+j*.23;
+    path(()=>{c.moveTo(px,-.18);c.lineTo(px-.09,-(.32+(j%3)*.05));
+     c.lineTo(px+.085,-.19);c.closePath();},'#2d5761','#89c6c4',.012);
+   }
+   stroke(()=>{c.moveTo(1.10,.09);c.bezierCurveTo(1.25,.38,1.38,.54,1.41,.72+flap*.5);},'#7dc8be',.034);
+   oval(1.41,.72+flap*.5,.078,.052,0,'#aeffe0');
   }
  }else if(s.family==='ray'){
   const width=variant===1?1.62:variant===2?1.25:.95;
@@ -365,6 +483,17 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   stroke(()=>{c.moveTo(-2.75,tailWave);c.bezierCurveTo(-1.80,-.12+tailWave*.4,-.85,-.28,.45,-.15);},'rgba(196,237,216,.5)',.045);
   if(id==='zebramoray')for(let i=0;i<12;i++)stroke(()=>{const x=-2.1+i*.25;c.moveTo(x,-.19);c.lineTo(x+.14,.23)},'#c0c6b5',.057);
   if(id==='sawtootheel')for(let i=0;i<9;i++)fin([[-1.6+i*.23,-.22],[-1.69+i*.23,-.36],[-1.45+i*.23,-.22]]);
+
+  if(id==='sawtootheel'){
+   // Sawteeth root in one spine, rather than projecting beyond an empty gap.
+   stroke(()=>{c.moveTo(-2.65,tailWave-.05);c.bezierCurveTo(-1.78,-.40,-.56,-.43,.57,-.25);},
+    '#bbd6ca',.028);
+  }
+  if(id==='dogtootheel'){
+   path(()=>{c.moveTo(.78,.10);c.quadraticCurveTo(1.27,.31,1.46,.20);
+    c.quadraticCurveTo(1.22,.38,.87,.22);c.closePath();},'#315868','#b8d5c7',.032);
+   for(let i=0;i<4;i++)stroke(()=>{const x=1.01+i*.09;c.moveTo(x,-.05);c.lineTo(x+.015,.22);},'#eee6d9',.024);
+  }
   if(id==='dogtootheel')for(let i=0;i<4;i++)fin([[.86+i*.075,.07],[.89+i*.075,.23],[.94+i*.075,.08]]);
   eye(.93,-.12,.066);eye(.93,.12,.066);
   stroke(()=>{c.moveTo(.90,.13);c.quadraticCurveTo(1.19,.22,1.25,.06);},ink,.042);
@@ -373,16 +502,42 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    // Magnapinna: ten appendages emerge from a short mantle, bend at an
    // unmistakable elbow, then hang as extremely fine trailing filaments.
    for(let i=0;i<10;i++){
-    const side=(i-4.5)*.16,drift=Math.sin(phase*.72+i*.7)*.18;
-    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
-     c.lineTo(-.76+side*.10,-.98+side*1.4);
-     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#254051',.078);
-    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
-     c.lineTo(-.76+side*.10,-.98+side*1.4);
-     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#b6b1d7',.027);
+    // Eight arms and two feeding tentacles form recognizable elbow bends.
+    // Asymmetric lengths and separated thin tips avoid a single flat "fan".
+    const side=i<5?-1:1,rank=i%5,drift=Math.sin(phase*.72+i*.7)*.16;
+    const rootY=side*(.09+rank*.058),elbowX=-.38-rank*.07,elbowY=side*(.51+rank*.22);
+    const tipX=-1.23-rank*.16+drift,tipY=side*(1.85+rank*.19)+drift*.40;
+    const limb=()=>{c.moveTo(-.04,rootY);
+     c.quadraticCurveTo(-.31,side*.22,elbowX,elbowY);
+     c.lineTo(elbowX-.12,elbowY+side*.07);
+     c.bezierCurveTo(elbowX-.45,side*(1.03+rank*.15),tipX+.27,tipY-side*.11,tipX,tipY);};
+    stroke(limb,'#233b51',.063-rank*.003);
+    stroke(limb,i%3===0?'#dbcaec':'#a5a8d3',.020);
+    oval(tipX,tipY,.017,.024,0,'rgba(210,218,241,.66)');
    }
-  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.25:id==='mimic'?2.8:2.2,id==='mimic');
-  if(squid){fin([[.3,0],[.8,-.9],[1.45,0]]);fin([[.3,0],[.8,.9],[1.45,0]]);oval(.72,0,1,.37);}else if(id==='glassoctopus'){c.globalAlpha=.45;oval(.72,0,1.05,.36);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');}else if(id==='mimic'){oval(.5,0,.72,.32);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);}else oval(.38,0,.53,.48);
+  }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.65:id==='mimic'?2.8:2.2,id==='mimic');
+  // Continuous eight-arm oral crown: every tentacle root is buried in flesh.
+  path(()=>{c.moveTo(-.39,0);c.bezierCurveTo(-.38,-.45,.18,-.54,.47,-.34);
+   c.quadraticCurveTo(.66,0,.47,.34);c.bezierCurveTo(.18,.54,-.38,.45,-.39,0);
+   c.closePath();},pigment(s.color,'#182b3a',.46),pigment(s.color,'#bddee0',.23),.03);
+  if(squid){
+   for(const side of [-1,1])path(()=>{c.moveTo(.35,side*.17);
+    c.quadraticCurveTo(.75,side*.49,1.32,side*.88);
+    c.quadraticCurveTo(1.26,side*.40,.96,side*.20);c.closePath();
+   },pigment(s.color,'#bfd8e0',.27),pigment(s.color,'#e5e4db',.35),.027);
+   oval(.65,0,.94,.39);
+  }else if(id==='glassoctopus'){
+   c.globalAlpha=.45;oval(.64,0,1.05,.38);c.globalAlpha=1;oval(.64,0,.38,.095,0,'#647f96');
+  }else if(id==='mimic'){
+   oval(.48,0,.72,.37);for(let i=0;i<5;i++)stroke(()=>{c.moveTo(.1+i*.18,-.28);c.lineTo(.15+i*.18,.28)},'#c0bb9c',.07);
+  }else{
+   // Cephalopod mantle is a pear-shaped muscle with a joined neck.
+   path(()=>{c.moveTo(-.18,-.19);c.bezierCurveTo(.07,-.48,.54,-.65,.86,-.40);
+    c.bezierCurveTo(1.12,-.17,1.11,.19,.84,.40);
+    c.bezierCurveTo(.52,.66,.07,.48,-.18,.19);
+    c.quadraticCurveTo(-.35,0,-.18,-.19);c.closePath();},
+    g,pigment(s.color,'#def3ea',.40),.041);
+  }
   eye(.15,-.25,.085);eye(.15,.25,.085);
   if(id==='bluering'||id==='jewelsquid')for(let i=0;i<18;i++){const a=i*2.399,rr=.1+(i%4)*.12;stroke(()=>c.arc(.5+Math.cos(a)*rr,Math.sin(a)*rr,.065,0,7),'#73e8ff',.035);}
   
@@ -408,7 +563,8 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  }else if(s.family==='jelly'){
   if(id!=='combjelly')tentacles(variant===3?12:8,variant===3?3.5:2.2);
   if(id==='siphonophore'){
-   // Siphonophore's buoyant zooids form a connected chain, not a spare ovoid.
+   // Continuous stolon joins each zooid to the buoyant bell.
+   stroke(()=>{c.moveTo(.76,-.35);c.bezierCurveTo(.15,-.48,-.52,-.28,-1.23,-.35);},'#a5deef',.087);
    for(let j=0;j<5;j++){
     const xx=.15-j*.29,yy=-.35+Math.sin(phase+j)*.045;
     oval(xx,yy,.16-j*.014,.12-j*.01,0,'rgba(166,220,243,.35)');
@@ -418,7 +574,29 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   path(()=>{c.moveTo(-.2,-.7);c.bezierCurveTo(1.5,-1.0,1.5,1.0,-.2,.7);c.quadraticCurveTo(.1,0,-.2,-.7);});
   for(let i=0;i<7;i++){let y=(i-3)*.16;stroke(()=>{c.moveTo(-.2,y);c.quadraticCurveTo(.8,y*.6,.85,0)},'#9bd4e0',.018);}
   if(id==='combjelly')for(let i=0;i<14;i++)oval(.1+i*.045,Math.sin(i*.7)*.45,.035,.025,0,['#78deff','#d8b3ff','#71efc8'][i%3]);
- }else if(s.family==='crustacean'){
+  }else if(id==='spidercrab'){
+  // A spider crab is primarily a tiny angular carapace suspended on very
+  // long jointed walking legs, not a lobster with a circular body.
+  const gait=Math.sin(phase*1.14)*.17;
+  for(const side of [-1,1]){
+   for(let i=0;i<4;i++){
+    const bx=.39-i*.26,kx=bx-(.08+i*.09),ky=side*(.70+i*.17+gait*(i%2?1:-1));
+    const fx=kx-(.55+i*.19),fy=side*(1.51+i*.17+gait);
+    stroke(()=>{c.moveTo(bx,side*.22);c.lineTo(kx,ky);c.lineTo(fx,fy);},'#5f8193',.075);
+    oval(kx,ky,.055,.050,0,'#8ca6aa');
+   }
+   stroke(()=>{c.moveTo(.58,side*.20);c.lineTo(.96,side*.49);c.lineTo(1.39,side*.43);},'#739ea4',.102);
+   path(()=>{c.moveTo(1.18,side*.38);c.quadraticCurveTo(1.57,side*.20,1.79,side*.37);
+    c.quadraticCurveTo(1.65,side*.40,1.51,side*.38);
+    c.lineTo(1.68,side*.58);c.quadraticCurveTo(1.35,side*.65,1.18,side*.38);c.closePath();},
+    '#799e9c','#c4ddcb',.028);
+  }
+  path(()=>{c.moveTo(-.80,0);c.lineTo(-.58,-.37);c.lineTo(.38,-.43);
+   c.lineTo(.82,-.22);c.lineTo(.87,.22);c.lineTo(.38,.43);
+   c.lineTo(-.58,.37);c.closePath();},g,'#bbd6cf',.059);
+  for(let i=0;i<5;i++)stroke(()=>{const xx=-.46+i*.24;c.moveTo(xx,-.26);c.lineTo(xx+.04,.26);},'#a7c6c1',.025);
+  eye(.70,-.21,.045);eye(.70,.21,.045);
+  }else if(s.family==='crustacean'){
   const legStroke=Math.sin(phase*1.34)*.12,tailBeat=Math.sin(phase*1.7)*.14;
   for(const side of [-1,1]){
    for(let i=0;i<5;i++){
@@ -492,6 +670,15 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
      stroke(()=>{c.moveTo(x-.14,y);c.lineTo(x+.15,y)},'#d2bf8b',.018);
     }
     for(let k=0;k<8;k++)oval(-1.13+k*.22,.0,.042,.035,0,'#e7d3a2');
+   }
+
+   // Shoulder and hip sockets overlap the rim: all four paddles grow from the body.
+   for(const side of [-1,1]){
+    oval(.42,side*.42,.30,.18,side*.28,leather?'#42656b':'#6e8867');
+    oval(-.74,side*.46,.23,.14,-side*.22,leather?'#385962':'#516f5e');
+    stroke(()=>{c.moveTo(.55,side*.50);
+     c.quadraticCurveTo(.79,side*.88,1.14,side*(1.65+flap));},
+      leather?'rgba(171,220,219,.54)':'rgba(217,209,153,.58)',.033);
    }
    // Clearly separated neck, broad eye-bearing head and hooked beak.
    path(()=>{c.moveTo(.62,-.24);c.bezierCurveTo(1.05,-.35,1.55,-.35,1.76,-.18);

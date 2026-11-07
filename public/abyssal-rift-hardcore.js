@@ -537,6 +537,16 @@ function ventRock(c,h,s,t){
   const wave=Math.sin(t*.013)*5;
   c.bezierCurveTo(len*.25,-7+wave,len*.7,6-wave*.8,len-7,0);c.stroke();
   c.shadowBlur=0;c.strokeStyle='rgba(255,217,153,.79)';c.lineWidth=half*.50;c.stroke();
+  // Hot filaments spiral around the central jet without widening damage.
+  for(const side of [-1,1]){
+   c.beginPath();c.moveTo(12,side*5);
+   for(let i=1;i<=18;i++){
+    const q=i/18,xx=12+q*(len-20),yy=side*(11+half*.26*Math.sin(q*16-t*.010))*(.5+.5*q);
+    c.lineTo(xx,yy);
+   }
+   c.strokeStyle=side>0?'rgba(255,188,92,.60)':'rgba(250,106,45,.58)';
+   c.lineWidth=2.3;c.stroke();
+  }
   // Spitting pressure jets, not a static flat orange rectangle.
   for(let i=0;i<16;i++){
    const q=(i*.136+t*.0006)%1,xx=14+q*(len-18);
@@ -561,6 +571,12 @@ function poisonousAnemone(c,h,s,t){
  const active=s.phase==='active',warm=s.phase==='warning';
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
  const pulse=Math.sin(t*.0045);
+ // One rooted, leathery anemone torso; the poison stalks share a real origin.
+ c.fillStyle='rgba(13,44,40,.93)';c.strokeStyle='rgba(83,149,119,.47)';c.lineWidth=2.2;
+ c.beginPath();c.moveTo(-29,-23);c.bezierCurveTo(-14,-36,7,-26,17,-8);
+ c.quadraticCurveTo(31,1,17,11);c.bezierCurveTo(3,28,-16,33,-30,20);
+ c.quadraticCurveTo(-17,3,-29,-23);c.closePath();c.fill();c.stroke();
+ c.fillStyle='rgba(71,156,94,.42)';c.beginPath();c.ellipse(11,0,10,19,0,0,Math.PI*2);c.fill();
  for(let i=0;i<11;i++){
   const side=i%2?-1:1,rank=Math.floor(i/2),len=18+rank*4;
   const y=side*(3+rank*3),end=10+len*.7;
@@ -637,11 +653,25 @@ function deepCurrentPit(c,h,s,t){
   const scale=Math.min(1.08,(s.progress+.16)*2.4);
   c.globalAlpha=.23;c.fillStyle='#0c5e80';
   c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
-  c.globalAlpha=.62;c.lineCap='round';
-  for(let i=0;i<5;i++){
-   const q=.2+i*.16;
-   c.beginPath();c.ellipse(0,0,rx*q*scale,ry*q*scale,t*.0015+i*.4,-2.7,2.3);
-   c.strokeStyle=i%2?'#7cbcca':'#c3e8ef';c.lineWidth=3-i*.35;c.stroke();
+  c.globalAlpha=.66;c.lineCap='round';
+  // A three-arm pressure spiral funnels toward the central void. The old
+  // concentric rings looked like an ordinary UI target rather than suction.
+  for(let arm=0;arm<3;arm++){
+   c.beginPath();
+   for(let j=0;j<=52;j++){
+    const q=j/52,theta=t*.0011+arm*Math.PI*2/3+q*Math.PI*2.4;
+    const radius=(.96-.78*q)*scale;
+    const xx=Math.cos(theta)*rx*radius,yy=Math.sin(theta)*ry*radius;
+    if(!j)c.moveTo(xx,yy);else c.lineTo(xx,yy);
+   }
+   c.strokeStyle=arm===0?'#c2e9f2':arm===1?'#6cb1c7':'#8dbbd7';
+   c.lineWidth=4-arm*.75;c.stroke();
+  }
+  for(let j=0;j<16;j++){
+   const a=t*.0014+j*.77,dist=(.92-(j%8)*.102)*scale;
+   c.strokeStyle='rgba(159,222,233,.35)';c.lineWidth=1.5;
+   c.beginPath();c.moveTo(Math.cos(a)*rx*dist,Math.sin(a)*ry*dist);
+   c.lineTo(Math.cos(a+.19)*rx*(dist-.11),Math.sin(a+.19)*ry*(dist-.11));c.stroke();
   }
   for(let i=0;i<18;i++){
    const angle=i*2.399+t*.0027,q=.18+(i%8)*.098;
@@ -661,11 +691,38 @@ function drawNightmareArm(c,points,r,last,opacity=1){
  const base=points[0],tip=points[Math.min(last,points.length-1)];
  const g=c.createLinearGradient(base.x-r*.3,base.y-r*.3,tip.x+r*.3,tip.y+r*.3);
  g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
- for(let i=1;i<=last;i++){
-  const a=points[i-1],b=points[i],p=(i-.5)/32,width=suctionRadius({radius:r},p)*2;
-  c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-  c.strokeStyle=g;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;c.stroke();c.shadowBlur=0;
-  c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
+ // One continuous flexible skin. Segment-by-segment strokes formerly left
+ // seams between curved body sections and made submerged arms look disjointed.
+ const rim=[];
+ for(let i=0;i<=last;i++){
+  const prev=points[Math.max(0,i-1)],next=points[Math.min(last,i+1)],p=points[i];
+  const dx=next.x-prev.x,dy=next.y-prev.y,norm=Math.hypot(dx,dy)||1;
+  const thick=suctionRadius({radius:r},i/32);
+  rim.push({x:p.x,y:p.y,nx:-dy/norm,ny:dx/norm,thick});
+ }
+ c.beginPath();
+ for(let i=0;i<rim.length;i++){
+  const p=rim[i];if(!i)c.moveTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
+  else c.lineTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick);
+ }
+ // The moving tip needs a rounded muscular cap, especially at partial
+ // extension; otherwise it ends in a conspicuous flat rectangular cut.
+ const endCap=rim[rim.length-1],normalAngle=Math.atan2(endCap.ny,endCap.nx);
+ c.arc(endCap.x,endCap.y,endCap.thick,normalAngle,normalAngle-Math.PI,true);
+ for(let i=rim.length-2;i>=0;i--){const p=rim[i];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
+ c.closePath();
+ c.fillStyle=g;c.strokeStyle='rgba(17,4,37,.87)';c.lineWidth=4;
+ c.shadowColor='#a451d6';c.shadowBlur=6;c.fill();c.shadowBlur=0;c.stroke();
+ // Bilateral muscular fibres and restrained bioluminescent veins are attached
+ // to the SAME curvature and taper as the body.
+ for(const sign of [-1,1]){
+  c.beginPath();
+  for(let i=0;i<rim.length;i++){
+   const p=rim[i],xx=p.x+p.nx*p.thick*.49*sign,yy=p.y+p.ny*p.thick*.49*sign;
+   if(!i)c.moveTo(xx,yy);else c.lineTo(xx,yy);
+  }
+  c.strokeStyle=sign===1?'rgba(237,174,252,.34)':'rgba(92,35,144,.61)';
+  c.lineWidth=Math.max(1.5,r*.021);c.stroke();
  }
  for(let i=2;i<=last;i+=2){
   const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
@@ -690,7 +747,17 @@ function tentacleTrap(c,original,s,t){
  mouth.addColorStop(0,'rgba(0,0,6,.99)');mouth.addColorStop(.58,'rgba(2,6,15,.93)');
  mouth.addColorStop(1,'rgba(7,26,34,0)');
  c.fillStyle=mouth;c.beginPath();c.ellipse(x,y,r*.72,r*.54,h.angle,0,Math.PI*2);c.fill();
- c.strokeStyle='rgba(42,78,92,.39)';c.lineWidth=2;c.beginPath();
+ // Organic collar is embedded in the basalt; radially folded tissue connects
+ // the root of the moving arm to the wall instead of a floating oval.
+ for(let i=0;i<9;i++){
+  const a=h.angle+(i-4)*.27,reach=r*(.51+.10*Math.sin(i*2.4+t*.0007));
+  c.strokeStyle=i%2?'rgba(73,36,105,.33)':'rgba(121,62,142,.29)';
+  c.lineCap='round';c.lineWidth=2.2+(i%3);
+  c.beginPath();c.moveTo(x+Math.cos(a)*r*.09,y+Math.sin(a)*r*.09);
+  c.quadraticCurveTo(x+Math.cos(a+.22)*reach*.65,y+Math.sin(a+.22)*reach*.65,
+   x+Math.cos(a)*reach,y+Math.sin(a)*reach);c.stroke();
+ }
+ c.strokeStyle='rgba(117,65,139,.42)';c.lineWidth=2;c.beginPath();
  c.ellipse(x,y,r*.53,r*.34,h.angle,-2.7,2.7);c.stroke();
  if(s.phase==='warning'){
   // Curved translucent red route, shaped by the position of the closest
@@ -720,6 +787,11 @@ function rockfallTrap(c,h,s,t){
  c.beginPath();c.moveTo(-48,-16);c.lineTo(-29,-25);c.lineTo(-12,-17);
  c.lineTo(13,-22);c.lineTo(35,-14);c.quadraticCurveTo(11,-1,-7,5);
  c.quadraticCurveTo(-31,-4,-48,-16);c.closePath();c.fill();c.stroke();
+ // Fractures belong to the overhang itself and signal unstable slate.
+ c.strokeStyle=s.phase==='warning'?'rgba(160,199,201,.62)':'rgba(60,98,106,.40)';
+ c.lineWidth=2.0;c.beginPath();c.moveTo(-30,-20);c.lineTo(-18,-7);
+ c.lineTo(-5,-14);c.lineTo(8,-5);c.lineTo(18,-17);
+ c.moveTo(-7,-13);c.lineTo(-11,-24);c.stroke();
  c.restore();
  if(s.phase==='idle'){c.restore();return;}
  if(s.phase==='warning'){
@@ -742,6 +814,13 @@ function rockfallTrap(c,h,s,t){
   c.strokeStyle='#63818d';c.lineWidth=2;
   c.beginPath();c.moveTo(-32,-23);c.lineTo(3,-5);c.lineTo(22,-26);c.moveTo(3,-5);
   c.lineTo(-12,23);c.lineTo(18,31);c.stroke();
+  // Slate facets and embedded minerals make this recognisably abyssal rock.
+  c.fillStyle='rgba(129,167,178,.18)';c.beginPath();
+  c.moveTo(-28,-18);c.lineTo(-3,-31);c.lineTo(5,-8);c.lineTo(-16,8);c.closePath();c.fill();
+  c.strokeStyle='rgba(161,225,208,.50)';c.lineWidth=1.7;
+  c.beginPath();c.moveTo(-4,-28);c.lineTo(6,-11);c.lineTo(15,-4);
+  c.lineTo(10,12);c.stroke();
+  for(let j=0;j<7;j++)paintedCircle(c,-22+j*7,10+Math.sin(j*2.1)*15,1.3+(j%3)*.6,'rgba(133,189,185,.54)');
   c.restore();
  }else{
   // The impact breaks the boulder into shards that fade out instead of
@@ -807,6 +886,14 @@ function supplementalTrap(c,h,s,t){
    c.shadowBlur=5;c.shadowColor='#8ed4cb';
    c.lineWidth=2;c.strokeStyle='rgba(200,234,227,.51)';
    c.beginPath();c.moveTo(5,0);c.lineTo(long,0);c.stroke();c.shadowBlur=0;
+   // Coral ribs branch from one common mineral plate, never float beside it.
+   c.strokeStyle='rgba(122,185,174,.51)';c.lineWidth=2;
+   for(let i=1;i<Math.min(10,Math.floor(11*reach));i++){
+    const xx=long*i/12;
+    for(const side of [-1,1]){
+     c.beginPath();c.moveTo(xx,side*9);c.quadraticCurveTo(xx+9,side*18,xx-2,side*(28+(i%3)*3));c.stroke();
+    }
+   }
   }
  }else if(h.type==='pressure'){
   // Pressure bulges out of a veined vent, not a floor-sized blue indicator.
@@ -822,6 +909,14 @@ function supplementalTrap(c,h,s,t){
     const rr=h.radius*(.26+i*.2);
     c.beginPath();c.arc(h.length*.52,0,rr,-Math.PI*.56,Math.PI*.56);c.stroke();
    }
+   // Compression folds converge toward the fissure as refracted layers.
+   for(let i=-3;i<=3;i++){
+    const y=i*10,spread=warm?11+8*s.progress:live?24:0;
+    c.beginPath();c.moveTo(-21,y);
+    c.bezierCurveTo(5,y+spread*.6,25,y-spread*.35,48,y*(1+(live?.2:0)));
+    c.strokeStyle='rgba(156,223,238,'+(live?.44:.19+s.progress*.18)+')';
+    c.lineWidth=1.8;c.stroke();
+   }
    c.restore();
   }
  }else if(h.type==='lure'){
@@ -832,6 +927,12 @@ function supplementalTrap(c,h,s,t){
   c.shadowColor='#8de5d6';c.shadowBlur=warm?12:6;
   paintedCircle(c,px,py,3.2,live?'rgba(124,225,204,.1)':'rgba(127,229,212,.76)');
   c.shadowBlur=0;
+  // A stalk and two tiny sensory branches originate from the same crevice.
+  for(const side of [-1,1]){
+   c.strokeStyle='rgba(88,172,160,.47)';c.lineWidth=1.4;c.beginPath();
+   c.moveTo(9,-20);c.quadraticCurveTo(18,side*13-24,24+side*4,side*15-23);c.stroke();
+   paintedCircle(c,24+side*4,side*15-23,1.8,'rgba(92,193,175,.42)');
+  }
   if(warm){
    c.globalAlpha=.4;c.strokeStyle='#8de5d6';c.lineWidth=1;
    c.beginPath();c.arc(px,py,13+s.progress*17,0,Math.PI*2);c.stroke();
@@ -865,6 +966,18 @@ function supplementalTrap(c,h,s,t){
     const q=i/16,bend=Math.sin(t*.012+i*2.47)*h.radius*(live?.25:.08)*(1-Math.abs(q-.5));
     if(i===0)c.moveTo(q*len,bend);else c.lineTo(q*len,bend);
    }c.stroke();c.shadowBlur=0;
+   if(live){
+    // Bioluminescent forks grow from the actual electrical path, not from
+    // an unrelated glowing rectangle above the cave.
+    c.strokeStyle='rgba(211,254,250,.73)';c.lineWidth=1.6;
+    for(let j=2;j<16;j+=3){
+     const q=j/16,xx=q*len,yy=Math.sin(t*.012+j*2.47)*h.radius*.25*(1-Math.abs(q-.5));
+     const side=(j%2)?1:-1;
+     c.beginPath();c.moveTo(xx,yy);
+     c.lineTo(xx+len*.04,yy+side*(8+(j%3)*4));
+     c.lineTo(xx+len*.07,yy+side*(4+(j%3)*5));c.stroke();
+    }
+   }
   }
  }
  c.restore();
