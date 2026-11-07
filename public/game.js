@@ -832,7 +832,8 @@ function playSkillSound(skillId,stage='learn'){
  }catch(_){/* áudio sintético é opcional */}
 }
 function playBossCry(kind){
- // A compact reused synthesizer replaces repeated multi-second noise buffers.
+ // One bass impact plus a distinct monstrous scream. Both are generated locally.
+ playWorldSound('boss-omen',null,1400,.62);
  playWorldSound('boss-'+kind,null,1400,1);
 }
 function playDevourerSuction(){
