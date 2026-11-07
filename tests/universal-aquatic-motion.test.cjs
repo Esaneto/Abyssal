@@ -117,14 +117,40 @@ test('vertical travel keeps side-on skins upright and does not collapse the body
  assert.equal(left.pitch,0);
 });
 
-test('marine and legacy renderers do not apply whole-body pitch from travel direction',()=>{
+test('marine and legacy player skins follow mouse aim through 360 degrees',()=>{
  const game=fs.readFileSync('public/game.js','utf8');
  const marine=fs.readFileSync('public/marine-art.js','utf8');
  const legacy=game.slice(game.indexOf('function applyCreatureVisualTransform('),game.indexOf('let enemyCollisionGrid=',game.indexOf('function applyCreatureVisualTransform(')));
  const draw=marine.slice(marine.indexOf('function draw(c,x,y,r,'),marine.indexOf('function drawDetails('));
- assert.match(legacy,/c\.rotate\(Number\(motion\.roll\)\|\|0\)/);
- assert.doesNotMatch(legacy,/c\.rotate\([^;]*pitch/);
- assert.match(draw,/c\.rotate\(motion\?\.roll\|\|0\)/);
- assert.doesNotMatch(draw,/visualPitch|c\.rotate\([^;]*pitch/);
+ assert.match(legacy,/const followsAim=Number\.isFinite\(heading\)/);
+ assert.match(legacy,/c\.rotate\(\(followsAim\?heading:0\)/);
+ assert.match(legacy,/followsAim\?1:/);
+ assert.match(draw,/const facing=followAim\?1:/);
+ assert.match(draw,/c\.rotate\(\(followAim&&Number\.isFinite\(angle\)\?angle:0\)/);
+ assert.match(game,/getLocalSkinCursorAngle\(\),currentSkinColor\(\),'player'/);
+ assert.match(game,/AbyssalMarineArt\.draw\(c,x,y,r,angle,skin,animationTime,hit,visualMotion,liveSkinHeading!==null\)/);
+ assert.doesNotMatch(legacy,/c\.rotate\([^;]*motion\.pitch/);
  assert.match(marine,/const movement=root\.AbyssalSkinMotion\?\.pose\?\.\(s,t,1\)/);
+});
+
+test('mouse visual heading follows every cardinal direction without changing shot control',()=>{
+ const game=fs.readFileSync('public/game.js','utf8');
+ const start=game.indexOf('function getLocalSkinCursorAngle(){');
+ const end=game.indexOf('function getFiringRange()',start);
+ assert.ok(start>0&&end>start,'local visual heading helper is available');
+ const helper=game.slice(start,end);
+ const makeHeading=(x,y)=>{
+  const player={x:100,y:100,r:13,angle:.2},pointer={clientX:x,clientY:y};
+  const canvas={getBoundingClientRect:()=>({left:0,top:0})};
+  const getter=new Function('player','pointer','canvas','cameraX','cameraY','worldZoom','isMobileDevice',helper+';return getLocalSkinCursorAngle;')(player,pointer,canvas,0,0,1,()=>false);
+  return getter();
+ };
+ for(const [x,y,expected] of [[200,100,0],[100,200,Math.PI/2],[0,100,Math.PI],[100,0,-Math.PI/2],[200,200,Math.PI/4]]){
+  assert.ok(Math.abs(makeHeading(x,y)-expected)<1e-9,'mouse heading mismatch at '+x+','+y);
+ }
+ const controls=game.slice(game.indexOf('function isPcMouseAimMode()'),game.indexOf('function getActiveShotId()'));
+ assert.match(controls,/function updateMouseAimFromCursor\(\)/);
+ assert.match(controls,/controlAimAngle=Math\.atan2/);
+ assert.doesNotMatch(helper,/player\.angle\s*=/);
+ assert.doesNotMatch(helper,/controlAimAngle\s*=/);
 });
