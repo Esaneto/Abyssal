@@ -2029,7 +2029,7 @@ function applySharedMotion(data){
   const vx=clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV),vy=clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
   const teleport=Math.hypot(tx-current.x,ty-current.y)>260;
   // Lead one fraction of the server update and animate until its next 125ms packet.
-  const lead=Math.min(48,sampleMs*.35)/1000,visualDuration=teleport?0:clamp(sampleMs*.84,86,130);
+  const lead=Math.min(34,sampleMs*.24)/1000,visualDuration=teleport?0:clamp(sampleMs*1.02,104,145);
   enemy.x=teleport?tx:current.x;enemy.y=teleport?ty:current.y;
   enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
   enemy.interpFromX=enemy.x;enemy.interpFromY=enemy.y;
