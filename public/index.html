@@ -553,11 +553,12 @@
 </main>
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span id="saveStatus" class="sr-only">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
+<script src="server-config.js?v=1"></script>
 <script>
 (function(){
   var nativeShell=Boolean(window.Capacitor?.isNativePlatform?.())||(location.hostname==='localhost'&&(location.protocol==='https:'||location.protocol==='capacitor:'));
   window.ABYSSAL_NATIVE_SHELL=nativeShell;
-  if(nativeShell)window.ABYSSAL_SERVER_URL='https://abyssal-ej5j.onrender.com';
+  if(nativeShell&&!window.ABYSSAL_SERVER_URL)window.ABYSSAL_SERVER_URL=window.ABYSSAL_SERVER_CONFIG?.nativeUrl||window.location.origin;
 })();
 </script>
     <section id="ugcReportScreen" class="screen modal-screen auth-flow-screen" hidden>
