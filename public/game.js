@@ -918,6 +918,7 @@ function renderBossAbilityVisual(data){
 function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
+ playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
  if(skill==='bio-shock'||kind==='drifter'){
   effects.push({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
@@ -2121,6 +2122,15 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
  const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
 }
+let soundMotionSkinId=null,soundMotionFamily='signature';
+function equippedMotionFamily(){
+ if(soundMotionSkinId!==equippedSkin){
+  soundMotionSkinId=equippedSkin;
+  const skin=skinData.find(s=>s.id===equippedSkin);
+  soundMotionFamily=window.AbyssalSkinMotion?.familyFor?.(skin||equippedSkin)||'signature';
+ }
+ return soundMotionFamily;
+}
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
@@ -2136,7 +2146,7 @@ function update(dt){
    else if(!isMobileDevice()&&controlSettings.pc==='classic'&&(autoFollowCursor||pointer.down)){const dx=pointer.x-player.x,dy=pointer.y-player.y,dd=Math.hypot(dx,dy);if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}}
    if(isPcMouseAimMode())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
+   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
    if (['reefshark','whiteShark'].includes(equippedSkin) && (mx || my)) {
     // Emit bubbles every 200 ms while applying damage to a target at most every 100 ms.
