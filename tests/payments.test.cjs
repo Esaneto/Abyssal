@@ -12,7 +12,7 @@ test('server catalog uses only R$1.99 R$4.99 and R$9.99 skin prices',()=>{
  assert.equal(calculateOrder('boss_bundle',[],'brl').amount,5994);
  assert.equal(calculateOrder('boss_bundle',BOSS_SKINS,'brl').amount,0);
  assert.throws(()=>calculateOrder('reefshark',[],'usd'),/Unsupported currency/);
- assert.match(TERMS_VERSION,/^\\d{4}-\\d{2}-\\d{2}-v\\d+$/);
+ assert.match(TERMS_VERSION,/^\d{4}-\d{2}-\d{2}-v\d+$/);
 });
 test('Stripe signature verification uses raw bytes, timestamp tolerance and constant-time digest comparison',()=>{
  const raw=Buffer.from('{"id":"evt_test","type":"checkout.session.completed"}'),secret='whsec_test_secret',timestamp=1_800_000_000;
