@@ -182,7 +182,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
-          gh release upload downloads-1 Abyssal-Android.apk --clobber
+          gh release upload downloads-2 Abyssal-Android.apk --clobber
 
 
   roxycloud-node26:
