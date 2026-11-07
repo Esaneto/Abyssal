@@ -799,13 +799,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    fromX=Number(next.x);fromY=Number(next.y);
   }
  }
- // Rajada Prismática is now a passive on-hit fragment effect, NOT a separate shot.
- // Damage is server-authoritative, capped and non-recursive, with no extra
- // projectile visuals that could overwrite the selected weapon's appearance.
- if(player&&room.mode!=='pvp'&&Number(player.prismaticLevel)>0&&RICOCHET_SHOT_SKILLS.has(String(skillId||''))){
-  const candidates=w.enemies.filter(other=>other&&Number(other.hp)>0&&Number(other.id)!==Number(enemy.id)&&Math.hypot(other.x-enemy.x,other.y-enemy.y)<120/WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-enemy.x,a.y-enemy.y)-Math.hypot(b.x-enemy.x,b.y-enemy.y));
-  for(const other of candidates.slice(0,Math.min(6,Math.floor(player.prismaticLevel)*2)))processWorldDamage(socket,Number(other.id),Math.max(1,requestedDamage*.24),'prismatic-passive',batch,actionId,enemyLookup);
- }
+ // Prism is implemented as actual independently simulated projectiles on the client.
+ // The shared-shot handler receives the complete volley; no invisible damage is injected here.
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
