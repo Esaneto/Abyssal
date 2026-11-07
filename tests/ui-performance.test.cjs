@@ -136,6 +136,17 @@ test('monster death does not rebuild hidden account screens or retain animation 
   assert.match(game, /aquaticMotionTracker\?\.forget\?\.\(id\)/);
 });
 
+test('service worker respects game script revisions but keeps an offline fallback', () => {
+  const sw = read('public/offline-sw.js');
+  const html = read('public/index.html');
+  assert.match(sw, /const versionedAsset = inShell && !isNavigation && url\.searchParams\.has\('v'\)/);
+  assert.match(sw, /cachePath \+ \(versionedAsset \? url\.search : ''\)/);
+  assert.match(sw, /const cached = await cache\.match\(cacheRequest\)/);
+  assert.match(sw, /if \(offlineFallback\) return offlineFallback/);
+  assert.doesNotMatch(sw, /cache\.match\(cacheRequest, \{ ignoreSearch: true \}\)/);
+  assert.match(html, /game\.js\?v=2026\.11\.7\.29/);
+});
+
 test('single enemy death does not allocate another enemy-array copy', () => {
   const game = read('public/game.js');
   const single = game.slice(game.indexOf("window.addEventListener('abyssal-world-defeated'"), game.indexOf("window.addEventListener('abyssal-world-defeated-batch'"));
