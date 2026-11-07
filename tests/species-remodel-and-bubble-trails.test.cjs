@@ -70,8 +70,8 @@ test('blue-ring boss keeps black ink art while playable relic uses standardized 
 });
 test('standardized trail is finite and rate limited in PvP',()=>{
  assert.match(server,/life:3\.2,damageTimer:\.45,skinActive:true/);
- assert.match(server,/bubble\.skinActive\?1\.1:1\.6/);
- assert.match(server,/bubble\.skinActive\?600:BUBBLE_TRAIL_HIT_MS/);
- assert.match(game,/bubble\.skinActive \? \.60 : BUBBLE_TRAIL_HIT_SECONDS/);
+ assert.match(server,/pvpDamageAmount\(bubbleOwner,target,1\.1/);
+ assert.match(server,/BUBBLE_TRAIL_HIT_MS=600/);
+ assert.match(game,/bubble\.damageTimer=\.60/);
  assert.doesNotMatch(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
 });
