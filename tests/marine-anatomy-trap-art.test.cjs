@@ -20,7 +20,7 @@ function paintRecorder(){
  return {c,counts};
 }
 test('all curated species render several swimming frames without detached-path runtime errors',()=>{
- assert.equal(Skins.length,42,'all expanded species should be included');
+ assert.equal(Skins.length,41,'all remaining expanded species should be included');
  for(const skin of Skins){
   for(const time of [0,1050,3900]){
    const {c,counts}=paintRecorder();
