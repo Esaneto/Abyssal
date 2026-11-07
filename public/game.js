@@ -1618,9 +1618,9 @@ function updateSoloRiftHardcore(dt){
     }
     const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
    if(elapsed>=cooldown){
-    riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
-    hurtPlayer(h.damage,h.type==='fumarole'?'poison':'received');
-    if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
+    riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:1));
+    hurtPlayer(h.damage,h.type==='poisonPlant'?'poison':'received');
+    if(h.type==='poisonPlant')player.neurotoxinUntil=performance.now()+1150;
    }
   }
   // Hazards belong to the world, not to a player's weapon. They can kill
@@ -1771,7 +1771,7 @@ const PERIODIC_SKIN_DAMAGE_SKILLS=new Set(['blue-ring-ink','pelagic-wake','poiso
 function damageTone(skillId=''){
  const id=String(skillId||'');
  if(SKIN_DAMAGE_SKILLS.has(id))return 'skin';
- if(id==='rift-hazard-fumarole'||id==='poison-dot')return 'poison';
+ if(id==='rift-hazard-poisonPlant'||id==='poison-dot')return 'poison';
  if(RESONANCE_CATEGORIES.passive.includes(id)||['gravitationalRupture','arcChain'].includes(id))return 'passive';
  return 'shot';
 }
