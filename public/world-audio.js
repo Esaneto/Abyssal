@@ -184,7 +184,7 @@
     }
    }
    env.gain.exponentialRampToValueAtTime(.0001,when+duration);
-   if(filter){filter.type=cfg.filterType;filter.frequency.value=cfg.filter;filter.Q.value=.73;
+   if(filter){filter.type=cfg.filterType;filter.frequency.value=cfg.filter;if(filter.Q)filter.Q.value=.73;
     connect(osc,filter);connect(filter,env);created.push(filter);}
    else connect(osc,env);
    connect(env,output);created.push(env);
@@ -216,7 +216,7 @@
      if(typeof ctx.createBiquadFilter==='function'){
       const nf=ctx.createBiquadFilter();nf.type='bandpass';
       nf.frequency.value=Math.max(140,cfg.filter*(cfg.texture==='hiss'?1.20:.80));
-      nf.Q.value=cfg.texture==='hiss'?.46:.8;
+      if(nf.Q)nf.Q.value=cfg.texture==='hiss'?.46:.8;
       connect(src,nf);connect(nf,ng);created.push(nf);
      }else connect(src,ng);
      connect(ng,output);created.push(ng);sources.push(src);
