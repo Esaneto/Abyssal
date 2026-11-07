@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-07-hostinger-ready-v39';
+const VERSION = '2026-11-07-skin-standard-v40';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -20,7 +20,7 @@ const GAME_FILES = [
   'abyssal-specimen-tentacles.svg',
   'server-config.js',
   'i18n.js',
-  'skin-abilities.js',
+  'skin-standard.js','skin-abilities.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-orbit.js',
   'enemy-ai.js',
