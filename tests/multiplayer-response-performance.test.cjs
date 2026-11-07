@@ -18,12 +18,13 @@ test('remote players use timestamped jitter buffer plus bounded fallback extrapo
 
 test('common enemy motion packets omit boss-only fields and preserve keep-warm relevance',()=>{
  const server=read('server.js');
+ const sim=read('world-simulation.js');
  assert.match(server,/const x=Math\.round\(\(Number\(e\.x\)\|\|0\)\*100\)\/100/);
  assert.match(server,/intervalMs:50/);
  assert.match(server,/if\(e\.kind==='devourer'\)return \[\.\.\.base/);
  assert.match(server,/if\(e\.kind==='kraken'\)return \[\.\.\.base/);
  assert.match(server,/sendFar=!recipient\|\|motionNow-\(Number\(recipient\.lastFarMotionAt\)\|\|0\)>=250/);
- assert.match(sim=read('world-simulation.js'),/world\.snapshotTimer = 0\.05/);
+ assert.match(sim,/world\.snapshotTimer = 0\.05/);
  const game=read('public/game.js');
  assert.match(game,/row\.length<7/);
 });
