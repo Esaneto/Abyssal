@@ -681,7 +681,7 @@ function initVolumeControls() {
   const soundBtn = $('soundBtn');
 
   if (slider) {
-    slider.value = Math.round((masterSoundVolume || 0.8) * 100);
+    slider.value = Math.round(clamp(masterSoundVolume,0,1) * 100);
     if (label) label.textContent = slider.value + '%';
 
     slider.addEventListener('input', (e) => {
@@ -781,11 +781,11 @@ function stopAmbientMusic(){if(!ambientNodes)return;try{
  const nodes=ambientNodes;if(nodes.pulseTimer)clearInterval(nodes.pulseTimer);nodes.master.gain.setTargetAtTime(.0001,audioCtx.currentTime,.18);setTimeout(()=>{try{nodes.water?.stop();nodes.master.disconnect();}catch(_){}if(ambientNodes===nodes)ambientNodes=null;},520);
 }catch(e){ambientNodes=null}}
 function audio(f=440,d=.07,type='sine',vol=.025){
- if(!soundOn)return;
+ if(!soundOn||masterSoundVolume<=0||document.hidden)return;
  try{
   audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
   if(audioCtx.state==='suspended')audioCtx.resume();
-  const effectiveVol = Math.max(0.001, Math.min(1.0, vol * 2.8 * (masterSoundVolume || 0.8)));
+  const effectiveVol = Math.max(0.001, Math.min(1.0, vol * 2.8 * masterSoundVolume));
   const o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.type=type;
   o.frequency.setValueAtTime(f,audioCtx.currentTime);
