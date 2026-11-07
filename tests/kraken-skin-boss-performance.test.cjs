@@ -132,7 +132,7 @@ test('Kraken tentacle poses radiate into all four directions', () => {
 });
 
 test('redeem code is entered in a dedicated modal',()=>{const html=read('public/index.html'),css=read('public/style.css'),game=read('public/game.js');assert.match(html,/id="redeemCodeScreen" class="screen modal-screen redeem-modal-screen"/);assert.match(game,/openRedeemCodeBtn.*openRedeemCodeModal/);assert.ok(game.includes('window.AbyssalOnline.redeemCode(code)'));assert.match(css,/\.redeem-modal-screen\{z-index:12/);});
-test('prism spread and photon lance upgrades affect projectile creation',()=>{const game=read('public/game.js');assert.match(game,/id:'spread',name:'Rajada Prismática'/);assert.match(game,/id:'photon',name:'Lança de Fótons'/);assert.match(game,/if\(activeShot==='spread'\)/);assert.match(game,/shotSpeed=430\*shotBalanceValue\(activeShot,'speed',shotLevel,1\)\/GAME_WORLD_ZOOM/);});
+test('prism spread and photon lance upgrades affect projectile creation',()=>{const game=read('public/game.js');assert.match(game,/id:'spread',name:'Rajada Prismática'/);assert.match(game,/id:'photon',name:'Lança de Fótons'/);assert.match(game,/prismOffsets=Array\.from/);assert.match(game,/shotSpeed=430\*shotBalanceValue\(activeShot,'speed',shotLevel,1\)\/GAME_WORLD_ZOOM/);});
 
 
 test('Kraken boss sweep is telegraphed before tentacle contact becomes dangerous',()=>{
