@@ -29,19 +29,20 @@ test('Projectile pool remains bounded even during six-player firestorms',()=>{
  const shots=[];for(let i=0;i<bullets.MAX_PROJECTILES+30;i++)bullets.enqueue(shots,shot({createdAt:i}));
  assert.equal(shots.length,bullets.MAX_PROJECTILES);
 });
-test('First Fossas floor has only fire and all other traps unlock progressively',()=>{
- const unlock={fumarole:1,pressure:2,rockfall:2,spikes:3,electric:4,lure:5,vortex:6};
+test('Fossas unlock only volcano, poison plant, suction vortex and final tentacles',()=>{
+ const unlock={poisonPlant:1,vortex:3};
  for(const seed of [42,99,72433]){
   const layout=map.createLayout(seed,7);
   for(let tier=0;tier<=7;tier++){
    const rows=traps.build(layout,tier);
    for(const h of rows){
+    assert.ok(['volcano','poisonPlant','vortex','tentacle'].includes(h.type),'obsolete trap spawned: '+h.type);
     if(tier===0)assert.equal(h.type,'volcano');
     if(h.type==='tentacle')assert.equal(h.roomId,'boss');
-    if(h.type!=='tentacle'&&h.type!=='volcano')assert.ok(tier>=unlock[h.type],h.type+' unlocked too early');
+    if(h.type==='poisonPlant'||h.type==='vortex')assert.ok(tier>=unlock[h.type],h.type+' unlocked too early');
    }
    if(tier<7)assert.equal(rows.filter(h=>h.type==='tentacle').length,0);
-   else assert.ok(rows.filter(h=>h.type==='tentacle').length<=8);
+   else assert.equal(rows.filter(h=>h.type==='tentacle').length,8);
   }
  }
 });
