@@ -23,8 +23,8 @@ const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const SKIN_TRAIL_CADENCE_SECONDS=.35,SKIN_TRAIL_CADENCE_MS=350;
-const BUBBLE_TRAIL_HIT_SECONDS=.10,BUBBLE_TRAIL_HIT_MS=100,BUBBLE_TRAIL_EMIT_MS=200;
+const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
+const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200;
 
 const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
 const allowedSocketOrigins = new Set(String(process.env.APP_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean));
@@ -676,22 +676,22 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(distance>190/WORLD_ZOOM)return reject('skin-ability-out-of-range');
   if(now>(Number(player.toxicCloudWindowUntil)||0)){
    if(now<(Number(player.toxicCloudReadyAt)||0))return reject('skin-ability-cooldown');
-   player.toxicCloudReadyAt=now+5000;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
+   player.toxicCloudReadyAt=now+6500;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
   }
   player.toxicCloudTargetIds ||= new Set();if(player.toxicCloudTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,8);
+  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,7);
  }
  if(skillId==='kraken-contact'){
   if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
   const proxy={kind:'kraken',x:Number(player.x),y:Number(player.y),r:(13/WORLD_ZOOM)*1.45,angle:Number(player.angle)||0,phase:(now*.0018)};
   if(!EnemyAI.touchesKrakenTentacle?.(proxy,enemy,1))return reject('skin-ability-out-of-range');
-  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<420)return reject('skin-ability-cooldown');
-  player[key]=now;requestedDamage=Math.min(requestedDamage,24);
+  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<850)return reject('skin-ability-cooldown');
+  player[key]=now;requestedDamage=Math.min(requestedDamage,15);
  }
  const predatorSkills={
-  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:34,arc:.48,width:58/WORLD_ZOOM},
-  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:42,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:3000,range:190/WORLD_ZOOM,damage:45,arc:Math.PI,width:0}
+  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:28,arc:.48,width:58/WORLD_ZOOM},
+  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:34,arc:.78,width:120/WORLD_ZOOM},
+  'armoredgator-spin':{skin:'armoredgator',cooldown:9000,range:190/WORLD_ZOOM,damage:27,arc:Math.PI,width:0}
  };
  if(predatorSkills[skillId]){
   const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
@@ -714,10 +714,25 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   player.krakenSweepTargetIds ||= new Set();
   if(player.krakenSweepTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
   player.krakenSweepTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,48);
+  requestedDamage=Math.min(requestedDamage,32);
+ }
+ // Poison damage must belong to the attacking skin and a verified active
+ // status on the server. This prevents arbitrary poison ticks through sockets.
+ if(skillId==='poison-dot'){
+  if(!player||!['greensnake','toxic'].includes(player.skinId)||enemy.poisonOwnerId!==player.id||
+     now>(Number(enemy.poisonedUntil)||0)||now<(Number(enemy.poisonTickReadyAt)||0))
+   return reject('skin-poison-expired');
+  enemy.poisonTickReadyAt=now+750;requestedDamage=Math.min(requestedDamage,2.5);
  }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
+ // Only verified direct strikes may apply/refresh poison. No extra attack
+ // packets are generated; accepted dot damage is resolved like any other hit.
+ if(player?.skinId==='greensnake'&&skillId!=='poison-dot'&&skillId!=='electric-chain'){
+  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
+ }else if(player?.skinId==='toxic'&&skillId==='toxic-cloud'){
+  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
+ }
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  // Varredura do Télson: mesma intensidade e vetor radial da habilidade solo.
@@ -728,7 +743,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   enemy.kbVx=(pushX/pushLength)*620;
   enemy.kbVy=(pushY/pushLength)*620;
  }
- if(player?.skinId==='electriceel'){ enemy.paralyzedUntil=now+100; }
+ if(player?.skinId==='electriceel' && skillId!=='poison-dot' && now>=(Number(enemy.electricStunReadyAt)||0)){enemy.electricStunReadyAt=now+1200;enemy.paralyzedUntil=now+120;}
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
@@ -882,7 +897,7 @@ function tickRoom(room, now) {
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
   const w=room.world;w.orbs||=[];w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];w.inkTrails=Array.isArray(w.inkTrails)?w.inkTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,2,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.6,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
   for(let i=w.inkTrails.length-1;i>=0;i--){
    const ink=w.inkTrails[i];ink.life-=.05;ink.damageTimer=(Number(ink.damageTimer)||0)-.05;
    if(ink.life<=0){w.inkTrails.splice(i,1);continue;}if(ink.damageTimer>0)continue;ink.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;
@@ -892,7 +907,7 @@ function tickRoom(room, now) {
     if(Math.hypot(Number(target.x)-ink.x,Number(target.y)-ink.y)>ink.r+(Number(target.r)||13/WORLD_ZOOM))continue;
     const hitAt=Date.now();if(hitAt<(Number(target.invulnerableUntil)||0)||hitAt-(Number(target.lastBlackBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;let blocked=false,damage=0;
     if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}
-    else{damage=pvpDamageAmount(owner,target,2,Math.hypot(Number(target.x)-Number(owner.x),Number(target.y)-Number(owner.y)));target.lastBlackBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi atingido por bolhas negras abissais.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
+    else{damage=pvpDamageAmount(owner,target,1.6,Math.hypot(Number(target.x)-Number(owner.x),Number(target.y)-Number(owner.y)));target.lastBlackBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi atingido por bolhas negras abissais.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
     io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'blue-ring-ink',damage:blocked?0:damage,attackerId:ink.ownerId,serverTime:hitAt}));
     io.to(channelFor(room)).emit('pvp-hit',{x:ink.x/WORLD_WIDTH,y:ink.y/WORLD_HEIGHT,targetId:target.id,attackerId:ink.ownerId,damage:blocked?0:damage,blocked,source:'blue-ring-ink'});
    }
@@ -1698,7 +1713,7 @@ io.on('connection', socket => {
    const owner=room.players.get(socket.id);
    const key=type==='bubble-trail'?'lastBubbleTrailAt':'lastInkTrailAt';
    const now=Date.now();
-   if(!owner||now-(Number(owner[key])||0)<BUBBLE_TRAIL_EMIT_MS*.8){
+   if(!owner||owner.skinId!==skin||Math.hypot(Number(owner.x)-x*WORLD_WIDTH,Number(owner.y)-y*WORLD_HEIGHT)>90/WORLD_ZOOM||now-(Number(owner[key])||0)<BUBBLE_TRAIL_EMIT_MS*.8){
     if(typeof acknowledge==='function')acknowledge({ok:false,reason:'trail-cadence'});
     return;
    }
