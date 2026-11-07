@@ -12,10 +12,6 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
 const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-function anglerInvisibleAt(nowMs=Date.now()){
-  const phase=((Number(nowMs)||0)%26000+26000)%26000;
-  return phase>=3000&&phase<13000;
-}
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
