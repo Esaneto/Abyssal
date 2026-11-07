@@ -41,7 +41,7 @@ Mais heap não gera FPS. Um heap muito grande pode aumentar pausas de garbage co
 4. Copie `abyssal.service` para `/etc/systemd/system/abyssal.service`.
 5. Crie `/etc/abyssal/abyssal.env` a partir de `.env.example`, sem colocar segredos no Git.
 6. Copie `99-abyssal.conf` para `/etc/sysctl.d/` e execute `sudo sysctl --system`.
-7. Copie `nginx-abyssal.conf` para `/etc/nginx/sites-available/abyssal`, substitua `__ABYSSAL_DOMAIN__`, habilite o site e valide com `nginx -t`.
+7. Use `nginx-main.conf` como referência para o `/etc/nginx/nginx.conf` principal, depois copie `nginx-abyssal.conf` para `/etc/nginx/sites-available/abyssal`, substitua `__ABYSSAL_DOMAIN__`, habilite o site e valide com `nginx -t`.
 8. Habilite o serviço com `sudo systemctl enable --now abyssal`.
 9. Rode `npm run preflight:hostinger`.
 10. Valide `/health` antes de apontar clientes para a VPS.
