@@ -96,7 +96,7 @@ test('Kraken skin uses animated contact-damage tentacles', () => {
  const game=read('public/game.js'),ai=read('public/enemy-ai.js');
  assert.ok(game.includes('touchesKrakenTentacle?.(krakenProxy,target,1)'));
  assert.ok(game.includes("dealEnemyDamage(target,24,'kraken-contact')"));
- assert.ok(ai.includes('const length = 3.35 + 0.32'));
+ assert.ok(ai.includes('const length = 4.35 + 0.42'));
 });
 
 
