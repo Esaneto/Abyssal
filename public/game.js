@@ -4,6 +4,7 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 let mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
 const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=mobileViewport||cores<=4,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
+let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 let adaptiveQualityLevel=2,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=1;
 const ADAPTIVE_QUALITY=[{name:'ECONOMIA',dpr:.72},{name:'EQUILIBRADO',dpr:.86},{name:'ALTO',dpr:1}];
 const $ = id => document.getElementById(id);
@@ -2882,8 +2883,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side;
   let sprite=hostileSpriteCache.get(key);
   if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
-  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?140:220):(BOSS_KINDS.includes(kind)?85:150);if(t-sprite.lastPaint>=refreshInterval){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;}
-  c.save();c.translate(Math.round(x),Math.round(y));applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
+  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?180:360):(BOSS_KINDS.includes(kind)?120:260);const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
+  c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  t=animationTime;
  const id=skin?.id||'default';
@@ -3383,6 +3384,7 @@ function drawHostileSpeciesEffect(enemy,t){
  ctx.restore();
 }
 function draw(t){
+ if(hostileSpritePaintFrame!==t){hostileSpritePaintFrame=t;hostileSpritePaintsThisFrame=0;}
  ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);updateCamera();ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);
  // The menu has its own CSS scene. Do not render the full arena/entities behind it.
  if(gameState==='menu'){ctx.restore();return;}
@@ -3576,8 +3578,10 @@ if(performanceDebugEnabled){
 }
 function loop(t){
  const active=!abyssalTutorialActive&&(gameState==='playing'||(onlineMode&&gameState==='upgrade'));
- const minFrameInterval=active?1000/60:1000/30;
- if(lastPaintAt&&t-lastPaintAt<minFrameInterval-1){requestAnimationFrame(loop);return;}
+ // During active gameplay, trust requestAnimationFrame instead of manually skipping
+ // frames. The old 60-FPS divisor produced 37-55 FPS on 75/90/144/165 Hz displays.
+ // Idle/menu rendering remains capped to ~30 FPS because motion there is non-critical.
+ if(!active&&lastPaintAt&&t-lastPaintAt<1000/30-1){requestAnimationFrame(loop);return;}
  const dt=Math.min(.035,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
