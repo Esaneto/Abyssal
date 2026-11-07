@@ -712,15 +712,20 @@ function rockfallTrap(c,h,s,t){
  if(!Number.isFinite(h.sourceX))return;
  // Rockfall originates only from a high overhang with water below.
  c.save();
- c.strokeStyle='rgba(48,88,99,.61)';c.lineWidth=3;c.lineCap='round';
- c.beginPath();c.moveTo(h.sourceX-51,h.sourceY-13);
- c.quadraticCurveTo(h.sourceX-16,h.sourceY+7,h.sourceX+31,h.sourceY-11);c.stroke();
+ // A natural rock lip is recognizable only as part of the cave. In vertical
+ // shafts, rotate it with the slanted fall path instead of drawing a fake roof.
+ c.save();c.translate(h.sourceX,h.sourceY);c.rotate((h.angle||Math.PI*.5)-Math.PI*.5);
+ c.fillStyle='rgba(11,30,38,.91)';c.strokeStyle='rgba(47,80,86,.43)';c.lineWidth=2.4;c.lineCap='round';
+ c.beginPath();c.moveTo(-48,-16);c.lineTo(-29,-25);c.lineTo(-12,-17);
+ c.lineTo(13,-22);c.lineTo(35,-14);c.quadraticCurveTo(11,-1,-7,5);
+ c.quadraticCurveTo(-31,-4,-48,-16);c.closePath();c.fill();c.stroke();
+ c.restore();
  if(s.phase==='idle'){c.restore();return;}
  if(s.phase==='warning'){
   c.globalAlpha=.26+.48*s.progress;
   for(let i=0;i<13;i++){
    const drift=Math.sin(i*2.77+t*.003)*20,fall=s.progress*(17+i%5*13);
-   paintedCircle(c,h.sourceX+(i-6)*9+drift,h.sourceY+fall,1.2+(i%3),'#8da9a8');
+   paintedCircle(c,h.sourceX+Math.cos(h.angle)*fall+(i-6)*3+drift*.22,h.sourceY+Math.sin(h.angle)*fall,1.2+(i%3),'#8da9a8');
   }
   c.restore();return;
  }
