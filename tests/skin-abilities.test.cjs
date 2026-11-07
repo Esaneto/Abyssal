@@ -186,7 +186,7 @@ test('resonance adds one new tactical option to every category',()=>{
  const game=read('public/game.js'),server=read('server.js');
  for(const id of ['echoShot','pressureCocoon','closePressure']){assert.ok(game.includes(id),id);assert.ok(server.includes(id),id);}
  assert.ok(game.includes("echoShot:{damage:[0,8,10,12]"));
- assert.ok(game.includes("baseOffsets=activeShot===\'echoShot\'?[-.045,.045]:[0]"));
+ assert.ok(game.includes("baseOffsets=activeShot===\'echoShot\'?(upgrades.tidalEcho?[-.065,0,.065]:[-.045,.045]):[0]"));
  assert.ok(game.includes("const cocoonInterval=[0,24,20,16]"));
  assert.ok(game.includes("distance<=175/GAME_WORLD_ZOOM"));
 });
