@@ -15,6 +15,7 @@ const contentTypes={'.html':'text/html; charset=utf-8','.js':'application/javasc
  '.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml',
  '.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.jpeg':'image/jpeg',
  '.woff':'font/woff','.woff2':'font/woff2','.mp3':'audio/mpeg','.wav':'audio/wav'};
+const artGallery = "<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>html,body{margin:0;min-height:100%;background:#020b13;color:#e5f6fc;font:14px system-ui}main{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px}section{background:radial-gradient(ellipse at center,#142d38,#06131f 72%);border:1px solid #33505a;border-radius:12px;text-align:center;overflow:hidden}canvas{display:block;width:100%;height:274px}h2{font-size:15px;margin:6px 0 8px;font-weight:600;letter-spacing:.04em}</style></head><body><main>\n<section><canvas id=\"gharial\" width=\"402\" height=\"274\"></canvas><h2>Gavial das Águas Negras</h2></section>\n<section><canvas id=\"leatherback\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Couro</h2></section>\n<section><canvas id=\"hawksbill\" width=\"402\" height=\"274\"></canvas><h2>Tartaruga-de-Pente</h2></section>\n<section><canvas id=\"nightmareBoss\" width=\"402\" height=\"274\"></canvas><h2>Pesadelo Roxo, boss</h2></section>\n<section><canvas id=\"nightmareRelic\" width=\"402\" height=\"274\"></canvas><h2>Vestígio do Pesadelo, loja</h2></section>\n<section><canvas id=\"ribbonmoray\" width=\"402\" height=\"274\"></canvas><h2>Moreia-Fita Noturna</h2></section></main>\n<script src=\"/abyssal-curated-skins.js\"></script><script src=\"/marine-art.js\"></script><script src=\"/abyssal-rift-hardcore.js\"></script>\n<script>try{const catalog=window.AbyssalCuratedSkins.byId;for(const id of ['gharial','leatherback','hawksbill','ribbonmoray']){const canvas=document.getElementById(id),ctx=canvas.getContext('2d');ctx.lineCap='round';ctx.lineJoin='round';window.AbyssalMarineArt.draw(ctx,id==='ribbonmoray'?265:220,132,id==='ribbonmoray'?44:54,0,catalog[id],1600,false);}window.AbyssalRiftHardcore.drawFinalBoss(document.getElementById('nightmareBoss').getContext('2d'),{x:201,y:140,r:64,hp:100,maxHp:100},1600);window.AbyssalRiftHardcore.drawNightmareRelic(document.getElementById('nightmareRelic').getContext('2d'),201,137,66,1600);document.body.dataset.artStatus='painted';}catch(error){document.body.dataset.artStatus=String(error);}</script></body></html>";
 const injected=`<script>
 (()=>{
  const errors=[],original=console.error;
@@ -54,6 +55,7 @@ const injected=`<script>
 </script>`;
 function handler(req,res){
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end();}
+ if(pathname==='/__abyss_art__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(artGallery);return;}
  const smoke=pathname==='/__abyss_smoke__';
  const filepath=smoke?path.join(root,'index.html'):path.resolve(root,'.'+pathname);
  if(!filepath.startsWith(root+path.sep))return res.writeHead(403).end();
@@ -111,6 +113,17 @@ async function main(){
    assert.ok(fs.statSync(screenshot).size>4500,label+' screenshot is blank or missing');
    console.log('[browser-smoke] '+label+' playing, canvas '+canvas+', screenshot '+fs.statSync(screenshot).size+' bytes');
   }
+  const artDom=await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
+    '--disable-gpu','--no-first-run','--window-size=1280,720','--virtual-time-budget=4000','--dump-dom',
+    'http://127.0.0.1:'+server.address().port+'/__abyss_art__']);
+  const artStatus=artDom.match(/data-art-status="([^"]*)"/)?.[1];
+  assert.equal(artStatus,'painted','real marine art failed in browser: '+artStatus);
+  const artPath=path.join(output,'creature-identity.png');
+  await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
+    '--disable-gpu','--no-first-run','--window-size=1280,720','--screenshot='+artPath,
+    'http://127.0.0.1:'+server.address().port+'/__abyss_art__']);
+  assert.ok(fs.statSync(artPath).size>20000,'marine art capture missing');
+  console.log('[browser-smoke] creature identity artwork '+fs.statSync(artPath).size+' bytes');
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
 main().catch(err=>{console.error('[browser-smoke] '+err.stack);process.exitCode=1});
