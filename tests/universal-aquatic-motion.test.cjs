@@ -68,13 +68,27 @@ test('renderer integration covers enemies, bosses, local and remote players with
  const game=fs.readFileSync('public/game.js','utf8');
  const motion=fs.readFileSync('public/skin-motion.js','utf8');
  assert.match(game,/creatureVisualMotion\(skin,kind,enemyState/);
- assert.match(game,/drawFinalBoss\(c,\{\.\.\.enemyState,x:0,y:0,r,angle:0\},animationTime\)/);
+ assert.match(game,/drawFinalBoss\(c,finalBossVisualState,animationTime\)/);
  assert.match(game,/visualId:onlineMode\?'player:self':'player:solo'/);
  assert.match(game,/visualId:'peer:'/);
  assert.match(game,/remoteCreatureAttackUntil\.set/);
  assert.match(game,/player\.visualAttackUntil=performance\.now\(\)\+140/);
  assert.match(game,/hostileSpriteCache/);
- assert.match(game,/phaseSlot/);
+ assert.doesNotMatch(game,/const phaseSlot/);
+ assert.match(game,/const hostileSpriteState=/);
  assert.match(game,/renderPad.*continue/);
  assert.doesNotMatch(motion,/\.hp\s*=|\.damage\s*=|collision|hitbox/i);
+});
+
+test('400-creature tracker hot path is allocation-conscious and bounded',()=>{
+ const tracker=Motion.createTracker({maxEntries:640});
+ const actors=Array.from({length:400},(_,i)=>({id:'perf-'+i,kind:i%5?'drifter':'kraken',x:i,y:i%17,angle:0,nominalSpeed:90}));
+ const started=process.hrtime.bigint();
+ for(let frame=0;frame<180;frame++)for(const actor of actors){actor.x+=.8;tracker.sample(actor,frame*16.667);}
+ const elapsedMs=Number(process.hrtime.bigint()-started)/1e6;
+ assert.equal(tracker.size(),400);
+ assert.ok(elapsedMs<250,`aquatic tracker took ${elapsedMs.toFixed(1)} ms for 72,000 samples`);
+ const source=fs.readFileSync('public/skin-motion.js','utf8');
+ assert.doesNotMatch(source,/Object\.assign\(result/);
+ assert.match(source,/state\.phaseTime=now\+state\.phaseOffset/);
 });

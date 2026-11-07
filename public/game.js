@@ -347,6 +347,8 @@ const hostileSpriteCache=new Map();
 const aquaticMotionTracker=window.AbyssalSkinMotion?.createTracker?.({maxEntries:640})||null;
 const aquaticMotionSource={};
 const remoteCreatureAttackUntil=new Map();
+const hostileSpriteState={__sprite:true,__visualMotion:null,phase:0};
+const finalBossVisualState={x:0,y:0,r:0,angle:0};
 function creatureAttackActivity(kind,state,hit=0){
  if(Number(hit)>0)return .55;
  if(Number(state?.visualAttackUntil)>performance.now())return 1;
@@ -2907,16 +2909,18 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const animationTime=Number(visualMotion?.phaseTime)||Number(t)||0;
  if(kind===RIFT_HARDCORE?.FINAL_KIND){
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r);
-  RIFT_HARDCORE.drawFinalBoss(c,{...enemyState,x:0,y:0,r,angle:0},animationTime);c.restore();return;
+  finalBossVisualState.r=r;RIFT_HARDCORE.drawFinalBoss(c,finalBossVisualState,animationTime);c.restore();return;
  }
  // Cache elaborate hostile drawings off-screen and refresh them infrequently; a horde can share one sprite.
  if(renderContext===ctx&&!playerCreature){
   const spread=kind==='kraken'?2.8:kind==='boss'?2.75:kind==='maw'?3.65:kind==='leviathan'?3.45:kind==='lurker'?2.55:BOSS_KINDS.includes(kind)?2.15:1.85;
-  const phaseSlot=(Math.floor(((Number(visualMotion?.phase)||0)%(Math.PI*2)+Math.PI*2)/(Math.PI*.5))%4+4)%4;
-  const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side+'|'+phaseSlot;
+  // One anatomical surface per species/size/color. Per-creature motion stays on
+  // the cheap outer transform; phase variants multiplied the cache and caused
+  // canvas creation/eviction loops in crowded online rooms.
+  const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side;
   let sprite=hostileSpriteCache.get(key);
   if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
-  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?140:220):(BOSS_KINDS.includes(kind)?85:150);if(t-sprite.lastPaint>=refreshInterval){sprite.context.clearRect(0,0,side,side);drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,{...enemyState,__sprite:true,__visualMotion:visualMotion});sprite.lastPaint=t;}
+  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?140:220):(BOSS_KINDS.includes(kind)?85:150);if(t-sprite.lastPaint>=refreshInterval){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;}
   c.save();c.translate(Math.round(x),Math.round(y));applyCreatureVisualTransform(c,visualMotion,r);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  t=animationTime;

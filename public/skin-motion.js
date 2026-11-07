@@ -64,43 +64,43 @@
  function phaseOffsetMs(id){return (hashId(id)%4096)*1.37;}
  function pose(skin,ms=0,movement=1,attack=0,out=null){
   const family=familyFor(skin),id=typeof skin==='string'?skin:String(skin?.id||family),rig=PROFILES[family];
-  const hash=hashId(id),offset=(hash%1024)/1024*Math.PI*2;
+  const result=out||{};
+  const hash=result.id===id&&Number.isFinite(result.motionHash)?result.motionHash:hashId(id),offset=(hash%1024)/1024*Math.PI*2;
   const active=.42+.58*clamp(Number(movement)||0,0,1);
   const attackAmount=clamp(Number(attack)||0,0,1);
   const time=Math.max(0,Number(ms)||0)*.001*(rig.speed*(.93+(hash%13)*.011));
   const wave=Math.sin(time+offset),recoil=Math.cos(time*1.3+offset*.55);
   const breath=Math.sin(time*.5+offset);
-  const result=out||{};
-  Object.assign(result,{
-   id,family,phase:time+offset,activity:active,attack:attackAmount,
-   bob:rig.bob*wave*active,
-   roll:rig.roll*recoil*active,
-   stretchX:1+rig.pulse*breath*active-attackAmount*.018,
-   stretchY:1-rig.pulse*.85*breath*active+attackAmount*.024,
-   tail:rig.tail*recoil*(active+attackAmount*.18),
-   fin:rig.fin*Math.sin(time*1.08+offset)*(active+attackAmount*.12),
-   arms:rig.fin*Math.cos(time*.76+offset)*(active+attackAmount*.22),
-   gait:rig.tail*Math.sin(time*1.95+offset)*active,
-   recoil:attackAmount*.055,
-   glow:.78+.22*(.5+.5*Math.sin(time*.58+offset))
-  });
+  // Assign fields directly when a tracker-owned result is provided. Avoiding
+  // an intermediate object here prevents horde-sized garbage collection spikes.
+  result.id=id;result.family=family;result.phase=time+offset;result.activity=active;result.attack=attackAmount;
+  result.bob=rig.bob*wave*active;
+  result.roll=rig.roll*recoil*active;
+  result.stretchX=1+rig.pulse*breath*active-attackAmount*.018;
+  result.stretchY=1-rig.pulse*.85*breath*active+attackAmount*.024;
+  result.tail=rig.tail*recoil*(active+attackAmount*.18);
+  result.fin=rig.fin*Math.sin(time*1.08+offset)*(active+attackAmount*.12);
+  result.arms=rig.fin*Math.cos(time*.76+offset)*(active+attackAmount*.22);
+  result.gait=rig.tail*Math.sin(time*1.95+offset)*active;
+  result.recoil=attackAmount*.055;
+  result.glow=.78+.22*(.5+.5*Math.sin(time*.58+offset));
   return result;
  }
- function anatomicalOrientation(angle,family='signature'){
+ function anatomicalOrientation(angle,family='signature',out=null){
   let normalized=Number.isFinite(Number(angle))?Number(angle):0;
   normalized=Math.atan2(Math.sin(normalized),Math.cos(normalized));
   const facing=Math.cos(normalized)>=0?1:-1;
   let pitch=facing>0?normalized:Math.atan2(Math.sin(normalized-Math.PI),Math.cos(normalized-Math.PI));
   const limit=ORIENTATION_LIMIT[family]??ORIENTATION_LIMIT.signature;
   pitch=clamp(pitch,-limit,limit);
-  return {facing,pitch,limit};
+  const result=out||{};result.facing=facing;result.pitch=pitch;result.limit=limit;return result;
  }
  function createTracker({maxEntries=512}={}){
   const states=new Map();
   function sample(entity,ms=0){
    const id=String(entity?.id||entity?.kind||'creature'),family=familyForEntity(entity);
    let state=states.get(id);
-   if(!state){state={id,family,x:Number(entity?.x)||0,y:Number(entity?.y)||0,at:Number(ms)||0,locomotion:.12,facing:1,facingScale:1,pitch:0,motionAngle:Number(entity?.angle)||0};states.set(id,state);if(states.size>maxEntries)states.delete(states.keys().next().value);}
+   if(!state){const motionHash=hashId(id);state={id,family,motionHash,phaseOffset:(motionHash%4096)*1.37,orientation:{},x:Number(entity?.x)||0,y:Number(entity?.y)||0,at:Number(ms)||0,locomotion:.12,facing:1,facingScale:1,pitch:0,motionAngle:Number(entity?.angle)||0};states.set(id,state);if(states.size>maxEntries)states.delete(states.keys().next().value);}
    const now=Number(ms)||0,dt=clamp((now-state.at)/1000,.001,.1),x=Number(entity?.x)||0,y=Number(entity?.y)||0;
    const dx=x-state.x,dy=y-state.y,speed=Math.hypot(dx,dy)/dt,nominal=Math.max(1,Number(entity?.nominalSpeed)||90);
    const target=entity?.preview ? .18 : clamp(speed/nominal,0,1);
@@ -108,12 +108,12 @@
    state.locomotion+=(target-state.locomotion)*(1-Math.exp(-response*dt));
    if(speed>nominal*.025)state.motionAngle=Math.atan2(dy,dx);
    else if(!Number.isFinite(state.motionAngle))state.motionAngle=Number(entity?.angle)||0;
-   const orientation=anatomicalOrientation(state.motionAngle,family);
+   const orientation=anatomicalOrientation(state.motionAngle,family,state.orientation);
    if(orientation.facing!==state.facing&&Math.abs(Math.cos(state.motionAngle))>.18)state.facing=orientation.facing;
    state.facingScale+=(state.facing-state.facingScale)*(1-Math.exp(-11*dt));
    state.pitch+=(orientation.pitch-state.pitch)*(1-Math.exp(-9*dt));
    state.family=family;state.x=x;state.y=y;state.at=now;
-   state.phaseTime=now+phaseOffsetMs(id);
+   state.phaseTime=now+state.phaseOffset;
    state.attack=clamp(Number(entity?.attack)||0,0,1);
    pose(state,state.phaseTime,state.locomotion,state.attack,state);
    return state;
