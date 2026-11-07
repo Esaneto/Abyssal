@@ -76,10 +76,10 @@ test('prismatic skill is a passive, secondary hits preserve selected shot cosmet
  for(const name of ['RUPTURA GRAVITACIONAL','CADEIA DE ARCOS','OLHO DO ABISMO','DRENO VITAL'])assert.ok(game.includes(name));
  assert.match(styles,/.resonance-fusion-guide/);
 });
-test('Pesadelo Roxo is a true horror octopus with pointed black eyes and yellow cat irises',()=>{
+test('Pesadelo Roxo keeps horror eyes with a softer organic octopus mantle',()=>{
  const src=read('public/abyssal-rift-hardcore.js');
  assert.match(src,/True octopus anatomy/);
- assert.match(src,/Pointed black eyes with a yellow feline iris/);
+ assert.match(src,/Pointed black eyes keep the horror identity/);
  assert.match(src,/iris\.addColorStop\(\.38,'#ffd72e'\)/);
  assert.match(src,/ellipse\(r\*\.49,-r\*\.42,r\*\.025,r\*\.145/);
  assert.doesNotMatch(src,/short bony antennae/);
