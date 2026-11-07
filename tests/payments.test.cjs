@@ -9,7 +9,12 @@ test('server catalog uses only R$1.99 R$4.99 and R$9.99 skin prices',()=>{
  for(const id of ['saltcroc','blackcaiman','abysscroc','armoredgator','electriceellegacy'])assert.equal(PAID_SKINS[id].brl,499,id);
  for(const id of BOSS_SKINS)assert.equal(PAID_SKINS[id].brl,999,id);
  assert.equal(calculateOrder('electriceellegacy',[],'brl').amount,499);
- assert.equal(calculateOrder('boss_bundle',[],'brl').amount,5994);
+ assert.equal(calculateOrder('boss_bundle',[],'brl').amount,3999);
+ assert.equal(calculateOrder('boss_bundle',['leviathan'],'brl').amount,3333);
+ assert.equal(calculateOrder('boss_bundle',['leviathan','kraken'],'brl').amount,2666);
+ assert.equal(calculateOrder('boss_bundle',['leviathan','kraken','aberration'],'brl').amount,2000);
+ assert.equal(calculateOrder('boss_bundle',['leviathan','kraken','aberration','angler'],'brl').amount,1333);
+ assert.equal(calculateOrder('boss_bundle',['leviathan','kraken','aberration','angler','maw'],'brl').amount,667);
  assert.equal(calculateOrder('boss_bundle',BOSS_SKINS,'brl').amount,0);
  assert.throws(()=>calculateOrder('reefshark',[],'usd'),/Unsupported currency/);
  assert.match(TERMS_VERSION,/^\d{4}-\d{2}-\d{2}-v\d+$/);
