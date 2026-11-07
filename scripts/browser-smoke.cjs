@@ -90,6 +90,91 @@ async function run(browser,args){
   proc.once('close',code=>{finished=true;clearTimeout(timeout);if(code!==0)reject(new Error('Chromium exit '+code+': '+err.slice(-2500)));else resolve(out)});
  });
 }
+async function realGameplaySmoke(browser,url){
+ // Unlike Chrome's virtual-time screenshot mode, CDP runs requestAnimationFrame
+ // at real time and confirms simulation tick progress before taking captures.
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'abyss-live-cdp-'));
+ const args=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
+  '--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*',
+  '--window-size=1280,720','--user-data-dir='+directory,'about:blank'];
+ const chrome=spawn(browser,args,{stdio:['ignore','ignore','pipe']});
+ let chromeError='',socket=null;
+ chrome.stderr.on('data',part=>{chromeError+=String(part);if(chromeError.length>4000)chromeError=chromeError.slice(-4000);});
+ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ try{
+  let port=null;
+  for(let i=0;i<100;i++){
+   const file=path.join(directory,'DevToolsActivePort');
+   if(fs.existsSync(file)){const line=fs.readFileSync(file,'utf8').split(/\r?\n/)[0];port=Number(line);if(port)break;}
+   if(chrome.exitCode!==null)throw new Error('Chrome terminated before opening CDP: '+chromeError.slice(-1200));
+   await sleep(100);
+  }
+  assert.ok(port,'Chromium did not open the DevTools port: '+chromeError.slice(-1200));
+  const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
+  const tab=tabs.find(item=>item.type==='page');
+  assert.ok(tab?.webSocketDebuggerUrl,'CDP page target unavailable');
+  socket=new WebSocket(tab.webSocketDebuggerUrl);
+  await new Promise((resolve,reject)=>{
+   socket.addEventListener('open',resolve,{once:true});
+   socket.addEventListener('error',reject,{once:true});
+  });
+  let sequence=0;
+  const pending=new Map();
+  socket.addEventListener('message',event=>{
+   let message;
+   try{message=JSON.parse(String(event.data));}catch{return;}
+   if(!message.id||!pending.has(message.id))return;
+   const {resolve,reject}=pending.get(message.id);pending.delete(message.id);
+   if(message.error)reject(new Error('CDP '+JSON.stringify(message.error)));
+   else resolve(message.result||{});
+  });
+  const command=(method,params={})=>new Promise((resolve,reject)=>{
+   const id=++sequence;pending.set(id,{resolve,reject});
+   socket.send(JSON.stringify({id,method,params}));
+  });
+  const evaluate=async(expression)=>{
+   const response=await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+   if(response.exceptionDetails)throw new Error('CDP evaluation: '+JSON.stringify(response.exceptionDetails));
+   return response.result?.value;
+  };
+  const stateExpr='(()=>{const g=window.AbyssalGameHooks;return {active:g?.isRiftPlaying?.(),elapsed:g?.expeditionState?.()?.elapsed,depth:g?.expeditionState?.()?.depthState?.depth,worldHeight:g?.worldHeight?.(),errors:document.body.dataset.smokeError||\"\",screen:document.body.className}})()';
+  const screenshot=async(name)=>{
+   const r=await command('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
+   const file=path.join(output,name+'.png');
+   fs.writeFileSync(file,Buffer.from(r.data,'base64'));
+   assert.ok(fs.statSync(file).size>10000,'Live screenshot missing: '+name);
+  };
+  await command('Page.enable');
+  await command('Runtime.enable');
+  await command('Page.navigate',{url});
+  await sleep(6500);
+  let state=await evaluate(stateExpr);
+  console.log('[live-browser] start '+JSON.stringify(state));
+  assert.equal(state?.active,true,'Fossas must be actively playing after the tutorial closes');
+  assert.ok(Number(state?.elapsed)>1,'requestAnimationFrame/game simulation did not advance during real time');
+  assert.equal(state?.worldHeight,9000);
+  assert.ok(!state?.errors,'runtime error while simulating: '+state.errors);
+  await screenshot('live-start');
+  const move=async(name,x,y,minDepth,maxDepth)=>{
+   const accepted=await evaluate('window.AbyssalGameHooks?.setPlayerPosition?.('+x+','+y+')');
+   assert.equal(accepted,true,'Could not navigate to '+name);
+   await sleep(2100);
+   const next=await evaluate(stateExpr);
+   console.log('[live-browser] '+name+' '+JSON.stringify(next));
+   assert.ok(next?.active&&next?.elapsed>state.elapsed+.75,name+' stopped simulation');
+   assert.ok(next?.depth>=minDepth&&next?.depth<=maxDepth,name+' wrong cave depth');
+   assert.ok(!next?.errors,name+' runtime errors');
+   state=next;
+   await screenshot('live-'+name);
+  };
+  await move('deep',2180,5180,150,300);
+  await move('boss',2400,8660,315,355);
+ }finally{
+  if(socket&&socket.readyState<=1)try{socket.close();}catch{}
+  chrome.kill('SIGKILL');
+  fs.rmSync(directory,{recursive:true,force:true});
+ }
+}
 async function main(){
  const browser=browserBin();assert.ok(browser,'Google Chrome or Chromium is required for real visual smoke tests');
  fs.mkdirSync(output,{recursive:true});
@@ -136,6 +221,7 @@ async function main(){
     'http://127.0.0.1:'+server.address().port+'/__abyss_art__']);
   assert.ok(fs.statSync(artPath).size>20000,'marine art capture missing');
   console.log('[browser-smoke] creature identity artwork '+fs.statSync(artPath).size+' bytes');
+  await realGameplaySmoke(browser,url);
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
 main().catch(err=>{console.error('[browser-smoke] '+err.stack);process.exitCode=1});
