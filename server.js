@@ -429,7 +429,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:(world.orbs||[]).slice(0,220).map(o=>({...o}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(e=>({...e})),orbs:[]};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -467,7 +467,6 @@ function getRoomMotionSnapshot(room, options = {}){
  const motionNow=Date.now(),sendFar=!recipient||motionNow-(Number(recipient.lastFarMotionAt)||0)>=500;
  if(recipient&&sendFar)recipient.lastFarMotionAt=motionNow;
  const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
- const visibleOrbs=recipient?(world.orbs||[]).filter(orb=>orb.x>=bounds.left&&orb.x<=bounds.right&&orb.y>=bounds.top&&orb.y<=bounds.bottom):(world.orbs||[]);
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:125,
@@ -477,7 +476,7 @@ function getRoomMotionSnapshot(room, options = {}){
    if(e.kind==='kraken')return [...base,false,0,0,0,e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100];
    return base;
   }),
-  ...(options.includeOrbs?{orbIntervalMs:250,orbScope:recipient?'view':'all',orbs:visibleOrbs.slice(0,220).map(o=>[o.id,o.x,o.y,Number(o.phase)||0,Number(o.life)||0])}:{})
+
  };
 }
 function getRoomSpawnSnapshot(room, spawnedEnemies = []){
@@ -914,7 +913,7 @@ function tickRoom(room, now) {
  const w = room.world;
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
-  const w=room.world;w.orbs||=[];w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];w.inkTrails=Array.isArray(w.inkTrails)?w.inkTrails:[];
+  const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];w.inkTrails=Array.isArray(w.inkTrails)?w.inkTrails:[];
   for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.6,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
   for(let i=w.inkTrails.length-1;i>=0;i--){
    const ink=w.inkTrails[i];ink.life-=.05;ink.damageTimer=(Number(ink.damageTimer)||0)-.05;
@@ -930,14 +929,6 @@ function tickRoom(room, now) {
     io.to(channelFor(room)).emit('pvp-hit',{x:ink.x/WORLD_WIDTH,y:ink.y/WORLD_HEIGHT,targetId:target.id,attackerId:ink.ownerId,damage:blocked?0:damage,blocked,source:'blue-ring-ink'});
    }
   }
-  room.lastPvpOrbSpawnAt=Number(room.lastPvpOrbSpawnAt)||now;
-  if(now-room.lastPvpOrbSpawnAt>=2200&&w.orbs.length<90){
-   room.lastPvpOrbSpawnAt=now;const values=[5,10,20,35,60],value=values[Math.floor(Math.random()*values.length)];let point=null;
-   for(let attempt=0;attempt<18;attempt++){const x=WORLD_WIDTH*(.04+Math.random()*.92),y=WORLD_HEIGHT*(.04+Math.random()*.92);if(Math.hypot(x-WORLD_WIDTH*.5,y-WORLD_HEIGHT*.5)<Math.min(WORLD_WIDTH,WORLD_HEIGHT)*.235)continue;if(pvpRockAt(x,y,60/WORLD_ZOOM))continue;point={x,y};break;}
-   if(point){w.nextOrbId=(Number(w.nextOrbId)||0)+1;const orb={id:`pvp-${w.nextOrbId}`,x:point.x,y:point.y,r:EnemyAI.xpOrbRadius?EnemyAI.xpOrbRadius(value):Math.min(15,4+Math.sqrt(value)),value,phase:0,life:35};w.orbs.push(orb);io.to(channelFor(room)).emit('world-xp-orbs-spawned',[orb]);}
-  }
-  const expired=[];for(let i=w.orbs.length-1;i>=0;i--){const orb=w.orbs[i];orb.life=(Number(orb.life)||35)-.05;if(orb.life<=0){expired.push(String(orb.id));w.orbs.splice(i,1);}}
-  if(expired.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expired);
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
   return;
  }
@@ -951,25 +942,24 @@ function tickRoom(room, now) {
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
- const spawnedRewardOrbs = Array.isArray(result.spawnedRewardOrbs) ? result.spawnedRewardOrbs : [];
+ const spawnedXpRewards = Array.isArray(result.spawnedXpRewards) ? result.spawnedXpRewards : [];
  const playerHits = Array.isArray(result.playerHits) ? result.playerHits : [];
  const bossAbilityHits = Array.isArray(result.bossAbilityHits) ? result.bossAbilityHits : [];
  const bossAbilityEvents = Array.isArray(result.bossAbilityEvents) ? result.bossAbilityEvents : [];
- const xpCollected = Array.isArray(result.xpCollected) ? result.xpCollected : [];
  const riftAims=Array.isArray(result.riftAims)?result.riftAims:[];
  const environmentDamages=Array.isArray(result.environmentDamages)?result.environmentDamages:[];
  const environmentKills=Array.isArray(result.environmentKills)?result.environmentKills:[];
- const expiredOrbIds = Array.isArray(result.expiredOrbIds) ? result.expiredOrbIds : [];
  if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
  // One server-owned curved path per tentacle cycle, synchronized to every observer.
  for(const aim of riftAims)io.to(channelFor(room)).emit('world-rift-tentacle-aim',aim);
  for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
  for(const death of environmentKills){
   io.to(channelFor(room)).emit('world-enemy-defeated',death);
+  grantSharedXp(room,death.xpValue||1,death.contributors,'rift-hazard-kill',death.id);
   if(death.boss){awardWorldBossCoins(room);WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}
  }
  if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
- if(spawnedRewardOrbs.length){combatDiagnostics.xpOrbsSpawned+=spawnedRewardOrbs.length;io.to(channelFor(room)).emit('world-xp-orbs-spawned',spawnedRewardOrbs.map(orb=>({...orb})));}
+ for(const reward of spawnedXpRewards)grantSharedXp(room,reward.value,null,reward.source||'rift-reward');
  if(result.sideEncounter)io.to(channelFor(room)).emit('world-cave-signal',result.sideEncounter);
 
  // Full snapshots are reserved for periodic recovery. Entity creation, damage and orb
@@ -988,7 +978,7 @@ function tickRoom(room, now) {
  }
  if(result.sendSnapshot){
   for(const recipient of activePlayers){
-   const motion=getRoomMotionSnapshot(room,{player:recipient,includeOrbs:Boolean(result.sendOrbSnapshot)});
+   const motion=getRoomMotionSnapshot(room,{player:recipient});
    if(motion)io.to(recipient.id).volatile.emit('enemy-motion',motion);
   }
  }
@@ -1038,31 +1028,6 @@ function tickRoom(room, now) {
    const defeated=room.players.get(hit.playerId),nickname=String(defeated?.nickname||'Mergulhador').slice(0,18);
    io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:nickname.toUpperCase(),text:`${nickname} foi destruído por uma habilidade colossal.`,x:Number(defeated?.x)/WORLD_WIDTH,y:Number(defeated?.y)/WORLD_HEIGHT,playerId:hit.playerId});
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
-  }
- }
- if(expiredOrbIds.length)io.to(channelFor(room)).emit('world-xp-orbs-expired',expiredOrbIds);
- // Shared XP orb pickup is decided by the server. A single orb can only be claimed
- // once, and only the winning player receives the XP event. Snapshot above has removed it.
- for (const pickup of xpCollected) {
-  combatDiagnostics.xpOrbsCollected++;
-  combatDiagnostics.lastXpOrbPickup={at:new Date(now).toISOString(),orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value};
-  // A rift orb is collected ONCE, but every active expedition member gains XP,
-  // including players who did not touch it. Other modes keep collector-only XP.
-  io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:pickup.orbId,playerId:pickup.playerId,value:pickup.value,x:pickup.x,y:pickup.y});
-  if(room.mode==='rift'){
-   const collector=room.players.get(pickup.playerId);
-   const base=Math.max(1,Number(pickup.baseValue)||Number(pickup.value)||1);
-   for(const member of room.players.values()){
-    if(member.runStats?.settled)continue;
-    const multiplier=SkinAbilities.orbExperienceMultiplier(member.skinId);
-    const value=Math.max(1,Math.round(base*multiplier));
-    if(member.runStats)creditRunXp(member.runStats,value);
-    io.to(member.id).emit('shared-xp-award',{value,source:'rift-team-orb',orbId:pickup.orbId,collectorId:collector?.id||pickup.playerId});
-   }
-  }else{
-   const collector=room.players.get(pickup.playerId);
-   if(collector)creditRunXp(collector.runStats,pickup.value);
-   io.to(pickup.playerId).emit('shared-xp-award',{value:pickup.value,source:'orb',orbId:pickup.orbId});
   }
  }
  // Only the authoritative simulation can produce enemy-contact damage. The reliable
@@ -1334,7 +1299,7 @@ io.on('connection', socket => {
   else {p.velocityX=0;p.velocityY=0;}
   const activeWorldHeight=roomWorldHeight(room);p.x=clamp(acceptedX,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(acceptedY,8/WORLD_ZOOM,activeWorldHeight-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=receivedAt;p.positionResumeGraceUntil=0;if(typeof payload.clientHidden==='boolean')p.clientHidden=payload.clientHidden;if(p.clientHidden){p.velocityX=0;p.velocityY=0;}p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
   // PvP pickup uses only the accepted authoritative position. Rejected teleports can never claim an orb.
-  if(room.mode==='pvp')collectPvpOrbsNearPlayer(room,p,p.x,p.y);
+  
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
   p.worldWidth=WORLD_WIDTH;p.worldHeight=activeWorldHeight;p.clientMotionAt=Date.now();
   if(!compact){
@@ -1783,11 +1748,11 @@ io.on('connection', socket => {
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
   }else{
    const targets=room.world.enemies.filter(enemy=>Math.hypot(enemy.x-player.x,enemy.y-player.y)<radius).slice(0,96);
-   const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
+   const batch={damaged:[],defeated:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
    for(const enemy of targets)processWorldDamage(socket,Number(enemy.id),baseDamage,'pulse',batch,'',enemyLookup);
    if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
    if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
-   if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
+   
    if(batch.accountUpdated)sendKillTitleProgress(socket,batch.defeated.some(enemy=>enemy.boss));
   }
  });
@@ -1799,7 +1764,7 @@ io.on('connection', socket => {
   if(room.players.get(socket.id)?.tutorialActive)return ack({ok:false,reason:'tutorial-active',accepted:0});
   const hits=Array.isArray(payload?.hits)?payload.hits.slice(0,128):[];
   if(!hits.length)return ack({ok:false,reason:'empty-batch',accepted:0});
-  const batch={damaged:[],defeated:[],orbs:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
+  const batch={damaged:[],defeated:[],accountUpdated:false,worldChanged:false},enemyLookup=new Map(room.world.enemies.map(enemy=>[Number(enemy.id),enemy]));
   let accepted=0,rejected=0;
   for(const hit of hits){
    const result=processWorldDamage(socket,Number(hit?.id),Number(hit?.damage),String(hit?.skillId||'').slice(0,32),batch,String(hit?.actionId||'').slice(0,72),enemyLookup);
@@ -1807,11 +1772,11 @@ io.on('connection', socket => {
   }
   if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
   if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
-  if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
+  
   if(batch.accountUpdated)sendKillTitleProgress(socket,batch.defeated.some(enemy=>enemy.boss));
   ack({ok:accepted>0,accepted,rejected,defeated:batch.defeated.length});
  });
- socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
+ socket.on('shared-xp-award', () => {}); // Clients cannot award XP; the server credits verified kills.
  socket.on('get-rankings', () => socket.emit('rankings-data', rankingPayload()));
  socket.on('delete-account', async(payload={}) => {
   const key=socket.data.userKey,user=users[key];
