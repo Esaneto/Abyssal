@@ -12,6 +12,8 @@ const server=read('server.js');
 test('Hostinger profile keeps crypto and persistence off the 20 Hz event loop',()=>{
  assert.doesNotMatch(server,/scryptSync/);
  assert.match(server,/crypto\.scrypt\(/);
+ assert.match(server,/MAX_PENDING_PASSWORD_HASHES=32/);
+ assert.match(server,/passwordHashQueue/);
  assert.match(server,/await hashPassword\(/);
  assert.doesNotMatch(server,/writeFileSync\(USERS_FILE/);
  assert.doesNotMatch(server,/writeFileSync\(CARDUMES_FILE/);
@@ -38,7 +40,7 @@ test('Socket.IO avoids websocket compression overhead and raises the listen back
 
 test('Hostinger service reserves the game loop while parallel native work can use the second vCPU',()=>{
  const unit=read('deploy/hostinger/abyssal.service');
- assert.match(unit,/UV_THREADPOOL_SIZE=8/);
+ assert.match(unit,/UV_THREADPOOL_SIZE=4/);
  assert.match(unit,/NODE_OPTIONS=--max-old-space-size=2048/);
  assert.match(unit,/LimitNOFILE=65535/);
  assert.match(unit,/ABYSSAL_RESOURCE_PROFILE=hostinger-kvm2/);
