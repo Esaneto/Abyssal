@@ -26,18 +26,11 @@ function drawCommands(skin,time){
  box.AbyssalMarineArt.draw(c,0,0,20,0,{...skin,color:'#777777'},time,0);
  return commands;
 }
-test('all seven species retain stable catalogue IDs, prices and abilities',()=>{
- for(const id of ids){
-  const skin=catalogue.byId[id];
-  assert.ok(skin,id+' is missing');
-  assert.equal(skin.price,originals[id],id+' changed price');
-  assert.equal(skin.paid,false,id+' changed purchasing mode');
-  assert.equal(skin.renderer,'marine');
-  assert.ok(skin.ability&&skin.bonuses);
- }
+test('all seven species retain stable catalogue IDs prices and standardized profiles',()=>{
+ const S=require('../public/skin-standard.js');
+ for(const id of ids){const skin=catalogue.byId[id];assert.ok(skin,id+' is missing');assert.equal(skin.price,originals[id]);assert.equal(skin.paid,false);assert.equal(skin.renderer,'marine');assert.equal(S.profile(id).percent,10);assert.ok(S.activeSpec(id));}
  assert.equal(new Set(ids).size,7);
 });
-
 test('each requested species has a distinct detailed Canvas anatomy and animated silhouette',()=>{
  const seen=new Map();
  for(const id of ids){
@@ -69,29 +62,16 @@ test('the individual silhouettes have recognizable diagnostic anatomy',()=>{
  assert.match(body('gharial',"}else if(s.family==='shark'||s.family==='fish'){"),/rostrum|teeth|scutes/i);
 });
 
-test('blue-ring octopus draws black glossy bubbles, unlike cyan shark bubbles',()=>{
- assert.match(game,/function renderWakeBubble\(blob,dark\)/);
- assert.match(game,/for\(const b of sharkWakeTrails\)renderWakeBubble\(b,false\)/);
- assert.match(game,/for\(const ink of inkTrails\)renderWakeBubble\(ink,true\)/);
- assert.match(game,/dark\?'rgba\(2,3,9,\.97\)':/);
- assert.match(game,/dark\?'#8f9eb5':'#a6f7ff'/);
- assert.match(game,/Bolhas abissais: ao nadar, deixa bolhas negras/);
- // Keep the preexisting packet event IDs for backwards-compatible multiplayer.
- assert.match(game,/type:'ink-trail',skin:'aberration'/);
- assert.match(server,/source:'blue-ring-ink'/);
+test('blue-ring boss keeps black ink art while playable relic uses standardized trail',()=>{
+ const S=require('../public/skin-standard.js');
+ assert.match(game,/function renderWakeBubble\(blob,dark\)/);assert.match(game,/for\(const ink of inkTrails\)renderWakeBubble\(ink,true\)/);
+ assert.match(game,/dark\?'rgba\(2,3,9,\.97\)':/);assert.equal(S.profile('aberration').active,'trail');
+ assert.doesNotMatch(server,/source:'blue-ring-ink'/);
 });
-
-test('shark and octopus hit cadence is capped at 300ms per target in PvP',()=>{
- assert.match(game,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_SECONDS=\.20/);
- assert.match(server,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200/);
- assert.match(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
- assert.match(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
- assert.match(game,/bubble\.damageTimer = BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(game,/ink\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(server,/target\.lastBubbleDamageAt=hitAt/);
- assert.match(server,/target\.lastBlackBubbleDamageAt=hitAt/);
- assert.match(server,/target\.invulnerableUntil=hitAt\+90/);
- assert.match(server,/BUBBLE_TRAIL_EMIT_MS\*\.8/);
- assert.match(game,/e\.poisonTick = SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.75/);
+test('standardized trail is finite and rate limited in PvP',()=>{
+ assert.match(server,/life:3\.2,damageTimer:\.45,skinActive:true/);
+ assert.match(server,/bubble\.skinActive\?1\.1:1\.6/);
+ assert.match(server,/bubble\.skinActive\?600:BUBBLE_TRAIL_HIT_MS/);
+ assert.match(game,/bubble\.skinActive \? \.60 : BUBBLE_TRAIL_HIT_SECONDS/);
+ assert.doesNotMatch(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
 });
