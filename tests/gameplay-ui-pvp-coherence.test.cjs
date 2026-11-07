@@ -11,8 +11,8 @@ const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 test('toxic cloud and green serpent poison are manual standardized actives',()=>{
  const S=require('../public/skin-standard.js');
  assert.equal(S.profile('toxic').active,'cloud');assert.equal(S.profile('greensnake').active,'poison');
- assert.doesNotMatch(game,/equippedSkin==='greensnake'[\\s\\S]{0,180}poisonTimer/);
- assert.match(game,/function activateSkinAbility\\(/);assert.match(server,/payload\\.type!=='standard-active'/);
+ assert.doesNotMatch(game,/equippedSkin==='greensnake'[\s\S]{0,180}poisonTimer/);
+ assert.match(game,/function activateSkinAbility\(/);assert.match(server,/payload\.type!=='standard-active'/);
 });
 test('notification bell has a concrete unread dot controlled by state',()=>{
  assert.match(html,/id="notifUnreadDot"[^>]*notification-badge-dot/);
