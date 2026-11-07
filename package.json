@@ -7,10 +7,11 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "preflight:hostinger": "node scripts/hostinger-preflight.cjs"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22 <27"
   },
   "dependencies": {
     "express": "^4.21.2",
