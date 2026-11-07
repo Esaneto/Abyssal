@@ -289,6 +289,22 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     fin([[x-.04,.124],[x+.019,.123],[x-.002,.047]]);
    }
    stroke(()=>{c.moveTo(.99,.086);c.quadraticCurveTo(2.1,.092,2.95,.04);},'#cfddbe',.023);
+  }else if(id==='hatchetfish'){
+   // Hatchetfish, not a generic oval: deep ventral keel and narrow dorsal ridge.
+   const beat=Math.sin(phase*1.3)*.10;
+   path(()=>{c.moveTo(-1.36,.03+beat);c.lineTo(-1.75,-.32+beat);
+    c.quadraticCurveTo(-1.58,.05+beat,-1.76,.38+beat);c.closePath();},'#546e81','#dce6e6',.032);
+   path(()=>{c.moveTo(-1.36,-.10);c.bezierCurveTo(-.85,-.20,-.12,-.25,.61,-.24);
+    c.quadraticCurveTo(1.23,-.14,1.38,0);c.quadraticCurveTo(1.12,.22,.68,.31);
+    c.bezierCurveTo(.48,.84,-.22,1.25,-.93,.91);
+    c.quadraticCurveTo(-1.34,.59,-1.36,-.10);c.closePath();},g,'#d9edf0',.056);
+   path(()=>{c.moveTo(-.9,.34);c.quadraticCurveTo(-.18,1.08,.57,.34);
+    c.quadraticCurveTo(.02,.59,-.9,.34);c.closePath();},'rgba(191,234,232,.28)',null);
+   for(let j=0;j<10;j++){
+    const px=-.87+j*.148,py=.40+Math.sin(j/10*Math.PI)*.33;
+    oval(px,py,.042,.028,0,j%3?'#a9e7e5':'#f2f8d4');
+   }
+   oval(.93,-.10,.125,.13,0,'#081625');oval(.96,-.14,.040,.047,0,'#e5f5ff');
   }else if(s.family==='shark'||s.family==='fish'){
   // One continuous tapered silhouette. The earlier oval + disconnected
   // triangles made some sharks look like round masses with unrelated fins.
@@ -333,8 +349,18 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    const tx=.73+j*.068;
    stroke(()=>{c.moveTo(tx,side*.12);c.lineTo(tx+.03,side*.30);},'#f1e3d6',.029);
   }
-  if(id==='hatchetfish'){
-   stroke(()=>{c.moveTo(-.30,thick*.67);c.quadraticCurveTo(.16,thick*1.10,.55,thick*.55);},'#b0d6d8',.044);
+  if(id==='viperfish'){
+   // Projecting upper and lower jaws with elongated needle fangs.
+   path(()=>{c.moveTo(.83,.08);c.quadraticCurveTo(1.44,.36,1.87,.21);
+    c.quadraticCurveTo(1.50,.42,.92,.27);c.closePath();},'#254957','#add7c9',.027);
+   path(()=>{c.moveTo(.91,-.09);c.lineTo(1.72,-.20);
+    c.quadraticCurveTo(1.87,-.16,1.69,-.04);c.lineTo(.89,.01);c.closePath();},'#47757c','#c9e1d4',.026);
+   for(let j=0;j<7;j++){
+    const x=1.01+j*.105;
+    stroke(()=>{c.moveTo(x,-.07);c.lineTo(x+.032,.22);},'#f4ebd6',.025);
+   }
+   stroke(()=>{c.moveTo(-.35,-.15);c.bezierCurveTo(-.60,-.51,-.48,-.68,-.65,-.86);},'#8bd8cb',.031);
+   oval(-.65,-.87,.085,.065,0,'#bdfff1');
   }
   if(id==='greenland')for(let j=0;j<16;j++){
    const px=-1.11+j*.14,yy=Math.sin(j*2.399)*thick*.48;
@@ -343,6 +369,14 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   if(id==='blackdragon'){
    stroke(()=>{c.moveTo(-.27,.16);c.bezierCurveTo(-.54,.33,-.85,.46,-1.03,.42+flap*.5);},'#d9eaa6',.038);
    for(let j=0;j<11;j++)oval(-1.08+j*.17,.18,.024,.024,0,'#9cece1');
+   // Dorsal comb and chin barbel remain attached to the fish silhouette.
+   for(let j=0;j<10;j++){
+    const px=-1.43+j*.23;
+    path(()=>{c.moveTo(px,-.18);c.lineTo(px-.09,-(.32+(j%3)*.05));
+     c.lineTo(px+.085,-.19);c.closePath();},'#2d5761','#89c6c4',.012);
+   }
+   stroke(()=>{c.moveTo(1.10,.09);c.bezierCurveTo(1.25,.38,1.38,.54,1.41,.72+flap*.5);},'#7dc8be',.034);
+   oval(1.41,.72+flap*.5,.078,.052,0,'#aeffe0');
   }
  }else if(s.family==='ray'){
   const width=variant===1?1.62:variant===2?1.25:.95;
@@ -466,7 +500,8 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  }else if(s.family==='jelly'){
   if(id!=='combjelly')tentacles(variant===3?12:8,variant===3?3.5:2.2);
   if(id==='siphonophore'){
-   // Siphonophore's buoyant zooids form a connected chain, not a spare ovoid.
+   // Continuous stolon joins each zooid to the buoyant bell.
+   stroke(()=>{c.moveTo(.76,-.35);c.bezierCurveTo(.15,-.48,-.52,-.28,-1.23,-.35);},'#a5deef',.087);
    for(let j=0;j<5;j++){
     const xx=.15-j*.29,yy=-.35+Math.sin(phase+j)*.045;
     oval(xx,yy,.16-j*.014,.12-j*.01,0,'rgba(166,220,243,.35)');
