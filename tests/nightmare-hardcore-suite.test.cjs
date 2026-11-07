@@ -40,20 +40,10 @@ test('curved tentacles aim once per attack, have a late bend and collide during 
  const repeated=H.aimTentacle(h,cycle,0,0);
  assert.equal(repeated.aimX,aim.aimX,'target is frozen at first warning, no frame-by-frame tracking unfairness');
 });
-test('rockfall begins on rock overhangs, crosses the route faster than base movement, shatters and fades',()=>{
- const rocks=hazards.filter(h=>h.type==='rockfall');
- assert.ok(rocks.length>0,'map has falling rocks');
- for(const h of rocks){
-  assert.ok(['ceiling','passage-ceiling','passage-overhang'].includes(h.wallKind),'real rock roof or side overhang');
-  assert.ok(Map.isWalkable(map,h.sourceX+Math.cos(h.angle)*60,h.sourceY+Math.sin(h.angle)*60),'rock enters navigable water');
-  assert.ok(h.length>180);
-  const opening=H.rockfallState(h,{phase:'active',progress:.01});
-  const descent=H.rockfallState(h,{phase:'active',progress:.55});
-  assert.ok(descent.y>opening.y+30,'rock falls down from ceiling');
-  const impact=H.rockfallState(h,{phase:'active',progress:1});
-  assert.equal(impact.impact,true);assert.ok(impact.fade<.1,'impact shards fade before a new cycle');
-  assert.equal(H.hit(h,impact.x,impact.y,0,{phase:'active',progress:1}),false);
- }
+test('only volcano, poisonous plant, suction vortex and tentacles exist in the Fossas',()=>{
+ const types=[...new Set(hazards.map(h=>h.type))].sort();
+ assert.deepEqual(types,['poisonPlant','tentacle','volcano','vortex']);
+ for(const removed of ['fumarole','rockfall','pressure','electric','lure','spikes'])assert.ok(!hazards.some(h=>h.type===removed));
 });
 test('nightmare foreground is interactive but its eight background arms are purely painted',()=>{
  const src=read('public/abyssal-rift-hardcore.js'),server=read('world-simulation.js');
@@ -85,6 +75,15 @@ test('prismatic skill is a passive, secondary hits preserve selected shot cosmet
  assert.match(ui,/id="resonanceFusionGuide"/);
  for(const name of ['RUPTURA GRAVITACIONAL','CADEIA DE ARCOS','OLHO DO ABISMO','DRENO VITAL'])assert.ok(game.includes(name));
  assert.match(styles,/.resonance-fusion-guide/);
+});
+test('Pesadelo Roxo is a true horror octopus with pointed black eyes and yellow cat irises',()=>{
+ const src=read('public/abyssal-rift-hardcore.js');
+ assert.match(src,/True octopus anatomy/);
+ assert.match(src,/Pointed black eyes with a yellow feline iris/);
+ assert.match(src,/iris\.addColorStop\(\.38,'#ffd72e'\)/);
+ assert.match(src,/ellipse\(r\*\.49,-r\*\.42,r\*\.025,r\*\.145/);
+ assert.doesNotMatch(src,/short bony antennae/);
+ assert.doesNotMatch(src,/gaping predatory rictus/);
 });
 test('the final relic is different from boss art, all chests are aged and moss-covered',()=>{
  const game=read('public/game.js'),src=read('public/abyssal-rift-hardcore.js'),chest=read('public/rift-treasure.js');
