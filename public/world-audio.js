@@ -42,6 +42,21 @@
  sound('shot-nova',205,.25,'sawtooth',.36,.047,'shot',250,1200);
  sound('shot-ricochet',845,.10,'triangle',1.55,.030,'shot',115,2300);
  sound('shot-default',500,.075,'triangle',.68,.025,'shot',90,1650);
+ // Low-volume locomotion cues follow the equipped anatomical family.
+ // Each channel is rate-limited; rapid movement creates no audio spam.
+ const SWIMMING={
+  fish:[330,'triangle'],shark:[190,'sine'],ray:[410,'sine'],
+  eel:[275,'triangle'],octopus:[135,'sine'],squid:[355,'triangle'],
+  jelly:[595,'sine'],crustacean:[260,'square'],mollusc:[190,'sine'],
+  reptile:[175,'triangle'],benthic:[240,'sine'],signature:[350,'sine']
+ };
+ for(const [family,[pitch,wave]] of Object.entries(SWIMMING)){
+  sound('swim-'+family,pitch,.14,wave,1.12,.014,'swim',900,1150,.06);
+ }
+ // Contact attacks remain unique without attaching expensive per-mob loops.
+ for(const [kind,frequency] of Object.entries({drifter:475,stinger:800,brute:145,lurker:205})){
+  sound('enemy-attack-'+kind,frequency,.21,kind==='stinger'?'square':'triangle',.48,.045,'enemy-attack',300,1000,.13);
+ }
  const TRAPS={
   tentacle:[105,55,'sawtooth',.54,.65],rockfall:[120,78,'triangle',.44,.80],
   spikes:[650,195,'square',.42,.18],electric:[950,335,'square',.31,.08],
