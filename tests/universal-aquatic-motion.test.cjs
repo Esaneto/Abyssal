@@ -92,3 +92,39 @@ test('400-creature tracker hot path is allocation-conscious and bounded',()=>{
  assert.doesNotMatch(source,/Object\.assign\(result/);
  assert.match(source,/state\.phaseTime=now\+state\.phaseOffset/);
 });
+
+test('vertical travel keeps side-on skins upright and does not collapse the body',()=>{
+ for(const family of Object.keys(Motion.PROFILES)){
+  for(const angle of [-Math.PI,-Math.PI/2,-.8,0,.8,Math.PI/2,Math.PI]){
+   const orientation=Motion.anatomicalOrientation(angle,family);
+   assert.equal(orientation.pitch,0,`${family} must not rotate vertically`);
+   assert.equal(Math.abs(orientation.facing),1);
+  }
+ }
+ const tracker=Motion.createTracker({maxEntries:4});
+ const swimmer={id:'vertical-swimmer',kind:'whiteShark',x:100,y:100,angle:0,nominalSpeed:90};
+ tracker.sample(swimmer,1000);
+ const vertical=tracker.sample({...swimmer,y:120},1100);
+ assert.equal(vertical.pitch,0);
+ assert.equal(vertical.facing,1);
+ assert.equal(vertical.facingScale,1);
+ const verticalAgain=tracker.sample({...swimmer,y:140},1200);
+ assert.equal(verticalAgain.facingScale,1);
+ assert.ok(verticalAgain.locomotion>0,'appendages should continue swimming while moving vertically');
+ const left=tracker.sample({...swimmer,x:70,y:140},1300);
+ assert.equal(left.facing,-1);
+ assert.equal(left.facingScale,-1,'turns must not squeeze the animal to zero width');
+ assert.equal(left.pitch,0);
+});
+
+test('marine and legacy renderers do not apply whole-body pitch from travel direction',()=>{
+ const game=fs.readFileSync('public/game.js','utf8');
+ const marine=fs.readFileSync('public/marine-art.js','utf8');
+ const legacy=game.slice(game.indexOf('function applyCreatureVisualTransform('),game.indexOf('let enemyCollisionGrid=',game.indexOf('function applyCreatureVisualTransform(')));
+ const draw=marine.slice(marine.indexOf('function draw(c,x,y,r,'),marine.indexOf('function drawDetails('));
+ assert.match(legacy,/c\.rotate\(Number\(motion\.roll\)\|\|0\)/);
+ assert.doesNotMatch(legacy,/c\.rotate\([^;]*pitch/);
+ assert.match(draw,/c\.rotate\(motion\?\.roll\|\|0\)/);
+ assert.doesNotMatch(draw,/visualPitch|c\.rotate\([^;]*pitch/);
+ assert.match(marine,/const movement=root\.AbyssalSkinMotion\?\.pose\?\.\(s,t,1\)/);
+});
