@@ -276,10 +276,13 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId);
  const shellLevel=clamp(Math.floor(Number(target?.shellLevel)||0),0,3);
  const shellDefense=1-shellLevel*.08;
+ const predatorLevel=clamp(Math.floor(Number(attacker?.predatorLevel)||0),0,3);
+ const preyHpRatio=Number(target?.maxHp)>0?Number(target.hp)/Number(target.maxHp):1;
+ const hunter=1+predatorLevel*.03+(preyHpRatio<=.30?predatorLevel*.06:0);
  const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
  const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
  const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
- return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*skinDefense*shellDefense*lastStandDefense);
+ return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*hunter*skinDefense*shellDefense*lastStandDefense);
 }
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  if(!room||!attacker||!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0)return;
@@ -1388,6 +1391,7 @@ io.on('connection', socket => {
   p.hadalBeamActive = payload.hadalBeamActive === true;
   p.ricochetLevel = clamp(Math.floor(Number(payload.ricochetLevel) || 0), 0, 3);
   p.prismaticLevel = clamp(Math.floor(Number(payload.prismaticLevel) || 0), 0, 3);
+  p.predatorLevel = clamp(Math.floor(Number(payload.predatorLevel) || 0), 0, 3);
   p.electricLevel = clamp(Math.floor(Number(payload.electricLevel) || 0), 0, 3);
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
@@ -1528,7 +1532,7 @@ io.on('connection', socket => {
    shooter.novaShardCount=(Number(shooter.novaShardCount)||0)+1;
    shot.damage=Math.min(shot.damage,Math.max(1,Number(shooter.novaReferenceDamage)||1)*.28/maxShards);
   }
-  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
+  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));shot.hadalBeamActive=shooter.hadalBeamActive===true;}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
    const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
