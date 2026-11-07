@@ -30,6 +30,8 @@ const localGameSmoke = [
 " const boss=activeBosses[0];",
 " if(tier===final && boss.kind!==RIFT_HARDCORE.FINAL_KIND) throw Error('Final guardian mismatch: '+boss.kind);",
 " killEnemy(enemies.indexOf(boss));",
+" // Killing a boss grants XP. Close the real level-up selection before using a portal.",
+" if(gameState==='upgrade' && upgradeOptions.length)chooseUpgrade(upgradeOptions[0]);",
 " if(!cavePortalsUnlocked()) throw Error('Boss victory did not unlock portals in tier '+tier);",
 " const portals=activeMapLayout.portals;",
 " const target=tier===final?portals.surface:portals.boss;",
