@@ -81,7 +81,7 @@ test('movement extrapolation bridges the reliable snapshot baseline without free
   const next = reconcileSnapshot(state, [{ id: 99, kind: 'drifter', x: 108, y: 100, r: 10, hp: 22, maxHp: 22, vx: 80, vy: 0 }], { now: 100, interpolationMs: 100 });
   const held = renderedPosition(next[0], 800);
   assert.ok(held.x > 108, 'enemy continues briefly along its last authoritative velocity');
-  assert.equal(held.x, 122.4, 'extrapolation stays bounded during a delayed mobile packet window');
+  assert.equal(held.x, 117.6, 'extrapolation stays bounded during a delayed mobile packet window');
   assert.equal(require('../public/enemy-netcode.js').MAX_EXTRAPOLATION_MS, 120);
 });
 
