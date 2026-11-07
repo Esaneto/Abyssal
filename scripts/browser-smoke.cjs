@@ -54,7 +54,7 @@ const injected=`<script>
    },300);
    setTimeout(()=>{window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2400,10500);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,23300);check()},2550);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2180,5180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
  });
 })();
 </script>`;
@@ -117,7 +117,8 @@ async function main(){
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
-   if(stage)assert.ok(depth>80,label+' should navigate into the Fossa, depth='+depth);
+   if(stage==='deep')assert.ok(depth>130&&depth<300,label+' should be mid-Fossa, depth='+depth);
+   if(stage==='boss')assert.ok(depth>=320,label+' should reach boss chamber, depth='+depth);
    console.log('[browser-smoke] '+label+' depth='+depth+' elapsed='+page.match(/data-smoke-elapsed="([^"]*)"/)?.[1]+' worldHeight='+page.match(/data-smoke-world-height="([^"]*)"/)?.[1]+' active='+page.match(/data-smoke-rift-playing="([^"]*)"/)?.[1]);
    const screenshot=path.join(output,label+'.png');
    await run(browser,[...common,'--screenshot='+screenshot,scenarioUrl]);
