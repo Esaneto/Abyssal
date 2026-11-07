@@ -12,7 +12,7 @@ EnvironmentFile=/etc/abyssal/abyssal.env
 Environment=NODE_ENV=production
 Environment=ABYSSAL_RESOURCE_PROFILE=hostinger-kvm2
 Environment=ABYSSAL_ASYNC_PERSISTENCE=true
-Environment=UV_THREADPOOL_SIZE=8
+Environment=UV_THREADPOOL_SIZE=4
 Environment=HTTP_BACKLOG=4096
 Environment=NODE_OPTIONS=--max-old-space-size=2048
 ExecStart=/usr/bin/node /opt/abyssal/server.js
