@@ -207,8 +207,8 @@ test('Estuarine Bull Shark defense reduces the strengthened authoritative drifte
   const result=Sim.tickWorld(world,[player],1050);
   const hit=result.playerHits.find(row=>row.playerId===player.id);
   assert.equal(hit?.skillId,'bio-shock');
-  assert.equal(hit?.damage,18);
-  assert.equal(player.hp,82);
+  assert.equal(hit?.damage,19);
+  assert.equal(player.hp,81);
 });
 
 
