@@ -357,6 +357,24 @@ function saveMatchHistoryForUser(user,room,run){
  const record={id:String(run.id||crypto.randomUUID()),roomId:room.id,roomName:room.name||room.id,mode:room.mode,playedAt:new Date().toISOString(),participants};
  user.matchHistory=[record,...(Array.isArray(user.matchHistory)?user.matchHistory:[]).filter(x=>String(x?.id)!==record.id)].slice(0,10);run.historySaved=true;
 }
+// Bundle cosmetic title-progress updates during high-density enemy kill streaks.
+// Damage, XP orbs and death notifications continue to be sent immediately.
+const pendingKillTitleProgress=new WeakMap();
+function sendKillTitleProgress(socket,immediate=false){
+ if(!socket)return;
+ const waiting=pendingKillTitleProgress.get(socket);
+ if(waiting){if(!immediate)return;clearTimeout(waiting);pendingKillTitleProgress.delete(socket);}
+ const emit=()=>{
+  pendingKillTitleProgress.delete(socket);
+  if(!socket.connected||!socket.data?.userKey)return;
+  const account=users[socket.data.userKey];
+  if(account)socket.emit('title-progress',publicTitleProgress(account));
+ };
+ if(immediate){emit();return;}
+ const timer=setTimeout(emit,350);
+ timer.unref?.();
+ pendingKillTitleProgress.set(socket,timer);
+}
 function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':'coop';}
 function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':'classic');}
 function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={}){
@@ -765,7 +783,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;if(boss&&player?.runStats&&!player.runStats.settled){player.runStats.personalBossesKilled=(Number(player.runStats.personalBossesKilled)||0)+1;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.bossesKilled=(Number(historyRow.bossesKilled)||0)+1;}
    scheduleTitleStatsSave();
    if(batch)batch.accountUpdated=true;
-   else socket.emit('title-progress',publicTitleProgress(killer));
+   else sendKillTitleProgress(socket,boss);
   }
   const defeatedEvent={id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,value:enemy.value,color:enemy.color,boss};
   if(batch)batch.defeated.push(defeatedEvent);
@@ -1777,7 +1795,7 @@ io.on('connection', socket => {
    if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
    if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
    if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
-   if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('title-progress',publicTitleProgress(account));}
+   if(batch.accountUpdated)sendKillTitleProgress(socket,batch.defeated.some(enemy=>enemy.boss));
   }
  });
  socket.on('shared-damage', (payload,acknowledge) => {if(socketRoom(socket)?.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}const skillId=String(payload?.skillId||'').slice(0,32);const result=processWorldDamage(socket,Number(payload?.id),Number(payload?.damage),skillId);if(typeof acknowledge==='function')acknowledge(result);});
@@ -1797,7 +1815,7 @@ io.on('connection', socket => {
   if(batch.damaged.length)io.to(channelFor(room)).emit('world-enemies-damaged',batch.damaged);
   if(batch.defeated.length)io.to(channelFor(room)).emit('world-enemies-defeated',batch.defeated);
   if(batch.orbs.length)io.to(channelFor(room)).emit('world-xp-orbs-spawned',batch.orbs);
-  if(batch.accountUpdated){const account=users[socket.data.userKey];if(account)socket.emit('title-progress',publicTitleProgress(account));}
+  if(batch.accountUpdated)sendKillTitleProgress(socket,batch.defeated.some(enemy=>enemy.boss));
   ack({ok:accepted>0,accepted,rejected,defeated:batch.defeated.length});
  });
  socket.on('shared-xp-award', () => {}); // Clientes não podem conceder XP; só o servidor entrega após coletar um orbe.
