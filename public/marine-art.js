@@ -32,7 +32,7 @@ const BIO_ACCENTS=Object.freeze({
  viperfish:'#b3f3da',blackdragon:'#b0ffdb',combjelly:'#a4ffec',
  bluedragon:'#64dfff',yeticrab:'#d6eee3'
 });
-function draw(c,x,y,r,angle,s,t,hit,motionOverride=null){
+function draw(c,x,y,r,angle,s,t,hit,motionOverride=null,followAim=false){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
  const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
@@ -58,13 +58,16 @@ function draw(c,x,y,r,angle,s,t,hit,motionOverride=null){
  }
  c.save();
  const motion=motionOverride||root.AbyssalSkinMotion?.pose?.(s,t,.18);
- const orientation=root.AbyssalSkinMotion?.anatomicalOrientation?.(angle,motion?.family||s?.family)||{facing:1,pitch:Number(angle)||0};
- // Do not rotate the entire anatomy toward the vertical axis.
- // Marine species already articulate their appendages within drawDetails().
- c.translate(x,y);c.rotate(motion?.roll||0);
- // Inexpensive smooth locomotion on every frame. Detailed fins and tendrils
- // still update on the cached 15 FPS anatomical drawing below.
- if(motion){c.scale((Number(motion.facingScale)||orientation.facing||1)*motion.stretchX,motion.stretchY);c.translate(-(motion.recoil||0)*r,r*(motion.bob||0)*.28);}
+ const orientation=root.AbyssalSkinMotion?.anatomicalOrientation?.(angle,motion?.family||s?.family)||{facing:1,pitch:0};
+ // In live play, rotate the complete sprite toward the player's aim, with no
+ // horizontal mirror that could undo the direction of the mouse cursor.
+ // Anatomy and appendages still move independently inside the cached drawing.
+ c.translate(x,y);c.rotate((followAim&&Number.isFinite(angle)?angle:0)+(motion?.roll||0));
+ if(motion){
+  const facing=followAim?1:(Number(motion.facingScale)||orientation.facing||1);
+  c.scale(facing*(motion.stretchX||1),motion.stretchY||1);
+  c.translate(-(motion.recoil||0)*r,r*(motion.bob||0)*.28);
+ }
  c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
  // Avoid neon on every anatomical seam: preserve actual body volume.
  c.shadowBlur=Math.max(4,Math.min(13,r*.32));
