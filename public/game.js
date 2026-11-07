@@ -3123,6 +3123,17 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    eye(.62,-.24,r*.045,'#e8ffff');eye(.62,.24,r*.045,'#e8ffff');
    for(const side of [-1,1]){c.save();c.globalCompositeOperation='lighter';c.globalAlpha=.42+.22*Math.sin(t*.006+side);c.fillStyle='#65f8ff';c.shadowBlur=14*glowScale;c.shadowColor='#38e8ff';c.beginPath();c.ellipse(.14*r,side*.28*r,.3*r,.18*r,0,0,Math.PI*2);c.fill();c.restore();}
    for(let k=0;k<3;k++){const phase=t*.006+k*2.1,sx=(-.55+k*.42)*r,sy=Math.sin(phase)*.18*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+.12*r,sy-.18*r);c.lineTo(sx+.25*r,sy+.08*r)},Math.max(.8,r*.018),'rgba(220,255,255,.92)',8);}
+  } else if(id==='electriceellegacy'){
+   // Classic electric eel rebuilt as one continuous muscular body, with cyan organs
+   // travelling under the skin instead of borrowing the torpedo-ray silhouette.
+   const wave=Math.sin(t*.0065)*.18,pulse=.55+.35*Math.sin(t*.010);
+   fill(()=>{c.moveTo(-2.45*r,wave*r);c.bezierCurveTo(-1.72*r,(-.31+wave)*r,-.62*r,-.30*r,.28*r,-.22*r);c.bezierCurveTo(.82*r,-.19*r,1.22*r,-.16*r,1.48*r,-.05*r);c.quadraticCurveTo(1.62*r,.02*r,1.48*r,.13*r);c.bezierCurveTo(.72*r,.31*r,-.48*r,.35*r,-1.38*r,.25*r);c.bezierCurveTo(-1.92*r,.19*r,-2.20*r,(.13+wave)*r,-2.45*r,wave*r);c.closePath()},bodyGrad('#173d50'),'rgba(127,246,255,.86)',Math.max(1.2,r*.04),13);
+   fill(()=>{c.moveTo(-2.12*r,(.02+wave)*r);c.bezierCurveTo(-1.38*r,(-.49+wave)*r,-.18*r,-.42*r,.86*r,-.24*r);c.bezierCurveTo(-.2*r,-.31*r,-1.32*r,-.30*r,-2.12*r,(.02+wave)*r);c.closePath()},'rgba(31,156,181,.34)','rgba(122,246,255,.44)',Math.max(.7,r*.018),5);
+   fill(()=>{c.moveTo(.58*r,-.22*r);c.quadraticCurveTo(1.20*r,-.29*r,1.55*r,.01*r);c.quadraticCurveTo(1.18*r,.31*r,.58*r,.23*r);c.closePath()},bodyGrad('#245c6d'),'rgba(211,255,255,.9)',Math.max(1,r*.034),8);
+   eye(1.02,-.16,r*.052,'#eaffff');eye(1.02,.16,r*.052,'#eaffff');
+   c.save();c.globalCompositeOperation='lighter';c.strokeStyle=`rgba(101,248,255,${.34+pulse*.48})`;c.shadowBlur=(10+8*pulse)*glowScale;c.shadowColor='#38e8ff';c.lineWidth=Math.max(1.1,r*.026);
+   c.beginPath();c.moveTo(-1.92*r,wave*r);for(let j=0;j<=10;j++){const xx=(-1.75+j*.25)*r,yy=(Math.sin(t*.011+j*1.7)*.12)*r;c.lineTo(xx,yy);}c.stroke();c.restore();
+   for(let k=0;k<4;k++){const phase=t*.012+k*1.65,sx=(-1.4+k*.55)*r,sy=Math.sin(phase)*.15*r;stroke(()=>{c.moveTo(sx,sy);c.lineTo(sx+.10*r,sy-.17*r);c.lineTo(sx+.22*r,sy+.08*r)},Math.max(.8,r*.018),'rgba(225,255,255,.95)',9);}
   } else if(id==='greensnake'){
    // Giant emerald moray: continuous dorsal fin, sinuous body and a compact predatory head.
    const wave=Math.sin(t*.006)*.16;
