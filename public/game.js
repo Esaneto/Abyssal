@@ -1784,7 +1784,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   }
 
 
-  if(equippedSkin==='greensnake' && enemy && enemy.hp > 0) {
+  if(equippedSkin==='greensnake' && enemy && enemy.hp > 0 && !options.secondary && !['poison-dot','toxic-cloud','pelagic-wake','blue-ring-ink'].includes(String(skillId||''))) {
     enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 3.5);
   }
 
