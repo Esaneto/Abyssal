@@ -59,11 +59,12 @@ function draw(c,x,y,r,angle,s,t,hit,motionOverride=null){
  c.save();
  const motion=motionOverride||root.AbyssalSkinMotion?.pose?.(s,t,.18);
  const orientation=root.AbyssalSkinMotion?.anatomicalOrientation?.(angle,motion?.family||s?.family)||{facing:1,pitch:Number(angle)||0};
- const visualPitch=Number.isFinite(Number(motion?.pitch))?Number(motion.pitch):orientation.pitch;
- c.translate(x,y);c.rotate(visualPitch+(motion?.roll||0));
+ // Do not rotate the entire anatomy toward the vertical axis.
+ // Marine species already articulate their appendages within drawDetails().
+ c.translate(x,y);c.rotate(motion?.roll||0);
  // Inexpensive smooth locomotion on every frame. Detailed fins and tendrils
  // still update on the cached 15 FPS anatomical drawing below.
- if(motion){c.scale((Number(motion.facingScale)||orientation.facing||1)*motion.stretchX,motion.stretchY);c.translate(-(motion.recoil||0)*r,r*motion.bob);}
+ if(motion){c.scale((Number(motion.facingScale)||orientation.facing||1)*motion.stretchX,motion.stretchY);c.translate(-(motion.recoil||0)*r,r*(motion.bob||0)*.28);}
  c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
  // Avoid neon on every anatomical seam: preserve actual body volume.
  c.shadowBlur=Math.max(4,Math.min(13,r*.32));
