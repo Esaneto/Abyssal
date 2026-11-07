@@ -244,7 +244,7 @@ test('online pulse batches PvE damage instead of broadcasting every target indep
 });
 
 test('ricochet only participates in canonical shot damage', () => {
- assert.match(server,/RICOCHET_SHOT_SKILLS=new Set\(\['electric','pierce','spread','photon','photonRay','nova','echoShot'\]\)/);
+ assert.match(server,/RICOCHET_SHOT_SKILLS=new Set\(\['electric','pierce','photon','photonRay','nova','echoShot'\]\)/);
  assert.match(server,/RICOCHET_SHOT_SKILLS\.has\(String\(skillId\|\|''\)\)/);
 });
 
