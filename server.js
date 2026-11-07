@@ -33,13 +33,15 @@ const RESOURCE_PROFILE=String(process.env.ABYSSAL_RESOURCE_PROFILE||'generic');
 const HTTP_BACKLOG=clamp(Math.floor(Number(process.env.HTTP_BACKLOG)||1024),128,16384);
 const DATABASE_POOL_MAX=clamp(Math.floor(Number(process.env.DATABASE_POOL_MAX)||5),1,20);
 const LIBUV_THREADPOOL_SIZE=clamp(Math.floor(Number(process.env.UV_THREADPOOL_SIZE)||4),1,128);
-let lastCpuUsage=process.cpuUsage(),lastCpuSampleAt=process.hrtime.bigint();
-let processCpuSample={processPercent:0,hostCapacityPercent:0};
+let lastCpuUsage=process.cpuUsage(),lastCpuSampleAt=process.hrtime.bigint(),lastElu=performance.eventLoopUtilization();
+let processCpuSample={processPercent:0,hostCapacityPercent:0},eventLoopUtilizationSample=0;
 const cpuSampler=setInterval(()=>{
  const now=process.hrtime.bigint(),elapsedUs=Math.max(1,Number(now-lastCpuSampleAt)/1000),usage=process.cpuUsage(lastCpuUsage);
  const processPercent=((usage.user+usage.system)/elapsedUs)*100;
+ const elu=performance.eventLoopUtilization(lastElu);
  processCpuSample={processPercent:Number(processPercent.toFixed(2)),hostCapacityPercent:Number((processPercent/Math.max(1,HOST_CPU_COUNT)).toFixed(2))};
- lastCpuUsage=process.cpuUsage();lastCpuSampleAt=now;
+ eventLoopUtilizationSample=Number(elu.utilization.toFixed(4));
+ lastCpuUsage=process.cpuUsage();lastCpuSampleAt=now;lastElu=performance.eventLoopUtilization();
 },1000);
 cpuSampler.unref?.();
 const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
@@ -219,7 +221,18 @@ async function refreshDeployResumeFromPersistence(userKey){
  }catch(err){console.error('[deploy] Falha ao atualizar retomada persistida:',err.message);}
  return users[userKey]||null;
 }
-function hashPassword(password,salt){return new Promise(resolve=>crypto.scrypt(password,salt,64,(error,key)=>{if(error){console.error('[auth] scrypt falhou:',error.message);return resolve(null);}resolve(key.toString('hex'));}));}
+let passwordHashQueue=Promise.resolve(),passwordHashPending=0;
+const MAX_PENDING_PASSWORD_HASHES=32;
+function hashPassword(password,salt){
+ if(passwordHashPending>=MAX_PENDING_PASSWORD_HASHES)return Promise.resolve(null);
+ passwordHashPending++;
+ const job=passwordHashQueue.then(()=>new Promise(resolve=>crypto.scrypt(password,salt,64,(error,key)=>{
+  if(error){console.error('[auth] scrypt falhou:',error.message);return resolve(null);}
+  resolve(key.toString('hex'));
+ })));
+ passwordHashQueue=job.catch(()=>null);
+ return job.finally(()=>{passwordHashPending=Math.max(0,passwordHashPending-1);});
+}
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
 function issueSessionToken(user) {
@@ -299,7 +312,7 @@ if (typeof app.post === 'function') {
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
 function resourceHealthPayload(){
- const memory=process.memoryUsage(),load=os.loadavg(),elu=performance.eventLoopUtilization();
+ const memory=process.memoryUsage(),load=os.loadavg();
  return {
   profile:RESOURCE_PROFILE,
   node:process.version,
@@ -307,7 +320,8 @@ function resourceHealthPayload(){
   uptimeSec:Math.floor(process.uptime()),
   cpu:{available:HOST_CPU_COUNT,processPercent:processCpuSample.processPercent,hostCapacityPercent:processCpuSample.hostCapacityPercent,load1:Number(load[0].toFixed(2)),load5:Number(load[1].toFixed(2)),load15:Number(load[2].toFixed(2))},
   memory:{rssMB:Number((memory.rss/1048576).toFixed(1)),heapUsedMB:Number((memory.heapUsed/1048576).toFixed(1)),heapTotalMB:Number((memory.heapTotal/1048576).toFixed(1)),externalMB:Number((memory.external/1048576).toFixed(1))},
-  eventLoopUtilization:Number(elu.utilization.toFixed(4)),
+  eventLoopUtilization:eventLoopUtilizationSample,
+  authHashPending:passwordHashPending,
   libuvThreadpoolSize:LIBUV_THREADPOOL_SIZE,
   persistenceWorker:{enabled:ASYNC_PERSISTENCE_ENABLED,active:Boolean(persistenceWorker),pending:persistenceWorkerJobs.size},
   databasePoolMax:DATABASE_POOL_MAX,
