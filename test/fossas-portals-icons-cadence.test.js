@@ -52,9 +52,9 @@ test('both physical boss portal destinations are navigable and visually labeled'
 });
 
 test('standardized trail and poison use bounded active cadence instead of permanent passives',()=>{
- assert.match(game,/bubble\.skinActive \? \.60 : BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(game,/bubble\.skinActive\?600:BUBBLE_TRAIL_HIT_MS/);
- assert.match(server,/bubble\.skinActive\?600:BUBBLE_TRAIL_HIT_MS/);
+ assert.match(game,/bubble\.damageTimer=\.60/);
+ assert.match(game,/wakeHitAt\|\|0\)>=600/);
+ assert.match(server,/BUBBLE_TRAIL_HIT_MS=600/);
  assert.match(server,/life:3\.2,damageTimer:\.45,skinActive:true/);
  assert.match(server,/active==='poison'/);assert.match(server,/\[800,1600,2400\]/);
  assert.doesNotMatch(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
