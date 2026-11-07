@@ -14,6 +14,7 @@ const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
+const SkinStandard = require('./public/skin-standard.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
@@ -460,7 +461,7 @@ const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const FOSSAS_ROOM_ID = 'MAR-ABYSSAL';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
-const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake','saltcroc','blackcaiman']);
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','electriceellegacy','greensnake','saltcroc','blackcaiman']);
 for(const skin of curatedSkins.items)allowedSkinIds.add(skin.id);
 allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
