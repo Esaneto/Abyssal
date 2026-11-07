@@ -23,13 +23,14 @@ const injected=`<script>
  window.addEventListener('unhandledrejection',event=>errors.push(String(event.reason)));
  const check=()=>{
   const canvas=document.getElementById('game'),active=document.body.classList.contains('game-active');
-  document.body.dataset.smokeStatus=active&&canvas&&canvas.width>50&&canvas.height>50?'playing':'not-playing';
+  document.body.dataset.smokeStatus=active&&canvas&&canvas.width>50&&canvas.height>50&&!document.body.classList.contains('abyssal-tutorial-open')?'playing':'not-playing';
   document.body.dataset.smokeCanvas=(canvas?canvas.width+'x'+canvas.height:'missing');
   document.body.dataset.smokeError=errors.filter(e=>/Abyssal frame error|ReferenceError|TypeError|SyntaxError/i.test(e)).slice(0,2).join('|').slice(0,180);
  };
  setInterval(check,350);
  window.addEventListener('load',()=>{
    setTimeout(()=>{window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));check()},950);
+   setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
  });
 })();
 </script>`;
