@@ -57,7 +57,11 @@ function draw(c,x,y,r,angle,s,t,hit){
   entry.frame=frame;
  }
  c.save();
- c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);
+ const motion=root.AbyssalSkinMotion?.pose?.(s,t,1);
+ c.translate(x,y);c.rotate((Number.isFinite(angle)?angle:0)+(motion?.roll||0));
+ // Inexpensive smooth locomotion on every frame. Detailed fins and tendrils
+ // still update on the cached 15 FPS anatomical drawing below.
+ if(motion){c.translate(0,r*motion.bob);c.scale(motion.stretchX,motion.stretchY);}
  c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
  // Avoid neon on every anatomical seam: preserve actual body volume.
  c.shadowBlur=Math.max(4,Math.min(13,r*.32));
@@ -66,7 +70,10 @@ function draw(c,x,y,r,angle,s,t,hit){
 }
 function drawDetails(c,x,y,r,angle,s,t,hit){
  c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);
- const variant=s.morph||1,phase=(Number(t)||0)*.003;
+ // Independent species phases prevent a shoal of unrelated animals swimming
+ // in mechanical lockstep; family rigs drive each appendage through time.
+ const movement=root.AbyssalSkinMotion?.pose?.(s,t,1);
+ const variant=s.morph||1,phase=movement?.phase??(Number(t)||0)*.003;
  const ink=pigment(s.color,'#06131e',.85),light=pigment(s.color,'#f3fbef',.61);
  const swim=Math.sin(phase*2.0),strokeSway=Math.sin(phase*.83);
  const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);
