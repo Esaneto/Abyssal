@@ -1,12 +1,11 @@
 /* Local/installed Abyssal: solo and solo trenches remain playable without Wi-Fi. */
 (function(){
   'use strict';
-  var GAME_URL='https://abyssal-ej5j.onrender.com';
   var protocol=window.location.protocol;
   var localDesktop=protocol==='abyssal:'||protocol==='file:';
   var capacitor=Boolean(window.Capacitor && typeof window.Capacitor.isNativePlatform==='function' && window.Capacitor.isNativePlatform());
   var nativeAssets=localDesktop||capacitor||(protocol==='https:'&&window.location.hostname==='localhost');
-  if(nativeAssets) window.ABYSSAL_SERVER_URL=GAME_URL;
+  if(nativeAssets&&!window.ABYSSAL_SERVER_URL) window.ABYSSAL_SERVER_URL=window.ABYSSAL_SERVER_CONFIG?.nativeUrl||window.location.origin;
 
   var message;
   function update(){
