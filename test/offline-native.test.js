@@ -38,7 +38,7 @@ test('offline web shell caches the complete solo game and ignores account APIs',
  let installPromise;
  events.install({waitUntil:p=>{installPromise=p;}});
  await installPromise;
- for(const asset of ['index.html','game.js','online.js','abyssal-map.js','offline-ui.js','offline-ui.css']){
+ for(const asset of ['index.html','game.js','online.js','abyssal-map.js','offline-ui.js','offline-ui.css','server-config.js']){
   assert.ok(stored.has(asset),'Game unavailable offline: '+asset);
  }
  async function simulate(url,mode='cors'){
@@ -73,6 +73,9 @@ test('Android Capacitor and Electron carry local web assets, not only remote URL
  assert.match(main,/mainWindow\.loadURL\(GAME_URL\)\.catch\(loadLocal\)/);
  assert.match(main,/code !== -3/);
  assert.match(main,/localWebRoot\(\)/);
+ assert.match(main,/configuredGameUrl\(\)/);
+ assert.doesNotMatch(main,/abyssal-ej5j\.onrender\.com/);
+ assert.match(read('public/server-config.js'),/DEFAULT_NATIVE_SERVER_URL/);
  assert.match(windowsCi,/desktop\/dist\/win-unpacked\/resources\/offline-web/);
  assert.match(androidCi,/android\/app\/src\/main\/assets\/public\/index\.html/);
 });
