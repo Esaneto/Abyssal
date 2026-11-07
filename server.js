@@ -1358,15 +1358,17 @@ io.on('connection', socket => {
    if(w.enemies.some(enemy=>BOSS_KINDS.has(enemy.kind)))return reply({ok:false,reason:'boss-alive'});
    const currentTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
    if(Math.max(0,Math.floor(Number(w.bossesDefeated)||0))<=currentTier)return reply({ok:false,reason:'boss-not-cleared'});
+   // The portal moves the entire cooperative party together. Previously
+   // EVERY player had to overlap the small portal, so one blocked teammate
+   // prevented the entire group from descending.
    const party=livingPlayers(room);
-   const allReady=party.every(peer=>Math.hypot(Number(peer.x)-source.x,Number(peer.y)-source.y)<=Number(source.r)+(Number(peer.r)||13/WORLD_ZOOM)+38/WORLD_ZOOM);
-   if(!allReady)return reply({ok:false,reason:'group-not-ready'});
+   if(!party.length)return reply({ok:false,reason:'no-active-players'});
    w.mapTier=currentTier+1;w.enemies=[];w.commonSpawnTimer=Infinity;w.nextBossAt=Infinity;w.riftEncountersSeeded=false;w.riftActivatedRooms={};
    w.snapshotTimer=0;w.reliableSnapshotTimer=0;w.sideEncounterId=null;
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
    party.forEach((peer,index)=>{
     const spawn=AbyssalMap.startSpawn(nextLayout,index,party.length);
-    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+180;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;peer.riftCheckpointRoomId='start';
+    peer.x=spawn.x;peer.y=spawn.y;peer.velocityX=0;peer.velocityY=0;peer.positionResumeGraceUntil=now+1800;peer.lastPositionAt=now;peer.lastMapTransitionAt=now;peer.movementBudget=DEFAULT_CAPACITY;peer.movementBudgetAt=now;peer.riftCheckpointRoomId='start';
     io.to(peer.id).emit('map-transition-result',{ok:true,kind:'next-tier',x:peer.x,y:peer.y,map:descriptor,tier:w.mapTier,serverTime:now});
    });
    io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
