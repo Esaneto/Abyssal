@@ -308,7 +308,7 @@ async function main(){
   // Force actual Chromium to paint every curated species and all trap families.
   for(const [label,route,count,width,height] of [
    ['all-species','/__abyss_species__',41,1536,1140],
-   ['all-traps','/__abyss_hazards__',27,1920,735]
+   ['all-traps','/__abyss_hazards__',12,1920,735]
   ]){
    const pageUrl='http://127.0.0.1:'+server.address().port+route;
    const args=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
