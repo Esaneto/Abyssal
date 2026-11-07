@@ -25,7 +25,7 @@ test('Photon Ray remote pulses reuse a single effect per connection and do not e
  assert.match(game,/existing\.life=PHOTON_RAY_VISUAL\.remoteHold/);
  assert.match(game,/localPhotonBeam/);
  assert.match(online,/data\.fromId!==socket\?\.id/);
- assert.match(read('server.js'),/if\(shot\.special==='photonRay'\)io\.to\(channelFor\(room\)\)\.emit\('shared-shot',shot\)/);
+ assert.match(read('server.js'),/if\(shot\.special==='photonRay'\|\|room\.mode==='pvp'\)io\.to\(channelFor\(room\)\)\.emit\('shared-shot',shot\)/);
 });
 
 test('Server computes safe beam endpoints for cursor-directed cooperative and PvP rays',()=>{
