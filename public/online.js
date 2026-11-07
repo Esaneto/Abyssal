@@ -318,6 +318,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('shared-shot',data=>{if(data&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
  socket.on('photon-ray-stop',data=>{if(data?.fromId&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-photon-stop',{detail:data}))});
  socket.on('peer-skin-ability',data=>{if(data&&typeof data==='object'){data.receivedAt=Date.now();}window.dispatchEvent(new CustomEvent('abyssal-peer-skin-ability',{detail:data||{}}));});
+socket.on('skin-shot-telegraph',data=>window.dispatchEvent(new CustomEvent('abyssal-skin-shot-telegraph',{detail:data||{}})));
+socket.on('player-skin-status',data=>window.dispatchEvent(new CustomEvent('abyssal-player-skin-status',{detail:data||{}})));
  socket.on('server-message',m=>{if(window.AbyssalGameHooks?.toast)window.AbyssalGameHooks.toast(m)});
  socket.on('account-deletion-result',result=>{
   const message=result?.message||'Não foi possível excluir a conta.';
