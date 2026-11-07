@@ -97,7 +97,7 @@ const items=[
     "color": "#68729b",
     "stat": "magnet",
     "multiplier": 1.3,
-    "ability": "Braços coletores: +30% de atração de orbes, +7% de dano.",
+    "ability": "Braços coletores: +15% de experiência recebida automaticamente, +7% de dano.",
     "price": 69000,
     "paid": false,
     "desc": "Medusa gigante translúcida de cúpula ampla e cinco longos braços orais em véus quase invisíveis, acompanhados de filamentos que flutuam pela escuridão.",
@@ -212,7 +212,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Tubarão-da-Groenlândia: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Tubarão-da-Groenlândia: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 92000,
     "paid": false,
     "collection": "shop",
@@ -270,7 +270,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Raia-Viola: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Raia-Viola: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 102500,
     "paid": false,
     "collection": "shop",
@@ -328,7 +328,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Enguia-Dente-de-Cão: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Enguia-Dente-de-Cão: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 113000,
     "paid": false,
     "collection": "shop",
@@ -424,7 +424,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Caravela Abissal: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Caravela Abissal: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 134000,
     "paid": false,
     "collection": "shop",
@@ -482,7 +482,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Camarão-Pistola: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Camarão-Pistola: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 144500,
     "paid": false,
     "collection": "shop",
@@ -540,7 +540,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Búzio das Fossas: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Búzio das Fossas: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 155000,
     "paid": false,
     "collection": "shop",
@@ -598,7 +598,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Tartaruga-de-Pente: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Tartaruga-de-Pente: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 165500,
     "paid": false,
     "collection": "shop",
@@ -656,7 +656,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Lula-Chicote: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Lula-Chicote: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 176000,
     "paid": false,
     "collection": "shop",
@@ -714,7 +714,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Peixe-Machado: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Peixe-Machado: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 186500,
     "paid": false,
     "collection": "shop",
@@ -772,7 +772,7 @@ const items=[
       "magnet": 1.25,
       "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Pepino-do-Mar Hadal: +18% de alcance, +25% de atração de orbes, +4% de dano.",
+    "ability": "Sentidos da escuridão de Pepino-do-Mar Hadal: +18% de alcance, +12,5% de experiência recebida automaticamente, +4% de dano.",
     "price": 197000,
     "paid": false,
     "collection": "shop",
