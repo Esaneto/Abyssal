@@ -375,26 +375,6 @@ const items=[
     "renderer": "marine"
   },
   {
-    "id": "bluering",
-    "name": "Polvo-de-Anéis-Azuis",
-    "family": "octopus",
-    "color": "#427da6",
-    "stat": "range",
-    "multiplier": 1.44,
-    "bonuses": {
-      "range": 1.44,
-      "magnet": 1.55,
-      "damage": 1.09
-    },
-    "ability": "Sentidos da escuridão de Polvo-de-Anéis-Azuis: +44% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +9% de dano.",
-    "price": 123500,
-    "paid": false,
-    "collection": "shop",
-    "morph": 3,
-    "desc": "Polvo-de-Anéis-Azuis: adaptação fantástica às Fossas, com anatomia de polvo, placas sombreadas e fotóforos em azul-cobalto.",
-    "renderer": "marine"
-  },
-  {
     "id": "combjelly",
     "name": "Medusa-Pente",
     "family": "jelly",
