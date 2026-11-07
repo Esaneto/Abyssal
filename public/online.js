@@ -348,7 +348,8 @@ function publishMergedRooms(){
  }
  if(!clean.has('MAR-ABERTO'))clean.set('MAR-ABERTO',{id:'MAR-ABERTO',code:'MAR-ABERTO',name:'Mar Aberto',mode:'coop',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
  if(!clean.has('MAR-VERMELHO'))clean.set('MAR-VERMELHO',{id:'MAR-VERMELHO',code:'MAR-VERMELHO',name:'Mar Vermelho',mode:'pvp',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
- list=[...clean.values()].sort((a,b)=>{const priority=id=>id==='MAR-ABERTO'?0:id==='MAR-VERMELHO'?1:2;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0);});
+ if(!clean.has('MAR-ABYSSAL'))clean.set('MAR-ABYSSAL',{id:'MAR-ABYSSAL',code:'MAR-ABYSSAL',name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
+ list=[...clean.values()].sort((a,b)=>{const priority=id=>id==='MAR-ABERTO'?0:id==='MAR-VERMELHO'?1:id==='MAR-ABYSSAL'?2:3;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0);});
  window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:list}));
 }
 function refreshRoomsHttp(){
