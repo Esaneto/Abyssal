@@ -126,7 +126,22 @@ test('monster death does not rebuild hidden account screens or retain animation 
   assert.match(online, /socket\.on\('title-progress'/);
   assert.match(online, /profileScreen'\)\&&!\$\('profileScreen'\)\.hidden\)renderProfile/);
   assert.doesNotMatch(server, /else socket\.emit\('account-data',publicUser\(killer\)\)/);
-  assert.match(server, /else socket\.emit\('title-progress',publicTitleProgress\(killer\)\)/);
+  // Single kills share one small title update per short window; boss kills flush immediately.
+  assert.match(server, /else sendKillTitleProgress\(socket,boss\)/);
+  assert.match(server, /const pendingKillTitleProgress=new WeakMap\(\)/);
+  assert.match(server, /const timer=setTimeout\(emit,350\)/);
+  assert.match(server, /if\(immediate\)\{emit\(\);return;\}/);
+  assert.match(server, /sendKillTitleProgress\(socket,batch\.defeated\.some\(enemy=>enemy\.boss\)\)/);
   assert.match(game, /aquaticMotionTracker\?\.forget\?\.\(e\.id\)/);
   assert.match(game, /aquaticMotionTracker\?\.forget\?\.\(id\)/);
+});
+
+test('single enemy death does not allocate another enemy-array copy', () => {
+  const game = read('public/game.js');
+  const single = game.slice(game.indexOf("window.addEventListener('abyssal-world-defeated'"), game.indexOf("window.addEventListener('abyssal-world-defeated-batch'"));
+  const batch = game.slice(game.indexOf("window.addEventListener('abyssal-world-defeated-batch'"), game.indexOf("function renderShop()", game.indexOf("window.addEventListener('abyssal-world-defeated-batch'")));
+  assert.match(single, /const deadIndex=enemies\.findIndex\(/);
+  assert.match(single, /if\(deadIndex>=0\)enemies\.splice\(deadIndex,1\)/);
+  assert.doesNotMatch(single, /enemies=enemies\.filter\(/);
+  assert.match(batch, /if\(defeatedIds\.size\)enemies=enemies\.filter/);
 });
