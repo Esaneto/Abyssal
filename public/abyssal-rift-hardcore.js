@@ -309,9 +309,23 @@ function build(layout,tier=0){
    if(mount)add(wallGeometry(layout,mount,type),type,room.id,i);
   }
  }
+ // The vortex is reserved first. Corridor traps cannot displace it.
+ // The only unattached threat lives ACROSS a corridor, exactly where players
+ // travel. It spans both sides of the narrow passage instead of a mob room.
+ for(const i of [2,5]){
+  const corridor=layout.corridors?.[i],path=corridor?.path;
+  if(!path||path.length<4)continue;
+  const a=path[1],b=path[2],vx=b.x-a.x,vy=b.y-a.y,
+    x=(a.x+b.x)*.5,y=(a.y+b.y)*.5,angle=Math.atan2(vy,vx);
+  if(blocked.some(p=>Math.hypot(p.x-x,p.y-y)<p.r+120))continue;
+  const halfWidth=Math.max(110,Number(corridor.width)||150);
+  add({x,y,angle,passageWidth:halfWidth,axialRadius:Math.min(165,Math.hypot(vx,vy)*.48),
+    acrossRadius:halfWidth*.985,wallKind:'passage-floor'},
+    'vortex','passage:'+corridor.a+'-'+corridor.b,i+1000);
+ }
  // Collapsing roofs and electric fissures intercept actual narrow passages.
  for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(i===0||i%3!==2||Number(passage.width)>215)continue;
+  if(i===0||i%5!==3||Number(passage.width)>215)continue;
   const anchor=passageCeilingMount(layout,passage,i,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'rockfall'),'rockfall','passage:'+passage.a+'-'+passage.b,i+350);
  }
@@ -334,19 +348,6 @@ function build(layout,tier=0){
   if(i===0||i%3!==1||Number(passage.width)>195)continue;
   const anchor=corridorMount(layout,passage,i,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'volcano'),'volcano','passage:'+passage.a+'-'+passage.b,i);
- }
- // The only unattached threat lives ACROSS a corridor, exactly where players
- // travel. It spans both sides of the narrow passage instead of a mob room.
- for(const i of [2,5]){
-  const corridor=layout.corridors?.[i],path=corridor?.path;
-  if(!path||path.length<4)continue;
-  const a=path[1],b=path[2],vx=b.x-a.x,vy=b.y-a.y,
-    x=(a.x+b.x)*.5,y=(a.y+b.y)*.5,angle=Math.atan2(vy,vx);
-  if(blocked.some(p=>Math.hypot(p.x-x,p.y-y)<p.r+120))continue;
-  const halfWidth=Math.max(110,Number(corridor.width)||150);
-  add({x,y,angle,passageWidth:halfWidth,axialRadius:Math.min(165,Math.hypot(vx,vy)*.48),
-    acrossRadius:halfWidth*.985,wallKind:'passage-floor'},
-    'vortex','passage:'+corridor.a+'-'+corridor.b,i+1000);
  }
  if(layoutCache.size>16)layoutCache.clear();
  layoutCache.set(key,hazards);
