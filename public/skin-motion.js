@@ -101,14 +101,23 @@
   function sample(entity,ms=0){
    const id=String(entity?.id||entity?.kind||'creature'),family=familyForEntity(entity);
    let state=states.get(id);
-   if(!state){const motionHash=hashId(id);state={id,family,motionHash,phaseOffset:(motionHash%4096)*1.37,orientation:{},x:Number(entity?.x)||0,y:Number(entity?.y)||0,at:Number(ms)||0,locomotion:.12,facing:1,facingScale:1,pitch:0,motionAngle:Number(entity?.angle)||0};states.set(id,state);if(states.size>maxEntries)states.delete(states.keys().next().value);}
+   if(!state){const motionHash=hashId(id),initialHeading=Number(entity?.angle)||0;state={id,family,motionHash,phaseOffset:(motionHash%4096)*1.37,orientation:{},x:Number(entity?.x)||0,y:Number(entity?.y)||0,at:Number(ms)||0,locomotion:.12,facing:1,facingScale:1,pitch:0,motionAngle:initialHeading,heading:initialHeading};states.set(id,state);if(states.size>maxEntries)states.delete(states.keys().next().value);}
    const now=Number(ms)||0,dt=clamp((now-state.at)/1000,.001,.1),x=Number(entity?.x)||0,y=Number(entity?.y)||0;
-   const dx=x-state.x,dy=y-state.y,speed=Math.hypot(dx,dy)/dt,nominal=Math.max(1,Number(entity?.nominalSpeed)||90);
+   const dx=x-state.x,dy=y-state.y,distance=Math.hypot(dx,dy),speed=distance/dt,nominal=Math.max(1,Number(entity?.nominalSpeed)||90);
    const target=entity?.preview ? .18 : clamp(speed/nominal,0,1);
    const response=target>state.locomotion?8:4;
    state.locomotion+=(target-state.locomotion)*(1-Math.exp(-response*dt));
-   if(speed>nominal*.025)state.motionAngle=Math.atan2(dy,dx);
-   else if(!Number.isFinite(state.motionAngle))state.motionAngle=Number(entity?.angle)||0;
+   // Point the entire monster toward its actual movement, rather than only
+   // flipping the cached sprite left/right. Keep the previous heading at rest
+   // and interpolate the shortest arc to avoid jitter across +/-PI.
+   if(speed>nominal*.025&&distance>.18){
+    state.motionAngle=Math.atan2(dy,dx);
+    if(distance>Math.max(90,nominal*dt*5))state.heading=state.motionAngle;
+    else{
+     const delta=Math.atan2(Math.sin(state.motionAngle-state.heading),Math.cos(state.motionAngle-state.heading));
+     state.heading+=delta*(1-Math.exp(-13*dt));
+    }
+   }else if(!Number.isFinite(state.motionAngle))state.motionAngle=Number(entity?.angle)||0;
    const orientation=anatomicalOrientation(state.motionAngle,family,state.orientation);
    // Vertical travel must not change the facing side; no collapse-to-zero
    // scale transition when flipping, which looked like a stiff swimming pose.
