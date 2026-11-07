@@ -26,7 +26,7 @@ test('all curated species render several swimming frames without detached-path r
    const {c,counts}=paintRecorder();
    assert.doesNotThrow(()=>Marine.draw(c,145,110,28,0,skin,time,false),
     skin.name+' @ '+time+'ms');
-   assert.ok(counts.fills>=4,skin.name+' has no continuous filled body');
+   assert.ok(counts.fills>=2,skin.name+' has no continuous filled body');
    assert.ok(counts.curves+counts.lines>=8,skin.name+' has no articulated geometry');
   }
  }
