@@ -29,7 +29,7 @@ function open(account,id,rng=randomInt){
    owned.add(randomSkinId);
    account.ownedSkins=[...owned];
    account.coins=(Number(account.coins)||0)+100000;
-   reward={type:'final',amount:100000,nightmareSkinId:FINAL_SKIN,nightmareDuplicate,randomSkinId,randomDuplicate};
+   reward={type:'final',amount:100000,skinId:FINAL_SKIN,nightmareSkinId:FINAL_SKIN,nightmareDuplicate,randomSkinId,randomDuplicate};
  }else if(rng(100)<SKIN_CHANCE&&available.length){const skin=available[rng(available.length)];account.ownedSkins=[...(account.ownedSkins||['default']),skin];reward={type:'skin',id:skin};}
  else {const amount=COINS[rng(COINS.length)];account.coins=(account.coins||0)+amount;reward={type:'coins',amount};}
  chest.reward=reward;chest.openedAt=Date.now();return {ok:true,reward};
