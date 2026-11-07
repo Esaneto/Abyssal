@@ -202,4 +202,4 @@ jobs:
           node --check server.js
           node --check state-persistence-worker.js
           node --check scripts/hostinger-preflight.cjs
-          node --test tests/hostinger-readiness.test.cjs tests/server-runtime.test.cjs
+          npm test
