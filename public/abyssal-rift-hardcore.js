@@ -604,6 +604,31 @@ function deepCurrentPit(c,h,s,t){
  }
  c.restore();
 }
+// Shared material/ventosa geometry: wall tentacles and Nightmare backdrop.
+function drawNightmareArm(c,points,r,last,opacity=1){
+ if(last<1||points.length<2)return;
+ c.save();c.globalAlpha*=opacity;c.lineCap='round';c.lineJoin='round';
+ for(let i=1;i<=last;i++){
+  const a=points[i-1],b=points[i],p=(i-.5)/32,width=suctionRadius({radius:r},p)*2;
+  const g=c.createLinearGradient(a.x-r*.3,a.y-r*.3,b.x+r*.3,b.y+r*.3);
+  g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
+  c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
+  c.strokeStyle=g;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;c.stroke();c.shadowBlur=0;
+  c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
+ }
+ for(let i=2;i<=last;i+=2){
+  const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
+  const nx=-dy/den,ny=dx/den,p=i/32,thick=suctionRadius({radius:r},p);
+  for(const sign of [-1,1]){
+   const sx=b.x+nx*thick*.63*sign,sy=b.y+ny*thick*.63*sign,rr=Math.max(1.7,thick*.19);
+   c.fillStyle='#c69dde';c.strokeStyle='#40145b';c.lineWidth=Math.max(.9,rr*.22);
+   c.beginPath();c.ellipse(sx,sy,rr,rr*.79,Math.atan2(dy,dx),0,Math.PI*2);c.fill();c.stroke();
+   c.strokeStyle='rgba(238,195,251,.84)';c.lineWidth=Math.max(.8,rr*.15);c.beginPath();c.ellipse(sx,sy,rr*.75,rr*.5,Math.atan2(dy,dx),0,Math.PI*2);c.stroke();
+   c.fillStyle='#280a45';c.beginPath();c.ellipse(sx,sy,rr*.42,rr*.36,Math.atan2(dy,dx),0,Math.PI*2);c.fill();
+  }
+ }
+ c.restore();
+}
 function tentacleTrap(c,original,s,t){
  const h=hazardAtCycle(original,s.cycle),r=h.radius,points=tentaclePath(original,s);
  if(!Number.isFinite(h.sourceX)||points.length<2)return;
@@ -628,35 +653,8 @@ function tentacleTrap(c,original,s,t){
   c.strokeStyle='rgba(235,38,74,'+(.008+.19*s.progress*s.progress)+')';c.lineWidth=r*.98;c.shadowBlur=0;c.stroke();
  }
  if(s.phase==='active'){
-  const reach=extension(h,s),last=Math.min(32,Math.ceil(reach*32));
-  if(last>=1){
-   c.lineCap='round';c.lineJoin='round';
-   for(let i=1;i<=last;i++){
-    const a=points[i-1],b=points[i],p=(i-.5)/32;
-    const width=suctionRadius(h,p)*2;
-    const segmentColor=c.createLinearGradient(a.x-r*.3,a.y-r*.3,b.x+r*.3,b.y+r*.3);
-    segmentColor.addColorStop(0,'rgba(86,28,135,.75)');
-    segmentColor.addColorStop(.54,'rgba(157,82,203,.80)');
-    segmentColor.addColorStop(1,'rgba(195,125,221,.61)');
-    c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();
-    c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-    c.strokeStyle=segmentColor;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;
-    c.stroke();c.shadowBlur=0;
-    c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
-   }
-   // Two tapering rows of hollow suckers on the visible underside.
-   for(let i=2;i<=last;i+=2){
-    const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
-    const nx=-dy/den,ny=dx/den,p=i/32,thick=suctionRadius(h,p);
-    for(const sign of [-1,1]){
-     const sx=b.x+nx*thick*.63*sign,sy=b.y+ny*thick*.63*sign,rr=Math.max(1.7,thick*.18);
-     c.fillStyle='rgba(215,168,234,.86)';c.strokeStyle='rgba(69,26,113,.79)';
-     c.lineWidth=1.4;c.beginPath();c.ellipse(sx,sy,rr,rr*.79,Math.atan2(dy,dx),0,Math.PI*2);
-     c.fill();c.stroke();
-     c.fillStyle='rgba(56,16,104,.68)';c.beginPath();c.ellipse(sx,sy,rr*.43,rr*.41,0,0,Math.PI*2);c.fill();
-    }
-   }
-  }
+  const last=Math.min(32,Math.ceil(extension(h,s)*32));
+  drawNightmareArm(c,points,r,last);
  }
  c.restore();
 }
@@ -883,30 +881,20 @@ function drawFinalBoss(c,enemy,now){
  fog.addColorStop(.72,'rgba(31,6,67,.11)');
  fog.addColorStop(1,'rgba(16,4,44,0)');
  c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
- // Eight enormous phantom arms continue beneath the swimming plane toward
- // the boss-room walls. They are BACKDROP ONLY: zero collision or damage.
+ // The same material and ventosas are used in the submerged guardian limbs.
+ // These arms are scenic and never damage players.
  for(let i=0;i<8;i++){
-  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a);
+  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),normalX=-sn,normalY=cs;
   const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
   const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
-  const samples=20,sway=Math.sin(t*.45+i*1.7)*r*.17;
-  for(let k=1;k<=samples;k++){
-   const p0=(k-1)/samples,p1=k/samples;
-   const curve=(p)=>({
-    x:cs*(r*.65+(reach-r*.65)*p)-sn*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI),
-    y:sn*(r*.65+(reach-r*.65)*p)+cs*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI)
-   });
-   const p=curve(p0),q=curve(p1),fade=Math.pow(1-p0,1.35);
-   c.lineCap='round';c.lineWidth=Math.max(2,r*.65*Math.pow(1-p0,.78));
-   c.strokeStyle='rgba(78,25,145,'+(.20*fade)+')';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
-   c.lineWidth=Math.max(1,c.lineWidth*.43);c.strokeStyle='rgba(194,116,244,'+(.12*fade)+')';c.stroke();
-   if(k%3===0)for(const sign of [-1,1]){
-    const dx=q.x-p.x,dy=q.y-p.y,den=Math.hypot(dx,dy)||1;
-    c.strokeStyle='rgba(218,151,246,'+(.16*fade)+')';c.lineWidth=1;
-    c.beginPath();c.ellipse(q.x-sign*dy/den*r*.12*(1-p1),q.y+sign*dx/den*r*.12*(1-p1),
-      Math.max(2,r*.07*(1-p1)),Math.max(1,r*.035*(1-p1)),a,0,Math.PI*2);c.stroke();
-   }
+  const wave=Math.sin(t*.35+i*1.8),curveScale=Math.min(180,reach*.22),points=[];
+  for(let k=0;k<=32;k++){
+   const p=k/32,along=r*.56+(reach-r*.56)*p;
+   const lateral=(Math.sin(p*Math.PI*(3.1+(i%3)*.7)+wave)*.66+
+     Math.sin(p*Math.PI*(5.3+(i%4)*.48)-wave)*.34)*Math.sin(p*Math.PI)*curveScale;
+   points.push({x:cs*along+normalX*lateral,y:sn*along+normalY*lateral});
   }
+  drawNightmareArm(c,points,r*.76,32,.23);
  }
  // Jagged cranial horns, visible against the darker purple background.
  for(const side of [-1,1]){
@@ -927,12 +915,15 @@ function drawFinalBoss(c,enemy,now){
  skin.addColorStop(1,'rgba(18,6,47,.85)');
  c.shadowColor='#aa50db';c.shadowBlur=22;c.fillStyle=skin;
  c.strokeStyle='rgba(199,128,242,.82)';c.lineWidth=4;
- c.beginPath();c.moveTo(-r*.97,r*.16);
- c.bezierCurveTo(-r*1.20,-r*.4,-r*.93,-r*1.15,-r*.15,-r*1.04);
- c.quadraticCurveTo(0,-r*1.24,r*.25,-r*1.09);
- c.bezierCurveTo(r*.98,-r*1.18,r*1.24,-r*.37,r*.96,r*.20);
- c.bezierCurveTo(r*1.03,r*.84,r*.53,r*1.10,0,r*1.15);
- c.bezierCurveTo(-r*.69,r*1.09,-r*1.23,r*.72,-r*.97,r*.16);
+ // Broad cephalopod mantle tapering down into an oral crown.
+ c.beginPath();c.moveTo(-r*1.18,r*.17);
+ c.bezierCurveTo(-r*1.44,-r*.36,-r*1.18,-r*1.06,-r*.64,-r*1.13);
+ c.bezierCurveTo(-r*.34,-r*1.43,r*.30,-r*1.43,r*.65,-r*1.13);
+ c.bezierCurveTo(r*1.18,-r*1.06,r*1.47,-r*.32,r*1.18,r*.17);
+ c.bezierCurveTo(r*1.10,r*.53,r*.68,r*.63,r*.72,r*.95);
+ c.quadraticCurveTo(r*.40,r*1.10,0,r*1.16);
+ c.quadraticCurveTo(-r*.42,r*1.11,-r*.71,r*.93);
+ c.bezierCurveTo(-r*.69,r*.61,-r*1.11,r*.53,-r*1.18,r*.17);
  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
  // Large faceted forehead and deep creases, a different species from Kraken.
  c.fillStyle='rgba(202,116,244,.22)';c.beginPath();
