@@ -80,6 +80,7 @@
  function nextPair(){
   while(cursor<ACTIVE_KEYS.length*ATTRIBUTES.length){
    const active=ACTIVE_KEYS[Math.floor(cursor/ATTRIBUTES.length)],attribute=ATTRIBUTES[cursor%ATTRIBUTES.length];cursor++;
+   if(active==='paralysis')continue;
    const key=active+'|'+attribute;if(!used.has(key)){used.add(key);return [active,attribute];}
   }
   throw new Error('Skin profile combinations exhausted');
@@ -105,6 +106,7 @@
  function validate(){
   const pairs=new Set();
   for(const p of Object.values(profiles)){
+   if(p.active==='paralysis'&&!['electriceel','electriceellegacy'].includes(p.id))throw new Error('Paralysis is electric-only: '+p.id);
    const key=p.active+'|'+p.attribute;
    if(pairs.has(key))throw new Error('Duplicate active + attribute pair: '+key);
    pairs.add(key);
