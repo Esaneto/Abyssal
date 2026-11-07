@@ -27,10 +27,10 @@ test('menu monster keeps its frightening toothed grin after public chat removal'
   assert.match(css, /#menuScreen \.menu-creature\{[\s\S]*?top:45%/);
 });
 
-test('render work is capped to 60 FPS in combat and 30 FPS while idle', () => {
+test('active gameplay follows requestAnimationFrame without divisor stutter and idle stays capped', () => {
   const game = read('public/game.js');
-  assert.match(game, /minFrameInterval=active\?1000\/60:1000\/30/);
-  assert.match(game, /t-lastPaintAt<minFrameInterval-1/);
+  assert.doesNotMatch(game, /minFrameInterval=active\?1000\/60:1000\/30/);
+  assert.match(game, /if\(!active&&lastPaintAt&&t-lastPaintAt<1000\/30-1\)/);
   assert.match(game, /lowPowerRendering=mobileViewport\|\|cores<=4/);
   assert.match(game, /Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
 });
@@ -93,7 +93,7 @@ test('network cadence keeps PvP motion responsive without 60 Hz broadcast pressu
   const online = fs.readFileSync(path.join(__dirname, '..', 'public', 'online.js'), 'utf8');
   assert.match(server, /playerMotionIntervalMs=1000\/30/);
   assert.match(online, /now-lastPositionAt<1000\/30/);
-  assert.match(online, /interpDuration:Math\.max\(16,Math\.min\(40,sampleMs\*\.8\)\)/);
+  assert.match(online, /interpDuration:Math\.max\(24,Math\.min\(isPvp\?45:55,sampleMs\*1\.05\)\)/);
 });
 
 test('electric eel rendering is deterministic per frame sample', async () => {
@@ -162,4 +162,12 @@ test('adaptive resolution never renders below native CSS density and preserves s
  assert.match(game,/dpr=Math\.max\(1,Math\.min\(nativeDpr\*adaptiveDprScale,baseCap\)\)/);
  assert.match(game,/ctx\.imageSmoothingEnabled=true;ctx\.imageSmoothingQuality='high'/);
  assert.match(game,/const nativeDpr=Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+});
+
+test('creature rendering preserves subpixel coordinates and limits expensive sprite repaints per frame',()=>{
+ const game=read('public/game.js');
+ assert.doesNotMatch(game,/translate\(Math\.round\(x\),Math\.round\(y\)\)/);
+ assert.match(game,/c\.translate\(x,y\);applyCreatureVisualTransform/);
+ assert.match(game,/hostileSpritePaintsThisFrame<2/);
+ assert.match(game,/hostileSpritePaintsThisFrame\+\+/);
 });
