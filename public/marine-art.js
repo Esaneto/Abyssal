@@ -18,6 +18,20 @@ function neonForSpecies(color){
  }
  return 'hsl('+Math.round((hue*60+360)%360)+' 95% 66%)';
 }
+// Each species gets its own tissue highlights and bioluminescent accents.
+function pigment(color,target,amount){
+ const parse=hex=>/^#[0-9a-f]{6}$/i.test(String(hex))?[0,1,2].map(i=>parseInt(hex.slice(1+i*2,3+i*2),16)):null;
+ const a=parse(color)||[93,140,151],b=parse(target)||[11,24,35],p=Math.max(0,Math.min(1,amount));
+ return '#'+a.map((v,i)=>Math.round(v*(1-p)+b[i]*p).toString(16).padStart(2,'0')).join('');
+}
+const BIO_ACCENTS=Object.freeze({
+ bluering:'#4ce8ff',jewelsquid:'#f2a9f7',atolla:'#ff5679',
+ phantomjelly:'#c2c6ff',dumbo:'#a9baf8',blanket:'#b47bfa',
+ ribbonmoray:'#a2a7ff',gharial:'#a0d68f',nautilus:'#f3d6a0',
+ leatherback:'#a7e5d9',hawksbill:'#e6d29c',hatchetfish:'#d8ecf2',
+ viperfish:'#b3f3da',blackdragon:'#b0ffdb',combjelly:'#a4ffec',
+ bluedragon:'#64dfff',yeticrab:'#d6eee3'
+});
 function draw(c,x,y,r,angle,s,t,hit){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
  const radius=Math.round(r*2)/2;
@@ -44,16 +58,23 @@ function draw(c,x,y,r,angle,s,t,hit){
  }
  c.save();
  c.translate(x,y);c.rotate(Number.isFinite(angle)?angle:0);
- c.shadowColor=neonForSpecies(s.color);
- c.shadowBlur=Math.max(7,Math.min(24,r*.72));
+ c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
+ // Avoid neon on every anatomical seam: preserve actual body volume.
+ c.shadowBlur=Math.max(4,Math.min(13,r*.32));
  c.drawImage(entry.canvas,-entry.cx,-entry.cy);
  c.restore();
 }
 function drawDetails(c,x,y,r,angle,s,t,hit){
  c.save();c.translate(x,y);c.rotate(angle||0);c.scale(r,r);
- const variant=s.morph||1,phase=(Number(t)||0)*.003,ink='#06131e',light='#bededc';
+ const variant=s.morph||1,phase=(Number(t)||0)*.003;
+ const ink=pigment(s.color,'#06131e',.85),light=pigment(s.color,'#f3fbef',.61);
  const swim=Math.sin(phase*2.0),strokeSway=Math.sin(phase*.83);
- const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);g.addColorStop(0,hit?'#fff':light);g.addColorStop(.15,s.color);g.addColorStop(.52,s.color);g.addColorStop(.78,'#193641');g.addColorStop(1,ink);
+ const g=c.createRadialGradient(-.15,-.42,.02,.1,.1,1.35);
+ g.addColorStop(0,hit?'#ffffff':light);
+ g.addColorStop(.15,pigment(s.color,'#e3ece8',.26));
+ g.addColorStop(.52,s.color);
+ g.addColorStop(.79,pigment(s.color,'#0b1d2b',.57));
+ g.addColorStop(1,ink);
  const path=(fn,fill=g,line='#8bb8bf',width=.025)=>{c.beginPath();fn();if(fill){c.fillStyle=fill;c.fill();}if(line){c.strokeStyle=line;c.lineWidth=width;c.stroke();}};
  const oval=(x,y,rx,ry,rot=0,fill=g)=>path(()=>c.ellipse(x,y,rx,ry,rot,0,Math.PI*2),fill);
  const stroke=(fn,color=s.color,width=.035)=>path(fn,null,color,width);
@@ -61,26 +82,42 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
  const fin=(points)=>path(()=>{points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();});
  const feeler=(x,y,length,side)=>stroke(()=>{c.moveTo(x,y);c.bezierCurveTo(x-length*.35,y+side*.2,x-length*.7,y+side*.6+Math.sin(phase)*.15,x-length,y+side*.3)},'#8abbb9',.025);
  const tentacles=(count,length,web=false)=>{
-  // Mirror limb pairs around the swimming axis; all tips flow back naturally.
+  // Roots are buried in a single oral disk. Arms are continuously tapered
+  // filled ribbons instead of independent thick strokes with exposed seams.
   if(web)for(const side of [-1,1]){
-   c.globalAlpha=.23;
-   path(()=>{c.moveTo(.04,side*.13);c.bezierCurveTo(-length*.33,side*.25,-length*.65,side*.75,-length*.96,side*(1+.10*swim));c.bezierCurveTo(-length*.48,side*.72,-length*.20,side*.30,.04,side*.13);c.closePath();},s.color,null);
+   c.globalAlpha=.20;
+   path(()=>{c.moveTo(.10,side*.12);c.bezierCurveTo(-length*.30,side*.20,-length*.66,side*.78,-length*.94,side*(.91+.09*swim));
+    c.bezierCurveTo(-length*.59,side*.65,-length*.16,side*.28,.10,side*.12);c.closePath();},s.color,null);
    c.globalAlpha=1;
   }
+  const bezier=(a,b,d,e,q)=>{const u=1-q;return u*u*u*a+3*u*u*q*b+3*u*q*q*d+q*q*q*e;};
   for(let i=0;i<count;i++){
    const rank=Math.floor(i/2),side=i%2===0?-1:1;
-   const spread=.18+rank*.18,tailWave=Math.sin(phase*1.6+rank*.72+side*.4)*.13;
-   const rootX=-.22,rootY=side*spread*.68;
-   const endX=-length*(.83+.055*Math.sin(phase+rank*.6));
-   const endY=side*(.46+rank*.29)+tailWave;
-   const curve=()=>{c.moveTo(rootX,rootY);c.bezierCurveTo(-length*.28,side*(spread+.10),
-      -length*.58,side*(spread+.34)+tailWave*.6,endX,endY);};
-   stroke(curve,'#132c39',.17-rank*.008);
-   stroke(curve,s.color,.10-rank*.004);
-   stroke(curve,'rgba(196,233,223,.70)',.025);
-   for(let j=0;j<3;j++){
-    const q=(j+1)/5,x=-length*(.12+q*.47),y=side*(spread+q*.37)+tailWave*q;
-    oval(x,y,.026,.020,0,'rgba(207,233,229,.76)');
+   const spread=.17+rank*.145,tailWave=Math.sin(phase*1.45+rank*.72+side*.41)*.15;
+   const base={x:-.025,y:side*(.12+rank*.065)};
+   const ctrl1={x:-length*.20,y:side*(spread+.08)};
+   const ctrl2={x:-length*.56,y:side*(spread+.38)+tailWave*.5};
+   const tip={x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
+   const points=Array.from({length:21},(_,j)=>{
+    const q=j/20,x=bezier(base.x,ctrl1.x,ctrl2.x,tip.x,q),y=bezier(base.y,ctrl1.y,ctrl2.y,tip.y,q);
+    const tangentX=3*(1-q)*(1-q)*(ctrl1.x-base.x)+6*(1-q)*q*(ctrl2.x-ctrl1.x)+3*q*q*(tip.x-ctrl2.x);
+    const tangentY=3*(1-q)*(1-q)*(ctrl1.y-base.y)+6*(1-q)*q*(ctrl2.y-ctrl1.y)+3*q*q*(tip.y-ctrl2.y);
+    const norm=Math.hypot(tangentX,tangentY)||1,thick=(.14-rank*.011)*Math.pow(1-q,.80)+.009;
+    return {x,y,nx:-tangentY/norm,ny:tangentX/norm,thick};
+   });
+   c.beginPath();
+   points.forEach((p,j)=>j?c.lineTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick):c.moveTo(p.x+p.nx*p.thick,p.y+p.ny*p.thick));
+   for(let j=points.length-1;j>=0;j--){const p=points[j];c.lineTo(p.x-p.nx*p.thick,p.y-p.ny*p.thick);}
+   c.closePath();
+   c.fillStyle=i%2?pigment(s.color,'#152535',.43):pigment(s.color,'#adbfbc',.19);
+   c.strokeStyle=pigment(s.color,'#d0eee6',.31);c.lineWidth=.022;c.fill();c.stroke();
+   stroke(()=>{const p=points[0];c.moveTo(p.x,p.y);for(let j=1;j<points.length;j++){const p=points[j];c.lineTo(p.x,p.y);}},'rgba(223,238,236,.24)',.014);
+   for(let j=4;j<18;j+=3){
+    const p=points[j];
+    for(const sign of [-1,1]){
+     oval(p.x+p.nx*p.thick*.58*sign,p.y+p.ny*p.thick*.58*sign,
+      Math.max(.010,p.thick*.23),Math.max(.009,p.thick*.20),0,'rgba(208,240,238,.80)');
+    }
    }
   }
  };
