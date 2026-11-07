@@ -372,12 +372,14 @@ function creatureVisualMotion(skin,kind,state,x,y,angle,t,playerCreature,preview
  source.attack=creatureAttackActivity(kind,state,state?.hit);
  return aquaticMotionTracker&&!preview?aquaticMotionTracker.sample(source,t):presentationMotion(source,t,angle);
 }
-function applyCreatureVisualTransform(c,motion,r){
+function applyCreatureVisualTransform(c,motion,r,heading=null){
  if(!motion)return;
- // Whole-body heading rotation is intentionally removed. Anatomy stays
- // readable side-on while appendages animate with their individual rigs.
- c.rotate(Number(motion.roll)||0);
- c.scale((Number(motion.facingScale)||1)*(Number(motion.stretchX)||1),Number(motion.stretchY)||1);
+ // Player skins follow their visual aim in every direction, including vertical.
+ // Enemy bodies retain their lighter, side-on swim pose. Do not mirror the
+ // player after rotating, as that would invert the cursor heading on the left.
+ const followsAim=Number.isFinite(heading);
+ c.rotate((followsAim?heading:0)+(Number(motion.roll)||0));
+ c.scale((followsAim?1:(Number(motion.facingScale)||1))*(Number(motion.stretchX)||1),Number(motion.stretchY)||1);
  c.translate(-(Number(motion.recoil)||0)*r,(Number(motion.bob)||0)*r*.28);
 }
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270,enemyCollisionBuckets=[],enemyCollisionBucketCount=0;
@@ -2099,6 +2101,20 @@ function killEnemy(i){
  if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+2);
  enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
 }
+function getLocalSkinCursorAngle(){
+ // Rendering only. Auto-fire and server-authoritative abilities must continue
+ // using player.angle, which may intentionally point away from the mouse.
+ if(!player)return 0;
+ const fallback=Number(player.visualAimAngle);
+ if(isMobileDevice()||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return Number(player.angle)||0;
+ const rect=canvas.getBoundingClientRect();
+ const dx=cameraX+(pointer.clientX-rect.left)/worldZoom-player.x;
+ const dy=cameraY+(pointer.clientY-rect.top)/worldZoom-player.y;
+ // Crossing the center of the creature should not produce a wild flip.
+ if(dx*dx+dy*dy<Math.max(4,player.r*.4)**2)return Number.isFinite(fallback)?fallback:(Number(player.angle)||0);
+ player.visualAimAngle=Math.atan2(dy,dx);
+ return player.visualAimAngle;
+}
 function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
 const SHOT_BALANCE=Object.freeze({
  electric:{damage:[0,11,13,15],speed:[0,1.02,1.06,1.10],radius:[0,4.2,4.5,4.8],chainDamage:[0,.38,.34,.30],chainRange:[0,125,140,155]},
@@ -2909,6 +2925,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  const preview=renderContext!==ctx&&!enemyState?.__sprite;
  const visualMotion=enemyState?.__visualMotion||creatureVisualMotion(skin,kind,enemyState,x,y,angle,t,playerCreature,preview);
  const animationTime=Number(visualMotion?.phaseTime)||Number(t)||0;
+ const liveSkinHeading=playerCreature&&renderContext===ctx&&Number.isFinite(angle)?angle:null;
  if(kind===RIFT_HARDCORE?.FINAL_KIND){
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r);
   finalBossVisualState.r=r;RIFT_HARDCORE.drawFinalBoss(c,finalBossVisualState,animationTime);c.restore();return;
@@ -2927,15 +2944,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  }
  t=animationTime;
  const id=skin?.id||'default';
- if(playerCreature&&id==='riftSmileRelic'&&RIFT_HARDCORE?.drawNightmareRelic){c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r);RIFT_HARDCORE.drawNightmareRelic(c,0,0,r,t);c.restore();return;}
- if(skin?.renderer==='marine'&&window.AbyssalMarineArt){window.AbyssalMarineArt.draw(c,x,y,r,angle,skin,animationTime,hit,visualMotion);return;}
+ if(playerCreature&&id==='riftSmileRelic'&&RIFT_HARDCORE?.drawNightmareRelic){c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading);RIFT_HARDCORE.drawNightmareRelic(c,0,0,r,t);c.restore();return;}
+ if(skin?.renderer==='marine'&&window.AbyssalMarineArt){window.AbyssalMarineArt.draw(c,x,y,r,angle,skin,animationTime,hit,visualMotion,liveSkinHeading!==null);return;}
  const boss=BOSS_KINDS.includes(kind);
  const glowScale=(playerCreature||boss)?(lowPowerRendering?.42:1):(r<13?.18:r<22?.38:.68)*(lowPowerRendering?.42:1);
  const pulse=1+Math.sin(t*.003+(x+y)*.01)*.025;
  c.save();c.translate(x,y);
  // All legacy skins get a restrained locomotion cycle without moving hitboxes:
  // fish oscillate along their axis, cephalopods pulse, benthic species sway.
- if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r);
+ if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading);
  c.globalAlpha=(playerCreature&&id==='angler'&&renderContext===ctx&&gameState==='playing')?anglerVisibilityAlpha(Date.now()):1;
  const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
  const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
@@ -3509,7 +3526,7 @@ function draw(t){
 
  for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='received'?'#ff274a':number.tone==='skin'?'#52ff86':number.tone==='poison'?'#4bff7d':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
  const particleShadowBlur=0;for(const p of particles){if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
- if(player){window.AbyssalMarineArt?.wake(ctx,player,skinData.find(s=>s.id===equippedSkin),t);for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0){drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true,0,ctx,null,{visualId:onlineMode?'player:self':'player:solo',moveSpeed:player.moveSpeed});}if(upgradeLevels.speed>0&&(Math.abs(player.x-(player.trail.at(-1)?.x??player.x))>0||player.trail.length>1)){ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#68f4d7';ctx.lineWidth=(1.2+upgradeLevels.speed*.35)/worldZoom;for(let i=0;i<2+Math.min(3,upgradeLevels.speed);i++){const a=(player.angle||0)+Math.PI+(i-(1+upgradeLevels.speed)/2)*.22,len=(18+upgradeLevels.speed*6)/worldZoom;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*player.r*.8,player.y+Math.sin(a)*player.r*.8);ctx.lineTo(player.x+Math.cos(a)*len,player.y+Math.sin(a)*len);ctx.stroke();}ctx.restore();}if(upgradeLevels.magnet>0){ctx.save();ctx.globalAlpha=.12+.025*Math.sin(t*.004);ctx.strokeStyle='#a98cff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([3/worldZoom,8/worldZoom]);ctx.beginPath();ctx.arc(player.x,player.y,Math.min(92/GAME_WORLD_ZOOM,26/GAME_WORLD_ZOOM+upgradeLevels.magnet*13/GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}if(upgrades.shell>0){ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#90b8b0';ctx.lineWidth=2/worldZoom;const plates=Math.min(6,2+upgrades.shell);for(let i=0;i<plates;i++){const a=t*.00018+i*Math.PI*2/plates,r=player.r*1.7;ctx.beginPath();ctx.arc(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r,3.2/worldZoom,0,Math.PI*2);ctx.stroke();}ctx.restore();}if(upgrades.lastStand>0&&hp/maxHp<=.3){ctx.save();ctx.globalAlpha=.38+.18*Math.sin(t*.014);ctx.strokeStyle='#ff4d6d';ctx.lineWidth=2.3/worldZoom;ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.55,0,Math.PI*2);ctx.stroke();ctx.restore();}if(upgrades.predator>0){ctx.save();ctx.globalAlpha=.15;ctx.strokeStyle='#ff6b78';ctx.lineWidth=1/worldZoom;const marks=Math.min(5,2+upgrades.predator);for(let i=0;i<marks;i++){const a=t*.00032+i*Math.PI*2/marks,r=player.r*1.9;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r);ctx.lineTo(player.x+Math.cos(a)*r*1.13,player.y+Math.sin(a)*r*1.13);ctx.stroke();}ctx.restore();}if(upgrades.shield>0){const chargeCount=Math.min(3,Math.max(0,Math.floor(upgrades.shield)));const shieldPulse=1+Math.sin(t*.008)*.025;ctx.save();ctx.globalAlpha=.18+chargeCount*.045;ctx.fillStyle='#73efff';ctx.strokeStyle='#9cf8ff';ctx.lineWidth=1.8/worldZoom;ctx.shadowBlur=10/worldZoom;ctx.shadowColor='#64eaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*(2.05+chargeCount*.08)*shieldPulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.42+chargeCount*.08;ctx.stroke();ctx.restore();}if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();if(!upgrades.abyssEye){ctx.arc(player.x,player.y,getFiringRange(),0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
+ if(player){window.AbyssalMarineArt?.wake(ctx,player,skinData.find(s=>s.id===equippedSkin),t);for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0){drawCreature(player.x,player.y,player.r,getLocalSkinCursorAngle(),currentSkinColor(),'player',t,true,0,ctx,null,{visualId:onlineMode?'player:self':'player:solo',moveSpeed:player.moveSpeed});}if(upgradeLevels.speed>0&&(Math.abs(player.x-(player.trail.at(-1)?.x??player.x))>0||player.trail.length>1)){ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#68f4d7';ctx.lineWidth=(1.2+upgradeLevels.speed*.35)/worldZoom;for(let i=0;i<2+Math.min(3,upgradeLevels.speed);i++){const a=(player.angle||0)+Math.PI+(i-(1+upgradeLevels.speed)/2)*.22,len=(18+upgradeLevels.speed*6)/worldZoom;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*player.r*.8,player.y+Math.sin(a)*player.r*.8);ctx.lineTo(player.x+Math.cos(a)*len,player.y+Math.sin(a)*len);ctx.stroke();}ctx.restore();}if(upgradeLevels.magnet>0){ctx.save();ctx.globalAlpha=.12+.025*Math.sin(t*.004);ctx.strokeStyle='#a98cff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([3/worldZoom,8/worldZoom]);ctx.beginPath();ctx.arc(player.x,player.y,Math.min(92/GAME_WORLD_ZOOM,26/GAME_WORLD_ZOOM+upgradeLevels.magnet*13/GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}if(upgrades.shell>0){ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#90b8b0';ctx.lineWidth=2/worldZoom;const plates=Math.min(6,2+upgrades.shell);for(let i=0;i<plates;i++){const a=t*.00018+i*Math.PI*2/plates,r=player.r*1.7;ctx.beginPath();ctx.arc(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r,3.2/worldZoom,0,Math.PI*2);ctx.stroke();}ctx.restore();}if(upgrades.lastStand>0&&hp/maxHp<=.3){ctx.save();ctx.globalAlpha=.38+.18*Math.sin(t*.014);ctx.strokeStyle='#ff4d6d';ctx.lineWidth=2.3/worldZoom;ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.55,0,Math.PI*2);ctx.stroke();ctx.restore();}if(upgrades.predator>0){ctx.save();ctx.globalAlpha=.15;ctx.strokeStyle='#ff6b78';ctx.lineWidth=1/worldZoom;const marks=Math.min(5,2+upgrades.predator);for(let i=0;i<marks;i++){const a=t*.00032+i*Math.PI*2/marks,r=player.r*1.9;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r);ctx.lineTo(player.x+Math.cos(a)*r*1.13,player.y+Math.sin(a)*r*1.13);ctx.stroke();}ctx.restore();}if(upgrades.shield>0){const chargeCount=Math.min(3,Math.max(0,Math.floor(upgrades.shield)));const shieldPulse=1+Math.sin(t*.008)*.025;ctx.save();ctx.globalAlpha=.18+chargeCount*.045;ctx.fillStyle='#73efff';ctx.strokeStyle='#9cf8ff';ctx.lineWidth=1.8/worldZoom;ctx.shadowBlur=10/worldZoom;ctx.shadowColor='#64eaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*(2.05+chargeCount*.08)*shieldPulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.42+chargeCount*.08;ctx.stroke();ctx.restore();}if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();if(!upgrades.abyssEye){ctx.arc(player.x,player.y,getFiringRange(),0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
  // Combined skill: circular field matches firing range, with a restrained spark animation.
  if(player&&upgrades.gravitationalRupture>0){
   const fieldRange=getFiringRange();
