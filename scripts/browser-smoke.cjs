@@ -98,9 +98,9 @@ function handler(req,res){
   if(pathname==='/game.js'){
    // Test-only introspection executes real boss death/portal game logic across every tier,
    // without exposing simulation shortcuts to normal players or the deployed client.
-   const source=data.toString('utf8'),closing=/\\n\\}\\)\\(\\);\\s*$/;
+   const source=data.toString('utf8'),closing=/\n\}\)\(\);\s*$/;
    assert.ok(closing.test(source),'Browser probe could not find game IIFE closing');
-   data=Buffer.from(source.replace(closing,'\\n'+localGameSmoke+'\\n})();\\n'));
+   data=Buffer.from(source.replace(closing,'\n'+localGameSmoke+'\n})();\n'));
   }
   res.writeHead(200,{'Content-Type':contentTypes[ext]||'application/octet-stream','Cache-Control':'no-store'});
   res.end(data);
