@@ -20,7 +20,7 @@ test('each abyssal boss has a distinguishable texture, secondary resonator, nois
  for(const cfg of profiles){assert.ok(cfg.noise>0);assert.ok(cfg.layer>0);assert.ok(cfg.priority>=90);assert.ok(cfg.duration>=1);assert.ok(cfg.filter>0);}
  assert.equal(new Set(profiles.map(c=>[c.texture,c.wave,c.frequency,c.filter,c.layerRatio].join('|'))).size,8);
 });
-test('nine traps expose warning, impact, sustained danger and release identities',()=>{
+test('four retained traps expose warning, impact, sustained danger and release identities',()=>{
  for(const kind of Object.keys(Hazards.TYPES)){
   for(const phase of ['warning','active','sustain','end']){
    const cfg=A.PATTERNS['hazard-'+kind+'-'+phase];

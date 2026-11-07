@@ -78,14 +78,9 @@
  // warning, impact, subdued sustained texture, and safe-to-move release.
  const TRAPS=Object.freeze({
   tentacle:{f:155,w:'triangle',texture:'stretch',filter:700,noise:.62,layer:.19,layerRatio:1.44},
-  rockfall:{f:118,w:'triangle',texture:'rattle',filter:1550,noise:.80,layer:.16,layerRatio:3.25},
-  spikes:{f:740,w:'square',texture:'crack',filter:1850,noise:.45,layer:0},
-  electric:{f:1350,w:'square',texture:'crackle',filter:3100,noise:.47,layer:.12,layerRatio:1.60},
-  fumarole:{f:210,w:'sine',texture:'steam',filter:1800,noise:.94,layer:.09,layerRatio:2.50},
+  poisonPlant:{f:210,w:'sine',texture:'steam',filter:1800,noise:.94,layer:.09,layerRatio:2.50},
   volcano:{f:118,w:'sawtooth',texture:'inferno',filter:1250,noise:.91,layer:.18,layerRatio:2.12},
-  vortex:{f:145,w:'triangle',texture:'suction',filter:900,noise:.65,layer:.20,layerRatio:1.39},
-  pressure:{f:76,w:'triangle',texture:'thud',filter:650,noise:.43,layer:.18,layerRatio:2.60},
-  lure:{f:690,w:'sine',texture:'chime',filter:2250,noise:.18,layer:.29,layerRatio:1.47}
+  vortex:{f:145,w:'triangle',texture:'suction',filter:900,noise:.65,layer:.20,layerRatio:1.39}
  });
  // Fictitious horror vocals: shrieks, bellows, wails and demonic roars.
  // No copyrighted samples, downloads or creature recordings are needed.
@@ -102,7 +97,7 @@
  });
  const BOSS=Object.freeze(Object.fromEntries(Object.entries(ATTACKS).map(([k,v])=>[k,[v.f,v.end,v.filter]])));
  for(const [kind,cfg] of Object.entries(TRAPS)){
-  const pyro=kind==='volcano',steam=kind==='fumarole';
+  const pyro=kind==='volcano',steam=kind==='poisonPlant';
   add('hazard-'+kind+'-warning',{...cfg,f:cfg.f*1.24,d:pyro?.62:.46,end:1.26,g:.050,noise:cfg.noise*.42,
    fire:pyro?.30:steam?.18:0,crackle:pyro?.20:0,
    group:'hazard-warning',cd:490,priority:95,attack:.018});

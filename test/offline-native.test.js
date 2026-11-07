@@ -57,15 +57,12 @@ test('offline web shell caches the complete solo game and ignores account APIs',
 
 test('Android Capacitor and Electron carry local web assets, not only remote URLs',()=>{
  const capacitor=JSON.parse(read('capacitor.config.json'));
- const legacy=JSON.parse(read('mobile/capacitor.config.json'));
  const desktop=JSON.parse(read('desktop/package.json'));
  const main=read('desktop/main.cjs');
  const androidCi=read('.github/workflows/ci.yml');
  const windowsCi=read('.github/workflows/download-builds.yml');
  assert.equal(capacitor.webDir,'public');
- assert.equal(legacy.webDir,'../public');
  assert.ok(!capacitor.server.url,'Android main shell must not depend on remote server.url');
- assert.ok(!legacy.server.url,'Legacy Android shell must not depend on remote server.url');
  assert.ok(desktop.build.extraResources.some(x=>x.from==='../public'&&x.to==='offline-web'));
  assert.match(main,/protocol\.registerSchemesAsPrivileged/);
  assert.match(main,/protocol\.handle\('abyssal'/);

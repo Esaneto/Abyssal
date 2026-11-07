@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const Skins=require('../skin-abilities'),Catalog=require('../public/abyssal-curated-skins.js');
+const Skins=require('../public/skin-abilities'),Catalog=require('../public/abyssal-curated-skins.js');
 const read=path=>fs.readFileSync(path,'utf8');
 const close=(a,b)=>Math.abs(a-b)<1e-9;
 test('all 41 species stay within PvE/PvP effective attack, mitigation and mobility budgets',()=>{
@@ -43,8 +43,9 @@ test('paid/special skins remain recognizable but cannot dominate by stacking pas
  assert.equal(Skins.magnetRangeMultiplier('hammerhead'),1.30);
 });
 test('server and browser share every passive plus cooldown/damage constants for active abilities',()=>{
- assert.equal(read('public/skin-abilities.js'),read('skin-abilities.js'));
+ assert.equal(fs.existsSync('skin-abilities.js'),false,'obsolete duplicate skin ability module should stay deleted');
  const server=read('server.js'),game=read('public/game.js');
+ assert.match(server,/require\('\.\/public\/skin-abilities\.js'\)/);
  assert.match(server,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300/);
  assert.match(game,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300/);
  assert.match(server,/SKIN_TRAIL_CADENCE_SECONDS=\.75,SKIN_TRAIL_CADENCE_MS=750/);

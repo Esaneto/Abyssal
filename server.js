@@ -13,7 +13,7 @@ eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
-const SkinAbilities = require('./skin-abilities');
+const SkinAbilities = require('./public/skin-abilities.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');

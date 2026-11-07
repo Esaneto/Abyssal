@@ -41,8 +41,9 @@ test('arm roots use a continuous muscular ribbon and do not rely on disconnected
  assert.match(src,/Shoulder and hip sockets/);
  assert.match(src,/BIO_ACCENTS=Object\.freeze/);
 });
-test('all nine Fossa trap families paint without exceptions in warm and active phases',()=>{
+test('the four retained Fossa trap families paint without exceptions in warm and active phases',()=>{
  const layout=Map.createLayout(72433,7),hazards=Hazards.build(layout,7);
+ assert.deepEqual(Object.keys(Hazards.TYPES).sort(),['poisonPlant','tentacle','volcano','vortex']);
  for(const type of Object.keys(Hazards.TYPES)){
   const h=hazards.find(item=>item.type===type);
   assert.ok(h,'missing visual for '+type);

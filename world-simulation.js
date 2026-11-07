@@ -1,6 +1,6 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
-const SkinAbilities = require('./skin-abilities');
+const SkinAbilities = require('./public/skin-abilities.js');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
@@ -461,18 +461,18 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
         target.riftHazardCooldowns ||= Object.create(null);
         // Continuous suction is independent from periodic damage.
-        if((hazard.type==='vortex'||hazard.type==='lure')&&target.alive!==false){
+        if(hazard.type==='vortex'&&target.alive!==false){
           const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1;
-          const pull=Math.min(Math.max(0,length-7),(hazard.type==='vortex'?430:190)*dt);
+          const pull=Math.min(Math.max(0,length-7),430*dt);
           const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);
           const ox=moved.x-target.x,oy=moved.y-target.y;
           target.x=moved.x;target.y=moved.y;
-          if(ox||oy)playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:hazard.type+':'+hazard.id,strength:hazard.type==='vortex'?.95:.38});
+          if(ox||oy)playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:'vortex:'+hazard.id,strength:.95});
         }
         if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
-        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
+        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:1000);
         const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
-        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
+        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='poisonPlant'?1150:0});
         if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
         
       }

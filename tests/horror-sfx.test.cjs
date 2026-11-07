@@ -58,7 +58,7 @@ test('volcanic fire has layered crackle on desktop and one reusable noise on mob
  for(const phase of ['warning','active','sustain','end'])assert.ok(A.PATTERNS['hazard-volcano-'+phase].fire>0);
  assert.ok(A.PATTERNS['hazard-volcano-active'].crackle>0.8);
  assert.equal(A.PATTERNS['hazard-volcano-active'].texture,'inferno');
- assert.equal(A.PATTERNS['hazard-fumarole-active'].texture,'steam');
+ assert.equal(A.PATTERNS['hazard-poisonPlant-active'].texture,'steam');
  const a=audioFixture(),low=audioFixture();
  assert.equal(A.play(a.ctx,'hazard-volcano-active'),true);
  assert.equal(A.play(low.ctx,'hazard-volcano-active',{lowPower:true}),true);
@@ -68,7 +68,7 @@ test('volcanic fire has layered crackle on desktop and one reusable noise on mob
  assert.ok(!low.filters.some(f=>f.type==='highpass'),'mobile must avoid extra ember filter');
  assert.equal(low.sources.length,1);
  a.ctx.currentTime+=3;
- assert.equal(A.play(a.ctx,'hazard-fumarole-active'),true);
+ assert.equal(A.play(a.ctx,'hazard-poisonPlant-active'),true);
  assert.equal(a.buffers.length,1,'flame must reuse the original noise buffer');
 });
 test('boss encounters and deaths actually play distinct screams on both solo and online',()=>{
@@ -88,7 +88,7 @@ test('horror laboratory supports auditions and no multiplayer audio traffic is a
  const src=fs.readFileSync('public/world-audio.js','utf8');
  const sw=fs.readFileSync('public/offline-sw.js','utf8');
  for(const id of ['boss-riftSmile','boss-death-riftSmile','boss-kraken','boss-death-kraken',
-  'hazard-volcano-active','hazard-volcano-sustain','hazard-fumarole-active','shot-nova'])
+  'hazard-volcano-active','hazard-volcano-sustain','hazard-poisonPlant-active','shot-nova'])
   assert.ok(lab.includes("'"+id+"'"),id+' missing from audio lab');
  assert.match(lab,/world-audio\.js\?v=2026\.11\.7\.23/);
  assert.match(sw,/const VERSION = '[^']+'/);

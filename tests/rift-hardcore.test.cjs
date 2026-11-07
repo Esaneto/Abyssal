@@ -11,8 +11,9 @@ test('Fossas hazards are deterministic, diverse, and absent from safe entrance',
  assert.equal(a,b);
  assert.ok(a.length>=12,'multiple rooms have multiple threats');
  assert.ok(!a.some(h=>h.roomId==='start'));
- for(const t of ['volcano','fumarole','rockfall','tentacle','vortex','pressure','electric','lure','spikes'])
-  assert.ok(a.some(h=>h.type===t),t);
+ assert.deepEqual(Object.keys(H.TYPES).sort(),['poisonPlant','tentacle','volcano','vortex']);
+ for(const t of ['volcano','poisonPlant','tentacle','vortex'])assert.ok(a.some(h=>h.type===t),t);
+ for(const removed of ['fumarole','rockfall','pressure','electric','lure','spikes'])assert.ok(!a.some(h=>h.type===removed),removed+' must be removed');
  for(const h of a){assert.ok(h.radius>0);assert.ok(Number.isFinite(h.x)&&Number.isFinite(h.y));}
 });
 test('every trap has a telegraph, active hit interval and later becomes harmless',()=>{
@@ -37,7 +38,7 @@ test('tentacle warning collision uses exactly the same line geometry as the atta
  assert.equal(H.bossHit(mark,90,0),true);
  assert.equal(H.bossHit(mark,9999,9999),false);
 });
-test('the last layer summons the stationary Pesadelo Roxo with a purple body',()=>{
+test('the last layer summons the stationary Pesadelo Roxo as the final octopus boss',()=>{
  const w=W.createWorldState(0,'rift');w.mapSeed=75443;w.mapTier=H.FINAL_TIER;w.initialized=true;W.seedRiftEncounters(w);
  const layout=W.mapLayoutFor(w),room=layout.rooms.find(r=>r.id==='boss');
  const spawned=W.activateRiftEncounters(w,[{id:'p',x:room.x,y:room.y,hp:100,alive:true}],()=>.5);

@@ -13,7 +13,7 @@ function fakeContext(){
   createBufferSource:node};
  return{ctx,nodes};
 }
-test('all nine trap families have independent warning and impact sound',()=>{
+test('all four retained trap families have independent warning and impact sound',()=>{
  for(const kind of Object.keys(Hazards.TYPES)){
   assert.ok(Audio.PATTERNS['hazard-'+kind+'-warning'],kind+' warning absent');
   assert.ok(Audio.PATTERNS['hazard-'+kind+'-active'],kind+' activation absent');
@@ -46,7 +46,7 @@ test('suspended or missing AudioContext cannot create voices or download media',
 });
 test('audio synthesizer limits active voices and does not regenerate noise on every trigger',()=>{
  const {ctx,nodes}=fakeContext();
- for(let i=0;i<30;i++){ctx.currentTime=1+i*.25;Audio.play(ctx,'hazard-rockfall-active');}
+ for(let i=0;i<30;i++){ctx.currentTime=1+i*.25;Audio.play(ctx,'hazard-volcano-active');}
  const d=Audio.inspect(ctx);
  assert.equal(d.active,10,'voice cap exceeded');
  assert.equal(d.played,10);
