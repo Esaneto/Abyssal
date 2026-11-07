@@ -154,3 +154,16 @@ test('mouse visual heading follows every cardinal direction without changing sho
  assert.doesNotMatch(helper,/player\.angle\s*=/);
  assert.doesNotMatch(helper,/controlAimAngle\s*=/);
 });
+
+test('marine skins render crisp supersampled contours without changing world-space size',()=>{
+ const marine=fs.readFileSync('public/marine-art.js','utf8');
+ assert.match(marine,/const requestedScale=followAim\?2\.25:1\.5/);
+ assert.match(marine,/Math\.sqrt\(650000\/\(4\*cx\*cy\)\)/);
+ assert.match(marine,/canvas\.width=Math\.ceil\(cx\*2\*detailScale\)/);
+ assert.match(marine,/entry\.context\.setTransform\(detailScale,0,0,detailScale,0,0\)/);
+ assert.match(marine,/entry\.context\.imageSmoothingQuality='high'/);
+ assert.match(marine,/const frame=Math\.floor\(\(Number\(t\)\|\|0\)\/\(followAim\?42:68\)\)/);
+ assert.match(marine,/c\.drawImage\(entry\.canvas,-entry\.cx,-entry\.cy,entry\.cx\*2,entry\.cy\*2\)/);
+ assert.match(marine,/const facing=followAim\?1:/);
+ assert.match(marine,/const movement=root\.AbyssalSkinMotion\?\.pose\?\.\(s,t,1\)/);
+});
