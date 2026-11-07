@@ -103,7 +103,7 @@
       const sampleMs = old ? Math.max(50, Math.min(250, now - (Number.isFinite(oldReceivedAt) ? oldReceivedAt : now))) : interpolationMs;
       // Adapt visual blend time to observed snapshot spacing, smoothing jitter without
       // adding packets or running a second client-side simulation. Keep the lag bounded.
-      const adaptiveInterpolationMs = old && !critical ? clamp(Math.max(52, Math.min(interpolationMs, sampleMs * 0.62)), 52, 90) : interpolationMs;
+      const adaptiveInterpolationMs = old && !critical ? clamp(Math.max(70, Math.min(Math.max(interpolationMs, 118), sampleMs * 0.96)), 70, 125) : interpolationMs;
       const oldServerX = Number(old?.serverX), oldServerY = Number(old?.serverY);
       const measuredVx = old ? (serverX - (Number.isFinite(oldServerX) ? oldServerX : Number(old.x) || serverX)) / (sampleMs / 1000) : Number(raw.vx) || 0;
       const measuredVy = old ? (serverY - (Number.isFinite(oldServerY) ? oldServerY : Number(old.y) || serverY)) / (sampleMs / 1000) : Number(raw.vy) || 0;
