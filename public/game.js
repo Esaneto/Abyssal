@@ -798,6 +798,25 @@ function audio(f=440,d=.07,type='sine',vol=.025){
   o.stop(audioCtx.currentTime+d);
  }catch(e){}
 }
+// A single shared audio context: the server never transmits sound events.
+const localHazardSoundPhases=new Map();
+function playWorldSound(id,source=null,range=850,volume=1){
+ if(!soundOn||masterSoundVolume<=0||document.hidden||!window.AbyssalWorldAudio||!audioCtx||audioCtx.state!=='running')return false;
+ const spatial=source&&Number.isFinite(source.x)&&Number.isFinite(source.y)&&player;
+ const distance=spatial?Math.hypot(player.x-source.x,player.y-source.y):0;
+ const pan=spatial?clamp((source.x-player.x)/(range*.7),-.8,.8):0;
+ return window.AbyssalWorldAudio.play(audioCtx,id,{
+  volume:masterSoundVolume*Math.max(0,Number(volume)||0),distance,range,pan,
+  lowPower:lowPowerRendering||isMobileDevice()
+ });
+}
+window.AbyssalWorldAudioDiagnostics=()=>window.AbyssalWorldAudio?.inspect(audioCtx)||null;
+// Browser autoplay is unlocked by the game's existing pointer/key gesture.
+document.addEventListener('click',event=>{
+ const control=event.target?.closest?.('button');
+ if(!control||control.disabled||control.closest?.('#hud'))return;
+ playWorldSound(control.matches('[data-close-screen],.modal-top-close')?'ui-close':'ui-click');
+},true);
 const lastSkillSfxAt=Object.create(null);
 const skillSoundCooldown={rate:650,speed:1100,range:850,magnet:1000,regen:1200,power:320,shield:450,burst:600,electric:360,pierce:360,ricochet:360,nova:700,pulse:500,dash:500,bulkhead:500,focuser:500,current:850,startShield:500};
 let lastDamageWarningAt=0,lastContactNoticeAt=0;
@@ -813,40 +832,11 @@ function playSkillSound(skillId,stage='learn'){
  }catch(_){/* áudio sintético é opcional */}
 }
 function playBossCry(kind){
- if(!soundOn)return;
- try{
-  audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==='suspended')audioCtx.resume();
-  const now=audioCtx.currentTime, master=audioCtx.createGain();master.gain.value=.055;master.connect(audioCtx.destination);
-  const base=kind==='devourer'?58:kind==='leviathan'?58:kind==='maw'?42:kind==='angler'?82:kind==='kraken'?32:kind==='boss'?49:65;
-  for(let i=0;i<3;i++){
-   const o=audioCtx.createOscillator(),g=audioCtx.createGain(),f=audioCtx.createBiquadFilter();
-   o.type=i===0?'sawtooth':i===1?'triangle':'sine';
-   o.frequency.setValueAtTime(base*(1+i*.43),now);
-   o.frequency.exponentialRampToValueAtTime(Math.max(22,base*(.42+i*.18)),now+1.8+i*.25);
-   f.type='lowpass';f.frequency.value= i===0?420:800;
-   g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.018/(i+1),now+.18);
-   g.gain.exponentialRampToValueAtTime(.0001,now+2.2+i*.2);
-   o.connect(f);f.connect(g);g.connect(master);o.start(now);o.stop(now+2.5+i*.2);
-  }
-  if(kind==='devourer'){
-   // Original synthesized abyssal scream: filtered noise, descending sub-bass and a slow detuned call.
-   const length=Math.floor(audioCtx.sampleRate*1.9),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),samples=buffer.getChannelData(0);
-   for(let i=0;i<length;i++){const p=i/length;samples[i]=(Math.random()*2-1)*Math.pow(1-p,1.25);}
-   const source=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),gain=audioCtx.createGain(),lfo=audioCtx.createOscillator(),lfoGain=audioCtx.createGain();
-   source.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(1250,now);filter.frequency.exponentialRampToValueAtTime(150,now+1.8);filter.Q.value=1.4;
-   gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.035,now+.24);gain.gain.exponentialRampToValueAtTime(.0001,now+1.85);
-   lfo.type='sine';lfo.frequency.value=2.2;lfoGain.gain.value=55;lfo.connect(lfoGain);lfoGain.connect(filter.frequency);source.connect(filter);filter.connect(gain);gain.connect(master);source.start(now);source.stop(now+1.9);lfo.start(now);lfo.stop(now+2);
-  }
-  setTimeout(()=>{try{master.disconnect()}catch(e){}},3000);
- }catch(e){}
+ // A compact reused synthesizer replaces repeated multi-second noise buffers.
+ playWorldSound('boss-'+kind,null,1400,1);
 }
 function playDevourerSuction(){
- if(!soundOn)return;try{audioCtx ||= new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();
-  const now=audioCtx.currentTime,length=Math.floor(audioCtx.sampleRate*.95),buffer=audioCtx.createBuffer(1,length,audioCtx.sampleRate),samples=buffer.getChannelData(0);
-  for(let i=0;i<length;i++){const p=i/length;samples[i]=(Math.random()*2-1)*(.2+.8*p)*Math.sin(Math.PI*p);}
-  const source=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),gain=audioCtx.createGain();source.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(180,now);filter.frequency.exponentialRampToValueAtTime(920,now+.48);filter.frequency.exponentialRampToValueAtTime(110,now+.92);gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.035,now+.18);gain.gain.exponentialRampToValueAtTime(.0001,now+.94);source.connect(filter);filter.connect(gain);gain.connect(audioCtx.destination);source.start(now);source.stop(now+.95);
- }catch(_){/* Som sintético opcional; a habilidade continua funcionando sem áudio. */}
+ playWorldSound('ability-suction',player||null,1000,1);
 }
 
 // === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade sólido) ===
@@ -960,7 +950,7 @@ function showBossAlert(kind,id=null,threat=0,force=false){
 
  const [title,copy]=names[kind]||['☠ PRESENÇA COLOSSAL','UMA FORMA IMPOSSÍVEL SE MOVE NA ESCURIDÃO.'];
  enqueueGameplayNotice('boss',title,copy,100);
- shake=Math.max(shake,10);playBossCry(kind);audio(kind==='leviathan'?43:kind==='maw'?38:kind==='angler'?58:46,1.15,'sawtooth',.055);
+ shake=Math.max(shake,10);playBossCry(kind);
 }
 
 document.querySelectorAll('[data-close-screen]').forEach(button=>button.addEventListener('click',()=>{const screen=$(button.dataset.closeScreen);if(screen)screen.hidden=true;}));
