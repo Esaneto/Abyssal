@@ -305,10 +305,11 @@ function grantSharedXp(room,total,contributors={},source='kill',enemyId=null){
  for(const share of splitXp(total,[...room.players.values()],contributors)){
   const member=room.players.get(share.id);
   if(!member)continue;
-  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId)*1000)/1000;
+  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId)*clamp(Number(member.magnetStrength)||1,1,1.26)*1000)/1000;
   if(amount<=0)continue;
   if(member.runStats)creditRunXp(member.runStats,amount);
   io.to(member.id).emit('shared-xp-award',{value:amount,source,enemyId,damage:share.damage});
+  combatDiagnostics.directXpAwards++;
  }
 }
 // PvP has no neutral monsters: XP is credited on an actual elimination,
@@ -320,7 +321,7 @@ function awardPvpKillXp(room,target,attackerId){
  target.lastPvpXpDeathAt=stamp;
  const attacker=room.players.get(String(attackerId));
  if(!attacker||attacker.id===target.id||attacker.alive===false||attacker.runStats?.settled)return;
- const value=Math.round(25*SkinAbilities.orbExperienceMultiplier(attacker.skinId)*1000)/1000;
+ const value=Math.round(25*SkinAbilities.orbExperienceMultiplier(attacker.skinId)*clamp(Number(attacker.magnetStrength)||1,1,1.26)*1000)/1000;
  if(attacker.runStats)creditRunXp(attacker.runStats,value);
  io.to(attacker.id).emit('shared-xp-award',{value,source:'pvp-elimination',enemyId:target.id});
 }
@@ -1396,7 +1397,7 @@ io.on('connection', socket => {
   // Only gameplay inputs are accepted; HP/max HP remain server-authoritative.
   p.shieldCharges = clamp(Math.floor(Number(payload.shieldCharges) || 0), 0, 3);
   p.regenLevel = clamp(Math.floor(Number(payload.regenLevel) || 0), 0, 3);
-  p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 4.5);
+  p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 1.26);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.arcChainActive = payload.arcChainActive === true;
   p.hadalBeamActive = payload.hadalBeamActive === true;
