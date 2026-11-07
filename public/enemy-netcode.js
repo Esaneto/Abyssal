@@ -67,9 +67,10 @@
     while (samples.length > MOTION_BUFFER_SAMPLES) samples.shift();
     if (last) {
       const spacing = clamp(serverTime - Number(last.serverTime), 30, 250);
+      const arrivalSpacing = clamp(receivedAt - Number(last.receivedAt), 0, 500);
       const previous = Number(enemy.motionSampleMs);
       enemy.motionSampleMs = Number.isFinite(previous) ? previous * .82 + spacing * .18 : spacing;
-      const jitter = Math.abs(spacing - enemy.motionSampleMs);
+      const jitter = Math.abs(arrivalSpacing - spacing);
       enemy.motionJitterMs = Number.isFinite(Number(enemy.motionJitterMs)) ? Number(enemy.motionJitterMs) * .82 + jitter * .18 : jitter;
       enemy.motionBufferMs = clamp(MOTION_BUFFER_MS + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 125);
     } else enemy.motionBufferMs = MOTION_BUFFER_MS;
