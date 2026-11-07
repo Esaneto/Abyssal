@@ -21,7 +21,7 @@ Nginx (TLS, arquivos estáticos, proxy WebSocket)
   |
 Node.js 26 LTS
   |-- thread principal: Socket.IO + simulação autoritativa 20 Hz
-  |-- libuv threadpool: scrypt assíncrono, filesystem e tarefas nativas
+  |-- libuv threadpool: scrypt assíncrono serializado, filesystem e tarefas nativas
   |-- Worker thread: serialização e snapshots locais de persistência
   |
 PostgreSQL externo
@@ -51,7 +51,7 @@ Mais heap não gera FPS. Um heap muito grande pode aumentar pausas de garbage co
 ```env
 ABYSSAL_RESOURCE_PROFILE=hostinger-kvm2
 ABYSSAL_ASYNC_PERSISTENCE=true
-UV_THREADPOOL_SIZE=8
+UV_THREADPOOL_SIZE=4
 HTTP_BACKLOG=4096
 DATABASE_POOL_MAX=5
 NODE_ENV=production
