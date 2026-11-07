@@ -880,7 +880,7 @@ function pumpGameplayNotice(){
  el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
  clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
-function showToast(t){if(gameState==='playing'&&onlineMode)return;$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+function showToast(t){if(gameState==='playing'&&onlineMode)return;if(/^(MOEDAS ABISSAIS INSUFICIENTES|NOT ENOUGH|BLOQUEADA|DESBLOQUEIE|EQUIPE PULSO|EQUIPE PASSO|NÃO FOI POSSÍVEL|VOCÊ JÁ EQUIPOU)/i.test(String(t)))playWorldSound('ui-error',null,800,.58);$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function renderBossAbilityVisual(data){
  const d=data||{};
@@ -1753,7 +1753,7 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
 
 
  if((upgrades.ricochet||0)>0&&source!=='ricochet'&&!onlineMode){
-  let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-line',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});burst(next.x,next.y,'#f7ff19',8,90);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
+  let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-line',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});playWorldSound('shot-ricochet',next,650,.46);burst(next.x,next.y,'#f7ff19',8,90);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
  }
 }
 // A focused hunter should specialize in elite pressure and finishing weakened
@@ -2407,7 +2407,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     burst(e.x,e.y,'#76f7ff',8,80);
     effects.push({type:'beam',x1:e.x-5/worldZoom,y1:e.y-5/worldZoom,x2:e.x+5/worldZoom,y2:e.y+5/worldZoom,life:.16,maxLife:.16,color:'#9dfcff'});
    }
-   playSkillSound('nova','trigger');
+   playSkillSound('nova','trigger');playWorldSound('ability-nova',player,920,.70);
   }
  }
  if(upgrades.arcChain>0){
@@ -2624,7 +2624,7 @@ function activateAbility(id){
   else for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
   if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   else effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
-  burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');
+  burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');playWorldSound('ability-nova',player,880,.64);
  }else if(id==='dash'){
   if(!(Number(metaUpgrades.dash)>0)){showToast('DESBLOQUEIE PASSO FANTASMA NA LOJA');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
   if(player.dashCooldown>0)return;
