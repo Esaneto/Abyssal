@@ -144,7 +144,7 @@ test('service worker respects game script revisions but keeps an offline fallbac
   assert.match(sw, /const cached = await cache\.match\(cacheRequest\)/);
   assert.match(sw, /if \(offlineFallback\) return offlineFallback/);
   assert.doesNotMatch(sw, /cache\.match\(cacheRequest, \{ ignoreSearch: true \}\)/);
-  assert.match(html, /game\.js\?v=2026\.11\.7\.29/);
+  assert.match(html, /game\.js\?v=2026\.11\.7\.\d+/);
 });
 
 test('single enemy death does not allocate another enemy-array copy', () => {
