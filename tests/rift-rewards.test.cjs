@@ -28,7 +28,29 @@ test('all seven Fossas bosses spawn once at their chamber and the next cycle rem
   const p={id:'p',x:room.x,y:room.y,hp:100,alive:true};
   const spawned=W.activateRiftEncounters(w,[p],()=>.5),boss=spawned.find(e=>AI.BOSS_KINDS.includes(e.kind));
   assert.ok(boss,`missing boss at tier ${tier}`);assert.equal(boss.kind,AI.BOSS_KINDS[tier%AI.BOSS_KINDS.length]);
-  assert.equal(W.activateRiftEncounters(w,[p],()=>.5).length,0);assert.equal(layout.portals.boss.unlockedAfterBosses,tier+1);
+  assert.equal(W.activateRiftEncounters(w,[p],()=>.5).length,0);if(tier<AI.BOSS_KINDS.length)assert.equal(layout.portals.boss.unlockedAfterBosses,tier+1);else assert.equal(layout.portals.boss,null);
   assert.ok(layout.height>=9000);w.bossesDefeated=tier+1;
  }
+});
+
+test('Berçário de Ressonância keeps its treasure identity but also spawns cave fauna',()=>{
+ const W=require('../world-simulation');
+ const w=W.createWorldState(0,'rift');w.mapSeed=42;w.initialized=true;w.mapTier=0;W.seedRiftEncounters(w,()=>.5);
+ const layout=W.mapLayoutFor(w),room=layout.rooms.find(r=>r.id==='event');
+ const spawned=W.activateRiftEncounters(w,[{id:'p',x:room.x,y:room.y,hp:100,alive:true}],()=>.5);
+ assert.equal(spawned.filter(e=>e.spawnRoomId==='event').length,6);
+});
+test('final Fossa chest guarantees Nightmare relic, one random skin and the 100k final prize',()=>{
+ const u={coins:0,ownedSkins:['default']},c=R.grant(u,'final',{final:true});
+ const result=R.open(u,c.id,()=>0);
+ assert.equal(result.reward.type,'final');
+ assert.equal(result.reward.nightmareSkinId,R.FINAL_SKIN);
+ assert.ok(u.ownedSkins.includes(R.FINAL_SKIN));
+ assert.ok(R.COIN_SKINS.includes(result.reward.randomSkinId));
+ assert.ok(u.ownedSkins.includes(result.reward.randomSkinId));
+ assert.equal(result.reward.amount,100000);
+ assert.equal(u.coins,100000);
+ const duplicate=R.open(u,c.id,()=>1);
+ assert.equal(duplicate.duplicate,true);
+ assert.equal(u.coins,100000,'reopening cannot credit the final prize twice');
 });
