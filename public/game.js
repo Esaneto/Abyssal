@@ -1610,9 +1610,9 @@ function updateSoloRiftHardcore(dt){
   if(phase.phase!=='active')continue;
   if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
     // Suction is an uninterrupted current, not a tiny move every damage tick.
-    if(h.type==='vortex'||h.type==='lure'){
+    if(h.type==='vortex'){
       const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
-      const pull=Math.min(Math.max(0,len-7),(h.type==='vortex'?430:190)*dt);
+      const pull=Math.min(Math.max(0,len-7),430*dt);
       const move=mapResolveMove(player.x,player.y,player.x+dx/len*pull,player.y+dy/len*pull,player.r);
       player.x=move.x;player.y=move.y;
     }
