@@ -81,9 +81,9 @@ test('blue-ring octopus draws black glossy bubbles, unlike cyan shark bubbles',(
  assert.match(server,/source:'blue-ring-ink'/);
 });
 
-test('shark and octopus faster hit cadence is capped at 100ms per target in PvP',()=>{
- assert.match(game,/BUBBLE_TRAIL_HIT_SECONDS=\.10,BUBBLE_TRAIL_HIT_MS=100,BUBBLE_TRAIL_EMIT_SECONDS=\.20/);
- assert.match(server,/BUBBLE_TRAIL_HIT_SECONDS=\.10,BUBBLE_TRAIL_HIT_MS=100,BUBBLE_TRAIL_EMIT_MS=200/);
+test('shark and octopus hit cadence is capped at 300ms per target in PvP',()=>{
+ assert.match(game,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_SECONDS=\.20/);
+ assert.match(server,/BUBBLE_TRAIL_HIT_SECONDS=\.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200/);
  assert.match(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
  assert.match(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
  assert.match(game,/bubble\.damageTimer = BUBBLE_TRAIL_HIT_SECONDS/);
@@ -93,5 +93,5 @@ test('shark and octopus faster hit cadence is capped at 100ms per target in PvP'
  assert.match(server,/target\.invulnerableUntil=hitAt\+90/);
  assert.match(server,/BUBBLE_TRAIL_EMIT_MS\*\.8/);
  assert.match(game,/e\.poisonTick = SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.35/);
+ assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.75/);
 });

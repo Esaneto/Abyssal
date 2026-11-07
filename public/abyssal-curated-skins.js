@@ -6,14 +6,14 @@ const items=[
     "family": "ray",
     "color": "#668fa5",
     "stat": "movement",
-    "multiplier": 1.24,
-    "ability": "Asas de corrente: +24% de velocidade. Adaptação predatória: +12% de dano.",
+    "multiplier": 1.12,
+    "ability": "Asas de corrente: +12% de velocidade, +7% de dano.",
     "price": 45000,
     "paid": false,
     "desc": "Asas largas pontilhadas, cabeça projetada e cauda longa. A corrente das Fossas passa pelas suas membranas azul-ardósia.",
     "bonuses": {
-      "movement": 1.24,
-      "damage": 1.12
+      "movement": 1.12,
+      "damage": 1.07
     },
     "collection": "shop",
     "renderer": "marine"
@@ -24,14 +24,14 @@ const items=[
     "family": "eel",
     "color": "#536bb0",
     "stat": "fireRate",
-    "multiplier": 1.27,
-    "ability": "Mandíbula rítmica: +27% de cadência. Adaptação predatória: +11% de dano.",
+    "multiplier": 1.12,
+    "ability": "Mandíbula rítmica: +12% de cadência, +7% de dano.",
     "price": 52000,
     "paid": false,
     "desc": "Corpo longo em S com pele azul-escura, crista violeta contínua, mandíbula aberta com dentes finos e olhos luminosos. Silhueta de fita reconhecível no movimento.",
     "bonuses": {
-      "fireRate": 1.27,
-      "damage": 1.11
+      "fireRate": 1.12,
+      "damage": 1.07
     },
     "collection": "shop",
     "renderer": "marine"
@@ -42,14 +42,14 @@ const items=[
     "family": "octopus",
     "color": "#7988b6",
     "stat": "defense",
-    "multiplier": 0.78,
-    "ability": "Manto compressível: reduz dano em 22%. Adaptação predatória: +14% de dano.",
+    "multiplier": 0.88,
+    "ability": "Manto compressível: -12% de dano recebido, +8% de dano.",
     "price": 58000,
     "paid": false,
     "desc": "Manto quase esférico, duas nadadeiras laterais grandes que batem como orelhas, oito braços curtos e olhos expressivos. Um polvo hadal sem a silhueta de Kraken.",
     "bonuses": {
-      "defense": 0.78,
-      "damage": 1.14
+      "defense": 0.88,
+      "damage": 1.08
     },
     "collection": "shop",
     "renderer": "marine"
@@ -60,14 +60,14 @@ const items=[
     "family": "octopus",
     "color": "#7842b3",
     "stat": "range",
-    "multiplier": 1.3,
-    "ability": "Membrana sensorial: +30% de alcance. Adaptação predatória: +15% de dano.",
+    "multiplier": 1.19,
+    "ability": "Membrana sensorial: +19% de alcance, +7% de dano.",
     "price": 64000,
     "paid": false,
     "desc": "Duas membranas roxas gigantes em forma de cobertor, bordas onduladas, nervuras aparentes e braços finos nas extremidades; a cabeça é pequena sob o manto.",
     "bonuses": {
-      "range": 1.3,
-      "damage": 1.15
+      "range": 1.19,
+      "damage": 1.07
     },
     "collection": "shop",
     "renderer": "marine"
@@ -78,14 +78,14 @@ const items=[
     "family": "jelly",
     "color": "#a35d78",
     "stat": "experience",
-    "multiplier": 1.32,
-    "ability": "Coroa de ressonância: +32% de experiência. Adaptação predatória: +28% de dano.",
+    "multiplier": 1.18,
+    "ability": "Coroa de ressonância: +18% de experiência, +6% de dano.",
     "price": 48000,
     "paid": false,
     "desc": "Campânula circular carmesim com borda serrilhada, dez filamentos radiais e um único tentáculo de alarme extremamente longo; o centro pulsa em vermelho.",
     "bonuses": {
-      "experience": 1.32,
-      "damage": 1.28
+      "experience": 1.18,
+      "damage": 1.06
     },
     "collection": "shop",
     "renderer": "marine"
@@ -96,14 +96,14 @@ const items=[
     "family": "jelly",
     "color": "#68729b",
     "stat": "magnet",
-    "multiplier": 1.65,
-    "ability": "Braços coletores: +65% de alcance de coleta. Adaptação predatória: +25% de dano.",
+    "multiplier": 1.3,
+    "ability": "Braços coletores: +30% de atração de orbes, +7% de dano.",
     "price": 69000,
     "paid": false,
     "desc": "Medusa gigante translúcida de cúpula ampla e cinco longos braços orais em véus quase invisíveis, acompanhados de filamentos que flutuam pela escuridão.",
     "bonuses": {
-      "magnet": 1.65,
-      "damage": 1.25
+      "magnet": 1.3,
+      "damage": 1.07
     },
     "collection": "shop",
     "renderer": "marine"
@@ -114,14 +114,14 @@ const items=[
     "family": "crustacean",
     "color": "#93a8ae",
     "stat": "defense",
-    "multiplier": 0.75,
-    "ability": "Cerdas minerais: reduz dano em 25%. Adaptação predatória: +18% de dano.",
+    "multiplier": 0.88,
+    "ability": "Cerdas minerais: -12% de dano recebido, +8% de dano.",
     "price": 62000,
     "paid": false,
     "desc": "Carapaça mineral e pinças cobertas por cerdas claras, inspirado nos crustáceos das fontes hidrotermais.",
     "bonuses": {
-      "defense": 0.75,
-      "damage": 1.18
+      "defense": 0.88,
+      "damage": 1.08
     },
     "collection": "shop",
     "renderer": "marine"
@@ -132,14 +132,14 @@ const items=[
     "family": "mollusc",
     "color": "#d0af84",
     "stat": "damage",
-    "multiplier": 1.18,
-    "ability": "Pressão espiral: +18% de dano. Adaptação predatória: +19% de cadência.",
+    "multiplier": 1.13,
+    "ability": "Pressão espiral: +13% de dano, +10% de cadência.",
     "price": 72000,
     "paid": false,
     "desc": "Concha mineral espiralada com câmaras e costelas visíveis, capuz frontal e dezesseis tentáculos sensoriais finos projetados à frente da criatura.",
     "bonuses": {
-      "damage": 1.18,
-      "fireRate": 1.19
+      "damage": 1.13,
+      "fireRate": 1.1
     },
     "collection": "shop",
     "renderer": "marine"
@@ -150,14 +150,14 @@ const items=[
     "family": "reptile",
     "color": "#46765b",
     "stat": "damage",
-    "multiplier": 1.18,
-    "ability": "Pinça de agulhas: +18% de dano. Adaptação predatória: +20% de cadência.",
+    "multiplier": 1.13,
+    "ability": "Pinça de agulhas: +13% de dano, +10% de cadência.",
     "price": 80000,
     "paid": false,
     "desc": "Corpo de réptil com placas dorsais, quatro membros curtos e cauda propulsora; rostro de gavial muito longo, narina terminal e duas fileiras de dentes-agulha.",
     "bonuses": {
-      "damage": 1.18,
-      "fireRate": 1.2
+      "damage": 1.13,
+      "fireRate": 1.1
     },
     "collection": "shop",
     "renderer": "marine"
@@ -168,12 +168,12 @@ const items=[
     "family": "shark",
     "color": "#3a72c2",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Tubarão-Duende: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Tubarão-Duende: +16% de dano, +8% de velocidade.",
     "price": 85000,
     "paid": false,
     "collection": "shop",
@@ -187,12 +187,12 @@ const items=[
     "family": "shark",
     "color": "#405879",
     "stat": "defense",
-    "multiplier": 0.75,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.75,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Tubarão-Cobra: -25% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Tubarão-Cobra: -12% de dano recebido, +10% de cadência.",
     "price": 88500,
     "paid": false,
     "collection": "shop",
@@ -206,13 +206,13 @@ const items=[
     "family": "shark",
     "color": "#69857a",
     "stat": "range",
-    "multiplier": 1.42,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.42,
-      "magnet": 1.55,
-      "damage": 1.12
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Tubarão-da-Groenlândia: +42% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +12% de dano.",
+    "ability": "Sentidos da escuridão de Tubarão-da-Groenlândia: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 92000,
     "paid": false,
     "collection": "shop",
@@ -226,12 +226,12 @@ const items=[
     "family": "ray",
     "color": "#d6b36a",
     "stat": "damage",
-    "multiplier": 1.29,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.29,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Raia-Borboleta: +29% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Raia-Borboleta: +16% de dano, +8% de velocidade.",
     "price": 95500,
     "paid": false,
     "collection": "shop",
@@ -245,12 +245,12 @@ const items=[
     "family": "ray",
     "color": "#855075",
     "stat": "defense",
-    "multiplier": 0.78,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.78,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Raia-Prego: -22% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Raia-Prego: -12% de dano recebido, +10% de cadência.",
     "price": 99000,
     "paid": false,
     "collection": "shop",
@@ -264,13 +264,13 @@ const items=[
     "family": "ray",
     "color": "#b99b44",
     "stat": "range",
-    "multiplier": 1.38,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.38,
-      "magnet": 1.55,
-      "damage": 1.11
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Raia-Viola: +38% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +11% de dano.",
+    "ability": "Sentidos da escuridão de Raia-Viola: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 102500,
     "paid": false,
     "collection": "shop",
@@ -284,12 +284,12 @@ const items=[
     "family": "eel",
     "color": "#589a98",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Enguia-Serra: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Enguia-Serra: +16% de dano, +8% de velocidade.",
     "price": 106000,
     "paid": false,
     "collection": "shop",
@@ -303,12 +303,12 @@ const items=[
     "family": "eel",
     "color": "#998f83",
     "stat": "defense",
-    "multiplier": 0.74,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.74,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Moreia-Zebra: -26% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Moreia-Zebra: -12% de dano recebido, +10% de cadência.",
     "price": 109500,
     "paid": false,
     "collection": "shop",
@@ -322,13 +322,13 @@ const items=[
     "family": "eel",
     "color": "#794655",
     "stat": "range",
-    "multiplier": 1.41,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.41,
-      "magnet": 1.55,
-      "damage": 1.1
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Enguia-Dente-de-Cão: +41% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +10% de dano.",
+    "ability": "Sentidos da escuridão de Enguia-Dente-de-Cão: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 113000,
     "paid": false,
     "collection": "shop",
@@ -342,12 +342,12 @@ const items=[
     "family": "octopus",
     "color": "#b154a2",
     "stat": "damage",
-    "multiplier": 1.29,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.29,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Polvo-Mímico: +29% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Polvo-Mímico: +16% de dano, +8% de velocidade.",
     "price": 116500,
     "paid": false,
     "collection": "shop",
@@ -361,12 +361,12 @@ const items=[
     "family": "octopus",
     "color": "#bdd6d9",
     "stat": "defense",
-    "multiplier": 0.77,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.77,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Polvo-de-Vidro: -23% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Polvo-de-Vidro: -12% de dano recebido, +10% de cadência.",
     "price": 120000,
     "paid": false,
     "collection": "shop",
@@ -380,12 +380,12 @@ const items=[
     "family": "jelly",
     "color": "#7b9cc6",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Medusa-Pente: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Medusa-Pente: +16% de dano, +8% de velocidade.",
     "price": 127000,
     "paid": false,
     "collection": "shop",
@@ -399,12 +399,12 @@ const items=[
     "family": "jelly",
     "color": "#403d96",
     "stat": "defense",
-    "multiplier": 0.73,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.73,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Medusa-Capacete: -27% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Medusa-Capacete: -12% de dano recebido, +10% de cadência.",
     "price": 130500,
     "paid": false,
     "collection": "shop",
@@ -418,13 +418,13 @@ const items=[
     "family": "jelly",
     "color": "#63adb9",
     "stat": "range",
-    "multiplier": 1.4,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.4,
-      "magnet": 1.55,
-      "damage": 1.12
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Caravela Abissal: +40% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +12% de dano.",
+    "ability": "Sentidos da escuridão de Caravela Abissal: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 134000,
     "paid": false,
     "collection": "shop",
@@ -438,12 +438,12 @@ const items=[
     "family": "crustacean",
     "color": "#b27646",
     "stat": "damage",
-    "multiplier": 1.29,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.29,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Caranguejo-Aranha: +29% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Caranguejo-Aranha: +16% de dano, +8% de velocidade.",
     "price": 137500,
     "paid": false,
     "collection": "shop",
@@ -457,12 +457,12 @@ const items=[
     "family": "crustacean",
     "color": "#b0827b",
     "stat": "defense",
-    "multiplier": 0.76,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.76,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Lagosta-de-Profundidade: -24% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Lagosta-de-Profundidade: -12% de dano recebido, +10% de cadência.",
     "price": 141000,
     "paid": false,
     "collection": "shop",
@@ -476,13 +476,13 @@ const items=[
     "family": "crustacean",
     "color": "#c28e61",
     "stat": "range",
-    "multiplier": 1.43,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.43,
-      "magnet": 1.55,
-      "damage": 1.11
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Camarão-Pistola: +43% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +11% de dano.",
+    "ability": "Sentidos da escuridão de Camarão-Pistola: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 144500,
     "paid": false,
     "collection": "shop",
@@ -496,12 +496,12 @@ const items=[
     "family": "mollusc",
     "color": "#996957",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Caramujo-Vulcânico: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Caramujo-Vulcânico: +16% de dano, +8% de velocidade.",
     "price": 148000,
     "paid": false,
     "collection": "shop",
@@ -515,12 +515,12 @@ const items=[
     "family": "mollusc",
     "color": "#2767d5",
     "stat": "defense",
-    "multiplier": 0.72,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.72,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Lesma-Dragão-Azul: -28% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Lesma-Dragão-Azul: -12% de dano recebido, +10% de cadência.",
     "price": 151500,
     "paid": false,
     "collection": "shop",
@@ -534,13 +534,13 @@ const items=[
     "family": "mollusc",
     "color": "#769f90",
     "stat": "range",
-    "multiplier": 1.39,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.39,
-      "magnet": 1.55,
-      "damage": 1.1
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Búzio das Fossas: +39% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +10% de dano.",
+    "ability": "Sentidos da escuridão de Búzio das Fossas: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 155000,
     "paid": false,
     "collection": "shop",
@@ -554,12 +554,12 @@ const items=[
     "family": "reptile",
     "color": "#2c536f",
     "stat": "damage",
-    "multiplier": 1.29,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.29,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Tartaruga-de-Couro: +29% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Tartaruga-de-Couro: +16% de dano, +8% de velocidade.",
     "price": 158500,
     "paid": false,
     "collection": "shop",
@@ -573,12 +573,12 @@ const items=[
     "family": "reptile",
     "color": "#6d9b38",
     "stat": "defense",
-    "multiplier": 0.75,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.75,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Serpente-Marinha: -25% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Serpente-Marinha: -12% de dano recebido, +10% de cadência.",
     "price": 162000,
     "paid": false,
     "collection": "shop",
@@ -592,13 +592,13 @@ const items=[
     "family": "reptile",
     "color": "#c49b36",
     "stat": "range",
-    "multiplier": 1.42,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.42,
-      "magnet": 1.55,
-      "damage": 1.09
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Tartaruga-de-Pente: +42% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +9% de dano.",
+    "ability": "Sentidos da escuridão de Tartaruga-de-Pente: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 165500,
     "paid": false,
     "collection": "shop",
@@ -612,12 +612,12 @@ const items=[
     "family": "squid",
     "color": "#a8729c",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Lula-Joia: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Lula-Joia: +16% de dano, +8% de velocidade.",
     "price": 169000,
     "paid": false,
     "collection": "shop",
@@ -631,12 +631,12 @@ const items=[
     "family": "squid",
     "color": "#7477ac",
     "stat": "defense",
-    "multiplier": 0.78,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.78,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Lula-de-Barbatanas-Longas: -22% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Lula-de-Barbatanas-Longas: -12% de dano recebido, +10% de cadência.",
     "price": 172500,
     "paid": false,
     "collection": "shop",
@@ -650,13 +650,13 @@ const items=[
     "family": "squid",
     "color": "#9c85c5",
     "stat": "range",
-    "multiplier": 1.38,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.38,
-      "magnet": 1.55,
-      "damage": 1.12
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Lula-Chicote: +38% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +12% de dano.",
+    "ability": "Sentidos da escuridão de Lula-Chicote: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 176000,
     "paid": false,
     "collection": "shop",
@@ -670,12 +670,12 @@ const items=[
     "family": "fish",
     "color": "#d34c69",
     "stat": "damage",
-    "multiplier": 1.29,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.29,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Peixe-Víbora: +29% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Peixe-Víbora: +16% de dano, +8% de velocidade.",
     "price": 179500,
     "paid": false,
     "collection": "shop",
@@ -689,12 +689,12 @@ const items=[
     "family": "fish",
     "color": "#7961a4",
     "stat": "defense",
-    "multiplier": 0.74,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.74,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Peixe-Dragão-Negro: -26% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Peixe-Dragão-Negro: -12% de dano recebido, +10% de cadência.",
     "price": 183000,
     "paid": false,
     "collection": "shop",
@@ -708,13 +708,13 @@ const items=[
     "family": "fish",
     "color": "#759dac",
     "stat": "range",
-    "multiplier": 1.41,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.41,
-      "magnet": 1.55,
-      "damage": 1.11
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Peixe-Machado: +41% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +11% de dano.",
+    "ability": "Sentidos da escuridão de Peixe-Machado: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 186500,
     "paid": false,
     "collection": "shop",
@@ -728,12 +728,12 @@ const items=[
     "family": "benthic",
     "color": "#6eae9e",
     "stat": "damage",
-    "multiplier": 1.32,
+    "multiplier": 1.16,
     "bonuses": {
-      "damage": 1.32,
-      "movement": 1.12
+      "damage": 1.16,
+      "movement": 1.08
     },
-    "ability": "Impulso predatório de Estrela-Cesto: +32% de dano, +12% de velocidade.",
+    "ability": "Impulso predatório de Estrela-Cesto: +16% de dano, +8% de velocidade.",
     "price": 190000,
     "paid": false,
     "collection": "shop",
@@ -747,12 +747,12 @@ const items=[
     "family": "benthic",
     "color": "#e0be8f",
     "stat": "defense",
-    "multiplier": 0.77,
+    "multiplier": 0.88,
     "bonuses": {
-      "defense": 0.77,
-      "fireRate": 1.22
+      "defense": 0.88,
+      "fireRate": 1.1
     },
-    "ability": "Véu de pressão de Lírio-do-Mar: -23% de dano recebido, +22% de cadência.",
+    "ability": "Véu de pressão de Lírio-do-Mar: -12% de dano recebido, +10% de cadência.",
     "price": 193500,
     "paid": false,
     "collection": "shop",
@@ -766,13 +766,13 @@ const items=[
     "family": "benthic",
     "color": "#858e69",
     "stat": "range",
-    "multiplier": 1.44,
+    "multiplier": 1.18,
     "bonuses": {
-      "range": 1.44,
-      "magnet": 1.55,
-      "damage": 1.1
+      "range": 1.18,
+      "magnet": 1.25,
+      "damage": 1.04
     },
-    "ability": "Sentidos da escuridão de Pepino-do-Mar Hadal: +44% de alcance de ataque, +55% de alcance de coleta. Adaptação ofensiva: +10% de dano.",
+    "ability": "Sentidos da escuridão de Pepino-do-Mar Hadal: +18% de alcance, +25% de atração de orbes, +4% de dano.",
     "price": 197000,
     "paid": false,
     "collection": "shop",
