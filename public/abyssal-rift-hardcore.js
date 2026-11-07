@@ -707,63 +707,80 @@ function drawBossMark(c,mark,now,active=false){
 }
 function drawNightmareKrakenHead(c,r,pulse=0){
  c.save();
- // True octopus anatomy: rounded muscular mantle, no horns, no demonic fins.
- const skin=c.createRadialGradient(-r*.28,-r*.48,r*.08,0,-r*.10,r*1.42);
- skin.addColorStop(0,'rgba(218,135,245,.94)');
- skin.addColorStop(.30,'rgba(139,65,199,.92)');
- skin.addColorStop(.68,'rgba(72,27,132,.95)');
- skin.addColorStop(1,'rgba(25,7,59,.97)');
- c.shadowColor='#9e45d3';c.shadowBlur=20;c.fillStyle=skin;
- c.strokeStyle='rgba(178,91,219,.80)';c.lineWidth=Math.max(2,r*.035);
+ // True octopus anatomy: soft muscular mantle, no horns, no rigid mask silhouette.
+ const breathe=1+Math.sin(Number(pulse||0)*1.7)*.018;
+ c.scale(1,breathe);
+ const skin=c.createRadialGradient(-r*.34,-r*.58,r*.06,-r*.02,-r*.08,r*1.55);
+ skin.addColorStop(0,'rgba(229,154,249,.96)');
+ skin.addColorStop(.28,'rgba(160,79,211,.94)');
+ skin.addColorStop(.67,'rgba(82,32,142,.96)');
+ skin.addColorStop(1,'rgba(27,8,61,.98)');
+ c.shadowColor='#9e45d3';c.shadowBlur=22;c.fillStyle=skin;
+ c.strokeStyle='rgba(194,112,229,.68)';c.lineWidth=Math.max(1.6,r*.028);
  c.beginPath();
- c.moveTo(-r*.94,r*.48);
- c.bezierCurveTo(-r*1.18,r*.03,-r*1.12,-r*.82,-r*.62,-r*1.35);
- c.bezierCurveTo(-r*.30,-r*1.68,r*.30,-r*1.68,r*.62,-r*1.35);
- c.bezierCurveTo(r*1.12,-r*.82,r*1.18,r*.03,r*.94,r*.48);
- c.bezierCurveTo(r*.79,r*.82,r*.46,r*1.02,0,r*1.05);
- c.bezierCurveTo(-r*.46,r*1.02,-r*.79,r*.82,-r*.94,r*.48);
+ c.moveTo(-r*.90,r*.42);
+ c.bezierCurveTo(-r*1.02,r*.12,-r*.98,-r*.54,-r*.72,-r*1.12);
+ c.bezierCurveTo(-r*.55,-r*1.48,-r*.20,-r*1.66,r*.08,-r*1.59);
+ c.bezierCurveTo(r*.38,-r*1.67,r*.72,-r*1.42,r*.82,-r*1.05);
+ c.bezierCurveTo(r*1.03,-r*.55,r*1.06,r*.08,r*.91,r*.43);
+ c.bezierCurveTo(r*.78,r*.77,r*.48,r*.96,r*.16,r*.98);
+ c.bezierCurveTo(-r*.05,r*1.08,-r*.31,r*1.04,-r*.50,r*.92);
+ c.bezierCurveTo(-r*.72,r*.82,-r*.85,r*.65,-r*.90,r*.42);
  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
 
- // Organic chromatophore mottling breaks the old mask-like face.
- c.globalAlpha=.20;
- for(let i=0;i<18;i++){
-  const a=i*2.399+(.16*pulse),rad=r*(.18+(i%5)*.13);
-  const x=Math.cos(a)*rad*.78,y=-r*.22+Math.sin(a)*rad*.70;
-  paintedCircle(c,x,y,r*(.025+(i%3)*.010),i%2?'#d799ef':'#5b2594');
+ // Translucent inner mantle creates depth and removes the flat, hard helmet effect.
+ const inner=c.createRadialGradient(-r*.18,-r*.68,r*.04,0,-r*.38,r*.88);
+ inner.addColorStop(0,'rgba(255,224,255,.22)');
+ inner.addColorStop(.46,'rgba(219,144,244,.08)');
+ inner.addColorStop(1,'rgba(67,19,113,0)');
+ c.fillStyle=inner;c.beginPath();c.ellipse(-r*.02,-r*.36,r*.66,r*.92,-.04,0,Math.PI*2);c.fill();
+
+ // Organic chromatophores drift asymmetrically across the mantle.
+ c.globalAlpha=.19;
+ for(let i=0;i<22;i++){
+  const a=i*2.399+(.13*pulse),rad=r*(.14+(i%6)*.115);
+  const x=Math.cos(a)*rad*.83-r*.035,y=-r*.24+Math.sin(a)*rad*.72;
+  paintedCircle(c,x,y,r*(.022+(i%4)*.009),i%3===0?'#f0b7ff':i%2?'#bd70e0':'#58228f');
  }
  c.globalAlpha=1;
 
- // Pointed black eyes with a yellow feline iris and vertical slit pupil.
+ // Pointed black eyes keep the horror identity, but curved lids make the face organic.
  for(const side of [-1,1]){
   c.save();c.scale(side,1);
-  c.fillStyle='#020105';c.strokeStyle='rgba(178,102,226,.72)';c.lineWidth=Math.max(2,r*.028);
+  c.fillStyle='#020105';c.strokeStyle='rgba(185,105,226,.68)';c.lineWidth=Math.max(1.6,r*.024);
   c.beginPath();
-  c.moveTo(r*.12,-r*.46);
-  c.quadraticCurveTo(r*.46,-r*.78,r*.88,-r*.47);
-  c.quadraticCurveTo(r*.58,-r*.10,r*.20,-r*.18);
+  c.moveTo(r*.15,-r*.44);
+  c.bezierCurveTo(r*.30,-r*.66,r*.60,-r*.70,r*.82,-r*.48);
+  c.bezierCurveTo(r*.65,-r*.21,r*.37,-r*.14,r*.18,-r*.25);
+  c.bezierCurveTo(r*.11,-r*.30,r*.10,-r*.37,r*.15,-r*.44);
   c.closePath();c.fill();c.stroke();
 
-  const iris=c.createRadialGradient(r*.49,-r*.42,1,r*.49,-r*.42,r*.19);
-  iris.addColorStop(0,'#fff4a3');iris.addColorStop(.38,'#ffd72e');iris.addColorStop(1,'#aa7600');
-  c.fillStyle=iris;c.shadowColor='#ffd42a';c.shadowBlur=14;
-  c.beginPath();c.ellipse(r*.49,-r*.42,r*.13,r*.18,side*.10,0,Math.PI*2);c.fill();
-  c.shadowBlur=0;
-  c.fillStyle='#050300';c.beginPath();c.ellipse(r*.49,-r*.42,r*.025,r*.145,0,0,Math.PI*2);c.fill();
+  const iris=c.createRadialGradient(r*.49,-r*.42,1,r*.49,-r*.42,r*.18);
+  iris.addColorStop(0,'#fff6ad');iris.addColorStop(.40,'#ffd62b');iris.addColorStop(1,'#9a6900');
+  c.fillStyle=iris;c.shadowColor='#ffd42a';c.shadowBlur=13;
+  c.beginPath();c.ellipse(r*.49,-r*.42,r*.115,r*.17,side*.08,0,Math.PI*2);c.fill();
+  c.shadowBlur=0;c.fillStyle='#050300';
+  c.beginPath();c.ellipse(r*.49,-r*.42,r*.022,r*.135,0,0,Math.PI*2);c.fill();
   c.restore();
  }
 
- // Small hard beak under the eyes, frightening but recognisably cephalopod.
- c.fillStyle='rgba(8,3,15,.95)';c.strokeStyle='rgba(193,119,225,.52)';c.lineWidth=Math.max(1.4,r*.022);
- c.beginPath();c.moveTo(-r*.18,r*.18);c.quadraticCurveTo(0,r*.05,r*.18,r*.18);
- c.quadraticCurveTo(r*.08,r*.39,0,r*.48);c.quadraticCurveTo(-r*.08,r*.39,-r*.18,r*.18);
+ // Soft facial folds lead toward a small recessed beak instead of a rigid mouth plate.
+ c.strokeStyle='rgba(223,151,246,.22)';c.lineWidth=Math.max(1,r*.018);c.lineCap='round';
+ for(const side of [-1,1]){
+  c.beginPath();c.moveTo(side*r*.38,-r*.02);c.bezierCurveTo(side*r*.31,r*.15,side*r*.23,r*.28,side*r*.12,r*.35);c.stroke();
+ }
+ c.fillStyle='rgba(7,2,13,.88)';c.strokeStyle='rgba(201,127,229,.40)';c.lineWidth=Math.max(1.2,r*.018);
+ c.beginPath();c.moveTo(-r*.12,r*.24);c.quadraticCurveTo(0,r*.16,r*.12,r*.24);
+ c.quadraticCurveTo(r*.07,r*.38,0,r*.43);c.quadraticCurveTo(-r*.07,r*.38,-r*.12,r*.24);
  c.closePath();c.fill();c.stroke();
- c.fillStyle='#c6a47a';c.beginPath();c.moveTo(-r*.065,r*.25);c.lineTo(0,r*.42);c.lineTo(r*.065,r*.25);c.closePath();c.fill();
+ c.fillStyle='#c6a47a';c.beginPath();c.moveTo(-r*.044,r*.29);c.lineTo(0,r*.39);c.lineTo(r*.044,r*.29);c.closePath();c.fill();
 
- // Eight muscular arm roots emerge naturally from the lower mantle.
- c.strokeStyle='rgba(218,142,244,.44)';c.lineWidth=Math.max(1.3,r*.024);c.lineCap='round';
+ // Eight muscular arm roots blend into the lower mantle with staggered, curved origins.
+ c.strokeStyle='rgba(218,142,244,.40)';c.lineCap='round';
  for(let i=0;i<8;i++){
-  const x=(-.70+i*.20)*r;
-  c.beginPath();c.moveTo(x,r*.71);c.quadraticCurveTo(x*.82,r*.94,x*.70,r*1.08);c.stroke();
+  const u=(i-3.5)/3.5,x=u*r*.67,lean=Math.sin(i*1.7+pulse*.25)*r*.055;
+  c.lineWidth=Math.max(1.2,r*(.021+.005*(1-Math.abs(u))));
+  c.beginPath();c.moveTo(x,r*.72);c.bezierCurveTo(x*.92+lean,r*.84,x*.78-lean,r*.98,x*.66,r*1.10);c.stroke();
  }
  c.restore();
 }
