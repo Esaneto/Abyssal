@@ -17,13 +17,19 @@ function open(account,id,rng=randomInt){
  const available=COIN_SKINS.filter(id=>!(account.ownedSkins||['default']).includes(id));
  let reward;
  if(chest.final){
-   // Final chests always award exactly 100,000 coins and a skin item, never a coin-only roll.
-   const pool=available.length?available:[FINAL_SKIN];
-   const skin=pool[rng(pool.length)];
-   const duplicate=(account.ownedSkins||[]).includes(skin);
-   account.ownedSkins=[...new Set([...(account.ownedSkins||['default']),skin])];
+   // Final clear is deterministic in structure: Nightmare skin first, one random
+   // coin-shop skin guaranteed, then the existing 100,000-coin final prize.
+   const owned=new Set(account.ownedSkins||['default']);
+   const nightmareDuplicate=owned.has(FINAL_SKIN);
+   owned.add(FINAL_SKIN);
+   const randomPool=COIN_SKINS.filter(id=>!owned.has(id));
+   const fallbackPool=COIN_SKINS.length?COIN_SKINS:[FINAL_SKIN];
+   const randomSkinId=(randomPool.length?randomPool:fallbackPool)[rng((randomPool.length?randomPool:fallbackPool).length)];
+   const randomDuplicate=owned.has(randomSkinId);
+   owned.add(randomSkinId);
+   account.ownedSkins=[...owned];
    account.coins=(Number(account.coins)||0)+100000;
-   reward={type:'final',amount:100000,skinId:skin,duplicate};
+   reward={type:'final',amount:100000,nightmareSkinId:FINAL_SKIN,nightmareDuplicate,randomSkinId,randomDuplicate};
  }else if(rng(100)<SKIN_CHANCE&&available.length){const skin=available[rng(available.length)];account.ownedSkins=[...(account.ownedSkins||['default']),skin];reward={type:'skin',id:skin};}
  else {const amount=COINS[rng(COINS.length)];account.coins=(account.coins||0)+amount;reward={type:'coins',amount};}
  chest.reward=reward;chest.openedAt=Date.now();return {ok:true,reward};
