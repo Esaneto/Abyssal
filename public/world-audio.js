@@ -27,7 +27,7 @@
  };
  for(const [id,[f,d,end,texture]] of Object.entries(ui))
   add(id,{f,d,end,texture,group:'ui',w:'triangle',g:id==='ui-purchase'?.05:.027,
-   filter:2300,cd:105,priority:50,layer:texture==='chime'?.19:0,layerRatio:1.50});
+   filter:2300,cd:105,priority:50,group:id==='ui-click'?'ui-tap':'ui',layer:texture==='chime'?.19:0,layerRatio:1.50});
  add('orb',{f:730,d:.115,end:1.37,texture:'bubble',w:'sine',g:.013,group:'pickup',cd:110,priority:12,filter:2400});
  add('level-up',{f:490,d:.49,end:1.72,texture:'chime',g:.058,layer:.32,layerRatio:1.50,priority:80,cd:700});
  add('checkpoint',{f:290,d:.55,end:1.42,texture:'hollow',g:.059,noise:.12,priority:82,cd:620});
