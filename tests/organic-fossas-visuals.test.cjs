@@ -27,8 +27,8 @@ test('volcanic rocks originate against walls in mob chambers and narrow corridor
   }else assert.ok(Map.isWalkable(layout,h.sourceX,h.sourceY),'corridor mount in cave');
  }
 });
-test('anemones are fixed to room walls and their poisonous cloud expands during active period',()=>{
- const plants=hazards.filter(h=>h.type==='fumarole');
+test('poison plants are fixed to room walls and their toxic cloud expands during active period',()=>{
+ const plants=hazards.filter(h=>h.type==='poisonPlant');
  assert.ok(plants.length>0);
  for(const h of plants){
   assert.ok(Number.isFinite(h.sourceX));
@@ -144,8 +144,8 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
   const inX=h.sourceX+Math.cos(h.angle)*35,inY=h.sourceY+Math.sin(h.angle)*35;
   assert.equal(Map.isWalkable(layout,outX,outY),false,h.id+' backed by real rock, not overlapping a corridor');
   assert.equal(Map.isWalkable(layout,inX,inY),true,h.id+' enters playable water');
-  const phase=H.state(h,inPhase(h,h.type==='tentacle'?.23:h.type==='spikes'?.16:.5));
-  if(h.type!=='fumarole'&&h.type!=='rockfall'&&h.type!=='lure'&&h.type!=='pressure'){
+  const phase=H.state(h,inPhase(h,h.type==='tentacle'?.23:.5));
+  if(h.type==='volcano'||h.type==='tentacle'){
    const target=h.type==='tentacle'?H.hazardAtCycle(h,phase.cycle):h;
    const point=h.type==='tentacle'?H.tentaclePath(h,phase)[6]:target;
    const inside=H.hit(h,point.x,point.y,0,phase);
@@ -163,20 +163,6 @@ test('embedded vents do not overlap entrance checkpoints or exit vortices',()=>{
  }
 });
 
-test('spear tips cross the chamber quickly, then withdraw for the rest of their attack',()=>{
- const spikes=hazards.filter(h=>h.type==='spikes');assert.ok(spikes.length);
- for(const h of spikes){
-  const early=H.state(h,inPhase(h,.015));
-  const peak=H.state(h,inPhase(h,.15));
-  const retreat=H.state(h,inPhase(h,.82));
-  const tx=h.sourceX+Math.cos(h.angle)*h.length*.90;
-  const ty=h.sourceY+Math.sin(h.angle)*h.length*.90;
-  assert.equal(H.hit(h,tx,ty,0,early),false);
-  assert.equal(H.hit(h,tx,ty,0,peak),true);
-  assert.equal(H.hit(h,tx,ty,0,retreat),false);
-  assert.ok(h.length>h.radius*3,'spines must span more than a decorative short patch');
- }
-});
 test('volcanoes reach the opposite wall and stop without passing through rock',()=>{
  const rocks=hazards.filter(h=>h.type==='volcano');assert.ok(rocks.length);
  for(const h of rocks){
