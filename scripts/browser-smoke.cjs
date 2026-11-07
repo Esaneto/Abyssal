@@ -40,7 +40,7 @@ const localGameSmoke = [
 " if(interaction?.type!==expected) throw Error('Wrong portal after boss at tier '+tier+': '+interaction?.type);",
 " if(tier<final && !activateMapInteraction()) throw Error('Descent failed at tier '+tier);",
 " if(tier<final && activeMapTier!==tier+1) throw Error('Transition skipped/duplicated tier '+tier);",
-" return {tier,boss:boss.kind,unlocked:true,exit:interaction.type,nextTier:activeMapTier,bossesKilled:bossKillsThisRun};",
+" return {tier,boss:boss.kind,unlocked:true,exit:interaction.type,nextTier:activeMapTier,bossesKilled:bossKillsThisRun,depth:ABYSSAL_MAP.depthAt(activeMapLayout,player.x,player.y),layoutHeight:activeMapLayout.height,playerY:player.y};",
 "};"
 ].join('\n');
 const injected=`<script>
@@ -230,6 +230,7 @@ async function realGameplaySmoke(browser,url){
   console.log('[live-browser] eight cave floors traversed, seven portals, final guardian '+JSON.stringify(journey));
   await sleep(350);
   const lastFloor=await evaluate(stateExpr);
+  console.log('[live-browser] final-layer-state '+JSON.stringify(lastFloor));
   assert.equal(lastFloor?.active,true,'Final Fossa boss victory must not stop the game');
   assert.ok(lastFloor?.depth>=2450,'Final Fossa must report final-layer depth');
   assert.ok(!lastFloor?.errors,'Final Fossa runtime errors: '+lastFloor?.errors);
