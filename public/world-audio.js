@@ -189,25 +189,56 @@
   function oscillator(frequency,wave,end,amplitude,layer=false){
    const osc=ctx.createOscillator(),env=ctx.createGain();
    const filter=typeof ctx.createBiquadFilter==='function'?ctx.createBiquadFilter():null;
-   osc.type=wave;osc.frequency.setValueAtTime(Math.max(30,frequency),when);
-   const middle=(cfg.texture==='bubble'||cfg.texture==='suction'||cfg.texture==='sing')?
-    Math.max(30,frequency*(end>1?1.28:.87)):Math.max(30,frequency*.81);
-   osc.frequency.exponentialRampToValueAtTime(middle,when+duration*.52);
-   osc.frequency.exponentialRampToValueAtTime(Math.max(25,frequency*end),when+duration);
+   const voice=Boolean(cfg.voice),f=Math.max(30,frequency),contour=cfg.contour;
+   osc.type=voice?(cfg.voice==='wail'?'triangle':'sawtooth'):wave;
+   if(voice&&Array.isArray(contour)&&contour.length===4){
+    // Inhale, painful ascent, screaming peak and descending collapse.
+    const pitch=v=>Math.max(28,Math.min(7500,f*v));
+    osc.frequency.setValueAtTime(pitch(contour[0]),when);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[1]),when+duration*.24);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[2]),when+duration*.58);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[2]*.83),when+duration*.75);
+    osc.frequency.exponentialRampToValueAtTime(pitch(contour[3]),when+duration);
+   }else{
+    osc.frequency.setValueAtTime(f,when);
+    const middle=(cfg.texture==='bubble'||cfg.texture==='suction'||cfg.texture==='sing')?
+     Math.max(30,f*(end>1?1.28:.87)):Math.max(30,f*.81);
+    osc.frequency.exponentialRampToValueAtTime(middle,when+duration*.52);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(25,f*end),when+duration);
+   }
    env.gain.setValueAtTime(.0001,when);
    const attack=layer?.02:Math.max(.004,Math.min(cfg.attack,duration*.24));
-   env.gain.linearRampToValueAtTime(amplitude,when+attack);
-   if(['crackle','rattle','stretch'].includes(cfg.texture)){
-    const n=cfg.texture==='rattle'?5:3;
-    for(let j=1;j<n;j++){
-     const x=when+attack+(duration-attack)*(j/n);
-     env.gain.setValueAtTime(Math.max(.0001,amplitude*(j%2?.35:.88)),x);
+   if(voice){
+    env.gain.linearRampToValueAtTime(amplitude*.47,when+Math.max(.018,attack));
+    env.gain.linearRampToValueAtTime(amplitude,when+duration*.36);
+    env.gain.setValueAtTime(Math.max(.0001,amplitude*.61),when+duration*.52);
+    env.gain.linearRampToValueAtTime(amplitude*.92,when+duration*.68);
+   }else if(cfg.fire>0||cfg.texture==='blast'){
+    env.gain.linearRampToValueAtTime(amplitude,when+Math.min(.028,duration*.06));
+    for(let j=1;j<=5;j++)env.gain.setValueAtTime(
+     Math.max(.0001,amplitude*(.34+.32*(1+Math.sin(j*3.7)))),when+duration*(.09+j*.125));
+   }else{
+    env.gain.linearRampToValueAtTime(amplitude,when+attack);
+    if(['crackle','rattle','stretch'].includes(cfg.texture)){
+     const n=cfg.texture==='rattle'?5:3;
+     for(let j=1;j<n;j++){
+      const x=when+attack+(duration-attack)*(j/n);
+      env.gain.setValueAtTime(Math.max(.0001,amplitude*(j%2?.35:.88)),x);
+     }
     }
    }
    env.gain.exponentialRampToValueAtTime(.0001,when+duration);
-   if(filter){filter.type=cfg.filterType;filter.frequency.value=cfg.filter;if(filter.Q)filter.Q.value=.73;
-    connect(osc,filter);connect(filter,env);created.push(filter);}
-   else connect(osc,env);
+   if(filter){
+    filter.type=voice?(cfg.voice==='growl'||cfg.voice==='roar'?'lowpass':'bandpass'):cfg.filterType;
+    if(voice&&cfg.formant>0){
+     const center=cfg.formant*(layer?1.23:1);
+     filter.frequency.setValueAtTime(Math.max(180,center*.60),when);
+     filter.frequency.exponentialRampToValueAtTime(Math.max(220,center*1.48),when+duration*.51);
+     filter.frequency.exponentialRampToValueAtTime(Math.max(180,center*.77),when+duration);
+     if(filter.Q)filter.Q.value=cfg.voice==='nightmare'||cfg.voice==='shriek'?1.25:.79;
+    }else{filter.frequency.value=cfg.filter;if(filter.Q)filter.Q.value=.73;}
+    connect(osc,filter);connect(filter,env);created.push(filter);
+   }else connect(osc,env);
    connect(env,output);created.push(env);
    sources.push(osc);osc.start(when);osc.stop(when+duration+.01);
    return osc;
@@ -231,17 +262,45 @@
     if(b){
      const src=ctx.createBufferSource(),ng=ctx.createGain();
      src.buffer=b;src.loop=true;
+     const amplitude=gain*cfg.noise*(cfg.fire>0?.80:.65);
      ng.gain.setValueAtTime(.0001,when);
-     ng.gain.linearRampToValueAtTime(gain*cfg.noise*.65,when+Math.max(.012,cfg.attack));
+     ng.gain.linearRampToValueAtTime(amplitude,when+(cfg.fire>0||cfg.texture==='blast'?.015:Math.max(.012,cfg.attack)));
+     if(cfg.fire>0){
+      // Flame/steam noise rises and flickers with scheduled gain automation.
+      for(let j=1;j<=7;j++){
+       const flicker=Math.sin(j*8.17+cfg.frequency*.013)*.25+.75;
+       ng.gain.setValueAtTime(Math.max(.0001,amplitude*flicker),when+duration*(j/9));
+      }
+     }else if(cfg.texture==='blast'){
+      ng.gain.setValueAtTime(amplitude*.95,when+duration*.13);
+      ng.gain.exponentialRampToValueAtTime(Math.max(.0001,amplitude*.22),when+duration*.55);
+     }
      ng.gain.exponentialRampToValueAtTime(.0001,when+duration);
      if(typeof ctx.createBiquadFilter==='function'){
-      const nf=ctx.createBiquadFilter();nf.type='bandpass';
-      nf.frequency.value=Math.max(140,cfg.filter*(cfg.texture==='hiss'?1.20:.80));
-      if(nf.Q)nf.Q.value=cfg.texture==='hiss'?.46:.8;
+      const nf=ctx.createBiquadFilter();
+      nf.type=cfg.fire>0?'lowpass':'bandpass';
+      nf.frequency.value=Math.max(140,cfg.filter*(cfg.texture==='steam'?1.25:cfg.fire>0?.91:.80));
+      if(nf.Q)nf.Q.value=cfg.texture==='steam'?.42:cfg.fire>0?.65:.8;
       connect(src,nf);connect(nf,ng);created.push(nf);
      }else connect(src,ng);
-     connect(ng,output);created.push(ng);sources.push(src);
-     src.start(when);src.stop(when+duration+.015);
+     connect(ng,output);created.push(ng);
+     if(cfg.crackle>0&&!lowPower&&typeof ctx.createBiquadFilter==='function'){
+      // A second frequency band on the SAME cached noise source pops like embers.
+      const high=ctx.createBiquadFilter(),pop=ctx.createGain();
+      high.type='highpass';high.frequency.value=1400+cfg.crackle*950;
+      pop.gain.setValueAtTime(.0001,when);
+      for(let i=0;i<7;i++){
+       const t=when+duration*(.09+i*.115);
+       const loud=gain*cfg.crackle*(.15+.5*(.5+.5*Math.sin(i*7.9+cfg.frequency)));
+       pop.gain.setValueAtTime(.0001,t);
+       pop.gain.linearRampToValueAtTime(Math.max(.0001,loud),t+.008);
+       pop.gain.exponentialRampToValueAtTime(.0001,t+.042);
+      }
+      pop.gain.setValueAtTime(.0001,when+duration);
+      connect(src,high);connect(high,pop);connect(pop,output);
+      created.push(high,pop);
+     }
+     sources.push(src);src.start(when);src.stop(when+duration+.015);
     }
    }
    let done=false;
