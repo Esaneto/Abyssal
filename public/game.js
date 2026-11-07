@@ -1529,22 +1529,24 @@ function updateSoloRiftHardcore(dt){
   }
   if(phase.phase!=='active')continue;
   if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
-   const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
+    // Suction is an uninterrupted current, not a tiny move every damage tick.
+    if(h.type==='vortex'||h.type==='lure'){
+      const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
+      const pull=Math.min(Math.max(0,len-7),(h.type==='vortex'?430:190)*dt);
+      const move=mapResolveMove(player.x,player.y,player.x+dx/len*pull,player.y+dy/len*pull,player.r);
+      player.x=move.x;player.y=move.y;
+    }
+    const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
    if(elapsed>=cooldown){
     riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
     hurtPlayer(h.damage);
     if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
-    if(h.type==='vortex'){
-     const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
-     const move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);
-     player.x=move.x;player.y=move.y;
-    }
    }
   }
   // Hazards belong to the world, not to a player's weapon. They can kill
   // creatures, elites and bosses, except Nightmare's immunity to own arms.
   for(const enemy of [...enemies]){
-   if(!enemy||enemy.hp<=0||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
+   if(!enemy||enemy.hp<=0||(enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
    if(!RIFT_HARDCORE.hit(h,enemy.x,enemy.y,Math.min(43,enemy.r*.48),phase))continue;
    enemy.riftHazardCooldowns ||= Object.create(null);
    if(elapsed<(enemy.riftHazardCooldowns[h.id]||0))continue;
