@@ -114,10 +114,10 @@ test('profile safety actions are compact and report is red',()=>{
  assert.match(css,/\.profile-report-btn\{[^}]*rgba\(255,69,89/);
 });
 
-test('relic bundle prices only the remaining relics and discounts the complete set',()=>{
+test('relic bundle charges only remaining R$9.99 boss skins without hidden discount',()=>{
  const game=read('public/game.js');
  assert.match(game,/const regularRemaining=remainingIds\.reduce/);
- assert.match(game,/const bundleBrlAmount=remaining===6\?Math\.min\(6990,regularRemaining\):regularRemaining/);
+ assert.match(game,/const bundleBrlAmount=regularRemaining/);
  assert.match(game,/somente relíquias ainda não adquiridas/);
 });
 
