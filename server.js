@@ -4,8 +4,10 @@ const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
-const { monitorEventLoopDelay } = require('perf_hooks');
+const { Worker } = require('worker_threads');
+const { monitorEventLoopDelay, performance } = require('perf_hooks');
 const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
 eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
@@ -25,6 +27,21 @@ const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const APP_VERSION=require('./package.json').version;
+const HOST_CPU_COUNT=typeof os.availableParallelism==='function'?os.availableParallelism():os.cpus().length;
+const RESOURCE_PROFILE=String(process.env.ABYSSAL_RESOURCE_PROFILE||'generic');
+const HTTP_BACKLOG=clamp(Math.floor(Number(process.env.HTTP_BACKLOG)||1024),128,16384);
+const DATABASE_POOL_MAX=clamp(Math.floor(Number(process.env.DATABASE_POOL_MAX)||5),1,20);
+const LIBUV_THREADPOOL_SIZE=clamp(Math.floor(Number(process.env.UV_THREADPOOL_SIZE)||4),1,128);
+let lastCpuUsage=process.cpuUsage(),lastCpuSampleAt=process.hrtime.bigint();
+let processCpuSample={processPercent:0,hostCapacityPercent:0};
+const cpuSampler=setInterval(()=>{
+ const now=process.hrtime.bigint(),elapsedUs=Math.max(1,Number(now-lastCpuSampleAt)/1000),usage=process.cpuUsage(lastCpuUsage);
+ const processPercent=((usage.user+usage.system)/elapsedUs)*100;
+ processCpuSample={processPercent:Number(processPercent.toFixed(2)),hostCapacityPercent:Number((processPercent/Math.max(1,HOST_CPU_COUNT)).toFixed(2))};
+ lastCpuUsage=process.cpuUsage();lastCpuSampleAt=now;
+},1000);
+cpuSampler.unref?.();
 const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
 const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200;
 
@@ -52,7 +69,7 @@ app.use((request,response,next)=>{
 });
 app.use(express.json({limit:'16kb'}));
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
+const io = new Server(server, { cors: { origin: true, credentials: false }, allowRequest: (request, callback) => callback(null, socketOriginAllowed(request.headers.origin, request)), maxHttpBufferSize: 1e5, pingInterval: 25000, pingTimeout: 60000, perMessageDeflate: false, httpCompression: { threshold: 2048 }, connectionStateRecovery: { maxDisconnectionDuration: 120000, skipMiddlewares: false } });
 const PORT = Number(process.env.PORT || 3000);
 // Socket.IO keeps the initial HTTP request by default; Abyssal does not use it after handshake.
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
@@ -72,35 +89,82 @@ let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
 let cardumes = readJson(CARDUMES_FILE, {});
 let pgPool = null;
 let persistenceQueue = Promise.resolve();
-function persistState(key, value) {
- if (!pgPool) return;
- // Queue writes in order and snapshot the value now, so parallel socket events cannot reorder them.
- const serialized = JSON.stringify(value);
- persistenceQueue = persistenceQueue.then(() => pgPool.query(
-  'INSERT INTO abyssal_state (state_key, state_value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = NOW()',
-  [key, serialized]
- )).catch(err => console.error(`[persistence] Falha ao salvar ${key} no PostgreSQL:`, err.message));
+let persistenceWorker = null;
+let persistenceWorkerSeq = 0;
+const persistenceWorkerJobs = new Map();
+const ASYNC_PERSISTENCE_ENABLED = process.env.ABYSSAL_ASYNC_PERSISTENCE !== 'false';
+
+function startPersistenceWorker() {
+ if (!ASYNC_PERSISTENCE_ENABLED || persistenceWorker) return;
+ try {
+  const worker = new Worker(path.join(__dirname, 'state-persistence-worker.js'));
+  worker.unref?.();
+  worker.on('message', message => {
+   const job = persistenceWorkerJobs.get(Number(message?.id));
+   if (!job) return;
+   persistenceWorkerJobs.delete(Number(message.id));
+   if (message.ok) job.resolve(message);
+   else job.reject(new Error(message.error || 'state persistence worker failed'));
+  });
+  worker.on('error', error => {
+   console.error('[persistence] Worker de serialização falhou:', error.message);
+   for (const job of persistenceWorkerJobs.values()) job.reject(error);
+   persistenceWorkerJobs.clear();
+   persistenceWorker = null;
+  });
+  worker.on('exit', code => {
+   if (persistenceWorker === worker) persistenceWorker = null;
+   if (code !== 0) console.warn('[persistence] Worker de serialização encerrou com código', code);
+  });
+  persistenceWorker = worker;
+ } catch (error) {
+  console.warn('[persistence] Worker indisponível; usando fallback assíncrono:', error.message);
+ }
 }
-function saveUsers() {
- try { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 }); }
- catch (err) { console.warn('[persistence] Arquivo local indisponível:', err.message); }
- persistState('users', users);
+startPersistenceWorker();
+
+async function fallbackSerializeAndWrite({id,key,value,filePath,pretty,mode}) {
+ const serialized=JSON.stringify(value,null,pretty?2:0);
+ if(filePath){
+  await fs.promises.mkdir(path.dirname(filePath),{recursive:true});
+  const tempPath=`${filePath}.${process.pid}.${id}.tmp`;
+  await fs.promises.writeFile(tempPath,serialized,{encoding:'utf8',mode});
+  await fs.promises.rename(tempPath,filePath);
+ }
+ return {id,key,ok:true,serialized,bytes:Buffer.byteLength(serialized,'utf8')};
 }
+function snapshotState(key,value,filePath,pretty=false,mode=0o600){
+ const id=++persistenceWorkerSeq;
+ if(!persistenceWorker)return fallbackSerializeAndWrite({id,key,value,filePath,pretty,mode});
+ return new Promise((resolve,reject)=>{
+  persistenceWorkerJobs.set(id,{resolve,reject});
+  try{persistenceWorker.postMessage({id,key,value,filePath,pretty,mode});}
+  catch(error){persistenceWorkerJobs.delete(id);reject(error);}
+ });
+}
+function persistState(key,value,filePath,pretty=false,mode=0o600){
+ const snapshotPromise=snapshotState(key,value,filePath,pretty,mode);
+ persistenceQueue=persistenceQueue.then(async()=>{
+  const snapshot=await snapshotPromise;
+  if(pgPool)await pgPool.query(
+   'INSERT INTO abyssal_state (state_key, state_value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value = EXCLUDED.state_value, updated_at = NOW()',
+   [key,snapshot.serialized]
+  );
+ }).catch(err=>console.error(`[persistence] Falha ao salvar ${key}:`,err.message));
+}
+function saveUsers(){persistState('users',users,USERS_FILE,true,0o600);}
 let titleStatsSaveTimer=null;
 function scheduleTitleStatsSave() {
  if(titleStatsSaveTimer)return;
  titleStatsSaveTimer=setTimeout(()=>{titleStatsSaveTimer=null;saveUsers();},2000);
  titleStatsSaveTimer.unref?.();
 }
-function saveCardumes() {
- try { fs.writeFileSync(CARDUMES_FILE, JSON.stringify(cardumes, null, 2), { mode: 0o600 }); }
- catch (err) { console.warn('[persistence] Arquivo de cardumes indisponível:', err.message); }
- persistState('cardumes', cardumes);
-}
-function saveRanks() {
- try { fs.writeFileSync(RANKS_FILE, JSON.stringify(rankings, null, 2)); }
- catch (err) { console.warn('[persistence] Arquivo de rankings local indisponível:', err.message); }
- persistState('rankings', rankings);
+function saveCardumes(){persistState('cardumes',cardumes,CARDUMES_FILE,true,0o600);}
+function saveRanks(){persistState('rankings',rankings,RANKS_FILE,true,0o600);}
+async function closePersistenceWorker(){
+ if(!persistenceWorker)return;
+ const worker=persistenceWorker;persistenceWorker=null;
+ try{await worker.terminate();}catch{}
 }
 async function initializePersistence() {
  if (!process.env.DATABASE_URL) {
@@ -113,9 +177,11 @@ async function initializePersistence() {
  const databasePoolConfig=normalizeDatabasePoolConfig(process.env.DATABASE_URL,process.env.DATABASE_SSL);
  pgPool = new Pool({
   ...databasePoolConfig,
-  max: 5,
+  max: DATABASE_POOL_MAX,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
+  connectionTimeoutMillis: 10000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
@@ -150,7 +216,7 @@ async function refreshDeployResumeFromPersistence(userKey){
  }catch(err){console.error('[deploy] Falha ao atualizar retomada persistida:',err.message);}
  return users[userKey]||null;
 }
-function hashPassword(password, salt) { return crypto.scryptSync(password, salt, 64).toString('hex'); }
+function hashPassword(password,salt){return new Promise(resolve=>crypto.scrypt(password,salt,64,(error,key)=>{if(error){console.error('[auth] scrypt falhou:',error.message);return resolve(null);}resolve(key.toString('hex'));}));}
 function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b, 'hex'); return aa.length === bb.length && crypto.timingSafeEqual(aa, bb); }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
 function issueSessionToken(user) {
@@ -401,10 +467,9 @@ function sendKillTitleProgress(socket,immediate=false){
 }
 function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':'coop';}
 function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':'classic');}
-function makeRoom({id,name,isPrivate=false,password='',capacity=6,mode='coop'}={}){
- const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
+function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,capacity=6,mode='coop'}={}){
  mode=normalizeRoomMode(mode);
- return {id,name,mode,isPrivate,passwordSalt,passwordHash:isPrivate?hashPassword(password,passwordSalt):null,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
+ return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
