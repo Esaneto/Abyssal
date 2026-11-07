@@ -92,9 +92,9 @@ let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
 let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
-const SKIN_TRAIL_CADENCE_SECONDS=.35,SKIN_TRAIL_CADENCE_MS=350;
+const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
 // Bubbles deal damage every 100 ms; emission remains at 200 ms to limit network/particles.
-const BUBBLE_TRAIL_HIT_SECONDS=.10,BUBBLE_TRAIL_HIT_MS=100,BUBBLE_TRAIL_EMIT_SECONDS=.20;
+const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_SECONDS=.20;
 let sharkWakeTrails=[],inkTrails=[];
 function setActiveMapDescriptor(descriptor){
  if(!isRiftRun()||onlineRoomMode==='pvp'||!ABYSSAL_MAP){activeMapLayout=null;activeMapSeed=0;activeMapTier=0;activeRiftHazards=[];riftBossMarks=[];W=4800;H=3000;return null;}
@@ -1235,7 +1235,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:6.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
@@ -1774,14 +1774,18 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
  if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*predatorDamageMultiplier(enemy);hp=Math.min(maxHp,hp+actualDamage*.02);}
 
-  if(equippedSkin==='electriceel' && enemy && enemy.hp > 0){
-    enemy.paralyzedUntil = Math.max(enemy.paralyzedUntil || 0, performance.now() + 100);
-    burst(enemy.x, enemy.y, '#38e8ff', 3, 50);
+  if(equippedSkin==='electriceel' && enemy && enemy.hp > 0 && !options.secondary && !['poison-dot','blue-ring-ink','pelagic-wake'].includes(String(skillId||''))){
+    const now=performance.now();
+    if(now>=(Number(enemy.electricStunReadyAt)||0)){
+      enemy.electricStunReadyAt=now+1200;
+      enemy.paralyzedUntil=Math.max(enemy.paralyzedUntil||0,now+120);
+      burst(enemy.x,enemy.y,'#38e8ff',3,50);
+    }
   }
 
 
   if(equippedSkin==='greensnake' && enemy && enemy.hp > 0) {
-    enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 4.0);
+    enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 3.5);
   }
 
  if(onlineMode){
@@ -2054,7 +2058,7 @@ function killEnemy(i){
  }
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
  if(equippedSkin==='devourer'&&killedBoss){player.devourerVacuumUntil=performance.now()+5000;showToast('VÁCUO RESIDUAL · ORBES ATRAÍDOS');}
- if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+4);
+ if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+2);
  enemies.splice(i,1);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-defeated':'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud();
 }
 function getFiringRange(){if(upgrades.abyssEye)return Math.hypot(W,H);return 294*(upgrades.range||1)*(SkinAbilities?.targetRangeMultiplier(equippedSkin)||1)/GAME_WORLD_ZOOM;}
@@ -2182,14 +2186,14 @@ function update(dt){
    }
 
    if(equippedSkin==='toxic'){
-    player.toxicCloudTimer=(Number(player.toxicCloudTimer)||5)-dt;
+    player.toxicCloudTimer=(Number(player.toxicCloudTimer)||6.5)-dt;
     if(player.toxicCloudTimer<=0){
-     player.toxicCloudTimer=5;
-     const cloudRadius=235/GAME_WORLD_ZOOM;
+     player.toxicCloudTimer=6.5;
+     const cloudRadius=190/GAME_WORLD_ZOOM;
      effects.push({type:'ring',x:player.x,y:player.y,r:0,max:cloudRadius,life:1.7,maxLife:1.7,color:'#75ff68'});
      effects.push({type:'ring',x:player.x,y:player.y,r:0,max:cloudRadius*.68,life:1.05,maxLife:1.05,color:'#e0ff74'});
      burst(player.x,player.y,'#75ff68',44,125);
-     for(const target of enemies){if(target.hp<=0||Math.hypot(target.x-player.x,target.y-player.y)>cloudRadius)continue;target.poisonTimer=Math.max(Number(target.poisonTimer)||0,5);dealEnemyDamage(target,8,'toxic-cloud',{silentSound:true});}
+     for(const target of enemies){if(target.hp<=0||Math.hypot(target.x-player.x,target.y-player.y)>cloudRadius)continue;target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.5);dealEnemyDamage(target,7,'toxic-cloud',{silentSound:true});}
      if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'toxic',x:player.x/W,y:player.y/H,angle:player.angle});
      playSkillSound('toxic-cloud','trigger');playWorldSound('ability-poison',player,820,.72);
     }
@@ -2218,7 +2222,7 @@ function update(dt){
       for (const e of candidates) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=BUBBLE_TRAIL_HIT_MS) {
           e.wakeHitAt=performance.now();
-          dealEnemyDamage(e, 2, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+          dealEnemyDamage(e, 1.6, 'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
@@ -2232,7 +2236,7 @@ function update(dt){
    if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
     ink.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
     const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=BUBBLE_TRAIL_HIT_MS){e.blueRingInkHitAt=now;dealEnemyDamage(e,2,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
+    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=BUBBLE_TRAIL_HIT_MS){e.blueRingInkHitAt=now;dealEnemyDamage(e,1.6,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
    }
   }
 
@@ -2243,7 +2247,7 @@ function update(dt){
       e.poisonTick = (e.poisonTick || 0) - dt;
       if (e.poisonTick <= 0) {
         e.poisonTick = SKIN_TRAIL_CADENCE_SECONDS;
-        dealEnemyDamage(e, 5, 'poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+        dealEnemyDamage(e, 2.5, 'poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
         burst(e.x + rand(-e.r*0.5, e.r*0.5), e.y + rand(-e.r*0.5, e.r*0.5), '#39ff74', 4, 45);
       }
     }
@@ -2258,7 +2262,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(gameState==='playing'&&upgrades.ward>0){const interval=Math.max(18,28-(upgrades.ward-1)*4);if(!Number.isFinite(player.wardTimer))player.wardTimer=interval;player.wardTimer-=dt;if(player.wardTimer<=0){player.wardTimer=interval;player.invuln=Math.max(player.invuln,.55);burst(player.x,player.y,'#9deaff',14,105);effects.push({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.2,life:.55,maxLife:.55,color:'#8deaff'});playSkillSound('shield','trigger');}}
  if(gameState==='playing'&&upgrades.pressureCocoon>0){const cocoonInterval=[0,24,20,16][Math.min(3,upgrades.pressureCocoon)];if(upgrades.shield<=0){player.pressureCocoonTimer=(Number.isFinite(player.pressureCocoonTimer)?player.pressureCocoonTimer:cocoonInterval)-dt;if(player.pressureCocoonTimer<=0){player.pressureCocoonTimer=cocoonInterval;upgrades.shield=1;effects.push({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.6,life:.7,maxLife:.7,color:'#58d6c4'});burst(player.x,player.y,'#76f5df',18,100);if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});}}else player.pressureCocoonTimer=cocoonInterval;}
  if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:18,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:42,arc:.78,width:120},armoredgator:{cooldown:3,range:190,damage:45,arc:Math.PI,width:0}}[equippedSkin];
+  const cfg={reefshark:{cooldown:14,range:260,damage:28,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:34,arc:.78,width:120},armoredgator:{cooldown:9,range:190,damage:27,arc:Math.PI,width:0}}[equippedSkin];
   player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
   if(player.predatorAbilityTimer<=0){
    player.predatorAbilityTimer=cfg.cooldown;
@@ -2293,8 +2297,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   for(const target of enemies){
    if(!target||target.hp<=0)continue;
    if(!window.AbyssalEnemyAI?.touchesKrakenTentacle?.(krakenProxy,target,1))continue;
-   const now=performance.now();if(now-(Number(target.krakenTentacleHitAt)||0)<420)continue;
-   target.krakenTentacleHitAt=now;dealEnemyDamage(target,24,'kraken-contact');target.hit=.18;burst(target.x,target.y,'#a98bff',4,55);
+   const now=performance.now();if(now-(Number(target.krakenTentacleHitAt)||0)<850)continue;
+   target.krakenTentacleHitAt=now;dealEnemyDamage(target,15,'kraken-contact');target.hit=.18;burst(target.x,target.y,'#a98bff',4,55);
   }
  }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.62,maxLife:.62,color:'#c18cff'});effects.push({type:'ring',x:player.x,y:player.y,r:0,max:145*upgrades.range/GAME_WORLD_ZOOM,life:.4,maxLife:.4,color:'#f0d9ff'});playWorldSound('ability-nova',player,1000,.82)}}
