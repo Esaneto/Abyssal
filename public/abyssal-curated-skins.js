@@ -58,7 +58,7 @@ const items=[
     "id": "blanket",
     "name": "Polvo-Cobertor Sombrio",
     "family": "octopus",
-    "color": "#885f98",
+    "color": "#7842b3",
     "stat": "range",
     "multiplier": 1.3,
     "ability": "Membrana sensorial: +30% de alcance. Adaptação predatória: +15% de dano.",
@@ -130,7 +130,7 @@ const items=[
     "id": "nautilus",
     "name": "Náutilo da Fossa",
     "family": "mollusc",
-    "color": "#789ba4",
+    "color": "#d0af84",
     "stat": "damage",
     "multiplier": 1.18,
     "ability": "Pressão espiral: +18% de dano. Adaptação predatória: +19% de cadência.",
@@ -148,7 +148,7 @@ const items=[
     "id": "gharial",
     "name": "Gavial das Águas Negras",
     "family": "reptile",
-    "color": "#598b91",
+    "color": "#46765b",
     "stat": "damage",
     "multiplier": 1.18,
     "ability": "Pinça de agulhas: +18% de dano. Adaptação predatória: +20% de cadência.",
@@ -166,7 +166,7 @@ const items=[
     "id": "goblin",
     "name": "Tubarão-Duende",
     "family": "shark",
-    "color": "#6289b5",
+    "color": "#3a72c2",
     "stat": "damage",
     "multiplier": 1.32,
     "bonuses": {
@@ -185,7 +185,7 @@ const items=[
     "id": "frilled",
     "name": "Tubarão-Cobra",
     "family": "shark",
-    "color": "#586988",
+    "color": "#405879",
     "stat": "defense",
     "multiplier": 0.75,
     "bonuses": {
@@ -224,7 +224,7 @@ const items=[
     "id": "butterflyray",
     "name": "Raia-Borboleta",
     "family": "ray",
-    "color": "#a88560",
+    "color": "#d6b36a",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
@@ -243,7 +243,7 @@ const items=[
     "id": "stingray",
     "name": "Raia-Prego",
     "family": "ray",
-    "color": "#835f92",
+    "color": "#855075",
     "stat": "defense",
     "multiplier": 0.78,
     "bonuses": {
@@ -262,7 +262,7 @@ const items=[
     "id": "guitarfish",
     "name": "Raia-Viola",
     "family": "ray",
-    "color": "#b1a17b",
+    "color": "#b99b44",
     "stat": "range",
     "multiplier": 1.38,
     "bonuses": {
@@ -320,7 +320,7 @@ const items=[
     "id": "dogtootheel",
     "name": "Enguia-Dente-de-Cão",
     "family": "eel",
-    "color": "#9c687b",
+    "color": "#794655",
     "stat": "range",
     "multiplier": 1.41,
     "bonuses": {
@@ -340,7 +340,7 @@ const items=[
     "id": "mimic",
     "name": "Polvo-Mímico",
     "family": "octopus",
-    "color": "#8b6a9d",
+    "color": "#b154a2",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
@@ -359,7 +359,7 @@ const items=[
     "id": "glassoctopus",
     "name": "Polvo-de-Vidro",
     "family": "octopus",
-    "color": "#8aafb3",
+    "color": "#bdd6d9",
     "stat": "defense",
     "multiplier": 0.77,
     "bonuses": {
@@ -417,7 +417,7 @@ const items=[
     "id": "helmetjelly",
     "name": "Medusa-Capacete",
     "family": "jelly",
-    "color": "#526c94",
+    "color": "#403d96",
     "stat": "defense",
     "multiplier": 0.73,
     "bonuses": {
@@ -456,7 +456,7 @@ const items=[
     "id": "spidercrab",
     "name": "Caranguejo-Aranha",
     "family": "crustacean",
-    "color": "#a77f63",
+    "color": "#997153",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
@@ -533,7 +533,7 @@ const items=[
     "id": "bluedragon",
     "name": "Lesma-Dragão-Azul",
     "family": "mollusc",
-    "color": "#4b93c4",
+    "color": "#2767d5",
     "stat": "defense",
     "multiplier": 0.72,
     "bonuses": {
@@ -572,7 +572,7 @@ const items=[
     "id": "leatherback",
     "name": "Tartaruga-de-Couro",
     "family": "reptile",
-    "color": "#5c7e9d",
+    "color": "#2c536f",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
@@ -591,7 +591,7 @@ const items=[
     "id": "seasnake",
     "name": "Serpente-Marinha",
     "family": "reptile",
-    "color": "#72886c",
+    "color": "#6d9b38",
     "stat": "defense",
     "multiplier": 0.75,
     "bonuses": {
@@ -610,7 +610,7 @@ const items=[
     "id": "hawksbill",
     "name": "Tartaruga-de-Pente",
     "family": "reptile",
-    "color": "#768d5a",
+    "color": "#c49b36",
     "stat": "range",
     "multiplier": 1.42,
     "bonuses": {
@@ -688,7 +688,7 @@ const items=[
     "id": "viperfish",
     "name": "Peixe-Víbora",
     "family": "fish",
-    "color": "#ae6777",
+    "color": "#d34c69",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
@@ -765,7 +765,7 @@ const items=[
     "id": "crinoid",
     "name": "Lírio-do-Mar",
     "family": "benthic",
-    "color": "#b5a084",
+    "color": "#e0be8f",
     "stat": "defense",
     "multiplier": 0.77,
     "bonuses": {
