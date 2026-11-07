@@ -989,19 +989,27 @@ function drawFinalBoss(c,enemy,now){
 // the boss's cavern-wide non-colliding background over each player or store tile.
 function drawNightmareRelic(c,x,y,r,t=0){
  c.save();c.translate(x,y);const q=Math.sin(t*.003),size=r;
- for(let arm=0;arm<6;arm++){
-  const sign=arm%2?-1:1,rank=Math.floor(arm/2),end=-r*(1.75+.23*rank),tipY=sign*r*(.52+rank*.39);
-  c.strokeStyle='rgba(114,43,177,.76)';c.lineWidth=Math.max(3,r*(.27-rank*.045));
-  c.lineCap='round';c.beginPath();c.moveTo(-r*.36,sign*r*.22);
-  c.bezierCurveTo(-r*.76,sign*r*.28,-r*1.2,tipY+q*r*.10,end,tipY);c.stroke();
-  c.strokeStyle='rgba(231,170,252,.65)';c.lineWidth=2;c.stroke();
+ for(let arm=0;arm<8;arm++){
+  const a=(arm+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),nx=-sn,ny=cs;
+  const points=[];
+  for(let k=0;k<=32;k++){
+   const p=k/32,along=r*.46+r*(1.65+.19*(arm%3))*p;
+   const lateral=(Math.sin(p*Math.PI*(2.7+(arm%4)*.47)+q+arm)*.66+
+      Math.sin(p*Math.PI*4.4-q)*.34)*Math.sin(p*Math.PI)*r*.40;
+   points.push({x:cs*along+nx*lateral,y:sn*along+ny*lateral});
+  }
+  drawNightmareArm(c,points,r*.24,32,.8);
  }
  const skin=c.createRadialGradient(-r*.32,-r*.42,r*.05,0,0,r*1.28);
  skin.addColorStop(0,'#b56dce');skin.addColorStop(.52,'#7a3aa4');skin.addColorStop(1,'#270c4d');
  c.fillStyle=skin;c.strokeStyle='#e7b9fb';c.lineWidth=Math.max(1.4,r*.068);
- c.beginPath();c.moveTo(-r*.86,r*.16);c.bezierCurveTo(-r*1.06,-r*.79,r*.9,-r*.96,r*.93,r*.14);
- c.quadraticCurveTo(r*.65,r*.99,0,r*1.05);c.quadraticCurveTo(-r*.77,r*.96,-r*.86,r*.16);
- c.fill();c.stroke();
+ c.beginPath();c.moveTo(-r*1.03,r*.13);
+ c.bezierCurveTo(-r*1.25,-r*.40,-r*.93,-r*1.03,-r*.53,-r*1.12);
+ c.quadraticCurveTo(0,-r*1.34,r*.53,-r*1.12);
+ c.bezierCurveTo(r*.95,-r*1.03,r*1.25,-r*.40,r*1.04,r*.13);
+ c.bezierCurveTo(r*.84,r*.70,r*.53,r*.77,0,r*1.08);
+ c.bezierCurveTo(-r*.53,r*.77,-r*.84,r*.70,-r*1.03,r*.13);
+ c.closePath(); c.fill();c.stroke();
  for(const side of [-1,1]){
   c.fillStyle='#140522';c.beginPath();c.moveTo(side*r*.15,-r*.28);
   c.lineTo(side*r*.78,-r*.40);c.lineTo(side*r*.54,-r*.04);c.closePath();c.fill();
