@@ -131,7 +131,7 @@ test('mobile explicitly orders Resonance before Solo and Online',()=>{
 
 test('multiplayer keeps offscreen enemy motion warm instead of viewport-culling mobs',()=>{
  const server=read('server.js');
- assert.match(server,/sendFar=!recipient\|\|motionNow-\(Number\(recipient\.lastFarMotionAt\)\|\|0\)>=500/);
+ assert.match(server,/sendFar=!recipient\|\|motionNow-\(Number\(recipient\.lastFarMotionAt\)\|\|0\)>=250/);
  assert.match(server,/const enemies=recipient\?world\.enemies\.filter\(e=>sendFar\|\|/);
  assert.match(server,/if\(recipient&&sendFar\)recipient\.lastFarMotionAt=motionNow/);
 });
