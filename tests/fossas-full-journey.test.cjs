@@ -58,7 +58,7 @@ test('red Kraken-tentacle telegraph grows from faint to solid for at least three
  const sample=(fraction)=>{
   const styles=[];
   const context={
-   save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},ellipse(){},arc(){},fill(){},
+   save(){},restore(){},beginPath(){},moveTo(){},lineTo(){},quadraticCurveTo(){},bezierCurveTo(){},ellipse(){},arc(){},fill(){},
    createRadialGradient(){return {addColorStop(){}};},
    stroke(){const match=String(this.strokeStyle).match(/^rgba\(255,54,82,([\d.]+)\)$/);if(match)styles.push(Number(match[1]));}
   };
