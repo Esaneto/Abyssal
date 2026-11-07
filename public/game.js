@@ -1785,11 +1785,11 @@ function spawnProjectileDissolve(x,y,color='#9bbcff',special=null,blocked=false)
 }
 // Source-based colors prevent skin damage from being confused with weapon hits.
 const SKIN_DAMAGE_SKILLS=new Set(['skin-active-dash','skin-active-cloud','skin-active-trail','skin-active-push','skin-active-poison','skin-active-poison-dot','skin-active-paralysis','skin-active-shot','skin-active-slowShot','skin-active-pulse']);
-const PERIODIC_SKIN_DAMAGE_SKILLS=new Set(['blue-ring-ink','pelagic-wake','poison-dot']);
+const PERIODIC_SKIN_DAMAGE_SKILLS=new Set(['skin-active-trail','skin-active-poison-dot']);
 function damageTone(skillId=''){
  const id=String(skillId||'');
  if(SKIN_DAMAGE_SKILLS.has(id))return 'skin';
- if(id==='rift-hazard-poisonPlant'||id==='poison-dot')return 'poison';
+ if(id==='rift-hazard-poisonPlant')return 'poison';
  if(RESONANCE_CATEGORIES.passive.includes(id)||['gravitationalRupture','arcChain'].includes(id))return 'passive';
  return 'shot';
 }
@@ -2266,15 +2266,7 @@ function update(dt){
     if (bubble.life <= 0) sharkWakeTrails.splice(i, 1);
   }
 
-  for(let i=inkTrails.length-1;i>=0;i--){
-   const ink=inkTrails[i];ink.life-=dt;ink.damageTimer=(Number(ink.damageTimer)||0)-dt;
-   if(ink.life<=0){inkTrails.splice(i,1);continue;}
-   if(!ink.remote&&!ink.boss&&ink.damageTimer<=0){
-    ink.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
-    const candidates=collectEnemyCandidatesNear(ink.x,ink.y,ink.r+36/GAME_WORLD_ZOOM);
-    const now=performance.now();for(const e of candidates)if(e.hp>0&&Math.hypot(e.x-ink.x,e.y-ink.y)<=ink.r+(e.r||10)&&now-(Number(e.blueRingInkHitAt)||0)>=BUBBLE_TRAIL_HIT_MS){e.blueRingInkHitAt=now;dealEnemyDamage(e,1.6,'blue-ring-ink',{visual:showPeriodicSkinDamageNumber(e),silentSound:true});}
-   }
-  }
+  for(let i=inkTrails.length-1;i>=0;i--){const ink=inkTrails[i];ink.life-=dt;if(ink.life<=0)inkTrails.splice(i,1);}
 
   // Dano contínuo de veneno (verde) nos inimigos envenenados
   for (const e of enemies) {
@@ -2283,7 +2275,7 @@ function update(dt){
       e.poisonTick = (e.poisonTick || 0) - dt;
       if (e.poisonTick <= 0) {
         e.poisonTick = SKIN_TRAIL_CADENCE_SECONDS;
-        dealEnemyDamage(e, 2.5, 'poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+        dealEnemyDamage(e, 1.2, 'skin-active-poison-dot', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
         burst(e.x + rand(-e.r*0.5, e.r*0.5), e.y + rand(-e.r*0.5, e.r*0.5), '#39ff74', 4, 45);
       }
     }
