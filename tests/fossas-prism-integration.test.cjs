@@ -23,26 +23,25 @@ test('bosses advance through visible cave waypoints instead of steering into a w
  }
 });
 
-test('vertical transit shafts actually receive downhill boulders and concealed lures',()=>{
+test('transit shafts keep volcanic jets and suction vortexes on traversable routes',()=>{
  for(const seed of [42,99,72433,75443]){
   const layout=map.createLayout(seed,7);
   const hazards=traps.build(layout,7);
-  const stones=hazards.filter(h=>h.type==='rockfall'&&h.roomId.startsWith('passage:'));
-  const lures=hazards.filter(h=>h.type==='lure'&&h.roomId.startsWith('passage:'));
-  assert.ok(stones.length>=2,'rocks must fall across a traversable narrow passage');
-  assert.ok(lures.length>=1,'lures must intercept real passage traffic');
-  for(const stone of stones){
-   assert.ok(stone.length>175&&Math.sin(stone.angle)>.5,'fall has a downward velocity');
-   assert.equal(map.isWalkable(layout,stone.sourceX-Math.cos(stone.angle)*33,stone.sourceY-Math.sin(stone.angle)*33),false);
-   const time=stone.period-stone.offset-stone.active+stone.active*.23;
-   const phase=traps.state(stone,time),fall=traps.rockfallState(stone,phase);
-   assert.equal(phase.phase,'active');
-   assert.equal(traps.hit(stone,fall.x,fall.y,0,phase),true,'visible descending rock immediately damages on contact');
+  const volcanoes=hazards.filter(h=>h.type==='volcano'&&h.roomId.startsWith('passage:'));
+  const vortexes=hazards.filter(h=>h.type==='vortex'&&h.roomId.startsWith('passage:'));
+  assert.ok(volcanoes.length>=1,'volcanic jets must intercept a real narrow passage');
+  assert.ok(vortexes.length>=1,'suction vortexes must intercept real passage traffic');
+  for(const volcano of volcanoes){
+   assert.ok(volcano.length>120);
+   const active=traps.state(volcano,volcano.period-volcano.offset-volcano.active+volcano.active*.4);
+   assert.equal(active.phase,'active');
+   assert.equal(traps.hit(volcano,volcano.x,volcano.y,0,active),true);
   }
-  for(const lure of lures){
-   assert.ok(lure.radius>=110,'lure uses effective, not only declared radius');
-   const active=traps.state(lure,lure.period-lure.offset-lure.active+lure.active*.4);
-   assert.equal(traps.hit(lure,lure.x,lure.y,0,active),true);
+  for(const vortex of vortexes){
+   assert.ok(vortex.acrossRadius/vortex.passageWidth>.95,'vortex spans the route');
+   const active=traps.state(vortex,vortex.period-vortex.offset-vortex.active+vortex.active*.5);
+   assert.equal(active.phase,'active');
+   assert.equal(traps.hit(vortex,vortex.x,vortex.y,0,active),true);
   }
  }
 });
