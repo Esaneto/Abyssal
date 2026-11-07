@@ -333,6 +333,11 @@ function hit(hazard,px,py,pad=0,phase=null){
   const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
   return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*.5+pad;
  }
+ if(h.type==='tentacle'){
+  const len=h.length||300,a=h.angle||0;
+  return segmentDistance(px,py,h.x-Math.cos(a)*len*.45,h.y-Math.sin(a)*len*.45,
+    h.x+Math.cos(a)*len*.55,h.y+Math.sin(a)*len*.55)<=h.radius*.5+pad;
+ }
  return Math.hypot(px-h.x,py-h.y)<=r;
 }
 function checkpoint(layout,x,y,previous='start'){
