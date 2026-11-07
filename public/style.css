@@ -4597,3 +4597,26 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
   top:76px!important;bottom:auto!important;opacity:.86!important;
  }
 }
+
+
+/* Mar Abyssal: permanent Fossas cooperative room, aged cracked wood and tentacles. */
+#roomsScreen .room-row.rift-room{
+  position:relative;isolation:isolate;overflow:hidden;min-height:70px;
+  border:2px solid #87583b;border-radius:11px;padding:13px 16px;
+  background:
+    repeating-linear-gradient(104deg,transparent 0 22px,rgba(17,7,3,.22) 23px 25px,transparent 26px 43px),
+    linear-gradient(141deg,transparent 0 29%,#1b0d07 29.4%,transparent 30.2%,transparent 59%,#160a06 59.5%,transparent 60.4%),
+    linear-gradient(12deg,#24120a,#68412a 29%,#342014 51%,#785037 75%,#27160e);
+  box-shadow:inset 0 2px rgba(235,182,118,.13),inset 0 -12px 24px #150b08,0 4px 12px rgba(0,0,0,.35);
+}
+#roomsScreen .room-row.rift-room::before,#roomsScreen .room-row.rift-room::after{
+  content:"";pointer-events:none;position:absolute;top:-26px;width:86px;height:110px;
+  border:solid #a36a4c;border-width:11px 0 0 11px;border-radius:64% 35% 50% 50%;
+  filter:drop-shadow(2px 3px 1px #170b07);opacity:.9;z-index:-1;
+}
+#roomsScreen .room-row.rift-room::before{left:-16px;transform:rotate(23deg)}
+#roomsScreen .room-row.rift-room::after{right:-16px;transform:scaleX(-1) rotate(23deg)}
+#roomsScreen .room-row.rift-room b{color:#f6dfb6;font-family:Cinzel,serif;font-size:clamp(11px,1.65vw,15px);text-shadow:0 2px 4px #190902;}
+#roomsScreen .room-row.rift-room small{color:#e2c298;text-shadow:0 1px 3px #150803;}
+#roomsScreen .room-row.rift-room .room-join-btn{position:relative;z-index:2;background:#56311e;border-color:#b28258;color:#fff1d0;}
+#roomsScreen .room-row.rift-room .room-join-btn:focus-visible{outline:2px solid #ffdaa2;outline-offset:2px;}
