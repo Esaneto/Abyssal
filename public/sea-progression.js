@@ -10,7 +10,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const MAX_SEA_ENEMIES=100;
- const RESERVED_BOSS_SLOTS=4;
+ const RESERVED_BOSS_SLOTS=1;
  const MAX_SEA_COMMON_ENEMIES=MAX_SEA_ENEMIES-RESERVED_BOSS_SLOTS;
  const MAX_PROGRESS_MINUTES=25;
  const HP_GROWTH_PER_MINUTE=.12;
