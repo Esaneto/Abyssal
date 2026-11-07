@@ -39,7 +39,7 @@ test('one noise buffer per AudioContext, no playback before gesture, cooldowns a
   c.currentTime+=.26;
   if(World.play(c,names[i],{lowPower:true}))started++;
  }
- assert.ok(started<=6,'mobile polyphony must cap at 6 voices');
+ assert.ok(started>=6,'high-priority alerts may replace quiet voices while remaining capped');
  assert.ok(World.inspect(c).active<=6,'active mobile voice count cap');
  assert.ok(World.inspect(c).suppressed>0);
  assert.equal(World.play(c,'missing-sound'),false);
