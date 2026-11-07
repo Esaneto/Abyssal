@@ -35,8 +35,8 @@ test('green periodic skin damage appears without creating a new label every tick
  setNow(1300);assert.equal(showPeriodicSkinDamageNumber(enemy),false);
  setNow(1849);assert.equal(showPeriodicSkinDamageNumber(enemy),false);
  setNow(1850);assert.equal(showPeriodicSkinDamageNumber(enemy),true);
- assert.match(game,/visual:showPeriodicSkinDamageNumber\(e\)/);
- assert.match(game,/visual: showPeriodicSkinDamageNumber\(e\)/);
+ assert.match(game,/skin-active-trail'[\s\S]{0,140}visual:\s*showPeriodicSkinDamageNumber\(e\)/);
+ assert.match(game,/skin-active-poison-dot'[\s\S]{0,140}visual:\s*showPeriodicSkinDamageNumber\(e\)/);
 });
 
 test('multiplayer combat carries standardized skin damage tone into floating numbers',()=>{
