@@ -78,3 +78,12 @@ test('previously protected boss blue-ring playable relic and boss visual stay in
  assert.match(game,/boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL'/);
  assert.match(game,/type:'ink-trail',skin:'aberration'/);
 });
+
+test('Violet resonance matches authoritative four-target 230-range cap and retired shark dash is denied',()=>{
+ const game=read('public/game.js'),server=read('server.js');
+ assert.match(game,/filter\(v=>v\.d<=230\/GAME_WORLD_ZOOM\)\.sort\(\(a,b\)=>a\.d-b\.d\)\.slice\(0,4\)/);
+ assert.match(game,/max:230\/GAME_WORLD_ZOOM,life:\.58/);
+ assert.match(server,/if\(distance>230\/WORLD_ZOOM\)return reject\('skin-ability-out-of-range'\)/);
+ assert.match(server,/violetResonanceTargetIds\.size>=4/);
+ assert.match(server,/if\(skillId==='reefshark-dash'\)return reject\('skin-ability-removed'\)/);
+});
