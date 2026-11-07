@@ -1334,7 +1334,7 @@ io.on('connection', socket => {
   if(acceptedDisplacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=acceptedDx/deltaSeconds,vy=acceptedDy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>900){vx=vx/speed*900;vy=vy/speed*900;}p.velocityX=vx;p.velocityY=vy;}
   else {p.velocityX=0;p.velocityY=0;}
-  const activeWorldHeight=roomWorldHeight(room);p.x=clamp(acceptedX,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(acceptedY,8/WORLD_ZOOM,activeWorldHeight-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=receivedAt;p.positionResumeGraceUntil=0;if(typeof payload.clientHidden==='boolean')p.clientHidden=payload.clientHidden;if(p.clientHidden){p.velocityX=0;p.velocityY=0;}p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
+  const activeWorldHeight=roomWorldHeight(room);p.x=clamp(acceptedX,8/WORLD_ZOOM,WORLD_WIDTH-8/WORLD_ZOOM);p.y=clamp(acceptedY,8/WORLD_ZOOM,activeWorldHeight-8/WORLD_ZOOM);p.positionUpdates=(p.positionUpdates||0)+1;p.lastPositionAt=receivedAt;if(receivedAt>=(Number(p.positionResumeGraceUntil)||0))p.positionResumeGraceUntil=0;if(typeof payload.clientHidden==='boolean')p.clientHidden=payload.clientHidden;if(p.clientHidden){p.velocityX=0;p.velocityY=0;}p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
   // PvP pickup uses only the accepted authoritative position. Rejected teleports can never claim an orb.
   
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
