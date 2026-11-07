@@ -2201,8 +2201,8 @@ function update(dt){
    if(equippedSkin==='violet'&&player.violetCooldown<=0){
     player.violetCooldown=10;
     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'violet',x:player.x/W,y:player.y/H,angle:player.angle});
-    const pulseTargets=enemies.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(v=>v.d<=285/GAME_WORLD_ZOOM).sort((a,b)=>a.d-b.d).slice(0,6);
-    burst(player.x,player.y,'#bd91ff',42,190);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:285/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:'#cfa8ff'});effects.push({type:'beam',x1:player.x-52/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+52/GAME_WORLD_ZOOM,y2:player.y,life:.32,maxLife:.32,color:'#f0c7ff'});
+    const pulseTargets=enemies.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(v=>v.d<=230/GAME_WORLD_ZOOM).sort((a,b)=>a.d-b.d).slice(0,4);
+    burst(player.x,player.y,'#bd91ff',42,190);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:230/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:'#cfa8ff'});effects.push({type:'beam',x1:player.x-52/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+52/GAME_WORLD_ZOOM,y2:player.y,life:.32,maxLife:.32,color:'#f0c7ff'});
     for(const target of pulseTargets){dealEnemyDamage(target.e,22,'violet-resonance',{visual:true});burst(target.e.x,target.e.y,'#d7b7ff',7,75);}
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
