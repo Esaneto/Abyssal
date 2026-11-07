@@ -266,7 +266,7 @@ function seedRiftEncounters(world, random = Math.random) {
   return [];
 }
 
-const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:0,hub:10,landing:15,elite:5});
+const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:6,hub:10,landing:15,elite:5});
 function activateRiftEncounters(world,players,random=Math.random){
   if(!world||world.mode!=='rift')return [];
   const layout=mapLayoutFor(world);if(!layout)return [];
@@ -443,7 +443,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // The same procedural geometry is evaluated in solo and on the authoritative server.
   // Each hazard has a visible warning phase; damage can occur only in its active phase.
   if(riftMode&&mapLayout){
+    const nightmareAlive=Number(world.mapTier)===RiftHardcore.FINAL_TIER&&world.enemies.some(enemy=>enemy.kind===RiftHardcore.FINAL_KIND&&enemy.hp>0);
     for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
+      // The eight final-room tentacles are part of the Nightmare fight, not permanent room hazards.
+      if(hazard.type==='tentacle'&&!nightmareAlive)continue;
       const phase=RiftHardcore.state(hazard,world.elapsed);
       if(hazard.type==='tentacle'&&phase.phase!=='idle'){
        const derived=RiftHardcore.hazardAtCycle(hazard,phase.cycle);
