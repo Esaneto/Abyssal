@@ -1,8 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const R=require('../rift-rewards'),C=require('../public/abyssal-curated-skins');
-test('three new coin species in each biological category',()=>{
+test('coin species counts reflect removal of the common blue-ring octopus',()=>{
  for(const family of ['shark','ray','eel','octopus','jelly','crustacean','mollusc','reptile','squid','fish','benthic']){
-  const species=C.items.filter(s=>s.family===family&&s.morph);assert.equal(species.length,3,family);assert.ok(species.every(s=>!s.paid&&s.price>=85000));
+  const species=C.items.filter(s=>s.family===family&&s.morph);
+  assert.equal(species.length,family==='octopus'?2:3,family);
+  assert.ok(species.every(s=>!s.paid&&s.price>=85000));
  }
 });
 test('loot contains every purchased coin skin and excludes premium, promo and mission skins',()=>{
