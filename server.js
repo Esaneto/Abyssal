@@ -90,12 +90,14 @@ let cardumes = readJson(CARDUMES_FILE, {});
 let pgPool = null;
 let persistenceQueue = Promise.resolve();
 let persistenceWorker = null;
+let persistenceWorkerClosing = false;
 let persistenceWorkerSeq = 0;
 const persistenceWorkerJobs = new Map();
 const ASYNC_PERSISTENCE_ENABLED = process.env.ABYSSAL_ASYNC_PERSISTENCE !== 'false';
 
 function startPersistenceWorker() {
  if (!ASYNC_PERSISTENCE_ENABLED || persistenceWorker) return;
+ persistenceWorkerClosing=false;
  try {
   const worker = new Worker(path.join(__dirname, 'state-persistence-worker.js'));
   worker.unref?.();
@@ -114,7 +116,7 @@ function startPersistenceWorker() {
   });
   worker.on('exit', code => {
    if (persistenceWorker === worker) persistenceWorker = null;
-   if (code !== 0) console.warn('[persistence] Worker de serialização encerrou com código', code);
+   if (code !== 0&&!persistenceWorkerClosing) console.warn('[persistence] Worker de serialização encerrou com código', code);
   });
   persistenceWorker = worker;
  } catch (error) {
@@ -163,6 +165,7 @@ function saveCardumes(){persistState('cardumes',cardumes,CARDUMES_FILE,true,0o60
 function saveRanks(){persistState('rankings',rankings,RANKS_FILE,true,0o600);}
 async function closePersistenceWorker(){
  if(!persistenceWorker)return;
+ persistenceWorkerClosing=true;
  const worker=persistenceWorker;persistenceWorker=null;
  try{await worker.terminate();}catch{}
 }
