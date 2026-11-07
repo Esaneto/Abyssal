@@ -167,3 +167,43 @@ test('marine skins render crisp supersampled contours without changing world-spa
  assert.match(marine,/const facing=followAim\?1:/);
  assert.match(marine,/const movement=root\.AbyssalSkinMotion\?\.pose\?\.\(s,t,1\)/);
 });
+
+test('enemy and boss rigs point toward actual displacement in every direction',()=>{
+ const testCases=[['drifter',100,0,0],['whiteShark',0,100,Math.PI/2],['kraken',-100,0,Math.PI],['leviathan',0,-100,-Math.PI/2],['maw',100,100,Math.PI/4]];
+ for(const [kind,dx,dy,expected] of testCases){
+  const tracker=Motion.createTracker();
+  const actor={id:'mob-'+kind,kind,x:200,y:200,angle:0,nominalSpeed:90};
+  tracker.sample(actor,1000);
+  let pos=null;
+  for(let i=1;i<=22;i++){
+   pos=tracker.sample({...actor,x:200+dx*i/22,y:200+dy*i/22},1000+i*16);
+  }
+  const difference=Math.atan2(Math.sin(pos.heading-expected),Math.cos(pos.heading-expected));
+  assert.ok(Math.abs(difference)<.08,kind+' heading missed actual movement by '+difference);
+  assert.ok(Math.abs(pos.facingScale)===1,'heading may not flatten creature');
+ }
+});
+
+test('idle monsters retain heading; wraparound turns take the shortest arc',()=>{
+ const tracker=Motion.createTracker();
+ const entity={id:'elite',kind:'whiteSharkBoss',x:200,y:200,angle:Math.PI-0.04};
+ tracker.sample(entity,1000);
+ const idle=tracker.sample(entity,1016);
+ assert.equal(idle.heading,Math.PI-.04,'idle monsters must not reset heading');
+ const moving=tracker.sample({...entity,x:190,y:199.4},1032);
+ assert.ok(Math.abs(moving.heading-Math.PI)<.1,'heading should transition near pi rather than spinning a full turn');
+ const still=tracker.sample({...entity,x:190,y:199.4},1048);
+ assert.equal(still.heading,moving.heading,'stopping must preserve travel orientation');
+});
+
+test('live hostile sprite cache applies heading once, not inside cached artwork',()=>{
+ const game=fs.readFileSync('public/game.js','utf8');
+ const draw=game.slice(game.indexOf('function drawCreature('),game.indexOf('const boss=BOSS_KINDS.includes(kind)',game.indexOf('function drawCreature(')));
+ assert.match(draw,/const movingEnemyHeading=!playerCreature&&renderContext===ctx/);
+ assert.match(draw,/Number\.isFinite\(visualMotion\?\.heading\)\?visualMotion\.heading/);
+ assert.match(draw,/applyCreatureVisualTransform\(c,visualMotion,r,movingEnemyHeading\)/);
+ assert.match(draw,/hostileSpriteState\.__visualMotion=visualMotion/);
+ assert.match(draw,/drawCreature\(sprite\.center,sprite\.center,r,0/);
+ assert.match(draw,/kind!==RIFT_HARDCORE\?\.FINAL_KIND/);
+ assert.match(game,/const renderPad=e\.r\*1\.42\*/);
+});
