@@ -79,9 +79,9 @@ test('prismatic skill is a passive, secondary hits preserve selected shot cosmet
  const game=read('public/game.js'),server=read('server.js'),ui=read('public/index.html'),styles=read('public/style.css');
  assert.match(game,/shots:\['electric','pierce','photon','photonRay','nova','echoShot'\]/);
  assert.match(game,/passive:\['burst','ricochet','spread'\]/);
- assert.match(game,/\'prismatic-passive\'/);
+  assert.match(game,/prismOffsets=Array\.from/);
  assert.match(server,/p\.prismaticLevel = clamp/);
- assert.match(server,/\'prismatic-passive\'/);
+  assert.doesNotMatch(server,/'prismatic-passive'/);
  assert.match(ui,/id="resonanceFusionGuide"/);
  for(const name of ['RUPTURA GRAVITACIONAL','CADEIA DE ARCOS','OLHO DO ABISMO','DRENO VITAL'])assert.ok(game.includes(name));
  assert.match(styles,/.resonance-fusion-guide/);
