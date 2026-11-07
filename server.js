@@ -1268,6 +1268,17 @@ io.on('connection', socket => {
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  // Reconnected players may resume from coordinates saved for a different
+  // cave tier or an older collision map. Never enter embedded in a wall.
+  if(room.mode==='rift'){
+   const layout=WorldSimulation.mapLayoutFor(room.world);
+   const padding=Math.max(10,Number(p.r)||13/WORLD_ZOOM);
+   if(!AbyssalMap.isWalkable(layout,p.x,p.y,padding+6)){
+    const safe=AbyssalMap.startSpawn(layout,spawnIndex,room.capacity);
+    p.x=safe.x;p.y=safe.y;p.velocityX=0;p.velocityY=0;
+    p.riftCheckpointRoomId='start';
+   }
+  }
   room.players.set(socket.id,p);ensureWorld(room);
   const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};p.lastFullSnapshotAt=now;socket.emit('room-joined',joined);ack(joined);
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -1300,6 +1311,16 @@ io.on('connection', socket => {
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
   const receivedAt=Date.now(),previousAt=Number(p.lastPositionAt)||0,deltaSeconds=(receivedAt-previousAt)/1000;
   const previousX=Number(p.x)||0,previousY=Number(p.y)||0,dx=x-previousX,dy=y-previousY,displacement=Math.hypot(dx,dy);
+  // A depth transition teleports everyone by thousands of world units.
+  // Discard delayed packets referring to the previous floor, instead of
+  // treating them as movement or running collision resolution from the
+  // freshly spawned player to their old-floor location.
+  if(room.mode==='rift'&&receivedAt<(Number(p.positionResumeGraceUntil)||0)&&displacement>320){
+   p.lastPositionSeq=incomingSeq||((Number(p.lastPositionSeq)||0)+1);
+   p.lastPositionAt=receivedAt;p.velocityX=0;p.velocityY=0;
+   socket.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,previousX,previousY,true));
+   return ack({ok:true,blocked:true,reason:'stale-depth-position',seq:p.lastPositionSeq,receivedAt,positionUpdates:p.positionUpdates||0});
+  }
   if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'terrain',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   const movement=consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
