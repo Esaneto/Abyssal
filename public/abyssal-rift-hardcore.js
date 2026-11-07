@@ -154,7 +154,16 @@ function passageCeilingMount(layout,corridor,index,blocked=[]){
    if(length<175)continue;
    return {sourceX:x,sourceY:roof,angle:Math.PI*.5,wallKind:'passage-ceiling',length};
   }
-  return null;
+  // Most Fossas corridors are vertical shafts and have no horizontal roof
+  // across the swim lane. An embedded upper side ledge can shed rocks diagonally
+  // downward into that shaft without inventing a floating ceiling.
+  const ledge=corridorMount(layout,corridor,index+2700,blocked);
+  if(!ledge)return null;
+  const horizontal=Math.cos(ledge.angle),vertical=Math.sin(ledge.angle);
+  const angle=Math.atan2(.79+Math.max(-.08,vertical*.13),horizontal*.62);
+  const reach=traceToWall(layout,ledge.sourceX,ledge.sourceY,angle,1600);
+  if(reach<180)return null;
+  return {...ledge,angle,length:reach,wallKind:'passage-overhang'};
  }
  function nightmareWallMount(layout,room,index){
  const offsets=[0,.12,-.12,.26,-.26,.41];
