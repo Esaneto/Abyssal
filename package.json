@@ -8,7 +8,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node --test",
-    "preflight:hostinger": "node scripts/hostinger-preflight.cjs"
+    "preflight:hostinger": "node scripts/hostinger-preflight.cjs",
+    "capacity:sample": "node scripts/capacity-sample.cjs"
   },
   "engines": {
     "node": ">=22 <27"
