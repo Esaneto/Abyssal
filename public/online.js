@@ -590,7 +590,7 @@ function storePlayer(incoming){
  const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(1000/30),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
  let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
  const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
- const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(16,Math.min(40,sampleMs*.8)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?70:95};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
+ const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(24,Math.min(isPvp?45:55,sampleMs*1.05)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85};players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
  const keep=new Set();(Array.isArray(list)?list:[]).forEach(p=>{if(p?.id&&p.id!==localPlayerId){keep.add(p.id);storePlayer(p)}});
