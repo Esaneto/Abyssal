@@ -35,9 +35,10 @@ test('poison plants are fixed to room walls and their toxic cloud expands during
   const early=H.state(h,inPhase(h,.04)),late=H.state(h,inPhase(h,.9));
   assert.equal(early.phase,'active');assert.equal(late.phase,'active');
   assert.ok(h.poisonRays.length>=29,'cloud envelope follows the cave');
-  const middle=h.poisonRays[Math.floor(h.poisonRays.length/2)];
+  const middleIndex=Math.floor(h.poisonRays.length/2),middle=h.poisonRays[middleIndex];
+  const neighbor=h.poisonRays[Math.min(h.poisonRays.length-1,middleIndex+1)];
   const ox=h.poisonOriginX,oy=h.poisonOriginY;
-  const d=middle.length*.69,pointX=ox+Math.cos(middle.angle)*d,pointY=oy+Math.sin(middle.angle)*d;
+  const d=Math.min(middle.length,neighbor.length)*.5,pointX=ox+Math.cos(middle.angle)*d,pointY=oy+Math.sin(middle.angle)*d;
   assert.equal(H.hit(h,pointX,pointY,0,early),false);
   assert.equal(H.hit(h,pointX,pointY,0,late),true);
   assert.equal(Map.isWalkable(layout,ox+Math.cos(middle.angle)*(middle.length+35),oy+Math.sin(middle.angle)*(middle.length+35)),false,'cloud stops at a rock wall');
