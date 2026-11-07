@@ -1241,7 +1241,9 @@ io.on('connection', socket => {
   payload=payload&&typeof payload==='object'?payload:{};
   const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase();
   let u=users[socket.data.userKey];
-  if(payload.reconnect===true||!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
+  // A normal join must never load the entire persisted accounts JSONB.
+  // Only a deploy reconnect needs to recover a pending session from storage.
+  if(payload.reconnect===true&&!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
   const room=rooms.get(id)||restoreDeployRoom(u,id);
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outro processo do servidor. Mantenha uma única instância no Render.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=hashPassword(String(payload.password||''),room.passwordSalt);if(!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
@@ -1266,11 +1268,12 @@ io.on('connection', socket => {
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
-  room.players.set(socket.id,p);ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
-  const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};socket.emit('room-joined',joined);ack(joined);
+  room.players.set(socket.id,p);ensureWorld(room);
+  const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};p.lastFullSnapshotAt=now;socket.emit('room-joined',joined);ack(joined);
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
   socket.to(channelFor(room)).emit('player-joined',((({userKey,runStats,...x})=>x)(p)));
-  setTimeout(()=>{if(room.players.has(socket.id)){socket.emit('game-snapshot',getRoomSnapshot(room));broadcastWorld(room);}},120);
+  // The initial room-joined payload already contains the full world snapshot.
+  // Do not resend it to the newcomer AND broadcast it to every teammate.
   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...x})=>x));
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
@@ -1504,8 +1507,12 @@ io.on('connection', socket => {
    if(p.alive===false){p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=Date.now()+5000;p.skillSelectingUntil=0;p.regenAccumulator=0;}
    ensureWorld(room);
    socket.emit('player-vitals',playerVitalsPayload(p,{reason:'run-start',serverTime:Date.now()}));
-   socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'}));
-   broadcastWorld(room);
+   // The initial join already delivered the world. A later begin-run
+   // still supports explicit resync without flooding all room members.
+   if(Date.now()-(Number(p.lastFullSnapshotAt)||0)>1200){
+    socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'}));
+    p.lastFullSnapshotAt=Date.now();
+   }
    refreshWorldTicker();
   } else socket.data.runStats={...makeRunStats(),mode:payload.mode==='rift'?'rift':'solo'};
  });
