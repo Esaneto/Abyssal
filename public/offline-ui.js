@@ -10,7 +10,7 @@
   var message;
   function update(){
     if(!message)return;
-    var offline=localDesktop||navigator.onLine===false;
+    var offline=navigator.onLine===false;
     message.hidden=!offline;
     document.documentElement.classList.toggle('abyssal-offline',offline);
     var onlineButton=document.getElementById('onlineBtn');
@@ -20,7 +20,7 @@
       onlineButton.title=offline?'Conecte-se à internet para mergulhar online':'';
     }
     var retry=message.querySelector('button');
-    if(retry)retry.hidden=!localDesktop;
+    if(retry)retry.hidden=true;
   }
   function installNotice(){
     var menu=document.getElementById('menuScreen');
@@ -33,15 +33,6 @@
     var label=document.createElement('span');
     label.textContent='SEM CONEXÃO · MERGULHO SOLO E FOSSAS ABISSAIS DISPONÍVEIS. MULTIPLAYER E CONTA EXIGEM INTERNET.';
     message.appendChild(label);
-    if(localDesktop){
-      var button=document.createElement('button');
-      button.type='button';
-      button.textContent='TENTAR CONECTAR';
-      button.addEventListener('click',function(){
-        window.location.assign(GAME_URL);
-      });
-      message.appendChild(button);
-    }
     menu.appendChild(message);
     update();
   }
@@ -49,7 +40,7 @@
     localDesktop:localDesktop,
     nativeAssets:nativeAssets,
     canPlaySolo:function(){return true;},
-    connected:function(){return navigator.onLine!==false&&!localDesktop;}
+    connected:function(){return navigator.onLine!==false;}
   };
   window.addEventListener('offline',update);
   window.addEventListener('online',update);

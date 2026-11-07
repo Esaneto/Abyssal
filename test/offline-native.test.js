@@ -70,8 +70,8 @@ test('Android Capacitor and Electron carry local web assets, not only remote URL
  assert.match(main,/protocol\.registerSchemesAsPrivileged/);
  assert.match(main,/protocol\.handle\('abyssal'/);
  assert.match(main,/const OFFLINE_URL = 'abyssal:\/\/app\/index\.html'/);
- assert.match(main,/mainWindow\.loadURL\(GAME_URL\)\.catch\(loadLocal\)/);
- assert.match(main,/code !== -3/);
+ assert.match(main,/mainWindow\.loadURL\(OFFLINE_URL\)/);
+ assert.doesNotMatch(main,/mainWindow\.loadURL\(GAME_URL\)/);
  assert.match(main,/localWebRoot\(\)/);
  assert.match(main,/configuredGameUrl\(\)/);
  assert.doesNotMatch(main,/abyssal-ej5j\.onrender\.com/);
@@ -91,7 +91,9 @@ test('offline solo startup avoids blocking Socket.IO CDN and online maintenance 
  assert.match(online,/navigator\.onLine===false/);
  assert.match(online,/window\.AbyssalGameHooks\?\.getPlayerPosition\?\.\(\)/);
  assert.match(ui,/register\('\/offline-sw\.js'/);
+ assert.match(ui,/var offline=navigator\.onLine===false/);
  assert.match(ui,/onlineButton\.disabled=offline/);
+ assert.match(ui,/connected:function\(\)\{return navigator\.onLine!==false;\}/);
  assert.match(game,/addEventListener\('click',\(\)=>\{requestedRunMode='classic';onlineMode=false;startGame\(\)/);
  assert.match(game,/addEventListener\('abyssal-start-rift-solo',\(\)=>\{requestedRunMode='rift';onlineMode=false;startGame\(\)/);
 });
@@ -104,4 +106,15 @@ test('offline storage is a local cache and never caches authenticated responses'
  assert.match(sw,/request\.headers\.has\('authorization'\)/);
  assert.doesNotMatch(sw,/cache\.addAll\([^)]+\bcookie\b/);
  assert.match(online,/const SERVER_URL=window\.ABYSSAL_SERVER_URL\|\|window\.location\.origin/);
+});
+
+
+test('stable website downloads are updated on the release resolved by releases/latest',()=>{
+ const html=read('public/index.html');
+ const androidCi=read('.github/workflows/ci.yml');
+ const windowsCi=read('.github/workflows/download-builds.yml');
+ assert.match(html,/releases\/latest\/download\/Abyssal-Setup\.exe/);
+ assert.match(html,/releases\/latest\/download\/Abyssal-Android\.apk/);
+ assert.match(androidCi,/gh release upload downloads-2 Abyssal-Android\.apk --clobber/);
+ assert.match(windowsCi,/gh release upload downloads-2 desktop\/dist\/Abyssal-Setup\.exe --clobber/);
 });

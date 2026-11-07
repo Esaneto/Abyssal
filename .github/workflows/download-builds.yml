@@ -87,4 +87,4 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload downloads-1 desktop/dist/Abyssal-Setup.exe --clobber
+        run: gh release upload downloads-2 desktop/dist/Abyssal-Setup.exe --clobber
