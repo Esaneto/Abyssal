@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const abilities = require('../skin-abilities');
+const abilities = require('../public/skin-abilities');
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
 test('skin damage passives are deterministic and preserve boss/range conditions', () => {
@@ -53,9 +53,9 @@ test('predator skins trigger client events and have server-side validation', () 
  for(const id of ['abysscroc-lunge','armoredgator-spin']) assert.match(game,new RegExp(id));
 });
 test('browser and server use the same skin ability module', () => {
-  assert.equal(read('skin-abilities.js'),read('public/skin-abilities.js'));
-  assert.match(read('server.js'),/require\('\.\/skin-abilities'\)/);
-  assert.match(read('world-simulation.js'),/const SkinAbilities = require\('\.\/skin-abilities'\)/);
+  assert.equal(fs.existsSync(path.join(__dirname,'..','skin-abilities.js')),false,'obsolete duplicate root module should stay deleted');
+  assert.match(read('server.js'),/require\('\.\/public\/skin-abilities\.js'\)/);
+  assert.match(read('world-simulation.js'),/const SkinAbilities = require\('\.\/public\/skin-abilities\.js'\)/);
   assert.match(read('server.js'),/SkinAbilities\.orbExperienceMultiplier\(member\.skinId\)/);
   assert.doesNotMatch(read('world-simulation.js'),/magnetRangeMultiplier/);
 });
