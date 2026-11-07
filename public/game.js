@@ -1296,11 +1296,11 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  // Rajada Prismática is a universal passive, applied alongside the main shot.
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:6.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinShieldUntil:0};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
@@ -1662,8 +1662,8 @@ function updateSoloRiftHardcore(dt){
  riftBossMarks=[];
 }
 function hurtPlayer(dmg,tone='received'){
- if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');playWorldSound('shield-hit',player,600,.75);showToast('ESCUDO ABSORVEU O IMPACTO');return}
- const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);playWorldSound('player-hit',player,900,.95);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
+ if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');playWorldSound('shield-hit',player,600,.75);showToast('ESCUDO ABSORVEU O IMPACTO');return}
+ const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);playWorldSound('player-hit',player,900,.95);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
 }
 function revealOnlineContactSource(data){
  // Never create or teleport a mob from a damage event. The authoritative room snapshot
@@ -1840,20 +1840,6 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  if(options.silentSound!==true&&!options.secondary)playWorldSound('enemy-hit',enemy,620,.62);
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
  if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*predatorDamageMultiplier(enemy);hp=Math.min(maxHp,hp+actualDamage*.02);}
-
-  if(equippedSkin==='electriceel' && enemy && enemy.hp > 0 && !options.secondary && !['poison-dot','blue-ring-ink','pelagic-wake'].includes(String(skillId||''))){
-    const now=performance.now();
-    if(now>=(Number(enemy.electricStunReadyAt)||0)){
-      enemy.electricStunReadyAt=now+1200;
-      enemy.paralyzedUntil=Math.max(enemy.paralyzedUntil||0,now+120);
-      burst(enemy.x,enemy.y,'#38e8ff',3,50);
-    }
-  }
-
-
-  if(equippedSkin==='greensnake' && enemy && enemy.hp > 0 && !options.secondary && !['poison-dot','toxic-cloud','pelagic-wake','blue-ring-ink'].includes(String(skillId||''))) {
-    enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 3.5);
-  }
 
  if(onlineMode){
    const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=predatorDamageMultiplier(enemy),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
@@ -2075,9 +2061,7 @@ function killEnemy(i){
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
- if(equippedSkin==='devourer'&&killedBoss){showToast('DEVORADOR · EXPERIÊNCIA RECEBIDA');}
- if(!onlineMode&&equippedSkin==='coral')hp=Math.min(maxHp,hp+2);
- enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){const finalClear=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&e.kind===RIFT_HARDCORE?.FINAL_KIND;if(finalClear){riftBossMarks=[];localHazardSoundPhases.clear();showToast('FOSSAS CONCLUÍDAS · RESGATE O BAÚ FINAL');}else showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
+   enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){const finalClear=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&e.kind===RIFT_HARDCORE?.FINAL_KIND;if(finalClear){riftBossMarks=[];localHazardSoundPhases.clear();showToast('FOSSAS CONCLUÍDAS · RESGATE O BAÚ FINAL');}else showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
 }
 function getLocalSkinCursorAngle(){
  // Rendering only. Auto-fire and server-authoritative abilities must continue
@@ -2191,51 +2175,14 @@ function update(dt){
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;}
    const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*(SkinAbilities?.movementMultiplier(equippedSkin)||1)*toxinMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}player.x=nextX;player.y=nextY;if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift()}
 
-   if (['reefshark','whiteShark'].includes(equippedSkin) && (mx || my)) {
-    // Emit bubbles every 200 ms while applying damage to a target at most every 100 ms.
-    player.sharkTrailTimer=(Number(player.sharkTrailTimer)||0)-dt;
-    if(player.sharkTrailTimer<=0){
-     player.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS;
-     const bx=player.x-Math.cos(player.angle||0)*(player.r*1.1);
-     const by=player.y-Math.sin(player.angle||0)*(player.r*1.1);
-     sharkWakeTrails.push({x:bx+rand(-6,6),y:by+rand(-6,6),r:rand(14,22),life:5,maxLife:5,color:'#7bf5ff',damageTimer:0});
-     if(sharkWakeTrails.length>250)sharkWakeTrails.shift();
-     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({
-      type:'bubble-trail',skin:equippedSkin,x:clamp(bx/W,0,1),y:clamp(by/H,0,1),angle:player.angle
-     });
+   if((mx||my)&&player.skinTrailUntil>performance.now()){
+    player.skinTrailTimer=(Number(player.skinTrailTimer)||0)-dt;
+    if(player.skinTrailTimer<=0){
+     player.skinTrailTimer=.24;
+     const bx=player.x-Math.cos(player.angle||0)*player.r*1.15,by=player.y-Math.sin(player.angle||0)*player.r*1.15;
+     sharkWakeTrails.push({x:bx,y:by,r:16/GAME_WORLD_ZOOM,life:3,maxLife:3,color:currentSkinColor(),damageTimer:0,skinActive:true});
+     if(sharkWakeTrails.length>140)sharkWakeTrails.shift();
     }
-   }
-
-   if(equippedSkin==='aberration'&&(mx||my)){
-    player.inkTrailTimer=(Number(player.inkTrailTimer)||0)-dt;
-    if(player.inkTrailTimer<=0){
-     player.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS;
-     const ix=player.x-Math.cos(player.angle||0)*player.r*1.15,iy=player.y-Math.sin(player.angle||0)*player.r*1.15;
-     inkTrails.push({x:ix,y:iy,r:28/GAME_WORLD_ZOOM,life:4,maxLife:4,damageTimer:0,remote:false,boss:false});
-     if(inkTrails.length>260)inkTrails.splice(0,inkTrails.length-260);
-     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({type:'ink-trail',skin:'aberration',x:clamp(ix/W,0,1),y:clamp(iy/H,0,1),angle:player.angle});
-    }
-   }
-
-   if(equippedSkin==='toxic'){
-    player.toxicCloudTimer=(Number(player.toxicCloudTimer)||6.5)-dt;
-    if(player.toxicCloudTimer<=0){
-     player.toxicCloudTimer=6.5;
-     const cloudRadius=190/GAME_WORLD_ZOOM;
-     effects.push({type:'ring',x:player.x,y:player.y,r:0,max:cloudRadius,life:1.7,maxLife:1.7,color:'#75ff68'});
-     effects.push({type:'ring',x:player.x,y:player.y,r:0,max:cloudRadius*.68,life:1.05,maxLife:1.05,color:'#e0ff74'});
-     burst(player.x,player.y,'#75ff68',44,125);
-     for(const target of enemies){if(target.hp<=0||Math.hypot(target.x-player.x,target.y-player.y)>cloudRadius)continue;target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.5);dealEnemyDamage(target,7,'toxic-cloud',{silentSound:true});}
-     if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'toxic',x:player.x/W,y:player.y/H,angle:player.angle});
-     playSkillSound('toxic-cloud','trigger');playWorldSound('ability-poison',player,820,.72);
-    }
-   }
-   if(equippedSkin==='violet'&&player.violetCooldown<=0){
-    player.violetCooldown=10;
-    if(onlineMode&&window.AbyssalOnline?.sendSkinAbility)window.AbyssalOnline.sendSkinAbility({skin:'violet',x:player.x/W,y:player.y/H,angle:player.angle});
-    const pulseTargets=enemies.map(e=>({e,d:Math.hypot(e.x-player.x,e.y-player.y)})).filter(v=>v.d<=230/GAME_WORLD_ZOOM).sort((a,b)=>a.d-b.d).slice(0,4);
-    burst(player.x,player.y,'#bd91ff',42,190);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:230/GAME_WORLD_ZOOM,life:.58,maxLife:.58,color:'#cfa8ff'});effects.push({type:'beam',x1:player.x-52/GAME_WORLD_ZOOM,y1:player.y,x2:player.x+52/GAME_WORLD_ZOOM,y2:player.y,life:.32,maxLife:.32,color:'#f0c7ff'});
-    for(const target of pulseTargets){dealEnemyDamage(target.e,22,'violet-resonance',{visual:true});burst(target.e.x,target.e.y,'#d7b7ff',7,75);}
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
@@ -2292,46 +2239,6 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');effects.push({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
  if(gameState==='playing'&&upgrades.ward>0){const interval=Math.max(18,28-(upgrades.ward-1)*4);if(!Number.isFinite(player.wardTimer))player.wardTimer=interval;player.wardTimer-=dt;if(player.wardTimer<=0){player.wardTimer=interval;player.invuln=Math.max(player.invuln,.55);burst(player.x,player.y,'#9deaff',14,105);effects.push({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.2,life:.55,maxLife:.55,color:'#8deaff'});playSkillSound('shield','trigger');}}
  if(gameState==='playing'&&upgrades.pressureCocoon>0){const cocoonInterval=[0,24,20,16][Math.min(3,upgrades.pressureCocoon)];if(upgrades.shield<=0){player.pressureCocoonTimer=(Number.isFinite(player.pressureCocoonTimer)?player.pressureCocoonTimer:cocoonInterval)-dt;if(player.pressureCocoonTimer<=0){player.pressureCocoonTimer=cocoonInterval;upgrades.shield=1;effects.push({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.6,life:.7,maxLife:.7,color:'#58d6c4'});burst(player.x,player.y,'#76f5df',18,100);if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});}}else player.pressureCocoonTimer=cocoonInterval;}
- if(['reefshark','abysscroc','armoredgator'].includes(equippedSkin)){
-  const cfg={reefshark:{cooldown:14,range:260,damage:28,arc:.48,width:58},abysscroc:{cooldown:16,range:210,damage:34,arc:.78,width:120},armoredgator:{cooldown:9,range:190,damage:27,arc:Math.PI,width:0}}[equippedSkin];
-  player.predatorAbilityTimer=(Number(player.predatorAbilityTimer)||4)-dt;
-  if(player.predatorAbilityTimer<=0){
-   player.predatorAbilityTimer=cfg.cooldown;
-   const angle=Number(player.angle)||0,range=cfg.range/GAME_WORLD_ZOOM;
-   if(equippedSkin==='abysscroc')player.dashTime=.32;
-   const targets=enemies.filter(e=>{const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>range)return false;if(cfg.arc>=Math.PI)return true;const a=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(a-angle),Math.cos(a-angle));return Math.abs(delta)<=cfg.arc&&Math.abs(Math.sin(delta)*d)<=cfg.width/GAME_WORLD_ZOOM;}).sort((a,b)=>dist(player,a)-dist(player,b)).slice(0,8);
-   const color=equippedSkin==='reefshark'?'#8bd8ec':equippedSkin==='abysscroc'?'#79bd83':'#c5a66e';
-   if(equippedSkin!=='reefshark'){burst(player.x,player.y,color,28,175);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:range,life:.42,maxLife:.42,color});}
-
-   if(equippedSkin!=='reefshark'){
-    for(const target of targets){
-      dealEnemyDamage(target,cfg.damage,equippedSkin==='abysscroc'?'abysscroc-lunge':'armoredgator-spin',{visual:true});
-      burst(target.x,target.y,color,7,90);
-      if(equippedSkin==='armoredgator'){
-        // Mantém o mesmo impulso que será processado pelo servidor online.
-        const kdx=target.x-player.x,kdy=target.y-player.y;
-        const kdd=Math.hypot(kdx,kdy)||1;
-        target.kbVx=(kdx/kdd)*620;
-        target.kbVy=(kdy/kdd)*620;
-      }
-    }
-   }
-   // O Tubarão-branco mantém apenas o rastro gerado ao se movimentar; não transmite mais o jato frontal.
-   if(onlineMode && window.AbyssalOnline?.sendSkinAbility){
-     window.AbyssalOnline.sendSkinAbility({skin: equippedSkin, x: player.x/W, y: player.y/H, angle: player.angle});
-   }
-  }
- }
- if(equippedSkin==='kraken'){
-  const phase=performance.now()*.0018;
-  const krakenProxy={kind:'kraken',x:player.x,y:player.y,r:player.r*1.45,angle:player.angle||0,phase};
-  for(const target of enemies){
-   if(!target||target.hp<=0)continue;
-   if(!window.AbyssalEnemyAI?.touchesKrakenTentacle?.(krakenProxy,target,1))continue;
-   const now=performance.now();if(now-(Number(target.krakenTentacleHitAt)||0)<850)continue;
-   target.krakenTentacleHitAt=now;dealEnemyDamage(target,15,'kraken-contact');target.hit=.18;burst(target.x,target.y,'#a98bff',4,55);
-  }
- }
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.62,maxLife:.62,color:'#c18cff'});effects.push({type:'ring',x:player.x,y:player.y,r:0,max:145*upgrades.range/GAME_WORLD_ZOOM,life:.4,maxLife:.4,color:'#f0d9ff'});playWorldSound('ability-nova',player,1000,.82)}}
  if(upgrades.photonRay>0){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
@@ -2541,7 +2448,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     burst(e.x,e.y,'#bd88ff',2,30);
   }
 
-  const anglerHidden=equippedSkin==='angler'&&anglerInvisibleNow(),target=anglerHidden?{x:e.x,y:e.y}:localTarget;
+  const anglerHidden=false,target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
    const moved=mapResolveMove(e.x,e.y,e.x+e.kbVx*dt,e.y+e.kbVy*dt,Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;}
@@ -2912,7 +2819,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  // All legacy skins get a restrained locomotion cycle without moving hitboxes:
  // fish oscillate along their axis, cephalopods pulse, benthic species sway.
  if(!enemyState?.__sprite)applyCreatureVisualTransform(c,visualMotion,r,liveSkinHeading??movingEnemyHeading);
- c.globalAlpha=(playerCreature&&id==='angler'&&renderContext===ctx&&gameState==='playing')?anglerVisibilityAlpha(Date.now()):1;
+ c.globalAlpha=1;
  const bodyGrad=(base=color)=>{const g=c.createRadialGradient(-r*.28,-r*.36,r*.05,r*.06,r*.05,r*1.45);g.addColorStop(0,hit>0?'#ffffff':'#f1ffff');g.addColorStop(.14,hit>0?'#ffffff':base);g.addColorStop(.53,base);g.addColorStop(.82,'#21465a');g.addColorStop(1,'#06111e');return g};
  const stroke=(draw,width=Math.max(1.1,r*.055),col=color,blur=10)=>{c.save();c.beginPath();draw();c.strokeStyle=col;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.shadowBlur=blur*glowScale;c.shadowColor=col;c.stroke();c.restore()};
  const fill=(draw,fillStyle,strokeStyle=null,width=Math.max(1,r*.045),blur=0)=>{c.save();c.beginPath();draw();c.fillStyle=fillStyle;c.shadowBlur=blur*glowScale;c.shadowColor=strokeStyle||color;c.fill();if(strokeStyle){c.strokeStyle=strokeStyle;c.lineWidth=width;c.lineJoin='round';c.stroke()}c.restore()};
@@ -3255,7 +3162,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
    for(let side of [-1,1])for(let i=0;i<3;i++)tentacle(-.4+i*.34,side*.2,-.65+i*.3,side*.55,-.35+i*.3,side*.95,-.6+i*.45,side*1.16,.8);
    body(.85,.72,0,color);eye(.3,-.16,r*.06);
   }
-  if(id==='angler'&&renderContext===ctx&&gameState==='playing'&&anglerVisibilityAlpha(Date.now())<.999)lureOnly(.55,-1.18);
+  
   // Fine luminous lateral line makes skin previews look like the live character.
   if(['reefshark','hammerhead','abysscroc','greensnake','leviathan'].includes(id))stroke(()=>{c.moveTo(-.55*r,.03*r);c.quadraticCurveTo(0,.21*r,.48*r,.04*r)},Math.max(.8,r*.025),'rgba(214,255,250,.52)',5);
   c.restore();return;
