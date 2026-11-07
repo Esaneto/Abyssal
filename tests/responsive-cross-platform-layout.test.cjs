@@ -234,7 +234,7 @@ test('active gameplay rebuilds framebuffer on every viewport resize',()=>{
 
 test('final edge layout keeps end dive below desktop ranking and lifts mobile aim only',()=>{
  const css=read('public/style.css');
- const final=css.slice(css.lastIndexOf('MATCH EDGE LAYOUT V19'));
+ const final=css.slice(css.lastIndexOf('MATCH EDGE LAYOUT V19'),css.indexOf('/* Authoritative gameplay owns',css.lastIndexOf('MATCH EDGE LAYOUT V19')));
  assert.match(final,/#endDiveBtn\{[\s\S]*bottom:14px!important/);
  assert.match(final,/#runEnergyRanking\{[\s\S]*bottom:62px!important;[\s\S]*max-height:calc\(100dvh - 76px\)!important/);
  assert.match(final,/#mobileAimStick\.dual-stick-visible\{[\s\S]*bottom:calc\(var\(--game-safe-bottom\) \+ 54px\)!important/);
