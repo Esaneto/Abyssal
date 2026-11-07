@@ -54,7 +54,7 @@ const injected=`<script>
    },300);
    setTimeout(()=>{window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2180,5180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
  });
 })();
 </script>`;
@@ -141,7 +141,7 @@ async function realGameplaySmoke(browser,url){
    if(response.exceptionDetails)throw new Error('CDP evaluation: '+JSON.stringify(response.exceptionDetails));
    return response.result?.value;
   };
-  const stateExpr='(()=>{const g=window.AbyssalGameHooks;return {active:g?.isRiftPlaying?.(),elapsed:g?.expeditionState?.()?.elapsed,depth:g?.expeditionState?.()?.depthState?.depth,worldHeight:g?.worldHeight?.(),errors:document.body.dataset.smokeError||\"\",screen:document.body.className}})()';
+  const stateExpr='(()=>{const g=window.AbyssalGameHooks;return {active:g?.isRiftPlaying?.(),elapsed:g?.expeditionState?.()?.elapsed,depth:g?.expeditionState?.()?.depthState?.depth,worldHeight:g?.worldHeight?.(),errors:document.body.dataset.smokeError||\"\",gameState:g?.motionDiagnostics?.()?.gameState,screen:document.body.className}})()';
   const screenshot=async(name)=>{
    const r=await command('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
    const file=path.join(output,name+'.png');
@@ -165,7 +165,14 @@ async function realGameplaySmoke(browser,url){
    const accepted=await evaluate('window.AbyssalGameHooks?.setPlayerPosition?.('+x+','+y+')');
    assert.equal(accepted,true,'Could not navigate to '+name);
    await sleep(2100);
-   const next=await evaluate(stateExpr);
+   let next=await evaluate(stateExpr);
+   // Level-up offers intentionally pause the match. Pick a real offered card
+   // and continue the simulation before checking progression.
+   for(let attempt=0;attempt<5&&next?.gameState==='upgrade';attempt++){
+    const selected=await evaluate('(()=>{const button=document.querySelector(\"#upgradeChoices .upgrade-card\");if(!button)return false;button.click();return true})()');
+    assert.ok(selected,'Upgrade modal did not expose a selectable skill');
+    await sleep(500);next=await evaluate(stateExpr);
+   }
    console.log('[live-browser] '+name+' '+JSON.stringify(next));
    assert.ok(next?.active&&next?.elapsed>state.elapsed+.75,name+' stopped simulation');
    assert.ok(next?.depth>=minDepth&&next?.depth<=maxDepth,name+' wrong cave depth');
@@ -173,12 +180,13 @@ async function realGameplaySmoke(browser,url){
    state=next;
    await screenshot('live-'+name);
   };
-  await move('deep',2180,5180,150,300);
+  await move('deep',2720,4180,135,230);
   await move('boss',2400,8660,315,355);
  }finally{
   if(socket&&socket.readyState<=1)try{socket.close();}catch{}
   chrome.kill('SIGKILL');
-  fs.rmSync(directory,{recursive:true,force:true});
+  await Promise.race([new Promise(resolve=>chrome.once('close',resolve)),sleep(1800)]);
+  fs.rmSync(directory,{recursive:true,force:true,maxRetries:7,retryDelay:120});
  }
 }
 async function main(){
