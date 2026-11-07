@@ -1917,7 +1917,7 @@ function applySharedSpawn(data){
  for(const raw of data.enemies){
   if(!raw||raw.id==null||onlineEnemyById.has(String(raw.id)))continue;
   const x=clamp(Number(raw.x)||0,0,W),y=clamp(Number(raw.y)||0,0,H),kind=String(raw.kind||'drifter');
-  const enemy={...raw,id:raw.id,x,y,r:Math.max(2,Number(raw.r)||12)/GAME_WORLD_ZOOM,serverX:x,serverY:y,interpFromX:x,interpFromY:y,interpTargetX:x,interpTargetY:y,interpAt:performance.now(),interpDuration:0,hit:0,authoritativePosition:true};
+  const receivedAt=performance.now(),enemy={...raw,id:raw.id,x,y,r:Math.max(2,Number(raw.r)||12)/GAME_WORLD_ZOOM,serverX:x,serverY:y,interpFromX:x,interpFromY:y,interpTargetX:x,interpTargetY:y,interpAt:receivedAt,interpDuration:0,hit:0,authoritativePosition:true,motionSamples:[]};window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x,y,serverTime:serverTime||Date.now(),receivedAt});
   enemies.push(enemy);onlineEnemyById.set(String(enemy.id),enemy);
   if(BOSS_KINDS.includes(kind))newBosses.push(enemy);
  }
@@ -2014,7 +2014,7 @@ function applySharedMotion(data){
  if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
  lastAuthoritativeSnapshotSeq=sequence;
  if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
- const now=performance.now(),serverInterval=clamp(Number(data.intervalMs)||125,50,250),orbInterval=clamp(Number(data.orbIntervalMs)||250,120,650);
+ const now=performance.now(),serverInterval=clamp(Number(data.intervalMs)||50,30,250),orbInterval=clamp(Number(data.orbIntervalMs)||250,120,650);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  let moved=0;
  for(const row of data.enemies){
@@ -2024,7 +2024,7 @@ function applySharedMotion(data){
   const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):Number(enemy.x)||tx;
   const previousServerY=Number.isFinite(Number(enemy.serverY))?Number(enemy.serverY):Number(enemy.y)||ty;
   const current=window.AbyssalEnemyNetcode?.renderedPosition?.(enemy,now)||currentInterpolatedEnemyPosition(enemy,now);
-  const sampleMs=Number.isFinite(Number(enemy.snapshotReceivedAt))?clamp(now-Number(enemy.snapshotReceivedAt),50,250):serverInterval;
+  const sampleMs=Number.isFinite(Number(enemy.snapshotReceivedAt))?clamp(now-Number(enemy.snapshotReceivedAt),30,250):serverInterval;
   const maxV=(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss')?450:220;
   const vx=clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV),vy=clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
   const teleport=Math.hypot(tx-current.x,ty-current.y)>260;
@@ -2032,6 +2032,7 @@ function applySharedMotion(data){
   const lead=Math.min(34,sampleMs*.24)/1000,visualDuration=teleport?0:clamp(sampleMs*1.02,104,145);
   enemy.x=teleport?tx:current.x;enemy.y=teleport?ty:current.y;
   enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
+   window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:now});
   enemy.interpFromX=enemy.x;enemy.interpFromY=enemy.y;
   enemy.interpTargetX=clamp(tx+vx*lead,0,W);enemy.interpTargetY=clamp(ty+vy*lead,0,H);
   enemy.interpAt=now;enemy.interpDuration=visualDuration;
