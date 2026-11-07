@@ -11,7 +11,7 @@ function context(){
   createBufferSource:node,createBuffer(channels,length){buffers++;return{getChannelData(){return new Float32Array(length)}}}
  };
 }
-test('nine traps, eight bosses, all shot categories and twelve swimming families have unique local sounds',()=>{
+test('four traps, eight bosses, all shot categories and twelve swimming families have unique local sounds',()=>{
  for(const type of Object.keys(Hazards.TYPES)){
   assert.ok(World.PATTERNS['hazard-'+type+'-warning'],type+' warning');
   assert.ok(World.PATTERNS['hazard-'+type+'-active'],type+' active');
