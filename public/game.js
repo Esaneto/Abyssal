@@ -2194,7 +2194,7 @@ function applySoloSkinActive(spec){
  }else if(spec.id==='paralysis'){
   for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-paralysis',{visual:true});e.paralyzedUntil=performance.now()+520;}
  }else if(spec.id==='shot'||spec.id==='slowShot'){
-  const target=nearestSkinActiveTarget(range);if(target){effects.push({type:'skin-shot-telegraph',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0)return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=performance.now()+2200;},420);}
+  const target=nearestSkinActiveTarget(range);if(target){effects.push({type:'skin-shot-telegraph',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0)return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
  }else if(spec.id==='pulse'){
   for(const e of inRange())dealEnemyDamage(e,spec.damage,'skin-active-pulse',{visual:true});
  }else if(spec.id==='shield'){
