@@ -6,8 +6,8 @@ test('new species have unique abilities and authoritative high coin prices',()=>
 });
 test('premium reptiles cost exactly 999 centavos and have applied combat advantages',()=>{
  for(const id of ['saltcroc','blackcaiman'])assert.equal(P.PAID_SKINS[id].brl,999);
- assert.ok(A.damageMultiplier('saltcroc','boss',100,1)>2);
- assert.equal(A.incomingDamageMultiplier('blackcaiman'),.65);assert.equal(A.movementMultiplier('blackcaiman'),1.2);
+ assert.ok(A.damageMultiplier('saltcroc','boss',100,1)>1.3&&A.damageMultiplier('saltcroc','boss',100,1)<1.40);
+ assert.equal(A.incomingDamageMultiplier('blackcaiman'),.85);assert.equal(A.movementMultiplier('blackcaiman'),1.10);
 });
 
 test('removed common blue-ring octopus does not affect the colossal boss or its playable relic',()=>{
