@@ -263,7 +263,7 @@
       const desiredVy = (dy / (distance || 1)) * speed;
       // Exponential steering smooths direction changes and remains frame-rate independent.
       // This shared integrator is used by solo and authoritative online simulation.
-      const response = 1 - Math.exp(-Math.min(dt, 0.1) * 7.5);
+      const response = 1 - Math.exp(-Math.min(dt, 0.1) * 8.6);
       let velocityX = (Number(enemy.vx) || 0) + (desiredVx - (Number(enemy.vx) || 0)) * response;
       let velocityY = (Number(enemy.vy) || 0) + (desiredVy - (Number(enemy.vy) || 0)) * response;
       const velocityMagnitude = Math.hypot(velocityX, velocityY);
