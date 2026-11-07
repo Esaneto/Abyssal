@@ -10,6 +10,7 @@ const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
 eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
+const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./skin-abilities');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
@@ -298,23 +299,17 @@ function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill
  if(Number(attacker.ricochetLevel)>0&&source!=='ricochet'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.ricochetLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT});secondaryHit(next,baseDamage*.42,'ricochet');visited.add(next.id);from=next;}}
 }
 
-function collectPvpOrbsNearPlayer(room,player,x=player?.x,y=player?.y){
- if(!room||room.mode!=='pvp'||!player||player.alive===false)return 0;
- const w=room.world;if(!w||!Array.isArray(w.orbs)||!w.orbs.length)return 0;
- let collected=0;
- for(let i=w.orbs.length-1;i>=0;i--){
-  const orb=w.orbs[i];
-  if(!orb||Number(orb.life)<=0)continue;
-  const distance=Math.hypot(Number(x)-Number(orb.x),Number(y)-Number(orb.y));
-  const pickupRadius=(Number(player.r)||13/WORLD_ZOOM)+(Number(orb.r)||5)+2/WORLD_ZOOM;
-  if(!Number.isFinite(distance)||distance>pickupRadius)continue;
-  w.orbs.splice(i,1);collected++;creditRunXp(player.runStats,orb.value);
-  io.to(channelFor(room)).emit('world-xp-orb-collected',{orbId:orb.id,playerId:player.id,value:orb.value,x:orb.x,y:orb.y});
-  io.to(player.id).emit('shared-xp-award',{value:orb.value,source:'orb',orbId:orb.id});
-  combatDiagnostics.xpOrbsCollected=(Number(combatDiagnostics.xpOrbsCollected)||0)+1;
-  combatDiagnostics.lastXpOrbPickup={at:Date.now(),roomId:room.id,playerId:player.id,orbId:orb.id,distance:Math.round(distance),pickupRadius:Math.round(pickupRadius)};
+// Grant XP on the server after a verified kill. 20% supports the squad;
+// the remaining 80% follows actual damage contributed to this enemy.
+function grantSharedXp(room,total,contributors={},source='kill',enemyId=null){
+ for(const share of splitXp(total,[...room.players.values()],contributors)){
+  const member=room.players.get(share.id);
+  if(!member)continue;
+  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId)*1000)/1000;
+  if(amount<=0)continue;
+  if(member.runStats)creditRunXp(member.runStats,amount);
+  io.to(member.id).emit('shared-xp-award',{value:amount,source,enemyId,damage:share.damage});
  }
- return collected;
 }
 const SERVER_STARTED_AT = new Date().toISOString();
 const SERVER_INSTANCE_ID = crypto.randomUUID();
@@ -759,7 +754,11 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
  }
  const applied=Math.min(250,requestedDamage*skinMultiplier);
- enemy.hp=Math.max(0,Number(enemy.hp||0)-applied);if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ const hpBefore=Math.max(0,Number(enemy.hp)||0);
+ enemy.hp=Math.max(0,hpBefore-applied);
+ // Overkill cannot count as extra damage for the proportional XP share.
+ if(player){enemy.damageContributors ||= Object.create(null);const id=String(player.id);enemy.damageContributors[id]=(Number(enemy.damageContributors[id])||0)+Math.min(applied,hpBefore);}
+ if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
  // Varredura do Télson: mesma intensidade e vetor radial da habilidade solo.
  // O ângulo não é alterado pelo impacto.
  if(skillId==='armoredgator-spin' && player){
@@ -797,16 +796,10 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    // Clearing a boss opens the next map tier. Another boss cannot spawn in the old tier.
    w.nextBossAt=Infinity;
   }
-  const orb=WorldSimulation.spawnXpOrb(w,enemy);
-  if(orb){
-   combatDiagnostics.xpOrbsSpawned++;
-   if(batch)batch.orbs.push({...orb});
-   else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...orb});
-  }
+  grantSharedXp(room,WorldSimulation.xpValueForEnemy(w,enemy),enemy.damageContributors,'kill',enemy.id);
   if(!boss&&enemy.eliteId&&enemy.spawnRoomId==='elite'&&Number(w.eliteRewardClaimedTier)!==Number(w.mapTier)){
    w.eliteRewardClaimedTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
-   const bonus=WorldSimulation.spawnRewardOrb(w,enemy.x,enemy.y,ExpeditionRules.eliteRoomBonusValue?.(w.mapTier)||18,'elite-cache',enemy.id);
-   if(bonus){combatDiagnostics.xpOrbsSpawned++;if(batch)batch.orbs.push({...bonus});else io.to(channelFor(room)).emit('world-xp-orb-spawned',{...bonus});}
+   grantSharedXp(room,ExpeditionRules.eliteRoomBonusValue?.(w.mapTier)||18,enemy.damageContributors,'elite-cache',enemy.id);
    io.to(channelFor(room)).emit('world-cave-signal',{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:w.mapTier});
   }
  if(boss){
