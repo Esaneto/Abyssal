@@ -276,7 +276,7 @@ function build(layout,tier=0){
    offset:h.nightmare?((index%8)/8)*cfg.period:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
    radius:type==='volcano'?(h.wallKind==='corridor'?49:64):
     type==='tentacle'?78:type==='fumarole'?120:type==='electric'?46:
-    type==='spikes'?56:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
+    type==='spikes'?56:type==='rockfall'?77:type==='lure'?116:type==='pressure'?95:cfg.radius,
    length:reach||cfg.length||0,
    active:type==='rockfall'?Math.min(cfg.period-cfg.warning-.7,Math.max(1.2,reach/265+.65)):cfg.active,
    damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))};
@@ -310,6 +310,14 @@ function build(layout,tier=0){
   if(i===0||i%4!==3||Number(passage.width)>205)continue;
   const anchor=corridorMount(layout,passage,i+1700,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'electric'),'electric','passage:'+passage.a+'-'+passage.b,i+600);
+ }
+ // A deceptive bioluminescent lure sits inside real transit corridors, not
+ // only on distant decorative walls. It briefly glows before pulling the player
+ // into a hidden pocket; no floating platform or glowing base gives it away.
+ for(const [i,passage] of (layout.corridors||[]).entries()){
+  if(i===0||i%4!==2||Number(passage.width)>220)continue;
+  const anchor=corridorMount(layout,passage,i+2600,blocked);
+  if(anchor)add(wallGeometry(layout,anchor,'lure'),'lure','passage:'+passage.a+'-'+passage.b,i+720);
  }
  // Narrow-path volcanic vents are placed only where corridor walls are real.
  // The hot stream leaves a wide traversable strip and never blocks entrances.
