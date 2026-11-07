@@ -27,6 +27,9 @@ const injected=`<script>
   document.body.dataset.smokeStatus=active&&canvas&&canvas.width>50&&canvas.height>50&&!document.body.classList.contains('abyssal-tutorial-open')&&document.getElementById('ageTermsScreen')?.hidden!==false?'playing':'not-playing';
   document.body.dataset.smokeCanvas=(canvas?canvas.width+'x'+canvas.height:'missing');
   document.body.dataset.smokeDepth=String(window.AbyssalGameHooks?.expeditionState?.()?.depthState?.depth??-1);
+  document.body.dataset.smokeElapsed=String(window.AbyssalGameHooks?.expeditionState?.()?.elapsed??-1);
+  document.body.dataset.smokeWorldHeight=String(window.AbyssalGameHooks?.worldHeight?.()??-1);
+  document.body.dataset.smokeRiftPlaying=String(window.AbyssalGameHooks?.isRiftPlaying?.()===true);
   const ids=['hud','abyssDepthMeter','runEnergyRanking','selectedSkillsPanel','mobilePauseBtn','toggleHudBtn'];
   const coords=Object.fromEntries(ids.map(id=>{
    const el=document.getElementById(id),r=el?.getBoundingClientRect();
@@ -115,6 +118,7 @@ async function main(){
    assert.ok(!error,label+' triggered a runtime error: '+error);
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
    if(stage)assert.ok(depth>80,label+' should navigate into the Fossa, depth='+depth);
+   console.log('[browser-smoke] '+label+' depth='+depth+' elapsed='+page.match(/data-smoke-elapsed="([^"]*)"/)?.[1]+' worldHeight='+page.match(/data-smoke-world-height="([^"]*)"/)?.[1]+' active='+page.match(/data-smoke-rift-playing="([^"]*)"/)?.[1]);
    const screenshot=path.join(output,label+'.png');
    await run(browser,[...common,'--screenshot='+screenshot,scenarioUrl]);
    assert.ok(fs.statSync(screenshot).size>4500,label+' screenshot is blank or missing');
