@@ -494,9 +494,26 @@ test('electric ray and new electric eel keep distinct anatomy and share only the
  assert.equal(S.profile('electriceellegacy').active,'paralysis');
  assert.notEqual(S.profile('electriceel').attribute,S.profile('electriceellegacy').attribute);
 });
-test('legacy automatic skin attacks are absent from gameplay',()=>{
+test('skin active attacks are manual-only and old automatic attacks are absent',()=>{
  const game=read('public/game.js'),server=read('server.js');
  for(const token of ['violet-resonance','kraken-contact','abysscroc-lunge','armoredgator-spin','reefshark-dash'])
   {assert.doesNotMatch(game,new RegExp(token));assert.doesNotMatch(server,new RegExp(token));}
- assert.match(game,/activateSkinAbility/);assert.match(server,/legacy-skin-ability-removed/);
+ assert.match(game,/function activateSkinAbility\(inputEvent\)/);
+ assert.match(game,/inputEvent\?\.isTrusted!==true/);
+ assert.match(game,/\(e\.key==='r'\|\|e\.key==='R'\)\)activateSkinAbility\(e\)/);
+ assert.match(game,/skinActiveBtn'\)\?\.addEventListener\('click',event=>activateSkinAbility\(event\)\)/);
+ assert.match(server,/payload\.type!=='standard-active'.*legacy-skin-ability-removed/);
+});
+
+
+test('shop uses the standardized current ability copy and proportional bundle discount',()=>{
+ const game=read('public/game.js'),S=require('../public/skin-standard.js');
+ assert.match(S.describe('reefshark'),/Ativa \[R\]:/);
+ assert.match(S.describe('reefshark'),/Recarga:/);
+ assert.match(S.describe('reefshark','en'),/Active \[R\]:/);
+ assert.doesNotMatch(game,/Electroreception: gain 15% more experience automatically/);
+ assert.match(game,/SKIN_STANDARD\?\.describe\?\.\(skin\.id,english\?'en':'pt'\)/);
+ assert.match(game,/const bundleFullBrl=3999/);
+ assert.match(game,/Math\.round\(bundleFullBrl\*\(remaining\/bundleIds\.length\)\)/);
+ assert.match(game,/R · \$\{spec\?\.name\|\|'HABILIDADE DA SKIN'\} · \$\{player\.skinActiveCooldown\.toFixed\(1\)\}s/);
 });
