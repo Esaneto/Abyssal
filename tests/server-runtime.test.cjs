@@ -234,7 +234,8 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   );
   await waitFor(() => guest.all('enemy-motion').length >= 1, 2500);
   const guestMotion=guest.latest('enemy-motion');
-  const ownerRows=new Map((motion?.enemies||[]).map(row=>[row[0],row]));
+  const matchingOwnerMotion=owner.all('enemy-motion').find(evt=>Number(evt?.tickCount)===Number(guestMotion?.tickCount))||motion;
+  const ownerRows=new Map((matchingOwnerMotion?.enemies||[]).map(row=>[row[0],row]));
   const sharedRows=(guestMotion?.enemies||[]).filter(row=>ownerRows.has(row[0]));
   assert.ok(sharedRows.length>0,'both clients receive overlapping authoritative enemy motion');
   for(const row of sharedRows){
