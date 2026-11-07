@@ -122,7 +122,7 @@
  for(const [kind,cfg] of Object.entries(ATTACKS)){
   const terrible=['riftSmile','kraken','angler','devourer'].includes(kind);
   add('boss-'+kind,{...cfg,d:kind==='leviathan'?1.95:kind==='riftSmile'?1.78:1.50,
-   g:.106,layer:.30,group:'boss',cd:1600,priority:98,attack:.037});
+   g:.106,layer:.30,group:'boss',cd:1350,priority:98,attack:.037});
   add('boss-attack-'+kind,{...cfg,f:cfg.f*1.34,d:kind==='riftSmile'?.60:.39,
    end:cfg.end*.68,texture:kind==='whiteSharkBoss'?'crack':cfg.texture,
    voice:terrible?'snarl':null,contour:terrible?[.82,1.3,1.85,.39]:null,
