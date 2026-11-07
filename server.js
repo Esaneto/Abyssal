@@ -1510,6 +1510,24 @@ io.on('connection', socket => {
    if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
   const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  if(shot.special==='nova'&&room.mode!=='pvp'){
+   if(now<(Number(shooter.novaShotReadyAt)||0))return;
+   shooter.novaShotReadyAt=now+1800;
+   shooter.lastNovaVolleyId=volleyId;
+   shooter.novaShardExpiresAt=now+600;
+   shooter.novaShardCount=0;
+   shooter.novaReferenceDamage=Math.min(45,Math.max(1,shot.damage));
+  }
+  if(shot.special==='prismShard'){
+   const rank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3),maxShards=2*rank;
+   // Each fragment must belong to a recently accepted Nova pulse. This also
+   // prevents forging arbitrary high-damage shards or extra projectiles.
+   if(!maxShards||!volleyId||volleyId!==shooter.lastNovaVolleyId||
+      now>(Number(shooter.novaShardExpiresAt)||0)||
+      (Number(shooter.novaShardCount)||0)>=maxShards)return;
+   shooter.novaShardCount=(Number(shooter.novaShardCount)||0)+1;
+   shot.damage=Math.min(shot.damage,Math.max(1,Number(shooter.novaReferenceDamage)||1)*.28/maxShards);
+  }
   if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
@@ -1593,6 +1611,8 @@ io.on('connection', socket => {
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
    if(shot.special==='nova'){
     if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
+     shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
+     shooter.novaReferenceDamage=Math.min(35,Math.max(1,shot.damage));
     const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;
