@@ -267,25 +267,6 @@ function build(layout,tier=0){
     acrossRadius:halfWidth*.985,wallKind:'passage-floor'},
     'vortex','passage:'+corridor.a+'-'+corridor.b,i+1000);
  }
- // Collapsing roofs and electric fissures intercept actual narrow passages.
- for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(!unlocked('rockfall')||i===0||i%5!==3||Number(passage.width)>215)continue;
-  const anchor=passageCeilingMount(layout,passage,i,blocked);
-  if(anchor)add(wallGeometry(layout,anchor,'rockfall'),'rockfall','passage:'+passage.a+'-'+passage.b,i+350);
- }
- for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(!unlocked('electric')||i===0||i%4!==3||Number(passage.width)>205)continue;
-  const anchor=corridorMount(layout,passage,i+1700,blocked);
-  if(anchor)add(wallGeometry(layout,anchor,'electric'),'electric','passage:'+passage.a+'-'+passage.b,i+600);
- }
- // A deceptive bioluminescent lure sits inside real transit corridors, not
- // only on distant decorative walls. It briefly glows before pulling the player
- // into a hidden pocket; no floating platform or glowing base gives it away.
- for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(!unlocked('lure')||i===0||i%4!==2||Number(passage.width)>220)continue;
-  const anchor=corridorMount(layout,passage,i+2600,blocked);
-  if(anchor)add(wallGeometry(layout,anchor,'lure'),'lure','passage:'+passage.a+'-'+passage.b,i+720);
- }
  // Narrow-path volcanic vents are placed only where corridor walls are real.
  // The hot stream leaves a wide traversable strip and never blocks entrances.
  for(const [i,passage]of (layout.corridors||[]).entries()){
@@ -435,7 +416,7 @@ function ventRock(c,h,s,t){
    c.strokeStyle=side>0?'rgba(255,188,92,.60)':'rgba(250,106,45,.58)';
    c.lineWidth=2.3;c.stroke();
   }
-  // Spitting pressure jets, not a static flat orange rectangle.
+  // Spitting thermal jets, not a static flat orange rectangle.
   for(let i=0;i<16;i++){
    const q=(i*.136+t*.0006)%1,xx=14+q*(len-18);
    const yy=Math.sin(i*2.57+t*.009)*half*(.12+.65*q);
@@ -542,7 +523,7 @@ function deepCurrentPit(c,h,s,t){
   c.globalAlpha=.23;c.fillStyle='#0c5e80';
   c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
   c.globalAlpha=.66;c.lineCap='round';
-  // A three-arm pressure spiral funnels toward the central void. The old
+  // A three-arm suction spiral funnels toward the central void. The old
   // concentric rings looked like an ordinary UI target rather than suction.
   for(let arm=0;arm<3;arm++){
    c.beginPath();
@@ -681,7 +662,6 @@ function draw(c,hazards,seconds,view){
   else if(h.type==='poisonPlant')poisonousAnemone(c,h,s,seconds*1000);
   else if(h.type==='vortex')deepCurrentPit(c,h,s,seconds*1000);
   else if(h.type==='tentacle')tentacleTrap(c,h,s,seconds*1000);
-  else if(h.type==='rockfall')rockfallTrap(c,h,s,seconds*1000);
   else supplementalTrap(c,h,s,seconds*1000);
  }
 }
