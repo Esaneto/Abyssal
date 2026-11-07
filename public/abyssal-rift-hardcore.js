@@ -537,6 +537,16 @@ function ventRock(c,h,s,t){
   const wave=Math.sin(t*.013)*5;
   c.bezierCurveTo(len*.25,-7+wave,len*.7,6-wave*.8,len-7,0);c.stroke();
   c.shadowBlur=0;c.strokeStyle='rgba(255,217,153,.79)';c.lineWidth=half*.50;c.stroke();
+  // Hot filaments spiral around the central jet without widening damage.
+  for(const side of [-1,1]){
+   c.beginPath();c.moveTo(12,side*5);
+   for(let i=1;i<=18;i++){
+    const q=i/18,xx=12+q*(len-20),yy=side*(11+half*.26*Math.sin(q*16-t*.010))*(.5+.5*q);
+    c.lineTo(xx,yy);
+   }
+   c.strokeStyle=side>0?'rgba(255,188,92,.60)':'rgba(250,106,45,.58)';
+   c.lineWidth=2.3;c.stroke();
+  }
   // Spitting pressure jets, not a static flat orange rectangle.
   for(let i=0;i<16;i++){
    const q=(i*.136+t*.0006)%1,xx=14+q*(len-18);
@@ -895,6 +905,14 @@ function supplementalTrap(c,h,s,t){
     const rr=h.radius*(.26+i*.2);
     c.beginPath();c.arc(h.length*.52,0,rr,-Math.PI*.56,Math.PI*.56);c.stroke();
    }
+   // Compression folds converge toward the fissure as refracted layers.
+   for(let i=-3;i<=3;i++){
+    const y=i*10,spread=warm?11+8*s.progress:live?24:0;
+    c.beginPath();c.moveTo(-21,y);
+    c.bezierCurveTo(5,y+spread*.6,25,y-spread*.35,48,y*(1+(live?.2:0)));
+    c.strokeStyle='rgba(156,223,238,'+(live?.44:.19+s.progress*.18)+')';
+    c.lineWidth=1.8;c.stroke();
+   }
    c.restore();
   }
  }else if(h.type==='lure'){
@@ -905,6 +923,12 @@ function supplementalTrap(c,h,s,t){
   c.shadowColor='#8de5d6';c.shadowBlur=warm?12:6;
   paintedCircle(c,px,py,3.2,live?'rgba(124,225,204,.1)':'rgba(127,229,212,.76)');
   c.shadowBlur=0;
+  // A stalk and two tiny sensory branches originate from the same crevice.
+  for(const side of [-1,1]){
+   c.strokeStyle='rgba(88,172,160,.47)';c.lineWidth=1.4;c.beginPath();
+   c.moveTo(9,-20);c.quadraticCurveTo(18,side*13-24,24+side*4,side*15-23);c.stroke();
+   paintedCircle(c,24+side*4,side*15-23,1.8,'rgba(92,193,175,.42)');
+  }
   if(warm){
    c.globalAlpha=.4;c.strokeStyle='#8de5d6';c.lineWidth=1;
    c.beginPath();c.arc(px,py,13+s.progress*17,0,Math.PI*2);c.stroke();
@@ -938,6 +962,18 @@ function supplementalTrap(c,h,s,t){
     const q=i/16,bend=Math.sin(t*.012+i*2.47)*h.radius*(live?.25:.08)*(1-Math.abs(q-.5));
     if(i===0)c.moveTo(q*len,bend);else c.lineTo(q*len,bend);
    }c.stroke();c.shadowBlur=0;
+   if(live){
+    // Bioluminescent forks grow from the actual electrical path, not from
+    // an unrelated glowing rectangle above the cave.
+    c.strokeStyle='rgba(211,254,250,.73)';c.lineWidth=1.6;
+    for(let j=2;j<16;j+=3){
+     const q=j/16,xx=q*len,yy=Math.sin(t*.012+j*2.47)*h.radius*.25*(1-Math.abs(q-.5));
+     const side=(j%2)?1:-1;
+     c.beginPath();c.moveTo(xx,yy);
+     c.lineTo(xx+len*.04,yy+side*(8+(j%3)*4));
+     c.lineTo(xx+len*.07,yy+side*(4+(j%3)*5));c.stroke();
+    }
+   }
   }
  }
  c.restore();
