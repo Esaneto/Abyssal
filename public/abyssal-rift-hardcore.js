@@ -377,7 +377,7 @@ function hit(hazard,px,py,pad=0,phase=null){
  if(h.type==='rockfall'&&Number.isFinite(h.sourceX)){
   if(!phase)return Math.hypot(px-h.x,py-h.y)<=r; // static shape queries
   const fall=rockfallState(h,phase);
-  return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=h.radius+pad;
+  return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=Math.min(43,h.radius)+pad;
  }
  if(h.type==='tentacle'&&Number.isFinite(h.sourceX)&&phase){
   const extent=extension(h,phase);
@@ -405,14 +405,14 @@ function hit(hazard,px,py,pad=0,phase=null){
   const lo=Math.max(0,Math.floor(index)),hi=Math.min(h.poisonRays.length-1,lo+1);
   const safeLen=Math.min(h.poisonRays[lo].length,h.poisonRays[hi].length);
   const fraction=phase?(.04+.96*clamp(phase.progress,0,1)):1;
-  return dist<=safeLen*fraction+pad;
+  return dist<=safeLen*fraction*.92+pad;
  }
  if(Number.isFinite(h.sourceX)&&['volcano','tentacle','spikes','electric'].includes(h.type)){
   const extent=h.type==='spikes'?extension(h,phase):1,len=(h.length||130)*extent;
   if(len<1)return false;
   const ax=h.sourceX+Math.cos(h.angle)*6,ay=h.sourceY+Math.sin(h.angle)*6;
   const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
-  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:.5)+pad;
+  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:h.type==='electric'?.30:.5)+pad;
  }
  if(h.type==='tentacle'||h.type==='electric'){
   const len=h.length||300,a=h.angle||0;
