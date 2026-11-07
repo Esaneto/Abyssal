@@ -27,13 +27,13 @@ const dialog=document.createElement('dialog');dialog.id='riftChestDialog';dialog
 </g></svg></div><p id="riftChestMessage">Madeira salgada. Um brilho sobrevive lá dentro.</p><p class="chest-odds">3% de skin por moedas ainda não possuída · 97% de moedas<br>300 / 500 / 700 / 900 / 1.000 / 1.200<br>Se todas as skins já forem suas, o prêmio será em moedas.</p><button id="riftChestOpen">ABRIR</button>`;document.body.append(dialog);
 const message=dialog.querySelector('#riftChestMessage'),open=dialog.querySelector('#riftChestOpen');
 dialog.querySelector('.chest-close').onclick=()=>dialog.close();
-button.onclick=()=>{if(!current||!near||!window.AbyssalGameHooks?.isRiftPlaying?.())return;dialog.classList.toggle('final-chest',Boolean(current.final));dialog.querySelector('h2').textContent=current.final?'BAÚ MOFADO DOURADO':'Relíquia das Fossas';dialog.querySelector('.chest-odds').textContent=current.final?'100.000 MOEDAS ABISSAIS + 1 SKIN GARANTIDA':'3% de skin · 97% de moedas (300 a 1.200)';dialog.classList.remove('opened');message.textContent='Madeira salgada. Um brilho sobrevive lá dentro.';open.disabled=false;dialog.showModal();};
+button.onclick=()=>{if(!current||!near||!window.AbyssalGameHooks?.isRiftPlaying?.())return;dialog.classList.toggle('final-chest',Boolean(current.final));dialog.querySelector('h2').textContent=current.final?'BAÚ MOFADO DOURADO':'Relíquia das Fossas';dialog.querySelector('.chest-odds').textContent=current.final?'SKIN PESADELO ROXO + 1 SKIN ALEATÓRIA GARANTIDA + 100.000 MOEDAS':'3% de skin · 97% de moedas (300 a 1.200)';dialog.classList.remove('opened');message.textContent='Madeira salgada. Um brilho sobrevive lá dentro.';open.disabled=false;dialog.showModal();};
 open.onclick=()=>{
  if(busy||!current)return;busy=true;open.disabled=true;message.textContent='Abrindo o baú…';const chest=current;
  window.AbyssalOnline?.openRiftChest({...chest,progress:window.AbyssalGameHooks?.riftRewardProgress?.()},result=>{
   busy=false;if(!result?.ok){message.textContent=result?.message||'Conecte-se ao servidor para abrir.';open.disabled=false;return;}
   chest.opened=true;button.hidden=true;dialog.classList.add('opened');
-  const reward=result.reward;message.textContent=reward.type==='final'?'+100.000 MOEDAS ABISSAIS · SKIN GARANTIDA: '+(window.AbyssalGameHooks?.skinName?.(reward.skinId)||reward.skinId):reward.type==='skin'?'SKIN DESCOBERTA · '+(window.AbyssalGameHooks?.skinName?.(reward.id)||reward.id):reward.amount.toLocaleString('pt-BR')+' MOEDAS ABISSAIS';
+  const reward=result.reward;if(reward.type==='final'){const nightmare=window.AbyssalGameHooks?.skinName?.(reward.nightmareSkinId)||reward.nightmareSkinId,random=window.AbyssalGameHooks?.skinName?.(reward.randomSkinId)||reward.randomSkinId;message.textContent='FOSSAS CONCLUÍDAS · '+nightmare+' · SKIN ALEATÓRIA: '+random+' · +'+reward.amount.toLocaleString('pt-BR')+' MOEDAS';}else message.textContent=reward.type==='skin'?'SKIN DESCOBERTA · '+(window.AbyssalGameHooks?.skinName?.(reward.id)||reward.id):reward.amount.toLocaleString('pt-BR')+' MOEDAS ABISSAIS';
  });
 };
 window.addEventListener('abyssal-rift-chest',e=>{current={...e.detail};});
