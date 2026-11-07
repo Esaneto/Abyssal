@@ -547,6 +547,8 @@ function resize(){
  for(const o of effects){if(Number.isFinite(o.x))o.x*=sx;if(Number.isFinite(o.y))o.y*=sy;if(Number.isFinite(o.x1))o.x1*=sx;if(Number.isFinite(o.x2))o.x2*=sx;if(Number.isFinite(o.y1))o.y1*=sy;if(Number.isFinite(o.y2))o.y2*=sy;}
  canvas.width=Math.floor(viewW*dpr);canvas.height=Math.floor(viewH*dpr);
  canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
+ // Maintain antialiased silhouettes when cached skins rotate.
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;
  ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);
  createDecor();createArenaRocks();updateCamera();
@@ -3597,8 +3599,11 @@ function applyAdaptiveQuality(level,reason='runtime'){
  adaptiveQualityLevel=next;adaptiveDprScale=ADAPTIVE_QUALITY[next].dpr;lowPowerRendering=next===0;
  // Rebuild only the framebuffer. World/gameplay coordinates are untouched.
  const nativeDpr=Math.max(1,window.devicePixelRatio||1),baseCap=mobileViewport?(next===0?1.25:next===1?1.55:2):(next===0?1.15:next===1?1.4:1.65);
- dpr=Math.min(nativeDpr*adaptiveDprScale,baseCap);
+ // Never drop below native 1 CSS pixel per framebuffer pixel: sub-1 DPR
+ // visibly pixelates rotating creatures even on otherwise fast machines.
+ dpr=Math.max(1,Math.min(nativeDpr*adaptiveDprScale,baseCap));
  canvas.width=Math.max(1,Math.floor(viewW*dpr));canvas.height=Math.max(1,Math.floor(viewH*dpr));canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;
  window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
 }
