@@ -4,10 +4,13 @@ const SkinAbilities = require('./skin-abilities');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
+const SeaProgression = require('./public/sea-progression.js');
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
+const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
+const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function anglerInvisibleAt(nowMs=Date.now()){
   const phase=((Number(nowMs)||0)%26000+26000)%26000;
@@ -154,10 +157,10 @@ function chooseDensitySpawnRoom(world, players, random = Math.random) {
 
 function spawnEnemy(world, options = {}) {
   const { type = 'common', initial = false, random = Math.random } = options;
-  if (!world || world.enemies.length >= MAX_ENEMIES) return null;
+  if (!world || world.enemies.length >= enemyLimitForWorld(world)) return null;
   const bosses = countBosses(world);
   if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
-  if (type !== 'boss' && countCommons(world) >= MAX_COMMON_ENEMIES) return null;
+  if (type !== 'boss' && countCommons(world) >= commonLimitForWorld(world)) return null;
 
   const layout = mapLayoutFor(world);
   let point = layout ? AbyssalMap.spawnPoint(layout, {
@@ -195,6 +198,7 @@ function spawnEnemy(world, options = {}) {
   if(type!=='boss'){
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
+    if(world.mode!=='rift')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
   }
   if (type === 'boss') {
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
@@ -220,7 +224,7 @@ function spawnEnemy(world, options = {}) {
   const enemy = {
     id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
-    value: stats.value, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
+    value: stats.value, seaXpMultiplier:stats.seaXpMultiplier||1, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
@@ -235,7 +239,8 @@ function xpValueForEnemy(world,enemy){
  if(!world||!enemy)return 0;
  const eventId=world.activeEventId&&Number(world.eventEndsAt)>Number(world.elapsed)?world.activeEventId:null;
  const sizeScale=clamp((Number(enemy.r)||10)/10,.65,10);
- return Math.max(1,Math.round((Number(enemy.value)||1)*ExpeditionRules.eventXpMultiplier(eventId)*(.65+sizeScale*.55)));
+ const base=Math.max(1,Math.round((Number(enemy.value)||1)*ExpeditionRules.eventXpMultiplier(eventId)*(.65+sizeScale*.55)));
+ return world.mode==='rift'||BOSS_KINDS.includes(enemy.kind)?base:SeaProgression.scaleXp(base,enemy.seaXpMultiplier);
 }
 
 function initializeWorld(world, now = Date.now(), random = Math.random) {
@@ -394,13 +399,13 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
-  if (!riftMode && commonCount === 0 && world.enemies.length < MAX_ENEMIES) {
+  if (!riftMode && commonCount === 0 && world.enemies.length < enemyLimitForWorld(world)) {
     const spawned = spawnEnemy(world, { type: 'common', random });
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.35;
   } else if (!riftMode && world.commonSpawnTimer <= 0) {
-    if (commonCount < MAX_COMMON_ENEMIES && world.enemies.length < MAX_ENEMIES) {
+    if (commonCount < commonLimitForWorld(world) && world.enemies.length < enemyLimitForWorld(world)) {
       const spawned = spawnEnemy(world, { type: 'common', random });
       if (spawned) spawnedEnemies.push(spawned);
     }
@@ -413,7 +418,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const spawnedBosses = [];
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
   if (!riftMode && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
-    if (world.enemies.length < MAX_ENEMIES) {
+    if (world.enemies.length < enemyLimitForWorld(world)) {
       const boss = spawnEnemy(world, { type: 'boss', random });
       if (boss) {
         spawnedBosses.push(boss);
