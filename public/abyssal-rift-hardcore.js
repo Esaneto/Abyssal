@@ -23,6 +23,8 @@ const TYPES=Object.freeze({
   lure:{name:'ISCA DA MORTE',period:13,warning:.75,active:3.4,radius:132,damage:25,color:'#71eaff'},
   electric:{name:'ARCO BIOELÉTRICO',period:10.2,warning:.9,active:1.4,radius:59,length:300,damage:24,color:'#8bdfff'}
 });
+// Hazards unlock gradually; tentacles exist only in the Nightmare boss chamber.
+const HAZARD_UNLOCK_TIER=Object.freeze({volcano:0,fumarole:1,pressure:2,rockfall:2,spikes:3,electric:4,lure:5,vortex:6,tentacle:FINAL_TIER});
 const ALLOCATION=Object.freeze({
   shoal:['volcano','spikes'],trench:['fumarole','rockfall'],lantern:['lure','electric'],
   junction:['pressure','electric'],event:['rockfall','tentacle'],hub:['volcano','pressure'],
@@ -273,6 +275,7 @@ function build(layout,tier=0){
    ':'+(layout.corridors||[]).map(c=>c.a+':'+c.b+':'+c.width).join(',');
  if(layoutCache.has(key))return layoutCache.get(key);
  const hazards=[],blocked=[];
+ const unlocked=type=>type!=='tentacle'&&safeTier>=(HAZARD_UNLOCK_TIER[type]??99);
  for(const p of Object.values(layout.portals||{}))if(p)blocked.push({x:p.x,y:p.y,r:(Number(p.r)||0)+145});
  const start=layout.rooms.find(r=>r.id==='start');
  if(start)blocked.push({x:start.x,y:start.y,r:260});
@@ -294,7 +297,8 @@ function build(layout,tier=0){
  }
  for(const room of layout.rooms){
   if(room.id==='start')continue;
-  const choices=ALLOCATION[room.id]||['spikes'];
+  const choices=(ALLOCATION[room.id]||['volcano']).filter(unlocked);
+  if(!choices.length)choices.push('volcano');
   if(room.id==='boss'&&safeTier<3)continue;
   if(room.id==='boss'&&safeTier>=FINAL_TIER){
    for(let i=0;i<8;i++){const mount=nightmareWallMount(layout,room,i);if(mount)add(wallGeometry(layout,mount,'tentacle'),'tentacle',room.id,i);}
@@ -312,7 +316,7 @@ function build(layout,tier=0){
  // The vortex is reserved first. Corridor traps cannot displace it.
  // The only unattached threat lives ACROSS a corridor, exactly where players
  // travel. It spans both sides of the narrow passage instead of a mob room.
- for(const i of [2,5]){
+ if(unlocked('vortex'))for(const i of [2,5]){
   const corridor=layout.corridors?.[i],path=corridor?.path;
   if(!path||path.length<4)continue;
   const a=path[1],b=path[2],vx=b.x-a.x,vy=b.y-a.y,
@@ -325,12 +329,12 @@ function build(layout,tier=0){
  }
  // Collapsing roofs and electric fissures intercept actual narrow passages.
  for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(i===0||i%5!==3||Number(passage.width)>215)continue;
+  if(!unlocked('rockfall')||i===0||i%5!==3||Number(passage.width)>215)continue;
   const anchor=passageCeilingMount(layout,passage,i,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'rockfall'),'rockfall','passage:'+passage.a+'-'+passage.b,i+350);
  }
  for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(i===0||i%4!==3||Number(passage.width)>205)continue;
+  if(!unlocked('electric')||i===0||i%4!==3||Number(passage.width)>205)continue;
   const anchor=corridorMount(layout,passage,i+1700,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'electric'),'electric','passage:'+passage.a+'-'+passage.b,i+600);
  }
@@ -338,14 +342,14 @@ function build(layout,tier=0){
  // only on distant decorative walls. It briefly glows before pulling the player
  // into a hidden pocket; no floating platform or glowing base gives it away.
  for(const [i,passage] of (layout.corridors||[]).entries()){
-  if(i===0||i%4!==2||Number(passage.width)>220)continue;
+  if(!unlocked('lure')||i===0||i%4!==2||Number(passage.width)>220)continue;
   const anchor=corridorMount(layout,passage,i+2600,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'lure'),'lure','passage:'+passage.a+'-'+passage.b,i+720);
  }
  // Narrow-path volcanic vents are placed only where corridor walls are real.
  // The hot stream leaves a wide traversable strip and never blocks entrances.
  for(const [i,passage]of (layout.corridors||[]).entries()){
-  if(i===0||i%3!==1||Number(passage.width)>195)continue;
+  if(!unlocked('volcano')||i===0||i%3!==1||Number(passage.width)>195)continue;
   const anchor=corridorMount(layout,passage,i,blocked);
   if(anchor)add(wallGeometry(layout,anchor,'volcano'),'volcano','passage:'+passage.a+'-'+passage.b,i);
  }

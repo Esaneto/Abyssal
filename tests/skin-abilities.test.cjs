@@ -311,7 +311,7 @@ test('PvP server applies hit synergies authoritatively and respects rock cover',
  assert.match(server,/function applyPvpHitSynergies\(/);
  assert.match(server,/p\.ricochetLevel = clamp/);
  assert.match(server,/p\.electricLevel = clamp/);
- assert.match(server,/applyPvpHitSynergies\(room,shooter,targetHit,rawDamage/);
+ assert.match(server,/applyPvpHitSynergies\(room,shooter,target,rawDamage/);
  assert.match(server,/pvpSegmentHitsRock\(from\.x,from\.y,p\.x,p\.y/);
 });
 
@@ -451,7 +451,8 @@ test('electric storm chains from its own primary hit and keeps an extended bolt 
 
 test('abyss eye remains a modifier on the PvP server instead of replacing shot identity',()=>{
  const server=read('server.js');
- assert.ok(server.includes("shot.modifiers?.abyssEye===true?12"));
+ assert.ok(server.includes("shot.modifiers?.abyssEye===true?8:1.05"));
+ assert.match(server,/maxDistance=shot\.modifiers\?\.abyssEye===true/);
  assert.doesNotMatch(server,/duration=shot\.special==='abyssEye'/);
 });
 
