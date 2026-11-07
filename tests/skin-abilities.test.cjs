@@ -8,31 +8,31 @@ const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
 test('skin damage passives are deterministic and preserve boss/range conditions', () => {
   assert.equal(abilities.damageMultiplier('toxic','common',500,1),1);
-  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
-  assert.equal(abilities.damageMultiplier('leviathan','whiteSharkBoss',500,1),1.4);
+  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.2);
+  assert.equal(abilities.damageMultiplier('leviathan','whiteSharkBoss',500,1),1.2);
   assert.equal(abilities.damageMultiplier('leviathan','common',500,1),1);
-  assert.equal(abilities.damageMultiplier('thorn','common',100,1),1.24);
+  assert.equal(abilities.damageMultiplier('thorn','common',100,1),1.16);
   assert.equal(abilities.damageMultiplier('thorn','common',220,1),1);
-  assert.equal(abilities.damageMultiplier('bloodmoon','common',500,.35),1.3);
+  assert.equal(abilities.damageMultiplier('bloodmoon','common',500,.35),1.2);
   assert.equal(abilities.damageMultiplier('angler','common',300,1),1);
-  assert.equal(abilities.damageMultiplier('maw','common',100,1),1.3);
+  assert.equal(abilities.damageMultiplier('maw','common',100,1),1.16);
 });
 
 test('passive movement, defense, targeting, XP and magnet bonuses are centralized', () => {
-  assert.equal(abilities.incomingDamageMultiplier('deepwarden'),.82);
-  assert.equal(abilities.incomingDamageMultiplier('abysscroc'),.85);
-  assert.equal(abilities.enemySpeedMultiplier('glacier',200),.74);
+  assert.equal(abilities.incomingDamageMultiplier('deepwarden'),.86);
+  assert.equal(abilities.incomingDamageMultiplier('abysscroc'),.90);
+  assert.equal(abilities.enemySpeedMultiplier('glacier',200),.84);
   assert.equal(abilities.enemySpeedMultiplier('glacier',300),1);
-  assert.equal(abilities.movementMultiplier('voidwing'),1.18);
+  assert.equal(abilities.movementMultiplier('voidwing'),1.12);
   assert.equal(abilities.movementMultiplier('electriceel'),1);
   assert.equal(abilities.movementMultiplier('greensnake'),1);
   assert.equal(abilities.damageMultiplier('electriceel','common',500,1),1);
   assert.equal(abilities.damageMultiplier('greensnake','common',500,1),1);
-  assert.equal(abilities.targetRangeMultiplier('abyssaleye'),1.2);
-  assert.equal(abilities.fireRateMultiplier('solar'),1.18);
+  assert.equal(abilities.targetRangeMultiplier('abyssaleye'),1.15);
+  assert.equal(abilities.fireRateMultiplier('solar'),1.12);
   assert.equal(abilities.orbExperienceMultiplier('default'),1.12);
-  assert.equal(abilities.orbExperienceMultiplier('royal'),1.25);
-  assert.equal(abilities.magnetRangeMultiplier('hammerhead'),1.5);
+  assert.equal(abilities.orbExperienceMultiplier('royal'),1.18);
+  assert.equal(abilities.magnetRangeMultiplier('hammerhead'),1.3);
 });
 
 test('Violet resonance has client trigger and server-authoritative cooldown/range/target limits', () => {
@@ -95,37 +95,37 @@ test('Photon Ray uses manual aim only with the second PC or mobile control optio
 test('Kraken skin uses animated contact-damage tentacles', () => {
  const game=read('public/game.js'),ai=read('public/enemy-ai.js');
  assert.ok(game.includes('touchesKrakenTentacle?.(krakenProxy,target,1)'));
- assert.ok(game.includes("dealEnemyDamage(target,24,'kraken-contact')"));
+ assert.ok(game.includes("dealEnemyDamage(target,15,'kraken-contact')"));
  assert.ok(ai.includes('const length = 4.35 + 0.42'));
 });
 
 
 test('relic skins keep established passives except the two replaced by active species abilities',()=>{
  const abilities=require('../public/skin-abilities');
- assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.4);
+ assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.2);
  assert.equal(abilities.damageMultiplier('angler','drifter',300,1),1);
  assert.equal(abilities.damageMultiplier('maw','drifter',100,1),1.3);
- assert.equal(abilities.damageMultiplier('devourer','kraken',300,1),1.2);
+ assert.equal(abilities.damageMultiplier('devourer','kraken',300,1),1.12);
  assert.equal(abilities.incomingDamageMultiplier('aberration'),1);
- assert.equal(abilities.incomingDamageMultiplier('kraken'),.9);
+ assert.equal(abilities.incomingDamageMultiplier('kraken'),.94);
  assert.equal(abilities.targetRangeMultiplier('angler'),1);
- assert.equal(abilities.magnetRangeMultiplier('devourer'),1.35);
+ assert.equal(abilities.magnetRangeMultiplier('devourer'),1.25);
 });
 
-test('toxic skin releases a poison cloud every five seconds',()=>{
+test('toxic skin releases a moderate poison cloud every 6.5 seconds',()=>{
  const game=read('public/game.js');
- assert.ok(game.includes("player.toxicCloudTimer=5"));
- assert.ok(game.includes("dealEnemyDamage(target,8,'toxic-cloud'"));
- assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,5)"));
+ assert.ok(game.includes("player.toxicCloudTimer=6.5"));
+ assert.ok(game.includes("dealEnemyDamage(target,7,'toxic-cloud'"));
+ assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.5)"));
 });
 
 test('paid skin copy matches implemented white shark and boss-skin mechanics',()=>{
  const game=read('public/game.js');
- assert.ok(game.includes('Esteira Pelágica: ao nadar, deixa um rastro de bolhas por 5 segundos'));
- assert.ok(game.includes('Caçador de colossos: causa 40% mais dano aos bosses e recebe 8% menos dano.'));
+ assert.ok(game.includes('Esteira Pelágica: deixa bolhas de dano gradual no nado'));
+ assert.ok(game.includes('Caçador de colossos: causa 20% mais dano aos bosses e recebe 5% menos dano.'));
  assert.ok(game.includes('Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'));
- assert.ok(game.includes('Bolhas abissais: ao nadar, deixa bolhas negras de pressão'));
- assert.ok(game.includes('Mordida de fenda: +30% de dano contra inimigos próximos'));
+ assert.ok(game.includes('Bolhas abissais: ao nadar, deixa bolhas negras com dano de contato'));
+ assert.ok(game.includes('Mordida de fenda: +16% de dano contra inimigos próximos'));
 });
 
 
@@ -207,7 +207,7 @@ test('toxic basic attacks do not poison while emerald serpent still does',()=>{
  assert.ok(game.includes("if(equippedSkin==='greensnake' && enemy && enemy.hp > 0)"));
  assert.ok(!game.includes("['toxic', 'greensnake'].includes(equippedSkin)"));
  assert.ok(game.includes("if(equippedSkin==='toxic'){"));
- assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,5)"));
+ assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.5)"));
 });
 
 test('gameplay notifications are queued with boss priority and restricted kinds',()=>{
