@@ -107,7 +107,7 @@
       surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-360,y:boss.y+80,r:105,unlockedAfterBosses:tierNumber+1}),
       descent:null,
       landing:null,
-      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+360,y:boss.y+80,r:150,unlockedAfterBosses:tierNumber+1})
+      boss:tierNumber>=7?null:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+360,y:boss.y+80,r:150,unlockedAfterBosses:tierNumber+1})
     });
     return Object.freeze({
       version:VERSION,
