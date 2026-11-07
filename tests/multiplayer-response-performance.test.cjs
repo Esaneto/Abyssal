@@ -6,19 +6,24 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('remote players use short interpolation plus bounded jitter extrapolation',()=>{
+test('remote players use timestamped jitter buffer plus bounded fallback extrapolation',()=>{
  const online=read('public/online.js');
  assert.match(online,/interpDuration:Math\.max\(24,Math\.min\(isPvp\?45:55,sampleMs\*1\.05\)\)/);
  assert.match(online,/peerExtrapolationMs:isPvp\?60:85/);
- assert.match(online,/extraMs=Math\.min\(Number\(p\.peerExtrapolationMs\)\|\|90/);
+ assert.match(online,/function pushPeerMotionSample/);
+ assert.match(online,/motionBufferMs=Math\.max/);
+ assert.match(online,/serverNow=Number\(latest\.serverTime\)/);
+ assert.match(online,/extraMs=Math\.min\(90/);
 });
 
 test('common enemy motion packets omit boss-only fields and preserve keep-warm relevance',()=>{
  const server=read('server.js');
- assert.match(server,/const base=\[e\.id,Math\.round\(Number\(e\.x\)/);
+ assert.match(server,/const x=Math\.round\(\(Number\(e\.x\)\|\|0\)\*100\)\/100/);
+ assert.match(server,/intervalMs:50/);
  assert.match(server,/if\(e\.kind==='devourer'\)return \[\.\.\.base/);
  assert.match(server,/if\(e\.kind==='kraken'\)return \[\.\.\.base/);
- assert.match(server,/sendFar=!recipient\|\|motionNow-\(Number\(recipient\.lastFarMotionAt\)\|\|0\)>=500/);
+ assert.match(server,/sendFar=!recipient\|\|motionNow-\(Number\(recipient\.lastFarMotionAt\)\|\|0\)>=250/);
+ assert.match(sim=read('world-simulation.js'),/world\.snapshotTimer = 0\.05/);
  const game=read('public/game.js');
  assert.match(game,/row\.length<7/);
 });
