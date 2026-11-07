@@ -225,9 +225,13 @@ function connect(){
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
   serverAccount=data;
-  renderProfile(data);
   if($('profileMessage')&&!$('profileScreen').hidden)$('profileMessage').textContent='Perfil sincronizado com sua conta.';
   window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:data}));
+ });
+ socket.on('title-progress',data=>{
+  if(!authenticated||!serverAccount||!data)return;
+  serverAccount={...serverAccount,titleStats:{...(serverAccount.titleStats||{}),...(data.titleStats||{})},unlockedTitles:Array.isArray(data.unlockedTitles)?data.unlockedTitles:serverAccount.unlockedTitles};
+  if($('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);
  });
  socket.on('purchase-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:result}));});
 socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:result}));});
@@ -724,5 +728,5 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
 
  const resetToken=new URLSearchParams(location.hash.slice(1)).get('passwordResetToken');
  if(resetToken){$('loginScreen').hidden=true;$('passwordRecoveryScreen').hidden=true;$('passwordResetScreen').hidden=false;$('newPasswordInput').focus();setAuthFlowMessage('resetMessage','');}
- window.addEventListener('abyssal-account-data',ev=>renderProfile(ev.detail));
+ window.addEventListener('abyssal-account-data',ev=>{const screen=$('profileScreen');if(screen&&!screen.hidden)renderProfile(ev.detail);});
 })();

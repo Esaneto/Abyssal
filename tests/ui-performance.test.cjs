@@ -113,3 +113,20 @@ test('multiplayer hot-path avoids repeated full-array work under horde pressure'
   assert.match(game, /lastMusicIntensitySampleAt<200/);
   assert.match(game, /collectEnemyCandidatesNear\(bubble\.x,bubble\.y/);
 });
+
+test('monster death does not rebuild hidden account screens or retain animation state', () => {
+  const game = read('public/game.js');
+  const online = read('public/online.js');
+  const server = read('server.js');
+  const purchaseHandlerAt = game.indexOf("window.addEventListener('abyssal-purchase-result'");
+  const accountHandlerAt = game.lastIndexOf("window.addEventListener('abyssal-account-data'", purchaseHandlerAt);
+  const accountHandler = game.slice(accountHandlerAt, purchaseHandlerAt);
+  assert.match(accountHandler, /shopScreen&&!shopScreen\.hidden\)renderShop\(\)/);
+  assert.doesNotMatch(accountHandler, /saveCosmeticsLocalOnly\(\);\s*renderShop\(\)/);
+  assert.match(online, /socket\.on\('title-progress'/);
+  assert.match(online, /profileScreen'\)\&&!\$\('profileScreen'\)\.hidden\)renderProfile/);
+  assert.doesNotMatch(server, /else socket\.emit\('account-data',publicUser\(killer\)\)/);
+  assert.match(server, /else socket\.emit\('title-progress',publicTitleProgress\(killer\)\)/);
+  assert.match(game, /aquaticMotionTracker\?\.forget\?\.\(e\.id\)/);
+  assert.match(game, /aquaticMotionTracker\?\.forget\?\.\(id\)/);
+});
