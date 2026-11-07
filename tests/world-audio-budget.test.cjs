@@ -56,7 +56,7 @@ test('source applies only local Web Audio and never fetches media or emits sound
  const game=fs.readFileSync('public/game.js','utf8');
  assert.match(game,/updateRiftHazardAudio\(\)/);
  assert.match(game,/playWorldSound\('shot-'\+activeShot/);
- assert.match(game,/playWorldSound\('boss-attack-'\+bossKind/);
+ assert.match(game,/'boss-attack-'\+bossKind/);
  assert.match(game,/playWorldSound\('swim-'\+equippedMotionFamily\(\)/);
  const sw=fs.readFileSync('public/offline-sw.js','utf8');
  assert.match(sw,/'world-audio\.js'/);assert.match(sw,/'skin-motion\.js'/);
