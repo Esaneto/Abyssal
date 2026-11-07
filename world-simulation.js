@@ -474,18 +474,27 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       for(const target of validPlayers){
         if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
         target.riftHazardCooldowns ||= Object.create(null);
+        // Continuous suction is independent from periodic damage.
+        if((hazard.type==='vortex'||hazard.type==='lure')&&target.alive!==false){
+          const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1;
+          const pull=Math.min(Math.max(0,length-7),(hazard.type==='vortex'?430:190)*dt);
+          const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);
+          const ox=moved.x-target.x,oy=moved.y-target.y;
+          target.x=moved.x;target.y=moved.y;
+          if(ox||oy)playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:hazard.type+':'+hazard.id,strength:hazard.type==='vortex'?.95:.38});
+        }
         if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
         target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
         const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
         const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
         if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
-        if(hazard.type==='vortex'&&target.alive!==false){const dx=hazard.x-target.x,dy=hazard.y-target.y,length=Math.hypot(dx,dy)||1,pull=16;const moved=AbyssalMap.resolveMove(mapLayout,target.x,target.y,target.x+dx/length*pull,target.y+dy/length*pull,Number(target.r)||13/WORLD_ZOOM);const ox=moved.x-target.x,oy=moved.y-target.y;target.x=moved.x;target.y=moved.y;playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:'vortex:'+hazard.id,strength:.42});}
+        
       }
 
       // Living foes also occupy the cave. Environmental hazards are neutral;
       // only Pesadelo Roxo is immune to his own tentacles.
       for(const enemy of world.enemies){
-       if(enemy.hp<=0||(hazard.type==='tentacle'&&enemy.kind===RiftHardcore.FINAL_KIND))continue;
+       if(enemy.hp<=0||(enemy.spawnedAt&&now-enemy.spawnedAt<3000)||(hazard.type==='tentacle'&&enemy.kind===RiftHardcore.FINAL_KIND))continue;
        const enemyRadius=Math.min(43,Math.max(6,(Number(enemy.r)||16)*.48));
        if(!RiftHardcore.hit(hazard,Number(enemy.x),Number(enemy.y),enemyRadius,phase))continue;
        enemy.riftHazardCooldowns ||= Object.create(null);
@@ -656,7 +665,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
       {
-      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
       if(!nav.direct){
         movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;
         movementTargets=movementNavigationTargets;
@@ -665,16 +674,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
     movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
-    const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+    const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
     enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
     if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;}
     movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
     movement.target=actualTarget;
     if (!movement.moved && actualTarget && dt > 0) {
-      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66),includePortal:false});
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
       if(nav&&Math.hypot(nav.x-enemy.x,nav.y-enemy.y)>1){
         const dx=nav.x-enemy.x,dy=nav.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.5*dt,d);
-        const fallback=AbyssalMap.resolveMove(mapLayout,enemy.x,enemy.y,enemy.x+dx/d*step,enemy.y+dy/d*step,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.66));
+        const fallback=AbyssalMap.resolveMove(mapLayout,enemy.x,enemy.y,enemy.x+dx/d*step,enemy.y+dy/d*step,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
         enemy.x=fallback.x;enemy.y=fallback.y;movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
         if(movement.moved)world.movementRecoveryCount=(world.movementRecoveryCount||0)+1;
       }

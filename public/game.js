@@ -290,7 +290,7 @@ const skinData=[
 {id:'voidwing',name:'Manta do Nada',color:'#b2a0ff',price:15000,paid:false,shape:'wings',desc:'Membranas espectrais se abrem como asas de uma criatura antiga.',ability:'Corrente ascendente: aumenta a velocidade de movimento em 18%.'},
 {id:'abyssaleye',name:'Peixe-Olho-de-Barril',color:'#66f0ff',price:18000,paid:false,shape:'eye',desc:'Peixe de profundidade inspirado no barreleye, com cúpula translúcida e olhos tubulares voltados para a escuridão.',ability:'Olho caçador: aumenta em 20% o alcance de aquisição de alvos.'},
 {id:'deepwarden',name:'Carcereiro das Fossas',color:'#b8d6c6',price:14000,paid:false,shape:'shell',desc:'Três placas minerais protegem um núcleo verde-fantasma.',ability:'Carapaça abissal: reduz em 18% o dano recebido.'},
-{id:'riftSmileRelic',name:'Vestígio do Pesadelo Roxo',color:'#cc86ff',price:0,paid:false,shape:'nightmare',unlockType:'mission',desc:'O vestígio jogável do Pesadelo Roxo possui manto craniano anguloso, olhos ameaçadores, dentes longos e seis braços afilados. Não é uma cópia do Kraken.',ability:'Herança do Pesadelo: forma de prestígio com braços translúcidos, sem reproduzir o corpo colossal que ocupa o fundo da arena.'},
+{id:'riftSmileRelic',name:'Vestígio do Pesadelo Roxo',color:'#cc86ff',price:0,paid:false,shape:'nightmare',unlockType:'mission',desc:'Vestígio do Pesadelo Roxo com manto arredondado de cefalópode, os mesmos olhos ameaçadores e dentes do chefe, oito braços curvos que afinam nas pontas e duas fileiras de ventosas bioluminescentes.',ability:'Herança do Pesadelo: oito tentáculos de prestígio usam o mesmo desenho e material do chefe da Fossa, preservando seu olhar e boca característicos.'},
 {id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true,shape:'kraken',desc:'Ressonância orgânica da Lula-Kraken das Fossas, com manto vítreo e braços reduzidos. A criatura colossal permanece abaixo.',ability:'Tentáculos do Abismo: oito tentáculos colossais causam dano por contato; a pele também reduz em 10% o dano recebido.'},
  {id:'aberration',name:'Eco do Polvo-de-Anéis-Azuis',color:'#338cff',price:16000,paid:true,shape:'aberration',desc:'Eco controlável do Polvo-de-Anéis-Azuis Colossal, com manto azul, anéis bioluminescentes e braços pendentes.',ability:'Bolhas abissais: ao nadar, deixa bolhas negras de pressão que causam dano rápido a criaturas que as atravessam.'},
  {id:'angler',name:'Núcleo do Peixe-Pescador',color:'#ffb45e',price:19000,paid:true,shape:'angler',desc:'Fragmento vivo do Peixe-Pescador Abissal, com mandíbula descomunal permanentemente aberta e ilício bioluminescente.',ability:'Camuflagem abissal: somente a isca fica brilhando durante 10 s de invisibilidade; transições de 3 s e recarga de 10 s.'},
@@ -1237,11 +1237,12 @@ function startGame(){
 runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
- upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
+ upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:5};updateCamera();
+ for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
  if(Number(metaUpgrades.bulkhead)>0)activePassiveSounds.push('bulkhead');
@@ -1250,7 +1251,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';startAmbientMusic();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,prismaticLevel:upgrades.spread,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
 const upgradeList=[
@@ -1265,24 +1266,27 @@ const upgradeList=[
  {id:'electric',name:'Tempestade elétrica',icon:'ϟ',desc:'Corrente bioelétrica: dano moderado e 1, 2 ou 3 saltos. Cada salto causa dano reduzido; níveis maiores ampliam o alcance da corrente.',apply:()=>upgrades.electric=Math.min(3,(upgrades.electric||0)+1)},
  {id:'pierce',name:'Lança-abismo',icon:'➶',desc:'Arpão abissal pesado: lento, largo e atravessa 1, 2 ou 3 criaturas adicionais. Sua força está em rasgar fileiras inteiras, não em chegar primeiro ao alvo.',apply:()=>upgrades.pierce=Math.min(3,(upgrades.pierce||0)+1)},
  {id:'ricochet',name:'Ricochete caótico',icon:'⤴',desc:'Passiva universal: qualquer disparo que acerte um alvo pode ricochetear para outro inimigo próximo. Cada nível adiciona um salto, até 3, marcado por um feixe reto amarelo neon.',apply:()=>upgrades.ricochet=Math.min(3,(upgrades.ricochet||0)+1)},
- {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Passiva: cada acerto do disparo escolhido espalha dano prismático secundário para até 2, 4 ou 6 criaturas próximas, sem criar outros projéteis nem alterar sua cor, trajetória ou som.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
+ {id:'spread',name:'Rajada Prismática',icon:'✷',desc:'Por nível, adiciona exatamente 2, 4 ou 6 ataques laterais. Tiros comuns ganham projéteis em leque com dano dividido; Raio de Fótons ganha feixes laterais que causam 42% do dano do feixe principal quando atingem sozinhos, sem acumular sobre o mesmo alvo. Nova Gravitacional mantém o pulso e lança 2, 4 ou 6 estilhaços radiais que dividem 28% do dano desse pulso.',apply:()=>upgrades.spread=Math.min(3,(upgrades.spread||0)+1)},
  {id:'photon',name:'Lança de Fótons',icon:'➶',desc:'Dardo fotônico de precisão: extremamente veloz, fino e de alto dano em alvo único. Quase não permanece na tela e não perfura fileiras.',apply:()=>upgrades.photon=Math.min(3,(upgrades.photon||0)+1)},
  {id:'photonRay',name:'Raio de Fótons',icon:'☼',desc:'Feixe contínuo que atinge todos os alvos atravessados. No Controle 1, mira automaticamente no alvo mais próximo; no Controle 2, acompanha o mouse no PC ou o joystick de mira no celular. Níveis maiores aumentam potência e espessura.',apply:()=>upgrades.photonRay=Math.min(3,(upgrades.photonRay||0)+1)},
  {id:'nova',name:'Nova gravitacional',icon:'✹',desc:'Pulso radial de alto controle: recarga de 1,8 s no PvE e 2,4 s no PvP. Atinge apenas alvos com caminho radial livre; cobertura bloqueia dano e onda visual.',apply:()=>upgrades.nova=Math.min(3,(upgrades.nova||0)+1)},
  {id:'echoShot',name:'Eco de Maré',icon:'⋔',desc:'Dispara dois projéteis paralelos com dano individual menor. Níveis maiores aumentam dano e velocidade sem abrir o leque.',apply:()=>upgrades.echoShot=Math.min(3,(upgrades.echoShot||0)+1)},
  {id:'shell',name:'Carapaça Abissal',icon:'🛡',desc:'Endurece a carapaça: reduz o dano recebido em 8% por nível, até 24%, indicado por placas minerais orbitais discretas.',apply:()=>upgrades.shell=Math.min(3,(upgrades.shell||0)+1)},
  {id:'ward',name:'Véu de Maré',icon:'◈',desc:'Cria automaticamente uma janela curta de invulnerabilidade. Começa a cada 28 s e recarrega mais rápido nos níveis seguintes; um véu azul se fecha quando ativa.',apply:()=>upgrades.ward=Math.min(3,(upgrades.ward||0)+1)},
- {id:'lastStand',name:'Último Fôlego',icon:'♥',desc:'Ao chegar a 30% de vida ou menos, entra em sobrevivência extrema e reduz o dano recebido em 20%. O núcleo assume um pulso carmesim enquanto estiver ativo.',apply:()=>upgrades.lastStand=Math.min(3,(upgrades.lastStand||0)+1)},
+ {id:'lastStand',name:'Último Fôlego',icon:'♥',desc:'Com até 30% da vida, reduz o dano recebido em 20%, 25% ou 30% conforme o nível. O núcleo assume um pulso carmesim enquanto estiver ativo.',apply:()=>upgrades.lastStand=Math.min(3,(upgrades.lastStand||0)+1)},
  {id:'pressureCocoon',name:'Casulo de Pressão',icon:'⬡',desc:'Quando o escudo chega a zero, recompõe automaticamente 1 carga após 24, 20 ou 16 segundos. Não acumula acima de 1 carga regenerada.',apply:()=>upgrades.pressureCocoon=Math.min(3,(upgrades.pressureCocoon||0)+1)},
  {id:'vitality',name:'Reserva Vital',icon:'✚',desc:'Aumenta a vida máxima em 10% por nível e cura imediatamente o valor acrescentado. O núcleo vital ganha um anel interno adicional.',apply:()=>{const previous=maxHp;maxHp=Math.round(maxHp*1.1);hp=Math.min(maxHp,hp+(maxHp-previous));upgrades.vitality=Math.min(3,(upgrades.vitality||0)+1)}},
- {id:'predator',name:'Instinto Predatório',icon:'☠',desc:'Aumenta todo o dano causado em 8% por nível, até 24%. Quando um alvo entra no alcance, marcas predatórias rubras orbitam o núcleo.',apply:()=>upgrades.predator=Math.min(3,(upgrades.predator||0)+1)},
- {id:'closePressure',name:'Pressão de Caça',icon:'⌾',desc:'Causa +8% de dano por nível contra criaturas muito próximas. Recompensa posicionamento agressivo sem aumentar o dano a longa distância.',apply:()=>upgrades.closePressure=Math.min(3,(upgrades.closePressure||0)+1)}
+ {id:'predator',name:'Instinto Predatório',icon:'☠',desc:'Especialista em caça: +14% de dano por nível contra chefes e elites (+3% contra outros). Finaliza alvos abaixo de 30% de vida com +6% adicional por nível.',apply:()=>upgrades.predator=Math.min(3,(upgrades.predator||0)+1)},
+ {id:'closePressure',name:'Pressão de Caça',icon:'⌾',desc:'Causa +18%, +36% ou +54% de dano apenas contra inimigos a menos de 175 unidades. É mais forte que Instinto Predatório à curta distância, mas exige risco e posicionamento.',apply:()=>upgrades.closePressure=Math.min(3,(upgrades.closePressure||0)+1)}
 ];
 const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Fusão de Pulso de Ruptura + Nova Gravitacional no nível 3. Mantém um campo ao redor do jogador que causa dano periódico dentro do alcance de disparo.'},
- arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica + Pulso Intenso no nível 3. Descargas encadeadas atingem até 8 inimigos dentro do campo elétrico.'},
+ arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3. Correntes elétricas ricocheteiam por até 8 alvos próximos em cadeia.'},
  abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Fusão de Lança do Abismo + Olho Profundo no nível 3. Os disparos deixam de respeitar o limite normal de alcance e seguem até atingir uma criatura ou obstáculo.'},
- vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'}
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'},
+ photonCascade:{id:'photonCascade',name:'Cascata Prismática',icon:'✦',desc:'Fusão de Lança de Fótons Nv. 3 e Rajada Prismática Nv. 3. Adiciona 2 projéteis fotônicos ao leque sem mudar a identidade do disparo.'},
+ tidalEcho:{id:'tidalEcho',name:'Maré Reverberante',icon:'⋔',desc:'Fusão de Eco de Maré Nv. 3 e Ricochete Caótico Nv. 3. Dispara uma terceira réplica central com ricochetes.'},
+ hadalBeam:{id:'hadalBeam',name:'Feixe Hadal',icon:'☼',desc:'Fusão de Raio de Fótons Nv. 3 e Olho Profundo Nv. 3. Aumenta espessura em 35% e dano de pulso em 20%.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -1301,7 +1305,7 @@ function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
  const arcChainActive=Number(upgrades.arcChain)>0;
- const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','power'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))&&!(upgrades.photonCascade&&['photon','spread'].includes(id))&&!(upgrades.tidalEcho&&['echoShot','ricochet'].includes(id))&&!(upgrades.hadalBeam&&['photonRay','range'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
  const signature=selected.map(([id,rank])=>id+':'+rank).join('|')||'none';
  // Avoid replacing focused/clicked skill buttons on every simulation frame.
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
@@ -1352,12 +1356,15 @@ function chooseUpgrade(u){
  }
  if(!upgrades.abyssEye&&upgradeLevels.pierce>=3&&upgradeLevels.range>=3){upgrades.pierce=0;upgrades.range=0;upgrades.abyssEye=1;upgradeLevels.abyssEye=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.abyssEye.name;discoverCodexSkill('abyssEye');}
  if(!upgrades.vitalDrain&&upgradeLevels.regen>=3&&upgradeLevels.power>=3){upgrades.regen=0;upgrades.vitalDrain=1;upgradeLevels.vitalDrain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.vitalDrain.name;discoverCodexSkill('vitalDrain');}
- if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.power>=3){
-  upgrades.electric=0;upgrades.arcChain=1;
+ if(!upgrades.arcChain&&upgradeLevels.electric>=3&&upgradeLevels.ricochet>=3){
+   upgrades.electric=0;upgrades.ricochet=0;upgrades.arcChain=1;
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
   if(player)player.arcChainTimer=0;
  }
- if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});
+ if(!upgrades.photonCascade&&upgradeLevels.photon>=3&&upgradeLevels.spread>=3){upgrades.photonCascade=1;upgradeLevels.photonCascade=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.photonCascade.name;}
+ if(!upgrades.tidalEcho&&upgradeLevels.echoShot>=3&&upgradeLevels.ricochet>=3){upgrades.tidalEcho=1;upgradeLevels.tidalEcho=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.tidalEcho.name;}
+ if(!upgrades.hadalBeam&&upgradeLevels.photonRay>=3&&upgradeLevels.range>=3){upgrades.hadalBeam=1;upgradeLevels.hadalBeam=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.hadalBeam.name;}
+ if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
@@ -1528,22 +1535,24 @@ function updateSoloRiftHardcore(dt){
   }
   if(phase.phase!=='active')continue;
   if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
-   const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
+    // Suction is an uninterrupted current, not a tiny move every damage tick.
+    if(h.type==='vortex'||h.type==='lure'){
+      const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
+      const pull=Math.min(Math.max(0,len-7),(h.type==='vortex'?430:190)*dt);
+      const move=mapResolveMove(player.x,player.y,player.x+dx/len*pull,player.y+dy/len*pull,player.r);
+      player.x=move.x;player.y=move.y;
+    }
+    const cooldown=riftSoloHazardCooldowns.get(h.id)||-Infinity;
    if(elapsed>=cooldown){
     riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:h.type==='fumarole'||h.type==='vortex'||h.type==='pressure'?1:1.25));
-    hurtPlayer(h.damage);
+    hurtPlayer(h.damage,h.type==='fumarole'?'poison':'received');
     if(h.type==='fumarole')player.neurotoxinUntil=performance.now()+1150;
-    if(h.type==='vortex'){
-     const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
-     const move=mapResolveMove(player.x,player.y,player.x+dx/len*17,player.y+dy/len*17,player.r);
-     player.x=move.x;player.y=move.y;
-    }
    }
   }
   // Hazards belong to the world, not to a player's weapon. They can kill
   // creatures, elites and bosses, except Nightmare's immunity to own arms.
   for(const enemy of [...enemies]){
-   if(!enemy||enemy.hp<=0||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
+   if(!enemy||enemy.hp<=0||(enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)||(h.type==='tentacle'&&enemy.kind===RIFT_HARDCORE.FINAL_KIND))continue;
    if(!RIFT_HARDCORE.hit(h,enemy.x,enemy.y,Math.min(43,enemy.r*.48),phase))continue;
    enemy.riftHazardCooldowns ||= Object.create(null);
    if(elapsed<(enemy.riftHazardCooldowns[h.id]||0))continue;
@@ -1564,9 +1573,9 @@ function updateSoloRiftHardcore(dt){
  }
  riftBossMarks=[];
 }
-function hurtPlayer(dmg){
+function hurtPlayer(dmg,tone='received'){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
- const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?.2:0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,'received');player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
+ const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
 }
 function revealOnlineContactSource(data){
  // Never create or teleport a mob from a damage event. The authoritative room snapshot
@@ -1688,6 +1697,7 @@ const PERIODIC_SKIN_DAMAGE_SKILLS=new Set(['blue-ring-ink','pelagic-wake','poiso
 function damageTone(skillId=''){
  const id=String(skillId||'');
  if(SKIN_DAMAGE_SKILLS.has(id))return 'skin';
+ if(id==='rift-hazard-fumarole'||id==='poison-dot')return 'poison';
  if(RESONANCE_CATEGORIES.passive.includes(id)||['gravitationalRupture','arcChain'].includes(id))return 'passive';
  return 'shot';
 }
@@ -1719,20 +1729,28 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
   let chains=0,from=primaryTarget;const level=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=190/GAME_WORLD_ZOOM;
   while(chains<level){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<range&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});dealEnemyDamage(next,baseDamage*shotBalanceValue('electric','chainDamage',level,.34),'electric',{secondary:true});visited.add(next.id);from=next;chains++;}
  }
- if(!onlineMode&&Number(upgrades.spread)>0&&RESONANCE_CATEGORIES.shots.includes(String(sourceSkill||''))){
-  const candidates=enemies.filter(other=>other!==primaryTarget&&other.hp>0&&Math.hypot(other.x-primaryTarget.x,other.y-primaryTarget.y)<120/GAME_WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-primaryTarget.x,a.y-primaryTarget.y)-Math.hypot(b.x-primaryTarget.x,b.y-primaryTarget.y));
-  for(const other of candidates.slice(0,Math.min(6,Number(upgrades.spread)*2)))dealEnemyDamage(other,Math.max(1,baseDamage*.24),'prismatic-passive',{secondary:true,silentSound:true,visual:false});
- }
+
 
  if((upgrades.ricochet||0)>0&&source!=='ricochet'&&!onlineMode){
   let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-line',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});burst(next.x,next.y,'#f7ff19',8,90);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
  }
 }
+// A focused hunter should specialize in elite pressure and finishing weakened
+// targets, instead of being a strictly weaker generic damage multiplier.
+function predatorDamageMultiplier(enemy){
+ const rank=Math.min(3,Math.max(0,Number(upgrades.predator)||0));
+ if(!rank)return 1;
+ const elite=Boolean(enemy&&(BOSS_KINDS.includes(enemy.kind)||enemy.elite===true||enemy.isElite===true));
+ const finisher=Number(enemy?.maxHp)>0&&Number(enemy?.hp)/Number(enemy.maxHp)<=.30;
+ return 1+rank*(elite?.14:.03)+(finisher?rank*.06:0);
+}
 function dealEnemyDamage(enemy, damage, skillId=null, options={}){
-  score += Math.round(damage);
- if(!enemy||!Number.isFinite(damage)||damage<=0)return;
+  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
+ if(activeMapLayout&&enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)return;
+ if(activeMapLayout&&player&&ABYSSAL_MAP&&!String(skillId||'').startsWith('rift-hazard-')&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,enemy.x,enemy.y,2))return;
+ score += Math.round(damage);
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
- if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08));hp=Math.min(maxHp,hp+actualDamage*.02);}
+ if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*predatorDamageMultiplier(enemy);hp=Math.min(maxHp,hp+actualDamage*.02);}
 
   if(equippedSkin==='electriceel' && enemy && enemy.hp > 0){
     enemy.paralyzedUntil = Math.max(enemy.paralyzedUntil || 0, performance.now() + 100);
@@ -1745,7 +1763,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   }
 
  if(onlineMode){
-   const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
+   const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=predatorDamageMultiplier(enemy),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
    const actionId=String(options.actionId||nextCombatActionId(skillId));
    onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(skillId||'').slice(0,32),actionId});
    // Predict only presentation. HP remains server-authoritative and is reconciled by actionId.
@@ -1755,8 +1773,8 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
    return;
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
- const multiplier=SkinAbilities?.damageMultiplier(equippedSkin,enemy.kind,distance,hp/maxHp)||1,closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.24,Math.max(0,Number(upgrades.closePressure)||0)*.08):1;
- const appliedDamage=damage*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08))*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
+ const multiplier=SkinAbilities?.damageMultiplier(equippedSkin,enemy.kind,distance,hp/maxHp)||1,closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
+ const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
  triggerHitSynergies(enemy,appliedDamage,skillId,options);
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
@@ -2032,6 +2050,19 @@ function getShotDamageAtLevel(level,shotId=null){const rank=Math.max(1,Math.min(
 function isPcMouseAimMode(){return !isMobileDevice()&&controlSettings.pc==='wasd-aim';}
 function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;}
 function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';}
+// A side-beam and its actual hit segment must stop at the same solid rock.
+function clipPrismaticPhotonRay(sx,sy,ex,ey,radius){
+ const pvp=onlineRoomMode==='pvp';
+ const blocked=(fraction)=>{
+  const tx=sx+(ex-sx)*fraction,ty=sy+(ey-sy)*fraction;
+  return pvp?projectileHitsPvpWall(sx,sy,tx,ty,radius):
+   Boolean(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,sx,sy,tx,ty,radius));
+ };
+ if(!blocked(1))return {x2:ex,y2:ey};
+ let lo=0,hi=1;
+ for(let k=0;k<12;k++){const mid=(lo+hi)*.5;if(blocked(mid))hi=mid;else lo=mid;}
+ return {x2:sx+(ex-sx)*lo,y2:sy+(ey-sy)*lo};
+}
 function nextShotVolleyId(){if(!player)return '';player.shotSequence=(Number(player.shotSequence)||0)+1;return Date.now().toString(36)+'-'+player.shotSequence;}
 function fire(){
  if(!player||Number(upgrades.nova)>0||Number(upgrades.photonRay)>0)return;let target=null,bd=Infinity;const maxRange=getFiringRange();
@@ -2047,10 +2078,30 @@ function fire(){
  const baseDamage=shotLevel?getShotDamageAtLevel(shotLevel,activeShot):12;
  const shotDamage=baseDamage*(upgrades.power||1);
  const shotSpeed=430*shotBalanceValue(activeShot,'speed',shotLevel,1)/GAME_WORLD_ZOOM;
- const shotColor=activeShot==='spread'?'#d8b4fe':activeShot==='echoShot'?'#5ef0d0':activeShot==='photon'?'#f0abfc':activeShot==='electric'?'#eaffff':activeShot==='pierce'?'#ffe7a1':'#83fff3';
- let offsets=[0];if(activeShot==='spread'){offsets=shotLevel>=3?[0,-.12,.12,-.24,.24,-.36,.36]:shotLevel===2?[0,-.14,.14,-.28,.28]:[0,-.18,.18];}else if(activeShot==='echoShot'){offsets=[-.045,.045];}
- const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId(),volleyHitIds=[];
- for(const shotAngle of angles){const damage=shotDamage;const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:volleyHitIds,color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});audio(500,.045,'sine',.008);
+ const shotColor=activeShot==='echoShot'?'#5ef0d0':activeShot==='photon'?'#f0abfc':activeShot==='electric'?'#eaffff':activeShot==='pierce'?'#ffe7a1':'#83fff3';
+ const prismLevel=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
+ const baseOffsets=activeShot==='echoShot'?(upgrades.tidalEcho?[-.065,0,.065]:[-.045,.045]):[0];
+ const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
+ const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
+ const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();
+ for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});audio(500,.045,'sine',.008);
+}
+// Nova remains a radial pulse; Prism generates independent radial fragments
+// instead of pretending that a second invisible Nova dealt damage.
+function emitPrismaticNovaShards(novaDamage,sharedVolleyId){
+ const rank=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
+ if(!player||rank===0)return;
+ const count=2*rank,volleyId=sharedVolleyId||nextShotVolleyId(),baseAngle=Number(player.angle)||0;
+ const speed=420/GAME_WORLD_ZOOM,damage=Math.max(1,Number(novaDamage)||1)*.28/count;
+ const radius=4.3/GAME_WORLD_ZOOM,reach=getFiringRange();
+ for(let i=0;i<count;i++){
+  const a=baseAngle+(i+.5)*2*Math.PI/count;
+  const x=player.x+Math.cos(a)*13/GAME_WORLD_ZOOM,y=player.y+Math.sin(a)*13/GAME_WORLD_ZOOM;
+  const vx=Math.cos(a)*speed,vy=Math.sin(a)*speed;
+  const modifiers={ricochet:Math.max(0,Number(upgrades.ricochet)||0)};
+  projectiles.push({x,y,vx,vy,r:radius,life:1.33,travelled:0,maxDistance:reach,damage,pierceRemaining:0,hitIds:[],special:'prismShard',color:'#b9a6ff',modifiers});
+  if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:x/W,y:y/H,vx:vx/W,vy:vy/H,damage,color:'#b9a6ff',special:'prismShard',modifiers,volleyId});
+ }
 }
 function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
@@ -2219,7 +2270,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(upgrades.photonRay>0){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
-  const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
+  const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]*(upgrades.hadalBeam?1.35:1)/GAME_WORLD_ZOOM,beamRange=getFiringRange();
   // Controle 2 owns manual continuous aiming. Controle 1 keeps automatic nearest-target aiming.
   const manualPhotonAim=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
   let aimAngle=Number(player.angle)||0,hasAim=false;
@@ -2264,21 +2315,46 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(isPvpMode&&projectileHitsPvpWall(player.x,player.y,x2,y2,Math.max(1,width*.5))){
    let lo=0,hi=1;for(let step=0;step<10;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(player.x,player.y,player.x+(x2-player.x)*mid,player.y+(y2-player.y)*mid,Math.max(1,width*.5)))hi=mid;else lo=mid;}beamLength*=lo;x2=player.x+ux*beamLength;y2=player.y+uy*beamLength;beamTargetId=null;
   }
+  // Fossa walls clip both visible beams and their solo damage segment.
+  if(!isPvpMode&&activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,x2,y2,Math.max(1,width*.5))){
+    let lo=0,hi=1;
+    for(let step=0;step<12;step++){const mid=(lo+hi)*.5;if(ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,player.x+(x2-player.x)*mid,player.y+(y2-player.y)*mid,Math.max(1,width*.5)))lo=mid;else hi=mid;}
+    beamLength*=lo;x2=player.x+ux*beamLength;y2=player.y+uy*beamLength;beamTargetId=null;
+  }
+  const prismBeams=[];
+  if(hasAim&&Number(upgrades.spread)>0){
+   const rank=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
+   for(let i=0;i<rank*2;i++){
+    const offset=(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
+    const a=aimAngle+offset,rad=width*.58;
+    const end=clipPrismaticPhotonRay(player.x,player.y,player.x+Math.cos(a)*beamRange,player.y+Math.sin(a)*beamRange,Math.max(1,rad*.5));
+    prismBeams.push({x1:player.x,y1:player.y,x2:end.x2,y2:end.y2,width:rad});
+   }
+  }
   if(hasAim){player.angle=aimAngle;player.photonRayActive=true;
+   // Keep the additional prismatic rays visually continuous instead of
+   // recreating flashes every pulse. Exactly 2/4/6 side rays match the rank.
+   for(let i=0;i<prismBeams.length;i++){
+    const beam=prismBeams[i],existing=effects.find(fx=>fx.localPrismBeamKey===i);
+    if(existing){existing.x1=beam.x1;existing.y1=beam.y1;existing.x2=beam.x2;existing.y2=beam.y2;existing.width=beam.width;existing.life=PHOTON_RAY_VISUAL.duration;}
+    else effects.push({type:'photon-ray',localPrismBeamKey:i,x1:beam.x1,y1:beam.y1,x2:beam.x2,y2:beam.y2,width:beam.width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:'#c8a5ff'});
+   }
   const localBeam=effects.find(fx=>fx.localPhotonBeam);
   if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
   else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
   if(player.photonRayTimer<=0){
    player.photonRayTimer=beamInterval;
-   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
+   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1)*(upgrades.hadalBeam?1.2:1),pulseDamage=beamDps*beamInterval;
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
    if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
    if(!onlineMode){
     // Damage may remove killed enemies from the original list; iterate a snapshot.
     for(const target of [...enemies]){
      if(!target||target.hp<=0)continue;
-     if(!PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5))continue;
-     dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
+     const coreHit=PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5);
+     const prismHit=!coreHit&&prismBeams.some(beam=>PHOTON_RAY_VISUAL.segmentCircleHit(beam.x1,beam.y1,beam.x2,beam.y2,target.x,target.y,target.r+beam.width*.5));
+     if(!coreHit&&!prismHit)continue;
+     dealEnemyDamage(target,pulseDamage*(coreHit?1:.42),'photonRay');target.hit=.08;burst(target.x,target.y,prismHit?'#c8a5ff':'#bafaff',beamLevel+1,35);
     }
    }
   }
@@ -2287,7 +2363,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
   player.photonRayActive=false;
  }
-  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:nextShotVolleyId()});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);playSkillSound('nova','trigger')}}
+  if(upgrades.nova>0){player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;if(player.novaTimer<=0){player.novaTimer=isPvpMode?2.4:1.8;const novaRange=getFiringRange(),novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||1)),novaDps=(getShotDamageAtLevel(novaLevel)/.52)*(upgrades.power||1);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<=novaRange){dealEnemyDamage(e,novaDps,'nova');burst(e.x,e.y,'#72f5ff',3,70)}}const novaVolleyId=nextShotVolleyId();if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:0,vy:0,damage:novaDps,color:'#72f5ff',special:'nova',volleyId:novaVolleyId});spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode);emitPrismaticNovaShards(novaDps,novaVolleyId);playSkillSound('nova','trigger')}}
  if(upgrades.gravitationalRupture>0){
   player.gravitationalRuptureTimer=(Number(player.gravitationalRuptureTimer)||0)-dt;
   if(player.gravitationalRuptureTimer<=0){
@@ -2409,11 +2485,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
-   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,e.r*.66),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
-   if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
+   if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
-   if(e.paralyzedUntil && performance.now() < e.paralyzedUntil){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,e.r*.66)}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,e.r*.66));e.x=moved.x;e.y=moved.y; }
+   if(e.paralyzedUntil && performance.now() < e.paralyzedUntil){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
@@ -3354,7 +3430,7 @@ function draw(t){
     ctx.restore();
   }if(e.kind==='devourer'&&e.suctionActive)drawDevourerSuction(e,t);if(!anglerConcealed&&(e.hp<e.maxHp||BOSS_KINDS.includes(e.kind))){ctx.fillStyle='rgba(0,0,0,.72)';ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?16:8)/worldZoom,e.r*2,(['boss','leviathan','maw','angler','devourer'].includes(e.kind)?6:3)/worldZoom);ctx.fillStyle=e.color;ctx.fillRect(e.x-e.r,e.y-e.r-(['boss','leviathan','maw','angler'].includes(e.kind)?16:8),e.r*2*clamp(e.hp/e.maxHp,0,1),['boss','leviathan','maw','angler'].includes(e.kind)?6:3);if(BOSS_KINDS.includes(e.kind)){ctx.fillStyle='#ffd8e2';ctx.font=`bold ${14/worldZoom}px sans-serif`;ctx.textAlign='center';ctx.fillText(BOSS_LABELS[e.kind]||'BOSS ABISSAL',e.x,e.y-e.r-25/worldZoom)}}}
 
- for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='received'?'#ff274a':number.tone==='skin'?'#52ff86':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
+ for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='received'?'#ff274a':number.tone==='skin'?'#52ff86':number.tone==='poison'?'#4bff7d':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
  const particleShadowBlur=0;for(const p of particles){if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();ctx.arc(p.x,p.y,p.r*(.4+.6*p.life/p.max),0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
  if(player){window.AbyssalMarineArt?.wake(ctx,player,skinData.find(s=>s.id===equippedSkin),t);for(const tr of player.trail){if(tr.life>0){ctx.globalAlpha=tr.life/.28*.18;ctx.fillStyle='#7ffbf2';ctx.beginPath();ctx.arc(tr.x,tr.y,player.r*.7,0,Math.PI*2);ctx.fill()}}ctx.globalAlpha=1;if(damageFlash<=0||Math.floor(t/60)%2===0){drawCreature(player.x,player.y,player.r,player.angle,currentSkinColor(),'player',t,true);}if(upgradeLevels.speed>0&&(Math.abs(player.x-(player.trail.at(-1)?.x??player.x))>0||player.trail.length>1)){ctx.save();ctx.globalAlpha=.18;ctx.strokeStyle='#68f4d7';ctx.lineWidth=(1.2+upgradeLevels.speed*.35)/worldZoom;for(let i=0;i<2+Math.min(3,upgradeLevels.speed);i++){const a=(player.angle||0)+Math.PI+(i-(1+upgradeLevels.speed)/2)*.22,len=(18+upgradeLevels.speed*6)/worldZoom;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*player.r*.8,player.y+Math.sin(a)*player.r*.8);ctx.lineTo(player.x+Math.cos(a)*len,player.y+Math.sin(a)*len);ctx.stroke();}ctx.restore();}if(upgradeLevels.magnet>0){ctx.save();ctx.globalAlpha=.12+.025*Math.sin(t*.004);ctx.strokeStyle='#a98cff';ctx.lineWidth=1/worldZoom;ctx.setLineDash([3/worldZoom,8/worldZoom]);ctx.beginPath();ctx.arc(player.x,player.y,Math.min(92/GAME_WORLD_ZOOM,26/GAME_WORLD_ZOOM+upgradeLevels.magnet*13/GAME_WORLD_ZOOM),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.restore();}if(upgrades.shell>0){ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#90b8b0';ctx.lineWidth=2/worldZoom;const plates=Math.min(6,2+upgrades.shell);for(let i=0;i<plates;i++){const a=t*.00018+i*Math.PI*2/plates,r=player.r*1.7;ctx.beginPath();ctx.arc(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r,3.2/worldZoom,0,Math.PI*2);ctx.stroke();}ctx.restore();}if(upgrades.lastStand>0&&hp/maxHp<=.3){ctx.save();ctx.globalAlpha=.38+.18*Math.sin(t*.014);ctx.strokeStyle='#ff4d6d';ctx.lineWidth=2.3/worldZoom;ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.55,0,Math.PI*2);ctx.stroke();ctx.restore();}if(upgrades.predator>0){ctx.save();ctx.globalAlpha=.15;ctx.strokeStyle='#ff6b78';ctx.lineWidth=1/worldZoom;const marks=Math.min(5,2+upgrades.predator);for(let i=0;i<marks;i++){const a=t*.00032+i*Math.PI*2/marks,r=player.r*1.9;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*r,player.y+Math.sin(a)*r);ctx.lineTo(player.x+Math.cos(a)*r*1.13,player.y+Math.sin(a)*r*1.13);ctx.stroke();}ctx.restore();}if(upgrades.shield>0){const chargeCount=Math.min(3,Math.max(0,Math.floor(upgrades.shield)));const shieldPulse=1+Math.sin(t*.008)*.025;ctx.save();ctx.globalAlpha=.18+chargeCount*.045;ctx.fillStyle='#73efff';ctx.strokeStyle='#9cf8ff';ctx.lineWidth=1.8/worldZoom;ctx.shadowBlur=10/worldZoom;ctx.shadowColor='#64eaff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*(2.05+chargeCount*.08)*shieldPulse,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.42+chargeCount*.08;ctx.stroke();ctx.restore();}if(player.invuln>0){ctx.save();const shieldPulse=1+Math.sin(t*.012)*.035;ctx.globalAlpha=.58;ctx.strokeStyle='#8af9ff';ctx.fillStyle='rgba(105,235,255,.09)';ctx.lineWidth=2.2/worldZoom;ctx.shadowBlur=14/worldZoom;ctx.shadowColor='#70f6ff';ctx.beginPath();ctx.arc(player.x,player.y,player.r*1.9*shieldPulse,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}ctx.save();ctx.strokeStyle='rgba(126,245,244,.20)';ctx.fillStyle='rgba(126,245,244,.025)';ctx.lineWidth=1;ctx.setLineDash([5,9]);ctx.beginPath();if(!upgrades.abyssEye){ctx.arc(player.x,player.y,getFiringRange(),0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.setLineDash([]);ctx.restore();if(damageFlash>0){ctx.fillStyle=`rgba(255,65,100,${damageFlash*.45})`;ctx.fillRect(0,0,W,H)}}
  // Combined skill: circular field matches firing range, with a restrained spark animation.
@@ -3612,7 +3688,19 @@ window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(online
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
  if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM;spawnNovaVisual(x,y,max,col,onlineRoomMode==='pvp');return;}
- if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});return;}
+ if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]*(d.hadalBeamActive?1.35:1)/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});
+  // The server owns the secondary beam endpoints; peers render those exact
+  // lines, not an independently guessed client-side collision shape.
+  const prism=Array.isArray(d.prismBeams)?d.prismBeams.slice(0,6):[];
+  for(let i=0;i<prism.length;i++){
+   const beam=prism[i];
+   if(!Number.isFinite(beam.x2)||!Number.isFinite(beam.y2))continue;
+   const key='prism:'+beamKey+':'+i,ex=beam.x2*W,ey=beam.y2*H;
+   const existingPrism=effects.find(fx=>fx.remoteBeamKey===key);
+   if(existingPrism){existingPrism.targetX1=x;existingPrism.targetY1=y;existingPrism.targetX2=ex;existingPrism.targetY2=ey;existingPrism.life=PHOTON_RAY_VISUAL.remoteHold;}
+   else effects.push({type:'photon-ray',remoteBeamKey:key,x1:x,y1:y,x2:ex,y2:ey,targetX1:x,targetY1:y,targetX2:ex,targetY2:ey,width:width*.58,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:'#c8a5ff'});
+  }
+  return;}
  projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
  burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
@@ -3915,15 +4003,18 @@ $('skillPulseBtn')?.addEventListener('click',()=>activateAbility('pulse'));$('sk
 const catalogBtn=$('catalogBtn');if(catalogBtn)catalogBtn.addEventListener('click',renderCatalog);const rankingsBtn=$('rankingsBtn');if(rankingsBtn)rankingsBtn.addEventListener('click',()=>{const el=$('rankingsScreen');if(el)el.hidden=false;if(window.AbyssalOnline?.loadRankings)window.AbyssalOnline.loadRankings()});const catalogClose=$('catalogCloseBtn');if(catalogClose)catalogClose.addEventListener('click',()=>{$('catalogScreen').hidden=true});const rankingsClose=$('rankingsCloseBtn');if(rankingsClose)rankingsClose.addEventListener('click',()=>{$('rankingsScreen').hidden=true});
 
 const resonanceSkillLabels={power:['✦','Pulso Intenso'],rate:['≋','Ressonância Veloz'],speed:['➤','Propulsão Abissal'],range:['◎','Olho Profundo'],magnet:['⌁','Campo Magnético'],regen:['♧','Membrana Viva'],shield:['◉','Escudo Espectral'],burst:['✺','Pulso de Ruptura'],electric:['ϟ','Tempestade Elétrica'],pierce:['➵','Lança do Abismo'],ricochet:['⤴','Ricochete Caótico'],spread:['✣','Rajada Prismática'],photon:['☄','Lança de Fótons'],photonRay:['⌁⃒','Raio de Fótons'],nova:['⊛','Nova Gravitacional'],echoShot:['⋔','Eco de Maré'],shell:['▰','Carapaça Abissal'],ward:['◇','Véu de Maré'],lastStand:['♥','Último Fôlego'],pressureCocoon:['⬡','Casulo de Pressão'],vitality:['♢','Reserva Vital'],predator:['☠','Instinto Predatório'],closePressure:['⌾','Pressão de Caça']};
-const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+45% de alcance de atração de orbes por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'Passiva: dano prismático secundário em criaturas próximas, sem mudar o disparo selecionado.',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Abaixo de 30% de vida, reduz o dano recebido em 20%.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+8% de todo dano por nível, até 24%.',closePressure:'+8% de dano por nível contra criaturas muito próximas.'};
+const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+45% de alcance de atração de orbes por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'Nv. 1/2/3: +2/+4/+6 disparos em leque, ou feixes laterais do Raio de Fótons (42% do dano, sem acúmulo no mesmo alvo), ou estilhaços radiais da Nova (28% do dano distribuído entre eles).',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Com até 30% de vida, reduz dano recebido em 20%, 25% ou 30%, segundo o nível.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+14% de dano por nível em chefes e elites, +3% em comuns e +6% extra contra alvos com até 30% de vida.',closePressure:'+18% de dano por nível contra inimigos a menos de 175 unidades.'};
 function resonanceCategoryOf(id){for(const [category,ids] of Object.entries(RESONANCE_CATEGORIES))if(ids.includes(id))return category;return 'buffs';}
 function resonanceCounts(ids=resonancePresets[resonanceEditingMode]||[]){return {shots:ids.filter(id=>RESONANCE_CATEGORIES.shots.includes(id)).length,passive:ids.filter(id=>RESONANCE_CATEGORIES.passive.includes(id)).length,buffs:ids.filter(id=>RESONANCE_CATEGORIES.buffs.includes(id)).length,total:ids.length};}
 function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const [category,heading] of [['shots','DISPAROS · ESCOLHA EXATAMENTE 1'],['passive','PASSIVAS'],['buffs','BUFFS']]){const section=document.createElement('section');section.className='resonance-category';const title=document.createElement('h3');title.className='resonance-category-title';title.textContent=heading;section.append(title);const list=document.createElement('div');list.className='resonance-category-list';for(const id of RESONANCE_CATEGORIES[category]){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option resonance-'+category;row.dataset.skill=id;row.title=resonanceSkillDescriptions[id]||'';const input=document.createElement('input');input.type='checkbox';input.value=id;input.checked=resonancePresets[resonanceEditingMode].includes(id);input.setAttribute('aria-label',label);input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(category==='shots'&&!input.checked&&current.includes(id)){input.checked=true;$('resonanceMessage').textContent='Você precisa manter exatamente 1 disparo selecionado.';return;}let next=current.filter(value=>value!==id);if(input.checked){if(category==='shots')next=next.filter(value=>!RESONANCE_CATEGORIES.shots.includes(value));if(next.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite total é de 7 habilidades.';return;}next.push(id);}resonancePresets[resonanceEditingMode]=normalizeResonancePresets({...resonancePresets,[resonanceEditingMode]:next})[resonanceEditingMode];$('resonanceMessage').textContent='';if(category==='shots')renderResonanceChoices();else updateResonanceCount();});const badge=document.createElement('span');badge.className='resonance-skill-icon';badge.textContent=icon;badge.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='resonance-skill-copy';const name=document.createElement('strong');name.textContent=label;const description=document.createElement('small');description.textContent=resonanceSkillDescriptions[id]||'Habilidade de combate abissal.';copy.append(name,description);row.append(input,badge,copy);list.append(row);}section.append(list);root.append(section);}const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>{const active=b.dataset.resonanceMode===resonanceEditingMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}
 const RESONANCE_FUSION_RECIPES=Object.freeze([
  {id:'gravitationalRupture',name:'RUPTURA GRAVITACIONAL',items:[['nova','Nova Gravitacional'],['burst','Pulso de Ruptura']]},
- {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['power','Pulso Intenso']]},
+ {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['ricochet','Ricochete Caótico']]},
  {id:'abyssEye',name:'OLHO DO ABISMO',items:[['pierce','Lança do Abismo'],['range','Olho Profundo']]},
- {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]}
+ {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]},
+ {id:'photonCascade',name:'CASCATA PRISMÁTICA',items:[['photon','Lança de Fótons'],['spread','Rajada Prismática']]},
+ {id:'tidalEcho',name:'MARÉ REVERBERANTE',items:[['echoShot','Eco de Maré'],['ricochet','Ricochete Caótico']]},
+ {id:'hadalBeam',name:'FEIXE HADAL',items:[['photonRay','Raio de Fótons'],['range','Olho Profundo']]}
 ]);
 function renderResonanceFusionGuide(){
  const root=$('resonanceFusionGuide');if(!root)return;
@@ -3993,7 +4084,7 @@ function renderCatalog(){
   </article>`;
  };
 
- const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Pulso Intenso Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
+ const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
  const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
  const entries=Object.entries(monsterData),common=entries.filter(([k])=>!BOSS_KINDS.includes(k)),bosses=entries.filter(([k])=>BOSS_KINDS.includes(k));
  grid.innerHTML='<h3 class="codex-heading">◈ FAUNA DAS CAMADAS EXTERNAS</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div><h3 class="codex-heading">☠ ENTIDADES COLOSSAIS · FOSSAS ABISSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';

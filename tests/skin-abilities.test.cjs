@@ -96,7 +96,7 @@ test('Kraken skin uses animated contact-damage tentacles', () => {
  const game=read('public/game.js'),ai=read('public/enemy-ai.js');
  assert.ok(game.includes('touchesKrakenTentacle?.(krakenProxy,target,1)'));
  assert.ok(game.includes("dealEnemyDamage(target,24,'kraken-contact')"));
- assert.ok(ai.includes('const length = 3.35 + 0.32'));
+ assert.ok(ai.includes('const length = 4.35 + 0.42'));
 });
 
 
@@ -186,7 +186,7 @@ test('resonance adds one new tactical option to every category',()=>{
  const game=read('public/game.js'),server=read('server.js');
  for(const id of ['echoShot','pressureCocoon','closePressure']){assert.ok(game.includes(id),id);assert.ok(server.includes(id),id);}
  assert.ok(game.includes("echoShot:{damage:[0,8,10,12]"));
- assert.ok(game.includes("offsets=[-.045,.045]"));
+ assert.ok(game.includes("baseOffsets=activeShot===\'echoShot\'?(upgrades.tidalEcho?[-.065,0,.065]:[-.045,.045]):[0]"));
  assert.ok(game.includes("const cocoonInterval=[0,24,20,16]"));
  assert.ok(game.includes("distance<=175/GAME_WORLD_ZOOM"));
 });
@@ -582,7 +582,7 @@ test('online combat predicts presentation but keeps HP server authoritative',()=
 test('authoritative shots carry correlation ids for photon and PvP reconciliation',()=>{
  const game=read('public/game.js'),server=read('server.js');
  assert.ok(server.includes("actionId:String(payload.actionId||payload.volleyId||'').slice(0,72)"));
- assert.ok(server.includes("processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup)"));
+ assert.ok(server.includes("processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12))*(primaryHit?1:.42),'photonRay',null,shot.actionId,enemyLookup)"));
  assert.ok(game.includes("const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'')"));
 });
 test('movement keeps local prediction and remote interpolation',()=>{

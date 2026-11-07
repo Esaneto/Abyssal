@@ -276,10 +276,13 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId);
  const shellLevel=clamp(Math.floor(Number(target?.shellLevel)||0),0,3);
  const shellDefense=1-shellLevel*.08;
+ const predatorLevel=clamp(Math.floor(Number(attacker?.predatorLevel)||0),0,3);
+ const preyHpRatio=Number(target?.maxHp)>0?Number(target.hp)/Number(target.maxHp):1;
+ const hunter=1+predatorLevel*.03+(preyHpRatio<=.30?predatorLevel*.06:0);
  const lastStandLevel=clamp(Math.floor(Number(target?.lastStandLevel)||0),0,3);
  const lowHealth=Number(target?.maxHp)>0&&Number(target?.hp)/Number(target.maxHp)<=.30;
- const lastStandDefense=lowHealth&&lastStandLevel>0?.80:1;
- return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*skinDefense*shellDefense*lastStandDefense);
+ const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
+ return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*hunter*skinDefense*shellDefense*lastStandDefense);
 }
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  if(!room||!attacker||!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0)return;
@@ -604,7 +607,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  }else persistRoomRow(room).catch(err=>console.error('[rooms] atualização de contagem:',err.message));
  broadcastRooms();broadcastOnline();refreshWorldTicker();
 }
-const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);
+const RICOCHET_SHOT_SKILLS=new Set(['electric','pierce','photon','photonRay','nova','echoShot','prismShard']);
 function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId='',enemyLookup=null){
  combatDiagnostics.damageEvents++;
  const room=socketRoom(socket);
@@ -616,7 +619,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(enemyLookup){enemy=enemyLookup.get(normalizedId)||null;if(!enemy)return reject('enemy-not-found');}
  else{idx=w.enemies.findIndex(e=>Number(e.id)===normalizedId);if(idx<0)return reject('enemy-not-found');enemy=w.enemies[idx];}
  const now=Date.now();
- let requestedDamage=damage;
+  // Enemies remain invulnerable for the entire emergence animation.
+  if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
+  // Reject hits through solid cave walls on the authoritative server.
+  if(room.mode==='rift'&&player&&AbyssalMap.segmentWalkable&&
+     !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+     return reject('cave-wall-blocked');
+  let requestedDamage=damage;
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
@@ -793,13 +802,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    fromX=Number(next.x);fromY=Number(next.y);
   }
  }
- // Rajada Prismática is now a passive on-hit fragment effect, NOT a separate shot.
- // Damage is server-authoritative, capped and non-recursive, with no extra
- // projectile visuals that could overwrite the selected weapon's appearance.
- if(player&&room.mode!=='pvp'&&Number(player.prismaticLevel)>0&&RICOCHET_SHOT_SKILLS.has(String(skillId||''))){
-  const candidates=w.enemies.filter(other=>other&&Number(other.hp)>0&&Number(other.id)!==Number(enemy.id)&&Math.hypot(other.x-enemy.x,other.y-enemy.y)<120/WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-enemy.x,a.y-enemy.y)-Math.hypot(b.x-enemy.x,b.y-enemy.y));
-  for(const other of candidates.slice(0,Math.min(6,Math.floor(player.prismaticLevel)*2)))processWorldDamage(socket,Number(other.id),Math.max(1,requestedDamage*.24),'prismatic-passive',batch,actionId,enemyLookup);
- }
+ // Prism is implemented as actual independently simulated projectiles on the client.
+ // The shared-shot handler receives the complete volley; no invisible damage is injected here.
  // Ricochet is a server-authoritative hit synergy in PvE as well as PvP.
  // It applies to every damaging source that resolves through processWorldDamage, including Photon Ray,
  // while ricochet-generated hits cannot recursively start another chain.
@@ -1384,8 +1388,10 @@ io.on('connection', socket => {
   p.magnetStrength = clamp(Number(payload.magnetStrength) || 1, 1, 4.5);
   p.rangeStrength = clamp(Number(payload.rangeStrength) || 1, 1, Math.pow(1.22, 3));
   p.arcChainActive = payload.arcChainActive === true;
+  p.hadalBeamActive = payload.hadalBeamActive === true;
   p.ricochetLevel = clamp(Math.floor(Number(payload.ricochetLevel) || 0), 0, 3);
   p.prismaticLevel = clamp(Math.floor(Number(payload.prismaticLevel) || 0), 0, 3);
+  p.predatorLevel = clamp(Math.floor(Number(payload.predatorLevel) || 0), 0, 3);
   p.electricLevel = clamp(Math.floor(Number(payload.electricLevel) || 0), 0, 3);
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
@@ -1505,10 +1511,28 @@ io.on('connection', socket => {
   const now=Date.now(),volleyId=String(payload.volleyId||'').slice(0,64);
    const sameVolley=Boolean(volleyId&&volleyId===shooter.lastShotVolleyId&&now-(Number(shooter.lastShotAt)||0)<90);
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
-   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>7)return;shooter.lastShotVolleyPackets=volleyPackets;}
+   if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
-  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
-  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));}
+  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  if(shot.special==='nova'&&room.mode!=='pvp'){
+   if(now<(Number(shooter.novaShotReadyAt)||0))return;
+   shooter.novaShotReadyAt=now+1800;
+   shooter.lastNovaVolleyId=volleyId;
+   shooter.novaShardExpiresAt=now+600;
+   shooter.novaShardCount=0;
+   shooter.novaReferenceDamage=Math.min(45,Math.max(1,shot.damage));
+  }
+  if(shot.special==='prismShard'){
+   const rank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3),maxShards=2*rank;
+   // Each fragment must belong to a recently accepted Nova pulse. This also
+   // prevents forging arbitrary high-damage shards or extra projectiles.
+   if(!maxShards||!volleyId||volleyId!==shooter.lastNovaVolleyId||
+      now>(Number(shooter.novaShardExpiresAt)||0)||
+      (Number(shooter.novaShardCount)||0)>=maxShards)return;
+   shooter.novaShardCount=(Number(shooter.novaShardCount)||0)+1;
+   shot.damage=Math.min(shot.damage,Math.max(1,Number(shooter.novaReferenceDamage)||1)*.28/maxShards);
+  }
+  if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));shot.hadalBeamActive=shooter.hadalBeamActive===true;}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
    const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
@@ -1543,16 +1567,48 @@ io.on('connection', socket => {
      if(pvpRockAt(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){length=Math.max(0,distance-4/WORLD_ZOOM);break;}
     }
    }
-   const ex=sx+ux*length,ey=sy+uy*length;
+   if(room.mode==='rift'){
+      const layout=WorldSimulation.mapLayoutFor(room.world);
+      for(let distance=0;distance<=length;distance+=6/WORLD_ZOOM){
+        if(!AbyssalMap.isWalkable(layout,sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
+          length=Math.max(0,distance-6/WORLD_ZOOM);break;
+        }
+      }
+    }
+    const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/shotWorldHeight,0,1);
-   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]/(2*WORLD_ZOOM);
+   // A single authoritative photon command resolves all Prism side rays.
+   // Clients cannot supply extra beam endpoints or bypass the 190 ms cadence.
+   const prismRank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3);
+   const secondarySegments=[];
+   for(let i=0;i<prismRank*2;i++){
+    const angle=Math.atan2(uy,ux)+(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
+    const dx=Math.cos(angle),dy=Math.sin(angle);
+    let sideLength=beamRange;
+    if(room.mode==='pvp'){
+     for(let d=0;d<=beamRange;d+=4/WORLD_ZOOM){
+      if(pvpRockAt(sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-4/WORLD_ZOOM);break;}
+     }
+    }else if(room.mode==='rift'){
+     const layout=WorldSimulation.mapLayoutFor(room.world);
+     for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
+      if(!AbyssalMap.isWalkable(layout,sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
+     }
+    }
+    secondarySegments.push({x2:sx+dx*sideLength,y2:sy+dy*sideLength});
+   }
+   shot.prismBeams=secondarySegments.map(beam=>({x2:clamp(beam.x2/WORLD_WIDTH,0,1),y2:clamp(beam.y2/shotWorldHeight,0,1)}));
+   const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]*(shooter.hadalBeamActive?1.35:1)/(2*WORLD_ZOOM);
    if(room.mode==='pvp'){
     let changed=false;
     for(const target of room.players.values()){
      if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;
-     if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,(Number(target.r)||13/WORLD_ZOOM)+hitRadius))continue;
-     const rawDamage=Math.max(1,Math.min(35,shot.damage||12));
+     const hitRadiusWithTarget=(Number(target.r)||13/WORLD_ZOOM)+hitRadius;
+     const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,hitRadiusWithTarget);
+     const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,target.x,target.y,hitRadiusWithTarget*.88));
+     if(!primaryHit&&!sideHit)continue;
+     const rawDamage=Math.max(1,Math.min(35,shot.damage||12))*(primaryHit?1:.42);
      const damage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(sx-target.x,sy-target.y));
      let blocked=false;
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
@@ -1571,8 +1627,11 @@ io.on('connection', socket => {
      const enemyLookup=new Map((room.world?.enemies||[]).map(enemy=>[Number(enemy.id),enemy]));
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
-      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
-      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup);
+      const hitRadiusWithTarget=Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius;
+      const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget);
+      const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget*.88));
+      if(!primaryHit&&!sideHit)continue;
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12))*(primaryHit?1:.42),'photonRay',null,shot.actionId,enemyLookup);
      }
     }finally{shooter.photonServerResolving=false;}
    }
@@ -1583,6 +1642,8 @@ io.on('connection', socket => {
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
    if(shot.special==='nova'){
     if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
+     shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
+     shooter.novaReferenceDamage=Math.min(35,Math.max(1,shot.damage));
     const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;

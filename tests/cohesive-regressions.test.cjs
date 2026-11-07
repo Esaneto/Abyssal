@@ -193,7 +193,7 @@ test('paired level-three skills fuse into gravitational and electric chain abili
  const game=read('public/game.js');
  assert.match(game,/gravitationalRupture:[\s\S]*?arcChain:/);
  assert.match(game,/upgradeLevels\.burst>=3&&upgradeLevels\.nova>=3/);
- assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.power>=3/);
+ assert.match(game,/upgradeLevels\.electric>=3&&upgradeLevels\.ricochet>=3/);
  assert.match(game,/dealEnemyDamage\(e,10,'gravitationalRupture'\)/);
  assert.match(game,/dealEnemyDamage\(target,16,'arcChain'\)/);
 });

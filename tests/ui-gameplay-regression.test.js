@@ -145,7 +145,7 @@ test('resonance taxonomy separates shots, damaging passives and non-damaging buf
 });
 
 test('damage numbers use green for skin hits, red for shots and blue for damaging passives', () => {
-  assert.match(game, /number\.tone==='skin'\?'#52ff86':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+  assert.match(game, /number\.tone==='skin'\?'#52ff86':number\.tone==='poison'\?'#4bff7d':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
   assert.match(game, /RESONANCE_CATEGORIES\.passive\.includes\(id\).*return 'passive'/s);
 });
 
@@ -171,7 +171,7 @@ test('floating damage numbers render in fixed screen pixels independent of camer
  assert.match(game, /screenX=\(worldX-cameraX\)\*worldZoom/);
  assert.match(game, /ctx\.setTransform\(dpr,0,0,dpr,0,0\)/);
  assert.match(game, /ctx\.font='900 18px Cinzel, Georgia, serif'/);
- assert.match(game, /number\.tone==='skin'\?'#52ff86':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+ assert.match(game, /number\.tone==='skin'\?'#52ff86':number\.tone==='poison'\?'#4bff7d':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
 });
 
 

@@ -25,7 +25,7 @@ test('skin-inflicted damage numbers are green while normal shots and other passi
  assert.equal(damageTone('photonRay'),'shot');
  assert.equal(damageTone('bleed-passive'),'passive');
  assert.equal(damageTone('gravitationalRupture'),'passive');
- assert.match(game,/number\.tone==='received'\?'#ff274a':number\.tone==='skin'\?'#52ff86':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
+ assert.match(game,/number\.tone==='received'\?'#ff274a':number\.tone==='skin'\?'#52ff86':number\.tone==='poison'\?'#4bff7d':number\.tone==='passive'\?'#32cfff':'#ff174d'/);
 });
 
 test('green periodic skin damage appears without creating a new label every tick',()=>{

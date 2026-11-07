@@ -40,12 +40,12 @@ test('curved tentacles aim once per attack, have a late bend and collide during 
  const repeated=H.aimTentacle(h,cycle,0,0);
  assert.equal(repeated.aimX,aim.aimX,'target is frozen at first warning, no frame-by-frame tracking unfairness');
 });
-test('rockfall begins on ceiling, falls more quickly than base player, shatters and fades',()=>{
+test('rockfall begins on rock overhangs, crosses the route faster than base movement, shatters and fades',()=>{
  const rocks=hazards.filter(h=>h.type==='rockfall');
  assert.ok(rocks.length>0,'map has falling rocks');
  for(const h of rocks){
-  assert.equal(h.wallKind,'ceiling');
-  assert.ok(Map.isWalkable(map,h.sourceX,h.sourceY+60));
+  assert.ok(['ceiling','passage-ceiling','passage-overhang'].includes(h.wallKind),'real rock roof or side overhang');
+  assert.ok(Map.isWalkable(map,h.sourceX+Math.cos(h.angle)*60,h.sourceY+Math.sin(h.angle)*60),'rock enters navigable water');
   assert.ok(h.length>180);
   const opening=H.rockfallState(h,{phase:'active',progress:.01});
   const descent=H.rockfallState(h,{phase:'active',progress:.55});
@@ -79,9 +79,9 @@ test('prismatic skill is a passive, secondary hits preserve selected shot cosmet
  const game=read('public/game.js'),server=read('server.js'),ui=read('public/index.html'),styles=read('public/style.css');
  assert.match(game,/shots:\['electric','pierce','photon','photonRay','nova','echoShot'\]/);
  assert.match(game,/passive:\['burst','ricochet','spread'\]/);
- assert.match(game,/\'prismatic-passive\'/);
+  assert.match(game,/prismOffsets=Array\.from/);
  assert.match(server,/p\.prismaticLevel = clamp/);
- assert.match(server,/\'prismatic-passive\'/);
+  assert.doesNotMatch(server,/'prismatic-passive'/);
  assert.match(ui,/id="resonanceFusionGuide"/);
  for(const name of ['RUPTURA GRAVITACIONAL','CADEIA DE ARCOS','OLHO DO ABISMO','DRENO VITAL'])assert.ok(game.includes(name));
  assert.match(styles,/.resonance-fusion-guide/);

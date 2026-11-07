@@ -14,14 +14,14 @@ const hazardGeometry=new WeakMap();
 const tentacleCycleCache=new WeakMap();
 const TYPES=Object.freeze({
   volcano:{name:'VULCÃO ABISSAL',period:10.5,warning:1.65,active:2.15,radius:100,damage:24,color:'#ff7341'},
-  fumarole:{name:'FUMAROLA TÓXICA',period:13.5,warning:1.55,active:4.2,radius:120,damage:12,color:'#8feb78'},
-  rockfall:{name:'DESMORONAMENTO',period:10,warning:1.3,active:2.6,radius:37,damage:31,color:'#d2a3a3'},
-  tentacle:{name:'TENTÁCULO DA FENDA',period:11.5,warning:.8,active:3.6,radius:82,length:320,damage:29,color:'#b873ff'},
+  fumarole:{name:'FUMAROLA TÓXICA',period:11.8,warning:0,active:5.3,radius:120,damage:12,color:'#8feb78'},
+  rockfall:{name:'DESMORONAMENTO',period:10.6,warning:.85,active:3.1,radius:37,damage:31,color:'#d2a3a3'},
+  tentacle:{name:'TENTÁCULO DA FENDA',period:18.8,warning:3.2,active:9.4,radius:82,length:320,damage:29,color:'#b873ff'},
   pressure:{name:'PRESSÃO ESMAGADORA',period:11.6,warning:1.7,active:2.2,radius:140,damage:20,color:'#8bb7ff'},
   spikes:{name:'CORAL FOSSILIZADO',period:10.8,warning:.75,active:3.7,radius:108,damage:20,color:'#e48b82'},
   vortex:{name:'VÓRTICE DE SUCÇÃO',period:14.5,warning:2.3,active:4.2,radius:155,damage:10,color:'#68a9e5'},
-  lure:{name:'ISCA DA MORTE',period:14,warning:1.1,active:1.4,radius:82,damage:25,color:'#71eaff'},
-  electric:{name:'ARCO BIOELÉTRICO',period:10.2,warning:1.2,active:1,radius:59,length:300,damage:24,color:'#8bdfff'}
+  lure:{name:'ISCA DA MORTE',period:13,warning:.75,active:3.4,radius:132,damage:25,color:'#71eaff'},
+  electric:{name:'ARCO BIOELÉTRICO',period:10.2,warning:.9,active:1.4,radius:59,length:300,damage:24,color:'#8bdfff'}
 });
 const ALLOCATION=Object.freeze({
   shoal:['volcano','spikes'],trench:['fumarole','rockfall'],lantern:['lure','electric'],
@@ -119,7 +119,7 @@ function extension(h,phase){
  if(phase.phase==='warning')return 0;
  const q=clamp(phase.progress,0,1);
  if(h.type==='spikes')return q<.13?Math.sin(q/.13*Math.PI*.5):clamp(1-(q-.13)/.87,0,1);
- if(h.type==='tentacle')return q<.18?Math.sin(q/.18*Math.PI*.5):q<.28?1:clamp(1-(q-.28)/.72,0,1);
+ if(h.type==='tentacle')return q<.33?Math.sin(q/.33*Math.PI*.5):q<.38?1:clamp(1-(q-.38)/.62,0,1);
  return 1;
 }
 
@@ -139,7 +139,33 @@ function ceilingMount(layout,room,index,blocked){
  }
  return null;
 }
-function nightmareWallMount(layout,room,index){
+function passageCeilingMount(layout,corridor,index,blocked=[]){
+  const path=corridor?.path||[];
+  if(path.length<3)return null;
+  const p=path[Math.min(path.length-2,Math.max(1,Math.floor(path.length*.5)))];
+  for(const shift of [0,-28,28,-48,48]){
+   const x=p.x+shift,y=p.y;
+   if(!water(layout,x,y,12)||blocked.some(q=>Math.hypot(x-q.x,y-q.y)<q.r))continue;
+   let roof=y;
+   for(let d=12;d<Math.max(80,Number(corridor.width)||180)+190;d+=12)
+    if(!water(layout,x,y-d,3)){roof=y-d+12;break;}
+   if(roof===y||!water(layout,x,roof+24,10)||!water(layout,x,roof+95,10))continue;
+   const length=traceToWall(layout,x,roof,Math.PI*.5,1500);
+   if(length<175)continue;
+   return {sourceX:x,sourceY:roof,angle:Math.PI*.5,wallKind:'passage-ceiling',length};
+  }
+  // Most Fossas corridors are vertical shafts and have no horizontal roof
+  // across the swim lane. An embedded upper side ledge can shed rocks diagonally
+  // downward into that shaft without inventing a floating ceiling.
+  const ledge=corridorMount(layout,corridor,index+2700,blocked);
+  if(!ledge)return null;
+  const horizontal=Math.cos(ledge.angle),vertical=Math.sin(ledge.angle);
+  const angle=Math.atan2(.79+Math.max(-.08,vertical*.13),horizontal*.62);
+  const reach=traceToWall(layout,ledge.sourceX,ledge.sourceY,angle,1600);
+  if(reach<180)return null;
+  return {...ledge,angle,length:reach,wallKind:'passage-overhang'};
+ }
+ function nightmareWallMount(layout,room,index){
  const offsets=[0,.12,-.12,.26,-.26,.41];
  for(const offset of offsets){
   const theta=(index+.50)/8*Math.PI*2+offset;
@@ -160,7 +186,11 @@ function tentaclePath(h,phase=null){
  if(!Number.isFinite(full.sourceX))return [];
  const layout=hazardGeometry.get(full)||hazardGeometry.get(h);
  const angle=full.angle,cs=Math.cos(angle),sn=Math.sin(angle),nx=-sn,ny=cs,len=full.length||260;
- const shake=((idHash(full.id+':shape:'+(phase?.cycle||0))%1000)/1000-.5)*2;
+ const seed=idHash(full.id+':shape:'+(phase?.cycle||0));
+  const shake=((seed%1000)/1000-.5)*2;
+  const frequency=2.8+((seed>>>11)%160)/100;
+  const amplitude=.60+((seed>>>19)%100)/125;
+  const twist=((seed>>>7)%2)?1:-1;
  const focusX=Number.isFinite(full.aimX)?full.aimX:null;
  const focusY=Number.isFinite(full.aimY)?full.aimY:null;
  const targetProjection=focusX===null?0:((focusX-full.sourceX)*nx+(focusY-full.sourceY)*ny);
@@ -169,8 +199,8 @@ function tentaclePath(h,phase=null){
  for(let j=0;j<=32;j++){
   const t=j/32,along=t*len;
   // Three supple bends plus a late-curve bias toward the player's position.
-  const wave=(Math.sin(t*Math.PI*5.1+shake)*.65+Math.sin(t*Math.PI*2.7-shake)*.35)
-    *Math.sin(Math.PI*t)*Math.min(104,len*.15);
+  const wave=(Math.sin(t*Math.PI*frequency*twist+shake)*.58+Math.sin(t*Math.PI*(frequency*.53+1.2)-shake*1.8)*.42)
+     *Math.sin(Math.PI*t)*Math.min(130,len*.18)*amplitude;
   const attraction=focus*Math.exp(-Math.pow((t-.71)/.19,2))*.84;
   let lateral=wave+attraction,x=full.sourceX+cs*along+nx*lateral,y=full.sourceY+sn*along+ny*lateral;
   if(layout&&!water(layout,x,y,3)){
@@ -190,8 +220,8 @@ function aimTentacle(h,cycle,targetX,targetY){
  if(!h||h.type!=='tentacle')return null;
  const derived=hazardAtCycle(h,cycle);
  if(derived.aimed)return {id:h.id,cycle,aimX:derived.aimX,aimY:derived.aimY};
- derived.aimX=Number.isFinite(Number(targetX))?Number(targetX):null;
- derived.aimY=Number.isFinite(Number(targetY))?Number(targetY):null;
+ derived.aimX=targetX!=null&&Number.isFinite(Number(targetX))?Number(targetX):null;
+ derived.aimY=targetY!=null&&Number.isFinite(Number(targetY))?Number(targetY):null;
  derived.aimed=true;derived.curvedPath=null;
  tentaclePath(h,{cycle});
  return {id:h.id,cycle,aimX:derived.aimX,aimY:derived.aimY};
@@ -201,7 +231,7 @@ function suctionRadius(h,t){
 }
 function rockfallState(h,phase){
  const seconds=phase.phase==='active'?phase.progress*h.active:0;
- const fallDuration=Math.max(.38,(h.length||520)/265);
+ const fallDuration=Math.max(.38,(h.length||520)/280);
  const progress=clamp(seconds/fallDuration,0,1),impact=seconds>=fallDuration;
  return {x:h.sourceX+Math.cos(h.angle)*h.length*progress,
   y:h.sourceY+Math.sin(h.angle)*h.length*progress,
@@ -255,7 +285,7 @@ function build(layout,tier=0){
    offset:h.nightmare?((index%8)/8)*cfg.period:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
    radius:type==='volcano'?(h.wallKind==='corridor'?49:64):
     type==='tentacle'?78:type==='fumarole'?120:type==='electric'?46:
-    type==='spikes'?56:type==='rockfall'?77:type==='lure'?67:type==='pressure'?95:cfg.radius,
+    type==='spikes'?56:type==='rockfall'?77:type==='lure'?116:type==='pressure'?95:cfg.radius,
    length:reach||cfg.length||0,
    active:type==='rockfall'?Math.min(cfg.period-cfg.warning-.7,Math.max(1.2,reach/265+.65)):cfg.active,
    damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))};
@@ -279,13 +309,7 @@ function build(layout,tier=0){
    if(mount)add(wallGeometry(layout,mount,type),type,room.id,i);
   }
  }
- // Narrow-path volcanic vents are placed only where corridor walls are real.
- // The hot stream leaves a wide traversable strip and never blocks entrances.
- for(const [i,passage]of (layout.corridors||[]).entries()){
-  if(i===0||i%3!==1||Number(passage.width)>195)continue;
-  const anchor=corridorMount(layout,passage,i,blocked);
-  if(anchor)add(wallGeometry(layout,anchor,'volcano'),'volcano','passage:'+passage.a+'-'+passage.b,i);
- }
+ // The vortex is reserved first. Corridor traps cannot displace it.
  // The only unattached threat lives ACROSS a corridor, exactly where players
  // travel. It spans both sides of the narrow passage instead of a mob room.
  for(const i of [2,5]){
@@ -298,6 +322,32 @@ function build(layout,tier=0){
   add({x,y,angle,passageWidth:halfWidth,axialRadius:Math.min(165,Math.hypot(vx,vy)*.48),
     acrossRadius:halfWidth*.985,wallKind:'passage-floor'},
     'vortex','passage:'+corridor.a+'-'+corridor.b,i+1000);
+ }
+ // Collapsing roofs and electric fissures intercept actual narrow passages.
+ for(const [i,passage] of (layout.corridors||[]).entries()){
+  if(i===0||i%5!==3||Number(passage.width)>215)continue;
+  const anchor=passageCeilingMount(layout,passage,i,blocked);
+  if(anchor)add(wallGeometry(layout,anchor,'rockfall'),'rockfall','passage:'+passage.a+'-'+passage.b,i+350);
+ }
+ for(const [i,passage] of (layout.corridors||[]).entries()){
+  if(i===0||i%4!==3||Number(passage.width)>205)continue;
+  const anchor=corridorMount(layout,passage,i+1700,blocked);
+  if(anchor)add(wallGeometry(layout,anchor,'electric'),'electric','passage:'+passage.a+'-'+passage.b,i+600);
+ }
+ // A deceptive bioluminescent lure sits inside real transit corridors, not
+ // only on distant decorative walls. It briefly glows before pulling the player
+ // into a hidden pocket; no floating platform or glowing base gives it away.
+ for(const [i,passage] of (layout.corridors||[]).entries()){
+  if(i===0||i%4!==2||Number(passage.width)>220)continue;
+  const anchor=corridorMount(layout,passage,i+2600,blocked);
+  if(anchor)add(wallGeometry(layout,anchor,'lure'),'lure','passage:'+passage.a+'-'+passage.b,i+720);
+ }
+ // Narrow-path volcanic vents are placed only where corridor walls are real.
+ // The hot stream leaves a wide traversable strip and never blocks entrances.
+ for(const [i,passage]of (layout.corridors||[]).entries()){
+  if(i===0||i%3!==1||Number(passage.width)>195)continue;
+  const anchor=corridorMount(layout,passage,i,blocked);
+  if(anchor)add(wallGeometry(layout,anchor,'volcano'),'volcano','passage:'+passage.a+'-'+passage.b,i);
  }
  if(layoutCache.size>16)layoutCache.clear();
  layoutCache.set(key,hazards);
@@ -318,7 +368,7 @@ function segmentDistance(px,py,ax,ay,bx,by){
 }
 function dangerRadius(h,s){
  if(h.type==='fumarole'&&s?.phase==='active')return Math.max(20,(h.maxReach||h.radius)*(s.progress*.98+.02));
- if(h.type==='vortex'&&s?.phase==='active')return Math.max(24,(h.acrossRadius||h.radius)*Math.min(1,(s.progress+.10)*2.15));
+ if(h.type==='vortex'&&s?.phase==='active')return Math.max(24,(h.acrossRadius||h.radius)*Math.min(1.08,(s.progress+.16)*2.4));
  return h.radius;
 }
 function hit(hazard,px,py,pad=0,phase=null){
@@ -327,7 +377,7 @@ function hit(hazard,px,py,pad=0,phase=null){
  if(h.type==='rockfall'&&Number.isFinite(h.sourceX)){
   if(!phase)return Math.hypot(px-h.x,py-h.y)<=r; // static shape queries
   const fall=rockfallState(h,phase);
-  return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=h.radius+pad;
+  return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=Math.min(43,h.radius)+pad;
  }
  if(h.type==='tentacle'&&Number.isFinite(h.sourceX)&&phase){
   const extent=extension(h,phase);
@@ -342,7 +392,7 @@ function hit(hazard,px,py,pad=0,phase=null){
  if(h.type==='vortex'){
   const cs=Math.cos(h.angle),sn=Math.sin(h.angle),dx=px-h.x,dy=py-h.y;
   const along=dx*cs+dy*sn,across=-dx*sn+dy*cs;
-  const scale=phase?Math.min(1,(phase.progress+.10)*2.15):1;
+  const scale=phase?Math.min(1.08,(phase.progress+.16)*2.4):1;
   return (along/(Math.max(22,(h.axialRadius||h.radius)*scale)+pad))**2+
     (across/(Math.max(22,(h.acrossRadius||h.radius)*scale)+pad))**2<=1;
  }
@@ -355,14 +405,14 @@ function hit(hazard,px,py,pad=0,phase=null){
   const lo=Math.max(0,Math.floor(index)),hi=Math.min(h.poisonRays.length-1,lo+1);
   const safeLen=Math.min(h.poisonRays[lo].length,h.poisonRays[hi].length);
   const fraction=phase?(.04+.96*clamp(phase.progress,0,1)):1;
-  return dist<=safeLen*fraction+pad;
+  return dist<=safeLen*fraction*.92+pad;
  }
  if(Number.isFinite(h.sourceX)&&['volcano','tentacle','spikes','electric'].includes(h.type)){
   const extent=h.type==='spikes'?extension(h,phase):1,len=(h.length||130)*extent;
   if(len<1)return false;
   const ax=h.sourceX+Math.cos(h.angle)*6,ay=h.sourceY+Math.sin(h.angle)*6;
   const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
-  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:.5)+pad;
+  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:h.type==='electric'?.30:.5)+pad;
  }
  if(h.type==='tentacle'||h.type==='electric'){
   const len=h.length||300,a=h.angle||0;
@@ -386,35 +436,65 @@ function paintedCircle(c,x,y,r,fill,stroke=null,w=1){
 }
 // The floor uses #031119 / #0b202c / #25434b. These surfaces borrow exactly
 // those tones: dormant traps must be almost indistinguishable from the cave.
+// Traps have geological signatures, never the same circular glowing pedestal.
 function wallSeam(c,h,t,accent,s,scale=1){
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- const intensity=s.phase==='active'?.82:s.phase==='warning'?.27+.37*s.progress:.12;
- c.globalAlpha=.67;
- const rock=c.createRadialGradient(-19,-8,1,0,0,61*scale);
- rock.addColorStop(0,'rgba(2,8,15,.95)');
- rock.addColorStop(.43,'rgba(5,18,27,.91)');
- rock.addColorStop(.73,'rgba(11,32,44,.65)');
- rock.addColorStop(1,'rgba(21,53,62,0)');
- c.fillStyle=rock;
- c.beginPath();c.ellipse(-13,0,51*scale,35*scale,0,0,Math.PI*2);c.fill();
- // Two fracture lines disappear into the geological strata.
- c.strokeStyle='rgba(45,85,94,.38)';c.lineWidth=2.4;c.lineCap='round';
- for(const side of [-1,1]){
-  c.beginPath();c.moveTo(-51,side*14);
-  c.bezierCurveTo(-24,side*23,-17,side*16,4,side*18);
-  c.quadraticCurveTo(19,side*15,29,side*6);c.stroke();
+ const live=s.phase==='active',warning=s.phase==='warning',strength=live?.72:warning?.12+.37*s.progress:.035;
+ c.lineCap='round';c.lineJoin='round';c.globalAlpha=.84;
+ if(h.type==='fumarole'){
+  // Fumaroles seep from multiple thin pores among dark, branching mineral veins.
+  for(let j=0;j<7;j++){
+   const off=(j-3)*11,wave=Math.sin(j*1.88+t*.00018)*3;
+   c.strokeStyle='rgba(38,85,78,.55)';c.lineWidth=1.6+j%3*.5;
+   c.beginPath();c.moveTo(-43,off+wave);c.bezierCurveTo(-21,off-7,1,off+13,21,off*.45);c.stroke();
+   c.fillStyle='rgba(7,32,31,.65)';c.beginPath();c.ellipse(16,off*.45,4+j%2*2,2.2,0,0,Math.PI*2);c.fill();
+  }
+  c.globalAlpha=strength*.5;c.fillStyle='#81e5a1';
+  for(let j=0;j<7;j++)paintedCircle(c,16,(j-3)*4,1.4+j%2,accent);
+ }else if(h.type==='spikes'){
+  // Fossil ribs are embedded teeth and longitudinal striations, not a vent.
+  c.strokeStyle='rgba(93,130,126,.41)';c.lineWidth=3.2;
+  for(let k=-3;k<=3;k++){
+   const y=k*10;
+   c.beginPath();c.moveTo(-48,y*.73);c.lineTo(-19,y*1.11);
+   c.lineTo(3,y*.65);c.lineTo(17,y*.55);c.stroke();
+  }
+  c.fillStyle='rgba(39,70,75,.7)';
+  for(let j=0;j<5;j++){const y=(j-2)*12;c.beginPath();
+   c.moveTo(-8,y+5);c.lineTo(12,y);c.lineTo(-8,y-5);c.closePath();c.fill();}
+  c.globalAlpha=strength;c.strokeStyle=accent;c.lineWidth=1;
+  c.beginPath();c.moveTo(-28,-20);c.lineTo(5,-11);c.lineTo(17,-5);c.stroke();
+ }else if(h.type==='electric'){
+  // Dendritic electrical fractures fork into the darker sediment.
+  c.strokeStyle='rgba(55,109,115,.49)';c.lineWidth=2.7;
+  for(let j=0;j<5;j++){
+   const y=(j-2)*14;
+   c.beginPath();c.moveTo(-45,y*1.6);c.lineTo(-27,y*.8);
+   c.lineTo(-13,y*1.22);c.lineTo(4,y*.29);
+   c.lineTo(16,y*.45);c.stroke();
+  }
+  c.globalAlpha=strength*.8;c.strokeStyle='#b3edf0';c.lineWidth=1.3;
+  c.beginPath();c.moveTo(-27,-24);c.lineTo(-13,-12);c.lineTo(-3,-16);c.lineTo(20,3);c.stroke();
+ }else if(h.type==='pressure'){
+  // Compression scars, stacked like geological strata, bend toward the fissure.
+  for(let j=-3;j<=3;j++){
+   c.strokeStyle='rgba(69,109,129,.53)';c.lineWidth=2.3;
+   c.beginPath();c.moveTo(-48,j*12);
+   c.bezierCurveTo(-23,j*12+5,-7,j*7,14,j*9);c.stroke();
+  }
+  c.globalAlpha=strength;c.strokeStyle=accent;c.lineWidth=1.2;
+  c.beginPath();c.moveTo(-22,-19);c.quadraticCurveTo(13,-26,24,0);c.quadraticCurveTo(13,26,-22,19);c.stroke();
+ }else if(h.type==='lure'){
+  // Barely perceptible biofilm dots; no dark hole/ring revealing the ambush.
+  c.globalAlpha=.33;
+  for(let j=0;j<9;j++){
+   const px=-29+(j%4)*13,py=(Math.floor(j/4)-1)*15+Math.sin(j*2.1)*4;
+   paintedCircle(c,px,py,1.6+j%3*.6,'#375d60');
+  }
+  c.globalAlpha=strength*.48;
+  paintedCircle(c,12,-9,1.7,'#a8e6d7');
  }
- const hole=c.createRadialGradient(4,0,2,4,0,29);
- hole.addColorStop(0,'rgba(0,3,9,.98)');hole.addColorStop(.58,'rgba(4,14,24,.95)');
- hole.addColorStop(1,'rgba(9,29,41,0)');
- c.fillStyle=hole;c.beginPath();c.ellipse(0,0,35*scale,22*scale,0,0,Math.PI*2);c.fill();
- // Barely visible when asleep, localized neon only where the living rock opens.
- c.globalAlpha=intensity;
- c.strokeStyle=accent;c.shadowColor=accent;c.shadowBlur=s.phase==='active'?11:5;
- c.lineWidth=1.2+(s.phase==='active'?1.3:0);
- c.beginPath();c.moveTo(-13,-14*scale);c.quadraticCurveTo(18,-11*scale,25,0);
- c.quadraticCurveTo(18,11*scale,-13,14*scale);c.stroke();
- c.shadowBlur=0;c.restore();
+ c.restore();
 }
 function ventRock(c,h,s,t){
  // Volcano is not a separate boulder: it is a hot fracture INSIDE the cave wall.
@@ -499,10 +579,10 @@ function poisonousAnemone(c,h,s,t){
  // Fill the entire open, connected water fan. The far contour follows actual
  // raycasts against cave walls, so no cloud is painted through solid rock.
  c.beginPath();c.moveTo(ox,oy);
- for(const ray of h.poisonRays){
-  const len=ray.length*fraction;
-  c.lineTo(ox+Math.cos(ray.angle)*len,oy+Math.sin(ray.angle)*len);
- }
+ for(let i=0;i<h.poisonRays.length;i++){
+    const ray=h.poisonRays[i],len=ray.length*fraction*(.92+.08*Math.sin(t*.0018+i*.59)**2);
+    c.lineTo(ox+Math.cos(ray.angle)*len,oy+Math.sin(ray.angle)*len);
+   }
  c.closePath();
  const cloud=c.createRadialGradient(ox,oy,3,ox,oy,Math.max(8,radius));
  cloud.addColorStop(0,'rgba(116,226,107,.29)');
@@ -511,14 +591,14 @@ function poisonousAnemone(c,h,s,t){
  cloud.addColorStop(1,'rgba(45,134,127,.08)');
  c.fillStyle=cloud;c.fill();
  // A visible irregular advancing frontier travels until it reaches stone.
- c.strokeStyle='rgba(145,244,122,.30)';c.lineWidth=1.9;c.stroke();
+ c.strokeStyle='rgba(145,244,122,.07)';c.lineWidth=1.9;c.stroke();
  // Anêmona Tóxica spores and translucent smoke, strictly inside the traced fan.
  for(let i=0;i<30;i++){
   const ray=h.poisonRays[(i*11)%h.poisonRays.length];
   const q=.13+((i*7)%17)/19,reach=ray.length*fraction*q;
   const x=ox+Math.cos(ray.angle)*reach,y=oy+Math.sin(ray.angle)*reach;
   c.globalAlpha=.16+(i%5)*.08;c.fillStyle=i%3?'#75db95':'#c3fc8c';
-  c.beginPath();c.ellipse(x,y,1.5+(i%4),1+(i%3),ray.angle,0,Math.PI*2);c.fill();
+  c.beginPath();c.ellipse(x+Math.sin(t*.0007+i)*9,y+Math.cos(t*.0009+i*2)*7,6+(i%5)*2,4+(i%4)*2,ray.angle+t*.00015,0,Math.PI*2);c.fill();
  }
  c.restore();
 }
@@ -531,10 +611,10 @@ function deepCurrentPit(c,h,s,t){
  pit.addColorStop(0,'rgba(0,3,10,.98)');
  pit.addColorStop(.4,'rgba(1,13,24,.96)');
  pit.addColorStop(.78,'rgba(6,30,43,.87)');
- pit.addColorStop(.97,'rgba(24,66,77,.61)');
- pit.addColorStop(1,'rgba(12,34,48,.04)');
- c.fillStyle=pit;c.beginPath();c.ellipse(0,0,rx,ry,0,0,Math.PI*2);c.fill();
- c.strokeStyle='rgba(72,133,150,.28)';c.lineWidth=2;
+ pit.addColorStop(.97,'rgba(20,57,66,.35)');
+ pit.addColorStop(1,'rgba(12,34,48,0)');
+ c.fillStyle=pit;c.beginPath();c.ellipse(0,0,rx*1.24,ry*1.16,0,0,Math.PI*2);c.fill();
+ c.strokeStyle='rgba(72,133,150,.10)';c.lineWidth=1.5;
  for(let i=0;i<3;i++){
   const q=.43+i*.21;c.beginPath();c.ellipse(0,0,rx*q,ry*q,0,0,Math.PI*2);c.stroke();
  }
@@ -554,10 +634,10 @@ function deepCurrentPit(c,h,s,t){
    }
   }
  }else if(s.phase==='active'){
-  const scale=Math.min(1,(s.progress+.10)*2.15);
+  const scale=Math.min(1.08,(s.progress+.16)*2.4);
   c.globalAlpha=.23;c.fillStyle='#0c5e80';
   c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
-  c.globalAlpha=.84;c.lineCap='round';
+  c.globalAlpha=.62;c.lineCap='round';
   for(let i=0;i<5;i++){
    const q=.2+i*.16;
    c.beginPath();c.ellipse(0,0,rx*q*scale,ry*q*scale,t*.0015+i*.4,-2.7,2.3);
@@ -569,6 +649,34 @@ function deepCurrentPit(c,h,s,t){
     1.5+(i%4),'rgba(170,223,232,.73)');
   }
   c.fillStyle='#01050e';c.beginPath();c.ellipse(0,0,rx*.22*scale,ry*.23*scale,0,0,Math.PI*2);c.fill();
+ }
+ c.restore();
+}
+// Shared material/ventosa geometry: wall tentacles and Nightmare backdrop.
+function drawNightmareArm(c,points,r,last,opacity=1){
+ if(last<1||points.length<2)return;
+ c.save();c.globalAlpha*=opacity;c.lineCap='round';c.lineJoin='round';
+ // Reuse one continuous material gradient for all 32 tapered sections. Building
+ // hundreds of per-segment gradients each frame caused avoidable mobile GPU work.
+ const base=points[0],tip=points[Math.min(last,points.length-1)];
+ const g=c.createLinearGradient(base.x-r*.3,base.y-r*.3,tip.x+r*.3,tip.y+r*.3);
+ g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
+ for(let i=1;i<=last;i++){
+  const a=points[i-1],b=points[i],p=(i-.5)/32,width=suctionRadius({radius:r},p)*2;
+  c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
+  c.strokeStyle=g;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;c.stroke();c.shadowBlur=0;
+  c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
+ }
+ for(let i=2;i<=last;i+=2){
+  const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
+  const nx=-dy/den,ny=dx/den,p=i/32,thick=suctionRadius({radius:r},p);
+  for(const sign of [-1,1]){
+   const sx=b.x+nx*thick*.63*sign,sy=b.y+ny*thick*.63*sign,rr=Math.max(1.7,thick*.19);
+   c.fillStyle='#c69dde';c.strokeStyle='#40145b';c.lineWidth=Math.max(.9,rr*.22);
+   c.beginPath();c.ellipse(sx,sy,rr,rr*.79,Math.atan2(dy,dx),0,Math.PI*2);c.fill();c.stroke();
+   c.strokeStyle='rgba(238,195,251,.84)';c.lineWidth=Math.max(.8,rr*.15);c.beginPath();c.ellipse(sx,sy,rr*.75,rr*.5,Math.atan2(dy,dx),0,Math.PI*2);c.stroke();
+   c.fillStyle='#280a45';c.beginPath();c.ellipse(sx,sy,rr*.42,rr*.36,Math.atan2(dy,dx),0,Math.PI*2);c.fill();
+  }
  }
  c.restore();
 }
@@ -587,44 +695,17 @@ function tentacleTrap(c,original,s,t){
  if(s.phase==='warning'){
   // Curved translucent red route, shaped by the position of the closest
   // player during the warning; it is NOT a straight rectangular hitbox.
-  c.strokeStyle='rgba(255,54,82,'+(.35+.40*s.progress)+')';c.shadowColor='#e8386b';c.shadowBlur=9;
+  c.strokeStyle='rgba(255,54,82,'+(.035+.73*s.progress*s.progress)+')';c.shadowColor='#e8386b';c.shadowBlur=9;
   c.lineCap='round';c.lineJoin='round';c.beginPath();
   for(let i=0;i<points.length;i++){
    if(!i)c.moveTo(points[i].x,points[i].y);else c.lineTo(points[i].x,points[i].y);
   }
   c.lineWidth=r*.17;c.stroke();
-  c.strokeStyle='rgba(235,38,74,'+(.10+.17*s.progress)+')';c.lineWidth=r*.98;c.shadowBlur=0;c.stroke();
+  c.strokeStyle='rgba(235,38,74,'+(.008+.19*s.progress*s.progress)+')';c.lineWidth=r*.98;c.shadowBlur=0;c.stroke();
  }
  if(s.phase==='active'){
-  const reach=extension(h,s),last=Math.min(32,Math.ceil(reach*32));
-  if(last>=1){
-   c.lineCap='round';c.lineJoin='round';
-   for(let i=1;i<=last;i++){
-    const a=points[i-1],b=points[i],p=(i-.5)/32;
-    const width=suctionRadius(h,p)*2;
-    const segmentColor=c.createLinearGradient(a.x-r*.3,a.y-r*.3,b.x+r*.3,b.y+r*.3);
-    segmentColor.addColorStop(0,'rgba(86,28,135,.75)');
-    segmentColor.addColorStop(.54,'rgba(157,82,203,.80)');
-    segmentColor.addColorStop(1,'rgba(195,125,221,.61)');
-    c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();
-    c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
-    c.strokeStyle=segmentColor;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;
-    c.stroke();c.shadowBlur=0;
-    c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
-   }
-   // Two tapering rows of hollow suckers on the visible underside.
-   for(let i=2;i<=last;i+=2){
-    const a=points[i-1],b=points[i],dx=b.x-a.x,dy=b.y-a.y,den=Math.hypot(dx,dy)||1;
-    const nx=-dy/den,ny=dx/den,p=i/32,thick=suctionRadius(h,p);
-    for(const sign of [-1,1]){
-     const sx=b.x+nx*thick*.63*sign,sy=b.y+ny*thick*.63*sign,rr=Math.max(1.7,thick*.18);
-     c.fillStyle='rgba(215,168,234,.86)';c.strokeStyle='rgba(69,26,113,.79)';
-     c.lineWidth=1.4;c.beginPath();c.ellipse(sx,sy,rr,rr*.79,Math.atan2(dy,dx),0,Math.PI*2);
-     c.fill();c.stroke();
-     c.fillStyle='rgba(56,16,104,.68)';c.beginPath();c.ellipse(sx,sy,rr*.43,rr*.41,0,0,Math.PI*2);c.fill();
-    }
-   }
-  }
+  const last=Math.min(32,Math.ceil(extension(h,s)*32));
+  drawNightmareArm(c,points,r,last);
  }
  c.restore();
 }
@@ -632,15 +713,20 @@ function rockfallTrap(c,h,s,t){
  if(!Number.isFinite(h.sourceX))return;
  // Rockfall originates only from a high overhang with water below.
  c.save();
- c.strokeStyle='rgba(48,88,99,.61)';c.lineWidth=3;c.lineCap='round';
- c.beginPath();c.moveTo(h.sourceX-51,h.sourceY-13);
- c.quadraticCurveTo(h.sourceX-16,h.sourceY+7,h.sourceX+31,h.sourceY-11);c.stroke();
+ // A natural rock lip is recognizable only as part of the cave. In vertical
+ // shafts, rotate it with the slanted fall path instead of drawing a fake roof.
+ c.save();c.translate(h.sourceX,h.sourceY);c.rotate((h.angle||Math.PI*.5)-Math.PI*.5);
+ c.fillStyle='rgba(11,30,38,.91)';c.strokeStyle='rgba(47,80,86,.43)';c.lineWidth=2.4;c.lineCap='round';
+ c.beginPath();c.moveTo(-48,-16);c.lineTo(-29,-25);c.lineTo(-12,-17);
+ c.lineTo(13,-22);c.lineTo(35,-14);c.quadraticCurveTo(11,-1,-7,5);
+ c.quadraticCurveTo(-31,-4,-48,-16);c.closePath();c.fill();c.stroke();
+ c.restore();
  if(s.phase==='idle'){c.restore();return;}
  if(s.phase==='warning'){
   c.globalAlpha=.26+.48*s.progress;
   for(let i=0;i<13;i++){
    const drift=Math.sin(i*2.77+t*.003)*20,fall=s.progress*(17+i%5*13);
-   paintedCircle(c,h.sourceX+(i-6)*9+drift,h.sourceY+fall,1.2+(i%3),'#8da9a8');
+   paintedCircle(c,h.sourceX+Math.cos(h.angle)*fall+(i-6)*3+drift*.22,h.sourceY+Math.sin(h.angle)*fall,1.2+(i%3),'#8da9a8');
   }
   c.restore();return;
  }
@@ -839,52 +925,22 @@ function drawBossMark(c,mark,now,active=false){
  }else{c.moveTo(mark.x,mark.y);c.arc(mark.x,mark.y,mark.radius,mark.angle-1.02,mark.angle+1.02);c.closePath();}
  c.fill();c.stroke();c.restore();
 }
-function drawFinalBoss(c,enemy,now){
- // PES ADELO ROXO: a monstrous translucent kraken face with a giant body
- // behind the cavern. The former rounded smile is replaced by an angular
- // mantle, predatory eyelids, asymmetric scars and two rows of hooked teeth.
- const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
- c.save();c.translate(x,y);
- const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
- fog.addColorStop(0,'rgba(188,73,255,.23)');
- fog.addColorStop(.32,'rgba(77,22,139,.19)');
- fog.addColorStop(.72,'rgba(31,6,67,.11)');
- fog.addColorStop(1,'rgba(16,4,44,0)');
- c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
- // Eight enormous phantom arms continue beneath the swimming plane toward
- // the boss-room walls. They are BACKDROP ONLY: zero collision or damage.
- for(let i=0;i<8;i++){
-  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a);
-  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
-  const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
-  const samples=20,sway=Math.sin(t*.45+i*1.7)*r*.17;
-  for(let k=1;k<=samples;k++){
-   const p0=(k-1)/samples,p1=k/samples;
-   const curve=(p)=>({
-    x:cs*(r*.65+(reach-r*.65)*p)-sn*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI),
-    y:sn*(r*.65+(reach-r*.65)*p)+cs*Math.sin(p*Math.PI*2.3+t*.3+i)*sway*Math.sin(p*Math.PI)
-   });
-   const p=curve(p0),q=curve(p1),fade=Math.pow(1-p0,1.35);
-   c.lineCap='round';c.lineWidth=Math.max(2,r*.65*Math.pow(1-p0,.78));
-   c.strokeStyle='rgba(78,25,145,'+(.20*fade)+')';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(q.x,q.y);c.stroke();
-   c.lineWidth=Math.max(1,c.lineWidth*.43);c.strokeStyle='rgba(194,116,244,'+(.12*fade)+')';c.stroke();
-   if(k%3===0)for(const sign of [-1,1]){
-    const dx=q.x-p.x,dy=q.y-p.y,den=Math.hypot(dx,dy)||1;
-    c.strokeStyle='rgba(218,151,246,'+(.16*fade)+')';c.lineWidth=1;
-    c.beginPath();c.ellipse(q.x-sign*dy/den*r*.12*(1-p1),q.y+sign*dx/den*r*.12*(1-p1),
-      Math.max(2,r*.07*(1-p1)),Math.max(1,r*.035*(1-p1)),a,0,Math.PI*2);c.stroke();
-   }
-  }
- }
- // Jagged cranial horns, visible against the darker purple background.
+function drawNightmareKrakenHead(c,r,pulse=0){
+ c.save();
+ // Broad paired squid fins and short bony antennae root the face in a
+ // recognizable cephalopod mantle, rather than a floating theatrical mask.
  for(const side of [-1,1]){
   c.save();c.scale(side,1);
-  c.fillStyle='rgba(78,27,122,.91)';c.strokeStyle='rgba(205,124,253,.65)';c.lineWidth=3;
-  c.beginPath();c.moveTo(r*.54,-r*.46);c.bezierCurveTo(r*.99,-r*.93,r*1.43,-r*1.35,r*.83,-r*1.64);
-  c.quadraticCurveTo(r*.99,-r*1.21,r*.34,-r*.82);c.closePath();c.fill();c.stroke();
-  c.beginPath();c.moveTo(r*.71,-r*.05);c.quadraticCurveTo(r*1.36,-r*.44,r*1.38,-r*.13);
-  c.quadraticCurveTo(r*1.32,-r*.34,r*.9,r*.47);c.closePath();
-  c.fillStyle='rgba(82,28,126,.68)';c.fill();c.stroke();
+  c.fillStyle='rgba(48,17,96,.95)';c.strokeStyle='rgba(202,115,244,.84)';
+  c.lineWidth=Math.max(1.6,r*.036);
+  c.beginPath();c.moveTo(r*.71,-r*.92);
+  c.bezierCurveTo(r*1.16,-r*1.50,r*1.62,-r*1.29,r*1.90,-r*.94);
+  c.bezierCurveTo(r*1.48,-r*1.11,r*1.33,-r*.52,r*1.08,-r*.30);
+  c.closePath();c.fill();c.stroke();
+  c.beginPath();c.moveTo(r*.72,-r*.82);
+  c.bezierCurveTo(r*.98,-r*1.38,r*1.18,-r*1.63,r*1.02,-r*1.86);
+  c.quadraticCurveTo(r*1.40,-r*1.61,r*.96,-r*.74);
+  c.closePath();c.fill();c.stroke();
   c.restore();
  }
  const skin=c.createRadialGradient(-r*.29,-r*.42,r*.10,0,0,r*1.35);
@@ -895,14 +951,17 @@ function drawFinalBoss(c,enemy,now){
  skin.addColorStop(1,'rgba(18,6,47,.85)');
  c.shadowColor='#aa50db';c.shadowBlur=22;c.fillStyle=skin;
  c.strokeStyle='rgba(199,128,242,.82)';c.lineWidth=4;
- c.beginPath();c.moveTo(-r*.97,r*.16);
- c.bezierCurveTo(-r*1.20,-r*.4,-r*.93,-r*1.15,-r*.15,-r*1.04);
- c.quadraticCurveTo(0,-r*1.24,r*.25,-r*1.09);
- c.bezierCurveTo(r*.98,-r*1.18,r*1.24,-r*.37,r*.96,r*.20);
- c.bezierCurveTo(r*1.03,r*.84,r*.53,r*1.10,0,r*1.15);
- c.bezierCurveTo(-r*.69,r*1.09,-r*1.23,r*.72,-r*.97,r*.16);
+ // An oversized pear-shaped Kraken mantle, narrowing into a distinct
+ // eight-armed oral crown. The original eyes and toothed grin are unchanged.
+ c.beginPath();c.moveTo(-r*.90,r*.59);
+ c.bezierCurveTo(-r*1.40,r*.22,-r*1.48,-r*.74,-r*.94,-r*1.35);
+ c.bezierCurveTo(-r*.54,-r*1.80,r*.54,-r*1.80,r*.94,-r*1.35);
+ c.bezierCurveTo(r*1.48,-r*.74,r*1.40,r*.22,r*.90,r*.59);
+ c.bezierCurveTo(r*.83,r*.87,r*.47,r*1.19,r*.20,r*1.23);
+ c.quadraticCurveTo(0,r*1.38,-r*.20,r*1.23);
+ c.bezierCurveTo(-r*.47,r*1.19,-r*.83,r*.87,-r*.90,r*.59);
  c.closePath();c.fill();c.stroke();c.shadowBlur=0;
- // Large faceted forehead and deep creases, a different species from Kraken.
+ // The same forehead and predatory expression appear on boss and playable relic.
  c.fillStyle='rgba(202,116,244,.22)';c.beginPath();
  c.moveTo(-r*.71,-r*.48);c.quadraticCurveTo(0,-r*1.12,r*.65,-r*.47);
  c.quadraticCurveTo(.0,-r*.69,-r*.71,-r*.48);c.fill();
@@ -929,6 +988,14 @@ function drawFinalBoss(c,enemy,now){
  c.lineTo(-r*.06,-r*.55);c.lineTo(-r*.19,-r*.25);c.stroke();
  c.strokeStyle='rgba(96,38,160,.62)';c.lineWidth=5;
  c.beginPath();c.moveTo(r*.14,-r*.87);c.lineTo(r*.10,-r*.61);c.lineTo(r*.27,-r*.51);c.stroke();
+ // Segmented muscular collar indicates the root of eight true tentacles.
+ c.strokeStyle='rgba(226,148,255,.48)';c.lineWidth=Math.max(1.1,r*.025);
+ for(const side of [-1,1]){
+  for(let j=0;j<3;j++){
+   c.beginPath();c.moveTo(side*r*(.70+j*.07),r*(.61+j*.12));
+   c.quadraticCurveTo(side*r*(.92+j*.09),r*(.80+j*.12),side*r*(.55+j*.08),r*(1.01+j*.06));c.stroke();
+  }
+ }
  // A gaping predatory rictus, not a happy crescent. Ivory fangs have staggered
  // lengths and dark pockets between them, supported by a distinct lower jaw.
  c.fillStyle='#080316';c.strokeStyle='#b25de0';c.lineWidth=4.4;
@@ -962,36 +1029,51 @@ function drawFinalBoss(c,enemy,now){
  }
  c.restore();
 }
+function drawFinalBoss(c,enemy,now){
+ // PES ADELO ROXO: the same true cephalopod mantle, face and eight-arm
+ // anatomy as the playable relic, with cavern-scale scenic tentacles.
+ const x=enemy.x,y=enemy.y,r=enemy.r||154,t=now*.001,pulse=Math.sin(t*1.8);
+ c.save();c.translate(x,y);
+ const fog=c.createRadialGradient(-r*.14,r*.23,r*.16,0,0,r*4.3);
+ fog.addColorStop(0,'rgba(188,73,255,.23)');
+ fog.addColorStop(.32,'rgba(77,22,139,.19)');
+ fog.addColorStop(.72,'rgba(31,6,67,.11)');
+ fog.addColorStop(1,'rgba(16,4,44,0)');
+ c.fillStyle=fog;c.beginPath();c.arc(0,0,r*4.3,0,Math.PI*2);c.fill();
+ // The same material and ventosas are used in the submerged guardian limbs.
+ // These arms are scenic and never damage players.
+ for(let i=0;i<8;i++){
+  const a=(i+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),normalX=-sn,normalY=cs;
+  const roomRx=Math.max(900,r*7.1),roomRy=Math.max(410,r*3.1);
+  const reach=1/Math.sqrt((cs/roomRx)**2+(sn/roomRy)**2);
+  const wave=Math.sin(t*.35+i*1.8),curveScale=Math.min(180,reach*.22),points=[];
+  for(let k=0;k<=32;k++){
+   const p=k/32,along=r*.56+(reach-r*.56)*p;
+   const lateral=(Math.sin(p*Math.PI*(3.1+(i%3)*.7)+wave)*.66+
+     Math.sin(p*Math.PI*(5.3+(i%4)*.48)-wave)*.34)*Math.sin(p*Math.PI)*curveScale;
+   points.push({x:cs*along+normalX*lateral,y:sn*along+normalY*lateral});
+  }
+  drawNightmareArm(c,points,r*.76,32,.23);
+ }
+ drawNightmareKrakenHead(c,r,pulse);
+ c.restore();
+}
 // Small, playable relic form; unmistakable Nightmare ancestry without drawing
 // the boss's cavern-wide non-colliding background over each player or store tile.
 function drawNightmareRelic(c,x,y,r,t=0){
  c.save();c.translate(x,y);const q=Math.sin(t*.003),size=r;
- for(let arm=0;arm<6;arm++){
-  const sign=arm%2?-1:1,rank=Math.floor(arm/2),end=-r*(1.75+.23*rank),tipY=sign*r*(.52+rank*.39);
-  c.strokeStyle='rgba(114,43,177,.76)';c.lineWidth=Math.max(3,r*(.27-rank*.045));
-  c.lineCap='round';c.beginPath();c.moveTo(-r*.36,sign*r*.22);
-  c.bezierCurveTo(-r*.76,sign*r*.28,-r*1.2,tipY+q*r*.10,end,tipY);c.stroke();
-  c.strokeStyle='rgba(231,170,252,.65)';c.lineWidth=2;c.stroke();
+ for(let arm=0;arm<8;arm++){
+  const a=(arm+.5)*Math.PI/4,cs=Math.cos(a),sn=Math.sin(a),nx=-sn,ny=cs;
+  const points=[];
+  for(let k=0;k<=32;k++){
+   const p=k/32,along=r*.46+r*(1.65+.19*(arm%3))*p;
+   const lateral=(Math.sin(p*Math.PI*(2.7+(arm%4)*.47)+q+arm)*.66+
+      Math.sin(p*Math.PI*4.4-q)*.34)*Math.sin(p*Math.PI)*r*.40;
+   points.push({x:cs*along+nx*lateral,y:sn*along+ny*lateral});
+  }
+  drawNightmareArm(c,points,r*.24,32,.8);
  }
- const skin=c.createRadialGradient(-r*.32,-r*.42,r*.05,0,0,r*1.28);
- skin.addColorStop(0,'#b56dce');skin.addColorStop(.52,'#7a3aa4');skin.addColorStop(1,'#270c4d');
- c.fillStyle=skin;c.strokeStyle='#e7b9fb';c.lineWidth=Math.max(1.4,r*.068);
- c.beginPath();c.moveTo(-r*.86,r*.16);c.bezierCurveTo(-r*1.06,-r*.79,r*.9,-r*.96,r*.93,r*.14);
- c.quadraticCurveTo(r*.65,r*.99,0,r*1.05);c.quadraticCurveTo(-r*.77,r*.96,-r*.86,r*.16);
- c.fill();c.stroke();
- for(const side of [-1,1]){
-  c.fillStyle='#140522';c.beginPath();c.moveTo(side*r*.15,-r*.28);
-  c.lineTo(side*r*.78,-r*.40);c.lineTo(side*r*.54,-r*.04);c.closePath();c.fill();
-  c.fillStyle='#f1c5ff';c.beginPath();c.arc(side*r*.44,-r*.22,r*.11,0,Math.PI*2);c.fill();
- }
- c.fillStyle='#10021b';c.strokeStyle='#bd7fe5';c.lineWidth=2;
- c.beginPath();c.moveTo(-r*.62,r*.23);c.quadraticCurveTo(0,r*.6,r*.64,r*.23);
- c.quadraticCurveTo(0,r*1.03,-r*.62,r*.23);c.fill();c.stroke();
- for(let i=0;i<9;i++){
-  const fx=(-.50+i*.125)*r;c.fillStyle='#f9e6ff';c.beginPath();
-  c.moveTo(fx-r*.034,r*.43);c.lineTo(fx+r*.039,r*.43);
-  c.lineTo(fx,r*(.56+(i%3)*.05));c.closePath();c.fill();
- }
+ drawNightmareKrakenHead(c,r,q);
  c.restore();
 }
 return {FINAL_TIER,FINAL_KIND,FINAL_CHEST_COINS,TYPES,build,state,hit,extension,hazardAtCycle,tentaclePath,aimTentacle,targetNearest,suctionRadius,rockfallState,checkpoint,draw,bossMark,bossHit,drawBossMark,drawFinalBoss,drawNightmareRelic};

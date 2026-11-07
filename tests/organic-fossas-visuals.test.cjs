@@ -61,7 +61,7 @@ test('tentacle locations are deterministic per attack cycle and never hit outsid
   const attack=H.state(h,inPhase(h,.23)),next=H.state(h,inPhase(h,.23)+h.period);
   assert.equal(attack.phase,'active');assert.equal(next.cycle,attack.cycle+1);
   const current=H.hazardAtCycle(h,attack.cycle);
-  const p=current.sourceX+Math.cos(current.angle)*current.length*.2,q=current.sourceY+Math.sin(current.angle)*current.length*.2;
+  const path=H.tentaclePath(h,attack),p=path[6].x,q=path[6].y;
   assert.equal(H.hit(h,p,q,0,attack),true,'tentacle causes damage only at the impact');
   assert.equal(H.hit(h,p+900,q+900,0,attack),false);
   assert.equal(H.hit(h,p,q,0,H.state(h,inPhase(h,.75))),true,'tentacle continues dealing contact damage during withdrawal');
@@ -138,7 +138,7 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
  assert.ok(mounted.length>12,'wall threats found in several rooms');
  assert.ok(vortices.length>0&&vortices.every(h=>h.sourceX===undefined),'vortex remains a floor hazard');
  for(const h of mounted){
-  assert.ok(['chamber','corridor','ceiling','nightmare'].includes(h.wallKind),h.id+' wall classification');
+  assert.ok(['chamber','corridor','ceiling','passage-ceiling','passage-overhang','nightmare'].includes(h.wallKind),h.id+' wall classification');
   assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),h.id+' embedded wall position');
   const outX=h.sourceX-Math.cos(h.angle)*33,outY=h.sourceY-Math.sin(h.angle)*33;
   const inX=h.sourceX+Math.cos(h.angle)*35,inY=h.sourceY+Math.sin(h.angle)*35;
@@ -147,7 +147,8 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
   const phase=H.state(h,inPhase(h,h.type==='tentacle'?.23:h.type==='spikes'?.16:.5));
   if(h.type!=='fumarole'&&h.type!=='rockfall'&&h.type!=='lure'&&h.type!=='pressure'){
    const target=h.type==='tentacle'?H.hazardAtCycle(h,phase.cycle):h;
-   const inside=H.hit(h,target.x,target.y,0,phase);
+   const point=h.type==='tentacle'?H.tentaclePath(h,phase)[6]:target;
+   const inside=H.hit(h,point.x,point.y,0,phase);
    assert.ok(inside,'hazard center must be within its own active geometry: '+h.id);
   }
  }
@@ -198,10 +199,10 @@ test('the purple tentacle has a hidden wall opening, rapid impact, and prolonged
  const strike=H.state(h,inPhase(h,.22));
  const recovery=H.state(h,inPhase(h,.80));
  assert.equal(H.extension(h,warning),0);
- assert.ok(H.extension(h,strike)>.99);
+ assert.ok(H.extension(h,strike)>.5&&H.extension(h,strike)<1);
  assert.ok(H.extension(h,recovery)<.5);
  const cur=H.hazardAtCycle(h,strike.cycle);
- const x=cur.sourceX+Math.cos(cur.angle)*cur.length*.45,y=cur.sourceY+Math.sin(cur.angle)*cur.length*.45;
+ const path=H.tentaclePath(h,strike),x=path[14].x,y=path[14].y;
  assert.equal(H.hit(h,x,y,0,warning),false);
  assert.equal(H.hit(h,x,y,0,strike),true);
  assert.equal(H.hit(h,x,y,0,recovery),false);

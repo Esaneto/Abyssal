@@ -204,27 +204,54 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    path(()=>{c.moveTo(.24,-.43);c.lineTo(.81,-.25);c.quadraticCurveTo(1.06,0,.79,.26);c.lineTo(.24,.42);c.closePath();},'#577e88','#cfe0d5',.04);
    oval(.83,-.2,.094,.083,0,'#06121b');oval(.855,-.22,.031,.029,0,'#d3faff');
   }else if(id==='gharial'){
-
-   // GHARIAL: very long needle-thin crocodilian rostrum with terminal nasal
-   // knob, interlocking needle teeth, dorsal scutes, paddle limbs and long tail.
-   const twitch=Math.sin(phase*.48)*.15;
-   path(()=>{c.moveTo(-1.7,-.14);c.bezierCurveTo(-2.3,-.26,-2.72,-.37+twitch,-3.25,-.12+twitch);c.lineTo(-3.67,.07+twitch);c.lineTo(-3.19,.19+twitch);c.bezierCurveTo(-2.5,.51,-2.18,.34,-1.66,.18);c.closePath();},'#3d6067','#709a9b',.04);
+   // Blackwater gharial: broad armored thorax, separate webbed limbs, a
+   // serpentine tail, and a long narrow toothed snout ending in a nasal bulb.
+   const whip=Math.sin(phase*.72)*.24,limb=Math.sin(phase*1.25)*.13;
+   path(()=>{c.moveTo(-1.18,-.25);
+    c.bezierCurveTo(-1.94,-.42,-2.42,-.30+whip*.35,-3.17,-.19+whip);
+    c.quadraticCurveTo(-3.78,-.18+whip,-4.02,-.08+whip);
+    c.quadraticCurveTo(-3.64,.24+whip,-3.07,.22+whip);
+    c.bezierCurveTo(-2.35,.40+whip*.45,-1.70,.39,-1.15,.27);
+    c.closePath();},'#234a46','#83bca7',.055);
    for(const side of [-1,1]){
-    fin([[-.43,side*.28],[-.95,side*.76],[-1.27,side*.63],[-.88,side*.23]]);
-    fin([[.57,side*.21],[.21,side*.71],[-.07,side*.63],[.11,side*.17]]);
-    for(let i=0;i<3;i++)stroke(()=>{const x=-.98+i*.07;c.moveTo(x,side*.62);c.lineTo(x+.18,side*(.7+i*.07));},'#b6d2b8',.035);
+    for(const [ax,ay,reach,rank] of [[-.97,.36,1.00,0],[.32,.29,.92,1]]){
+     const tip=ax-(rank?.35:.55),flap=side*(reach+limb*(rank?-.55:1));
+     path(()=>{c.moveTo(ax,side*ay);c.quadraticCurveTo(ax-.30,side*(ay+.30),tip-.20,flap);
+       c.lineTo(tip+.10,flap+side*.17);c.quadraticCurveTo(tip+.43,flap-side*.15,ax+.22,side*(ay*.58));
+       c.closePath();},'#355f51','#b3d3b0',.048);
+     for(let j=0;j<4;j++)stroke(()=>{const tx=tip-.19+j*.095;
+       c.moveTo(tip+.02,flap-side*.07);c.lineTo(tx,flap+side*(.13+(j%2)*.035));},'#bdd4b6',.025);
+    }
    }
-   path(()=>{c.moveTo(.79,-.28);c.bezierCurveTo(-.22,-.52,-1.30,-.51,-1.77,-.22);c.bezierCurveTo(-2.04,.13,-1.38,.47,-.47,.45);c.quadraticCurveTo(.59,.37,.81,.23);c.closePath();},g,'#a0b5a7',.042);
-   for(let i=0;i<10;i++){const x=-1.43+i*.22;fin([[x,-.36],[x+.1,-.46-(i%3)*.055],[x+.18,-.34]]);}
-   path(()=>{c.moveTo(.67,-.12);c.lineTo(2.73,-.074);c.quadraticCurveTo(2.99,-.02,2.77,.055);c.lineTo(.68,.14);c.closePath();},'#5a7e85','#c7d6cb',.033);
-   path(()=>{c.moveTo(.70,.13);c.lineTo(2.69,.061);c.lineTo(2.53,.18);c.lineTo(.77,.25);c.closePath();},'#294753','#8aafb0',.025);
-   oval(2.72,-.045,.14,.085,0,'#243c43');
-   for(let i=0;i<16;i++){
-    const tx=.91+i*.108;
-    stroke(()=>{c.moveTo(tx,-.055);c.lineTo(tx+.025,.025)},'#f4e9d6',.028);
-    stroke(()=>{c.moveTo(tx,.11);c.lineTo(tx+.027,.039)},'#e3ded1',.022);
+   path(()=>{c.moveTo(-1.62,-.27);c.bezierCurveTo(-.86,-.64,.27,-.62,.87,-.34);
+    c.quadraticCurveTo(1.13,0,.85,.32);
+    c.bezierCurveTo(.13,.64,-.95,.57,-1.62,.29);
+    c.quadraticCurveTo(-1.95,0,-1.62,-.27);c.closePath();},g,'#b5cab1',.057);
+   // Paired dorsal armour plates, arranged along the body, not stray spikes.
+   for(let row=0;row<3;row++)for(let i=0;i<11;i++){
+    const x=-1.52+i*.20,y=(row-1)*.19;
+    oval(x,y,.106,.074,0,(i+row)%3===0?'#638e7a':'#426e63');
+    stroke(()=>{c.moveTo(x-.065,y-.018);c.lineTo(x+.046,y-.021);},'#bfcead',.014);
    }
-   for(const side of [-1,1]){oval(.64,side*.23,.112,.089,0,'#10232a');oval(.69,side*.242,.041,.04,0,'#bcffd5');}
+   // Eyes sit above the cheeks before the long rostrum starts.
+   for(const side of [-1,1]){
+    oval(.78,side*.24,.175,.145,0,'#24433b');
+    oval(.83,side*.252,.078,.078,0,'#e5cb77');
+    oval(.85,side*.25,.028,.057,0,'#081414');
+   }
+   path(()=>{c.moveTo(.72,-.15);c.quadraticCurveTo(1.19,-.19,1.62,-.115);
+    c.lineTo(2.95,-.085);c.quadraticCurveTo(3.13,-.05,3.02,.035);
+    c.lineTo(.86,.08);c.closePath();},'#557f65','#c4dcb8',.046);
+   path(()=>{c.moveTo(.89,.08);c.lineTo(2.98,.034);c.quadraticCurveTo(2.80,.19,2.52,.185);
+    c.lineTo(1.22,.22);c.closePath();},'#2e5748','#91bc9d',.035);
+   oval(3.015,-.005,.16,.115,0,'#305d50');
+   for(let j=0;j<2;j++)oval(3.06,(j?1:-1)*.048,.037,.027,0,'#081d1d');
+   for(let i=0;i<20;i++){
+    const x=1.03+i*.097,y=-.058+(i%2)*.005;
+    fin([[x-.035,y],[x+.024,y],[x+.005,y+.080]]);
+    fin([[x-.04,.124],[x+.019,.123],[x-.002,.047]]);
+   }
+   stroke(()=>{c.moveTo(.99,.086);c.quadraticCurveTo(2.1,.092,2.95,.04);},'#cfddbe',.023);
   }else if(s.family==='shark'||s.family==='fish'){
   // One continuous tapered silhouette. The earlier oval + disconnected
   // triangles made some sharks look like round masses with unrelated fins.
@@ -428,24 +455,56 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   for(let i=0;i<5;i++)stroke(()=>{const x=-.45+i*.22;c.moveTo(x,-.37);c.quadraticCurveTo(x-.13,0,x,.37);},'#9fb8b7',.028);
   eye(.71,-.25,.058);eye(.71,.25,.058);
  }else if(id==='leatherback'||id==='hawksbill'){
-  const flap=Math.sin(phase*1.27)*.21;
-  for(const side of [-1,1]){
-   fin([[.43,side*.26],[.03,side*(1.25+flap)],[-.56,side*.62]]);
-   fin([[-.48,side*.30],[-1.15,side*(.78-flap*.42)],[-.86,side*.21]]);
-  }
-  // Head meets the domed shell without a second overlapping body blob.
-  path(()=>{c.moveTo(-1.06,0);c.quadraticCurveTo(-.86,-.70,.08,-.76);
-   c.quadraticCurveTo(.91,-.52,1.25,-.20);
-   c.quadraticCurveTo(1.48,0,1.25,.20);
-   c.quadraticCurveTo(.91,.52,.08,.76);
-   c.quadraticCurveTo(-.86,.70,-1.06,0);c.closePath();},g,'#aac8ba',.049);
-  if(id==='hawksbill')fin([[1.13,-.12],[1.47,0],[1.13,.12]]);
-  for(let i=-3;i<=3;i++){
-   const x=-.75+i*.23;
-   stroke(()=>{c.moveTo(x,-.34);c.quadraticCurveTo(x+.07,0,x,.34)},'#8daea4',.035);
-  }
-  eye(1.11,-.16,.045);eye(1.11,.16,.045);
- }else if(s.family==='mollusc'){
+   const leather=id==='leatherback',flap=Math.sin(phase*1.38)*.22;
+   // Four unmistakable sea-turtle flippers, two long front paddles and a
+   // smaller aft pair, emerge from underneath one armored oval carapace.
+   path(()=>{c.moveTo(-1.04,-.10);c.lineTo(-1.45,-.16);c.lineTo(-1.49,.06);
+    c.lineTo(-1.06,.13);c.closePath();},'#50756a','#b0c9a8',.035);
+   for(const side of [-1,1]){
+     path(()=>{c.moveTo(-.65,side*.40);
+       c.bezierCurveTo(-.97,side*.67,-1.10,side*(1.13-flap*.28),-1.44,side*(1.42-flap*.55));
+       c.quadraticCurveTo(-.89,side*(1.38-flap*.35),-.39,side*.61);
+       c.closePath();},'#42685b','#bed4b8',.05);
+     path(()=>{c.moveTo(.39,side*.42);
+       c.bezierCurveTo(.66,side*.77,.74,side*(1.37+flap),1.12,side*(1.91+flap));
+       c.quadraticCurveTo(1.46,side*(1.18+flap*.6),.95,side*.33);
+       c.closePath();},leather?'#4c746c':'#648b70','#d7e4be',.056);
+     for(let j=0;j<3;j++)stroke(()=>{c.moveTo(.57+j*.12,side*.49);
+       c.quadraticCurveTo(.74+j*.11,side*.89,.95+j*.08,side*(1.55+flap));},'#bbd7b4',.021);
+   }
+   // Round dome with a thick marginal rim. Hawksbill has individual scutes;
+   // leatherback is distinguished by seven longitudinal leather ridges.
+   path(()=>{c.moveTo(-1.28,0);c.bezierCurveTo(-1.22,-.94,.34,-.99,.77,-.51);
+    c.quadraticCurveTo(.91,0,.77,.51);
+    c.bezierCurveTo(.34,.99,-1.22,.94,-1.28,0);c.closePath();},
+    leather?'#243e48':'#3c584e',leather?'#b2bed0':'#d0c69f',.095);
+   if(leather){
+    for(let i=-3;i<=3;i++){
+     const y=i*.165;
+     stroke(()=>{c.moveTo(-1.11,y*.57);
+      c.bezierCurveTo(-.55,y*1.75,.22,y*1.55,.74,y*.62);},i%2?'#769a9f':'#a7c2be',.063);
+    }
+    for(let i=0;i<20;i++)oval(-.98+(i%7)*.235,((i*7)%11-5)*.12,.027,.027,0,'#c0d4c6');
+   }else{
+    for(let ring=0;ring<2;ring++)for(let k=0;k<7;k++){
+     const x=-1.02+k*.245,y=(ring?1:-1)*(.25+.065*Math.sin(k*.83));
+     fin([[x-.14,y],[x-.035,y-.16*(ring?1:-1)],[x+.15,y],[x+.035,y+.145*(ring?1:-1)]]);
+     stroke(()=>{c.moveTo(x-.14,y);c.lineTo(x+.15,y)},'#d2bf8b',.018);
+    }
+    for(let k=0;k<8;k++)oval(-1.13+k*.22,.0,.042,.035,0,'#e7d3a2');
+   }
+   // Clearly separated neck, broad eye-bearing head and hooked beak.
+   path(()=>{c.moveTo(.62,-.24);c.bezierCurveTo(1.05,-.35,1.55,-.35,1.76,-.18);
+    c.quadraticCurveTo(1.93,0,1.75,.18);
+    c.bezierCurveTo(1.48,.39,.96,.34,.62,.24);
+    c.closePath();},'#799984','#c3d4ae',.048);
+   if(!leather)fin([[1.64,-.12],[1.98,.02],[1.65,.16]]);
+   else stroke(()=>{c.moveTo(1.75,-.04);c.quadraticCurveTo(1.86,.06,1.69,.15);},'#203e40',.038);
+   for(const side of [-1,1]){
+     oval(1.48,side*.19,.115,.086,0,'#142f30');
+     oval(1.51,side*.21,.041,.036,0,'#e7e8ad');
+   }
+  }else if(s.family==='mollusc'){
   if(id==='bluedragon'){
    // Blue dragon nudibranch: bilateral cerata that fold with each swim stroke.
    for(const side of [-1,1])for(let i=0;i<8;i++){

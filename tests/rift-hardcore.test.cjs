@@ -19,7 +19,8 @@ test('every trap has a telegraph, active hit interval and later becomes harmless
  const layout=Map.createLayout(99,6);
  for(const h of H.build(layout,6)){
   const onset=h.period-h.active-h.warning-h.offset;
-  assert.equal(H.state(h,onset+h.warning*.5).phase,'warning',h.id);
+  if(h.warning>0)assert.equal(H.state(h,onset+h.warning*.5).phase,'warning',h.id);
+   else assert.equal(H.state(h,onset+.01).phase,'active',h.id+' has no poison telegraph');
   assert.equal(H.state(h,onset+h.warning+h.active*.5).phase,'active',h.id);
   assert.equal(H.state(h,onset+h.warning+h.active+.01).phase,'idle',h.id);
   assert.equal(H.hit(h,h.x,h.y),true,'center inside trap '+h.id);
