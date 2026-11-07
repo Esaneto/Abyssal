@@ -55,8 +55,9 @@ test('predator skins trigger client events and have server-side validation', () 
 test('browser and server use the same skin ability module', () => {
   assert.equal(read('skin-abilities.js'),read('public/skin-abilities.js'));
   assert.match(read('server.js'),/require\('\.\/skin-abilities'\)/);
-  assert.match(read('world-simulation.js'),/SkinAbilities\.magnetRangeMultiplier/);
-  assert.match(read('world-simulation.js'),/SkinAbilities\.orbExperienceMultiplier/);
+  assert.match(read('world-simulation.js'),/const SkinAbilities = require\('\.\/skin-abilities'\)/);
+  assert.match(read('server.js'),/SkinAbilities\.orbExperienceMultiplier\(member\.skinId\)/);
+  assert.doesNotMatch(read('world-simulation.js'),/magnetRangeMultiplier/);
 });
 
 
