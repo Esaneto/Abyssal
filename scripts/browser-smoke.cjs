@@ -43,6 +43,9 @@ const localGameSmoke = [
 " return {tier,boss:boss.kind,unlocked:true,exit:interaction.type,nextTier:activeMapTier,bossesKilled:bossKillsThisRun,depth:ABYSSAL_MAP.depthAt(activeMapLayout,player.x,player.y),layoutHeight:activeMapLayout.height,playerY:player.y};",
 "};"
 ].join('\n');
+// Exhaustive visual QA, served only by the temporary browser-smoke server.
+const speciesGallery='<!doctype html><html><head><meta charset="utf-8"><style>body{background:#03121a;color:#d7edf0;font:12px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;padding:5px}section{background:radial-gradient(ellipse at center,#1b3039,#07121d);border:1px solid #31434d;border-radius:8px;text-align:center;overflow:hidden}canvas{width:100%;height:148px;display:block}label{height:24px;display:block;padding:2px;font-weight:600}</style></head><body><main id="gallery"></main><script src="/abyssal-curated-skins.js"></script><script src="/marine-art.js"></script><script>try{const root=document.getElementById("gallery"),list=window.AbyssalCuratedSkins.items;let painted=0;for(const skin of list){const section=document.createElement("section"),canvas=document.createElement("canvas"),label=document.createElement("label");canvas.width=209;canvas.height=148;label.textContent=skin.name;section.append(canvas,label);root.appendChild(section);const ctx=canvas.getContext("2d",{willReadFrequently:true});window.AbyssalMarineArt.draw(ctx,122,74,23,0,skin,1350,false);const data=ctx.getImageData(0,0,209,148).data;let visible=0;for(let i=3;i<data.length;i+=4)if(data[i]>45)visible++;if(visible<150)throw Error("Blank or tiny species "+skin.id+" / "+visible);painted++;}if(painted!==42)throw Error("Only "+painted+" species");document.body.dataset.artStatus="painted";document.body.dataset.artCount=painted;}catch(error){document.body.dataset.artStatus=String(error);}</script></body></html>';
+const hazardsGallery='<!doctype html><html><head><meta charset="utf-8"><style>body{background:#03121a;color:#d7edf0;font:12px system-ui;margin:0}main{display:grid;grid-template-columns:repeat(9,1fr);gap:4px;padding:4px}section{background:radial-gradient(ellipse at center,#1b3039,#07121d);border:1px solid #31434d;border-radius:8px;text-align:center}canvas{width:100%;height:178px;display:block}label{display:block;height:22px}</style></head><body><main id="gallery"></main><script src="/abyssal-map.js"></script><script src="/abyssal-rift-hardcore.js"></script><script>try{const layout=window.AbyssalMap.createLayout(72433,7),H=window.AbyssalRiftHardcore,all=H.build(layout,7);let total=0;for(const phase of ["idle","warning","active"])for(const type of Object.keys(H.TYPES)){const trap=all.find(h=>h.type===type);if(!trap)throw Error("Missing "+type);const section=document.createElement("section"),canvas=document.createElement("canvas"),label=document.createElement("label");canvas.width=210;canvas.height=178;label.textContent=type+" "+phase;section.append(canvas,label);document.getElementById("gallery").appendChild(section);const ctx=canvas.getContext("2d",{willReadFrequently:true});const x=Number.isFinite(trap.sourceX)?trap.sourceX:trap.x,y=Number.isFinite(trap.sourceY)?trap.sourceY:trap.y;ctx.translate(105,90);ctx.scale(.45,.45);ctx.translate(-x,-y);const onset=trap.period-trap.active-trap.warning-trap.offset;const seconds=phase==="idle"?onset-1:phase==="warning"?(trap.warning?onset+trap.warning*.83:onset+.01):onset+trap.warning+trap.active*.55;H.draw(ctx,[trap],seconds);total++;}document.body.dataset.artStatus="painted";document.body.dataset.artCount=total;}catch(error){document.body.dataset.artStatus=String(error);}</script></body></html>';
 const injected=`<script>
 (()=>{
  const errors=[],original=console.error;
@@ -88,6 +91,8 @@ const injected=`<script>
 function handler(req,res){
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end();}
  if(pathname==='/__abyss_art__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(artGallery);return;}
+ if(pathname==='/__abyss_species__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(speciesGallery);return;}
+ if(pathname==='/__abyss_hazards__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(hazardsGallery);return;}
  const smoke=pathname==='/__abyss_smoke__';
  const filepath=smoke?path.join(root,'index.html'):path.resolve(root,'.'+pathname);
  if(!filepath.startsWith(root+path.sep))return res.writeHead(403).end();
@@ -288,6 +293,23 @@ async function main(){
     'http://127.0.0.1:'+server.address().port+'/__abyss_art__']);
   assert.ok(fs.statSync(artPath).size>20000,'marine art capture missing');
   console.log('[browser-smoke] creature identity artwork '+fs.statSync(artPath).size+' bytes');
+  // Force actual Chromium to paint every curated species and all trap families.
+  for(const [label,route,count,width,height] of [
+   ['all-species','/__abyss_species__',42,1536,1140],
+   ['all-traps','/__abyss_hazards__',27,1920,735]
+  ]){
+   const pageUrl='http://127.0.0.1:'+server.address().port+route;
+   const args=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
+    '--no-first-run','--window-size='+width+','+height,'--virtual-time-budget=4000'];
+   const dom=await run(browser,[...args,'--dump-dom',pageUrl]);
+   const status=dom.match(/data-art-status="([^"]*)"/)?.[1],actual=Number(dom.match(/data-art-count="([^"]*)"/)?.[1]);
+   assert.equal(status,'painted',label+' failed art render: '+status);
+   assert.equal(actual,count,label+' incomplete coverage');
+   const screenshot=path.join(output,label+'.png');
+   await run(browser,[...args,'--screenshot='+screenshot,pageUrl]);
+   assert.ok(fs.statSync(screenshot).size>20000,label+' visual gallery missing');
+   console.log('[browser-smoke] '+label+' rendered '+actual+' scenes, '+fs.statSync(screenshot).size+' bytes');
+  }
   await realGameplaySmoke(browser,url);
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
