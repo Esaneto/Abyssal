@@ -34,25 +34,37 @@ const BIO_ACCENTS=Object.freeze({
 });
 function draw(c,x,y,r,angle,s,t,hit,motionOverride=null,followAim=false){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);
+ // Draw at supersampled resolution before rotating. Previously a small
+ // one-pixel-per-world-unit sprite was enlarged and turned on the main canvas,
+ // softening eyes, teeth and thin silhouette edges.
  const radius=Math.round(r*2)/2;
- const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0);
- // Refresh marine anatomy at ~15 FPS, with smooth motion from the game loop.
- const frame=Math.floor((Number(t)||0)/68);
+ const margin=Math.ceil(Math.max(18,r*.9));
+ const cx=Math.ceil(r*5+margin),cy=Math.ceil(r*3+margin);
+ const requestedScale=followAim?2.25:1.5;
+ // Cap each cached surface near 650K pixels to avoid GPU stalls in the shop.
+ const detailScale=Math.max(1,Math.min(requestedScale,Math.sqrt(650000/(4*cx*cy))));
+ const qualityKey=Math.round(detailScale*100);
+ const key=String(s.id||s.family||'marine')+'|'+String(s.color)+'|'+radius+'|'+(s.morph||1)+'|'+(hit?1:0)+'|'+qualityKey;
+ // Active skins articulate at ~24 FPS; rotating the sprite remains smooth at
+ // display refresh rate without repainting complex anatomy every frame.
+ const frame=Math.floor((Number(t)||0)/(followAim?42:68));
  let entry=marineSpriteCache.get(key);
  if(!entry){
-  const margin=Math.ceil(Math.max(18,r*.9));
-  // Long ribbon bodies and tentacles reach roughly 4.2 radii behind the head.
-  // Extra canvas padding prevents chopping the tail and its neon at the border.
-  const cx=Math.ceil(r*5+margin),cy=Math.ceil(r*3+margin);
   const canvas=document.createElement('canvas');
-  canvas.width=cx*2;canvas.height=cy*2;
-  entry={canvas,context:canvas.getContext('2d'),cx,cy,frame:-1};
+  canvas.width=Math.ceil(cx*2*detailScale);canvas.height=Math.ceil(cy*2*detailScale);
+  entry={canvas,context:canvas.getContext('2d'),cx,cy,frame:-1,detailScale};
   if(!entry.context)return drawDetails(c,x,y,r,angle,s,t,hit);
+  entry.context.setTransform(detailScale,0,0,detailScale,0,0);
+  entry.context.imageSmoothingEnabled=true;
+  entry.context.imageSmoothingQuality='high';
   marineSpriteCache.set(key,entry);
-  if(marineSpriteCache.size>32)marineSpriteCache.delete(marineSpriteCache.keys().next().value);
+  if(marineSpriteCache.size>24)marineSpriteCache.delete(marineSpriteCache.keys().next().value);
  }
  if(entry.frame!==frame){
+  entry.context.save();
+  entry.context.setTransform(1,0,0,1,0,0);
   entry.context.clearRect(0,0,entry.canvas.width,entry.canvas.height);
+  entry.context.restore();
   drawDetails(entry.context,entry.cx,entry.cy,r,0,s,t,hit);
   entry.frame=frame;
  }
@@ -71,7 +83,8 @@ function draw(c,x,y,r,angle,s,t,hit,motionOverride=null,followAim=false){
  c.shadowColor=BIO_ACCENTS[s.id]||neonForSpecies(s.color);
  // Avoid neon on every anatomical seam: preserve actual body volume.
  c.shadowBlur=Math.max(4,Math.min(13,r*.32));
- c.drawImage(entry.canvas,-entry.cx,-entry.cy);
+ // Preserve original world-space dimensions; only the source is higher DPI.
+ c.drawImage(entry.canvas,-entry.cx,-entry.cy,entry.cx*2,entry.cy*2);
  c.restore();
 }
 function drawDetails(c,x,y,r,angle,s,t,hit){
