@@ -5,20 +5,21 @@ const path = require('path');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
 const PAID_SKINS = {
- saltcroc:{name:'Crocodilo-Marinho',nameEn:'Saltwater Crocodile',brl:999},
- blackcaiman:{name:'Jacaré-Açu',nameEn:'Black Caiman',brl:999},
- violet:{name:'Espectro Violeta',nameEn:'Violet Wraith',brl:390,testOnly:false},
- leviathan:{name:'Eco do Peixe-Remo Leviatã',nameEn:'Oarfish Leviathan Echo',brl:1690},
- kraken:{name:'Eco do Kraken',nameEn:'Kraken Echo',brl:1890},
- aberration:{name:'Eco do Polvo-de-Anéis-Azuis',nameEn:'Blue-Ringed Octopus Echo',brl:1490},
- angler:{name:'Núcleo do Peixe-Pescador',nameEn:'Anglerfish Core',brl:1290},
- maw:{name:'Fragmento da Enguia-Pelícano',nameEn:'Pelican Eel Fragment',brl:1490},
- devourer:{name:'Núcleo Devorador',nameEn:'Devourer Core',brl:1990},
- reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:590},
- hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:590},
- abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:690},
- armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:690}
-};
+ violet:{name:'Medusa-Coroa Violeta',nameEn:'Violet Crown Jelly',brl:199},
+ reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:199},
+ hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:199},
+ saltcroc:{name:'Crocodilo-Marinho',nameEn:'Saltwater Crocodile',brl:499},
+ blackcaiman:{name:'Jacaré-Açu',nameEn:'Black Caiman',brl:499},
+ abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:499},
+ armoredgator:{name:'Caranguejo-Ferradura Couraçado',nameEn:'Armored Horseshoe Crab',brl:499},
+ electriceellegacy:{name:'Enguia-Elétrica Abissal',nameEn:'Abyssal Electric Eel',brl:499},
+ leviathan:{name:'Eco do Peixe-Remo Leviatã',nameEn:'Oarfish Leviathan Echo',brl:999},
+ kraken:{name:'Eco da Lula-Kraken',nameEn:'Kraken Squid Echo',brl:999},
+ aberration:{name:'Eco do Polvo-de-Anéis-Azuis',nameEn:'Blue-Ringed Octopus Echo',brl:999},
+ angler:{name:'Núcleo do Peixe-Pescador',nameEn:'Anglerfish Core',brl:999},
+ maw:{name:'Fragmento da Enguia-Pelícano',nameEn:'Pelican Eel Fragment',brl:999},
+ devourer:{name:'Núcleo da Lula-Colossal',nameEn:'Colossal Squid Core',brl:999}
+}
 function calculateOrder(productId, ownedSkins, currency='brl') {
  if (String(currency).toLowerCase() !== 'brl') throw new Error('Unsupported currency');
  const code='brl';
@@ -26,7 +27,7 @@ function calculateOrder(productId, ownedSkins, currency='brl') {
  const owned=new Set(Array.isArray(ownedSkins)?ownedSkins.map(String):[]);
  if(productId==='boss_bundle'){
   const skinIds=BOSS_SKINS.filter(id=>!owned.has(id));
-  const full=6990;
+  const full=5994;
   const regular=skinIds.reduce((sum,id)=>sum+(Number(PAID_SKINS[id]?.brl)||0),0);
   const brlAmount=skinIds.length?(skinIds.length===BOSS_SKINS.length?Math.min(full,regular):regular):0;
   return {productId:productId,skinIds:skinIds,amount:toMinorUnits(brlAmount),brlAmount,currency:code};
@@ -116,7 +117,7 @@ function registerPaymentRoutes(options) {
   }
  });
 
- app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:6990},liveEnabled:liveSalesReady()});});
+ app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:5994},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=process.env.STRIPE_SECRET_KEY;
