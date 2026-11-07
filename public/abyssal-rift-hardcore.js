@@ -643,11 +643,25 @@ function deepCurrentPit(c,h,s,t){
   const scale=Math.min(1.08,(s.progress+.16)*2.4);
   c.globalAlpha=.23;c.fillStyle='#0c5e80';
   c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
-  c.globalAlpha=.62;c.lineCap='round';
-  for(let i=0;i<5;i++){
-   const q=.2+i*.16;
-   c.beginPath();c.ellipse(0,0,rx*q*scale,ry*q*scale,t*.0015+i*.4,-2.7,2.3);
-   c.strokeStyle=i%2?'#7cbcca':'#c3e8ef';c.lineWidth=3-i*.35;c.stroke();
+  c.globalAlpha=.66;c.lineCap='round';
+  // A three-arm pressure spiral funnels toward the central void. The old
+  // concentric rings looked like an ordinary UI target rather than suction.
+  for(let arm=0;arm<3;arm++){
+   c.beginPath();
+   for(let j=0;j<=52;j++){
+    const q=j/52,theta=t*.0011+arm*Math.PI*2/3+q*Math.PI*2.4;
+    const radius=(.96-.78*q)*scale;
+    const xx=Math.cos(theta)*rx*radius,yy=Math.sin(theta)*ry*radius;
+    if(!j)c.moveTo(xx,yy);else c.lineTo(xx,yy);
+   }
+   c.strokeStyle=arm===0?'#c2e9f2':arm===1?'#6cb1c7':'#8dbbd7';
+   c.lineWidth=4-arm*.75;c.stroke();
+  }
+  for(let j=0;j<16;j++){
+   const a=t*.0014+j*.77,dist=(.92-(j%8)*.102)*scale;
+   c.strokeStyle='rgba(159,222,233,.35)';c.lineWidth=1.5;
+   c.beginPath();c.moveTo(Math.cos(a)*rx*dist,Math.sin(a)*ry*dist);
+   c.lineTo(Math.cos(a+.19)*rx*(dist-.11),Math.sin(a+.19)*ry*(dist-.11));c.stroke();
   }
   for(let i=0;i<18;i++){
    const angle=i*2.399+t*.0027,q=.18+(i%8)*.098;
@@ -759,6 +773,11 @@ function rockfallTrap(c,h,s,t){
  c.beginPath();c.moveTo(-48,-16);c.lineTo(-29,-25);c.lineTo(-12,-17);
  c.lineTo(13,-22);c.lineTo(35,-14);c.quadraticCurveTo(11,-1,-7,5);
  c.quadraticCurveTo(-31,-4,-48,-16);c.closePath();c.fill();c.stroke();
+ // Fractures belong to the overhang itself and signal unstable slate.
+ c.strokeStyle=s.phase==='warning'?'rgba(160,199,201,.62)':'rgba(60,98,106,.40)';
+ c.lineWidth=2.0;c.beginPath();c.moveTo(-30,-20);c.lineTo(-18,-7);
+ c.lineTo(-5,-14);c.lineTo(8,-5);c.lineTo(18,-17);
+ c.moveTo(-7,-13);c.lineTo(-11,-24);c.stroke();
  c.restore();
  if(s.phase==='idle'){c.restore();return;}
  if(s.phase==='warning'){
@@ -781,6 +800,13 @@ function rockfallTrap(c,h,s,t){
   c.strokeStyle='#63818d';c.lineWidth=2;
   c.beginPath();c.moveTo(-32,-23);c.lineTo(3,-5);c.lineTo(22,-26);c.moveTo(3,-5);
   c.lineTo(-12,23);c.lineTo(18,31);c.stroke();
+  // Slate facets and embedded minerals make this recognisably abyssal rock.
+  c.fillStyle='rgba(129,167,178,.18)';c.beginPath();
+  c.moveTo(-28,-18);c.lineTo(-3,-31);c.lineTo(5,-8);c.lineTo(-16,8);c.closePath();c.fill();
+  c.strokeStyle='rgba(161,225,208,.50)';c.lineWidth=1.7;
+  c.beginPath();c.moveTo(-4,-28);c.lineTo(6,-11);c.lineTo(15,-4);
+  c.lineTo(10,12);c.stroke();
+  for(let j=0;j<7;j++)paintedCircle(c,-22+j*7,10+Math.sin(j*2.1)*15,1.3+(j%3)*.6,'rgba(133,189,185,.54)');
   c.restore();
  }else{
   // The impact breaks the boulder into shards that fade out instead of
@@ -846,6 +872,14 @@ function supplementalTrap(c,h,s,t){
    c.shadowBlur=5;c.shadowColor='#8ed4cb';
    c.lineWidth=2;c.strokeStyle='rgba(200,234,227,.51)';
    c.beginPath();c.moveTo(5,0);c.lineTo(long,0);c.stroke();c.shadowBlur=0;
+   // Coral ribs branch from one common mineral plate, never float beside it.
+   c.strokeStyle='rgba(122,185,174,.51)';c.lineWidth=2;
+   for(let i=1;i<Math.min(10,Math.floor(11*reach));i++){
+    const xx=long*i/12;
+    for(const side of [-1,1]){
+     c.beginPath();c.moveTo(xx,side*9);c.quadraticCurveTo(xx+9,side*18,xx-2,side*(28+(i%3)*3));c.stroke();
+    }
+   }
   }
  }else if(h.type==='pressure'){
   // Pressure bulges out of a veined vent, not a floor-sized blue indicator.
