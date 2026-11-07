@@ -374,9 +374,11 @@ function creatureVisualMotion(skin,kind,state,x,y,angle,t,playerCreature,preview
 }
 function applyCreatureVisualTransform(c,motion,r){
  if(!motion)return;
- c.rotate((Number(motion.pitch)||0)+(Number(motion.roll)||0));
+ // Whole-body heading rotation is intentionally removed. Anatomy stays
+ // readable side-on while appendages animate with their individual rigs.
+ c.rotate(Number(motion.roll)||0);
  c.scale((Number(motion.facingScale)||1)*(Number(motion.stretchX)||1),Number(motion.stretchY)||1);
- c.translate(-(Number(motion.recoil)||0)*r,(Number(motion.bob)||0)*r);
+ c.translate(-(Number(motion.recoil)||0)*r,(Number(motion.bob)||0)*r*.28);
 }
 let enemyCollisionGrid=new Map(),enemyCollisionCellSize=270,enemyCollisionBuckets=[],enemyCollisionBucketCount=0;
 const projectileCandidates=[];
