@@ -94,10 +94,14 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   for(let i=0;i<count;i++){
    const rank=Math.floor(i/2),side=i%2===0?-1:1;
    const spread=.17+rank*.145,tailWave=Math.sin(phase*1.45+rank*.72+side*.41)*.15;
+   // Blue-ring octopus spreads its arms DOWNWARD, not as a squid-like
+   // symmetrical rear fan. Roots remain in the same muscular oral crown.
+   const downward=s.id==='bluering',lane=(i-3.5)/3.5;
    const base={x:-.025,y:side*(.12+rank*.065)};
-   const ctrl1={x:-length*.20,y:side*(spread+.08)};
-   const ctrl2={x:-length*.56,y:side*(spread+.38)+tailWave*.5};
-   const tip={x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
+   const ctrl1=downward?{x:-length*.10+lane*.20,y:.24+rank*.06}:{x:-length*.20,y:side*(spread+.08)};
+   const ctrl2=downward?{x:-length*.28+lane*.36,y:.74+rank*.13+tailWave*.3}:{x:-length*.56,y:side*(spread+.38)+tailWave*.5};
+   const tip=downward?{x:-length*.35+lane*.55+tailWave*.12,y:1.25+rank*.21+tailWave}
+    :{x:-length*(.80+.045*Math.sin(phase+rank*.6)),y:side*(.46+rank*.22)+tailWave};
    const points=Array.from({length:21},(_,j)=>{
     const q=j/20,x=bezier(base.x,ctrl1.x,ctrl2.x,tip.x,q),y=bezier(base.y,ctrl1.y,ctrl2.y,tip.y,q);
     const tangentX=3*(1-q)*(1-q)*(ctrl1.x-base.x)+6*(1-q)*q*(ctrl2.x-ctrl1.x)+3*q*q*(tip.x-ctrl2.x);
@@ -464,13 +468,18 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    // Magnapinna: ten appendages emerge from a short mantle, bend at an
    // unmistakable elbow, then hang as extremely fine trailing filaments.
    for(let i=0;i<10;i++){
-    const side=(i-4.5)*.16,drift=Math.sin(phase*.72+i*.7)*.18;
-    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
-     c.lineTo(-.76+side*.10,-.98+side*1.4);
-     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#254051',.078);
-    stroke(()=>{c.moveTo(-.04,side*.27);c.lineTo(-.67,side*.82);
-     c.lineTo(-.76+side*.10,-.98+side*1.4);
-     c.bezierCurveTo(-1.02,-1.64+side*1.2,-2.52+drift,-2.37+side*1.1,-3.68+drift,-2.77+side);},'#b6b1d7',.027);
+    // Eight arms and two feeding tentacles form recognizable elbow bends.
+    // Asymmetric lengths and separated thin tips avoid a single flat "fan".
+    const side=i<5?-1:1,rank=i%5,drift=Math.sin(phase*.72+i*.7)*.16;
+    const rootY=side*(.09+rank*.058),elbowX=-.38-rank*.07,elbowY=side*(.51+rank*.22);
+    const tipX=-1.23-rank*.16+drift,tipY=side*(1.85+rank*.19)+drift*.40;
+    const limb=()=>{c.moveTo(-.04,rootY);
+     c.quadraticCurveTo(-.31,side*.22,elbowX,elbowY);
+     c.lineTo(elbowX-.12,elbowY+side*.07);
+     c.bezierCurveTo(elbowX-.45,side*(1.03+rank*.15),tipX+.27,tipY-side*.11,tipX,tipY);};
+    stroke(limb,'#233b51',.063-rank*.003);
+    stroke(limb,i%3===0?'#dbcaec':'#a5a8d3',.020);
+    oval(tipX,tipY,.017,.024,0,'rgba(210,218,241,.66)');
    }
   }else tentacles(8,id==='whiplash'?1.3:id==='bluering'?1.65:id==='mimic'?2.8:2.2,id==='mimic');
   // Continuous eight-arm oral crown: every tentacle root is buried in flesh.
