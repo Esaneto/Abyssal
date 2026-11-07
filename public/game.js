@@ -329,7 +329,7 @@ let controlAimAngle=0;
 const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const SEA_PROGRESSION=window.AbyssalSeaProgression;
 const soloEnemyCap=()=>requestedRunMode==='rift'?MAX_ENEMIES:(SEA_PROGRESSION?.MAX_SEA_ENEMIES||100);
-const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||96);
+const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||99);
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'];
 const BOSS_LABELS=Object.freeze({riftSmile:'PESADELO ROXO',boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
