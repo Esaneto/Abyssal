@@ -86,14 +86,15 @@
   result.glow=.78+.22*(.5+.5*Math.sin(time*.58+offset));
   return result;
  }
+ // Preserve side-on anatomy when a character travels up or down.
+ // The former heading-derived pitch made rigid whole-body tilts fight the
+ // separately animated fins, tails and tentacles.
  function anatomicalOrientation(angle,family='signature',out=null){
-  let normalized=Number.isFinite(Number(angle))?Number(angle):0;
-  normalized=Math.atan2(Math.sin(normalized),Math.cos(normalized));
+  const normalized=Number.isFinite(Number(angle))?Number(angle):0;
   const facing=Math.cos(normalized)>=0?1:-1;
-  let pitch=facing>0?normalized:Math.atan2(Math.sin(normalized-Math.PI),Math.cos(normalized-Math.PI));
-  const limit=ORIENTATION_LIMIT[family]??ORIENTATION_LIMIT.signature;
-  pitch=clamp(pitch,-limit,limit);
-  const result=out||{};result.facing=facing;result.pitch=pitch;result.limit=limit;return result;
+  const result=out||{};result.facing=facing;result.pitch=0;
+  result.limit=ORIENTATION_LIMIT[family]??ORIENTATION_LIMIT.signature;
+  return result;
  }
  function createTracker({maxEntries=512}={}){
   const states=new Map();
@@ -109,9 +110,13 @@
    if(speed>nominal*.025)state.motionAngle=Math.atan2(dy,dx);
    else if(!Number.isFinite(state.motionAngle))state.motionAngle=Number(entity?.angle)||0;
    const orientation=anatomicalOrientation(state.motionAngle,family,state.orientation);
-   if(orientation.facing!==state.facing&&Math.abs(Math.cos(state.motionAngle))>.18)state.facing=orientation.facing;
-   state.facingScale+=(state.facing-state.facingScale)*(1-Math.exp(-11*dt));
-   state.pitch+=(orientation.pitch-state.pitch)*(1-Math.exp(-9*dt));
+   // Vertical travel must not change the facing side; no collapse-to-zero
+   // scale transition when flipping, which looked like a stiff swimming pose.
+   if(Math.abs(dx)>Math.max(.4,Math.abs(dy)*.22)&&orientation.facing!==state.facing){
+    state.facing=orientation.facing;
+   }
+   state.facingScale=state.facing;
+   state.pitch=0;
    state.family=family;state.x=x;state.y=y;state.at=now;
    state.phaseTime=now+state.phaseOffset;
    state.attack=clamp(Number(entity?.attack)||0,0,1);
