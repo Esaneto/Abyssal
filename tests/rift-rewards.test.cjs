@@ -28,7 +28,7 @@ test('all seven Fossas bosses spawn once at their chamber and the next cycle rem
   const p={id:'p',x:room.x,y:room.y,hp:100,alive:true};
   const spawned=W.activateRiftEncounters(w,[p],()=>.5),boss=spawned.find(e=>AI.BOSS_KINDS.includes(e.kind));
   assert.ok(boss,`missing boss at tier ${tier}`);assert.equal(boss.kind,AI.BOSS_KINDS[tier%AI.BOSS_KINDS.length]);
-  assert.equal(W.activateRiftEncounters(w,[p],()=>.5).length,0);if(tier<AI.BOSS_KINDS.length)assert.equal(layout.portals.boss.unlockedAfterBosses,tier+1);else assert.equal(layout.portals.boss,null);
+  assert.equal(W.activateRiftEncounters(w,[p],()=>.5).length,0);if(tier<7)assert.equal(layout.portals.boss.unlockedAfterBosses,tier+1);else assert.equal(layout.portals.boss,null);
   assert.ok(layout.height>=9000);w.bossesDefeated=tier+1;
  }
 });
