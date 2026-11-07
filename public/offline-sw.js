@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-07-monster-death-v25';
+const VERSION = '2026-11-07-death-cache-coherence-v26';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -75,9 +75,16 @@ self.addEventListener('fetch', event => {
   if (!isNavigation && !inShell) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const cacheRequest = new Request(new URL(isNavigation ? 'index.html' : shellPath.slice(1), self.registration.scope));
-    // A failed connection must never return API data or a stale authenticated page.
-    const cached = await cache.match(cacheRequest, { ignoreSearch: true });
+    // Cache keys include the declared asset version. An older game.js?v=N
+    // must never replace game.js?v=N+1 on the first visit after a deploy.
+    // Keep the unversioned pre-cache only as an offline fallback.
+    const versionedAsset = inShell && !isNavigation && url.searchParams.has('v');
+    const cachePath = isNavigation ? 'index.html' : shellPath.slice(1);
+    const cacheRequest = new Request(new URL(cachePath + (versionedAsset ? url.search : ''), self.registration.scope));
+    const cached = await cache.match(cacheRequest);
+    const offlineFallback = versionedAsset
+      ? await cache.match(new Request(new URL(cachePath, self.registration.scope)))
+      : null;
     // HTML still prefers the network to receive new releases. Cached static
     // JS/CSS/SVG must not wait 3.5 seconds EACH when a connection is weak:
     // sequential parser-blocking scripts previously delayed Fossas startup.
@@ -101,6 +108,7 @@ self.addEventListener('fetch', event => {
       return response;
     } catch (error) {
       if (cached) return cached;
+      if (offlineFallback) return offlineFallback;
       throw error;
     } finally {
       clearTimeout(deadline);
