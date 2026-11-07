@@ -66,3 +66,14 @@ NODE_ENV=production
 ## Escala futura
 
 Com 2 vCPU, a estratégia inicial é manter uma thread principal dedicada à simulação e deixar o segundo núcleo absorver Nginx, TLS, scrypt, filesystem, Worker de persistência e tarefas do sistema. Quando o tempo de tick indicar saturação real do núcleo de simulação, o passo seguinte é sharding de salas entre processos, não aumentar o tickrate de uma única sala.
+
+
+## Benchmark de capacidade
+
+Com o servidor rodando, execute:
+
+```bash
+npm run capacity:sample -- http://127.0.0.1:3000/health 60
+```
+
+O sampler coleta CPU, RSS, event-loop lag, tick global e tick por sala. O objetivo não é ocupar 100% da CPU. Para um tick autoritativo de 50 ms, mantenha preferencialmente o p95 de processamento abaixo de 10 ms e event-loop lag p95 abaixo de 20 ms. Compare a mesma cena e quantidade de jogadores no Render e na VPS para medir o ganho real.
