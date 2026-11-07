@@ -138,7 +138,7 @@ test('every non-vortex hazard is embedded at the actual navigable cavern boundar
  assert.ok(mounted.length>12,'wall threats found in several rooms');
  assert.ok(vortices.length>0&&vortices.every(h=>h.sourceX===undefined),'vortex remains a floor hazard');
  for(const h of mounted){
-  assert.ok(['chamber','corridor','ceiling','passage-ceiling','nightmare'].includes(h.wallKind),h.id+' wall classification');
+  assert.ok(['chamber','corridor','ceiling','passage-ceiling','passage-overhang','nightmare'].includes(h.wallKind),h.id+' wall classification');
   assert.ok(Number.isFinite(h.sourceX)&&Number.isFinite(h.sourceY),h.id+' embedded wall position');
   const outX=h.sourceX-Math.cos(h.angle)*33,outY=h.sourceY-Math.sin(h.angle)*33;
   const inX=h.sourceX+Math.cos(h.angle)*35,inY=h.sourceY+Math.sin(h.angle)*35;
