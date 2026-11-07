@@ -222,12 +222,46 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
    oval(.82,0,.27,.53,0,'rgba(204,228,255,.32)');
    for(const side of [-1,1]){stroke(()=>{c.moveTo(.06,side*.8);c.quadraticCurveTo(.72,side*1.03,1.11,side*.63);},'#d4ebff',.048);}
    for(let j=0;j<7;j++)oval(.65+Math.cos(j*2.1)*.35,Math.sin(j*2.1)*.53,.032,.025,0,'#e2efff');
-  }else if(id==='yeticrab'){
-  for(const side of [-1,1]){for(let i=0;i<4;i++)stroke(()=>{c.moveTo(-.15-i*.16,side*.35);c.lineTo(-.4-i*.25,side*.85);c.lineTo(-.05-i*.3,side*1.25)},'#97b0ad',.08);
-   stroke(()=>{c.moveTo(.1,side*.3);c.lineTo(.6,side*.8);c.lineTo(1.35,side*.75)},'#a8b8ae',.22);oval(1.4,side*.75,.4,.2);
-   for(let i=0;i<18;i++)stroke(()=>{const x=.45+i*.065;c.moveTo(x,side*.75);c.lineTo(x-.06,side*(.98+.09*Math.sin(i*3)))},'#dce1cf',.025);
-  }oval(-.2,0,.7,.5);eye(.35,-.2,.04);eye(.35,.2,.04);
- }else if(id==='nautilus'){
+   }else if(id==='yeticrab'){
+  // Kiwa/yeti crab has a broad thorax, four walking-leg pairs and two hairy
+  // chelae. Each leg starts under the shell and each claw has split pincers.
+  const gait=Math.sin(phase*1.3)*.10;
+  for(const side of [-1,1]){
+   for(let i=0;i<4;i++){
+    const rootX=.35-i*.31,rootY=side*.29;
+    const kneeX=rootX-.28, kneeY=side*(.73+i*.11)+gait*(i%2?1:-1);
+    const footX=kneeX-.10-i*.14,footY=side*(1.16+i*.08)+gait*.7;
+    stroke(()=>{c.moveTo(rootX,rootY);c.lineTo(kneeX,kneeY);c.lineTo(footX,footY);},
+     '#507780',.112-i*.008);
+    stroke(()=>{c.moveTo(kneeX,kneeY);c.lineTo(footX,footY);},'#b0d5c8',.033);
+   }
+   // A filled forearm bridges shell and wrist; the split terminal claws
+   // replace disconnected circular pincers.
+   path(()=>{c.moveTo(.31,side*.29);c.quadraticCurveTo(.72,side*.40,.89,side*.72);
+    c.lineTo(1.22,side*.70);c.quadraticCurveTo(.91,side*.94,.74,side*.81);
+    c.quadraticCurveTo(.47,side*.54,.31,side*.29);c.closePath();},
+    '#598384','#cae2d5',.042);
+   path(()=>{c.moveTo(1.12,side*.68);c.quadraticCurveTo(1.42,side*.51,1.77,side*.59);
+    c.quadraticCurveTo(1.49,side*.75,1.57,side*.82);
+    c.quadraticCurveTo(1.82,side*.97,1.93,side*.87);
+    c.quadraticCurveTo(1.58,side*1.17,1.27,side*.95);
+    c.closePath();},'#739a94','#e2ece0',.036);
+   for(let j=0;j<15;j++){
+    const px=.58+j*.077,py=side*(.55+.16*Math.sin(j*.32));
+    stroke(()=>{c.moveTo(px,py);c.lineTo(px-.07,py+side*(.16+(j%3)*.025));},
+     j%3?'#cfe6db':'#9acfc3',.018);
+   }
+  }
+  path(()=>{c.moveTo(-1.01,0);c.bezierCurveTo(-.92,-.56,.21,-.73,.70,-.36);
+   c.quadraticCurveTo(.95,0,.70,.36);
+   c.bezierCurveTo(.21,.73,-.92,.56,-1.01,0);c.closePath();},
+   g,'#c4d9ce',.062);
+  for(let i=0;i<7;i++){
+   const px=-.75+i*.21;
+   stroke(()=>{c.moveTo(px,-.29);c.quadraticCurveTo(px-.10,0,px,.29);},'#86aaa4',.022);
+  }
+  eye(.56,-.25,.062);eye(.56,.25,.062);
+  }}else if(id==='nautilus'){
 
    // NAUTILUS: chambered mineral spiral shell, hood and many fine forward
    // sensory cirri (not a generic oval snail).
@@ -540,7 +574,29 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
   path(()=>{c.moveTo(-.2,-.7);c.bezierCurveTo(1.5,-1.0,1.5,1.0,-.2,.7);c.quadraticCurveTo(.1,0,-.2,-.7);});
   for(let i=0;i<7;i++){let y=(i-3)*.16;stroke(()=>{c.moveTo(-.2,y);c.quadraticCurveTo(.8,y*.6,.85,0)},'#9bd4e0',.018);}
   if(id==='combjelly')for(let i=0;i<14;i++)oval(.1+i*.045,Math.sin(i*.7)*.45,.035,.025,0,['#78deff','#d8b3ff','#71efc8'][i%3]);
- }else if(s.family==='crustacean'){
+  }else if(id==='spidercrab'){
+  // A spider crab is primarily a tiny angular carapace suspended on very
+  // long jointed walking legs, not a lobster with a circular body.
+  const gait=Math.sin(phase*1.14)*.17;
+  for(const side of [-1,1]){
+   for(let i=0;i<4;i++){
+    const bx=.39-i*.26,kx=bx-(.08+i*.09),ky=side*(.70+i*.17+gait*(i%2?1:-1));
+    const fx=kx-(.55+i*.19),fy=side*(1.51+i*.17+gait);
+    stroke(()=>{c.moveTo(bx,side*.22);c.lineTo(kx,ky);c.lineTo(fx,fy);},'#5f8193',.075);
+    oval(kx,ky,.055,.050,0,'#8ca6aa');
+   }
+   stroke(()=>{c.moveTo(.58,side*.20);c.lineTo(.96,side*.49);c.lineTo(1.39,side*.43);},'#739ea4',.102);
+   path(()=>{c.moveTo(1.18,side*.38);c.quadraticCurveTo(1.57,side*.20,1.79,side*.37);
+    c.quadraticCurveTo(1.65,side*.40,1.51,side*.38);
+    c.lineTo(1.68,side*.58);c.quadraticCurveTo(1.35,side*.65,1.18,side*.38);c.closePath();},
+    '#799e9c','#c4ddcb',.028);
+  }
+  path(()=>{c.moveTo(-.80,0);c.lineTo(-.58,-.37);c.lineTo(.38,-.43);
+   c.lineTo(.82,-.22);c.lineTo(.87,.22);c.lineTo(.38,.43);
+   c.lineTo(-.58,.37);c.closePath();},g,'#bbd6cf',.059);
+  for(let i=0;i<5;i++)stroke(()=>{const xx=-.46+i*.24;c.moveTo(xx,-.26);c.lineTo(xx+.04,.26);},'#a7c6c1',.025);
+  eye(.70,-.21,.045);eye(.70,.21,.045);
+  }else if(s.family==='crustacean'){
   const legStroke=Math.sin(phase*1.34)*.12,tailBeat=Math.sin(phase*1.7)*.14;
   for(const side of [-1,1]){
    for(let i=0;i<5;i++){
