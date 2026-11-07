@@ -338,9 +338,15 @@
     const room=layout?.rooms?.find(item=>item.id==='start');
     if(!room)return {x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.5};
     const safeCount=Math.max(1,Math.floor(Number(count)||1)),slot=Math.max(0,Math.floor(Number(index)||0));
+    // Use distinct positions well INSIDE the start chamber, with ample space
+    // between divers. Older points formed a 33-unit circle, practically
+    // overlapping players and visually placing them against the tunnel wall.
     const angle=(Math.PI*2*slot)/safeCount;
-    const radius=Math.min(room.rx,room.ry)*.22;
-    return {x:room.x+Math.cos(angle)*radius,y:room.y+Math.sin(angle)*radius};
+    const radius=safeCount===1?0:Math.min(room.ry*.38,room.rx*.25);
+    const x=room.x+Math.cos(angle)*radius;
+    const y=room.y+Math.sin(angle)*radius+Math.min(22,room.ry*.1);
+    if(isWalkable(layout,x,y,34))return {x,y};
+    return {x:room.x,y:room.y};
   }
 
   return Object.freeze({
