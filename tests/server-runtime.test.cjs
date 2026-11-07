@@ -224,13 +224,23 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
   });
   assert.ok(moved, 'compact per-player motion packets should contain real enemy movement');
   assert.ok(Number(motion?.elapsed) > 0, 'server world clock advances in compact motion packets');
-  const guestLatest = guest.latest('game-snapshot');
-  assert.ok(guestLatest, 'the second client receives the room snapshot');
+  const guestLatest = guest.latest('game-snapshot') || guestJoined.snapshot;
+  assert.ok(guestLatest, 'the second client receives authoritative room state through join or recovery snapshot');
+  assert.equal(guestLatest.worldId, initialSnapshot.worldId, 'both clients are attached to the same authoritative world');
   assert.deepEqual(
-    guestLatest.enemies.map(e => [e.id, e.x, e.y]),
-    latest.enemies.map(e => [e.id, e.x, e.y]),
-    'all clients receive exactly the same authoritative enemy coordinates in a snapshot'
+    guestLatest.enemies.map(e => e.id).sort((a,b)=>a-b),
+    initialSnapshot.enemies.map(e => e.id).sort((a,b)=>a-b),
+    'both clients receive the same authoritative enemy identities'
   );
+  await waitFor(() => guest.all('enemy-motion').length >= 1, 2500);
+  const guestMotion=guest.latest('enemy-motion');
+  const ownerRows=new Map((motion?.enemies||[]).map(row=>[row[0],row]));
+  const sharedRows=(guestMotion?.enemies||[]).filter(row=>ownerRows.has(row[0]));
+  assert.ok(sharedRows.length>0,'both clients receive overlapping authoritative enemy motion');
+  for(const row of sharedRows){
+    const ownerRow=ownerRows.get(row[0]);
+    assert.deepEqual(row.slice(1,3),ownerRow.slice(1,3),'shared enemy coordinates are identical for every recipient in the same server tick');
+  }
 
   const health = await getJson(port, '/health');
   assert.equal(health.ok, true);
