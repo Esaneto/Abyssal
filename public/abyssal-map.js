@@ -7,7 +7,7 @@
 
   const WORLD_WIDTH=4800;
   const WORLD_HEIGHT=9000;
-  const VERSION=5;
+  const VERSION=6;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
