@@ -1722,6 +1722,24 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
  }
 
 
+ if((upgrades.ricochet||0)>0&&source!=='ricochet'&&!onlineMode){
+  let from=primaryTarget;const visited=new Set([primaryTarget.id]);for(let bounce=0;bounce<Math.min(3,upgrades.ricochet);bounce++){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<190/GAME_WORLD_ZOOM&&d<nd){next=other;nd=d}}if(!next)break;effects.push({type:'ricochet-line',x1:from.x,y1:from.y,x2:next.x,y2:next.y,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});burst(next.x,next.y,'#f7ff19',8,90);dealEnemyDamage(next,baseDamage*.42,'ricochet',{secondary:true});visited.add(next.id);from=next;}
+ }
+}
+function dealEnemyDamage(enemy, damage, skillId=null, options={}){
+  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
+ if(activeMapLayout&&enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)return;
+ if(activeMapLayout&&player&&ABYSSAL_MAP&&!String(skillId||'').startsWith('rift-hazard-')&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,enemy.x,enemy.y,2))return;
+ score += Math.round(damage);
+ if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
+ if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*(1+Math.min(.24,Math.max(0,Number(upgrades.predator)||0)*.08));hp=Math.min(maxHp,hp+actualDamage*.02);}
+
+  if(equippedSkin==='electriceel' && enemy && enemy.hp > 0){
+    enemy.paralyzedUntil = Math.max(enemy.paralyzedUntil || 0, performance.now() + 100);
+    burst(enemy.x, enemy.y, '#38e8ff', 3, 50);
+  }
+
+
   if(equippedSkin==='greensnake' && enemy && enemy.hp > 0) {
     enemy.poisonTimer = Math.max(enemy.poisonTimer || 0, 4.0);
   }
