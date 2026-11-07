@@ -90,10 +90,8 @@ function traceToWall(layout,x,y,angle,limit=2600){
 }
 function wallGeometry(layout,anchor,type){
  const angle=anchor.angle,sourceX=anchor.sourceX,sourceY=anchor.sourceY;
- if(type==='volcano'||type==='spikes'||type==='tentacle'||type==='rockfall'||type==='electric'){
+ if(type==='volcano'||type==='tentacle'){
   const reach=traceToWall(layout,sourceX,sourceY,angle,2450);
-  // Entire chamber for fire and retracting spikes; the tentacle uses the
-  // opposite wall as well, but does not reveal itself while dormant.
   return {...anchor,length:Math.max(40,reach)};
  }
  if(type==='poisonPlant'){
@@ -113,7 +111,6 @@ function extension(h,phase){
  if(phase.phase==='idle')return 0;
  if(phase.phase==='warning')return 0;
  const q=clamp(phase.progress,0,1);
- if(h.type==='spikes')return q<.13?Math.sin(q/.13*Math.PI*.5):clamp(1-(q-.13)/.87,0,1);
  if(h.type==='tentacle')return q<.33?Math.sin(q/.33*Math.PI*.5):q<.38?1:clamp(1-(q-.38)/.62,0,1);
  return 1;
 }
@@ -231,11 +228,9 @@ function build(layout,tier=0){
   const hazard={...h,...point,id:roomId+':'+index,type,roomId,
    period:cfg.period,warning:cfg.warning,active:cfg.active,
    offset:h.nightmare?((index%8)/8)*cfg.period:(idHash(roomId+':timing:'+index+':'+safeTier)%1000)/1000*cfg.period,
-   radius:type==='volcano'?(h.wallKind==='corridor'?49:64):
-    type==='tentacle'?78:type==='poisonPlant'?120:type==='electric'?46:
-    type==='spikes'?56:type==='rockfall'?77:type==='lure'?116:type==='pressure'?95:cfg.radius,
+   radius:type==='volcano'?(h.wallKind==='corridor'?49:64):type==='tentacle'?78:type==='poisonPlant'?120:cfg.radius,
    length:reach||cfg.length||0,
-   active:type==='rockfall'?Math.min(cfg.period-cfg.warning-.7,Math.max(1.2,reach/265+.65)):cfg.active,
+   active:cfg.active,
    damage:Math.round(cfg.damage*(1+Math.min(.9,safeTier*.07)))};
   hazards.push(hazard);hazardGeometry.set(hazard,layout);
   if(Number.isFinite(h.sourceX))blocked.push({x:h.sourceX,y:h.sourceY,r:180});
@@ -323,11 +318,6 @@ function dangerRadius(h,s){
 function hit(hazard,px,py,pad=0,phase=null){
  const h=phase?hazardAtCycle(hazard,phase.cycle||0):hazard,r=dangerRadius(h,phase)+pad;
  if(phase?.phase==='idle'||phase?.phase==='warning')return false;
- if(h.type==='rockfall'&&Number.isFinite(h.sourceX)){
-  if(!phase)return Math.hypot(px-h.x,py-h.y)<=r; // static shape queries
-  const fall=rockfallState(h,phase);
-  return !fall.impact&&Math.hypot(px-fall.x,py-fall.y)<=Math.min(43,h.radius)+pad;
- }
  if(h.type==='tentacle'&&Number.isFinite(h.sourceX)&&phase){
   const extent=extension(h,phase);
   if(extent<=.02)return false;
@@ -356,17 +346,11 @@ function hit(hazard,px,py,pad=0,phase=null){
   const fraction=phase?(.04+.96*clamp(phase.progress,0,1)):1;
   return dist<=safeLen*fraction*.92+pad;
  }
- if(Number.isFinite(h.sourceX)&&['volcano','tentacle','spikes','electric'].includes(h.type)){
-  const extent=h.type==='spikes'?extension(h,phase):1,len=(h.length||130)*extent;
-  if(len<1)return false;
+ if(Number.isFinite(h.sourceX)&&h.type==='volcano'){
+  const len=h.length||130;
   const ax=h.sourceX+Math.cos(h.angle)*6,ay=h.sourceY+Math.sin(h.angle)*6;
   const bx=h.sourceX+Math.cos(h.angle)*len,by=h.sourceY+Math.sin(h.angle)*len;
-  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*(h.type==='spikes'?.40:h.type==='electric'?.30:.5)+pad;
- }
- if(h.type==='tentacle'||h.type==='electric'){
-  const len=h.length||300,a=h.angle||0;
-  return segmentDistance(px,py,h.x-Math.cos(a)*len*.45,h.y-Math.sin(a)*len*.45,
-    h.x+Math.cos(a)*len*.55,h.y+Math.sin(a)*len*.55)<=h.radius*.5+pad;
+  return segmentDistance(px,py,ax,ay,bx,by)<=h.radius*.5+pad;
  }
  return Math.hypot(px-h.x,py-h.y)<=r;
 }
