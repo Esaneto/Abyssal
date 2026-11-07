@@ -1237,8 +1237,8 @@ function startGame(){
 runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
  runShotId=selectedOpeningShot;
- upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
- upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0};
+ upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)+(equippedSkin==='abyssking'||equippedSkin==='armoredgator'?1:0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
+ upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,krakenSweepTimer:7,toxicCloudTimer:5};updateCamera();
@@ -1251,7 +1251,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  gameState='playing';startAmbientMusic();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();audio(520,.12,'sine',.04);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else for(let i=0;i<3;i++)spawnEnemy(true);}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
 const upgradeList=[
@@ -1283,7 +1283,10 @@ const COMBO_SKILLS={
  gravitationalRupture:{id:'gravitationalRupture',name:'Ruptura gravitacional',icon:'✹',desc:'Fusão de Pulso de Ruptura + Nova Gravitacional no nível 3. Mantém um campo ao redor do jogador que causa dano periódico dentro do alcance de disparo.'},
  arcChain:{id:'arcChain',name:'Cadeia de Arcos',icon:'ϟ',desc:'Fusão de Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3. Correntes elétricas ricocheteiam por até 8 alvos próximos em cadeia.'},
  abyssEye:{id:'abyssEye',name:'Olho do Abismo',icon:'◉',desc:'Fusão de Lança do Abismo + Olho Profundo no nível 3. Os disparos deixam de respeitar o limite normal de alcance e seguem até atingir uma criatura ou obstáculo.'},
- vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'}
+ vitalDrain:{id:'vitalDrain',name:'Dreno Vital',icon:'✚',desc:'Fusão de Membrana Viva + Pulso Intenso no nível 3. Converte 2% do dano causado em vida.'},
+ photonCascade:{id:'photonCascade',name:'Cascata Prismática',icon:'✦',desc:'Fusão de Lança de Fótons Nv. 3 e Rajada Prismática Nv. 3. Adiciona 2 projéteis fotônicos ao leque sem mudar a identidade do disparo.'},
+ tidalEcho:{id:'tidalEcho',name:'Maré Reverberante',icon:'⋔',desc:'Fusão de Eco de Maré Nv. 3 e Ricochete Caótico Nv. 3. Dispara uma terceira réplica central com ricochetes.'},
+ hadalBeam:{id:'hadalBeam',name:'Feixe Hadal',icon:'☼',desc:'Fusão de Raio de Fótons Nv. 3 e Olho Profundo Nv. 3. Aumenta espessura em 35% e dano de pulso em 20%.'}
 };
 function clearUpgradeCountdown(){
  if(upgradeAutoTimer){clearTimeout(upgradeAutoTimer);upgradeAutoTimer=null;}
@@ -1302,7 +1305,7 @@ function renderSelectedSkills(){
  const panel=$('selectedSkillsList');if(!panel)return;
  const gravitationalRuptureActive=Number(upgrades.gravitationalRupture)>0;
  const arcChainActive=Number(upgrades.arcChain)>0;
- const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
+ const selected=Object.entries(upgradeLevels).filter(([id,rank])=>Number(rank)>0&&!(gravitationalRuptureActive&&['burst','nova'].includes(id))&&!(arcChainActive&&['electric','ricochet'].includes(id))&&!(upgrades.abyssEye&&['pierce','range'].includes(id))&&!(upgrades.vitalDrain&&['regen'].includes(id))&&!(upgrades.photonCascade&&['photon','spread'].includes(id))&&!(upgrades.tidalEcho&&['echoShot','ricochet'].includes(id))&&!(upgrades.hadalBeam&&['photonRay','range'].includes(id))).sort((a,b)=>a[0].localeCompare(b[0]));
  const signature=selected.map(([id,rank])=>id+':'+rank).join('|')||'none';
  // Avoid replacing focused/clicked skill buttons on every simulation frame.
  if(signature===selectedSkillsRenderedSignature&&panel.dataset.skillsSignature===signature)return;
@@ -1358,7 +1361,10 @@ function chooseUpgrade(u){
   upgradeLevels.arcChain=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.arcChain.name;
   if(player)player.arcChainTimer=0;
  }
- if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});
+ if(!upgrades.photonCascade&&upgradeLevels.photon>=3&&upgradeLevels.spread>=3){upgrades.photonCascade=1;upgradeLevels.photonCascade=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.photonCascade.name;}
+ if(!upgrades.tidalEcho&&upgradeLevels.echoShot>=3&&upgradeLevels.ricochet>=3){upgrades.tidalEcho=1;upgradeLevels.tidalEcho=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.tidalEcho.name;}
+ if(!upgrades.hadalBeam&&upgradeLevels.photonRay>=3&&upgradeLevels.range>=3){upgrades.hadalBeam=1;upgradeLevels.hadalBeam=1;combinedNow=true;combinedSkillName=COMBO_SKILLS.hadalBeam.name;}
+ if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});
  // Save through the shared codex cache; referencing a local, undefined "codex" here
  // used to throw before the level-up overlay closed, breaking both click and auto-pick.
  discoverCodexSkill(u.id);
@@ -2052,11 +2058,11 @@ function fire(){
  const shotSpeed=430*shotBalanceValue(activeShot,'speed',shotLevel,1)/GAME_WORLD_ZOOM;
  const shotColor=activeShot==='echoShot'?'#5ef0d0':activeShot==='photon'?'#f0abfc':activeShot==='electric'?'#eaffff':activeShot==='pierce'?'#ffe7a1':'#83fff3';
  const prismLevel=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
- const baseOffsets=activeShot==='echoShot'?[-.045,.045]:[0];
+ const baseOffsets=activeShot==='echoShot'?(upgrades.tidalEcho?[-.065,0,.065]:[-.045,.045]):[0];
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
- const offsets=[...baseOffsets,...prismOffsets];
+ const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();
- for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel);const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});audio(500,.045,'sine',.008);
+ for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-13/GAME_WORLD_ZOOM),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;const muzzleX=player.x+Math.cos(a)*15,muzzleY=player.y+Math.sin(a)*15;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:player.x,y1:player.y,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});audio(500,.045,'sine',.008);
 }
 function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
@@ -2225,7 +2231,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(upgrades.photonRay>0){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
-  const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]/GAME_WORLD_ZOOM,beamRange=getFiringRange();
+  const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]*(upgrades.hadalBeam?1.35:1)/GAME_WORLD_ZOOM,beamRange=getFiringRange();
   // Controle 2 owns manual continuous aiming. Controle 1 keeps automatic nearest-target aiming.
   const manualPhotonAim=(!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
   let aimAngle=Number(player.angle)||0,hasAim=false;
@@ -2282,7 +2288,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
   if(player.photonRayTimer<=0){
    player.photonRayTimer=beamInterval;
-   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1),pulseDamage=beamDps*beamInterval;
+   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1)*(upgrades.hadalBeam?1.2:1),pulseDamage=beamDps*beamInterval;
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
    if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
    if(!onlineMode){
@@ -3935,7 +3941,10 @@ const RESONANCE_FUSION_RECIPES=Object.freeze([
  {id:'gravitationalRupture',name:'RUPTURA GRAVITACIONAL',items:[['nova','Nova Gravitacional'],['burst','Pulso de Ruptura']]},
  {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['ricochet','Ricochete Caótico']]},
  {id:'abyssEye',name:'OLHO DO ABISMO',items:[['pierce','Lança do Abismo'],['range','Olho Profundo']]},
- {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]}
+ {id:'vitalDrain',name:'DRENO VITAL',items:[['regen','Membrana Viva'],['power','Pulso Intenso']]},
+ {id:'photonCascade',name:'CASCATA PRISMÁTICA',items:[['photon','Lança de Fótons'],['spread','Rajada Prismática']]},
+ {id:'tidalEcho',name:'MARÉ REVERBERANTE',items:[['echoShot','Eco de Maré'],['ricochet','Ricochete Caótico']]},
+ {id:'hadalBeam',name:'FEIXE HADAL',items:[['photonRay','Raio de Fótons'],['range','Olho Profundo']]}
 ]);
 function renderResonanceFusionGuide(){
  const root=$('resonanceFusionGuide');if(!root)return;
