@@ -133,6 +133,9 @@
  }
  add('boss-defeated',{f:190,d:1.02,end:.29,texture:'throat',w:'triangle',
   noise:.30,layer:.25,layerRatio:1.43,g:.091,priority:88,group:'boss',cd:1100});
+ // A single cinematic pressure boom accents a boss arrival, then falls silent.
+ add('boss-omen',{f:125,d:.70,end:.19,texture:'blast',w:'triangle',g:.064,
+  noise:.52,filter:1150,layer:.19,priority:96,group:'cinematic',cd:1700,attack:.012});
  const PATTERNS=Object.freeze(P),contexts=new WeakMap();
  function state(ctx){let s=contexts.get(ctx);
   if(!s){s={active:0,played:0,suppressed:0,preempted:0,last:Object.create(null),
@@ -142,7 +145,9 @@
  function noiseBuffer(ctx,s){
   if(s.noise)return s.noise;
   if(typeof ctx.createBuffer!=='function')return null;
-  const length=Math.min(14000,Math.round((ctx.sampleRate||44100)*.28));
+  // 0.84 s of deterministic noise avoids an obvious repeating 280 ms hiss.
+  // One cached ~150 KB buffer per AudioContext, not per effect.
+  const length=Math.min(40000,Math.round((ctx.sampleRate||44100)*.84));
   const buf=ctx.createBuffer(1,length,ctx.sampleRate||44100),data=buf.getChannelData(0);
   let seed=0x6d2b79f5;
   for(let i=0;i<length;i++){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;
