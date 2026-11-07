@@ -65,15 +65,15 @@ test('nightmare foreground is interactive but its eight background arms are pure
  assert.match(server,/environmentDamages/);
  assert.doesNotMatch(server,/abilityId:'rift-tentacle-warning'/,'old separate boss marks must not double the eight wall arms');
 });
-test('one collected rift orb can grant XP to every party member without recreating the orb',()=>{
+test('Fossas rewards use the same direct shared XP pool without recreating orbs',()=>{
  const src=read('server.js'),client=read('public/game.js'),simulation=read('world-simulation.js');
- assert.match(src,/if\(room\.mode==='rift'\)\{\s*const collector=room\.players\.get\(pickup\.playerId\)/);
- assert.match(src,/for\(const member of room\.players\.values\(\)\)/);
+ assert.match(src,/function grantSharedXp\(room,total,contributors=\{\},source='kill',enemyId=null\)/);
+ assert.match(src,/for\(const share of splitXp\(total,\[\.\.\.room\.players\.values\(\)\],contributors\)\)/);
  assert.match(src,/SkinAbilities\.orbExperienceMultiplier\(member\.skinId\)/);
- assert.match(src,/source:'rift-team-orb'/);
- assert.match(simulation,/baseValue:orbValue/);
+ assert.match(src,/grantSharedXp\(room,death\.xpValue\|\|1,death\.contributors,'rift-hazard-kill'/);
+ assert.match(src,/grantSharedXp\(room,reward\.value,null,reward\.source\|\|'rift-reward'/);
  assert.match(client,/function applySharedXp\(data\)/);
- assert.match(src,/expeditionMultiplier=expedition\?\(1\+Math\.min\(\.75,bossesKilled\*\.15\)\):1/);
+ assert.doesNotMatch(simulation,/\borbs\s*:/);
 });
 test('prismatic skill is a passive, secondary hits preserve selected shot cosmetics, recipes are gold',()=>{
  const game=read('public/game.js'),server=read('server.js'),ui=read('public/index.html'),styles=read('public/style.css');
