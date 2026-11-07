@@ -53,6 +53,18 @@ test('kraken arms extend well past the previous contact silhouette',()=>{
  assert.ok(arms.every(p=>Math.hypot(p.ex,p.ey)>3.8));
 });
 
+test('Nightmare boss and shop relic share the same Kraken head and suction-cup arm renderer',()=>{
+ const src=read('public/abyssal-rift-hardcore.js');
+ const boss=src.slice(src.indexOf('function drawFinalBoss('),src.indexOf('// Small, playable relic'));
+ const relic=src.slice(src.indexOf('function drawNightmareRelic('),src.indexOf('return {FINAL_TIER'));
+ assert.match(src,/function drawNightmareKrakenHead\(c,r,pulse=0\)/);
+ assert.match(boss,/drawNightmareKrakenHead\(c,r,pulse\)/);
+ assert.match(relic,/drawNightmareKrakenHead\(c,r,q\)/);
+ assert.match(boss,/drawNightmareArm\(c,points/);
+ assert.match(relic,/drawNightmareArm\(c,points/);
+ assert.match(src,/function drawNightmareArm\(/);
+});
+
 test('Nova shards reuse the original shot volley and are validated by the server',()=>{
  const game=read('public/game.js'),server=read('server.js');
  assert.match(game,/emitPrismaticNovaShards\(novaDps,novaVolleyId\)/);
