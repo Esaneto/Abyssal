@@ -2251,14 +2251,14 @@ function update(dt){
     bubble.life -= dt;
     bubble.damageTimer = (bubble.damageTimer || 0) - dt;
     if (bubble.damageTimer <= 0) {
-      bubble.damageTimer = bubble.skinActive?.60:BUBBLE_TRAIL_HIT_SECONDS;
+      bubble.damageTimer = bubble.skinActive ? .60 : BUBBLE_TRAIL_HIT_SECONDS;
       if(onlineMode){if(bubble.life<=0)sharkWakeTrails.splice(i,1);continue;}
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=(bubble.skinActive?600:BUBBLE_TRAIL_HIT_MS)) {
           e.wakeHitAt=performance.now();
-          dealEnemyDamage(e, bubble.skinActive?.9:1.6, bubble.skinActive?'skin-active-trail':'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+          dealEnemyDamage(e, bubble.skinActive ? .9 : 1.6, bubble.skinActive?'skin-active-trail':'pelagic-wake', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
           burst(e.x, e.y, '#7bf5ff', 2, 30);
         }
       }
