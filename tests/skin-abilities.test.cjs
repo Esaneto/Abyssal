@@ -69,8 +69,8 @@ test('marine electric ray and emerald moray render deterministically with preser
   assert.doesNotMatch(game.slice(rayStart,morayStart),/Math\\.random/);
   assert.match(game.slice(rayStart,morayStart),/Electric ray \/ torpedo ray/);
   assert.match(game.slice(morayStart,defaultStart),/Giant emerald moray/);
-  assert.match(game,/Muco corrosivo: ataques contaminam criaturas atingidas/);
-  assert.match(game,/Descarga Torpedo: ataques paralisam brevemente as criaturas atingidas/);
+  assert.match(game,/Muco corrosivo: ataques aplicam veneno/);
+  assert.match(game,/Descarga Torpedo: ataques paralisam por 0,12 segundo/);
 });
 
 
@@ -104,7 +104,7 @@ test('relic skins keep established passives except the two replaced by active sp
  const abilities=require('../public/skin-abilities');
  assert.equal(abilities.damageMultiplier('leviathan','kraken',500,1),1.2);
  assert.equal(abilities.damageMultiplier('angler','drifter',300,1),1);
- assert.equal(abilities.damageMultiplier('maw','drifter',100,1),1.3);
+ assert.equal(abilities.damageMultiplier('maw','drifter',100,1),1.16);
  assert.equal(abilities.damageMultiplier('devourer','kraken',300,1),1.12);
  assert.equal(abilities.incomingDamageMultiplier('aberration'),1);
  assert.equal(abilities.incomingDamageMultiplier('kraken'),.94);
@@ -204,7 +204,7 @@ test('resonance selector renders dedicated icon badges and abyss category stylin
 
 test('toxic basic attacks do not poison while emerald serpent still does',()=>{
  const game=read('public/game.js');
- assert.ok(game.includes("if(equippedSkin==='greensnake' && enemy && enemy.hp > 0)"));
+ assert.ok(game.includes("if(equippedSkin==='greensnake' && enemy && enemy.hp > 0 && !options.secondary"));
  assert.ok(!game.includes("['toxic', 'greensnake'].includes(equippedSkin)"));
  assert.ok(game.includes("if(equippedSkin==='toxic'){"));
  assert.ok(game.includes("target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.5)"));
