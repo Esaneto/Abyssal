@@ -87,10 +87,11 @@ async function getJson(port, pathname) {
 // handlers and owns the HTTP listener. This in-process harness still closes it.
 test('real server handlers move enemies, publish rooms, and destroy empty rooms', async t => {
   originalPort = process.env.PORT; originalDatabaseUrl = process.env.DATABASE_URL; originalDataDir = process.env.DATA_DIR;
-  const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED'];
+  const safetyEnvKeys=['ABYSSAL_REWARDED_WHEEL_ENABLED','ABYSSAL_ASYNC_PERSISTENCE'];
   const previousSafetyEnv=Object.fromEntries(safetyEnvKeys.map(key=>[key,process.env[key]]));
   for(const key of safetyEnvKeys)delete process.env[key];
   process.env.ABYSSAL_REWARDED_WHEEL_ENABLED='true';
+  process.env.ABYSSAL_ASYNC_PERSISTENCE='false';
   process.env.PORT = '0'; delete process.env.DATABASE_URL;
   temporaryDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'abyssal-runtime-test-'));
   process.env.DATA_DIR = temporaryDataDir;
