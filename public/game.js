@@ -183,7 +183,7 @@ function activateMapInteraction(){
    const sent=window.AbyssalOnline?.requestMapTransition?.('next-tier',result=>{if(result?.ok===false){mapInteractionBusy=false;const reason=String(result.reason||'');enqueueGameplayNotice('cave','A PASSAGEM NÃO CEDEU',reason==='group-not-ready'?'Todo o cardume precisa se reunir no sigilo do boss.':reason==='boss-alive'?'A criatura colossal ainda domina esta camada.':'Derrote o boss desta camada e aproxime-se do sigilo.',85);updateMapInteraction(true);}});
    if(!sent){mapInteractionBusy=false;return false;}return true;
   }
-  activeMapTier+=1;setActiveMapDescriptor({seed:activeMapSeed,tier:activeMapTier});tierDescentPending=false;progressionDistance=0;
+  const nextTier=activeMapTier+1;setActiveMapDescriptor({seed:activeMapSeed,tier:nextTier});tierDescentPending=false;progressionDistance=0;
   enemies=[];orbs=[];projectiles=[];effects=[];enemyCollisionGrid.clear();
   seedSoloRiftEncounters();
   const spawn=ABYSSAL_MAP.startSpawn(activeMapLayout,0,1);
