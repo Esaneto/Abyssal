@@ -4620,3 +4620,11 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
 #roomsScreen .room-row.rift-room small{color:#e2c298;text-shadow:0 1px 3px #150803;}
 #roomsScreen .room-row.rift-room .room-join-btn{position:relative;z-index:2;background:#56311e;border-color:#b28258;color:#fff1d0;}
 #roomsScreen .room-row.rift-room .room-join-btn:focus-visible{outline:2px solid #ffdaa2;outline-offset:2px;}
+
+/* Exclusive Abyssal code: explicit, accessible skin choice before redemption. */
+.redeem-skin-choice{display:flex;flex-direction:column;gap:9px;margin:16px 0 12px;text-align:left}
+.redeem-skin-choice[hidden]{display:none!important}
+.redeem-skin-choice label{font-size:11px;letter-spacing:.12em;font-weight:700;color:#dfd6e9}
+.redeem-skin-choice select{width:100%;min-height:46px;padding:10px 12px;border-radius:10px;border:1px solid rgba(190,169,231,.5);background:#101725;color:#f8f4ff;font:inherit}
+.redeem-skin-choice select:focus-visible{outline:2px solid #9bd9fc;outline-offset:2px}
+.redeem-skin-choice p{font-size:12px;line-height:1.5;color:#c1b7d3;margin:0}
