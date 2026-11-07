@@ -19,7 +19,7 @@ function anglerInvisibleAt(nowMs=Date.now()){
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
-    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {},
+    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {}, riftCompleted: false,
     initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
@@ -251,7 +251,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
   world.enemies = []; world.commonSpawnTimer = 0.8;
   world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
-  world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0;
+  world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0; world.riftCompleted = false;
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0;
   if (world.mode === 'rift') return seedRiftEncounters(world, random);
@@ -266,7 +266,7 @@ function seedRiftEncounters(world, random = Math.random) {
   return [];
 }
 
-const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:0,hub:10,landing:15,elite:5});
+const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:6,hub:10,landing:15,elite:5});
 function activateRiftEncounters(world,players,random=Math.random){
   if(!world||world.mode!=='rift')return [];
   const layout=mapLayoutFor(world);if(!layout)return [];
@@ -443,7 +443,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // The same procedural geometry is evaluated in solo and on the authoritative server.
   // Each hazard has a visible warning phase; damage can occur only in its active phase.
   if(riftMode&&mapLayout){
+    const nightmareAlive=Number(world.mapTier)===RiftHardcore.FINAL_TIER&&world.enemies.some(enemy=>enemy.kind===RiftHardcore.FINAL_KIND&&enemy.hp>0);
     for(const hazard of RiftHardcore.build(mapLayout,world.mapTier)){
+      // The eight final-room tentacles are part of the Nightmare fight, not permanent room hazards.
+      if(hazard.type==='tentacle'&&!nightmareAlive)continue;
       const phase=RiftHardcore.state(hazard,world.elapsed);
       if(hazard.type==='tentacle'&&phase.phase!=='idle'){
        const derived=RiftHardcore.hazardAtCycle(hazard,phase.cycle);
@@ -492,7 +495,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         enemyColor:enemy.color,killed:enemy.hp<=0});
        if(enemy.hp<=0){
         const boss=BOSS_KINDS.includes(enemy.kind);
-        if(boss){world.bossesDefeated=(Number(world.bossesDefeated)||0)+1;world.lastBossKind=enemy.kind;world.nextBossAt=Infinity;}
+        if(boss){world.bossesDefeated=(Number(world.bossesDefeated)||0)+1;world.lastBossKind=enemy.kind;world.nextBossAt=Infinity;if(world.mode==='rift'&&Number(world.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND)world.riftCompleted=true;}
         environmentKills.push({id:enemy.id,x:enemy.x,y:enemy.y,kind:enemy.kind,
           value:enemy.value,xpValue:xpValueForEnemy(world,enemy),contributors:enemy.damageContributors||{},color:enemy.color,boss});
        }

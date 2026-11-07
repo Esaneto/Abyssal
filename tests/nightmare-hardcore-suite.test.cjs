@@ -95,3 +95,11 @@ test('the final relic is different from boss art, all chests are aged and moss-c
  assert.match(chest,/chest-ancient-moss/);
  assert.match(chest,/chest-creeping-arms/);
 });
+
+test('Nightmare tentacles are disabled as soon as the final boss is no longer alive',()=>{
+ const server=read('world-simulation.js'),game=read('public/game.js');
+ assert.match(server,/const nightmareAlive=.*FINAL_TIER[\s\S]*?enemy\.kind===RiftHardcore\.FINAL_KIND&&enemy\.hp>0/);
+ assert.match(server,/if\(hazard\.type==='tentacle'&&!nightmareAlive\)continue/);
+ assert.match(game,/const nightmareAlive=.*FINAL_TIER[\s\S]*?enemy\.kind===RIFT_HARDCORE\.FINAL_KIND&&enemy\.hp>0/);
+ assert.match(game,/if\(h\.type==='tentacle'&&!nightmareAlive\)continue/);
+});

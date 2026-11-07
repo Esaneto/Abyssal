@@ -7,3 +7,6 @@ O baú fica na caverna do boss após sua derrota. Cada conta recebe uma recompen
 A abertura exige conexão e conta. Nas salas online, o servidor observa a derrota. Nas Fossas locais, a elegibilidade usa o relatório de progresso do cliente, como o sistema de partidas locais já existente: isso não constitui validação autoritativa do combate offline. Sorteio e crédito são sempre executados no servidor. A durabilidade segue a persistência configurada no servidor (PostgreSQL ou arquivos locais).
 
 Validação: sete bosses em ordem, sem reaparecimento na mesma camada, entrada do ciclo seguinte, catálogo elegível, probabilidades, repetição de pedidos e geometria distinta das 42 espécies. O navegador foi usado para verificar carregamento e renderização; isso não substitui uma partida completa de balanceamento.
+
+
+No último andar, derrotar o Pesadelo Roxo encerra a progressão das Fossas: não existe sigilo de descida adicional e os oito tentáculos deixam de ativar assim que o boss morre. O baú final concede a relíquia jogável do Pesadelo Roxo, uma skin aleatória do conjunto elegível e 100.000 moedas abissais. A abertura continua idempotente: reabrir o mesmo baú não duplica recompensas.

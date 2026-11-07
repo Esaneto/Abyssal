@@ -7,7 +7,7 @@
 
   const WORLD_WIDTH=4800;
   const WORLD_HEIGHT=9000;
-  const VERSION=5;
+  const VERSION=6;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 
   function seedValue(input){
@@ -107,7 +107,7 @@
       surface:Object.freeze({id:'surface-vortex',type:'surface',x:boss.x-360,y:boss.y+80,r:105,unlockedAfterBosses:tierNumber+1}),
       descent:null,
       landing:null,
-      boss:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+360,y:boss.y+80,r:150,unlockedAfterBosses:tierNumber+1})
+      boss:tierNumber>=7?null:Object.freeze({id:'boss-sigil',type:'tier-descent',x:boss.x+360,y:boss.y+80,r:150,unlockedAfterBosses:tierNumber+1})
     });
     return Object.freeze({
       version:VERSION,
