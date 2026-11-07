@@ -1,0 +1,31 @@
+[Unit]
+Description=Abyssal authoritative multiplayer server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=abyssal
+Group=abyssal
+WorkingDirectory=/opt/abyssal
+EnvironmentFile=/etc/abyssal/abyssal.env
+Environment=NODE_ENV=production
+Environment=ABYSSAL_RESOURCE_PROFILE=hostinger-kvm2
+Environment=ABYSSAL_ASYNC_PERSISTENCE=true
+Environment=UV_THREADPOOL_SIZE=8
+Environment=HTTP_BACKLOG=4096
+Environment=NODE_OPTIONS=--max-old-space-size=2048
+ExecStart=/usr/bin/node /opt/abyssal/server.js
+Restart=always
+RestartSec=2
+TimeoutStopSec=15
+KillSignal=SIGTERM
+LimitNOFILE=65535
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/opt/abyssal/data
+
+[Install]
+WantedBy=multi-user.target
