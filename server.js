@@ -272,7 +272,21 @@ function pvpArenaRocks(){
  return rocks;
 }
 const PVP_ARENA_ROCKS=pvpArenaRocks();
-function pvpRockAt(x,y,padding=0){for(const rock of PVP_ARENA_ROCKS){const a=-(Number(rock.angle)||0),dx=x-rock.x,dy=y-rock.y,lx=dx*Math.cos(a)-dy*Math.sin(a),ly=dx*Math.sin(a)+dy*Math.cos(a),rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding;if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return rock;}return null;}
+ // Rotations never change. Precompute instead of taking hundreds of thousands of
+ // trig operations per second when six players fire through the rocky arena.
+ for(const rock of PVP_ARENA_ROCKS){const angle=-(Number(rock.angle)||0);rock.cosAngle=Math.cos(angle);rock.sinAngle=Math.sin(angle);}
+function pvpRockAt(x,y,padding=0){
+ for(const rock of PVP_ARENA_ROCKS){
+  const dx=x-rock.x,dy=y-rock.y;
+  // A circle bounding any rotated ellipse cheaply rejects distant rock checks.
+  const bound=rock.r+padding;
+  if(Math.abs(dx)>bound||Math.abs(dy)>bound)continue;
+  const lx=dx*rock.cosAngle-dy*rock.sinAngle,ly=dx*rock.sinAngle+dy*rock.cosAngle;
+  const rx=(Number(rock.rx)||rock.r)+padding,ry=(Number(rock.ry)||rock.r)+padding;
+  if((lx/Math.max(1,rx))**2+(ly/Math.max(1,ry))**2<1)return rock;
+ }
+ return null;
+}
 function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
 function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const outgoing=SkinAbilities.damageMultiplier(attacker?.skinId,'player',distance,Number(attacker?.maxHp)>0?Number(attacker.hp)/Number(attacker.maxHp):1);
@@ -556,6 +570,8 @@ function ensureWorld(room){
 function clearRoomWorld(room){
  if(!room)return;
  room.world=makeWorldState(room.mode);
+ // Persistent PvP room must never carry unfinished attacks into the next session.
+ if(room.pvpProjectiles)room.pvpProjectiles.length=0;
 }
 function scheduleUnjoinedRoomExpiry(room,delay=30000){
  if(!room||room.id===DEFAULT_ROOM_ID||room.id===PVP_ROOM_ID||room.id===FOSSAS_ROOM_ID)return;
