@@ -19,7 +19,10 @@ const artGallery = "<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"ut
 const localGameSmoke = [
 "// Browser smoke only. Injected by its local HTTP server, never committed to public/game.js.",
 "window.__abyssalSmokeStep = () => {",
-" if(!isRiftRun() || onlineMode || gameState!=='playing' || !activeMapLayout) throw Error('Solo Fossa not active');",
+" if(!isRiftRun() || onlineMode || !activeMapLayout) throw Error('Solo Fossa not active');",
+" // A real player can be in a paused level-up screen when this step begins.",
+" if(gameState==='upgrade' && upgradeOptions.length)chooseUpgrade(upgradeOptions[0]);",
+" if(gameState!=='playing') throw Error('Solo Fossa not active: '+gameState);",
 " const tier=activeMapTier, final=RIFT_HARDCORE.FINAL_TIER, bossRoom=activeMapLayout.rooms.find(r=>r.id==='boss');",
 " if(!bossRoom || tier<0 || tier>final) throw Error('Invalid Fossa tier '+tier);",
 " player.invuln=Math.max(player.invuln,3600);",
