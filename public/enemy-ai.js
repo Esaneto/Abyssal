@@ -247,7 +247,7 @@
       pursuitSpeed = Math.min(pursuitSpeed, playerSpeed * 0.79);
     }
     const reducedPursuitSpeed = pursuitSpeed * 0.85;
-    const speed = target.skinId === 'glacier' && distance < 260 / WORLD_ZOOM ? reducedPursuitSpeed * 0.74 : reducedPursuitSpeed;
+    const speed = reducedPursuitSpeed * ((Number(enemy.skinSlowedUntil)||0)>Date.now() ? 0.62 : 1);
     const stopDistance = Math.max(0, Number(options.stopDistance) || 0);
     const oldX = Number(enemy.x) || 0, oldY = Number(enemy.y) || 0;
     // When no contact/orbit radius was requested, exact overlap must remain stationary.

@@ -14,6 +14,7 @@ const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
+const SkinStandard = require('./public/skin-standard.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
@@ -44,8 +45,7 @@ const cpuSampler=setInterval(()=>{
  lastCpuUsage=process.cpuUsage();lastCpuSampleAt=now;lastElu=performance.eventLoopUtilization();
 },1000);
 cpuSampler.unref?.();
-const SKIN_TRAIL_CADENCE_SECONDS=.75,SKIN_TRAIL_CADENCE_MS=750;
-const BUBBLE_TRAIL_HIT_SECONDS=.30,BUBBLE_TRAIL_HIT_MS=300,BUBBLE_TRAIL_EMIT_MS=200;
+const BUBBLE_TRAIL_HIT_MS=600;
 
 const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
 const allowedSocketOrigins = new Set(String(process.env.APP_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean));
@@ -400,6 +400,20 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
  return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*hunter*skinDefense*shellDefense*lastStandDefense);
 }
+function applySkinActivePvpDamage(room,attacker,target,rawDamage,skillId,now){
+ if(!room||!attacker||!target||target.id===attacker.id||target.alive===false)return null;
+ if(now<(Number(target.invulnerableUntil)||0))return null;
+ let blocked=false,damage=0;
+ if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
+ else{
+  damage=pvpDamageAmount(attacker,target,rawDamage,Math.hypot(Number(attacker.x)-Number(target.x),Number(attacker.y)-Number(target.y)));
+  target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=now;target.invulnerableUntil=now+180;
+  if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,attacker.id);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi vencido por uma habilidade de skin.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}
+ }
+ io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active',damage:blocked?0:damage,attackerId:attacker.id,skillId,serverTime:now}));
+ io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:attacker.id,damage:blocked?0:damage,skillId,blocked});
+ return {blocked,damage,target};
+}
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  if(!room||!attacker||!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0)return;
  const source=String(sourceSkill||'physical'),players=[...room.players.values()].filter(p=>p.id!==attacker.id&&p.alive!==false);
@@ -460,7 +474,7 @@ const DEFAULT_ROOM_ID = 'MAR-ABERTO';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const FOSSAS_ROOM_ID = 'MAR-ABYSSAL';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
-const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','greensnake','saltcroc','blackcaiman']);
+const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator','electriceel','electriceellegacy','greensnake','saltcroc','blackcaiman']);
 for(const skin of curatedSkins.items)allowedSkinIds.add(skin.id);
 allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
@@ -772,6 +786,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
   let requestedDamage=damage;
+ if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
@@ -784,19 +799,6 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
   if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
   player.novaDamageTargetIds ||= new Set();if(player.novaDamageTargetIds.has(normalizedId))return reject('nova-duplicate-target');player.novaDamageTargetIds.add(normalizedId);
- }
- if(skillId==='violet-resonance'){
-  if(!player||player.skinId!=='violet')return reject('skin-ability-not-owned');
-  const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>230/WORLD_ZOOM)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.violetResonanceWindowUntil)||0)){
-   if(now<(Number(player.violetResonanceReadyAt)||0))return reject('skin-ability-cooldown');
-   player.violetResonanceReadyAt=now+10000;player.violetResonanceWindowUntil=now+900;player.violetResonanceTargetIds=new Set();
-  }
-  player.violetResonanceTargetIds ||= new Set();
-  if(player.violetResonanceTargetIds.has(normalizedId)||player.violetResonanceTargetIds.size>=4)return reject('skin-ability-target-limit');
-  player.violetResonanceTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,22);
  }
  if(skillId==='arcChain'){
   if(!player||player.arcChainActive!==true)return reject('arc-chain-not-unlocked');
@@ -816,88 +818,16 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   player.arcChainTargetIds.add(normalizedId);
   requestedDamage=Math.min(requestedDamage,16);
  }
- if(skillId==='toxic-cloud'){
-  if(!player||player.skinId!=='toxic')return reject('skin-ability-not-owned');
-  const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>190/WORLD_ZOOM)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.toxicCloudWindowUntil)||0)){
-   if(now<(Number(player.toxicCloudReadyAt)||0))return reject('skin-ability-cooldown');
-   player.toxicCloudReadyAt=now+6500;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
-  }
-  player.toxicCloudTargetIds ||= new Set();if(player.toxicCloudTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,7);
- }
- if(skillId==='kraken-contact'){
-  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
-  const proxy={kind:'kraken',x:Number(player.x),y:Number(player.y),r:(13/WORLD_ZOOM)*1.45,angle:Number(player.angle)||0,phase:(now*.0018)};
-  if(!EnemyAI.touchesKrakenTentacle?.(proxy,enemy,1))return reject('skin-ability-out-of-range');
-  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<850)return reject('skin-ability-cooldown');
-  player[key]=now;requestedDamage=Math.min(requestedDamage,15);
- }
- // The white shark only has a passive wake; its retired frontal dash must
- // not be executable by outdated or modified clients.
- if(skillId==='reefshark-dash')return reject('skin-ability-removed');
- const predatorSkills={
-  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:28,arc:.48,width:58/WORLD_ZOOM},
-  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:34,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:9000,range:190/WORLD_ZOOM,damage:27,arc:Math.PI,width:0}
- };
- if(predatorSkills[skillId]){
-  const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
-  const dx=Number(enemy.x)-Number(player.x),dy=Number(enemy.y)-Number(player.y),distance=Math.hypot(dx,dy);
-  if(distance>cfg.range)return reject('skin-ability-out-of-range');
-  if(cfg.arc<Math.PI){const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-Number(player.angle||0)),Math.cos(Math.atan2(dy,dx)-Number(player.angle||0)));if(Math.abs(diff)>cfg.arc||Math.abs(Math.sin(diff)*distance)>cfg.width)return reject('skin-ability-out-of-arc');}
-  const ready=Number(player[skillId+'ReadyAt'])||0,windowUntil=Number(player[skillId+'WindowUntil'])||0;
-  if(now>windowUntil){if(now<ready)return reject('skin-ability-cooldown');player[skillId+'ReadyAt']=now+cfg.cooldown;player[skillId+'WindowUntil']=now+650;player[skillId+'TargetIds']=new Set();}
-  player[skillId+'TargetIds'] ||= new Set();if(player[skillId+'TargetIds'].has(normalizedId)||player[skillId+'TargetIds'].size>=8)return reject('skin-ability-target-limit');
-  player[skillId+'TargetIds'].add(normalizedId);requestedDamage=Math.min(requestedDamage,cfg.damage);
- }
- if(skillId==='kraken-sweep'){
-  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
-  const radius=280/WORLD_ZOOM, distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>radius)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.krakenSweepWindowUntil)||0)){
-   if(now<(Number(player.krakenSweepReadyAt)||0))return reject('skin-ability-cooldown');
-   player.krakenSweepReadyAt=now+12000;player.krakenSweepWindowUntil=now+800;player.krakenSweepTargetIds=new Set();
-  }
-  player.krakenSweepTargetIds ||= new Set();
-  if(player.krakenSweepTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.krakenSweepTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,32);
- }
- // Poison damage must belong to the attacking skin and a verified active
- // status on the server. This prevents arbitrary poison ticks through sockets.
- if(skillId==='poison-dot'){
-  if(!player||!['greensnake','toxic'].includes(player.skinId)||enemy.poisonOwnerId!==player.id||
-     now>(Number(enemy.poisonedUntil)||0)||now<(Number(enemy.poisonTickReadyAt)||0))
-   return reject('skin-poison-expired');
-  enemy.poisonTickReadyAt=now+750;requestedDamage=Math.min(requestedDamage,2.5);
- }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
- // Only verified direct strikes may apply/refresh poison. No extra attack
- // packets are generated; accepted dot damage is resolved like any other hit.
- if(player?.skinId==='greensnake'&&skillId!=='poison-dot'&&skillId!=='electric-chain'){
-  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
- }else if(player?.skinId==='toxic'&&skillId==='toxic-cloud'){
-  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
- }
  const applied=Math.min(250,requestedDamage*skinMultiplier);
+ combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date(now).toISOString();combatDiagnostics.lastDamageReason='accepted';
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
  enemy.hp=Math.max(0,hpBefore-applied);
  // Overkill cannot count as extra damage for the proportional XP share.
  if(player){enemy.damageContributors ||= Object.create(null);const id=String(player.id);enemy.damageContributors[id]=(Number(enemy.damageContributors[id])||0)+Math.min(applied,hpBefore);}
  if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
- // Varredura do Télson: mesma intensidade e vetor radial da habilidade solo.
- // O ângulo não é alterado pelo impacto.
- if(skillId==='armoredgator-spin' && player){
-  const pushX=Number(enemy.x)-Number(player.x),pushY=Number(enemy.y)-Number(player.y);
-  const pushLength=Math.hypot(pushX,pushY)||1;
-  enemy.kbVx=(pushX/pushLength)*620;
-  enemy.kbVy=(pushY/pushLength)*620;
- }
- if(player?.skinId==='electriceel' && skillId!=='poison-dot' && now>=(Number(enemy.electricStunReadyAt)||0)){enemy.electricStunReadyAt=now+1200;enemy.paralyzedUntil=now+120;}
- combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
+
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
@@ -936,10 +866,6 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    WorldSimulation.startDepthEvent(w,Math.random);
    io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
    awardWorldBossCoins(room);
-  }
-  if(player?.skinId==='coral'&&player.alive!==false){
-   const healed=Math.min(4,Math.max(0,player.maxHp-player.hp));
-   if(healed>0){player.hp+=healed;socket.emit('player-vitals',playerVitalsPayload(player,{reason:'regeneration',healed,serverTime:Date.now()}));}
   }
   // A batch sends one consolidated lifecycle update after every hit has been
   // validated; single-hit compatibility uses the same compact lifecycle events.
@@ -1071,22 +997,8 @@ function tickRoom(room, now) {
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
   if(room.pvpProjectiles?.length)PvpProjectiles.advance(room.pvpProjectiles,activePlayers,now,pvpRockAt,(shot,target,point,at)=>resolveMovingPvpShot(room,shot,target,point,at));
-   const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];w.inkTrails=Array.isArray(w.inkTrails)?w.inkTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.6,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'reefshark-bubble',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:'reefshark-bubble'});}}
-  for(let i=w.inkTrails.length-1;i>=0;i--){
-   const ink=w.inkTrails[i];ink.life-=.05;ink.damageTimer=(Number(ink.damageTimer)||0)-.05;
-   if(ink.life<=0){w.inkTrails.splice(i,1);continue;}if(ink.damageTimer>0)continue;ink.damageTimer=BUBBLE_TRAIL_HIT_SECONDS;
-   const owner=room.players.get(ink.ownerId);if(!owner)continue;
-   for(const target of activePlayers){
-    if(target.id===ink.ownerId||target.alive===false)continue;
-    if(Math.hypot(Number(target.x)-ink.x,Number(target.y)-ink.y)>ink.r+(Number(target.r)||13/WORLD_ZOOM))continue;
-    const hitAt=Date.now();if(hitAt<(Number(target.invulnerableUntil)||0)||hitAt-(Number(target.lastBlackBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;let blocked=false,damage=0;
-    if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}
-    else{damage=pvpDamageAmount(owner,target,1.6,Math.hypot(Number(target.x)-Number(owner.x),Number(target.y)-Number(owner.y)));target.lastBlackBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,ink.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi atingido por bolhas negras abissais.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}
-    io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'blue-ring-ink',damage:blocked?0:damage,attackerId:ink.ownerId,serverTime:hitAt}));
-    io.to(channelFor(room)).emit('pvp-hit',{x:ink.x/WORLD_WIDTH,y:ink.y/WORLD_HEIGHT,targetId:target.id,attackerId:ink.ownerId,damage:blocked?0:damage,blocked,source:'blue-ring-ink'});
-   }
-  }
+   const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.60;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(Math.hypot(Number(target.x)-bubble.x,Number(target.y)-bubble.y)>bubble.r+(Number(target.r)||13/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
   return;
  }
@@ -1462,6 +1374,7 @@ io.on('connection', socket => {
   // must not move it back into the active world. ACK without updating the last position
   // so a throttled browser can harmlessly send until it receives the death event.
   if(p.alive===false)return ack({ok:true,dead:true,seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
+  if(Date.now()<(Number(p.skinParalyzedUntil)||0)){socket.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,Number(p.x)||0,Number(p.y)||0,true));return ack({ok:true,blocked:true,reason:'skin-paralyzed',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   const x=Number(payload.x),y=Number(payload.y);if(!Number.isFinite(x)||!Number.isFinite(y))return ack({ok:false,reason:'invalid-coordinates'});
   const incomingSeq=Math.max(0,Math.floor(Number(payload.seq)||0));
   if(incomingSeq>0&&incomingSeq<=(Number(p.lastPositionSeq)||0))return ack({ok:true,duplicate:true,seq:p.lastPositionSeq,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});
@@ -1478,7 +1391,8 @@ io.on('connection', socket => {
    return ack({ok:true,blocked:true,reason:'stale-depth-position',seq:p.lastPositionSeq,receivedAt,positionUpdates:p.positionUpdates||0});
   }
   if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'terrain',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
-  const movement=consumeMovementBudget(p,displacement,receivedAt);
+  const skinDashActive=receivedAt<(Number(p.skinDashUntil)||0);
+  const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
   if(room.mode==='rift'){
@@ -1883,58 +1797,83 @@ io.on('connection', socket => {
   else io.to(channelFor(room)).volatile.emit('shared-shot',shot);
  });
  socket.on('fusion-achieved',payload=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(!room||!player||player.alive===false||player.tutorialActive)return;const name=String(payload?.name||'').trim().slice(0,48);if(!name)return;const nickname=String(socket.data.nickname||'Mergulhador').slice(0,18);io.to(channelFor(room)).emit('gameplay-notice',{kind:'fusion',title:name.toUpperCase(),text:`${nickname} fundiu habilidades e despertou ${name}.`});});
- socket.on('skin-ability', (payload, acknowledge) => {
-  const room = socketRoom(socket);
-  if(!room || !socket.data.joined || !room.players.has(socket.id) || !payload || typeof payload !== 'object') {
-   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'not-in-room'});
-   return;
-  }
-  if(room.players.get(socket.id)?.tutorialActive){if(typeof acknowledge==='function')acknowledge({ok:false,reason:'tutorial-active'});return;}
-  const skin = String(payload.skin || '').slice(0,32);
-  const x = Number(payload.x), y = Number(payload.y), angle = Number(payload.angle);
-  if(!skin || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(angle) || x < 0 || x > 1 || y < 0 || y > 1) {
-   if(typeof acknowledge === 'function') acknowledge({ok:false,reason:'invalid-payload'});
-   return;
-  }
-  const u = users[socket.data.userKey];
-  const type = payload.type==='ink-trail'&&skin==='aberration'?'ink-trail':payload.type === 'bubble-trail' && (skin === 'reefshark' || skin === 'whiteShark') ? 'bubble-trail' : 'ability';
-  // Cap black-octopus and shark bubble emission at 200 ms; hit cadence is 100 ms.
-  if(type==='bubble-trail'||type==='ink-trail'){
-   const owner=room.players.get(socket.id);
-   const key=type==='bubble-trail'?'lastBubbleTrailAt':'lastInkTrailAt';
-   const now=Date.now();
-   if(!owner||owner.skinId!==skin||Math.hypot(Number(owner.x)-x*WORLD_WIDTH,Number(owner.y)-y*WORLD_HEIGHT)>90/WORLD_ZOOM||now-(Number(owner[key])||0)<BUBBLE_TRAIL_EMIT_MS*.8){
-    if(typeof acknowledge==='function')acknowledge({ok:false,reason:'trail-cadence'});
-    return;
-   }
-   owner[key]=now;
-  }
-  const event = {type,from:u?.nickname || socket.id,fromId:socket.id,skin,x,y,angle,at:Date.now()};
-  if(type==='bubble-trail'&&room.mode==='pvp'){
-   const player=room.players.get(socket.id);
-   if(player&&(player.skinId==='reefshark'||player.skinId==='whiteShark')){
+ socket.on('skin-ability',(payload,acknowledge)=>{
+  const room=socketRoom(socket),player=room?.players.get(socket.id);
+  const ack=(ok,reason,extra={})=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now(),...extra});};
+  if(!room||!socket.data.joined||!player||player.alive===false||player.tutorialActive||!payload||typeof payload!=='object')return ack(false,'not-in-room');
+  if(payload.type!=='standard-active')return ack(false,'legacy-skin-ability-removed');
+  const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),spec=SkinStandard.activeSpec(skin);
+  if(!spec||player.skinId!==skin||spec.id!==active)return ack(false,'skin-active-mismatch');
+  if(active==='paralysis'&&!['electriceel','electriceellegacy'].includes(skin))return ack(false,'paralysis-electric-only');
+  const now=Date.now(),ready=Number(player.skinActiveReadyAt)||0;
+  if(now<ready)return ack(false,'skin-active-cooldown',{remainingMs:ready-now});
+  const nx=Number(payload.x),ny=Number(payload.y),angle=clamp(Number(payload.angle)||0,-Math.PI*2,Math.PI*2),worldHeight=roomWorldHeight(room);
+  if(!Number.isFinite(nx)||!Number.isFinite(ny)||nx<0||nx>1||ny<0||ny>1)return ack(false,'skin-active-position');
+  const originX=Number(player.x),originY=Number(player.y);
+  if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>110/WORLD_ZOOM)return ack(false,'skin-active-position');
+  player.skinActiveReadyAt=now+Math.round(Number(spec.cooldown||10)*1000);
+  if(active==='dash')player.skinDashUntil=now+450;
+  if(active==='shield')player.invulnerableUntil=Math.max(Number(player.invulnerableUntil)||0,now+1100);
+
+  const event={type:'standard-active',active,skin,fromId:socket.id,x:originX/WORLD_WIDTH,y:originY/worldHeight,angle,color:spec.color,range:spec.range,serverTime:now,hitAt:(active==='shot'||active==='slowShot')?now+450:now};
+  io.to(channelFor(room)).emit('peer-skin-ability',event);
+
+  const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
+  const radius=(Number(spec.range)||160)/WORLD_ZOOM,ux=Math.cos(angle),uy=Math.sin(angle);
+  const enemies=[...(room.world?.enemies||[])];
+  const canReachEnemy=e=>e&&Number(e.hp)>0&&(room.mode!=='rift'||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
+  const resolveEnemyDamage=(enemy,amount,skillId)=>{
+   if(!enemy||Number(enemy.hp)<=0)return null;player.skinActiveServerResolving=true;
+   try{return processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
+   finally{player.skinActiveServerResolving=false;}
+  };
+  const areaEnemies=()=>enemies.filter(e=>canReachEnemy(e)&&Math.hypot(Number(e.x)-originX,Number(e.y)-originY)<=radius).slice(0,8);
+  const nearestEnemy=()=>enemies.filter(canReachEnemy).map(e=>({e,d:Math.hypot(Number(e.x)-originX,Number(e.y)-originY)})).filter(v=>v.d<=radius).sort((a,b)=>a.d-b.d)[0]?.e||null;
+
+  const livingOpponents=()=>[...room.players.values()].filter(p=>p.id!==player.id&&p.alive!==false);
+  const visiblePvpTargets=()=>livingOpponents().filter(p=>Math.hypot(Number(p.x)-originX,Number(p.y)-originY)<=radius&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).slice(0,6);
+  const hitPvp=(target,amount,skillId)=>applySkinActivePvpDamage(room,player,target,amount,skillId,Date.now());
+
+  if(active==='trail'){
+   const nodes=[];for(let i=0;i<5;i++)nodes.push({x:originX-ux*(18+i*26)/WORLD_ZOOM,y:originY-uy*(18+i*26)/WORLD_ZOOM});
+   if(room.mode==='pvp'){
     room.world.sharkWakeTrails=Array.isArray(room.world.sharkWakeTrails)?room.world.sharkWakeTrails:[];
-    room.world.sharkWakeTrails.push({ownerId:socket.id,x:x*WORLD_WIDTH,y:y*WORLD_HEIGHT,r:18/WORLD_ZOOM,life:5,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
-    if(room.world.sharkWakeTrails.length>160)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-160);
+    for(const node of nodes)room.world.sharkWakeTrails.push({ownerId:player.id,x:node.x,y:node.y,r:20/WORLD_ZOOM,life:3.2,damageTimer:.45,skinActive:true});
+    if(room.world.sharkWakeTrails.length>120)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-120);
+   }else{
+    for(const e of enemies){if(!canReachEnemy(e))continue;if(nodes.some(n=>Math.hypot(Number(e.x)-n.x,Number(e.y)-n.y)<=32/WORLD_ZOOM))resolveEnemyDamage(e,spec.damage,'skin-active-trail');}
    }
-  }
-  if(type==='ink-trail'&&room.mode==='pvp'){
-   const player=room.players.get(socket.id),ix=x*WORLD_WIDTH,iy=y*WORLD_HEIGHT;
-   if(player&&player.skinId==='aberration'&&Math.hypot(Number(player.x)-ix,Number(player.y)-iy)<=90/WORLD_ZOOM){
-    room.world.inkTrails=Array.isArray(room.world.inkTrails)?room.world.inkTrails:[];
-    room.world.inkTrails.push({ownerId:socket.id,x:ix,y:iy,r:28/WORLD_ZOOM,life:4,damageTimer:BUBBLE_TRAIL_HIT_SECONDS});
-    if(room.world.inkTrails.length>180)room.world.inkTrails.splice(0,room.world.inkTrails.length-180);
+  }else if(active==='shot'||active==='slowShot'){
+   const ex=originX+ux*radius,ey=originY+uy*radius;
+   io.to(channelFor(room)).emit('skin-shot-telegraph',{fromId:player.id,x1:originX/WORLD_WIDTH,y1:originY/worldHeight,x2:ex/WORLD_WIDTH,y2:ey/worldHeight,color:room.mode==='pvp'?'#ff334f':spec.color,hitAt:now+450,active});
+   setTimeout(()=>{
+    const liveRoom=socketRoom(socket),livePlayer=liveRoom?.players.get(socket.id);if(liveRoom!==room||!livePlayer||livePlayer.alive===false)return;
+    if(room.mode==='pvp'){
+     const target=livingOpponents().filter(p=>lineDistance(Number(p.x),Number(p.y),originX,originY,ex,ey)<=30/WORLD_ZOOM&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
+     if(target){hitPvp(target,spec.damage,'skin-active-'+active);if(active==='slowShot'){target.skinSlowedUntil=Date.now()+2200;io.to(target.id).emit('player-skin-status',{type:'slow',until:target.skinSlowedUntil,multiplier:.62});}}
+    }else{
+     const target=[...(room.world?.enemies||[])].filter(e=>Number(e.hp)>0&&lineDistance(Number(e.x),Number(e.y),originX,originY,ex,ey)<=24/WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
+     if(target){resolveEnemyDamage(target,spec.damage,'skin-active-'+active);if(active==='slowShot')target.skinSlowedUntil=Date.now()+2200;}
+    }
+   },450);
+  }else if(room.mode==='pvp'){
+   const targets=active==='poison'?[visiblePvpTargets()[0]].filter(Boolean):visiblePvpTargets();
+   if(active==='dash'){
+    const ex=originX+ux*radius,ey=originY+uy*radius;for(const target of livingOpponents())if(lineDistance(target.x,target.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)hitPvp(target,spec.damage,'skin-active-dash');
+   }else if(active==='shield'){}
+   else for(const target of targets){
+    const hit=hitPvp(target,spec.damage,'skin-active-'+active);if(!hit)continue;
+    if(active==='paralysis'){target.skinParalyzedUntil=Date.now()+520;io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});}
+    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*62/WORLD_ZOOM,ty=target.y+dy/d*62/WORLD_ZOOM;if(!pvpRockAt(tx,ty,Number(target.r)||13/WORLD_ZOOM)){target.x=tx;target.y=ty;io.to(target.id).emit('player-suction-pull',{dx:dx/d*62/WORLD_ZOOM,dy:dy/d*62/WORLD_ZOOM,bossId:'skin-push',strength:1});}}
+    if(active==='poison'||active==='cloud'){for(const delay of active==='poison'?[800,1600,2400]:[900,1800])setTimeout(()=>{const live=room.players.get(target.id);if(live?.alive!==false)hitPvp(live,1.2,'skin-active-poison-dot');},delay);}
    }
+  }else{
+   if(active==='dash'){const ex=originX+ux*radius,ey=originY+uy*radius;for(const e of enemies)if(canReachEnemy(e)&&lineDistance(e.x,e.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)resolveEnemyDamage(e,spec.damage,'skin-active-dash');}
+   else if(active==='shield'){}
+   else if(active==='poison'){const e=nearestEnemy();if(e){resolveEnemyDamage(e,spec.damage,'skin-active-poison');for(const delay of [800,1600,2400])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}}
+   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='paralysis')e.paralyzedUntil=Date.now()+520;if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}if(active==='cloud')for(const delay of [900,1800])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}
   }
-  // Envio direto aos sockets da sala, sem depender do canal Socket.IO.
-  let delivered = 0;
-  // A chave do Map é o ID real do socket; peer.id pode faltar após reconexões.
-  for(const peerSocketId of room.players.keys()) {
-   if(peerSocketId === socket.id) continue;
-   io.to(peerSocketId).emit('peer-skin-ability', event);
-   delivered++;
-  }
-  if(typeof acknowledge === 'function') acknowledge({ok:true,delivered});
+  ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active});
  });
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');

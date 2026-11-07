@@ -12,10 +12,6 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
 const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-function anglerInvisibleAt(nowMs=Date.now()){
-  const phase=((Number(nowMs)||0)%26000+26000)%26000;
-  return phase>=3000&&phase<13000;
-}
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
@@ -510,7 +506,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
   const targetablePlayers = [];
-  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now && !(p.skinId==='angler'&&anglerInvisibleAt(now))) targetablePlayers.push(p);
+  for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now) targetablePlayers.push(p);
   for (const enemy of world.enemies) {
     if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);

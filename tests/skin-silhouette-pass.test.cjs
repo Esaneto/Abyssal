@@ -47,7 +47,7 @@ test('oarfish leviathan uses a ribbon body and continuous dorsal crest while pre
 
 });
 
-test('blue-ring octopus is blue with eight downward arms and black damaging ink',()=>{
+test('blue-ring octopus keeps blue eight-arm anatomy while skin combat uses standardized active',()=>{
  const skinStart=game.indexOf("if(id==='aberration'){"),skinEnd=game.indexOf("}else if(id==='angler'){",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='boss'){"),bossEnd=game.indexOf(" } else if(kind==='devourer'){",bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
@@ -59,11 +59,11 @@ test('blue-ring octopus is blue with eight downward arms and black damaging ink'
  assert.match(helper,/for\(let arm=0;arm<8;arm\+\+\)/);
  assert.match(helper,/c2y:1\.5/);assert.match(helper,/ey:2\.22\+\(arm%3\)\*\.16/);
  assert.match(helper,/#348fe7/);assert.match(helper,/#67ddff/);
- assert.match(game,/type:'ink-trail'/);assert.match(game,/blue-ring-ink/);
+ const S=require('../public/skin-standard.js');assert.equal(S.profile('aberration').active,'trail');assert.doesNotMatch(game,/type:'ink-trail',skin:'aberration'/);
 
 });
 
-test('anglerfish has a huge open mouth, luminous lure and exact camouflage cycle',()=>{
+test('anglerfish boss keeps huge mouth lure and camouflage while playable skin has no automatic invisibility',()=>{
  const skinStart=game.indexOf("}else if(id==='angler'){"),skinEnd=game.indexOf("}else if(id==='maw'){",skinStart);
  const bossStart=game.indexOf(" } else if(kind==='angler'){"),bossEnd=game.indexOf("// Bioluminescent side line",bossStart);
  const skin=game.slice(skinStart,skinEnd),boss=game.slice(bossStart,bossEnd);
@@ -79,9 +79,8 @@ test('anglerfish has a huge open mouth, luminous lure and exact camouflage cycle
  assert.doesNotMatch(skin,/'#07101a'|'#050910'/);
  assert.doesNotMatch(boss,/'#050b13'|'#02070d'/);
  assert.match(drawing,/globalCompositeOperation='lighter'/);
- assert.match(game,/const lureOnly=/);assert.match(game,/lureOnly\(\.55,-1\.18\)/);
- assert.match(game,/phase<3000/);assert.match(game,/phase<13000/);assert.match(game,/phase<16000/);assert.match(game,/%26000/);
- assert.match(game,/anglerConcealed/);
+ assert.match(game,/const lureOnly=/);assert.match(game,/phase<3000/);assert.match(game,/phase<13000/);assert.match(game,/phase<16000/);assert.match(game,/%26000/);assert.match(game,/anglerConcealed/);
+ const S=require('../public/skin-standard.js');assert.equal(S.profile('angler').active,'dash');assert.doesNotMatch(game,/equippedSkin==='angler'&&anglerInvisibleNow/);
 
 });
 

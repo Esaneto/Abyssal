@@ -51,23 +51,15 @@ test('both physical boss portal destinations are navigable and visually labeled'
  assert.match(game,/drawMapPortal\(layout\.portals\.boss,t\)/);
 });
 
-test('shark and octopus bubbles hit every 300 ms, emit every 200 ms and snake poison ticks every 750 ms',()=>{
- assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.75,SKIN_TRAIL_CADENCE_MS=750/);
- assert.match(server,/SKIN_TRAIL_CADENCE_SECONDS=\.75,SKIN_TRAIL_CADENCE_MS=750/);
- assert.match(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
- assert.match(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
- assert.match(game,/bubble\.damageTimer = BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(game,/ink\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(game,/e\.poisonTick = SKIN_TRAIL_CADENCE_SECONDS/);
- assert.match(game,/e\.wakeHitAt\|\|0\)>=BUBBLE_TRAIL_HIT_MS/);
- assert.match(game,/e\.blueRingInkHitAt\)\|\|0\)>=BUBBLE_TRAIL_HIT_MS/);
- assert.match(server,/bubble\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(server,/ink\.damageTimer=BUBBLE_TRAIL_HIT_SECONDS/);
- assert.match(server,/reason:'trail-cadence'/);
- const updates=between(game,'// Movimento local responsivo','// Dano contínuo de veneno');
- assert.doesNotMatch(updates,/\.275/,'old uneven 275ms hit cadence must not survive');
+test('standardized trail and poison use bounded active cadence instead of permanent passives',()=>{
+ assert.match(game,/bubble\.damageTimer=\.60/);
+ assert.match(game,/wakeHitAt\|\|0\)>=600/);
+ assert.match(server,/BUBBLE_TRAIL_HIT_MS=600/);
+ assert.match(server,/life:3\.2,damageTimer:\.45,skinActive:true/);
+ assert.match(server,/active==='poison'/);assert.match(server,/\[800,1600,2400\]/);
+ assert.doesNotMatch(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
+ assert.doesNotMatch(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
 });
-
 test('Windows and Android builds inspect actual embedded launcher artwork, not only source paths',()=>{
  const android=read('.github/workflows/ci.yml');
  const windows=read('.github/workflows/download-builds.yml');

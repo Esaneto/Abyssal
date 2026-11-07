@@ -23,33 +23,17 @@ test('Kraken tentacle collision includes arm tips and rejects distant players', 
   assert.equal(ai.touchesKrakenTentacle(enemy, { x: 3200, y: 1900, r: 5 }), false);
 });
 
-test('every skin has distinct ability copy and paid skins use hosted checkout', () => {
-  const game = read('public/game.js').replace(/\r\n/g, '\n');
-  const start = game.indexOf('const skinData=[');
-  const end = game.indexOf('];\nconst SkinAbilities', start);
-  assert.ok(start >= 0 && end > start);
-  const source = game.slice(start, end);
-  const skins = [...source.matchAll(/\{id:'([^']+)'[^}]*?ability:'([^']+)'[^}]*\}/gs)];
-  assert.equal(skins.length, 28, 'catalog includes the original species plus the new final guardian relic skin');
-  assert.ok(skins.some(match=>match[1]==='riftSmileRelic'));
-  for (const id of ['aberration','angler','maw','devourer']) assert.ok(skins.some(match => match[1] === id), `missing boss skin ${id}`);
-  assert.equal(new Set(skins.map(match => match[1])).size, skins.length, 'skin IDs should be unique');
-  assert.equal(new Set(skins.map(match => match[2])).size, skins.length, 'each skin ability should have unique copy');
-  assert.match(source, /id:'kraken',name:'Eco da Lula-Kraken',color:'#4f9fc7',price:30000,paid:true/);
-  for (const id of ['violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']) assert.match(source, new RegExp(`id:'${id}'.*paid:true`));
-  assert.match(game, /purchaseStripe\(skin\.id,shopCurrency,gameLanguage\)/);
-  assert.doesNotMatch(game, /legalAgeConsent/, 'a self-attestation checkbox must not be presented as age verification');
-  assert.match(game, /class="skin-ability"/);
-  const server = read('server.js');
-  assert.match(server, /stripeOnlySkins = new Set\(\[[^\]]*'kraken'[^\]]*\]\)/);
-  assert.match(server, /player\.skinId!=='kraken'/);
-  const coinPrices=(server.match(/const prices = \{([^}]+)\}/)||[])[1]||'';
-  for (const id of ['kraken','aberration','angler','maw','devourer']) {
-    assert.doesNotMatch(coinPrices,new RegExp('(?:^|\\s|,)'+id+':'));
-    assert.match(server, new RegExp(`'${id}'`));
-  }
+test('every skin receives standardized ability copy and paid skins use hosted checkout',()=>{
+ const game=read('public/game.js'),S=require('../public/skin-standard.js');
+ assert.match(game,/skin\.ability=SKIN_STANDARD\.describe\(skin\.id\)/);
+ assert.equal(S.validate(),true);
+ for(const id of ['leviathan','kraken','aberration','angler','maw','devourer']){assert.equal(S.profile(id).tier,'brl999');assert.ok(S.activeSpec(id));}
+ assert.equal(S.profile('riftSmileRelic').tier,'mission');
+ assert.match(game,/purchaseStripe\(skin\.id,shopCurrency,gameLanguage\)/);
+ assert.doesNotMatch(game,/legalAgeConsent/);
+ assert.match(game,/class="skin-ability"/);
+ const server=read('server.js');assert.match(server,/stripeOnlySkins = new Set\(/);assert.match(server,/SkinStandard\.activeSpec\(skin\)/);
 });
-
 test('menu Kraken uses eight moving arms and a shadowed, toothless maw', () => {
   const html = read('public/index.html');
   const css = read('public/style.css');

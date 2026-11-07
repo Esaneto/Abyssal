@@ -4,41 +4,16 @@ const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const {calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,PAID_SKINS,BOSS_SKINS,TERMS_VERSION}=require('../payments');
 
-test('server catalog preserves the original BRL prices and discounted relic bundle',()=>{
- assert.equal(PAID_SKINS.saltcroc.brl,999);
- assert.equal(PAID_SKINS.blackcaiman.brl,999);
- assert.equal(calculateOrder('saltcroc',[]).amount,999);
- assert.equal(calculateOrder('blackcaiman',[]).amount,999);
- assert.equal(calculateOrder('saltcroc',['saltcroc']).amount,0);
- assert.equal(PAID_SKINS.violet.brl,390);assert.equal(PAID_SKINS.violet.testOnly,false);
- assert.deepEqual(
-  ['reefshark','hammerhead','abysscroc','armoredgator'].map(id=>PAID_SKINS[id].brl),
-  [590,590,690,690]
- );
- assert.deepEqual(
-  ['angler','maw','aberration','leviathan','kraken','devourer'].map(id=>PAID_SKINS[id].brl),
-  [1290,1490,1490,1690,1890,1990]
- );
- for(const id of ['abyssking','bloodmoon','abyssaleye','deepwarden'])assert.equal(PAID_SKINS[id],undefined,id);
- assert.equal(calculateOrder('violet',[],'brl').amount,390);
- assert.equal(calculateOrder('reefshark',[],'brl').amount,590);
- assert.equal(calculateOrder('boss_bundle',[],'brl').amount,6990);
- assert.equal(calculateOrder('boss_bundle',['leviathan'],'brl').amount,8150);
- assert.equal(calculateOrder('boss_bundle',['leviathan','kraken'],'brl').amount,6260);
+test('server catalog uses only R$1.99 R$4.99 and R$9.99 skin prices',()=>{
+ for(const id of ['violet','reefshark','hammerhead'])assert.equal(PAID_SKINS[id].brl,199,id);
+ for(const id of ['saltcroc','blackcaiman','abysscroc','armoredgator','electriceellegacy'])assert.equal(PAID_SKINS[id].brl,499,id);
+ for(const id of BOSS_SKINS)assert.equal(PAID_SKINS[id].brl,999,id);
+ assert.equal(calculateOrder('electriceellegacy',[],'brl').amount,499);
+ assert.equal(calculateOrder('boss_bundle',[],'brl').amount,5994);
  assert.equal(calculateOrder('boss_bundle',BOSS_SKINS,'brl').amount,0);
- assert.deepEqual(
-  [PAID_SKINS.reefshark.name,PAID_SKINS.hammerhead.name,PAID_SKINS.abysscroc.name,PAID_SKINS.armoredgator.name],
-  ['Tubarão-branco','Tubarão-martelo','Tubarão-Touro Estuarino','Caranguejo-Ferradura Couraçado']
- );
- assert.deepEqual(
-  [PAID_SKINS.leviathan.name,PAID_SKINS.kraken.name,PAID_SKINS.aberration.name],
-  ['Eco do Peixe-Remo Leviatã','Eco do Kraken','Eco do Polvo-de-Anéis-Azuis']
- );
  assert.throws(()=>calculateOrder('reefshark',[],'usd'),/Unsupported currency/);
- assert.throws(()=>calculateOrder('reefshark',[],'eur'),/Unsupported currency/);
  assert.match(TERMS_VERSION,/^\d{4}-\d{2}-\d{2}-v\d+$/);
 });
-
 test('Stripe signature verification uses raw bytes, timestamp tolerance and constant-time digest comparison',()=>{
  const raw=Buffer.from('{"id":"evt_test","type":"checkout.session.completed"}'),secret='whsec_test_secret',timestamp=1_800_000_000;
  const signature=crypto.createHmac('sha256',secret).update(String(timestamp)+'.').update(raw).digest('hex');
