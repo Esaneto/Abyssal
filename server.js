@@ -1574,13 +1574,37 @@ io.on('connection', socket => {
     const ex=sx+ux*length,ey=sy+uy*length;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;shot.effectRadius=length;
    shot.beamEndX=clamp(ex/WORLD_WIDTH,0,1);shot.beamEndY=clamp(ey/shotWorldHeight,0,1);
+   // A single authoritative photon command resolves all Prism side rays.
+   // Clients cannot supply extra beam endpoints or bypass the 190 ms cadence.
+   const prismRank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3);
+   const secondarySegments=[];
+   for(let i=0;i<prismRank*2;i++){
+    const angle=Math.atan2(uy,ux)+(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
+    const dx=Math.cos(angle),dy=Math.sin(angle);
+    let sideLength=beamRange;
+    if(room.mode==='pvp'){
+     for(let d=0;d<=beamRange;d+=4/WORLD_ZOOM){
+      if(pvpRockAt(sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-4/WORLD_ZOOM);break;}
+     }
+    }else if(room.mode==='rift'){
+     const layout=WorldSimulation.mapLayoutFor(room.world);
+     for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
+      if(!AbyssalMap.isWalkable(layout,sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
+     }
+    }
+    secondarySegments.push({x2:sx+dx*sideLength,y2:sy+dy*sideLength});
+   }
+   shot.prismBeams=secondarySegments.map(beam=>({x2:clamp(beam.x2/WORLD_WIDTH,0,1),y2:clamp(beam.y2/shotWorldHeight,0,1)}));
    const hitRadius=(room.mode==='pvp'?5/WORLD_ZOOM:0)+PhotonRay.widths[shot.beamLevel]*(shooter.hadalBeamActive?1.35:1)/(2*WORLD_ZOOM);
    if(room.mode==='pvp'){
     let changed=false;
     for(const target of room.players.values()){
      if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;
-     if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,(Number(target.r)||13/WORLD_ZOOM)+hitRadius))continue;
-     const rawDamage=Math.max(1,Math.min(35,shot.damage||12));
+     const hitRadiusWithTarget=(Number(target.r)||13/WORLD_ZOOM)+hitRadius;
+     const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,target.x,target.y,hitRadiusWithTarget);
+     const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,target.x,target.y,hitRadiusWithTarget*.88));
+     if(!primaryHit&&!sideHit)continue;
+     const rawDamage=Math.max(1,Math.min(35,shot.damage||12))*(primaryHit?1:.42);
      const damage=pvpDamageAmount(shooter,target,rawDamage,Math.hypot(sx-target.x,sy-target.y));
      let blocked=false;
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
@@ -1599,8 +1623,11 @@ io.on('connection', socket => {
      const enemyLookup=new Map((room.world?.enemies||[]).map(enemy=>[Number(enemy.id),enemy]));
      for(const enemy of [...(room.world?.enemies||[])]){
       if(!enemy||Number(enemy.hp)<=0)continue;
-      if(!PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius))continue;
-      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12)),'photonRay',null,shot.actionId,enemyLookup);
+      const hitRadiusWithTarget=Math.max(2,Number(enemy.r)||12)/WORLD_ZOOM+hitRadius;
+      const primaryHit=PhotonRay.segmentCircleHit(sx,sy,ex,ey,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget);
+      const sideHit=!primaryHit&&secondarySegments.some(beam=>PhotonRay.segmentCircleHit(sx,sy,beam.x2,beam.y2,Number(enemy.x),Number(enemy.y),hitRadiusWithTarget*.88));
+      if(!primaryHit&&!sideHit)continue;
+      processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage||12))*(primaryHit?1:.42),'photonRay',null,shot.actionId,enemyLookup);
      }
     }finally{shooter.photonServerResolving=false;}
    }
