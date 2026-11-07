@@ -1835,7 +1835,7 @@ io.on('connection', socket => {
   const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
   const radius=(Number(spec.range)||160)/WORLD_ZOOM,ux=Math.cos(angle),uy=Math.sin(angle);
   const enemies=[...(room.world?.enemies||[])];
-  const canReachEnemy=e=>e&&Number(e.hp)>0&&(!room.mode==='rift'||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
+  const canReachEnemy=e=>e&&Number(e.hp)>0&&(room.mode!=='rift'||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
   const resolveEnemyDamage=(enemy,amount,skillId)=>{
    if(!enemy||Number(enemy.hp)<=0)return null;player.skinActiveServerResolving=true;
    try{return processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
