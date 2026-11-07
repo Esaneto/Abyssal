@@ -456,7 +456,7 @@ const items=[
     "id": "spidercrab",
     "name": "Caranguejo-Aranha",
     "family": "crustacean",
-    "color": "#997153",
+    "color": "#b27646",
     "stat": "damage",
     "multiplier": 1.29,
     "bonuses": {
