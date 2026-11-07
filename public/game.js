@@ -1510,23 +1510,32 @@ function respawnSoloRiftCheckpoint(){
  enqueueGameplayNotice('cave','CHECKPOINT · '+String(room?.name||cp.roomId).toUpperCase(),'As Fossas o devolveram ao início da sala. Sua expedição continua.',84);
  updateCamera();updateHud();
 }
+let lastRiftHazardAudioCheck=0;
+function updateRiftHazardAudio(){
+ if(!player||!activeMapLayout||!RIFT_HARDCORE||!activeRiftHazards?.length||
+    !soundOn||masterSoundVolume<=0||audioCtx?.state!=='running')return;
+ const now=performance.now();
+ if(now-lastRiftHazardAudioCheck<135)return;
+ lastRiftHazardAudioCheck=now;
+ for(const h of activeRiftHazards){
+  const hx=Number.isFinite(h.sourceX)?h.sourceX:h.x,
+   hy=Number.isFinite(h.sourceY)?h.sourceY:h.y;
+  if(Math.abs(player.x-hx)>820||Math.abs(player.y-hy)>820)continue;
+  const phase=RIFT_HARDCORE.state(h,elapsed),key=phase.cycle+':'+phase.phase;
+  if(localHazardSoundPhases.get(h.id)===key)continue;
+  localHazardSoundPhases.set(h.id,key);
+  if(phase.phase==='warning'||phase.phase==='active'){
+   playWorldSound('hazard-'+h.type+'-'+phase.phase,{x:hx,y:hy},780,
+    phase.phase==='active'?.95:.65);
+  }
+ }
+}
 function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
  const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);
  if(room)soloRiftCheckpointRoomId=room.id;
  for(const h of activeRiftHazards){
   const phase=RIFT_HARDCORE.state(h,elapsed);
-  // Audible hazard phases are derived from the SAME deterministic local phase,
-  // never from new WebSocket events. Only traps close to the player are heard.
-  const phaseKey=phase.cycle+':'+phase.phase,previous=localHazardSoundPhases.get(h.id);
-  if(previous!==phaseKey){
-   localHazardSoundPhases.set(h.id,phaseKey);
-   if(phase.phase==='warning'||phase.phase==='active'){
-    const origin={x:Number.isFinite(h.sourceX)?h.sourceX:h.x,
-     y:Number.isFinite(h.sourceY)?h.sourceY:h.y};
-    playWorldSound('hazard-'+h.type+'-'+phase.phase,origin,680,phase.phase==='active'?.95:.65);
-   }
-  }
   if(h.type==='tentacle'&&phase.phase!=='idle'){
    const derived=RIFT_HARDCORE.hazardAtCycle(h,phase.cycle);
    if(!derived.aimed){
@@ -1575,8 +1584,8 @@ function updateSoloRiftHardcore(dt){
  riftBossMarks=[];
 }
 function hurtPlayer(dmg,tone='received'){
- if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');showToast('ESCUDO ABSORVEU O IMPACTO');return}
- const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);audio(120,.16,'sawtooth',.03);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
+ if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=equippedSkin==='violet'?1:.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');playWorldSound('shield-hit',player,600,.75);showToast('ESCUDO ABSORVEU O IMPACTO');return}
+ const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=equippedSkin==='violet'?1:.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);playWorldSound('player-hit',player,900,.95);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
 }
 function revealOnlineContactSource(data){
  // Never create or teleport a mob from a damage event. The authoritative room snapshot
@@ -2174,7 +2183,7 @@ function update(dt){
    }
    player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*(SkinAbilities?.fireRateMultiplier(equippedSkin)||1)))}
  }
- if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
+ if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);updateRiftHazardAudio();publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
   let areaGridReady=false;
