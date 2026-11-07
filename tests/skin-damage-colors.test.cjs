@@ -18,7 +18,7 @@ function loadDamageFeedback(){
 
 test('skin-inflicted damage numbers are green while normal shots and other passives retain their colors',()=>{
  const {damageTone}=loadDamageFeedback();
- for(const id of ['violet-resonance','toxic-cloud','blue-ring-ink','pelagic-wake','poison-dot','kraken-contact','kraken-sweep','abysscroc-lunge','armoredgator-spin']){
+ for(const id of ['skin-active-dash','skin-active-cloud','skin-active-trail','skin-active-push','skin-active-poison','skin-active-poison-dot','skin-active-paralysis','skin-active-shot','skin-active-slowShot','skin-active-pulse']){
   assert.equal(damageTone(id),'skin',id);
  }
  assert.equal(damageTone('electric'),'shot');
@@ -39,7 +39,7 @@ test('green periodic skin damage appears without creating a new label every tick
  assert.match(game,/visual: showPeriodicSkinDamageNumber\(e\)/);
 });
 
-test('multiplayer combat and blue-ring ink PvP carry skin damage tone into floating numbers',()=>{
+test('multiplayer combat carries standardized skin damage tone into floating numbers',()=>{
  assert.match(game,/spawnDamageNumber\(enemy\.x,enemy\.y,damage,damageTone\(skillId\)\)/);
  assert.match(game,/spawnDamageNumber\(Number\(data\.enemyX\)\|\|enemy\.x,Number\(data\.enemyY\)\|\|enemy\.y,Number\(data\.damage\),damageTone\(data\.skillId\)\)/);
  assert.match(game,/spawnDamageNumber\(player\.x,player\.y,Number\(data\.damage\),'received'\)/);
