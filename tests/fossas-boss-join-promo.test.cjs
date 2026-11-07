@@ -54,8 +54,8 @@ test('server schedules next sea boss when defeated, without advancing Fossas bos
 test('next-tier Fossas transition moves living players and ignores stale old floor packets',()=>{
  const server=read('server.js');
  assert.match(server,/const party=livingPlayers\(room\);/);
- assert.match(server,/party\.forEach\(\(peer,index\)=>\{/);
- assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,party\.length\)/);
+ assert.match(server,/travellers\.forEach\(\(peer,index\)=>\{/);
+ assert.match(server,/AbyssalMap\.startSpawn\(nextLayout,index,travellers\.length\)/);
  assert.match(server,/if\(room\.mode==='rift'&&receivedAt<\(Number\(p\.positionResumeGraceUntil\)\|\|0\)&&displacement>320\)/);
  assert.doesNotMatch(server,/if\(!allReady\)return reply\(\{ok:false,reason:'group-not-ready'\}\)/);
  assert.match(server,/AbyssalMap\.isWalkable\(layout,p\.x,p\.y,padding\+6\)/);
