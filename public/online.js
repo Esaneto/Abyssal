@@ -546,7 +546,7 @@ async function purchaseStripe(productId,currency,language='pt'){
  }catch(error){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
 }
 function purchaseMeta(id){if(socket?.connected&&authenticated)socket.emit('purchase-meta',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para salvar melhorias persistentes.'}}));}
-function redeemCode(code){if(socket?.connected&&authenticated)socket.emit('redeem-code',{code});else window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:{ok:false,message:'Entre na sua conta para resgatar essências na conta.'}}));}
+function redeemCode(code,skinId=null){if(socket?.connected&&authenticated)socket.emit('redeem-code',{code,skinId:skinId||undefined});else window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:{ok:false,message:'Entre na sua conta para resgatar o código.'}}));}
 function spinWheel(){if(socket?.connected&&authenticated)socket.emit('spin-wheel');else window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:{ok:false,message:'Entre em uma conta para receber moedas pela roleta.'}}));}
 function saveCosmetics(data){if(socket?.connected&&authenticated)socket.emit('save-cosmetics',data)}
  function equipTitle(id){if(socket?.connected&&authenticated)socket.emit('equip-title',{id});else{const m=$('profileMessage');if(m)m.textContent='Entre na sua conta para equipar e salvar títulos.'}}
