@@ -26,6 +26,7 @@ const injected=`<script>
   const canvas=document.getElementById('game'),active=document.body.classList.contains('game-active');
   document.body.dataset.smokeStatus=active&&canvas&&canvas.width>50&&canvas.height>50&&!document.body.classList.contains('abyssal-tutorial-open')&&document.getElementById('ageTermsScreen')?.hidden!==false?'playing':'not-playing';
   document.body.dataset.smokeCanvas=(canvas?canvas.width+'x'+canvas.height:'missing');
+  document.body.dataset.smokeDepth=String(window.AbyssalGameHooks?.expeditionState?.()?.depthState?.depth??-1);
   const ids=['hud','abyssDepthMeter','runEnergyRanking','selectedSkillsPanel','mobilePauseBtn','toggleHudBtn'];
   const coords=Object.fromEntries(ids.map(id=>{
    const el=document.getElementById(id),r=el?.getBoundingClientRect();
@@ -50,6 +51,7 @@ const injected=`<script>
    },300);
    setTimeout(()=>{window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2400,10500);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,23300);check()},2550);
  });
 })();
 </script>`;
@@ -92,14 +94,17 @@ async function main(){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/__abyss_smoke__';
  try{
-  for(const [label,width,height,ua] of [
-   ['desktop',1280,720,null],
-   ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36']]){
+  for(const [label,width,height,ua,stage] of [
+   ['desktop',1280,720,null,null],
+   ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
+   ['deep-desktop',1280,720,null,'deep'],
+   ['boss-desktop',1280,720,null,'boss']]){
    const common=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--autoplay-policy=no-user-gesture-required',
     '--window-size='+width+','+height,'--force-device-scale-factor=1','--virtual-time-budget=9000'];
    if(ua)common.push('--user-agent='+ua);
-   const page=await run(browser,[...common,'--dump-dom',url]);
+   const scenarioUrl=url+(stage?'?stage='+encodeURIComponent(stage):'');
+   const page=await run(browser,[...common,'--dump-dom',scenarioUrl]);
    const status=page.match(/data-smoke-status="([^"]+)"/)?.[1];
    const canvas=page.match(/data-smoke-canvas="([^"]+)"/)?.[1];
    const error=page.match(/data-smoke-error="([^"]*)"/)?.[1];
@@ -108,8 +113,10 @@ async function main(){
    console.log('[browser-smoke] '+label+' layout '+JSON.stringify(layout));
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
+   const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
+   if(stage)assert.ok(depth>80,label+' should navigate into the Fossa, depth='+depth);
    const screenshot=path.join(output,label+'.png');
-   await run(browser,[...common,'--screenshot='+screenshot,url]);
+   await run(browser,[...common,'--screenshot='+screenshot,scenarioUrl]);
    assert.ok(fs.statSync(screenshot).size>4500,label+' screenshot is blank or missing');
    console.log('[browser-smoke] '+label+' playing, canvas '+canvas+', screenshot '+fs.statSync(screenshot).size+' bytes');
   }
