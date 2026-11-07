@@ -22,8 +22,8 @@ const TYPES=Object.freeze({
 const HAZARD_UNLOCK_TIER=Object.freeze({volcano:0,poisonPlant:1,vortex:3,tentacle:FINAL_TIER});
 const ALLOCATION=Object.freeze({
   shoal:['volcano'],trench:['poisonPlant'],lantern:['poisonPlant','volcano'],
-  junction:['vortex','volcano'],event:['poisonPlant','vortex'],hub:['volcano','poisonPlant'],
-  landing:['vortex','volcano'],elite:['poisonPlant','vortex'],boss:['tentacle']
+  junction:['volcano','poisonPlant'],event:['poisonPlant','volcano'],hub:['volcano','poisonPlant'],
+  landing:['poisonPlant','volcano'],elite:['poisonPlant','volcano'],boss:['tentacle']
 });
 function idHash(s){let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;}
 // Rock and navigable water share the geometry in abyssal-map.js and ocean-terrain.js.
