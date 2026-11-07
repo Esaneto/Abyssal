@@ -8,12 +8,12 @@ const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'public','style.css'),'utf8');
 const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
 
-test('toxic skin poisons through cloud while green snake owns basic-hit poison',()=>{
- assert.match(game,/equippedSkin==='greensnake'[\s\S]{0,180}poisonTimer/);
- assert.match(game,/equippedSkin==='toxic'[\s\S]{0,700}toxicCloudTimer[\s\S]{0,700}poisonTimer/);
- assert.doesNotMatch(game,/equippedSkin==='toxic'\s*&&\s*enemy[\s\S]{0,160}poisonTimer/);
+test('toxic cloud and green serpent poison are manual standardized actives',()=>{
+ const S=require('../public/skin-standard.js');
+ assert.equal(S.profile('toxic').active,'cloud');assert.equal(S.profile('greensnake').active,'poison');
+ assert.doesNotMatch(game,/equippedSkin==='greensnake'[\\s\\S]{0,180}poisonTimer/);
+ assert.match(game,/function activateSkinAbility\\(/);assert.match(server,/payload\\.type!=='standard-active'/);
 });
-
 test('notification bell has a concrete unread dot controlled by state',()=>{
  assert.match(html,/id="notifUnreadDot"[^>]*notification-badge-dot/);
  assert.match(game,/notifUnreadDot[\s\S]{0,180}dot\.hidden\s*=\s*!hasUnread/);
