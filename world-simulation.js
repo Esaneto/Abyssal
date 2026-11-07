@@ -1,6 +1,6 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
-const SkinAbilities = require('./skin-abilities');
+const SkinAbilities = require('./public/skin-abilities.js');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
