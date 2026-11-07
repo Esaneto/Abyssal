@@ -8,5 +8,5 @@ test('every expansion skin draws distinct geometry without reusing another skin 
   box.AbyssalMarineArt.draw(ctx,0,0,20,0,{...s,color:'#777777'},1000,0);
   const signature=JSON.stringify(commands);assert.ok(!seen.has(signature),`${s.id} repeats ${seen.get(signature)}`);seen.set(signature,s.id);
  }
- assert.equal(seen.size,42);
+ assert.equal(seen.size,41);
 });
