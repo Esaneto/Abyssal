@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const TERMS_VERSION = '2026-10-31-v10';
 const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer'];
+const BOSS_BUNDLE_BRL = 3999;
 const PAID_SKINS = {
  violet:{name:'Medusa-Coroa Violeta',nameEn:'Violet Crown Jelly',brl:199},
  reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:199},
@@ -27,9 +28,7 @@ function calculateOrder(productId, ownedSkins, currency='brl') {
  const owned=new Set(Array.isArray(ownedSkins)?ownedSkins.map(String):[]);
  if(productId==='boss_bundle'){
   const skinIds=BOSS_SKINS.filter(id=>!owned.has(id));
-  const full=5994;
-  const regular=skinIds.reduce((sum,id)=>sum+(Number(PAID_SKINS[id]?.brl)||0),0);
-  const brlAmount=skinIds.length?(skinIds.length===BOSS_SKINS.length?Math.min(full,regular):regular):0;
+  const brlAmount=skinIds.length?Math.round(BOSS_BUNDLE_BRL*(skinIds.length/BOSS_SKINS.length)):0;
   return {productId:productId,skinIds:skinIds,amount:toMinorUnits(brlAmount),brlAmount,currency:code};
  }
  const product=PAID_SKINS[productId];
@@ -117,7 +116,7 @@ function registerPaymentRoutes(options) {
   }
  });
 
- app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:5994},liveEnabled:liveSalesReady()});});
+ app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:BOSS_BUNDLE_BRL},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
    const secret=process.env.STRIPE_SECRET_KEY;
@@ -316,4 +315,4 @@ function registerPaymentRoutes(options) {
   }catch(error){console.error('[payments] Webhook failed:',error.message);res.status(500).send('Webhook processing failed');}
  });
 }
-module.exports={registerPaymentRoutes,calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,TERMS_VERSION,BOSS_SKINS,PAID_SKINS};
+module.exports={registerPaymentRoutes,calculateOrder,verifyStripeSignature,liveSalesReady,hasPurchaseResponsibilityAcceptance,TERMS_VERSION,BOSS_SKINS,BOSS_BUNDLE_BRL,PAID_SKINS};
