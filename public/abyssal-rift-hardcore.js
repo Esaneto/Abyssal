@@ -638,10 +638,13 @@ function deepCurrentPit(c,h,s,t){
 function drawNightmareArm(c,points,r,last,opacity=1){
  if(last<1||points.length<2)return;
  c.save();c.globalAlpha*=opacity;c.lineCap='round';c.lineJoin='round';
+ // Reuse one continuous material gradient for all 32 tapered sections. Building
+ // hundreds of per-segment gradients each frame caused avoidable mobile GPU work.
+ const base=points[0],tip=points[Math.min(last,points.length-1)];
+ const g=c.createLinearGradient(base.x-r*.3,base.y-r*.3,tip.x+r*.3,tip.y+r*.3);
+ g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
  for(let i=1;i<=last;i++){
   const a=points[i-1],b=points[i],p=(i-.5)/32,width=suctionRadius({radius:r},p)*2;
-  const g=c.createLinearGradient(a.x-r*.3,a.y-r*.3,b.x+r*.3,b.y+r*.3);
-  g.addColorStop(0,'rgba(86,28,135,.75)');g.addColorStop(.54,'rgba(157,82,203,.80)');g.addColorStop(1,'rgba(195,125,221,.61)');
   c.strokeStyle='rgba(15,4,36,.7)';c.lineWidth=width+5;c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke();
   c.strokeStyle=g;c.lineWidth=width;c.shadowColor='#a451d6';c.shadowBlur=5;c.stroke();c.shadowBlur=0;
   c.strokeStyle='rgba(242,197,255,.23)';c.lineWidth=Math.max(1.8,width*.12);c.stroke();
