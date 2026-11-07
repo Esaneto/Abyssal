@@ -401,6 +401,20 @@ function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
  const lastStandDefense=lowHealth&&lastStandLevel>0?1-(.15+lastStandLevel*.05):1;
  return Math.max(.25,Math.min(1000,Number(baseDamage)||0)*outgoing*hunter*skinDefense*shellDefense*lastStandDefense);
 }
+function applySkinActivePvpDamage(room,attacker,target,rawDamage,skillId,now){
+ if(!room||!attacker||!target||target.id===attacker.id||target.alive===false)return null;
+ if(now<(Number(target.invulnerableUntil)||0))return null;
+ let blocked=false,damage=0;
+ if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
+ else{
+  damage=pvpDamageAmount(attacker,target,rawDamage,Math.hypot(Number(attacker.x)-Number(target.x),Number(attacker.y)-Number(target.y)));
+  target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=now;target.invulnerableUntil=now+180;
+  if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,attacker.id);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi vencido por uma habilidade de skin.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}
+ }
+ io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active',damage:blocked?0:damage,attackerId:attacker.id,skillId,serverTime:now}));
+ io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:attacker.id,damage:blocked?0:damage,skillId,blocked});
+ return {blocked,damage,target};
+}
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  if(!room||!attacker||!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0)return;
  const source=String(sourceSkill||'physical'),players=[...room.players.values()].filter(p=>p.id!==attacker.id&&p.alive!==false);
@@ -773,6 +787,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
   let requestedDamage=damage;
+ if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
@@ -785,19 +800,6 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
   if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
   player.novaDamageTargetIds ||= new Set();if(player.novaDamageTargetIds.has(normalizedId))return reject('nova-duplicate-target');player.novaDamageTargetIds.add(normalizedId);
- }
- if(skillId==='violet-resonance'){
-  if(!player||player.skinId!=='violet')return reject('skin-ability-not-owned');
-  const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>230/WORLD_ZOOM)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.violetResonanceWindowUntil)||0)){
-   if(now<(Number(player.violetResonanceReadyAt)||0))return reject('skin-ability-cooldown');
-   player.violetResonanceReadyAt=now+10000;player.violetResonanceWindowUntil=now+900;player.violetResonanceTargetIds=new Set();
-  }
-  player.violetResonanceTargetIds ||= new Set();
-  if(player.violetResonanceTargetIds.has(normalizedId)||player.violetResonanceTargetIds.size>=4)return reject('skin-ability-target-limit');
-  player.violetResonanceTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,22);
  }
  if(skillId==='arcChain'){
   if(!player||player.arcChainActive!==true)return reject('arc-chain-not-unlocked');
@@ -817,88 +819,15 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   player.arcChainTargetIds.add(normalizedId);
   requestedDamage=Math.min(requestedDamage,16);
  }
- if(skillId==='toxic-cloud'){
-  if(!player||player.skinId!=='toxic')return reject('skin-ability-not-owned');
-  const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>190/WORLD_ZOOM)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.toxicCloudWindowUntil)||0)){
-   if(now<(Number(player.toxicCloudReadyAt)||0))return reject('skin-ability-cooldown');
-   player.toxicCloudReadyAt=now+6500;player.toxicCloudWindowUntil=now+900;player.toxicCloudTargetIds=new Set();
-  }
-  player.toxicCloudTargetIds ||= new Set();if(player.toxicCloudTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.toxicCloudTargetIds.add(normalizedId);requestedDamage=Math.min(requestedDamage,7);
- }
- if(skillId==='kraken-contact'){
-  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
-  const proxy={kind:'kraken',x:Number(player.x),y:Number(player.y),r:(13/WORLD_ZOOM)*1.45,angle:Number(player.angle)||0,phase:(now*.0018)};
-  if(!EnemyAI.touchesKrakenTentacle?.(proxy,enemy,1))return reject('skin-ability-out-of-range');
-  const key='krakenContactAt'+normalizedId;if(now-(Number(player[key])||0)<850)return reject('skin-ability-cooldown');
-  player[key]=now;requestedDamage=Math.min(requestedDamage,15);
- }
- // The white shark only has a passive wake; its retired frontal dash must
- // not be executable by outdated or modified clients.
- if(skillId==='reefshark-dash')return reject('skin-ability-removed');
- const predatorSkills={
-  'reefshark-dash':{skin:'reefshark',cooldown:14000,range:260/WORLD_ZOOM,damage:28,arc:.48,width:58/WORLD_ZOOM},
-  'abysscroc-lunge':{skin:'abysscroc',cooldown:16000,range:210/WORLD_ZOOM,damage:34,arc:.78,width:120/WORLD_ZOOM},
-  'armoredgator-spin':{skin:'armoredgator',cooldown:9000,range:190/WORLD_ZOOM,damage:27,arc:Math.PI,width:0}
- };
- if(predatorSkills[skillId]){
-  const cfg=predatorSkills[skillId];if(!player||player.skinId!==cfg.skin)return reject('skin-ability-not-owned');
-  const dx=Number(enemy.x)-Number(player.x),dy=Number(enemy.y)-Number(player.y),distance=Math.hypot(dx,dy);
-  if(distance>cfg.range)return reject('skin-ability-out-of-range');
-  if(cfg.arc<Math.PI){const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-Number(player.angle||0)),Math.cos(Math.atan2(dy,dx)-Number(player.angle||0)));if(Math.abs(diff)>cfg.arc||Math.abs(Math.sin(diff)*distance)>cfg.width)return reject('skin-ability-out-of-arc');}
-  const ready=Number(player[skillId+'ReadyAt'])||0,windowUntil=Number(player[skillId+'WindowUntil'])||0;
-  if(now>windowUntil){if(now<ready)return reject('skin-ability-cooldown');player[skillId+'ReadyAt']=now+cfg.cooldown;player[skillId+'WindowUntil']=now+650;player[skillId+'TargetIds']=new Set();}
-  player[skillId+'TargetIds'] ||= new Set();if(player[skillId+'TargetIds'].has(normalizedId)||player[skillId+'TargetIds'].size>=8)return reject('skin-ability-target-limit');
-  player[skillId+'TargetIds'].add(normalizedId);requestedDamage=Math.min(requestedDamage,cfg.damage);
- }
- if(skillId==='kraken-sweep'){
-  if(!player||player.skinId!=='kraken')return reject('skin-ability-not-owned');
-  const radius=280/WORLD_ZOOM, distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  if(distance>radius)return reject('skin-ability-out-of-range');
-  if(now>(Number(player.krakenSweepWindowUntil)||0)){
-   if(now<(Number(player.krakenSweepReadyAt)||0))return reject('skin-ability-cooldown');
-   player.krakenSweepReadyAt=now+12000;player.krakenSweepWindowUntil=now+800;player.krakenSweepTargetIds=new Set();
-  }
-  player.krakenSweepTargetIds ||= new Set();
-  if(player.krakenSweepTargetIds.has(normalizedId))return reject('skin-ability-already-hit');
-  player.krakenSweepTargetIds.add(normalizedId);
-  requestedDamage=Math.min(requestedDamage,32);
- }
- // Poison damage must belong to the attacking skin and a verified active
- // status on the server. This prevents arbitrary poison ticks through sockets.
- if(skillId==='poison-dot'){
-  if(!player||!['greensnake','toxic'].includes(player.skinId)||enemy.poisonOwnerId!==player.id||
-     now>(Number(enemy.poisonedUntil)||0)||now<(Number(enemy.poisonTickReadyAt)||0))
-   return reject('skin-poison-expired');
-  enemy.poisonTickReadyAt=now+750;requestedDamage=Math.min(requestedDamage,2.5);
- }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
  const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
- // Only verified direct strikes may apply/refresh poison. No extra attack
- // packets are generated; accepted dot damage is resolved like any other hit.
- if(player?.skinId==='greensnake'&&skillId!=='poison-dot'&&skillId!=='electric-chain'){
-  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
- }else if(player?.skinId==='toxic'&&skillId==='toxic-cloud'){
-  enemy.poisonOwnerId=player.id;enemy.poisonedUntil=now+3500;
- }
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
  enemy.hp=Math.max(0,hpBefore-applied);
  // Overkill cannot count as extra damage for the proportional XP share.
  if(player){enemy.damageContributors ||= Object.create(null);const id=String(player.id);enemy.damageContributors[id]=(Number(enemy.damageContributors[id])||0)+Math.min(applied,hpBefore);}
  if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
- // Varredura do Télson: mesma intensidade e vetor radial da habilidade solo.
- // O ângulo não é alterado pelo impacto.
- if(skillId==='armoredgator-spin' && player){
-  const pushX=Number(enemy.x)-Number(player.x),pushY=Number(enemy.y)-Number(player.y);
-  const pushLength=Math.hypot(pushX,pushY)||1;
-  enemy.kbVx=(pushX/pushLength)*620;
-  enemy.kbVy=(pushY/pushLength)*620;
- }
- if(player?.skinId==='electriceel' && skillId!=='poison-dot' && now>=(Number(enemy.electricStunReadyAt)||0)){enemy.electricStunReadyAt=now+1200;enemy.paralyzedUntil=now+120;}
- combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date().toISOString();combatDiagnostics.lastDamageReason=null;
+
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
