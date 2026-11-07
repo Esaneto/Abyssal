@@ -51,9 +51,9 @@ test('both physical boss portal destinations are navigable and visually labeled'
  assert.match(game,/drawMapPortal\(layout\.portals\.boss,t\)/);
 });
 
-test('shark and octopus bubbles hit every 100 ms, emit every 200 ms and preserve snake poison at 350 ms',()=>{
- assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.35,SKIN_TRAIL_CADENCE_MS=350/);
- assert.match(server,/SKIN_TRAIL_CADENCE_SECONDS=\.35,SKIN_TRAIL_CADENCE_MS=350/);
+test('shark and octopus bubbles hit every 300 ms, emit every 200 ms and snake poison ticks every 750 ms',()=>{
+ assert.match(game,/SKIN_TRAIL_CADENCE_SECONDS=\.75,SKIN_TRAIL_CADENCE_MS=750/);
+ assert.match(server,/SKIN_TRAIL_CADENCE_SECONDS=\.75,SKIN_TRAIL_CADENCE_MS=750/);
  assert.match(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
  assert.match(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
  assert.match(game,/bubble\.damageTimer = BUBBLE_TRAIL_HIT_SECONDS/);
