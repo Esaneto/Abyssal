@@ -84,3 +84,43 @@ test('exclusiveabyssal unlock requires a one-time server-validated chosen store 
  assert.match(html,/id="redeemSkinSelect"/);
  assert.match(client,/window\.AbyssalOnline\.redeemCode\(code,skinId\)/);
 });
+
+test('promo handler actually grants one premium skin once per account',()=>{
+ const source=read('server.js');
+ const start=source.indexOf("socket.on('redeem-code', payload => {");
+ const end=source.indexOf("\n socket.on('purchase-meta'",start);
+ assert.ok(start>=0&&end>start,'redeem handler must be registered');
+ const script=source.slice(start,end);
+ let handler=null,saveCount=0;
+ const replies=[];
+ const socket={
+  data:{userKey:'user'},
+  on:(name,callback)=>{if(name==='redeem-code')handler=callback;},
+  emit:(name,data)=>{if(name==='code-redeem-result')replies.push(data);}
+ };
+ const users={user:{ownedSkins:['default'],redeemedPromoIds:[],equippedSkin:'default',coins:0}};
+ const ids=new Set(['default','violet','reefshark','solar','greensnake','final-exclusive']);
+ const run=new Function('socket','users','allowedSkinIds','RiftRewards','saveUsers','publicUser','process',script);
+ run(socket,users,ids,{FINAL_SKIN:'final-exclusive'},()=>{saveCount++},u=>({...u}),{env:{}});
+ assert.equal(typeof handler,'function');
+ handler({code:' EXCLUSIVOABYSSAL '});
+ assert.equal(replies.at(-1).choiceRequired,true);
+ assert.ok(replies.at(-1).eligibleSkinIds.includes('violet'),'premium skins must be eligible');
+ assert.ok(!replies.at(-1).eligibleSkinIds.includes('final-exclusive'),'achievement skins remain protected');
+ handler({code:'exclusivoabyssal',skinId:'violet'});
+ assert.equal(replies.at(-1).ok,true);
+ assert.equal(replies.at(-1).skinId,'violet');
+ assert.deepEqual(users.user.ownedSkins,['default','violet']);
+ assert.equal(users.user.equippedSkin,'violet');
+ assert.equal(users.user.coins,0);
+ assert.equal(saveCount,1);
+ handler({code:'exclusivoabyssal',skinId:'reefshark'});
+ assert.equal(replies.at(-1).ok,false);
+ assert.deepEqual(users.user.ownedSkins,['default','violet']);
+ assert.equal(saveCount,1,'repeated redemption must never change persisted ownership');
+ users.second={ownedSkins:['default'],redeemedPromoIds:[],equippedSkin:'default'};
+ socket.data.userKey='second';
+ handler({code:'exclusivoabyssal',skinId:'not-in-shop'});
+ assert.equal(replies.at(-1).ok,false);
+ assert.equal(users.second.ownedSkins.length,1);
+});
