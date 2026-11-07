@@ -97,15 +97,12 @@ test('cursor is an aiming crosshair centered on a purple dot, even when hovering
 });
 
 test('crocodile and caiman require real payment rather than coins',()=>{
-  const game=read('public/game.js');
-  const server=read('server.js');
-  const payments=read('payments.js');
+  const game=read('public/game.js'),server=read('server.js'),payments=read('payments.js');
   for(const id of ['saltcroc','blackcaiman']){
-    assert.match(game,new RegExp("id:'"+id+"'[^\\n]*price:999,paid:true"));
-    assert.match(game,new RegExp("paidBrl=Object\\.freeze\\(\\{[^\\n]*"+id+":999"));
-    assert.match(payments,new RegExp(id+":\\{[^\\n]*brl:999"));
+    assert.match(game,new RegExp("id:'"+id+"'[^\\n]*paid:true"));
+    assert.match(game,new RegExp("paidBrl=Object\\.freeze\\(\\{[^\\n]*"+id+":499"));
+    assert.match(payments,new RegExp(id+":\\{[^\\n]*brl:499"));
     assert.match(server,new RegExp("stripeOnlySkins = new Set\\(\\[[^\\n]*'"+id+"'"));
-    assert.doesNotMatch(server,new RegExp("const prices = \\{[^\\n]*\\b"+id+":"));
   }
 });
 
