@@ -470,9 +470,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           if(ox||oy)playerSuctionPulls.push({playerId:target.id,dx:ox,dy:oy,bossId:hazard.type+':'+hazard.id,strength:hazard.type==='vortex'?.95:.38});
         }
         if(now<(Number(target.riftHazardCooldowns[hazard.id])||0))continue;
-        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:hazard.type==='fumarole'||hazard.type==='pressure'||hazard.type==='vortex'?1000:1250);
+        target.riftHazardCooldowns[hazard.id]=now+(hazard.type==='tentacle'?690:1000);
         const pseudo={id:'hazard:'+hazard.id,kind:'riftHazard',x:hazard.x,y:hazard.y,color:RiftHardcore.TYPES[hazard.type].color};
-        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='fumarole'?1150:0});
+        const result=bossAbilityHit(pseudo,target,hazard.damage,now,'rift-'+hazard.type,{neurotoxinMs:hazard.type==='poisonPlant'?1150:0});
         if(result){bossAbilityHits.push(result);if(result.alive===false)defeatedPlayers.push(target);}
         
       }
