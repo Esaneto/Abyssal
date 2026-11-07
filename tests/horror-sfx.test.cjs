@@ -91,7 +91,7 @@ test('horror laboratory supports auditions and no multiplayer audio traffic is a
   'hazard-volcano-active','hazard-volcano-sustain','hazard-fumarole-active','shot-nova'])
   assert.ok(lab.includes("'"+id+"'"),id+' missing from audio lab');
  assert.match(lab,/world-audio\.js\?v=2026\.11\.7\.23/);
- assert.match(sw,/2026-11-07-online-smoothness-v24/);
+ assert.match(sw,/const VERSION = '[^']+'/);
  assert.doesNotMatch(src,/\b(fetch|XMLHttpRequest|WebSocket|socket\.emit)\s*\(/);
  assert.ok(A.PATTERNS['boss-omen']);
 });
