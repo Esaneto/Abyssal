@@ -418,35 +418,65 @@ function paintedCircle(c,x,y,r,fill,stroke=null,w=1){
 }
 // The floor uses #031119 / #0b202c / #25434b. These surfaces borrow exactly
 // those tones: dormant traps must be almost indistinguishable from the cave.
+// Traps have geological signatures, never the same circular glowing pedestal.
 function wallSeam(c,h,t,accent,s,scale=1){
  c.save();c.translate(h.sourceX,h.sourceY);c.rotate(h.angle);
- const intensity=s.phase==='active'?.82:s.phase==='warning'?.27+.37*s.progress:.12;
- c.globalAlpha=.67;
- const rock=c.createRadialGradient(-19,-8,1,0,0,61*scale);
- rock.addColorStop(0,'rgba(2,8,15,.95)');
- rock.addColorStop(.43,'rgba(5,18,27,.91)');
- rock.addColorStop(.73,'rgba(11,32,44,.65)');
- rock.addColorStop(1,'rgba(21,53,62,0)');
- c.fillStyle=rock;
- c.beginPath();c.ellipse(-13,0,51*scale,35*scale,0,0,Math.PI*2);c.fill();
- // Two fracture lines disappear into the geological strata.
- c.strokeStyle='rgba(45,85,94,.38)';c.lineWidth=2.4;c.lineCap='round';
- for(const side of [-1,1]){
-  c.beginPath();c.moveTo(-51,side*14);
-  c.bezierCurveTo(-24,side*23,-17,side*16,4,side*18);
-  c.quadraticCurveTo(19,side*15,29,side*6);c.stroke();
+ const live=s.phase==='active',warning=s.phase==='warning',strength=live?.72:warning?.12+.37*s.progress:.035;
+ c.lineCap='round';c.lineJoin='round';c.globalAlpha=.84;
+ if(h.type==='fumarole'){
+  // Fumaroles seep from multiple thin pores among dark, branching mineral veins.
+  for(let j=0;j<7;j++){
+   const off=(j-3)*11,wave=Math.sin(j*1.88+t*.00018)*3;
+   c.strokeStyle='rgba(38,85,78,.55)';c.lineWidth=1.6+j%3*.5;
+   c.beginPath();c.moveTo(-43,off+wave);c.bezierCurveTo(-21,off-7,1,off+13,21,off*.45);c.stroke();
+   c.fillStyle='rgba(7,32,31,.65)';c.beginPath();c.ellipse(16,off*.45,4+j%2*2,2.2,0,0,Math.PI*2);c.fill();
+  }
+  c.globalAlpha=strength*.5;c.fillStyle='#81e5a1';
+  for(let j=0;j<7;j++)paintedCircle(c,16,(j-3)*4,1.4+j%2,accent);
+ }else if(h.type==='spikes'){
+  // Fossil ribs are embedded teeth and longitudinal striations, not a vent.
+  c.strokeStyle='rgba(93,130,126,.41)';c.lineWidth=3.2;
+  for(let k=-3;k<=3;k++){
+   const y=k*10;
+   c.beginPath();c.moveTo(-48,y*.73);c.lineTo(-19,y*1.11);
+   c.lineTo(3,y*.65);c.lineTo(17,y*.55);c.stroke();
+  }
+  c.fillStyle='rgba(39,70,75,.7)';
+  for(let j=0;j<5;j++){const y=(j-2)*12;c.beginPath();
+   c.moveTo(-8,y+5);c.lineTo(12,y);c.lineTo(-8,y-5);c.closePath();c.fill();}
+  c.globalAlpha=strength;c.strokeStyle=accent;c.lineWidth=1;
+  c.beginPath();c.moveTo(-28,-20);c.lineTo(5,-11);c.lineTo(17,-5);c.stroke();
+ }else if(h.type==='electric'){
+  // Dendritic electrical fractures fork into the darker sediment.
+  c.strokeStyle='rgba(55,109,115,.49)';c.lineWidth=2.7;
+  for(let j=0;j<5;j++){
+   const y=(j-2)*14;
+   c.beginPath();c.moveTo(-45,y*1.6);c.lineTo(-27,y*.8);
+   c.lineTo(-13,y*1.22);c.lineTo(4,y*.29);
+   c.lineTo(16,y*.45);c.stroke();
+  }
+  c.globalAlpha=strength*.8;c.strokeStyle='#b3edf0';c.lineWidth=1.3;
+  c.beginPath();c.moveTo(-27,-24);c.lineTo(-13,-12);c.lineTo(-3,-16);c.lineTo(20,3);c.stroke();
+ }else if(h.type==='pressure'){
+  // Compression scars, stacked like geological strata, bend toward the fissure.
+  for(let j=-3;j<=3;j++){
+   c.strokeStyle='rgba(69,109,129,.53)';c.lineWidth=2.3;
+   c.beginPath();c.moveTo(-48,j*12);
+   c.bezierCurveTo(-23,j*12+5,-7,j*7,14,j*9);c.stroke();
+  }
+  c.globalAlpha=strength;c.strokeStyle=accent;c.lineWidth=1.2;
+  c.beginPath();c.moveTo(-22,-19);c.quadraticCurveTo(13,-26,24,0);c.quadraticCurveTo(13,26,-22,19);c.stroke();
+ }else if(h.type==='lure'){
+  // Barely perceptible biofilm dots; no dark hole/ring revealing the ambush.
+  c.globalAlpha=.33;
+  for(let j=0;j<9;j++){
+   const px=-29+(j%4)*13,py=(Math.floor(j/4)-1)*15+Math.sin(j*2.1)*4;
+   paintedCircle(c,px,py,1.6+j%3*.6,'#375d60');
+  }
+  c.globalAlpha=strength*.48;
+  paintedCircle(c,12,-9,1.7,'#a8e6d7');
  }
- const hole=c.createRadialGradient(4,0,2,4,0,29);
- hole.addColorStop(0,'rgba(0,3,9,.98)');hole.addColorStop(.58,'rgba(4,14,24,.95)');
- hole.addColorStop(1,'rgba(9,29,41,0)');
- c.fillStyle=hole;c.beginPath();c.ellipse(0,0,35*scale,22*scale,0,0,Math.PI*2);c.fill();
- // Barely visible when asleep, localized neon only where the living rock opens.
- c.globalAlpha=intensity;
- c.strokeStyle=accent;c.shadowColor=accent;c.shadowBlur=s.phase==='active'?11:5;
- c.lineWidth=1.2+(s.phase==='active'?1.3:0);
- c.beginPath();c.moveTo(-13,-14*scale);c.quadraticCurveTo(18,-11*scale,25,0);
- c.quadraticCurveTo(18,11*scale,-13,14*scale);c.stroke();
- c.shadowBlur=0;c.restore();
+ c.restore();
 }
 function ventRock(c,h,s,t){
  // Volcano is not a separate boulder: it is a hot fracture INSIDE the cave wall.
@@ -566,7 +596,7 @@ function deepCurrentPit(c,h,s,t){
  pit.addColorStop(.97,'rgba(20,57,66,.35)');
  pit.addColorStop(1,'rgba(12,34,48,0)');
  c.fillStyle=pit;c.beginPath();c.ellipse(0,0,rx*1.24,ry*1.16,0,0,Math.PI*2);c.fill();
- c.strokeStyle='rgba(72,133,150,.28)';c.lineWidth=2;
+ c.strokeStyle='rgba(72,133,150,.10)';c.lineWidth=1.5;
  for(let i=0;i<3;i++){
   const q=.43+i*.21;c.beginPath();c.ellipse(0,0,rx*q,ry*q,0,0,Math.PI*2);c.stroke();
  }
@@ -586,10 +616,10 @@ function deepCurrentPit(c,h,s,t){
    }
   }
  }else if(s.phase==='active'){
-  const scale=Math.min(1,(s.progress+.10)*2.15);
+  const scale=Math.min(1.08,(s.progress+.16)*2.4);
   c.globalAlpha=.23;c.fillStyle='#0c5e80';
   c.beginPath();c.ellipse(0,0,rx*scale,ry*scale,0,0,Math.PI*2);c.fill();
-  c.globalAlpha=.84;c.lineCap='round';
+  c.globalAlpha=.62;c.lineCap='round';
   for(let i=0;i<5;i++){
    const q=.2+i*.16;
    c.beginPath();c.ellipse(0,0,rx*q*scale,ry*q*scale,t*.0015+i*.4,-2.7,2.3);
