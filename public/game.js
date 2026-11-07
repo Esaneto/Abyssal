@@ -2041,6 +2041,19 @@ function getShotDamageAtLevel(level,shotId=null){const rank=Math.max(1,Math.min(
 function isPcMouseAimMode(){return !isMobileDevice()&&controlSettings.pc==='wasd-aim';}
 function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;}
 function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';}
+// A side-beam and its actual hit segment must stop at the same solid rock.
+function clipPrismaticPhotonRay(sx,sy,ex,ey,radius){
+ const pvp=onlineRoomMode==='pvp';
+ const blocked=(fraction)=>{
+  const tx=sx+(ex-sx)*fraction,ty=sy+(ey-sy)*fraction;
+  return pvp?projectileHitsPvpWall(sx,sy,tx,ty,radius):
+   Boolean(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,sx,sy,tx,ty,radius));
+ };
+ if(!blocked(1))return {x2:ex,y2:ey};
+ let lo=0,hi=1;
+ for(let k=0;k<12;k++){const mid=(lo+hi)*.5;if(blocked(mid))hi=mid;else lo=mid;}
+ return {x2:sx+(ex-sx)*lo,y2:sy+(ey-sy)*lo};
+}
 function nextShotVolleyId(){if(!player)return '';player.shotSequence=(Number(player.shotSequence)||0)+1;return Date.now().toString(36)+'-'+player.shotSequence;}
 function fire(){
  if(!player||Number(upgrades.nova)>0||Number(upgrades.photonRay)>0)return;let target=null,bd=Infinity;const maxRange=getFiringRange();
@@ -2299,7 +2312,24 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     for(let step=0;step<12;step++){const mid=(lo+hi)*.5;if(ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,player.x+(x2-player.x)*mid,player.y+(y2-player.y)*mid,Math.max(1,width*.5)))lo=mid;else hi=mid;}
     beamLength*=lo;x2=player.x+ux*beamLength;y2=player.y+uy*beamLength;beamTargetId=null;
   }
+  const prismBeams=[];
+  if(hasAim&&Number(upgrades.spread)>0){
+   const rank=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
+   for(let i=0;i<rank*2;i++){
+    const offset=(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
+    const a=aimAngle+offset,rad=width*.58;
+    const end=clipPrismaticPhotonRay(player.x,player.y,player.x+Math.cos(a)*beamRange,player.y+Math.sin(a)*beamRange,Math.max(1,rad*.5));
+    prismBeams.push({x1:player.x,y1:player.y,x2:end.x2,y2:end.y2,width:rad});
+   }
+  }
   if(hasAim){player.angle=aimAngle;player.photonRayActive=true;
+   // Keep the additional prismatic rays visually continuous instead of
+   // recreating flashes every pulse. Exactly 2/4/6 side rays match the rank.
+   for(let i=0;i<prismBeams.length;i++){
+    const beam=prismBeams[i],existing=effects.find(fx=>fx.localPrismBeamKey===i);
+    if(existing){existing.x1=beam.x1;existing.y1=beam.y1;existing.x2=beam.x2;existing.y2=beam.y2;existing.width=beam.width;existing.life=PHOTON_RAY_VISUAL.duration;}
+    else effects.push({type:'photon-ray',localPrismBeamKey:i,x1:beam.x1,y1:beam.y1,x2:beam.x2,y2:beam.y2,width:beam.width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:'#c8a5ff'});
+   }
   const localBeam=effects.find(fx=>fx.localPhotonBeam);
   if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
   else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
@@ -2312,8 +2342,10 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     // Damage may remove killed enemies from the original list; iterate a snapshot.
     for(const target of [...enemies]){
      if(!target||target.hp<=0)continue;
-     if(!PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5))continue;
-     dealEnemyDamage(target,pulseDamage,'photonRay');target.hit=.08;burst(target.x,target.y,'#bafaff',beamLevel+1,35);
+     const coreHit=PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5);
+     const prismHit=!coreHit&&prismBeams.some(beam=>PHOTON_RAY_VISUAL.segmentCircleHit(beam.x1,beam.y1,beam.x2,beam.y2,target.x,target.y,target.r+beam.width*.5));
+     if(!coreHit&&!prismHit)continue;
+     dealEnemyDamage(target,pulseDamage*(coreHit?1:.42),'photonRay');target.hit=.08;burst(target.x,target.y,prismHit?'#c8a5ff':'#bafaff',beamLevel+1,35);
     }
    }
   }
@@ -3647,7 +3679,19 @@ window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(online
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
  if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM;spawnNovaVisual(x,y,max,col,onlineRoomMode==='pvp');return;}
- if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});return;}
+ if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else effects.push({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});
+  // The server owns the secondary beam endpoints; peers render those exact
+  // lines, not an independently guessed client-side collision shape.
+  const prism=Array.isArray(d.prismBeams)?d.prismBeams.slice(0,6):[];
+  for(let i=0;i<prism.length;i++){
+   const beam=prism[i];
+   if(!Number.isFinite(beam.x2)||!Number.isFinite(beam.y2))continue;
+   const key='prism:'+beamKey+':'+i,ex=beam.x2*W,ey=beam.y2*H;
+   const existingPrism=effects.find(fx=>fx.remoteBeamKey===key);
+   if(existingPrism){existingPrism.targetX1=x;existingPrism.targetY1=y;existingPrism.targetX2=ex;existingPrism.targetY2=ey;existingPrism.life=PHOTON_RAY_VISUAL.remoteHold;}
+   else effects.push({type:'photon-ray',remoteBeamKey:key,x1:x,y1:y,x2:ex,y2:ey,targetX1:x,targetY1:y,targetX2:ex,targetY2:ey,width:width*.58,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:'#c8a5ff'});
+  }
+  return;}
  projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
  burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
