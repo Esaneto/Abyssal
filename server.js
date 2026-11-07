@@ -1399,7 +1399,7 @@ io.on('connection', socket => {
   if(receivedAt-(Number(room.lastPlayersBroadcastAt)||0)>=playerMotionIntervalMs){
    room.lastPlayersBroadcastAt=receivedAt;
    const motion=getRoomPlayerMotion(room);
-   if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(motion));
+   if(motion.length>1)io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(motion,receivedAt));
   }
   if(compact){
    // Reconcile at 5 Hz, not every transform. Client movement remains immediate while
