@@ -1071,6 +1071,20 @@ function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
  if (!activePlayers.length) return;
+ // Authoritative pressure knockback uses the same cubic ease as the client's
+ // short local prediction, rather than teleporting peers by the whole distance.
+ for(const victim of activePlayers){
+  const impulse=victim.skinPushImpulse;if(!impulse)continue;
+  impulse.elapsed=Math.min(impulse.duration,impulse.elapsed+.05);
+  const t=impulse.elapsed/impulse.duration,eased=1-Math.pow(1-t,3);
+  const delta=eased-impulse.applied;impulse.applied=eased;
+  const nextX=victim.x+impulse.dx*delta,nextY=victim.y+impulse.dy*delta;
+  if(!pvpRockAt(nextX,nextY,Number(victim.r)||13/WORLD_ZOOM)){
+   victim.x=clamp(nextX,20,WORLD_WIDTH-20);
+   victim.y=clamp(nextY,20,roomWorldHeight(room)-20);
+  }else victim.skinPushImpulse=null;
+  if(t>=1)victim.skinPushImpulse=null;
+ }
  // Server-owned companion pursuit uses the normal movement speed, not Ghost Step.
  for(const peer of activePlayers){
   const destinationX=Number(peer.x)||0,destinationY=(Number(peer.y)||0)-34/WORLD_ZOOM;
@@ -2058,7 +2072,11 @@ io.on('connection', socket => {
    else for(const target of targets){
     const hit=hitPvp(target,spec.damage,'skin-active-'+active);if(!hit)continue;
     if(active==='paralysis'){target.skinParalyzedUntil=Date.now()+520;io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});}
-    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*93/WORLD_ZOOM,ty=target.y+dy/d*93/WORLD_ZOOM;if(!pvpRockAt(tx,ty,Number(target.r)||13/WORLD_ZOOM)){target.x=tx;target.y=ty;io.to(target.id).emit('player-suction-pull',{dx:dx/d*93/WORLD_ZOOM,dy:dy/d*93/WORLD_ZOOM,bossId:'skin-push',strength:1,durationMs:320});}}
+    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*93/WORLD_ZOOM,ty=target.y+dy/d*93/WORLD_ZOOM;
+     if(!pvpSegmentHitsRock(target.x,target.y,tx,ty,Number(target.r)||13/WORLD_ZOOM)){
+      target.skinPushImpulse={dx:dx/d*93/WORLD_ZOOM,dy:dy/d*93/WORLD_ZOOM,elapsed:0,applied:0,duration:.32};
+      io.to(target.id).emit('player-suction-pull',{dx:target.skinPushImpulse.dx,dy:target.skinPushImpulse.dy,bossId:'skin-push',strength:1,durationMs:320});
+     }}
     if(active==='poison'||active==='cloud'){for(const delay of active==='poison'?[800,1600,2400]:[900,1800])setTimeout(()=>{const live=room.players.get(target.id);if(live?.alive!==false)hitPvp(live,1.2,'skin-active-poison-dot');},delay);}
    }
   }else{
