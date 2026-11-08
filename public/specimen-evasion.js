@@ -29,12 +29,12 @@
  }
  function bestOrb(position,orbs,player,acquisitionRange,enemies,radius,clearance=28){
   let best=null,bestScore=Infinity;
+  const localThreats=threatsNear(player.x,player.y,enemies,acquisitionRange+radius+clearance+80,48);
   for(const orb of orbs||[]){
    if(!orb)continue;
    if(Math.hypot(orb.x-player.x,orb.y-player.y)>acquisitionRange)continue;
    const d=Math.hypot(orb.x-position.x,orb.y-position.y);
-   const close=threatsNear(orb.x,orb.y,enemies,radius+clearance+80,10);
-   const danger=risk(orb.x,orb.y,close,radius,clearance);
+   const danger=risk(orb.x,orb.y,localThreats,radius,clearance);
    // A dangerous orb waits until the player clears its guardians.
    if(danger>180)continue;
    const score=d+danger*.6;
@@ -59,6 +59,7 @@
   const direct=Math.atan2(gy-y,gx-x);
   const angles=[0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
   let best=null,bestScore=-Infinity;
+  const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*.42,y:e.y+(Number(e.vy)||0)*.42,r:e.r,hp:e.hp}));
   for(const offset of angles){
    const angle=direct+offset;
    const rawX=x+Math.cos(angle)*Math.max(step,Math.min(speed*dt,6));
@@ -71,7 +72,6 @@
    const projectedX=x+(nx-x)*Math.max(1,.55/Math.max(dt,.016));
    const projectedY=y+(ny-y)*Math.max(1,.55/Math.max(dt,.016));
    let danger=risk(nx,ny,threats,radius,clearance);
-   const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*.42,y:e.y+(Number(e.vy)||0)*.42,r:e.r,hp:e.hp}));
    danger+=risk(projectedX,projectedY,advancing,radius,clearance)*.65;
    const goalProgress=distance-Math.hypot(gx-nx,gy-ny);
    const momentum=Math.cos(angle-heading)*.35;
