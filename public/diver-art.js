@@ -8,10 +8,10 @@
  if(root)root.AbyssalDiverArt=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const TAU=Math.PI*2,DRAW_SCALE=.60;
+ const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69;
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
-  const distance=(Number(r)||13)*DRAW_SCALE*46/14;
+  const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
   const angle=Number(aim)||0;
   return {x:(Number(x)||0)+Math.cos(angle)*distance,y:(Number(y)||0)+Math.sin(angle)*distance};
  }
@@ -64,48 +64,94 @@
   c.shadowColor='#18a8c8';c.shadowBlur=4;c.fillStyle='#5cd7e7';
   for(const [px,py] of [[-8,-8],[11,10],[19,-8]]){c.beginPath();c.arc(px,py,1.6,0,TAU);c.fill();}
   c.shadowBlur=0;
-  // Partial helmet with sealed transparent visor: a deliberate opening above
-  // the forehead allows the hair to flow without hiding the human silhouette.
-  c.fillStyle='#0c1928';c.strokeStyle='#80aab7';c.lineWidth=1.9;
-  c.beginPath();c.ellipse(27,-2,15,13,0,0,TAU);c.fill();c.stroke();
-  c.fillStyle='#112739';c.beginPath();c.ellipse(32,-1,8.5,8.5,0,0,TAU);c.fill();
-  c.fillStyle='#5e8492';c.beginPath();c.arc(35,-3,2,0,TAU);c.fill();
-  c.strokeStyle='#c4e9ef';c.lineWidth=1;c.beginPath();c.arc(29,-1,10,-.75,1.15);c.stroke();
-  // Hair is BLACK in both versions: short fringe or thick long curved strands.
-  c.fillStyle='#030507';c.strokeStyle='#17212a';c.lineWidth=1.2;
-  c.beginPath();c.moveTo(15,-8);c.quadraticCurveTo(21,-18,30,-14);
-  c.quadraticCurveTo(33,-12,36,-8);c.quadraticCurveTo(31,-11,28,-8);
-  c.quadraticCurveTo(25,-9,23,-6);c.quadraticCurveTo(19,-8,15,-8);c.closePath();c.fill();
-  if(female){
-   for(let i=0;i<8;i++){
-    const offset=i*1.2,tail=-39-i*1.15,wave=cycle*(3+i*.33);
-    c.beginPath();c.strokeStyle=i%3===0?'#1b2530':'#040608';c.lineWidth=2.1+(i%3)*.32;
-    c.moveTo(18+offset*.15,-11);
-    c.bezierCurveTo(3,-19-offset,-11,-22+offset+wave,tail,-27+offset*.4+wave);
-    c.bezierCurveTo(tail-7,-30+offset*.5+wave,tail-12,-23+offset+wave,tail-21,-25+offset+wave);
-    c.stroke();
-   }
-  }else{
-   for(let i=0;i<4;i++)line(22+i*2,-12,25+i*1.4,-7,'#07090d',1.5);
+  // Forward-leaning helmet and collar. The visor looks along the direction of travel.
+  // A dark open crown makes flowing black hair legible without enlarging the head.
+  c.save();c.translate(25,-2);c.rotate(.13);
+  c.fillStyle='#111925';c.strokeStyle='#8aadb9';c.lineWidth=1.7;
+  c.beginPath();c.ellipse(2,0,14.5,12.1,0,0,TAU);c.fill();c.stroke();
+  c.fillStyle='#142b3a';c.strokeStyle='#bfdbe0';c.lineWidth=.85;
+  c.beginPath();c.ellipse(8.2,-.6,8.7,8.2,0,0,TAU);c.fill();c.stroke();
+  c.fillStyle='#789eaa';c.beginPath();c.arc(12.6,-2.1,1.7,0,TAU);c.fill();
+  c.strokeStyle='rgba(232,252,255,.92)';c.beginPath();c.arc(7,-.8,8,-.85,.95);c.stroke();
+  // A narrow pressure collar ends below the hairline, keeping the human face readable.
+  c.fillStyle='#04080c';c.beginPath();c.moveTo(-10,-7);c.quadraticCurveTo(-3,-16,7,-13);
+  c.quadraticCurveTo(10,-10,11,-9);c.quadraticCurveTo(3,-11,-3,-7);
+  c.quadraticCurveTo(-8,-5,-10,-7);c.closePath();c.fill();
+  c.restore();
+  // Loose hair in both versions, never a ponytail. Each lock has separate
+  // water-driven curvature. Female locks extend farther; male locks are short.
+  c.save();c.strokeStyle='#05070b';c.lineCap='round';
+  const hairLength=female?45:17;
+  const locks=female?9:6;
+  for(let i=0;i<locks;i++){
+   const f=i/(locks-1),rootX=18+f*7,rootY=-11-f*1.9;
+   const oscillation=cycle*(female?(2.2+f*1.1):(.6+f*.28));
+   const tipX=rootX-hairLength-(female?f*9:f*4);
+   const tipY=rootY-(female?6+f*6:2+f)+oscillation;
+   c.strokeStyle=i%3===0?'#202630':i%2?'#06080c':'#11151c';
+   c.lineWidth=female?(1.9+.7*Math.sin(f*Math.PI)):(1.6+.45*Math.sin(f*Math.PI));
+   c.beginPath();c.moveTo(rootX,rootY);
+   c.bezierCurveTo(rootX-8,rootY-8-f*2,tipX+14,tipY-6,tipX,tipY);
+   c.stroke();
   }
-  // Both arms bend down to the weapon grip. Weapon pitch is independent from
-  // swimming heading and attaches to the arms, not to the cursor/body.
+  c.fillStyle='#040608';c.beginPath();c.moveTo(16,-8);c.quadraticCurveTo(17,-16,26,-15);
+  c.quadraticCurveTo(33,-13,32,-8);c.quadraticCurveTo(29,-11,25,-8);
+  c.quadraticCurveTo(23,-6,20,-7);c.closePath();c.fill();
+  // A short irregular fringe crosses the upper visor for both genders.
+  for(let i=0;i<4;i++){
+   const tx=25+i*2.8;
+   line(tx,-12,tx+1.3,-8+(i%2)*1.4,'#080a0e',1.35);
+  }
+  c.restore();
+  // Two anatomically distinct arms: far arm above the shoulder, supporting the
+  // fore-end; near arm is bent DOWN below the torso, holding the trigger.
+  // They never share a shoulder point or merge into a single silhouette.
   c.save();c.rotate((Number(aim)||0)-a);
-  limb([10,6],[19,14],5.2,'#1d2b3a','#5c7888');
-  limb([19,14],[29,8],4.7,'#132534','#537b8a');
-  limb([8,-6],[20,4],4.9,'#1b293a','#587a89');
-  // Recognisable WHITE sci-fi rifle: stock, pistol grip, trigger, body and barrel.
-  c.fillStyle='#b7c3cf';c.strokeStyle='#f2ffff';c.lineWidth=1.5;
-  c.beginPath();c.moveTo(17,1);c.lineTo(20,-4);c.lineTo(35,-5);c.lineTo(38,-2);
-  c.lineTo(44,-2);c.lineTo(44,3);c.lineTo(35,3);c.lineTo(31,6);
-  c.lineTo(23,6);c.lineTo(23,11);c.lineTo(19,12);c.lineTo(16,5);c.closePath();c.fill();c.stroke();
-  c.fillStyle='#f4f7f8';c.fillRect(30,-3,12,4);
-  c.fillStyle='#122431';c.fillRect(41,-1,5,3);
-  c.fillStyle='#f6ffff';c.fillRect(44,-.5,3,2);
-  line(25,-4,36,-4,'rgba(255,255,255,.95)',.9);
-  c.fillStyle='#e5fcff';c.shadowColor='#d1faff';c.shadowBlur=5;
-  c.beginPath();c.arc(46,0,1.5,0,TAU);c.fill();c.shadowBlur=0;
+  limb([6,-7],[15,-16],4.8,'#182634','#617b87');
+  limb([15,-16],[31,-7],4.1,'#152b3a','#688391');
+  limb([4,8],[15,17],5.5,'#192733','#698797');
+  limb([15,17],[27,9],4.7,'#162c3b','#5d8191');
+  // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
+  // curved magazine, trigger guard, optic and a long distinguishable barrel.
+  // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
+  c.shadowColor='rgba(213,248,255,.48)';c.shadowBlur=5.5;
+  c.fillStyle='#d8e4ed';c.strokeStyle='#faffff';c.lineWidth=1.25;
+  c.beginPath();c.moveTo(18,-5);c.lineTo(35,-7);c.lineTo(42,-5);
+  c.lineTo(48,-4);c.lineTo(49,4);c.lineTo(38,5);
+  c.lineTo(32,8);c.lineTo(19,8);c.lineTo(16,4);c.closePath();c.fill();c.stroke();
+  c.shadowBlur=0;
+  // Angular stock behind the receiver.
+  c.strokeStyle='#dcebf4';c.lineWidth=2.3;c.beginPath();c.moveTo(18,-4);
+  c.lineTo(10,-9);c.lineTo(3,-8);c.lineTo(3,-3);c.lineTo(10,1);
+  c.lineTo(3,5);c.lineTo(4,10);c.lineTo(10,10);c.lineTo(19,6);c.stroke();
+  // Dark inset receiver and luminous upper rail.
+  c.fillStyle='#223342';c.beginPath();c.roundRect(23,-3,19,8,1.8);c.fill();
+  c.fillStyle='#f7fdff';c.fillRect(27,-7.5,14,1.7);
+  c.fillStyle='#132635';c.beginPath();c.roundRect(33,-11,9,3.8,1);c.fill();
+  c.fillStyle='#c5f7ff';c.fillRect(35,-11.3,5,1);
+  // Curved detachable magazine clearly below the body.
+  c.fillStyle='#122635';c.strokeStyle='#effcff';c.lineWidth=.95;
+  c.beginPath();c.moveTo(30,7);c.quadraticCurveTo(28,13,34,18);
+  c.lineTo(40,17);c.quadraticCurveTo(35,12,36,7);c.closePath();c.fill();c.stroke();
+  // Pistol grip points down; trigger guard remains visible.
+  c.fillStyle='#1e303e';c.beginPath();c.moveTo(20,7);c.lineTo(25,7);
+  c.lineTo(25,14);c.lineTo(21,16);c.closePath();c.fill();
+  c.strokeStyle='rgba(248,255,255,.8)';c.lineWidth=.85;
+  c.beginPath();c.arc(28,8,5.1,Math.PI*.11,Math.PI*.95);c.stroke();
+  // Hand guard and clearly extended barrel to x=69.
+  c.fillStyle='#e6eef4';c.strokeStyle='#ffffff';c.lineWidth=1.2;
+  c.beginPath();c.moveTo(46,-4);c.lineTo(57,-3);c.lineTo(57,3);c.lineTo(46,4);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#243444';c.fillRect(57,-1.65,9,3.3);
+  c.fillStyle='#effaff';c.fillRect(66,-2.4,BARREL_TIP_X-66,4.8);
+  c.strokeStyle='rgba(255,255,255,.92)';c.lineWidth=.75;
+  c.beginPath();c.moveTo(47,-3.3);c.lineTo(66,-3.3);c.stroke();
+  c.fillStyle='#f4ffff';c.shadowColor='#d5fcff';c.shadowBlur=4;
+  c.beginPath();c.arc(BARREL_TIP_X,0,1.4,0,TAU);c.fill();c.shadowBlur=0;
+  // Gloves settle on two separate contact points, never doubling the arm.
+  c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
+  c.beginPath();c.ellipse(31,-6,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
+  c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();
   c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE});
+ return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X});
 });
