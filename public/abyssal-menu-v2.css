@@ -714,3 +714,28 @@
 #shopScreen #skinGrid .skin-card p,#shopScreen #skinGrid .skin-card .skin-ability{color:#e1cdb8!important}
 #shopScreen #skinGrid .skin-card.owned{border-color:#af8961!important}
 #shopScreen #openRedeemCodeBtn{position:relative;z-index:2}
+
+/* Compact landscape phones retain the bottom shortcuts and legal links without
+   squeezing the playfield beneath its minimum usable height. */
+@media(max-height:490px) and (max-width:900px){
+ #menuScreen.ocean-menu-v2.submarine-menu{
+  grid-template-rows:minmax(42px,auto) minmax(145px,1fr) auto auto!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading{
+  min-height:42px!important;padding:2px 8px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading p{display:none!important}
+ #menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage{
+  min-height:145px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:3px!important;padding:3px 5px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities>.abyss-ocean-utility{
+  min-height:24px!important;padding:3px 2px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu>.abyss-ocean-legal.menu-footer{
+  min-height:23px!important;padding-top:1px!important;padding-bottom:2px!important;
+ }
+}
