@@ -116,3 +116,12 @@
 #menuScreen.ocean-menu-v2>.abyss-ocean-stage{width:100%!important;max-width:100%!important;min-width:0!important}
 #menuScreen.ocean-menu-v2 .abyss-ocean-portal-layer{width:100%!important;max-width:none!important;min-width:0!important}
 #menuScreen.ocean-menu-v2>.abyss-ocean-account,#menuScreen.ocean-menu-v2>.abyss-ocean-preferences{grid-column:1!important}
+
+/* Shared diver canvas replaces legacy vertical CSS stick figure. */
+#menuScreen.ocean-menu-v2 #menuOceanDiver{width:174px!important;height:126px!important;transform:translate(-50%,-50%)!important;filter:drop-shadow(0 0 12px rgba(24,194,255,.55))!important}
+#menuScreen.ocean-menu-v2 #menuOceanDiverCanvas{display:block!important;position:absolute!important;inset:0 auto auto 0!important;width:174px!important;height:126px!important;max-width:none!important;pointer-events:none!important;transform:none!important}
+#menuScreen.ocean-menu-v2 #menuOceanSpecimen{left:68px!important;top:-28px!important;width:90px!important;height:60px!important;transform:none!important;pointer-events:none!important}
+@media(max-width:550px){
+ #menuScreen.ocean-menu-v2 #menuOceanDiver{transform:translate(-50%,-50%) scale(.72)!important;transform-origin:center!important}
+ #menuScreen.ocean-menu-v2 #menuOceanDiverCanvas{width:174px!important;height:126px!important}
+}
