@@ -28,6 +28,7 @@
   return nearest.slice(0,maxCount).map(entry=>entry.enemy);
  }
  function bestOrb(position,orbs,player,acquisitionRange,enemies,radius,clearance=28){
+  if(!Array.isArray(orbs)||!orbs.length)return null;
   let best=null,bestScore=Infinity;
   const localThreats=threatsNear(player.x,player.y,enemies,acquisitionRange+radius+clearance+80,48);
   for(const orb of orbs||[]){
