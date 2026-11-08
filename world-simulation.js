@@ -237,7 +237,8 @@ function xpValueForEnemy(world,enemy){
  const eventId=world.activeEventId&&Number(world.eventEndsAt)>Number(world.elapsed)?world.activeEventId:null;
  const sizeScale=clamp((Number(enemy.r)||10)/10,.65,10);
  const base=Math.max(1,Math.round((Number(enemy.value)||1)*ExpeditionRules.eventXpMultiplier(eventId)*(.65+sizeScale*.55)));
- return world.mode==='rift'||BOSS_KINDS.includes(enemy.kind)?base:SeaProgression.scaleXp(base,enemy.seaXpMultiplier);
+ const reduced=Math.max(1,Math.round(base*.22));
+ return world.mode==='rift'||BOSS_KINDS.includes(enemy.kind)?reduced:Math.max(1,Math.round(SeaProgression.scaleXp(reduced,enemy.seaXpMultiplier)));
 }
 
 function initializeWorld(world, now = Date.now(), random = Math.random) {
