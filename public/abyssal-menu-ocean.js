@@ -21,8 +21,7 @@
   menu.dataset.oceanV3Ready='true';
   const layer=document.getElementById('menuOceanPortalLayer'),diver=document.getElementById('menuOceanDiver');
   const canvas=document.getElementById('menuOceanDiverCanvas'),ctx=canvas?.getContext('2d');
-  const hint=document.getElementById('menuOceanHint'),enter=document.getElementById('menuOceanEnterBtn');
-  if(hint){hint.hidden=true;hint.setAttribute('aria-hidden','true');}
+  const enter=document.getElementById('menuOceanEnterBtn');
   const specimenCanvas=document.getElementById('menuOceanSpecimen');
   const sceneryCanvas=document.getElementById('menuOceanScenery');
   const routesCanvas=document.createElement('canvas');
