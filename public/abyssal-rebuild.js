@@ -167,7 +167,7 @@ function createGate(){
   document.body.appendChild(panel);
 
   var portalTrigger=legacyMenu?$('abyssGateButton'):$('riftPortalBtn');
-  var close=function(){panel.hidden=true;portalTrigger?.focus();};
+  var close=function(cancelled=true){panel.hidden=true;if(cancelled)window.dispatchEvent(new CustomEvent('abyssal-menu-portal-cancelled',{detail:{portal:'riftPortalBtn'}}));portalTrigger?.focus();};
   if(legacyMenu)gate.addEventListener('click',function(e){if(e.target!==$('abyssGateButton'))$('abyssGateButton').click();});
   portalTrigger?.addEventListener('click',function(){
     panel.hidden=false;
@@ -178,8 +178,8 @@ function createGate(){
   panel.addEventListener('click',function(e){if(e.target===panel)close();});
   var solo=panel.querySelector('[data-mode="solo"]');
   var group=panel.querySelector('[data-mode="group"]');
-  if(solo)solo.addEventListener('click',function(){close();updateDepthMeter(0);window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));});
-  if(group)group.addEventListener('click',function(){close();window.AbyssalPreferredRoomMode='rift';var mode=$('roomModeInput');if(mode)mode.value='rift';window.AbyssalOnline?.connectAndJoin?.();});
+  if(solo)solo.addEventListener('click',function(){close(false);updateDepthMeter(0);window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));});
+  if(group)group.addEventListener('click',function(){close(false);window.AbyssalPreferredRoomMode='rift';var mode=$('roomModeInput');if(mode)mode.value='rift';window.AbyssalOnline?.connectAndJoin?.();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden)close();});
 }
 
