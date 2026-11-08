@@ -15,7 +15,7 @@ test('diver visual uses one shared anatomy with female hair only as variation',(
  assert.match(code,/if\(female\)/);
  assert.match(code,/Hair is BLACK in both versions/);
  assert.match(code,/Two HUMAN upper legs and calves/);
- assert.match(code,/c\.rotate\(\(Number\(aim\)\|\|0\)-\(Number\(heading\)\|\|0\)\)/);
+ assert.match(code,/c\.rotate\(\(Number\(aim\)\|\|0\)-a\)/);
 });
 test('weapon muzzle is directionally correct',()=>{
  const origin=art.muzzle(100,200,14,0);
