@@ -38,7 +38,11 @@
   const d=(ax,ay,bx,by,cx,cy)=>((bx-ax)*(cy-ay)-(by-ay)*(cx-ax));
   const a=d(ax,ay,bx,by,cx,cy),b=d(ax,ay,bx,by,dx,dy);
   const c=d(cx,cy,dx,dy,ax,ay),e=d(cx,cy,dx,dy,bx,by);
-  if((a===0||b===0||a*b<0)&&(c===0||e===0||c*e<0))return 0;
+  // Collinear separated capsules are NOT intersecting. Bounding overlap
+  // must also hold before accepting zero-distance segment intersection.
+  const boundsOverlap=Math.max(Math.min(ax,bx),Math.min(cx,dx))<=Math.min(Math.max(ax,bx),Math.max(cx,dx))+1e-8
+    &&Math.max(Math.min(ay,by),Math.min(cy,dy))<=Math.min(Math.max(ay,by),Math.max(cy,dy))+1e-8;
+  if(boundsOverlap&&a*b<=0&&c*e<=0)return 0;
   return Math.min(pointSegmentDistance(ax,ay,cx,cy,dx,dy),pointSegmentDistance(bx,by,cx,cy,dx,dy),pointSegmentDistance(cx,cy,ax,ay,bx,by),pointSegmentDistance(dx,dy,ax,ay,bx,by));
  }
  function circleHit(player,x,y,r=0,t=0){
