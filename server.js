@@ -432,7 +432,7 @@ function applyWeaponInfusionToEnemy(socket,room,player,enemy,skillId,now){
  const last=Number(enemy.weaponInfusionLastAt)||0;
  if(now-last<500)return;
  enemy.weaponInfusionLastAt=now;
- if(kind==='paralysis')enemy.paralyzedUntil=Math.max(Number(enemy.paralyzedUntil)||0,now+1000);
+ if(kind==='paralysis')enemy.paralyzedUntil=Math.max(Number(enemy.paralyzedUntil)||0,now+100);
  else if(kind==='poison'&&now>=(Number(enemy.weaponPoisonProcUntil)||0)){
   enemy.weaponPoisonProcUntil=now+2400;
   for(const delay of [500,1000,1500,2000,2500])setTimeout(()=>{
@@ -443,7 +443,7 @@ function applyWeaponInfusionToEnemy(socket,room,player,enemy,skillId,now){
    finally{player.skinActiveServerResolving=false;player.weaponPoisonOrigin=null;}
   },delay);
  }
- io.to(channelFor(room)).emit('skin-weapon-impact',{enemyId:enemy.id,kind,until:kind==='paralysis'?now+1000:now+2400,x:enemy.x/WORLD_WIDTH,y:enemy.y/roomWorldHeight(room)});
+ io.to(channelFor(room)).emit('skin-weapon-impact',{enemyId:enemy.id,kind,until:kind==='paralysis'?now+100:now+2400,x:enemy.x/WORLD_WIDTH,y:enemy.y/roomWorldHeight(room)});
 }
 function applyWeaponInfusionToPvp(room,attacker,target,skillId,now){
  const kind=weaponInfusionFor(attacker,skillId,now);
@@ -452,7 +452,7 @@ function applyWeaponInfusionToPvp(room,attacker,target,skillId,now){
  if(now-last<500)return;
  target.weaponInfusionLastAt=now;
  if(kind==='paralysis'){
-  target.skinParalyzedUntil=Math.max(Number(target.skinParalyzedUntil)||0,now+1000);
+  target.skinParalyzedUntil=Math.max(Number(target.skinParalyzedUntil)||0,now+100);
   io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});
  }else if(kind==='poison'&&now>=(Number(target.weaponPoisonProcUntil)||0)){
   target.weaponPoisonProcUntil=now+2400;
@@ -461,7 +461,7 @@ function applyWeaponInfusionToPvp(room,attacker,target,skillId,now){
    applySkinActivePvpDamage(room,attacker,live,5,'skin-active-poison-dot',Date.now());
   },delay);
  }
- io.to(channelFor(room)).emit('skin-weapon-impact',{targetId:target.id,kind,until:kind==='paralysis'?now+1000:now+2400,x:target.x/WORLD_WIDTH,y:target.y/roomWorldHeight(room)});
+ io.to(channelFor(room)).emit('skin-weapon-impact',{targetId:target.id,kind,until:kind==='paralysis'?now+100:now+2400,x:target.x/WORLD_WIDTH,y:target.y/roomWorldHeight(room)});
 }
 function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill,now){
  applyWeaponInfusionToPvp(room,attacker,primaryTarget,sourceSkill,now);
