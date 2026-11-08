@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-08-specimen-weapon-infusion-v52';
+const VERSION = '2026-11-08-specimen-registry-evasion-v53';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -25,6 +25,7 @@ const GAME_FILES = [
   'server-config.js',
   'i18n.js',
   'skin-standard.js','skin-abilities.js',
+  'specimen-evasion.js','specimen-rarity.js',
   'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-orbit.js',
