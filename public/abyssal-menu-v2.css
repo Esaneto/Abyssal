@@ -245,3 +245,10 @@
  html body #app input:not([type="range"]),html body #app textarea,
  html body [contenteditable="true"]{cursor:text!important}
 }
+
+/* Currents are a viewport overlay that follows the diver, not a fixed world texture. */
+#menuScreen.ocean-menu-v2 .abyss-ocean-routes{
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ max-width:none!important;z-index:5!important;pointer-events:none!important;
+ opacity:1!important;transform:none!important;
+}
