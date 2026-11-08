@@ -290,8 +290,8 @@
        bubbleElapsed+=dt;
        if(bubbleElapsed>.07){bubbleElapsed=0;bubble(px-Math.cos(heading)*15,py-Math.sin(heading)*15);}
       }
-      const entry=nearestStation();
-      if(entry&&Math.hypot(vx,vy)>20)playEntrance(entry);
+      // Free swimming only highlights a destination; entering requires a click or F.
+      nearestStation();
      }
      diver.style.opacity='1';
     }
