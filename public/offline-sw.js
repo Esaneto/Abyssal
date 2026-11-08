@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-08-submarine-three-currents-v49';
+const VERSION = '2026-11-08-submarine-three-currents-v50';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -20,6 +20,7 @@ const GAME_FILES = [
   'abyssal-tentacle-cursor.svg',
   'abyssal-red-reticle.svg',
   'abyssal-specimen-tentacles.svg',
+  'abyssal-wood-tentacles.svg',
   'server-config.js',
   'i18n.js',
   'skin-standard.js','skin-abilities.js',
