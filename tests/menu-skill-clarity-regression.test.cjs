@@ -55,7 +55,7 @@ test('pulse and pressure ranges double and push gains 1.5x distance',()=>{
  const game=read('public/game.js'),server=read('server.js');
  assert.match(game,/e\.kbVx=dx\/d\*645/);
  assert.match(server,/e\.kbVx=dx\/d\*645/);
- assert.match(server,/dx:dx\/d\*93\/WORLD_ZOOM/);
+ assert.match(server,/target\.skinPushImpulse=\{dx:dx\/d\*93\/WORLD_ZOOM/);
  assert.match(game,/function updateSmoothSkinPush\(dt\)/);
 });
 
