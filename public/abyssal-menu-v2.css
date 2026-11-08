@@ -262,3 +262,43 @@
  #menuScreen.ocean-menu-v2 .abyss-ocean-stage{touch-action:none!important}
  #menuScreen.ocean-menu-v2 .abyss-ocean-routes{pointer-events:none!important}
 }
+
+/* Legal links occupy their own bottom grid row, never an overlay on navigation buttons. */
+#menuScreen.ocean-menu-v2{
+ grid-template-rows:minmax(70px,auto) minmax(0,1fr) auto minmax(27px,auto)!important;
+}
+#menuScreen.ocean-menu-v2>.abyss-menu-heading{grid-row:1!important}
+#menuScreen.ocean-menu-v2>#menuOceanStage{grid-row:2!important}
+#menuScreen.ocean-menu-v2>.abyss-ocean-utilities{grid-row:3!important}
+#menuScreen.ocean-menu-v2>.abyss-ocean-legal.menu-footer{
+ grid-column:1/-1!important;grid-row:4!important;
+ position:relative!important;inset:auto!important;
+ left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;
+ align-self:end!important;justify-self:stretch!important;order:initial!important;
+ width:100%!important;max-width:100%!important;min-height:27px!important;height:auto!important;
+ margin:0!important;padding:3px max(9px,env(safe-area-inset-right)) max(3px,env(safe-area-inset-bottom)) 9px!important;
+ display:flex!important;justify-content:flex-end!important;align-items:center!important;
+ background:rgba(0,6,15,.94)!important;border:0!important;
+ border-top:1px solid rgba(88,171,194,.14)!important;
+ transform:none!important;z-index:5!important;overflow:visible!important;
+}
+#menuScreen.ocean-menu-v2>.abyss-ocean-legal .legal-footer{
+ position:static!important;inset:auto!important;transform:none!important;
+ display:flex!important;justify-content:flex-end!important;align-items:center!important;
+ flex-wrap:wrap!important;gap:4px 12px!important;width:auto!important;
+ padding:0!important;margin:0!important;
+}
+#menuScreen.ocean-menu-v2>.abyss-ocean-legal .legal-footer a{
+ font-size:9px!important;line-height:1.35!important;white-space:nowrap!important;
+ position:relative!important;z-index:1!important;
+}
+@media(max-width:700px){
+ #menuScreen.ocean-menu-v2>.abyss-ocean-legal.menu-footer{
+  margin:0!important;padding:4px max(10px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) 10px!important;
+  min-height:30px!important;
+ }
+ #menuScreen.ocean-menu-v2>.abyss-ocean-legal .legal-footer{
+  justify-content:flex-end!important;gap:3px 10px!important;
+ }
+ #menuScreen.ocean-menu-v2>.abyss-ocean-legal .legal-footer a{font-size:8px!important}
+}
