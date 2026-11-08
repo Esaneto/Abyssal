@@ -27,7 +27,7 @@
   const routesCanvas=document.createElement('canvas');
   routesCanvas.className='abyss-ocean-routes';
   routesCanvas.setAttribute('aria-hidden','true');
-  layer.insertBefore(routesCanvas,sceneryCanvas||layer.firstChild);
+  stage.insertBefore(routesCanvas,diver);
   const routesCtx=routesCanvas.getContext('2d');
   const bubblesCanvas=document.createElement('canvas');
   bubblesCanvas.className='abyss-ocean-bubbles';
@@ -81,37 +81,50 @@
    layer.style.setProperty('width',worldW+'px','important');layer.style.setProperty('height',worldH+'px','important');
    window.AbyssalMenuScenery?.draw?.(sceneryCanvas,worldW,worldH);
    for(const s of stations){s.wx=s.x*worldW;s.wy=s.y*worldH;s.button.style.setProperty('--portal-x',s.wx+'px');s.button.style.setProperty('--portal-y',s.wy+'px');}
-   drawPortalRoutes();
+   if(routesCtx){const ratio=Math.min(window.devicePixelRatio||1,1.5);routesCanvas.width=Math.round(r.width*ratio);routesCanvas.height=Math.round(r.height*ratio);routesCtx.setTransform(ratio,0,0,ratio,0,0);}
    if(bubblesCtx){const ratio=Math.min(window.devicePixelRatio||1,1.5);bubblesCanvas.width=Math.round(r.width*ratio);bubblesCanvas.height=Math.round(r.height*ratio);bubblesCtx.setTransform(ratio,0,0,ratio,0,0);}
    destination=null;activeDestination=null;px=clamp(px,48,worldW-48);py=clamp(py,48,worldH-48);
    camX=clamp(px-r.width*.5,0,Math.max(0,worldW-r.width));
    camY=clamp(py-r.height*.5,0,Math.max(0,worldH-r.height));
   }
-  function drawPortalRoutes(){
-   if(!routesCtx||!worldW||!worldH)return;
-   const scale=Math.min(1,2048/worldW,1536/worldH);
-   routesCanvas.width=Math.max(1,Math.round(worldW*scale));
-   routesCanvas.height=Math.max(1,Math.round(worldH*scale));
-   routesCanvas.style.width=worldW+'px';routesCanvas.style.height=worldH+'px';
-   routesCtx.setTransform(scale,0,0,scale,0,0);
-   routesCtx.clearRect(0,0,worldW,worldH);
-   const hub={x:worldW*.52,y:worldH*.51};
+  // Streams begin at the current diver position. The current and labels move
+  // with the diver; animated chevrons point toward every destination.
+  function drawNavigationStreams(now){
+   if(!routesCtx||!stageW||!stageH)return;
+   routesCtx.clearRect(0,0,stageW,stageH);
+   const fromX=px-camX,fromY=py-camY;
    const tones={cyan:'#66e7ff',teal:'#51ebc6',rift:'#c582ff',gold:'#efc77e',violet:'#b6a1ff',blue:'#80bbff',ice:'#abf3f7',rose:'#ff96c2'};
-   for(const station of stations){
-    const color=tones[station.tone]||'#8be5ef',dx=station.wx-hub.x,dy=station.wy-hub.y,d=Math.hypot(dx,dy)||1;
-    const ux=dx/d,uy=dy/d,bend=(station.x<.5?-1:1)*Math.min(90,d*.12);
-    const cx=(hub.x+station.wx)*.5-uy*bend,cy=(hub.y+station.wy)*.5+ux*bend;
-    const ex=station.wx-ux*94,ey=station.wy-uy*94;
-    const path=()=>{routesCtx.beginPath();routesCtx.moveTo(hub.x,hub.y);routesCtx.quadraticCurveTo(cx,cy,ex,ey);};
+   for(const [index,station] of stations.entries()){
+    const dx=station.wx-px,dy=station.wy-py,d=Math.hypot(dx,dy);
+    if(d<42)continue;
+    const ux=dx/d,uy=dy/d,normalX=-uy,normalY=ux;
+    const sx=fromX+ux*42,sy=fromY+uy*42;
+    const length=Math.max(12,d-126),ex=sx+ux*length,ey=sy+uy*length;
+    const bend=Math.min(78,length*.12)*(index%2===0?1:-1);
+    const cx=(sx+ex)*.5+normalX*bend,cy=(sy+ey)*.5+normalY*bend;
+    const color=tones[station.tone]||'#9bfbff',selected=activeDestination===station;
+    const pointAt=t=>{const q=1-t;return{x:q*q*sx+2*q*t*cx+t*t*ex,y:q*q*sy+2*q*t*cy+t*t*ey};};
+    const trace=()=>{routesCtx.beginPath();routesCtx.moveTo(sx,sy);routesCtx.quadraticCurveTo(cx,cy,ex,ey);};
     routesCtx.save();
-    routesCtx.strokeStyle=color;routesCtx.globalAlpha=.055;routesCtx.lineWidth=34;
-    routesCtx.shadowBlur=24;routesCtx.shadowColor=color;path();routesCtx.stroke();
-    routesCtx.shadowBlur=0;routesCtx.globalAlpha=.15;routesCtx.lineWidth=11;path();routesCtx.stroke();
-    routesCtx.globalAlpha=.42;routesCtx.lineWidth=1.5;routesCtx.setLineDash([8,13]);path();routesCtx.stroke();routesCtx.setLineDash([]);
-    const t=.67,mt=1-t,tx=mt*mt*hub.x+2*mt*t*cx+t*t*ex,ty=mt*mt*hub.y+2*mt*t*cy+t*t*ey;
-    routesCtx.globalAlpha=.82;routesCtx.font='700 13px Inter, sans-serif';routesCtx.textAlign='center';
-    routesCtx.textBaseline='middle';routesCtx.lineWidth=5;routesCtx.strokeStyle='rgba(1,10,24,.94)';
-    routesCtx.strokeText(station.label,tx,ty-13);routesCtx.fillStyle=color;routesCtx.fillText(station.label,tx,ty-13);
+    trace();routesCtx.lineCap='round';routesCtx.strokeStyle=color;routesCtx.lineWidth=32;
+    routesCtx.globalAlpha=selected?.17:.065;routesCtx.stroke();
+    trace();routesCtx.lineWidth=22;routesCtx.globalAlpha=selected?.26:.12;routesCtx.stroke();
+    trace();routesCtx.lineWidth=1.9;routesCtx.globalAlpha=selected?.85:.43;
+    routesCtx.setLineDash([14,17]);routesCtx.lineDashOffset=-now*.045;routesCtx.stroke();routesCtx.setLineDash([]);
+    for(let i=0;i<4;i++){
+     const t=(now*.00017+i*.25)%1,p=pointAt(t),q=pointAt(Math.min(1,t+.015));
+     routesCtx.save();routesCtx.translate(p.x,p.y);routesCtx.rotate(Math.atan2(q.y-p.y,q.x-p.x));
+     routesCtx.globalAlpha=(selected?.82:.5)*Math.sin(Math.PI*t);
+     routesCtx.strokeStyle='#d5fbff';routesCtx.lineWidth=1.8;routesCtx.beginPath();
+     routesCtx.moveTo(-5,-4);routesCtx.lineTo(0,0);routesCtx.lineTo(-5,4);routesCtx.stroke();routesCtx.restore();
+    }
+    // Caption rides inside the current about one hundred pixels from the diver.
+    const labelT=Math.min(.75,Math.max(.12,104/Math.max(70,length))),p=pointAt(labelT);
+    routesCtx.font='700 9px Inter, sans-serif';routesCtx.textAlign='center';routesCtx.textBaseline='middle';
+    const w=routesCtx.measureText(station.label).width+14;
+    routesCtx.globalAlpha=selected?.95:.78;routesCtx.fillStyle='rgba(1,11,25,.89)';
+    routesCtx.beginPath();routesCtx.roundRect(p.x-w/2,p.y-10,w,20,9);routesCtx.fill();
+    routesCtx.fillStyle=selected?'#fff':color;routesCtx.fillText(station.label,p.x,p.y);
     routesCtx.restore();
    }
   }
@@ -219,6 +232,7 @@
      }
     }else bubbleElapsed=0;
     pickNear();
+    drawNavigationStreams(now);
    }else{vx=0;vy=0;held.clear();followingPointer=null;}
    if(bubblesCtx){
     bubblesCtx.clearRect(0,0,stageW,stageH);
