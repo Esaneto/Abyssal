@@ -22,6 +22,7 @@
   const layer=document.getElementById('menuOceanPortalLayer'),diver=document.getElementById('menuOceanDiver');
   const canvas=document.getElementById('menuOceanDiverCanvas'),ctx=canvas?.getContext('2d');
   const hint=document.getElementById('menuOceanHint'),enter=document.getElementById('menuOceanEnterBtn');
+  if(hint){hint.hidden=true;hint.setAttribute('aria-hidden','true');}
   const specimenCanvas=document.getElementById('menuOceanSpecimen');
   const sceneryCanvas=document.getElementById('menuOceanScenery');
   const routesCanvas=document.createElement('canvas');
@@ -67,7 +68,7 @@
     if(!isInteractive())return;
     event.preventDefault();event.stopImmediatePropagation();
     destination={x:entry.wx,y:entry.wy};activeDestination=entry;
-    hint.textContent='NADANDO ATÉ '+entry.label+' · F PARA ENTRAR AO CHEGAR';
+    // Navigation title is painted on the moving route itself.
    },true);
   }
   function resizeWorld(){
@@ -118,13 +119,27 @@
      routesCtx.strokeStyle='#d5fbff';routesCtx.lineWidth=1.8;routesCtx.beginPath();
      routesCtx.moveTo(-5,-4);routesCtx.lineTo(0,0);routesCtx.lineTo(-5,4);routesCtx.stroke();routesCtx.restore();
     }
-    // Caption rides inside the current about one hundred pixels from the diver.
-    const labelT=Math.min(.75,Math.max(.12,104/Math.max(70,length))),p=pointAt(labelT);
-    routesCtx.font='700 9px Inter, sans-serif';routesCtx.textAlign='center';routesCtx.textBaseline='middle';
-    const w=routesCtx.measureText(station.label).width+14;
-    routesCtx.globalAlpha=selected?.95:.78;routesCtx.fillStyle='rgba(1,11,25,.89)';
-    routesCtx.beginPath();routesCtx.roundRect(p.x-w/2,p.y-10,w,20,9);routesCtx.fill();
-    routesCtx.fillStyle=selected?'#fff':color;routesCtx.fillText(station.label,p.x,p.y);
+    // Bend each glyph around the same Bézier geometry as the current.
+    // Keep lettering upright on the left-facing routes for legibility.
+    const label=station.label,fitScale=Math.min(1,Math.max(.7,length/240));
+    routesCtx.font='700 '+Math.round((stageW<600?10:12)*fitScale)+'px Inter, sans-serif';
+    const spacing=1.2,total=[...label].reduce((sum,ch)=>sum+routesCtx.measureText(ch).width+spacing,0);
+    const centerT=.51,travel=Math.min(.44,total/Math.max(110,length)*.56);
+    const reversed=ux<-.12,letters=reversed?[...label].reverse():[...label];
+    let cursor=-total/2;
+    for(const ch of letters){
+     const advance=routesCtx.measureText(ch).width+spacing;
+     const t=Math.max(.06,Math.min(.94,centerT+(cursor+advance*.5)/Math.max(1,total)*travel*2));
+     const p=pointAt(t),near=pointAt(Math.min(.995,t+.006));
+     const tang=Math.atan2(near.y-p.y,near.x-p.x)+(reversed?Math.PI:0);
+     routesCtx.save();routesCtx.translate(p.x,p.y);routesCtx.rotate(tang);
+     routesCtx.globalAlpha=selected?.96:.87;
+     routesCtx.shadowColor='rgba(0,7,14,.98)';routesCtx.shadowBlur=4;
+     routesCtx.strokeStyle='rgba(0,8,16,.96)';routesCtx.lineWidth=2.7;
+     routesCtx.strokeText(ch,0,0);
+     routesCtx.fillStyle=selected?'#fff':color;routesCtx.fillText(ch,0,0);
+     routesCtx.restore();cursor+=advance;
+    }
     routesCtx.restore();
    }
   }
@@ -152,10 +167,9 @@
    }
    const radius=best?Math.max(50,Math.min(best.button.offsetWidth*.36,70)):50;
    nearest=bestDistance<radius?best:null;
-   if(nearest){nearest.button.classList.add('portal-near');hint.textContent='PORTAL '+nearest.label+' · F / ENTER PARA ENTRAR';}
-   else if(activeDestination){hint.textContent='RUMO A '+activeDestination.label+' · '+Math.ceil(Math.hypot(px-activeDestination.wx,py-activeDestination.wy))+' un.';}
-   else if(best){hint.textContent='NADO LIVRE · PORTAL '+best.label+' A '+Math.ceil(bestDistance)+'m · CLIQUE / WASD';}
-   else hint.textContent='WASD / SETAS PARA NADAR · F PARA ENTRAR';
+   if(nearest)nearest.button.classList.add('portal-near');
+   // Coordinates, distances and portal-target banners were removed; current labels
+   // are already embedded into the directional stream.
    if(enter){enter.disabled=!nearest;enter.textContent=nearest?'ENTRAR · '+nearest.label:'APROXIME-SE DE UM PORTAL';}
    // The outer glow marks proximity, but entry happens at the inner rift.
    // Keep checking until the swimmer actually crosses the entry radius.
@@ -188,11 +202,32 @@
   for(const type of ['pointerup','pointercancel','lostpointercapture']){
    stage.addEventListener(type,event=>{if(followingPointer===event.pointerId)followingPointer=null;});
   }
-  for(const button of document.querySelectorAll('#menuOceanMobilePad [data-ocean-move]')){
-   const direction=button.dataset.oceanMove;
-   button.addEventListener('pointerdown',e=>{e.preventDefault();held.add(direction);destination=null;activeDestination=null;try{button.setPointerCapture(e.pointerId)}catch{}});
-   const stop=()=>held.delete(direction);
-   button.addEventListener('pointerup',stop);button.addEventListener('pointercancel',stop);button.addEventListener('lostpointercapture',stop);
+  const mobilePad=document.getElementById('menuOceanMobilePad');
+  if(mobilePad){
+   mobilePad.hidden=false;mobilePad.replaceChildren();
+   mobilePad.classList.add('ocean-joystick');
+   mobilePad.setAttribute('aria-label','Joystick translúcido para nadar');
+   const thumb=document.createElement('span');thumb.className='ocean-joystick-thumb';
+   mobilePad.appendChild(thumb);
+   let stickId=null,joystickX=0,joystickY=0;
+   const drive=e=>{
+    const r=mobilePad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+    const dx=e.clientX-cx,dy=e.clientY-cy,dist=Math.hypot(dx,dy)||1,extent=Math.min(40,r.width*.34);
+    const ratio=Math.min(1,dist/extent);
+    joystickX=dx/dist*ratio;joystickY=dy/dist*ratio;
+    thumb.style.transform='translate('+Math.round(joystickX*extent)+'px,'+Math.round(joystickY*extent)+'px)';
+    destination=null;activeDestination=null;
+   };
+   mobilePad.addEventListener('pointerdown',e=>{
+    if(stickId!==null||!isInteractive())return;
+    e.preventDefault();stickId=e.pointerId;try{mobilePad.setPointerCapture(e.pointerId)}catch(_){}
+    drive(e);
+   });
+   mobilePad.addEventListener('pointermove',e=>{if(stickId===e.pointerId){e.preventDefault();drive(e);}});
+   const stop=e=>{if(stickId!==e.pointerId)return;stickId=null;joystickX=0;joystickY=0;thumb.style.transform='translate(0px,0px)';};
+   for(const type of ['pointerup','pointercancel','lostpointercapture'])mobilePad.addEventListener(type,stop);
+   window.addEventListener('blur',()=>{stickId=null;joystickX=0;joystickY=0;thumb.style.transform='translate(0px,0px)';});
+   window.__abyssalMenuJoystick=()=>({x:joystickX,y:joystickY});
   }
   enter?.addEventListener('click',()=>enterPortal(nearest));
   function animate(now){
@@ -202,6 +237,8 @@
     if(stage.clientWidth>10&&(Math.abs(stage.clientWidth-stageW)>2||Math.abs(stage.clientHeight-stageH)>2))resizeWorld();
     let mx=(held.has('right')?1:0)-(held.has('left')?1:0);
     let my=(held.has('down')?1:0)-(held.has('up')?1:0);
+    const stick=window.__abyssalMenuJoystick?.();
+    if(stick&&Math.hypot(stick.x,stick.y)>.04){mx=stick.x;my=stick.y;}
     if(mx||my){destination=null;activeDestination=null;}
     else if(destination){
      const dx=destination.x-px,dy=destination.y-py,d=Math.hypot(dx,dy);
