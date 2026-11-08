@@ -1900,7 +1900,7 @@ function applySoloWeaponInfusionHit(enemy,sourceSkill){
  if(now<(Number(enemy.weaponInfusionNextAt)||0))return;
  enemy.weaponInfusionNextAt=now+500;
  if(kind==='paralysis'){
-  enemy.paralyzedUntil=Math.max(Number(enemy.paralyzedUntil)||0,now+1000);
+  enemy.paralyzedUntil=Math.max(Number(enemy.paralyzedUntil)||0,now+100);
   burst(enemy.x,enemy.y,'#62edff',5,42);
  }else if(kind==='poison'){
   enemy.poisonTimer=Math.max(Number(enemy.poisonTimer)||0,2.4);
@@ -4774,8 +4774,8 @@ window.addEventListener('abyssal-specimen-dash',ev=>{
 });
 window.addEventListener('abyssal-skin-weapon-impact',ev=>{
  const d=ev.detail||{},enemy=onlineEnemyById.get(String(d.enemyId||'')),now=performance.now();
- if(d.targetId&&d.kind==='paralysis')remoteWeaponParalysis.set(String(d.targetId),Date.now()+1000);
- if(enemy){if(d.kind==='paralysis')enemy.paralyzedUntil=now+1000;
+ if(d.targetId&&d.kind==='paralysis')remoteWeaponParalysis.set(String(d.targetId),Date.now()+100);
+ if(enemy){if(d.kind==='paralysis')enemy.paralyzedUntil=now+100;
   else if(d.kind==='poison')enemy.weaponPoisonUntil=now+2400;}
 });
 window.addEventListener('abyssal-skin-shield-bubble',ev=>{
