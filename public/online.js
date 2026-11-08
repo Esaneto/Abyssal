@@ -98,7 +98,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if(data&&serverAccount&&data.nickname===serverAccount.nickname)serverAccount={...serverAccount,...(data.cardumeId?{cardumeId:data.cardumeId}:{})};
   const root=$('profileTitleGrid');if(!root)return;
   const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
-  const appearance=user.diverGender==='female'?'female':'male';
+  const appearance=user.diverGender==='female'?'female':user.diverGender==='male'?'male':(localStorage.getItem('abyssalDiverGender')==='female'?'female':'male');
   document.querySelectorAll('#profileDiverGender [data-diver-gender]').forEach(button=>{
    button.setAttribute('aria-pressed',String(button.dataset.diverGender===appearance));
    button.disabled=Boolean(user.isSelf===false);
