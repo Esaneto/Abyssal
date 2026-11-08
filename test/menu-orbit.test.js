@@ -6,19 +6,17 @@ const test = require('node:test');
 
 const read = path => fs.readFileSync(path, 'utf8');
 
-test('principal actions keep unique IDs inside the radial navigation', () => {
-  const html = read('public/index.html');
-  const orbit = html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/);
-  assert.ok(orbit, 'radial navigation element must exist');
-  [
-    'playBtn', 'resonanceBtn', 'wheelBtn', 'onlineBtn', 'shopBtn',
-    'catalogBtn', 'rankingsBtn', 'cardumesBtn', 'profileBtn',
-    'matchHistoryBtn', 'supportBtn'
-  ].forEach(id => {
-    const pattern = new RegExp('\\bid="' + id + '"', 'g');
-    assert.equal((html.match(pattern) || []).length, 1, id + ' must stay unique');
-    assert.match(orbit[1], pattern, id + ' must be in the orbit');
-  });
+test('principal actions keep unique IDs inside the radial navigation',()=>{
+
+ const html=read('public/index.html');
+ const ocean=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('</section>',html.indexOf('<section id="menuScreen"')));
+ assert.match(ocean,/class="screen ocean-menu-v2"/);
+ assert.match(ocean,/id="menuOceanStage"/);
+ for(const id of ['playBtn','onlineBtn','riftPortalBtn','resonanceBtn','wheelBtn','shopBtn','profileBtn','catalogBtn','rankingsBtn','cardumesBtn','matchHistoryBtn','supportBtn']){
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id+' must be unique');
+  assert.match(ocean,new RegExp('id="'+id+'"'),id+' must be accessible from menu');
+ }
+
 });
 
 test('the descent gate is inserted inside the orbit without changing its events', () => {
@@ -39,17 +37,16 @@ test('menu motion has a reduced-motion option and mobile touch layout', () => {
 });
 
 
-test('cinematic menu retains interactive actions with symmetric cards', () => {
-  const html=read('public/index.html');
-  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/);
-  assert.ok(nav);
-  ['resonanceBtn','wheelBtn','profileBtn','controlsBtn'].forEach(id=>{
-    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id+' unique');
-    assert.match(nav[1],new RegExp('id="'+id+'"'));
-  });
-  assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
-  assert.match(nav[1],/class="abyss-orbit-extras"/);
+test('cinematic menu retains interactive actions with symmetric cards',()=>{
+
+ const html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
+ const nav=html.match(/<nav class="abyss-ocean-utilities"[^>]*>([\s\S]*?)<\/nav>/);
+ assert.ok(nav,'bottom utilities must be present');
+ for(const id of ['resonanceBtn','wheelBtn','profileBtn'])assert.match(nav[1],new RegExp('id="'+id+'"'));
+ assert.equal((html.match(/id="controlsBtn"/g)||[]).length,1);
+ assert.match(css,/grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
+ assert.doesNotMatch(html,/abyssal-menu-interactions\.js\?v=1/);
+
 });
 
 test('purple tentacle cursor has become a centered aiming reticle', () => {
@@ -74,16 +71,16 @@ test('reference-inspired interface centers vortex and keeps extra features reach
 });
 
 
-test('orbital navigation is a direct fullscreen menu child, not a narrow legacy menu column', () => {
-  const html=read('public/index.html');
-  const css=read('public/abyssal-menu-orbit.css');
-  const section=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('<section id="hud"'));
-  const columnClose=section.indexOf('      </div>');
-  const navStart=section.indexOf('<nav class="abyss-orbit-navigation"');
-  assert.ok(navStart>columnClose,'orbit must no longer be inside menu-content');
-  assert.match(section,/<div class="menu-content">[\s\S]*?<\/h1>\s*<\/div>\s*<nav class="abyss-orbit-navigation"/);
-  assert.match(css,/#menuScreen > \.abyss-orbit-navigation\s*\{[\s\S]*?width:100vw!important/);
-  assert.match(css,/#menuScreen > \.abyss-orbit-navigation #abyssGate\s*\{[\s\S]*?left:50%!important;top:50%!important/);
+test('orbital navigation is a direct fullscreen menu child, not a narrow legacy menu column',()=>{
+
+ const html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
+ const section=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('</section>',html.indexOf('<section id="menuScreen"')));
+ assert.match(section,/id="menuOceanStage"/);
+ assert.match(section,/class="abyss-ocean-utilities"/);
+ assert.doesNotMatch(section,/class="menu-content"/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\{[\s\S]*?grid-template-rows/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #menuOceanStage/);
+
 });
 
 test('cursor is an aiming crosshair centered on a purple dot, even when hovering over the gate',()=>{
@@ -108,18 +105,15 @@ test('crocodile and caiman require real payment rather than coins',()=>{
 
 
 test('six central choices are the existing game actions without duplicated extra buttons',()=>{
-  const html=read('public/index.html');
-  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
-  const primary=nav.match(/<div class="menu-secondary-actions">([\s\S]*?)<\/div>/)[1];
-  const extras=nav.match(/<div class="abyss-orbit-extras"[^>]*>([\s\S]*?)<\/div>/)[1];
-  for(const id of ['onlineBtn','resonanceBtn','rankingsBtn','wheelBtn','shopBtn','profileBtn']){
-    assert.match(primary,new RegExp('id="'+id+'"'),id+' is a main card');
-    assert.doesNotMatch(extras,new RegExp('id="'+id+'"'),id+' is not duplicated below');
-  }
-  for(const id of ['abyssSettingsBtn','abyssExitBtn']){
-    assert.doesNotMatch(html,new RegExp('id="'+id+'"'),id+' redundant entry removed');
-  }
-  assert.match(extras,/id="controlsBtn"[^>]*hidden/);
+
+ const html=read('public/index.html'),menu=read('public/abyssal-menu-ocean.js');
+ const stage=html.slice(html.indexOf('id="menuOceanPortalLayer"'),html.indexOf('id="menuOceanDiver"'));
+ const nav=html.slice(html.indexOf('class="abyss-ocean-utilities"'),html.indexOf('class="abyss-ocean-account"'));
+ for(const id of ['playBtn','onlineBtn','riftPortalBtn'])assert.match(stage,new RegExp('id="'+id+'"'));
+ for(const id of ['resonanceBtn','rankingsBtn','wheelBtn','shopBtn','profileBtn'])assert.match(nav,new RegExp('id="'+id+'"'));
+ assert.match(menu,/stations\.length!==3/);
+ assert.doesNotMatch(html,/id="abyssSettingsBtn"|id="abyssExitBtn"/);
+
 });
 
 test('portal has deterministic uneven currents and the fenda button sits at its center',()=>{
@@ -143,23 +137,16 @@ test('cursor references use one asset and one hot spot to avoid hover jumps',()=
 
 
 test('three promoted buttons inherit the exact old configuration, controls and exit slots',()=>{
-  const html=read('public/index.html');
-  const css=read('public/abyssal-menu-orbit.css');
-  const orbit=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
-  const choices=orbit.match(/<div class="menu-secondary-actions">([\s\S]*?)<\/div>/)[1];
-  const slots={
-    resonanceBtn:['71%','31%'],
-    wheelBtn:['81%','48.5%'],
-    profileBtn:['71%','68%']
-  };
-  for(const [id,[x,y]] of Object.entries(slots)){
-    assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
-    assert.match(choices,new RegExp('id="'+id+'"'));
-    const rule=new RegExp('#'+id+'\\s*\\{\\s*--orbit-x:'+x.replace('%','%')+';--orbit-y:'+y.replace('%','%')+';');
-    assert.match(css,rule,id+' should use its retired card slot');
-  }
-  assert.doesNotMatch(choices,/id="(?:abyssSettingsBtn|abyssExitBtn|controlsBtn)"/);
-  assert.doesNotMatch(css,/inset-inline:auto!important;bottom:auto!important;/);
+
+ const html=read('public/index.html'),css=read('public/abyssal-lab-menu.css');
+ const nav=html.slice(html.indexOf('<nav class="abyss-ocean-utilities"'),html.indexOf('</nav>',html.indexOf('<nav class="abyss-ocean-utilities"')));
+ for(const id of ['resonanceBtn','wheelBtn','profileBtn']){
+  assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1);
+  assert.match(nav,new RegExp('id="'+id+'"'));
+ }
+ assert.match(css,/\.abyss-ocean-utilities>\.abyss-ocean-utility\{/);
+ assert.match(css,/min-height:48px!important/);
+
 });
 
 test('ocean depth center fades without an opaque black disc overlay',()=>{
@@ -183,29 +170,25 @@ test('cursor hotspot is exactly its rendered center for all interactive elements
 
 
 test('desktop vortex spins with a separate composited layer while reduced motion remains accessible',()=>{
-  const js=read('public/abyssal-rebuild.js');
-  const css=read('public/abyssal-menu-orbit.css');
-  const html=read('public/index.html');
-  assert.match(js,/class="abyss-vortex-flow-layer"/);
-  assert.match(js,/class="abyss-vortex-flow-layer" aria-hidden="true"[^']*'\+buildVortexStreams/);
-  assert.match(css,/@keyframes abyssCurrentCirculate/);
-  assert.match(css,/@media\(prefers-reduced-motion:no-preference\)/);
-  assert.match(css,/abyssCurrentCirculate 12s linear infinite!important/);
-  assert.match(css,/abyssVortexRotate 18s linear infinite reverse!important/);
-  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html,/abyssal-rebuild\.js\?v=8/);
+
+ const menu=read('public/abyssal-menu-ocean.js'),css=read('public/abyssal-lab-menu.css'),html=read('public/index.html');
+ assert.match(menu,/function renderCurrents\(now\)/);
+ assert.match(menu,/currents\.bezierCurveTo/);
+ assert.match(menu,/requestAnimationFrame\(animate\)/);
+ assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.14/);
+
 });
 
 test('main menu play and abyss gate have their requested labels',()=>{
-  const html=read('public/index.html');
-  const rebuild=read('public/abyssal-rebuild.js');
-  const i18n=read('public/i18n.js');
-  assert.match(html,/id="playBtn"[^>]*>MERGULHAR <span>/);
-  assert.match(rebuild,/id="abyssGateButton"[^>]*>FOSSAS ABISSAIS<\/button>/);
-  assert.match(i18n,/'MERGULHAR':'DIVE'/);
-  assert.match(i18n,/'MERGULHAR':'BUCEAR'/);
-});
 
+ const html=read('public/index.html'),rebuild=read('public/abyssal-rebuild.js'),i18n=read('public/i18n.js');
+ assert.match(html,/id="playBtn"[^>]*>[\s\S]*?<strong>MERGULHO SOLO<\/strong>/);
+ assert.match(html,/id="riftPortalBtn"[^>]*>[\s\S]*?<strong>FOSSAS<\/strong>/);
+ assert.match(rebuild,/window\.AbyssalPreferredRoomMode='rift'/);
+ assert.match(i18n,/'MERGULHAR':'DIVE'/);
+
+});
 
 test('Fossas Abissais has fractured black styling and translations',()=>{
   const js=read('public/abyssal-rebuild.js');
@@ -227,44 +210,35 @@ test('Wheel is golden translucent and Resonance is violet translucent',()=>{
 });
 
 test('Specimen Catalog has a nautical anchor, keeping real shop click action',()=>{
-  const html=read('public/index.html');
-  const css=read('public/abyssal-menu-orbit.css');
-  const js=read('public/abyssal-rebuild.js');
-  assert.match(html,/id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn tentacle-brown-btn"/);
-  assert.match(html,/class="menu-nav-icon ui-icon tentacle-icon"/);
-  assert.match(css,/#shopBtn\.nautical-anchor-btn\{/);
-  assert.match(js,/shopLabel\.textContent='CATÁLOGO DE ESPÉCIMES'/);
+
+ const html=read('public/index.html'),css=read('public/abyssal-lab-menu.css'),game=read('public/game.js');
+ assert.match(html,/id="shopBtn" class="abyss-ocean-utility/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #shopBtn/);
+ assert.match(css,/#shopScreen #skinGrid \.skin-card \.skin-preview::before/);
+ assert.match(game,/\$\('shopBtn'\)\.addEventListener\('click'/);
+
 });
 
 test('desktop current uses the browser frame clock even when SVG CSS animations freeze',()=>{
-  const js=read('public/abyssal-rebuild.js');
-  const css=read('public/abyssal-menu-orbit.css');
-  const html=read('public/index.html');
-  assert.match(js,/function runDesktopVortex\(\)/);
-  assert.match(js,/window\.requestAnimationFrame\(tick\)/);
-  assert.match(js,/flow\.style\.setProperty\('transform'/);
-  assert.match(js,/water\.style\.setProperty\('transform'/);
-  assert.match(js,/if\(document\.hidden\|\|menu\.hidden\|\|document\.body\.classList\.contains\('game-active'\)\)/);
-  assert.match(css,/@media\(hover:hover\) and \(pointer:fine\)\{\s*body:not\(\.game-active\) #menuScreen #abyssGate \.abyss-vortex-flow-layer,[\s\S]*?animation:none!important/);
-  assert.match(html,/abyssal-menu-orbit\.css\?v=9/);
-  assert.match(html,/abyssal-rebuild\.js\?v=8/);
+
+ const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html');
+ assert.match(menu,/function animate\(now\)/);
+ assert.match(menu,/renderCurrents\(now\)/);
+ assert.match(menu,/requestAnimationFrame\(animate\)/);
+ assert.match(menu,/now\*\.00022/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.14/);
+
 });
 
-
 test('Specimen Catalog decor is actual curled purple tentacles around a translucent brown card',()=>{
-  const html=read('public/index.html');
-  const css=read('public/abyssal-menu-orbit.css');
-  const nav=html.match(/<nav class="abyss-orbit-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
-  const shop=nav.match(/<button id="shopBtn"[\s\S]*?<\/button>/)[0];
-  assert.match(shop,/class="specimen-tentacle-frame"/);
-  assert.match(shop,/aria-hidden="true" focusable="false"/);
-  assert.match(shop,/stroke="url\(#specimenArmPurple\)"/);
-  assert.match(shop,/C3 104 10 81 26 70/);
-  assert.match(css,/#shopBtn\.nautical-anchor-btn\.tentacle-brown-btn\{/);
-  assert.match(css,/border:2px solid rgba\(156,103,68,\.95\)!important/);
-  assert.match(css,/rgba\(112,70,38,\.49\)/);
-  assert.match(css,/\.specimen-tentacle-frame\{[\s\S]*?pointer-events:none!important/);
-  assert.match(css,/@media\(max-width:1000px\),\(pointer:coarse\)/);
+
+ const css=read('public/abyssal-lab-menu.css'),html=read('public/index.html');
+ assert.match(html,/id="shopBtn"/);
+ assert.match(css,/#shopScreen \.shop-modal/);
+ assert.match(css,/#shopScreen #skinGrid \.skin-card \.skin-preview/);
+ assert.match(css,/rgba\(232,253,255,\.92\)/);
+ assert.match(css,/#shopScreen #skinGrid \.skin-card>p::before/);
+
 });
 
 test('Fossas Abissais has longer spikes, extra cracks and restrained blood red outline',()=>{

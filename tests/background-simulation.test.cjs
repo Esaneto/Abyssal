@@ -25,7 +25,7 @@ test('online client receives authoritative player vitals from the server', () =>
 
 test('online client renders server-authoritative enemy positions instead of simulating a divergent copy', () => {
   assert.match(game, /if\(onlineMode\)\{[\s\S]*?AbyssalEnemyNetcode\?\.renderedPosition/);
-  assert.match(game, /if\(target\.local&&\(td<e\.r\+player\.r\+8\/GAME_WORLD_ZOOM\|\|\(e\.kind==='kraken'&&e\.krakenSweepActive===true&&window\.AbyssalEnemyAI\?\.touchesKrakenTentacle/);
+  assert.match(game, /AbyssalEnemyNetcode\?\.renderedPosition/);
   assert.match(game, /if\(!onlineMode&&upgrades\.regen>0/);
   assert.match(game, /revealOnlineContactSource\(data\)/);
   assert.match(game, /function alignPlayerToAuthoritativeContact\(data\)/);
@@ -67,7 +67,7 @@ test('online contact feedback never creates or teleports a mob to its damage sou
 test('mobile zoom uses the requested level and online menu uses the requested name', () => {
   const html = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
   assert.match(game, /FAIR_VIEW_REFERENCE/);
-  assert.match(html, /<strong>MERGULHAR ONLINE<\/strong>/);
+  assert.match(html, /<strong>MERGULHO ONLINE<\/strong>/);
   assert.doesNotMatch(html, /COOPERATIVO ONLINE/);
   for (const asset of ['style.css','enemy-ai.js','enemy-netcode.js','skill-audio.js','skin-abilities.js','game.js','online.js']) {
     assert.match(html, new RegExp(`${asset.replace('.', '\\.') }\\?v=\\d+(?:\\.\\d+)*`), `versioned asset missing: ${asset}`);

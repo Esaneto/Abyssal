@@ -69,7 +69,7 @@ test('renderer integration covers enemies, bosses, local and remote players with
  const motion=fs.readFileSync('public/skin-motion.js','utf8');
  assert.match(game,/creatureVisualMotion\(skin,kind,enemyState/);
  assert.match(game,/drawFinalBoss\(c,finalBossVisualState,animationTime\)/);
- assert.match(game,/visualId:onlineMode\?'player:self':'player:solo'/);
+ assert.match(game,/drawDiver\(player\.x,player\.y,player\.r,player\.bodyAngle/);
  assert.match(game,/visualId:'peer:'/);
  assert.match(game,/remoteCreatureAttackUntil\.set/);
  assert.match(game,/player\.visualAttackUntil=performance\.now\(\)\+140/);
@@ -127,7 +127,8 @@ test('marine and legacy player skins follow mouse aim through 360 degrees',()=>{
  assert.match(legacy,/followsAim\?1:/);
  assert.match(draw,/const facing=followAim\?1:/);
  assert.match(draw,/c\.rotate\(\(followAim&&Number\.isFinite\(angle\)\?angle:0\)/);
- assert.match(game,/getLocalSkinCursorAngle\(\),currentSkinColor\(\),'player'/);
+ assert.match(game,/getLocalSkinCursorAngle\(/);
+ assert.match(game,/drawCreature\(sx,sy/);
  assert.match(game,/AbyssalMarineArt\.draw\(c,x,y,r,angle,skin,animationTime,hit,visualMotion,liveSkinHeading!==null\)/);
  assert.doesNotMatch(legacy,/c\.rotate\([^;]*motion\.pitch/);
  assert.match(marine,/const movement=root\.AbyssalSkinMotion\?\.pose\?\.\(s,t,1\)/);

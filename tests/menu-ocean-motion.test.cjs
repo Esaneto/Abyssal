@@ -82,5 +82,5 @@ test('three destinations keep the definitive bottom arrangement, routes and hatc
  assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #shopBtn/);
  assert.match(css,/#shopScreen #skinGrid \.skin-card/);
  const stage=html.slice(html.indexOf('<div id="menuOceanPortalLayer"'),html.indexOf('<div id="menuOceanDiver"'));
- assert.equal((stage.match(/class="abyss-destination/g)||[]).length,3);
+ assert.equal((stage.match(/class="abyss-destination(?:\s|\")/g)||[]).length,3);
 });

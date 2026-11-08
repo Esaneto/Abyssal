@@ -6,17 +6,16 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('download control is outside the menu column and docked discreetly at the upper right', () => {
-  const html = read('public/index.html');
-  const css = read('public/style.css');
-  const contentStart = html.indexOf('<div class="menu-content">');
-  const download = html.indexOf('<button id="downloadBtn"');
-  const contentEnd = html.indexOf('</div>', contentStart);
-  assert.ok(contentStart >= 0 && download > contentStart);
-  assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
-  assert.match(css, /#menuScreen \.download-cta\{[\s\S]*?top:12px;right:14px/);
-  assert.match(css, /min-height:29px;height:29px/);
-  assert.match(html, /style\.css\?v=\d+\.\d+\.\d+/);
+test('download control is outside the menu column and docked discreetly at the upper right',()=>{
+
+ const html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
+ const menu=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('</section>',html.indexOf('<section id="menuScreen"')));
+ assert.match(menu,/class="abyss-ocean-preferences"/);
+ assert.match(menu,/id="downloadBtn"/);
+ assert.match(menu,/id="languageSelect"/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2 \.abyss-ocean-preferences\{right:15px/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2 \.abyss-ocean-preferences #downloadBtn/);
+ assert.match(html,/style\.css\?v=\d+\.\d+\.\d+/);
 });
 
 test('menu monster keeps its frightening toothed grin after public chat removal', () => {
