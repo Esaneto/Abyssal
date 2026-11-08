@@ -1064,7 +1064,7 @@ function tickSkinTrailNodes(room,players,now){
   io.to(channelFor(room)).emit('skin-trail-node',{ownerId:p.id,x:x/WORLD_WIDTH,
    y:y/roomWorldHeight(room),ink,color,serverTime:now});
  }
- if(w.sharkWakeTrails.length>300)w.sharkWakeTrails.splice(0,w.sharkWakeTrails.length-300);
+ if(w.sharkWakeTrails.length>450)w.sharkWakeTrails.splice(0,w.sharkWakeTrails.length-450);
 }
 function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
