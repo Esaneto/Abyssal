@@ -47,6 +47,32 @@
   const vent=c.createLinearGradient(0,height*.74,0,height);
   vent.addColorStop(0,'rgba(16,159,212,0)');vent.addColorStop(.85,'rgba(22,152,198,.19)');vent.addColorStop(1,'rgba(5,43,89,.06)');
   c.fillStyle=vent;c.beginPath();c.moveTo(width*.47,height*.98);c.lineTo(width*.52,height*.73);c.lineTo(width*.55,height);c.closePath();c.fill();
+  // The abyssal opening is carved into the actual seabed, not a
+  // floating card. Stratified edges reveal the depth under the sediment.
+  const fissureX=width*.52,fissureY=height*.89,fr=Math.min(width*.19,height*.17);
+  c.save();
+  let floorGlow=c.createRadialGradient(fissureX,fissureY,0,fissureX,fissureY,fr*2.1);
+  floorGlow.addColorStop(0,'rgba(57,12,92,.32)');
+  floorGlow.addColorStop(.45,'rgba(25,13,50,.13)');
+  floorGlow.addColorStop(1,'rgba(8,16,30,0)');
+  c.fillStyle=floorGlow;c.fillRect(fissureX-fr*2.1,fissureY-fr*2.1,fr*4.2,fr*4.2);
+  c.beginPath();
+  for(let i=0;i<=48;i++){
+   const a=i*Math.PI*2/48,radius=1+.085*Math.sin(a*7)+.06*Math.cos(a*13);
+   const xx=fissureX+Math.cos(a)*fr*1.18*radius,yy=fissureY+Math.sin(a)*fr*.49*radius;
+   if(!i)c.moveTo(xx,yy);else c.lineTo(xx,yy);
+  }
+  c.closePath();c.fillStyle='rgba(0,2,10,.97)';c.fill();
+  c.strokeStyle='rgba(99,68,117,.25)';c.lineWidth=7;c.stroke();
+  c.lineWidth=1.5;c.strokeStyle='rgba(145,103,155,.28)';c.stroke();
+  for(let i=0;i<14;i++){
+   const a=i*Math.PI*2/14;
+   const sx=fissureX+Math.cos(a)*fr*1.14,sy=fissureY+Math.sin(a)*fr*.5;
+   c.beginPath();c.moveTo(sx,sy);
+   c.lineTo(sx+Math.cos(a)*fr*(.3+(i%4)*.1),sy+Math.sin(a)*fr*.16);
+   c.strokeStyle='rgba(91,80,94,.21)';c.lineWidth=1.5;c.stroke();
+  }
+  c.restore();
   // Rock-face bioluminescence and marine snow.
   for(let i=0;i<150;i++){
    const x=random()*width,y=height*(.68+random()*.3),r=.3+random()*1.4;
