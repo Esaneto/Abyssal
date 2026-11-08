@@ -3585,10 +3585,10 @@ function renderSpecimenPortraits(t){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');c.fillStyle=bg;c.fillRect(0,0,w,h);
-  // Profile: upright floating diver, weapon pointing to the right; specimen to the left.
-  const dx=w*.64,dy=h*.53,bob=Math.sin(t*.0022)*3;
-  DIVER_ART?.draw?.(c,dx,dy+bob,27,-Math.PI/2,0,t,{gender:diverGender,moving:false});
-  const sx=w*.23,sy=h*.52+Math.cos(t*.002)*5;
+  // Restore the natural diagonal swimming portrait used before the upright pose.
+  const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
+  DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
+  const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
 
  }
