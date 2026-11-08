@@ -1721,7 +1721,7 @@ io.on('connection', socket => {
    // prevented the entire group from descending.
    const party=livingPlayers(room);
    if(!party.length)return reply({ok:false,reason:'no-active-players'});
-   w.mapTier=currentTier+1;w.enemies=[];w.commonSpawnTimer=Infinity;w.nextBossAt=Infinity;w.riftEncountersSeeded=false;w.riftActivatedRooms={};
+   w.mapTier=currentTier+1;w.enemies=[];w.orbs=[];w.nextOrbId=0;w.commonSpawnTimer=Infinity;w.nextBossAt=Infinity;w.riftEncountersSeeded=false;w.riftActivatedRooms={};
    w.snapshotTimer=0;w.reliableSnapshotTimer=0;w.sideEncounterId=null;
    const nextLayout=WorldSimulation.mapLayoutFor(w),descriptor={version:AbyssalMap.VERSION,seed:Number(w.mapSeed)||0,tier:w.mapTier};
    // Every player belongs to the new world tier, including defeated peers.
