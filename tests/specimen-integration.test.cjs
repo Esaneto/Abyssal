@@ -48,6 +48,6 @@ test('profile exposes adaptation bar and ocean menu uses navigable portals',()=>
  assert.ok(html.includes('id="riftPortalBtn"'));
  assert.match(read('public/abyssal-menu-v2.css'),/#menuScreen\.ocean-menu-v2 #riftPortalBtn/);
  assert.match(menu,/WASD \/ SETAS PARA NADAR/);
- assert.match(menu,/window\.AbyssalPreferredRoomMode='rift'/);
+ assert.match(read('public/abyssal-rebuild.js'),/window\.AbyssalPreferredRoomMode='rift'/);
  assert.doesNotMatch(html,/abyss-orbit-navigation|menu-fauna|menu-secondary-actions/);
 });
