@@ -485,7 +485,7 @@ function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null){
  const player=[...room.players.values()].find(p=>p.alive!==false);
  const x=Number(enemy?.x??player?.x??WORLD_WIDTH/2);
  const y=Number(enemy?.y??player?.y??roomWorldHeight(room)/2);
- const orb={id:++w.nextOrbId,x,y,value:Math.max(1,Math.round(Number(total))),source,spawnedAt:Date.now()};
+ const orb={id:(w.nextOrbId=(Number(w.nextOrbId)||0)+1),x,y,value:Math.max(1,Math.round(Number(total))),source,spawnedAt:Date.now()};
  w.orbs.push(orb);
  if(w.orbs.length>160)w.orbs.shift();
  io.to(channelFor(room)).emit('world-orb-spawned',orb);
