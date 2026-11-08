@@ -271,7 +271,7 @@
      if(emergence<1){
       const step=dt/1.05;emergence=Math.min(1,emergence+step);
       const starting=hatch();px=starting.x;
-      py=lerp(starting.y,Math.min(h*.30,starting.y+84),ease(emergence));
+      py=lerp(starting.y,Math.min(h*.40,starting.y+94),ease(emergence));
       heading=Math.PI/2;vx=0;vy=85*(1-emergence);
       bubbleElapsed+=dt;
       if(bubbleElapsed>.028){bubbleElapsed=0;for(let n=0;n<4;n++)bubble(px,py+17,true);}
