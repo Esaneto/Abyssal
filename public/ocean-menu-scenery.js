@@ -49,11 +49,11 @@
   c.fillStyle=vent;c.beginPath();c.moveTo(width*.47,height*.98);c.lineTo(width*.52,height*.73);c.lineTo(width*.55,height);c.closePath();c.fill();
   // The abyssal opening is carved into the actual seabed, not a
   // floating card. Stratified edges reveal the depth under the sediment.
-  const fissureX=width*.52,fissureY=height*.89,fr=Math.min(width*.19,height*.17);
+  const fissureX=width*.82,fissureY=height*.85,fr=Math.min(width*.14,height*.16);
   c.save();
   let floorGlow=c.createRadialGradient(fissureX,fissureY,0,fissureX,fissureY,fr*2.1);
-  floorGlow.addColorStop(0,'rgba(57,12,92,.32)');
-  floorGlow.addColorStop(.45,'rgba(25,13,50,.13)');
+  floorGlow.addColorStop(0,'rgba(126,19,35,.22)');
+  floorGlow.addColorStop(.45,'rgba(42,7,17,.10)');
   floorGlow.addColorStop(1,'rgba(8,16,30,0)');
   c.fillStyle=floorGlow;c.fillRect(fissureX-fr*2.1,fissureY-fr*2.1,fr*4.2,fr*4.2);
   c.beginPath();
@@ -63,14 +63,14 @@
    if(!i)c.moveTo(xx,yy);else c.lineTo(xx,yy);
   }
   c.closePath();c.fillStyle='rgba(0,2,10,.97)';c.fill();
-  c.strokeStyle='rgba(99,68,117,.25)';c.lineWidth=7;c.stroke();
-  c.lineWidth=1.5;c.strokeStyle='rgba(145,103,155,.28)';c.stroke();
+  c.strokeStyle='rgba(147,28,45,.23)';c.lineWidth=7;c.stroke();
+  c.lineWidth=1.5;c.strokeStyle='rgba(178,52,60,.27)';c.stroke();
   for(let i=0;i<14;i++){
    const a=i*Math.PI*2/14;
    const sx=fissureX+Math.cos(a)*fr*1.14,sy=fissureY+Math.sin(a)*fr*.5;
    c.beginPath();c.moveTo(sx,sy);
    c.lineTo(sx+Math.cos(a)*fr*(.3+(i%4)*.1),sy+Math.sin(a)*fr*.16);
-   c.strokeStyle='rgba(91,80,94,.21)';c.lineWidth=1.5;c.stroke();
+   c.strokeStyle='rgba(142,36,49,.20)';c.lineWidth=1.5;c.stroke();
   }
   c.restore();
   // Rock-face bioluminescence and marine snow.
@@ -169,12 +169,13 @@
    const y=floorY+Math.sin(x*.012)*8+Math.sin(x*.049)*3;
    if(x===0)c.moveTo(x,y);else c.lineTo(x,y);
   }c.stroke();
-  // A crevice under the center becomes the entrance to the Fossas.
-  const fissure=c.createRadialGradient(cx,floorY+12,4,cx,floorY+14,Math.min(width*.26,140));
-  fissure.addColorStop(0,'rgba(132,58,185,.29)');
-  fissure.addColorStop(.42,'rgba(63,28,95,.14)');
-  fissure.addColorStop(1,'rgba(63,28,95,0)');
-  c.fillStyle=fissure;c.fillRect(cx-150,floorY-100,300,190);
+  // Fossas lie discretely in the right-side seabed, under the clickable crack.
+  const mouthX=width*.82,mouthY=floorY+4,mouthR=Math.min(width*.15,116);
+  const fissure=c.createRadialGradient(mouthX,mouthY,3,mouthX,mouthY,mouthR);
+  fissure.addColorStop(0,'rgba(7,0,7,.84)');
+  fissure.addColorStop(.48,'rgba(73,9,21,.22)');
+  fissure.addColorStop(1,'rgba(73,9,21,0)');
+  c.fillStyle=fissure;c.fillRect(mouthX-mouthR,mouthY-mouthR,mouthR*2,mouthR*2);
  }
  return Object.freeze({draw,drawSubmarine});
 });
