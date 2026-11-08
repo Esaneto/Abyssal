@@ -18,15 +18,15 @@
  });
  const ACTIVE=Object.freeze({
   dash:{name:'Investida',nameEn:'Dash',cooldown:10,color:'#78eaff',damage:8,range:155,effect:'Avança rapidamente na direção apontada e causa dano aos inimigos atravessados.',effectEn:'Rushes in the aimed direction and damages enemies crossed.'},
-  cloud:{name:'Nuvem Tóxica',nameEn:'Toxic Cloud',cooldown:10,color:'#7dff73',damage:5,range:150,effect:'Libera uma nuvem venenosa ao redor do usuário, causando dano e envenenando inimigos próximos.',effectEn:'Releases a toxic cloud around the user, damaging and poisoning nearby enemies.'},
+  cloud:{name:'Nuvem Tóxica',nameEn:'Toxic Cloud',cooldown:10,color:'#7dff73',damage:5,range:150,effect:'A nuvem irregular cresce a partir do espécime até atingir o alcance máximo. Inimigos dentro dela sofrem dano e veneno por alguns segundos.',effectEn:'An irregular cloud grows from the specimen until it reaches its maximum range, dealing damage and temporary poison to enemies within it.'},
   trail:{name:'Rastro Abissal',nameEn:'Abyssal Trail',cooldown:10,duration:10,life:10,color:'#79dfff',damage:4,range:0,effect:'Por 10 segundos, deixa um rastro enquanto se movimenta. Cada trecho dura 10 segundos e causa dano; a recarga começa ao terminar a emissão.',effectEn:'Deposits a trail while moving for 10 seconds. Each section lasts 10 seconds and damages on contact. Cooldown starts after the emission ends.'},
-  push:{name:'Impacto de Pressão',nameEn:'Pressure Impact',cooldown:10,color:'#ffc978',damage:5,range:165,effect:'Emite uma onda de pressão ao redor do usuário, causa dano e empurra inimigos para longe.',effectEn:'Emits a pressure wave around the user, dealing damage and pushing enemies away.'},
+  push:{name:'Impacto de Pressão',nameEn:'Pressure Impact',cooldown:10,color:'#ffc978',damage:5,range:330,effect:'Pulso em área com alcance de 330 unidades: causa dano e empurra inimigos com 50% mais força que antes.',effectEn:'Area pulse with 330-unit range: deals damage and knocks enemies back 50% farther than before.'},
   poison:{name:'Veneno Concentrado',nameEn:'Concentrated Venom',cooldown:10,color:'#9dff68',damage:3,range:175,effect:'Atinge o alvo mais próximo com veneno concentrado, causando dano e efeito tóxico temporário.',effectEn:'Hits the nearest target with concentrated venom, dealing damage and a temporary toxic effect.'},
   paralysis:{name:'Descarga Bioelétrica',nameEn:'Bioelectric Discharge',cooldown:10,color:'#62edff',damage:4,range:165,effect:'Descarrega eletricidade em inimigos próximos, causando dano e uma breve paralisia.',effectEn:'Discharges electricity into nearby enemies, dealing damage and briefly paralyzing them.'},
   shot:{name:'Disparo Colossal',nameEn:'Colossal Shot',cooldown:10,color:'#ff779b',damage:12,range:360,effect:'Dispara um projétil pesado na direção apontada, com alto dano em alvo único.',effectEn:'Fires a heavy projectile in the aimed direction for high single-target damage.'},
-  pulse:{name:'Pulso Abissal',nameEn:'Abyssal Pulse',cooldown:10,color:'#b99cff',damage:7,range:180,effect:'Expande um pulso ao redor da criatura e causa dano a todos os inimigos dentro do alcance.',effectEn:'Expands a pulse around the creature and damages every enemy inside its range.'},
+  pulse:{name:'Pulso Abissal',nameEn:'Abyssal Pulse',cooldown:10,color:'#b99cff',damage:7,range:360,effect:'Pulso circular com alcance de 360 unidades: atinge os inimigos dentro da área. Não atravessa paredes.',effectEn:'Circular pulse with 360-unit range: hits enemies within the area, but does not pass through walls.'},
   slowShot:{name:'Projétil Hipotérmico',nameEn:'Hypothermic Projectile',cooldown:10,color:'#9bd9ff',damage:7,range:320,effect:'Dispara um projétil gelado que causa dano e reduz temporariamente a velocidade do alvo.',effectEn:'Fires a chilling projectile that deals damage and temporarily slows the target.'},
-  shield:{name:'Escudo de Pressão',nameEn:'Pressure Shield',cooldown:10,color:'#8ff4e8',damage:0,range:0,effect:'Cria uma proteção de curta duração que bloqueia dano enquanto estiver ativa.',effectEn:'Creates a short-lived protective barrier that blocks damage while active.'}
+  shield:{name:'Escudo de Pressão',nameEn:'Pressure Shield',cooldown:10,color:'#8ff4e8',damage:0,range:0,duration:2,effect:'Cria por 2 segundos uma única bolha translúcida em volta do mergulhador e do espécime; ambos ficam protegidos de dano.',effectEn:'For 2 seconds, one translucent bubble surrounds the diver and specimen, protecting both from damage.'}
  });
  const INK_TRAIL_SKINS=new Set(['kraken','aberration','dumbo','blanket','mimic','glassoctopus','jewelsquid','bigfin','whiplash']);
  function isInkTrailSkin(id){return INK_TRAIL_SKINS.has(String(id||''));}
@@ -108,14 +108,17 @@
   return Object.freeze({...base,id:p.active,cooldown,color:p.active==='trail'?trailColor(p.id):base.color,ink:p.active==='trail'&&isInkTrailSkin(p.id),skinId:p.id,percent:p.percent,attribute:p.attribute});
  }
  function describe(id,language='pt'){
-  const p=profile(id),a=activeSpec(id),english=String(language).toLowerCase().startsWith('en'),sign=p.attribute==='defense'?'-':'+';
-  const attribute=english?ATTRIBUTE_LABELS_EN[p.attribute]:ATTRIBUTE_LABELS[p.attribute];
-  const abilityName=english?(a.nameEn||a.name):a.name;
+  const p=profile(id),a=activeSpec(id),english=String(language).toLowerCase().startsWith('en');
+  const sign=p.attribute==='defense'?'-':'+';
+  const attr=english?ATTRIBUTE_LABELS_EN[p.attribute]:ATTRIBUTE_LABELS[p.attribute];
   const effect=english?(a.effectEn||a.effect):a.effect;
-  const cooldown=a.cooldown.toFixed(1).replace('.0','');
-  return english
-   ? `${sign}${p.percent}% ${attribute}. Specimen Active [R]: ${abilityName}. ${effect} Cooldown: ${cooldown}s.`
-   : `${sign}${p.percent}% de ${attribute}. Ativa do Espécime [R]: ${abilityName}. ${effect} Recarga: ${cooldown}s.`;
+  const ability=english?(a.nameEn||a.name):a.name;
+  const recovery=a.cooldown.toFixed(1).replace('.0','');
+  const period=a.id==='trail'?(english?'10s emission, then cooldown':'10s de emissão, depois a recarga'):
+   a.id==='shield'?(english?'2s protection':'2s de proteção'):
+   a.id==='push'||a.id==='pulse'?(english?'Area: '+a.range+' units':'Área: '+a.range+' unidades'):'';
+  if(english)return `Passive: ${sign}${p.percent}% ${attr}. Specimen Active [R]: ${ability}. ${effect} ${period?period+'. ':''}Cooldown: ${recovery}s.`;
+  return `Passiva: ${sign}${p.percent}% de ${attr}. Ativa do Espécime [R]: ${ability}. ${effect} ${period?period+'. ':''}Recarga: ${recovery}s.`;
  }
  function validate(){
   const pairs=new Set();
