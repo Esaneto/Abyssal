@@ -24,10 +24,22 @@
   const hint=document.getElementById('menuOceanHint'),enter=document.getElementById('menuOceanEnterBtn');
   const specimenCanvas=document.getElementById('menuOceanSpecimen');
   const sceneryCanvas=document.getElementById('menuOceanScenery');
+  const routesCanvas=document.createElement('canvas');
+  routesCanvas.className='abyss-ocean-routes';
+  routesCanvas.setAttribute('aria-hidden','true');
+  layer.insertBefore(routesCanvas,sceneryCanvas||layer.firstChild);
+  const routesCtx=routesCanvas.getContext('2d');
+  const bubblesCanvas=document.createElement('canvas');
+  bubblesCanvas.className='abyss-ocean-bubbles';
+  bubblesCanvas.setAttribute('aria-hidden','true');
+  stage.insertBefore(bubblesCanvas,diver);
+  const bubblesCtx=bubblesCanvas.getContext('2d');
   // Companion previews are shown in profile, not a second character over the menu.
   if(specimenCanvas){specimenCanvas.hidden=true;specimenCanvas.style.display='none';}
   if(!layer||!diver||!ctx)return;
-  let worldW=0,worldH=0,px=0,py=0,camX=0,camY=0,vx=0,vy=0,heading=0;
+  let worldW=0,worldH=0,stageW=0,stageH=0,px=0,py=0,camX=0,camY=0,vx=0,vy=0,heading=0;
+  let followingPointer=null,bubbleElapsed=0;
+  const motionBubbles=[];
   let destination=null,nearest=null,activeDestination=null,wasNear=null,last=performance.now(),initialized=false;
   let controlsActive=false;
   const held=new Set(),stations=[];
@@ -60,6 +72,8 @@
   }
   function resizeWorld(){
    const r=stage.getBoundingClientRect(),oldW=worldW,oldH=worldH;
+   if(r.width<10||r.height<10)return; // Game screens may hide the menu during resize.
+   stageW=r.width;stageH=r.height;
    worldW=Math.max(1150,Math.round(r.width*2.15));
    worldH=Math.max(920,Math.round(r.height*2.10));
    if(!initialized){px=worldW*.52;py=worldH*.51;initialized=true;}
@@ -67,11 +81,46 @@
    layer.style.setProperty('width',worldW+'px','important');layer.style.setProperty('height',worldH+'px','important');
    window.AbyssalMenuScenery?.draw?.(sceneryCanvas,worldW,worldH);
    for(const s of stations){s.wx=s.x*worldW;s.wy=s.y*worldH;s.button.style.setProperty('--portal-x',s.wx+'px');s.button.style.setProperty('--portal-y',s.wy+'px');}
+   drawPortalRoutes();
+   if(bubblesCtx){const ratio=Math.min(window.devicePixelRatio||1,1.5);bubblesCanvas.width=Math.round(r.width*ratio);bubblesCanvas.height=Math.round(r.height*ratio);bubblesCtx.setTransform(ratio,0,0,ratio,0,0);}
    destination=null;activeDestination=null;px=clamp(px,48,worldW-48);py=clamp(py,48,worldH-48);
    camX=clamp(px-r.width*.5,0,Math.max(0,worldW-r.width));
    camY=clamp(py-r.height*.5,0,Math.max(0,worldH-r.height));
   }
-  resizeWorld();window.addEventListener('resize',resizeWorld);
+  function drawPortalRoutes(){
+   if(!routesCtx||!worldW||!worldH)return;
+   const scale=Math.min(1,2048/worldW,1536/worldH);
+   routesCanvas.width=Math.max(1,Math.round(worldW*scale));
+   routesCanvas.height=Math.max(1,Math.round(worldH*scale));
+   routesCanvas.style.width=worldW+'px';routesCanvas.style.height=worldH+'px';
+   routesCtx.setTransform(scale,0,0,scale,0,0);
+   routesCtx.clearRect(0,0,worldW,worldH);
+   const hub={x:worldW*.52,y:worldH*.51};
+   const tones={cyan:'#66e7ff',teal:'#51ebc6',rift:'#c582ff',gold:'#efc77e',violet:'#b6a1ff',blue:'#80bbff',ice:'#abf3f7',rose:'#ff96c2'};
+   for(const station of stations){
+    const color=tones[station.tone]||'#8be5ef',dx=station.wx-hub.x,dy=station.wy-hub.y,d=Math.hypot(dx,dy)||1;
+    const ux=dx/d,uy=dy/d,bend=(station.x<.5?-1:1)*Math.min(90,d*.12);
+    const cx=(hub.x+station.wx)*.5-uy*bend,cy=(hub.y+station.wy)*.5+ux*bend;
+    const ex=station.wx-ux*94,ey=station.wy-uy*94;
+    const path=()=>{routesCtx.beginPath();routesCtx.moveTo(hub.x,hub.y);routesCtx.quadraticCurveTo(cx,cy,ex,ey);};
+    routesCtx.save();
+    routesCtx.strokeStyle=color;routesCtx.globalAlpha=.055;routesCtx.lineWidth=34;
+    routesCtx.shadowBlur=24;routesCtx.shadowColor=color;path();routesCtx.stroke();
+    routesCtx.shadowBlur=0;routesCtx.globalAlpha=.15;routesCtx.lineWidth=11;path();routesCtx.stroke();
+    routesCtx.globalAlpha=.42;routesCtx.lineWidth=1.5;routesCtx.setLineDash([8,13]);path();routesCtx.stroke();routesCtx.setLineDash([]);
+    const t=.67,mt=1-t,tx=mt*mt*hub.x+2*mt*t*cx+t*t*ex,ty=mt*mt*hub.y+2*mt*t*cy+t*t*ey;
+    routesCtx.globalAlpha=.82;routesCtx.font='700 13px Inter, sans-serif';routesCtx.textAlign='center';
+    routesCtx.textBaseline='middle';routesCtx.lineWidth=5;routesCtx.strokeStyle='rgba(1,10,24,.94)';
+    routesCtx.strokeText(station.label,tx,ty-13);routesCtx.fillStyle=color;routesCtx.fillText(station.label,tx,ty-13);
+    routesCtx.restore();
+   }
+  }
+  resizeWorld();
+  window.addEventListener('resize',()=>{if(!menu.hidden)resizeWorld();});
+  if(typeof ResizeObserver==='function'){
+   const observer=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>10)resizeWorld();});
+   observer.observe(stage);
+  }
   function enterPortal(s){
    if(!s||!isInteractive()||s.button.disabled||s.button.hidden)return;
    const distance=Math.hypot(s.wx-px,s.wy-py);
@@ -92,7 +141,7 @@
    nearest=bestDistance<radius?best:null;
    if(nearest){nearest.button.classList.add('portal-near');hint.textContent='PORTAL '+nearest.label+' · F / ENTER PARA ENTRAR';}
    else if(activeDestination){hint.textContent='RUMO A '+activeDestination.label+' · '+Math.ceil(Math.hypot(px-activeDestination.wx,py-activeDestination.wy))+' un.';}
-   else if(best){hint.textContent='NADO LIVRE · PORTAL '+best.label+' A '+Math.ceil(bestDistance)+'m · WASD / SETAS';}
+   else if(best){hint.textContent='NADO LIVRE · PORTAL '+best.label+' A '+Math.ceil(bestDistance)+'m · CLIQUE / WASD';}
    else hint.textContent='WASD / SETAS PARA NADAR · F PARA ENTRAR';
    if(enter){enter.disabled=!nearest;enter.textContent=nearest?'ENTRAR · '+nearest.label:'APROXIME-SE DE UM PORTAL';}
    // The outer glow marks proximity, but entry happens at the inner rift.
@@ -109,12 +158,23 @@
   });
   window.addEventListener('keyup',event=>{const k=keys[key(event)];if(k)held.delete(k);});
   window.addEventListener('blur',()=>{held.clear();destination=null;});
-  stage.addEventListener('pointerdown',event=>{
-   if(!isInteractive()||event.target.closest('button,a,input,select'))return;
+  function navigateToPointer(event){
    const r=stage.getBoundingClientRect();
    destination={x:clamp(event.clientX-r.left+camX,20,worldW-20),y:clamp(event.clientY-r.top+camY,20,worldH-20)};
    activeDestination=null;
+  }
+  stage.addEventListener('pointerdown',event=>{
+   if(!isInteractive()||event.button!==0||event.target.closest?.('button,a,input,select'))return;
+   navigateToPointer(event);
+   followingPointer=event.pointerId;
+   try{stage.setPointerCapture(event.pointerId);}catch(_){}
   });
+  stage.addEventListener('pointermove',event=>{
+   if(followingPointer===event.pointerId&&isInteractive())navigateToPointer(event);
+  });
+  for(const type of ['pointerup','pointercancel','lostpointercapture']){
+   stage.addEventListener(type,event=>{if(followingPointer===event.pointerId)followingPointer=null;});
+  }
   for(const button of document.querySelectorAll('#menuOceanMobilePad [data-ocean-move]')){
    const direction=button.dataset.oceanMove;
    button.addEventListener('pointerdown',e=>{e.preventDefault();held.add(direction);destination=null;activeDestination=null;try{button.setPointerCapture(e.pointerId)}catch{}});
@@ -126,6 +186,7 @@
    const dt=Math.min(.055,Math.max(0,(now-last)/1000));last=now;
    const enabled=isInteractive();
    if(enabled){
+    if(stage.clientWidth>10&&(Math.abs(stage.clientWidth-stageW)>2||Math.abs(stage.clientHeight-stageH)>2))resizeWorld();
     let mx=(held.has('right')?1:0)-(held.has('left')?1:0);
     let my=(held.has('down')?1:0)-(held.has('up')?1:0);
     if(mx||my){destination=null;activeDestination=null;}
@@ -144,8 +205,32 @@
     layer.style.setProperty('transform','translate3d('+(-camX).toFixed(2)+'px,'+(-camY).toFixed(2)+'px,0)','important');
     diver.style.setProperty('--diver-x',(px-camX)+'px');diver.style.setProperty('--diver-y',(py-camY)+'px');
     diver.classList.toggle('swimming',Math.hypot(vx,vy)>6);
+    if(Math.hypot(vx,vy)>22){
+     bubbleElapsed+=dt;
+     if(bubbleElapsed>.075){
+      bubbleElapsed=0;
+      for(let i=0;i<2;i++)motionBubbles.push({
+       x:px-Math.cos(heading)*16+(Math.random()-.5)*10,
+       y:py-Math.sin(heading)*16+(Math.random()-.5)*10,
+       vx:-vx*.095+(Math.random()-.5)*15,vy:-16-vy*.06-Math.random()*12,
+       radius:1+Math.random()*1.3,life:.36+Math.random()*.28
+      });
+      if(motionBubbles.length>50)motionBubbles.splice(0,motionBubbles.length-50);
+     }
+    }else bubbleElapsed=0;
     pickNear();
-   }else{vx=0;vy=0;held.clear();}
+   }else{vx=0;vy=0;held.clear();followingPointer=null;}
+   if(bubblesCtx){
+    bubblesCtx.clearRect(0,0,stageW,stageH);
+    for(let i=motionBubbles.length-1;i>=0;i--){
+     const b=motionBubbles[i];b.life-=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+     if(b.life<=0){motionBubbles.splice(i,1);continue;}
+     bubblesCtx.globalAlpha=Math.min(1,b.life/.24)*.52;
+     bubblesCtx.strokeStyle='#d4faff';bubblesCtx.lineWidth=.8;
+     bubblesCtx.beginPath();bubblesCtx.arc(b.x-camX,b.y-camY,b.radius,0,Math.PI*2);bubblesCtx.stroke();
+    }
+    bubblesCtx.globalAlpha=1;
+   }
    ctx.clearRect(0,0,canvas.width,canvas.height);
    window.AbyssalDiverArt?.draw?.(ctx,90,65,13,heading,heading,now,{gender:window.AbyssalDiverGender||'male',moving:enabled&&Math.hypot(vx,vy)>7});
    requestAnimationFrame(animate);
