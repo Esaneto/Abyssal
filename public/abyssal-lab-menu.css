@@ -235,3 +235,37 @@
 @media(prefers-reduced-motion:reduce){
  #menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry{animation:none!important}
 }
+
+/* Iteration: capsule glass with metallic support rings and water glow. */
+#shopScreen #skinGrid .skin-card .skin-preview{
+ background:radial-gradient(ellipse at 50% 48%,rgba(65,208,211,.30),rgba(6,69,92,.71) 64%,#061923 100%)!important;
+ box-shadow:inset 0 0 22px rgba(62,226,240,.22),inset 0 -15px 17px #082b39!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview::before{
+ inset:5px 16%!important;border:3px solid rgba(167,226,232,.84)!important;
+ border-top:7px solid #728e98!important;border-bottom:8px solid #4e7583!important;
+ border-radius:40% 40% 14px 14px / 22% 22% 12px 12px!important;
+ background:linear-gradient(100deg,rgba(233,255,255,.21),rgba(24,149,172,.08) 24%,transparent 64%,rgba(230,255,255,.19))!important;
+ box-shadow:inset 11px 0 17px rgba(195,248,253,.1),inset -6px 0 18px rgba(6,43,63,.4),0 0 0 2px #223e4a,0 0 15px rgba(51,212,224,.24)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview::after{opacity:.7!important}
+#menuScreen.ocean-menu-v2.submarine-menu #shopBtn{
+ background:linear-gradient(110deg,#132b35,#1d6975 48%,#09222e)!important;color:#e2ffff!important;border:2px solid #7bb7bf!important;
+ box-shadow:inset 0 0 14px rgba(66,216,231,.3),0 0 13px rgba(66,216,231,.24)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #shopBtn::before{
+ border:2px solid rgba(181,239,247,.86)!important;border-top:4px solid #a7bfc4!important;border-bottom:5px solid #708d95!important;
+ background:linear-gradient(95deg,rgba(197,255,255,.24),transparent 35%,rgba(44,175,201,.22))!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry strong{
+ display:block!important;position:relative!important;margin-top:28px!important;
+ background:none!important;letter-spacing:.12em!important;
+}
+#profileScreen .profile-modal{background:revert!important;border-color:revert!important;color:revert!important}
+#profileScreen .profile-modal h2,#profileScreen .profile-modal h3,#profileScreen .profile-modal strong,
+#profileScreen .profile-modal p,#profileScreen .profile-modal small,
+#profileScreen .profile-modal span,#profileScreen .profile-title-heading p{color:revert!important}
+#profileScreen .profile-hero,#profileScreen .profile-stat,
+#profileScreen .profile-specimen-stage,#profileScreen .profile-title-card{
+ background:revert!important;border:revert!important;border-radius:revert!important;
+}
