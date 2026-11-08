@@ -3506,7 +3506,7 @@ function renderSpecimenPortraits(t){
   DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
-  c.save();c.strokeStyle='rgba(121,243,240,.22)';c.lineWidth=1.5;c.beginPath();c.moveTo(dx+18,dy-18);c.quadraticCurveTo(w*.52,h*.36,sx-12,sy+12);c.stroke();c.restore();
+
  }
  requestAnimationFrame(renderSpecimenPortraits);
 }
@@ -4003,7 +4003,7 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
   DIVER_ART?.draw?.(c,dx,dy+bob,Math.min(w*.09,h*.16),-.08,-.08,now,{gender:diverGender,moving:true});
   const sx=w*.64,sy=h*.32+Math.cos(now*.0024)*2.4;
   drawCreature(sx,sy,previewRadius*.72,-.05,color,'player',now,true,0,c,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
-  c.save();c.strokeStyle='rgba(121,243,240,.24)';c.lineWidth=1;c.beginPath();c.moveTo(dx+12,dy-13);c.quadraticCurveTo(w*.54,h*.41,sx-previewRadius*.28,sy+previewRadius*.18);c.stroke();c.restore();
+
  }else drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
 }
 // The shop uses no GIF/video downloads. Visible previews are repainted at
