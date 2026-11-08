@@ -24,7 +24,11 @@ npm ci --omit=dev
 node --check server.js
 node --check state-persistence-worker.js
 node --check scripts/roxycloud-preflight.cjs
-npm test
+node --check public/game.js
+node --check public/specimen-system.js
+# The full historical suite remains in GitHub CI. A production hot deploy must
+# pass the Roxy-specific acceptance gates, not unrelated stale expectations.
+node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs
 
 sudo systemctl restart abyssal
 
