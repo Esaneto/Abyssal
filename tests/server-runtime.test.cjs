@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const SkinAbilities=require('../public/skin-abilities.js');
+const DiverHitbox=require('../public/diver-hitbox.js');
 
 // Integration harness: loads the real server.js while replacing only Express and
 // Socket.IO transport adapters. World simulation, room lifecycle and event handlers
@@ -340,7 +341,15 @@ test('real server handlers move enemies, publish rooms, and destroy empty rooms'
     assert.equal(hitSnapshot.enemies.length, 1, 'contact-only frames contain only the attacker, not the entire room');
   }
   assert.ok(Math.hypot(attacker.x - hitLog.args[0].enemyX, attacker.y - hitLog.args[0].enemyY) < 0.01, 'attacker visual coordinates match the exact authoritative collision coordinates');
-  assert.ok(Math.hypot(hitLog.args[0].enemyX - hitLog.args[0].playerX, hitLog.args[0].enemyY - hitLog.args[0].playerY) <= hitLog.args[0].contactRadius + 0.01, 'server damage is only issued after real contact geometry is confirmed');
+  // The authoritative diver has articulated arm/leg capsules. A valid limb
+  // impact can be farther from the player's center than the old circular radius.
+  const impact=hitLog.args[0];
+  const body={x:impact.playerX,y:impact.playerY,r:impact.playerR,bodyAngle:impact.bodyAngle,weaponAngle:impact.weaponAngle};
+  const enemyBodyRadius=Math.max(2,impact.enemyRadius-impact.contactSafetyMargin);
+  const anatomicalZone=DiverHitbox.circleHit(body,impact.enemyX,impact.enemyY,enemyBodyRadius,impact.serverTime);
+  const tentacleHit=impact.hitZone==='tentacle' && impact.contactDistance<=impact.contactRadius+0.01;
+  assert.ok(anatomicalZone===impact.hitZone || tentacleHit,
+    'enemy damage requires a verified anatomical capsule or an authoritative Kraken tentacle contact');
   const positionCountAfterMove = frozenPositionAck.positionUpdates;
   await wait(850);
   const staleHealth = await getJson(port, '/health');
