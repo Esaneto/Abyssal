@@ -508,12 +508,12 @@ test('skin active attacks are manual-only and old automatic attacks are absent',
 
 test('shop uses the standardized current ability copy and proportional bundle discount',()=>{
  const game=read('public/game.js'),S=require('../public/skin-standard.js');
- assert.match(S.describe('reefshark'),/Ativa \[R\]:/);
+ assert.match(S.describe('reefshark'),/Ativa do Espécime \[R\]:/);
  assert.match(S.describe('reefshark'),/Recarga:/);
- assert.match(S.describe('reefshark','en'),/Active \[R\]:/);
+ assert.match(S.describe('reefshark','en'),/Specimen Active \[R\]:/);
  assert.doesNotMatch(game,/Electroreception: gain 15% more experience automatically/);
  assert.match(game,/SKIN_STANDARD\?\.describe\?\.\(skin\.id,english\?'en':'pt'\)/);
  assert.match(game,/const bundleFullBrl=3999/);
  assert.match(game,/Math\.round\(bundleFullBrl\*\(remaining\/bundleIds\.length\)\)/);
- assert.match(game,/R · \$\{spec\?\.name\|\|'HABILIDADE DA SKIN'\} · \$\{player\.skinActiveCooldown\.toFixed\(1\)\}s/);
+ assert.match(game,/R · \$\{spec\?\.name\|\|'HABILIDADE DO ESPÉCIME'\} · \$\{player\.skinActiveCooldown\.toFixed\(1\)\}s/);
 });
