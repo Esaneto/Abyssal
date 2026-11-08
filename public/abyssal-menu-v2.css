@@ -109,3 +109,10 @@
 }
 @media(max-height:620px) and (min-width:800px){#menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:68px!important}#menuScreen.ocean-menu-v2 .abyss-destination{height:86px!important;width:125px!important}#menuScreen.ocean-menu-v2 #riftPortalBtn{height:96px!important;width:145px!important}}
 @media(prefers-reduced-motion:reduce){#menuScreen.ocean-menu-v2 *,#menuScreen.ocean-menu-v2 *:before{animation:none!important;transition:none!important}}
+
+/* FIX: legacy #menuScreen responsive CSS defines TWO grid columns. Force the new ocean scene into one full-width column. */
+#menuScreen.ocean-menu-v2{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:none!important;grid-auto-flow:row!important;justify-items:stretch!important;align-items:stretch!important}
+#menuScreen.ocean-menu-v2>.abyss-menu-heading,#menuScreen.ocean-menu-v2>.abyss-ocean-stage,#menuScreen.ocean-menu-v2>.abyss-ocean-utilities,#menuScreen.ocean-menu-v2>.abyss-ocean-legal{grid-column:1/-1!important;min-width:0!important;max-width:none!important;justify-self:stretch!important;align-self:stretch!important}
+#menuScreen.ocean-menu-v2>.abyss-ocean-stage{width:100%!important;max-width:100%!important;min-width:0!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-portal-layer{width:100%!important;max-width:none!important;min-width:0!important}
+#menuScreen.ocean-menu-v2>.abyss-ocean-account,#menuScreen.ocean-menu-v2>.abyss-ocean-preferences{grid-column:1!important}
