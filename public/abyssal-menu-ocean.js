@@ -31,13 +31,7 @@
    button.dataset.portalTone=pos.tone;
    rows.push({button,id,...pos});
   }
-  const rift=document.getElementById('riftPortalBtn');
-  rift?.addEventListener('click',()=>{
-   window.AbyssalPreferredRoomMode='rift';
-   document.getElementById('onlineBtn')?.click();
-   const mode=document.getElementById('roomModeInput');
-   if(mode){mode.value='rift';mode.dispatchEvent(new Event('change',{bubbles:true}));}
-  });
+  // Fossas has its own Solo/Online choice dialog, attached by abyssal-rebuild.js.
   document.getElementById('onlineBtn')?.addEventListener('click',event=>{
    // Programmatic click from Fossas must not overwrite the preferred mode.
    if(event.isTrusted)window.AbyssalPreferredRoomMode='coop';
