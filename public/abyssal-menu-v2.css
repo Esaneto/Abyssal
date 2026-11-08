@@ -125,3 +125,94 @@
  #menuScreen.ocean-menu-v2 #menuOceanDiver{transform:translate(-50%,-50%) scale(.72)!important;transform-origin:center!important}
  #menuScreen.ocean-menu-v2 #menuOceanDiverCanvas{width:174px!important;height:126px!important}
 }
+
+/* ABYSSAL 2026 OCEAN V3: extended world, cinematic currents, Rift portals. */
+#menuScreen.ocean-menu-v2 .abyss-ocean-stage{overflow:hidden!important;touch-action:none!important;background:radial-gradient(ellipse at 49% 55%,rgba(9,64,88,.20),transparent 62%)!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-background{background:
+ radial-gradient(ellipse at 54% 10%,rgba(22,98,129,.20),transparent 52%),
+ linear-gradient(180deg,#031c30 0%,#020f21 46%,#000812 100%)!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-light{background:
+ repeating-conic-gradient(from 188deg at 52% -22%,transparent 0deg 8deg,rgba(83,214,238,.035) 9deg 11deg,transparent 13deg 22deg)!important;filter:blur(18px);opacity:.66}
+#menuScreen.ocean-menu-v2 .abyss-ocean-floor{height:30%!important;background:
+ radial-gradient(ellipse at 50% 130%,rgba(15,115,151,.24),transparent 60%),
+ linear-gradient(180deg,transparent,rgba(0,4,12,.91)),
+ repeating-linear-gradient(156deg,transparent 0 190px,rgba(37,105,136,.06) 191px 195px,transparent 198px 360px)!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-portal-layer{position:absolute!important;inset:0 auto auto 0!important;will-change:transform!important;transform-origin:top left!important;overflow:visible!important;z-index:3}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate{
+ width:clamp(122px,13vw,168px)!important;
+ height:clamp(122px,13vw,168px)!important;
+ border:0!important;border-radius:50%!important;
+ background:
+ radial-gradient(circle at 50% 47%,rgba(1,7,18,.96) 0%,rgba(0,8,19,.91) 46%,color-mix(in srgb,var(--portal-color) 16%,#010913) 65%,rgba(1,6,17,.96) 83%)!important;
+ box-shadow:0 0 36px color-mix(in srgb,var(--portal-color) 22%,transparent),inset 0 0 21px color-mix(in srgb,var(--portal-color) 17%,transparent)!important;
+ overflow:visible!important;gap:4px!important;padding:12px!important;outline-offset:13px!important;
+ isolation:isolate!important;
+}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate:before{
+ content:""!important;display:block!important;position:absolute!important;inset:-15px!important;
+ border-radius:50%!important;border:0!important;opacity:.96!important;
+ background:conic-gradient(
+ from 16deg,var(--portal-color) 0 9deg,transparent 9deg 17deg,
+ color-mix(in srgb,var(--portal-color) 74%,transparent) 17deg 48deg,transparent 48deg 55deg,
+ var(--portal-color) 55deg 88deg,transparent 88deg 105deg,
+ color-mix(in srgb,var(--portal-color) 85%,transparent) 105deg 148deg,transparent 148deg 159deg,
+ var(--portal-color) 159deg 174deg,transparent 174deg 184deg,
+ color-mix(in srgb,var(--portal-color) 70%,transparent) 184deg 238deg,transparent 238deg 250deg,
+ var(--portal-color) 250deg 277deg,transparent 277deg 293deg,
+ color-mix(in srgb,var(--portal-color) 85%,transparent) 293deg 354deg,transparent 354deg 360deg)!important;
+ -webkit-mask:radial-gradient(farthest-side,transparent 65%,#000 68% 82%,transparent 87%);
+ mask:radial-gradient(farthest-side,transparent 65%,#000 68% 82%,transparent 87%);
+ filter:drop-shadow(0 0 12px var(--portal-color))!important;
+ animation:riftV3Swirl 9s linear infinite!important;
+ pointer-events:none!important;
+}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate:after{
+ content:""!important;display:block!important;position:absolute!important;inset:-27px!important;
+ border:1px dashed color-mix(in srgb,var(--portal-color) 35%,transparent)!important;border-radius:50%!important;
+ background:radial-gradient(circle at 35% 18%,var(--portal-color) 0 2px,transparent 4px),
+ radial-gradient(circle at 87% 53%,var(--portal-color) 0 1.5px,transparent 4px)!important;
+ opacity:.47!important;animation:riftV3Swirl 16s linear infinite reverse!important;
+ pointer-events:none!important;
+}
+#menuScreen.ocean-menu-v2 .abyss-rift-fractures{
+ position:absolute!important;inset:-8px!important;border-radius:50%!important;pointer-events:none!important;z-index:-1!important;
+ background:conic-gradient(from 210deg,transparent 0 13%,color-mix(in srgb,var(--portal-color) 80%,transparent) 14%,transparent 17% 45%,var(--portal-color) 47%,transparent 49% 71%,var(--portal-color) 74%,transparent 77%);
+ -webkit-mask:radial-gradient(farthest-side,transparent 55%,#000 58% 64%,transparent 70%);
+ mask:radial-gradient(farthest-side,transparent 55%,#000 58% 64%,transparent 70%);
+ animation:riftV3Swirl 5.5s linear infinite reverse!important;filter:drop-shadow(0 0 8px var(--portal-color))!important;
+}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate strong,#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate small,#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate .abyss-destination-icon{position:relative!important;z-index:1!important;}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate .abyss-destination-icon{font-size:25px!important;color:var(--portal-color)!important;text-shadow:0 0 9px color-mix(in srgb,var(--portal-color) 72%,transparent)!important}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate strong{font-size:clamp(10px,.83vw,12px)!important;line-height:1.28!important}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate.portal-near{filter:brightness(1.42)!important}
+#menuScreen.ocean-menu-v2 #riftPortalBtn.abyss-rift-gate{
+ width:clamp(152px,16vw,199px)!important;height:clamp(152px,16vw,199px)!important;
+ border-radius:49% 51% 52% 48%!important;
+ --portal-color:#c470ff!important;
+ background:
+ radial-gradient(circle at 50% 50%,#010107 0%,#0a0320 28%,rgba(75,13,128,.48) 56%,#010917 78%)!important;
+ box-shadow:0 0 42px rgba(165,77,241,.32),0 0 78px rgba(107,24,154,.21),inset 0 0 36px rgba(183,84,248,.32)!important;
+ animation:riftV3Breathe 4.5s ease-in-out infinite!important;
+}
+#menuScreen.ocean-menu-v2 #riftPortalBtn.abyss-rift-gate:before{inset:-22px!important;animation-duration:4.6s!important}
+#menuScreen.ocean-menu-v2 #riftPortalBtn.abyss-rift-gate:after{inset:-36px!important;animation-duration:9s!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-diver{
+ width:180px!important;height:130px!important;left:var(--diver-x,50%)!important;top:var(--diver-y,50%)!important;
+ transform:translate(-50%,-50%)!important;filter:drop-shadow(0 0 7px rgba(83,188,216,.3))!important;
+ will-change:left,top!important;z-index:7!important;
+}
+#menuScreen.ocean-menu-v2 #menuOceanDiverCanvas{width:180px!important;height:130px!important;}
+#menuScreen.ocean-menu-v2 #menuOceanSpecimen{display:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-center-mark{display:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-hint{background:rgba(0,10,19,.89)!important;max-width:min(92vw,600px)!important;white-space:normal!important;bottom:12px!important;}
+@keyframes riftV3Swirl{to{transform:rotate(360deg)}}
+@keyframes riftV3Breathe{0%,100%{filter:brightness(.9) saturate(.95)}50%{filter:brightness(1.2) saturate(1.24)}}
+@media(max-width:760px){
+ #menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate{width:120px!important;height:120px!important}
+ #menuScreen.ocean-menu-v2 #riftPortalBtn.abyss-rift-gate{width:148px!important;height:148px!important}
+ #menuScreen.ocean-menu-v2 #menuOceanDiver{transform:translate(-50%,-50%) scale(.86)!important;}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-hint{bottom:70px!important;font-size:8px!important;max-width:94%!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen.ocean-menu-v2 .abyss-rift-gate:before,#menuScreen.ocean-menu-v2 .abyss-rift-gate:after,#menuScreen.ocean-menu-v2 .abyss-rift-fractures{animation:none!important}
+}
