@@ -73,3 +73,15 @@ test('the bent arms remain hittable while the gun rotates independently of swim 
  assert.equal(Hitbox.circleHit(diver,mx,my,1,0),'left-forearm');
  assert.ok(Math.hypot(mx-200,my-200)>4);
 });
+
+test('visual knees, lowered rifle arms and predicted collision coordinates use one shared anatomy',()=>{
+ const art=read('public/diver-art.js');
+ const hitbox=read('public/diver-hitbox.js');
+ const simulation=read('world-simulation.js');
+ assert.match(art,/const knee=\[-28\+4\*kick/);
+ assert.match(hitbox,/const kneeFor=side=>\[-28\+4\*kickFor\(side\)/);
+ assert.match(art,/c\.translate\(0,GUN_OFFSET_Y\)/);
+ assert.match(hitbox,/limb\('right-arm',4,20,15,29/);
+ assert.match(simulation,/contactTarget\.bodyAngle=Number\(target\.bodyAngle\)/);
+ assert.match(simulation,/DiverHitbox\.circleHit\(resolvedContactTarget,enemy\.x,enemy\.y,enemyBodyRadius,now\)/);
+});
