@@ -1814,7 +1814,15 @@ function gainXp(value, source='shared'){
 function spawnNovaVisual(x,y,max,color='#72f5ff',pvp=onlineRoomMode==='pvp',angle=0,combined=false){
  const radius=Math.max(1,Number(max)||294/GAME_WORLD_ZOOM);
  effects.push({type:'nova-core',x,y,r:0,max:Math.min(radius*.14,48/GAME_WORLD_ZOOM),life:.34,maxLife:.34,color});
- effects.push({type:'gravity-cone',x,y,max:radius,angle,combined,life:.58,maxLife:.58,color});
+ // Calculate obstruction only once per pulse; rendering reuses the clipped fan.
+ const half=window.AbyssalGravityCone?.HALF_ANGLE||Math.PI/4;
+ const fan=[];
+ for(let i=0;i<=20;i++){
+  const a=angle-half+(2*half*i/20),endX=x+Math.cos(a)*radius,endY=y+Math.sin(a)*radius;
+  const clipped=clipPrismaticPhotonRay(x,y,endX,endY,2/GAME_WORLD_ZOOM);
+  fan.push({angle:a,radius:Math.hypot(clipped.x2-x,clipped.y2-y)});
+ }
+ effects.push({type:'gravity-cone',x,y,max:radius,angle,combined,fan,life:.58,maxLife:.58,color});
  if(!pvp)burst(x,y,color,lowPowerRendering?9:16,90);
 }
 function spawnProjectileDissolve(x,y,color='#9bbcff',special=null,blocked=false){
@@ -3670,9 +3678,19 @@ function draw(t){
  const angle=Number(fx.angle)||0,half=window.AbyssalGravityCone?.HALF_ANGLE||Math.PI/4;
  const reach=fx.max*(.22+.78*progress);
  ctx.globalAlpha*=.68;ctx.fillStyle='rgba(100,89,229,.20)';
- ctx.moveTo(fx.x,fx.y);ctx.arc(fx.x,fx.y,reach,angle-half,angle+half);ctx.closePath();
- ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(fx.x,fx.y,reach,angle-half,angle+half);
- ctx.strokeStyle='#b9b0ff';ctx.lineWidth=2.5/GAME_WORLD_ZOOM;ctx.stroke();ctx.beginPath();
+ ctx.moveTo(fx.x,fx.y);
+ for(const point of fx.fan||[]){
+  const d=Math.min(reach,point.radius);
+  ctx.lineTo(fx.x+Math.cos(point.angle)*d,fx.y+Math.sin(point.angle)*d);
+ }
+ ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.strokeStyle='#b9b0ff';ctx.lineWidth=2.5/GAME_WORLD_ZOOM;
+ ctx.beginPath();
+ for(const [index,point] of (fx.fan||[]).entries()){
+  const d=Math.min(reach,point.radius),px=fx.x+Math.cos(point.angle)*d,py=fx.y+Math.sin(point.angle)*d;
+  if(index===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+ }
+ ctx.stroke();ctx.beginPath();
  }else if(fx.type==='skin-shot-telegraph'){
  ctx.strokeStyle=fx.color||'#ff3f59';ctx.globalAlpha*=.48+.35*Math.sin(performance.now()*.025);ctx.setLineDash([10/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM]);ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.setLineDash([]);
  }else if(fx.type==='projectile-dissolve'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2);}else if(fx.type==='nova-core'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.fillStyle=fx.color||'#72f5ff';ctx.beginPath();ctx.arc(fx.x,fx.y,Math.max(4/GAME_WORLD_ZOOM,fx.max*progress),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ring'||fx.type==='regen-pulse'){ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ward-collapse'){ctx.arc(fx.x,fx.y,fx.max*(1-progress*.72),0,Math.PI*2)}else if(fx.type==='electric-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,segments=13;for(let s=0;s<=segments;s++){const q=s/segments,edge=q===0||q===1?0:1,wave=(Math.sin((Number(fx.seed)||0)*.23+s*3.7)+Math.sin((Number(fx.seed)||0)*.11+s*7.1)*.55)*Math.min(18/worldZoom,len*.095)*edge,xx=fx.x1+dx*q+nx*wave,yy=fx.y1+dy*q+ny*wave;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}}else if(fx.type==='ricochet-line'){ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.type==='photon-ray'?photonX2:fx.x2,fx.type==='photon-ray'?photonY2:fx.y2)}ctx.stroke();if(fx.type==='ricochet-line'){ctx.globalAlpha*=.88;ctx.strokeStyle='#fff86a';ctx.shadowBlur=lowPowerRendering?0:16/GAME_WORLD_ZOOM;ctx.shadowColor='#f7ff19';ctx.lineWidth=Math.max(1/GAME_WORLD_ZOOM,(Number(fx.width)||3.4)*.42);ctx.stroke();}if(fx.type==='electric-arc'){ctx.globalAlpha*=.9;ctx.strokeStyle='#eaffff';ctx.shadowBlur=lowPowerRendering?5/GAME_WORLD_ZOOM:20/GAME_WORLD_ZOOM;ctx.shadowColor='#31eaff';ctx.lineWidth=Math.max(1.2/GAME_WORLD_ZOOM,(Number(fx.width)||4.2)*.4);ctx.stroke();}if(fx.type==='photon-ray'){ctx.strokeStyle='#ffffff';ctx.shadowBlur=0;ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.beginPath();ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(photonX2,photonY2);ctx.stroke()}ctx.restore()}
