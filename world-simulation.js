@@ -728,7 +728,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
     if (shieldCharges > 0) {
       target.shieldCharges = shieldCharges - 1;
-      target.invulnerableUntil = now + (target.skinId === 'violet' ? 900 : 700);
+      target.invulnerableUntil = now + 700;
       blocked = true;
     } else {
       const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
@@ -738,7 +738,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       target.maxHp = Math.max(1, Number(target.maxHp) || 100);
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
       appliedDamage = Math.min(requestedDamage, Math.max(0, hpBefore));
-      target.invulnerableUntil = now + (target.skinId === 'violet' ? 1000 : 800);
+      target.invulnerableUntil = now + 800;
       const contactNeuro=Math.max(0,Number(contactProfile?.neuro)||0);
       if (contactNeuro > 0 && appliedDamage > 0) { target.neurotoxinUntil = now + contactNeuro; neurotoxinMs = contactNeuro; }
 
