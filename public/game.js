@@ -1738,7 +1738,7 @@ function verifyAuthoritativeContact(data){
  const measuredDistance=Math.hypot(source.x-px,source.y-py);
  const centerValid=measuredDistance<=radius+2&&reportedDistance<=radius+2;
  const radiusWithEnemy=Math.max(2,Number(data.enemyRadius)-Number(data.contactSafetyMargin||0));
- const bodyZone=data.hitZone&&DIVER_HITBOX?.circleHit?.({x:px,y:py,r:Number(data.playerR)||player?.r||13/GAME_WORLD_ZOOM,bodyAngle:Number(data.bodyAngle)||0},source.x,source.y,radiusWithEnemy,Number(data.serverTime)||0);
+ const bodyZone=data.hitZone&&DIVER_HITBOX?.circleHit?.({x:px,y:py,r:Number(data.playerR)||player?.r||13/GAME_WORLD_ZOOM,bodyAngle:Number(data.bodyAngle)||0,weaponAngle:Number(data.weaponAngle??data.bodyAngle)||0},source.x,source.y,radiusWithEnemy,Number(data.serverTime)||0);
  const anatomicalValid=Boolean(data.hitZone&&data.hitZone!=='tentacle'&&bodyZone===data.hitZone);
  const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&(centerValid||anatomicalValid);
  return {ready:true,valid:geometryValid,reason:geometryValid?null:'contact-position-mismatch',frame,source};
