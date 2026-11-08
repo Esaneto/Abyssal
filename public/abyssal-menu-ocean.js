@@ -7,10 +7,13 @@
  const ease=t=>t*t*(3-2*t);
  // Three encounters requested: Solo to the left, Online to the right,
  // and the Fossas crevice embedded discreetly in the CENTER of the seafloor.
+ // IMPORTANT: final requested BOTTOM composition, not the earlier draft:
+ // LEFT = MERGULHAR ONLINE; CENTER = MERGULHAR SOLO; RIGHT = FOSSAS ABISSAIS.
+ // Never reorder these from an obsolete eight-portal or early two-current mockup.
  const ROUTES=[
-  {id:'playBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHO SOLO',kind:'solo'},
-  {id:'onlineBtn',x:.81,y:.47,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
-  {id:'riftPortalBtn',x:.50,y:.835,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
+  {id:'onlineBtn',x:.18,y:.64,tone:'#60eed3',label:'MERGULHAR ONLINE',kind:'online'},
+  {id:'playBtn',x:.50,y:.64,tone:'#68e7ff',label:'MERGULHAR',kind:'solo'},
+  {id:'riftPortalBtn',x:.82,y:.84,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
  ];
  function boot(){
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
