@@ -403,3 +403,19 @@
 @media(prefers-reduced-motion:reduce){
  #menuScreen.ocean-menu-v2 #playBtn,#menuScreen.ocean-menu-v2 #onlineBtn,#menuScreen.ocean-menu-v2 #riftPortalBtn{animation:none!important}
 }
+
+/* Shared wood/tentacle visual without changing shop/card interactions. */
+#menuScreen.ocean-menu-v2 #shopBtn:after{
+ content:"";display:block!important;position:absolute!important;
+ inset:-9px!important;border-radius:10px!important;
+ background:url('abyssal-wood-tentacles.svg') center / 100% 100% no-repeat!important;
+ pointer-events:none!important;opacity:.85!important;z-index:0!important;
+}
+#menuScreen.ocean-menu-v2 #shopBtn>*{position:relative!important;z-index:1!important}
+#shopScreen .shop-modal:after{
+ content:"";position:absolute;inset:0;pointer-events:none;
+ background:url('abyssal-wood-tentacles.svg') top left / 310px 145px no-repeat,
+ url('abyssal-wood-tentacles.svg') bottom right / 310px 145px no-repeat;
+ opacity:.22;z-index:0;
+}
+#shopScreen .shop-modal>*{position:relative;z-index:1}
