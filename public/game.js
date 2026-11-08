@@ -332,6 +332,7 @@ const skinData=[
 ];
 const SkinAbilities=window.AbyssalSkinAbilities;
 const SKIN_STANDARD=window.AbyssalSkinStandard;
+const SPECIMEN_EVASION=window.AbyssalSpecimenEvasion;
 skinData.push(...(window.AbyssalCuratedSkins?.items||[]));
 for(const skin of skinData){
  const profile=SKIN_STANDARD?.profile?.(skin.id);
@@ -2179,9 +2180,9 @@ function drawExperienceOrbs(t){
  for(const orb of orbs){
   if(orb.x<cameraX-20/worldZoom||orb.x>cameraX+viewW/worldZoom+20/worldZoom||orb.y<cameraY-20/worldZoom||orb.y>cameraY+viewH/worldZoom+20/worldZoom)continue;
   const pulse=.82+.18*Math.sin(t*.003);
-  ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#8af8ff';ctx.shadowColor='#4ddfff';ctx.shadowBlur=lowPowerRendering?0:9/GAME_WORLD_ZOOM;
+  ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#bc79ff';ctx.shadowColor='#8a3bff';ctx.shadowBlur=lowPowerRendering?0:9/GAME_WORLD_ZOOM;
   ctx.beginPath();ctx.arc(orb.x,orb.y,4.5/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=0;ctx.strokeStyle='#eaffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.stroke();ctx.restore();
+  ctx.shadowBlur=0;ctx.strokeStyle='#f3dfff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.stroke();ctx.restore();
  }
 }
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
@@ -2510,39 +2511,31 @@ function updateSpecimenRuntime(dt){
   if(progress>=1)s.dash=null;
   return;
  }
- // Physical chase: the specimen has normal swim speed including speed upgrades.
- // The diver's Ghost Step / dash multipliers deliberately NEVER apply.
- let wantedX=player.x+Math.sin(performance.now()*.0012)*3/GAME_WORLD_ZOOM;
- let wantedY=player.y-34/GAME_WORLD_ZOOM+Math.cos(performance.now()*.0016)*3/GAME_WORLD_ZOOM;
+ // Avoid hostile hitboxes while collecting: safety outranks XP.
+ const pos={x:s.x,y:s.y},radius=Number(s.r)||11/GAME_WORLD_ZOOM;
+ const threats=(onlineMode?enemies:enemies).filter(e=>e&&e.hp>0).map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
- let nearest=null,nearestDistance=Infinity;
- for(const orb of orbs){
-  if(Math.hypot(orb.x-player.x,orb.y-player.y)>collectionRange)continue;
-  const distance=Math.hypot(orb.x-s.x,orb.y-s.y);
-  if(distance>=nearestDistance)continue;
-  nearest=orb;nearestDistance=distance;
+ const orb=SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
+ let target=orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
+ if(activeMapLayout&&ABYSSAL_MAP?.navigationTarget){
+  const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});
+  if(route&&!route.blocked)target={x:route.x,y:route.y};
  }
- if(nearest){
-  wantedX=nearest.x;wantedY=nearest.y;
-  if(activeMapLayout&&ABYSSAL_MAP?.navigationTarget){
-   const target=ABYSSAL_MAP.navigationTarget(activeMapLayout,s.x,s.y,wantedX,wantedY,{padding:5/GAME_WORLD_ZOOM});
-   if(target&&!target.blocked){wantedX=target.x;wantedY=target.y;}
-  }
- }
- const dx=wantedX-s.x,dy=wantedY-s.y,distance=Math.hypot(dx,dy);
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
  const normalSpeed=Math.max(0,player.moveSpeed*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
- const step=Math.min(distance,normalSpeed*Math.max(0,dt));
- if(distance>.001&&step>0){
-  const nextX=s.x+dx/distance*step,nextY=s.y+dy/distance*step;
-  if(activeMapLayout&&ABYSSAL_MAP?.resolveMove){
-   const next=ABYSSAL_MAP.resolveMove(activeMapLayout,s.x,s.y,nextX,nextY,5/GAME_WORLD_ZOOM);
-   s.x=next.x;s.y=next.y;
-  }else{s.x=nextX;s.y=nextY;}
-  const nextAngle=Math.atan2(dy,dx),diff=Math.atan2(Math.sin(nextAngle-(s.facingAngle||0)),Math.cos(nextAngle-(s.facingAngle||0)));
-  s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*11));
+ const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:threats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
+  heading:Number(s.facingAngle)||0,
+  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):null});
+ if(move){
+  s.x=move.x;s.y=move.y;
+  if(Math.hypot(move.x-pos.x,move.y-pos.y)>.01){
+   const heading=Math.atan2(move.y-pos.y,move.x-pos.x);
+   const diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));
+   s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*11));
+  }
  }
+
 }
 
 function hurtSpecimenSolo(amount){
