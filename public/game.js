@@ -91,6 +91,7 @@ let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineCl
 let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
 const SPECIMEN_SYSTEM=window.AbyssalSpecimenSystem;
 const DIVER_ART=window.AbyssalDiverArt;
+const DIVER_HITBOX=window.AbyssalDiverHitbox;
 let diverGender=DIVER_ART?.genderOf?.(localStorage.getItem('abyssalDiverGender'))||'male';
 window.AbyssalDiverGender=diverGender;
 function setDiverGender(value,saveRemote=true){
@@ -1628,6 +1629,16 @@ function updateRiftHazardAudio(){
   }
  }
 }
+function riftTouchesDiver(h,phase){
+ if(!DIVER_HITBOX||!player)return null;
+ for(const zone of DIVER_HITBOX.zones(player,performance.now())){
+  for(const amount of [0,.5,1]){
+   const px=zone.ax+(zone.bx-zone.ax)*amount,py=zone.ay+(zone.by-zone.ay)*amount;
+   if(RIFT_HARDCORE.hit(h,px,py,zone.r,phase))return zone.name;
+  }
+ }
+ return null;
+}
 function updateSoloRiftHardcore(dt){
  if(onlineMode||requestedRunMode!=='rift'||!player||!activeMapLayout||!RIFT_HARDCORE)return;
  const room=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);
@@ -1645,7 +1656,7 @@ function updateSoloRiftHardcore(dt){
    }
   }
   if(phase.phase!=='active')continue;
-  if(RIFT_HARDCORE.hit(h,player.x,player.y,player.r,phase)){
+  if(riftTouchesDiver(h,phase)){
     // Suction is an uninterrupted current, not a tiny move every damage tick.
     if(h.type==='vortex'){
       const dx=h.x-player.x,dy=h.y-player.y,len=Math.hypot(dx,dy)||1;
@@ -1658,6 +1669,17 @@ function updateSoloRiftHardcore(dt){
     riftSoloHazardCooldowns.set(h.id,elapsed+(h.type==='tentacle'?.69:1));
     hurtPlayer(h.damage,h.type==='poisonPlant'?'poison':'received');
     if(h.type==='poisonPlant')player.neurotoxinUntil=performance.now()+1150;
+   }
+  }
+  // The companion is also vulnerable to every active hazard, even when
+  // the diver's own anatomical hitboxes are outside the affected area.
+  const specimen=player.specimen;
+  if(specimen?.alive&&RIFT_HARDCORE.hit(h,specimen.x,specimen.y,specimen.r,phase)){
+   specimen.riftImpactUntil ||= Object.create(null);
+   const now=performance.now(),key=String(h.id);
+   if(now>=(Number(specimen.riftImpactUntil[key])||0)){
+    specimen.riftImpactUntil[key]=now+(h.type==='tentacle'?690:1000);
+    hurtSpecimenSolo(Math.max(2,Number(h.damage)||7)*.72);
    }
   }
   // Hazards belong to the world, not to a player's weapon. They can kill
@@ -1675,8 +1697,8 @@ function updateSoloRiftHardcore(dt){
  // Eight environmental tentacles now supply the entire offensive arm pattern.
  for(const enemy of enemies){
   if(enemy.kind!==RIFT_HARDCORE.FINAL_KIND||enemy.hp<=0||room?.id!=='boss')continue;
-  const threshold=enemy.r*.85+player.r;
-  if(Math.hypot(player.x-enemy.x,player.y-enemy.y)<threshold&&
+  const threshold=enemy.r*.85;
+  if(DIVER_HITBOX?.circleHit?.(player,enemy.x,enemy.y,threshold,performance.now())&&
    performance.now()>(enemy.headTouchAt||0)){
    enemy.headTouchAt=performance.now()+900;
    hurtPlayer(50);
@@ -2559,7 +2581,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     e.inkTrailTimer=0;const radius=76/GAME_WORLD_ZOOM;
     const ix=e.x-Math.cos(e.angle||0)*e.r*.72,iy=e.y-Math.sin(e.angle||0)*e.r*.72;
     renderBossAbilityVisual({abilityId:'ink-trail',kind:e.kind,x:ix,y:iy,angle:e.angle||0,radius,color:'#07101d'});
-    if(Math.hypot(player.x-ix,player.y-iy)<=radius+player.r&&player.invuln<=0){hurtPlayer(2);shake=5;}
+    if(DIVER_HITBOX?.circleHit?.(player,ix,iy,radius,performance.now())&&player.invuln<=0){hurtPlayer(2);shake=5;}
+    if(player.specimen?.alive&&Math.hypot(player.specimen.x-ix,player.specimen.y-iy)<=radius+player.specimen.r)hurtSpecimenSolo(2*.72);
    }
   }
   // Peixe-pescador: a antiga isca ofensiva foi substituída pela camuflagem cíclica.
@@ -2568,7 +2591,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(e.mawChomp>=4.0){
      e.mawChomp=0;const radius=205/GAME_WORLD_ZOOM;
      renderBossAbilityVisual({abilityId:'gulper-chomp',kind:e.kind,x:e.x,y:e.y,angle:e.angle||0,radius,color:e.color||'#c16cff'});
-     if(Math.hypot(player.x-e.x,player.y-e.y)<radius&&player.invuln<=0){hurtPlayer(24);shake=11;}
+     if(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,radius,performance.now())&&player.invuln<=0){hurtPlayer(24);shake=11;}
+     if(player.specimen?.alive&&Math.hypot(player.specimen.x-e.x,player.specimen.y-e.y)<=radius+player.specimen.r)hurtSpecimenSolo(24*.72);
    }
   }
   if(!onlineMode&&e.kind==='leviathan'){
@@ -2577,7 +2601,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(e.pressureWaveTimer>=4.8){
     e.pressureWaveTimer=0;const reach=480/GAME_WORLD_ZOOM,ang=e.angle||0,x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
     renderBossAbilityVisual({abilityId:'pressure-lance',kind:e.kind,x:e.x,y:e.y,angle:ang,radius:reach,color:e.color||'#4ce0d1'});
-    if(marineAbilityLineDistance(player.x,player.y,e.x,e.y,x2,y2)<=72/GAME_WORLD_ZOOM&&player.invuln<=0){hurtPlayer(22);shake=12;}
+    if(DIVER_HITBOX?.segmentHit?.(player,e.x,e.y,x2,y2,72/GAME_WORLD_ZOOM,performance.now())&&player.invuln<=0){hurtPlayer(22);shake=12;}
+    if(player.specimen?.alive&&marineAbilityLineDistance(player.specimen.x,player.specimen.y,e.x,e.y,x2,y2)<=72/GAME_WORLD_ZOOM+player.specimen.r)hurtSpecimenSolo(22*.72);
    }
   }
   // 4. White Shark Boss: rastro de corte de barbatanas
@@ -2612,8 +2637,10 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(td<e.r+player.r+8/GAME_WORLD_ZOOM||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
+ // Contact applies to companion independently of the diver's hurtbox.
+ if(!onlineMode)updateSoloSpecimenContact();
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
