@@ -15,6 +15,7 @@ const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
+const SpecimenRarity = require('./public/specimen-rarity.js');
 const SpecimenEvasion = require('./public/specimen-evasion.js');
 const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
@@ -268,7 +269,7 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -1777,6 +1778,23 @@ io.on('connection', socket => {
   u.tutorialDismissedModes=Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[];
   if(!u.tutorialDismissedModes.includes(mode)){u.tutorialDismissedModes.push(mode);saveUsers();}
   socket.emit('account-data',publicUser(u));
+ });
+ socket.on('specimen-discovered',(payload={})=>{
+  const room=socketRoom(socket),player=room?.players.get(socket.id);
+  if(!room||room.mode!=='rift'||!player||player.alive===false)return;
+  const id=String(payload.id||'').slice(0,64);
+  if(!id||!SpecimenRarity.rarityFor(id))return;
+  const layout=WorldSimulation.mapLayoutFor(room.world);
+  const visible=(room.world?.enemies||[]).some(e=>e?.specimenSkinId===id&&Number(e.hp)>0
+   &&Math.hypot(Number(e.x)-player.x,Number(e.y)-player.y)<480/WORLD_ZOOM
+   &&(!layout||AbyssalMap.segmentWalkable(layout,player.x,player.y,e.x,e.y,3/WORLD_ZOOM)));
+  if(!visible)return;
+  const user=users[socket.data.userKey];if(!user)return;
+  user.discoveredSpecimens=Array.isArray(user.discoveredSpecimens)?user.discoveredSpecimens:[];
+  if(user.discoveredSpecimens.includes(id))return;
+  user.discoveredSpecimens.push(id);
+  scheduleTitleStatsSave();
+  socket.emit('specimen-discovered',{id});
  });
  socket.on('tutorial-state',payload=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);
