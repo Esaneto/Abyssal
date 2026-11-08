@@ -2266,7 +2266,8 @@ function updateSpecimenRuntime(dt){
  const s=player.specimen,mastery=specimenProgressStats();
  if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
  if(s.alive===false){
-  if(!onlineMode){s.respawnTimer=Math.max(0,(Number(s.respawnTimer)||0)-dt);if(s.respawnTimer<=0){s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}}
+  s.respawnTimer=Math.max(0,(Number(s.respawnTimer)||0)-dt);
+  if(!onlineMode&&s.respawnTimer<=0){s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}
   return;
  }
  const desiredX=player.x+Math.sin(performance.now()*.0017)*5/GAME_WORLD_ZOOM,desiredY=player.y-34/GAME_WORLD_ZOOM+Math.cos(performance.now()*.0014)*4/GAME_WORLD_ZOOM;
