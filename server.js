@@ -17,6 +17,7 @@ const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
+const DiverArt = require('./public/diver-art.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
@@ -1758,7 +1759,7 @@ io.on('connection', socket => {
   }
   if(shot.special==='photonRay'){
    const dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
-   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverHitbox.DRAW_SCALE*46/14;
+   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
    const sx=Number(shooter.x)+(speed>0?dx/speed:1)*gunDistance;
    const sy=Number(shooter.y)+(speed>0?dy/speed:0)*gunDistance;
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
@@ -1857,7 +1858,7 @@ io.on('connection', socket => {
    // PvP muzzle is computed from the authoritative player and shot direction,
    // never from arbitrary client origin coordinates.
    const shotHeading=Math.atan2(vy*shotWorldHeight,vx*WORLD_WIDTH);
-   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverHitbox.DRAW_SCALE*46/14;
+   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
    const authoritativeMuzzleX=sx+Math.cos(shotHeading)*gunDistance;
    const authoritativeMuzzleY=sy+Math.sin(shotHeading)*gunDistance;
    if(shot.special!=='nova'){
