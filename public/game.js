@@ -355,6 +355,29 @@ function skinShopTaxonomy(skin){
 function skinShopCategories(skin){const tax=skinShopTaxonomy(skin),set=new Set(tax.collections);if(tax.family)set.add(tax.family);return set;}
 function skinShopFamily(skin){return skinShopTaxonomy(skin).family||skinShopTaxonomy(skin).collections[0]||'signature';}
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
+const SPECIMEN_DISCOVERY_KEY='abyssalDiscoveredSpecimens';
+let discoveredSpecimens=new Set(['default']);
+try{const saved=JSON.parse(localStorage.getItem(SPECIMEN_DISCOVERY_KEY)||'[]');if(Array.isArray(saved))for(const id of saved)discoveredSpecimens.add(String(id));}catch(_){}
+function persistSpecimenDiscovery(){
+ try{localStorage.setItem(SPECIMEN_DISCOVERY_KEY,JSON.stringify([...discoveredSpecimens]));}catch(_){}
+}
+function registerSpecimenDiscovery(id,notify=true){
+ id=String(id||'');
+ if(!id||discoveredSpecimens.has(id))return;
+ discoveredSpecimens.add(id);persistSpecimenDiscovery();
+ if(notify){
+  window.dispatchEvent(new CustomEvent('abyssal-specimen-discovery-request',{detail:{id}}));
+  showToast('NOVO ESPÉCIME REGISTRADO');
+ }
+ if(!$('shopScreen')?.hidden)renderShop();
+}
+window.addEventListener('abyssal-account-data',event=>{
+ const serverList=event.detail?.discoveredSpecimens;
+ if(!Array.isArray(serverList))return;
+ for(const id of serverList)registerSpecimenDiscovery(id,false);
+});
+window.addEventListener('abyssal-specimen-discovery-confirmed',event=>registerSpecimenDiscovery(event.detail?.id,false));
+
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
@@ -3971,7 +3994,11 @@ function draw(t){
   ctx.restore();
  }
 
- for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*1.42*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):1;if(e.specimenSkinId){
+ for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*1.42*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if(e.specimenSkinId&&activeMapLayout&&player&&Math.hypot(e.x-player.x,e.y-player.y)<440/GAME_WORLD_ZOOM
+   &&(!ABYSSAL_MAP?.segmentWalkable||ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,e.x,e.y,3/GAME_WORLD_ZOOM))){
+   registerSpecimenDiscovery(e.specimenSkinId);
+  }
+  if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):1;if(e.specimenSkinId){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
