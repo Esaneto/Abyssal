@@ -1240,7 +1240,7 @@ function triggerAbyssalVictory() {
   if (!ownedSkins.includes('greensnake')) {
     ownedSkins.push('greensnake');
     saveCosmetics();
-    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Moréia Esmeralda Colossal"!', 'NOVA SKIN LENDÁRIA OBTIDA', 'skin');
+    addNotification('Parabéns, desbravador! Pelo seu feito supremo no abismo, você conquistou a lendária skin "Moréia Esmeralda Colossal"!', 'NOVO ESPÉCIME LENDÁRIA OBTIDA', 'skin');
   }
 
   // Notificar servidor se estiver online ou autenticado
@@ -2064,6 +2064,11 @@ function applySharedXp(data){
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
 function killEnemy(i){
  const e=enemies[i];
+ const proficiencyBoss=BOSS_KINDS.includes(e.kind);
+ if(!onlineMode&&specimenAlive()){
+  specimenProficiency=SPECIMEN_SYSTEM?.addKill?.(specimenProficiency,equippedSkin,proficiencyBoss)||specimenProficiency;
+  saveSpecimenProficiencyLocal();
+ }
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
  discoverCodexMonsters([e.kind]);if(!onlineMode){
  const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55))),scaledXp=!killedBoss&&requestedRunMode!=='rift'?(SEA_PROGRESSION?.scaleXp?.(xpValue,e.seaXpMultiplier)||xpValue):xpValue;gainXp(scaledXp,'kill');
@@ -2677,7 +2682,7 @@ function updateAbilityButtons(force=false){
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
  if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
  if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
- if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||!specimenAlive()||player.skinActiveCooldown>0;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DA SKIN'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DA SKIN'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
+ if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||!specimenAlive()||player.skinActiveCooldown>0;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
@@ -3427,6 +3432,25 @@ function drawHostileSpeciesEffect(enemy,t){
  }
  ctx.restore();
 }
+const specimenPortraits=new Map();
+function registerSpecimenPortrait(canvas,skinId){
+ if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));if(!registerSpecimenPortrait.running){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}
+}
+function renderSpecimenPortraits(t){
+ for(const [canvas,skinId] of [...specimenPortraits]){
+  if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
+  const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
+  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');c.fillStyle=bg;c.fillRect(0,0,w,h);
+  const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
+  c.save();c.translate(dx,dy+bob);c.rotate(-.12);c.strokeStyle='#8ff8ff';c.fillStyle='#071c2c';c.lineWidth=3;c.beginPath();c.roundRect(-22,-31,44,61,12);c.fill();c.stroke();c.fillStyle='#0d3548';c.beginPath();c.ellipse(8,-38,19,16,-.06,0,Math.PI*2);c.fill();c.stroke();const visor=c.createRadialGradient(13,-42,2,10,-38,15);visor.addColorStop(0,'#ffffff');visor.addColorStop(.35,'#81f3ff');visor.addColorStop(1,'#174f70');c.fillStyle=visor;c.beginPath();c.ellipse(12,-39,12,9,-.06,0,Math.PI*2);c.fill();c.strokeStyle='#55c7d2';c.lineWidth=4;c.beginPath();c.moveTo(-12,22);c.lineTo(-22,50);c.moveTo(10,22);c.lineTo(25,48);c.stroke();c.restore();
+  const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
+  try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
+  c.save();c.strokeStyle='rgba(121,243,240,.22)';c.lineWidth=1.5;c.beginPath();c.moveTo(dx+18,dy-18);c.quadraticCurveTo(w*.52,h*.36,sx-12,sy+12);c.stroke();c.restore();
+ }
+ requestAnimationFrame(renderSpecimenPortraits);
+}
+window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
+window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
 function drawDiver(x,y,r,angle=0,t=0,remote=false){
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);
  const scale=Math.max(.72,r/(13/GAME_WORLD_ZOOM));ctx.scale(scale,scale);
@@ -4018,7 +4042,7 @@ function renderShop(){
  $('coinBalance').textContent=coins.toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
  const english=gameLanguage==='en';
- const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'ABYSSAL<br><em>RELICS</em>':'VESTÍGIOS<br><em>DO ABISMO</em>';
+ const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'SPECIMEN<br><em>CATALOG</em>':'CATÁLOGO DE<br><em>ESPÉCIMES</em>';
  const englishNames={violet:'Violet Wraith',leviathan:'Leviathan Echo',kraken:'Kraken Echo',aberration:'Aberration Husk',angler:'Lantern Core',maw:'Rift Fragment',devourer:'Devourer Core',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Estuarine Bull Shark',armoredgator:'Armored Horseshoe Crab'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'A robust estuarine bull shark adapted to shallow channels, turbid water and sudden frontal bursts.',armoredgator:'A mineral-armored horseshoe crab with a broad carapace and a long defensive telson.'};
  const paidBrl=Object.freeze({violet:199,reefshark:199,hammerhead:199,saltcroc:499,blackcaiman:499,abysscroc:499,armoredgator:499,electriceellegacy:499,leviathan:999,kraken:999,aberration:999,angler:999,maw:999,devourer:999});
@@ -4035,8 +4059,8 @@ function renderShop(){
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');card.className='skin-card'+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const abilityCopy=SKIN_STANDARD?.describe?.(skin.id,english?'en':'pt')||skin.ability||(english?'A rare adaptation of the deep.':'Uma adaptação rara das profundezas.');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${abilityCopy}</p><button ${equipped?'disabled':''}>${purchaseLabel}</button>`;const preview=card.querySelector('canvas');preview.dataset.skinId=skin.id;renderCreaturePreview(preview,'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'SKIN EQUIPADA');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVA SKIN · LOJA ABISSAL', 'skin');
-        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'SKIN DESBLOQUEADA');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
+const card=document.createElement('div');card.className='skin-card'+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const abilityCopy=SKIN_STANDARD?.describe?.(skin.id,english?'en':'pt')||skin.ability||(english?'A rare adaptation of the deep.':'Uma adaptação rara das profundezas.');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${abilityCopy}</p><button ${equipped?'disabled':''}>${purchaseLabel}</button>`;const preview=card.querySelector('canvas');preview.dataset.skinId=skin.id;renderCreaturePreview(preview,'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
+        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
  const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
  const remainingIds=bundleIds.filter(id=>!ownedSkins.includes(id)),remaining=remainingIds.length;
@@ -4322,9 +4346,28 @@ window.addEventListener('abyssal-account-data',e=>{
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;
+  if(a.specimenProficiency&&typeof a.specimenProficiency==='object'){specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.(a.specimenProficiency)||a.specimenProficiency;saveSpecimenProficiencyLocal();}
   saveCosmeticsLocalOnly();
   const shopScreen=$('shopScreen');if(shopScreen&&!shopScreen.hidden)renderShop();
   updateAbilityButtons();
+});
+window.addEventListener('abyssal-specimen-proficiency',event=>{
+ const d=event.detail||{};if(!d.skinId)return;
+ specimenProficiency={...specimenProficiency,[String(d.skinId)]:Math.max(0,Number(d.points)||0)};saveSpecimenProficiencyLocal();updateAbilityButtons(true);
+});
+window.addEventListener('abyssal-specimen-state',event=>{
+ const d=event.detail||{},selfId=window.AbyssalOnline?.getSocketId?.();
+ if(selfId&&String(d.playerId)===String(selfId)&&player?.specimen){
+  player.specimen.alive=d.alive!==false;player.specimen.hp=Math.max(0,Number(d.hp)||0);player.specimen.maxHp=Math.max(1,Number(d.maxHp)||55);
+  player.specimen.respawnTimer=d.alive===false?Math.max(0,((Number(d.respawnAt)||Date.now())-Date.now())/1000):0;
+  if(Number.isFinite(Number(d.x)))player.specimen.x=Number(d.x)*W;if(Number.isFinite(Number(d.y)))player.specimen.y=Number(d.y)*H;
+  if(Number.isFinite(Number(d.points)))specimenProficiency={...specimenProficiency,[equippedSkin]:Number(d.points)};
+  updateAbilityButtons(true);
+  if(d.reason==='defeated')showToast('ESPÉCIME ABATIDO · BÔNUS E ATIVA INATIVOS');
+  if(d.reason==='respawn')showToast('ESPÉCIME RESSURGIU');
+ }else{
+  const peer=window.AbyssalOnline?.getPlayerById?.(d.playerId);if(peer)peer.specimenAlive=d.alive!==false;
+ }
 });
 window.addEventListener('abyssal-purchase-result',e=>{
   const r=e.detail||{};
@@ -4337,7 +4380,7 @@ window.addEventListener('abyssal-purchase-result',e=>{
       saveCosmetics();
     }
     const skinName = (SHOP_SKINS && SHOP_SKINS.find(s=>s.id===r.itemId)?.name) || r.itemId;
-    addNotification('🐚 ' + skinName + ' desbloqueada com sucesso na sua conta! Equipe-a pelo Catálogo a qualquer momento.', 'NOVA SKIN · CONTA ONLINE', 'skin');
+    addNotification('🐚 ' + skinName + ' desbloqueada com sucesso na sua conta! Equipe-a pelo Catálogo a qualquer momento.', 'NOVO ESPÉCIME · CONTA ONLINE', 'skin');
     updateNotifBadge();
   } else if(r.ok) {
     playWorldSound('ui-purchase',null,900,1);
