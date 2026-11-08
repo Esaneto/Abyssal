@@ -14,6 +14,7 @@
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
   if(!menu||!stage||menu.dataset.oceanV4Ready)return;
   menu.dataset.oceanV4Ready='true';
+  menu.classList.add('submarine-menu');
   const layer=document.getElementById('menuOceanPortalLayer'),diver=document.getElementById('menuOceanDiver');
   const canvas=document.getElementById('menuOceanDiverCanvas'),ctx=canvas?.getContext('2d');
   const scenery=document.getElementById('menuOceanScenery'),submarine=document.getElementById('menuOceanSubmarine');
@@ -79,6 +80,8 @@
    for(const s of stations){
     s.wx=w*s.x;s.wy=h*s.y;
     s.button.dataset.portalTone=s.kind;
+    s.button.classList.toggle('abyss-current-entry',s.kind!=='rift');
+    s.button.classList.toggle('abyss-fissure-entry',s.kind==='rift');
     s.button.style.setProperty('--portal-x',s.wx+'px');
     s.button.style.setProperty('--portal-y',s.wy+'px');
    }
@@ -108,9 +111,6 @@
     wasVisible=false;return;
    }
    // The pre-existing room browser and Fossas choice dialog stay authoritative.
-   if(s.kind==='online'&&!(document.getElementById('roomsScreen')?.hidden)===false){
-    // Authentication may show first; its cancel path resets the hatch too.
-   }
    if(s.kind==='rift'&&document.getElementById('abyssDescentPanel')?.hidden){
     resetToHatch();return;
    }
@@ -130,6 +130,9 @@
    if(event.detail?.screenId==='roomsScreen')closeReturn();
   });
   window.addEventListener('abyssal-descent-closed',closeReturn);
+  window.addEventListener('abyssal-menu-portal-cancelled',event=>{
+   if(event.detail?.portal==='riftPortalBtn')closeReturn();
+  });
   document.getElementById('loginCancelBtn')?.addEventListener('click',()=>{
    if(waitingForModal)closeReturn();
   });
