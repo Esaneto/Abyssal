@@ -191,7 +191,7 @@
    activeDestination=null;
   }
   stage.addEventListener('pointerdown',event=>{
-   if(!isInteractive()||event.button!==0||event.target.closest?.('button,a,input,select'))return;
+   if(!isInteractive()||event.button!==0||event.target.closest?.('button,a,input,select,#menuOceanMobilePad'))return;
    navigateToPointer(event);
    followingPointer=event.pointerId;
    try{stage.setPointerCapture(event.pointerId);}catch(_){}
