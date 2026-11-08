@@ -2520,17 +2520,26 @@ function updateSpecimenRuntime(dt){
   if(Math.hypot(orb.x-player.x,orb.y-player.y)>collectionRange)continue;
   const distance=Math.hypot(orb.x-s.x,orb.y-s.y);
   if(distance>=nearestDistance)continue;
-  if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,s.x,s.y,orb.x,orb.y,6/GAME_WORLD_ZOOM))continue;
   nearest=orb;nearestDistance=distance;
  }
- if(nearest){wantedX=nearest.x;wantedY=nearest.y;}
+ if(nearest){
+  wantedX=nearest.x;wantedY=nearest.y;
+  if(activeMapLayout&&ABYSSAL_MAP?.navigationTarget){
+   const target=ABYSSAL_MAP.navigationTarget(activeMapLayout,s.x,s.y,wantedX,wantedY,{padding:5/GAME_WORLD_ZOOM});
+   if(target&&!target.blocked){wantedX=target.x;wantedY=target.y;}
+  }
+ }
  const dx=wantedX-s.x,dy=wantedY-s.y,distance=Math.hypot(dx,dy);
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
  const normalSpeed=Math.max(0,player.moveSpeed*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
  const step=Math.min(distance,normalSpeed*Math.max(0,dt));
  if(distance>.001&&step>0){
-  s.x+=dx/distance*step;s.y+=dy/distance*step;
+  const nextX=s.x+dx/distance*step,nextY=s.y+dy/distance*step;
+  if(activeMapLayout&&ABYSSAL_MAP?.resolveMove){
+   const next=ABYSSAL_MAP.resolveMove(activeMapLayout,s.x,s.y,nextX,nextY,5/GAME_WORLD_ZOOM);
+   s.x=next.x;s.y=next.y;
+  }else{s.x=nextX;s.y=nextY;}
   const nextAngle=Math.atan2(dy,dx),diff=Math.atan2(Math.sin(nextAngle-(s.facingAngle||0)),Math.cos(nextAngle-(s.facingAngle||0)));
   s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*11));
  }
