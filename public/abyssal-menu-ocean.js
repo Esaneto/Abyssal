@@ -63,7 +63,7 @@
    worldH=Math.max(920,Math.round(r.height*2.10));
    if(!initialized){px=worldW*.52;py=worldH*.51;initialized=true;}
    else{px=px/Math.max(1,oldW)*worldW;py=py/Math.max(1,oldH)*worldH;}
-   layer.style.width=worldW+'px';layer.style.height=worldH+'px';
+   layer.style.setProperty('width',worldW+'px','important');layer.style.setProperty('height',worldH+'px','important');
    for(const s of stations){s.wx=s.x*worldW;s.wy=s.y*worldH;s.button.style.setProperty('--portal-x',s.wx+'px');s.button.style.setProperty('--portal-y',s.wy+'px');}
    destination=null;activeDestination=null;px=clamp(px,48,worldW-48);py=clamp(py,48,worldH-48);
    camX=clamp(px-r.width*.5,0,Math.max(0,worldW-r.width));
@@ -139,7 +139,7 @@
     if(Math.hypot(vx,vy)>5){const a=Math.atan2(vy,vx),diff=Math.atan2(Math.sin(a-heading),Math.cos(a-heading));heading+=diff*(1-Math.exp(-dt*8));}
     camX=lerp(camX,clamp(px-stage.clientWidth*.5,0,Math.max(0,worldW-stage.clientWidth)),1-Math.exp(-dt*7));
     camY=lerp(camY,clamp(py-stage.clientHeight*.5,0,Math.max(0,worldH-stage.clientHeight)),1-Math.exp(-dt*7));
-    layer.style.transform='translate3d('+(-camX).toFixed(2)+'px,'+(-camY).toFixed(2)+'px,0)';
+    layer.style.setProperty('transform','translate3d('+(-camX).toFixed(2)+'px,'+(-camY).toFixed(2)+'px,0)','important');
     diver.style.setProperty('--diver-x',(px-camX)+'px');diver.style.setProperty('--diver-y',(py-camY)+'px');
     diver.classList.toggle('swimming',Math.hypot(vx,vy)>6);
     pickNear();
