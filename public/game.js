@@ -2256,6 +2256,34 @@ function equippedMotionFamily(){
  }
  return soundMotionFamily;
 }
+function updateSpecimenRuntime(dt){
+ if(!player?.specimen)return;
+ const s=player.specimen,mastery=specimenProgressStats();
+ if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
+ if(s.alive===false){
+  if(!onlineMode){s.respawnTimer=Math.max(0,(Number(s.respawnTimer)||0)-dt);if(s.respawnTimer<=0){s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}}
+  return;
+ }
+ const desiredX=player.x+Math.sin(performance.now()*.0017)*5/GAME_WORLD_ZOOM,desiredY=player.y-34/GAME_WORLD_ZOOM+Math.cos(performance.now()*.0014)*4/GAME_WORLD_ZOOM;
+ const follow=1-Math.exp(-dt*8.5);s.x+=(desiredX-s.x)*follow;s.y+=(desiredY-s.y)*follow;
+}
+function hurtSpecimenSolo(amount){
+ const s=player?.specimen;if(!s||s.alive===false||s.invuln>0||!Number.isFinite(amount)||amount<=0)return false;
+ s.hp=Math.max(0,s.hp-amount);s.invuln=.35;burst(s.x,s.y,'#ff6f8d',8,65);
+ if(s.hp<=0){s.alive=false;s.respawnTimer=specimenProgressStats().respawnSeconds;player.skinActiveCooldown=0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${s.respawnTimer.toFixed(1)}s`);updateAbilityButtons(true);}
+ return true;
+}
+function updateSoloSpecimenContact(){
+ const s=player?.specimen;if(onlineMode||!s||s.alive===false)return;
+ const now=performance.now();
+ for(const e of enemies){
+  if(!e||e.hp<=0)continue;
+  if(Math.hypot(e.x-s.x,e.y-s.y)>e.r+s.r+6/GAME_WORLD_ZOOM)continue;
+  if(now<(Number(e.specimenAttackAt)||0))continue;
+  e.specimenAttackAt=now+850;
+  hurtSpecimenSolo(Math.max(5,Number(e.damage)||8)*.72);
+ }
+}
 function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
@@ -2649,7 +2677,7 @@ function updateAbilityButtons(force=false){
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
  if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
  if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
- if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||player.skinActiveCooldown>0;skinBtn.hidden=!spec;skinBtn.disabled=disabled;const label=player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DA SKIN'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DA SKIN'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
+ if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||!specimenAlive()||player.skinActiveCooldown>0;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DA SKIN'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DA SKIN'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
