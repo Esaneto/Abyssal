@@ -244,6 +244,7 @@ function connect(){
  socket.on('rift-chest-ready',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-chest',{detail:data})));
  socket.on('first-progression-reward',data=>window.dispatchEvent(new CustomEvent('abyssal-first-progression-reward',{detail:data||{}})));
  socket.on('abyssal-final-victory',data=>window.dispatchEvent(new CustomEvent('abyssal-final-victory',{detail:data||{}})));
+ socket.on('specimen-discovered',data=>window.dispatchEvent(new CustomEvent('abyssal-specimen-discovery-confirmed',{detail:data||{}})));
  socket.on('account-data',data=>{
   if(!authenticated||!data)return;
   serverAccount=data;
@@ -701,6 +702,10 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.addEventListener('focus',()=>requestPlayerState());
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
+ window.addEventListener('abyssal-specimen-discovery-request',event=>{
+  if(socket?.connected&&authenticated)socket.emit('specimen-discovered',{id:String(event.detail?.id||'')});
+ });
+
 
  const deleteInput=$('deleteNicknameInput'),deleteBtn=$('deleteAccountBtn');
  function updateDeleteButton(){
