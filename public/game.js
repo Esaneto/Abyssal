@@ -3935,7 +3935,17 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
  else if(kind==='kraken'||kind==='devourer')scale=.7;
  else if(kind==='maw')scale=.78;
  const previewRadius=Math.min(w*.145,h*.235)*scale;
- drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
+ if(kind==='player'&&skin){
+  const now=performance.now(),dx=w*.40,dy=h*.64,bob=Math.sin(now*.002)*1.8;
+  c.save();c.translate(dx,dy+bob);c.rotate(-.08);const rr=Math.min(w,h)*.11;
+  c.fillStyle='#071c2c';c.strokeStyle='#8ff8ff';c.lineWidth=Math.max(1.2,w*.009);c.beginPath();c.roundRect(-rr*.55,-rr*.7,rr*1.1,rr*1.35,rr*.28);c.fill();c.stroke();
+  c.fillStyle='#0c3548';c.beginPath();c.ellipse(rr*.18,-rr*.82,rr*.46,rr*.39,-.05,0,Math.PI*2);c.fill();c.stroke();
+  const visor=c.createRadialGradient(rr*.25,-rr*.9,1,rr*.18,-rr*.82,rr*.35);visor.addColorStop(0,'#fff');visor.addColorStop(.35,'#80f3ff');visor.addColorStop(1,'#164c66');c.fillStyle=visor;c.beginPath();c.ellipse(rr*.27,-rr*.83,rr*.28,rr*.20,-.05,0,Math.PI*2);c.fill();
+  c.strokeStyle='#55cbd5';c.lineWidth=Math.max(1.1,w*.008);c.beginPath();c.moveTo(-rr*.25,rr*.55);c.lineTo(-rr*.55,rr*1.08);c.moveTo(rr*.22,rr*.55);c.lineTo(rr*.61,rr*1.04);c.stroke();c.restore();
+  const sx=w*.62,sy=h*.30+Math.cos(now*.0024)*2.4;
+  drawCreature(sx,sy,previewRadius*.72,-.05,color,'player',now,true,0,c,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
+  c.save();c.strokeStyle='rgba(121,243,240,.24)';c.lineWidth=1;c.beginPath();c.moveTo(dx+rr*.35,dy-rr*.35);c.quadraticCurveTo(w*.52,h*.42,sx-previewRadius*.28,sy+previewRadius*.18);c.stroke();c.restore();
+ }else drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
 }
 // The shop uses no GIF/video downloads. Visible previews are repainted at
 // 6-8 FPS with a strict per-tick cap and stop when the shop is closed.
