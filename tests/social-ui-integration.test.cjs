@@ -113,13 +113,12 @@ test('profile safety actions are compact and report is red',()=>{
  assert.match(css,/\.profile-report-btn\{[^}]*rgba\(255,69,89/);
 });
 
-test('relic bundle charges only remaining R$9.99 boss skins without hidden discount',()=>{
+test('boss bundle displays 39.99 and discounts missing specimens proportionally',()=>{
  const game=read('public/game.js');
- assert.match(game,/const regularRemaining=remainingIds\.reduce/);
- assert.match(game,/const bundleBrlAmount=regularRemaining/);
- assert.match(game,/somente relíquias ainda não adquiridas/);
+ assert.match(game,/const bundleFullBrl=3999/);
+ assert.match(game,/Math\.round\(bundleFullBrl\*\(remaining\/bundleIds\.length\)\)/);
+ assert.match(game,/DESCONTO PROPORCIONAL MANTIDO/);
 });
-
 
 test('mobile menu has independently sized stations and touch navigation',()=>{
  const css=read('public/abyssal-menu-v2.css'),menu=read('public/abyssal-menu-ocean.js');
