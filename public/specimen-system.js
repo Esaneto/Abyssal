@@ -1,9 +1,53 @@
 (function(root,factory){
- const api=factory();
+ const node=typeof module==='object'&&module.exports;
+ const curated=node?require('./abyssal-curated-skins.js'):root.AbyssalCuratedSkins;
+ const standard=node?require('./skin-standard.js'):root.AbyssalSkinStandard;
+ const api=factory(curated,standard);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalSpecimenSystem=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(curated,standard){
  'use strict';
+ // Shared family-level creature vitals. Shop prices and active skills stay unchanged.
+ const FAMILY_BASE=Object.freeze({
+  signature:{hp:60,speed:172},fish:{hp:70,speed:177},
+  shark:{hp:96,speed:196},eel:{hp:68,speed:187},
+  ray:{hp:72,speed:174},octopus:{hp:80,speed:164},
+  squid:{hp:78,speed:172},jelly:{hp:46,speed:151},
+  crustacean:{hp:112,speed:138},mollusc:{hp:88,speed:151},
+  reptile:{hp:108,speed:166},benthic:{hp:90,speed:145}
+ });
+ const FAMILY_LABELS=Object.freeze({
+  signature:'Organismo singular',fish:'Peixe',shark:'Tubarão',
+  eel:'Enguia / moreia',ray:'Raia',octopus:'Polvo',
+  squid:'Cefalópode',jelly:'Medusa',crustacean:'Crustáceo',
+  mollusc:'Molusco',reptile:'Réptil',benthic:'Bentônico'
+ });
+ const BUILTIN_FAMILIES=Object.freeze({
+  default:'signature',violet:'jelly',solar:'benthic',toxic:'benthic',
+  thorn:'benthic',abyssking:'mollusc',royal:'mollusc',glacier:'signature',
+  coral:'benthic',bloodmoon:'squid',voidwing:'ray',
+  abyssaleye:'fish',deepwarden:'crustacean',riftSmileRelic:'octopus',
+  kraken:'squid',aberration:'octopus',angler:'fish',maw:'eel',
+  leviathan:'fish',devourer:'squid',saltcroc:'reptile',
+  blackcaiman:'reptile',reefshark:'shark',hammerhead:'shark',
+  abysscroc:'shark',armoredgator:'crustacean',greensnake:'eel',
+  electriceel:'ray',electriceellegacy:'eel'
+ });
+ function familyFor(id){
+  const key=String(id||'default'),family=curated?.byId?.[key]?.family||BUILTIN_FAMILIES[key]||'fish';
+  return Object.hasOwn(FAMILY_BASE,family)?family:'fish';
+ }
+ function biologicalStats(id){
+  const family=familyFor(id),base=FAMILY_BASE[family];
+  const active=standard?.activeSpec?.(String(id||'default'));
+  return Object.freeze({
+   family,hp:base.hp,speed:base.speed,
+   // Direct damage of the existing active. Ongoing damage is described in the effect.
+   damage:Math.max(0,Number(active?.damage)||0),
+   attack:String(active?.name||'Sem ataque ativo'),
+   effect:String(active?.effect||'Nenhum efeito ativo')
+  });
+ }
  const MAX_PROGRESS=5000;
  const BASE_COOLDOWN=10;
  const BASE_RESPAWN=20;
@@ -51,5 +95,5 @@
  function abilityRange(baseRange,points){return Math.max(0,Number(baseRange)||0)*stats(points).rangeMultiplier;}
  function abilityCooldown(points){return stats(points).cooldown;}
  function respawnSeconds(points){return stats(points).respawnSeconds;}
- return Object.freeze({MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
+ return Object.freeze({FAMILY_BASE,FAMILY_LABELS,familyFor,biologicalStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
 });
