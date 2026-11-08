@@ -1163,10 +1163,15 @@ function tickRoom(room, now) {
    if(Math.hypot(orb.x-peer.x,orb.y-peer.y)>acquisitionRange)continue;
    const d=Math.hypot(orb.x-(Number(peer.specimenX)||peer.x),orb.y-(Number(peer.specimenY)||peer.y));
    if(d>=nearestDistance)continue;
-   if(room.mode==='rift'&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),Number(peer.specimenX)||peer.x,Number(peer.specimenY)||peer.y,orb.x,orb.y,6/WORLD_ZOOM))continue;
    nearestDistance=d;nearestOrb=orb;
   }
-  if(nearestOrb){destinationX=nearestOrb.x;destinationY=nearestOrb.y;}
+  if(nearestOrb){
+   destinationX=nearestOrb.x;destinationY=nearestOrb.y;
+   if(room.mode==='rift'&&AbyssalMap.navigationTarget){
+    const target=AbyssalMap.navigationTarget(WorldSimulation.mapLayoutFor(room.world),Number(peer.specimenX)||peer.x,Number(peer.specimenY)||peer.y,destinationX,destinationY,{padding:5/WORLD_ZOOM});
+    if(target&&!target.blocked){destinationX=target.x;destinationY=target.y;}
+   }
+  }
   if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){peer.specimenX=destinationX;peer.specimenY=destinationY;}
   const lastAt=Number(peer.specimenLastAt)||now,dt=Math.min(.12,Math.max(0,(now-lastAt)/1000));peer.specimenLastAt=now;
   if(peer.specimenAlive===false)continue;
@@ -1184,7 +1189,14 @@ function tickRoom(room, now) {
   const dx=destinationX-peer.specimenX,dy=destinationY-peer.specimenY,distance=Math.hypot(dx,dy);
   const normalSpeed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
   const travel=Math.min(distance,normalSpeed*dt);
-  if(distance>.001&&travel>0){peer.specimenX+=dx/distance*travel;peer.specimenY+=dy/distance*travel;}
+  if(distance>.001&&travel>0){
+   const nextX=peer.specimenX+dx/distance*travel,nextY=peer.specimenY+dy/distance*travel;
+   if(room.mode==='rift'){
+    const layout=WorldSimulation.mapLayoutFor(room.world);
+    const resolved=AbyssalMap.resolveMove(layout,peer.specimenX,peer.specimenY,nextX,nextY,5/WORLD_ZOOM);
+    if(resolved){peer.specimenX=resolved.x;peer.specimenY=resolved.y;}
+   }else{peer.specimenX=nextX;peer.specimenY=nextY;}
+  }
  }
  const w = room.world;
  tickSpecimenOrbs(room,activePlayers);
