@@ -766,7 +766,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     playerHits.push({
       playerId: target.id, enemyId: enemy.id, enemyKind: enemy.kind,
       enemyX: Number(enemy.x), enemyY: Number(enemy.y), enemyColor: enemy.color,
-      enemyRadius: contact.enemyRadiusWorld,playerR:Number(target.r)||13/WORLD_ZOOM,bodyAngle:Number(target.bodyAngle)||0,playerX: Number(resolvedContactTarget.x), playerY: Number(resolvedContactTarget.y),
+      enemyRadius: contact.enemyRadiusWorld,playerR:Number(target.r)||13/WORLD_ZOOM,bodyAngle:Number(target.bodyAngle)||0,weaponAngle:Number(target.weaponAngle??target.angle??target.bodyAngle)||0,playerX: Number(resolvedContactTarget.x), playerY: Number(resolvedContactTarget.y),
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
