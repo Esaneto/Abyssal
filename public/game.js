@@ -4319,12 +4319,9 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
  else if(kind==='maw')scale=.78;
  const previewRadius=Math.min(w*.145,h*.235)*scale;
  if(kind==='player'&&skin){
-  const now=performance.now(),dx=w*.40,dy=h*.64,bob=Math.sin(now*.002)*1.8;
-  DIVER_ART?.draw?.(c,dx,dy+bob,Math.min(w*.09,h*.16),-.08,-.08,now,{gender:diverGender,moving:true});
-  const sx=w*.64,sy=h*.32+Math.cos(now*.0024)*2.4;
-  drawCreature(sx,sy,previewRadius*.72,-.05,color,'player',now,true,0,c,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
-
- }else drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
+   const now=performance.now(),sx=w*.5,sy=h*.5+Math.cos(now*.0024)*2.4;
+   drawCreature(sx,sy,previewRadius*1.1,-.05,color,'player',now,true,0,c,skin,{visualId:'shop-specimen:'+skin.id,moveSpeed:0});
+  }else drawCreature(w*.5,h*.48,previewRadius,-.08,color,kind,performance.now(),!!skin,0,c,skin);
 }
 // The shop uses no GIF/video downloads. Visible previews are repainted at
 // 6-8 FPS with a strict per-tick cap and stop when the shop is closed.
