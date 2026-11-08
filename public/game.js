@@ -2413,6 +2413,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(!hasAim){if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
+  const gunOrigin=DIVER_ART?.muzzle?.(player.x,player.y,player.r,aimAngle)||{x:player.x,y:player.y};
+  const rayX=gunOrigin.x,rayY=gunOrigin.y;
   // The target selects direction only. The visible/damaging ray always extends to full range.
   // This prevents the local client from visually snapping the endpoint onto an interpolated
   // moving target before the authoritative server position has actually crossed the beam.
@@ -2427,15 +2429,15 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    if(nearest)beamTargetId=String(nearest.id??'');
   }
-  let x2=player.x+ux*beamLength,y2=player.y+uy*beamLength;
-  if(isPvpMode&&projectileHitsPvpWall(player.x,player.y,x2,y2,Math.max(1,width*.5))){
-   let lo=0,hi=1;for(let step=0;step<10;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(player.x,player.y,player.x+(x2-player.x)*mid,player.y+(y2-player.y)*mid,Math.max(1,width*.5)))hi=mid;else lo=mid;}beamLength*=lo;x2=player.x+ux*beamLength;y2=player.y+uy*beamLength;beamTargetId=null;
+  let x2=rayX+ux*beamLength,y2=rayY+uy*beamLength;
+  if(isPvpMode&&projectileHitsPvpWall(rayX,rayY,x2,y2,Math.max(1,width*.5))){
+   let lo=0,hi=1;for(let step=0;step<10;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(rayX,rayY,rayX+(x2-rayX)*mid,rayY+(y2-rayY)*mid,Math.max(1,width*.5)))hi=mid;else lo=mid;}beamLength*=lo;x2=rayX+ux*beamLength;y2=rayY+uy*beamLength;beamTargetId=null;
   }
   // Fossa walls clip both visible beams and their solo damage segment.
-  if(!isPvpMode&&activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,x2,y2,Math.max(1,width*.5))){
+  if(!isPvpMode&&activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,rayX,rayY,x2,y2,Math.max(1,width*.5))){
     let lo=0,hi=1;
-    for(let step=0;step<12;step++){const mid=(lo+hi)*.5;if(ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,player.x+(x2-player.x)*mid,player.y+(y2-player.y)*mid,Math.max(1,width*.5)))lo=mid;else hi=mid;}
-    beamLength*=lo;x2=player.x+ux*beamLength;y2=player.y+uy*beamLength;beamTargetId=null;
+    for(let step=0;step<12;step++){const mid=(lo+hi)*.5;if(ABYSSAL_MAP.segmentWalkable(activeMapLayout,rayX,rayY,rayX+(x2-rayX)*mid,rayY+(y2-rayY)*mid,Math.max(1,width*.5)))lo=mid;else hi=mid;}
+    beamLength*=lo;x2=rayX+ux*beamLength;y2=rayY+uy*beamLength;beamTargetId=null;
   }
   const prismBeams=[];
   if(hasAim&&Number(upgrades.spread)>0){
@@ -2443,11 +2445,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    for(let i=0;i<rank*2;i++){
     const offset=(i%2===0?-1:1)*(.12+.075*Math.floor(i/2));
     const a=aimAngle+offset,rad=width*.58;
-    const end=clipPrismaticPhotonRay(player.x,player.y,player.x+Math.cos(a)*beamRange,player.y+Math.sin(a)*beamRange,Math.max(1,rad*.5));
-    prismBeams.push({x1:player.x,y1:player.y,x2:end.x2,y2:end.y2,width:rad});
+    const end=clipPrismaticPhotonRay(rayX,rayY,rayX+Math.cos(a)*beamRange,rayY+Math.sin(a)*beamRange,Math.max(1,rad*.5));
+    prismBeams.push({x1:rayX,y1:rayY,x2:end.x2,y2:end.y2,width:rad});
    }
   }
-  if(hasAim){player.angle=aimAngle;player.photonRayActive=true;
+  if(hasAim){player.angle=aimAngle;player.weaponAngle=aimAngle;player.photonRayActive=true;
    // Keep the additional prismatic rays visually continuous instead of
    // recreating flashes every pulse. Exactly 2/4/6 side rays match the rank.
    for(let i=0;i<prismBeams.length;i++){
@@ -2456,18 +2458,18 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     else effects.push({type:'photon-ray',localPrismBeamKey:i,x1:beam.x1,y1:beam.y1,x2:beam.x2,y2:beam.y2,width:beam.width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:'#c8a5ff'});
    }
   const localBeam=effects.find(fx=>fx.localPhotonBeam);
-  if(localBeam){localBeam.x1=player.x;localBeam.y1=player.y;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
-  else effects.push({type:'photon-ray',localPhotonBeam:true,x1:player.x,y1:player.y,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
+  if(localBeam){localBeam.x1=rayX;localBeam.y1=rayY;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
+  else effects.push({type:'photon-ray',localPhotonBeam:true,x1:rayX,y1:rayY,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
   if(player.photonRayTimer<=0){
    player.photonRayTimer=beamInterval;
    const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1)*(upgrades.hadalBeam?1.2:1),pulseDamage=beamDps*beamInterval;
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
-   if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:player.x/W,y:player.y/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
+   if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:rayX/W,y:rayY/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
    if(!onlineMode){
     // Damage may remove killed enemies from the original list; iterate a snapshot.
     for(const target of [...enemies]){
      if(!target||target.hp<=0)continue;
-     const coreHit=PHOTON_RAY_VISUAL.segmentCircleHit(player.x,player.y,x2,y2,target.x,target.y,target.r+width*.5);
+     const coreHit=PHOTON_RAY_VISUAL.segmentCircleHit(rayX,rayY,x2,y2,target.x,target.y,target.r+width*.5);
      const prismHit=!coreHit&&prismBeams.some(beam=>PHOTON_RAY_VISUAL.segmentCircleHit(beam.x1,beam.y1,beam.x2,beam.y2,target.x,target.y,target.r+beam.width*.5));
      if(!coreHit&&!prismHit)continue;
      dealEnemyDamage(target,pulseDamage*(coreHit?1:.42),'photonRay');target.hit=.08;burst(target.x,target.y,prismHit?'#c8a5ff':'#bafaff',beamLevel+1,35);
