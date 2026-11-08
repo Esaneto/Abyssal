@@ -24,7 +24,7 @@
   if(!menu||!stage||menu.dataset.oceanV2Ready)return;
   menu.dataset.oceanV2Ready='true';
   const diver=document.getElementById('menuOceanDiver'),hint=document.getElementById('menuOceanHint'),enter=document.getElementById('menuOceanEnterBtn');
-  const canvas=document.getElementById('menuOceanSpecimen'),keys=new Set(),rows=[];
+  const canvas=document.getElementById('menuOceanSpecimen'),diverCanvas=document.getElementById('menuOceanDiverCanvas'),diverContext=diverCanvas?.getContext('2d'),keys=new Set(),rows=[];
   for(const [id,pos] of Object.entries(STATIONS)){
    const button=document.getElementById(id);
    if(!button)continue;
@@ -36,7 +36,7 @@
    // Programmatic click from Fossas must not overwrite the preferred mode.
    if(event.isTrusted)window.AbyssalPreferredRoomMode='coop';
   });
-  let x=50,y=51,vx=0,vy=0,destination=null,nearest=null,last=performance.now();
+  let x=50,y=51,vx=0,vy=0,destination=null,nearest=null,last=performance.now(),swimHeading=0;
   function refreshStationPositions(){
    const mobile=stage.clientWidth<=600;
    for(const row of rows){
@@ -127,9 +127,16 @@
     diver.classList.toggle('swimming',moving);
     diver.style.setProperty('--diver-x',x+'%');
     diver.style.setProperty('--diver-y',y+'%');
-    if(moving)diver.style.setProperty('--swim-angle',Math.atan2(vy,vx)+Math.PI/2+'rad');
+    if(moving){
+     const heading=Math.atan2(vy,vx),delta=Math.atan2(Math.sin(heading-swimHeading),Math.cos(heading-swimHeading));
+     swimHeading+=delta*(1-Math.exp(-dt*12));
+    }
     select();
    }else{vx=0;vy=0;keys.clear();}
+   if(diverContext&&window.AbyssalDiverArt){
+    diverContext.clearRect(0,0,diverCanvas.width,diverCanvas.height);
+    window.AbyssalDiverArt.draw(diverContext,94,66,22,swimHeading,swimHeading,now,{gender:window.AbyssalDiverGender||'male',moving:Math.hypot(vx,vy)>8});
+   }
    requestAnimationFrame(frame);
   }
   diver.style.setProperty('--diver-x',x+'%');diver.style.setProperty('--diver-y',y+'%');
