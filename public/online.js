@@ -343,6 +343,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('shared-shot',data=>{if(data&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
  socket.on('photon-ray-stop',data=>{if(data?.fromId&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-photon-stop',{detail:data}))});
  socket.on('peer-skin-ability',data=>{if(data&&typeof data==='object'){data.receivedAt=Date.now();}window.dispatchEvent(new CustomEvent('abyssal-peer-skin-ability',{detail:data||{}}));});
+  socket.on('skin-trail-node',data=>{if(data)window.dispatchEvent(new CustomEvent('abyssal-skin-trail-node',{detail:data}));});
 socket.on('skin-shot-telegraph',data=>window.dispatchEvent(new CustomEvent('abyssal-skin-shot-telegraph',{detail:data||{}})));
 socket.on('player-skin-status',data=>window.dispatchEvent(new CustomEvent('abyssal-player-skin-status',{detail:data||{}})));
  socket.on('server-message',m=>{if(window.AbyssalGameHooks?.toast)window.AbyssalGameHooks.toast(m)});
@@ -659,7 +660,7 @@ function applyPlayerMotion(rows){
 }
 function getPlayers(){return [...players.values()].map(p=>getInterpolatedPeer(p));}
 function getPlayerById(id){const peer=players.get(String(id));return peer?getInterpolatedPeer(peer):null;}
-function sendSkinAbility(data){if(!socket?.connected)return false;socket.emit('skin-ability',data,result=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');});return true;}
+function sendSkinAbility(data,onResult){if(!socket?.connected||!authenticated||!currentRoom)return false;socket.emit('skin-ability',data,result=>{if(!result?.ok)console.warn('[Abyssal] O servidor recusou o efeito visual da skin:',result?.reason||'sem confirmação');onResult?.(result||{ok:false,reason:'no-ack'});});return true;}
 function sendFusion(name){if(!socket?.connected||!authenticated||!currentRoom)return false;socket.emit('fusion-achieved',{name:String(name||'').slice(0,48)});return true;}
 function requestMapTransition(kind,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('map-transition',{kind:String(kind||'').slice(0,16)},(err,result)=>{if(err){onResult?.({ok:false,reason:'timeout'});return;}if(result)onResult?.(result);});return true;}
 
