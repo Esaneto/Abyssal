@@ -181,18 +181,15 @@ test('mobile header uses compact vector icons and menu remains vertically scroll
 });
 
 
-test('menu visual system centers semantic icons and clamps mobile volume popup',()=>{
+test('new menu uses isolated portal layout and retains mobile volume popup',()=>{
  const html=fs.readFileSync(path.join(root,'public','index.html'),'utf8');
  const css=fs.readFileSync(path.join(root,'public','style.css'),'utf8');
- const final=css.slice(css.lastIndexOf('MENU VISUAL SYSTEM V15'));
- for(const id of ['shopBtn','catalogBtn','rankingsBtn','cardumesBtn','profileBtn','supportBtn'])assert.match(html,new RegExp('id="'+id+'"[^>]*>[\\s\\S]*?menu-nav-icon'));
- assert.match(final,/grid-template-columns:28px minmax\(0,1fr\) 28px!important/);
- assert.match(final,/#menuScreen h1\{text-align:center!important\}/);
- assert.match(final,/#menuScreen \.eyebrow\{justify-content:center!important;text-align:center!important\}/);
- assert.match(final,/\.volume-popup\{[\s\S]*position:fixed!important;[\s\S]*left:10px!important;right:10px!important/);
- assert.match(final,/#menuScreen \.language-setting\{[\s\S]*align-self:center!important/);
+ const ocean=fs.readFileSync(path.join(root,'public','abyssal-menu-v2.css'),'utf8');
+ for(const id of ['shopBtn','catalogBtn','rankingsBtn','cardumesBtn','profileBtn','supportBtn'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(ocean,/#menuScreen\.ocean-menu-v2\{/);
+ assert.match(ocean,/\.abyss-ocean-portal-layer/);
+ assert.match(css,/\.volume-popup\{[\s\S]*position:fixed!important;[\s\S]*left:10px!important;right:10px!important/);
 });
-
 
 test('gameplay uses the full viewport with collapsible chrome and platform-specific abyss vignette', () => {
   const css = read('public/style.css');
