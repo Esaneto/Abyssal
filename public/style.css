@@ -4726,3 +4726,10 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
  #menuScreen.ocean-menu #downloadBtn{top:10px;right:10px;max-width:120px}
  .profile-specimen-panel{grid-template-columns:1fr}.profile-specimen-stage{min-height:150px}.adaptation-benefits{grid-template-columns:1fr 1fr}
 }
+
+/* Diver appearance selector: one unisex pressure suit, female variation has flowing hair. */
+#profileScreen .profile-diver-gender{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;margin:13px 0 16px;border:1px solid rgba(57,173,217,.23);border-radius:9px;background:linear-gradient(100deg,rgba(8,46,71,.8),rgba(3,15,29,.75))}
+#profileScreen .profile-diver-gender>span{flex:1 1 100%;font:800 10px 'DM Mono',monospace;letter-spacing:.13em;color:#7ddbf6}
+#profileScreen .profile-diver-gender-btn{flex:1 1 120px;min-height:38px;border:1px solid rgba(74,190,227,.32);border-radius:6px;background:rgba(5,30,51,.94);color:#b8ddea;font:800 10px Inter,Manrope,sans-serif;letter-spacing:.07em;box-shadow:none;transition:border-color .18s,background .18s,box-shadow .18s}
+#profileScreen .profile-diver-gender-btn[aria-pressed="true"]{color:#f1ffff;border-color:#7aeeff;background:linear-gradient(110deg,#104d7f,#0c365c);box-shadow:0 0 18px rgba(43,180,242,.3),inset 0 0 15px rgba(19,184,246,.16)}
+#profileScreen .profile-diver-gender-btn:disabled{opacity:.5;cursor:default}
