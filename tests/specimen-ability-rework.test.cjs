@@ -66,4 +66,12 @@ test('toxic cloud radius is twice the old radius and synchronized on both game a
  assert.match(server,/active==='cloud'/);
  assert.match(online,/abyssal-specimen-dash/);
  assert.match(online,/abyssal-skin-weapon-impact/);
+ assert.match(game,/function updateSkinCloudExpansions\(dt\)/);
+ assert.match(game,/cloud\.radius\*\(\.06\+\.94\*\(1-Math\.pow\(1-grow,2\)\)\)/);
+ assert.match(game,/cloud\.hitIds\.add\(e\.id\)/);
+ assert.match(game,/updateSkinCloudExpansions\(dt\)/);
+ assert.match(server,/for\(const delay of \[250,500,800,1150\]\)setTimeout/);
+ assert.match(server,/const edge=radius\*\(\.06\+\.94\*\(1-Math\.pow\(1-grow,2\)\)\)/);
+ assert.match(server,/touched\.add\(e\.id\)/);
+ assert.match(server,/touched\.add\(target\.id\)/);
 });

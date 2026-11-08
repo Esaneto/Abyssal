@@ -1349,6 +1349,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
+ expandingSkinClouds.length=0;
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:55,maxHp:55,alive:true,respawnTimer:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
@@ -2277,6 +2278,25 @@ function specimenAbilityAngle(range){
  const target=nearestSkinActiveTarget(range,origin);
  return target?Math.atan2(target.y-origin.y,target.x-origin.x):(Number(player?.angle)||0);
 }
+const expandingSkinClouds=[];
+function updateSkinCloudExpansions(dt){
+ if(onlineMode||!expandingSkinClouds.length)return;
+ for(let i=expandingSkinClouds.length-1;i>=0;i--){
+  const cloud=expandingSkinClouds[i];
+  cloud.elapsed=Math.min(1.55,cloud.elapsed+Math.max(0,dt));
+  const grow=clamp(cloud.elapsed/(1.55*.72),0,1);
+  const edge=cloud.radius*(.06+.94*(1-Math.pow(1-grow,2)));
+  for(let j=enemies.length-1;j>=0;j--){
+   const e=enemies[j];
+   if(!e||e.hp<=0||cloud.hitIds.size>=24||cloud.hitIds.has(e.id))continue;
+   if(Math.hypot(e.x-cloud.x,e.y-cloud.y)>edge+(Number(e.r)||0))continue;
+   if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,cloud.x,cloud.y,e.x,e.y,Math.max(3,e.r*.3)))continue;
+   cloud.hitIds.add(e.id);e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);
+   dealEnemyDamage(e,cloud.damage,'skin-active-cloud',{visual:true});
+  }
+  if(cloud.elapsed>=1.55)expandingSkinClouds.splice(i,1);
+ }
+}
 function spawnPoisonPlantCloudVisual(x,y,radius,color='#7dff73'){
  effects.push({type:'poison-plant-cloud',x,y,max:radius,life:1.55,maxLife:1.55,color,seed:Date.now()%2000});
  // The poison-plant geometry renders its own uneven growing boundary and spores.
@@ -2358,7 +2378,8 @@ function applySoloSkinActive(spec,angle){
   const dash=player?.specimen?.dash,ex=dash?.x2??origin.x,ey=dash?.y2??origin.y;
   for(const e of enemies){if(!e||e.hp<=0)continue;if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,origin.x,origin.y,e.x,e.y,Math.max(3,e.r*.35)))continue;if(marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(20/GAME_WORLD_ZOOM,e.r*.55))dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true});}
  }else if(spec.id==='cloud'){
-  for(const e of inRange()){e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);dealEnemyDamage(e,spec.damage,'skin-active-cloud',{visual:true});}
+  expandingSkinClouds.push({x:origin.x,y:origin.y,radius:range,damage:spec.damage,elapsed:0,hitIds:new Set()});
+  if(expandingSkinClouds.length>3)expandingSkinClouds.shift();
  }else if(spec.id==='trail'){
   // Stream nodes from the moving specimen, not five instant ones.
  }else if(spec.id==='push'){
@@ -2489,6 +2510,7 @@ function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  updateMapInteraction();
+ updateSkinCloudExpansions(dt);
  updateSmoothSkinPush(dt);
  if(!onlineMode)activateSoloRiftRoomEncounter();
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
