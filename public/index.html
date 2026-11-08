@@ -41,7 +41,7 @@
 <link rel="stylesheet" href="offline-ui.css?v=1">
 <link rel="stylesheet" href="rift-treasure.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
-<link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.7.1">
+<link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.7.2">
 </head>
 <body>
 <div id="app">
@@ -107,7 +107,7 @@
           <button id="wheelBtn" class="abyss-destination" type="button" aria-label="Abrir roleta abissal"><span class="abyss-destination-icon">✺</span><strong>ROLETA</strong><small>RECOMPENSAS</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
-          <span class="abyss-diver-tank"></span><span class="abyss-diver-body"></span><span class="abyss-diver-helmet"></span><span class="abyss-diver-visor"></span><span class="abyss-diver-left-arm"></span><span class="abyss-diver-right-arm"></span><span class="abyss-diver-left-fin"></span><span class="abyss-diver-right-fin"></span>
+          <canvas id="menuOceanDiverCanvas" width="180" height="130" aria-label="Mergulhador em nado"></canvas>
           <canvas id="menuOceanSpecimen" width="140" height="90"></canvas>
         </div>
         <div class="abyss-ocean-center-mark" aria-hidden="true"></div>
@@ -455,6 +455,11 @@
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
           <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><button id="blockProfileBtn" class="profile-action-btn" type="button">⊘ BLOQUEAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
         </div>
+        <div class="profile-diver-gender" id="profileDiverGender" role="group" aria-label="Escolher aparência do mergulhador">
+          <span>TRAJE PADRÃO</span>
+          <button class="profile-diver-gender-btn" type="button" data-diver-gender="male" aria-pressed="true">MERGULHADOR</button>
+          <button class="profile-diver-gender-btn" type="button" data-diver-gender="female" aria-pressed="false">MERGULHADORA</button>
+        </div>
         <section class="profile-specimen-panel" aria-labelledby="profileSpecimenHeading">
           <div class="profile-specimen-stage"><canvas id="profileSpecimenCanvas" width="520" height="230" aria-label="Mergulhador com espécime equipado"></canvas></div>
           <div class="profile-specimen-copy">
@@ -589,12 +594,13 @@
 <script src="rift-treasure.js?v=2026.11.7.1"></script>
 <script src="skin-motion.js?v=2026.11.7.6"></script>
 <script src="marine-art.js?v=2026.11.7.14"></script>
-<script src="game.js?v=2026.11.7.43"></script>
+<script src="diver-art.js?v=2026.11.7.1"></script>
+<script src="game.js?v=2026.11.7.44"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=4.5.1"></script>
+<script src="online.js?v=4.5.2"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.6.3"></script>
-<script src="abyssal-rebuild.js?v=8"></script>
+<script src="abyssal-rebuild.js?v=9"></script>
 
 <script>
 (()=>{
@@ -636,6 +642,6 @@
 
 
 
-<script src="abyssal-menu-ocean.js?v=2"></script>
+<script src="abyssal-menu-ocean.js?v=3"></script>
 </body>
 </html>
