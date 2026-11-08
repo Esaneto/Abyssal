@@ -2194,7 +2194,7 @@ function killEnemy(i){
  }
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
  discoverCodexMonsters([e.kind]);if(!onlineMode){
- const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55))),scaledXp=!killedBoss&&requestedRunMode!=='rift'?(SEA_PROGRESSION?.scaleXp?.(xpValue,e.seaXpMultiplier)||xpValue):xpValue;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round(scaledXp*.22)));
+ const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55))),baseOrbXp=Math.max(1,Math.round(xpValue*.22)),scaledXp=!killedBoss&&requestedRunMode!=='rift'?Math.max(1,Math.round(SEA_PROGRESSION?.scaleXp?.(baseOrbXp,e.seaXpMultiplier)||baseOrbXp)):baseOrbXp;spawnSoloOrb(e.x,e.y,scaledXp);
  if(!killedBoss&&e.eliteId&&e.spawnRoomId==='elite'&&soloEliteRewardTier!==activeMapTier){
   soloEliteRewardTier=activeMapTier;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round((EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18)*.22)));
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
