@@ -544,7 +544,11 @@ function applySpecimenImpact(room,player,rawAmount,source,now,cooldownMs=850){
  if(player.specimenHp<=0){
   player.specimenAlive=false;
   player.specimenRespawnAt=now+Math.round(specimenStatsFor(player).respawnSeconds*1000);
-  player.skinActiveReadyAt=0;
+  if(Number(player.skinTrailUntil)>now){
+   player.skinTrailUntil=0;
+   player.skinActiveReadyAt=Math.max(Number(player.skinActiveReadyAt)||0,
+    now+Math.round(Number(SkinStandard.activeSpec(player.skinId)?.cooldown||10)*1000));
+  }else player.skinActiveReadyAt=0;
   emitSpecimenState(room,player,'defeated');
  }else emitSpecimenState(room,player,'hit');
  return true;
@@ -1027,6 +1031,35 @@ function resolveMovingPvpShot(room,shot,target,point,now){
  if(!blocked&&damage>0)applyPvpHitSynergies(room,shooter,target,rawDamage,shot.special||'physical',now);
  emitPvpRosterThrottled(room,now,target.alive===false);
 }
+// Server-authoritative moving trails: one short-lived node per distinct specimen
+// position, shared with every client. Their damage and persistence stay server-side.
+function tickSkinTrailNodes(room,players,now){
+ const w=room?.world;if(!w)return;
+ const previous=Number(w.skinTrailLastTick)||now;
+ const dt=Math.min(.12,Math.max(0,(now-previous)/1000));w.skinTrailLastTick=now;
+ w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
+ for(let i=w.sharkWakeTrails.length-1;i>=0;i--){
+  const node=w.sharkWakeTrails[i];node.life=(Number(node.life)||0)-dt;
+  node.damageTimer=(Number(node.damageTimer)||0)-dt;
+  if(node.life<=0)w.sharkWakeTrails.splice(i,1);
+ }
+ for(const p of players){
+  if(p.alive===false||p.specimenAlive===false||now>=(Number(p.skinTrailUntil)||0))continue;
+  if(now<(Number(p.skinTrailNextAt)||0))continue;
+  const pos=specimenPositionFor(p);
+  const traveled=Math.hypot(pos.x-p.skinTrailLastX,pos.y-p.skinTrailLastY);
+  if(Number.isFinite(traveled)&&traveled<9/WORLD_ZOOM)continue;
+  const angle=Math.atan2(pos.y-(Number(p.skinTrailLastY)||pos.y),pos.x-(Number(p.skinTrailLastX)||pos.x));
+  const x=pos.x-Math.cos(angle)*10/WORLD_ZOOM,y=pos.y-Math.sin(angle)*10/WORLD_ZOOM;
+  p.skinTrailNextAt=now+160;p.skinTrailLastX=pos.x;p.skinTrailLastY=pos.y;
+  const ink=SkinStandard.isInkTrailSkin(p.skinId),color=SkinStandard.trailColor(p.skinId);
+  w.sharkWakeTrails.push({ownerId:p.id,x,y,r:20/WORLD_ZOOM,life:10,maxLife:10,damageTimer:.25,
+   skinActive:true,ink,color});
+  io.to(channelFor(room)).emit('skin-trail-node',{ownerId:p.id,x:x/WORLD_WIDTH,
+   y:y/roomWorldHeight(room),ink,color,serverTime:now});
+ }
+ if(w.sharkWakeTrails.length>300)w.sharkWakeTrails.splice(0,w.sharkWakeTrails.length-300);
+}
 function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
@@ -1043,11 +1076,12 @@ function tickRoom(room, now) {
   if(distance>.001&&travel>0){peer.specimenX+=dx/distance*travel;peer.specimenY+=dy/distance*travel;}
  }
  const w = room.world;
+ tickSkinTrailNodes(room,activePlayers,now);
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
   if(room.pvpProjectiles?.length)PvpProjectiles.advance(room.pvpProjectiles,activePlayers,now,pvpRockAt,(shot,target,point,at)=>resolveMovingPvpShot(room,shot,target,point,at));
    const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];bubble.life-=.05;bubble.damageTimer=(Number(bubble.damageTimer)||0)-.05;if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.60;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(!DiverHitbox.circleHit(target,bubble.x,bubble.y,bubble.r,now))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.60;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(!DiverHitbox.circleHit(target,bubble.x,bubble.y,bubble.r,now))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
   return;
  }
@@ -1059,6 +1093,26 @@ function tickRoom(room, now) {
  }
  w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
+ // PvE rastro is damaging while each sampled node exists, not only on activation.
+ // A target cannot take extra damage from overlapping bubbles by the same owner.
+ for(const bubble of w.sharkWakeTrails||[]){
+  if(bubble.life<=0||bubble.damageTimer>0)continue;
+  bubble.damageTimer=.60;
+  const owner=room.players.get(bubble.ownerId),ownerSocket=owner&&io.sockets.sockets.get(owner.id);
+  if(!ownerSocket||owner.alive===false)continue;
+  for(const enemy of w.enemies||[]){
+   if(Number(enemy.hp)<=0)continue;
+   const radius=Number(bubble.r)||20/WORLD_ZOOM;
+   if(Math.abs(Number(enemy.x)-bubble.x)>radius+Number(enemy.r)||Math.abs(Number(enemy.y)-bubble.y)>radius+Number(enemy.r))continue;
+   if(Math.hypot(Number(enemy.x)-bubble.x,Number(enemy.y)-bubble.y)>radius+(Number(enemy.r)||10))continue;
+   enemy.skinTrailLastHit ||= Object.create(null);
+   if(now-(Number(enemy.skinTrailLastHit[owner.id])||0)<600)continue;
+   enemy.skinTrailLastHit[owner.id]=now;
+   owner.skinActiveServerResolving=true;
+   try{processWorldDamage(ownerSocket,Number(enemy.id),.9,'skin-active-trail',null,'trail:'+now);}
+   finally{owner.skinActiveServerResolving=false;}
+  }
+ }
  // The companion is a separate target for hostile contact, boss abilities and
  // physical Rift hazards. The server owns damage, respawn and invulnerability.
  const abilities=Array.isArray(result.bossAbilityEvents)?result.bossAbilityEvents:[];
@@ -1924,37 +1978,9 @@ io.on('connection', socket => {
   if(!Number.isFinite(nx)||!Number.isFinite(ny)||nx<0||nx>1||ny<0||ny>1)return ack(false,'skin-active-position');
   const specimenPos=specimenPositionFor(player),originX=specimenPos.x,originY=specimenPos.y;
   if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>45/WORLD_ZOOM)return ack(false,'skin-active-position');
-  player.skinActiveReadyAt=now+Math.round(Number(spec.cooldown||10)*1000);
-  if(active==='shield')player.specimenShieldUntil=now+1100;
-
-  const event={type:'standard-active',active,skin,fromId:socket.id,x:originX/WORLD_WIDTH,y:originY/worldHeight,angle,color:spec.color,range:spec.range,serverTime:now,hitAt:(active==='shot'||active==='slowShot')?now+450:now};
-  io.to(channelFor(room)).emit('peer-skin-ability',event);
-
-  const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
-  const radius=(Number(spec.range)||160)/WORLD_ZOOM,ux=Math.cos(angle),uy=Math.sin(angle);
-  const enemies=[...(room.world?.enemies||[])];
-  const canReachEnemy=e=>e&&Number(e.hp)>0&&(room.mode!=='rift'||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
-  const resolveEnemyDamage=(enemy,amount,skillId)=>{
-   if(!enemy||Number(enemy.hp)<=0)return null;player.skinActiveServerResolving=true;
-   try{return processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
-   finally{player.skinActiveServerResolving=false;}
-  };
-  const areaEnemies=()=>enemies.filter(e=>canReachEnemy(e)&&Math.hypot(Number(e.x)-originX,Number(e.y)-originY)<=radius).slice(0,8);
-  const nearestEnemy=()=>enemies.filter(canReachEnemy).map(e=>({e,d:Math.hypot(Number(e.x)-originX,Number(e.y)-originY)})).filter(v=>v.d<=radius).sort((a,b)=>a.d-b.d)[0]?.e||null;
-
-  const livingOpponents=()=>[...room.players.values()].filter(p=>p.id!==player.id&&p.alive!==false);
-  const visiblePvpTargets=()=>livingOpponents().filter(p=>Math.hypot(Number(p.x)-originX,Number(p.y)-originY)<=radius&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).slice(0,6);
-  const hitPvp=(target,amount,skillId)=>applySkinActivePvpDamage(room,player,target,amount,skillId,Date.now());
-
+  player.skinActiveReadyAt=now+(active==='trail'?10000:0)+Math.round(Number(spec.cooldown||10)*1000);
   if(active==='trail'){
-   const nodes=[];for(let i=0;i<5;i++)nodes.push({x:originX-ux*(18+i*26)/WORLD_ZOOM,y:originY-uy*(18+i*26)/WORLD_ZOOM});
-   if(room.mode==='pvp'){
-    room.world.sharkWakeTrails=Array.isArray(room.world.sharkWakeTrails)?room.world.sharkWakeTrails:[];
-    for(const node of nodes)room.world.sharkWakeTrails.push({ownerId:player.id,x:node.x,y:node.y,r:20/WORLD_ZOOM,life:3.2,damageTimer:.45,skinActive:true});
-    if(room.world.sharkWakeTrails.length>120)room.world.sharkWakeTrails.splice(0,room.world.sharkWakeTrails.length-120);
-   }else{
-    for(const e of enemies){if(!canReachEnemy(e))continue;if(nodes.some(n=>Math.hypot(Number(e.x)-n.x,Number(e.y)-n.y)<=32/WORLD_ZOOM))resolveEnemyDamage(e,spec.damage,'skin-active-trail');}
-   }
+   // Continuous emission occurs in tickSkinTrailNodes using authoritative specimen movement.
   }else if(active==='shot'||active==='slowShot'){
    const ex=originX+ux*radius,ey=originY+uy*radius;
    io.to(channelFor(room)).emit('skin-shot-telegraph',{fromId:player.id,x1:originX/WORLD_WIDTH,y1:originY/worldHeight,x2:ex/WORLD_WIDTH,y2:ey/worldHeight,color:room.mode==='pvp'?'#ff334f':spec.color,hitAt:now+450,active});
@@ -1985,7 +2011,7 @@ io.on('connection', socket => {
    else if(active==='poison'){const e=nearestEnemy();if(e){resolveEnemyDamage(e,spec.damage,'skin-active-poison');for(const delay of [800,1600,2400])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}}
    else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='paralysis')e.paralyzedUntil=Date.now()+520;if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}if(active==='cloud')for(const delay of [900,1800])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}
   }
-  ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active});
+  ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active,activeDurationMs:active==='trail'?10000:0});
  });
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
