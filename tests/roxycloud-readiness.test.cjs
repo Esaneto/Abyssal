@@ -53,7 +53,7 @@ test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback'
  assert.match(deploy,/EXPECTED_PROFILE="roxycloud-ryzen4"/);
  assert.match(deploy,/resources\?\.profile/);
  assert.match(deploy,/rollback/);
- assert.match(deploy,/npm test/);
+ assert.match(deploy,/node --test tests\/roxycloud-readiness\.test\.cjs tests\/specimen-journal-biology\.test\.cjs/);
 });
 
 test('RoxyCloud kernel profile limits swap pressure and preserves connection backlog',()=>{
