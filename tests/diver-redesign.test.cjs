@@ -19,9 +19,9 @@ test('diver visual uses one shared anatomy with female hair only as variation',(
 });
 test('weapon muzzle is directionally correct',()=>{
  const origin=art.muzzle(100,200,14,0);
- assert.equal(origin.x,127.6);assert.equal(origin.y,200);
+ assert.ok(Math.abs(origin.x-141.4)<1e-9);assert.equal(origin.y,200);
  const up=art.muzzle(100,200,14,-Math.PI/2);
- assert.ok(Math.abs(up.x-100)<1e-9);assert.ok(Math.abs(up.y-172.4)<1e-9);
+ assert.ok(Math.abs(up.x-100)<1e-9);assert.ok(Math.abs(up.y-158.6)<1e-9);
 });
 test('diver body faces motion, weapon faces aim and projectile originates at weapon',()=>{
  const game=read('public/game.js');
@@ -52,4 +52,16 @@ test('profile choice persists while new ocean menu does not create a second Foss
  assert.match(rebuild,/portalTrigger=legacyMenu\?\$\('abyssGateButton'\):\$\('riftPortalBtn'\)/);
  assert.doesNotMatch(ocean,/const rift=document\.getElementById/);
  assert.match(css,/grid-template-columns:minmax\(0,1fr\)!important/);
+});
+
+test('no link or tether is drawn between diver and specimen in profile or catalog',()=>{
+ const game=read('public/game.js');
+ assert.doesNotMatch(game,/c\.quadraticCurveTo\(w\*\.52,h\*\.36,sx-12,sy\+12\)/);
+ assert.doesNotMatch(game,/c\.quadraticCurveTo\(w\*\.54,h\*\.41,sx-previewRadius/);
+});
+test('extended rifle and authoritative PVP muzzle use identical shared geometry',()=>{
+ const server=read('server.js'),source=read('public/diver-art.js');
+ assert.equal(art.BARREL_TIP_X,69);
+ assert.match(source,/c\.fillRect\(66,-2\.4,BARREL_TIP_X-66,4\.8\)/);
+ assert.match(server,/DiverArt\.DRAW_SCALE\*DiverArt\.BARREL_TIP_X\/14/);
 });
