@@ -11,18 +11,26 @@
  function canonicalRadius(player){return Math.max(.1,(Number(player?.r)||13)*DRAW_SCALE/14);}
  function zones(player,t=0){
   const x=Number(player?.x)||0,y=Number(player?.y)||0,angle=Number(player?.bodyAngle)||0;
+  const aim=Number(player?.weaponAngle??player?.angle??angle)||0;
   const scale=canonicalRadius(player),cos=Math.cos(angle),sin=Math.sin(angle);
+  const aimCos=Math.cos(aim),aimSin=Math.sin(aim);
   const kick=player?.swimming===false?0:Math.sin((Number(t)||0)*.011)*4;
-  const point=(px,py)=>({x:x+(px*cos-py*sin)*scale,y:y+(px*sin+py*cos)*scale});
-  const limb=(name,ax,ay,bx,by,r)=>{
-   const a=point(ax,ay),b=point(bx,by);
+  const point=(px,py,weapon=false)=>{
+   const ca=weapon?aimCos:cos,sa=weapon?aimSin:sin;
+   return {x:x+(px*ca-py*sa)*scale,y:y+(px*sa+py*ca)*scale};
+  };
+  const limb=(name,ax,ay,bx,by,r,weapon=false)=>{
+   const a=point(ax,ay,weapon),b=point(bx,by,weapon);
    return {name,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:r*scale};
   };
   return [
    limb('torso',-16,0,17,0,10),
    limb('head',25,-1,29,-1,13),
-   limb('left-arm',7,-6,30,-5,4.4),
-   limb('right-arm',7,8,31,5,4.4),
+   // Two joints per arm follow weapon aim, not swimming orientation.
+   limb('left-arm',6,-7,15,-16,4.8,true),
+   limb('left-forearm',15,-16,31,-7,4.1,true),
+   limb('right-arm',4,8,15,17,5.5,true),
+   limb('right-forearm',15,17,27,9,4.7,true),
    limb('left-thigh',-17,-5,-31,-8+kick,4.8),
    limb('left-leg',-30,-8+kick,-49,-11+kick*1.5,3.9),
    limb('right-thigh',-17,6,-31,10-kick,4.8),
