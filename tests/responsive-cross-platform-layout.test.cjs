@@ -159,7 +159,7 @@ test('mobile menu moves download and controls to topbar and protects title flow'
  const final=css.slice(css.lastIndexOf('MOBILE MENU TOP UTILITIES V13'));
  assert.match(html,/id="mobileDownloadTopBtn"[\s\S]*id="mobileControlsTopBtn"/);
  assert.match(html,/id="downloadBtn" class="abyss-ocean-utility"/);
- assert.match(html,/id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility"/);
+ assert.match(html,/id="controlsBtn" class="abyss-ocean-utility"/);
  assert.match(final,/\.mobile-top-utility\{display:none\}/);
  assert.match(final,/#menuScreen \.desktop-menu-utility\{display:none!important\}/);
  assert.match(final,/#menuScreen h1\{[\s\S]*min-height:calc\(1\.92em \+ 8px\)!important;[\s\S]*overflow:visible!important/);

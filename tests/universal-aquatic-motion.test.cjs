@@ -70,7 +70,7 @@ test('renderer integration covers enemies, bosses, local and remote players with
  assert.match(game,/creatureVisualMotion\(skin,kind,enemyState/);
  assert.match(game,/drawFinalBoss\(c,finalBossVisualState,animationTime\)/);
  assert.match(game,/drawDiver\(player\.x,player\.y,player\.r,player\.bodyAngle/);
- assert.match(game,/visualId:'peer:'/);
+ assert.match(game,/visualId:'peer-specimen:'/);
  assert.match(game,/remoteCreatureAttackUntil\.set/);
  assert.match(game,/player\.visualAttackUntil=performance\.now\(\)\+140/);
  assert.match(game,/hostileSpriteCache/);

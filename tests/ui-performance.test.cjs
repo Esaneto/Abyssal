@@ -31,7 +31,7 @@ test('active gameplay follows requestAnimationFrame without divisor stutter and 
   assert.doesNotMatch(game, /minFrameInterval=active\?1000\/60:1000\/30/);
   assert.match(game, /if\(!active&&lastPaintAt&&t-lastPaintAt<1000\/30-1\)/);
   assert.match(game, /lowPowerRendering=mobileViewport\|\|cores<=4/);
-  assert.match(game, /Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+  assert.match(game, /Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
 });
 
 test('canvas rendering caches static gradients and removes repeated terrain and HUD work', () => {
@@ -143,7 +143,7 @@ test('service worker respects game script revisions but keeps an offline fallbac
   assert.match(sw, /const cached = await cache\.match\(cacheRequest\)/);
   assert.match(sw, /if \(offlineFallback\) return offlineFallback/);
   assert.doesNotMatch(sw, /cache\.match\(cacheRequest, \{ ignoreSearch: true \}\)/);
-  assert.match(html, /game\.js\?v=2026\.11\.7\.\d+/);
+  assert.match(html, /game\.js\?v=2026\.11\.8\.14/);
 });
 
 test('single enemy death does not allocate another enemy-array copy', () => {

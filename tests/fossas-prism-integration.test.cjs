@@ -67,7 +67,7 @@ test('Nightmare boss and shop relic share the same Kraken head and suction-cup a
 test('Nova shards reuse the original shot volley and are validated by the server',()=>{
  const game=read('public/game.js'),server=read('server.js');
  assert.match(game,/emitPrismaticNovaShards\(novaDamage,volleyId\)/);
- assert.match(game,/special:'nova',volleyId:novaVolleyId/);
+ assert.match(game,/special:'nova',volleyId,combined/);
  assert.match(game,/const count=2\*rank,volleyId=sharedVolleyId\|\|nextShotVolleyId\(\)/);
  assert.match(server,/shot\.special==='prismShard'[\s\S]*shooter\.lastNovaVolleyId/);
  assert.match(server,/maxShards=2\*rank/);
