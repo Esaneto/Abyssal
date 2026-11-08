@@ -608,7 +608,7 @@ function applySpecimenImpact(room,player,rawAmount,source,now,cooldownMs=850){
  until[key]=now+cooldownMs;player.specimenHitCooldowns=until;
  if(Object.keys(until).length>128){for(const item of Object.keys(until))if(until[item]<now)delete until[item];}
  const damage=Math.max(1,Number(rawAmount)||1);
- player.specimenHp=Math.max(0,(Number(player.specimenHp)||player.specimenMaxHp||55)-damage);
+ player.specimenHp=Math.max(0,(Number.isFinite(Number(player.specimenHp))?Number(player.specimenHp):player.specimenMaxHp)-damage);
  player.specimenInvulnerableUntil=now+280;
  if(player.specimenHp<=0){
   player.specimenAlive=false;
@@ -1180,8 +1180,10 @@ function tickRoom(room, now) {
    const route=AbyssalMap.navigationTarget(specimenCaveLayout,pos.x,pos.y,target.x,target.y,{padding:5/WORLD_ZOOM});
    if(route&&!route.blocked)target={x:route.x,y:route.y};
   }
-  const speed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
-  const move=SpecimenEvasion.steer({position:pos,target,enemies:hostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
+  const speed=(SpecimenSystem.biologicalStats(peer.skinId).speed/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
+  const avoidSq=(280/WORLD_ZOOM)**2;
+   const nearbyHostile=hostile.filter(e=>(e.x-pos.x)**2+(e.y-pos.y)**2<avoidSq);
+   const move=SpecimenEvasion.steer({position:pos,target,enemies:nearbyHostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
    heading:Number(peer.specimenEvasionHeading)||0,
    resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,WORLD_WIDTH-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
   peer.specimenX=move.x;peer.specimenY=move.y;peer.specimenEvasionHeading=move.angle;
@@ -1598,7 +1600,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:55,specimenMaxHp:55,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenMaxHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   // Reconnected players may resume from coordinates saved for a different
   // cave tier or an older collision map. Never enter embedded in a wall.
   if(room.mode==='rift'){
@@ -2382,7 +2384,7 @@ io.on('connection', socket => {
   if (u.ownedSkins.includes(payload.equippedSkin)){
    u.equippedSkin = payload.equippedSkin;
    const room=socketRoom(socket),p=room?.players.get(socket.id);
-   if(p){p.skinId=u.equippedSkin;p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);p.specimenAlive=true;p.specimenHp=p.specimenMaxHp||55;p.specimenRespawnAt=0;p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;p.specimenLastAt=Date.now();emitSpecimenState(room,p,'equipped');}
+   if(p){p.skinId=u.equippedSkin;p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);p.specimenAlive=true;p.specimenMaxHp=SpecimenSystem.biologicalStats(p.skinId).hp;p.specimenHp=p.specimenMaxHp;p.specimenRespawnAt=0;p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;p.specimenLastAt=Date.now();emitSpecimenState(room,p,'equipped');}
   }
   saveUsers();
   socket.emit('account-data', publicUser(u));
