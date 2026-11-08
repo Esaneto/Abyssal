@@ -1736,7 +1736,11 @@ function verifyAuthoritativeContact(data){
  if(![ex,ey,px,py,reportedDistance,radius].every(Number.isFinite)||radius<=0)return {ready:true,valid:false,reason:'invalid-contact-geometry'};
  const sourceMismatch=Math.hypot(source.x-ex,source.y-ey);
  const measuredDistance=Math.hypot(source.x-px,source.y-py);
- const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&measuredDistance<=radius+2&&reportedDistance<=radius+2;
+ const centerValid=measuredDistance<=radius+2&&reportedDistance<=radius+2;
+ const radiusWithEnemy=Math.max(2,Number(data.enemyRadius)-Number(data.contactSafetyMargin||0));
+ const bodyZone=data.hitZone&&DIVER_HITBOX?.circleHit?.({x:px,y:py,r:Number(data.playerR)||player?.r||13/GAME_WORLD_ZOOM,bodyAngle:Number(data.bodyAngle)||0},source.x,source.y,radiusWithEnemy,Number(data.serverTime)||0);
+ const anatomicalValid=Boolean(data.hitZone&&data.hitZone!=='tentacle'&&bodyZone===data.hitZone);
+ const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&(centerValid||anatomicalValid);
  return {ready:true,valid:geometryValid,reason:geometryValid?null:'contact-position-mismatch',frame,source};
 }
 function alignPlayerToAuthoritativeContact(data){
