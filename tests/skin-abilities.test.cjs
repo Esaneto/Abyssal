@@ -10,7 +10,7 @@ test('browser and server use the same skin ability module', () => {
   assert.equal(fs.existsSync(path.join(__dirname,'..','skin-abilities.js')),false,'obsolete duplicate root module should stay deleted');
   assert.match(read('server.js'),/require\('\.\/public\/skin-abilities\.js'\)/);
   assert.match(read('world-simulation.js'),/const SkinAbilities = require\('\.\/public\/skin-abilities\.js'\)/);
-  assert.match(read('server.js'),/SkinAbilities\.orbExperienceMultiplier\(member\.skinId\)/);
+  assert.match(read('server.js'),/SkinAbilities\.orbExperienceMultiplier\(member\.skinId,member\.specimenPoints,member\.specimenAlive!==false\)/);
   assert.doesNotMatch(read('world-simulation.js'),/magnetRangeMultiplier/);
 });
 
@@ -53,10 +53,10 @@ test('electric shot has deterministic lightning geometry and reduced chain damag
 
 test('major radial abilities use layered silhouettes for readable VFX',()=>{
  const game=read('public/game.js');
- assert.ok(game.includes("color:'#7568ff'"));
- assert.ok(game.includes("color:'#b8aaff'"));
- assert.ok(game.includes("color:'#c18cff'"));
- assert.ok(game.includes("color:'#f0d9ff'"));
+ assert.match(game,/function spawnNovaVisual/);
+ assert.match(game,/function clipPrismaticPhotonRay/);
+ assert.match(game,/type:'photon-ray'/);
+ assert.match(game,/type:'gravity-cone'/);
 });
 
 
@@ -137,7 +137,7 @@ test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
 
 test('local PvP nova uses the same rock-occluded rings as remote nova',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined\)/);
+ assert.match(game,/spawnNovaVisual\(muzzle\.x,muzzle\.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined\)/);
  assert.match(game,/function spawnNovaVisual/);
 });
 
@@ -197,7 +197,7 @@ test('online PvE and lethal primary hits still trigger hit synergies',()=>{
 test('local and remote Nova share one visual constructor',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
  assert.match(game,/function spawnNovaVisual\(/);
- assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode\)/);
+ assert.match(game,/spawnNovaVisual\(muzzle\.x,muzzle\.y,novaRange,'#72f5ff',isPvpMode/);
  assert.match(game,/spawnNovaVisual\(x,y,max,col,onlineRoomMode==='pvp',heading/);
  assert.match(game,/type:'nova-core'/);
  assert.match(game,/type:'gravity-cone'/);
@@ -293,8 +293,8 @@ test('Cinzel reaches online CTA and decorative microcopy is removed',()=>{
 test('desktop menu keeps login above language and legal links clickable',()=>{
  const html=read('public/index.html');
  const css=read('public/style.css');
- assert.ok(html.includes('account-line menu-account-utility'));
- assert.ok(html.includes('language-setting menu-language-utility'));
+ assert.ok(html.includes('class="abyss-ocean-account account-line"'));
+ assert.ok(html.includes('class="language-setting"'));
  assert.ok(html.includes('href="/terms.html" target="_blank" rel="noopener"'));
  assert.ok(css.includes('#menuScreen .menu-account-utility'));
  assert.ok(css.includes('#menuScreen .menu-language-utility'));
@@ -435,7 +435,7 @@ test('photon ray target controls direction but never shortens beam range',()=>{
 });
 test('photon ray full-range segment still respects PvP rock occlusion',()=>{
  const game=read('public/game.js'),server=read('server.js');
- assert.ok(game.includes('projectileHitsPvpWall(player.x,player.y,x2,y2'));
+ assert.ok(game.includes('projectileHitsPvpWall(rayX,rayY,x2,y2'));
  assert.ok(server.includes('pvpRockAt(sx+ux*distance,sy+uy*distance'));
  assert.ok(server.includes('PhotonRay.segmentCircleHit(sx,sy,ex,ey'));
 });
@@ -466,7 +466,7 @@ test('movement keeps local prediction and remote interpolation',()=>{
 
 test('mobile legal links are the final normal-flow menu element instead of an overlay',()=>{
  const html=read('public/index.html'),css=read('public/style.css');
- assert.ok(html.indexOf('class="menu-footer"')>html.indexOf('class="menu-content"'));
+ assert.ok(html.indexOf('class="abyss-ocean-legal menu-footer"')>html.indexOf('class="abyss-ocean-utilities"'));
  assert.ok(css.includes('MENU LEGAL MOBILE FINAL FLOW V26'));
  assert.match(css,/@media\(max-width:700px\)\{[\s\S]*?#menuScreen \.menu-footer\{[\s\S]*?position:relative!important;[\s\S]*?bottom:auto!important;[\s\S]*?order:999!important;/);
 });

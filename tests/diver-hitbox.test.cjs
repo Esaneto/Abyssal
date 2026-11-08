@@ -51,16 +51,17 @@ test('specimen can be damaged by monsters, boss powers and traps online and offl
  assert.match(game,/hurtSpecimenSolo\(24\*\.72\)/);
 });
 test('menu is a camera-following world and remote portal clicks cause swimming',()=>{
+
  const menu=read('public/abyssal-menu-ocean.js'),css=read('public/abyssal-menu-v2.css'),html=read('public/index.html');
- assert.match(menu,/worldW=Math\.max\(1150/);
  assert.match(menu,/event\.stopImmediatePropagation\(\)/);
- assert.match(menu,/destination=\{x:entry\.wx,y:entry\.wy\}/);
- assert.match(menu,/Math\.hypot\(s\.wx-px,s\.wy-py\)/);
- assert.match(menu,/layer\.style\.setProperty\('transform'/);
- assert.match(css,/abyss-rift-fractures/);
+ assert.match(menu,/function playEntrance\(s\)/);
+ assert.match(menu,/transition=\{station:s/);
+ assert.match(menu,/stage\.addEventListener\('pointerdown'/);
+ assert.match(menu,/moveTarget=\{x:clamp/);
+ assert.match(menu,/nearElapsed>\.38/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #riftPortalBtn/);
  assert.match(html,/diver-hitbox\.js\?v=/);
 });
-
 
 test('the bent arms remain hittable while the gun rotates independently of swim heading',()=>{
  const diver={x:200,y:200,r:14,bodyAngle:0,weaponAngle:Math.PI/2,swimming:false};
@@ -71,4 +72,16 @@ test('the bent arms remain hittable while the gun rotates independently of swim 
  const mx=(far.ax+far.bx)/2,my=(far.ay+far.by)/2;
  assert.equal(Hitbox.circleHit(diver,mx,my,1,0),'left-forearm');
  assert.ok(Math.hypot(mx-200,my-200)>4);
+});
+
+test('visual knees, lowered rifle arms and predicted collision coordinates use one shared anatomy',()=>{
+ const art=read('public/diver-art.js');
+ const hitbox=read('public/diver-hitbox.js');
+ const simulation=read('world-simulation.js');
+ assert.match(art,/const knee=\[-28\+4\*kick/);
+ assert.match(hitbox,/const kneeFor=side=>\[-28\+4\*kickFor\(side\)/);
+ assert.match(art,/c\.translate\(0,GUN_OFFSET_Y\)/);
+ assert.match(hitbox,/limb\('right-arm',4,20,15,29/);
+ assert.match(simulation,/contactTarget\.bodyAngle=Number\(target\.bodyAngle\)/);
+ assert.match(simulation,/DiverHitbox\.circleHit\(resolvedContactTarget,enemy\.x,enemy\.y,enemyBodyRadius,now\)/);
 });

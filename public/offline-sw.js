@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-08-submarine-three-currents-v50';
+const VERSION = '2026-11-08-natural-currents-lab-v51';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -12,6 +12,7 @@ const GAME_FILES = [
   'abyssal-rebuild.css',
   'abyssal-menu-orbit.css',
   'abyssal-menu-v2.css',
+  'abyssal-lab-menu.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',
   'offline-ui.css',

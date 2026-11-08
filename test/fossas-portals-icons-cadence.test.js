@@ -55,7 +55,7 @@ test('standardized trail and poison use bounded active cadence instead of perman
  assert.match(game,/bubble\.damageTimer=\.60/);
  assert.match(game,/wakeHitAt\|\|0\)>=600/);
  assert.match(server,/BUBBLE_TRAIL_HIT_MS=600/);
- assert.match(server,/life:3\.2,damageTimer:\.45,skinActive:true/);
+ assert.match(server,/life:10,maxLife:10,damageTimer:\.25/);
  assert.match(server,/active==='poison'/);assert.match(server,/\[800,1600,2400\]/);
  assert.doesNotMatch(game,/player\.sharkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);
  assert.doesNotMatch(game,/player\.inkTrailTimer=BUBBLE_TRAIL_EMIT_SECONDS/);

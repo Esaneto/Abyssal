@@ -8,12 +8,13 @@
  if(root)root.AbyssalDiverArt=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69;
+ const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12;
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
   const angle=Number(aim)||0;
-  return {x:(Number(x)||0)+Math.cos(angle)*distance,y:(Number(y)||0)+Math.sin(angle)*distance};
+  const below=(Number(r)||13)*DRAW_SCALE*GUN_OFFSET_Y/14;
+  return {x:(Number(x)||0)+Math.cos(angle)*distance-Math.sin(angle)*below,y:(Number(y)||0)+Math.sin(angle)*distance+Math.cos(angle)*below};
  }
  function draw(c,x,y,r,heading,aim,t=0,options={}){
   if(!c||!(r>0))return;
@@ -30,7 +31,9 @@
   // Two HUMAN upper legs and calves, independently kicking. Only the flipper
   // blade starts at the ankle; no anatomical fish tail or dorsal body fins.
   for(const side of [-1,1]){
-   const lift=cycle*side*5,knee=[-31,side*8+lift],ankle=[-48,side*12+lift*1.35];
+   const kick=.5+.5*Math.sin((Number(t)||0)*.011+(side===1?0:Math.PI));
+   const knee=[-28+4*kick,side*(12+12*kick)];
+   const ankle=[-49-2*kick,side*(9+cycle*6)];
    limb([-16,side*5],knee,8,'#202a38','#40617a');
    c.fillStyle='#030c14';c.strokeStyle='#6d899d';c.lineWidth=1;
    c.beginPath();c.arc(knee[0],knee[1],4.3,0,TAU);c.fill();c.stroke();
@@ -83,14 +86,19 @@
   c.save();c.strokeStyle='#05070b';c.lineCap='round';
   // Underwater hair consists of many independent flowing strands.
   const hairLength=female?60:20; // 3:1 length ratio
-  const locks=female?29:23;
+  const locks=female?46:34;
+  // Layered, flowing silhouette makes the hair fuller without tying it back.
+  const sweep=female?50:18;
+  c.fillStyle='rgba(3,7,12,.83)';c.beginPath();c.moveTo(17,-10);
+  c.bezierCurveTo(9,-27,15-sweep*.7,-26,18-sweep,-14);
+  c.quadraticCurveTo(20-sweep,-4,25,-8);c.closePath();c.fill();
   for(let i=0;i<locks;i++){
-   const f=i/(locks-1),rootX=16.5+f*10,rootY=-10.5-Math.sin(f*Math.PI)*5;
+   const f=i/(locks-1),rootX=16.5+f*11,rootY=-10.5-Math.sin(f*Math.PI)*8+Math.sin(i*2.29)*1.8;
    const phase=(Number(t)||0)*.0014+i*.61,flow=Math.sin(phase)*(.8+f*2.5)+Math.cos(phase*.73)*1.1;
    const tipX=rootX-hairLength+Math.sin(i*1.73)*1.9;
    const tipY=rootY-Math.sin(f*7.5)*3.5+flow+(female?-5:0);
    c.strokeStyle=i%5===0?'#303540':i%3===0?'#11151e':'#05080e';
-   c.lineWidth=.67+(i%4)*.16;
+   c.lineWidth=.72+(i%5)*.16;
    c.beginPath();c.moveTo(rootX,rootY);
    c.bezierCurveTo(rootX-hairLength*.24,rootY-10+flow*.4,
     tipX+hairLength*.35,tipY+Math.sin(phase+.9)*(female?6:2.5),tipX,tipY);
@@ -109,6 +117,7 @@
   // fore-end; near arm is bent DOWN below the torso, holding the trigger.
   // They never share a shoulder point or merge into a single silhouette.
   c.save();c.rotate((Number(aim)||0)-a);
+  c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
   limb([6,-7],[15,-16],4.8,'#182634','#617b87');
   limb([15,-16],[31,-7],4.1,'#152b3a','#688391');
   limb([4,8],[15,17],5.5,'#192733','#698797');
@@ -155,5 +164,5 @@
   c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();
   c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X});
+ return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y});
 });

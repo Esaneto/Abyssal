@@ -155,7 +155,8 @@ test('menu ambience and active skills remain present without per-frame current-z
   const html = read('public/index.html');
   const css = read('public/style.css');
   const game = read('public/game.js');
-  assert.match(html, /class="menu-fauna"/);
+  assert.match(html, /id="menuOceanScenery"/);
+  assert.match(html, /id="menuOceanSubmarine"/);
   assert.match(css, /menuFishSwim/);
   assert.doesNotMatch(game, /function drawCurrentZones|currentSpawnTimer|currentZones/);
   assert.match(game, /function toggleEquippedActiveSkill/);

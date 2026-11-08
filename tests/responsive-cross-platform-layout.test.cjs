@@ -116,7 +116,7 @@ test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
 
 test('mobile canvas uses adaptive high-DPI rendering instead of forced DPR 1',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+ assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
  assert.match(game,/adaptiveDprScale/);
 });
 test('PvP movement stream prioritizes low latency without reliable packet backlog',()=>{
@@ -158,8 +158,8 @@ test('mobile menu moves download and controls to topbar and protects title flow'
  const css=fs.readFileSync(path.join(root,'public','style.css'),'utf8');
  const final=css.slice(css.lastIndexOf('MOBILE MENU TOP UTILITIES V13'));
  assert.match(html,/id="mobileDownloadTopBtn"[\s\S]*id="mobileControlsTopBtn"/);
- assert.match(html,/id="downloadBtn" class="secondary-btn download-cta desktop-menu-utility"/);
- assert.match(html,/id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility"/);
+ assert.match(html,/id="downloadBtn" class="abyss-ocean-utility"/);
+ assert.match(html,/id="controlsBtn" class="abyss-ocean-utility"/);
  assert.match(final,/\.mobile-top-utility\{display:none\}/);
  assert.match(final,/#menuScreen \.desktop-menu-utility\{display:none!important\}/);
  assert.match(final,/#menuScreen h1\{[\s\S]*min-height:calc\(1\.92em \+ 8px\)!important;[\s\S]*overflow:visible!important/);
@@ -213,7 +213,7 @@ test('match HUD reserves topbar space and reclaims it when chrome is collapsed',
 test('fullscreen expands field of view without changing world scale',()=>{
  const game=read('public/game.js');
  const zoom=game.slice(game.indexOf('function desiredWorldZoom'),game.indexOf('function desiredMapFactor'));
- assert.match(zoom,/return mobileViewport\?\.64:FAIR_VIEW_REFERENCE\.zoom/);
+ assert.match(zoom,/return mobileViewport\?\.48:FAIR_VIEW_REFERENCE\.zoom/);
  assert.doesNotMatch(zoom,/viewW|viewH|viewportArea|Math\.sqrt/);
 });
 

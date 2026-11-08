@@ -9,7 +9,7 @@
  'use strict';
  function draw(canvas,width,height){
   if(!canvas?.getContext||!(width>0)||!(height>0))return;
-  const dpr=Math.max(1,Math.min(1.45,Number(typeof devicePixelRatio==='number'?devicePixelRatio:1)||1));
+  const dpr=Math.max(1,Math.min(2.25,Number(typeof devicePixelRatio==='number'?devicePixelRatio:1)||1,Math.sqrt(3000000/(width*height))));
   canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
   canvas.style.width=width+'px';canvas.style.height=height+'px';
   const c=canvas.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,width,height);
@@ -49,7 +49,7 @@
   c.fillStyle=vent;c.beginPath();c.moveTo(width*.47,height*.98);c.lineTo(width*.52,height*.73);c.lineTo(width*.55,height);c.closePath();c.fill();
   // The abyssal opening is carved into the actual seabed, not a
   // floating card. Stratified edges reveal the depth under the sediment.
-  const fissureX=width*.82,fissureY=height*.85,fr=Math.min(width*.14,height*.16);
+  const fissureX=width*.50,fissureY=height*.835,fr=Math.min(width*.14,height*.16);
   c.save();
   let floorGlow=c.createRadialGradient(fissureX,fissureY,0,fissureX,fissureY,fr*2.1);
   floorGlow.addColorStop(0,'rgba(126,19,35,.22)');
@@ -108,7 +108,7 @@
  // Preserves the existing underwater background, adding only the foreground floor.
  function drawSubmarine(canvas,width,height){
   if(!canvas?.getContext||width<100||height<100)return;
-  const ratio=Math.min(1.6,Math.max(1,typeof devicePixelRatio==='number'?devicePixelRatio:1));
+  const ratio=Math.min(2.25,Math.max(1,typeof devicePixelRatio==='number'?devicePixelRatio:1),Math.sqrt(3000000/(width*height)));
   canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
   canvas.style.width=width+'px';canvas.style.height=height+'px';
   const c=canvas.getContext('2d');c.setTransform(ratio,0,0,ratio,0,0);
@@ -153,29 +153,65 @@
    c.fillStyle='#fff2bc';c.beginPath();c.arc(x,77,2,0,2*Math.PI);c.fill();
   }
   c.restore();
-  // The foreground sediment is deliberately subtle, leaving the Fossas embedded.
-  const floorY=height*.84;
-  const sand=c.createLinearGradient(0,floorY-40,0,height);
-  sand.addColorStop(0,'rgba(3,12,20,0)');
-  sand.addColorStop(.34,'rgba(9,24,29,.64)');
-  sand.addColorStop(1,'rgba(2,10,15,.98)');
-  c.fillStyle=sand;c.beginPath();c.moveTo(0,height);c.lineTo(0,floorY+8);
-  for(let x=0;x<=width+14;x+=14){
-   c.lineTo(x,floorY+Math.sin(x*.012)*8+Math.sin(x*.049)*3);
-  }
+  // Terrain and the abyssal descent share ONE geometry. The two sides
+  // fall into the opening, rather than painting a button over a flat floor.
+  const mouthX=width*.5,mouthY=height*.835;
+  const mouthRx=Math.min(width*.18,136),mouthRy=Math.min(height*.068,48);
+  const floorY=height*.78;
+  const bedY=x=>{
+   const distance=(x-mouthX)/(mouthRx*1.8);
+   const decline=Math.exp(-Math.pow(distance,4))*height*.105;
+   return floorY+Math.sin(x*.013)*4+Math.sin(x*.043)*2.4+decline;
+  };
+  const sand=c.createLinearGradient(0,floorY-26,0,height);
+  sand.addColorStop(0,'rgba(2,8,17,.05)');
+  sand.addColorStop(.27,'rgba(11,26,32,.83)');
+  sand.addColorStop(.82,'rgba(3,12,20,.98)');
+  sand.addColorStop(1,'#02070e');
+  c.fillStyle=sand;c.beginPath();c.moveTo(0,height);c.lineTo(0,bedY(0));
+  for(let x=8;x<=width;x+=8)c.lineTo(x,bedY(x));
   c.lineTo(width,height);c.closePath();c.fill();
-  c.strokeStyle='rgba(75,113,123,.14)';c.lineWidth=1.5;
-  c.beginPath();for(let x=0;x<=width;x+=12){
-   const y=floorY+Math.sin(x*.012)*8+Math.sin(x*.049)*3;
+  c.strokeStyle='rgba(90,126,132,.24)';c.lineWidth=1.35;
+  c.beginPath();for(let x=0;x<=width;x+=8){
+   const y=bedY(x);
    if(x===0)c.moveTo(x,y);else c.lineTo(x,y);
   }c.stroke();
-  // Fossas lie discretely in the right-side seabed, under the clickable crack.
-  const mouthX=width*.82,mouthY=floorY+4,mouthR=Math.min(width*.15,116);
-  const fissure=c.createRadialGradient(mouthX,mouthY,3,mouthX,mouthY,mouthR);
-  fissure.addColorStop(0,'rgba(7,0,7,.84)');
-  fissure.addColorStop(.48,'rgba(73,9,21,.22)');
-  fissure.addColorStop(1,'rgba(73,9,21,0)');
-  c.fillStyle=fissure;c.fillRect(mouthX-mouthR,mouthY-mouthR,mouthR*2,mouthR*2);
+  // The black throat has a broken, naturally fractured rock lip.
+  c.save();
+  const glow=c.createRadialGradient(mouthX,mouthY,0,mouthX,mouthY,mouthRx*1.8);
+  glow.addColorStop(0,'rgba(66,11,23,.26)');glow.addColorStop(.55,'rgba(34,5,14,.13)');
+  glow.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=glow;c.fillRect(mouthX-mouthRx*2,mouthY-mouthRx,mouthRx*4,mouthRx*2);
+  const crack=()=>{c.beginPath();for(let i=0;i<=44;i++){
+   const theta=i*Math.PI*2/44;
+   const rough=1+.075*Math.sin(theta*7)+.042*Math.cos(theta*13);
+   const x=mouthX+Math.cos(theta)*mouthRx*rough;
+   const y=mouthY+Math.sin(theta)*mouthRy*rough;
+   if(i===0)c.moveTo(x,y);else c.lineTo(x,y);
+  }c.closePath();};
+  crack();c.fillStyle='#000309';c.fill();
+  // Stone contours, not a neon-ring or dotted outline.
+  c.lineWidth=7;c.strokeStyle='rgba(9,14,21,.87)';c.stroke();
+  c.lineWidth=1.2;c.strokeStyle='rgba(98,82,81,.34)';c.stroke();
+  for(const side of [-1,1]){
+   const lip=mouthX+side*mouthRx*.97;
+   c.strokeStyle='rgba(80,109,111,.29)';c.lineWidth=1.4;
+   for(let i=0;i<4;i++){
+    const origin=lip+side*(i*16+7),base=bedY(origin)-2;
+    c.beginPath();c.moveTo(origin,base);c.bezierCurveTo(origin-side*9,base+9,origin-side*13,base+17,origin-side*8,base+27);c.stroke();
+   }
+   // Exposed strata point down into the opening on either bank.
+   for(let band=0;band<3;band++){
+    c.strokeStyle=band===0?'rgba(82,116,118,.19)':'rgba(71,78,79,.15)';
+    c.beginPath();
+    for(let i=0;i<=14;i++){
+     const x=mouthX+side*(mouthRx*(.65+i*.095)),y=bedY(x)+band*10+4;
+     if(!i)c.moveTo(x,y);else c.lineTo(x,y);
+    }c.stroke();
+   }
+  }
+  c.restore();
+
  }
  return Object.freeze({draw,drawSubmarine});
 });

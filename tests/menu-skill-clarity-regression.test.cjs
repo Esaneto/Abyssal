@@ -20,9 +20,9 @@ test('Nova wave starts at the rifle muzzle on client and authoritative server',(
 
 test('portal letters curve with live underwater currents and the submarine is real canvas art',()=>{
  const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html'),scene=read('public/ocean-menu-scenery.js');
- assert.match(menu,/currents\.translate\(clamp\(p\.x,10,w-10\)/);
- assert.match(menu,/currents\.rotate\(Math\.atan2/);
- assert.match(menu,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(menu,/currents\.bezierCurveTo\(b\.x,b\.y,c\.x,c\.y,d\.x,d\.y\)/);
+ assert.match(menu,/currents\.setLineDash\(/);
+ assert.match(menu,/const direction=s\.kind==='solo'\?-1:1/);
  assert.match(scene,/function drawSubmarine\(canvas,width,height\)/);
  assert.match(scene,/draw,drawSubmarine/);
  assert.match(html,/id="menuOceanSubmarine"/);
@@ -55,7 +55,7 @@ test('pulse and pressure ranges double and push gains 1.5x distance',()=>{
  assert.equal(Standard.ACTIVE.push.range,330);
  assert.equal(Standard.ACTIVE.pulse.range,360);
  const game=read('public/game.js'),server=read('server.js');
- assert.match(game,/e\.kbVx=dx\/d\*645/);
+ assert.match(game,/e\.kbVx=dx\/d\*430/);
  assert.match(server,/e\.kbVx=dx\/d\*645/);
  assert.match(server,/target\.skinPushImpulse=\{dx:dx\/d\*93\/WORLD_ZOOM/);
  assert.match(game,/function updateSmoothSkinPush\(dt\)/);

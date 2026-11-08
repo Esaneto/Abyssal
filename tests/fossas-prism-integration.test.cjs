@@ -66,8 +66,8 @@ test('Nightmare boss and shop relic share the same Kraken head and suction-cup a
 
 test('Nova shards reuse the original shot volley and are validated by the server',()=>{
  const game=read('public/game.js'),server=read('server.js');
- assert.match(game,/emitPrismaticNovaShards\(novaDps,novaVolleyId\)/);
- assert.match(game,/special:'nova',volleyId:novaVolleyId/);
+ assert.match(game,/emitPrismaticNovaShards\(novaDamage,volleyId\)/);
+ assert.match(game,/special:'nova',volleyId,combined/);
  assert.match(game,/const count=2\*rank,volleyId=sharedVolleyId\|\|nextShotVolleyId\(\)/);
  assert.match(server,/shot\.special==='prismShard'[\s\S]*shooter\.lastNovaVolleyId/);
  assert.match(server,/maxShards=2\*rank/);
@@ -77,7 +77,7 @@ test('Nova shards reuse the original shot volley and are validated by the server
 test('Photon Prism has 2, 4 or 6 actual cave-clipped side beams, rendered for peers and resolved on server',()=>{
  const game=read('public/game.js'),online=read('public/online.js'),server=read('server.js');
  assert.match(game,/for\(let i=0;i<rank\*2;i\+\+\)/);
- assert.match(game,/clipPrismaticPhotonRay\(player\.x,player\.y/);
+ assert.match(game,/clipPrismaticPhotonRay\(rayX,rayY/);
  assert.match(game,/prismBeams\.some\(beam=>PHOTON_RAY_VISUAL\.segmentCircleHit/);
  assert.match(game,/Array\.isArray\(d\.prismBeams\)/);
  assert.match(server,/const prismRank=clamp\(Math\.floor\(Number\(shooter\.prismaticLevel\)/);

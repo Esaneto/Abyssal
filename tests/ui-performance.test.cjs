@@ -6,17 +6,16 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('download control is outside the menu column and docked discreetly at the upper right', () => {
-  const html = read('public/index.html');
-  const css = read('public/style.css');
-  const contentStart = html.indexOf('<div class="menu-content">');
-  const download = html.indexOf('<button id="downloadBtn"');
-  const contentEnd = html.indexOf('</div>', contentStart);
-  assert.ok(contentStart >= 0 && download > contentStart);
-  assert.match(html.slice(contentStart, download), /<\/div>\s*$/);
-  assert.match(css, /#menuScreen \.download-cta\{[\s\S]*?top:12px;right:14px/);
-  assert.match(css, /min-height:29px;height:29px/);
-  assert.match(html, /style\.css\?v=\d+\.\d+\.\d+/);
+test('download control is outside the menu column and docked discreetly at the upper right',()=>{
+
+ const html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
+ const menu=html.slice(html.indexOf('<section id="menuScreen"'),html.indexOf('</section>',html.indexOf('<section id="menuScreen"')));
+ assert.match(menu,/class="abyss-ocean-preferences"/);
+ assert.match(menu,/id="downloadBtn"/);
+ assert.match(menu,/id="languageSelect"/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2 \.abyss-ocean-preferences\{right:15px/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2 \.abyss-ocean-preferences #downloadBtn/);
+ assert.match(html,/style\.css\?v=\d+\.\d+\.\d+/);
 });
 
 test('menu monster keeps its frightening toothed grin after public chat removal', () => {
@@ -32,7 +31,7 @@ test('active gameplay follows requestAnimationFrame without divisor stutter and 
   assert.doesNotMatch(game, /minFrameInterval=active\?1000\/60:1000\/30/);
   assert.match(game, /if\(!active&&lastPaintAt&&t-lastPaintAt<1000\/30-1\)/);
   assert.match(game, /lowPowerRendering=mobileViewport\|\|cores<=4/);
-  assert.match(game, /Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+  assert.match(game, /Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
 });
 
 test('canvas rendering caches static gradients and removes repeated terrain and HUD work', () => {
@@ -144,7 +143,7 @@ test('service worker respects game script revisions but keeps an offline fallbac
   assert.match(sw, /const cached = await cache\.match\(cacheRequest\)/);
   assert.match(sw, /if \(offlineFallback\) return offlineFallback/);
   assert.doesNotMatch(sw, /cache\.match\(cacheRequest, \{ ignoreSearch: true \}\)/);
-  assert.match(html, /game\.js\?v=2026\.11\.7\.\d+/);
+  assert.match(html, /game\.js\?v=2026\.11\.8\.14/);
 });
 
 test('single enemy death does not allocate another enemy-array copy', () => {
@@ -159,9 +158,9 @@ test('single enemy death does not allocate another enemy-array copy', () => {
 
 test('adaptive resolution never renders below native CSS density and preserves smooth edges',()=>{
  const game=read('public/game.js');
- assert.match(game,/dpr=Math\.max\(1,Math\.min\(nativeDpr\*adaptiveDprScale,baseCap\)\)/);
+ assert.match(game,/dpr=Math\.min\(Math\.max\(1,Math\.min\(nativeDpr\*adaptiveDprScale,baseCap\)\),Math\.sqrt/);
  assert.match(game,/ctx\.imageSmoothingEnabled=true;ctx\.imageSmoothingQuality='high'/);
- assert.match(game,/const nativeDpr=Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+ assert.match(game,/const nativeDpr=Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
 });
 
 test('creature rendering preserves subpixel coordinates and limits expensive sprite repaints per frame',()=>{

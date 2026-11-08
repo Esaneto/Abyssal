@@ -1,0 +1,237 @@
+/* Abyssal laboratory & natural currents, November 2026.
+   Loaded AFTER legacy ocean, shop and modal themes. Purely visual. */
+
+/* Currents run to the left/right viewport edge: canvas supplies the flowing water. */
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry{
+ border:0!important;box-shadow:none!important;clip-path:none!important;
+ border-radius:0!important;animation:none!important;filter:none!important;
+ background:transparent!important;width:clamp(120px,15vw,180px)!important;
+ height:clamp(94px,13vh,122px)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry::before,
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry::after{
+ display:none!important;content:none!important;animation:none!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry strong{
+ color:#e7ffff!important;text-shadow:0 2px 8px #000,0 0 13px var(--portal-color)!important;
+ background:rgba(0,20,32,.57)!important;padding:5px 8px!important;
+ border:1px solid rgba(183,238,249,.16)!important;border-radius:4px!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry small{
+ color:#b3e9f2!important;text-shadow:0 1px 6px #000!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry .abyss-destination-icon{
+ color:#d7ffff!important;text-shadow:0 0 9px var(--portal-color)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry:hover,
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry.portal-near,
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry:focus-visible{
+ filter:brightness(1.26)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry{
+ border:0!important;border-radius:0!important;clip-path:none!important;
+ background:transparent!important;box-shadow:none!important;
+ width:clamp(135px,19vw,225px)!important;height:clamp(80px,11vh,115px)!important;
+ padding:10px!important;animation:none!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry::before,
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry::after{
+ display:none!important;content:none!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry strong{
+ color:#f5e9e9!important;background:rgba(0,3,10,.38)!important;
+ padding:4px 8px!important;border-radius:3px!important;
+ text-shadow:0 2px 7px #000,0 0 6px #81333d!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry .abyss-destination-icon{
+ color:#d19b9b!important;text-shadow:0 0 6px #54202b!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry small{color:#d0b3b4!important}
+
+/* Every bottom utility uses the same grid track, height and padding. */
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities{
+ grid-auto-rows:minmax(48px,auto)!important;align-items:stretch!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities>.abyss-ocean-utility{
+ box-sizing:border-box!important;aspect-ratio:auto!important;height:100%!important;
+ min-height:48px!important;padding:5px 4px!important;border-radius:8px!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #shopBtn{
+ color:#203746!important;border:1px solid rgba(227,250,255,.94)!important;
+ background:linear-gradient(110deg,rgba(255,255,255,.94),rgba(194,224,230,.75) 53%,rgba(248,255,255,.95))!important;
+ box-shadow:inset 0 0 0 2px rgba(89,140,164,.35),0 0 17px rgba(193,243,255,.28)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #shopBtn::before{
+ display:block!important;content:""!important;
+ position:absolute!important;left:12%!important;top:3px!important;right:12%!important;bottom:3px!important;
+ width:auto!important;height:auto!important;border:1px solid rgba(64,115,137,.53)!important;
+ border-radius:45% 45% 9% 9% / 30% 30% 10% 10%!important;
+ background:linear-gradient(110deg,rgba(255,255,255,.43),rgba(255,255,255,.04),rgba(255,255,255,.35))!important;
+ transform:none!important;filter:none!important;opacity:.86!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #shopBtn::after{
+ display:block!important;content:""!important;position:absolute!important;
+ left:23%!important;right:23%!important;bottom:4px!important;top:auto!important;
+ width:auto!important;height:3px!important;transform:none!important;
+ border:0!important;border-radius:50%!important;background:#6e95a6!important;
+ box-shadow:0 -2px 7px rgba(219,255,255,.8)!important;opacity:.85!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #profileBtn{
+ color:#eef4fa!important;border:1px solid #9baebe!important;
+ background:linear-gradient(140deg,#0c1b29,#34495b 49%,#0c1724)!important;
+ box-shadow:inset 0 0 0 1px rgba(217,239,254,.14)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #wheelBtn{
+ color:#ffecc3!important;border:1px solid #e4ba66!important;
+ background:linear-gradient(140deg,#18131c,#61502d 51%,#201923)!important;
+ box-shadow:inset 0 0 17px rgba(240,193,96,.23)!important;
+}
+
+/* Specimen lab: bright ceramic panels + glass incubation capsules. */
+#shopScreen .shop-modal{
+ color:#1b303f!important;border:1px solid rgba(202,231,241,.96)!important;
+ background:linear-gradient(135deg,rgba(247,252,255,.985),rgba(205,227,237,.985) 47%,rgba(247,252,255,.98))!important;
+ box-shadow:0 28px 76px rgba(0,0,0,.68),inset 0 0 0 2px rgba(255,255,255,.76)!important;
+}
+#shopScreen .shop-modal::before{content:none!important;display:none!important;background:none!important}
+#shopScreen .shop-heading,#shopScreen .shop-filter-bar{border-color:rgba(92,136,158,.32)!important}
+#shopScreen .shop-heading h2,#shopScreen .shop-heading h2 em,
+#shopScreen .shop-section-title,#shopScreen .shop-heading p,
+#shopScreen .shop-filter-summary,#shopScreen .payment-settings,
+#shopScreen .payment-settings label{color:#203a4b!important;text-shadow:none!important}
+#shopScreen .shop-filter-bar{background:rgba(239,249,253,.89)!important;border:1px solid rgba(121,161,184,.45)!important}
+#shopScreen .shop-filter-search,#shopScreen .shop-filter-select,#shopScreen .text-field{
+ background:#fafdff!important;color:#213b4b!important;border:1px solid rgba(106,149,171,.52)!important;
+}
+#shopScreen #skinGrid .skin-card{
+ border:1px solid rgba(158,194,207,.75)!important;border-radius:15px!important;
+ background:linear-gradient(144deg,rgba(252,255,255,.99),rgba(220,238,246,.96))!important;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.85),0 8px 22px rgba(37,81,107,.14)!important;
+ color:#1c3441!important;
+}
+#shopScreen #skinGrid .skin-card::before,#shopScreen #skinGrid .skin-card::after,
+#shopScreen #skinGrid .skin-card.paid-skin-card::before{
+ display:none!important;content:none!important;background:none!important;border:0!important;
+}
+#shopScreen #skinGrid .skin-card:hover{
+ border-color:rgba(57,144,172,.9)!important;
+ box-shadow:0 12px 24px rgba(23,82,113,.21)!important;
+}
+#shopScreen #skinGrid .skin-card>strong{
+ color:#183647!important;text-shadow:none!important;letter-spacing:.025em!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview{
+ position:relative!important;isolation:isolate!important;
+ overflow:hidden!important;border:0!important;border-radius:13px!important;
+ background:radial-gradient(ellipse at 50% 55%,rgba(7,39,65,.54),rgba(45,99,120,.28) 47%,rgba(194,226,235,.74) 88%),
+ linear-gradient(#eafaff,#9ec7d7)!important;
+ box-shadow:inset 0 10px 22px rgba(55,105,125,.21),inset 0 -7px 14px rgba(50,96,118,.23)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview::before{
+ display:block!important;content:""!important;position:absolute!important;
+ z-index:0!important;pointer-events:none!important;
+ inset:3px 13%!important;border:2px solid rgba(232,253,255,.92)!important;
+ border-radius:44% 44% 16px 16px / 28% 28% 13px 13px!important;
+ background:linear-gradient(108deg,rgba(255,255,255,.38),transparent 27%,transparent 66%,rgba(243,255,255,.46))!important;
+ box-shadow:inset 0 0 18px rgba(225,250,255,.25),0 0 0 3px rgba(76,130,151,.23)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview::after{
+ display:block!important;content:""!important;position:absolute!important;
+ z-index:2!important;pointer-events:none!important;
+ left:24%!important;top:12%!important;width:6%!important;height:64%!important;
+ border-radius:50%!important;transform:rotate(7deg)!important;
+ background:linear-gradient(rgba(255,255,255,.77),rgba(255,255,255,.04))!important;
+ opacity:.55!important;
+}
+#shopScreen #skinGrid .skin-card .skin-preview canvas{
+ position:relative!important;z-index:1!important;filter:drop-shadow(0 2px 5px rgba(1,15,25,.48))!important;
+}
+#shopScreen #skinGrid .skin-card>p{
+ display:flex!important;align-items:flex-start!important;gap:7px!important;
+ color:#244654!important;background:rgba(255,255,255,.58)!important;
+ border:1px solid rgba(130,172,187,.2)!important;border-radius:6px!important;
+ padding:8px!important;line-height:1.45!important;
+}
+#shopScreen #skinGrid .skin-card>p::before{
+ content:""!important;display:block!important;flex:0 0 7px!important;
+ width:7px!important;height:7px!important;margin-top:.37em!important;
+ border-radius:50%!important;background:#22c769!important;
+ box-shadow:0 0 0 2px rgba(34,199,105,.17)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-ability{
+ color:#284756!important;background:rgba(238,252,246,.88)!important;border-color:rgba(70,181,114,.21)!important;
+}
+#shopScreen #skinGrid .skin-card .skin-ability b{color:#116747!important;margin-right:.35em!important}
+#shopScreen #skinGrid .skin-card>button:not(:disabled){
+ border:1px solid #5d91a8!important;border-radius:7px!important;
+ color:#fff!important;background:linear-gradient(135deg,#316b88,#19445f)!important;
+}
+#shopScreen #skinGrid .skin-card.owned{border-color:#4bbf81!important}
+#shopScreen #skinGrid .skin-card.equipped{border:2px solid #149456!important}
+#shopScreen .boss-bundle-card .boss-bundle-list,#shopScreen .boss-bundle-card p{color:#2a4e5b!important}
+#shopScreen .modal-top-close{color:#183647!important;background:#f1fbff!important;border-color:#8dabb9!important}
+
+/* Profile: matching dark steel field terminal, not the specimen shop's white lab. */
+#profileScreen .profile-modal{
+ color:#e8f3fa!important;border:1px solid rgba(169,197,219,.68)!important;
+ background:radial-gradient(ellipse at 45% 0,rgba(123,175,204,.18),transparent 52%),
+ linear-gradient(145deg,#081522,#1b2f42 52%,#091622)!important;
+ box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 0 0 1px rgba(204,235,249,.12)!important;
+}
+#profileScreen .profile-modal h2,#profileScreen .profile-modal h3,
+#profileScreen .profile-modal strong{color:#f5faff!important}
+#profileScreen .profile-modal p,#profileScreen .profile-modal small,
+#profileScreen .profile-modal span,#profileScreen .profile-title-heading p{color:#c4d8e5!important}
+#profileScreen .profile-hero,#profileScreen .profile-stat,
+#profileScreen .profile-specimen-stage,#profileScreen .profile-title-card{
+ background:linear-gradient(145deg,rgba(199,230,243,.13),rgba(10,30,44,.53))!important;
+ border:1px solid rgba(180,215,234,.24)!important;border-radius:11px!important;
+}
+#profileScreen .profile-specimen-stage{
+ box-shadow:inset 0 0 28px rgba(144,217,247,.13)!important;
+}
+#profileScreen .profile-diver-gender-btn[aria-pressed="true"]{
+ border-color:#b5eaff!important;background:#3e728b!important;color:#fff!important;
+}
+#profileScreen .modal-top-close{border-color:#a3bcd0!important;color:#f4fbff!important;background:#203c50!important}
+
+/* Roulette: the gold-and-obsidian identity of its navigation button. */
+#wheelScreen .wheel-modal{
+ color:#fff2d3!important;border:1px solid #bd9b62!important;
+ background:radial-gradient(ellipse at 50% 0,rgba(205,154,70,.21),transparent 52%),
+ linear-gradient(155deg,#16121b,#322b29 55%,#0f121a)!important;
+ box-shadow:0 25px 70px rgba(0,0,0,.65),inset 0 0 0 1px rgba(250,215,148,.13)!important;
+}
+#wheelScreen .wheel-modal h2,#wheelScreen .wheel-modal h2 em{color:#ffe3a4!important}
+#wheelScreen .wheel-modal p,#wheelScreen .wheel-modal summary,
+#wheelScreen .wheel-message{color:#f2ddbb!important}
+#wheelScreen .wheel-stage{border:1px solid rgba(223,183,105,.38)!important;border-radius:14px!important;background:rgba(33,24,21,.65)!important}
+#wheelScreen #wheelCanvas{filter:drop-shadow(0 0 13px rgba(227,181,77,.27))!important}
+#wheelScreen .wheel-spin-btn{color:#20170e!important;border-color:#f7d791!important;background:linear-gradient(130deg,#ffe4a4,#cda04f)!important}
+#wheelScreen .modal-top-close{color:#ffe1a4!important;border-color:#bfa06c!important;background:#2b2727!important}
+
+@media(max-width:700px){
+ #menuScreen.ocean-menu-v2.submarine-menu #menuOceanDiver{
+  transform:translate(-50%,-50%) scale(calc(var(--abyss-exit-scale,1) * .65))!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-rows:43px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities>.abyss-ocean-utility{
+  height:43px!important;min-height:43px!important;padding:3px!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry{
+  width:clamp(85px,27vw,116px)!important;height:clamp(76px,12vh,102px)!important;
+ }
+ #menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry{
+  width:clamp(95px,30vw,145px)!important;height:clamp(63px,9vh,85px)!important;
+ }
+ #shopScreen #skinGrid .skin-card .skin-preview::before{inset:3px 10%!important}
+}
+@media(max-height:490px) and (max-width:900px){
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities{grid-template-columns:repeat(5,minmax(0,1fr))!important;grid-auto-rows:35px!important}
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-ocean-utilities>.abyss-ocean-utility{height:35px!important;min-height:35px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry{animation:none!important}
+}

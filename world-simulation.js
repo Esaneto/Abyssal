@@ -705,6 +705,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactTarget.x = Number(target.x) + vx * predictionSeconds;
       contactTarget.y = Number(target.y) + vy * predictionSeconds;
       contactTarget.r = Number(target.r) || (13 / WORLD_ZOOM);
+      contactTarget.bodyAngle=Number(target.bodyAngle)||0;
+      contactTarget.weaponAngle=Number(target.weaponAngle??target.angle??target.bodyAngle)||0;
+      contactTarget.swimming=target.swimming;
       resolvedContactTarget = contactTarget;
     }
     const contact = contactGeometry(enemy, resolvedContactTarget);
@@ -724,7 +727,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Anatomical capsules, instead of the old single round player hitbox:
     // enemy contact against arms and legs is as valid as a torso strike.
     const enemyBodyRadius=Math.max(2,contact.enemyRadiusWorld-contactSafetyMargin);
-    const contactZone=DiverHitbox.circleHit(target,enemy.x,enemy.y,enemyBodyRadius,now);
+    const contactZone=DiverHitbox.circleHit(resolvedContactTarget,enemy.x,enemy.y,enemyBodyRadius,now);
     if(!contactZone && !(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.

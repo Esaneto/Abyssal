@@ -59,7 +59,7 @@ test('Fossas rewards use the same direct shared XP pool without recreating orbs'
  const src=read('server.js'),client=read('public/game.js'),simulation=read('world-simulation.js');
  assert.match(src,/function grantSharedXp\(room,total,contributors=\{\},source='kill',enemyId=null\)/);
  assert.match(src,/for\(const share of splitXp\(total,\[\.\.\.room\.players\.values\(\)\],contributors\)\)/);
- assert.match(src,/SkinAbilities\.orbExperienceMultiplier\(member\.skinId\)/);
+ assert.match(src,/SkinAbilities\.orbExperienceMultiplier\(member\.skinId,member\.specimenPoints,member\.specimenAlive!==false\)/);
  assert.match(src,/grantSharedXp\(room,death\.xpValue\|\|1,death\.contributors,'rift-hazard-kill'/);
  assert.match(src,/grantSharedXp\(room,reward\.value,null,reward\.source\|\|'rift-reward'/);
  assert.match(client,/function applySharedXp\(data\)/);
@@ -80,8 +80,8 @@ test('Pesadelo Roxo keeps horror eyes with a softer organic octopus mantle',()=>
  const src=read('public/abyssal-rift-hardcore.js');
  assert.match(src,/True octopus anatomy/);
  assert.match(src,/Pointed black eyes keep the horror identity/);
- assert.match(src,/iris\.addColorStop\(\.38,'#ffd72e'\)/);
- assert.match(src,/ellipse\(r\*\.49,-r\*\.42,r\*\.025,r\*\.145/);
+ assert.match(src,/iris\.addColorStop\(\.40,'#ffd62b'\)/);
+ assert.match(src,/ellipse\(r\*\.49,-r\*\.42,r\*\.022,r\*\.135/);
  assert.doesNotMatch(src,/short bony antennae/);
  assert.doesNotMatch(src,/gaping predatory rictus/);
 });

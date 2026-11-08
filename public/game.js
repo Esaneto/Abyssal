@@ -583,7 +583,7 @@ const FAIR_VIEW_WORLD_AREA=(FAIR_VIEW_REFERENCE.width*FAIR_VIEW_REFERENCE.height
 function desiredWorldZoom(){
  // Fixed world scale: resizing or entering fullscreen never stretches, shrinks or zooms gameplay.
  // Every additional viewport pixel becomes additional field of view.
- return mobileViewport?.64:FAIR_VIEW_REFERENCE.zoom;
+ return mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
@@ -598,11 +598,12 @@ function resize(){
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
  const cores=Number(navigator.hardwareConcurrency)||4,memory=Number(navigator.deviceMemory)||0;
- lowPowerRendering=cores<=4||(memory>0&&memory<=4);adaptiveQualityLevel=lowPowerRendering?0:2;adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
+ lowPowerRendering=cores<=2||(memory>0&&memory<=2);adaptiveQualityLevel=lowPowerRendering?0:2;adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
  // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
  // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
- const nativeDpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1:1.45);
- dpr=Math.max(1,nativeDpr*adaptiveDprScale);
+ const nativeDpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1.2:(mobileViewport?2:1.8));
+ // A pixel budget keeps high-density outlines crisp without a runaway GPU buffer.
+ dpr=Math.min(Math.max(1,nativeDpr*adaptiveDprScale),Math.sqrt(3500000/(viewW*viewH)));
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
  W=Number(activeMapLayout?.width)||4800;H=Number(activeMapLayout?.height)||3000;mapFactor=1.7;
  const sx=oldW>0?W/oldW:1,sy=oldH>0?H/oldH:1;
@@ -3877,10 +3878,10 @@ function applyAdaptiveQuality(level,reason='runtime'){
  const next=clamp(Math.round(level),0,2);if(next===adaptiveQualityLevel)return;
  adaptiveQualityLevel=next;adaptiveDprScale=ADAPTIVE_QUALITY[next].dpr;lowPowerRendering=next===0;
  // Rebuild only the framebuffer. World/gameplay coordinates are untouched.
- const nativeDpr=Math.max(1,window.devicePixelRatio||1),baseCap=mobileViewport?(next===0?1.25:next===1?1.55:2):(next===0?1.15:next===1?1.4:1.65);
+ const nativeDpr=Math.max(1,window.devicePixelRatio||1),baseCap=mobileViewport?(next===0?1.2:next===1?1.6:2):(next===0?1.15:next===1?1.5:1.8);
  // Never drop below native 1 CSS pixel per framebuffer pixel: sub-1 DPR
  // visibly pixelates rotating creatures even on otherwise fast machines.
- dpr=Math.max(1,Math.min(nativeDpr*adaptiveDprScale,baseCap));
+ dpr=Math.min(Math.max(1,Math.min(nativeDpr*adaptiveDprScale,baseCap)),Math.sqrt(3500000/(viewW*viewH)));
  canvas.width=Math.max(1,Math.floor(viewW*dpr));canvas.height=Math.max(1,Math.floor(viewH*dpr));canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;

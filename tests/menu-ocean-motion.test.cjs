@@ -15,7 +15,7 @@ test('submarine menu preserves native game actions behind cinematic suction',()=
  assert.match(js,/s\.button\.click\(\)/);
  assert.match(js,/ROUTES=\[/);
  assert.match(js,/function renderCurrents\(now\)/);
- assert.match(js,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(js,/currents\.bezierCurveTo\(b\.x,b\.y,c\.x,c\.y,d\.x,d\.y\)/);
  assert.match(js,/window\.addEventListener\('abyssal-menu-portal-cancelled'/);
 });
 
@@ -55,7 +55,7 @@ test('red reticle and changed assets are delivered with a fresh offline cache',(
  assert.match(svg,/width="32" height="32" viewBox="0 0 48 48"/);
  assert.match(svg,/<circle cx="24" cy="24" r="2\.6"/);
  assert.match(css,/cursor:url\('abyssal-red-reticle\.svg\?v=1'\) 16 16,crosshair!important/);
- assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.13/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.14/);
  assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.13/);
  assert.match(sw,/'abyssal-red-reticle\.svg'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
@@ -66,15 +66,15 @@ test('three destinations keep the definitive bottom arrangement, routes and hatc
  const scene=read('public/ocean-menu-scenery.js');
  const html=read('public/index.html');
  const css=read('public/abyssal-menu-v2.css');
- const online=js.indexOf("id:'onlineBtn',x:.18,y:.64");
- const solo=js.indexOf("id:'playBtn',x:.50,y:.64");
- const fossas=js.indexOf("id:'riftPortalBtn',x:.82,y:.84");
- assert.ok(online>=0&&solo>online&&fossas>solo,'Online left, Solo middle, Fossas right');
+ const solo=js.indexOf("id:'playBtn',x:.19,y:.47");
+ const online=js.indexOf("id:'onlineBtn',x:.81,y:.47");
+ const fossas=js.indexOf("id:'riftPortalBtn',x:.50,y:.835");
+ assert.ok(solo>=0&&online>solo&&fossas>online,'Solo left, Online right, Fossas centered at the bottom');
  assert.match(js,/hatch=\(\)=>\(\{x:w\*\.5,y:86\*/);
  assert.match(js,/s\.button\.click\(\)/);
  assert.match(js,/window\.addEventListener\('abyssal-menu-portal-cancelled'/);
- assert.match(scene,/const fissureX=width\*\.82/);
- assert.match(scene,/const mouthX=width\*\.82/);
+ assert.match(scene,/const fissureX=width\*\.50/);
+ assert.match(scene,/const mouthX=width\*\.5/);
  assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #riftPortalBtn\.abyss-fissure-entry/);
  assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #wheelBtn/);
  assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #resonanceBtn/);
@@ -82,5 +82,5 @@ test('three destinations keep the definitive bottom arrangement, routes and hatc
  assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #shopBtn/);
  assert.match(css,/#shopScreen #skinGrid \.skin-card/);
  const stage=html.slice(html.indexOf('<div id="menuOceanPortalLayer"'),html.indexOf('<div id="menuOceanDiver"'));
- assert.equal((stage.match(/class="abyss-destination/g)||[]).length,3);
+ assert.equal((stage.match(/class="abyss-destination(?:\s|\")/g)||[]).length,3);
 });

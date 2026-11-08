@@ -93,9 +93,14 @@ test('UGC modal exists before online client scripts execute',()=>{
 
 
 test('solo and resonance occupy separate spatial destinations',()=>{
- const menu=read('public/abyssal-menu-ocean.js');
- assert.match(menu,/playBtn:\{x:\.40,y:\.18/);
- assert.match(menu,/resonanceBtn:\{x:\.14,y:\.63/);
+
+ const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html');
+ assert.match(menu,/id:'playBtn',x:\.19,y:\.47/);
+ assert.match(menu,/id:'onlineBtn',x:\.81,y:\.47/);
+ assert.match(html,/<nav class="abyss-ocean-utilities"/);
+ const nav=html.slice(html.indexOf('<nav class="abyss-ocean-utilities"'),html.indexOf('</nav>',html.indexOf('<nav class="abyss-ocean-utilities"')));
+ assert.match(nav,/id="resonanceBtn"/);
+ assert.doesNotMatch(nav,/id="playBtn"/);
 });
 
 test('Abyssary reads current enemy balance and wraps stat badges',()=>{
@@ -121,10 +126,13 @@ test('boss bundle displays 39.99 and discounts missing specimens proportionally'
 });
 
 test('mobile menu has independently sized stations and touch navigation',()=>{
+
  const css=read('public/abyssal-menu-v2.css'),menu=read('public/abyssal-menu-ocean.js');
  assert.match(css,/@media\(max-width:550px\)/);
  assert.match(css,/abyss-ocean-mobile-pad/);
- assert.match(menu,/data-ocean-move/);
+ assert.match(menu,/joystickX=dx\/length\*scale/);
+ assert.match(menu,/pad\.setPointerCapture\(e\.pointerId\)/);
+ assert.match(menu,/stage\.addEventListener\('pointerdown'/);
 });
 
 test('multiplayer keeps offscreen enemy motion warm instead of viewport-culling mobs',()=>{

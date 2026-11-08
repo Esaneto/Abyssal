@@ -1854,8 +1854,10 @@ io.on('connection', socket => {
   if(shot.special==='photonRay'){
    const dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
    const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
-   const sx=Number(shooter.x)+(speed>0?dx/speed:1)*gunDistance;
-   const sy=Number(shooter.y)+(speed>0?dy/speed:0)*gunDistance;
+   const uxMuzzle=speed>0?dx/speed:1,uyMuzzle=speed>0?dy/speed:0;
+   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14;
+   const sx=Number(shooter.x)+uxMuzzle*gunDistance-uyMuzzle*below;
+   const sy=Number(shooter.y)+uyMuzzle*gunDistance+uxMuzzle*below;
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
@@ -1953,8 +1955,9 @@ io.on('connection', socket => {
    // never from arbitrary client origin coordinates.
    const shotHeading=Math.atan2(vy*shotWorldHeight,vx*WORLD_WIDTH);
    const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.BARREL_TIP_X/14;
-   const authoritativeMuzzleX=sx+Math.cos(shotHeading)*gunDistance;
-   const authoritativeMuzzleY=sy+Math.sin(shotHeading)*gunDistance;
+   const below=(Number(shooter.r)||13/WORLD_ZOOM)*DiverArt.DRAW_SCALE*DiverArt.GUN_OFFSET_Y/14;
+   const authoritativeMuzzleX=sx+Math.cos(shotHeading)*gunDistance-Math.sin(shotHeading)*below;
+   const authoritativeMuzzleY=sy+Math.sin(shotHeading)*gunDistance+Math.cos(shotHeading)*below;
    if(shot.special!=='nova'){
     shot.x=authoritativeMuzzleX/WORLD_WIDTH;
     shot.y=authoritativeMuzzleY/shotWorldHeight;

@@ -65,12 +65,12 @@ test('fused Nova retains its cone shot and adds field damage, never default shot
  assert.match(server,/novaConeUntil/);
 });
 
-test('submarine menu streams flow from the diver into just three mode encounters',()=>{
+test('submarine menu streams water outwards into two natural currents and Fossas',()=>{
  const menu=read('public/abyssal-menu-ocean.js'),css=read('public/abyssal-menu-v2.css');
  assert.match(menu,/stage\.insertBefore\(routesCanvas,diver\)/);
  assert.match(menu,/function renderCurrents\(now\)/);
- assert.match(menu,/currents\.lineDashOffset=-now\*\.047/);
- assert.match(menu,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(menu,/currents\.lineDashOffset=-now\*\(\.034\+/);
+ assert.match(menu,/currents\.bezierCurveTo\(b\.x,b\.y,c\.x,c\.y,d\.x,d\.y\)/);
  assert.match(menu,/ROUTES=\[/);
  assert.match(css,/\.submarine-menu \.abyss-current-entry/);
 });
@@ -80,6 +80,6 @@ test('portrait uses original swim pose and diver hair is individual underwater s
  assert.match(game,/dx=w\*\.42,dy=h\*\.60/);
  assert.match(game,/27,-\.10,-\.10,t,\{gender:diverGender,moving:true\}/);
  assert.match(art,/const hairLength=female\?60:20/);
- assert.match(art,/const locks=female\?29:23/);
+ assert.match(art,/const locks=female\?46:34/);
  assert.match(art,/Math\.sin\(phase\)/);
 });
