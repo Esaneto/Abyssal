@@ -98,6 +98,11 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if(data&&serverAccount&&data.nickname===serverAccount.nickname)serverAccount={...serverAccount,...(data.cardumeId?{cardumeId:data.cardumeId}:{})};
   const root=$('profileTitleGrid');if(!root)return;
   const user=data||{},stats=user.titleStats||{},kills=profileNumber(stats.monstersDefeated),bosses=profileNumber(stats.bossesDefeated);
+  const appearance=user.diverGender==='female'?'female':'male';
+  document.querySelectorAll('#profileDiverGender [data-diver-gender]').forEach(button=>{
+   button.setAttribute('aria-pressed',String(button.dataset.diverGender===appearance));
+   button.disabled=Boolean(user.isSelf===false);
+  });
   const received=profileNumber(user.likesReceived),given=profileNumber(user.likesGiven),created=profileNumber(stats.cardumesCreated);
   const progressFor=t=>t.kind==='kills'?kills:t.kind==='bosses'?bosses:t.kind==='likesReceived'?received:t.kind==='likesGiven'?given:t.kind==='cardumesCreated'?created:(t.kind==='storeSupporter'||t.kind==='bossAbyssal'||t.kind==='conqueror')?(Array.isArray(user.unlockedTitles)&&user.unlockedTitles.includes(t.id)?1:0):profileNumber(stats[t.kind]);
   const equipped=user.equippedTitle||'abyss-drifter';
