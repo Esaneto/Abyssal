@@ -365,6 +365,7 @@ function registerSpecimenDiscovery(id,notify=true){
  id=String(id||'');
  if(!id||discoveredSpecimens.has(id))return;
  discoveredSpecimens.add(id);persistSpecimenDiscovery();
+ if($('catalogScreen')&&!$('catalogScreen').hidden)renderCatalog();
  if(notify){
   window.dispatchEvent(new CustomEvent('abyssal-specimen-discovery-request',{detail:{id}}));
   showToast('NOVO ESPÉCIME REGISTRADO');
@@ -1375,7 +1376,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])];
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:W*.5,y:H*.5};
  expandingSkinClouds.length=0;
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:55,maxHp:55,alive:true,respawnTimer:0,invuln:1.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
@@ -2537,7 +2538,9 @@ function updateSpecimenRuntime(dt){
  }
  // Avoid hostile hitboxes while collecting: safety outranks XP.
  const pos={x:s.x,y:s.y},radius=Number(s.r)||11/GAME_WORLD_ZOOM;
- const threats=(onlineMode?enemies:enemies).filter(e=>e&&e.hp>0).map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
+ const threatRadiusSq=(280/GAME_WORLD_ZOOM)**2;
+  const threats=enemies.filter(e=>e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq)
+   .map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
  const orb=SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
  let target=orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
@@ -2547,7 +2550,7 @@ function updateSpecimenRuntime(dt){
  }
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
- const normalSpeed=Math.max(0,player.moveSpeed*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
+ const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.biologicalStats(equippedSkin).speed/GAME_WORLD_ZOOM)*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:threats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
   resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)})});
@@ -4747,8 +4750,10 @@ document.querySelectorAll('[data-resonance-mode]').forEach(b=>b.addEventListener
 $('saveResonanceBtn')?.addEventListener('click',()=>{const counts=resonanceCounts();if(counts.shots!==1){$('resonanceMessage').textContent='Selecione exatamente 1 disparo.';renderResonanceChoices();return;}if(!resonancePresets[resonanceEditingMode].length){$('resonanceMessage').textContent='Selecione pelo menos uma habilidade.';return;}saveResonancePresets();$('resonanceMessage').textContent='Combinação '+resonanceEditingMode.toUpperCase()+' salva!';updateResonanceCount();});
 document.querySelectorAll('[data-close-screen="resonanceScreen"]').forEach(b=>b.addEventListener('click',()=>$('resonanceScreen').hidden=true));renderResonanceChoices();
 
+let journalPreviewObserver=null;
 function renderCatalog(){
  const el=$('catalogScreen'),grid=$('catalogGrid');if(!el||!grid)return;el.hidden=false;
+ journalPreviewObserver?.disconnect();journalPreviewObserver=null;
  const codex=getAbyssalCodex();
  const monsterData={
   drifter:{name:'Errante Luminescente',color:'#ff769d',hp:22,speed:51,damage:8,ability:'Choque Bio-Ondulatório: contato causa 8% mais dano e 0,65 s de neurochoque; recarga 0,95 s.',desc:'Ctenóforo translúcido que descarrega pulsos nervosos quando encosta na presa.'},
@@ -4777,7 +4782,7 @@ function renderCatalog(){
 
   return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}">
    <div class="codex-preview monster-preview" style="--preview:${m.color}">
-     <canvas width="180" height="112" data-monster-preview="${k}" aria-label="Prévia real de ${known?m.name:'uma criatura não identificada'}"></canvas>
+     ${known?`<canvas width="180" height="112" data-monster-preview="${k}" aria-label="Ilustração de ${escapeHtml(m.name)}"></canvas>`:'<span class="journal-sealed">NÃO REGISTRADO</span>'}
    </div>
    <div class="codex-header-row">
      <b>${known?m.name:'Forma não identificada'}</b>
@@ -4791,8 +4796,46 @@ function renderCatalog(){
  const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
  const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
  const entries=Object.entries(monsterData),common=entries.filter(([k])=>!BOSS_KINDS.includes(k)),bosses=entries.filter(([k])=>BOSS_KINDS.includes(k));
- grid.innerHTML='<h3 class="codex-heading">◈ FAUNA DAS CAMADAS EXTERNAS</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div><h3 class="codex-heading">☠ ENTIDADES COLOSSAIS · FOSSAS ABISSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
- grid.querySelectorAll('canvas[data-monster-preview]').forEach(canvas=>{const kind=canvas.dataset.monsterPreview,m=monsterData[kind];renderCreaturePreview(canvas,kind,m.color,null);});
+ const specimenCards=skinData.map((skin,index)=>{
+  const known=skin.id==='default'||discoveredSpecimens.has(skin.id);
+  const b=SPECIMEN_SYSTEM.biologicalStats(skin.id);
+  const family=SPECIMEN_SYSTEM.FAMILY_LABELS[b.family]||b.family;
+  const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
+  const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
+  return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'">'
+   +'<small class="journal-page-no">FOLHA '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
+   +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
+   +(known?'<small class="journal-classification">TIPO: '+escapeHtml(family)+' · '+escapeHtml(rarityLabel)+'</small>'
+    +'<div class="journal-stat-row"><span><b>VIDA</b> '+b.hp+'</span><span><b>DANO</b> '+b.damage+'</span><span><b>VELOCIDADE</b> '+b.speed+'</span></div>'
+    +'<p class="journal-handwritten">Ataque: '+escapeHtml(b.attack)+'</p>'
+    +'<p><b>Efeito:</b> '+escapeHtml(b.effect)+'</p><p class="journal-description">'+escapeHtml(skin.desc)+'</p>'
+    :'<p class="journal-handwritten">Avistamento pendente nas Fossas Abissais.</p>')
+   +'</article>';
+ }).join('');
+ const found=skinData.filter(s=>s.id==='default'||discoveredSpecimens.has(s.id)).length;
+ grid.innerHTML='<div class="journal-progress">CADERNO EM CONSTRUÇÃO · '+found+' DE '+skinData.length+' ESPÉCIMES REGISTRADOS</div>'
+  +'<h3 class="codex-heading">I · ESPÉCIMES</h3><div class="codex-grid journal-specimen-grid">'+specimenCards+'</div>'
+  +'<h3 class="codex-heading">II · FAUNA EXTERNA</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div>'
+  +'<h3 class="codex-heading">III · ENTIDADES COLOSSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
+ const previewCanvases=[...grid.querySelectorAll('canvas[data-specimen-preview],canvas[data-monster-preview]')];
+ const paintJournalCreature=canvas=>{
+  if(canvas.dataset.specimenPreview){
+   const skin=skinData.find(s=>s.id===canvas.dataset.specimenPreview);
+   if(skin)renderCreaturePreview(canvas,'player',skin.color,skin);
+  }else{
+   const kind=canvas.dataset.monsterPreview,m=monsterData[kind];
+   if(m)renderCreaturePreview(canvas,kind,m.color,null);
+  }
+ };
+ if('IntersectionObserver' in window){
+  journalPreviewObserver=new IntersectionObserver(entries=>{
+   for(const entry of entries)if(entry.isIntersecting){
+    paintJournalCreature(entry.target);journalPreviewObserver?.unobserve(entry.target);
+   }
+  },{root:el.querySelector('.codex-modal'),rootMargin:'140px 0px'});
+  previewCanvases.forEach(canvas=>journalPreviewObserver.observe(canvas));
+ }else previewCanvases.forEach(paintJournalCreature);
 }
 
 $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
