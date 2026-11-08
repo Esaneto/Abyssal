@@ -137,7 +137,7 @@ test('PvP radial wave renderer cannot bridge through arena rocks',()=>{
 
 test('local PvP nova uses the same rock-occluded rings as remote nova',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode\)/);
+ assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined\)/);
  assert.match(game,/function spawnNovaVisual/);
 });
 
@@ -198,8 +198,9 @@ test('local and remote Nova share one visual constructor',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
  assert.match(game,/function spawnNovaVisual\(/);
  assert.match(game,/spawnNovaVisual\(player\.x,player\.y,novaRange,'#72f5ff',isPvpMode\)/);
- assert.match(game,/spawnNovaVisual\(x,y,max,col,onlineRoomMode==='pvp'\)/);
+ assert.match(game,/spawnNovaVisual\(x,y,max,col,onlineRoomMode==='pvp',heading/);
  assert.match(game,/type:'nova-core'/);
+ assert.match(game,/type:'gravity-cone'/);
 });
 
 test('Q Pulse uses authoritative online damage and PvP wall occlusion',()=>{
