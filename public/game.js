@@ -4413,7 +4413,8 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
  const isSpecimenVessel=Boolean(canvas.closest?.('#shopScreen'));
  const bg=c.createRadialGradient(w*.48,h*.42,2,w*.5,h*.5,Math.max(w,h)*.7);
  bg.addColorStop(0,'#0d2637');bg.addColorStop(.62,'#06121d');bg.addColorStop(1,'#020812');
- c.fillStyle=bg;c.fillRect(0,0,w,h);
+ // Laboratory water and the handwritten journal paper must remain visible beneath the creature.
+ if(!isSpecimenVessel && !canvas.closest?.('#catalogScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
  // Do not wrap every species in the same orbit/ring. The anatomy must dominate the preview.
  c.save();c.globalAlpha=.16;c.fillStyle=color;c.beginPath();c.ellipse(w*.5,h*.72,w*.21,h*.055,0,0,Math.PI*2);c.fill();c.restore();
  let scale=1;
@@ -4442,21 +4443,27 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
 // The shop uses no GIF/video downloads. Visible previews are repainted at
 // 6-8 FPS with a strict per-tick cap and stop when the shop is closed.
 let shopMotionFrame=0,shopMotionLast=0,shopMotionCursor=0;
+let shopMotionObserver=null;
+const shopMotionVisible=new Set();
 function animateVisibleShopSkins(now){
  const screen=$('shopScreen');
  if(!screen||screen.hidden||document.hidden){shopMotionFrame=0;return;}
  const interval=isMobileDevice()?180:125;
  if(now-shopMotionLast>=interval){
   shopMotionLast=now;
-  const canvases=screen.querySelectorAll('.skin-preview-canvas[data-skin-id]');
+  // Only animate capsules actually intersecting the scroll viewport.
+  // With an observer this avoids scanning all catalogue canvases every 125ms.
+  const canvases=shopMotionObserver?[...shopMotionVisible]:[...screen.querySelectorAll('.skin-preview-canvas[data-skin-id]')];
   if(canvases.length){
    const limit=isMobileDevice()?2:4;
    let drawn=0,scanned=0;
    while(scanned<canvases.length&&drawn<limit){
     const canvas=canvases[shopMotionCursor%canvases.length];
     shopMotionCursor=(shopMotionCursor+1)%canvases.length;scanned++;
-    const rect=canvas.getBoundingClientRect();
-    if(rect.bottom<0||rect.top>window.innerHeight||rect.width<1)continue;
+    if(!shopMotionObserver){
+     const rect=canvas.getBoundingClientRect();
+     if(rect.bottom<0||rect.top>window.innerHeight||rect.width<1)continue;
+    }
     const skin=skinData.find(item=>item.id===canvas.dataset.skinId);
     if(!skin)continue;
     renderCreaturePreview(canvas,'player',skin.color,skin);drawn++;
@@ -4543,6 +4550,12 @@ window.addEventListener('abyssal-world-defeated-batch',ev=>{
 let shopPreviewObserver=null;
 function renderShop(){
  shopPreviewObserver?.disconnect();shopPreviewObserver=null;
+ shopMotionObserver?.disconnect();shopMotionObserver=null;shopMotionVisible.clear();
+ if('IntersectionObserver' in window){
+  shopMotionObserver=new IntersectionObserver(entries=>{
+   for(const entry of entries){if(entry.isIntersecting)shopMotionVisible.add(entry.target);else shopMotionVisible.delete(entry.target);}
+  },{root:$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'0px'});
+ }
  if('IntersectionObserver' in window){
   shopPreviewObserver=new IntersectionObserver(entries=>{
    for(const entry of entries)if(entry.isIntersecting){
@@ -4594,7 +4607,7 @@ card.innerHTML=`<div class="skin-preview specimen-vessel">
  <button ${equipped?'disabled':''}>${purchaseLabel}</button>`;
 const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
 const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
-        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
+        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card);if(known)shopMotionObserver?.observe(preview)});
  const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
  const remainingIds=bundleIds.filter(id=>!ownedSkins.includes(id)),remaining=remainingIds.length;
