@@ -477,14 +477,14 @@ function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill
 }
 
 // Every PvE XP reward becomes a stationary, server-owned orb. No damage shares.
-function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null){
+function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null,position=null){
  if(!room||room.mode==='pvp'||!(Number(total)>0))return;
  const w=room.world;if(!w)return;
  w.orbs=Array.isArray(w.orbs)?w.orbs:[];
  const enemy=w.enemies.find(e=>String(e.id)===String(enemyId));
  const player=[...room.players.values()].find(p=>p.alive!==false);
- const x=Number(enemy?.x??player?.x??WORLD_WIDTH/2);
- const y=Number(enemy?.y??player?.y??roomWorldHeight(room)/2);
+ const x=Number(position?.x??enemy?.x??player?.x??WORLD_WIDTH/2);
+ const y=Number(position?.y??enemy?.y??player?.y??roomWorldHeight(room)/2);
  const orb={id:(w.nextOrbId=(Number(w.nextOrbId)||0)+1),x,y,value:Math.max(1,Math.round(Number(total))),source,spawnedAt:Date.now()};
  w.orbs.push(orb);
  if(w.orbs.length>160)w.orbs.shift();
@@ -974,10 +974,10 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    // boss after another complete progression segment.
    w.nextBossAt=room.mode==='rift'?Infinity:(Number(w.elapsed)||0)+100/3.8;
   }
-  grantSharedXp(room,WorldSimulation.xpValueForEnemy(w,enemy),enemy.damageContributors,'kill',enemy.id);
+  grantSharedXp(room,WorldSimulation.xpValueForEnemy(w,enemy),null,'kill',enemy.id,{x:enemy.x,y:enemy.y});
   if(!boss&&enemy.eliteId&&enemy.spawnRoomId==='elite'&&Number(w.eliteRewardClaimedTier)!==Number(w.mapTier)){
    w.eliteRewardClaimedTier=Math.max(0,Math.floor(Number(w.mapTier)||0));
-   grantSharedXp(room,ExpeditionRules.eliteRoomBonusValue?.(w.mapTier)||18,enemy.damageContributors,'elite-cache',enemy.id);
+   grantSharedXp(room,ExpeditionRules.eliteRoomBonusValue?.(w.mapTier)||18,null,'elite-cache',enemy.id,{x:enemy.x,y:enemy.y});
    io.to(channelFor(room)).emit('world-cave-signal',{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:w.mapTier});
   }
  if(boss){
@@ -1288,7 +1288,7 @@ function tickRoom(room, now) {
  for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
  for(const death of environmentKills){
   io.to(channelFor(room)).emit('world-enemy-defeated',death);
-  grantSharedXp(room,death.xpValue||1,death.contributors,'rift-hazard-kill',death.id);
+  grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
   if(death.boss){awardWorldBossCoins(room);WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}
  }
  if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
