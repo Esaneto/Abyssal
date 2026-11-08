@@ -65,17 +65,14 @@ test('fused Nova retains its cone shot and adds field damage, never default shot
  assert.match(server,/novaConeUntil/);
 });
 
-test('menu streams originate at the swimmer and carry animated labels near it',()=>{
- const menu=read('public/abyssal-menu-ocean.js');
- const css=read('public/abyssal-menu-v2.css');
+test('submarine menu streams flow from the diver into just three mode encounters',()=>{
+ const menu=read('public/abyssal-menu-ocean.js'),css=read('public/abyssal-menu-v2.css');
  assert.match(menu,/stage\.insertBefore\(routesCanvas,diver\)/);
- assert.match(menu,/const fromX=px-camX,fromY=py-camY/);
- assert.match(menu,/function drawNavigationStreams\(now\)/);
- assert.match(menu,/drawNavigationStreams\(now\)/);
- assert.match(menu,/routesCtx\.lineDashOffset=-now\*\.045/);
- assert.match(menu,/routesCtx\.fillText\(ch,0,0\)/);
- assert.doesNotMatch(menu,/function drawPortalRoutes\(/);
- assert.match(css,/z-index:5!important;pointer-events:none!important/);
+ assert.match(menu,/function renderCurrents\(now\)/);
+ assert.match(menu,/currents\.lineDashOffset=-now\*\.047/);
+ assert.match(menu,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(menu,/ROUTES=\[/);
+ assert.match(css,/\.submarine-menu \.abyss-current-entry/);
 });
 
 test('portrait uses original swim pose and diver hair is individual underwater strands',()=>{
