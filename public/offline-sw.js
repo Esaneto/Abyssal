@@ -26,6 +26,7 @@ const GAME_FILES = [
   'server-config.js',
   'i18n.js',
   'skin-standard.js','skin-abilities.js',
+  'specimen-system.js',
   'specimen-evasion.js','specimen-rarity.js',
   'gravity-cone.js',
   'abyssal-curated-skins.js',
