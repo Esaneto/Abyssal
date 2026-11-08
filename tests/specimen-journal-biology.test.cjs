@@ -36,6 +36,7 @@ test('the Abyssario reveals a gradual journal without changing shop prices',()=>
  assert.match(css,/#shopScreen #skinGrid \.skin-card \.skin-preview\.specimen-vessel/);
  assert.match(game,/specimen-journal-entry/);
  assert.match(game,/IntersectionObserver/);
+ assert.match(game,/shopPreviewObserver/);
  assert.match(game,/SPECIMEN_SYSTEM\.biologicalStats\(equippedSkin\)\.hp/);
 });
 test('multiplayer uses authoritative biological vitals and speed',()=>{
