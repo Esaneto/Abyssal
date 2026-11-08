@@ -820,8 +820,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // Enemies remain invulnerable for the entire emergence animation.
   if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
   // Reject hits through solid cave walls on the authoritative server.
-  if(room.mode==='rift'&&player&&AbyssalMap.segmentWalkable&&
-     !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(player.x),Number(player.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+  const hitOrigin=skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:player;
+  if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
+     !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
   let requestedDamage=damage;
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
@@ -1086,7 +1087,7 @@ function tickRoom(room, now) {
  if(room.mode==='pvp'){
   if(room.pvpProjectiles?.length)PvpProjectiles.advance(room.pvpProjectiles,activePlayers,now,pvpRockAt,(shot,target,point,at)=>resolveMovingPvpShot(room,shot,target,point,at));
    const w=room.world;w.sharkWakeTrails=Array.isArray(w.sharkWakeTrails)?w.sharkWakeTrails:[];
-  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.60;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(!DiverHitbox.circleHit(target,bubble.x,bubble.y,bubble.r,now))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
+  for(let i=w.sharkWakeTrails.length-1;i>=0;i--){const bubble=w.sharkWakeTrails[i];if(bubble.life<=0){w.sharkWakeTrails.splice(i,1);continue;}if(bubble.damageTimer>0)continue;bubble.damageTimer=.60;for(const target of activePlayers){if(target.id===bubble.ownerId||target.alive===false)continue;if(!DiverHitbox.circleHit(target,bubble.x,bubble.y,bubble.r,now)||pvpSegmentHitsRock(bubble.x,bubble.y,target.x,target.y,1/WORLD_ZOOM))continue;const hitAt=Date.now();let blocked=false;const bubbleOwner=room.players.get(bubble.ownerId);const bubbleDamage=pvpDamageAmount(bubbleOwner,target,1.1,Math.hypot(Number(target.x)-Number(bubbleOwner?.x),Number(target.y)-Number(bubbleOwner?.y)));if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=hitAt+350;blocked=true;}else if(hitAt>=(Number(target.invulnerableUntil)||0)){if(hitAt-(Number(target.lastBubbleDamageAt)||0)<BUBBLE_TRAIL_HIT_MS)continue;target.lastBubbleDamageAt=hitAt;target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-bubbleDamage);target.lastDamageAt=hitAt;target.invulnerableUntil=hitAt+90;if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,bubble.ownerId);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi engolido pelas profundezas.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}}else continue;io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active-trail',damage:blocked?0:bubbleDamage,attackerId:bubble.ownerId,serverTime:hitAt}));io.to(channelFor(room)).emit('pvp-hit',{x:bubble.x/WORLD_WIDTH,y:bubble.y/WORLD_HEIGHT,targetId:target.id,attackerId:bubble.ownerId,damage:blocked?0:bubbleDamage,blocked,source:bubble.skinActive?'skin-active-trail':'reefshark-bubble'});}}
   if(now-(Number(room.lastPlayersBroadcastAt)||0)>=40){room.lastPlayersBroadcastAt=now;io.to(channelFor(room)).volatile.emit('player-motion',NetCodec.playerMotion(getRoomPlayerMotion(room)));}
   return;
  }
@@ -1113,9 +1114,9 @@ function tickRoom(room, now) {
    enemy.skinTrailLastHit ||= Object.create(null);
    if(now-(Number(enemy.skinTrailLastHit[owner.id])||0)<600)continue;
    enemy.skinTrailLastHit[owner.id]=now;
-   owner.skinActiveServerResolving=true;
+   owner.skinActiveServerResolving=true;owner.skinTrailDamageOrigin={x:bubble.x,y:bubble.y};
    try{processWorldDamage(ownerSocket,Number(enemy.id),.9,'skin-active-trail',null,'trail:'+now);}
-   finally{owner.skinActiveServerResolving=false;}
+   finally{owner.skinActiveServerResolving=false;owner.skinTrailDamageOrigin=null;}
   }
  }
  // The companion is a separate target for hostile contact, boss abilities and
