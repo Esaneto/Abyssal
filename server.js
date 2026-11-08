@@ -15,6 +15,7 @@ const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
+const SpecimenEvasion = require('./public/specimen-evasion.js');
 const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
@@ -1154,25 +1155,13 @@ function tickRoom(room, now) {
   }else victim.skinPushImpulse=null;
   if(t>=1)victim.skinPushImpulse=null;
  }
- // Server-owned companion pursuit uses the normal movement speed, not Ghost Step.
+ // Companions treat survival as higher priority than orb collection.
+ const hostile=room.mode==='pvp'?[]:(room.world?.enemies||[]).map(e=>({x:Number(e.x)||0,y:Number(e.y)||0,r:(Number(e.r)||10)/WORLD_ZOOM,hp:e.hp}));
+ const riftLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
  for(const peer of activePlayers){
-  let destinationX=Number(peer.x)||0,destinationY=(Number(peer.y)||0)-34/WORLD_ZOOM;
-  const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
-  let nearestOrb=null,nearestDistance=Infinity;
-  if(room.mode!=='pvp')for(const orb of room.world?.orbs||[]){
-   if(Math.hypot(orb.x-peer.x,orb.y-peer.y)>acquisitionRange)continue;
-   const d=Math.hypot(orb.x-(Number(peer.specimenX)||peer.x),orb.y-(Number(peer.specimenY)||peer.y));
-   if(d>=nearestDistance)continue;
-   nearestDistance=d;nearestOrb=orb;
+  if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){
+   peer.specimenX=Number(peer.x)||0;peer.specimenY=(Number(peer.y)||0)-34/WORLD_ZOOM;
   }
-  if(nearestOrb){
-   destinationX=nearestOrb.x;destinationY=nearestOrb.y;
-   if(room.mode==='rift'&&AbyssalMap.navigationTarget){
-    const target=AbyssalMap.navigationTarget(WorldSimulation.mapLayoutFor(room.world),Number(peer.specimenX)||peer.x,Number(peer.specimenY)||peer.y,destinationX,destinationY,{padding:5/WORLD_ZOOM});
-    if(target&&!target.blocked){destinationX=target.x;destinationY=target.y;}
-   }
-  }
-  if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){peer.specimenX=destinationX;peer.specimenY=destinationY;}
   const lastAt=Number(peer.specimenLastAt)||now,dt=Math.min(.12,Math.max(0,(now-lastAt)/1000));peer.specimenLastAt=now;
   if(peer.specimenAlive===false)continue;
   if(peer.specimenDash&&now<(Number(peer.specimenDashUntil)||0)){
@@ -1181,22 +1170,20 @@ function tickRoom(room, now) {
    peer.specimenY=dash.y1+(dash.y2-dash.y1)*progress;
    continue;
   }
-  if(peer.specimenDash){
-   peer.specimenX=peer.specimenDash.x2;peer.specimenY=peer.specimenDash.y2;
-   peer.specimenDash=null;
-   emitSpecimenState(room,peer,'dash-landed');
+  if(peer.specimenDash){peer.specimenX=peer.specimenDash.x2;peer.specimenY=peer.specimenDash.y2;peer.specimenDash=null;emitSpecimenState(room,peer,'dash-landed');}
+  const pos={x:peer.specimenX,y:peer.specimenY},radius=11/WORLD_ZOOM;
+  const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
+  const orb=room.mode==='pvp'?null:SpecimenEvasion.bestOrb(pos,room.world?.orbs||[],peer,acquisitionRange,hostile,radius,28/WORLD_ZOOM);
+  let target=orb?{x:orb.x,y:orb.y}:{x:(Number(peer.x)||0),y:(Number(peer.y)||0)-34/WORLD_ZOOM};
+  if(riftLayout){
+   const route=AbyssalMap.navigationTarget(riftLayout,pos.x,pos.y,target.x,target.y,{padding:5/WORLD_ZOOM});
+   if(route&&!route.blocked)target={x:route.x,y:route.y};
   }
-  const dx=destinationX-peer.specimenX,dy=destinationY-peer.specimenY,distance=Math.hypot(dx,dy);
-  const normalSpeed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
-  const travel=Math.min(distance,normalSpeed*dt);
-  if(distance>.001&&travel>0){
-   const nextX=peer.specimenX+dx/distance*travel,nextY=peer.specimenY+dy/distance*travel;
-   if(room.mode==='rift'){
-    const layout=WorldSimulation.mapLayoutFor(room.world);
-    const resolved=AbyssalMap.resolveMove(layout,peer.specimenX,peer.specimenY,nextX,nextY,5/WORLD_ZOOM);
-    if(resolved){peer.specimenX=resolved.x;peer.specimenY=resolved.y;}
-   }else{peer.specimenX=nextX;peer.specimenY=nextY;}
-  }
+  const speed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
+  const move=SpecimenEvasion.steer({position:pos,target,enemies:hostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
+   heading:Number(peer.specimenEvasionHeading)||0,
+   resolve:riftLayout?(x,y)=>AbyssalMap.resolveMove(riftLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):null});
+  peer.specimenX=move.x;peer.specimenY=move.y;peer.specimenEvasionHeading=move.angle;
  }
  const w = room.world;
  tickSpecimenOrbs(room,activePlayers);
