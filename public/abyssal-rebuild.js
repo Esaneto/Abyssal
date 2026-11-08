@@ -128,10 +128,13 @@ function createGate(){
     window.addEventListener('pagehide',function(){window.cancelAnimationFrame(handle);},{once:true});
   }
 
-  var orbit=menu.querySelector('.abyss-orbit-navigation');
-  if(orbit)orbit.appendChild(gate);
-  else { var fauna=menu.querySelector('.menu-fauna');menu.insertBefore(gate,fauna||menu.lastChild); }
-  runDesktopVortex();
+  var legacyMenu=!menu.classList.contains('ocean-menu-v2');
+  if(legacyMenu){
+   var orbit=menu.querySelector('.abyss-orbit-navigation');
+   if(orbit)orbit.appendChild(gate);
+   else { var fauna=menu.querySelector('.menu-fauna');menu.insertBefore(gate,fauna||menu.lastChild); }
+   runDesktopVortex();
+  }
 
   var panel=document.createElement('section');
   panel.id='abyssDescentPanel';
@@ -163,9 +166,10 @@ function createGate(){
 
   document.body.appendChild(panel);
 
-  var close=function(){panel.hidden=true;$('abyssGateButton')?.focus();};
-  gate.addEventListener('click',function(e){if(e.target!==$('abyssGateButton'))$('abyssGateButton').click();});
-  $('abyssGateButton')?.addEventListener('click',function(){
+  var portalTrigger=legacyMenu?$('abyssGateButton'):$('riftPortalBtn');
+  var close=function(){panel.hidden=true;portalTrigger?.focus();};
+  if(legacyMenu)gate.addEventListener('click',function(e){if(e.target!==$('abyssGateButton'))$('abyssGateButton').click();});
+  portalTrigger?.addEventListener('click',function(){
     panel.hidden=false;
     var first=panel.querySelector('[data-mode="solo"]');
     if(first)first.focus();
