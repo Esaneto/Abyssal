@@ -14,7 +14,9 @@ test('ocean menu keeps portal travel but supports click-and-hold mouse steering'
  assert.match(js,/navigateToPointer\(event\)/);
  assert.match(js,/if\(r\.width<10\|\|r\.height<10\)return/);
  assert.match(js,/Math\.abs\(stage\.clientWidth-stageW\)>2/);
- assert.match(js,/function drawPortalRoutes\(\)/);
+ assert.match(js,/function drawNavigationStreams\(\)/);
+ assert.match(js,/drawNavigationStreams\(now\)/);
+ assert.match(js,/routesCtx\.lineDashOffset=-now\*\.045/);
  assert.match(js,/routesCtx\.fillText\(station\.label/);
 });
 
@@ -27,11 +29,11 @@ test('menu microbubbles are cosmetic, fade and are capped',()=>{
  assert.match(read('public/abyssal-menu-v2.css'),/\.abyss-ocean-bubbles\{/);
 });
 
-test('profile places an upright diver facing right, specimen left',()=>{
+test('profile restores dynamic diagonal swimming pose',()=>{
  const js=read('public/game.js');
- assert.match(js,/dx=w\*\.64,dy=h\*\.53/);
- assert.match(js,/DIVER_ART\?\.draw\?\.\(c,dx,dy\+bob,27,-Math\.PI\/2,0,t/);
- assert.match(js,/sx=w\*\.23,sy=h\*\.52/);
+ assert.match(js,/dx=w\*\.42,dy=h\*\.60/);
+ assert.match(js,/DIVER_ART\?\.draw\?\.\(c,dx,dy\+bob,27,-\.10,-\.10,t/);
+ assert.match(js,/sx=w\*\.62,sy=h\*\.30/);
 });
 
 test('diver movement has short harmless bubbles but no old blue or speed streaks',()=>{
@@ -52,8 +54,8 @@ test('red reticle and changed assets are delivered with a fresh offline cache',(
  assert.match(svg,/width="32" height="32" viewBox="0 0 48 48"/);
  assert.match(svg,/<circle cx="24" cy="24" r="2\.6"/);
  assert.match(css,/cursor:url\('abyssal-red-reticle\.svg\?v=1'\) 16 16,crosshair!important/);
- assert.match(html,/abyssal-menu-ocean\.js\?v=7/);
- assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.7\.6/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.1/);
+ assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.1/);
  assert.match(sw,/'abyssal-red-reticle\.svg'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
 });
