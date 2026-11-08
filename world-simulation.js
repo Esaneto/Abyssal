@@ -26,7 +26,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
     mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {}, riftCompleted: false,
-    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0,
+    initialized: false, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
