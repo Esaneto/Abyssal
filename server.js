@@ -2006,9 +2006,35 @@ io.on('connection', socket => {
   if(!Number.isFinite(nx)||!Number.isFinite(ny)||nx<0||nx>1||ny<0||ny>1)return ack(false,'skin-active-position');
   const specimenPos=specimenPositionFor(player),originX=specimenPos.x,originY=specimenPos.y;
   if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>45/WORLD_ZOOM)return ack(false,'skin-active-position');
+  const radius=(Number(spec.range)||160)/WORLD_ZOOM,ux=Math.cos(angle),uy=Math.sin(angle);
+  const enemies=[...(room.world?.enemies||[])];
+  const worldLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
+  const canReachEnemy=e=>e&&Number(e.hp)>0&&
+   (!worldLayout||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(worldLayout,originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
+  const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,denom=dx*dx+dy*dy;if(denom<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/denom,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
+  const resolveEnemyDamage=(enemy,amount,skillId)=>{
+   if(!canReachEnemy(enemy))return;
+   player.skinActiveServerResolving=true;
+   try{processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
+   finally{player.skinActiveServerResolving=false;}
+  };
+  const areaEnemies=()=>enemies.filter(e=>canReachEnemy(e)&&Math.hypot(Number(e.x)-originX,Number(e.y)-originY)<=radius+(Number(e.r)||0)).slice(0,24);
+  const nearestEnemy=()=>areaEnemies().sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0]||null;
+  const livingOpponents=()=>[...room.players.values()].filter(p=>p.id!==player.id&&p.alive!==false);
+  const visiblePvpTargets=()=>livingOpponents().filter(p=>Math.hypot(p.x-originX,p.y-originY)<=radius+(Number(p.r)||0)&&
+   !pvpSegmentHitsRock(originX,originY,p.x,p.y,Math.max(2,Number(p.r)||13/WORLD_ZOOM))).slice(0,6);
+  const hitPvp=(target,amount,skillId)=>applySkinActivePvpDamage(room,player,target,amount,skillId,Date.now());
   player.skinActiveReadyAt=now+(active==='trail'?10000:0)+Math.round(Number(spec.cooldown||10)*1000);
+  if(active==='shield'){
+   const until=now+2000;
+   player.specimenShieldUntil=until;player.specimenInvulnerableUntil=until;
+   player.invulnerableUntil=Math.max(Number(player.invulnerableUntil)||0,until);
+   io.to(channelFor(room)).emit('skin-shield-bubble',{fromId:player.id,until,serverTime:now});
+  }
   if(active==='trail'){
-   // Continuous emission occurs in tickSkinTrailNodes using authoritative specimen movement.
+   player.skinTrailUntil=now+10000;player.skinTrailNextAt=now;
+   player.skinTrailLastX=NaN;player.skinTrailLastY=NaN;
+   // Samples are emitted by tickSkinTrailNodes from the authoritative specimen.
   }else if(active==='shot'||active==='slowShot'){
    const ex=originX+ux*radius,ey=originY+uy*radius;
    io.to(channelFor(room)).emit('skin-shot-telegraph',{fromId:player.id,x1:originX/WORLD_WIDTH,y1:originY/worldHeight,x2:ex/WORLD_WIDTH,y2:ey/worldHeight,color:room.mode==='pvp'?'#ff334f':spec.color,hitAt:now+450,active});
@@ -2030,14 +2056,14 @@ io.on('connection', socket => {
    else for(const target of targets){
     const hit=hitPvp(target,spec.damage,'skin-active-'+active);if(!hit)continue;
     if(active==='paralysis'){target.skinParalyzedUntil=Date.now()+520;io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});}
-    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*62/WORLD_ZOOM,ty=target.y+dy/d*62/WORLD_ZOOM;if(!pvpRockAt(tx,ty,Number(target.r)||13/WORLD_ZOOM)){target.x=tx;target.y=ty;io.to(target.id).emit('player-suction-pull',{dx:dx/d*62/WORLD_ZOOM,dy:dy/d*62/WORLD_ZOOM,bossId:'skin-push',strength:1});}}
+    if(active==='push'){const dx=target.x-originX,dy=target.y-originY,d=Math.hypot(dx,dy)||1,tx=target.x+dx/d*93/WORLD_ZOOM,ty=target.y+dy/d*93/WORLD_ZOOM;if(!pvpRockAt(tx,ty,Number(target.r)||13/WORLD_ZOOM)){target.x=tx;target.y=ty;io.to(target.id).emit('player-suction-pull',{dx:dx/d*93/WORLD_ZOOM,dy:dy/d*93/WORLD_ZOOM,bossId:'skin-push',strength:1,durationMs:320});}}
     if(active==='poison'||active==='cloud'){for(const delay of active==='poison'?[800,1600,2400]:[900,1800])setTimeout(()=>{const live=room.players.get(target.id);if(live?.alive!==false)hitPvp(live,1.2,'skin-active-poison-dot');},delay);}
    }
   }else{
    if(active==='dash'){const ex=originX+ux*radius,ey=originY+uy*radius;for(const e of enemies)if(canReachEnemy(e)&&lineDistance(e.x,e.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)resolveEnemyDamage(e,spec.damage,'skin-active-dash');}
    else if(active==='shield'){}
    else if(active==='poison'){const e=nearestEnemy();if(e){resolveEnemyDamage(e,spec.damage,'skin-active-poison');for(const delay of [800,1600,2400])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}}
-   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='paralysis')e.paralyzedUntil=Date.now()+520;if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}if(active==='cloud')for(const delay of [900,1800])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}
+   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='paralysis')e.paralyzedUntil=Date.now()+520;if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*645;e.kbVy=dy/d*645;}if(active==='cloud')for(const delay of [900,1800])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,1.2,'skin-active-poison-dot');},delay);}
   }
   ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active,activeDurationMs:active==='trail'?10000:0});
  });
