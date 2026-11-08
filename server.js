@@ -524,6 +524,17 @@ rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mo
 rooms.set(FOSSAS_ROOM_ID,makeRoom({id:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',capacity:6,mode:'rift'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
 function channelFor(room){return `abyss-room:${room.id}`;}
+function specimenPositionFor(player){
+ return {x:Number(player?.x)||0,y:(Number(player?.y)||0)-34/WORLD_ZOOM,r:11/WORLD_ZOOM};
+}
+function specimenStatsFor(player){return SpecimenSystem.stats(Number(player?.specimenPoints)||0);}
+function emitSpecimenState(room,player,reason='state'){
+ if(!room||!player)return;
+ const pos=specimenPositionFor(player);
+ const payload={playerId:player.id,skinId:player.skinId,alive:player.specimenAlive!==false,hp:Math.max(0,Number(player.specimenHp)||0),maxHp:Math.max(1,Number(player.specimenMaxHp)||55),respawnAt:Number(player.specimenRespawnAt)||0,x:pos.x/WORLD_WIDTH,y:pos.y/roomWorldHeight(room),reason,points:Number(player.specimenPoints)||0,stats:specimenStatsFor(player)};
+ io.to(channelFor(room)).emit('specimen-state',payload);
+}
+
 function publicRoomInfo(room){
  const bossCount=room.world.enemies.filter(e=>isBossKind(e.kind)).length;
  return {id:room.id,code:room.id,name:room.name,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
@@ -840,6 +851,11 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
    killer.titleStats.monstersDefeated=(Number(killer.titleStats.monstersDefeated)||0)+1;
    if(boss)killer.titleStats.bossesDefeated=(Number(killer.titleStats.bossesDefeated)||0)+1;if(boss&&player?.runStats&&!player.runStats.settled){player.runStats.personalBossesKilled=(Number(player.runStats.personalBossesKilled)||0)+1;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.bossesKilled=(Number(historyRow.bossesKilled)||0)+1;}
+   if(player?.specimenAlive!==false){
+    killer.specimenProficiency=SpecimenSystem.addKill(killer.specimenProficiency,player.skinId,boss);
+    player.specimenPoints=SpecimenSystem.pointsFor(killer.specimenProficiency,player.skinId);
+    io.to(socket.id).emit('specimen-proficiency',{skinId:player.skinId,points:player.specimenPoints,stats:SpecimenSystem.stats(player.specimenPoints)});
+   }
    scheduleTitleStatsSave();
    if(batch)batch.accountUpdated=true;
    else sendKillTitleProgress(socket,boss);
@@ -1011,6 +1027,34 @@ function tickRoom(room, now) {
  }
  w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
+ // Specimens are independent combat targets. Enemy contact can down them without killing the diver.
+ for(const p of activePlayers){
+  const mastery=specimenStatsFor(p);
+  if(p.specimenAlive===false){
+   if(now>=(Number(p.specimenRespawnAt)||0)){
+    p.specimenAlive=true;p.specimenHp=Number(p.specimenMaxHp)||55;p.specimenRespawnAt=0;emitSpecimenState(room,p,'respawn');
+   }
+   continue;
+  }
+  const pos=specimenPositionFor(p);
+  for(const enemy of w.enemies){
+   if(!enemy||Number(enemy.hp)<=0)continue;
+   const contact=(Number(enemy.r)||10)+pos.r+6/WORLD_ZOOM;
+   if(Math.hypot(Number(enemy.x)-pos.x,Number(enemy.y)-pos.y)>contact)continue;
+   enemy.specimenHitAt ||= Object.create(null);
+   if(now<(Number(enemy.specimenHitAt[p.id])||0))continue;
+   enemy.specimenHitAt[p.id]=now+850;
+   const raw=Math.max(5,Number(enemy.damage)||8)*.72;
+   p.specimenHp=Math.max(0,(Number(p.specimenHp)||55)-raw);
+   if(p.specimenHp<=0){
+    p.specimenAlive=false;
+    p.specimenRespawnAt=now+Math.round(mastery.respawnSeconds*1000);
+    p.skinActiveReadyAt=0;
+    emitSpecimenState(room,p,'defeated');
+   }else emitSpecimenState(room,p,'hit');
+   break;
+  }
+ }
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
  const spawnedBosses = (result.spawnedBosses || []).filter(boss => isBossKind(boss.kind));
  const spawnedXpRewards = Array.isArray(result.spawnedXpRewards) ? result.spawnedXpRewards : [];
@@ -1803,18 +1847,19 @@ io.on('connection', socket => {
   const ack=(ok,reason,extra={})=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now(),...extra});};
   if(!room||!socket.data.joined||!player||player.alive===false||player.tutorialActive||!payload||typeof payload!=='object')return ack(false,'not-in-room');
   if(payload.type!=='standard-active')return ack(false,'legacy-skin-ability-removed');
-  const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),spec=SkinStandard.activeSpec(skin);
-  if(!spec||player.skinId!==skin||spec.id!==active)return ack(false,'skin-active-mismatch');
+  const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),baseSpec=SkinStandard.activeSpec(skin);
+  if(!baseSpec||player.skinId!==skin||baseSpec.id!==active)return ack(false,'skin-active-mismatch');
+  if(player.specimenAlive===false)return ack(false,'specimen-defeated');
+  const mastery=specimenStatsFor(player),spec={...baseSpec,cooldown:mastery.cooldown,range:(Number(baseSpec.range)||0)*mastery.rangeMultiplier};
   if(active==='paralysis'&&!['electriceel','electriceellegacy'].includes(skin))return ack(false,'paralysis-electric-only');
   const now=Date.now(),ready=Number(player.skinActiveReadyAt)||0;
   if(now<ready)return ack(false,'skin-active-cooldown',{remainingMs:ready-now});
   const nx=Number(payload.x),ny=Number(payload.y),angle=clamp(Number(payload.angle)||0,-Math.PI*2,Math.PI*2),worldHeight=roomWorldHeight(room);
   if(!Number.isFinite(nx)||!Number.isFinite(ny)||nx<0||nx>1||ny<0||ny>1)return ack(false,'skin-active-position');
-  const originX=Number(player.x),originY=Number(player.y);
-  if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>110/WORLD_ZOOM)return ack(false,'skin-active-position');
+  const specimenPos=specimenPositionFor(player),originX=specimenPos.x,originY=specimenPos.y;
+  if(Math.hypot(originX-nx*WORLD_WIDTH,originY-ny*worldHeight)>45/WORLD_ZOOM)return ack(false,'skin-active-position');
   player.skinActiveReadyAt=now+Math.round(Number(spec.cooldown||10)*1000);
-  if(active==='dash')player.skinDashUntil=now+450;
-  if(active==='shield')player.invulnerableUntil=Math.max(Number(player.invulnerableUntil)||0,now+1100);
+  if(active==='shield')player.specimenShieldUntil=now+1100;
 
   const event={type:'standard-active',active,skin,fromId:socket.id,x:originX/WORLD_WIDTH,y:originY/worldHeight,angle,color:spec.color,range:spec.range,serverTime:now,hitAt:(active==='shot'||active==='slowShot')?now+450:now};
   io.to(channelFor(room)).emit('peer-skin-ability',event);
