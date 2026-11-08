@@ -93,18 +93,21 @@ const injected=`<script>
  });
 })();
 </script>`;
+const journalProbe="<script>(function(){\nfunction verify(){try{\ndocument.getElementById('catalogBtn').click();\nconst book=document.querySelector('#catalogScreen .abyss-journal');\nconst entries=[...document.querySelectorAll('#catalogGrid .specimen-journal-entry')];\nconst locked=entries.filter(el=>el.classList.contains('locked'));\nconst known=entries.filter(el=>el.classList.contains('unlocked'));\nif(!book||entries.length<50||!locked.length||!known.length)throw Error('Journal entries missing '+entries.length);\nif(!known[0].textContent.includes('VIDA')||!known[0].textContent.includes('VELOCIDADE')||!known[0].textContent.includes('DANO'))throw Error('Stats missing');\nif(!getComputedStyle(book).backgroundImage.includes('linear-gradient'))throw Error('Paper style missing');\ndocument.getElementById('catalogScreen').hidden=true;\ndocument.getElementById('shopBtn').click();\nconst cards=document.querySelectorAll('#skinGrid .skin-card');\nconst vessel=document.querySelector('#skinGrid .specimen-vessel');\nconst water=vessel&&getComputedStyle(vessel,'::before').backgroundImage;\nif(cards.length<50||!water||!water.includes('linear-gradient'))throw Error('Lab capsules missing '+cards.length);\ndocument.body.dataset.journalStatus='ok';\ndocument.body.dataset.journalCounts=entries.length+','+locked.length+','+cards.length;\n}catch(e){document.body.dataset.journalStatus='error';document.body.dataset.journalError=String(e).slice(0,160);}}\nwindow.addEventListener('load',()=>setTimeout(verify,1200));\n})();</script>";
 function handler(req,res){
  let pathname;try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{return res.writeHead(400).end();}
  if(pathname==='/__abyss_art__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(artGallery);return;}
  if(pathname==='/__abyss_species__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(speciesGallery);return;}
  if(pathname==='/__abyss_hazards__'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(hazardsGallery);return;}
  const smoke=pathname==='/__abyss_smoke__';
- const filepath=smoke?path.join(root,'index.html'):path.resolve(root,'.'+pathname);
+ const journal=pathname==='/__abyss_journal__';
+ const filepath=(smoke||journal)?path.join(root,'index.html'):path.resolve(root,'.'+pathname);
  if(!filepath.startsWith(root+path.sep))return res.writeHead(403).end();
  fs.readFile(filepath,(err,data)=>{
   if(err){res.writeHead(404);res.end('Not found');return;}
-  const ext=smoke?'.html':path.extname(filepath);
+  const ext=(smoke||journal)?'.html':path.extname(filepath);
   if(smoke)data=Buffer.from(data.toString('utf8').replace('</body>',injected+'</body>'));
+  if(journal)data=Buffer.from(data.toString('utf8').replace('</body>',journalProbe+'</body>'));
   if(pathname==='/game.js'){
    // Test-only introspection executes real boss death/portal game logic across every tier,
    // without exposing simulation shortcuts to normal players or the deployed client.
@@ -266,6 +269,20 @@ async function main(){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/__abyss_smoke__';
  try{
+  for(const [label,width,height] of [['journal-desktop',1280,720],['journal-mobile',390,844]]){
+   const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
+     '--no-first-run','--window-size='+width+','+height,'--virtual-time-budget=5500'];
+   const url='http://127.0.0.1:'+server.address().port+'/__abyss_journal__';
+   const dom=await run(browser,[...flags,'--dump-dom',url]);
+   const status=dom.match(/data-journal-status="([^"]+)"/)?.[1];
+   const error=dom.match(/data-journal-error="([^"]*)"/)?.[1];
+   const counts=dom.match(/data-journal-counts="([^"]*)"/)?.[1];
+   assert.equal(status,'ok',label+' journal or lab regression: '+error);
+   console.log('[journal-smoke] '+label+' entries,locked,cards='+counts);
+   const png=path.join(output,label+'.png');
+   await run(browser,[...flags,'--screenshot='+png,url]);
+   assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
+  }
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
    ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
