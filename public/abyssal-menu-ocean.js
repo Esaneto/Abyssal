@@ -23,6 +23,7 @@
   const canvas=document.getElementById('menuOceanDiverCanvas'),ctx=canvas?.getContext('2d');
   const hint=document.getElementById('menuOceanHint'),enter=document.getElementById('menuOceanEnterBtn');
   const specimenCanvas=document.getElementById('menuOceanSpecimen');
+  const sceneryCanvas=document.getElementById('menuOceanScenery');
   // Companion previews are shown in profile, not a second character over the menu.
   if(specimenCanvas){specimenCanvas.hidden=true;specimenCanvas.style.display='none';}
   if(!layer||!diver||!ctx)return;
@@ -64,6 +65,7 @@
    if(!initialized){px=worldW*.52;py=worldH*.51;initialized=true;}
    else{px=px/Math.max(1,oldW)*worldW;py=py/Math.max(1,oldH)*worldH;}
    layer.style.setProperty('width',worldW+'px','important');layer.style.setProperty('height',worldH+'px','important');
+   window.AbyssalMenuScenery?.draw?.(sceneryCanvas,worldW,worldH);
    for(const s of stations){s.wx=s.x*worldW;s.wy=s.y*worldH;s.button.style.setProperty('--portal-x',s.wx+'px');s.button.style.setProperty('--portal-y',s.wy+'px');}
    destination=null;activeDestination=null;px=clamp(px,48,worldW-48);py=clamp(py,48,worldH-48);
    camX=clamp(px-r.width*.5,0,Math.max(0,worldW-r.width));
@@ -89,7 +91,7 @@
    const radius=best?Math.max(50,Math.min(best.button.offsetWidth*.36,70)):50;
    nearest=bestDistance<radius?best:null;
    if(nearest){nearest.button.classList.add('portal-near');hint.textContent='PORTAL '+nearest.label+' · F / ENTER PARA ENTRAR';}
-   else if(activeDestination){hint.textContent='RUMO A '+activeDestination.label+' · '+Math.ceil(Math.hypot(px-activeDestination.wx,py-activeDestination.wy))+'m';}
+   else if(activeDestination){hint.textContent='RUMO A '+activeDestination.label+' · '+Math.ceil(Math.hypot(px-activeDestination.wx,py-activeDestination.wy))+' un.';}
    else if(best){hint.textContent='NADO LIVRE · PORTAL '+best.label+' A '+Math.ceil(bestDistance)+'m · WASD / SETAS';}
    else hint.textContent='WASD / SETAS PARA NADAR · F PARA ENTRAR';
    if(enter){enter.disabled=!nearest;enter.textContent=nearest?'ENTRAR · '+nearest.label:'APROXIME-SE DE UM PORTAL';}
