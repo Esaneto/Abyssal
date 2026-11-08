@@ -225,10 +225,10 @@
      const c={x:startX+span*.66,y:centerY+10-offset*7+bend*.5};
      const d={x:endX,y:centerY+offset*19};
      const path=()=>{currents.beginPath();currents.moveTo(a.x,a.y);currents.bezierCurveTo(b.x,b.y,c.x,c.y,d.x,d.y);};
-     currents.strokeStyle=s.tone;currents.globalAlpha=.035+(1-Math.abs(offset))*.043;
+     currents.strokeStyle=s.tone;currents.globalAlpha=(.035+(1-Math.abs(offset))*.043);
      currents.lineWidth=8+(1-Math.abs(offset))*12;path();currents.stroke();
      currents.strokeStyle=lane%2?'#9beefa':s.tone;
-     currents.globalAlpha=.15+(1-Math.abs(offset))*.11;
+     currents.globalAlpha=.11+(1-Math.abs(offset))*.085;
      currents.lineWidth=.9+(1-Math.abs(offset))*.9;
      currents.setLineDash([9+Math.abs(lane)*2,18+Math.abs(lane)*3]);
      currents.lineDashOffset=-now*(.034+Math.abs(offset)*.007);
@@ -238,7 +238,7 @@
       const t=(now*.00022+j/3+(lane+5)*.071)%1,inv=1-t;
       const px=inv*inv*inv*a.x+3*inv*inv*t*b.x+3*inv*t*t*c.x+t*t*t*d.x;
       const py=inv*inv*inv*a.y+3*inv*inv*t*b.y+3*inv*t*t*c.y+t*t*t*d.y;
-      currents.globalAlpha=(.13+.27*(1-Math.abs(offset)))*Math.sin(Math.PI*t);
+      currents.globalAlpha=(.13+.27*(1-Math.abs(offset)))*Math.pow(Math.sin(Math.PI*t),1.6);
       currents.fillStyle='#d9ffff';
       currents.beginPath();currents.ellipse(px,py,2.8+1.6*t,.7,0,0,Math.PI*2);currents.fill();
      }
