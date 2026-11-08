@@ -1044,6 +1044,7 @@ function tickRoom(room, now) {
    enemy.specimenHitAt ||= Object.create(null);
    if(now<(Number(enemy.specimenHitAt[p.id])||0))continue;
    enemy.specimenHitAt[p.id]=now+850;
+   if(now<(Number(p.specimenShieldUntil)||0))break;
    const raw=Math.max(5,Number(enemy.damage)||8)*.72;
    p.specimenHp=Math.max(0,(Number(p.specimenHp)||55)-raw);
    if(p.specimenHp<=0){
@@ -1372,7 +1373,7 @@ io.on('connection', socket => {
   socket.data.joined=true;socket.data.roomId=room.id;socket.join(channelFor(room));
   const maxHp=100+Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.bulkhead)||0)))*8;
   const equippedSkinId=allowedSkinIds.has(u?.equippedSkin)?u.equippedSkin:'default';
-  const initialShieldCharges=Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.startShield)||0)+(equippedSkinId==='abyssking'||equippedSkinId==='armoredgator'?1:0)));
+  const initialShieldCharges=Math.max(0,Math.min(3,Math.floor(Number(u?.metaUpgrades?.startShield)||0)));
   const now=Date.now();
   const occupiedSpawnSlots=new Set([...room.players.values()].map(player=>Number(player.spawnSlot)).filter(Number.isInteger));
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
@@ -2045,7 +2046,11 @@ io.on('connection', socket => {
    if(reachedFinal)grantFinalConquest(u);
   }
   if(payload.resonancePresets&&typeof payload.resonancePresets==='object'){const valid=['power','rate','speed','range','magnet','regen','shield','burst','electric','pierce','ricochet','spread','photon','photonRay','nova','echoShot','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure'];const shotSkills=new Set(['electric','pierce','spread','photon','photonRay','nova','echoShot']);const presets={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const ids=Array.isArray(payload.resonancePresets[mode])?payload.resonancePresets[mode]:[];let hasShot=false;presets[mode]=[...new Set(ids.map(String).filter(id=>valid.includes(id)))].filter(id=>{if(!shotSkills.has(id))return true;if(hasShot)return false;hasShot=true;return true;}).slice(0,7);if(!presets[mode].some(id=>shotSkills.has(id))){if(presets[mode].length>=7)presets[mode].pop();presets[mode].unshift('electric');}}u.resonancePresets=presets;}
-  if (u.ownedSkins.includes(payload.equippedSkin)) u.equippedSkin = payload.equippedSkin;
+  if (u.ownedSkins.includes(payload.equippedSkin)){
+   u.equippedSkin = payload.equippedSkin;
+   const room=socketRoom(socket),p=room?.players.get(socket.id);
+   if(p){p.skinId=u.equippedSkin;p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);p.specimenAlive=true;p.specimenHp=p.specimenMaxHp||55;p.specimenRespawnAt=0;emitSpecimenState(room,p,'equipped');}
+  }
   saveUsers();
   socket.emit('account-data', publicUser(u));
  });
