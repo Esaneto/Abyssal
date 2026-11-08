@@ -45,7 +45,8 @@
    }
    return true;
   };
-  const hatch=()=>({x:w*.5,y:Math.min(83,Math.max(51,h*.18))});
+  // The hatch position matches the scaling used by drawSubmarine().
+  const hatch=()=>({x:w*.5,y:86*Math.min(1.2,Math.max(.59,w/800))});
   const bubble=(x,y,burst=false)=>{
    const count=burst?5:1;
    for(let i=0;i<count;i++)bubbles.push({
