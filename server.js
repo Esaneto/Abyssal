@@ -409,7 +409,7 @@ function applySkinActivePvpDamage(room,attacker,target,rawDamage,skillId,now){
  else{
   damage=pvpDamageAmount(attacker,target,rawDamage,Math.hypot(Number(attacker.x)-Number(target.x),Number(attacker.y)-Number(target.y)));
   target.hp=Math.max(0,(Number(target.hp)||target.maxHp)-damage);target.lastDamageAt=now;target.invulnerableUntil=now+180;
-  if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,attacker.id);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi vencido por uma habilidade de skin.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}
+  if(target.hp<=0){target.alive=false;awardPvpKillXp(room,target,attacker.id);target.velocityX=0;target.velocityY=0;io.to(channelFor(room)).emit('gameplay-notice',{kind:'death',title:String(target.nickname||'MERGULHADOR').toUpperCase(),text:`${target.nickname||'Um mergulhador'} foi vencido por uma habilidade de Espécime.`,x:Number(target.x)/WORLD_WIDTH,y:Number(target.y)/WORLD_HEIGHT,playerId:target.id});}
  }
  io.to(target.id).emit('player-vitals',playerVitalsPayload(target,{reason:target.alive===false?'pvp-defeat':blocked?'pvp-shield':'pvp-hit',source:'skin-active',damage:blocked?0:damage,attackerId:attacker.id,skillId,serverTime:now}));
  io.to(channelFor(room)).emit('pvp-hit',{x:target.x/WORLD_WIDTH,y:target.y/WORLD_HEIGHT,targetId:target.id,attackerId:attacker.id,damage:blocked?0:damage,skillId,blocked});
@@ -868,7 +868,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    const completedCycles=Math.floor(Math.max(0,Number(w.bossesDefeated)||0)/BOSS_KINDS.size);
    enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*(1+completedCycles*0.02));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
-   if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + SKIN ALEATÓRIA + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
+   if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + ESPÉCIME ALEATÓRIO + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
    // Fossas waits for the next tier; Mar Aberto schedules the next
    // boss after another complete progression segment.
    w.nextBossAt=room.mode==='rift'?Infinity:(Number(w.elapsed)||0)+100/3.8;
@@ -2058,14 +2058,14 @@ io.on('connection', socket => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
   const stripeOnlySkins = new Set(['saltcroc','blackcaiman','violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
   const requestedId=String(payload.id||'');
-  if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Esta skin exige checkout hospedado e confirmação de pagamento.'});
+  if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Este Espécime exige checkout hospedado e confirmação de pagamento.'});
   const prices = { solar:2500, toxic:4000, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000 };
   Object.assign(prices,Object.fromEntries(curatedSkins.items.map(s=>[s.id,s.price])));
   const id = String(payload.id || ''), price = prices[id];
-  if (!price) return socket.emit('purchase-result', { ok:false, message:'Skin indisponível para compra com moedas.' });
-  if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui esta skin.', account:publicUser(u) });
+  if (!price) return socket.emit('purchase-result', { ok:false, message:'Espécime indisponível para compra com moedas.' });
+  if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui este Espécime.', account:publicUser(u) });
   if ((u.coins || 0) < price) return socket.emit('purchase-result', { ok:false, message:'Moedas abissais insuficientes.', account:publicUser(u) });
-  u.coins -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Skin desbloqueada e salva na conta!', account:publicUser(u) });
+  u.coins -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Espécime desbloqueado e salvo na conta!', account:publicUser(u) });
  });
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
@@ -2080,20 +2080,20 @@ io.on('connection', socket => {
    // rewards are not store merchandise and remain progression unlocks.
    const choices=[...allowedSkinIds].filter(id=>id!=='default'&&id!=='greensnake'&&id!==RiftRewards.FINAL_SKIN);
    const selected=String(payload?.skinId||'').trim();
-   if(!selected)return socket.emit('code-redeem-result',{ok:true,choiceRequired:true,eligibleSkinIds:choices,message:'Código validado! Escolha uma skin da loja, inclusive as pagas. Uma skin gratuita por conta.'});
-   if(!choices.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Esta skin não está disponível para o código. Escolha uma skin da loja.'});
+   if(!selected)return socket.emit('code-redeem-result',{ok:true,choiceRequired:true,eligibleSkinIds:choices,message:'Código validado! Escolha um Espécime da loja, inclusive os pagos. Um Espécime gratuito por conta.'});
+   if(!choices.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Este Espécime não está disponível para o código. Escolha outro da loja.'});
    u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];
-   if(u.ownedSkins.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Você já possui esta skin. Escolha outra da loja.',choiceRequired:true,eligibleSkinIds:choices});
+   if(u.ownedSkins.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Você já possui este Espécime. Escolha outra da loja.',choiceRequired:true,eligibleSkinIds:choices});
    u.ownedSkins.push(selected);
    u.equippedSkin=selected;
    u.redeemedPromoIds.push(promoId);
    saveUsers();
-   socket.emit('code-redeem-result',{ok:true,skinId:selected,coinsAwarded:0,message:'Skin escolhida desbloqueada permanentemente! Código exclusivoabyssal utilizado.',account:publicUser(u)});
+   socket.emit('code-redeem-result',{ok:true,skinId:selected,coinsAwarded:0,message:'Espécime escolhido desbloqueado permanentemente! Código exclusivoabyssal utilizado.',account:publicUser(u)});
    return;
   }
   let id='',coinsAwarded=0,skinId=null,message='';
   if(welcome&&code===welcome){id='welcome-10k';coinsAwarded=10000;message='Código resgatado! +10.000 essências.';}
-  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e skin lendária Raia-Elétrica Abissal desbloqueada permanentemente!';}
+  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e Espécime lendário Raia-Elétrica Abissal desbloqueado permanentemente!';}
   else return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
   if(u.redeemedPromoIds.includes(id))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
   u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
