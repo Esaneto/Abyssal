@@ -81,17 +81,19 @@
   // Loose hair in both versions, never a ponytail. Each lock has separate
   // water-driven curvature. Female locks extend farther; male locks are short.
   c.save();c.strokeStyle='#05070b';c.lineCap='round';
-  const hairLength=female?45:17;
-  const locks=female?9:6;
+  // Underwater hair consists of many independent flowing strands.
+  const hairLength=female?60:20; // 3:1 length ratio
+  const locks=female?29:23;
   for(let i=0;i<locks;i++){
-   const f=i/(locks-1),rootX=18+f*7,rootY=-11-f*1.9;
-   const oscillation=cycle*(female?(2.2+f*1.1):(.6+f*.28));
-   const tipX=rootX-hairLength-(female?f*9:f*4);
-   const tipY=rootY-(female?6+f*6:2+f)+oscillation;
-   c.strokeStyle=i%3===0?'#202630':i%2?'#06080c':'#11151c';
-   c.lineWidth=female?(1.9+.7*Math.sin(f*Math.PI)):(1.6+.45*Math.sin(f*Math.PI));
+   const f=i/(locks-1),rootX=16.5+f*10,rootY=-10.5-Math.sin(f*Math.PI)*5;
+   const phase=(Number(t)||0)*.0014+i*.61,flow=Math.sin(phase)*(.8+f*2.5)+Math.cos(phase*.73)*1.1;
+   const tipX=rootX-hairLength+Math.sin(i*1.73)*1.9;
+   const tipY=rootY-Math.sin(f*7.5)*3.5+flow+(female?-5:0);
+   c.strokeStyle=i%5===0?'#303540':i%3===0?'#11151e':'#05080e';
+   c.lineWidth=.67+(i%4)*.16;
    c.beginPath();c.moveTo(rootX,rootY);
-   c.bezierCurveTo(rootX-8,rootY-8-f*2,tipX+14,tipY-6,tipX,tipY);
+   c.bezierCurveTo(rootX-hairLength*.24,rootY-10+flow*.4,
+    tipX+hairLength*.35,tipY+Math.sin(phase+.9)*(female?6:2.5),tipX,tipY);
    c.stroke();
   }
   c.fillStyle='#040608';c.beginPath();c.moveTo(16,-8);c.quadraticCurveTo(17,-16,26,-15);
