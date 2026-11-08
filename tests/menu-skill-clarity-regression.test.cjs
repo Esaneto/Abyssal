@@ -21,7 +21,7 @@ test('Nova wave starts at the rifle muzzle on client and authoritative server',(
 test('portal labels actually follow the curved stream without distance banners',()=>{
  const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html');
  assert.match(menu,/const fromX=px-camX,fromY=py-camY/);
- assert.match(menu,/const p=pointAt\(t\),near=pointAt/);
+ assert.match(menu,/const p=positionAtDistance\(d\),near=positionAtDistance\(d\+3\)/);
  assert.match(menu,/routesCtx\.rotate\(tang\)/);
  assert.match(menu,/routesCtx\.fillText\(ch,0,0\)/);
  assert.doesNotMatch(html,/id="menuOceanHint"/);
