@@ -476,17 +476,38 @@ function applyPvpHitSynergies(room,attacker,primaryTarget,baseDamage,sourceSkill
  if(Number(attacker.ricochetLevel)>0&&source!=='ricochet'){let from=primaryTarget,visited=new Set([primaryTarget.id]);for(let n=0;n<Math.min(3,attacker.ricochetLevel);n++){let next=null,nd=Infinity;for(const p of players){const d=Math.hypot(p.x-from.x,p.y-from.y);if(!visited.has(p.id)&&d<190/WORLD_ZOOM&&d<nd&&!pvpSegmentHitsRock(from.x,from.y,p.x,p.y,2/WORLD_ZOOM)){next=p;nd=d}}if(!next)break;io.to(channelFor(room)).emit('hit-synergy-visual',{type:'ricochet-line',fromId:attacker.id,x1:from.x/WORLD_WIDTH,y1:from.y/WORLD_HEIGHT,x2:next.x/WORLD_WIDTH,y2:next.y/WORLD_HEIGHT});secondaryHit(next,baseDamage*.42,'ricochet');visited.add(next.id);from=next;}}
 }
 
-// Grant XP on the server after a verified kill. 20% supports the squad;
-// the remaining 80% follows actual damage contributed to this enemy.
-function grantSharedXp(room,total,contributors={},source='kill',enemyId=null){
- for(const share of splitXp(total,[...room.players.values()],contributors)){
-  const member=room.players.get(share.id);
-  if(!member)continue;
-  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,member.specimenAlive!==false)*clamp(Number(member.magnetStrength)||1,1,1.26)*1000)/1000;
-  if(amount<=0)continue;
-  if(member.runStats)creditRunXp(member.runStats,amount);
-  io.to(member.id).emit('shared-xp-award',{value:amount,source,enemyId,damage:share.damage});
-  combatDiagnostics.directXpAwards++;
+// Every PvE XP reward becomes a stationary, server-owned orb. No damage shares.
+function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null){
+ if(!room||room.mode==='pvp'||!(Number(total)>0))return;
+ const w=room.world;if(!w)return;
+ w.orbs=Array.isArray(w.orbs)?w.orbs:[];
+ const enemy=w.enemies.find(e=>String(e.id)===String(enemyId));
+ const player=[...room.players.values()].find(p=>p.alive!==false);
+ const x=Number(enemy?.x??player?.x??WORLD_WIDTH/2);
+ const y=Number(enemy?.y??player?.y??roomWorldHeight(room)/2);
+ const orb={id:++w.nextOrbId,x,y,value:Math.max(1,Math.round(Number(total))),source,spawnedAt:Date.now()};
+ w.orbs.push(orb);
+ if(w.orbs.length>160)w.orbs.shift();
+ io.to(channelFor(room)).emit('world-orb-spawned',orb);
+}
+function tickSpecimenOrbs(room,players){
+ const w=room.world,orbs=w?.orbs;
+ if(!Array.isArray(orbs)||!orbs.length)return;
+ for(const member of players){
+  if(member.alive===false||member.specimenAlive===false||member.runStats?.settled)continue;
+  const position=specimenPositionFor(member);
+  for(let i=orbs.length-1;i>=0;i--){
+   const orb=orbs[i];
+   if(Math.hypot(position.x-orb.x,position.y-orb.y)>(position.r+7/WORLD_ZOOM))continue;
+   const range=294/WORLD_ZOOM*clamp(Number(member.rangeStrength)||1,1,2.5)*
+    SkinAbilities.targetRangeMultiplier(member.skinId,member.specimenPoints,true);
+   if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
+   const amount=Math.max(1,Math.round(orb.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,true)));
+   orbs.splice(i,1);
+   if(member.runStats)creditRunXp(member.runStats,amount);
+   io.to(member.id).emit('shared-xp-award',{value:amount,source:'specimen-orb',orbId:orb.id});
+   io.to(channelFor(room)).emit('world-orb-collected',{id:orb.id,playerId:member.id});
+  }
  }
 }
 // PvP has no neutral monsters: XP is credited on an actual elimination,
@@ -653,7 +674,7 @@ function getRoomSnapshot(room, metadata = {}){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:[]};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -1135,7 +1156,17 @@ function tickRoom(room, now) {
  }
  // Server-owned companion pursuit uses the normal movement speed, not Ghost Step.
  for(const peer of activePlayers){
-  const destinationX=Number(peer.x)||0,destinationY=(Number(peer.y)||0)-34/WORLD_ZOOM;
+  let destinationX=Number(peer.x)||0,destinationY=(Number(peer.y)||0)-34/WORLD_ZOOM;
+  const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
+  let nearestOrb=null,nearestDistance=Infinity;
+  if(room.mode!=='pvp')for(const orb of room.world?.orbs||[]){
+   if(Math.hypot(orb.x-peer.x,orb.y-peer.y)>acquisitionRange)continue;
+   const d=Math.hypot(orb.x-(Number(peer.specimenX)||peer.x),orb.y-(Number(peer.specimenY)||peer.y));
+   if(d>=nearestDistance)continue;
+   if(room.mode==='rift'&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(room.world),Number(peer.specimenX)||peer.x,Number(peer.specimenY)||peer.y,orb.x,orb.y,6/WORLD_ZOOM))continue;
+   nearestDistance=d;nearestOrb=orb;
+  }
+  if(nearestOrb){destinationX=nearestOrb.x;destinationY=nearestOrb.y;}
   if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){peer.specimenX=destinationX;peer.specimenY=destinationY;}
   const lastAt=Number(peer.specimenLastAt)||now,dt=Math.min(.12,Math.max(0,(now-lastAt)/1000));peer.specimenLastAt=now;
   if(peer.specimenAlive===false)continue;
@@ -1156,6 +1187,7 @@ function tickRoom(room, now) {
   if(distance>.001&&travel>0){peer.specimenX+=dx/distance*travel;peer.specimenY+=dy/distance*travel;}
  }
  const w = room.world;
+ tickSpecimenOrbs(room,activePlayers);
  tickSkinTrailNodes(room,activePlayers,now);
  // Arena PvP is a separate ruleset: never spawn or simulate monsters in this mode.
  if(room.mode==='pvp'){
