@@ -37,6 +37,7 @@
   if(stations.length!==3)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
   let initialized=false,wasVisible=false,transition=null,waitingForModal=false;
+  let nearElapsed=0,nearStationId=null;
   let moveTarget=null,followPointer=null,near=null,last=performance.now(),bubbleElapsed=0;
   let joystickX=0,joystickY=0,joystickId=null;
   const bubbles=[],held=new Set(),keyMap={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
@@ -64,6 +65,7 @@
    if(w<10||h<10)return;
    const pos=hatch();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
    emergence=0;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
+   nearElapsed=0;nearStationId=null;
    held.clear();joystickX=0;joystickY=0;
    const thumb=stage.querySelector('.ocean-joystick-thumb');if(thumb)thumb.style.transform='translate(0,0)';
    for(let i=0;i<12;i++)bubble(px,py+15,true);
@@ -73,11 +75,15 @@
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
    const oldW=w,oldH=h;w=r.width;h=r.height;
    for(const c of [routesCanvas,bubblesCanvas]){
-    const ratio=Math.min(1.5,window.devicePixelRatio||1);
+    const ratio=Math.max(1,Math.min(2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
     c.style.width=w+'px';c.style.height=h+'px';
     c.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
    }
+   const renderDpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));
+   canvas.width=Math.round(180*renderDpr);canvas.height=Math.round(130*renderDpr);
+   ctx.setTransform(renderDpr,0,0,renderDpr,0,0);
+   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
    layer.style.width=w+'px';layer.style.height=h+'px';layer.style.transform='none';
    window.AbyssalMenuScenery?.draw?.(scenery,w,h);
    window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
@@ -101,6 +107,7 @@
    if(!interactive()||!s||s.button.disabled||s.button.hidden)return;
    held.clear();moveTarget=null;followPointer=null;joystickX=0;joystickY=0;
    transition={station:s,x: px,y:py,t:0,duration:s.kind==='rift'?1.04:.87};
+   nearElapsed=0;nearStationId=null;
    vx=0;vy=0;
    stage.dataset.abyssTransit=s.kind;
   }
@@ -202,50 +209,39 @@
   function renderCurrents(now){
    if(!currents||w<10||h<10)return;
    currents.clearRect(0,0,w,h);
-   const originX=px,originY=py;
-   for(const [idx,s] of stations.entries()){
-    const dx=s.wx-originX,dy=s.wy-originY,d=Math.hypot(dx,dy);
-    if(d<50)continue;
-    const ux=dx/d,uy=dy/d,nx=-uy,ny=ux;
-    const sx=originX+ux*33,sy=originY+uy*33;
-    const reach=Math.max(42,d-(s.kind==='rift'?49:64));
-    const ex=sx+ux*reach,ey=sy+uy*reach,bend=Math.min(47,reach*.19)*(idx===1?-1:1);
-    const cx=(sx+ex)/2+nx*bend,cy=(sy+ey)/2+ny*bend;
-    const point=t=>{const q=1-t;return {x:q*q*sx+2*q*t*cx+t*t*ex,y:q*q*sy+2*q*t*cy+t*t*ey};};
-    const path=()=>{currents.beginPath();currents.moveTo(sx,sy);currents.quadraticCurveTo(cx,cy,ex,ey);};
+   // Water streams past the gates and disappears off-screen. The flow belongs
+   // to the ocean, never to the diver's current position.
+   for(const s of stations){
+    if(s.kind==='rift')continue;
+    const direction=s.kind==='solo'?-1:1;
+    const startX=s.wx-direction*w*.19,endX=s.wx+direction*w*.37;
+    const span=endX-startX,band=Math.min(64,h*.105);
     currents.save();currents.lineCap='round';
-    currents.strokeStyle=s.tone;currents.globalAlpha=s.kind==='rift'?.025:.06;currents.lineWidth=s.kind==='rift'?18:30;path();currents.stroke();
-    currents.globalAlpha=s.kind==='rift'?.055:.16;currents.lineWidth=s.kind==='rift'?7:16;path();currents.stroke();
-    currents.globalAlpha=s.kind==='rift'?.26:.55;currents.lineWidth=1.6;currents.setLineDash([9,15]);
-    currents.lineDashOffset=-now*.047;path();currents.stroke();currents.setLineDash([]);
-    for(let j=0;j<4;j++){
-     const t=(now*.00025+j*.25)%1,p=point(t),next=point(Math.min(.998,t+.015));
-     currents.save();currents.translate(p.x,p.y);currents.rotate(Math.atan2(next.y-p.y,next.x-p.x));
-     currents.strokeStyle=s.tone;currents.lineWidth=1.7;
-     currents.globalAlpha=Math.max(0,Math.sin(Math.PI*t))*.7;
-     currents.beginPath();currents.moveTo(-6,-4);currents.lineTo(0,0);currents.lineTo(-6,4);currents.stroke();
-     currents.restore();
-    }
-    // Curved lettering remains near the diver even for distant destinations.
-    const text=s.label;
-    currents.font='700 '+(w<520?9:11)+'px Inter,sans-serif';
-    const chars=[...text],lengths=chars.map(ch=>currents.measureText(ch).width+1.1);
-    const total=lengths.reduce((sum,z)=>sum+z,0);
-    const center=Math.min(190,Math.max(total/2+30,w<520?114:152));
-    const facingLeft=ux<0;
-    const letters=facingLeft?chars.slice().reverse():chars;
-    const widths=facingLeft?lengths.slice().reverse():lengths;
-    let offset=-total/2;
-    for(let j=0;j<letters.length;j++){
-     const advance=widths[j];
-     const t=clamp((center+offset+advance*.5)/Math.max(65,reach),.05,.94);
-     const p=point(t),q=point(Math.min(.997,t+.01));
-     currents.save();
-     currents.translate(clamp(p.x,10,w-10),clamp(p.y,12,h-12));
-     currents.rotate(Math.atan2(q.y-p.y,q.x-p.x)+(facingLeft?Math.PI:0));
-     currents.globalAlpha=.91;currents.fillStyle=s.tone;currents.strokeStyle='rgba(0,8,16,.94)';
-     currents.lineWidth=2.5;currents.strokeText(letters[j],0,0);currents.fillText(letters[j],0,0);
-     currents.restore();offset+=advance;
+    for(let lane=-5;lane<=5;lane++){
+     const offset=lane/5,centerY=s.wy+offset*band;
+     const bend=Math.sin(now*.00032+lane*.75)*7;
+     const a={x:startX,y:centerY-offset*9};
+     const b={x:startX+span*.35,y:centerY-8+offset*4+bend};
+     const c={x:startX+span*.66,y:centerY+10-offset*7+bend*.5};
+     const d={x:endX,y:centerY+offset*19};
+     const path=()=>{currents.beginPath();currents.moveTo(a.x,a.y);currents.bezierCurveTo(b.x,b.y,c.x,c.y,d.x,d.y);};
+     currents.strokeStyle=s.tone;currents.globalAlpha=.035+(1-Math.abs(offset))*.043;
+     currents.lineWidth=8+(1-Math.abs(offset))*12;path();currents.stroke();
+     currents.strokeStyle=lane%2?'#9beefa':s.tone;
+     currents.globalAlpha=.15+(1-Math.abs(offset))*.11;
+     currents.lineWidth=.9+(1-Math.abs(offset))*.9;
+     currents.setLineDash([9+Math.abs(lane)*2,18+Math.abs(lane)*3]);
+     currents.lineDashOffset=-now*(.034+Math.abs(offset)*.007);
+     path();currents.stroke();currents.setLineDash([]);
+     // A sparse stream of whitewater particles follows the same cubic curve.
+     for(let j=0;j<3;j++){
+      const t=(now*.00022+j/3+(lane+5)*.071)%1,inv=1-t;
+      const px=inv*inv*inv*a.x+3*inv*inv*t*b.x+3*inv*t*t*c.x+t*t*t*d.x;
+      const py=inv*inv*inv*a.y+3*inv*inv*t*b.y+3*inv*t*t*c.y+t*t*t*d.y;
+      currents.globalAlpha=(.13+.27*(1-Math.abs(offset)))*Math.sin(Math.PI*t);
+      currents.fillStyle='#d9ffff';
+      currents.beginPath();currents.ellipse(px,py,2.8+1.6*t,.7,0,0,Math.PI*2);currents.fill();
+     }
     }
     currents.restore();
    }
@@ -293,7 +289,12 @@
        if(bubbleElapsed>.07){bubbleElapsed=0;bubble(px-Math.cos(heading)*15,py-Math.sin(heading)*15);}
       }
       // Free swimming only highlights a destination; entering requires a click or F.
-      nearestStation();
+      const nearby=nearestStation();
+      if(nearby&&Math.hypot(px-nearby.wx,py-nearby.wy)<Math.max(23,Math.min(nearby.button.offsetWidth*.25,42))){
+       nearElapsed=nearStationId===nearby.id?nearElapsed+dt:0;
+       nearStationId=nearby.id;
+       if(nearElapsed>.38)playEntrance(nearby);
+      }else{nearElapsed=0;nearStationId=null;}
      }
      diver.style.opacity='1';
     }
@@ -312,7 +313,7 @@
      }
      bubbleCtx.globalAlpha=1;
     }
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.clearRect(0,0,180,130);
     window.AbyssalDiverArt?.draw?.(ctx,90,65,13,heading,heading,now,{
      gender:window.AbyssalDiverGender||'male',
      moving:emergence<1||Boolean(transition)||Math.hypot(vx,vy)>6

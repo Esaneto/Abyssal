@@ -14,15 +14,15 @@ test('diver visual uses one shared anatomy with female hair only as variation',(
  const code=read('public/diver-art.js');
  assert.match(code,/const hairLength=female\?60:20/);
  assert.match(code,/Loose hair in both versions/);
- assert.match(code,/const locks=female\?29:23/);
+ assert.match(code,/const locks=female\?46:34/);
  assert.match(code,/Two HUMAN upper legs and calves/);
  assert.match(code,/c\.rotate\(\(Number\(aim\)\|\|0\)-a\)/);
 });
 test('weapon muzzle is directionally correct',()=>{
  const origin=art.muzzle(100,200,14,0);
- assert.ok(Math.abs(origin.x-141.4)<1e-9);assert.equal(origin.y,200);
+ assert.ok(Math.abs(origin.x-141.4)<1e-9);assert.equal(origin.y,207.2);
  const up=art.muzzle(100,200,14,-Math.PI/2);
- assert.ok(Math.abs(up.x-100)<1e-9);assert.ok(Math.abs(up.y-158.6)<1e-9);
+ assert.ok(Math.abs(up.x-107.2)<1e-9);assert.ok(Math.abs(up.y-158.6)<1e-9);
 });
 test('diver body faces motion, weapon faces aim and projectile originates at weapon',()=>{
  const game=read('public/game.js');
@@ -65,4 +65,5 @@ test('extended rifle and authoritative PVP muzzle use identical shared geometry'
  assert.equal(art.BARREL_TIP_X,69);
  assert.match(source,/c\.fillRect\(66,-2\.4,BARREL_TIP_X-66,4\.8\)/);
  assert.match(server,/DiverArt\.DRAW_SCALE\*DiverArt\.BARREL_TIP_X\/14/);
+ assert.match(server,/DiverArt\.DRAW_SCALE\*DiverArt\.GUN_OFFSET_Y\/14/);
 });

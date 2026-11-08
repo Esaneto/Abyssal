@@ -63,9 +63,13 @@ test('scenery supports yellow metal submarine and black open hatch in responsive
  assert.match(raw,/#070c12/);
 });
 
-test('bottom utilities preserve original color identity and wood-tentacle shop theme',()=>{
+test('bottom utilities preserve clear identities while laboratory capsules replace wood visuals',()=>{
  const css=read('public/abyssal-menu-v2.css');
  const sw=read('public/offline-sw.js');
+ const lab=read('public/abyssal-lab-menu.css');
+ assert.match(lab,/#shopScreen #skinGrid \.skin-card \.skin-preview::before/);
+ assert.match(lab,/#menuScreen\.ocean-menu-v2\.submarine-menu \.abyss-current-entry::before/);
+ assert.match(sw,/'abyssal-lab-menu\.css'/);
  assert.match(css,/\.submarine-menu #resonanceBtn/);
  assert.match(css,/\.submarine-menu #wheelBtn/);
  assert.match(css,/\.submarine-menu #profileBtn/);

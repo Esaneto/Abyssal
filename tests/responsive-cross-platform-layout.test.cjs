@@ -116,7 +116,7 @@ test('gameplay notification queue deduplicates semantic relay duplicates',()=>{
 
 test('mobile canvas uses adaptive high-DPI rendering instead of forced DPR 1',()=>{
  const game=fs.readFileSync(path.join(__dirname,'..','public','game.js'),'utf8');
- assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+ assert.match(game,/Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
  assert.match(game,/adaptiveDprScale/);
 });
 test('PvP movement stream prioritizes low latency without reliable packet backlog',()=>{
@@ -213,7 +213,7 @@ test('match HUD reserves topbar space and reclaims it when chrome is collapsed',
 test('fullscreen expands field of view without changing world scale',()=>{
  const game=read('public/game.js');
  const zoom=game.slice(game.indexOf('function desiredWorldZoom'),game.indexOf('function desiredMapFactor'));
- assert.match(zoom,/return mobileViewport\?\.64:FAIR_VIEW_REFERENCE\.zoom/);
+ assert.match(zoom,/return mobileViewport\?\.48:FAIR_VIEW_REFERENCE\.zoom/);
  assert.doesNotMatch(zoom,/viewW|viewH|viewportArea|Math\.sqrt/);
 });
 
