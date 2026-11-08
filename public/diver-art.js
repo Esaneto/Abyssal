@@ -1,6 +1,6 @@
-/* Abyssal diver default: original side-swimming, pressure-resistant cyan dive suit.
- * Shared renderer for gameplay, profile portrait and navigable menu.
- * Body orientation follows swimming velocity; only the mounted weapon tracks aim.
+/* Abyssal default high-pressure diver. Anatomical human: articulated legs,
+ * long flippers, restrained navy/black armour, and a white aimed rifle.
+ * Rendering and segmented collision use the same local coordinate system.
  */
 (function(root,factory){
  const api=factory();
@@ -8,83 +8,104 @@
  if(root)root.AbyssalDiverArt=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const TAU=Math.PI*2;
- function genderOf(v){return v==='female'?'female':'male';}
+ const TAU=Math.PI*2,DRAW_SCALE=.60;
+ const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
-  const d=(Number(r)||13)/14*46;
-  return {x:(Number(x)||0)+Math.cos(Number(aim)||0)*d,y:(Number(y)||0)+Math.sin(Number(aim)||0)*d};
+  const distance=(Number(r)||13)*DRAW_SCALE*46/14;
+  const angle=Number(aim)||0;
+  return {x:(Number(x)||0)+Math.cos(angle)*distance,y:(Number(y)||0)+Math.sin(angle)*distance};
  }
  function draw(c,x,y,r,heading,aim,t=0,options={}){
   if(!c||!(r>0))return;
-  const female=genderOf(options.gender)==='female';
-  const swim=options.moving===false?0:Math.sin((Number(t)||0)*.011);
-  const scale=r/14;
-  c.save();c.translate(x,y);c.rotate(Number(heading)||0);c.scale(scale,scale);
+  const female=genderOf(options.gender)==='female',a=Number(heading)||0;
+  const cycle=options.moving===false?0:Math.sin((Number(t)||0)*.011);
+  c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
-  // Rear fins: large, separate and animated like real long-blade freediving fins.
+  const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
+  const limb=(start,end,thickness,base,glow)=>{
+   line(start[0],start[1],end[0],end[1],'#060e19',thickness+3);
+   line(start[0],start[1],end[0],end[1],base,thickness);
+   line(start[0],start[1]-1,end[0],end[1]-1,glow,1);
+  };
+  // Two HUMAN upper legs and calves, independently kicking. Only the flipper
+  // blade starts at the ankle; no anatomical fish tail or dorsal body fins.
   for(const side of [-1,1]){
-   const swing=swim*side*4;
-   c.save();c.translate(-16,side*6);c.rotate((side*.10)+swim*.035);
-   c.strokeStyle='#78f6ff';c.lineWidth=2.2;
-   c.fillStyle='#082c57';c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(-12,side*3,-21,side*5);c.lineTo(-25,side*(7+swing));c.lineTo(-10,side*10);c.closePath();c.fill();c.stroke();
-   c.fillStyle='#0bc5f5';c.shadowBlur=8;c.shadowColor='#1bd9ff';
-   c.beginPath();c.moveTo(-23,side*5);c.quadraticCurveTo(-34,side*(6+swing),-45,side*(11+swing));c.quadraticCurveTo(-51,side*(15+swing),-59,side*(12+swing));
-   c.quadraticCurveTo(-55,side*(2+swing),-47,side*(1+swing));
-   c.quadraticCurveTo(-37,side*(-1+swing),-24,side*2);c.closePath();c.fill();c.stroke();
-   c.shadowBlur=0;c.strokeStyle='rgba(219,255,255,.75)';c.lineWidth=.7;
-   c.beginPath();c.moveTo(-27,side*4);c.quadraticCurveTo(-40,side*(6+swing),-53,side*(10+swing));c.stroke();
-   c.restore();
+   const lift=cycle*side*5,knee=[-31,side*8+lift],ankle=[-48,side*12+lift*1.35];
+   limb([-16,side*5],knee,8,'#202a38','#40617a');
+   c.fillStyle='#030c14';c.strokeStyle='#6d899d';c.lineWidth=1;
+   c.beginPath();c.arc(knee[0],knee[1],4.3,0,TAU);c.fill();c.stroke();
+   limb(knee,ankle,6.5,'#162532','#2b5b75');
+   // Realistic long blade, dark grey with a narrow glint on the outer edge.
+   c.fillStyle='#101b29';c.strokeStyle='#79b9ce';c.lineWidth=1.5;
+   c.beginPath();c.moveTo(ankle[0]+2,ankle[1]-4*side);
+   c.quadraticCurveTo(-59,ankle[1]-7*side,-76,ankle[1]-12*side);
+   c.quadraticCurveTo(-82,ankle[1]-5*side,-77,ankle[1]+7*side);
+   c.quadraticCurveTo(-61,ankle[1]+5*side,ankle[0],ankle[1]+3*side);
+   c.closePath();c.fill();c.stroke();
+   line(-53,ankle[1],-75,ankle[1]-3*side,'rgba(168,206,217,.56)',.8);
   }
-  // Back-mounted compressed atmosphere capsule and armoured connectors.
-  c.fillStyle='#091d3b';c.strokeStyle='#1be8ff';c.lineWidth=1.6;
-  c.beginPath();c.roundRect(-14,-19,34,12,6);c.fill();c.stroke();
-  const tank=c.createLinearGradient(-12,-17,14,-10);tank.addColorStop(0,'#073762');tank.addColorStop(.42,'#279cdb');tank.addColorStop(.8,'#8af6ff');tank.addColorStop(1,'#0b3b66');
-  c.fillStyle=tank;c.beginPath();c.roundRect(-10,-18,28,10,4);c.fill();
-  c.strokeStyle='#c6ffff';c.lineWidth=2;c.beginPath();c.moveTo(-5,-19);c.lineTo(-5,-8);c.moveTo(11,-19);c.lineTo(11,-8);c.stroke();
-  // Hidrodynamic luminous body, same anatomical silhouette for both genders.
-  const suit=c.createLinearGradient(-15,-10,24,12);suit.addColorStop(0,'#0c5794');suit.addColorStop(.30,'#0b94d9');suit.addColorStop(.58,'#21d9ff');suit.addColorStop(1,'#072b67');
-  c.fillStyle=suit;c.strokeStyle='#9ffaff';c.lineWidth=1.5;
-  c.shadowColor='rgba(13,202,255,.6)';c.shadowBlur=10;
-  c.beginPath();c.moveTo(-18,-6);c.bezierCurveTo(-9,-13,9,-11,20,-6);c.quadraticCurveTo(28,0,20,7);
-  c.bezierCurveTo(7,13,-8,11,-18,5);c.quadraticCurveTo(-22,-1,-18,-6);c.closePath();c.fill();c.stroke();c.shadowBlur=0;
-  c.strokeStyle='#dbffff';c.lineWidth=.8;c.beginPath();c.moveTo(-10,-8);c.bezierCurveTo(0,-3,8,-5,16,-7);c.stroke();
-  c.fillStyle='#07345c';c.strokeStyle='#6eeeff';c.lineWidth=1.2;
-  c.beginPath();c.roundRect(-8,7,15,4,2);c.fill();c.stroke();
-  // Oxygen tubes wrapping forward from cylinder into helmet.
-  c.strokeStyle='rgba(168,245,255,.85)';c.lineWidth=1.45;
-  c.beginPath();c.moveTo(13,-12);c.bezierCurveTo(26,-18,37,-12,34,0);c.stroke();
-  // Cylindrical pressure helmet with high-contrast visor, always facing swim heading.
-  const helm=c.createRadialGradient(25,-4,2,27,0,17);
-  helm.addColorStop(0,'#3ddaff');helm.addColorStop(.42,'#067abf');helm.addColorStop(1,'#032a58');
-  c.fillStyle=helm;c.strokeStyle='#a4fbff';c.lineWidth=2.1;c.shadowBlur=10;c.shadowColor='#28d7ff';
-  c.beginPath();c.ellipse(26,-1,15,13,0,0,TAU);c.fill();c.stroke();c.shadowBlur=0;
-  const glass=c.createLinearGradient(23,-10,42,9);glass.addColorStop(0,'#e7ffff');glass.addColorStop(.3,'#62eaff');glass.addColorStop(.72,'#086ca3');glass.addColorStop(1,'#021a3a');
-  c.fillStyle=glass;c.beginPath();c.ellipse(32,-1,9,8,-.02,0,TAU);c.fill();
-  c.strokeStyle='rgba(242,255,255,.9)';c.lineWidth=1.5;c.beginPath();c.arc(32,-2,7,Math.PI*1.12,Math.PI*1.55);c.stroke();
-  c.fillStyle='#ffecaa';c.shadowColor='#ffe27c';c.shadowBlur=7;c.beginPath();c.arc(15,6,1.8,0,TAU);c.fill();c.shadowBlur=0;
-  // Long hair is the only visual difference, loose strands flow aft in water.
+  // Armoured oxygen pack is behind the shoulders, not a second silhouette.
+  c.fillStyle='#0c151e';c.strokeStyle='#7e9da9';c.lineWidth=1.5;
+  c.beginPath();c.roundRect(-13,-20,32,12,5);c.fill();c.stroke();
+  c.fillStyle='#394653';c.beginPath();c.roundRect(-8,-19,24,10,4);c.fill();
+  c.fillStyle='#0b253b';c.fillRect(5,-18,6,8);
+  line(-4,-18,-4,-8,'#a7c3ca',1.8);
+  line(12,-18,12,-8,'#a7c3ca',1.8);
+  // Black/graphite diving suit with deep abyss-blue armour and small cyan nodes.
+  const suit=c.createLinearGradient(-20,-10,24,11);
+  suit.addColorStop(0,'#040c16');suit.addColorStop(.33,'#1c2834');
+  suit.addColorStop(.59,'#123251');suit.addColorStop(.86,'#1b2a37');suit.addColorStop(1,'#080f1b');
+  c.fillStyle=suit;c.strokeStyle='#5b8796';c.lineWidth=1.6;
+  c.beginPath();c.moveTo(-19,-7);c.bezierCurveTo(-7,-13,12,-13,20,-7);
+  c.quadraticCurveTo(27,-1,20,9);c.bezierCurveTo(5,15,-9,12,-19,7);
+  c.quadraticCurveTo(-23,-1,-19,-7);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#09141e';c.beginPath();c.roundRect(-11,-4,21,8,3);c.fill();
+  line(-17,7,15,8,'#63879a',.9);
+  c.shadowColor='#18a8c8';c.shadowBlur=4;c.fillStyle='#5cd7e7';
+  for(const [px,py] of [[-8,-8],[11,10],[19,-8]]){c.beginPath();c.arc(px,py,1.6,0,TAU);c.fill();}
+  c.shadowBlur=0;
+  // Partial helmet with sealed transparent visor: a deliberate opening above
+  // the forehead allows the hair to flow without hiding the human silhouette.
+  c.fillStyle='#0c1928';c.strokeStyle='#80aab7';c.lineWidth=1.9;
+  c.beginPath();c.ellipse(27,-2,15,13,0,0,TAU);c.fill();c.stroke();
+  c.fillStyle='#112739';c.beginPath();c.ellipse(32,-1,8.5,8.5,0,0,TAU);c.fill();
+  c.fillStyle='#5e8492';c.beginPath();c.arc(35,-3,2,0,TAU);c.fill();
+  c.strokeStyle='#c4e9ef';c.lineWidth=1;c.beginPath();c.arc(29,-1,10,-.75,1.15);c.stroke();
+  // Hair is BLACK in both versions: short fringe or thick long curved strands.
+  c.fillStyle='#030507';c.strokeStyle='#17212a';c.lineWidth=1.2;
+  c.beginPath();c.moveTo(15,-8);c.quadraticCurveTo(21,-18,30,-14);
+  c.quadraticCurveTo(33,-12,36,-8);c.quadraticCurveTo(31,-11,28,-8);
+  c.quadraticCurveTo(25,-9,23,-6);c.quadraticCurveTo(19,-8,15,-8);c.closePath();c.fill();
   if(female){
-   c.strokeStyle='#091944';c.lineWidth=6;c.beginPath();c.moveTo(15,-11);c.bezierCurveTo(6,-21,-6,-20,-24,-24+swim);c.stroke();
-   const strands=['#79ebff','#1589d0','#40c6f8','#6cf6ff'];
-   strands.forEach((color,i)=>{
-    c.strokeStyle=color;c.lineWidth=i===0?2.4:1.7;c.shadowColor=color;c.shadowBlur=3;
-    c.beginPath();c.moveTo(15-i*.7,-11-i*.4);
-    c.bezierCurveTo(3,-17-i*2,-12,-25+i*2+swim*2,-25-i*4,-22+i*2+swim*3);
-    c.bezierCurveTo(-35-i*4,-18+i*3,-38-i*4,-30+i*2,-47-i*3,-24+i*3+swim*4);c.stroke();
-   });c.shadowBlur=0;
+   for(let i=0;i<8;i++){
+    const offset=i*1.2,tail=-39-i*1.15,wave=cycle*(3+i*.33);
+    c.beginPath();c.strokeStyle=i%3===0?'#1b2530':'#040608';c.lineWidth=2.1+(i%3)*.32;
+    c.moveTo(18+offset*.15,-11);
+    c.bezierCurveTo(3,-19-offset,-11,-22+offset+wave,tail,-27+offset*.4+wave);
+    c.bezierCurveTo(tail-7,-30+offset*.5+wave,tail-12,-23+offset+wave,tail-21,-25+offset+wave);
+    c.stroke();
+   }
+  }else{
+   for(let i=0;i<4;i++)line(22+i*2,-12,25+i*1.4,-7,'#07090d',1.5);
   }
-  // Futuristic rifle aims independently; body never rotates toward mouse.
-  c.save();c.rotate((Number(aim)||0)-(Number(heading)||0));
-  c.strokeStyle='#64e6f6';c.fillStyle='#06365e';c.lineWidth=2;
-  c.beginPath();c.moveTo(7,8);c.lineTo(17,8);c.lineTo(22,3);c.stroke();
-  const weapon=c.createLinearGradient(18,-5,44,6);weapon.addColorStop(0,'#122544');weapon.addColorStop(.45,'#127cc7');weapon.addColorStop(1,'#75faff');
-  c.fillStyle=weapon;c.strokeStyle='#b2ffff';c.lineWidth=1.5;c.shadowColor='#50efff';c.shadowBlur=8;
-  c.beginPath();c.moveTo(14,-6);c.lineTo(34,-7);c.lineTo(41,-3);c.lineTo(41,3);c.lineTo(31,7);c.lineTo(14,6);c.closePath();c.fill();c.stroke();
-  c.fillStyle='#061c35';c.fillRect(36,-3,10,6);
-  c.fillStyle='#a5ffff';c.fillRect(40,-2,6,4);
-  c.fillStyle='#d9fdff';c.shadowBlur=6;c.beginPath();c.arc(46,0,2.2,0,TAU);c.fill();c.shadowBlur=0;
-  c.restore();
-  c.restore();
+  // Both arms bend down to the weapon grip. Weapon pitch is independent from
+  // swimming heading and attaches to the arms, not to the cursor/body.
+  c.save();c.rotate((Number(aim)||0)-a);
+  limb([10,6],[19,14],5.2,'#1d2b3a','#5c7888');
+  limb([19,14],[29,8],4.7,'#132534','#537b8a');
+  limb([8,-6],[20,4],4.9,'#1b293a','#587a89');
+  // Recognisable WHITE sci-fi rifle: stock, pistol grip, trigger, body and barrel.
+  c.fillStyle='#b7c3cf';c.strokeStyle='#f2ffff';c.lineWidth=1.5;
+  c.beginPath();c.moveTo(17,1);c.lineTo(20,-4);c.lineTo(35,-5);c.lineTo(38,-2);
+  c.lineTo(44,-2);c.lineTo(44,3);c.lineTo(35,3);c.lineTo(31,6);
+  c.lineTo(23,6);c.lineTo(23,11);c.lineTo(19,12);c.lineTo(16,5);c.closePath();c.fill();c.stroke();
+  c.fillStyle='#f4f7f8';c.fillRect(30,-3,12,4);
+  c.fillStyle='#122431';c.fillRect(41,-1,5,3);
+  c.fillStyle='#f6ffff';c.fillRect(44,-.5,3,2);
+  line(25,-4,36,-4,'rgba(255,255,255,.95)',.9);
+  c.fillStyle='#e5fcff';c.shadowColor='#d1faff';c.shadowBlur=5;
+  c.beginPath();c.arc(46,0,1.5,0,TAU);c.fill();c.shadowBlur=0;
+  c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,genderOf});
+ return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE});
 });
