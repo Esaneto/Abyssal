@@ -2582,19 +2582,20 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    player.weaponAngle=novaAngle;player.angle=novaAngle;
    const volleyId=nextShotVolleyId(),speed=420/GAME_WORLD_ZOOM;
+   const muzzle=DIVER_ART?.muzzle?.(player.x,player.y,player.r,novaAngle)||{x:player.x+Math.cos(novaAngle)*28/GAME_WORLD_ZOOM,y:player.y+Math.sin(novaAngle)*28/GAME_WORLD_ZOOM};
    if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({
-    x:player.x/W,y:player.y/H,
+    x:muzzle.x/W,y:muzzle.y/H,
     vx:Math.cos(novaAngle)*speed/W,vy:Math.sin(novaAngle)*speed/H,
     damage:novaDamage,color:'#72f5ff',special:'nova',volleyId,combined
    });
    else if(!onlineMode){
     for(const e of [...enemies]){
-     if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(player.x,player.y,novaAngle,e.x,e.y,e.r,novaRange))continue;
-     if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,e.x,e.y,Math.min(7,e.r||5)))continue;
+     if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(muzzle.x,muzzle.y,novaAngle,e.x,e.y,e.r,novaRange))continue;
+     if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,muzzle.x,muzzle.y,e.x,e.y,Math.min(7,e.r||5)))continue;
      dealEnemyDamage(e,novaDamage,'nova');burst(e.x,e.y,'#72f5ff',3,70);
     }
    }
-   spawnNovaVisual(player.x,player.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined);
+   spawnNovaVisual(muzzle.x,muzzle.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined);
    emitPrismaticNovaShards(novaDamage,volleyId);
    playSkillSound('nova','trigger');
   }
