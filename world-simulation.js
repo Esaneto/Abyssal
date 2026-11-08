@@ -1,6 +1,7 @@
 'use strict';
 const EnemyAI = require('./public/enemy-ai.js');
 const SkinAbilities = require('./public/skin-abilities.js');
+const DiverHitbox = require('./public/diver-hitbox.js');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
@@ -289,6 +290,15 @@ function activateRiftEncounters(world,players,random=Math.random){
 const movementNavigationProxy={x:0,y:0,moveSpeed:150/WORLD_ZOOM,skinId:'default',alive:true};
 const movementNavigationTargets=[movementNavigationProxy];
 
+function riftTouchesDiver(hazard,phase,target){
+ for(const z of DiverHitbox.zones(target,Date.now())){
+  for(const mix of [0,.5,1]){
+   const px=z.ax+(z.bx-z.ax)*mix,py=z.ay+(z.by-z.ay)*mix;
+   if(RiftHardcore.hit(hazard,px,py,z.r,phase))return z.name;
+  }
+ }
+ return null;
+}
 function bossAbilityHit(enemy,target,rawDamage,now,abilityId,{neurotoxinMs=0}={}){
  if(!enemy||!target||target.alive===false)return null;
  let blocked=false,damage=0;
@@ -296,7 +306,7 @@ function bossAbilityHit(enemy,target,rawDamage,now,abilityId,{neurotoxinMs=0}={}
  if((Number(target.shieldCharges)||0)>0){
   target.shieldCharges=Math.max(0,Number(target.shieldCharges)-1);blocked=true;target.invulnerableUntil=now+350;
  }else if(now>=(Number(target.invulnerableUntil)||0)){
-  const requested=Math.max(1,Number(rawDamage)||1)*(SkinAbilities.incomingDamageMultiplier(target.skinId)||1);
+  const requested=Math.max(1,Number(rawDamage)||1)*(SkinAbilities.incomingDamageMultiplier(target.skinId,target.specimenPoints,target.specimenAlive!==false)||1);
   const before=Math.max(0,Number(target.hp)||target.maxHp);
   damage=Math.min(before,requested);target.hp=Math.max(0,before-damage);target.invulnerableUntil=now+520;
   if(neurotoxinMs>0&&damage>0)target.neurotoxinUntil=now+neurotoxinMs;
@@ -454,7 +464,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
       if(phase.phase!=='active')continue;
       for(const target of validPlayers){
-        if(target.tutorialActive||!RiftHardcore.hit(hazard,target.x,target.y,Number(target.r)||13/WORLD_ZOOM,phase))continue;
+        if(target.tutorialActive||!riftTouchesDiver(hazard,phase,target))continue;
         target.riftHazardCooldowns ||= Object.create(null);
         // Continuous suction is independent from periodic damage.
         if(hazard.type==='vortex'&&target.alive!==false){
@@ -515,7 +525,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
        const contenders=targetablePlayers.filter(p=>AbyssalMap.roomAt(mapLayout,Number(p.x),Number(p.y))?.id==='boss');
        if(!enemy.riftNextAttackAt)enemy.riftNextAttackAt=now+1400;
        for(const target of contenders){
-         if(Math.hypot(enemy.x-target.x,enemy.y-target.y)>enemy.r*.85+(Number(target.r)||13/WORLD_ZOOM))continue;
+         if(!DiverHitbox.circleHit(target,enemy.x,enemy.y,enemy.r*.85,now))continue;
          enemy.nightmareHeadCooldowns ||= Object.create(null);
          if(now<(Number(enemy.nightmareHeadCooldowns[target.id])||0))continue;
          enemy.nightmareHeadCooldowns[target.id]=now+900;
@@ -565,7 +575,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         const ty=enemy.y-Math.sin(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'ink-trail',x:tx,y:ty,angle:enemy.angle||0,radius,color:'#07101d'});
         for(const target of validPlayers){
-          if(Math.hypot(Number(target.x)-tx,Number(target.y)-ty)>radius+(Number(target.r)||13/WORLD_ZOOM))continue;
+          if(!DiverHitbox.circleHit(target,tx,ty,radius,now))continue;
           const hit=bossAbilityHit(enemy,target,2,now,'ink-trail');
           if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
         }
@@ -576,7 +586,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if(enemy.mawAbilityTimer>=4.0){
         enemy.mawAbilityTimer=0;const radius=205/WORLD_ZOOM;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'gulper-chomp',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
-        for(const target of validPlayers){if(Math.hypot(Number(target.x)-enemy.x,Number(target.y)-enemy.y)>radius)continue;const hit=bossAbilityHit(enemy,target,24,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(!DiverHitbox.circleHit(target,enemy.x,enemy.y,radius,now))continue;const hit=bossAbilityHit(enemy,target,24,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if(enemy.kind==='leviathan'){
@@ -584,7 +594,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if(enemy.pressureWaveTimer>=4.8){
         enemy.pressureWaveTimer=0;const length=480/WORLD_ZOOM,width=72/WORLD_ZOOM,ang=Number(enemy.angle)||0,x2=enemy.x+Math.cos(ang)*length,y2=enemy.y+Math.sin(ang)*length;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'pressure-lance',x:enemy.x,y:enemy.y,angle:ang,radius:length,color:enemy.color});
-        for(const target of validPlayers){if(segmentDistance(Number(target.x),Number(target.y),enemy.x,enemy.y,x2,y2)>width)continue;const hit=bossAbilityHit(enemy,target,22,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(!DiverHitbox.segmentHit(target,enemy.x,enemy.y,x2,y2,width,now))continue;const hit=bossAbilityHit(enemy,target,22,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if (enemy.kind === 'devourer' && enemy.suctionActive) {
@@ -711,7 +721,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // overlapping/very close before the server applies damage. Hidden tabs still use the
     // full authoritative radius at their last known coordinate.
     const contactRadius = target.clientHidden === true ? rawContactRadius : Math.max(1, rawContactRadius - contactSafetyMargin);
-    if (contactDistance > contactRadius) continue;
+    // Anatomical capsules, instead of the old single round player hitbox:
+    // enemy contact against arms and legs is as valid as a torso strike.
+    const enemyBodyRadius=Math.max(2,contact.enemyRadiusWorld-contactSafetyMargin);
+    const contactZone=DiverHitbox.circleHit(target,enemy.x,enemy.y,enemyBodyRadius,now);
+    if(!contactZone && !(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
     const contactProfile={
@@ -733,7 +747,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     } else {
       const baseDamage = Math.max(1, Math.min(100, Number(enemy.damage) || 8));
       const contactPower = contactProfile?.power || (enemy.kind==='kraken'&&enemy.krakenSweepActive?1.25:enemy.kind==='whiteSharkBoss'?1.15:enemy.kind==='devourer'&&enemy.suctionActive?1.2:1);
-      const requestedDamage = Math.max(1, Math.round(baseDamage * contactPower * SkinAbilities.incomingDamageMultiplier(target.skinId)));
+      const requestedDamage = Math.max(1, Math.round(baseDamage * contactPower * SkinAbilities.incomingDamageMultiplier(target.skinId,target.specimenPoints,target.specimenAlive!==false)));
       const hpBefore = Number.isFinite(Number(target.hp)) ? Number(target.hp) : (Number(target.maxHp) || 100);
       target.maxHp = Math.max(1, Number(target.maxHp) || 100);
       target.hp = Math.max(0, Math.min(target.maxHp, hpBefore) - requestedDamage);
@@ -756,7 +770,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, neurotoxinMs, skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, neurotoxinMs, hitZone:contactZone||'tentacle',skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
