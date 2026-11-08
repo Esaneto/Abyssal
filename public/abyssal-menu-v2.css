@@ -35,16 +35,6 @@
 #menuScreen.ocean-menu-v2 #riftPortalBtn:before{inset:-13px;border:2px solid rgba(206,143,255,.38);border-radius:57% 43% 49% 51%;animation-duration:5s}
 #menuScreen.ocean-menu-v2 .abyss-ocean-diver{position:absolute!important;z-index:8!important;left:var(--diver-x,50%)!important;top:var(--diver-y,48%)!important;width:58px!important;height:74px!important;transform:translate(-50%,-50%) rotate(var(--swim-angle,0rad))!important;pointer-events:none!important;filter:drop-shadow(0 0 14px rgba(93,237,252,.5));transition:none!important}
 #menuScreen.ocean-menu-v2 .abyss-ocean-diver span{position:absolute!important;display:block!important}
-#menuScreen.ocean-menu-v2 .abyss-diver-tank{left:8px;top:26px;width:16px;height:32px;border-radius:8px;background:linear-gradient(90deg,#061018,#13465c,#07131c);border:1px solid #428898}
-#menuScreen.ocean-menu-v2 .abyss-diver-body{left:18px;top:26px;width:25px;height:31px;border-radius:11px 11px 7px 7px;background:linear-gradient(100deg,#081522,#19506a,#061422);border:2px solid #75cad6}
-#menuScreen.ocean-menu-v2 .abyss-diver-helmet{left:19px;top:8px;width:29px;height:25px;border-radius:50%;background:linear-gradient(140deg,#0a2436,#174d63);border:2px solid #b0effa}
-#menuScreen.ocean-menu-v2 .abyss-diver-visor{left:29px;top:15px;width:18px;height:13px;border-radius:50%;background:radial-gradient(circle at 65% 35%,#fff,#79eaff 43%,#156185 85%);box-shadow:0 0 12px rgba(117,241,255,.65)}
-#menuScreen.ocean-menu-v2 .abyss-diver-left-arm,#menuScreen.ocean-menu-v2 .abyss-diver-right-arm{left:22px;top:35px;width:30px;height:4px;background:#5ac8d4;border-radius:4px;transform-origin:left}
-#menuScreen.ocean-menu-v2 .abyss-diver-left-arm{transform:rotate(25deg)}#menuScreen.ocean-menu-v2 .abyss-diver-right-arm{transform:rotate(-25deg)}
-#menuScreen.ocean-menu-v2 .abyss-diver-left-fin,#menuScreen.ocean-menu-v2 .abyss-diver-right-fin{left:25px;top:56px;width:30px;height:5px;border-radius:10px;background:#3ab1c3;transform-origin:left}
-#menuScreen.ocean-menu-v2 .abyss-diver-left-fin{transform:rotate(34deg)}#menuScreen.ocean-menu-v2 .abyss-diver-right-fin{transform:rotate(-34deg)}
-#menuScreen.ocean-menu-v2 .abyss-ocean-diver.swimming .abyss-diver-left-fin{animation:ocean-v2-kick .42s ease-in-out infinite alternate}
-#menuScreen.ocean-menu-v2 .abyss-ocean-diver.swimming .abyss-diver-right-fin{animation:ocean-v2-kick .42s ease-in-out infinite alternate-reverse}
 #menuScreen.ocean-menu-v2 #menuOceanSpecimen{display:block!important;position:absolute!important;left:-36px!important;top:-46px!important;width:86px!important;height:58px!important;transform:rotate(calc(-1 * var(--swim-angle,0rad)))!important;pointer-events:none!important;filter:drop-shadow(0 0 11px rgba(128,229,248,.35))}
 #menuScreen.ocean-menu-v2 .abyss-ocean-hint{position:absolute!important;bottom:12px!important;left:50%!important;transform:translateX(-50%)!important;z-index:9!important;color:#a8d5e3!important;background:rgba(1,15,28,.88)!important;border:1px solid rgba(85,191,216,.25)!important;padding:8px 14px!important;white-space:nowrap!important;text-align:center!important;font:700 10px 'DM Mono',monospace!important;letter-spacing:.07em!important;pointer-events:none!important}
 #menuScreen.ocean-menu-v2 .abyss-ocean-enter{display:none!important}
@@ -67,7 +57,6 @@
 @keyframes ocean-v2-drift{to{background-position:22px 225px,73px 347px}}
 @keyframes ocean-v2-portal{to{transform:rotate(360deg)}}
 @keyframes ocean-v2-rift{50%{filter:brightness(1.22) saturate(1.2)}}
-@keyframes ocean-v2-kick{from{transform:rotate(20deg)}to{transform:rotate(48deg)}}
 @media(max-width:800px){
  #menuScreen.ocean-menu-v2{grid-template-rows:auto minmax(0,1fr) auto auto!important}
  #menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:105px!important;padding-top:55px!important}
@@ -101,11 +90,6 @@
  #menuScreen.ocean-menu-v2 .abyss-ocean-enter{display:block!important;position:absolute!important;z-index:10!important;right:9px!important;bottom:7px!important;width:94px!important;min-height:33px!important;padding:5px!important;background:#0b3448!important;border:1px solid rgba(97,222,237,.5)!important;border-radius:5px!important;color:#ebfcff!important;font:800 8px Inter,sans-serif!important;transform:none!important}
  #menuScreen.ocean-menu-v2 .abyss-ocean-enter[disabled]{opacity:.38!important}
  #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad{position:absolute!important;left:9px!important;bottom:6px!important;z-index:10!important;display:grid!important;grid-template-columns:repeat(3,25px)!important;grid-template-rows:repeat(2,25px)!important;gap:2px!important}
- #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad button{background:rgba(13,50,68,.8)!important;border:1px solid rgba(101,216,234,.34)!important;color:#cff7ff!important;font:800 10px sans-serif!important;border-radius:4px!important;padding:0!important;width:25px!important;height:25px!important;min-height:0!important;touch-action:none!important}
- #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=up]{grid-column:2;grid-row:1}
- #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=left]{grid-column:1;grid-row:2}
- #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=down]{grid-column:2;grid-row:2}
- #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=right]{grid-column:3;grid-row:2}
 }
 @media(max-height:620px) and (min-width:800px){#menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:68px!important}#menuScreen.ocean-menu-v2 .abyss-destination{height:86px!important;width:125px!important}#menuScreen.ocean-menu-v2 #riftPortalBtn{height:96px!important;width:145px!important}}
 @media(prefers-reduced-motion:reduce){#menuScreen.ocean-menu-v2 *,#menuScreen.ocean-menu-v2 *:before{animation:none!important;transition:none!important}}
