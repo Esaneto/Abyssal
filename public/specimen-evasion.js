@@ -46,9 +46,10 @@
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
   const gx=Number(target?.x)||x,gy=Number(target?.y)||y;
   const distance=Math.hypot(gx-x,gy-y);
-  const step=Math.min(Math.max(0,speed*dt),distance||Math.max(0,speed*dt));
-  if(step<=0)return {x,y,angle:heading,evading:false};
-  const threats=threatsNear(x,y,enemies,Math.max(150,step*3+radius+clearance),14);
+  const maxStep=Math.max(0,speed*dt);
+  if(maxStep<=0)return {x,y,angle:heading,evading:false};
+  const threats=threatsNear(x,y,enemies,Math.max(150,maxStep*3+radius+clearance),14);
+  const step=threats.length?maxStep:Math.min(maxStep,distance);
   if(!threats.length){
    const a=Math.atan2(gy-y,gx-x);
    const nx=x+Math.cos(a)*Math.min(distance,step),ny=y+Math.sin(a)*Math.min(distance,step);
@@ -70,7 +71,8 @@
    const projectedX=x+(nx-x)*Math.max(1,.55/Math.max(dt,.016));
    const projectedY=y+(ny-y)*Math.max(1,.55/Math.max(dt,.016));
    let danger=risk(nx,ny,threats,radius,clearance);
-   danger+=risk(projectedX,projectedY,threats,radius,clearance)*.65;
+   const advancing=threats.map(e=>({x:e.x+(Number(e.vx)||0)*.42,y:e.y+(Number(e.vy)||0)*.42,r:e.r,hp:e.hp}));
+   danger+=risk(projectedX,projectedY,advancing,radius,clearance)*.65;
    const goalProgress=distance-Math.hypot(gx-nx,gy-ny);
    const momentum=Math.cos(angle-heading)*.35;
    const score=goalProgress*2.3-danger+momentum;
