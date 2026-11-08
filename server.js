@@ -1183,7 +1183,7 @@ function tickRoom(room, now) {
   const speed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
   const move=SpecimenEvasion.steer({position:pos,target,enemies:hostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
    heading:Number(peer.specimenEvasionHeading)||0,
-   resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):null});
+   resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):(x,y)=>({x:clamp(x,18/WORLD_ZOOM,WORLD_WIDTH-18/WORLD_ZOOM),y:clamp(y,18/WORLD_ZOOM,roomWorldHeight(room)-18/WORLD_ZOOM)})});
   peer.specimenX=move.x;peer.specimenY=move.y;peer.specimenEvasionHeading=move.angle;
  }
  const w = room.world;
