@@ -60,3 +60,27 @@ test('red reticle and changed assets are delivered with a fresh offline cache',(
  assert.match(sw,/'abyssal-red-reticle\.svg'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
 });
+
+test('three destinations keep the definitive bottom arrangement, routes and hatch',()=>{
+ const js=read('public/abyssal-menu-ocean.js');
+ const scene=read('public/ocean-menu-scenery.js');
+ const html=read('public/index.html');
+ const css=read('public/abyssal-menu-v2.css');
+ const online=js.indexOf("id:'onlineBtn',x:.18,y:.64");
+ const solo=js.indexOf("id:'playBtn',x:.50,y:.64");
+ const fossas=js.indexOf("id:'riftPortalBtn',x:.82,y:.84");
+ assert.ok(online>=0&&solo>online&&fossas>solo,'Online left, Solo middle, Fossas right');
+ assert.match(js,/hatch=\(\)=>\(\{x:w\*\.5,y:86\*/);
+ assert.match(js,/s\.button\.click\(\)/);
+ assert.match(js,/window\.addEventListener\('abyssal-menu-portal-cancelled'/);
+ assert.match(scene,/const fissureX=width\*\.82/);
+ assert.match(scene,/const mouthX=width\*\.82/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #riftPortalBtn\.abyss-fissure-entry/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #wheelBtn/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #resonanceBtn/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #profileBtn/);
+ assert.match(css,/#menuScreen\.ocean-menu-v2\.submarine-menu #shopBtn/);
+ assert.match(css,/#shopScreen #skinGrid \.skin-card/);
+ const stage=html.slice(html.indexOf('<div id="menuOceanPortalLayer"'),html.indexOf('<div id="menuOceanDiver"'));
+ assert.equal((stage.match(/class="abyss-destination/g)||[]).length,3);
+});
