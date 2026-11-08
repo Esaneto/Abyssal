@@ -21,7 +21,7 @@ test('specimen has independent hitbox death respawn and disables active ability'
  assert.match(game,/if\(!player\|\|gameState!=='playing'\|\|!specimenAlive\(\)\)return false/);
  assert.match(server,/specimenHp:55/);
  assert.match(server,/specimenAlive:true/);
- assert.match(server,/p\.specimenAlive=false/);
+ assert.match(server,/player\.specimenAlive=false/);
  assert.match(server,/SpecimenSystem\.stats\(Number\(player\?\.specimenPoints\)/);
  assert.match(server,/if\(player\.specimenAlive===false\)return ack\(false,'specimen-defeated'\)/);
 });
