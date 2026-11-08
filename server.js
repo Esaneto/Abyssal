@@ -1157,7 +1157,7 @@ function tickRoom(room, now) {
   if(t>=1)victim.skinPushImpulse=null;
  }
  // Companions treat survival as higher priority than orb collection.
- const hostile=room.mode==='pvp'?[]:(room.world?.enemies||[]).map(e=>({x:Number(e.x)||0,y:Number(e.y)||0,r:(Number(e.r)||10)/WORLD_ZOOM,hp:e.hp}));
+ const hostile=room.mode==='pvp'?[]:(room.world?.enemies||[]).map(e=>({x:Number(e.x)||0,y:Number(e.y)||0,r:(Number(e.r)||10)/WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const riftLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
  for(const peer of activePlayers){
   if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){
