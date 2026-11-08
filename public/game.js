@@ -2165,66 +2165,86 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
  const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(l2<=1e-9)return Math.hypot(px-ax,py-ay);
  const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
 }
-function currentSkinActiveSpec(){return SKIN_STANDARD?.activeSpec?.(equippedSkin)||null;}
-function nearestSkinActiveTarget(range){
+function currentSkinActiveSpec(){
+ if(!specimenAlive())return null;
+ const base=SKIN_STANDARD?.activeSpec?.(equippedSkin);if(!base)return null;
+ const mastery=specimenProgressStats();
+ return Object.freeze({...base,cooldown:mastery.cooldown,range:(Number(base.range)||0)*mastery.rangeMultiplier});
+}
+function nearestSkinActiveTarget(range,origin=specimenOrigin()){
  let best=null,bd=Infinity;
- for(const e of enemies){if(!e||e.hp<=0)continue;const d=Math.hypot(e.x-player.x,e.y-player.y);if(d<=range&&d<bd){best=e;bd=d;}}
+ for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=Math.hypot(e.x-origin.x,e.y-origin.y);if(d<=range&&d<bd){best=e;bd=d;}}
  return best;
+}
+function specimenAbilityAngle(range){
+ const origin=specimenOrigin(),optionTwo=isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
+ if(optionTwo){
+  if(isPcMouseAimMode()&&Number.isFinite(pointer.clientX)&&Number.isFinite(pointer.clientY)){
+   const rect=canvas.getBoundingClientRect(),mx=cameraX+(pointer.clientX-rect.left)/worldZoom,my=cameraY+(pointer.clientY-rect.top)/worldZoom;
+   return Math.atan2(my-origin.y,mx-origin.x);
+  }
+  return Number(controlAimAngle)||Number(player?.angle)||0;
+ }
+ const target=nearestSkinActiveTarget(range,origin);
+ return target?Math.atan2(target.y-origin.y,target.x-origin.x):(Number(player?.angle)||0);
 }
 function spawnPoisonPlantCloudVisual(x,y,radius,color='#7dff73'){
  effects.push({type:'poison-plant-cloud',x,y,max:radius,life:1.15,maxLife:1.15,color});
  effects.push({type:'ring',x,y,r:0,max:radius*.92,life:.9,maxLife:.9,color});
  burst(x,y,color,lowPowerRendering?14:26,135);
 }
-function spawnSkinActiveVisual(spec,angle=Number(player?.angle)||0){
- if(!player||!spec)return;
- const x=player.x,y=player.y,r=(Number(spec.range)||150)/GAME_WORLD_ZOOM,color=spec.color||currentSkinColor();
+function spawnSkinActiveVisual(spec,angle){
+ if(!player||!spec||!specimenAlive())return;
+ const origin=specimenOrigin(),x=origin.x,y=origin.y,r=(Number(spec.range)||150)/GAME_WORLD_ZOOM,color=spec.color||currentSkinColor();
  if(spec.id==='cloud')spawnPoisonPlantCloudVisual(x,y,r,color);
- else if(spec.id==='dash'){effects.push({type:'beam',x1:x-Math.cos(angle)*20/GAME_WORLD_ZOOM,y1:y-Math.sin(angle)*20/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(x,y,color,14,110);}
+ else if(spec.id==='dash'){effects.push({type:'beam',x1:x-Math.cos(angle)*10/GAME_WORLD_ZOOM,y1:y-Math.sin(angle)*10/GAME_WORLD_ZOOM,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(x,y,color,14,110);}
  else if(spec.id==='trail'){effects.push({type:'ring',x,y,r:0,max:65/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color});burst(x,y,color,10,90);}
  else if(spec.id==='push'){effects.push({type:'ring',x,y,r:0,max:r,life:.58,maxLife:.58,color});burst(x,y,color,18,150);}
  else if(spec.id==='poison'){effects.push({type:'ring',x,y,r:0,max:r,life:.52,maxLife:.52,color});burst(x,y,color,15,120);}
  else if(spec.id==='paralysis'){effects.push({type:'electric-arc',x1:x-r*.45,y1:y,x2:x+r*.45,y2:y,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});effects.push({type:'ring',x,y,r:0,max:r,life:.48,maxLife:.48,color});burst(x,y,color,18,135);}
  else if(spec.id==='shot'||spec.id==='slowShot'){effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.42,maxLife:.42,color,width:spec.id==='shot'?6/GAME_WORLD_ZOOM:4/GAME_WORLD_ZOOM});burst(x,y,color,12,100);}
  else if(spec.id==='pulse'){effects.push({type:'ring',x,y,r:0,max:r,life:.62,maxLife:.62,color});effects.push({type:'ring',x,y,r:0,max:r*.62,life:.42,maxLife:.42,color});burst(x,y,color,20,155);}
- else if(spec.id==='shield'){effects.push({type:'ward-collapse',x,y,max:player.r*3.5,life:1,maxLife:1,color});burst(x,y,color,14,90);}
+ else if(spec.id==='shield'){effects.push({type:'ward-collapse',x,y,max:52/GAME_WORLD_ZOOM,life:1,maxLife:1,color});burst(x,y,color,14,90);}
 }
-function applySoloSkinActive(spec){
- const angle=Number(player.angle)||0,range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
- const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-player.x,e.y-player.y)<=range);
+function applySoloSkinActive(spec,angle){
+ const origin=specimenOrigin(),range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
+ const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-origin.x,e.y-origin.y)<=range);
  if(spec.id==='dash'){
-  player.dashTime=Math.max(player.dashTime||0,.42);player.ghostDashUntil=performance.now()+420;
-  for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy);if(d>range)continue;const diff=Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle));if(Math.abs(diff)<.42)dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true});}
+  const ex=origin.x+Math.cos(angle)*range,ey=origin.y+Math.sin(angle)*range;
+  for(const e of enemies){if(!e||e.hp<=0)continue;if(marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(20/GAME_WORLD_ZOOM,e.r*.55))dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true});}
  }else if(spec.id==='cloud'){
   for(const e of inRange()){e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);dealEnemyDamage(e,spec.damage,'skin-active-cloud',{visual:true});}
  }else if(spec.id==='trail'){
-  for(let i=0;i<5;i++){const bx=player.x-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=player.y-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color:spec.color,damageTimer:0,skinActive:true});}
+  for(let i=0;i<5;i++){const bx=origin.x-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=origin.y-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color:spec.color,damageTimer:0,skinActive:true});}
  }else if(spec.id==='push'){
-  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
+  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
  }else if(spec.id==='poison'){
-  const target=nearestSkinActiveTarget(range);if(target){target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.2);dealEnemyDamage(target,spec.damage,'skin-active-poison',{visual:true});}
+  const target=nearestSkinActiveTarget(range,origin);if(target){target.poisonTimer=Math.max(Number(target.poisonTimer)||0,3.2);dealEnemyDamage(target,spec.damage,'skin-active-poison',{visual:true});}
  }else if(spec.id==='paralysis'){
   for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-paralysis',{visual:true});e.paralyzedUntil=performance.now()+520;}
  }else if(spec.id==='shot'||spec.id==='slowShot'){
-  const target=nearestSkinActiveTarget(range);if(target){effects.push({type:'skin-shot-telegraph',x1:player.x,y1:player.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0)return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
+  const ex=origin.x+Math.cos(angle)*range,ey=origin.y+Math.sin(angle)*range;
+  const target=enemies.filter(e=>e&&e.hp>0&&marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(18/GAME_WORLD_ZOOM,e.r*.45)).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y))[0];
+  if(target){effects.push({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0||!specimenAlive())return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
  }else if(spec.id==='pulse'){
   for(const e of inRange())dealEnemyDamage(e,spec.damage,'skin-active-pulse',{visual:true});
  }else if(spec.id==='shield'){
-  player.skinShieldUntil=performance.now()+1100;
+  player.specimen.invuln=Math.max(Number(player.specimen.invuln)||0,1.1);
  }
 }
 function activateSkinAbility(inputEvent){
  if(inputEvent?.isTrusted!==true)return false;
- if(!player||gameState!=='playing')return false;
+ if(!player||gameState!=='playing'||!specimenAlive())return false;
  const spec=currentSkinActiveSpec();if(!spec)return false;
  if((Number(player.skinActiveCooldown)||0)>0)return false;
+ const angle=specimenAbilityAngle((Number(spec.range)||160)/GAME_WORLD_ZOOM),origin=specimenOrigin();
  player.skinActiveCooldown=Number(spec.cooldown)||10;
- spawnSkinActiveVisual(spec);
+ spawnSkinActiveVisual(spec,angle);
  if(onlineMode){
-  const sent=window.AbyssalOnline?.sendSkinAbility?.({type:'standard-active',active:spec.id,skin:equippedSkin,x:clamp(player.x/W,0,1),y:clamp(player.y/H,0,1),angle:Number(player.angle)||0});
+  const sent=window.AbyssalOnline?.sendSkinAbility?.({type:'standard-active',active:spec.id,skin:equippedSkin,x:clamp(origin.x/W,0,1),y:clamp(origin.y/H,0,1),angle});
   if(!sent){player.skinActiveCooldown=0;updateAbilityButtons(true);return false;}
- }else applySoloSkinActive(spec);
- playWorldSound(spec.id==='paralysis'?'ability-beam':spec.id==='dash'?'ability-dash':spec.id==='cloud'||spec.id==='poison'?'ability-poison':spec.id==='shield'?'shield-hit':'ability-nova',player,850,.68);
+ }else applySoloSkinActive(spec,angle);
+ playWorldSound(spec.id==='paralysis'?'ability-beam':spec.id==='dash'?'ability-dash':spec.id==='cloud'||spec.id==='poison'?'ability-poison':spec.id==='shield'?'shield-hit':'ability-nova',origin,850,.68);
  updateAbilityButtons(true);return true;
 }
 let soundMotionSkinId=null,soundMotionFamily='signature';
