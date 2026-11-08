@@ -820,7 +820,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // Enemies remain invulnerable for the entire emergence animation.
   if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
   // Reject hits through solid cave walls on the authoritative server.
-  const hitOrigin=skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:player;
+  const hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:player;
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
