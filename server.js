@@ -16,6 +16,7 @@ const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenSystem = require('./public/specimen-system.js');
+const DiverHitbox = require('./public/diver-hitbox.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
@@ -529,6 +530,24 @@ function specimenPositionFor(player){
  return {x:Number.isFinite(player?.specimenX)?player.specimenX:x,y:Number.isFinite(player?.specimenY)?player.specimenY:y,r:11/WORLD_ZOOM};
 }
 function specimenStatsFor(player){return SpecimenSystem.stats(Number(player?.specimenPoints)||0);}
+function applySpecimenImpact(room,player,rawAmount,source,now,cooldownMs=850){
+ if(!room||!player||player.specimenAlive===false||player.alive===false)return false;
+ if(now<(Number(player.specimenShieldUntil)||0)||now<(Number(player.specimenInvulnerableUntil)||0))return false;
+ const key=String(source||'environment'),until=player.specimenHitCooldowns||Object.create(null);
+ if(now<(Number(until[key])||0))return false;
+ until[key]=now+cooldownMs;player.specimenHitCooldowns=until;
+ if(Object.keys(until).length>128){for(const item of Object.keys(until))if(until[item]<now)delete until[item];}
+ const damage=Math.max(1,Number(rawAmount)||1);
+ player.specimenHp=Math.max(0,(Number(player.specimenHp)||player.specimenMaxHp||55)-damage);
+ player.specimenInvulnerableUntil=now+280;
+ if(player.specimenHp<=0){
+  player.specimenAlive=false;
+  player.specimenRespawnAt=now+Math.round(specimenStatsFor(player).respawnSeconds*1000);
+  player.skinActiveReadyAt=0;
+  emitSpecimenState(room,player,'defeated');
+ }else emitSpecimenState(room,player,'hit');
+ return true;
+}
 function emitSpecimenState(room,player,reason='state'){
  if(!room||!player)return;
  const pos=specimenPositionFor(player);
@@ -1039,33 +1058,52 @@ function tickRoom(room, now) {
  }
  w.roomPlayerCount = room.players.size;
  const result = WorldSimulation.tickWorld(w, activePlayers, now);
- // Specimens are independent combat targets. Enemy contact can down them without killing the diver.
+ // The companion is a separate target for hostile contact, boss abilities and
+ // physical Rift hazards. The server owns damage, respawn and invulnerability.
+ const abilities=Array.isArray(result.bossAbilityEvents)?result.bossAbilityEvents:[];
+ const riftLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(w):null;
+ const hazards=riftLayout?RiftHardcore.build(riftLayout,w.mapTier):[];
+ const nightmareAlive=room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&w.enemies.some(enemy=>enemy.kind===RiftHardcore.FINAL_KIND&&enemy.hp>0);
  for(const p of activePlayers){
-  const mastery=specimenStatsFor(p);
   if(p.specimenAlive===false){
    if(now>=(Number(p.specimenRespawnAt)||0)){
-    p.specimenAlive=true;p.specimenHp=Number(p.specimenMaxHp)||55;p.specimenRespawnAt=0;p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;p.specimenLastAt=now;emitSpecimenState(room,p,'respawn');
+    p.specimenAlive=true;p.specimenHp=Number(p.specimenMaxHp)||55;p.specimenRespawnAt=0;
+    p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;
+    p.specimenLastAt=now;p.specimenInvulnerableUntil=now+1600;
+    emitSpecimenState(room,p,'respawn');
    }
    continue;
   }
   const pos=specimenPositionFor(p);
   for(const enemy of w.enemies){
    if(!enemy||Number(enemy.hp)<=0)continue;
-   const contact=(Number(enemy.r)||10)+pos.r+6/WORLD_ZOOM;
-   if(Math.hypot(Number(enemy.x)-pos.x,Number(enemy.y)-pos.y)>contact)continue;
-   enemy.specimenHitAt ||= Object.create(null);
-   if(now<(Number(enemy.specimenHitAt[p.id])||0))continue;
-   enemy.specimenHitAt[p.id]=now+850;
-   if(now<(Number(p.specimenShieldUntil)||0))break;
-   const raw=Math.max(5,Number(enemy.damage)||8)*.72;
-   p.specimenHp=Math.max(0,(Number(p.specimenHp)||55)-raw);
-   if(p.specimenHp<=0){
-    p.specimenAlive=false;
-    p.specimenRespawnAt=now+Math.round(mastery.respawnSeconds*1000);
-    p.skinActiveReadyAt=0;
-    emitSpecimenState(room,p,'defeated');
-   }else emitSpecimenState(room,p,'hit');
-   break;
+   const reach=(Number(enemy.r)||10)+pos.r+6/WORLD_ZOOM;
+   if(Math.hypot(Number(enemy.x)-pos.x,Number(enemy.y)-pos.y)>reach)continue;
+   if(applySpecimenImpact(room,p,Math.max(5,Number(enemy.damage)||8)*.72,'enemy:'+enemy.id,now,850))break;
+  }
+  if(p.specimenAlive===false)continue;
+  for(const ability of abilities){
+   const reach=Number(ability.radius)||0,ex=Number(ability.x)||0,ey=Number(ability.y)||0;
+   let touching=false,damage=7;
+   if(ability.abilityId==='pressure-lance'){
+    const angle=Number(ability.angle)||0;
+    touching=DiverHitbox.pointSegmentDistance(pos.x,pos.y,ex,ey,ex+Math.cos(angle)*reach,ey+Math.sin(angle)*reach)<=pos.r+72/WORLD_ZOOM;
+    damage=22;
+   }else if(ability.abilityId==='gulper-chomp'){
+    touching=Math.hypot(pos.x-ex,pos.y-ey)<=reach+pos.r;damage=24;
+   }else if(ability.abilityId==='ink-trail'){
+    touching=Math.hypot(pos.x-ex,pos.y-ey)<=reach+pos.r;damage=2;
+   }
+   if(touching)applySpecimenImpact(room,p,damage*.72,'ability:'+ability.bossId+':'+ability.abilityId,now,500);
+   if(p.specimenAlive===false)break;
+  }
+  if(p.specimenAlive===false)continue;
+  for(const h of hazards){
+   if(h.type==='tentacle'&&!nightmareAlive)continue;
+   const phase=RiftHardcore.state(h,w.elapsed);
+   if(phase.phase!=='active'||!RiftHardcore.hit(h,pos.x,pos.y,pos.r,phase))continue;
+   applySpecimenImpact(room,p,Math.max(2,Number(h.damage)||7)*.72,'rift:'+h.id,now,h.type==='tentacle'?690:1000);
+   if(p.specimenAlive===false)break;
   }
  }
  const spawnedEnemies = Array.isArray(result.spawnedEnemies) ? result.spawnedEnemies : [];
@@ -1393,7 +1431,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:55,specimenMaxHp:55,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:55,specimenMaxHp:55,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   // Reconnected players may resume from coordinates saved for a different
   // cave tier or an older collision map. Never enter embedded in a wall.
   if(room.mode==='rift'){
@@ -1459,6 +1497,7 @@ io.on('connection', socket => {
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
   const acceptedDx=acceptedX-previousX,acceptedDy=acceptedY-previousY,acceptedDisplacement=Math.hypot(acceptedDx,acceptedDy);
+  if(acceptedDisplacement>.5){const nextAngle=Math.atan2(acceptedDy,acceptedDx),beforeAngle=Number(p.bodyAngle)||0;const diff=Math.atan2(Math.sin(nextAngle-beforeAngle),Math.cos(nextAngle-beforeAngle));p.bodyAngle=beforeAngle+diff*.55;}
   if(acceptedDisplacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=acceptedDx/deltaSeconds,vy=acceptedDy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>900){vx=vx/speed*900;vy=vy/speed*900;}p.velocityX=vx;p.velocityY=vy;}
   else {p.velocityX=0;p.velocityY=0;}
