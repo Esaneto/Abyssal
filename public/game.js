@@ -451,7 +451,31 @@ function setMobileGameActive(active){mobileViewport=window.matchMedia('(pointer:
 let hudCollapsed=false;
 function setHudCollapsed(collapsed){hudCollapsed=Boolean(collapsed);document.body.classList.toggle('hud-collapsed',hudCollapsed);const button=$('toggleHudBtn');if(button){button.textContent=hudCollapsed?'‹':'›';button.setAttribute('aria-label',hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking');button.title=hudCollapsed?'Mostrar habilidades e ranking':'Ocultar habilidades e ranking';}}
 $('toggleHudBtn')?.addEventListener('click',()=>setHudCollapsed(!hudCollapsed));
-window.addEventListener('abyssal-player-suction-pull',event=>{if(!onlineMode||!player)return;const d=event.detail||{},dx=Number(d.dx)||0,dy=Number(d.dy)||0;if(!dx&&!dy)return;const moved=mapResolveMove(player.x,player.y,clamp(player.x+dx,player.r,W-player.r),clamp(player.y+dy,player.r,H-player.r),player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;updateCamera();});
+let pendingSkinPush=null;
+window.addEventListener('abyssal-player-suction-pull',event=>{
+ if(!onlineMode||!player)return;
+ const d=event.detail||{},dx=Number(d.dx)||0,dy=Number(d.dy)||0;
+ if(!dx&&!dy)return;
+ if(d.bossId==='skin-push'){
+  pendingSkinPush={dx,dy,duration:Math.max(.15,(Number(d.durationMs)||320)/1000),elapsed:0,applied:0};
+  return;
+ }
+ const moved=mapResolveMove(player.x,player.y,clamp(player.x+dx,player.r,W-player.r),clamp(player.y+dy,player.r,H-player.r),player.r+8/GAME_WORLD_ZOOM);
+ player.x=moved.x;player.y=moved.y;updateCamera();
+});
+function updateSmoothSkinPush(dt){
+ if(!pendingSkinPush||!player)return;
+ const push=pendingSkinPush;
+ push.elapsed=Math.min(push.duration,push.elapsed+Math.max(0,dt));
+ const t=push.elapsed/push.duration;
+ const eased=1-Math.pow(1-t,3);
+ const inc=eased-push.applied;push.applied=eased;
+ const moved=mapResolveMove(player.x,player.y,
+  clamp(player.x+push.dx*inc,player.r,W-player.r),
+  clamp(player.y+push.dy*inc,player.r,H-player.r),player.r+8/GAME_WORLD_ZOOM);
+ player.x=moved.x;player.y=moved.y;updateCamera();
+ if(t>=1)pendingSkinPush=null;
+}
 let audioCtx=null,lastShot=0,lastHit=0,toastTimer=null,ambientNodes=null;
 const bestTimeEl=$('bestTime'),bestScoreEl=$('bestScore');if(bestTimeEl)bestTimeEl.textContent=fmtTime(bestTime);if(bestScoreEl)bestScoreEl.textContent=bestScore.toLocaleString('pt-BR');
 
@@ -2376,6 +2400,7 @@ function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  updateMapInteraction();
+ updateSmoothSkinPush(dt);
  if(!onlineMode)activateSoloRiftRoomEncounter();
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
@@ -3703,7 +3728,7 @@ function draw(t){
  let diver=player,companion=player?.specimen;
  if(!fx.local&&fx.ownerId){
   const peer=window.AbyssalOnline?.getPlayerById?.(fx.ownerId);
-  if(peer){diver=peer;companion={x:Number(peer.specimenX)||Number(peer.x),y:Number(peer.specimenY)||Number(peer.y)};}
+  diver=peer||null;companion=peer?{x:Number(peer.specimenX)||Number(peer.x),y:Number(peer.specimenY)||Number(peer.y)}:null;
  }
  if(diver&&companion){
   const mx=(Number(diver.x)+Number(companion.x))/2,my=(Number(diver.y)+Number(companion.y))/2;
