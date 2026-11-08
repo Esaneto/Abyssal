@@ -216,3 +216,7 @@
 @media(prefers-reduced-motion:reduce){
  #menuScreen.ocean-menu-v2 .abyss-rift-gate:before,#menuScreen.ocean-menu-v2 .abyss-rift-gate:after,#menuScreen.ocean-menu-v2 .abyss-rift-fractures{animation:none!important}
 }
+
+/* Static ocean terrain belongs to the same oversized world as the rift portals. */
+#menuScreen.ocean-menu-v2 .abyss-ocean-scenery{display:block!important;position:absolute!important;left:0!important;top:0!important;z-index:0!important;width:100%!important;height:100%!important;pointer-events:none!important;opacity:.96!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-destination.abyss-rift-gate{z-index:2!important}
