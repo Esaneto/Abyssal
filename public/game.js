@@ -333,6 +333,7 @@ const skinData=[
 const SkinAbilities=window.AbyssalSkinAbilities;
 const SKIN_STANDARD=window.AbyssalSkinStandard;
 const SPECIMEN_EVASION=window.AbyssalSpecimenEvasion;
+const SPECIMEN_RARITY=window.AbyssalSpecimenRarity;
 skinData.push(...(window.AbyssalCuratedSkins?.items||[]));
 for(const skin of skinData){
  const profile=SKIN_STANDARD?.profile?.(skin.id);
@@ -1585,7 +1586,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  }
  if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const specimenSkinId=requestedRunMode==='rift'&&!isBossType?((skinData.filter(s=>s.id!=='default'&&s.price>0&&s.collection!=='mission'))[Math.floor(Math.random()*skinData.filter(s=>s.id!=='default'&&s.price>0&&s.collection!=='mission').length)]?.id||'toxic'):null;
+ const specimenSkinId=requestedRunMode==='rift'&&!isBossType?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):null;
  const enemy={specimenSkinId,id:++enemyId,x,y,...data,r:data.r/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  if(kind===RIFT_HARDCORE?.FINAL_KIND&&activeMapLayout){const chamber=activeMapLayout.rooms.find(room=>room.id==='boss');if(chamber){enemy.x=chamber.x;enemy.y=chamber.y;enemy.angle=0;}}
   enemies.push(enemy);discoverCodexMonsters([kind]);
