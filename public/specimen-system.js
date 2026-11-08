@@ -37,12 +37,15 @@
   const key=String(id||'default'),family=curated?.byId?.[key]?.family||BUILTIN_FAMILIES[key]||'fish';
   return Object.hasOwn(FAMILY_BASE,family)?family:'fish';
  }
+ const BIOLOGICAL_STATS_CACHE=Object.create(null);
  function biologicalStats(id){
-  const family=familyFor(id),base=FAMILY_BASE[family];
-  const active=standard?.activeSpec?.(String(id||'default'));
-  return Object.freeze({
+  const key=String(id||'default');
+  if(Object.hasOwn(BIOLOGICAL_STATS_CACHE,key))return BIOLOGICAL_STATS_CACHE[key];
+  const family=familyFor(key),base=FAMILY_BASE[family];
+  const active=standard?.activeSpec?.(key);
+  return BIOLOGICAL_STATS_CACHE[key]=Object.freeze({
    family,hp:base.hp,speed:base.speed,
-   // Direct damage of the existing active. Ongoing damage is described in the effect.
+   // Direct active damage, not a per-second DPS calculation.
    damage:Math.max(0,Number(active?.damage)||0),
    attack:String(active?.name||'Sem ataque ativo'),
    effect:String(active?.effect||'Nenhum efeito ativo')
