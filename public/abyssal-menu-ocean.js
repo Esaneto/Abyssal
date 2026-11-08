@@ -118,21 +118,47 @@
      routesCtx.strokeStyle='#d5fbff';routesCtx.lineWidth=1.8;routesCtx.beginPath();
      routesCtx.moveTo(-5,-4);routesCtx.lineTo(0,0);routesCtx.lineTo(-5,4);routesCtx.stroke();routesCtx.restore();
     }
-    // Bend each glyph around the same Bézier geometry as the current.
-    // Keep lettering upright on the left-facing routes for legibility.
-    const label=station.label,fitScale=Math.min(1,Math.max(.7,length/240));
-    routesCtx.font='700 '+Math.round((stageW<600?10:12)*fitScale)+'px Inter, sans-serif';
-    const spacing=1.2,total=[...label].reduce((sum,ch)=>sum+routesCtx.measureText(ch).width+spacing,0);
-    const centerT=.51,travel=Math.min(.44,total/Math.max(110,length)*.56);
-    const reversed=ux<-.12,letters=reversed?[...label].reverse():[...label];
-    let cursor=-total/2;
-    for(const ch of letters){
-     const advance=routesCtx.measureText(ch).width+spacing;
-     const t=Math.max(.06,Math.min(.94,centerT+(cursor+advance*.5)/Math.max(1,total)*travel*2));
-     const p=pointAt(t),near=pointAt(Math.min(.995,t+.006));
+    // Measure along the stream in SCREEN pixels, not a fraction of the
+    // world-distance to the portal. Thus a far-away destination still has
+    // an always-visible route name beside the swimmer.
+    const label=station.label;
+    routesCtx.font='700 '+(stageW<600?10:12)+'px Inter, sans-serif';
+    const spacing=1.2;
+    const glyphs=[...label],glyphWidths=glyphs.map(ch=>routesCtx.measureText(ch).width+spacing);
+    const textLength=glyphWidths.reduce((sum,w)=>sum+w,0);
+    const samples=[{t:0,p:pointAt(0),distance:0}];
+    let routeLength=0;
+    for(let j=1;j<=48;j++){
+     const t=j/48,p=pointAt(t),prev=samples[j-1].p;
+     routeLength+=Math.hypot(p.x-prev.x,p.y-prev.y);
+     samples.push({t,p,distance:routeLength});
+    }
+    const positionAtDistance=distance=>{
+     const dist=Math.max(0,Math.min(routeLength,distance));
+     let lo=1;
+     while(lo<samples.length-1&&samples[lo].distance<dist)lo++;
+     const prior=samples[lo-1],next=samples[lo];
+     const ratio=(dist-prior.distance)/Math.max(.0001,next.distance-prior.distance);
+     return pointAt(prior.t+(next.t-prior.t)*ratio);
+    };
+    // The center of the caption stays 105-155px from the diver, irrespective
+    // of the portal's world position, and never beyond the visible stage.
+    const desiredCenter=Math.max(textLength*.55+45,stageW<600?112:155);
+    const centerDistance=Math.min(Math.max(textLength*.6,routeLength*.5),desiredCenter,Math.max(0,routeLength-textLength*.6));
+    const reversed=ux<-.12;
+    const order=reversed?glyphs.slice().reverse():glyphs;
+    const widths=reversed?glyphWidths.slice().reverse():glyphWidths;
+    let cursor=-textLength/2;
+    for(let j=0;j<order.length;j++){
+     const ch=order[j],advance=widths[j];
+     const d=centerDistance+cursor+advance*.5;
+     const p=positionAtDistance(d),near=positionAtDistance(d+3);
      const tang=Math.atan2(near.y-p.y,near.x-p.x)+(reversed?Math.PI:0);
-     routesCtx.save();routesCtx.translate(p.x,p.y);routesCtx.rotate(tang);
-     routesCtx.globalAlpha=selected?.96:.87;
+     // Keep each glyph inside the viewport even when the diver hugs a border.
+     const x=Math.max(9,Math.min(stageW-9,p.x));
+     const y=Math.max(13,Math.min(stageH-13,p.y));
+     routesCtx.save();routesCtx.translate(x,y);routesCtx.rotate(tang);
+     routesCtx.globalAlpha=selected?.98:.91;
      routesCtx.shadowColor='rgba(0,7,14,.98)';routesCtx.shadowBlur=4;
      routesCtx.strokeStyle='rgba(0,8,16,.96)';routesCtx.lineWidth=2.7;
      routesCtx.strokeText(ch,0,0);
