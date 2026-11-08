@@ -60,7 +60,7 @@ test('fused Nova retains its cone shot and adds field damage, never default shot
  assert.match(game,/emitPrismaticNovaShards\(novaDamage,volleyId\)/);
  assert.match(game,/if\(upgrades\.gravitationalRupture>0\)/);
  assert.match(server,/const GravityCone = require\('\.\/public\/gravity-cone\.js'\)/);
- assert.match(server,/GravityCone\.contains\(shooter\.x,shooter\.y,heading/);
+ assert.match(server,/GravityCone\.contains\(muzzle\.x,muzzle\.y,heading/);
  assert.match(server,/GravityCone\.contains\(centerX,centerY,heading/);
  assert.match(server,/novaConeUntil/);
 });
@@ -73,7 +73,7 @@ test('menu streams originate at the swimmer and carry animated labels near it',(
  assert.match(menu,/function drawNavigationStreams\(now\)/);
  assert.match(menu,/drawNavigationStreams\(now\)/);
  assert.match(menu,/routesCtx\.lineDashOffset=-now\*\.045/);
- assert.match(menu,/routesCtx\.fillText\(station\.label,p\.x,p\.y\)/);
+ assert.match(menu,/routesCtx\.fillText\(ch,0,0\)/);
  assert.doesNotMatch(menu,/function drawPortalRoutes\(/);
  assert.match(css,/z-index:5!important;pointer-events:none!important/);
 });
