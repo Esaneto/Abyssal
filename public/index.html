@@ -43,6 +43,7 @@
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.8.13">
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
+<link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
 </head>
 <body>
 <div id="app">
@@ -442,7 +443,7 @@
     </section>
 <section id="resonanceScreen" class="screen modal-screen" hidden><div class="modal-card codex-modal resonance-modal" role="dialog" aria-modal="true" aria-labelledby="resonanceTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="resonanceScreen" aria-label="Fechar ressonância">×</button><div class="eyebrow"><span class="pulse-dot"></span> PREPARE SUA EVOLUÇÃO</div><h2 id="resonanceTitle">RESSONÂNCIA<br><em>ABISSAL</em></h2><p>Monte sua configuração de evolução: escolha até <strong>1 habilidade de Disparos</strong> e complete os 7 espaços com habilidades Defensivas e Passivas. Assim, vários modificadores de tiro não se acumulam na mesma configuração.</p><div class="resonance-mode-tabs"><button type="button" class="primary-btn" data-resonance-mode="pve">RESSONÂNCIA PVE</button><button type="button" class="secondary-btn" data-resonance-mode="pvp">RESSONÂNCIA PVP</button></div><div id="resonanceSelectionCount" class="resonance-selection-count">7 de 7 selecionadas</div><div id="resonanceSkillChoices" class="resonance-skill-choices"></div><section id="resonanceFusionGuide" class="resonance-fusion-guide" aria-label="Fusões e combinações de habilidades"></section><p id="resonanceMessage" class="form-message" aria-live="polite"></p><button id="saveResonanceBtn" class="primary-btn" type="button">SALVAR COMBINAÇÃO</button></div></section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar catálogo">×</button><div class="eyebrow"><span class="pulse-dot"></span> REGISTROS DO MERGULHADOR</div><h2>ABYSSARIO</h2><p>Registre as criaturas encontradas durante suas expedições pelas fossas abissais.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">CADERNO DE CAMPO · FOLHAS RECUPERADAS</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">O livro das profundezas é escrito a cada descoberta. As páginas desconhecidas permanecem lacradas até o primeiro avistamento nas Fossas.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
@@ -578,7 +579,7 @@
 <script src="i18n.js?v=6"></script>
 <script src="abyssal-curated-skins.js?v=2026.11.7.34"></script>
 <script src="skin-standard.js?v=2026.11.8.17"></script>
-<script src="specimen-system.js?v=2026.11.7.1"></script>
+<script src="specimen-system.js?v=2026.11.8.2"></script>
 <script src="skin-abilities.js?v=2026.11.7.35"></script>
 <script src="enemy-ai.js?v=3.7.2"></script>
 <script src="sea-progression.js?v=2026.11.7.1"></script>
@@ -598,7 +599,7 @@
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.8.1"></script>
  <script src="specimen-rarity.js?v=2026.11.8.1"></script>
- <script src="game.js?v=2026.11.8.18"></script>
+ <script src="game.js?v=2026.11.8.19"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.8.17"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
