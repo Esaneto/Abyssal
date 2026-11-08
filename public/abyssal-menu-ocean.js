@@ -6,9 +6,9 @@
  const lerp=(a,b,t)=>a+(b-a)*t;
  const ease=t=>t*t*(3-2*t);
  const ROUTES=[
-  {id:'playBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHO SOLO',kind:'solo'},
-  {id:'onlineBtn',x:.81,y:.47,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
-  {id:'riftPortalBtn',x:.5,y:.835,tone:'#b986e7',label:'FOSSAS ABISSAIS',kind:'rift'}
+  {id:'onlineBtn',x:.18,y:.64,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
+  {id:'playBtn',x:.50,y:.64,tone:'#68e7ff',label:'MERGULHAR',kind:'solo'},
+  {id:'riftPortalBtn',x:.82,y:.84,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
  ];
  function boot(){
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
@@ -32,6 +32,7 @@
   if(specimen){specimen.hidden=true;specimen.style.display='none';}
   const enter=document.getElementById('menuOceanEnterBtn');if(enter)enter.hidden=true;
   const stations=ROUTES.map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
+  if(stations.length!==3)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
   let initialized=false,wasVisible=false,transition=null,waitingForModal=false;
   let moveTarget=null,followPointer=null,near=null,last=performance.now(),bubbleElapsed=0;
@@ -80,7 +81,8 @@
    window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
    for(const s of stations){
     s.wx=w*s.x;s.wy=h*s.y;
-    s.button.dataset.portalTone=s.kind;
+    s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='solo'?'cyan':'teal';
+    s.button.classList.remove('abyss-rift-gate');
     s.button.classList.toggle('abyss-current-entry',s.kind!=='rift');
     s.button.classList.toggle('abyss-fissure-entry',s.kind==='rift');
     s.button.style.setProperty('--portal-x',s.wx+'px');
@@ -210,9 +212,9 @@
     const point=t=>{const q=1-t;return {x:q*q*sx+2*q*t*cx+t*t*ex,y:q*q*sy+2*q*t*cy+t*t*ey};};
     const path=()=>{currents.beginPath();currents.moveTo(sx,sy);currents.quadraticCurveTo(cx,cy,ex,ey);};
     currents.save();currents.lineCap='round';
-    currents.strokeStyle=s.tone;currents.globalAlpha=.06;currents.lineWidth=30;path();currents.stroke();
-    currents.globalAlpha=.16;currents.lineWidth=16;path();currents.stroke();
-    currents.globalAlpha=.55;currents.lineWidth=1.6;currents.setLineDash([9,15]);
+    currents.strokeStyle=s.tone;currents.globalAlpha=s.kind==='rift'?.025:.06;currents.lineWidth=s.kind==='rift'?18:30;path();currents.stroke();
+    currents.globalAlpha=s.kind==='rift'?.055:.16;currents.lineWidth=s.kind==='rift'?7:16;path();currents.stroke();
+    currents.globalAlpha=s.kind==='rift'?.26:.55;currents.lineWidth=1.6;currents.setLineDash([9,15]);
     currents.lineDashOffset=-now*.047;path();currents.stroke();currents.setLineDash([]);
     for(let j=0;j<4;j++){
      const t=(now*.00025+j*.25)%1,p=point(t),next=point(Math.min(.998,t+.015));
