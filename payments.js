@@ -7,8 +7,14 @@ const BOSS_SKINS = ['leviathan','kraken','aberration','angler','maw','devourer']
 const BOSS_BUNDLE_BRL = 3999;
 const PAID_SKINS = {
  violet:{name:'Medusa-Coroa Violeta',nameEn:'Violet Crown Jelly',brl:199},
- reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:199},
- hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:199},
+ phantomjelly:{name:'Medusa-Fantasma Gigante',nameEn:'Giant Phantom Jellyfish',brl:199},
+ bloodmoon:{name:'Lula-Vampira Carmesim',nameEn:'Crimson Vampire Squid',brl:199},
+ toxic:{name:'Anêmona Tóxica',nameEn:'Toxic Anemone',brl:199},
+ butterflyray:{name:'Raia-Borboleta',nameEn:'Butterfly Ray',brl:199},
+ hawksbill:{name:'Tartaruga-de-Pente',nameEn:'Hawksbill Turtle',brl:199},
+ greenland:{name:'Tubarão-da-Groenlândia',nameEn:'Greenland Shark',brl:199},
+ reefshark:{name:'Tubarão-branco',nameEn:'Great White Shark',brl:499},
+ hammerhead:{name:'Tubarão-martelo',nameEn:'Hammerhead Shark',brl:499},
  saltcroc:{name:'Crocodilo-Marinho',nameEn:'Saltwater Crocodile',brl:499},
  blackcaiman:{name:'Jacaré-Açu',nameEn:'Black Caiman',brl:499},
  abysscroc:{name:'Tubarão-Touro Estuarino',nameEn:'Estuarine Bull Shark',brl:499},
