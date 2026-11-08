@@ -3,14 +3,9 @@
  // Virtual ocean: stations exist in world coordinates. The camera follows ONE
  // diver; a portal requires physical travel and cannot be opened remotely.
  const LOCATIONS={
-  rankingsBtn:{x:.13,y:.22,tone:'ice',label:'RANKING'},
-  playBtn:{x:.40,y:.18,tone:'cyan',label:'MERGULHO SOLO'},
-  onlineBtn:{x:.69,y:.19,tone:'teal',label:'MERGULHO ONLINE'},
-  wheelBtn:{x:.88,y:.23,tone:'rose',label:'ROLETA'},
-  resonanceBtn:{x:.14,y:.63,tone:'blue',label:'RESSONÂNCIA'},
-  riftPortalBtn:{x:.88,y:.69,tone:'rift',label:'FOSSAS'},
-  profileBtn:{x:.39,y:.88,tone:'violet',label:'PERFIL'},
-  shopBtn:{x:.68,y:.87,tone:'gold',label:'ESPÉCIMES'}
+  playBtn:{x:.22,y:.48,tone:'cyan',label:'MERGULHAR SOLO'},
+  onlineBtn:{x:.78,y:.48,tone:'teal',label:'MERGULHAR ONLINE'},
+  riftPortalBtn:{x:.52,y:.88,tone:'rift',label:'FOSSAS ABISSAIS'}
  };
  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
  const lerp=(a,b,t)=>a+(b-a)*t;
@@ -24,6 +19,7 @@
   const enter=document.getElementById('menuOceanEnterBtn');
   const specimenCanvas=document.getElementById('menuOceanSpecimen');
   const sceneryCanvas=document.getElementById('menuOceanScenery');
+  const submarineCanvas=document.getElementById('menuOceanSubmarine'),subCtx=submarineCanvas?.getContext('2d');
   const routesCanvas=document.createElement('canvas');
   routesCanvas.className='abyss-ocean-routes';
   routesCanvas.setAttribute('aria-hidden','true');
@@ -38,7 +34,7 @@
   if(specimenCanvas){specimenCanvas.hidden=true;specimenCanvas.style.display='none';}
   if(!layer||!diver||!ctx)return;
   let worldW=0,worldH=0,stageW=0,stageH=0,px=0,py=0,camX=0,camY=0,vx=0,vy=0,heading=0;
-  let followingPointer=null,bubbleElapsed=0;
+  let followingPointer=null,bubbleElapsed=0,spawnBubbleTime=0,arrival=null,arrivalAt=0,returnOnClose=false,menuWasActive=false;
   const motionBubbles=[];
   let destination=null,nearest=null,activeDestination=null,wasNear=null,last=performance.now(),initialized=false;
   let controlsActive=false;
@@ -74,12 +70,13 @@
    const r=stage.getBoundingClientRect(),oldW=worldW,oldH=worldH;
    if(r.width<10||r.height<10)return; // Game screens may hide the menu during resize.
    stageW=r.width;stageH=r.height;
-   worldW=Math.max(1150,Math.round(r.width*2.15));
-   worldH=Math.max(920,Math.round(r.height*2.10));
-   if(!initialized){px=worldW*.52;py=worldH*.51;initialized=true;}
+   worldW=Math.max(350,Math.round(r.width));
+   worldH=Math.max(300,Math.round(r.height));
+   if(!initialized){px=worldW*.5;py=worldH*.15;spawnBubbleTime=1.25;initialized=true;}
    else{px=px/Math.max(1,oldW)*worldW;py=py/Math.max(1,oldH)*worldH;}
    layer.style.setProperty('width',worldW+'px','important');layer.style.setProperty('height',worldH+'px','important');
    window.AbyssalMenuScenery?.draw?.(sceneryCanvas,worldW,worldH);
+   drawSubmarine();
    for(const s of stations){s.wx=s.x*worldW;s.wy=s.y*worldH;s.button.style.setProperty('--portal-x',s.wx+'px');s.button.style.setProperty('--portal-y',s.wy+'px');}
    if(routesCtx){const ratio=Math.min(window.devicePixelRatio||1,1.5);routesCanvas.width=Math.round(r.width*ratio);routesCanvas.height=Math.round(r.height*ratio);routesCtx.setTransform(ratio,0,0,ratio,0,0);}
    if(bubblesCtx){const ratio=Math.min(window.devicePixelRatio||1,1.5);bubblesCanvas.width=Math.round(r.width*ratio);bubblesCanvas.height=Math.round(r.height*ratio);bubblesCtx.setTransform(ratio,0,0,ratio,0,0);}
@@ -174,14 +171,67 @@
    const observer=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>10)resizeWorld();});
    observer.observe(stage);
   }
+  function drawSubmarine(){
+   if(!subCtx||!stageW||!stageH)return;
+   const dpr=Math.min(1.5,devicePixelRatio||1);
+   submarineCanvas.width=Math.round(stageW*dpr);
+   submarineCanvas.height=Math.round(stageH*dpr);
+   subCtx.setTransform(dpr,0,0,dpr,0,0);
+   const c=subCtx,scale=Math.max(.5,Math.min(1.1,stageW/900));
+   c.save();c.translate(stageW*.5,0);c.scale(scale,scale);
+   const metal=c.createLinearGradient(0,-110,0,95);
+   metal.addColorStop(0,'#f7d94f');metal.addColorStop(.38,'#d0a220');
+   metal.addColorStop(.75,'#8b6317');metal.addColorStop(1,'#382812');
+   c.fillStyle=metal;c.strokeStyle='#101519';c.lineWidth=6;
+   c.beginPath();c.moveTo(-260,-125);c.lineTo(260,-125);
+   c.bezierCurveTo(265,-4,230,25,170,38);c.lineTo(-170,38);
+   c.bezierCurveTo(-230,25,-265,-4,-260,-125);c.closePath();c.fill();c.stroke();
+   c.fillStyle='#111820';c.fillRect(-220,-1,440,9);
+   c.fillStyle='#eac44a';c.fillRect(-68,-90,136,78);c.strokeRect(-68,-90,136,78);
+   for(let x=-220;x<=220;x+=36){c.beginPath();c.fillStyle='#13191c';c.arc(x,22,3.5,0,Math.PI*2);c.fill();}
+   c.beginPath();c.ellipse(0,36,52,24,0,0,Math.PI*2);
+   c.fillStyle='#07111b';c.fill();c.strokeStyle='#e2bd3d';c.lineWidth=9;c.stroke();
+   c.save();c.translate(15,24);c.rotate(-.5);
+   c.beginPath();c.ellipse(53,-30,41,20,0,0,Math.PI*2);
+   c.fillStyle='#ae821e';c.fill();c.strokeStyle='#101419';c.lineWidth=5;c.stroke();c.restore();
+   c.restore();
+  }
+  function resetToHatch(){
+   px=worldW*.5;py=worldH*.15;vx=0;vy=0;heading=Math.PI*.5;
+   destination=null;activeDestination=null;arrival=null;arrivalAt=0;
+   spawnBubbleTime=1.1;diver.classList.remove('ocean-entering');
+  }
   function enterPortal(s){
-   if(!s||!isInteractive()||s.button.disabled||s.button.hidden)return;
-   const distance=Math.hypot(s.wx-px,s.wy-py);
-   if(distance>Math.max(50,Math.min(s.button.offsetWidth*.32,67)))return;
-   // Native downstream event handlers run only once the physical portal was reached.
+   if(!s||!isInteractive()||s.button.disabled||s.button.hidden||arrival)return;
+   if(Math.hypot(s.wx-px,s.wy-py)>Math.max(48,s.button.offsetWidth*.4))return;
+   arrival=s;arrivalAt=performance.now()+430;
+   diver.classList.add('ocean-entering');
+  }
+  function finishArrival(){
+   const s=arrival;if(!s)return;arrival=null;arrivalAt=0;
    s.button.dataset.portalArriving='1';
    try{s.button.click();}finally{delete s.button.dataset.portalArriving;}
+   if(s.id!=='playBtn')returnOnClose=true;
    destination=null;activeDestination=null;
+  }
+  window.addEventListener('abyssal-modal-closed',event=>{
+   if(event.detail?.screenId==='roomsScreen'&&returnOnClose){
+    returnOnClose=false;resetToHatch();
+   }
+  });
+  document.addEventListener('click',e=>{
+   if(e.target.closest?.('#abyssDescentClose')&&returnOnClose){
+    returnOnClose=false;requestAnimationFrame(resetToHatch);
+   }
+  },true);
+  if(typeof MutationObserver==='function'){
+   const observer=new MutationObserver(()=>{
+    const panel=document.getElementById('abyssDescentPanel');
+    if(returnOnClose&&panel?.hidden&&!menu.hidden&&!document.body.classList.contains('game-active')){
+     returnOnClose=false;resetToHatch();
+    }
+   });
+   observer.observe(document.body,{attributes:true,subtree:true,attributeFilter:['hidden']});
   }
   function pickNear(){
    let best=null,bestDistance=Infinity;
@@ -198,7 +248,7 @@
    if(enter){enter.disabled=!nearest;enter.textContent=nearest?'ENTRAR · '+nearest.label:'APROXIME-SE DE UM PORTAL';}
    // The outer glow marks proximity, but entry happens at the inner rift.
    // Keep checking until the swimmer actually crosses the entry radius.
-   if(nearest&&activeDestination===nearest&&bestDistance<=Math.max(50,Math.min(nearest.button.offsetWidth*.32,67)))enterPortal(nearest);
+   if(nearest&&activeDestination===nearest&&bestDistance<=Math.max(48,nearest.button.offsetWidth*.4))enterPortal(nearest);
    wasNear=nearest;
   }
   const key=(event)=>String(event?.key||'').toLowerCase();
@@ -258,19 +308,22 @@
   function animate(now){
    const dt=Math.min(.055,Math.max(0,(now-last)/1000));last=now;
    const enabled=isInteractive();
+   if(enabled&&!menuWasActive){menuWasActive=true;if(returnOnClose){returnOnClose=false;resetToHatch();}}
+   if(!enabled)menuWasActive=false;
    if(enabled){
     if(stage.clientWidth>10&&(Math.abs(stage.clientWidth-stageW)>2||Math.abs(stage.clientHeight-stageH)>2))resizeWorld();
     let mx=(held.has('right')?1:0)-(held.has('left')?1:0);
     let my=(held.has('down')?1:0)-(held.has('up')?1:0);
     const stick=window.__abyssalMenuJoystick?.();
     if(stick&&Math.hypot(stick.x,stick.y)>.04){mx=stick.x;my=stick.y;}
-    if(mx||my){destination=null;activeDestination=null;}
+    if(arrival){destination={x:arrival.wx,y:arrival.wy};mx=0;my=0;if(now>=arrivalAt)finishArrival();}
+    else if(mx||my){destination=null;activeDestination=null;}
     else if(destination){
      const dx=destination.x-px,dy=destination.y-py,d=Math.hypot(dx,dy);
      if(d>8){mx=dx/d;my=dy/d;}else{destination=null;mx=0;my=0;}
     }
     const unit=Math.hypot(mx,my)||1;
-    const speed=Math.max(190,Math.min(255,worldW*.12));
+    const speed=arrival?Math.max(660,stageW*1.3):Math.max(190,Math.min(255,worldW*.3));
     const response=1-Math.exp(-dt*9);
     vx=lerp(vx,mx/unit*speed,response);vy=lerp(vy,my/unit*speed,response);
     px=clamp(px+vx*dt,35,worldW-35);py=clamp(py+vy*dt,35,worldH-35);
@@ -295,6 +348,15 @@
     }else bubbleElapsed=0;
     pickNear();
     drawNavigationStreams(now);
+    if(spawnBubbleTime>0){
+     spawnBubbleTime=Math.max(0,spawnBubbleTime-dt);
+     for(let i=0;i<6;i++)motionBubbles.push({
+      x:px+(Math.random()-.5)*48,y:py+(Math.random()-.5)*35,
+      vx:(Math.random()-.5)*50,vy:-25-Math.random()*90,
+      radius:1+Math.random()*3.5,life:.35+Math.random()*.75
+     });
+     if(motionBubbles.length>110)motionBubbles.splice(0,motionBubbles.length-110);
+    }
    }else{vx=0;vy=0;held.clear();followingPointer=null;}
    if(bubblesCtx){
     bubblesCtx.clearRect(0,0,stageW,stageH);
