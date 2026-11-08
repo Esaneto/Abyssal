@@ -3810,6 +3810,34 @@ const remoteDiverMotion=new Map();
 const remoteWeaponInfusions=new Map();
 const remoteWeaponParalysis=new Map();
 const remoteSpecimenDashes=new Map();
+// Shared sprite atlas for enemy specimens summoned from the shop in Fossas.
+// A refresh budget avoids redrawing complex skin anatomy for every hostile each frame.
+const riftSpecimenSpriteCache=new Map();
+let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
+function drawRiftShopSpecimen(enemy,skin,time){
+ if(riftSpecimenSpriteFrame!==time){riftSpecimenSpriteFrame=time;riftSpecimenSpritePaints=0;}
+ const radius=Math.max(4,Number(enemy.r)||8);
+ const bucket=Math.max(4,Math.round(radius*2)/2);
+ const side=Math.min(640,Math.ceil(bucket*8));
+ const key=skin.id+'|'+bucket;
+ let sprite=riftSpecimenSpriteCache.get(key);
+ if(!sprite){
+  const canvas=document.createElement('canvas');canvas.width=side;canvas.height=side;
+  sprite={canvas,c:canvas.getContext('2d'),side,lastPaint:-Infinity};
+  riftSpecimenSpriteCache.set(key,sprite);
+  if(riftSpecimenSpriteCache.size>96)riftSpecimenSpriteCache.delete(riftSpecimenSpriteCache.keys().next().value);
+ }
+ const stale=time-sprite.lastPaint>=(lowPowerRendering?250:145);
+ if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
+  sprite.c.clearRect(0,0,sprite.side,sprite.side);
+  drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0});
+  sprite.lastPaint=time;riftSpecimenSpritePaints++;
+ }
+ ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
+ ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
+ if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,radius*.65,0,Math.PI*2);ctx.fill();}
+ ctx.restore();
+}
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender){
  if(DIVER_ART?.draw){
   DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true});
@@ -3951,7 +3979,7 @@ function draw(t){
 
  for(const e of enemies){if(onlineMode&&window.AbyssalEnemyNetcode?.renderedPosition){const p=window.AbyssalEnemyNetcode.renderedPosition(e,performance.now());e.x=p.x;e.y=p.y;}else if(e.interpDuration>0&&Number.isFinite(e.interpAt)){const ip=clamp((performance.now()-e.interpAt)/e.interpDuration,0,1);e.x=e.interpFromX+(e.interpTargetX-e.interpFromX)*ip;e.y=e.interpFromY+(e.interpTargetY-e.interpFromY)*ip;}else if(Number.isFinite(e.interpTargetX)){e.x=e.interpTargetX;e.y=e.interpTargetY;}const renderPad=e.r*1.42*(e.kind==='kraken'?2.8:e.kind==='boss'?2.75:e.kind==='devourer'?2.55:e.kind==='leviathan'?3.45:e.kind==='maw'?3.65:e.kind==='lurker'?2.55:BOSS_KINDS.includes(e.kind)?2.15:1.85);if(e.x+renderPad<cameraX||e.x-renderPad>cameraX+viewW/worldZoom||e.y+renderPad<cameraY||e.y-renderPad>cameraY+viewH/worldZoom)continue;const anglerConcealed=e.kind==='angler'&&anglerVisibilityAlpha(Date.now())<=.001;if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):1;if(e.specimenSkinId){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
-   if(specimenSkin)drawCreature(e.x,e.y,e.r,e.angle,specimenSkin.color,'player',t,true,e.hit,ctx,specimenSkin,e);
+   if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
   }else drawCreature(e.x,e.y,e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed)drawHostileSpeciesEffect(e,t);if(e.eliteId&&!anglerConcealed)drawEliteMarker(e,t);
   if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();const kr=e.r*(2.85+Number(e.krakenTelegraph)*.85);ctx.strokeStyle='rgba(213,180,255,.92)';ctx.shadowBlur=16/GAME_WORLD_ZOOM;ctx.shadowColor='#9a5cff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,7/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,kr,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);for(let arm=0;arm<8;arm++){const a=arm*Math.PI/4+t*.00022;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*e.r*.8,e.y+Math.sin(a)*e.r*.8);ctx.lineTo(e.x+Math.cos(a)*kr,e.y+Math.sin(a)*kr);ctx.stroke();}ctx.restore();}
