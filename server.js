@@ -1705,7 +1705,10 @@ io.on('connection', socket => {
    if(Number.isFinite(endX)&&Number.isFinite(endY)&&endX>=0&&endX<=1&&endY>=0&&endY<=1&&Math.hypot((endX-x)*WORLD_WIDTH,(endY-y)*shotWorldHeight)<=range+8/WORLD_ZOOM){shot.beamEndX=endX;shot.beamEndY=endY;}
   }
   if(shot.special==='photonRay'){
-   const sx=Number(shooter.x),sy=Number(shooter.y),dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
+   const dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
+   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*46/14;
+   const sx=Number(shooter.x)+(speed>0?dx/speed:1)*gunDistance;
+   const sy=Number(shooter.y)+(speed>0?dy/speed:0)*gunDistance;
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
@@ -1799,7 +1802,16 @@ io.on('connection', socket => {
   }else if(room.mode==='pvp'){
    const sx=Number(shooter.x),sy=Number(shooter.y),originDistance=Math.hypot(x*WORLD_WIDTH-sx,y*shotWorldHeight-sy);
    if(originDistance>70/WORLD_ZOOM)return;
-   shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;
+   // PvP muzzle is computed from the authoritative player and shot direction,
+   // never from arbitrary client origin coordinates.
+   const shotHeading=Math.atan2(vy*shotWorldHeight,vx*WORLD_WIDTH);
+   const gunDistance=(Number(shooter.r)||13/WORLD_ZOOM)*46/14;
+   const authoritativeMuzzleX=sx+Math.cos(shotHeading)*gunDistance;
+   const authoritativeMuzzleY=sy+Math.sin(shotHeading)*gunDistance;
+   if(shot.special!=='nova'){
+    shot.x=authoritativeMuzzleX/WORLD_WIDTH;
+    shot.y=authoritativeMuzzleY/shotWorldHeight;
+   }else{shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;}
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false);
    if(shot.special==='nova'){
