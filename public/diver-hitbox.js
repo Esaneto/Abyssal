@@ -1,0 +1,57 @@
+(function(root,factory){
+ const api=factory();
+ if(typeof module==='object'&&module.exports)module.exports=api;
+ if(root)root.AbyssalDiverHitbox=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ // The visible diver uses the same canonical local coordinates. Every limb has
+ // a separate capsule, so hits on legs and arms no longer miss a small center circle.
+ const DRAW_SCALE=.60;
+ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+ function canonicalRadius(player){return Math.max(.1,(Number(player?.r)||13)*DRAW_SCALE/14);}
+ function zones(player,t=0){
+  const x=Number(player?.x)||0,y=Number(player?.y)||0,angle=Number(player?.bodyAngle)||0;
+  const scale=canonicalRadius(player),cos=Math.cos(angle),sin=Math.sin(angle);
+  const kick=player?.swimming===false?0:Math.sin((Number(t)||0)*.011)*4;
+  const point=(px,py)=>({x:x+(px*cos-py*sin)*scale,y:y+(px*sin+py*cos)*scale});
+  const limb=(name,ax,ay,bx,by,r)=>{
+   const a=point(ax,ay),b=point(bx,by);
+   return {name,ax:a.x,ay:a.y,bx:b.x,by:b.y,r:r*scale};
+  };
+  return [
+   limb('torso',-16,0,17,0,10),
+   limb('head',25,-1,29,-1,13),
+   limb('left-arm',7,-6,30,-5,4.4),
+   limb('right-arm',7,8,31,5,4.4),
+   limb('left-thigh',-17,-5,-31,-8+kick,4.8),
+   limb('left-leg',-30,-8+kick,-49,-11+kick*1.5,3.9),
+   limb('right-thigh',-17,6,-31,10-kick,4.8),
+   limb('right-leg',-30,10-kick,-49,14-kick*1.5,3.9)
+  ];
+ }
+ function pointSegmentDistance(x,y,ax,ay,bx,by){
+  const vx=bx-ax,vy=by-ay,m=vx*vx+vy*vy;
+  const s=m<1e-8?0:clamp(((x-ax)*vx+(y-ay)*vy)/m,0,1);
+  return Math.hypot(x-(ax+s*vx),y-(ay+s*vy));
+ }
+ function segmentSegmentDistance(ax,ay,bx,by,cx,cy,dx,dy){
+  const d=(ax,ay,bx,by,cx,cy)=>((bx-ax)*(cy-ay)-(by-ay)*(cx-ax));
+  const a=d(ax,ay,bx,by,cx,cy),b=d(ax,ay,bx,by,dx,dy);
+  const c=d(cx,cy,dx,dy,ax,ay),e=d(cx,cy,dx,dy,bx,by);
+  if((a===0||b===0||a*b<0)&&(c===0||e===0||c*e<0))return 0;
+  return Math.min(pointSegmentDistance(ax,ay,cx,cy,dx,dy),pointSegmentDistance(bx,by,cx,cy,dx,dy),pointSegmentDistance(cx,cy,ax,ay,bx,by),pointSegmentDistance(dx,dy,ax,ay,bx,by));
+ }
+ function circleHit(player,x,y,r=0,t=0){
+  for(const zone of zones(player,t)){
+   if(pointSegmentDistance(Number(x),Number(y),zone.ax,zone.ay,zone.bx,zone.by)<=zone.r+Math.max(0,Number(r)||0))return zone.name;
+  }
+  return null;
+ }
+ function segmentHit(player,ax,ay,bx,by,thickness=0,t=0){
+  for(const zone of zones(player,t)){
+   if(segmentSegmentDistance(Number(ax),Number(ay),Number(bx),Number(by),zone.ax,zone.ay,zone.bx,zone.by)<=zone.r+Math.max(0,Number(thickness)||0))return zone.name;
+  }
+  return null;
+ }
+ return Object.freeze({DRAW_SCALE,zones,circleHit,segmentHit,pointSegmentDistance,segmentSegmentDistance});
+});
