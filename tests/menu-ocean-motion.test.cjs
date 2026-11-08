@@ -54,8 +54,8 @@ test('red reticle and changed assets are delivered with a fresh offline cache',(
  assert.match(svg,/width="32" height="32" viewBox="0 0 48 48"/);
  assert.match(svg,/<circle cx="24" cy="24" r="2\.6"/);
  assert.match(css,/cursor:url\('abyssal-red-reticle\.svg\?v=1'\) 16 16,crosshair!important/);
- assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.6/);
- assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.5/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.8/);
+ assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.8/);
  assert.match(sw,/'abyssal-red-reticle\.svg'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
 });
