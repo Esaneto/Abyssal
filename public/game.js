@@ -3811,7 +3811,7 @@ function renderSpecimenPortraits(t){
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
-  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');c.fillStyle=bg;c.fillRect(0,0,w,h);
+  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!isSpecimenVessel){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
   const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
   DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
@@ -4407,6 +4407,7 @@ function renderCreaturePreview(canvas,kind,color,skin=null){
  if(!canvas)return;
  const c=canvas.getContext('2d');if(!c)return;
  const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);
+ const isSpecimenVessel=Boolean(canvas.closest?.('#shopScreen'));
  const bg=c.createRadialGradient(w*.48,h*.42,2,w*.5,h*.5,Math.max(w,h)*.7);
  bg.addColorStop(0,'#0d2637');bg.addColorStop(.62,'#06121d');bg.addColorStop(1,'#020812');
  c.fillStyle=bg;c.fillRect(0,0,w,h);
@@ -4548,7 +4549,7 @@ function renderShop(){
  for(const el of [searchEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
  const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
  const visibleSkins=skinData.filter(skin=>{
-  const owned=ownedSkins.includes(skin.id),categories=skinShopCategories(skin),haystack=(skin.name+' '+skin.desc+' '+(skin.ability||'')).toLocaleLowerCase('pt-BR');
+  const owned=ownedSkins.includes(skin.id),categories=skinShopCategories(skin),known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id),haystack=(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')):'Não Registrado').toLocaleLowerCase('pt-BR');
   return (!query||haystack.includes(query))&&(familyFilter==='all'||categories.has(familyFilter))&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR'));
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES`;
@@ -4557,7 +4558,28 @@ function renderShop(){
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');card.className='skin-card'+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const abilityCopy=SKIN_STANDARD?.describe?.(skin.id,english?'en':'pt')||skin.ability||(english?'A rare adaptation of the deep.':'Uma adaptação rara das profundezas.');card.innerHTML=`<div class="skin-preview"><canvas class="skin-preview-canvas" width="160" height="92" aria-label="${english?'Preview':'Prévia'} ${name}"></canvas></div><strong>${name}</strong><small class="specimen-rarity">${skin.id==='default'?(english?'COMMON':'COMUM'):SKIN_STANDARD?.profile(skin.id)?.tier==='brl999'?(english?'LEGENDARY':'LENDÁRIA'):SKIN_STANDARD?.profile(skin.id)?.tier==='brl499'?(english?'EPIC':'ÉPICA'):SKIN_STANDARD?.profile(skin.id)?.tier==='brl199'?(english?'RARE':'RARA'):(english?'UNCOMMON':'INCOMUM')}</small><p>${english?(englishDescriptions[skin.id]||skin.desc):skin.desc}</p><p class="skin-ability"><b>${english?'ABILITY':'HABILIDADE'}</b> ${abilityCopy}</p><button ${equipped?'disabled':''}>${purchaseLabel}</button>`;const preview=card.querySelector('canvas');preview.dataset.skinId=skin.id;renderCreaturePreview(preview,'player',skin.color,skin);const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
+const card=document.createElement('div');const known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id);card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const profile=SKIN_STANDARD?.profile(skin.id);
+const active=SKIN_STANDARD?.activeSpec(skin.id);
+const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
+const rarityLabel=rarity?(SPECIMEN_RARITY.LABELS[rarity]||rarity):'Especial';
+const attribute=profile?(SKIN_STANDARD.ATTRIBUTE_LABELS[profile.attribute]||profile.attribute):'';
+const passive=profile?`${profile.attribute==='defense'?'-':'+'}${profile.percent}% de ${attribute}`:'';
+const activeName=english?(active?.nameEn||active?.name||'Unknown'):(active?.name||'Desconhecida');
+const shortDescription=String(english?(englishDescriptions[skin.id]||skin.desc):skin.desc).replace(/\\s+/g,' ').slice(0,160);
+const publicName=known?name:(english?'UNREGISTERED':'NÃO REGISTRADO');
+card.innerHTML=`<div class="skin-preview specimen-vessel">
+ <canvas class="skin-preview-canvas" width="220" height="178" aria-label="${known?publicName:'Espécime não registrada'}"></canvas>
+ ${!known?'<span class="specimen-unknown-stamp">NÃO REGISTRADO</span><span class="specimen-unknown-mark">?</span>':''}
+ </div>
+ <div class="specimen-card-information">
+  <strong class="specimen-card-name">${publicName}</strong>
+  <small class="specimen-rarity">${known?rarityLabel.toUpperCase():'???'}</small>
+  ${known?`<div class="specimen-card-traits"><div><b>PASSIVA</b><span>${passive}</span></div><div><b>ATIVA</b><span>${activeName}</span></div></div>`:'<div class="specimen-card-unidentified">Registro biológico desconhecido. Avistel este espécime nas Fossas Abissais para identificá-lo.</div>'}
+  ${known?`<p class="specimen-card-description">${shortDescription}</p>`:''}
+ </div>
+ <button ${equipped?'disabled':''}>${purchaseLabel}</button>`;
+const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
+const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
         updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card)});
  const bundle=document.createElement('article');bundle.className='skin-card boss-bundle-card';
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
