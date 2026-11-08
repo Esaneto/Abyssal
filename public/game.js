@@ -2550,7 +2550,7 @@ function updateSpecimenRuntime(dt){
  const normalSpeed=Math.max(0,player.moveSpeed*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:threats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
-  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):null});
+  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)})});
  if(move){
   s.x=move.x;s.y=move.y;
   if(Math.hypot(move.x-pos.x,move.y-pos.y)>.01){
