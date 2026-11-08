@@ -2234,9 +2234,8 @@ function specimenAbilityAngle(range){
  return target?Math.atan2(target.y-origin.y,target.x-origin.x):(Number(player?.angle)||0);
 }
 function spawnPoisonPlantCloudVisual(x,y,radius,color='#7dff73'){
- effects.push({type:'poison-plant-cloud',x,y,max:radius,life:1.15,maxLife:1.15,color});
- effects.push({type:'ring',x,y,r:0,max:radius*.92,life:.9,maxLife:.9,color});
- burst(x,y,color,lowPowerRendering?14:26,135);
+ effects.push({type:'poison-plant-cloud',x,y,max:radius,life:1.55,maxLife:1.55,color,seed:Date.now()%2000});
+ // The poison-plant geometry renders its own uneven growing boundary and spores.
 }
 function spawnSkinActiveVisual(spec,angle){
  if(!player||!spec||!specimenAlive())return;
@@ -2249,7 +2248,7 @@ function spawnSkinActiveVisual(spec,angle){
  else if(spec.id==='paralysis'){effects.push({type:'electric-arc',x1:x-r*.45,y1:y,x2:x+r*.45,y2:y,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});effects.push({type:'ring',x,y,r:0,max:r,life:.48,maxLife:.48,color});burst(x,y,color,18,135);}
  else if(spec.id==='shot'||spec.id==='slowShot'){effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.42,maxLife:.42,color,width:spec.id==='shot'?6/GAME_WORLD_ZOOM:4/GAME_WORLD_ZOOM});burst(x,y,color,12,100);}
  else if(spec.id==='pulse'){effects.push({type:'ring',x,y,r:0,max:r,life:.62,maxLife:.62,color});effects.push({type:'ring',x,y,r:0,max:r*.62,life:.42,maxLife:.42,color});burst(x,y,color,20,155);}
- else if(spec.id==='shield'){effects.push({type:'ward-collapse',x,y,max:52/GAME_WORLD_ZOOM,life:1,maxLife:1,color});burst(x,y,color,14,90);}
+ else if(spec.id==='shield'){effects.push({type:'specimen-shield-bubble',x,y,max:74/GAME_WORLD_ZOOM,life:2,maxLife:2,color,local:true});}
 }
 function applySoloSkinActive(spec,angle){
  const origin=specimenOrigin(),range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
@@ -2274,7 +2273,8 @@ function applySoloSkinActive(spec,angle){
  }else if(spec.id==='pulse'){
   for(const e of inRange())dealEnemyDamage(e,spec.damage,'skin-active-pulse',{visual:true});
  }else if(spec.id==='shield'){
-  player.specimen.invuln=Math.max(Number(player.specimen.invuln)||0,1.1);
+  player.invuln=Math.max(Number(player.invuln)||0,2);
+  player.specimen.invuln=Math.max(Number(player.specimen.invuln)||0,2);
  }
 }
 function activateSkinAbility(inputEvent){
@@ -3670,11 +3670,51 @@ function draw(t){
  const radius=fx.max*progress,segments=360;let previous=null;
  for(let s=0;s<=segments;s++){const a=s/segments*Math.PI*2,ex=fx.x+Math.cos(a)*radius,ey=fx.y+Math.sin(a)*radius,blocked=projectileHitsPvpWall(fx.x,fx.y,ex,ey,2/GAME_WORLD_ZOOM);if(blocked){previous=null;continue;}if(!previous){ctx.moveTo(ex,ey);previous={x:ex,y:ey};continue;}const edgeBlocked=projectileHitsPvpWall(previous.x,previous.y,ex,ey,2/GAME_WORLD_ZOOM);if(edgeBlocked){ctx.moveTo(ex,ey);}else ctx.lineTo(ex,ey);previous={x:ex,y:ey};}
 }else if(fx.type==='poison-plant-cloud'){
- const rr=fx.max*(.34+.66*progress),petals=8;ctx.globalAlpha*=.55+.35*Math.sin(progress*Math.PI);
- ctx.fillStyle='rgba(78,196,80,.12)';ctx.beginPath();ctx.arc(fx.x,fx.y,rr,0,Math.PI*2);ctx.fill();
- ctx.strokeStyle=fx.color||'#7dff73';ctx.lineWidth=Math.max(1.4/GAME_WORLD_ZOOM,2.2);ctx.beginPath();
- for(let i=0;i<petals;i++){const a=i*Math.PI*2/petals+progress*.42,inner=rr*.22,outer=rr*(.68+.14*Math.sin(i*2.1+progress*5));ctx.moveTo(fx.x+Math.cos(a)*inner,fx.y+Math.sin(a)*inner);ctx.quadraticCurveTo(fx.x+Math.cos(a+.18)*outer*.62,fx.y+Math.sin(a+.18)*outer*.62,fx.x+Math.cos(a)*outer,fx.y+Math.sin(a)*outer);}
- ctx.stroke();ctx.beginPath();ctx.arc(fx.x,fx.y,Math.max(3/GAME_WORLD_ZOOM,rr*.16),0,Math.PI*2);ctx.stroke();
+ // Same visual vocabulary as the toxic plant in the Fossas: expanding,
+ // asymmetric watery smoke, connected irregular front, drifting spores.
+ const grow=Math.min(1,Math.max(0,progress/.72)),rr=fx.max*(.06+.94*(1-Math.pow(1-grow,2)));
+ const shapeCount=36,seed=Number(fx.seed)||0;
+ ctx.globalAlpha*=.62+.2*Math.sin(progress*Math.PI);
+ ctx.fillStyle=ctx.createRadialGradient(fx.x,fx.y,rr*.05,fx.x,fx.y,Math.max(rr,1));
+ const cloudGradient=ctx.fillStyle;
+ cloudGradient.addColorStop(0,'rgba(116,226,107,.30)');
+ cloudGradient.addColorStop(.33,'rgba(83,198,116,.23)');
+ cloudGradient.addColorStop(.76,'rgba(49,151,128,.17)');
+ cloudGradient.addColorStop(1,'rgba(45,134,127,.06)');
+ ctx.fillStyle=cloudGradient;
+ ctx.beginPath();
+ for(let i=0;i<=shapeCount;i++){
+  const a=i*Math.PI*2/shapeCount,variation=.84+.10*Math.sin(a*5+seed*.01)+.07*Math.cos(a*9-seed*.03);
+  const wave=.96+.04*Math.sin(a*7+performance.now()*.0009);
+  const x=fx.x+Math.cos(a)*rr*variation*wave,y=fx.y+Math.sin(a)*rr*variation*wave;
+  if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+ }
+ ctx.closePath();ctx.fill();
+ ctx.strokeStyle='rgba(145,244,122,.16)';ctx.lineWidth=1.9/GAME_WORLD_ZOOM;ctx.stroke();
+ for(let i=0;i<(lowPowerRendering?12:24);i++){
+  const a=i*2.399+seed*.02,rad=rr*(.2+((i*7)%17)/23);
+  const x=fx.x+Math.cos(a)*rad+Math.sin(performance.now()*.0007+i)*3/GAME_WORLD_ZOOM;
+  const y=fx.y+Math.sin(a)*rad+Math.cos(performance.now()*.0009+i*2)*3/GAME_WORLD_ZOOM;
+  ctx.fillStyle=i%3?'rgba(117,219,149,.48)':'rgba(195,252,140,.55)';
+  ctx.beginPath();ctx.ellipse(x,y,(2+i%4)/GAME_WORLD_ZOOM,(2+i%3)/GAME_WORLD_ZOOM,a,0,Math.PI*2);ctx.fill();
+ }
+ ctx.beginPath();
+ }else if(fx.type==='specimen-shield-bubble'){
+ let diver=player,companion=player?.specimen;
+ if(!fx.local&&fx.ownerId){
+  const peer=window.AbyssalOnline?.getPlayerById?.(fx.ownerId);
+  if(peer){diver=peer;companion={x:Number(peer.specimenX)||Number(peer.x),y:Number(peer.specimenY)||Number(peer.y)};}
+ }
+ if(diver&&companion){
+  const mx=(Number(diver.x)+Number(companion.x))/2,my=(Number(diver.y)+Number(companion.y))/2;
+  const width=Math.hypot(Number(diver.x)-Number(companion.x),Number(diver.y)-Number(companion.y))*.5+Math.max(32/GAME_WORLD_ZOOM,(Number(diver.r)||13/GAME_WORLD_ZOOM)*2.5);
+  const height=width*.91,phase=1-fx.life/fx.maxLife;
+  ctx.globalAlpha*=.7;ctx.shadowBlur=lowPowerRendering?0:13/GAME_WORLD_ZOOM;
+  ctx.shadowColor='#8ff4e8';ctx.fillStyle='rgba(99,240,231,.10)';
+  ctx.strokeStyle='rgba(190,255,250,.59)';ctx.lineWidth=2/GAME_WORLD_ZOOM;
+  ctx.beginPath();ctx.ellipse(mx,my,width*(.94+.06*Math.sin(phase*7)),height*(.95+.05*Math.cos(phase*6)),0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;ctx.beginPath();
+ }
  }else if(fx.type==='gravity-cone'){
  const angle=Number(fx.angle)||0,half=window.AbyssalGravityCone?.HALF_ANGLE||Math.PI/4;
  const reach=fx.max*(.22+.78*progress);
@@ -4468,8 +4508,15 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
  else if(active==='trail'){/* Nodes are streamed by the authoritative server. */}
  else if(active==='dash'){effects.push({type:'beam',x1:px-Math.cos(angle)*18/GAME_WORLD_ZOOM,y1:py-Math.sin(angle)*18/GAME_WORLD_ZOOM,x2:px+Math.cos(angle)*range,y2:py+Math.sin(angle)*range,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(px,py,color,14,110);}
  else if(active==='push'||active==='pulse'||active==='paralysis'||active==='poison'){effects.push({type:'ring',x:px,y:py,r:0,max:range,life:.55,maxLife:.55,color});if(active==='paralysis')effects.push({type:'electric-arc',x1:px-range*.45,y1:py,x2:px+range*.45,y2:py,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});burst(px,py,color,16,130);}
- else if(active==='shield'){effects.push({type:'ward-collapse',x:px,y:py,max:60/GAME_WORLD_ZOOM,life:1,maxLife:1,color});burst(px,py,color,12,90);}
+ else if(active==='shield'){/* A joint bubble is synchronized by skin-shield-bubble. */}
  else if(active==='shot'||active==='slowShot'){burst(px,py,color,10,90);}
+});
+window.addEventListener('abyssal-skin-shield-bubble',ev=>{
+ const d=ev.detail||{},selfId=String(window.AbyssalOnline?.getSocketId?.()||'');
+ if(!d.fromId||String(d.fromId)===selfId)return; // local bubble was predicted at activation
+ const peer=window.AbyssalOnline?.getPlayerById?.(d.fromId);
+ effects.push({type:'specimen-shield-bubble',x:Number(peer?.x)||0,y:Number(peer?.y)||0,
+  ownerId:d.fromId,max:74/GAME_WORLD_ZOOM,life:2,maxLife:2,color:'#8ff4e8'});
 });
 window.addEventListener('abyssal-skin-trail-node',ev=>{
  const node=ev.detail||{},wx=Number(node.x)*W,wy=Number(node.y)*H;
