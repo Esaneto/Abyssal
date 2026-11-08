@@ -3481,6 +3481,7 @@ function renderSpecimenPortraits(t){
 }
 window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
+const remoteDiverMotion=new Map();
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender){
  if(DIVER_ART?.draw){
   DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true});
@@ -3600,7 +3601,23 @@ function draw(t){
    peers.forEach(peer=>{
       const px=Number(peer.x)||0,py=Number(peer.y)||0;
       const peerVisualId=String(peer.id||peer.socketId||peer.nickname||'diver');
-      drawDiver(px,py,12/GAME_WORLD_ZOOM,peer.bodyAngle??peer.angle??0,t,true,peer.angle||0,peer.diverGender||'male');if(peer.specimenAlive!==false){const peerSkin=window.AbyssalGameHooks?.skinForId?.(peer.skinId);const sx=px,sy=py-34/GAME_WORLD_ZOOM;drawCreature(sx,sy,10/GAME_WORLD_ZOOM,peer.angle||0,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:180/GAME_WORLD_ZOOM});}
+      const previous=remoteDiverMotion.get(peerVisualId)||{x:px,y:py,angle:peer.angle||0,sx:Number.isFinite(Number(peer.specimenX))?Number(peer.specimenX):px,sy:Number.isFinite(Number(peer.specimenY))?Number(peer.specimenY):py-34/GAME_WORLD_ZOOM,lastAt:t};
+      const vx=px-previous.x,vy=py-previous.y;
+      let heading=previous.angle;
+      if(Math.hypot(vx,vy)>.03){const headingTarget=Math.atan2(vy,vx),delta=Math.atan2(Math.sin(headingTarget-heading),Math.cos(headingTarget-heading));heading+=delta*.25;}
+      const dtRemote=Math.min(.08,Math.max(0,(t-previous.lastAt)/1000));
+      const targetX=Number.isFinite(Number(peer.specimenX))?Number(peer.specimenX):px;
+      const targetY=Number.isFinite(Number(peer.specimenY))?Number(peer.specimenY):py-34/GAME_WORLD_ZOOM;
+      const sxDelta=targetX-previous.sx,syDelta=targetY-previous.sy,sd=Math.hypot(sxDelta,syDelta);
+      const followSpeed=(150/GAME_WORLD_ZOOM)*Math.max(1,Math.min(4,Number(peer.speedStrength)||1));
+      const step=Math.min(sd,followSpeed*dtRemote);
+      const sx=previous.sx+(sd>.001?sxDelta/sd*step:0),sy=previous.sy+(sd>.001?syDelta/sd*step:0);
+      remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t});
+      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male');
+      if(peer.specimenAlive!==false){
+       const peerSkin=window.AbyssalGameHooks?.skinForId?.(peer.skinId),specimenHeading=sd>.1?Math.atan2(syDelta,sxDelta):heading;
+       drawCreature(sx,sy,10/GAME_WORLD_ZOOM,specimenHeading,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:followSpeed});
+      }
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
       ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
       if(title){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(title,px,py-34/worldZoom);}
