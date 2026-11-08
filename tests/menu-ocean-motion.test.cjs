@@ -17,7 +17,7 @@ test('ocean menu keeps portal travel but supports click-and-hold mouse steering'
  assert.match(js,/function drawNavigationStreams\(\)/);
  assert.match(js,/drawNavigationStreams\(now\)/);
  assert.match(js,/routesCtx\.lineDashOffset=-now\*\.045/);
- assert.match(js,/routesCtx\.fillText\(station\.label/);
+ assert.match(js,/routesCtx\.fillText\(ch,0,0\)/);
 });
 
 test('menu microbubbles are cosmetic, fade and are capped',()=>{
@@ -54,8 +54,8 @@ test('red reticle and changed assets are delivered with a fresh offline cache',(
  assert.match(svg,/width="32" height="32" viewBox="0 0 48 48"/);
  assert.match(svg,/<circle cx="24" cy="24" r="2\.6"/);
  assert.match(css,/cursor:url\('abyssal-red-reticle\.svg\?v=1'\) 16 16,crosshair!important/);
- assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.1/);
- assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.1/);
+ assert.match(html,/abyssal-menu-ocean\.js\?v=2026\.11\.8\.5/);
+ assert.match(html,/abyssal-menu-v2\.css\?v=2026\.11\.8\.5/);
  assert.match(sw,/'abyssal-red-reticle\.svg'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
 });
