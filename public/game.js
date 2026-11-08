@@ -1674,7 +1674,7 @@ function updateSoloRiftHardcore(dt){
 }
 function hurtPlayer(dmg,tone='received'){
  if(player.invuln>0)return;if(upgrades.shield>0){upgrades.shield--;player.invuln=.7;burst(player.x,player.y,'#7ceff2',18,130);playSkillSound('shield','trigger');playWorldSound('shield-hit',player,600,.75);showToast('ESCUDO ABSORVEU O IMPACTO');return}
- const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*(SkinAbilities?.incomingDamageMultiplier(equippedSkin)||1)*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);playWorldSound('player-hit',player,900,.95);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
+ const shellReduction=Math.min(.24,Math.max(0,Number(upgrades.shell)||0)*.08),lowHealthReduction=(hp<=maxHp*.3&&upgrades.lastStand>0)?(.15+Math.min(3,upgrades.lastStand)*.05):0;const received=Math.max(1,dmg*specimenPassiveMultiplier('defense')*(1-shellReduction)*(1-lowHealthReduction));hp-=received;spawnDamageNumber(player.x,player.y,received,tone);player.invuln=.8;shake=8;damageFlash=.25;burst(player.x,player.y,'#ff668d',14,120);playWorldSound('player-hit',player,900,.95);if(hp<=0){if(isRiftRun())respawnSoloRiftCheckpoint();else endGame();}
 }
 function revealOnlineContactSource(data){
  // Never create or teleport a mob from a damage event. The authoritative room snapshot
@@ -1863,7 +1863,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
    return;
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
- const multiplier=specimenPassiveMultiplier(BOSS_KINDS.includes(enemy.kind)?'bossDamage':'damage'),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
+ const multiplier=specimenPassiveMultiplier('damage')*(BOSS_KINDS.includes(enemy.kind)?specimenPassiveMultiplier('bossDamage'):1),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
  const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;enemy.hp-=appliedDamage;enemy.hit=.14;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
  triggerHitSynergies(enemy,appliedDamage,skillId,options);
