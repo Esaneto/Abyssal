@@ -2318,7 +2318,7 @@ function updateSkinTrailRuntime(){
   r:20/GAME_WORLD_ZOOM,life:10,maxLife:10,damageTimer:.25,
   color:spec.color,ink:spec.ink===true,skinActive:true
  });
- if(sharkWakeTrails.length>240)sharkWakeTrails.splice(0,sharkWakeTrails.length-240);
+ if(sharkWakeTrails.length>450)sharkWakeTrails.splice(0,sharkWakeTrails.length-450);
 }
 let soundMotionSkinId=null,soundMotionFamily='signature';
 function equippedMotionFamily(){
@@ -4476,7 +4476,7 @@ window.addEventListener('abyssal-skin-trail-node',ev=>{
  sharkWakeTrails.push({x:wx,y:wy,r:20/GAME_WORLD_ZOOM,life:10,maxLife:10,
   color:node.color||'#79dfff',ink:node.ink===true,damageTimer:1,
   remote:true,skinActive:true});
- if(sharkWakeTrails.length>260)sharkWakeTrails.splice(0,sharkWakeTrails.length-260);
+ if(sharkWakeTrails.length>450)sharkWakeTrails.splice(0,sharkWakeTrails.length-450);
 });
 window.addEventListener('abyssal-skin-shot-telegraph',ev=>{
  const d=ev.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;
