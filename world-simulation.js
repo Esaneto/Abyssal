@@ -7,14 +7,12 @@ const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const SeaProgression = require('./public/sea-progression.js');
 const CuratedSkins = require('./public/abyssal-curated-skins.js');
-const RIFT_SPECIMEN_SKINS=Object.freeze([
- 'toxic','bloodmoon','reefshark','hammerhead','saltcroc','blackcaiman','violet',
- ...CuratedSkins.items.filter(s=>s.collection==='shop').map(s=>s.id)
-]);
+const SkinStandard = require('./public/skin-standard.js');
+const SpecimenRarity = require('./public/specimen-rarity.js');
+const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
 function riftSpecimenSkin(random=Math.random){
- return RIFT_SPECIMEN_SKINS[Math.min(RIFT_SPECIMEN_SKINS.length-1,Math.floor(random()*RIFT_SPECIMEN_SKINS.length))]||'toxic';
+ return SpecimenRarity.roll(RIFT_SPECIMEN_SKINS,random)||'default';
 }
-
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
