@@ -2537,7 +2537,7 @@ function updateSpecimenRuntime(dt){
  }
  // Avoid hostile hitboxes while collecting: safety outranks XP.
  const pos={x:s.x,y:s.y},radius=Number(s.r)||11/GAME_WORLD_ZOOM;
- const threats=(onlineMode?enemies:enemies).filter(e=>e&&e.hp>0).map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp}));
+ const threats=(onlineMode?enemies:enemies).filter(e=>e&&e.hp>0).map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
  const orb=SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
  let target=orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
@@ -4565,7 +4565,7 @@ const rarityLabel=rarity?(SPECIMEN_RARITY.LABELS[rarity]||rarity):'Especial';
 const attribute=profile?(SKIN_STANDARD.ATTRIBUTE_LABELS[profile.attribute]||profile.attribute):'';
 const passive=profile?`${profile.attribute==='defense'?'-':'+'}${profile.percent}% de ${attribute}`:'';
 const activeName=english?(active?.nameEn||active?.name||'Unknown'):(active?.name||'Desconhecida');
-const shortDescription=String(english?(englishDescriptions[skin.id]||skin.desc):skin.desc).replace(/\\s+/g,' ').slice(0,160);
+const shortDescription=String(english?(englishDescriptions[skin.id]||skin.desc):skin.desc).replace(/\s+/g,' ').slice(0,160);
 const publicName=known?name:(english?'UNREGISTERED':'NÃO REGISTRADO');
 card.innerHTML=`<div class="skin-preview specimen-vessel">
  <canvas class="skin-preview-canvas" width="220" height="178" aria-label="${known?publicName:'Espécime não registrada'}"></canvas>
