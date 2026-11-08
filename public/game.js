@@ -153,7 +153,7 @@ function checkSoloCaveEncounter(){
  const encounter=EXPEDITION_RULES.sideEncounterFor?.(activeMapSeed,activeMapTier);if(!encounter)return;
  soloSideEncounterTier=activeMapTier;
  window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{...encounter,tier:activeMapTier}}));
- if(encounter.type==='treasure'){gainXp(28+activeMapTier*7,'kill');return;}
+ if(encounter.type==='treasure'){spawnSoloOrb(player.x,player.y-12/GAME_WORLD_ZOOM,Math.max(1,Math.round((28+activeMapTier*7)*.22)));return;}
  const count=Math.max(1,Math.min(9,Math.floor(Number(encounter.ambushCount)||4)));
  for(let i=0;i<count&&enemies.length<MAX_ENEMIES;i++)spawnEnemy(false,'common',{roomId:'event',forceElite:false});
 }
@@ -2075,7 +2075,7 @@ function applySharedSnapshot(data){
   enemies=data.enemies.map(raw=>{const old=previousById.get(raw.id),serverX=clamp(Number(raw.x)||0,0,W),serverY=clamp(Number(raw.y)||0,0,H),from=old?currentInterpolatedEnemyPosition(old,now):{x:serverX,y:serverY};return {...old,...raw,x:from.x,y:from.y,r:Math.max(2,Number(raw.r)||12)/GAME_WORLD_ZOOM,serverX,serverY,interpFromX:from.x,interpFromY:from.y,interpTargetX:serverX,interpTargetY:serverY,interpAt:now,interpDuration:(old&&!authoritativeCriticalIds.includes(String(raw.id)))?72:0,authoritativePosition:true};});
  }
  onlineEnemyById=new Map();for(const enemy of enemies)onlineEnemyById.set(String(enemy.id),enemy);
- orbs.length=0;onlineOrbById.clear();
+ orbs=(Array.isArray(data.orbs)?data.orbs:[]).map(o=>({id:o.id,x:Number(o.x)||0,y:Number(o.y)||0,value:Math.max(1,Number(o.value)||1)}));onlineOrbById=new Map(orbs.map(o=>[String(o.id),o]));
  const suctionStarted=data.enemies.some(raw=>raw&&raw.kind==='devourer'&&raw.suctionActive===true&&!previousById.get(raw.id)?.suctionActive);
  if(suctionStarted){playDevourerSuction();showToast('SUCÇÃO DO DEVORADOR · AFASTE-SE DA BOCA');}
  const queued=pendingOnlineHitVitals;pendingOnlineHitVitals=[];
@@ -2146,6 +2146,43 @@ function applySharedXp(data){
  if(!onlineMode||!data||!player)return;
  gainXp(Math.max(0,Number(data.value)||0),'shared');
 }
+function spawnOnlineOrb(data){
+ if(!onlineMode||!data||data.id==null||onlineOrbById.has(String(data.id)))return;
+ const orb={id:data.id,x:Number(data.x)||0,y:Number(data.y)||0,value:Math.max(1,Number(data.value)||1)};
+ onlineOrbById.set(String(orb.id),orb);orbs.push(orb);
+ if(orbs.length>160){const removed=orbs.shift();onlineOrbById.delete(String(removed.id));}
+}
+function collectOnlineOrb(data){
+ if(!onlineMode||!data)return;
+ onlineOrbById.delete(String(data.id));orbs=orbs.filter(o=>String(o.id)!==String(data.id));
+}
+window.addEventListener('abyssal-orb-spawn',event=>spawnOnlineOrb(event.detail));
+window.addEventListener('abyssal-orb-collect',event=>collectOnlineOrb(event.detail));
+let soloOrbSequence=0;
+function spawnSoloOrb(x,y,value){
+ if(onlineMode)return;
+ if(orbs.length>=160)orbs.shift();
+ orbs.push({id:'solo-'+(++soloOrbSequence),x,y,value:Math.max(1,Math.round(Number(value)||1))});
+}
+function tickSoloSpecimenOrbs(){
+ if(onlineMode||!player?.specimen?.alive||!orbs.length)return;
+ const s=player.specimen,range=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
+ for(let i=orbs.length-1;i>=0;i--){
+  const o=orbs[i];
+  if(Math.hypot(player.x-o.x,player.y-o.y)>range)continue;
+  if(Math.hypot(s.x-o.x,s.y-o.y)>s.r+7/GAME_WORLD_ZOOM)continue;
+  orbs.splice(i,1);gainXp(o.value,'kill');
+ }
+}
+function drawExperienceOrbs(t){
+ for(const orb of orbs){
+  if(orb.x<cameraX-20/worldZoom||orb.x>cameraX+viewW/worldZoom+20/worldZoom||orb.y<cameraY-20/worldZoom||orb.y>cameraY+viewH/worldZoom+20/worldZoom)continue;
+  const pulse=.82+.18*Math.sin(t*.003);
+  ctx.save();ctx.globalAlpha=pulse;ctx.fillStyle='#8af8ff';ctx.shadowColor='#4ddfff';ctx.shadowBlur=lowPowerRendering?0:9/GAME_WORLD_ZOOM;
+  ctx.beginPath();ctx.arc(orb.x,orb.y,4.5/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;ctx.strokeStyle='#eaffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.stroke();ctx.restore();
+ }
+}
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
 function killEnemy(i){
  const e=enemies[i];
@@ -2156,9 +2193,9 @@ function killEnemy(i){
  }
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
  discoverCodexMonsters([e.kind]);if(!onlineMode){
- const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55))),scaledXp=!killedBoss&&requestedRunMode!=='rift'?(SEA_PROGRESSION?.scaleXp?.(xpValue,e.seaXpMultiplier)||xpValue):xpValue;gainXp(scaledXp,'kill');
+ const eventXp=EXPEDITION_RULES?.eventXpMultiplier?.(soloDepthEventId)||1,sizeScale=clamp((e.r*GAME_WORLD_ZOOM)/10,.65,10),xpValue=Math.max(1,Math.round((killedBoss?e.value*getBossXpMultiplier():e.value*eventXp)*(.65+sizeScale*.55))),scaledXp=!killedBoss&&requestedRunMode!=='rift'?(SEA_PROGRESSION?.scaleXp?.(xpValue,e.seaXpMultiplier)||xpValue):xpValue;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round(scaledXp*.22)));
  if(!killedBoss&&e.eliteId&&e.spawnRoomId==='elite'&&soloEliteRewardTier!==activeMapTier){
-  soloEliteRewardTier=activeMapTier;gainXp(EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18,'kill');
+  soloEliteRewardTier=activeMapTier;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round((EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18)*.22)));
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
 }burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');showToast('BOSS ABISSAL DERROTADO · +100 MOEDAS');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
@@ -2474,8 +2511,18 @@ function updateSpecimenRuntime(dt){
  }
  // Physical chase: the specimen has normal swim speed including speed upgrades.
  // The diver's Ghost Step / dash multipliers deliberately NEVER apply.
- const wantedX=player.x+Math.sin(performance.now()*.0012)*3/GAME_WORLD_ZOOM;
- const wantedY=player.y-34/GAME_WORLD_ZOOM+Math.cos(performance.now()*.0016)*3/GAME_WORLD_ZOOM;
+ let wantedX=player.x+Math.sin(performance.now()*.0012)*3/GAME_WORLD_ZOOM;
+ let wantedY=player.y-34/GAME_WORLD_ZOOM+Math.cos(performance.now()*.0016)*3/GAME_WORLD_ZOOM;
+ const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
+ let nearest=null,nearestDistance=Infinity;
+ for(const orb of orbs){
+  if(Math.hypot(orb.x-player.x,orb.y-player.y)>collectionRange)continue;
+  const distance=Math.hypot(orb.x-s.x,orb.y-s.y);
+  if(distance>=nearestDistance)continue;
+  if(activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,s.x,s.y,orb.x,orb.y,6/GAME_WORLD_ZOOM))continue;
+  nearest=orb;nearestDistance=distance;
+ }
+ if(nearest){wantedX=nearest.x;wantedY=nearest.y;}
  const dx=wantedX-s.x,dy=wantedY-s.y,distance=Math.hypot(dx,dy);
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
@@ -2555,6 +2602,7 @@ function update(dt){
  }
  // Companion sim runs even if diver is not moving.
  updateSpecimenRuntime(dt);
+ tickSoloSpecimenOrbs();
  updateSkinTrailRuntime();
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);updateRiftHazardAudio();publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
 
@@ -3766,6 +3814,7 @@ function draw(t){
  // The menu has its own CSS scene. Do not render the full arena/entities behind it.
  if(gameState==='menu'){ctx.restore();return;}
  if(!activeMapLayout)drawArenaTerrain(t);
+ drawExperienceOrbs(t);
  if(activeMapLayout&&RIFT_HARDCORE){const nightmareAliveForRender=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&enemies.some(enemy=>enemy.kind===RIFT_HARDCORE.FINAL_KIND&&enemy.hp>0);const visibleHazards=nightmareAliveForRender?activeRiftHazards:activeRiftHazards.filter(h=>h.type!=='tentacle');RIFT_HARDCORE.draw(ctx,visibleHazards,elapsed,{x:cameraX,y:cameraY,w:viewW/worldZoom,h:viewH/worldZoom});
   const now=performance.now();riftBossMarks=riftBossMarks.filter(m=>now<(m.impactUntil||m.hitAt+420));
   for(const mark of riftBossMarks)RIFT_HARDCORE.drawBossMark(ctx,mark,now,Boolean(mark.impactUntil&&now<mark.impactUntil));
