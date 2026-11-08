@@ -12,8 +12,9 @@ test('diver visual uses one shared anatomy with female hair only as variation',(
  assert.equal(art.genderOf('female'),'female');
  assert.equal(art.genderOf('invalid'),'male');
  const code=read('public/diver-art.js');
- assert.match(code,/const hairLength=female\?45:17/);
+ assert.match(code,/const hairLength=female\?60:20/);
  assert.match(code,/Loose hair in both versions/);
+ assert.match(code,/const locks=female\?29:23/);
  assert.match(code,/Two HUMAN upper legs and calves/);
  assert.match(code,/c\.rotate\(\(Number\(aim\)\|\|0\)-a\)/);
 });
