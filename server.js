@@ -837,7 +837,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(!player)return reject('nova-no-player');
   const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*
    SkinAbilities.targetRangeMultiplier(player.skinId,player.specimenPoints,player.specimenAlive!==false)/WORLD_ZOOM;
-  if(now>(Number(player.novaConeUntil)||0)||!GravityCone.contains(player.x,player.y,
+  const coneOrigin=player.novaConeOrigin||player;
+  if(now>(Number(player.novaConeUntil)||0)||!GravityCone.contains(coneOrigin.x,coneOrigin.y,
    Number(player.novaConeAngle)||0,enemy.x,enemy.y,enemy.r,range))return reject('nova-outside-cone');
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
   if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
@@ -1791,21 +1792,22 @@ io.on('connection', socket => {
   if(shot.special==='nova'&&room.mode!=='pvp'){
    if(now<(Number(shooter.novaShotReadyAt)||0))return;
    const dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
-   if(speed<30||speed>1800||Math.hypot(x*WORLD_WIDTH-shooter.x,y*shotWorldHeight-shooter.y)>70/WORLD_ZOOM)return;
+   if(speed<30||speed>1800||Math.hypot(x*WORLD_WIDTH-shooter.x,y*shotWorldHeight-shooter.y)>95/WORLD_ZOOM)return;
    const heading=Math.atan2(dy,dx);
+   const muzzle=DiverArt.muzzle(shooter.x,shooter.y,shooter.r,heading);
    const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*
     SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
    shooter.novaShotReadyAt=now+1800;
-   shooter.novaConeAngle=heading;shooter.novaConeUntil=now+320;
+   shooter.novaConeAngle=heading;shooter.novaConeUntil=now+320;shooter.novaConeOrigin=muzzle;
    shooter.lastNovaVolleyId=volleyId;
    shooter.novaShardExpiresAt=now+600;
    shooter.novaShardCount=0;
    shooter.novaReferenceDamage=Math.min(45,Math.max(1,shot.damage));
-   shot.x=shooter.x/WORLD_WIDTH;shot.y=shooter.y/shotWorldHeight;shot.effectRadius=range;
+   shot.x=muzzle.x/WORLD_WIDTH;shot.y=muzzle.y/shotWorldHeight;shot.effectRadius=range;
    const layout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
    for(const enemy of [...(room.world?.enemies||[])]){
-    if(Number(enemy.hp)<=0||!GravityCone.contains(shooter.x,shooter.y,heading,enemy.x,enemy.y,enemy.r,range))continue;
-    if(layout&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(layout,shooter.x,shooter.y,enemy.x,enemy.y,Math.min(7,Number(enemy.r)||5)))continue;
+    if(Number(enemy.hp)<=0||!GravityCone.contains(muzzle.x,muzzle.y,heading,enemy.x,enemy.y,enemy.r,range))continue;
+    if(layout&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(layout,muzzle.x,muzzle.y,enemy.x,enemy.y,Math.min(7,Number(enemy.r)||5)))continue;
     processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage)),'nova',null,shot.actionId);
    }
   }
@@ -1942,7 +1944,7 @@ io.on('connection', socket => {
    if(shot.special!=='nova'){
     shot.x=authoritativeMuzzleX/WORLD_WIDTH;
     shot.y=authoritativeMuzzleY/shotWorldHeight;
-   }else{shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;}
+   }else{shot.x=authoritativeMuzzleX/WORLD_WIDTH;shot.y=authoritativeMuzzleY/shotWorldHeight;}
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false);
    if(shot.special==='nova'){
@@ -1953,7 +1955,7 @@ io.on('connection', socket => {
     shooter.novaShotReadyAt=now+2400;
      shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
      shooter.novaReferenceDamage=Math.min(35,Math.max(1,shot.damage));
-    const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
+    const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=authoritativeMuzzleX,centerY=authoritativeMuzzleY,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
     shot.effectRadius=radius;
     let worldPlayersChanged=false;
     for(const target of room.players.values()){
