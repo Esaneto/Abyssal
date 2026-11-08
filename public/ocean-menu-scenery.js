@@ -104,5 +104,77 @@
   }
   c.restore();
  }
- return Object.freeze({draw});
+
+ // Preserves the existing underwater background, adding only the foreground floor.
+ function drawSubmarine(canvas,width,height){
+  if(!canvas?.getContext||width<100||height<100)return;
+  const ratio=Math.min(1.6,Math.max(1,typeof devicePixelRatio==='number'?devicePixelRatio:1));
+  canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
+  canvas.style.width=width+'px';canvas.style.height=height+'px';
+  const c=canvas.getContext('2d');c.setTransform(ratio,0,0,ratio,0,0);
+  c.clearRect(0,0,width,height);
+  const cx=width/2,scale=Math.min(1.2,Math.max(.59,width/800));
+  c.save();c.translate(cx,0);c.scale(scale,scale);
+  // Wide metallic yellow rescue submarine hangs just above the playable water.
+  const hull=c.createLinearGradient(0,-32,0,91);
+  hull.addColorStop(0,'#e9b943');hull.addColorStop(.18,'#f5d36f');
+  hull.addColorStop(.45,'#b37a1c');hull.addColorStop(.61,'#e8b638');
+  hull.addColorStop(.88,'#71501b');hull.addColorStop(1,'#2b281f');
+  c.fillStyle='rgba(0,0,0,.40)';c.beginPath();c.ellipse(0,60,291,60,0,0,Math.PI*2);c.fill();
+  c.fillStyle=hull;c.strokeStyle='#151b20';c.lineWidth=7;
+  c.beginPath();c.moveTo(-248,-24);c.quadraticCurveTo(-299,6,-291,39);
+  c.quadraticCurveTo(-286,84,-237,89);c.lineTo(237,89);
+  c.quadraticCurveTo(288,84,291,41);c.quadraticCurveTo(296,7,246,-24);
+  c.closePath();c.fill();c.stroke();
+  // Black protective rubber bumpers and broad striped armor.
+  c.fillStyle='#141a1b';c.fillRect(-265,24,530,9);
+  c.fillStyle='#24201b';for(const x of [-220,-176,171,215]){c.fillRect(x,-7,12,64);}
+  c.strokeStyle='rgba(255,224,121,.48)';c.lineWidth=2;
+  c.beginPath();c.moveTo(-237,68);c.lineTo(237,68);c.stroke();
+  for(const x of [-196,-132,132,196]){
+   c.fillStyle='#111b25';c.strokeStyle='#221f1a';c.lineWidth=8;
+   c.beginPath();c.arc(x,48,19,0,2*Math.PI);c.fill();c.stroke();
+   c.strokeStyle='#ffd76f';c.lineWidth=2;c.beginPath();c.arc(x,48,18,0,2*Math.PI);c.stroke();
+   c.fillStyle='rgba(95,221,240,.22)';c.beginPath();c.arc(x-4,43,8,0,2*Math.PI);c.fill();
+  }
+  // Open bottom hatch: dark void with an obviously pivoted steel cover.
+  c.fillStyle='#070c12';c.strokeStyle='#161819';c.lineWidth=9;
+  c.beginPath();c.ellipse(0,86,52,23,0,0,Math.PI*2);c.fill();c.stroke();
+  c.strokeStyle='#f7c550';c.lineWidth=6;c.beginPath();c.ellipse(0,86,53,23,0,0,Math.PI*2);c.stroke();
+  c.save();c.translate(48,61);c.rotate(-.78);
+  c.fillStyle='#edb943';c.strokeStyle='#101618';c.lineWidth=6;
+  c.beginPath();c.ellipse(0,0,48,20,0,0,Math.PI*2);c.fill();c.stroke();
+  c.strokeStyle='#9a6616';c.lineWidth=2;c.beginPath();c.ellipse(0,0,36,12,0,0,2*Math.PI);c.stroke();
+  c.restore();
+  c.fillStyle='#0b1014';c.fillRect(-12,-41,24,16);
+  c.fillStyle='#f7d66e';c.fillRect(-6,-46,12,8);
+  // Rivets catch light while the metal still looks industrial.
+  for(const x of [-251,-228,-205,-182,-159,-136,136,159,182,205,228,251]){
+   c.fillStyle='#fff2bc';c.beginPath();c.arc(x,77,2,0,2*Math.PI);c.fill();
+  }
+  c.restore();
+  // The foreground sediment is deliberately subtle, leaving the Fossas embedded.
+  const floorY=height*.84;
+  const sand=c.createLinearGradient(0,floorY-40,0,height);
+  sand.addColorStop(0,'rgba(3,12,20,0)');
+  sand.addColorStop(.34,'rgba(9,24,29,.64)');
+  sand.addColorStop(1,'rgba(2,10,15,.98)');
+  c.fillStyle=sand;c.beginPath();c.moveTo(0,height);c.lineTo(0,floorY+8);
+  for(let x=0;x<=width+14;x+=14){
+   c.lineTo(x,floorY+Math.sin(x*.012)*8+Math.sin(x*.049)*3);
+  }
+  c.lineTo(width,height);c.closePath();c.fill();
+  c.strokeStyle='rgba(75,113,123,.14)';c.lineWidth=1.5;
+  c.beginPath();for(let x=0;x<=width;x+=12){
+   const y=floorY+Math.sin(x*.012)*8+Math.sin(x*.049)*3;
+   if(x===0)c.moveTo(x,y);else c.lineTo(x,y);
+  }c.stroke();
+  // A crevice under the center becomes the entrance to the Fossas.
+  const fissure=c.createRadialGradient(cx,floorY+12,4,cx,floorY+14,Math.min(width*.26,140));
+  fissure.addColorStop(0,'rgba(132,58,185,.29)');
+  fissure.addColorStop(.42,'rgba(63,28,95,.14)');
+  fissure.addColorStop(1,'rgba(63,28,95,0)');
+  c.fillStyle=fissure;c.fillRect(cx-150,floorY-100,300,190);
+ }
+ return Object.freeze({draw,drawSubmarine});
 });
