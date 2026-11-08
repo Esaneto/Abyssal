@@ -78,6 +78,21 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  };
  function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
+ function renderSpecimenProfile(user={}){
+  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:20};
+  const specimen=window.AbyssalGameHooks?.skinForId?.(id),name=specimen?.name||id;
+  const nameNode=$('profileSpecimenName'),pct=$('profileAdaptationPercent'),fill=$('profileAdaptationFill'),pointsNode=$('profileAdaptationPoints');
+  if(nameNode)nameNode.textContent=name;
+  if(pct)pct.textContent=Math.floor(stats.percent)+'%';
+  if(fill)fill.style.width=Math.max(0,Math.min(100,stats.percent))+'%';
+  if(pointsNode)pointsNode.textContent=points.toLocaleString('pt-BR')+' / 5000';
+  const bar=fill?.parentElement;if(bar){bar.setAttribute('aria-valuenow',String(points));bar.setAttribute('aria-label','Adaptação de '+name);}
+  if($('profileAdaptCooldown'))$('profileAdaptCooldown').textContent='RECARGA: '+stats.cooldown.toFixed(1).replace('.',',')+'s';
+  if($('profileAdaptAttribute'))$('profileAdaptAttribute').textContent='ATRIBUTO: +'+(stats.attributeBonus*100).toFixed(1).replace('.',',')+'%';
+  if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE: +'+Math.round(stats.rangeBonus*100)+'%';
+  if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+stats.respawnSeconds.toFixed(1).replace('.',',')+'s';
+  window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id}}));
+ }
  let viewedPublicProfile=null;
  function renderProfile(data=serverAccount){
   if(data&&serverAccount&&data.nickname===serverAccount.nickname)serverAccount={...serverAccount,...(data.cardumeId?{cardumeId:data.cardumeId}:{})};
@@ -115,7 +130,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   $('profileEmblem').innerHTML=titleArtwork(current.id);$('profileEmblem').style.setProperty('--title-color',current.color);$('profileEmblem').style.color=current.color;
   $('profileAccountNote').textContent=window.AbyssalOnline?.isAuthenticated()?'Título e progresso salvos na sua conta.':(window.AbyssalOnline?.isConnected()?'Entre na sua conta para salvar seu título.':'Conexão interrompida; exibindo os últimos dados sincronizados.');
   $('profileKills').textContent=kills.toLocaleString('pt-BR');$('profileBosses').textContent=bosses.toLocaleString('pt-BR');
-  $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';
+  $('profileTitleCount').textContent=unlocked.length;$('profileTitleProgress').textContent=unlocked.length+' de '+PROFILE_TITLES.length+' disponíveis';renderSpecimenProfile(user);
   root.innerHTML=PROFILE_TITLES.map(t=>{
    const progress=progressFor(t),owned=unlockedIds.has(t.id),isEquipped=equipped===t.id;
    const percent=t.kind==='starter'?100:Math.min(100,Math.floor(progress/t.required*100));
@@ -251,6 +266,11 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('hit-synergy-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-hit-synergy-visual',{detail:data||{}}));});
  socket.on('player-suction-pull',data=>{window.dispatchEvent(new CustomEvent('abyssal-player-suction-pull',{detail:data||{}}));});
  socket.on('boss-ability-visual',data=>{window.dispatchEvent(new CustomEvent('abyssal-boss-ability-visual',{detail:data||{}}));});
+ socket.on('specimen-state',data=>{window.dispatchEvent(new CustomEvent('abyssal-specimen-state',{detail:data||{}}));});
+ socket.on('specimen-proficiency',data=>{
+  if(serverAccount&&data?.skinId){serverAccount.specimenProficiency={...(serverAccount.specimenProficiency||{}),[String(data.skinId)]:Math.max(0,Number(data.points)||0)};window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:serverAccount}));}
+  window.dispatchEvent(new CustomEvent('abyssal-specimen-proficiency',{detail:data||{}}));
+ });
  socket.on('world-enemy-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated',{detail:data}));});
  socket.on('world-enemies-defeated',data=>{window.dispatchEvent(new CustomEvent('abyssal-world-defeated-batch',{detail:Array.isArray(data)?data:[]}));});
  socket.on('world-rift-tentacle-aim',data=>{window.dispatchEvent(new CustomEvent('abyssal-rift-tentacle-aim',{detail:data||{}}));});
