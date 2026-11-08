@@ -44,7 +44,8 @@ test('trail activation spawns no instant 5-bubble chain; live samples last ten s
  assert.match(game,/player\.skinTrailUntil=performance\.now\(\)\+10000/);
  assert.match(game,/r:20\/GAME_WORLD_ZOOM,life:10,maxLife:10/);
  assert.match(server,/function tickSkinTrailNodes\(room,players,now\)/);
- assert.match(server,/player\.skinActiveReadyAt=now\+\(active==='trail'\?10000:0\)/);
+ assert.match(server,/const activeDuration=weaponInfusion\?10000:active==='trail'\?10000:0/);
+ assert.match(server,/player\.skinActiveReadyAt=now\+activeDuration\+Math\.round/);
  assert.match(server,/w\.sharkWakeTrails/);
  assert.match(server,/emit\('skin-trail-node'/);
  assert.match(read('public/online.js'),/socket\.on\('skin-trail-node'/);
