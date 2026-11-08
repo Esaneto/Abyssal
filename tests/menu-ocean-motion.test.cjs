@@ -5,27 +5,28 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=(p)=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('ocean menu keeps portal travel but supports click-and-hold mouse steering',()=>{
+test('submarine menu preserves native game actions behind cinematic suction',()=>{
  const js=read('public/abyssal-menu-ocean.js');
+ assert.match(js,/menu\.classList\.add\('submarine-menu'\)/);
  assert.match(js,/dataset\.portalArriving==='1'/);
  assert.match(js,/event\.stopImmediatePropagation\(\)/);
- assert.match(js,/followingPointer=event\.pointerId/);
  assert.match(js,/stage\.addEventListener\('pointermove'/);
- assert.match(js,/navigateToPointer\(event\)/);
- assert.match(js,/if\(r\.width<10\|\|r\.height<10\)return/);
- assert.match(js,/Math\.abs\(stage\.clientWidth-stageW\)>2/);
- assert.match(js,/function drawNavigationStreams\(\)/);
- assert.match(js,/drawNavigationStreams\(now\)/);
- assert.match(js,/routesCtx\.lineDashOffset=-now\*\.045/);
- assert.match(js,/routesCtx\.fillText\(ch,0,0\)/);
+ assert.match(js,/playEntrance\(s\)/);
+ assert.match(js,/s\.button\.click\(\)/);
+ assert.match(js,/ROUTES=\[/);
+ assert.match(js,/function renderCurrents\(now\)/);
+ assert.match(js,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(js,/window\.addEventListener\('abyssal-menu-portal-cancelled'/);
 });
 
-test('menu microbubbles are cosmetic, fade and are capped',()=>{
+test('submarine ejection bubbles are cosmetic and capped',()=>{
  const js=read('public/abyssal-menu-ocean.js');
- assert.match(js,/bubbleElapsed>\.075/);
- assert.match(js,/radius:1\+Math\.random\(\)\*1\.3/);
- assert.match(js,/if\(motionBubbles\.length>50\)/);
- assert.match(js,/if\(b\.life<=0\)\{motionBubbles\.splice/);
+ assert.match(js,/function resetToHatch\(\)/);
+ assert.match(js,/const hatch=\(\)=>/);
+ assert.match(js,/emergence=Math\.min\(1,emergence\+step\)/);
+ assert.match(js,/for\(let n=0;n<4;n\+\+\)bubble\(px,py\+17,true\)/);
+ assert.match(js,/if\(bubbles\.length>145\)/);
+ assert.match(js,/if\(b\.life<=0\)\{bubbles\.splice/);
  assert.match(read('public/abyssal-menu-v2.css'),/\.abyss-ocean-bubbles\{/);
 });
 
