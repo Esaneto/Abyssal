@@ -6,6 +6,15 @@ const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const SeaProgression = require('./public/sea-progression.js');
+const CuratedSkins = require('./public/abyssal-curated-skins.js');
+const RIFT_SPECIMEN_SKINS=Object.freeze([
+ 'toxic','bloodmoon','reefshark','hammerhead','saltcroc','blackcaiman','violet',
+ ...CuratedSkins.items.filter(s=>s.collection==='shop').map(s=>s.id)
+]);
+function riftSpecimenSkin(random=Math.random){
+ return RIFT_SPECIMEN_SKINS[Math.min(RIFT_SPECIMEN_SKINS.length-1,Math.floor(random()*RIFT_SPECIMEN_SKINS.length))]||'toxic';
+}
+
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -225,6 +234,7 @@ function spawnEnemy(world, options = {}) {
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
+    specimenSkinId:world.mode==='rift'&&type!=='boss'?riftSpecimenSkin(random):null,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
@@ -247,7 +257,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.elapsed = 0; world.nextEnemyId = 0; world.nextBossAt = 100 / 3.8;
   world.bossSpawnCount = 0; world.bossesDefeated = 0; world.lastBossKind = null;
   world.lastBossMaxHp = 0; world.lastBossDamage = 0; world.lastBossSpeed = 0; world.lastBossSpawnAt = 0;
-  world.enemies = []; world.commonSpawnTimer = 0.8;
+  world.enemies = []; world.orbs=[];world.nextOrbId=0;world.commonSpawnTimer = 0.8;
   world.activeEventId = null; world.eventEndsAt = 0; world.eventSerial = 0;
   world.eliteRewardClaimedTier = -1; world.sideEncounterResolvedTier = -1; world.sideEncounterId = null; world.sideEncounterSerial = 0; world.riftCompleted = false;
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
