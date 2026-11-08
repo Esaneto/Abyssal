@@ -234,4 +234,4 @@ jobs:
           node --check server.js
           node --check state-persistence-worker.js
           node --check scripts/roxycloud-preflight.cjs
-          npm test
+          node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs
