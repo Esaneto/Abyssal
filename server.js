@@ -15,6 +15,7 @@ const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
+const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
 const DiverArt = require('./public/diver-art.js');
@@ -833,6 +834,10 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  }
  if(skillId==='nova'){
   if(!player)return reject('nova-no-player');
+  const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*
+   SkinAbilities.targetRangeMultiplier(player.skinId,player.specimenPoints,player.specimenAlive!==false)/WORLD_ZOOM;
+  if(now>(Number(player.novaConeUntil)||0)||!GravityCone.contains(player.x,player.y,
+   Number(player.novaConeAngle)||0,enemy.x,enemy.y,enemy.r,range))return reject('nova-outside-cone');
   const cooldown=room.mode==='pvp'?2400:1800,windowUntil=Number(player.novaDamageWindowUntil)||0;
   if(now>windowUntil){if(now<(Number(player.novaDamageReadyAt)||0))return reject('nova-cooldown');player.novaDamageReadyAt=now+cooldown;player.novaDamageWindowUntil=now+260;player.novaDamageTargetIds=new Set();}
   player.novaDamageTargetIds ||= new Set();if(player.novaDamageTargetIds.has(normalizedId))return reject('nova-duplicate-target');player.novaDamageTargetIds.add(normalizedId);
@@ -1781,14 +1786,27 @@ io.on('connection', socket => {
    if(!sameVolley&&now-(Number(shooter.lastShotAt)||0)<90)return;
    if(sameVolley){const volleyPackets=(Number(shooter.lastShotVolleyPackets)||1)+1;if(volleyPackets>12)return;shooter.lastShotVolleyPackets=volleyPackets;}
    else{shooter.lastShotAt=now;shooter.lastShotVolleyId=volleyId||null;shooter.lastShotVolleyPackets=1;shooter.lastShotVolleyTargets=new Set();}
-  const shot={x,y,vx,vy,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
+  const shot={x,y,vx,vy,combined:payload.combined===true,actionId:String(payload.actionId||payload.volleyId||'').slice(0,72),color:payload.special==='photonRay'?PhotonRay.color:/^#[0-9a-fA-F]{6}$/.test(String(payload.color))?payload.color:'#9bbcff',damage:Math.max(0,Math.min(1000,Number(payload.damage)||0)),special:['pierce','electric','spread','photon','photonRay','nova','echoShot','prismShard'].includes(payload.special)?payload.special:null,modifiers:{abyssEye:Boolean(payload.modifiers?.abyssEye),ricochet:Math.max(0,Math.min(3,Math.trunc(Number(payload.modifiers?.ricochet)||0)))},from:socket.data.nickname,fromId:socket.id,at:now};
   if(shot.special==='nova'&&room.mode!=='pvp'){
    if(now<(Number(shooter.novaShotReadyAt)||0))return;
+   const dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
+   if(speed<30||speed>1800||Math.hypot(x*WORLD_WIDTH-shooter.x,y*shotWorldHeight-shooter.y)>70/WORLD_ZOOM)return;
+   const heading=Math.atan2(dy,dx);
+   const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*
+    SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
    shooter.novaShotReadyAt=now+1800;
+   shooter.novaConeAngle=heading;shooter.novaConeUntil=now+320;
    shooter.lastNovaVolleyId=volleyId;
    shooter.novaShardExpiresAt=now+600;
    shooter.novaShardCount=0;
    shooter.novaReferenceDamage=Math.min(45,Math.max(1,shot.damage));
+   shot.x=shooter.x/WORLD_WIDTH;shot.y=shooter.y/shotWorldHeight;shot.effectRadius=range;
+   const layout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
+   for(const enemy of [...(room.world?.enemies||[])]){
+    if(Number(enemy.hp)<=0||!GravityCone.contains(shooter.x,shooter.y,heading,enemy.x,enemy.y,enemy.r,range))continue;
+    if(layout&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(layout,shooter.x,shooter.y,enemy.x,enemy.y,Math.min(7,Number(enemy.r)||5)))continue;
+    processWorldDamage(socket,Number(enemy.id),Math.min(45,Math.max(1,shot.damage)),'nova',null,shot.actionId);
+   }
   }
   if(shot.special==='prismShard'){
    const rank=clamp(Math.floor(Number(shooter.prismaticLevel)||0),0,3),maxShards=2*rank;
@@ -1797,6 +1815,11 @@ io.on('connection', socket => {
    if(!maxShards||!volleyId||volleyId!==shooter.lastNovaVolleyId||
       now>(Number(shooter.novaShardExpiresAt)||0)||
       (Number(shooter.novaShardCount)||0)>=maxShards)return;
+   if(Number.isFinite(Number(shooter.novaConeAngle))){
+    const heading=Math.atan2(vy*shotWorldHeight,vx*WORLD_WIDTH);
+    const difference=Math.atan2(Math.sin(heading-shooter.novaConeAngle),Math.cos(heading-shooter.novaConeAngle));
+    if(Math.abs(difference)>.45)return;
+   }
    shooter.novaShardCount=(Number(shooter.novaShardCount)||0)+1;
    shot.damage=Math.min(shot.damage,Math.max(1,Number(shooter.novaReferenceDamage)||1)*.28/maxShards);
   }
@@ -1922,7 +1945,11 @@ io.on('connection', socket => {
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
    const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false);
    if(shot.special==='nova'){
-    if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
+    if(now<(Number(shooter.novaShotReadyAt)||0))return;
+    const vxWorld=vx*WORLD_WIDTH,vyWorld=vy*shotWorldHeight,coneSpeed=Math.hypot(vxWorld,vyWorld);
+    if(coneSpeed<30||coneSpeed>1800)return;
+    const heading=Math.atan2(vyWorld,vxWorld);
+    shooter.novaShotReadyAt=now+2400;
      shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
      shooter.novaReferenceDamage=Math.min(35,Math.max(1,shot.damage));
     const radius=294*rangeStrength*rangeMultiplier/WORLD_ZOOM,centerX=Number(shooter.x)||sx,centerY=Number(shooter.y)||sy,rawDamage=Math.max(1,Math.min(35,shot.damage||12));
@@ -1930,8 +1957,8 @@ io.on('connection', socket => {
     let worldPlayersChanged=false;
     for(const target of room.players.values()){
      if(target.id===socket.id||target.alive===false||now<(Number(target.invulnerableUntil)||0))continue;
-     if(Math.hypot(centerX-target.x,centerY-target.y)>radius)continue;
-     // A onda continua além da rocha, mas cada alvo só é atingido se houver linha de visão radial até ele.
+     if(!GravityCone.contains(centerX,centerY,heading,target.x,target.y,target.r,radius))continue;
+     // The cone cannot damage anyone behind solid cover.
      if(pvpSegmentHitsRock(centerX,centerY,target.x,target.y,2/WORLD_ZOOM))continue;
      let blocked=false,appliedDamage=0;
      if((Number(target.shieldCharges)||0)>0){target.shieldCharges--;target.invulnerableUntil=now+350;blocked=true;}
