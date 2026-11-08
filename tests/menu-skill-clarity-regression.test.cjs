@@ -18,19 +18,21 @@ test('Nova wave starts at the rifle muzzle on client and authoritative server',(
  assert.ok(origin.x>100);
 });
 
-test('portal labels actually follow the curved stream without distance banners',()=>{
- const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html');
- assert.match(menu,/const fromX=px-camX,fromY=py-camY/);
- assert.match(menu,/const p=positionAtDistance\(d\),near=positionAtDistance\(d\+3\)/);
- assert.match(menu,/routesCtx\.rotate\(tang\)/);
- assert.match(menu,/routesCtx\.fillText\(ch,0,0\)/);
+test('portal letters curve with live underwater currents and the submarine is real canvas art',()=>{
+ const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html'),scene=read('public/ocean-menu-scenery.js');
+ assert.match(menu,/currents\.translate\(clamp\(p\.x,10,w-10\)/);
+ assert.match(menu,/currents\.rotate\(Math\.atan2/);
+ assert.match(menu,/currents\.fillText\(letters\[j\],0,0\)/);
+ assert.match(scene,/function drawSubmarine\(canvas,width,height\)/);
+ assert.match(scene,/draw,drawSubmarine/);
+ assert.match(html,/id="menuOceanSubmarine"/);
  assert.doesNotMatch(html,/id="menuOceanHint"/);
 });
 
-test('mobile joystick is analog and old arrow controls are gone',()=>{
+test('mobile route joystick stays analog, buttons stay native, and arrows are absent',()=>{
  const menu=read('public/abyssal-menu-ocean.js'),html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
- assert.match(menu,/mobilePad\.classList\.add\('ocean-joystick'\)/);
- assert.match(menu,/joystickX=dx\/dist\*ratio/);
+ assert.match(menu,/pad\.classList\.add\('ocean-joystick'\)/);
+ assert.match(menu,/joystickX=dx\/length\*scale/);
  assert.match(menu,/#menuOceanMobilePad/);
  assert.match(css,/#menuOceanMobilePad\.ocean-joystick/);
  assert.doesNotMatch(html,/data-ocean-move=/);
