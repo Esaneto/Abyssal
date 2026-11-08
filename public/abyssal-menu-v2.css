@@ -1,0 +1,111 @@
+/* Abyssal menu v2: independent layout, no inherited orbital navigation. */
+#menuScreen.ocean-menu-v2{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;box-sizing:border-box!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto!important;align-content:stretch!important;justify-content:stretch!important;gap:0!important;overflow:hidden!important;padding:0!important;margin:0!important;isolation:isolate!important;background:#020c17!important;color:#d7f8ff!important;font-family:Inter,Manrope,sans-serif!important;}
+#menuScreen.ocean-menu-v2[hidden]{display:none!important}
+#menuScreen.ocean-menu-v2,#menuScreen.ocean-menu-v2 *{box-sizing:border-box}
+#menuScreen.ocean-menu-v2:before,#menuScreen.ocean-menu-v2:after{display:none!important;content:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-background{position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(2,24,41,.92),rgba(1,10,22,.92)),radial-gradient(ellipse at 50% 0%,#205870,transparent 65%)}
+#menuScreen.ocean-menu-v2 .abyss-ocean-light{position:absolute;inset:-30% -15%;background:conic-gradient(from 220deg at 50% 0%,transparent 0deg,rgba(94,224,243,.055) 10deg,transparent 23deg,transparent 45deg,rgba(63,177,223,.08) 61deg,transparent 76deg,transparent 103deg,rgba(121,241,255,.07) 119deg,transparent 132deg);filter:blur(9px);animation:ocean-v2-light 18s ease-in-out infinite alternate}
+#menuScreen.ocean-menu-v2 .abyss-ocean-particles{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(129,223,244,.34) 1px,transparent 2px),radial-gradient(circle,rgba(129,223,244,.17) 1px,transparent 2px);background-size:123px 117px,197px 223px;background-position:22px 18px,73px 124px;opacity:.36;animation:ocean-v2-drift 25s linear infinite}
+#menuScreen.ocean-menu-v2 .abyss-ocean-floor{position:absolute;inset:auto 0 0;height:20%;background:linear-gradient(transparent,rgba(0,5,13,.8)),repeating-linear-gradient(165deg,transparent 0 180px,rgba(53,119,147,.045) 181px 183px,transparent 186px 300px);border-bottom:5px solid #01050a}
+#menuScreen.ocean-menu-v2 .abyss-menu-heading{position:relative!important;z-index:2!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;text-align:center!important;width:100%!important;min-height:105px!important;margin:0!important;padding:10px 18px 0!important;background:none!important;border:0!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-menu-heading .abyss-menu-kicker{font:700 9px 'DM Mono',monospace!important;letter-spacing:.23em;color:#6fdfe8}
+#menuScreen.ocean-menu-v2 .abyss-menu-heading h1{font-family:Cinzel,Georgia,serif!important;font-size:clamp(22px,2.65vw,38px)!important;font-weight:700!important;line-height:1.15!important;text-transform:uppercase!important;letter-spacing:.11em!important;margin:6px 0 4px!important;color:#ecffff!important;text-shadow:0 0 22px rgba(91,238,251,.25)}
+#menuScreen.ocean-menu-v2 .abyss-menu-heading h1 em{font-style:normal!important;color:#89e6ee}
+#menuScreen.ocean-menu-v2 .abyss-menu-heading p{font:500 11px Inter,Manrope,sans-serif!important;color:#8faebb!important;margin:0!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-stage{position:relative!important;z-index:2!important;display:block!important;min-height:275px!important;height:100%!important;width:100%!important;overflow:hidden!important;margin:0!important;padding:0!important;background:radial-gradient(ellipse at 50% 51%,rgba(47,120,146,.12),transparent 28%)!important;border:0!important;transform:none!important;touch-action:pan-y}
+#menuScreen.ocean-menu-v2 .abyss-ocean-stage:before{content:"";position:absolute;left:50%;top:50%;width:min(50vw,430px);height:min(30vh,220px);transform:translate(-50%,-50%);border:1px solid rgba(66,155,193,.12);border-radius:50%;pointer-events:none}
+#menuScreen.ocean-menu-v2 .abyss-ocean-center-mark{position:absolute;left:50%;top:48%;width:130px;height:130px;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(74,220,246,.035),transparent 68%);border:1px dashed rgba(97,205,230,.13);pointer-events:none}
+#menuScreen.ocean-menu-v2 .abyss-ocean-portal-layer{position:absolute!important;inset:0!important;display:block!important;width:100%!important;height:100%!important;padding:0!important;margin:0!important;pointer-events:none!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-destination{position:absolute!important;left:var(--portal-x)!important;top:var(--portal-y)!important;transform:translate(-50%,-50%)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;width:clamp(110px,11.7vw,174px)!important;height:clamp(88px,11vh,125px)!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;margin:0!important;padding:13px 8px!important;pointer-events:auto!important;overflow:visible!important;clip-path:none!important;outline-offset:5px!important;border-radius:44% 56% 52% 48% / 50% 45% 55% 50%!important;border:1.5px solid var(--portal-color,#55dff0)!important;color:#edffff!important;background:radial-gradient(ellipse at 50% 30%,color-mix(in srgb,var(--portal-color,#55dff0) 20%,transparent),transparent 57%),radial-gradient(ellipse at 50% 58%,rgba(14,47,68,.91),rgba(2,12,27,.98) 73%)!important;box-shadow:0 0 22px color-mix(in srgb,var(--portal-color,#55dff0) 22%,transparent),inset 0 0 25px rgba(60,145,179,.1)!important;text-decoration:none!important;letter-spacing:normal!important;font:inherit!important;line-height:normal!important;opacity:1!important;visibility:visible!important;transition:filter .2s ease,box-shadow .2s ease!important}
+#menuScreen.ocean-menu-v2 .abyss-destination:before{content:"";position:absolute;inset:-7px;border-radius:53% 47% 42% 58% / 44% 51% 49% 56%;border:1px solid color-mix(in srgb,var(--portal-color,#55dff0) 36%,transparent);pointer-events:none;animation:ocean-v2-portal 11s linear infinite}
+#menuScreen.ocean-menu-v2 .abyss-destination:after{content:none!important;display:none!important}
+#menuScreen.ocean-menu-v2 .abyss-destination .abyss-destination-icon{color:var(--portal-color,#8ce8f1)!important;font-size:clamp(20px,2.5vw,32px)!important;line-height:1!important;text-shadow:0 0 15px var(--portal-color,#55dff0);display:block!important}
+#menuScreen.ocean-menu-v2 .abyss-destination strong{font:800 clamp(9px,.8vw,12px) Cinzel,Georgia,serif!important;letter-spacing:.055em!important;text-align:center!important;line-height:1.25!important;white-space:normal!important;color:#f4fdff!important}
+#menuScreen.ocean-menu-v2 .abyss-destination small{font:600 clamp(7px,.54vw,9px) 'DM Mono',monospace!important;letter-spacing:.035em!important;line-height:1.15!important;text-align:center!important;color:#94bbc8!important;white-space:normal!important}
+#menuScreen.ocean-menu-v2 .abyss-destination:hover,#menuScreen.ocean-menu-v2 .abyss-destination.portal-near,#menuScreen.ocean-menu-v2 .abyss-destination:focus-visible{filter:brightness(1.3)!important;box-shadow:0 0 42px color-mix(in srgb,var(--portal-color,#55dff0) 50%,transparent),inset 0 0 22px color-mix(in srgb,var(--portal-color,#55dff0) 16%,transparent)!important}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=cyan]{--portal-color:#66e7ff}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=teal]{--portal-color:#51ebc6}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=rift]{--portal-color:#c582ff}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=gold]{--portal-color:#efc77e}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=violet]{--portal-color:#b6a1ff}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=blue]{--portal-color:#80bbff}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=ice]{--portal-color:#abf3f7}
+#menuScreen.ocean-menu-v2 .abyss-destination[data-portal-tone=rose]{--portal-color:#ff96c2}
+#menuScreen.ocean-menu-v2 #riftPortalBtn{width:clamp(125px,13.2vw,190px)!important;height:clamp(105px,14vh,146px)!important;border-radius:47% 53% 62% 38% / 52% 42% 58% 48%!important;background:radial-gradient(circle at 50% 47%,#1b062c 5%,rgba(118,38,167,.45) 32%,#030716 71%)!important;box-shadow:0 0 39px rgba(183,85,255,.3),inset 0 0 34px rgba(159,54,219,.24)!important;animation:ocean-v2-rift 4s ease-in-out infinite}
+#menuScreen.ocean-menu-v2 #riftPortalBtn:before{inset:-13px;border:2px solid rgba(206,143,255,.38);border-radius:57% 43% 49% 51%;animation-duration:5s}
+#menuScreen.ocean-menu-v2 .abyss-ocean-diver{position:absolute!important;z-index:8!important;left:var(--diver-x,50%)!important;top:var(--diver-y,48%)!important;width:58px!important;height:74px!important;transform:translate(-50%,-50%) rotate(var(--swim-angle,0rad))!important;pointer-events:none!important;filter:drop-shadow(0 0 14px rgba(93,237,252,.5));transition:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-diver span{position:absolute!important;display:block!important}
+#menuScreen.ocean-menu-v2 .abyss-diver-tank{left:8px;top:26px;width:16px;height:32px;border-radius:8px;background:linear-gradient(90deg,#061018,#13465c,#07131c);border:1px solid #428898}
+#menuScreen.ocean-menu-v2 .abyss-diver-body{left:18px;top:26px;width:25px;height:31px;border-radius:11px 11px 7px 7px;background:linear-gradient(100deg,#081522,#19506a,#061422);border:2px solid #75cad6}
+#menuScreen.ocean-menu-v2 .abyss-diver-helmet{left:19px;top:8px;width:29px;height:25px;border-radius:50%;background:linear-gradient(140deg,#0a2436,#174d63);border:2px solid #b0effa}
+#menuScreen.ocean-menu-v2 .abyss-diver-visor{left:29px;top:15px;width:18px;height:13px;border-radius:50%;background:radial-gradient(circle at 65% 35%,#fff,#79eaff 43%,#156185 85%);box-shadow:0 0 12px rgba(117,241,255,.65)}
+#menuScreen.ocean-menu-v2 .abyss-diver-left-arm,#menuScreen.ocean-menu-v2 .abyss-diver-right-arm{left:22px;top:35px;width:30px;height:4px;background:#5ac8d4;border-radius:4px;transform-origin:left}
+#menuScreen.ocean-menu-v2 .abyss-diver-left-arm{transform:rotate(25deg)}#menuScreen.ocean-menu-v2 .abyss-diver-right-arm{transform:rotate(-25deg)}
+#menuScreen.ocean-menu-v2 .abyss-diver-left-fin,#menuScreen.ocean-menu-v2 .abyss-diver-right-fin{left:25px;top:56px;width:30px;height:5px;border-radius:10px;background:#3ab1c3;transform-origin:left}
+#menuScreen.ocean-menu-v2 .abyss-diver-left-fin{transform:rotate(34deg)}#menuScreen.ocean-menu-v2 .abyss-diver-right-fin{transform:rotate(-34deg)}
+#menuScreen.ocean-menu-v2 .abyss-ocean-diver.swimming .abyss-diver-left-fin{animation:ocean-v2-kick .42s ease-in-out infinite alternate}
+#menuScreen.ocean-menu-v2 .abyss-ocean-diver.swimming .abyss-diver-right-fin{animation:ocean-v2-kick .42s ease-in-out infinite alternate-reverse}
+#menuScreen.ocean-menu-v2 #menuOceanSpecimen{display:block!important;position:absolute!important;left:-36px!important;top:-46px!important;width:86px!important;height:58px!important;transform:rotate(calc(-1 * var(--swim-angle,0rad)))!important;pointer-events:none!important;filter:drop-shadow(0 0 11px rgba(128,229,248,.35))}
+#menuScreen.ocean-menu-v2 .abyss-ocean-hint{position:absolute!important;bottom:12px!important;left:50%!important;transform:translateX(-50%)!important;z-index:9!important;color:#a8d5e3!important;background:rgba(1,15,28,.88)!important;border:1px solid rgba(85,191,216,.25)!important;padding:8px 14px!important;white-space:nowrap!important;text-align:center!important;font:700 10px 'DM Mono',monospace!important;letter-spacing:.07em!important;pointer-events:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-enter{display:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-utilities{position:relative!important;z-index:4!important;display:flex!important;align-items:center!important;justify-content:center!important;flex-wrap:wrap!important;gap:9px!important;width:100%!important;padding:7px 15px!important;background:rgba(2,17,30,.82)!important;border:0!important;border-top:1px solid rgba(105,200,224,.14)!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-utility{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:100px!important;max-width:none!important;width:auto!important;height:32px!important;min-height:0!important;padding:7px 14px!important;border-radius:5px!important;border:1px solid rgba(94,207,230,.26)!important;background:rgba(7,30,49,.84)!important;color:#c1e5eb!important;font:700 10px Inter,Manrope,sans-serif!important;letter-spacing:.05em!important;line-height:1.2!important;text-align:center!important;box-shadow:none!important;position:static!important;transform:none!important;opacity:1!important;pointer-events:auto!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-utility:hover{border-color:#80d9e9!important;color:#fff!important;background:rgba(13,56,81,.96)!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-account,#menuScreen.ocean-menu-v2 .abyss-ocean-preferences{position:absolute!important;z-index:10!important;top:10px!important;bottom:auto!important;display:flex!important;align-items:center!important;gap:6px!important;width:auto!important;max-width:32%!important;min-height:0!important;padding:0!important;margin:0!important;background:none!important;border:0!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-account{left:15px!important;flex-direction:column!important;align-items:flex-start!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-account span{font:700 9px Inter,sans-serif!important;color:#a4ced7!important;letter-spacing:.07em!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-account #loginBtn{position:static!important;width:auto!important;padding:6px 10px!important;min-height:27px!important;max-height:32px!important;font:700 9px Inter,sans-serif!important;letter-spacing:.045em!important;border:1px solid rgba(92,198,227,.35)!important;border-radius:5px!important;background:rgba(7,37,60,.8)!important;color:#e8fcff!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-preferences{right:15px!important;justify-content:flex-end!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-preferences .language-setting{display:flex!important;flex-direction:column!important;align-items:flex-end!important;gap:4px!important;position:static!important;margin:0!important;padding:0!important;background:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-preferences .language-setting label{font:700 8px Inter,sans-serif!important;letter-spacing:.08em!important;color:#94adbb!important}
+#menuScreen.ocean-menu-v2 #languageSelect{position:static!important;min-width:90px!important;width:110px!important;height:30px!important;padding:4px 7px!important;font:600 10px Inter,sans-serif!important;background:#071e32!important;color:#efffff!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-preferences #downloadBtn{position:static!important;width:auto!important;min-width:85px!important;height:32px!important;font-size:9px!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-legal{position:relative!important;z-index:4!important;display:flex!important;justify-content:center!important;align-items:center!important;width:100%!important;min-height:30px!important;padding:4px 9px!important;margin:0!important;border:0!important;background:rgba(0,7,16,.92)!important;transform:none!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-legal .legal-footer{display:flex!important;position:static!important;justify-content:center!important;gap:12px!important;flex-wrap:wrap!important;transform:none!important;margin:0!important}
+#menuScreen.ocean-menu-v2 .abyss-ocean-legal a{font-size:8px!important;color:#7c9fab!important}
+@keyframes ocean-v2-light{from{transform:rotate(-5deg)}to{transform:rotate(6deg)}}
+@keyframes ocean-v2-drift{to{background-position:22px 225px,73px 347px}}
+@keyframes ocean-v2-portal{to{transform:rotate(360deg)}}
+@keyframes ocean-v2-rift{50%{filter:brightness(1.22) saturate(1.2)}}
+@keyframes ocean-v2-kick{from{transform:rotate(20deg)}to{transform:rotate(48deg)}}
+@media(max-width:800px){
+ #menuScreen.ocean-menu-v2{grid-template-rows:auto minmax(0,1fr) auto auto!important}
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:105px!important;padding-top:55px!important}
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading h1{font-size:clamp(18px,5.2vw,29px)!important}
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading p{font-size:9px!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination{width:clamp(80px,21vw,110px)!important;height:clamp(70px,12vh,94px)!important;padding:8px 4px!important;gap:3px!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination strong{font-size:9px!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination small{display:none!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination .abyss-destination-icon{font-size:21px!important}
+ #menuScreen.ocean-menu-v2 #riftPortalBtn{width:clamp(90px,23vw,122px)!important;height:clamp(80px,13vh,106px)!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-utilities{gap:5px!important;padding:7px 6px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-utility{min-width:0!important;font-size:9px!important;padding:6px 10px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-account{top:8px!important;left:10px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-preferences{top:8px!important;right:8px!important;max-width:47%!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-hint{bottom:8px!important;font-size:8px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-diver{transform:translate(-50%,-50%) rotate(var(--swim-angle,0rad)) scale(.85)!important}
+}
+@media(max-width:550px){
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:116px!important}
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading h1{font-size:20px!important}
+ #menuScreen.ocean-menu-v2 .abyss-menu-heading p{max-width:270px!important;line-height:1.3!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination{width:clamp(73px,23vw,104px)!important;height:clamp(65px,10vh,87px)!important}
+ #menuScreen.ocean-menu-v2 #riftPortalBtn{width:clamp(82px,24vw,113px)!important;height:clamp(75px,12vh,102px)!important}
+ #menuScreen.ocean-menu-v2 .abyss-destination strong{font-size:8px!important;letter-spacing:0!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-utilities{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-utility{font-size:8px!important;padding:5px 2px!important;height:30px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-preferences #downloadBtn{display:none!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-account span{font-size:8px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-account #loginBtn{font-size:8px!important;padding:4px 7px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-hint{font-size:7px!important;white-space:normal!important;width:max-content!important;max-width:68%!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-enter{display:block!important;position:absolute!important;z-index:10!important;right:9px!important;bottom:7px!important;width:94px!important;min-height:33px!important;padding:5px!important;background:#0b3448!important;border:1px solid rgba(97,222,237,.5)!important;border-radius:5px!important;color:#ebfcff!important;font:800 8px Inter,sans-serif!important;transform:none!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-enter[disabled]{opacity:.38!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad{position:absolute!important;left:9px!important;bottom:6px!important;z-index:10!important;display:grid!important;grid-template-columns:repeat(3,25px)!important;grid-template-rows:repeat(2,25px)!important;gap:2px!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad button{background:rgba(13,50,68,.8)!important;border:1px solid rgba(101,216,234,.34)!important;color:#cff7ff!important;font:800 10px sans-serif!important;border-radius:4px!important;padding:0!important;width:25px!important;height:25px!important;min-height:0!important;touch-action:none!important}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=up]{grid-column:2;grid-row:1}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=left]{grid-column:1;grid-row:2}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=down]{grid-column:2;grid-row:2}
+ #menuScreen.ocean-menu-v2 .abyss-ocean-mobile-pad [data-ocean-move=right]{grid-column:3;grid-row:2}
+}
+@media(max-height:620px) and (min-width:800px){#menuScreen.ocean-menu-v2 .abyss-menu-heading{min-height:68px!important}#menuScreen.ocean-menu-v2 .abyss-destination{height:86px!important;width:125px!important}#menuScreen.ocean-menu-v2 #riftPortalBtn{height:96px!important;width:145px!important}}
+@media(prefers-reduced-motion:reduce){#menuScreen.ocean-menu-v2 *,#menuScreen.ocean-menu-v2 *:before{animation:none!important;transition:none!important}}
