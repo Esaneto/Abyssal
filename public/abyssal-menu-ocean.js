@@ -12,6 +12,12 @@
   rankingsBtn:{x:10,y:22,tone:'ice',label:'RANKING'},
   wheelBtn:{x:90,y:22,tone:'rose',label:'ROLETA'}
  };
+ const MOBILE_STATIONS={
+  playBtn:{x:26,y:15},onlineBtn:{x:74,y:15},
+  resonanceBtn:{x:26,y:38},riftPortalBtn:{x:74,y:38},
+  rankingsBtn:{x:26,y:62},shopBtn:{x:74,y:62},
+  profileBtn:{x:26,y:84},wheelBtn:{x:74,y:84}
+ };
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function init(){
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
@@ -22,8 +28,8 @@
   for(const [id,pos] of Object.entries(STATIONS)){
    const button=document.getElementById(id);
    if(!button)continue;
-   button.dataset.portalTone=pos.tone;button.style.setProperty('--portal-x',pos.x+'%');button.style.setProperty('--portal-y',pos.y+'%');
-   rows.push({button,...pos});
+   button.dataset.portalTone=pos.tone;
+   rows.push({button,id,...pos});
   }
   const rift=document.getElementById('riftPortalBtn');
   rift?.addEventListener('click',()=>{
@@ -37,6 +43,17 @@
    if(event.isTrusted)window.AbyssalPreferredRoomMode='coop';
   });
   let x=50,y=51,vx=0,vy=0,destination=null,nearest=null,last=performance.now();
+  function refreshStationPositions(){
+   const mobile=stage.clientWidth<=600;
+   for(const row of rows){
+    const target=mobile?MOBILE_STATIONS[row.id]:STATIONS[row.id];
+    row.x=target.x;row.y=target.y;
+    row.button.style.setProperty('--portal-x',row.x+'%');
+    row.button.style.setProperty('--portal-y',row.y+'%');
+   }
+  }
+  refreshStationPositions();
+  window.addEventListener('resize',refreshStationPositions);
   const rectPosition=(clientX,clientY)=>{
    const r=stage.getBoundingClientRect();
    return {x:clamp((clientX-r.left)/Math.max(1,r.width)*100,8,92),y:clamp((clientY-r.top)/Math.max(1,r.height)*100,10,88)};
