@@ -19,7 +19,9 @@
  function draw(c,x,y,r,heading,aim,t=0,options={}){
   if(!c||!(r>0))return;
   const female=genderOf(options.gender)==='female',a=Number(heading)||0;
-  const cycle=options.moving===false?0:Math.sin((Number(t)||0)*.011);
+  const swimming=options.moving!==false;
+  const phase=(Number(t)||0)*.008;
+  const cycle=swimming?Math.sin(phase):0;
   c.save();c.translate(x,y);c.rotate(a);c.scale(r*DRAW_SCALE/14,r*DRAW_SCALE/14);
   c.lineJoin='round';c.lineCap='round';
   const line=(ax,ay,bx,by,color,width)=>{c.beginPath();c.strokeStyle=color;c.lineWidth=width;c.moveTo(ax,ay);c.lineTo(bx,by);c.stroke();};
@@ -31,21 +33,25 @@
   // Two HUMAN upper legs and calves, independently kicking. Only the flipper
   // blade starts at the ankle; no anatomical fish tail or dorsal body fins.
   for(const side of [-1,1]){
-   const kick=.5+.5*Math.sin((Number(t)||0)*.011+(side===1?0:Math.PI));
-   const knee=[-28+4*kick,side*(12+12*kick)];
-   const ankle=[-49-2*kick,side*(9+cycle*6)];
-   limb([-16,side*5],knee,8,'#202a38','#40617a');
+   // Flutter kick starts in the hips. Opposite legs move in anti-phase;
+   // knees flex lightly, ankles follow with a delayed hydrodynamic wave.
+   const beat=swimming?Math.sin(phase+(side===1?0:Math.PI)):0;
+   const follow=swimming?Math.sin(phase-.62+(side===1?0:Math.PI)):0;
+   const hip=[-16,side*5.5];
+   const knee=[-34,side*(7.5+beat*4.5)];
+   const ankle=[-53,side*(8+follow*8)];
+   limb(hip,knee,7.8,'#202a38','#40617a');
    c.fillStyle='#030c14';c.strokeStyle='#6d899d';c.lineWidth=1;
-   c.beginPath();c.arc(knee[0],knee[1],4.3,0,TAU);c.fill();c.stroke();
-   limb(knee,ankle,6.5,'#162532','#2b5b75');
-   // Realistic long blade, dark grey with a narrow glint on the outer edge.
-   c.fillStyle='#101b29';c.strokeStyle='#79b9ce';c.lineWidth=1.5;
-   c.beginPath();c.moveTo(ankle[0]+2,ankle[1]-4*side);
-   c.quadraticCurveTo(-59,ankle[1]-7*side,-76,ankle[1]-12*side);
-   c.quadraticCurveTo(-82,ankle[1]-5*side,-77,ankle[1]+7*side);
-   c.quadraticCurveTo(-61,ankle[1]+5*side,ankle[0],ankle[1]+3*side);
+   c.beginPath();c.arc(knee[0],knee[1],3.4,0,TAU);c.fill();c.stroke();
+   limb(knee,ankle,6,'#162532','#2b5b75');
+   const finSwing=swimming?Math.sin(phase-1.05+(side===1?0:Math.PI))*5:0;
+   c.fillStyle='#101b29';c.strokeStyle='#79b9ce';c.lineWidth=1.4;
+   c.beginPath();c.moveTo(ankle[0]+1,ankle[1]-3*side);
+   c.quadraticCurveTo(-64,ankle[1]-5*side,-77,ankle[1]+finSwing-7*side);
+   c.quadraticCurveTo(-82,ankle[1]+finSwing,-78,ankle[1]+finSwing+7*side);
+   c.quadraticCurveTo(-65,ankle[1]+5*side,ankle[0],ankle[1]+3*side);
    c.closePath();c.fill();c.stroke();
-   line(-53,ankle[1],-75,ankle[1]-3*side,'rgba(168,206,217,.56)',.8);
+   line(-57,ankle[1],-76,ankle[1]+finSwing,'rgba(168,206,217,.56)',.8);
   }
   // Armoured oxygen pack is behind the shoulders, not a second silhouette.
   c.fillStyle='#0c151e';c.strokeStyle='#7e9da9';c.lineWidth=1.5;
