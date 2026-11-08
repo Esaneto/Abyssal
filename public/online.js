@@ -347,6 +347,8 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   socket.on('skin-trail-node',data=>{if(data)window.dispatchEvent(new CustomEvent('abyssal-skin-trail-node',{detail:data}));});
 socket.on('skin-shot-telegraph',data=>window.dispatchEvent(new CustomEvent('abyssal-skin-shot-telegraph',{detail:data||{}})));
 socket.on('player-skin-status',data=>window.dispatchEvent(new CustomEvent('abyssal-player-skin-status',{detail:data||{}})));
+ socket.on('specimen-dash',data=>window.dispatchEvent(new CustomEvent('abyssal-specimen-dash',{detail:data||{}})));
+ socket.on('skin-weapon-impact',data=>window.dispatchEvent(new CustomEvent('abyssal-skin-weapon-impact',{detail:data||{}})));
  socket.on('server-message',m=>{if(window.AbyssalGameHooks?.toast)window.AbyssalGameHooks.toast(m)});
  socket.on('account-deletion-result',result=>{
   const message=result?.message||'Não foi possível excluir a conta.';
