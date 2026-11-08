@@ -1158,7 +1158,7 @@ function tickRoom(room, now) {
  }
  // Companions treat survival as higher priority than orb collection.
  const hostile=room.mode==='pvp'?[]:(room.world?.enemies||[]).map(e=>({x:Number(e.x)||0,y:Number(e.y)||0,r:(Number(e.r)||10)/WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
- const riftLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
+ const specimenCaveLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
  for(const peer of activePlayers){
   if(!Number.isFinite(peer.specimenX)||!Number.isFinite(peer.specimenY)){
    peer.specimenX=Number(peer.x)||0;peer.specimenY=(Number(peer.y)||0)-34/WORLD_ZOOM;
@@ -1176,14 +1176,14 @@ function tickRoom(room, now) {
   const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
   const orb=room.mode==='pvp'?null:SpecimenEvasion.bestOrb(pos,room.world?.orbs||[],peer,acquisitionRange,hostile,radius,28/WORLD_ZOOM);
   let target=orb?{x:orb.x,y:orb.y}:{x:(Number(peer.x)||0),y:(Number(peer.y)||0)-34/WORLD_ZOOM};
-  if(riftLayout){
-   const route=AbyssalMap.navigationTarget(riftLayout,pos.x,pos.y,target.x,target.y,{padding:5/WORLD_ZOOM});
+  if(specimenCaveLayout){
+   const route=AbyssalMap.navigationTarget(specimenCaveLayout,pos.x,pos.y,target.x,target.y,{padding:5/WORLD_ZOOM});
    if(route&&!route.blocked)target={x:route.x,y:route.y};
   }
   const speed=(150/WORLD_ZOOM)*clamp(Number(peer.speedStrength)||1,1,4)*SkinAbilities.movementMultiplier(peer.skinId,peer.specimenPoints,true);
   const move=SpecimenEvasion.steer({position:pos,target,enemies:hostile,speed,dt,radius,clearance:28/WORLD_ZOOM,
    heading:Number(peer.specimenEvasionHeading)||0,
-   resolve:riftLayout?(x,y)=>AbyssalMap.resolveMove(riftLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):null});
+   resolve:specimenCaveLayout?(x,y)=>AbyssalMap.resolveMove(specimenCaveLayout,pos.x,pos.y,x,y,5/WORLD_ZOOM):null});
   peer.specimenX=move.x;peer.specimenY=move.y;peer.specimenEvasionHeading=move.angle;
  }
  const w = room.world;
