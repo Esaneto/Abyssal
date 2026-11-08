@@ -71,15 +71,14 @@ test('mobile keeps download and controls in the top bar but removes fullscreen s
  assert.match(css,/#fullscreenBtn\{[\s\S]*?display:none!important[\s\S]*?width:0!important/);
 });
 
-test('resonance is structurally above solo dive in the main menu',()=>{
- const html=read('public/index.html');
- assert.ok(html.indexOf('id="resonanceBtn"')<html.indexOf('id="playBtn"'));
- const css=read('public/style.css');
- assert.match(css,/#menuScreen #resonanceBtn\{[\s\S]*?position:static!important/);
+test('new menu separates destination portals from legacy orbital layout',()=>{
+  const html=read('public/index.html'),css=read('public/abyssal-menu-v2.css');
+  for(const id of ['playBtn','onlineBtn','riftPortalBtn','shopBtn','profileBtn','resonanceBtn','rankingsBtn','wheelBtn'])assert.match(html,new RegExp('id="'+id+'"'));
+  assert.doesNotMatch(html,/abyss-orbit-navigation|menu-fauna|menu-secondary-actions/);
+  assert.match(css,/#menuScreen\.ocean-menu-v2 \.abyss-destination/);
 });
-
-
-test('account and online menu actions are owned by the online module',()=>{
+ 
+ test('account and online menu actions are owned by the online module',()=>{
  const online=read('public/online.js'),game=read('public/game.js');
  assert.match(online,/\$\('loginBtn'\)\?\.addEventListener\('click',\(\)=>openLogin\(\)\)/);
  assert.match(online,/\$\('onlineBtn'\)\?\.addEventListener\('click'/);
@@ -93,10 +92,10 @@ test('UGC modal exists before online client scripts execute',()=>{
 });
 
 
-test('main menu CTAs keep explicit separation',()=>{
- const css=read('public/style.css');
- assert.match(css,/#menuScreen #resonanceBtn\{margin-bottom:10px!important\}/);
- assert.match(css,/#menuScreen #playBtn\{margin-top:0!important;margin-bottom:10px!important\}/);
+test('solo and resonance occupy separate spatial destinations',()=>{
+ const menu=read('public/abyssal-menu-ocean.js');
+ assert.match(menu,/playBtn:\{x:33,y:25/);
+ assert.match(menu,/resonanceBtn:\{x:17,y:51/);
 });
 
 test('Abyssary reads current enemy balance and wraps stat badges',()=>{
@@ -122,11 +121,11 @@ test('relic bundle charges only remaining R$9.99 boss skins without hidden disco
 });
 
 
-test('mobile explicitly orders Resonance before Solo and Online',()=>{
- const css=read('public/style.css');
- assert.match(css,/#menuScreen #resonanceBtn\{order:20!important;position:static!important/);
- assert.match(css,/#menuScreen #playBtn\{order:21!important/);
- assert.match(css,/#menuScreen \.menu-secondary-actions\{order:23!important/);
+test('mobile menu has independently sized stations and touch navigation',()=>{
+ const css=read('public/abyssal-menu-v2.css'),menu=read('public/abyssal-menu-ocean.js');
+ assert.match(css,/@media\(max-width:550px\)/);
+ assert.match(css,/abyss-ocean-mobile-pad/);
+ assert.match(menu,/data-ocean-move/);
 });
 
 test('multiplayer keeps offscreen enemy motion warm instead of viewport-culling mobs',()=>{
