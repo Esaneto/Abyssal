@@ -24,7 +24,8 @@ test('Fossas summon real shop specimen IDs on common enemies',()=>{
  const room=Sim.mapLayoutFor(world).rooms.find(r=>r.id==='shoal');
  const player={id:'test',x:room.x,y:room.y,alive:true,hp:100,maxHp:100};
  Sim.tickWorld(world,[player],1050,()=>.28);
- const catalog=new Set(['toxic','bloodmoon','reefshark','hammerhead','saltcroc','blackcaiman','violet',...CuratedSkins.items.filter(s=>s.collection==='shop').map(s=>s.id)]);
+ const Rarity=require('../public/specimen-rarity.js');
+ const catalog=new Set(Object.keys(SkinStandard.profiles).filter(id=>Rarity.rarityFor(id)));
  assert.ok(world.enemies.length>0);
  assert.ok(world.enemies.every(e=>catalog.has(e.specimenSkinId)));
 });
