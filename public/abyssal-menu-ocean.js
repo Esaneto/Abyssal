@@ -5,10 +5,12 @@
  const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
  const lerp=(a,b,t)=>a+(b-a)*t;
  const ease=t=>t*t*(3-2*t);
+ // Solo draws the diver to the left current; online to the right. The fissure
+ // stays embedded in the seafloor, below the submarine and the two currents.
  const ROUTES=[
-  {id:'onlineBtn',x:.18,y:.64,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
-  {id:'playBtn',x:.50,y:.64,tone:'#68e7ff',label:'MERGULHAR',kind:'solo'},
-  {id:'riftPortalBtn',x:.82,y:.84,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
+  {id:'playBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHO SOLO',kind:'solo'},
+  {id:'onlineBtn',x:.81,y:.47,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
+  {id:'riftPortalBtn',x:.5,y:.835,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
  ];
  function boot(){
   const menu=document.getElementById('menuScreen'),stage=document.getElementById('menuOceanStage');
