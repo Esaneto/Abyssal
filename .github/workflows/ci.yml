@@ -11,6 +11,38 @@ permissions:
   contents: read
 
 jobs:
+  specimen-journal-acceptance:
+    name: Specimens, journal and laboratory acceptance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate game, server and specimen syntax
+        run: |
+          node --check public/specimen-system.js
+          node --check public/game.js
+          node --check server.js
+          node --check scripts/browser-smoke.cjs
+      - name: Validate biological data and independent visual themes
+        run: node --test tests/specimen-journal-biology.test.cjs
+      - name: Run Chromium journal, laboratory and gameplay smoke
+        run: node scripts/browser-smoke.cjs
+      - name: Upload visual acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abyssal-specimen-journal-acceptance
+          path: test-artifacts/browser-smoke/journal-*.png
+          if-no-files-found: warn
+          retention-days: 3
+
   syntax-and-tests:
     runs-on: ubuntu-latest
     steps:
