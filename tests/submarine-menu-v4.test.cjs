@@ -68,7 +68,7 @@ test('bottom utilities preserve clear identities while laboratory capsules repla
  const sw=read('public/offline-sw.js');
  const lab=read('public/abyssal-lab-menu.css');
  assert.match(lab,/#shopScreen #skinGrid \.skin-card \.skin-preview::before/);
- assert.match(lab,/#menuScreen\.ocean-menu-v2\.submarine-menu \.abyss-current-entry::before/);
+ assert.match(lab,/#menuScreen\.ocean-menu-v2\.submarine-menu \.abyss-destination\.abyss-current-entry::before/);
  assert.match(sw,/'abyssal-lab-menu\.css'/);
  assert.match(css,/\.submarine-menu #resonanceBtn/);
  assert.match(css,/\.submarine-menu #wheelBtn/);

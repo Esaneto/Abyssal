@@ -159,9 +159,9 @@ test('single enemy death does not allocate another enemy-array copy', () => {
 
 test('adaptive resolution never renders below native CSS density and preserves smooth edges',()=>{
  const game=read('public/game.js');
- assert.match(game,/dpr=Math\.max\(1,Math\.min\(nativeDpr\*adaptiveDprScale,baseCap\)\)/);
+ assert.match(game,/dpr=Math\.min\(Math\.max\(1,Math\.min\(nativeDpr\*adaptiveDprScale,baseCap\)\),Math\.sqrt/);
  assert.match(game,/ctx\.imageSmoothingEnabled=true;ctx\.imageSmoothingQuality='high'/);
- assert.match(game,/const nativeDpr=Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1:1\.45\)/);
+ assert.match(game,/const nativeDpr=Math\.min\(window\.devicePixelRatio\|\|1,lowPowerRendering\?1\.2:\(mobileViewport\?2:1\.8\)\)/);
 });
 
 test('creature rendering preserves subpixel coordinates and limits expensive sprite repaints per frame',()=>{
