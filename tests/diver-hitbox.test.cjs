@@ -10,7 +10,9 @@ test('the hitbox is an anatomical collection of head torso arm and leg capsules'
  const human={x:100,y:100,r:14,bodyAngle:0,swimming:false};
  const zones=Hitbox.zones(human,0).map(z=>z.name);
  for(const part of ['torso','head','left-arm','right-arm','left-thigh','right-thigh','left-leg','right-leg'])assert.ok(zones.includes(part),part);
- assert.equal(zones.length,8);
+ assert.equal(zones.length,10);
+ assert.ok(zones.includes('left-forearm'));
+ assert.ok(zones.includes('right-forearm'));
  assert.equal(Hitbox.DRAW_SCALE,.60);
 });
 test('a bullet hits a human leg outside the obsolete central player circle',()=>{
@@ -57,4 +59,16 @@ test('menu is a camera-following world and remote portal clicks cause swimming',
  assert.match(menu,/layer\.style\.setProperty\('transform'/);
  assert.match(css,/abyss-rift-fractures/);
  assert.match(html,/diver-hitbox\.js\?v=/);
+});
+
+
+test('the bent arms remain hittable while the gun rotates independently of swim heading',()=>{
+ const diver={x:200,y:200,r:14,bodyAngle:0,weaponAngle:Math.PI/2,swimming:false};
+ const zones=Hitbox.zones(diver,0);
+ const far=zones.find(z=>z.name==='left-forearm');
+ const near=zones.find(z=>z.name==='right-forearm');
+ assert.ok(far&&near);
+ const mx=(far.ax+far.bx)/2,my=(far.ay+far.by)/2;
+ assert.equal(Hitbox.circleHit(diver,mx,my,1,0),'left-forearm');
+ assert.ok(Math.hypot(mx-200,my-200)>4);
 });
