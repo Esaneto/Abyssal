@@ -2,6 +2,7 @@
 // Swept, server-authoritative PvP projectiles: impacts occur as bullets travel.
 // A bounded shared queue avoids one timer per bullet and keeps room CPU stable.
 const MAX_PROJECTILES=240;
+const DiverHitbox=require('./public/diver-hitbox.js');
 function enqueue(shots,shot){
  if(!Array.isArray(shots)||!shot||!(Number(shot.speed)>0)||!(Number(shot.remaining)>0))return false;
  if(shots.length>=MAX_PROJECTILES)shots.splice(0,shots.length-MAX_PROJECTILES+1);
@@ -25,10 +26,10 @@ function advance(shots,players,now,rockAt,onImpact){
    if(px<0||px>shot.worldWidth||py<0||py>shot.worldHeight||rockAt(px,py,4/shot.worldZoom)){stopped=true;break;}
    for(const target of players){
     if(target.id===shot.ownerId||target.alive===false)continue;
-    const radius=Math.max(2,(Number(target.r)||13/shot.worldZoom)+(Number(shot.radius)||5/shot.worldZoom)-2/shot.worldZoom);
-    const dx=Number(target.x)-px,dy=Number(target.y)-py;
-    if(dx*dx+dy*dy>radius*radius)continue;
-    onImpact(shot,target,{x:px,y:py},now);hits++;stopped=true;break;
+    const radius=Math.max(1,(Number(shot.radius)||5/shot.worldZoom)-1/shot.worldZoom);
+    const hitZone=DiverHitbox.circleHit(target,px,py,radius,now);
+    if(!hitZone)continue;
+    onImpact(shot,target,{x:px,y:py,hitZone},now);hits++;stopped=true;break;
    }
    if(stopped)break;
   }
