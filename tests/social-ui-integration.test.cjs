@@ -94,8 +94,8 @@ test('UGC modal exists before online client scripts execute',()=>{
 
 test('solo and resonance occupy separate spatial destinations',()=>{
  const menu=read('public/abyssal-menu-ocean.js');
- assert.match(menu,/playBtn:\{x:33,y:25/);
- assert.match(menu,/resonanceBtn:\{x:17,y:51/);
+ assert.match(menu,/playBtn:\{x:\.40,y:\.18/);
+ assert.match(menu,/resonanceBtn:\{x:\.14,y:\.63/);
 });
 
 test('Abyssary reads current enemy balance and wraps stat badges',()=>{
