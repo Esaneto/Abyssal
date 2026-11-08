@@ -43,7 +43,7 @@
   const muted=(node)=>node?.hidden||!node?.isConnected;
   const isInteractive=()=>{
    if(muted(menu)||!canMove())return false;
-   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#roomsScreen,#loginScreen,#shopScreen')){
+   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#roomsScreen,#loginScreen,#shopScreen,#abyssDescentPanel')){
     if(panel===menu||panel.hidden||!panel.isConnected)continue;
     if(panel.getClientRects().length&&getComputedStyle(panel).visibility!=='hidden'&&getComputedStyle(panel).display!=='none')return false;
    }
@@ -323,7 +323,7 @@
      if(d>8){mx=dx/d;my=dy/d;}else{destination=null;mx=0;my=0;}
     }
     const unit=Math.hypot(mx,my)||1;
-    const speed=arrival?Math.max(660,stageW*1.3):Math.max(190,Math.min(255,worldW*.3));
+    const speed=(arrival||activeDestination)?Math.max(520,stageW*1.0):Math.max(190,Math.min(255,worldW*.3));
     const response=1-Math.exp(-dt*9);
     vx=lerp(vx,mx/unit*speed,response);vy=lerp(vy,my/unit*speed,response);
     px=clamp(px+vx*dt,35,worldW-35);py=clamp(py+vy*dt,35,worldH-35);
