@@ -93,10 +93,10 @@
    else if(best){hint.textContent='NADO LIVRE · PORTAL '+best.label+' A '+Math.ceil(bestDistance)+'m · WASD / SETAS';}
    else hint.textContent='WASD / SETAS PARA NADAR · F PARA ENTRAR';
    if(enter){enter.disabled=!nearest;enter.textContent=nearest?'ENTRAR · '+nearest.label:'APROXIME-SE DE UM PORTAL';}
-   if(nearest!==wasNear){
-    if(nearest&&activeDestination===nearest)enterPortal(nearest);
-    wasNear=nearest;
-   }
+   // The outer glow marks proximity, but entry happens at the inner rift.
+   // Keep checking until the swimmer actually crosses the entry radius.
+   if(nearest&&activeDestination===nearest&&bestDistance<=Math.max(50,Math.min(nearest.button.offsetWidth*.32,67)))enterPortal(nearest);
+   wasNear=nearest;
   }
   const key=(event)=>String(event?.key||'').toLowerCase();
   window.addEventListener('keydown',event=>{
