@@ -31,10 +31,12 @@
   }
   const rift=document.getElementById('riftPortalBtn');
   rift?.addEventListener('click',()=>{
+   window.AbyssalPreferredRoomMode='rift';
    const online=document.getElementById('onlineBtn');if(!online)return;
    online.click();
    setTimeout(()=>{const mode=document.getElementById('roomModeInput');if(mode){mode.value='rift';mode.dispatchEvent(new Event('change',{bubbles:true}));}},0);
   });
+  document.getElementById('onlineBtn')?.addEventListener('click',event=>{if(event.isTrusted)window.AbyssalPreferredRoomMode='coop';});
   let x=50,y=52,vx=0,vy=0,target=null,nearest=null,last=performance.now(),active=true;
   const keys=new Set();
   function setPos(){diver.style.setProperty('--diver-x',x+'%');diver.style.setProperty('--diver-y',y+'%');}
