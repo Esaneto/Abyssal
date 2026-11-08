@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 48 48">
+ <defs>
+  <radialGradient id="redCore"><stop stop-color="#fff9f9"/><stop offset=".45" stop-color="#ff646a"/><stop offset="1" stop-color="#bf0b29"/></radialGradient>
+  <filter id="redGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="1.6"/></filter>
+ </defs>
+ <g fill="none" stroke="#ff3e55" stroke-width="2.5" stroke-linecap="round" opacity=".55" filter="url(#redGlow)">
+  <path d="M24 3 V13 M24 35 V45 M3 24 H13 M35 24 H45"/>
+  <circle cx="24" cy="24" r="13"/>
+ </g>
+ <g fill="none" stroke="#ff6976" stroke-width="2" stroke-linecap="round">
+  <path d="M24 4 V12 M24 36 V44 M4 24 H12 M36 24 H44"/>
+  <path d="M16 12 A14 14 0 0 1 32 12 M36 16 A14 14 0 0 1 36 32 M32 36 A14 14 0 0 1 16 36 M12 32 A14 14 0 0 1 12 16"/>
+ </g>
+ <circle cx="24" cy="24" r="5.5" fill="#260710" fill-opacity=".72" stroke="#fa344c" stroke-width="1.2"/>
+ <circle cx="24" cy="24" r="2.6" fill="url(#redCore)"/>
+ <circle cx="24" cy="24" r="1" fill="#fff"/>
+</svg>
