@@ -2258,7 +2258,7 @@ function applySoloSkinActive(spec,angle){
  }else if(spec.id==='cloud'){
   for(const e of inRange()){e.poisonTimer=Math.max(Number(e.poisonTimer)||0,2.4);dealEnemyDamage(e,spec.damage,'skin-active-cloud',{visual:true});}
  }else if(spec.id==='trail'){
-  for(let i=0;i<5;i++){const bx=origin.x-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=origin.y-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color:spec.color,damageTimer:0,skinActive:true});}
+  // Stream nodes from the moving specimen, not five instant ones.
  }else if(spec.id==='push'){
   for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
  }else if(spec.id==='poison'){
@@ -2279,16 +2279,44 @@ function activateSkinAbility(inputEvent){
  if(inputEvent?.isTrusted!==true)return false;
  if(!player||gameState!=='playing'||!specimenAlive())return false;
  const spec=currentSkinActiveSpec();if(!spec)return false;
- if((Number(player.skinActiveCooldown)||0)>0)return false;
+ if((Number(player.skinActiveCooldown)||0)>0||Number(player.skinTrailUntil)>performance.now())return false;
  const angle=specimenAbilityAngle((Number(spec.range)||160)/GAME_WORLD_ZOOM),origin=specimenOrigin();
- player.skinActiveCooldown=Number(spec.cooldown)||10;
+ if(spec.id==='trail'){
+  player.skinTrailUntil=performance.now()+10000;
+  player.skinTrailCooldownSeconds=Number(spec.cooldown)||10;
+  player.skinTrailSampleAt=0;
+  player.skinTrailPreviousX=NaN;player.skinTrailPreviousY=NaN;
+  player.skinActiveCooldown=0;
+ }else player.skinActiveCooldown=Number(spec.cooldown)||10;
  spawnSkinActiveVisual(spec,angle);
  if(onlineMode){
-  const sent=window.AbyssalOnline?.sendSkinAbility?.({type:'standard-active',active:spec.id,skin:equippedSkin,x:clamp(origin.x/W,0,1),y:clamp(origin.y/H,0,1),angle});
-  if(!sent){player.skinActiveCooldown=0;updateAbilityButtons(true);return false;}
+  const sent=window.AbyssalOnline?.sendSkinAbility?.({type:'standard-active',active:spec.id,skin:equippedSkin,x:clamp(origin.x/W,0,1),y:clamp(origin.y/H,0,1),angle},result=>{
+   if(result?.ok===false&&player){player.skinTrailUntil=0;player.skinActiveCooldown=0;showToast('HABILIDADE NÃO CONFIRMADA PELO SERVIDOR');updateAbilityButtons(true);}
+  });
+  if(!sent){player.skinTrailUntil=0;player.skinActiveCooldown=0;updateAbilityButtons(true);return false;}
  }else applySoloSkinActive(spec,angle);
  playWorldSound(spec.id==='paralysis'?'ability-beam':spec.id==='dash'?'ability-dash':spec.id==='cloud'||spec.id==='poison'?'ability-poison':spec.id==='shield'?'shield-hit':'ability-nova',origin,850,.68);
  updateAbilityButtons(true);return true;
+}
+function updateSkinTrailRuntime(){
+ if(!player||!Number(player.skinTrailUntil)||!specimenAlive())return;
+ const now=performance.now();
+ if(now>=player.skinTrailUntil||onlineMode)return;
+ const spec=currentSkinActiveSpec();if(spec?.id!=='trail')return;
+ if(now<(Number(player.skinTrailSampleAt)||0))return;
+ const pos=specimenOrigin();
+ const travelled=Math.hypot(pos.x-player.skinTrailPreviousX,pos.y-player.skinTrailPreviousY);
+ if(Number.isFinite(travelled)&&travelled<9/GAME_WORLD_ZOOM)return;
+ player.skinTrailPreviousX=pos.x;player.skinTrailPreviousY=pos.y;
+ player.skinTrailSampleAt=now+160;
+ const angle=Number(player.specimen?.facingAngle)||0;
+ sharkWakeTrails.push({
+  x:pos.x-Math.cos(angle)*10/GAME_WORLD_ZOOM,
+  y:pos.y-Math.sin(angle)*10/GAME_WORLD_ZOOM,
+  r:20/GAME_WORLD_ZOOM,life:10,maxLife:10,damageTimer:.25,
+  color:spec.color,ink:spec.ink===true,skinActive:true
+ });
+ if(sharkWakeTrails.length>240)sharkWakeTrails.splice(0,sharkWakeTrails.length-240);
 }
 let soundMotionSkinId=null,soundMotionFamily='signature';
 function equippedMotionFamily(){
@@ -2327,7 +2355,7 @@ function updateSpecimenRuntime(dt){
 function hurtSpecimenSolo(amount){
  const s=player?.specimen;if(!s||s.alive===false||s.invuln>0||!Number.isFinite(amount)||amount<=0)return false;
  s.hp=Math.max(0,s.hp-amount);s.invuln=.35;burst(s.x,s.y,'#ff6f8d',8,65);
- if(s.hp<=0){s.alive=false;s.respawnTimer=specimenProgressStats().respawnSeconds;player.skinActiveCooldown=0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${s.respawnTimer.toFixed(1)}s`);updateAbilityButtons(true);}
+ if(s.hp<=0){s.alive=false;s.respawnTimer=specimenProgressStats().respawnSeconds;const trailing=Number(player.skinTrailUntil)>0;player.skinTrailUntil=0;player.skinActiveCooldown=trailing?(Number(player.skinTrailCooldownSeconds)||10):0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${s.respawnTimer.toFixed(1)}s`);updateAbilityButtons(true);}
  return true;
 }
 function updateSoloSpecimenContact(){
@@ -2350,7 +2378,11 @@ function update(dt){
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
    // Correntezas ambientais removidas: o movimento depende apenas dos comandos do jogador.
-   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);player.skinActiveCooldown=Math.max(0,(player.skinActiveCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
+   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);if(Number(player.skinTrailUntil)>0){
+    if(performance.now()>=player.skinTrailUntil){
+     player.skinTrailUntil=0;player.skinActiveCooldown=Number(player.skinTrailCooldownSeconds)||10;
+    }
+   }else player.skinActiveCooldown=Math.max(0,(player.skinActiveCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
@@ -2379,6 +2411,7 @@ function update(dt){
  }
  // Companion sim runs even if diver is not moving.
  updateSpecimenRuntime(dt);
+ updateSkinTrailRuntime();
  if(onlineMode&&authoritativeElapsed!==null&&lastSnapshotAt){elapsed=authoritativeElapsed+Math.max(0,(performance.now()-lastSnapshotAt)/1000);}else elapsed+=dt;if(!onlineMode)updateSoloRiftHardcore(dt);updateRiftHazardAudio();publishLiveRiftDepth();if(!onlineMode){expireSoloDepthEventIfNeeded();spawnTimer-=dt;if(requestedRunMode!=='rift')updateBossProgressionStep(dt);}else if(onlineRoomMode!=='rift'){updateBossProgressionStep(dt);}
 
   // Gestão da esteira de bolhas do tubarão (dura 5 segundos e causa dano reduzido)
@@ -2396,7 +2429,7 @@ function update(dt){
         if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=600) {
           e.wakeHitAt=performance.now();
           dealEnemyDamage(e,.9,'skin-active-trail', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
-          burst(e.x, e.y, '#7bf5ff', 2, 30);
+          burst(e.x, e.y, bubble.ink?'#768096':(bubble.color||'#7bf5ff'), 2, 30);
         }
       }
     }
@@ -2760,7 +2793,7 @@ function updateAbilityButtons(force=false){
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
  if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
  if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
- if(skinBtn){const spec=currentSkinActiveSpec(),disabled=!player||!spec||!specimenAlive()||player.skinActiveCooldown>0;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
+ if(skinBtn){const spec=currentSkinActiveSpec(),trailing=Boolean(player&&Number(player.skinTrailUntil)>performance.now()),disabled=!player||!spec||!specimenAlive()||player.skinActiveCooldown>0||trailing;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):trailing?(mobileViewport?`RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`:`R · RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);if(skinBtn.textContent!==label)skinBtn.textContent=label;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
 function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(node&&node.style.width!==width)node.style.width=width;}
@@ -3588,7 +3621,7 @@ function draw(t){
    }
    ctx.restore();
   }
-  for(const b of sharkWakeTrails)renderWakeBubble(b,false);
+  for(const b of sharkWakeTrails)renderWakeBubble(b,b.ink===true);
   for(const ink of inkTrails)renderWakeBubble(ink,true);
 
   for(const fx of effects){ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=fx.type==='photon-ray'?clamp(fx.life/.065,0,1):clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);let photonX2=fx.x2,photonY2=fx.y2;if(fx.type==='photon-ray'&&onlineRoomMode==='pvp'&&projectileHitsPvpWall(fx.x1,fx.y1,photonX2,photonY2,Math.max(1,Number(fx.width)||3))){let lo=0,hi=1;for(let step=0;step<9;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(fx.x1,fx.y1,fx.x1+(fx.x2-fx.x1)*mid,fx.y1+(fx.y2-fx.y1)*mid,Math.max(1,Number(fx.width)||3)))hi=mid;else lo=mid;}photonX2=fx.x1+(fx.x2-fx.x1)*lo;photonY2=fx.y1+(fx.y2-fx.y1)*lo;}ctx.beginPath();if(fx.type==='occluded-ring'){
@@ -4373,11 +4406,19 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
  if(d.type!=='standard-active')return;
  const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H),angle=Number(d.angle)||0,active=String(d.active||''),color=d.color||'#79f3f0',range=(Number(d.range)||160)/GAME_WORLD_ZOOM;
  if(active==='cloud')spawnPoisonPlantCloudVisual(px,py,range,color);
- else if(active==='trail'){for(let i=0;i<5;i++){const bx=px-Math.cos(angle)*(18+i*26)/GAME_WORLD_ZOOM,by=py-Math.sin(angle)*(18+i*26)/GAME_WORLD_ZOOM;sharkWakeTrails.push({x:bx,y:by,r:20/GAME_WORLD_ZOOM,life:3.2,maxLife:3.2,color,damageTimer:0,remote:true,skinActive:true});}}
+ else if(active==='trail'){/* Nodes are streamed by the authoritative server. */}
  else if(active==='dash'){effects.push({type:'beam',x1:px-Math.cos(angle)*18/GAME_WORLD_ZOOM,y1:py-Math.sin(angle)*18/GAME_WORLD_ZOOM,x2:px+Math.cos(angle)*range,y2:py+Math.sin(angle)*range,life:.36,maxLife:.36,color,width:8/GAME_WORLD_ZOOM});burst(px,py,color,14,110);}
  else if(active==='push'||active==='pulse'||active==='paralysis'||active==='poison'){effects.push({type:'ring',x:px,y:py,r:0,max:range,life:.55,maxLife:.55,color});if(active==='paralysis')effects.push({type:'electric-arc',x1:px-range*.45,y1:py,x2:px+range*.45,y2:py,seed:Date.now()%997,life:.34,maxLife:.34,color,width:5/GAME_WORLD_ZOOM});burst(px,py,color,16,130);}
  else if(active==='shield'){effects.push({type:'ward-collapse',x:px,y:py,max:60/GAME_WORLD_ZOOM,life:1,maxLife:1,color});burst(px,py,color,12,90);}
  else if(active==='shot'||active==='slowShot'){burst(px,py,color,10,90);}
+});
+window.addEventListener('abyssal-skin-trail-node',ev=>{
+ const node=ev.detail||{},wx=Number(node.x)*W,wy=Number(node.y)*H;
+ if(!Number.isFinite(wx)||!Number.isFinite(wy)||wx<0||wx>W||wy<0||wy>H)return;
+ sharkWakeTrails.push({x:wx,y:wy,r:20/GAME_WORLD_ZOOM,life:10,maxLife:10,
+  color:node.color||'#79dfff',ink:node.ink===true,damageTimer:1,
+  remote:true,skinActive:true});
+ if(sharkWakeTrails.length>260)sharkWakeTrails.splice(0,sharkWakeTrails.length-260);
 });
 window.addEventListener('abyssal-skin-shot-telegraph',ev=>{
  const d=ev.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;
