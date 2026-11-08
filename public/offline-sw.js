@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-07-ocean-nav-v41';
+const VERSION = '2026-11-08-ink-trails-gravity-cone-v42';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -23,6 +23,7 @@ const GAME_FILES = [
   'server-config.js',
   'i18n.js',
   'skin-standard.js','skin-abilities.js',
+  'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-orbit.js',
   'abyssal-menu-ocean.js',
