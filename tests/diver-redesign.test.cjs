@@ -13,15 +13,15 @@ test('diver visual uses one shared anatomy with female hair only as variation',(
  assert.equal(art.genderOf('invalid'),'male');
  const code=read('public/diver-art.js');
  assert.match(code,/if\(female\)/);
- assert.match(code,/Long hair is the only visual difference/);
- assert.match(code,/Rear fins: large/);
+ assert.match(code,/Hair is BLACK in both versions/);
+ assert.match(code,/Two HUMAN upper legs and calves/);
  assert.match(code,/c\.rotate\(\(Number\(aim\)\|\|0\)-\(Number\(heading\)\|\|0\)\)/);
 });
 test('weapon muzzle is directionally correct',()=>{
  const origin=art.muzzle(100,200,14,0);
- assert.equal(origin.x,146);assert.equal(origin.y,200);
+ assert.equal(origin.x,127.6);assert.equal(origin.y,200);
  const up=art.muzzle(100,200,14,-Math.PI/2);
- assert.ok(Math.abs(up.x-100)<1e-9);assert.ok(Math.abs(up.y-154)<1e-9);
+ assert.ok(Math.abs(up.x-100)<1e-9);assert.ok(Math.abs(up.y-172.4)<1e-9);
 });
 test('diver body faces motion, weapon faces aim and projectile originates at weapon',()=>{
  const game=read('public/game.js');
