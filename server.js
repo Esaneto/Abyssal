@@ -15,6 +15,7 @@ const WorldSimulation = require('./world-simulation');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
+const SpecimenSystem = require('./public/specimen-system.js');
 const NetCodec = require('./public/net-codec');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
@@ -263,9 +264,9 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
- function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
+ function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
@@ -388,8 +389,8 @@ function pvpRockAt(x,y,padding=0){
 }
 function pvpSegmentHitsRock(x1,y1,x2,y2,padding=0){const dx=x2-x1,dy=y2-y1,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/8));for(let i=0;i<=steps;i++){const t=i/steps;if(pvpRockAt(x1+dx*t,y1+dy*t,padding))return true;}return false;}
 function pvpDamageAmount(attacker,target,baseDamage,distance=Infinity){
- const outgoing=SkinAbilities.damageMultiplier(attacker?.skinId,'player',distance,Number(attacker?.maxHp)>0?Number(attacker.hp)/Number(attacker.maxHp):1);
- const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId);
+ const outgoing=SkinAbilities.damageMultiplier(attacker?.skinId,'player',distance,Number(attacker?.maxHp)>0?Number(attacker.hp)/Number(attacker.maxHp):1,attacker?.specimenPoints,attacker?.specimenAlive!==false);
+ const skinDefense=SkinAbilities.incomingDamageMultiplier(target?.skinId,target?.specimenPoints,target?.specimenAlive!==false);
  const shellLevel=clamp(Math.floor(Number(target?.shellLevel)||0),0,3);
  const shellDefense=1-shellLevel*.08;
  const predatorLevel=clamp(Math.floor(Number(attacker?.predatorLevel)||0),0,3);
@@ -433,7 +434,7 @@ function grantSharedXp(room,total,contributors={},source='kill',enemyId=null){
  for(const share of splitXp(total,[...room.players.values()],contributors)){
   const member=room.players.get(share.id);
   if(!member)continue;
-  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId)*clamp(Number(member.magnetStrength)||1,1,1.26)*1000)/1000;
+  const amount=Math.round(share.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,member.specimenAlive!==false)*clamp(Number(member.magnetStrength)||1,1,1.26)*1000)/1000;
   if(amount<=0)continue;
   if(member.runStats)creditRunXp(member.runStats,amount);
   io.to(member.id).emit('shared-xp-award',{value:amount,source,enemyId,damage:share.damage});
@@ -449,7 +450,7 @@ function awardPvpKillXp(room,target,attackerId){
  target.lastPvpXpDeathAt=stamp;
  const attacker=room.players.get(String(attackerId));
  if(!attacker||attacker.id===target.id||attacker.alive===false||attacker.runStats?.settled)return;
- const value=Math.round(25*SkinAbilities.orbExperienceMultiplier(attacker.skinId)*clamp(Number(attacker.magnetStrength)||1,1,1.26)*1000)/1000;
+ const value=Math.round(25*SkinAbilities.orbExperienceMultiplier(attacker.skinId,attacker.specimenPoints,attacker.specimenAlive!==false)*clamp(Number(attacker.magnetStrength)||1,1,1.26)*1000)/1000;
  if(attacker.runStats)creditRunXp(attacker.runStats,value);
  io.to(attacker.id).emit('shared-xp-award',{value,source:'pvp-elimination',enemyId:target.id});
 }
@@ -789,7 +790,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
-  const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
+  const range=294*clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(player.skinId,player.specimenPoints,player.specimenAlive!==false)/WORLD_ZOOM;
   if(Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y))>range+20/WORLD_ZOOM)return reject('photon-out-of-range');
   if(!player.photonServerResolving)return reject('photon-ray-server-only');
   requestedDamage=Math.min(requestedDamage,45);
@@ -804,7 +805,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(!player||player.arcChainActive!==true)return reject('arc-chain-not-unlocked');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3));
   const distance=Math.hypot(Number(player.x)-Number(enemy.x),Number(player.y)-Number(enemy.y));
-  const radius=294*rangeStrength*SkinAbilities.targetRangeMultiplier(player.skinId)/WORLD_ZOOM;
+  const radius=294*rangeStrength*SkinAbilities.targetRangeMultiplier(player.skinId,player.specimenPoints,player.specimenAlive!==false)/WORLD_ZOOM;
   if(!Number.isFinite(distance)||distance>radius)return reject('arc-chain-out-of-range');
   const windowUntil=Number(player.arcChainWindowUntil)||0;
   if(now>windowUntil){
@@ -819,7 +820,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   requestedDamage=Math.min(requestedDamage,16);
  }
  const targetDistance=Math.hypot(Number(player?.x)-Number(enemy.x),Number(player?.y)-Number(enemy.y));
- const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1);
+ const skinMultiplier=SkinAbilities.damageMultiplier(player?.skinId,enemy.kind,targetDistance,Number(player?.maxHp)>0?Number(player?.hp)/Number(player.maxHp):1,player?.specimenPoints,player?.specimenAlive!==false);
  const applied=Math.min(250,requestedDamage*skinMultiplier);
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date(now).toISOString();combatDiagnostics.lastDamageReason='accepted';
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
@@ -1335,7 +1336,7 @@ io.on('connection', socket => {
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
-  const p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+  const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,specimenPoints,specimenHp:55,specimenMaxHp:55,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
   // Reconnected players may resume from coordinates saved for a different
   // cave tier or an older collision map. Never enter embedded in a wall.
   if(room.mode==='rift'){
@@ -1650,19 +1651,19 @@ io.on('connection', socket => {
   if(shot.special==='photonRay'){if(now<(Number(shooter.photonShotReadyAt)||0))return;shooter.photonShotReadyAt=now+190;shot.beamLevel=Math.max(1,Math.min(PhotonRay.maxLevel,Math.trunc(Number(payload.beamLevel)||1)));shot.hadalBeamActive=shooter.hadalBeamActive===true;}
   if(shot.special==='photonRay'&&payload.beamTargetId!=null){
    const targetId=String(payload.beamTargetId).slice(0,64),target=room.mode==='pvp'?room.players.get(targetId):room.world?.enemies?.find(e=>String(e.id)===targetId&&Number(e.hp)>0);
-   const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   const targetRange=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
    if(target&&target.alive!==false&&target.id!==socket.id&&Math.hypot(Number(target.x)-shooter.x,Number(target.y)-shooter.y)<=targetRange+20/WORLD_ZOOM)shot.beamTargetId=targetId;
   }
   if(shot.special==='photonRay'&&room.mode!=='pvp'){
    const endX=Number(payload.beamEndX),endY=Number(payload.beamEndY);
-   const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   const range=294*clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3))*SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
    if(Number.isFinite(endX)&&Number.isFinite(endY)&&endX>=0&&endX<=1&&endY>=0&&endY<=1&&Math.hypot((endX-x)*WORLD_WIDTH,(endY-y)*shotWorldHeight)<=range+8/WORLD_ZOOM){shot.beamEndX=endX;shot.beamEndY=endY;}
   }
   if(shot.special==='photonRay'){
    const sx=Number(shooter.x),sy=Number(shooter.y),dx=vx*WORLD_WIDTH,dy=vy*shotWorldHeight,speed=Math.hypot(dx,dy);
    if(!Number.isFinite(sx)||!Number.isFinite(sy)||speed<30||speed>1800)return;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
-   const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId)/WORLD_ZOOM;
+   const beamRange=294*rangeStrength*SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false)/WORLD_ZOOM;
    let ux=dx/speed,uy=dy/speed;
    const manualAim=payload.manualAim===true;
    if(!manualAim&&shot.beamTargetId){
@@ -1755,7 +1756,7 @@ io.on('connection', socket => {
    if(originDistance>70/WORLD_ZOOM)return;
    shot.x=sx/WORLD_WIDTH;shot.y=sy/shotWorldHeight;
    const rangeStrength=clamp(Number(shooter.rangeStrength)||1,1,Math.pow(1.22,3));
-   const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId);
+   const rangeMultiplier=SkinAbilities.targetRangeMultiplier(shooter.skinId,shooter.specimenPoints,shooter.specimenAlive!==false);
    if(shot.special==='nova'){
     if(now<(Number(shooter.novaShotReadyAt)||0))return;shooter.novaShotReadyAt=now+2400;
      shooter.lastNovaVolleyId=volleyId;shooter.novaShardExpiresAt=now+600;shooter.novaShardCount=0;
