@@ -42,6 +42,7 @@
 <link rel="stylesheet" href="offline-ui.css?v=1">
 <link rel="stylesheet" href="rift-treasure.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
+<link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.7.1">
 </head>
 <body>
 <div id="app">
@@ -92,73 +93,47 @@
 
     <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
 
-    <section id="menuScreen" class="screen">
-      <div class="menu-content">
-        <div class="eyebrow"><span class="pulse-dot"></span> SINAL DETECTADO · SETOR 07</div>
-        <h1>Mergulhadores<br><em>Abissais</em></h1>
+    <section id="menuScreen" class="screen ocean-menu-v2" aria-label="Oceano de navegação do Abyssal">
+      <div class="abyss-ocean-background" aria-hidden="true"><div class="abyss-ocean-light"></div><div class="abyss-ocean-particles"></div><div class="abyss-ocean-floor"></div></div>
+      <div class="abyss-menu-heading"><span class="abyss-menu-kicker">EXPEDIÇÃO DISPONÍVEL</span><h1>Escolha seu <em>destino</em></h1><p>Conduza seu mergulhador até um portal e mergulhe.</p></div>
+      <div id="menuOceanStage" class="abyss-ocean-stage" role="group" aria-label="Navegação pelos portais">
+        <div id="menuOceanPortalLayer" class="abyss-ocean-portal-layer">
+          <button id="playBtn" class="abyss-destination" type="button" aria-label="Iniciar mergulho solo"><span class="abyss-destination-icon">◇</span><strong>MERGULHO SOLO</strong><small>EXPEDIÇÃO INDIVIDUAL</small></button>
+          <button id="onlineBtn" class="abyss-destination" type="button" aria-label="Abrir salas online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHO ONLINE</strong><small>EXPEDIÇÕES E PVP</small></button>
+          <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
+          <button id="shopBtn" class="abyss-destination" type="button" aria-label="Abrir catálogo de Espécimes"><span class="abyss-destination-icon">✧</span><strong>ESPÉCIMES</strong><small>CATÁLOGO E LOJA</small></button>
+          <button id="profileBtn" class="abyss-destination" type="button" aria-label="Abrir perfil"><span class="abyss-destination-icon">♙</span><strong>PERFIL</strong><small>ADAPTAÇÃO</small></button>
+          <button id="resonanceBtn" class="abyss-destination" type="button" aria-label="Abrir Ressonância"><span class="abyss-destination-icon">✦</span><strong>RESSONÂNCIA</strong><small>CONFIGURAÇÃO</small></button>
+          <button id="rankingsBtn" class="abyss-destination" type="button" aria-label="Abrir rankings"><span class="abyss-destination-icon">♜</span><strong>RANKING</strong><small>HALL DOS SOBREVIVENTES</small></button>
+          <button id="wheelBtn" class="abyss-destination" type="button" aria-label="Abrir roleta abissal"><span class="abyss-destination-icon">✺</span><strong>ROLETA</strong><small>RECOMPENSAS</small></button>
+        </div>
+        <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
+          <span class="abyss-diver-tank"></span><span class="abyss-diver-body"></span><span class="abyss-diver-helmet"></span><span class="abyss-diver-visor"></span><span class="abyss-diver-left-arm"></span><span class="abyss-diver-right-arm"></span><span class="abyss-diver-left-fin"></span><span class="abyss-diver-right-fin"></span>
+          <canvas id="menuOceanSpecimen" width="140" height="90"></canvas>
+        </div>
+        <div class="abyss-ocean-center-mark" aria-hidden="true"></div>
+        <div id="menuOceanHint" class="abyss-ocean-hint" role="status" aria-live="polite">WASD / SETAS PARA NADAR · F PARA ENTRAR</div>
+        <div id="menuOceanMobilePad" class="abyss-ocean-mobile-pad" aria-label="Controle de movimentação" hidden>
+          <button type="button" data-ocean-move="up" aria-label="Nadar para cima">▲</button>
+          <button type="button" data-ocean-move="left" aria-label="Nadar para esquerda">◀</button>
+          <button type="button" data-ocean-move="down" aria-label="Nadar para baixo">▼</button>
+          <button type="button" data-ocean-move="right" aria-label="Nadar para direita">▶</button>
+        </div>
+        <button id="menuOceanEnterBtn" class="abyss-ocean-enter" type="button" disabled>APROXIME-SE DE UM PORTAL</button>
       </div>
-      <nav class="abyss-orbit-navigation" aria-label="Navegação principal do Abyssal">
-          <div class="menu-secondary-actions">
-            <button id="resonanceBtn" class="secondary-btn resonance-menu-btn menu-action" type="button"><span class="resonance-label"><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z"/><path d="m19 15 .8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15Z"/></svg>RESSONÂNCIA</span></button>
-            <button id="wheelBtn" class="wheel-cta menu-action" aria-label="Abrir roleta abissal">
-          <span class="wheel-cta-icon">✦</span><span class="wheel-cta-copy"><strong>ROLETA ABISSAL</strong></span><span class="wheel-cta-prizes">20 — 1.000 ◈</span><span class="wheel-cta-arrow">↗</span>
-        </button>
-            <button id="profileBtn" class="secondary-btn menu-action"><span class="menu-action-label">PERFIL</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></button>
-            <button id="onlineBtn" class="secondary-btn menu-action online-cta"><span class="online-cta-copy"><strong>MERGULHAR ONLINE</strong></span><svg class="online-cta-icon menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-2 2.5L13 7"/><path d="M11 4.5h3.5a6.5 6.5 0 0 1 0 13H13"/><path d="m11 22 2-2.5-2-2.5"/><path d="M13 19.5H9.5a6.5 6.5 0 0 1 0-13H11"/></svg></button>
-            <button id="rankingsBtn" class="secondary-btn menu-action"><span class="menu-action-label">RANKING</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4"/><path d="M17 6h3v2a4 4 0 0 1-4 4"/></svg></button>
-            <button id="shopBtn" class="secondary-btn menu-action nautical-anchor-btn tentacle-brown-btn" aria-label="Catálogo de Espécimes"><span class="menu-action-label">ESPÉCIMES</span><svg class="menu-nav-icon ui-icon tentacle-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9C7 5.2 9 3 12 3s5 2.2 5 6v5c0 3.3-2.2 4.6-4 3.1"/><path d="M7 13C2.2 13 3 20 7.6 19c1.7-.4 2.6-2.6.9-3.1M17 13c4.8 0 4 7-0.6 6-1.7-.4-2.6-2.6-.9-3.1"/><path d="M10 16c-3 4-1.4 6 1 5m3-5c3 4 1.4 6-1 5"/><circle cx="10" cy="9.6" r=".65" fill="currentColor" stroke="none"/><circle cx="14" cy="9.6" r=".65" fill="currentColor" stroke="none"/></svg><svg class="specimen-tentacle-frame" viewBox="0 0 260 150" preserveAspectRatio="none" aria-hidden="true" focusable="false" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="specimenArmPurple" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#e19aff"/><stop offset=".44" stop-color="#a646f2"/><stop offset="1" stop-color="#58179d"/>
-    </linearGradient>
-  </defs>
-  <g stroke-linecap="round" stroke-linejoin="round">
-    <path d="M22 126C3 104 10 81 26 70S49 37 34 23C19 10 10 24 20 34C26 41 34 38 32 30" stroke="#25083d" stroke-width="12"/>
-    <path d="M22 126C3 104 10 81 26 70S49 37 34 23C19 10 10 24 20 34C26 41 34 38 32 30" stroke="url(#specimenArmPurple)" stroke-width="7.5"/>
-    <path d="M237 126C257 108 252 84 236 75S211 40 226 24C240 10 254 25 243 36C237 42 228 39 231 31" stroke="#25083d" stroke-width="12"/>
-    <path d="M237 126C257 108 252 84 236 75S211 40 226 24C240 10 254 25 243 36C237 42 228 39 231 31" stroke="url(#specimenArmPurple)" stroke-width="7.5"/>
-    <path d="M45 143C63 130 54 118 43 116S31 132 43 133C48 133 49 129 46 126" stroke="#25083d" stroke-width="9"/>
-    <path d="M45 143C63 130 54 118 43 116S31 132 43 133C48 133 49 129 46 126" stroke="url(#specimenArmPurple)" stroke-width="5.5"/>
-    <path d="M213 143C195 130 204 118 216 116S229 132 217 133C211 133 210 129 213 126" stroke="#25083d" stroke-width="9"/>
-    <path d="M213 143C195 130 204 118 216 116S229 132 217 133C211 133 210 129 213 126" stroke="url(#specimenArmPurple)" stroke-width="5.5"/>
-  </g>
-  <g fill="#e3b5ff" opacity=".78">
-    <circle cx="17" cy="103" r="2.3"/><circle cx="19" cy="91" r="2.1"/><circle cx="29" cy="72" r="2.1"/><circle cx="35" cy="56" r="1.7"/>
-    <circle cx="243" cy="104" r="2.3"/><circle cx="240" cy="92" r="2.1"/><circle cx="229" cy="76" r="2.1"/><circle cx="221" cy="60" r="1.8"/>
-    <circle cx="49" cy="126" r="1.6"/><circle cx="210" cy="126" r="1.6"/>
-  </g>
-</svg></button>
-          </div>
-          <button id="playBtn" class="primary-btn menu-action ocean-portal-solo" aria-label="Mergulhar solo">MERGULHO SOLO <span>↗</span></button>
-          <button id="riftPortalBtn" class="secondary-btn menu-action ocean-portal-rift" type="button" aria-label="Abrir Fossas"><span class="menu-action-label">FOSSAS</span><span class="rift-portal-mark" aria-hidden="true">◉</span></button>
-          <div class="abyss-orbit-extras" aria-label="Outras opções do Abyssal">
-            <button id="catalogBtn" class="secondary-btn menu-action"><span class="menu-action-label">ABYSSARIO</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 7h8"/><path d="M8 11h5"/></svg></button>
-            <button id="cardumesBtn" class="secondary-btn menu-action"><span class="menu-action-label">CARDUMES</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.5c-2.5-3-6-3-8.5-.5 2.5 2.5 6 2.5 8.5-.5l3 2v-5l-3 2Z"/><path d="M13 15c-2-2-4.5-2-6.5 0 2 2 4.5 2 6.5 0l2 1.5v-4L13 14"/></svg></button>
-            <button id="matchHistoryBtn" class="secondary-btn menu-action"><span class="menu-action-label">HISTÓRICO DE PARTIDAS</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg></button>
-            <button id="supportBtn" class="secondary-btn menu-action" type="button" aria-label="Falar com o suporte do Abyssal"><span class="menu-action-label">SUPORTE</span><svg class="menu-nav-icon ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></button>
-            <button id="controlsBtn" class="secondary-btn controls-cta desktop-menu-utility" tabindex="-1" aria-hidden="true" hidden type="button">CONTROLES <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.3 5H6.7A4.7 4.7 0 0 0 2 9.7v3.6A4.7 4.7 0 0 0 6.7 18l2.1-2h6.4l2.1 2a4.7 4.7 0 0 0 4.7-4.7V9.7A4.7 4.7 0 0 0 17.3 5Z"/></svg></button>
-          </div>
-        </nav>
-      <p class="intro"><strong>Explore o Abismo.</strong><span>Descubra novas habilidades. Enfrente desafios épicos.</span></p>
-      <div class="account-line menu-account-utility"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn">ENTRAR / CRIAR CONTA</button></div>
-      <div class="language-setting menu-language-utility"><label for="languageSelect">IDIOMA / LANGUAGE</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
-      <button id="downloadBtn" class="secondary-btn download-cta desktop-menu-utility" type="button" aria-label="Abrir opções de download">BAIXAR <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></button>
-      
-      <div class="menu-fauna" aria-hidden="true">
-        <span class="menu-fish fish-a"></span><span class="menu-fish fish-b"></span><span class="menu-fish fish-c"></span><span class="menu-fish fish-d"></span>
-        <canvas class="menu-catalog-creature menu-creature-drifter" width="180" height="112" data-menu-creature="drifter" data-menu-color="#ff769d"></canvas>
-    
-        <canvas class="menu-catalog-creature menu-creature-angler" width="180" height="112" data-menu-creature="angler" data-menu-color="#ffb45e"></canvas>
-    
-        <canvas class="menu-catalog-creature menu-creature-leviathan" width="220" height="140" data-menu-creature="leviathan" data-menu-color="#4ce0d1"></canvas>
-    
-        <canvas class="menu-catalog-creature menu-creature-maw" width="180" height="140" data-menu-creature="maw" data-menu-color="#c16cff"></canvas>
-    
-        <canvas class="menu-catalog-creature menu-creature-kraken" width="220" height="180" data-menu-creature="kraken" data-menu-color="#8b5cf6"></canvas>
-    
-        <span class="menu-rock rock-a"></span><span class="menu-rock rock-b"></span><span class="menu-rock rock-c"></span><span class="menu-seaweed weed-a"></span><span class="menu-seaweed weed-b"></span>
+      <nav class="abyss-ocean-utilities" aria-label="Outros destinos e opções">
+        <button id="catalogBtn" class="abyss-ocean-utility" type="button">ABYSSÁRIO</button>
+        <button id="cardumesBtn" class="abyss-ocean-utility" type="button">CARDUMES</button>
+        <button id="matchHistoryBtn" class="abyss-ocean-utility" type="button">HISTÓRICO</button>
+        <button id="supportBtn" class="abyss-ocean-utility" type="button">SUPORTE</button>
+      </nav>
+      <div class="abyss-ocean-account account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn" type="button">ENTRAR / CRIAR CONTA</button></div>
+      <div class="abyss-ocean-preferences">
+        <div class="language-setting"><label for="languageSelect">IDIOMA</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
+        <button id="downloadBtn" class="abyss-ocean-utility" type="button">BAIXAR ABYSSAL</button>
+        <button id="controlsBtn" class="abyss-ocean-utility" type="button" hidden>CONTROLES</button>
       </div>
-      <div class="menu-footer"><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html" target="_blank" rel="noopener">Termos</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidade</a><a href="/community.html" target="_blank" rel="noopener">Comunidade</a><a href="/store-policy.html" target="_blank" rel="noopener">Loja e reembolsos</a></nav></div>
+      <div class="abyss-ocean-legal menu-footer"><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html" target="_blank" rel="noopener">Termos</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidade</a><a href="/community.html" target="_blank" rel="noopener">Comunidade</a><a href="/store-policy.html" target="_blank" rel="noopener">Loja e reembolsos</a></nav></div>
     </section>
 
     <section id="hud" class="hud" hidden>
@@ -662,6 +637,6 @@
 
 
 
-<script src="abyssal-menu-ocean.js?v=1"></script>
+<script src="abyssal-menu-ocean.js?v=2"></script>
 </body>
 </html>
