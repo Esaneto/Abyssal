@@ -44,7 +44,7 @@
 <link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.8.13">
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
 <link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
-<link rel="stylesheet" href="abyssal-expedition-hub.css?v=2026.11.9.4">
+<link rel="stylesheet" href="abyssal-menu-navigation.css?v=2026.11.9.8">
 <style>#gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }</style>
 </head>
 <body>
@@ -93,8 +93,10 @@
         <div id="menuOceanPortalLayer" class="abyss-ocean-portal-layer">
           <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
-          <button id="playBtn" class="abyss-destination" type="button" aria-label="Iniciar mergulho solo"><span class="abyss-destination-icon">◇</span><strong>MERGULHO SOLO</strong><small>EXPEDIÇÃO INDIVIDUAL</small></button>
-          <button id="onlineBtn" class="abyss-destination" type="button" aria-label="Abrir salas online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHO ONLINE</strong><small>EXPEDIÇÕES E PVP</small></button>
+          <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
+          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button>
+          <button id="playBtn" class="abyss-destination" type="button" hidden aria-label="Iniciar mergulho solo"><strong>MERGULHAR SOLO</strong></button>
+          <button id="onlineBtn" class="abyss-destination" type="button" hidden aria-label="Abrir salas online"><strong>MERGULHAR ONLINE</strong></button>
           <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
@@ -646,7 +648,7 @@
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.8.14"></script>
-<script src="abyssal-expedition-hub.js?v=2026.11.9.2"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.9.8"></script>
 <script src="abyssal-exploration-runtime.js?v=2026.11.9.3"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.7"></script>
 </body>
