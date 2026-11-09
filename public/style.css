@@ -4733,3 +4733,10 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
 #profileScreen .profile-diver-gender-btn{flex:1 1 120px;min-height:38px;border:1px solid rgba(74,190,227,.32);border-radius:6px;background:rgba(5,30,51,.94);color:#b8ddea;font:800 10px Inter,Manrope,sans-serif;letter-spacing:.07em;box-shadow:none;transition:border-color .18s,background .18s,box-shadow .18s}
 #profileScreen .profile-diver-gender-btn[aria-pressed="true"]{color:#f1ffff;border-color:#7aeeff;background:linear-gradient(110deg,#104d7f,#0c365c);box-shadow:0 0 18px rgba(43,180,242,.3),inset 0 0 15px rgba(19,184,246,.16)}
 #profileScreen .profile-diver-gender-btn:disabled{opacity:.5;cursor:default}
+
+/* Manual ammunition trigger, shown only in gameplay on coarse pointers. */
+.abyss-mobile-fire{display:none!important;position:absolute;right:max(17px,env(safe-area-inset-right));bottom:calc(90px + env(safe-area-inset-bottom));width:76px;height:76px;z-index:45;touch-action:none;user-select:none;border:2px solid #ff9a9a;border-radius:50%;background:radial-gradient(circle at 35% 28%,#e74849,#9c1725 72%,#430812);box-shadow:0 0 22px #b00b194d,inset 0 2px 5px #ffcccc7a;place-items:center;padding:13px}
+.abyss-mobile-fire svg{width:42px;height:42px;pointer-events:none;transform:rotate(35deg)}
+.abyss-mobile-fire:active,.abyss-mobile-fire.is-firing{background:radial-gradient(circle,#ff8780,#be2335 70%,#68101c);transform:scale(.94)}
+@media(pointer:coarse){body.game-active .abyss-mobile-fire:not([hidden]){display:grid!important}}
+@media(max-width:700px){.abyss-mobile-fire{right:calc(12px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom))}}
