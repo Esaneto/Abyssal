@@ -1145,7 +1145,15 @@ function tickSkinTrailNodes(room,players,now){
 function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
- if (!activePlayers.length) return;
+ if (!activePlayers.length){
+  // A full-team environmental defeat must not strand a Rift room forever.
+  if(room.mode==='rift'){
+   let restored=false;
+   for(const diver of room.players.values())if(diver.alive===false){reviveAtRiftCheckpoint(room,diver,now);diver.oxygen=diver.oxygenCapacity||ExplorationConfig.oxygenCapacity(0);diver.explorationLastAt=now;restored=true;}
+   if(restored)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));
+  }
+  return;
+ }
  if(room.mode!=='pvp'){
   for(const diver of activePlayers){
    const account=users[diver.userKey];
