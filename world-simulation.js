@@ -10,6 +10,7 @@ const CuratedSkins = require('./public/abyssal-curated-skins.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenRarity = require('./public/specimen-rarity.js');
 const RiftWildlife = require('./public/rift-wildlife.js');
+const OpenSeaEcology=require('./public/abyssal-open-sea-ecology.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const CreatureScale = require('./public/creature-scale.js');
 const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
@@ -228,7 +229,7 @@ function spawnEnemy(world, options = {}) {
   stats.value = Math.max(1, Math.round((Number(stats.value) || 1) * rewardMultiplier));
 
   const id = ++world.nextEnemyId;
-  const specimenSkinId=world.mode==='rift'&&type!=='boss'?riftSpecimenSkin(random):null;
+  const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):OpenSeaEcology.speciesAt(point.x,point.y,random);
   if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
   const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
   const enemy = {
@@ -238,7 +239,7 @@ function spawnEnemy(world, options = {}) {
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
-    specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):null,
+    specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):OpenSeaEcology.temperament(specimenSkinId),wildlifeMode:world.mode==='rift'||type==='boss'?null:OpenSeaEcology.temperament(specimenSkinId),homeX:point.x,homeY:point.y,habitatId:world.mode==='rift'?null:OpenSeaEcology.habitatAt(point.x,point.y).id,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
@@ -668,12 +669,24 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
     if (!riftMode) {
-      movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
-      if (!movement.moved && actualTarget && dt > 0) {
-        movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
-        if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+      if(enemy.wildlifeMode){
+        const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now);
+        actualTarget=ecology.aggressive?ecology.target:null;
+        movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
+        const swimTarget=ecology.target;
+        movementNavigationProxy.x=swimTarget.x;movementNavigationProxy.y=swimTarget.y;
+        movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
+        movementNavigationProxy.alive=true;
+        movement=EnemyAI.moveTowardTarget(enemy,movementNavigationTargets,dt,movementOptions,movementResult);
+        movement.target=actualTarget;
+      }else{
+        movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+        if (!movement.moved && actualTarget && dt > 0) {
+          movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
+          if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
+        }
+        movement.target = actualTarget;
       }
-      movement.target = actualTarget;
     } else {
     // Only sighted prey may trigger a pursuit. Passive fauna patrols until
     // provoked; smart animals flee if the encounter is unfavorable.
