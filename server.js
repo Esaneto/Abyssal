@@ -31,6 +31,7 @@ const ExplorationConfig=require('./public/abyssal-exploration-config.js');
 const ResearchSystem=require('./public/abyssal-research-system.js');
 const ResourceFields=require('./public/abyssal-resource-fields.js');
 const OceanStream=require('./public/abyssal-ocean-stream.js');
+const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
@@ -1679,6 +1680,11 @@ io.on('connection', socket => {
     p.riftCheckpointRoomId='start';
    }
   }
+  if(room.mode==='coop'&&OceanGeography.isSolid(p.x,p.y,p.r+6)){
+   const safe=OceanGeography.nearestWater(p.x,p.y,p.r+6)||{x:spawnX,y:spawnY};
+   p.x=safe.x;p.y=safe.y;p.velocityX=0;p.velocityY=0;
+   p.specimenX=p.x;p.specimenY=p.y-34/WORLD_ZOOM;
+  }
   room.players.set(socket.id,p);ensureWorld(room);
   const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room,{},p)};p.lastFullSnapshotAt=now;socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
@@ -1727,8 +1733,11 @@ io.on('connection', socket => {
   const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
-  if(room.mode==='rift'){
-   const layout=WorldSimulation.mapLayoutFor(room.world),resolved=AbyssalMap.resolveMove(layout,previousX,previousY,x,y,Math.max(10,Number(p.r)||13/WORLD_ZOOM));
+  if(room.mode==='rift'||room.mode==='coop'){
+   const padding=Math.max(10,Number(p.r)||13/WORLD_ZOOM);
+   const resolved=room.mode==='rift'
+    ?AbyssalMap.resolveMove(WorldSimulation.mapLayoutFor(room.world),previousX,previousY,x,y,padding)
+    :OceanGeography.resolveMove(previousX,previousY,x,y,padding);
    acceptedX=resolved.x;acceptedY=resolved.y;
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
