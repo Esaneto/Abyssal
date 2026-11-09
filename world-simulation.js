@@ -275,29 +275,35 @@ function seedRiftEncounters(world, random = Math.random) {
   world.riftEncountersSeeded = true;
   world.nextBossAt = Infinity;
   world.riftActivatedRooms = {};
+  world.riftSpawnQueue = [];
   return [];
 }
 
-const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:6,hub:10,landing:15,elite:5});
+const RIFT_ROOM_POPULATIONS=Object.freeze({shoal:3,trench:4,lantern:4,junction:4,event:3,hub:4,landing:5,elite:3});
 function activateRiftEncounters(world,players,random=Math.random){
   if(!world||world.mode!=='rift')return [];
   const layout=mapLayoutFor(world);if(!layout)return [];
   world.riftActivatedRooms ||= {};
-  const spawned=[];
-  for(const player of players||[]){
-    const room=AbyssalMap.roomAt(layout,Number(player.x),Number(player.y));
-    if(!room||room.id==='start'||world.riftActivatedRooms[room.id])continue;
+  world.riftSpawnQueue ||= [];
+  // Prewarm just the next reachable chamber: do not build the whole level
+  // on entry, and never reveal a new creature directly in the diver's view.
+  for(const room of layout.rooms){
+    if(room.id==='start'||world.riftActivatedRooms[room.id])continue;
+    const near=(players||[]).some(p=>Math.hypot((Number(p.x)||0)-room.x,(Number(p.y)||0)-room.y)<Math.max(1250,room.ry+650));
+    if(!near)continue;
     world.riftActivatedRooms[room.id]=true;
-    if(room.id==='boss'){
-      const boss=spawnEnemy(world,{type:'boss',kindOverride:BOSS_KINDS[Math.max(0,Number(world.mapTier)||0)%BOSS_KINDS.length],roomId:'boss',random});
-      if(boss)spawned.push(boss);
-      continue;
-    }
-    const count=RIFT_ROOM_POPULATIONS[room.id]||0;
-    for(let i=0;i<count;i++){
-      const enemy=spawnEnemy(world,{type:room.id==='elite'?'elite':'common',roomId:room.id,forceElite:room.id==='elite',random});
-      if(enemy)spawned.push(enemy);
-    }
+    const count=room.id==='boss'?1:RIFT_ROOM_POPULATIONS[room.id]||0;
+    if(count)world.riftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
+  }
+  const spawned=[];
+  let budget=2; // maximum two new entities in a single simulation tick
+  while(budget-->0&&world.riftSpawnQueue.length){
+    const job=world.riftSpawnQueue[0];
+    const options={type:job.boss?'boss':job.roomId==='elite'?'elite':'common',roomId:job.roomId,forceElite:job.roomId==='elite',random};
+    if(job.boss)options.kindOverride=BOSS_KINDS[Math.max(0,Number(world.mapTier)||0)%BOSS_KINDS.length];
+    const enemy=spawnEnemy(world,options);
+    if(enemy)spawned.push(enemy);
+    if(--job.count<=0||!enemy)world.riftSpawnQueue.shift();
   }
   return spawned;
 }
