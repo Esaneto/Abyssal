@@ -4244,6 +4244,8 @@ window.AbyssalGameHooks={
   return true;
  },
  getPlayerPosition:()=>onlineMode&&player&&gameState!=='menu'&&gameState!=='over'?{x:player.x,y:player.y,angle:player.angle||0}:null,
+ explorationPosition:()=>player&&['playing','paused','upgrade'].includes(gameState)?{x:player.x,y:player.y,angle:player.angle||0,mode:onlineMode?onlineRoomMode:requestedRunMode,online:onlineMode,worldWidth:W,worldHeight:H,paused:gameState!=='playing'}:null,
+ explorationHit:amount=>{if(!onlineMode&&player&&gameState==='playing')hurtPlayer(Math.max(0,Number(amount)||0));},
  roomMode:()=>onlineRoomMode,
   setPlayerPosition:(x,y)=>{if(!player||!Number.isFinite(Number(x))||!Number.isFinite(Number(y)))return false;player.x=clamp(Number(x),8/GAME_WORLD_ZOOM,W-8/GAME_WORLD_ZOOM);player.y=clamp(Number(y),8/GAME_WORLD_ZOOM,H-8/GAME_WORLD_ZOOM);updateCamera();return true;},
  reconcilePlayer:({dx=0,dy=0,blocked=false}={})=>{
