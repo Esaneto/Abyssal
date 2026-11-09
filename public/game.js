@@ -4312,6 +4312,21 @@ window.AbyssalGameHooks={
  skinId:()=>equippedSkin,
  isFossasActive:()=>isRiftRun()&&gameState!=='menu'&&gameState!=='over',
  isRiftPlaying:()=>isRiftRun()&&gameState==='playing',
+ riftSonar:()=>{
+  if(!isRiftRun()||!activeMapLayout||!player)return [];
+  const rows=[];
+  for(const room of activeMapLayout.rooms||[]){
+   const d=Math.hypot(room.x-player.x,room.y-player.y);
+   if(d<1600)rows.push({type:'room',id:room.id,x:room.x,y:room.y,distance:d,label:room.signal||room.id.toUpperCase()});
+  }
+  for(const hazard of activeRiftHazards||[]){
+   const x=Number(hazard.sourceX??hazard.x),y=Number(hazard.sourceY??hazard.y);
+   const d=Math.hypot(x-player.x,y-player.y);
+   if(Number.isFinite(d)&&d<950)rows.push({type:'anomaly',id:hazard.id,x,y,distance:d,label:'ANOMALIA · '+String(hazard.type||'SINAL').toUpperCase()});
+  }
+  return rows.sort((a,b)=>a.distance-b.distance).slice(0,6);
+ },
+
  skinName:id=>skinData.find(s=>s.id===id)?.name,
  riftRewardProgress:()=>({score,level,survival:elapsed,bossesKilled:bossKillsThisRun}),
  expeditionState:()=> ({active:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier,bossesKilled:bossKillsThisRun,elapsed,score,depthState:soloDepthState()}),
