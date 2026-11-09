@@ -9,6 +9,8 @@ const SeaProgression = require('./public/sea-progression.js');
 const CuratedSkins = require('./public/abyssal-curated-skins.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenRarity = require('./public/specimen-rarity.js');
+const RiftWildlife = require('./public/rift-wildlife.js');
+const SpecimenSystem = require('./public/specimen-system.js');
 const CreatureScale = require('./public/creature-scale.js');
 const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
 function riftSpecimenSkin(random=Math.random){
@@ -227,6 +229,7 @@ function spawnEnemy(world, options = {}) {
 
   const id = ++world.nextEnemyId;
   const specimenSkinId=world.mode==='rift'&&type!=='boss'?riftSpecimenSkin(random):null;
+  if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
   const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
   const enemy = {
     id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp,
@@ -235,7 +238,7 @@ function spawnEnemy(world, options = {}) {
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
-    specimenSkinId,
+    specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):null,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
