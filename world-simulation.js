@@ -75,7 +75,7 @@ function contactGeometry(enemy, target) {
   return geometry;
 }
 
-function forceAdvanceEnemy(enemy, players, dt) {
+function forceAdvanceEnemy(enemy, players, dt, worldWidth=WORLD_WIDTH, worldHeight=WORLD_HEIGHT) {
   if (!enemy || !players.length || dt <= 0) return false;
   let target = null, nearest = Infinity;
   // tickWorld passes the pre-filtered targetable-player array; don't allocate a new
@@ -114,7 +114,7 @@ function forceAdvanceEnemy(enemy, players, dt) {
     if (d > 1e-8) { x += dx / d * step; y += dy / d * step; }
   }
   const margin = 8 / WORLD_ZOOM;
-  x = clamp(x, margin, WORLD_WIDTH - margin); y = clamp(y, margin, WORLD_HEIGHT - margin);
+  x = clamp(x, margin, worldWidth - margin); y = clamp(y, margin, worldHeight - margin);
   if (Math.hypot(x - oldX, y - oldY) < 0.05) {
     // Boundary-safe tangential nudge; never leave an active enemy frozen because its
     // desired orbit point happens to clamp back to its current coordinate.
@@ -122,8 +122,8 @@ function forceAdvanceEnemy(enemy, players, dt) {
     const dir = (id % 2) ? 1 : -1;
     const a = Math.atan2(oldY - Number(target.y), oldX - Number(target.x)) + dir * Math.PI / 2;
     const step = Math.max(0.3, Math.min(speed * dt, 5));
-    x = clamp(oldX + Math.cos(a) * step, margin, WORLD_WIDTH - margin);
-    y = clamp(oldY + Math.sin(a) * step, margin, WORLD_HEIGHT - margin);
+    x = clamp(oldX + Math.cos(a) * step, margin, worldWidth - margin);
+    y = clamp(oldY + Math.sin(a) * step, margin, worldHeight - margin);
   }
   enemy.x = x; enemy.y = y;
   enemy.vx = (x - oldX) / Math.max(dt, 0.001); enemy.vy = (y - oldY) / Math.max(dt, 0.001);
@@ -666,7 +666,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if (creature === enemy) continue;
         const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
         if (pull.dx || pull.dy) {
-          const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):{x:clamp(creature.x+pull.dx,0,WORLD_WIDTH),y:clamp(creature.y+pull.dy,0,WORLD_HEIGHT)};
+          const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):{x:clamp(creature.x+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(creature.y+pull.dy,0,(world.height||WORLD_HEIGHT))};
           const actualDx=moved.x-creature.x,actualDy=moved.y-creature.y;
           creature.x=moved.x;creature.y=moved.y;
           creature.vx=actualDx/Math.max(dt,0.001);creature.vy=actualDy/Math.max(dt,0.001);
@@ -675,7 +675,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       for (const player of validPlayers) {
         const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
         if (!pull.dx && !pull.dy) continue;
-        const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):{x:clamp(Number(player.x)+pull.dx,0,WORLD_WIDTH),y:clamp(Number(player.y)+pull.dy,0,WORLD_HEIGHT)};
+        const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):{x:clamp(Number(player.x)+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(Number(player.y)+pull.dy,0,(world.height||WORLD_HEIGHT))};
         const actualDx=moved.x-Number(player.x),actualDy=moved.y-Number(player.y);
         player.x=moved.x;player.y=moved.y;
         playerSuctionPulls.push({ playerId: player.id, dx: actualDx, dy: actualDy, bossId: enemy.id, strength: pull.strength });
@@ -686,7 +686,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Giro do Nilo: mesmo passo de impulso do modo solo, antes da IA normal.
     // Não muda o ângulo nem interrompe o movimento normal de perseguição.
     if (enemy.kbVx || enemy.kbVy) {
-      const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72)):{x:clamp(Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,0,WORLD_WIDTH),y:clamp(Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,0,WORLD_HEIGHT),blocked:false};
+      const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72)):{x:clamp(Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,0,(world.width||WORLD_WIDTH)),y:clamp(Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,0,(world.height||WORLD_HEIGHT)),blocked:false};
       enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;}
       const decay = Math.exp(-dt * 6.5);
       enemy.kbVx = (Number(enemy.kbVx) || 0) * decay;
@@ -718,7 +718,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }else{
         movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
         if (!movement.moved && actualTarget && dt > 0) {
-          movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt);
+          movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
           if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
         }
         movement.target = actualTarget;
