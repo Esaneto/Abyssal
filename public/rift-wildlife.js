@@ -26,7 +26,6 @@
   const dx=target.x-entity.x,dy=target.y-entity.y,d2=dx*dx+dy*dy;
   if(d2>range*range)return false;
   if(layout&&map?.segmentWalkable&&!map.segmentWalkable(layout,entity.x,entity.y,target.x,target.y,3))return false;
-  if(d2<32*32)return true;
   const angle=Number(entity.angle)||0,delta=Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle));
   if(Math.abs(delta)>halfAngle)return false;
   return true;
