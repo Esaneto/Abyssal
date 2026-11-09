@@ -3,10 +3,11 @@
  */
 (function(root,factory){
  const config=typeof module==='object'&&module.exports?require('./abyssal-exploration-config.js'):root.AbyssalExplorationConfig;
- const api=factory(config);
+ const ecology=typeof module==='object'&&module.exports?require('./abyssal-open-sea-ecology.js'):root.AbyssalOpenSeaEcology;
+ const api=factory(config,ecology);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalResourceFields=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(config){
+})(typeof globalThis!=='undefined'?globalThis:this,function(config,ecology){
  'use strict';
  function hash(text){let x=2166136261;for(const c of String(text)){x^=c.charCodeAt(0);x=Math.imul(x,16777619);}return x>>>0;}
  function rng(seed){let state=hash(seed);return ()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);}
@@ -15,9 +16,11 @@
   const random=rng(seed),pool=POOLS[mode==='rift'?'rift':'classic'],out=[];
   const n=Math.min(150,Math.max(1,Math.floor(count)));
   for(let i=0;i<n;i++){
-   const type=pool[Math.floor(random()*pool.length)];
    const x=140+random()*Math.max(1,width-280),y=140+random()*Math.max(1,height-280);
-   out.push({id:String(i),type,x:Math.round(x),y:Math.round(y),amount:1+Math.floor(random()*2)});
+   const zone=mode==='rift'?null:ecology?.habitatAt?.(x,y);
+   const available=zone?.resources||pool;
+   const type=available[Math.floor(random()*available.length)];
+   out.push({id:String(i),type,habitat:zone?.id||null,x:Math.round(x),y:Math.round(y),amount:1+Math.floor(random()*2)});
   }
   return out;
  }
