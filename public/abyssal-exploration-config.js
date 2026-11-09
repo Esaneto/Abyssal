@@ -1,0 +1,67 @@
+/* Abyssal exploration rules. One source of truth for later game/server integration.
+ * Gameplay progression data is declarative, separate from combat, pricing and UI.
+ * No persisted profile is changed by loading this module.
+ */
+(function(root,factory){
+ const api=factory();
+ if(typeof module==='object'&&module.exports)module.exports=api;
+ if(root)root.AbyssalExplorationConfig=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,Number(v)||0));
+ const VERSION=1;
+ const MODES=Object.freeze({solo:{id:'solo',world:'openSea',party:1},online:{id:'online',world:'openSea',cooperative:true},rift:{id:'rift',world:'rift'},pvp:{id:'pvp',world:'arena',survival:false}});
+ const HABITATS=Object.freeze({
+  reef:{label:'Recifes de coral',minDepth:0,maxDepth:80,creatures:['reefshark','hawksbill','butterflyray'],resources:['coralSample','seaMineral']},
+  kelp:{label:'Florestas de algas',minDepth:5,maxDepth:80,creatures:['leatherback','stingray','reefshark'],resources:['kelpFiber','seaMineral']},
+  rocks:{label:'Regiões rochosas',minDepth:15,maxDepth:220,creatures:['zebramoray','spidercrab','nautilus'],resources:['seaMineral','salvageMetal']},
+  canyon:{label:'Cânions submarinos',minDepth:120,maxDepth:950,creatures:['goblin','frilled','bigfin'],resources:['salvageMetal','deepCrystal']},
+  deep:{label:'Águas profundas',minDepth:200,maxDepth:3500,creatures:['angler','viperfish','blackdragon'],resources:['deepCrystal','bioSample']},
+  abyss:{label:'Regiões abissais',minDepth:3500,maxDepth:11000,creatures:['seapig','yeticrab','whiplash'],resources:['abyssCrystal','bioSample']}
+ });
+ const RESOURCES=Object.freeze({
+  seaMineral:{name:'Minerais submarinos',habitats:['reef','kelp','rocks']},
+  kelpFiber:{name:'Fibra de algas',habitats:['kelp']},
+  coralSample:{name:'Amostra de coral',habitats:['reef']},
+  salvageMetal:{name:'Metal recuperado',habitats:['rocks','canyon'],tool:'salvageTool'},
+  deepCrystal:{name:'Cristal profundo',habitats:['canyon','deep'],tool:'extractor'},
+  abyssCrystal:{name:'Cristal abissal',habitats:['abyss'],tool:'extractor'},
+  bioSample:{name:'Amostra biológica',habitats:['deep','abyss'],tool:'sampler'}
+ });
+ // Legacy IDs are mapped without deleting owned shop data.
+ const RESEARCH=Object.freeze({
+  oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
+  pressureSuit:{id:'pressureSuit',name:'Traje de profundidade',group:'equipment',max:5,requires:[],cost:{seaMineral:4,salvageMetal:1},effect:'depthRating'},
+  salvageTool:{id:'salvageTool',name:'Ferramenta de salvamento',group:'equipment',max:1,requires:[],cost:{seaMineral:2},effect:'salvage'},
+  sampler:{id:'sampler',name:'Coletor biológico',group:'equipment',max:1,requires:[],cost:{seaMineral:2},effect:'sample'},
+  extractor:{id:'extractor',name:'Extrator cristalino',group:'equipment',max:1,requires:['salvageTool'],cost:{salvageMetal:3},effect:'extract'},
+  sonar:{id:'sonar',name:'Sonar de exploração',group:'equipment',max:3,requires:['sampler'],cost:{salvageMetal:2,bioSample:1},effect:'detection'},
+  pulse:{id:'pulse',name:'Pulso de Maré',group:'active',slot:'Q',max:1,requires:['sonar'],cost:{deepCrystal:2,bioSample:2},legacyMeta:'pulse'},
+  dash:{id:'dash',name:'Passo Fantasma',group:'active',slot:'E',max:1,requires:['pressureSuit'],cost:{deepCrystal:2,salvageMetal:3},legacyMeta:'dash'},
+  bulkhead:{id:'bulkhead',name:'Costelas de Basalto',group:'passive',max:3,requires:['pressureSuit'],cost:{seaMineral:4},legacyMeta:'bulkhead'},
+  focuser:{id:'focuser',name:'Lente de Fótons',group:'passive',max:3,requires:['sonar'],cost:{deepCrystal:1,salvageMetal:2},legacyMeta:'focuser'},
+  current:{id:'current',name:'Aletas de Corrente',group:'passive',max:3,requires:['oxygenTank'],cost:{kelpFiber:4,seaMineral:2},legacyMeta:'current'},
+  startShield:{id:'startShield',name:'Casulo de Pressão',group:'passive',max:1,requires:['pressureSuit'],cost:{deepCrystal:2},legacyMeta:'startShield'}
+ });
+ function depthAt(y,worldHeight=3000,maximumMeters=100){
+  return clamp(y,0,Math.max(1,worldHeight))/Math.max(1,worldHeight)*maximumMeters;
+ }
+ function pressureAt(depthMeters){return 1+Math.max(0,Number(depthMeters)||0)/10;}
+ // Gas usage rises with ambient pressure. This is a gameplay budget, not a
+ // decompression simulation or a claim that ordinary wetsuits withstand pressure.
+ function gasConsumption(depthMeters,exertion=1){return pressureAt(depthMeters)*clamp(exertion,.5,2);}
+ function oxygenCapacity(level=0){return 300*(1+clamp(Math.floor(level),0,5)*.22);}
+ function safeDepth(level=0){return 30+clamp(Math.floor(level),0,5)*40;}
+ function canResearch(id,levels={},inventory={}){
+  const item=RESEARCH[id];if(!item)return {ok:false,reason:'unknown-research'};
+  if((Number(levels[id])||0)>=item.max)return {ok:false,reason:'max-level'};
+  if(item.requires.some(prerequisite=>(Number(levels[prerequisite])||0)<1))return {ok:false,reason:'prerequisite'};
+  if(Object.entries(item.cost).some(([resource,cost])=>(Number(inventory[resource])||0)<cost))return {ok:false,reason:'resources'};
+  return {ok:true};
+ }
+ function habitatFor(depthMeters){
+  const depth=Math.max(0,Number(depthMeters)||0);
+  return Object.entries(HABITATS).filter(([,h])=>depth>=h.minDepth&&depth<=h.maxDepth).map(([id])=>id);
+ }
+ return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,canResearch,habitatFor});
+});
