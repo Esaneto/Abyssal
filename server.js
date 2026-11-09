@@ -747,7 +747,7 @@ function getRoomPlayerMotion(room){
  if(!room?.players?.size)return [];
  return [...room.players.values()].map(peer=>[Number(peer.netId)||0,Number(peer.x)||0,Number(peer.y)||0,Number(peer.angle)||0]);
 }
-function broadcastWorld(room, metadata = {}){if(room?.world?.initialized&&room.players.size)io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
+function broadcastWorld(room, metadata = {}){if(!room?.world?.initialized||!room.players.size)return;if(room.mode==='coop'){for(const p of room.players.values())io.to(p.id).emit('game-snapshot',getRoomSnapshot(room,metadata,p));}else io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
 async function persistRoomRow(room){
  if(!pgPool||!roomRegistryReady||!room||room.id===DEFAULT_ROOM_ID)return;
  if(room.players.size===0){deletingRoomIds.add(room.id);pendingRoomDeletion.add(room.id);return deleteRoomRow(room.id);}
@@ -1643,7 +1643,7 @@ io.on('connection', socket => {
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outra instância do servidor e não pode ser acessada por este processo.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   if(room.isPrivate){const candidate=await hashPassword(String(payload.password||''),room.passwordSalt);if(!candidate||!safeEqual(candidate,room.passwordHash))return socket.emit('room-join-result',{ok:false,message:'Senha incorreta para esta sala privada.'});}
   const existingRoom=socketRoom(socket);
-  if(existingRoom&&existingRoom.id===room.id){const existingPlayer=room.players.get(socket.id);const joined={ok:true,room:publicRoomInfo(room),spawn:existingPlayer?{x:existingPlayer.x,y:existingPlayer.y}:null,resumedRun:false,players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room,{},p)};socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});return;}
+  if(existingRoom&&existingRoom.id===room.id){const existingPlayer=room.players.get(socket.id);const joined={ok:true,room:publicRoomInfo(room),spawn:existingPlayer?{x:existingPlayer.x,y:existingPlayer.y}:null,resumedRun:false,players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room,{},existingPlayer)};socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});return;}
   if(!room.players.has(socket.id)&&room.players.size>=room.capacity)return socket.emit('room-join-result',{ok:false,message:'Esta sala está cheia.'});
   if(existingRoom)removeFromRoom(socket,{announce:true,emitResult:false});
   if(room.emptyRoomTimer){clearTimeout(room.emptyRoomTimer);room.emptyRoomTimer=null;}
@@ -1680,7 +1680,7 @@ io.on('connection', socket => {
    }
   }
   room.players.set(socket.id,p);ensureWorld(room);
-  const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room)};p.lastFullSnapshotAt=now;socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});
+  const joined={ok:true,room:publicRoomInfo(room),spawn:{x:p.x,y:p.y},resumedRun:Boolean(resumedRun),players:[...room.players.values()].filter(x=>x.id!==socket.id).map(({userKey,runStats,...x})=>x),snapshot:getRoomSnapshot(room,{},p)};p.lastFullSnapshotAt=now;socket.emit('room-joined',joined);ack({ok:true,deliveredBy:'room-joined'});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'spawn',serverTime:now}));
   socket.to(channelFor(room)).emit('player-joined',((({userKey,runStats,...x})=>x)(p)));
   // The initial room-joined payload already contains the full world snapshot.
@@ -1938,7 +1938,7 @@ io.on('connection', socket => {
   ensureWorld(room);if(!room.world.enemies.length)ensureWorld(room);
   const reason=String(payload?.reason||'manual');
   const resumeResync=reason==='resume-resync';
-  const snapshot=getRoomSnapshot(room,{criticalReason:resumeResync?'resume-resync':reason==='contact-resync'?'contact-resync':reason==='room-join'?'room-join':null,criticalEnemyIds:resumeResync?room.world.enemies.map(e=>String(e.id)):[]});
+  const snapshot=getRoomSnapshot(room,{criticalReason:resumeResync?'resume-resync':reason==='contact-resync'?'contact-resync':reason==='room-join'?'room-join':null,criticalEnemyIds:resumeResync?room.world.enemies.filter(e=>room.mode!=='coop'||OceanStream.within(e,p,roomAoiRadius(p))).map(e=>String(e.id)):[]},p);
   socket.emit('game-snapshot',snapshot);});
  socket.on('revive-player',()=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);
@@ -1960,7 +1960,7 @@ io.on('connection', socket => {
    // The initial join already delivered the world. A later begin-run
    // still supports explicit resync without flooding all room members.
    if(Date.now()-(Number(p.lastFullSnapshotAt)||0)>1200){
-    socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'}));
+    socket.emit('game-snapshot',getRoomSnapshot(room,{criticalReason:'resume-resync'},p));
     p.lastFullSnapshotAt=Date.now();
    }
    refreshWorldTicker();
