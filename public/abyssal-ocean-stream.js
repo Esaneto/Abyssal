@@ -26,13 +26,18 @@
  }
  function generate(seed,cx,cy,ecology){
   const next=random(seed+':'+cx+':'+cy),x0=cx*CHUNK,y0=cy*CHUNK,animals=[],resources=[];
+  // The final row is only 600 units tall. Never populate beyond world bounds.
+  const cellWidth=Math.max(0,Math.min(CHUNK,WIDTH-x0));
+  const cellHeight=Math.max(0,Math.min(CHUNK,HEIGHT-y0));
+  if(cellWidth===0||cellHeight===0)return {key:id(cx,cy),animals,resources};
+  const position=(margin,span)=>Math.min(span,margin)+next()*Math.max(0,span-2*margin);
   for(let i=0;i<INITIAL_FAUNA;i++){
-   const x=x0+140+next()*(CHUNK-280),y=y0+140+next()*(CHUNK-280);
+   const x=x0+position(140,cellWidth),y=y0+position(140,cellHeight);
    const species=ecology?.speciesAt?.(x,y,next)||'seapig';
    animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId:id(cx,cy)+':s'+Math.floor(i/2)});
   }
   for(let i=0;i<RESOURCE_COUNT;i++){
-   const x=x0+70+next()*(CHUNK-140),y=y0+70+next()*(CHUNK-140);
+   const x=x0+position(70,cellWidth),y=y0+position(70,cellHeight);
    const zone=ecology?.habitatAt?.(x,y);
    const types=zone?.resources||['seaMineral'];
    resources.push({id:id(cx,cy)+':r'+i,type:types[Math.floor(next()*types.length)],x:Math.round(x),y:Math.round(y),amount:1+Math.floor(next()*3),habitat:zone?.id||null});
