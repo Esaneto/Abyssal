@@ -2171,6 +2171,7 @@ io.on('connection', socket => {
   const room=socketRoom(socket),player=room?.players.get(socket.id);
   const ack=(ok,reason,extra={})=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now(),...extra});};
   if(!room||!socket.data.joined||!player||player.alive===false||player.tutorialActive||!payload||typeof payload!=='object')return ack(false,'not-in-room');
+  if(room.mode!=='rift'&&room.mode!=='pvp')return ack(false,'companion-is-scout');
   if(payload.type!=='standard-active')return ack(false,'legacy-skin-ability-removed');
   const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),baseSpec=SkinStandard.activeSpec(skin);
   if(!baseSpec||player.skinId!==skin||baseSpec.id!==active)return ack(false,'skin-active-mismatch');
