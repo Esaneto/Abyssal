@@ -906,6 +906,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
+  if(room.mode==='coop'&&hitOrigin&&!OceanGeography.segmentClear(Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+   return reject('ocean-rock-blocked');
   let requestedDamage=damage;
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
@@ -2076,6 +2078,13 @@ io.on('connection', socket => {
         if(!AbyssalMap.isWalkable(layout,sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
           length=Math.max(0,distance-6/WORLD_ZOOM);break;
         }
+      }
+    }
+    if(room.mode==='coop'){
+      for(let distance=0;distance<=length;distance+=6/WORLD_ZOOM){
+       if(OceanGeography.isSolid(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
+        length=Math.max(0,distance-6/WORLD_ZOOM);break;
+       }
       }
     }
     const ex=sx+ux*length,ey=sy+uy*length;
