@@ -19,6 +19,7 @@ function riftSpecimenSkin(random=Math.random){
 }
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const OceanStream=require('./public/abyssal-ocean-stream.js');
+const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
@@ -176,6 +177,11 @@ function spawnEnemy(world, options = {}) {
     type: type === 'boss' ? 'boss' : type,
     initial, random, bossesDefeated: world.bossesDefeated, roomId: options.roomId
   }) : (options.position||EnemyAI.chooseSpawnPoint(random, initial ? world.nextEnemyId % 4 : null, world.width||WORLD_WIDTH, world.height||WORLD_HEIGHT));
+  if(!layout&&OceanGeography.isSolid(point.x,point.y,35)){
+   const water=OceanGeography.nearestWater(point.x,point.y,35);
+   if(!water)return null;
+   point={...point,x:water.x,y:water.y};
+  }
   let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
@@ -709,6 +715,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let actualTarget=null,nearestTargetDistance=Infinity;
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
+    const seaBeforeX=Number(enemy.x),seaBeforeY=Number(enemy.y);
     if (!riftMode) {
       if(enemy.wildlifeMode){
         for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
@@ -785,6 +792,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         if(movement.moved)world.movementRecoveryCount=(world.movementRecoveryCount||0)+1;
       }
     }
+    }
+    if(!riftMode){
+      // Same geometry as the browser and server-authoritative diver movement.
+      const radius=Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
+      if(OceanGeography.isSolid(enemy.x,enemy.y,radius)){
+        const safe=OceanGeography.resolveMove(seaBeforeX,seaBeforeY,enemy.x,enemy.y,radius);
+        enemy.x=safe.x;enemy.y=safe.y;
+        if(OceanGeography.isSolid(enemy.x,enemy.y,radius)){
+          const recovered=OceanGeography.nearestWater(enemy.x,enemy.y,radius);
+          if(recovered){enemy.x=recovered.x;enemy.y=recovered.y;}
+        }
+      }
+      movement.moved=Math.hypot(enemy.x-seaBeforeX,enemy.y-seaBeforeY)>.04;
     }
     if (movement.moved) movedEnemyCount++;
 
