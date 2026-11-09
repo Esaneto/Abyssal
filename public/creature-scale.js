@@ -43,7 +43,7 @@
  function visualRadius(id,base=11){
   const meters=sizeOf(id);
   if(meters===null)return Math.max(8,Math.min(18,Number(base)||11));
-  return Math.max(8,Math.min(19.5,8.5+Math.sqrt(meters)*2.65));
+  return Math.max(14.5,Math.min(38,14.5+Math.sqrt(meters)*6.25));
  }
  function monsterVisualRadius(kind,base=10,skinId=null){
   const length=skinId?sizeOf(skinId):MONSTER_METERS[String(kind)];
@@ -51,8 +51,8 @@
   // Monsters can be bigger than companions; bosses are imposing without
   // concealing the screen. The final boss has its own chamber-scale ceiling.
   const boss=skinId===null&&['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'].includes(String(kind));
-  const cap=kind==='riftSmile'&&!skinId?110:boss?84:skinId?51:59;
-  const radius=(boss?21:11)+Math.sqrt(length)*(boss?13.1:7.1);
+  const cap=kind==='riftSmile'&&!skinId?175:boss?138:skinId?105:83;
+  const radius=(boss?29:19)+Math.sqrt(length)*(boss?20:12.4);
   return Math.max(8,Math.min(cap,radius));
  }
  // Large octopus arms and jelly tentacles are non-solid; a central
