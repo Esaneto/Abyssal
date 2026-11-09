@@ -1071,6 +1071,7 @@ function reviveAtRiftCheckpoint(room,p,now){
  const safe=AbyssalMap.isWalkable(layout,cp.x,cp.y,Number(p.r)||13/WORLD_ZOOM)?cp:fallback;
  p.x=safe.x;p.y=safe.y;p.riftCheckpointRoomId=cp.roomId;
  p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;
+ p.oxygen=p.oxygenCapacity||ExplorationConfig.oxygenCapacity(0);p.explorationLastAt=now;
  p.invulnerableUntil=now+3200;p.regenAccumulator=0;p.velocityX=0;p.velocityY=0;
  p.positionResumeGraceUntil=now+1650;p.lastPositionAt=now;
  p.lastPositionSeq=Number(p.lastPositionSeq)||0;p.movementBudget=DEFAULT_CAPACITY;p.movementBudgetAt=now;
