@@ -16,7 +16,7 @@ test('ocean is a wide side section with a sunlit shelf, canyon and abyssal basin
  assert.ok(geo.ROCKS.length>=10);
  assert.ok(geo.CAVES.length>=5);
  assert.equal(geo.classify(1300,geo.floorAt(1300)-90),'reef');
- assert.equal(geo.classify(4900,geo.floorAt(4900)-90),'kelp');
+ assert.equal(geo.classify(2600,geo.floorAt(2600)-90),'kelp');
 });
 
 test('large navigable ocean, seabed collision and open paths around cliffs',()=>{
