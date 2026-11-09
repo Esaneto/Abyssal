@@ -71,9 +71,9 @@ contas, PostgreSQL, Stripe, moedas, skins ou o PvP. Documento-fonte do usuário:
 
 ## Limitações reais e passos ainda necessários
 
-- A geometria do Mar Aberto ainda é baseada no campo existente de 4800x3000.
-  Há novos habitats e marcos, mas não um oceano infinito com streaming de
-  regiões, cavernas inteiramente exploráveis e ciclo de dia/noite.
+- Histórico da etapa inicial: a geometria era baseada em 4800x3000. Essa limitação foi
+  substituída pelo Mar Aberto 24000x9000 e pela geografia lateral compartilhada;
+  cavernas locais já são nadáveis, mas dia/noite e migrações globais não existem.
 - O **Solo offline** conserva recursos e pesquisas no armazenamento local.
   O **Online** persiste esses dados no servidor/PostgreSQL. Falta unificar o
   inventário das expedições Solo autenticadas com o inventário online de
@@ -164,3 +164,42 @@ contas, PostgreSQL, Stripe, moedas, skins ou o PvP. Documento-fonte do usuário:
 - NOAA kelp ecology: https://oceanservice.noaa.gov/facts/kelp.html
 - WHOI siphonophores: https://www.whoi.edu/ocean-learning-hub/ocean-facts/siphonophore/
 - Network area-of-interest model: https://gdcs.coody.app/networking/scaling/interest-management
+
+
+## Novo design do mapa lateral 2D (2026-11-09, substituição geográfica)
+
+**Código aplicado à main:**
+- `public/abyssal-ocean-geography.js`: fonte comum e determinística para
+  costa rasa, talude continental, planícies abissais, 13 formações geológicas
+  (paredões, arcos e plataformas) e seis circuitos de cavernas com entrada e saída.
+  A função `isSolid` usa relevo contínuo e volumes rochosos com túneis
+  realmente vazados; `resolveMove` permite deslizar ao longo das paredes.
+- `public/abyssal-open-sea-render.js`: novo corte oceânico responsivo, com
+  água escurecendo em profundidade, terreno com estratos, galerias, recifes,
+  algas e três percursos visuais de baleias distantes. Baleias são **ambiente
+  visual**, não NPCs persistentes ou criaturas coletáveis.
+- **Eliminada a composição antiga** de anéis/ellipses de habitat repetidos 5x3,
+  vórtices ornamentais e pedras de borda do Mar Aberto. As Fossas mantêm
+  `ocean-terrain.js` e `abyssal-map.js`, e o PvP mantém rochas próprias.
+- `abyssal-open-sea-ecology.js`: espécies selecionadas conforme o corte
+  geográfico, não conforme províncias elípticas repetidas. Linha de visão
+  dos predadores é bloqueada pela geografia compartilhada.
+- `abyssal-ocean-stream.js`: só gera fauna/recursos em células navegáveis,
+  com tentativas locais limitadas. Setores completamente preenchidos por rocha
+  permanecem sem entidades. Recursos próximos ao leito têm prioridade.
+- `game.js`, `world-simulation.js`, `server.js`: colisão local e
+  servidor autoritativo no cooperativo; fauna recebe desvio local de paredões.
+- `abyssal-navigation-chart.js`: carta passa a representar o perfil do leito,
+  esporões e entradas das cavernas.
+- `tests/ocean-geography.test.js`: testes de conectividade das galerias,
+  espaço livre, colisão e sincronização dos módulos.
+
+**Limites relevantes:**
+- Não há pathfinding global entre cavernas, memória individual persistente de
+  animais além dos setores ativos, simulação trófica contínua ou baleias com IA.
+- Oclusão visual é 2D estilizada, não iluminação volumétrica por GPU.
+- Não foram executadas partidas reais multiplayer, benchmark Android ou a suíte
+  completa `npm test` neste ambiente. Execução/validação antes de lançamento
+  continua obrigatória.
+- O stream evita criar entidades em setores totalmente sólidos sem realocar
+  objetos para outras partes do mapa, preservando os limites da população ativa.
