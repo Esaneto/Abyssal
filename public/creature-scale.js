@@ -55,6 +55,16 @@
   const radius=(boss?29:19)+Math.sqrt(length)*(boss?20:12.4);
   return Math.max(8,Math.min(cap,radius));
  }
+ // Fossas use a legible, near-linear biological scale rather than the
+ // compact sqrt scale of the open sea. Radius affects artwork only, not hits.
+ // Tiny fauna remain at least half a diver's approximate 40px body length.
+ function riftVisualRadius(kind,base=10,skinId=null){
+  const meters=skinId?sizeOf(skinId):MONSTER_METERS[String(kind)];
+  if(!Number.isFinite(meters)||meters<=0)return monsterVisualRadius(kind,base,skinId);
+  const boss=!skinId&&['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'].includes(String(kind));
+  const cap=kind==='riftSmile'&&!skinId?205:boss?190:skinId?165:110;
+  return Math.max(17,Math.min(cap,14+meters*12));
+ }
  // Large octopus arms and jelly tentacles are non-solid; a central
  // collision body fits in caves while the full animal remains visible.
  function creatureCollisionRadius(base=10,skinId=null){
@@ -64,5 +74,5 @@
   if(meters===null)return original;
   return Math.max(5,Math.min(original*1.55,Math.max(original*.8,meters*PIXELS_PER_METER*.36)));
  }
- return Object.freeze({ADULT_METERS,MONSTER_METERS,PIXELS_PER_METER,sizeOf,visualRadius,monsterVisualRadius,creatureCollisionRadius});
+ return Object.freeze({ADULT_METERS,MONSTER_METERS,PIXELS_PER_METER,sizeOf,visualRadius,monsterVisualRadius,riftVisualRadius,creatureCollisionRadius});
 });
