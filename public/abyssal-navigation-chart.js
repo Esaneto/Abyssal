@@ -3,7 +3,7 @@
  */
 (function(){
  'use strict';
- const stream=window.AbyssalOceanStream,ecology=window.AbyssalOpenSeaEcology;
+ const stream=window.AbyssalOceanStream,ecology=window.AbyssalOpenSeaEcology,geo=window.AbyssalOceanGeography;
  if(!stream||!ecology)return;
  const shell=document.getElementById('gameShell');if(!shell)return;
  const trigger=document.createElement('button');trigger.type='button';trigger.id='oceanChartButton';
@@ -37,10 +37,21 @@
    const h=Math.min(stream.CHUNK,stream.HEIGHT-cy*stream.CHUNK)*sy;
    ctx.fillStyle=visited.has(key)?'#164b5a':'#071e2e';ctx.fillRect(x+.7,y+.7,w-1.4,h-1.4);
   }
-  ctx.textAlign='center';ctx.font='9px Inter,Arial,sans-serif';ctx.fillStyle='rgba(153,214,218,.68)';
-  for(let tx=0;tx<5;tx++)for(let ty=0;ty<3;ty++){
-   const zone=ecology.ZONES[(tx+ty*2)%ecology.ZONES.length];
-   ctx.fillText(zone.label.slice(0,14),drawX(tx*4800+2400),drawY(ty*3000+1600));
+  if(geo){
+   // Cross-section in the exploration chart mirrors the real side-view collision map.
+   ctx.fillStyle='rgba(23,52,61,.85)';ctx.strokeStyle='rgba(110,174,173,.55)';ctx.lineWidth=1.2;
+   ctx.beginPath();ctx.moveTo(drawX(0),drawY(stream.HEIGHT));
+   for(let x=0;x<=stream.WIDTH;x+=110){ctx.lineTo(drawX(x),drawY(geo.floorAt(x)));}
+   ctx.lineTo(drawX(stream.WIDTH),drawY(geo.floorAt(stream.WIDTH)));
+   ctx.lineTo(drawX(stream.WIDTH),drawY(stream.HEIGHT));ctx.closePath();ctx.fill();ctx.stroke();
+   ctx.fillStyle='rgba(96,163,168,.48)';
+   for(const r of geo.ROCKS){ctx.beginPath();ctx.ellipse(drawX(r.x),drawY(r.y),Math.max(1,r.rx*sx),Math.max(1,r.ry*sy),0,0,Math.PI*2);ctx.fill();}
+   ctx.fillStyle='#8dd2d5';
+   for(const cave of geo.CAVES){const entry=cave.nodes[0];ctx.beginPath();ctx.arc(drawX(entry.x),drawY(entry.y),2.2,0,Math.PI*2);ctx.fill();}
+  }
+  ctx.textAlign='center';ctx.font='9px Inter,Arial,sans-serif';ctx.fillStyle='rgba(160,218,221,.68)';
+  for(const [name,x,y] of [['RECIFES',1900,1000],['ALGAS',5000,2500],['ÁGUAS LIVRES',9900,2100],['CÂNIONS',16500,5100],['FOSSA',21700,6800]]){
+   ctx.fillText(name,drawX(x),drawY(y));
   }
   ctx.fillStyle='#e9fff3';ctx.strokeStyle='#6ffbe8';ctx.lineWidth=2;
   const px=drawX(p.x),py=drawY(p.y);
