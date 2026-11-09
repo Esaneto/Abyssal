@@ -672,7 +672,17 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
       movement.target = actualTarget;
     } else {
-    let movementTargets=targetablePlayers;
+    // Only sighted prey may trigger a pursuit. Passive fauna patrols until
+    // provoked; smart animals flee if the encounter is unfavorable.
+    const home=mapLayout?.rooms?.find(room=>room.id===enemy.spawnRoomId)||AbyssalMap.roomAt(mapLayout,enemy.x,enemy.y);
+    const ecology=RiftWildlife.decide(enemy,targetablePlayers,{map:AbyssalMap,layout:mapLayout,room:home,now,seconds:world.elapsed,family:SpecimenSystem.familyFor(enemy.specimenSkinId)});
+    enemy.alerted=ecology.alert;
+    if(ecology.mode==='attack')actualTarget=ecology.target;
+    else actualTarget=null;
+    let movementTargets=actualTarget?[actualTarget]:[{
+      x:ecology.target.x,y:ecology.target.y,alive:true,
+      moveSpeed:150/WORLD_ZOOM
+    }];
     if(actualTarget){
       const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
       {
@@ -707,6 +717,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // have a fresh heartbeat and uses a short velocity prediction to compensate for transit
     // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
+    if (riftMode && !actualTarget) continue;
     if (!target || target.alive === false || enemy.attackCd > 0) continue;
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
