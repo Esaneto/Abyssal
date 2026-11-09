@@ -74,8 +74,9 @@ test('server, solo and UI explicitly share AOI streaming contract',()=>{
 test('last partial ocean row never creates out-of-bounds fauna or resources',()=>{
  for(const cx of [0,10,19]){
   const cell=stream.generate('partial-row',cx,7,ecology);
-  assert.equal(cell.animals.length,stream.INITIAL_FAUNA);
-  assert.equal(cell.resources.length,stream.RESOURCE_COUNT);
+  // The bottom row is mostly seabed. Only open pockets and caves can spawn.
+  assert.ok(cell.animals.length>=0&&cell.animals.length<=stream.INITIAL_FAUNA);
+  assert.ok(cell.resources.length>=0&&cell.resources.length<=stream.RESOURCE_COUNT);
   for(const entity of [...cell.animals,...cell.resources]){
    assert.ok(entity.x>=cx*stream.CHUNK&&entity.x<Math.min(stream.WIDTH,(cx+1)*stream.CHUNK));
    assert.ok(entity.y>=7*stream.CHUNK&&entity.y<stream.HEIGHT);
