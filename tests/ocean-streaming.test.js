@@ -82,3 +82,19 @@ test('last partial ocean row never creates out-of-bounds fauna or resources',()=
   }
  }
 });
+
+
+test('invalid sectors never spawn creatures or resource nodes',()=>{
+ for(const [cx,cy] of [[-1,0],[0,-1],[20,0],[0,8],[NaN,0],[1.5,0]]){
+  const cell=stream.generate('invalid-sector',cx,cy,ecology);
+  assert.equal(cell.animals.length,0);
+  assert.equal(cell.resources.length,0);
+ }
+});
+
+test('sector budget and invalid player positions are handled safely',()=>{
+ assert.deepEqual(stream.active([{x:1500,y:1500}],0),[]);
+ assert.deepEqual(stream.active([{x:NaN,y:1500},{x:Infinity,y:1500}],30),[]);
+ const cells=stream.active([{x:1500,y:1500},{x:NaN,y:1500}],30);
+ assert.ok(cells.length>0&&cells.length<=10);
+});
