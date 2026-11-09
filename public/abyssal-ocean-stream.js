@@ -29,7 +29,8 @@
   // The final row is only 600 units tall. Never populate beyond world bounds.
   const cellWidth=Math.max(0,Math.min(CHUNK,WIDTH-x0));
   const cellHeight=Math.max(0,Math.min(CHUNK,HEIGHT-y0));
-  if(cellWidth===0||cellHeight===0)return {key:id(cx,cy),animals,resources};
+  // Reject invalid coordinates instead of synthesizing off-map entities.
+  if(!Number.isInteger(cx)||!Number.isInteger(cy)||cx<0||cy<0||cellWidth===0||cellHeight===0)return {key:id(cx,cy),animals,resources};
   const position=(margin,span)=>Math.min(span,margin)+next()*Math.max(0,span-2*margin);
   for(let i=0;i<INITIAL_FAUNA;i++){
    const x=x0+position(140,cellWidth),y=y0+position(140,cellHeight);
@@ -47,7 +48,8 @@
  function active(players,limit=MAX_NEARBY,radius=1900){
   // Round-robin between widely separated divers so the first player cannot
   // consume the entire AI budget before other party members receive fauna.
-  const positions=(players||[]).filter(p=>p&&p.alive!==false);
+  if(!Number.isFinite(limit)||limit<=0)return [];
+  const positions=(players||[]).filter(p=>p&&p.alive!==false&&Number.isFinite(p.x)&&Number.isFinite(p.y));
   const groups=positions.map(p=>near(p.x,p.y,radius).sort((a,b)=>{
    const da=(a.cx*CHUNK+CHUNK/2-p.x)**2+(a.cy*CHUNK+CHUNK/2-p.y)**2;
    const db=(b.cx*CHUNK+CHUNK/2-p.x)**2+(b.cy*CHUNK+CHUNK/2-p.y)**2;
