@@ -701,14 +701,17 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       x:ecology.target.x,y:ecology.target.y,alive:true,
       moveSpeed:150/WORLD_ZOOM
     }];
-    if(actualTarget){
-      const targetRoom=AbyssalMap.roomAt(mapLayout,actualTarget.x,actualTarget.y);
-      {
-      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,actualTarget.x,actualTarget.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
-      if(!nav.direct){
-        movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=actualTarget.moveSpeed;movementNavigationProxy.skinId=actualTarget.skinId;movementNavigationProxy.alive=actualTarget.alive;
+    // Route EVERY behavior around solid cave geometry. Previously only attacks
+    // navigated obstacles, so patrols and fleeing specimens could stall at walls.
+    const navigationGoal=actualTarget||ecology.target;
+    if(navigationGoal){
+      const nav=AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,navigationGoal.x,navigationGoal.y,{padding:Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)),includePortal:false});
+      if(nav&&!nav.direct&&Number.isFinite(nav.x)&&Number.isFinite(nav.y)){
+        movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;
+        movementNavigationProxy.moveSpeed=Number(navigationGoal.moveSpeed)||150/WORLD_ZOOM;
+        movementNavigationProxy.skinId=navigationGoal.skinId||'default';
+        movementNavigationProxy.alive=true;
         movementTargets=movementNavigationTargets;
-      }
       }
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
