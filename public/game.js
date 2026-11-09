@@ -2910,11 +2910,8 @@ const metaShopItems=[
 ];
 let equippedActiveSkillsCache=null;
 function loadEquippedActiveSkills(){
- if(!equippedActiveSkillsCache){
-  try{const value=JSON.parse(localStorage.getItem('abyssalEquippedActiveSkills')||'[]');equippedActiveSkillsCache=Array.isArray(value)?value.filter(id=>id==='pulse'||id==='dash'):[];}
-  catch(_){equippedActiveSkillsCache=[];}
- }
- return equippedActiveSkillsCache;
+ // Q and E are fixed research slots, automatically equipped when studied.
+ return ['pulse','dash'].filter(id=>Number(metaUpgrades?.[id])>0);
 }
 window.addEventListener('storage',event=>{if(event.key==='abyssalEquippedActiveSkills'){equippedActiveSkillsCache=null;updateAbilityButtons(true);}});
 function toggleEquippedActiveSkill(id){
@@ -4283,6 +4280,12 @@ window.AbyssalGameHooks={
   return true;
  },
  getPlayerPosition:()=>onlineMode&&player&&gameState!=='menu'&&gameState!=='over'?{x:player.x,y:player.y,angle:player.angle||0}:null,
+ applyResearchUnlock:(id,level)=>{
+  if(!window.AbyssalExplorationConfig?.RESEARCH?.[id]?.legacyMeta)return false;
+  metaUpgrades[id]=Math.max(Number(metaUpgrades[id])||0,Number(level)||0);
+  localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));
+  updateAbilityButtons(true);return true;
+ },
  explorationPosition:()=>player&&['playing','paused','upgrade'].includes(gameState)?{x:player.x,y:player.y,angle:player.angle||0,mode:onlineMode?onlineRoomMode:requestedRunMode,online:onlineMode,worldWidth:W,worldHeight:H,paused:gameState!=='playing'}:null,
  explorationHit:amount=>{if(!onlineMode&&player&&gameState==='playing')hurtPlayer(Math.max(0,Number(amount)||0));},
  roomMode:()=>onlineRoomMode,
