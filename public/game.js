@@ -1457,6 +1457,11 @@ function spawnEnemy(initial=false,type='common',options={}){
  else kind=EXPEDITION_RULES?.chooseCommonKindForRoom?.(Math.random,ecologyRoom,activeMapTier,soloDepthEventId)||EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
  if(kind==='whiteShark'){const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;if(whiteSharkCount>=10)kind='lurker';}
  if(!kind)return null;
+ const openSeaSkin=!map&&!isBossType?OPEN_SEA_ECOLOGY?.speciesAt?.(point.x,point.y,Math.random):null;
+ if(openSeaSkin){
+  const nature=OPEN_SEA_ECOLOGY.temperament(openSeaSkin);
+  kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
+ }
  let data=ai?.statsForKind(kind)||({
   boss:{r:40,hp:5640,speed:52,damage:25,color:'#338cff',value:55},
   leviathan:{r:54,hp:9400,speed:44,damage:34,color:'#4ce0d1',value:90},
@@ -1486,7 +1491,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  }
  if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const specimenSkinId=isBossType?null:requestedRunMode==='rift'?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):OPEN_SEA_ECOLOGY?.speciesAt?.(x,y,Math.random)||null;
+ const specimenSkinId=isBossType?null:requestedRunMode==='rift'?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):openSeaSkin;
  if(requestedRunMode==='rift'&&!isBossType)data.hp=RIFT_WILDLIFE?.health?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId))||data.hp;
  const enemy={specimenSkinId,id:++enemyId,x,y,...data,r:(CREATURE_SCALE?.creatureCollisionRadius?.(data.r,specimenSkinId)||data.r)/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,temperament:requestedRunMode==='rift'?RIFT_WILDLIFE?.disposition?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId)):OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId),wildlifeMode:requestedRunMode==='rift'||isBossType?null:OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId),homeX:x,homeY:y,habitatId:requestedRunMode==='rift'?null:OPEN_SEA_ECOLOGY?.habitatAt?.(x,y)?.id,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  if(kind===RIFT_HARDCORE?.FINAL_KIND&&activeMapLayout){const chamber=activeMapLayout.rooms.find(room=>room.id==='boss');if(chamber){enemy.x=chamber.x;enemy.y=chamber.y;enemy.angle=0;}}
