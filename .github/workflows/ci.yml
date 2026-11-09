@@ -27,11 +27,12 @@ jobs:
       - name: Validate game, server and specimen syntax
         run: |
           node --check public/specimen-system.js
+          node --check public/rift-wildlife.js
           node --check public/game.js
           node --check server.js
           node --check scripts/browser-smoke.cjs
       - name: Validate biological data and independent visual themes
-        run: node --test tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs
+        run: node --test tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs tests/rift-wildlife-controls.test.cjs
       - name: Run focused Chromium journal, laboratory and specimen visual smoke
         run: node scripts/browser-smoke.cjs --journal-only
       - name: Upload visual acceptance screenshots
@@ -234,4 +235,4 @@ jobs:
           node --check server.js
           node --check state-persistence-worker.js
           node --check scripts/roxycloud-preflight.cjs
-          node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs
+          node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs tests/rift-wildlife-controls.test.cjs
