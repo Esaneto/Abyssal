@@ -1146,6 +1146,33 @@ function tickRoom(room, now) {
  if (!room || room.players.size === 0) { if (room) clearRoomWorld(room); return; }
  const activePlayers = livingPlayers(room);
  if (!activePlayers.length) return;
+ if(room.mode!=='pvp'){
+  for(const diver of activePlayers){
+   const account=users[diver.userKey];
+   const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
+   const capacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
+   const worldHeight=roomWorldHeight(room);
+   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:40);
+   const maxDepth=ExplorationConfig.safeDepth(research.pressureSuit);
+   const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
+   diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
+   if(!Number.isFinite(diver.oxygen))diver.oxygen=capacity;
+   diver.oxygen=Math.max(0,Math.min(capacity,diver.oxygen-ExplorationConfig.gasConsumption(depth,1)*elapsed));
+   // Warnings precede equipment damage, rather than hiding a hard depth wall.
+   const pressureDamage=depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0;
+   const asphyxiaDamage=diver.oxygen<=0?6:0;
+   if(pressureDamage+asphyxiaDamage>0&&elapsed>0){
+    diver.hp=Math.max(0,Number(diver.hp)-(pressureDamage+asphyxiaDamage)*elapsed);
+    if(diver.hp<=0)diver.alive=false;
+   }
+   if(now-(Number(diver.lastExplorationVitalsAt)||0)>=500||diver.alive===false){
+    diver.lastExplorationVitalsAt=now;
+    io.to(diver.id).emit('exploration-vitals',{oxygen:diver.oxygen,capacity,depth,pressure:ExplorationConfig.pressureAt(depth),safeDepth:maxDepth,mode:room.mode,serverTime:now});
+    if(pressureDamage+asphyxiaDamage>0)io.to(diver.id).emit('player-vitals',playerVitalsPayload(diver,{reason:diver.alive===false?'environment-defeat':'environment',source:'environment',serverTime:now}));
+   }
+  }
+ }
+
  // Authoritative pressure knockback uses the same cubic ease as the client's
  // short local prediction, rather than teleporting peers by the whole distance.
  for(const victim of activePlayers){
@@ -1605,6 +1632,11 @@ io.on('connection', socket => {
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(WORLD_WIDTH*.5+Math.cos(spawnAngle)*spawnRadius,80,WORLD_WIDTH-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(WORLD_HEIGHT*.5+Math.sin(spawnAngle)*spawnRadius,80,WORLD_HEIGHT-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,WORLD_WIDTH-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:WORLD_WIDTH,worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenMaxHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
+   if(room.mode!=='pvp'){
+    const research=ResearchSystem.migrateLegacy(u?.researchLevels||{},u?.metaUpgrades||{}).levels;
+    p.oxygenCapacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
+    p.oxygen=p.oxygenCapacity;p.explorationLastAt=now;p.lastExplorationVitalsAt=0;
+   }
   // Reconnected players may resume from coordinates saved for a different
   // cave tier or an older collision map. Never enter embedded in a wall.
   if(room.mode==='rift'){
