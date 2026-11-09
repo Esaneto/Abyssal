@@ -2868,7 +2868,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      const ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,performance.now(),enemies);
      e.openSeaWantsAttack=ec.aggressive;
      soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
-     soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;
+     const swimRoute=OCEAN_GEOGRAPHY?.steer?.(e.x,e.y,ec.target.x,ec.target.y,Math.max(10,Math.min(52,e.r*.56)),e.id)||ec.target;
+     soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
      soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
      movementTargets=soloMapNavTargets;
     }
