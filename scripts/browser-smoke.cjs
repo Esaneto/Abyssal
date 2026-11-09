@@ -34,7 +34,7 @@ const localGameSmoke = [
 "   if(enemies.some(e=>e.hp>0 && BOSS_KINDS.includes(e.kind)))break;",
 " }",
 " const activeBosses=enemies.filter(e=>e.hp>0 && BOSS_KINDS.includes(e.kind));",
-" if(activeBosses.length!==1) throw Error('Expected one active boss in tier '+tier+', found '+activeBosses.length+'; queue='+JSON.stringify(soloRiftSpawnQueue)+'; activated='+JSON.stringify([...soloRiftActivatedRooms])+'; living='+enemies.length+'; enemyKinds='+JSON.stringify(enemies.map(e=>[e.kind,e.hp,e.spawnRoomId]).slice(-25))+'; room='+ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y)?.id);",
+" if(activeBosses.length!==1) {const direct=spawnEnemy(false,'boss',{roomId:'boss',silentBoss:true});throw Error('Boss missing tier '+tier+'; direct='+JSON.stringify(direct&&[direct.kind,direct.hp,direct.spawnRoomId])+'; BOSS_KINDS='+JSON.stringify(BOSS_KINDS)+'; queue='+JSON.stringify(soloRiftSpawnQueue)+'; enemyKinds='+JSON.stringify(enemies.map(e=>[e.kind,e.hp,e.spawnRoomId]).slice(-25)));}",
 " const boss=activeBosses[0];",
 " if(tier===final && boss.kind!==RIFT_HARDCORE.FINAL_KIND) throw Error('Final guardian mismatch: '+boss.kind);",
 " killEnemy(enemies.indexOf(boss));",
