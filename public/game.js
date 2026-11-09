@@ -1476,7 +1476,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  if(isBossType&&(bossCount>=MAX_BOSSES||enemies.length>=soloEnemyCap()))return null;
  if(!isBossType&&commonCount>=soloCommonCap())return null;
  const ai=window.AbyssalEnemyAI,map=ensureSoloMap(),activeKinds=enemies.map(e=>e.kind);
- let point=options.position||(map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun,roomId:options.roomId}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)}));
+ let point=options.position||(!map&&isBossType&&player?{x:clamp(player.x+Math.cos(Math.random()*Math.PI*2)*950,120,W-120),y:clamp(player.y+Math.sin(Math.random()*Math.PI*2)*950,120,H-120)}:map&&ABYSSAL_MAP?ABYSSAL_MAP.spawnPoint(map,{type:isBossType?'boss':'common',initial,random:Math.random,bossesDefeated:bossKillsThisRun,roomId:options.roomId}):(ai?.chooseSpawnPoint?ai.chooseSpawnPoint(Math.random,null,W,H):{x:rand(100,290),y:rand(90,250)}));
  let ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||null;
  let kind;
  if(BOSS_KINDS.includes(type))kind=type;
@@ -1502,7 +1502,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  })[kind];
  let eliteId=null;
  if(!isBossType&&!initial&&EXPEDITION_RULES){
-  eliteId=map?null:EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
+  eliteId=map||options.streamId?null:EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
   if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
   if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
  }
@@ -1512,7 +1512,7 @@ function spawnEnemy(initial=false,type='common',options={}){
   if(requestedRunMode!=='rift')data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
  }
  if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
- if(eliteId&&!options.roomId&&!isBossType){
+ if(eliteId&&map&&!options.roomId&&!isBossType){
   point=ABYSSAL_MAP.spawnPoint(map,{type:'elite',random:Math.random,bossesDefeated:bossKillsThisRun});
   ecologyRoom=map?.rooms?.find(room=>room.id===point.roomId)||ecologyRoom;
  }
