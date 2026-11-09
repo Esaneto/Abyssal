@@ -50,7 +50,7 @@
    for(const cave of geo.CAVES){const entry=cave.nodes[0];ctx.beginPath();ctx.arc(drawX(entry.x),drawY(entry.y),2.2,0,Math.PI*2);ctx.fill();}
   }
   ctx.textAlign='center';ctx.font='9px Inter,Arial,sans-serif';ctx.fillStyle='rgba(160,218,221,.68)';
-  for(const [name,x,y] of [['RECIFES',1900,1000],['ALGAS',5000,2500],['ÁGUAS LIVRES',9900,2100],['CÂNIONS',16500,5100],['FOSSA',21700,6800]]){
+  for(const [name,x,y] of [['RECIFES',850,1000],['ALGAS',2700,1400],['ÁGUAS LIVRES',9900,2100],['CÂNIONS',16500,5100],['FOSSA',21700,6800]]){
    ctx.fillText(name,drawX(x),drawY(y));
   }
   ctx.fillStyle='#e9fff3';ctx.strokeStyle='#6ffbe8';ctx.lineWidth=2;
