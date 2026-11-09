@@ -1,0 +1,46 @@
+/* Restored swimmer menu: left current chooses a dive; right enters open sea.
+ * Legacy game handlers remain in the DOM but cannot be selected as destinations.
+ */
+#menuScreen.ocean-menu-v2 #playBtn,
+#menuScreen.ocean-menu-v2 #onlineBtn{display:none!important}
+#menuScreen.ocean-menu-v2 #divePortalBtn,
+#menuScreen.ocean-menu-v2 #openSeaPortalBtn{--portal-color:#68e7ff}
+#menuScreen.ocean-menu-v2 #openSeaPortalBtn{--portal-color:#60eed3}
+#menuScreen.ocean-menu-v2 #menuOceanDiver{display:block!important}
+#menuScreen.ocean-menu-v2 #menuOceanSubmarine{display:block!important}
+.abyss-dive-choice-panel[hidden]{display:none!important}
+.abyss-dive-choice-panel{
+ position:fixed;inset:0;z-index:99999;display:grid;place-items:center;
+ padding:18px;background:rgba(0,7,18,.86);backdrop-filter:blur(8px);
+}
+.abyss-dive-choice-dialog{
+ position:relative;width:min(520px,100%);padding:clamp(22px,4vw,36px);
+ border:1px solid rgba(119,211,221,.42);border-radius:16px;
+ background:linear-gradient(150deg,#0c3041,#04101f 76%);
+ box-shadow:0 24px 90px rgba(0,0,0,.55),inset 0 0 48px rgba(61,178,187,.08);
+ color:#e7f9ff;text-align:center;
+}
+.abyss-dive-choice-dialog>small{display:block;color:#89ced6;font:700 10px Inter,sans-serif;letter-spacing:.18em}
+.abyss-dive-choice-dialog h2{margin:10px 0 25px;font:700 clamp(25px,4vw,36px) Cinzel,Georgia,serif;letter-spacing:.09em;color:#f3ffff}
+.abyss-dive-choice-close{
+ position:absolute;right:12px;top:10px;width:36px;height:36px;
+ background:transparent;border:1px solid rgba(145,206,222,.35);border-radius:9px;
+ color:#e5f8ff;font-size:25px;cursor:pointer;
+}
+.abyss-dive-choice-actions{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.abyss-dive-choice-actions button{
+ min-height:112px;display:flex;flex-direction:column;justify-content:center;gap:11px;
+ padding:18px 12px;border:1px solid rgba(111,212,225,.48);border-radius:12px;
+ background:linear-gradient(145deg,rgba(20,83,107,.8),rgba(7,33,51,.92));
+ color:#eefaff;cursor:pointer;transition:background .2s,border-color .2s;
+}
+.abyss-dive-choice-actions button:hover,.abyss-dive-choice-actions button:focus-visible{
+ background:rgba(23,100,117,.96);border-color:#a0f5ec;outline-offset:3px;
+}
+.abyss-dive-choice-actions strong{font:700 clamp(13px,2vw,17px) Cinzel,Georgia,serif}
+.abyss-dive-choice-actions span{font:500 11px Inter,sans-serif;color:#a8c9d5}
+@media(max-width:470px){
+ .abyss-dive-choice-actions{grid-template-columns:1fr}
+ .abyss-dive-choice-actions button{min-height:78px}
+ .abyss-dive-choice-dialog h2{margin-bottom:18px}
+}
