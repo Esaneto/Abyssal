@@ -1819,10 +1819,10 @@ io.on('connection', socket => {
  });
  socket.on('specimen-discovered',(payload={})=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id);
-  if(!room||room.mode!=='rift'||!player||player.alive===false)return;
+  if(!room||room.mode==='pvp'||!player||player.alive===false)return;
   const id=String(payload.id||'').slice(0,64);
   if(!id||!SpecimenRarity.rarityFor(id))return;
-  const layout=WorldSimulation.mapLayoutFor(room.world);
+  const layout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
   const visible=(room.world?.enemies||[]).some(e=>e?.specimenSkinId===id&&Number(e.hp)>0
    &&Math.hypot(Number(e.x)-player.x,Number(e.y)-player.y)<480/WORLD_ZOOM
    &&(!layout||AbyssalMap.segmentWalkable(layout,player.x,player.y,e.x,e.y,3/WORLD_ZOOM)));
@@ -1831,7 +1831,11 @@ io.on('connection', socket => {
   user.discoveredSpecimens=Array.isArray(user.discoveredSpecimens)?user.discoveredSpecimens:[];
   if(user.discoveredSpecimens.includes(id))return;
   user.discoveredSpecimens.push(id);
-  scheduleTitleStatsSave();
+  user.resourceInventory=ResearchSystem.sanitizeInventory(user.resourceInventory||{});
+  user.resourceInventory.bioSample=Math.min(1000000,user.resourceInventory.bioSample+1);
+  // Five verified, unique species yield an additional deep-ocean research sample.
+  if(user.discoveredSpecimens.length%5===0)user.resourceInventory.deepCrystal=Math.min(1000000,user.resourceInventory.deepCrystal+1);
+  saveUsers();socket.emit('account-data',publicUser(user));
   socket.emit('specimen-discovered',{id});
  });
  socket.on('tutorial-state',payload=>{
