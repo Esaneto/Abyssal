@@ -12,7 +12,7 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
-  [0,5150],[1200,5320],[2400,4850],[3400,5450],[4400,6350],
+  [0,2450],[1200,2610],[2400,2330],[3400,3900],[4400,6350],
   [5600,6870],[6800,6500],[7900,7400],[8800,8150],[9800,8250],
   [10800,8750],[11900,8070],[13000,7500],[14100,8300],
   [15100,8640],[16200,8060],[17400,8470],[18600,7220],
@@ -25,7 +25,7 @@
   const a=KNOTS[lo],b=KNOTS[Math.min(lo+1,KNOTS.length-1)];
   const q=clamp((x-a[0])/Math.max(1,b[0]-a[0]),0,1);
   const smooth=q*q*(3-2*q);
-  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,4200,8850);
+  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,1650,8850);
  }
  // Rock spires and natural suspended shelves. They never form a full-width wall.
  // Coordinates use floor-relative elevation, preserving large swim passages.
@@ -129,8 +129,9 @@
   const floor=floorAt(x),clearance=floor-y;
   if(y>7300)return 'abyss';
   if(y>5100)return clearance<750?'canyon':'deep';
+  if(x<3400&&clearance<650)return 'reef';
+  if(x>=3400&&x<6600&&clearance<650)return 'kelp';
   if(clearance<480)return 'rocks';
-  if(y<2200&&x<7000)return x<3400?'reef':'kelp';
   if(y<3400)return 'open';
   return 'twilight';
  }
