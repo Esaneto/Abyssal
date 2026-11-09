@@ -13,7 +13,7 @@
   const scenery=document.getElementById('menuOceanScenery');
   if(!menu||!stage||!layer||!solo||!online||!rift||!scenery||menu.dataset.expeditionHubReady)return;
   menu.dataset.expeditionHubReady='true';
-  menu.classList.add('expedition-hub');
+  menu.classList.add('submarine-menu','expedition-hub');
   const heading=menu.querySelector('.abyss-menu-heading p');
   if(heading)heading.textContent='Explore o Mar Aberto. Prepare sua próxima expedição no submarino.';
   const panel=document.createElement('section');
