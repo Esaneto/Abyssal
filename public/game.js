@@ -1619,7 +1619,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  if(requestedRunMode==='rift'&&!isBossType)data.hp=RIFT_WILDLIFE?.health?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId))||data.hp;
  const enemy={specimenSkinId,id:++enemyId,x,y,...data,r:(CREATURE_SCALE?.creatureCollisionRadius?.(data.r,specimenSkinId)||data.r)/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,temperament:requestedRunMode==='rift'?RIFT_WILDLIFE?.disposition?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId)):null,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  if(kind===RIFT_HARDCORE?.FINAL_KIND&&activeMapLayout){const chamber=activeMapLayout.rooms.find(room=>room.id==='boss');if(chamber){enemy.x=chamber.x;enemy.y=chamber.y;enemy.angle=0;}}
-  enemies.push(enemy);discoverCodexMonsters([kind]);
+  enemies.push(enemy);if(requestedRunMode!=='rift')discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
  if(BOSS_KINDS.includes(kind)){lastBossKind=kind;if(!options.silentBoss)showBossAlert(kind,enemy.id,bossIndex);burst(x,y,data.color,kind==='kraken'?28:36,230);}
  return enemy;
@@ -1641,12 +1641,16 @@ function activateSoloRiftRoomEncounter(){
   const count=room.id==='boss'?1:SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
   if(count)soloRiftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
  }
+ // An entered room takes precedence over distant preloading. This also
+ // guarantees the chamber boss exists when the player reaches its center.
+ const currentRoom=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);
+ if(currentRoom)soloRiftSpawnQueue.sort((a,b)=>Number(b.roomId===currentRoom.id)-Number(a.roomId===currentRoom.id));
  // Spread creation across animation frames instead of creating a whole
  // chamber's sprites/AI on its first visible frame.
  let budget=2;
  while(budget-->0&&soloRiftSpawnQueue.length){
   const job=soloRiftSpawnQueue[0];
-  const enemy=job.boss?spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:false}):
+  const enemy=job.boss?spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:currentRoom?.id!=='boss'}):
     spawnEnemy(false,'common',{roomId:job.roomId,forceElite:job.roomId==='elite'});
   if(--job.count<=0||!enemy)soloRiftSpawnQueue.shift();
  }
