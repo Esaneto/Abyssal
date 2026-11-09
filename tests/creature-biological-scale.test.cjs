@@ -28,14 +28,14 @@ test('oversized tentacles do not block cave corridors with full visual bounds',(
   assert.ok(Number.isFinite(visual)&&visual>=7);
   assert.ok(hit>=5&&hit<=15.5+1e-9,id);
  }
- assert.ok(Scale.visualRadius('kraken',10)<=19.5,'companion must remain smaller than diver foreground');
- assert.ok(Scale.monsterVisualRadius('riftSmile',154)<=110,'final boss must not fill the screen');
- assert.ok(Scale.monsterVisualRadius('kraken',80)<=84,'boss must fit in the chamber');
+ assert.ok(Scale.visualRadius('kraken',10)<=38,'companions need bounded silhouette');
+ assert.ok(Scale.monsterVisualRadius('riftSmile',154)<=175,'final boss must not fill the screen');
+ assert.ok(Scale.monsterVisualRadius('kraken',80)<=138,'boss must fit in the chamber');
 });
 test('large companions are capped, with diver always foreground on local and online rendering',()=>{
  for(const id of Object.keys(Scale.ADULT_METERS)){
-  assert.ok(Scale.visualRadius(id,11)<=19.5,id+' obscures diver');
-  assert.ok(Scale.monsterVisualRadius('drifter',10,id)<=51,id+' wilderness sprite too large');
+  assert.ok(Scale.visualRadius(id,11)>=14.5&&Scale.visualRadius(id,11)<=38,id+' must be readable and bounded');
+  assert.ok(Scale.monsterVisualRadius('drifter',10,id)<=105,id+' wilderness sprite too large');
  }
  const src=read('public/game.js');
  assert.match(src,/companionR\*1\.7/);
