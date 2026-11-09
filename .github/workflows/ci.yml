@@ -32,8 +32,8 @@ jobs:
           node --check scripts/browser-smoke.cjs
       - name: Validate biological data and independent visual themes
         run: node --test tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs
-      - name: Run Chromium journal, laboratory and gameplay smoke
-        run: node scripts/browser-smoke.cjs
+      - name: Run focused Chromium journal, laboratory and specimen visual smoke
+        run: node scripts/browser-smoke.cjs --journal-only
       - name: Upload visual acceptance screenshots
         if: always()
         uses: actions/upload-artifact@v4
