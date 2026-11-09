@@ -30,6 +30,7 @@ const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const ExplorationConfig=require('./public/abyssal-exploration-config.js');
 const ResearchSystem=require('./public/abyssal-research-system.js');
 const ResourceFields=require('./public/abyssal-resource-fields.js');
+const OceanStream=require('./public/abyssal-ocean-stream.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
@@ -2486,23 +2487,21 @@ io.on('connection', socket => {
  });
  // Deposits are deterministic and shared. Coordinates and pickup radius are
  // validated from the server player state, not from client supplied positions.
- const resourceNodeCache=new WeakMap();
- function nodesForWorld(room){
+ function nodesForWorld(room,x,y,radius=350){
   const world=room?.world;if(!world)return [];
-  let nodes=resourceNodeCache.get(world);
-  if(!nodes){
-   const mode=room.mode==='rift'?'rift':'classic';
-   const layout=mode==='rift'?WorldSimulation.mapLayoutFor(world):null;
-   nodes=ResourceFields.create(world.worldId||room.id,mode,Number(layout?.width)||4800,Number(layout?.height)||3000,90);
-   if(layout)nodes=nodes.filter(node=>AbyssalMap.isWalkable(layout,node.x,node.y,18));
-   resourceNodeCache.set(world,nodes);
+  if(room.mode!=='rift')return ResourceFields.streamNear(world.worldId||room.id,x,y,radius,world.collectedResources||[]);
+  // Fossas keep their existing hand-authored traversable cave resource layout.
+  if(!world.riftResourceNodes){
+   const layout=WorldSimulation.mapLayoutFor(world);
+   world.riftResourceNodes=ResourceFields.create(world.worldId||room.id,'rift',Number(layout?.width)||4800,Number(layout?.height)||3000,70)
+    .filter(node=>AbyssalMap.isWalkable(layout,node.x,node.y,18));
   }
-  return nodes;
+  return ResourceFields.nearby(world.riftResourceNodes,x,y,radius,world.collectedResources||[]);
  }
  socket.on('exploration-scan',(payload={},ack)=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
   const result=!u||!p||room.mode==='pvp'?{ok:false,reason:'unavailable'}:
-   {ok:true,nodes:ResourceFields.nearby(nodesForWorld(room),p.x,p.y,320,room.world.collectedResources||[]).slice(0,12),
+   {ok:true,nodes:nodesForWorld(room,p.x,p.y,560).slice(0,16),
     inventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}),
     levels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels};
   if(typeof ack==='function')ack(result);
@@ -2513,7 +2512,7 @@ io.on('connection', socket => {
   if(!u||!p||room.mode==='pvp'||p.alive===false)return respond({ok:false,reason:'unavailable'});
   const now=Date.now();if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
   const id=String(payload.id||'');
-  const node=nodesForWorld(room).find(row=>row.id===id);
+  const node=nodesForWorld(room,p.x,p.y,180).find(row=>row.id===id);
   if(!node)return respond({ok:false,reason:'unknown-node'});
   room.world.collectedResources ||= [];
   if(room.world.collectedResources.includes(id))return respond({ok:false,reason:'already-collected'});
