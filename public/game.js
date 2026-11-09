@@ -115,7 +115,7 @@ function saveSpecimenProficiencyLocal(){try{localStorage.setItem('abyssalSpecime
 let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let soloDepthEventId=null,soloDepthEventEndsAt=0,pendingSoloDepthEventId=null;
 let activeMapLayout=null,activeMapSeed=0,activeMapTier=0,onlineBossesDefeated=0;
-let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set();
+let soloSideEncounterTier=-1,soloEliteRewardTier=-1,tierDescentPending=false,soloRiftActivatedRooms=new Set(),soloRiftSpawnQueue=[];
 let masterSoundVolume=Number(localStorage.getItem('abyssalSoundVolume')??0.8);
 let musicVolume=Number(localStorage.getItem('abyssalMusicVolume')??0.45);
 const SKIN_TRAIL_CADENCE_SECONDS=.5;
@@ -1624,18 +1624,29 @@ function spawnEnemy(initial=false,type='common',options={}){
 
 function seedSoloRiftEncounters(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout)return;
- soloRiftActivatedRooms=new Set();
+ soloRiftActivatedRooms=new Set();soloRiftSpawnQueue=[];
  spawnTimer=Infinity;nextBossAt=Infinity;
 }
 
-const SOLO_RIFT_ROOM_POPULATIONS=Object.freeze({shoal:7,trench:8,lantern:9,junction:9,event:6,hub:10,landing:15,elite:5});
+const SOLO_RIFT_ROOM_POPULATIONS=Object.freeze({shoal:3,trench:4,lantern:4,junction:4,event:3,hub:4,landing:5,elite:3});
 function activateSoloRiftRoomEncounter(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout||!player)return;
- const room=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);if(!room||room.id==='start'||soloRiftActivatedRooms.has(room.id))return;
- soloRiftActivatedRooms.add(room.id);
- if(room.id==='boss'){spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:false});return;}
- const count=SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
- for(let i=0;i<count;i++)spawnEnemy(false,'common',{roomId:room.id,forceElite:room.id==='elite'});
+ for(const room of activeMapLayout.rooms){
+  if(room.id==='start'||soloRiftActivatedRooms.has(room.id))continue;
+  if(Math.hypot(player.x-room.x,player.y-room.y)>=Math.max(1250,room.ry+650))continue;
+  soloRiftActivatedRooms.add(room.id);
+  const count=room.id==='boss'?1:SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
+  if(count)soloRiftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
+ }
+ // Spread creation across animation frames instead of creating a whole
+ // chamber's sprites/AI on its first visible frame.
+ let budget=2;
+ while(budget-->0&&soloRiftSpawnQueue.length){
+  const job=soloRiftSpawnQueue[0];
+  const enemy=job.boss?spawnEnemy(false,BOSS_KINDS[activeMapTier%BOSS_KINDS.length],{roomId:'boss',silentBoss:false}):
+    spawnEnemy(false,'common',{roomId:job.roomId,forceElite:job.roomId==='elite'});
+  if(--job.count<=0||!enemy)soloRiftSpawnQueue.shift();
+ }
 }
 
 function burst(x,y,color,n=10,force=100){
