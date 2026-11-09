@@ -20,6 +20,7 @@ function escapeHtml(value){return String(value??'').replace(/[&<>\"']/g,characte
 const GAME_WORLD_ZOOM=.78;
 const CREATURE_SCALE=window.AbyssalCreatureScale;
 const RIFT_WILDLIFE=window.AbyssalRiftWildlife;
+const OPEN_SEA_ECOLOGY=window.AbyssalOpenSeaEcology;
 const PHOTON_RAY_VISUAL=window.AbyssalPhotonRay;
 const EXPEDITION_RULES=window.AbyssalExpeditionRules;
 const ABYSSAL_MAP=window.AbyssalMap;
@@ -1485,9 +1486,9 @@ function spawnEnemy(initial=false,type='common',options={}){
  }
  if(!isBossType){const reward=EXPEDITION_RULES?.roomRewardMultiplier?.(ecologyRoom,activeMapTier)||1;data={...data,value:Math.max(1,Math.round((Number(data.value)||1)*reward))};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const specimenSkinId=requestedRunMode==='rift'&&!isBossType?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):null;
+ const specimenSkinId=isBossType?null:requestedRunMode==='rift'?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):OPEN_SEA_ECOLOGY?.speciesAt?.(x,y,Math.random)||null;
  if(requestedRunMode==='rift'&&!isBossType)data.hp=RIFT_WILDLIFE?.health?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId))||data.hp;
- const enemy={specimenSkinId,id:++enemyId,x,y,...data,r:(CREATURE_SCALE?.creatureCollisionRadius?.(data.r,specimenSkinId)||data.r)/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,temperament:requestedRunMode==='rift'?RIFT_WILDLIFE?.disposition?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId)):null,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
+ const enemy={specimenSkinId,id:++enemyId,x,y,...data,r:(CREATURE_SCALE?.creatureCollisionRadius?.(data.r,specimenSkinId)||data.r)/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,temperament:requestedRunMode==='rift'?RIFT_WILDLIFE?.disposition?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId)):OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId),wildlifeMode:requestedRunMode==='rift'||isBossType?null:OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId),homeX:x,homeY:y,habitatId:requestedRunMode==='rift'?null:OPEN_SEA_ECOLOGY?.habitatAt?.(x,y)?.id,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  if(kind===RIFT_HARDCORE?.FINAL_KIND&&activeMapLayout){const chamber=activeMapLayout.rooms.find(room=>room.id==='boss');if(chamber){enemy.x=chamber.x;enemy.y=chamber.y;enemy.angle=0;}}
   enemies.push(enemy);if(requestedRunMode!=='rift')discoverCodexMonsters([kind]);
  if(eliteId){const elite=EXPEDITION_RULES?.eliteConfig?.(eliteId);if(elite)burst(x,y,elite.accent,8,80);}
@@ -1844,7 +1845,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=specimenPassiveMultiplier('damage')*(BOSS_KINDS.includes(enemy.kind)?specimenPassiveMultiplier('bossDamage'):1),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
- const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;enemy.hit=.14;if(activeMapLayout)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
+ const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;enemy.hit=.14;if(activeMapLayout||enemy.wildlifeMode)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
  triggerHitSynergies(enemy,appliedDamage,skillId,options);
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
@@ -2817,7 +2818,15 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   else if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
-   if(activeMapLayout&&RIFT_WILDLIFE){
+   if(!activeMapLayout&&e.wildlifeMode&&OPEN_SEA_ECOLOGY){
+     const ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,performance.now());
+     e.openSeaWantsAttack=ec.aggressive;
+     soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
+     soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;
+     soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
+     movementTargets=soloMapNavTargets;
+    }
+    if(activeMapLayout&&RIFT_WILDLIFE){
     const home=activeMapLayout.rooms.find(room=>room.id===e.spawnRoomId)||ABYSSAL_MAP.roomAt(activeMapLayout,e.x,e.y);
     const ec=RIFT_WILDLIFE.decide(e,[player],{map:ABYSSAL_MAP,layout:activeMapLayout,room:home,now:performance.now(),seconds:elapsed,family:SPECIMEN_SYSTEM?.familyFor?.(e.specimenSkinId)});
     e.riftWantsAttack=ec.mode==='attack';
@@ -2847,7 +2856,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd=(e.attackCd||0)-dt;if((!activeMapLayout||e.riftWantsAttack)&&target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  e.attackCd=(e.attackCd||0)-dt;if((activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Contact applies to companion independently of the diver's hurtbox.
  if(!onlineMode)updateSoloSpecimenContact();
