@@ -19,13 +19,22 @@
  const PREDATORS=new Set(['reefshark','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
  const SMART=new Set(['bigfin','whiplash','nautilus','spidercrab']);
  function habitatAt(x,y){
+  // Repeat ecology across a 5x3 ocean as neighboring biogeographical provinces.
+  // Depth band affects species selection: sunlit shelf, twilight, deep water.
+  const tileX=Math.floor(Math.max(0,x)/4800),tileY=Math.floor(Math.max(0,y)/3000);
+  const localX=((x%4800)+4800)%4800,localY=((y%3000)+3000)%3000;
   let best=ZONES[0],d2=Infinity;
-  for(const zone of ZONES){const d=((x-zone.x)/zone.rx)**2+((y-zone.y)/zone.ry)**2;if(d<d2){best=zone;d2=d;}}
-  return best;
+  for(const zone of ZONES){const d=((localX-zone.x)/zone.rx)**2+((localY-zone.y)/zone.ry)**2;if(d<d2){best=zone;d2=d;}}
+  const depthBand=tileY===0?'shelf':tileY===1?'twilight':'deep';
+  const province=tileX+':'+tileY;
+  return {...best,id:best.id,province,depthBand,x:best.x+tileX*4800,y:best.y+tileY*3000};
  }
  function speciesAt(x,y,random=Math.random){
   const zone=habitatAt(x,y);
-  return zone.fauna[Math.min(zone.fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*zone.fauna.length))];
+  const fauna=zone.depthBand==='deep'?['seapig','whiplash','bigfin','angler','viperfish','blackdragon','yeticrab']:
+   zone.depthBand==='twilight'?['nautilus','goblin','frilled','bigfin','viperfish','spidercrab']:
+   zone.fauna;
+  return fauna[Math.min(fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*fauna.length))];
  }
  function temperament(id){
   return PREDATORS.has(id)?'aggressive':SMART.has(id)?'smart':'passive';
