@@ -40,9 +40,27 @@
   return {key:id(cx,cy),animals,resources};
  }
  function active(players,limit=MAX_NEARBY,radius=1900){
-  const set=new Map();
-  for(const p of players||[])if(p&&p.alive!==false)for(const chunk of near(p.x,p.y,radius))set.set(chunk.key,chunk);
-  return [...set.values()].slice(0,Math.ceil(limit/INITIAL_FAUNA));
+  // Round-robin between widely separated divers so the first player cannot
+  // consume the entire AI budget before other party members receive fauna.
+  const positions=(players||[]).filter(p=>p&&p.alive!==false);
+  const groups=positions.map(p=>near(p.x,p.y,radius).sort((a,b)=>{
+   const da=(a.cx*CHUNK+CHUNK/2-p.x)**2+(a.cy*CHUNK+CHUNK/2-p.y)**2;
+   const db=(b.cx*CHUNK+CHUNK/2-p.x)**2+(b.cy*CHUNK+CHUNK/2-p.y)**2;
+   return da-db;
+  }));
+  const chunks=new Map(),cap=Math.max(1,Math.ceil(limit/INITIAL_FAUNA));
+  let offset=0,progress=true;
+  while(progress&&chunks.size<cap){
+   progress=false;
+   for(const group of groups){
+    if(offset<group.length){
+     const cell=group[offset];chunks.set(cell.key,cell);progress=true;
+     if(chunks.size>=cap)break;
+    }
+   }
+   offset++;
+  }
+  return [...chunks.values()];
  }
  function within(a,b,r=2300){return !!a&&!!b&&Math.hypot(a.x-b.x,a.y-b.y)<=r;}
  return Object.freeze({WIDTH,HEIGHT,CHUNK,AREA_RATIO,MAX_NEARBY,INITIAL_FAUNA,RESOURCE_COUNT,chunkAt,id,near,generate,active,within,random});
