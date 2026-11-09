@@ -3646,6 +3646,8 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
  c.restore();
 }
 function drawArenaTerrain(t){
+ // Scenery is world anchored and viewport culled, never a second background animation.
+ window.AbyssalOpenSeaRender?.draw?.(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,lowPowerRendering);
  // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
  const vortices=getArenaVortices();
