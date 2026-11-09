@@ -1476,7 +1476,7 @@ function activateSoloRiftRoomEncounter(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout||!player)return;
  for(const room of activeMapLayout.rooms){
   if(room.id==='start'||soloRiftActivatedRooms.has(room.id))continue;
-  if(Math.hypot(player.x-room.x,player.y-room.y)>=Math.max(1250,room.ry+650))continue;
+  if(Math.hypot(player.x-room.x,player.y-room.y)>=Math.max(1700,room.ry+850))continue;
   soloRiftActivatedRooms.add(room.id);
   const count=room.id==='boss'?1:SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
   if(count)soloRiftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
