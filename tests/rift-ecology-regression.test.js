@@ -49,3 +49,14 @@ test('Rift map provides obstacle-aware navigation for patrol and flight',()=>{
 test('Rift rarity retains requested 40/30/15/10/5 split',()=>{
  assert.deepEqual(rarity.WEIGHTS,{common:40,uncommon:30,rare:15,epic:10,legendary:5});
 });
+
+test('Main menu does not mount legacy audio modules or volume controls',()=>{
+ const fs=require('node:fs');
+ const path=require('node:path');
+ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+ const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ assert.doesNotMatch(html,/src="(?:world-audio|skill-audio)\\.js/);
+ assert.doesNotMatch(html,/id="soundBtn"/);
+ assert.match(game,/if\\(gameState==='menu'\\)return;/);
+ assert.doesNotMatch(game,/new \\(window\\.AudioContext/);
+});
