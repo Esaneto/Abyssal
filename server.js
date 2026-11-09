@@ -2107,6 +2107,10 @@ io.on('connection', socket => {
      for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
       if(!AbyssalMap.isWalkable(layout,sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
      }
+    }else if(room.mode==='coop'){
+     for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
+      if(OceanGeography.isSolid(sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
+     }
     }
     secondarySegments.push({x2:sx+dx*sideLength,y2:sy+dy*sideLength});
    }
