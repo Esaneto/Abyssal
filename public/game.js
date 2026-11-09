@@ -4281,9 +4281,12 @@ window.AbyssalGameHooks={
  },
  getPlayerPosition:()=>onlineMode&&player&&gameState!=='menu'&&gameState!=='over'?{x:player.x,y:player.y,angle:player.angle||0}:null,
  applyResearchUnlock:(id,level)=>{
-  if(!window.AbyssalExplorationConfig?.RESEARCH?.[id]?.legacyMeta)return false;
-  metaUpgrades[id]=Math.max(Number(metaUpgrades[id])||0,Number(level)||0);
-  localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));
+  const def=window.AbyssalExplorationConfig?.RESEARCH?.[id];if(!def)return false;
+  explorationResearchLevels[id]=Math.max(Number(explorationResearchLevels[id])||0,Number(level)||0);
+  if(def.legacyMeta){
+   metaUpgrades[id]=Math.max(Number(metaUpgrades[id])||0,Number(level)||0);
+   localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));
+  }
   updateAbilityButtons(true);return true;
  },
  explorationPosition:()=>player&&['playing','paused','upgrade'].includes(gameState)?{x:player.x,y:player.y,angle:player.angle||0,mode:onlineMode?onlineRoomMode:requestedRunMode,online:onlineMode,worldWidth:W,worldHeight:H,paused:gameState!=='playing'}:null,
