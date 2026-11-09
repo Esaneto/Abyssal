@@ -50,7 +50,7 @@
  // Gas usage rises with ambient pressure. This is a gameplay budget, not a
  // decompression simulation or a claim that ordinary wetsuits withstand pressure.
  function gasConsumption(depthMeters,exertion=1){return pressureAt(depthMeters)*clamp(exertion,.5,2);}
- function oxygenCapacity(level=0){return 300*(1+clamp(Math.floor(level),0,5)*.22);}
+ function oxygenCapacity(level=0){return 900*(1+clamp(Math.floor(level),0,5)*.22);}
  function safeDepth(level=0){return 30+clamp(Math.floor(level),0,5)*40;}
  function canResearch(id,levels={},inventory={}){
   const item=RESEARCH[id];if(!item)return {ok:false,reason:'unknown-research'};
