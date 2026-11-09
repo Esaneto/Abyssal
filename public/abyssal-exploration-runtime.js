@@ -93,7 +93,10 @@
     button.disabled=true;
     const done=result=>{
      if(result.ok){
-      if(result.account){account=result.account;}else{localLevels=result.levels;localInventory=result.inventory;saveLocal();}
+      if(result.account){account=result.account;}else{
+       localLevels=result.levels;localInventory=result.inventory;saveLocal();
+       window.AbyssalGameHooks?.applyResearchUnlock?.(id,result.level);
+      }
       renderResearch();
      }else{materials.textContent='Falha: '+String(result.reason||'erro');button.disabled=false;}
     };
