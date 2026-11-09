@@ -9,6 +9,7 @@ const SeaProgression = require('./public/sea-progression.js');
 const CuratedSkins = require('./public/abyssal-curated-skins.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenRarity = require('./public/specimen-rarity.js');
+const CreatureScale = require('./public/creature-scale.js');
 const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
 function riftSpecimenSkin(random=Math.random){
  return SpecimenRarity.roll(RIFT_SPECIMEN_SKINS,random)||'default';
@@ -225,14 +226,16 @@ function spawnEnemy(world, options = {}) {
   stats.value = Math.max(1, Math.round((Number(stats.value) || 1) * rewardMultiplier));
 
   const id = ++world.nextEnemyId;
+  const specimenSkinId=world.mode==='rift'&&type!=='boss'?riftSpecimenSkin(random):null;
+  const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
   const enemy = {
-    id, kind, x: point.x, y: point.y, r: stats.r, hp: stats.hp, maxHp: stats.hp,
+    id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
     value: stats.value, seaXpMultiplier:stats.seaXpMultiplier||1, angle: random() * Math.PI * 2, phase: random() * Math.PI * 2,
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
-    specimenSkinId:world.mode==='rift'&&type!=='boss'?riftSpecimenSkin(random):null,
+    specimenSkinId,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
