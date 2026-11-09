@@ -296,6 +296,9 @@ function activateRiftEncounters(world,players,random=Math.random){
     if(count)world.riftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
   }
   const spawned=[];
+  // Never delay the current room behind preloading jobs for other chambers.
+  const occupied=new Set((players||[]).map(p=>AbyssalMap.roomAt(layout,Number(p.x),Number(p.y))?.id).filter(Boolean));
+  if(occupied.size)world.riftSpawnQueue.sort((a,b)=>Number(occupied.has(b.roomId))-Number(occupied.has(a.roomId)));
   let budget=2; // maximum two new entities in a single simulation tick
   while(budget-->0&&world.riftSpawnQueue.length){
     const job=world.riftSpawnQueue[0];
