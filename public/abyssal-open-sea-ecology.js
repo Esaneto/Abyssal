@@ -2,10 +2,11 @@
  * This module owns habitat selection and decisions, never networking or damage.
  */
 (function(root,factory){
- const api=factory();
+ const geo=typeof module==='object'&&module.exports?require('./abyssal-ocean-geography.js'):root.AbyssalOceanGeography;
+ const api=factory(geo);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalOpenSeaEcology=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
  const ZONES=Object.freeze([
@@ -16,29 +17,27 @@
   {id:'deep',label:'ÁGUAS PROFUNDAS',x:2740,y:2230,rx:940,ry:670,fauna:['angler','viperfish','blackdragon','seapig'],resources:['deepCrystal','bioSample']},
   {id:'wreck',label:'DESTROÇOS AFUNDADOS',x:4110,y:2200,rx:700,ry:680,fauna:['spidercrab','goblin','nautilus'],resources:['salvageMetal','bioSample']}
  ]);
+ const REGION_VARIANTS=Object.freeze({
+  open:{id:'open',label:'ÁGUAS LIVRES',fauna:['leatherback','eagleray','butterflyray'],resources:['seaMineral','bioSample']},
+  twilight:{id:'twilight',label:'ZONA CREPUSCULAR',fauna:['nautilus','bigfin','frilled','goblin'],resources:['bioSample','deepCrystal']},
+  abyss:{id:'abyss',label:'PLANÍCIE ABISSAL',fauna:['seapig','yeticrab','whiplash','angler'],resources:['abyssCrystal','bioSample']}
+ });
  const PREDATORS=new Set(['reefshark','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
  const SMART=new Set(['bigfin','whiplash','nautilus','spidercrab']);
  function habitatAt(x,y){
-  // Repeat ecology across a 5x3 ocean as neighboring biogeographical provinces.
-  // Depth band affects species selection: sunlit shelf, twilight, deep water.
-  const tileX=Math.floor(Math.max(0,x)/4800),tileY=Math.floor(Math.max(0,y)/3000);
-  const localX=((x%4800)+4800)%4800,localY=((y%3000)+3000)%3000;
-  let best=ZONES[0],d2=Infinity;
-  for(const zone of ZONES){const d=((localX-zone.x)/zone.rx)**2+((localY-zone.y)/zone.ry)**2;if(d<d2){best=zone;d2=d;}}
-  const depthBand=tileY===0?'shelf':tileY===1?'twilight':'deep';
-  const province=tileX+':'+tileY;
-  return {...best,id:best.id,province,depthBand,x:best.x+tileX*4800,y:best.y+tileY*3000};
+  // Side-view geological habitats replace the repeated six-ellipse pattern.
+  const type=geo?.classify?.(x,y)||'open';
+  const base=ZONES.find(z=>z.id===type)||REGION_VARIANTS[type]||REGION_VARIANTS.open;
+  const depthBand=y>7100?'deep':y>3400?'twilight':'shelf';
+  return {...base,depthBand,province:Math.floor(x/4800)+':'+Math.floor(y/3000),
+   x:Number(x)||0,y:Number(y)||0};
  }
  function speciesAt(x,y,random=Math.random){
-  const zone=habitatAt(x,y);
-  // Rare, non-hostile ocean giants. Existing oarfish and siphonophore
-  // silhouettes provide distinct anatomy without introducing new assets.
-  const roll=clamp(Number(random())||0,0,.999999);
-  if(zone.depthBand==='deep'&&roll<.012)return 'leviathan';
-  if(zone.depthBand!=='shelf'&&roll<.035)return 'siphonophore';
-  const fauna=zone.depthBand==='deep'?['seapig','whiplash','bigfin','angler','viperfish','blackdragon','yeticrab']:
-   zone.depthBand==='twilight'?['nautilus','goblin','frilled','bigfin','viperfish','spidercrab']:
-   zone.fauna;
+  const zone=habitatAt(x,y),roll=clamp(Number(random())||0,0,.999999);
+  // Rare giants and gelatinous filter-feeders remain passive and non-farming.
+  if((zone.id==='open'||zone.id==='twilight')&&roll<.007)return 'leviathan';
+  if(zone.depthBand!=='shelf'&&roll<.024)return 'siphonophore';
+  const fauna=zone.fauna||REGION_VARIANTS.open.fauna;
   return fauna[Math.min(fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*fauna.length))];
  }
  function temperament(id){
@@ -47,7 +46,7 @@
  function canSee(entity,target,range=530,halfAngle=Math.PI*.44){
   const dx=target.x-entity.x,dy=target.y-entity.y,d2=dx*dx+dy*dy;if(d2>range*range)return false;
   const a=Math.atan2(dy,dx)-(Number(entity.angle)||0);
-  return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<=halfAngle;
+  return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<=halfAngle&&(!geo||geo.segmentClear(entity.x,entity.y,target.x,target.y,2));
  }
  function decide(entity,players,seconds=0,now=Date.now(),neighbors=[]){
   const mode=entity.wildlifeMode||temperament(entity.specimenSkinId);
