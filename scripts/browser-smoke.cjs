@@ -283,6 +283,7 @@ async function main(){
    await run(browser,[...flags,'--screenshot='+png,url]);
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
+  if(process.argv.includes('--journal-only'))return;
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
    ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
