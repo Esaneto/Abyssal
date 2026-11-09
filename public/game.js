@@ -2960,7 +2960,14 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   else if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
-   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   if(activeMapLayout&&RIFT_WILDLIFE){
+    const home=activeMapLayout.rooms.find(room=>room.id===e.spawnRoomId)||ABYSSAL_MAP.roomAt(activeMapLayout,e.x,e.y);
+    const ec=RIFT_WILDLIFE.decide(e,[player],{map:ABYSSAL_MAP,layout:activeMapLayout,room:home,now:performance.now(),seconds:elapsed,family:SPECIMEN_SYSTEM?.familyFor?.(e.specimenSkinId)});
+    e.riftWantsAttack=ec.mode==='attack';
+    e.alerted=ec.alert;
+    if(!e.riftWantsAttack){soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}
+   }
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&e.riftWantsAttack){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
@@ -2968,7 +2975,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd=(e.attackCd||0)-dt;if(target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  e.attackCd=(e.attackCd||0)-dt;if((!activeMapLayout||e.riftWantsAttack)&&target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Contact applies to companion independently of the diver's hurtbox.
  if(!onlineMode)updateSoloSpecimenContact();
