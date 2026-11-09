@@ -41,7 +41,12 @@
  function draw(ctx,viewport={},time=0,lowPower=false){
   if(!ctx||!ecology?.ZONES)return;
   const left=viewport.left||0,top=viewport.top||0,right=left+(viewport.width||1200),bottom=top+(viewport.height||700);
-  for(const zone of ecology.ZONES){
+  // Sector repeat: test only local provinces intersecting this camera,
+  // never traverse every chunk of the 15x ocean.
+  const minTX=Math.max(0,Math.floor((left-1200)/4800)),maxTX=Math.min(4,Math.floor((right+1200)/4800));
+  const minTY=Math.max(0,Math.floor((top-900)/3000)),maxTY=Math.min(2,Math.floor((bottom+900)/3000));
+  for(let ty=minTY;ty<=maxTY;ty++)for(let tx=minTX;tx<=maxTX;tx++)for(const base of ecology.ZONES){
+   const zone={...base,x:base.x+tx*4800,y:base.y+ty*3000};
    if(zone.x+zone.rx+150<left||zone.x-zone.rx-150>right||zone.y+zone.ry+150<top||zone.y-zone.ry-150>bottom)continue;
    ctx.save();ctx.fillStyle='rgba(22,119,137,.025)';ctx.strokeStyle='rgba(76,166,175,.08)';ctx.lineWidth=4;
    ctx.beginPath();ctx.ellipse(zone.x,zone.y,zone.rx*.82,zone.ry*.75,0,0,TAU);ctx.fill();ctx.stroke();ctx.restore();
