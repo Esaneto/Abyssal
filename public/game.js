@@ -25,7 +25,7 @@ const EXPEDITION_RULES=window.AbyssalExpeditionRules;
 const ABYSSAL_MAP=window.AbyssalMap;
 const RIFT_HARDCORE=window.AbyssalRiftHardcore;
 let activeRiftHazards=[],riftBossMarks=[],riftSoloHazardCooldowns=new Map(),soloRiftCheckpointRoomId='start';
-let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=true,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
+let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',soundOn=false,nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
 let requestedRunMode='classic';
@@ -3913,9 +3913,9 @@ function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender){
 
 function draw(t){
  if(hostileSpritePaintFrame!==t){hostileSpritePaintFrame=t;hostileSpritePaintsThisFrame=0;}
+ // Only the current ocean menu owns menu rendering; do not paint the old canvas background.
+ if(gameState==='menu')return;
  ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);updateCamera();ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);
- // The menu has its own CSS scene. Do not render the full arena/entities behind it.
- if(gameState==='menu'){ctx.restore();return;}
  if(!activeMapLayout)drawArenaTerrain(t);
  drawExperienceOrbs(t);
  if(activeMapLayout&&RIFT_HARDCORE){const nightmareAliveForRender=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&enemies.some(enemy=>enemy.kind===RIFT_HARDCORE.FINAL_KIND&&enemy.hp>0);const visibleHazards=nightmareAliveForRender?activeRiftHazards:activeRiftHazards.filter(h=>h.type!=='tentacle');RIFT_HARDCORE.draw(ctx,visibleHazards,elapsed,{x:cameraX,y:cameraY,w:viewW/worldZoom,h:viewH/worldZoom});
@@ -4377,12 +4377,6 @@ $('menuBtn').addEventListener('click',()=>{
  returnToMainMenu();
 });
 $('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();onlineMode=false;setMobileGameActive(false);gameState='menu';$('pauseScreen').hidden=true;$('hud').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);document.body.classList.remove('game-active');$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
-$('soundBtn').addEventListener('click',()=>{
-  // O volume é ajustado apenas pela rolagem do slider; o clique apenas ativa o popup de volume sem mutar o jogo
-  const popup=$('volumePopup');
-  if(popup)popup.classList.toggle('active');
-  if(!ambientNodes)startAmbientMusic();
-});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden){last=performance.now();if(audioCtx?.state==='suspended')audioCtx.resume().then(()=>{if(soundOn&&!ambientNodes)startAmbientMusic()}).catch(()=>{});}});
 window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;const remoteShooterId=String(d.fromId||d.from||'');if(remoteShooterId)remoteCreatureAttackUntil.set(remoteShooterId,performance.now()+140);
@@ -5070,7 +5064,7 @@ document.querySelectorAll('#menuScreen canvas[data-menu-creature]').forEach(canv
   renderCreaturePreview(canvas,kind,color,null);
 });
 
-initNotifSystem();initVolumeControls();resize();
+initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
 gameplayResizeObserver?.observe($('gameShell'));
 gameState='menu';requestAnimationFrame(loop);
