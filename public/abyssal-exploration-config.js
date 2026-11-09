@@ -41,7 +41,29 @@
   bulkhead:{id:'bulkhead',name:'Costelas de Basalto',group:'passive',max:3,requires:['pressureSuit'],cost:{seaMineral:4},legacyMeta:'bulkhead'},
   focuser:{id:'focuser',name:'Lente de Fótons',group:'passive',max:3,requires:['sonar'],cost:{deepCrystal:1,salvageMetal:2},legacyMeta:'focuser'},
   current:{id:'current',name:'Aletas de Corrente',group:'passive',max:3,requires:['oxygenTank'],cost:{kelpFiber:4,seaMineral:2},legacyMeta:'current'},
-  startShield:{id:'startShield',name:'Casulo de Pressão',group:'passive',max:1,requires:['pressureSuit'],cost:{deepCrystal:2},legacyMeta:'startShield'}
+  startShield:{id:'startShield',name:'Casulo de Pressão',group:'passive',max:1,requires:['pressureSuit'],cost:{deepCrystal:2},legacyMeta:'startShield'},
+  power:{id:'power',name:'Pulso Intenso',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,kelpFiber:1}},
+  rate:{id:'rate',name:'Ressonância Veloz',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:4,kelpFiber:2}},
+  speed:{id:'speed',name:'Propulsão Abissal',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,kelpFiber:3}},
+  range:{id:'range',name:'Olho Profundo',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:6,kelpFiber:1}},
+  magnet:{id:'magnet',name:'Campo Magnético',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,kelpFiber:2}},
+  regen:{id:'regen',name:'Membrana Viva',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:4,kelpFiber:3}},
+  shield:{id:'shield',name:'Escudo Espectral',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,kelpFiber:1}},
+  shell:{id:'shell',name:'Carapaça Abissal',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:6,kelpFiber:2}},
+  ward:{id:'ward',name:'Véu de Maré',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:3,kelpFiber:3}},
+  lastStand:{id:'lastStand',name:'Último Fôlego',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:4,kelpFiber:1}},
+  pressureCocoon:{id:'pressureCocoon',name:'Casulo de Pressão Ambiental',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:5,kelpFiber:2}},
+  vitality:{id:'vitality',name:'Reserva Vital',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:6,kelpFiber:3}},
+  predator:{id:'predator',name:'Instinto Predatório',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:3,kelpFiber:1}},
+  closePressure:{id:'closePressure',name:'Pressão de Caça',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:4,kelpFiber:2}},
+  burst:{id:'burst',name:'Pulso de Ruptura',group:'passive',max:1,requires:['sonar'],cost:{seaMineral:5,deepCrystal:3}},
+  ricochet:{id:'ricochet',name:'Ricochete Caótico',group:'passive',max:1,requires:['sonar'],cost:{seaMineral:6,deepCrystal:1}},
+  spread:{id:'spread',name:'Rajada Prismática',group:'passive',max:1,requires:['sonar'],cost:{seaMineral:3,deepCrystal:2}},
+  pierce:{id:'pierce',name:'Lança do Abismo',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:4,deepCrystal:3}},
+  photon:{id:'photon',name:'Lança de Fótons',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:5,deepCrystal:1}},
+  photonRay:{id:'photonRay',name:'Raio de Fótons',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:6,deepCrystal:2}},
+  nova:{id:'nova',name:'Nova Gravitacional',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:3,deepCrystal:3}},
+  echoShot:{id:'echoShot',name:'Eco de Maré',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:4,deepCrystal:1}}
  });
  function depthAt(y,worldHeight=3000,maximumMeters=100){
   return clamp(y,0,Math.max(1,worldHeight))/Math.max(1,worldHeight)*maximumMeters;
