@@ -2109,7 +2109,7 @@ io.on('connection', socket => {
     room.pvpProjectiles ||= [];
     PvpProjectiles.enqueue(room.pvpProjectiles,{
      ownerId:socket.id,x:sx,y:sy,ux:dx/speed,uy:dy/speed,speed,
-     remaining:maxDistance,lifetime:shot.modifiers?.abyssEye===true?8:1.05,
+     remaining:maxDistance,lifetime:shot.modifiers?.abyssEye===true?8:Math.max(1.05,Math.min(2.5,maxDistance/Math.max(1,speed)+.14)),
      worldWidth:WORLD_WIDTH,worldHeight:shotWorldHeight,worldZoom:WORLD_ZOOM,
      radius:5/WORLD_ZOOM,damage:shot.damage,special:shot.special,actionId:shot.actionId,
      volleyTargets:shooter.lastShotVolleyTargets,lastAt:nowShot,createdAt:nowShot
