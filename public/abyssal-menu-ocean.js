@@ -5,11 +5,11 @@
  const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
  const lerp=(a,b,t)=>a+(b-a)*t;
  const ease=t=>t*t*(3-2*t);
- // The current request locates SOLO in the LEFT current, ONLINE in the RIGHT
- // current and FOSSAS within the seafloor below, not as a third upper current.
+ // The playable classics share the LEFT current; the new open sea is RIGHT.
+ // Fossas remain a separate fissure in the bottom of the same swimming scene.
  const ROUTES=[
-  {id:'playBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHO SOLO',kind:'solo'},
-  {id:'onlineBtn',x:.81,y:.47,tone:'#60eed3',label:'MERGULHO ONLINE',kind:'online'},
+  {id:'divePortalBtn',x:.19,y:.47,tone:'#68e7ff',label:'MERGULHAR',kind:'dive'},
+  {id:'openSeaPortalBtn',x:.81,y:.47,tone:'#60eed3',label:'MAR ABERTO',kind:'sea'},
   {id:'riftPortalBtn',x:.50,y:.835,tone:'#aa3347',label:'FOSSAS ABISSAIS',kind:'rift'}
  ];
  function boot(){
@@ -43,7 +43,7 @@
   const bubbles=[],held=new Set(),keyMap={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const interactive=()=>{
    if(menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal)return false;
-   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel')){
+   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')){
     if(panel.hidden||!panel.isConnected)continue;
     if(panel.getClientRects().length&&getComputedStyle(panel).display!=='none'&&getComputedStyle(panel).visibility!=='hidden')return false;
    }
@@ -89,7 +89,7 @@
    window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
    for(const s of stations){
     s.wx=w*s.x;s.wy=h*s.y;
-    s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='solo'?'cyan':'teal';
+    s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='dive'?'cyan':'teal';
     s.button.classList.remove('abyss-rift-gate');
     s.button.classList.toggle('abyss-current-entry',s.kind!=='rift');
     s.button.classList.toggle('abyss-fissure-entry',s.kind==='rift');
@@ -114,12 +114,12 @@
   function finishEntrance(){
    const s=transition?.station;if(!s)return;
    transition=null;stage.removeAttribute('data-abyss-transit');
-   waitingForModal=s.kind!=='solo';
+   waitingForModal=s.kind==='dive'||s.kind==='rift';
    s.button.dataset.portalArriving='1';
    try{s.button.click();}
    finally{delete s.button.dataset.portalArriving;}
-   // Entered gameplay: the ordinary game logic now owns screen visibility.
-   if(s.kind==='solo'||document.body.classList.contains('game-active')||menu.hidden){
+   // A right current enters exploration; the left opens the Solo/Online selector.
+   if(s.kind==='sea'||document.body.classList.contains('game-active')||menu.hidden){
     wasVisible=false;return;
    }
    // The pre-existing room browser and Fossas choice dialog stay authoritative.
@@ -135,6 +135,44 @@
     playEntrance(s);
    },true);
   }
+  // Keep existing game and online actions intact; only the menu routing changes.
+  const divePanel=document.createElement('section');
+  divePanel.id='abyssalDiveChoicePanel';
+  divePanel.className='abyss-dive-choice-panel';
+  divePanel.hidden=true;
+  divePanel.innerHTML='<div class="abyss-dive-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="abyssDiveChoiceTitle">'+
+   '<button id="abyssDiveChoiceClose" class="abyss-dive-choice-close" type="button" aria-label="Fechar">×</button>'+
+   '<small>ESCOLHA SEU MERGULHO</small><h2 id="abyssDiveChoiceTitle">MERGULHAR</h2>'+
+   '<div class="abyss-dive-choice-actions">'+
+    '<button type="button" id="abyssDiveSoloChoice"><strong>MERGULHAR SOLO</strong><span>Jogar sozinho no modo clássico</span></button>'+
+    '<button type="button" id="abyssDiveOnlineChoice"><strong>MERGULHAR ONLINE</strong><span>Escolher uma sala online</span></button>'+
+   '</div></div>';
+  document.body.appendChild(divePanel);
+  const closeDive=()=>{
+   if(divePanel.hidden)return;
+   divePanel.hidden=true;
+   closeReturn();
+  };
+  document.getElementById('divePortalBtn').addEventListener('click',()=>{
+   divePanel.hidden=false;
+   divePanel.querySelector('#abyssDiveSoloChoice')?.focus();
+  });
+  document.getElementById('openSeaPortalBtn').addEventListener('click',()=>{
+   window.dispatchEvent(new CustomEvent('abyssal-start-open-sea'));
+  });
+  divePanel.querySelector('#abyssDiveChoiceClose')?.addEventListener('click',closeDive);
+  divePanel.addEventListener('click',e=>{if(e.target===divePanel)closeDive();});
+  divePanel.querySelector('#abyssDiveSoloChoice')?.addEventListener('click',()=>{
+   divePanel.hidden=true;
+   document.getElementById('playBtn')?.click();
+  });
+  divePanel.querySelector('#abyssDiveOnlineChoice')?.addEventListener('click',()=>{
+   divePanel.hidden=true;
+   // Existing online button owns the room browser, authentication and PvP flow.
+   document.getElementById('onlineBtn')?.click();
+   if(!menu.hidden)closeReturn();
+  });
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!divePanel.hidden){event.preventDefault();closeDive();}});
   function closeReturn(){
    if(!menu.hidden&&!document.body.classList.contains('game-active')&&initialized)resetToHatch();
   }
@@ -213,7 +251,7 @@
    // to the ocean, never to the diver's current position.
    for(const s of stations){
     if(s.kind==='rift')continue;
-    const direction=s.kind==='solo'?-1:1;
+    const direction=s.kind==='dive'?-1:1;
     const startX=s.wx-direction*w*.19,endX=s.wx+direction*w*.37;
     const span=endX-startX,band=Math.min(64,h*.105);
     currents.save();currents.lineCap='round';
@@ -257,7 +295,7 @@
      const tx=transition;
      tx.t=Math.min(1,tx.t+dt/tx.duration);
      const t=ease(tx.t),s=tx.station,curve=Math.sin(Math.PI*t)*Math.min(38,w*.055);
-     px=lerp(tx.x,s.wx,t)+(s.kind==='rift'?0:(s.kind==='solo'?-1:1)*curve);
+     px=lerp(tx.x,s.wx,t)+(s.kind==='rift'?0:(s.kind==='dive'?-1:1)*curve);
      py=lerp(tx.y,s.wy,t)+(s.kind==='rift'?Math.sin(Math.PI*t)*-17:Math.sin(Math.PI*t)*8);
      heading=Math.atan2(s.wy-py,s.wx-px);
      diver.style.opacity=String(clamp((1-tx.t)*3.3,0,1));
