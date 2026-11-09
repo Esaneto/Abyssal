@@ -125,6 +125,28 @@
   if(vx!==x1||vy!==y1)return {x:vx,y:vy,blocked:true};
   return {x:x1,y:y1,blocked:true};
  }
+ // Local obstacle avoidance for active marine fauna. It performs short probes
+ // only when a wall is immediately ahead; no global pathfinder or map search.
+ function steer(x,y,targetX,targetY,padding=24,key=0){
+  const dx=targetX-x,dy=targetY-y,d=Math.hypot(dx,dy);
+  if(!Number.isFinite(d)||d<1)return {x,y,direct:true};
+  const ux=dx/d,uy=dy/d,probe=Math.min(225,d);
+  if(!isSolid(x+ux*Math.min(105,probe),y+uy*Math.min(105,probe),padding)
+   &&!isSolid(x+ux*probe,y+uy*probe,padding))return {x:targetX,y:targetY,direct:true};
+  const angle=Math.atan2(uy,ux);
+  const preference=(Number(key)||0)%2===0?1:-1;
+  let best=null,bestScore=-Infinity;
+  for(const side of [preference,-preference]){
+   for(const bend of [.48,.9,1.35,1.75]){
+    const a=angle+side*bend,px=x+Math.cos(a)*190,py=y+Math.sin(a)*190;
+    if(isSolid(px,py,padding)||!segmentClear(x,y,px,py,padding))continue;
+    const progress=(px-x)*ux+(py-y)*uy;
+    const score=progress*.7+bend*2+(side===preference?4:0);
+    if(score>bestScore){best={x:px,y:py,direct:false};bestScore=score;}
+   }
+  }
+  return best||{x,y,direct:false};
+ }
  function classify(x,y){
   const floor=floorAt(x),clearance=floor-y;
   if(x<1900&&clearance<650&&y<3500)return 'reef';
@@ -136,5 +158,5 @@
   return 'twilight';
  }
  function lightAt(y){return clamp(1-Math.pow(clamp(y/HEIGHT,0,1),.72)*.94,.06,1);}
- return Object.freeze({WIDTH,HEIGHT,VERSION,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,classify,lightAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt});
 });
