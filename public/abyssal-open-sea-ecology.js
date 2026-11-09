@@ -49,7 +49,7 @@
   const a=Math.atan2(dy,dx)-(Number(entity.angle)||0);
   return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<=halfAngle;
  }
- function decide(entity,players,seconds=0,now=Date.now()){
+ function decide(entity,players,seconds=0,now=Date.now(),neighbors=[]){
   const mode=entity.wildlifeMode||temperament(entity.specimenSkinId);
   const homeX=Number.isFinite(entity.homeX)?entity.homeX:entity.x;
   const homeY=Number.isFinite(entity.homeY)?entity.homeY:entity.y;
@@ -71,6 +71,25 @@
    for(const p of players||[]){
     const d=Math.hypot((p?.x||0)-entity.x,(p?.y||0)-entity.y);
     if(p&&p.alive!==false&&d<260&&d<dist){target=p;dist=d;}
+   }
+  }
+  // Lightweight trophic behavior: threatened smaller species move away from
+  // nearby predators; predators inspect possible prey while keeping player
+  // combat strictly separate. All candidates are already active AOI entities.
+  if(!target&&Array.isArray(neighbors)&&neighbors.length){
+   let candidate=null,closest=Infinity;
+   for(const other of neighbors){
+    if(!other||other===entity||other.hp<=0||other.schoolId===entity.schoolId)continue;
+    const d=Math.hypot(other.x-entity.x,other.y-entity.y);
+    if(d>300||d>=closest)continue;
+    if(mode==='aggressive'&&other.wildlifeMode==='passive'){candidate=other;closest=d;}
+    if(mode!=='aggressive'&&other.wildlifeMode==='aggressive'){candidate=other;closest=d;}
+   }
+   if(candidate&&mode==='aggressive')
+    return {mode:'forage',target:{x:candidate.x,y:candidate.y,alive:true,moveSpeed:80},aggressive:false};
+   if(candidate){
+    const dx=entity.x-candidate.x,dy=entity.y-candidate.y,d=Math.hypot(dx,dy)||1;
+    return {mode:'evade-predator',target:{x:clamp(entity.x+dx/d*250,25,23975),y:clamp(entity.y+dy/d*250,25,8975),alive:true,moveSpeed:180},aggressive:false};
    }
   }
   if(!target)return {mode:'patrol',target:patrol,aggressive:false};
