@@ -938,6 +938,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  combatDiagnostics.appliedHits++;combatDiagnostics.lastDamageAt=new Date(now).toISOString();combatDiagnostics.lastDamageReason='accepted';
  const hpBefore=Math.max(0,Number(enemy.hp)||0);
  enemy.hp=Math.max(0,hpBefore-applied);
+ if(room?.mode==='rift'&&applied>0)enemy.provokedUntil=now+6500;
  // Overkill cannot count as extra damage for the proportional XP share.
  if(player){enemy.damageContributors ||= Object.create(null);const id=String(player.id);enemy.damageContributors[id]=(Number(enemy.damageContributors[id])||0)+Math.min(applied,hpBefore);}
  if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
