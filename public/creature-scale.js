@@ -37,13 +37,23 @@
  // At 1.7 m, the diver's drawn body is roughly 40 logical pixels high.
  const PIXELS_PER_METER=9.3;
  const sizeOf=id=>ADULT_METERS[String(id)]||null;
+ // Gameplay-friendly visual scale: preserve biological ordering without letting
+ // a companion obscure the diver or giant enemies fill a whole chamber.
+ // A softer curve maintains visible differences between the smallest and largest.
  function visualRadius(id,base=11){
   const meters=sizeOf(id);
-  return meters===null?Math.max(7,Number(base)||11):Math.max(7,Math.min(135,meters*PIXELS_PER_METER));
+  if(meters===null)return Math.max(8,Math.min(18,Number(base)||11));
+  return Math.max(8,Math.min(19.5,8.5+Math.sqrt(meters)*2.65));
  }
  function monsterVisualRadius(kind,base=10,skinId=null){
   const length=skinId?sizeOf(skinId):MONSTER_METERS[String(kind)];
-  return length?Math.max(7,Math.min(250,length*PIXELS_PER_METER)):Math.max(7,Number(base)||10);
+  if(!length)return Math.max(8,Math.min(78,Number(base)||10));
+  // Monsters can be bigger than companions; bosses are imposing without
+  // concealing the screen. The final boss has its own chamber-scale ceiling.
+  const boss=skinId===null&&['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'].includes(String(kind));
+  const cap=kind==='riftSmile'&&!skinId?110:boss?84:skinId?51:59;
+  const radius=(boss?21:11)+Math.sqrt(length)*(boss?13.1:7.1);
+  return Math.max(8,Math.min(cap,radius));
  }
  // Large octopus arms and jelly tentacles are non-solid; a central
  // collision body fits in caves while the full animal remains visible.
