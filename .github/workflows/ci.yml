@@ -31,7 +31,7 @@ jobs:
           node --check server.js
           node --check scripts/browser-smoke.cjs
       - name: Validate biological data and independent visual themes
-        run: node --test tests/specimen-journal-biology.test.cjs
+        run: node --test tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs
       - name: Run Chromium journal, laboratory and gameplay smoke
         run: node scripts/browser-smoke.cjs
       - name: Upload visual acceptance screenshots
@@ -234,4 +234,4 @@ jobs:
           node --check server.js
           node --check state-persistence-worker.js
           node --check scripts/roxycloud-preflight.cjs
-          node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs
+          node --test tests/roxycloud-readiness.test.cjs tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs
