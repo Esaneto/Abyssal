@@ -678,7 +678,22 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const ecology=RiftWildlife.decide(enemy,targetablePlayers,{map:AbyssalMap,layout:mapLayout,room:home,now,seconds:world.elapsed,family:SpecimenSystem.familyFor(enemy.specimenSkinId)});
     enemy.alerted=ecology.alert;
     if(ecology.mode==='attack')actualTarget=ecology.target;
-    else actualTarget=null;
+    else {
+      actualTarget=null;
+      if(ecology.mode==='alert'&&ecology.alert)enemy.alerted=true;
+      // A startled/passive animal reacts to physical contact even from behind;
+      // an unprovoked passive animal never initiates a chase from across a wall.
+      if(ecology.mode==='alert'||ecology.mode==='patrol'){
+        for(const candidate of targetablePlayers){
+          if(Math.hypot(candidate.x-enemy.x,candidate.y-enemy.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(candidate.r)||13/WORLD_ZOOM)+8){
+            enemy.provokedUntil=now+4800;
+            actualTarget=candidate;
+            break;
+          }
+        }
+      }
+    }
+    movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):4;
     let movementTargets=actualTarget?[actualTarget]:[{
       x:ecology.target.x,y:ecology.target.y,alive:true,
       moveSpeed:150/WORLD_ZOOM
