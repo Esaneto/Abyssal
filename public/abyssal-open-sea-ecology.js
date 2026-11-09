@@ -48,8 +48,13 @@
   const mode=entity.wildlifeMode||temperament(entity.specimenSkinId);
   const homeX=Number.isFinite(entity.homeX)?entity.homeX:entity.x;
   const homeY=Number.isFinite(entity.homeY)?entity.homeY:entity.y;
-  const theta=seconds*.18+(Number(entity.id)||1)*1.17;
-  const patrol={x:clamp(homeX+Math.cos(theta)*165,32,4768),y:clamp(homeY+Math.sin(theta*.83)*135,32,2968),alive:true,moveSpeed:115};
+  // Fish in the same school synchronize migration heading while keeping
+  // slight individual offsets. No leader entity or cross-chunk simulation.
+  let schoolSeed=0;
+  for(const ch of String(entity.schoolId||entity.id||1))schoolSeed=(Math.imul(schoolSeed,31)+ch.charCodeAt(0))>>>0;
+  const theta=seconds*.16+(schoolSeed%628)/100;
+  const offset=((Number(entity.id)||1)%5-2)*22;
+  const patrol={x:clamp(homeX+Math.cos(theta)*170+offset,32,23968),y:clamp(homeY+Math.sin(theta*.83)*125+offset*.4,32,8968),alive:true,moveSpeed:115};
   let target=null,dist=Infinity;
   for(const player of players||[]){
    if(!player||player.alive===false)continue;
@@ -67,7 +72,7 @@
   const endangered=Number(entity.hp)<Number(entity.maxHp||entity.hp)*.45;
   if(mode==='passive'&&!provoked||mode==='smart'&&(endangered||dist<140)&&!provoked){
    const dx=entity.x-target.x,dy=entity.y-target.y,d=Math.hypot(dx,dy)||1;
-   return {mode:'flee',target:{x:clamp(entity.x+dx/d*320,25,4775),y:clamp(entity.y+dy/d*320,25,2975),alive:true,moveSpeed:200},aggressive:false};
+   return {mode:'flee',target:{x:clamp(entity.x+dx/d*320,25,23975),y:clamp(entity.y+dy/d*320,25,8975),alive:true,moveSpeed:200},aggressive:false};
   }
   if(mode==='aggressive'&&!provoked&&dist>245)return {mode:'alert',target:patrol,aggressive:false};
   if(mode==='smart'&&!provoked&&dist>175)return {mode:'alert',target:patrol,aggressive:false};
