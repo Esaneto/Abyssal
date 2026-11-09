@@ -2987,7 +2987,16 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):4;
     if(!e.riftWantsAttack){soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}
    }
-   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&e.riftWantsAttack){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
+   if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&RIFT_WILDLIFE){
+    // Patrols, alerted animals and fleeing wildlife require cave routing too.
+    const goal=movementTargets[0];
+    if(goal){
+     const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,goal.x,goal.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});
+     if(nav&&!nav.direct&&Number.isFinite(nav.x)&&Number.isFinite(nav.y)){
+      soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=e.riftWantsAttack?equippedSkin:'default';soloMapNavProxy.moveSpeed=goal.moveSpeed||player.moveSpeed;movementTargets=soloMapNavTargets;
+     }
+    }
+   }
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
