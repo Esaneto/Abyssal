@@ -27,6 +27,9 @@ const PvpProjectiles = require('./pvp-projectiles');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
 const AbyssalMap = require('./public/abyssal-map.js');
 const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
+const ExplorationConfig=require('./public/abyssal-exploration-config.js');
+const ResearchSystem=require('./public/abyssal-research-system.js');
+const ResourceFields=require('./public/abyssal-resource-fields.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
@@ -269,7 +272,7 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -2435,14 +2438,72 @@ io.on('connection', socket => {
   u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
   socket.emit('code-redeem-result',{ok:true,message,skinId,coinsAwarded,account:publicUser(u)});
  });
+ // Deposits are deterministic and shared. Coordinates and pickup radius are
+ // validated from the server player state, not from client supplied positions.
+ const resourceNodeCache=new WeakMap();
+ function nodesForWorld(room){
+  const world=room?.world;if(!world)return [];
+  let nodes=resourceNodeCache.get(world);
+  if(!nodes){
+   const mode=room.mode==='rift'?'rift':'classic';
+   const layout=mode==='rift'?WorldSimulation.mapLayoutFor(world):null;
+   nodes=ResourceFields.create(world.worldId||room.id,mode,Number(layout?.width)||4800,Number(layout?.height)||3000,90);
+   if(layout)nodes=nodes.filter(node=>AbyssalMap.isWalkable(layout,node.x,node.y,18));
+   resourceNodeCache.set(world,nodes);
+  }
+  return nodes;
+ }
+ socket.on('exploration-scan',(payload={},ack)=>{
+  const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
+  const result=!u||!p||room.mode==='pvp'?{ok:false,reason:'unavailable'}:
+   {ok:true,nodes:ResourceFields.nearby(nodesForWorld(room),p.x,p.y,320,room.world.collectedResources||[]).slice(0,12),
+    inventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}),
+    levels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels};
+  if(typeof ack==='function')ack(result);
+ });
+ socket.on('exploration-collect',(payload={},ack)=>{
+  const respond=data=>{if(typeof ack==='function')ack(data);};
+  const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
+  if(!u||!p||room.mode==='pvp'||p.alive===false)return respond({ok:false,reason:'unavailable'});
+  const now=Date.now();if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
+  const id=String(payload.id||'');
+  const node=nodesForWorld(room).find(row=>row.id===id);
+  if(!node)return respond({ok:false,reason:'unknown-node'});
+  room.world.collectedResources ||= [];
+  if(room.world.collectedResources.includes(id))return respond({ok:false,reason:'already-collected'});
+  const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
+  const check=ResourceFields.eligible(node,p.x,p.y,levels,115);
+  if(!check.ok)return respond(check);
+  p.lastResourceAt=now;room.world.collectedResources.push(id);
+  u.resourceInventory=ResearchSystem.sanitizeInventory(u.resourceInventory||{});
+  u.resourceInventory[node.type]=Math.min(1000000,u.resourceInventory[node.type]+node.amount);
+  saveUsers();
+  const result={ok:true,node,inventory:u.resourceInventory,account:publicUser(u)};
+  respond(result);socket.emit('account-data',result.account);
+  socket.to(channelFor(room)).emit('exploration-resource-collected',{id});
+ });
+ socket.on('exploration-study',(payload={},ack)=>{
+  const respond=data=>{if(typeof ack==='function')ack(data);};
+  const u=users[socket.data.userKey],room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!u)return respond({ok:false,reason:'authentication'});
+  if(room?.mode==='pvp')return respond({ok:false,reason:'pvp-disabled'});
+  // Research is completed at the submarine, never while fighting in an online room.
+  if(p&&p.alive!==false)return respond({ok:false,reason:'return-to-base'});
+  const id=String(payload.id||'');
+  const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
+  const result=ResearchSystem.study(id,levels,u.resourceInventory||{});
+  if(!result.ok)return respond(result);
+  u.researchLevels=result.levels;u.resourceInventory=result.inventory;
+  if(ExplorationConfig.RESEARCH[id]?.legacyMeta){
+   u.metaUpgrades||={};u.metaUpgrades[id]=Math.max(Number(u.metaUpgrades[id])||0,result.level);
+  }
+  saveUsers();const account=publicUser(u);
+  respond({ok:true,id,level:result.level,cost:result.cost,account});
+  socket.emit('account-data',account);
+ });
  socket.on('purchase-meta', payload => {
-  const u=users[socket.data.userKey];if(!u||!payload)return;
-  const catalogue={bulkhead:{price:1800,max:3},focuser:{price:2200,max:3},current:{price:1600,max:3},startShield:{price:3200,max:1},pulse:{price:3500,max:1},dash:{price:4200,max:1}};
-  const id=String(payload.id||''),item=catalogue[id];if(!item)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Melhoria indisponível.',account:publicUser(u)});
-  u.metaUpgrades ||= {};const current=Number(u.metaUpgrades[id])||0;
-  if(current>=item.max)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Esta melhoria já está no nível máximo.',account:publicUser(u)});
-  if((u.coins||0)<item.price)return socket.emit('purchase-result',{ok:false,itemId:id,message:'Moedas abissais insuficientes.',account:publicUser(u)});
-  u.coins-=item.price;u.metaUpgrades[id]=current+1;saveUsers();socket.emit('purchase-result',{ok:true,itemId:id,message:'Adaptação permanente desbloqueada!',account:publicUser(u)});
+  const u=users[socket.data.userKey];
+  socket.emit('purchase-result',{ok:false,itemId:String(payload?.id||''),message:'Habilidades de combate agora são estudadas no submarino. Compras anteriores preservadas.',account:u?publicUser(u):null});
  });
  socket.on('spin-wheel', () => {
   if(!REWARDED_WHEEL_ENABLED)return socket.emit('wheel-result',{ok:false,message:'As recompensas aleatórias estão desativadas enquanto a política de segurança é revisada.'});
