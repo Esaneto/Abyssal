@@ -12,6 +12,9 @@
  hud.innerHTML='<div class="exploration-stat"><span>GÁS RESPIRÁVEL</span><strong id="explorationGas">100%</strong><div class="exploration-track"><i id="explorationGasFill"></i></div></div>'+
  '<div class="exploration-stat"><span>PROFUNDIDADE / PRESSÃO</span><strong id="explorationDepth">0 m · 1 atm</strong><small id="explorationPressureWarning"></small></div>'+
  '<div class="exploration-stat exploration-collect"><span>SONAR DE RECURSOS · G</span><strong id="explorationDeposit">PROCURANDO SINAIS...</strong><small id="explorationGatherStatus">Aproxime-se de um depósito para coletar.</small><button type="button" id="explorationGatherBtn" disabled>COLETAR RECURSO</button></div>';
+ const signal=document.createElement('div');signal.id='explorationRiftSignals';signal.className='exploration-stat exploration-sonar';signal.hidden=true;
+ signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
+ hud.appendChild(signal);
  shell.appendChild(hud);
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
@@ -151,6 +154,12 @@
   near=closest(p);$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
   const can=Boolean(near)&&fields.eligible(near,p.x,p.y,stateLevels(),115).ok&&!p.paused&&!busy;
   $('explorationGatherBtn').disabled=!can;
+  signal.hidden=p.mode!=='rift';
+  if(p.mode==='rift'){
+   const signals=window.AbyssalGameHooks?.riftSonar?.()||[];
+   const closest=signals[0];
+   $('explorationRiftSignalText').textContent=closest?closest.label+' · '+Math.round(closest.distance)+' u':'SEM SINAIS PRÓXIMOS';
+  }
   drawMarkers(p,true);
  }
  requestAnimationFrame(tick);
