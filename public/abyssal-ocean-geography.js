@@ -127,10 +127,10 @@
  }
  function classify(x,y){
   const floor=floorAt(x),clearance=floor-y;
+  if(x<1900&&clearance<650&&y<3500)return 'reef';
+  if(x>=1900&&x<3500&&clearance<650&&y<4600)return 'kelp';
   if(y>7300)return 'abyss';
   if(y>5100)return clearance<750?'canyon':'deep';
-  if(x<3400&&clearance<650)return 'reef';
-  if(x>=3400&&x<6600&&clearance<650)return 'kelp';
   if(clearance<480)return 'rocks';
   if(y<3400)return 'open';
   return 'twilight';
