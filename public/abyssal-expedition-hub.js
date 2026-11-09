@@ -61,8 +61,15 @@
     const h=document.createElement('h3');h.textContent='ÁRVORE DE PESQUISAS';
     const note=document.createElement('p');note.textContent='Projetos tecnológicos registrados. O desbloqueio por coleta de materiais será ativado após a integração com o inventário e o servidor.';
     const list=document.createElement('ul');
+    let legacy={};
+    try{legacy=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')||{};}catch(_){}
+    const existing=window.AbyssalResearchSystem?.migrateLegacy?.({},legacy)?.levels||{};
     for(const item of Object.values(window.AbyssalExplorationConfig?.RESEARCH||{})){
-     const li=document.createElement('li');li.textContent=item.name+' · '+(item.group==='equipment'?'EQUIPAMENTO':item.group==='active'?'HABILIDADE Q/E':'PASSIVA');list.append(li);
+     const li=document.createElement('li');
+     const type=item.group==='equipment'?'EQUIPAMENTO':item.group==='active'?'HABILIDADE Q/E':'PASSIVA';
+     const level=Number(existing[item.id])||0;
+     li.textContent=item.name+' · '+type+(level?' · ADQUIRIDO Nv. '+level:' · PESQUISA FUTURA');
+     list.append(li);
     }
     index.append(h,note,list);
    }
