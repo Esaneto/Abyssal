@@ -1,0 +1,49 @@
+/* Sparse open-ocean sectors. 5x wider and 3x taller: 15x the former area.
+ * Deterministic by world ID / chunk coords; only nearby sectors are generated.
+ * No global array of the full ocean is ever allocated. UMD for Node + browser.
+ */
+(function(root,factory){
+ const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;
+ if(root)root.AbyssalOceanStream=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ const WIDTH=24000,HEIGHT=9000,CHUNK=1200,AREA_RATIO=15;
+ const MAX_NEARBY=110,INITIAL_FAUNA=3,RESOURCE_COUNT=5;
+ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+ function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+ function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
+ function chunkAt(x,y){return {cx:clamp(Math.floor(x/CHUNK),0,Math.ceil(WIDTH/CHUNK)-1),cy:clamp(Math.floor(y/CHUNK),0,Math.ceil(HEIGHT/CHUNK)-1)};}
+ function id(cx,cy){return cx+':'+cy;}
+ function near(x,y,radius=1800){
+  const {cx,cy}=chunkAt(x,y),steps=Math.ceil(radius/CHUNK),list=[];
+  for(let iy=Math.max(0,cy-steps);iy<=Math.min(Math.ceil(HEIGHT/CHUNK)-1,cy+steps);iy++)
+   for(let ix=Math.max(0,cx-steps);ix<=Math.min(Math.ceil(WIDTH/CHUNK)-1,cx+steps);ix++){
+    const left=ix*CHUNK,right=Math.min(WIDTH,left+CHUNK),top=iy*CHUNK,bottom=Math.min(HEIGHT,top+CHUNK);
+    const px=clamp(x,left,right),py=clamp(y,top,bottom);
+    if(Math.hypot(px-x,py-y)<=radius)list.push({cx:ix,cy:iy,key:id(ix,iy)});
+   }
+  return list;
+ }
+ function generate(seed,cx,cy,ecology){
+  const next=random(seed+':'+cx+':'+cy),x0=cx*CHUNK,y0=cy*CHUNK,animals=[],resources=[];
+  for(let i=0;i<INITIAL_FAUNA;i++){
+   const x=x0+140+next()*(CHUNK-280),y=y0+140+next()*(CHUNK-280);
+   const species=ecology?.speciesAt?.(x,y,next)||'seapig';
+   animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId:id(cx,cy)+':s'+Math.floor(i/2)});
+  }
+  for(let i=0;i<RESOURCE_COUNT;i++){
+   const x=x0+70+next()*(CHUNK-140),y=y0+70+next()*(CHUNK-140);
+   const zone=ecology?.habitatAt?.(x,y);
+   const types=zone?.resources||['seaMineral'];
+   resources.push({id:id(cx,cy)+':r'+i,type:types[Math.floor(next()*types.length)],x:Math.round(x),y:Math.round(y),amount:1+Math.floor(next()*3),habitat:zone?.id||null});
+  }
+  return {key:id(cx,cy),animals,resources};
+ }
+ function active(players,limit=MAX_NEARBY,radius=1900){
+  const set=new Map();
+  for(const p of players||[])if(p&&p.alive!==false)for(const chunk of near(p.x,p.y,radius))set.set(chunk.key,chunk);
+  return [...set.values()].slice(0,Math.ceil(limit/INITIAL_FAUNA));
+ }
+ function within(a,b,r=2300){return !!a&&!!b&&Math.hypot(a.x-b.x,a.y-b.y)<=r;}
+ return Object.freeze({WIDTH,HEIGHT,CHUNK,AREA_RATIO,MAX_NEARBY,INITIAL_FAUNA,RESOURCE_COUNT,chunkAt,id,near,generate,active,within,random});
+});
