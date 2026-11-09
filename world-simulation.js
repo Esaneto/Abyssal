@@ -215,6 +215,7 @@ function spawnEnemy(world, options = {}) {
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
     if(world.mode!=='rift')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
+    if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){stats.hp=Math.max(300,Number(stats.hp)*8);stats.speed=Math.max(22,Number(stats.speed)*.5);stats.damage=0;stats.value=Math.max(5,Number(stats.value)*5);}
   }
   if (type === 'boss') {
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
@@ -365,7 +366,11 @@ function updateOceanStreaming(world,players,now){
  world.streamLastAt=now;
  const alive=players.filter(p=>p?.alive!==false);
  if(!alive.length)return [];
- const nearby=OceanStream.active(alive,120,1880),active=new Set(nearby.map(c=>c.key));
+ const radius=Math.max(1900,Math.min(4700,Math.max(...alive.map(p=>{
+  const zoom=clamp(Number(p.worldZoom)||WORLD_ZOOM,.35,1.2);
+  return Math.hypot((Number(p.viewportWidth)||1200)/zoom,(Number(p.viewportHeight)||700)/zoom)*.5+850;
+ }))));
+ const nearby=OceanStream.active(alive,120,radius),active=new Set(nearby.map(c=>c.key));
  world.streamCellIds ||= {};
  // Hibernate distant common wildlife; keep bosses and other authored threats.
  world.enemies=world.enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
@@ -706,7 +711,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let movement;
     if (!riftMode) {
       if(enemy.wildlifeMode){
-        const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now);
+        for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
+        const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,world.enemies);
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
         const swimTarget=ecology.target;
