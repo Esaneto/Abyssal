@@ -3,7 +3,7 @@
  */
 (function(){
  'use strict';
- const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields;
+ const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream;
  if(!config||!research||!fields)return;
  const $=id=>document.getElementById(id);
  const shell=$('gameShell'),canvas=$('game');if(!shell||!canvas)return;
@@ -36,7 +36,7 @@
  function startRun(p){
   runKey=(p.online?'online:':'solo:')+p.mode+':'+Date.now();
   taken=new Set();nodes=[];serverVitals=null;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
-  if(!p.online)nodes=fields.create(runKey,p.mode==='rift'?'rift':'classic',p.worldWidth,p.worldHeight,90);
+  if(!p.online&&p.mode==='rift')nodes=fields.create(runKey,'rift',p.worldWidth,p.worldHeight,70);
   lastScan=0;notify(p.online?'Varredura online iniciada.':'Coleta solo: materiais armazenados neste dispositivo.');
  }
  function scan(p,time){
@@ -140,6 +140,10 @@
    const safe=config.safeDepth(stateLevels().pressureSuit);
    oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
    if(depth>safe||oxygen===0)window.AbyssalGameHooks?.explorationHit?.(delta*((depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0)));
+  }
+  if(!p.online&&p.mode!=='rift'&&time-lastScan>450){
+   lastScan=time;
+   nodes=fields.streamNear(runKey,p.x,p.y,1700,taken);
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
