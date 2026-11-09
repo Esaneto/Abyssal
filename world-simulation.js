@@ -289,7 +289,7 @@ function activateRiftEncounters(world,players,random=Math.random){
   // on entry, and never reveal a new creature directly in the diver's view.
   for(const room of layout.rooms){
     if(room.id==='start'||world.riftActivatedRooms[room.id])continue;
-    const near=(players||[]).some(p=>Math.hypot((Number(p.x)||0)-room.x,(Number(p.y)||0)-room.y)<Math.max(1250,room.ry+650));
+    const near=(players||[]).some(p=>Math.hypot((Number(p.x)||0)-room.x,(Number(p.y)||0)-room.y)<Math.max(1700,room.ry+850));
     if(!near)continue;
     world.riftActivatedRooms[room.id]=true;
     const count=room.id==='boss'?1:RIFT_ROOM_POPULATIONS[room.id]||0;
