@@ -61,3 +61,9 @@ test('shark and boss speeds are set for physical movement',()=>{
  assert.equal(EnemyAI.statsForKind('whiteShark').speed,300);
  assert.equal(EnemyAI.statsForKind('whiteSharkBoss').speed,400);
 });
+
+test('rendering must never overwrite a creature kind when estimating sprite bounds',()=>{
+ const game=src('public/game.js');
+ assert.doesNotMatch(game,/\be\.kind\s*=\s*['"]kraken['"]/);
+ assert.match(game,/\(e\.kind===['"]kraken['"]\?2\.8/);
+});
