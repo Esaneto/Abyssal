@@ -170,3 +170,14 @@
  position:relative!important;top:auto!important;left:auto!important;right:auto!important;bottom:auto!important;
  width:100%!important;height:100%!important;transform:none!important;overflow:hidden!important
 }
+
+/* Bounded 15x ocean chart, above game overlays but below dialogs. */
+#oceanChartButton{position:absolute;z-index:28;top:54px;right:12px;border:1px solid rgba(110,214,221,.5);border-radius:8px;background:rgba(4,26,40,.87);color:#d5faf9;font:700 10px Inter,Arial,sans-serif;letter-spacing:.06em;padding:9px 13px;cursor:pointer}
+#oceanChartButton[hidden],#oceanChartPanel[hidden]{display:none!important}
+#oceanChartPanel{position:absolute;z-index:32;top:99px;right:12px;width:min(480px,calc(100% - 24px));padding:14px;border-radius:15px;background:rgba(4,19,30,.97);border:1px solid rgba(112,204,214,.45);box-shadow:0 12px 42px #000a;color:#ddf6f7}
+#oceanChartPanel header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#oceanChartPanel strong{font:700 13px Inter,Arial,sans-serif;letter-spacing:.09em}
+#oceanChartPanel header button{background:transparent;border:1px solid #3f6973;border-radius:5px;color:#ddf6f7;cursor:pointer;font-size:19px;line-height:1;width:28px;height:28px}
+#oceanChartPanel canvas{width:100%;height:auto;display:block;border:1px solid rgba(100,170,187,.25);border-radius:7px}
+#oceanChartDetails{color:#a9cfd4;font:400 11px/1.4 Inter,Arial,sans-serif;margin:10px 0 2px}
+@media(max-width:700px){#oceanChartButton{top:49px;right:5px;padding:6px 8px;font-size:9px}#oceanChartPanel{top:89px;right:5px;width:calc(100% - 10px);padding:9px}#oceanChartPanel strong{font-size:10px}}
