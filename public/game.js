@@ -1644,6 +1644,10 @@ function activateSoloRiftRoomEncounter(){
  // An entered room takes precedence over distant preloading. This also
  // guarantees the chamber boss exists when the player reaches its center.
  const currentRoom=ABYSSAL_MAP?.roomAt?.(activeMapLayout,player.x,player.y);
+ if(currentRoom?.id==='boss'){
+  const arrivingBoss=enemies.find(e=>BOSS_KINDS.includes(e.kind)&&e.spawnRoomId==='boss'&&e.hp>0);
+  if(arrivingBoss)showBossAlert(arrivingBoss.kind,arrivingBoss.id,bossIndex);
+ }
  if(currentRoom)soloRiftSpawnQueue.sort((a,b)=>Number(b.roomId===currentRoom.id)-Number(a.roomId===currentRoom.id));
  // Spread creation across animation frames instead of creating a whole
  // chamber's sprites/AI on its first visible frame.
