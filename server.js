@@ -2173,7 +2173,7 @@ io.on('connection', socket => {
     if(speed<30||speed>1800)return;
     // Resolve damage at actual impact during the existing 50ms room simulation.
     const allowedRange=294*rangeStrength*rangeMultiplier/WORLD_ZOOM;
-    const maxDistance=shot.modifiers?.abyssEye===true?Math.hypot(roomWorldWidth(room),shotWorldHeight):allowedRange;
+    const maxDistance=shot.modifiers?.abyssEye===true?2000/WORLD_ZOOM:allowedRange;
     const nowShot=Date.now();
     room.pvpProjectiles ||= [];
     PvpProjectiles.enqueue(room.pvpProjectiles,{
