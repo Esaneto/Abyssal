@@ -25,10 +25,11 @@
   if(!entity||!target)return false;
   const dx=target.x-entity.x,dy=target.y-entity.y,d2=dx*dx+dy*dy;
   if(d2>range*range)return false;
+  if(layout&&map?.segmentWalkable&&!map.segmentWalkable(layout,entity.x,entity.y,target.x,target.y,3))return false;
   if(d2<32*32)return true;
   const angle=Number(entity.angle)||0,delta=Math.atan2(Math.sin(Math.atan2(dy,dx)-angle),Math.cos(Math.atan2(dy,dx)-angle));
   if(Math.abs(delta)>halfAngle)return false;
-  return !layout||!map?.segmentWalkable||map.segmentWalkable(layout,entity.x,entity.y,target.x,target.y,3);
+  return true;
  }
  function patrolGoal(enemy,room,seconds=0){
   if(!room)return {x:enemy.x,y:enemy.y};
@@ -46,7 +47,7 @@
    if(d<nearest&&canSee(enemy,p,map,layout)){visible=p;nearest=d;}
   }
   if(visible){enemy.lastSeenX=visible.x;enemy.lastSeenY=visible.y;enemy.lastSeenAt=now;}
-  const provoked=(Number(enemy.provokedUntil)||0)>now||(Number(enemy.hit)||0)>.001;
+  const provoked=(Number(enemy.provokedUntil)||0)>now;
   const endangered=(Number(enemy.hp)||0)<Math.max(1,Number(enemy.maxHp)||1)*.45;
   const flee=mode==='smart'&&visible&&(endangered||nearest<125||Number(enemy.hp)<Number(visible.hp||100)*.6);
   const chase=visible&&(mode==='aggressive'||provoked||mode==='smart'&&!flee);
