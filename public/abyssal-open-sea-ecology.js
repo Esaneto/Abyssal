@@ -31,6 +31,11 @@
  }
  function speciesAt(x,y,random=Math.random){
   const zone=habitatAt(x,y);
+  // Rare, non-hostile ocean giants. Existing oarfish and siphonophore
+  // silhouettes provide distinct anatomy without introducing new assets.
+  const roll=clamp(Number(random())||0,0,.999999);
+  if(zone.depthBand==='deep'&&roll<.012)return 'leviathan';
+  if(zone.depthBand!=='shelf'&&roll<.035)return 'siphonophore';
   const fauna=zone.depthBand==='deep'?['seapig','whiplash','bigfin','angler','viperfish','blackdragon','yeticrab']:
    zone.depthBand==='twilight'?['nautilus','goblin','frilled','bigfin','viperfish','spidercrab']:
    zone.fauna;
