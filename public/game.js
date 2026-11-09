@@ -3838,7 +3838,10 @@ let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
 function drawRiftShopSpecimen(enemy,skin,time){
  if(riftSpecimenSpriteFrame!==time){riftSpecimenSpriteFrame=time;riftSpecimenSpritePaints=0;}
  const radius=CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
- const bucket=Math.max(4,Math.round(radius*2)/2);
+ // Render very large real-life silhouettes from a capped sprite and scale the
+ // composited image. Never allocate a multi-megapixel canvas per giant specimen.
+ const bucket=Math.max(4,Math.min(80,Math.round(radius*2)/2));
+ const renderScale=radius/bucket;
  const side=Math.min(640,Math.ceil(bucket*8));
  const key=skin.id+'|'+bucket;
  let sprite=riftSpecimenSpriteCache.get(key);
@@ -3855,8 +3858,9 @@ function drawRiftShopSpecimen(enemy,skin,time){
   sprite.lastPaint=time;riftSpecimenSpritePaints++;
  }
  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
+ ctx.scale(renderScale,renderScale);
  ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
- if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,radius*.65,0,Math.PI*2);ctx.fill();}
+ if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,bucket*.65,0,Math.PI*2);ctx.fill();}
  ctx.restore();
 }
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender){
