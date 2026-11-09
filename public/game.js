@@ -2971,6 +2971,12 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const ec=RIFT_WILDLIFE.decide(e,[player],{map:ABYSSAL_MAP,layout:activeMapLayout,room:home,now:performance.now(),seconds:elapsed,family:SPECIMEN_SYSTEM?.familyFor?.(e.specimenSkinId)});
     e.riftWantsAttack=ec.mode==='attack';
     e.alerted=ec.alert;
+    if(!e.riftWantsAttack&&(ec.mode==='patrol'||ec.mode==='alert')&&
+       Math.hypot(player.x-e.x,player.y-e.y)<=player.r+e.r+8/GAME_WORLD_ZOOM){
+      e.provokedUntil=performance.now()+4800;
+      e.riftWantsAttack=true;
+    }
+    soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):4;
     if(!e.riftWantsAttack){soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}
    }
    if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&e.riftWantsAttack){const playerRoom=ABYSSAL_MAP.roomAt(activeMapLayout,player.x,player.y);{const nav=ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,player.x,player.y,{padding:Math.max(8,Math.min(38,e.r*.58)),includePortal:false});if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.skinId=equippedSkin;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}}}
