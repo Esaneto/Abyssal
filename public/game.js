@@ -603,17 +603,28 @@ function showEndOfRun(coinsEarned) {
 }
 
 updateNotifBadge();
-// Competitive camera: every platform renders the same world AREA.
-// 1366x768 at the legacy .78 zoom is the reference. Portrait/landscape change shape, not information volume.
+// Zoom is centered on the diver. Olho Profundo increases visible world area
+// and real projectile range while leaving the canvas and HUD unchanged.
 const FAIR_VIEW_REFERENCE=Object.freeze({width:1366,height:768,zoom:.78});
 const FAIR_VIEW_WORLD_AREA=(FAIR_VIEW_REFERENCE.width*FAIR_VIEW_REFERENCE.height)/(FAIR_VIEW_REFERENCE.zoom*FAIR_VIEW_REFERENCE.zoom);
+const CAMERA_RANGE_MAX=Math.pow(1.22,3);
+let cameraZoomTickAt=0;
 function desiredWorldZoom(){
- // Fixed world scale: resizing or entering fullscreen never stretches, shrinks or zooms gameplay.
- // Every additional viewport pixel becomes additional field of view.
- return mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
+ const base=mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
+ // Fusing Olho do Abismo consumes range upgrades, but preserves full sight.
+ const bonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:Number(upgrades?.range)||1;
+ return base/clamp(bonus,1,CAMERA_RANGE_MAX);
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
+ const now=performance.now();
+ if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){
+  const target=desiredWorldZoom();
+  const dt=cameraZoomTickAt?clamp((now-cameraZoomTickAt)/1000,0,.10):0;
+  worldZoom+=(target-worldZoom)*(1-Math.exp(-dt*11));
+  if(Math.abs(target-worldZoom)<.0001)worldZoom=target;
+ }
+ cameraZoomTickAt=now;
  if(!player){cameraX=0;cameraY=0;return;}
  const visibleWorldW=viewW/worldZoom,visibleWorldH=viewH/worldZoom;
  cameraX=clamp(player.x-visibleWorldW*.5,0,Math.max(0,W-visibleWorldW));
@@ -1238,7 +1249,7 @@ const upgradeList=[
  {id:'power',name:'Pulso intenso',icon:'✧',desc:'Amplifica o núcleo ofensivo: +50% de dano dos disparos por nível. O brilho de impacto fica mais intenso conforme a potência cresce.',apply:()=>upgrades.power*=1.5},
  {id:'rate',name:'Ressonância veloz',icon:'⟡',desc:'Acelera a cadência em 28% por nível. A pulsação ao redor do núcleo acompanha o ritmo de disparo.',apply:()=>upgrades.rate*=1.28},
  {id:'speed',name:'Propulsão abissal',icon:'➤',desc:'Aumenta a velocidade de movimento em 18% por nível e reforça o rastro hidrodinâmico.',apply:()=>upgrades.speed*=1.18},
- {id:'range',name:'Olho profundo',icon:'◎',desc:'Expande o alcance dos disparos em 22% por nível. O limite de aquisição fica visualmente mais definido.',apply:()=>upgrades.range*=1.22},
+ {id:'range',name:'Olho profundo',icon:'◎',desc:'Afasta a câmera e amplia a visão e o alcance dos disparos em 22% por nível, até o nível 3.',apply:()=>upgrades.range*=1.22},
  {id:'magnet',name:'Afinidade abissal',icon:'⌁',desc:'Aumenta em 8% por nível a experiência recebida automaticamente.',apply:()=>upgrades.magnet*=1.08},
  {id:'regen',name:'Membrana viva',icon:'✚',desc:'Regenera vida gradualmente. Cada nível aumenta a frequência efetiva da recuperação e produz um pulso orgânico verde ao curar.',apply:()=>upgrades.regen+=1},
  {id:'shield',name:'Escudo espectral',icon:'◉',desc:'Adiciona uma carga de escudo, até 3. Cada carga bloqueia um dano e aparece como uma camada espectral ao redor do corpo.',apply:()=>upgrades.shield=Math.min(3,upgrades.shield+1)},
@@ -2137,7 +2148,7 @@ function fire(){
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
- for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM),y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM),vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:1.33,travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
+ for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM),y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM),vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -2152,7 +2163,7 @@ function emitPrismaticNovaShards(novaDamage,sharedVolleyId){
   const {x,y}=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*13/GAME_WORLD_ZOOM,y:player.y+Math.sin(a)*13/GAME_WORLD_ZOOM};
   const vx=Math.cos(a)*speed,vy=Math.sin(a)*speed;
   const modifiers={ricochet:Math.max(0,Number(upgrades.ricochet)||0)};
-  projectiles.push({x,y,vx,vy,r:radius,life:1.33,travelled:0,maxDistance:reach,damage,pierceRemaining:0,hitIds:[],special:'prismShard',color:'#b9a6ff',modifiers});
+  projectiles.push({x,y,vx,vy,r:radius,life:Math.max(1.33,reach/Math.max(1,speed)+.12),travelled:0,maxDistance:reach,damage,pierceRemaining:0,hitIds:[],special:'prismShard',color:'#b9a6ff',modifiers});
   if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:x/W,y:y/H,vx:vx/W,vy:vy/H,damage,color:'#b9a6ff',special:'prismShard',modifiers,volleyId});
  }
 }
@@ -3737,7 +3748,7 @@ function draw(t){
  if(hostileSpritePaintFrame!==t){hostileSpritePaintFrame=t;hostileSpritePaintsThisFrame=0;}
  // Only the current ocean menu owns menu rendering; do not paint the old canvas background.
  if(gameState==='menu')return;
- ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);updateCamera();ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);
+ updateCamera();ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);
  if(!activeMapLayout)drawArenaTerrain(t);
  drawExperienceOrbs(t);
  if(activeMapLayout&&RIFT_HARDCORE){const nightmareAliveForRender=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&enemies.some(enemy=>enemy.kind===RIFT_HARDCORE.FINAL_KIND&&enemy.hp>0);const visibleHazards=nightmareAliveForRender?activeRiftHazards:activeRiftHazards.filter(h=>h.type!=='tentacle');RIFT_HARDCORE.draw(ctx,visibleHazards,elapsed,{x:cameraX,y:cameraY,w:viewW/worldZoom,h:viewH/worldZoom});
@@ -4663,7 +4674,7 @@ function renderCatalog(){
   devourer:{name:'Lula-Colossal do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Lula-colossal fictícia cujo manto gera um pulso de sucção capaz de inverter correntes locais.'}
  };
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
- const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Amplia o alcance dos tiros e das ondas.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Aumenta a experiência recebida em 8% por nível.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',spread:'Passiva prismática que espalha dano entre alvos próximos sem alterar o disparo escolhido.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
+ const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Afasta a câmera, amplia a visão e o alcance dos tiros e das ondas em 22% por nível.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Aumenta a experiência recebida em 8% por nível.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',spread:'Passiva prismática que espalha dano entre alvos próximos sem alterar o disparo escolhido.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
 
  const renderMonster=([k,m])=>{
   const known=codex.monsters.includes(k);
