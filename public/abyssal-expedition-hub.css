@@ -99,3 +99,32 @@
  #menuScreen.expedition-hub .expedition-ocean-caption p{font-size:10px}
  #menuScreen.expedition-hub .expedition-left-panel p{font-size:10px}
 }
+
+.expedition-submarine-modal:not([hidden]){
+ position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
+ background:rgba(0,5,11,.78);backdrop-filter:blur(8px);padding:20px;overflow-y:auto
+}
+.expedition-submarine-card{
+ width:min(690px,100%);max-height:90vh;overflow-y:auto;border-radius:19px;
+ border:1px solid rgba(122,198,211,.34);background:linear-gradient(140deg,#0d2b3d,#04111d);
+ box-shadow:0 24px 70px #000a;padding:clamp(18px,4vw,32px);color:#d8edf2
+}
+.expedition-submarine-card header{display:flex;align-items:center;justify-content:space-between}
+.expedition-submarine-card header button{
+ background:transparent;color:#d8edf2;border:1px solid #63818d;border-radius:8px;
+ width:32px;height:32px;font-size:22px;cursor:pointer
+}
+.expedition-submarine-card h2{font:700 23px Cinzel,Georgia,serif;letter-spacing:.1em;margin:14px 0 8px}
+.expedition-submarine-card p{font:400 13px/1.6 Inter,Arial,sans-serif;color:#a9c6d0}
+.expedition-base-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0}
+.expedition-base-grid button{
+ cursor:pointer;border:1px solid rgba(85,176,193,.45);border-radius:12px;
+ text-align:left;background:rgba(37,88,106,.15);color:#e7f5f9;padding:16px
+}
+.expedition-base-grid button strong{display:block;font:700 12px/1.4 Inter,Arial,sans-serif}
+.expedition-base-grid button small{display:block;margin-top:8px;color:#a4c4ce;font:400 11px/1.5 Inter,Arial,sans-serif}
+.expedition-research-index{border-top:1px solid #33566a;padding-top:14px}
+.expedition-research-index h3{font:700 14px Inter,Arial,sans-serif;letter-spacing:.08em}
+.expedition-research-index ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0;padding:0;list-style:none}
+.expedition-research-index li{padding:10px;border-radius:7px;border:1px solid #21445a;font:400 12px/1.4 Inter,Arial,sans-serif;color:#c6dce3}
+@media(max-width:650px){.expedition-base-grid{grid-template-columns:1fr}.expedition-research-index ul{grid-template-columns:1fr}}
