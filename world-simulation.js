@@ -193,6 +193,13 @@ function spawnEnemy(world, options = {}) {
     }
   }
 
+  // Keep species physiology coherent with combat movement classes.
+  // Passive turtles and rays must never inherit a random shark dash.
+  const openSeaSkin=world.mode!=='rift'&&type!=='boss'?OpenSeaEcology.speciesAt(point.x,point.y,random):null;
+  if(openSeaSkin){
+   const nature=OpenSeaEcology.temperament(openSeaSkin);
+   kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
+  }
   let stats = EnemyAI.statsForKind(kind);
   let eliteId = null;
   if (type !== 'boss' && !initial) {
@@ -229,7 +236,7 @@ function spawnEnemy(world, options = {}) {
   stats.value = Math.max(1, Math.round((Number(stats.value) || 1) * rewardMultiplier));
 
   const id = ++world.nextEnemyId;
-  const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):OpenSeaEcology.speciesAt(point.x,point.y,random);
+  const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):openSeaSkin;
   if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
   const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
   const enemy = {
