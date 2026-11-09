@@ -55,8 +55,8 @@ test('Main menu does not mount legacy audio modules or volume controls',()=>{
  const path=require('node:path');
  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
- assert.doesNotMatch(html,/src="(?:world-audio|skill-audio)\\.js/);
+ assert.doesNotMatch(html,/src="(?:world-audio|skill-audio)\.js/);
  assert.doesNotMatch(html,/id="soundBtn"/);
- assert.match(game,/if\\(gameState==='menu'\\)return;/);
- assert.doesNotMatch(game,/new \\(window\\.AudioContext/);
+ assert.match(game,/if\(gameState==='menu'\)return;/);
+ assert.doesNotMatch(game,/new \(window\.AudioContext/);
 });
