@@ -3,9 +3,10 @@
  * No global array of the full ocean is ever allocated. UMD for Node + browser.
  */
 (function(root,factory){
- const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;
+ const geo=typeof module==='object'&&module.exports?require('./abyssal-ocean-geography.js'):root.AbyssalOceanGeography;
+ const api=factory(geo);if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalOceanStream=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
  const WIDTH=24000,HEIGHT=9000,CHUNK=1200,AREA_RATIO=15;
  const MAX_NEARBY=110,INITIAL_FAUNA=3,RESOURCE_COUNT=5;
@@ -32,14 +33,29 @@
   // Reject invalid coordinates instead of synthesizing off-map entities.
   if(!Number.isInteger(cx)||!Number.isInteger(cy)||cx<0||cy<0||cellWidth===0||cellHeight===0)return {key:id(cx,cy),animals,resources};
   const position=(margin,span)=>Math.min(span,margin)+next()*Math.max(0,span-2*margin);
+  function randomWater(padding=30){
+   // Bounded, deterministic rejection sampling. Fully solid sectors stay empty.
+   for(let tries=0;tries<26;tries++){
+    const x=x0+position(65,cellWidth),y=y0+position(65,cellHeight);
+    if(!geo||!geo.isSolid(x,y,padding))return {x,y};
+   }
+   return null;
+  }
   for(let i=0;i<INITIAL_FAUNA;i++){
-   const x=x0+position(140,cellWidth),y=y0+position(140,cellHeight);
-   const species=ecology?.speciesAt?.(x,y,next)||'seapig';
+   const point=randomWater(62);if(!point)break;
+   const {x,y}=point,species=ecology?.speciesAt?.(x,y,next)||'seapig';
    animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId:id(cx,cy)+':s'+Math.floor(i/2)});
   }
   for(let i=0;i<RESOURCE_COUNT;i++){
-   const x=x0+position(70,cellWidth),y=y0+position(70,cellHeight);
-   const zone=ecology?.habitatAt?.(x,y);
+   let point=null;
+   // Mineral and coral deposits visually follow the solid seabed, not open sky.
+   if(geo&&next()<.72){
+    const x=x0+position(70,cellWidth),y=geo.floorAt(x)-32-next()*36;
+    if(y>=y0+20&&y<y0+cellHeight-15&&!geo.isSolid(x,y,16))point={x,y};
+   }
+   if(!point)point=randomWater(18);
+   if(!point)break;
+   const {x,y}=point,zone=ecology?.habitatAt?.(x,y);
    const types=zone?.resources||['seaMineral'];
    resources.push({id:id(cx,cy)+':r'+i,type:types[Math.floor(next()*types.length)],x:Math.round(x),y:Math.round(y),amount:1+Math.floor(next()*3),habitat:zone?.id||null});
   }
