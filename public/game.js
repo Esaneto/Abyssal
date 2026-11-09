@@ -1452,7 +1452,8 @@ function updateSoloOceanChunks(force=false){
  if(!player||onlineMode||requestedRunMode==='rift'||!OCEAN_STREAM||!OPEN_SEA_ECOLOGY)return;
  const now=performance.now();if(!force&&now-soloOceanLastUpdate<330)return;
  soloOceanLastUpdate=now;
- const nearby=OCEAN_STREAM.active([player],90,1880),active=new Set(nearby.map(c=>c.key));
+ const radius=clamp(Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+850,1880,4700);
+ const nearby=OCEAN_STREAM.active([player],90,radius),active=new Set(nearby.map(c=>c.key));
  enemies=enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
  const have=new Set(enemies.map(e=>e.streamId).filter(Boolean));
  let budget=Math.min(force?18:6,Math.max(0,90-enemies.length));
@@ -1510,6 +1511,7 @@ function spawnEnemy(initial=false,type='common',options={}){
   const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
   data={...data,damage:Math.max(1,Math.round(Number(data.damage||1)*physicalScale)),speed:Number(data.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(data.hp||1)*hpScale))};
   if(requestedRunMode!=='rift')data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
+   if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){data.hp=Math.max(300,Number(data.hp)*8);data.speed=Math.max(22,Number(data.speed)*.5);data.damage=0;data.value=Math.max(5,Number(data.value)*5);}
  }
  if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
  if(eliteId&&map&&!options.roomId&&!isBossType){
@@ -2860,7 +2862,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];
    if(!activeMapLayout&&e.wildlifeMode&&OPEN_SEA_ECOLOGY){
-     const ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,performance.now());
+     if(Math.hypot(e.x-player.x,e.y-player.y)<=e.r+player.r+8/GAME_WORLD_ZOOM)e.provokedUntil=performance.now()+4000;
+     const ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,performance.now(),enemies);
      e.openSeaWantsAttack=ec.aggressive;
      soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
      soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;
