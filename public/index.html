@@ -91,6 +91,7 @@
     </div>
     <div id="mobileMoveStick" class="mobile-dual-stick move-stick" aria-label="Joystick fixo de movimentação"><div class="joystick-base"><span class="joystick-knob"></span></div><small>MOVER</small></div>
     <div id="mobileAimStick" class="mobile-dual-stick aim-stick" aria-label="Joystick fixo de mira"><div class="joystick-base"><span class="joystick-knob"></span></div><small>MIRAR</small></div>
+    <button id="mobileFireBtn" class="abyss-mobile-fire" type="button" aria-label="Disparar munição" title="Disparar" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="18" y="7" width="12" height="27" rx="3" fill="#f7e4c6"/><path d="M18 14 V9 Q24 -1 30 9 V14 Z" fill="#c3b194"/><rect x="18" y="29" width="12" height="8" rx="1" fill="#a57940"/><rect x="18" y="36" width="12" height="4" rx="1" fill="#e7c075"/></svg></button>
 
     <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
 
@@ -179,7 +180,7 @@
       </div>
     </div>
 
-    <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD para mover + mouse para mirar e atirar continuamente</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick esquerdo para mover + direito para mirar/atirar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
+    <section id="controlsScreen" class="screen modal-screen" hidden><div class="modal-card compact-card controls-card" role="dialog" aria-modal="true" aria-labelledby="controlsTitle"><div class="eyebrow"><span class="pulse-dot"></span> PERSONALIZE SUA EXPEDIÇÃO</div><h2 id="controlsTitle">CONTROLES</h2><p>Escolha um único tipo de controle por plataforma. A preferência fica salva neste dispositivo.</p><h3>PC</h3><button type="button" class="secondary-btn control-choice" data-control-pc="classic" aria-pressed="false">Controle atual — clicar/segurar para mover</button><button type="button" class="secondary-btn control-choice" data-control-pc="wasd-aim" aria-pressed="false">WASD + mouse para mirar · clique para disparar, segure para repetir</button><h3>Mobile</h3><button type="button" class="secondary-btn control-choice" data-control-mobile="classic" aria-pressed="false">Controles atuais — toque e arraste</button><button type="button" class="secondary-btn control-choice" data-control-mobile="dual-stick" aria-pressed="false">Joystick para mirar + botão de munição para disparar</button><button id="controlsCloseBtn" class="primary-btn" type="button">SALVAR E VOLTAR</button></div></section>
     <section id="upgradeScreen" class="screen modal-screen" hidden>
       <div class="modal-card">
         <div class="eyebrow"><span class="pulse-dot"></span> EVOLUÇÃO DESBLOQUEADA</div>
@@ -582,7 +583,8 @@
 <script src="specimen-system.js?v=2026.11.8.2"></script>
 <script src="skin-abilities.js?v=2026.11.7.35"></script>
 <script src="enemy-ai.js?v=3.7.2"></script>
-<script src="creature-scale.js?v=2026.11.9.2"></script>
+<script src="creature-scale.js?v=2026.11.9.3"></script>
+<script src="rift-wildlife.js?v=2026.11.9.1"></script>
 <script src="sea-progression.js?v=2026.11.7.1"></script>
 <script src="abyssal-expedition-rules.js?v=2"></script>
 <script src="abyssal-map.js?v=2026.11.7.5"></script>
@@ -600,7 +602,7 @@
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.8.1"></script>
  <script src="specimen-rarity.js?v=2026.11.8.1"></script>
- <script src="game.js?v=2026.11.9.2"></script>
+ <script src="game.js?v=2026.11.9.3"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.8.17"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
