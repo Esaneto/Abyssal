@@ -1931,7 +1931,7 @@ io.on('connection', socket => {
   socket.emit('player-vitals', playerVitalsPayload(p, { reason: 'resync', serverTime: Date.now() }));
  });
  socket.on('player-hit', payload => {const room=socketRoom(socket);if(!room||!payload||room.players.get(socket.id)?.tutorialActive)return;const x=Number(payload.x),y=Number(payload.y),damage=Number(payload.damage);if(![x,y,damage].every(Number.isFinite)||x<0||x>1||y<0||y>1||damage<0||damage>1000)return;socket.to(channelFor(room)).emit('remote-hit',{x,y,damage,from:socket.data.nickname});});
- socket.on('request-world-snapshot',(payload={})=>{const room=socketRoom(socket);if(!room||!socket.data.joined)return;
+ socket.on('request-world-snapshot',(payload={})=>{const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!socket.data.joined)return;
   // Resuming a minimized tab may request a snapshot after server-side death. That must
   // not silently create a new horde or restart the clock; only join/begin-run initializes.
   if(!hasLivingPlayers(room)){const emptySnapshot=getRoomSnapshot(room,{criticalReason:'empty-world'});if(emptySnapshot){emptySnapshot.enemies=[];emptySnapshot.orbs=[];}socket.emit('game-snapshot',emptySnapshot);return;}
