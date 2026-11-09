@@ -48,6 +48,16 @@
   }
   if(visible){enemy.lastSeenX=visible.x;enemy.lastSeenY=visible.y;enemy.lastSeenAt=now;}
   const provoked=(Number(enemy.provokedUntil)||0)>now;
+  // Retaliation may turn around to face an aggressor, but cannot see through walls.
+  if(provoked&&!visible){
+    for(const p of players||[]){
+      if(!p||p.alive===false)continue;
+      const d=Math.hypot(p.x-enemy.x,p.y-enemy.y);
+      if(d<620&&d<nearest&&(!layout||!map?.segmentWalkable||map.segmentWalkable(layout,enemy.x,enemy.y,p.x,p.y,3))){
+        visible=p;nearest=d;
+      }
+    }
+  }
   const endangered=(Number(enemy.hp)||0)<Math.max(1,Number(enemy.maxHp)||1)*.45;
   const flee=mode==='smart'&&visible&&(endangered||nearest<125||Number(enemy.hp)<Number(visible.hp||100)*.6);
   const chase=visible&&(mode==='aggressive'||provoked||mode==='smart'&&!flee);
