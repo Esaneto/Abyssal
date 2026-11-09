@@ -104,3 +104,63 @@ contas, PostgreSQL, Stripe, moedas, skins ou o PvP. Documento-fonte do usuário:
 4. Criar streaming de mapa e landmarks interativos sem aumentar o lag.
 5. Completar biologia da fauna (cardumes/predadores/gigantes), sonar e oficina.
 6. Medir FPS, CPU, perda de pacotes e reconexões em salas cooperativas.
+
+## Ampliação do Mar Aberto: 15x (2026-11-09)
+
+**Implementação enviada à main:**
+- Mar Aberto: largura **24000**, altura **9000**, área **216.000.000**
+  contra antiga **4800 × 3000 = 14.400.000**. Área 15 vezes maior.
+  Arena PvP e mapa fechado das Fossas mantêm dimensões independentes.
+- `public/abyssal-ocean-stream.js` define células de **1200 × 1200**.
+  Usa seed de mundo + índice de setor para reproduzir fauna/recursos
+  somente ao visitar vizinhança, sem gerar antecipadamente o oceano inteiro.
+- `world-simulation.js` recria no servidor apenas os setores dentro do
+  orçamento de interesse dos mergulhadores; tem orçamento de até 6 novas
+  entidades por ciclo de streaming e limite de população ativa, não
+  proporcional ao tamanho total do mapa.
+- Coop com mergulhadores distantes: alocação round-robin de setores para
+  impedir que a posição de um participante consuma todo o orçamento.
+- `server.js`: snapshots AOI por jogador, atualização de área a cada
+  aproximadamente 1,6 segundos e movimento compacto próximo da câmera,
+  com raio calculado por zoom e dimensões reais do viewport.
+- Spawn no Mar Aberto perto da superfície, boss perto de um mergulhador.
+  Fotos e recursos são visuais e lógicos por habitat; PvP não muda.
+- `abyssal-open-sea-ecology.js`: ecossistemas renovados em 5×3 províncias,
+  espécies por zona e comportamento. Agrupamento e rotas de cardume por
+  identificador, forrageamento aproximado, evasão de predadores, fuga,
+  territorialidade e resposta ao contato/ataque. Peixe-remo e sifonóforo
+  raros e pacíficos, reutilizando espécies já desenhadas no jogo.
+- `abyssal-resource-fields.js`: depósitos locais reproduzíveis; mesmo
+  algoritmo para cliente e servidor, com posições verificadas pelo servidor
+  em salas cooperativas.
+- `abyssal-open-sea-render.js`: cenário somente das províncias interceptadas
+  pela câmera.
+- `abyssal-navigation-chart.js`: carta dos setores explorados (M),
+  biomas e posição no Mar Aberto; radar próximo das Fossas.
+- `tests/ocean-streaming.test.js`: contratos de área, AOI, geração
+  determinística, fauna e coleta de recursos.
+
+**Limitações e regras de manutenção:**
+1. As entidades hibernam/desaparecem quando saem dos setores ativos; o
+   retorno pode regenerar animais da mesma espécie, pois ainda não existe
+   estado individual duradouro para cada animal do mundo inteiro.
+2. Sementes e coleta persistentes do modo Solo offline continuam locais.
+   Não confiar em créditos solo autodeclarados para perfis online.
+3. As províncias recriam habitats de forma procedural estilizada. A
+   profundidade do HUD é uma escala **de gameplay**, não corresponde
+   literalmente às faixas oceanográficas reais de 200, 1000 e 4000 m.
+4. Ainda faltam cavernas abertas completamente jogáveis, alimentação entre
+   animais com ciclo de vida, migrações globais persistentes, verdadeiros
+   grupos de baleias e oficinas/equipamentos de maior profundidade.
+5. **NÃO VALIDADO EM PARTIDA REAL:** Android, PC, Render, 60 FPS, consumo
+   de memória, reconexão cooperativa sob carga ou `npm test` completo.
+   A validação JS estática e os testes puros não substituem essa etapa.
+6. Qualquer nova entidade deve entrar pela função de geração por setor e
+   ser filtrada por área de interesse na rede. Não aumentar o array
+   `world.enemies` proporcionalmente à dimensão do mapa.
+
+**Referências de pesquisa:**
+- NOAA ocean zones: https://oceanexplorer.noaa.gov/ocean-fact/light-distributed/
+- NOAA kelp ecology: https://oceanservice.noaa.gov/facts/kelp.html
+- WHOI siphonophores: https://www.whoi.edu/ocean-learning-hub/ocean-facts/siphonophore/
+- Network area-of-interest model: https://gdcs.coody.app/networking/scaling/interest-management
