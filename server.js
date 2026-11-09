@@ -359,6 +359,7 @@ const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
 const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
 function roomWorldWidth(room){return room?.mode==='coop'?OceanStream.WIDTH:WORLD_WIDTH;}
+function roomAoiRadius(p){const zoom=clamp(Number(p?.worldZoom)||WORLD_ZOOM,.35,1.2);return clamp(Math.hypot(windowWidthSafe(p?.viewportWidth,1200)/zoom,windowWidthSafe(p?.viewportHeight,700)/zoom)*.5+850,2100,5000);}
 function roomWorldHeight(room){return room?.mode==='rift'?(Number(WorldSimulation.mapLayoutFor(room.world)?.height)||WORLD_HEIGHT):room?.mode==='coop'?OceanStream.HEIGHT:WORLD_HEIGHT;}
 function pvpArenaRocks(){
  const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
@@ -681,7 +682,7 @@ function getRoomSnapshot(room, metadata = {}, recipient=null){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>room.mode!=='coop'||!recipient||OceanStream.within(e,recipient,2600)).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>room.mode!=='coop'||!recipient||OceanStream.within(o,recipient,2600)).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>room.mode!=='coop'||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>room.mode!=='coop'||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -1367,7 +1368,7 @@ function tickRoom(room, now) {
   w.reliableSnapshotTimer=30;
  }else if(spawnedEnemies.length>0){
   const spawnFrame=getRoomSpawnSnapshot(room,spawnedEnemies);
-  if(spawnFrame){if(room.mode==='coop')for(const recipient of room.players.values()){const local=spawnFrame.enemies.filter(e=>OceanStream.within(e,recipient,2600));if(local.length)io.to(recipient.id).emit('world-enemies-spawned',{...spawnFrame,enemies:local,criticalEnemyIds:local.map(e=>String(e.id))});}else io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);}
+  if(spawnFrame){if(room.mode==='coop')for(const recipient of room.players.values()){const local=spawnFrame.enemies.filter(e=>OceanStream.within(e,recipient,roomAoiRadius(recipient)));if(local.length)io.to(recipient.id).emit('world-enemies-spawned',{...spawnFrame,enemies:local,criticalEnemyIds:local.map(e=>String(e.id))});}else io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);}
  }
  if(result.sendSnapshot){
   for(const recipient of activePlayers){
