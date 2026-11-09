@@ -19,6 +19,11 @@
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  const notify=message=>{const node=$('explorationGatherStatus');if(node)node.textContent=message;};
  window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;renderResearch();});
+ window.addEventListener('abyssal-specimen-discovery-request',event=>{
+  const p=cfg();if(!p||p.online)return;
+  localInventory.bioSample=Math.min(1000000,(localInventory.bioSample||0)+1);
+  saveLocal();notify('Espécie registrada: +1 amostra biológica (solo local).');
+ });
  window.addEventListener('abyssal-companion-sonar',()=>{lastScan=0;const nearby=nodes.length;notify('Sonar do espécime ativado: '+nearby+' depósitos no radar.');});
  window.addEventListener('abyssal-resource-collected',ev=>{if(ev.detail?.id!=null){taken.add(String(ev.detail.id));nodes=nodes.filter(n=>n.id!==String(ev.detail.id));}});
  window.addEventListener('exploration-vitals',ev=>{serverVitals=ev.detail||null;});
