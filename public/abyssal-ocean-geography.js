@@ -74,6 +74,14 @@
    if(y+ry<bottom+400&&y-ry>250)
     EXTRA_ROCKS.push([x,y,145+rockRandom(index+97)*65,ry,'spire']);
   }
+  // Narrow seamount pillars connect the deep floor to the midwater canyons.
+  // They preserve the clear surface route and alternate navigable passages.
+  const MIDWATER_PILLARS=[[8200,2000,135],[9300,2400,135],[11200,6000,120],[14500,5700,130]];
+  for(const [x,apex,rx] of MIDWATER_PILLARS){
+   const bed=floorAt(x);if(bed<apex+500)continue;
+   const ry=(bed-apex)/2;
+   EXTRA_ROCKS.push([x,apex+ry,rx,ry,'spire']);
+  }
   const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
