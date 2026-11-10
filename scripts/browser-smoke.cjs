@@ -106,11 +106,11 @@ const injected=`<script>
    setTimeout(openSeaInventory,2200);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
    if(new URLSearchParams(location.search).get('stage')==='cockpit'){
-    setTimeout(()=>document.getElementById('submarineWorkshopBtn')?.click(),1450);
+    setTimeout(()=>document.getElementById('submarineWorkshopBtn')?.click(),2900);
     setTimeout(()=>{
      try{
       const box=document.getElementById('submarineWorkshop');
-      if(!box||box.hidden)throw Error('Hatch did not open cockpit');
+      if(!box||box.hidden)throw Error('Hatch did not open cockpit '+JSON.stringify({menuHidden:document.getElementById('menuScreen')?.hidden,btn:Boolean(document.getElementById('submarineWorkshopBtn')),body:document.body.className,guideHidden:document.getElementById('abyssalGuide')?.hidden}));
       const canvas=document.getElementById('abyssCockpitCanvas');
       if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
       const keys=[...box.querySelectorAll('.abyss-control-key')];
@@ -132,7 +132,7 @@ const injected=`<script>
       document.body.dataset.cockpitStatus='error';
       document.body.dataset.cockpitError=String(error).slice(0,160);
      }
-    },4000);
+    },6200);
    }
  });
 })();
@@ -333,7 +333,7 @@ async function main(){
   for(const [label,w,h] of [['cockpit-desktop',1280,720],['cockpit-mobile',390,844]]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
-    '--force-device-scale-factor=1','--virtual-time-budget=7800'];
+    '--force-device-scale-factor=1','--virtual-time-budget=11000'];
    const cockpitURL=url+'?stage=cockpit';
    const dom=await run(browser,[...flags,'--dump-dom',cockpitURL]);
    const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
