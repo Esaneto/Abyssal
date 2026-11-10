@@ -118,6 +118,7 @@
   return [{ax:a.x,ay:a.y,bx:a.x+dir*470,by:a.y+170,r:118},
           {ax:b.x,ay:b.y,bx:b.x-dir*390,by:b.y+250,r:112}].map(t=>Object.freeze(t));
  }));
+ const ALL_TUNNELS=Object.freeze([...ARCH_TUNNELS,...BRANCH_TUNNELS]);
  function caveRadiusAt(a,b,t,r){
   // A narrow geological irregularity shared by navigable tunnel collision and paint.
   const seed=(a.x+b.x)*.0017+(a.y+b.y)*.0009;
@@ -139,7 +140,7 @@
     if(capsuleSigned(x,y,a.x,a.y,b.x,b.y,r)<0)return true;
    }
   }
-  for(const tunnel of [...ARCH_TUNNELS,...BRANCH_TUNNELS]
+  for(const tunnel of ALL_TUNNELS)
    if(Math.abs(y-tunnel.ay)<160&&x>Math.min(tunnel.ax,tunnel.bx)-140&&x<Math.max(tunnel.ax,tunnel.bx)+140
     &&capsuleSigned(x,y,tunnel.ax,tunnel.ay,tunnel.bx,tunnel.by,tunnel.r-padding)<0)return true;
   return false;
