@@ -151,11 +151,53 @@
   const c=markers.getContext('2d');c.clearRect(0,0,w,h);
   const zoom=window.AbyssalGameHooks?.worldZoom?.()||.78;
   const originX=Math.max(0,Math.min(p.worldWidth-w/zoom,p.x-w/(2*zoom))),originY=Math.max(0,Math.min(p.worldHeight-h/zoom,p.y-h/(2*zoom)));
+  const t=performance.now()/1000;
   for(const node of nodes){
    const x=(node.x-originX)*zoom,y=(node.y-originY)*zoom;
-   if(x<0||y<0||x>w||y>h)continue;
-   c.strokeStyle=node.id===near?.id?'#e6f4ab':'#6be0da';c.lineWidth=2;c.beginPath();c.arc(x,y,8,0,Math.PI*2);c.stroke();
-   c.fillStyle='#e7fcfd';c.font='10px Inter,sans-serif';c.fillText(config.RESOURCES[node.type]?.name||node.type,x+12,y-5);
+   if(x< -80||y< -100||x>w+80||y>h+80)continue;
+   const type=node.type,oil=type==='oilSeep',gas=type==='gasSeep',seep=oil||gas;
+   const selected=node.id===near?.id;
+   const scale=Math.max(.58,Math.min(1.24,zoom*1.18));
+   c.save();c.translate(x,y);c.scale(scale,scale);
+   // Jagged natural rock/crevice. Every resource is anchored to rock or sediment.
+   c.fillStyle=seep?'#26323a':'#273f48';c.strokeStyle=selected?'#e8ce8a':'#55717b';c.lineWidth=2;
+   c.beginPath();c.moveTo(-32,16);c.lineTo(-27,-10);c.lineTo(-12,-22);c.lineTo(6,-17);c.lineTo(25,-26);c.lineTo(34,-3);c.lineTo(24,17);c.lineTo(4,24);c.lineTo(-17,21);c.closePath();c.fill();c.stroke();
+   c.strokeStyle='#637f85';c.lineWidth=1;c.beginPath();c.moveTo(-22,-7);c.lineTo(-11,-15);c.lineTo(3,-13);c.lineTo(18,-20);c.stroke();
+   if(seep){
+    // Dark oil jets and green-tinged gas bubbles are distinct gameplay silhouettes.
+    c.lineWidth=5;c.strokeStyle='#06111b';c.beginPath();c.moveTo(-18,7);c.lineTo(-7,-7);c.lineTo(5,0);c.lineTo(18,-13);c.stroke();
+    c.lineWidth=2;c.strokeStyle=gas?'#7ee4a8':'#475a66';c.stroke();
+    for(let n=0;n<5;n++){
+     const sx=-8+n*5,phase=t*(gas?1.75:.64)+n*1.2;
+     if(oil){
+      const drift=Math.sin(phase)*5,flight=(phase*14)%58;
+      c.strokeStyle=n%2?'#131b24':'#030a11';c.lineWidth=3+n%2;
+      c.beginPath();c.moveTo(sx,-4);c.bezierCurveTo(sx-4,-15,sx+drift+4,-25-flight*.2,sx+drift,-18-flight);c.stroke();
+      c.strokeStyle='#7a939c';c.lineWidth=.8;c.beginPath();c.moveTo(sx+2,-13-flight*.3);c.lineTo(sx+drift+2,-19-flight);c.stroke();
+     }else{
+      const rise=(phase*28)%73,wiggle=Math.sin(phase*2)*7;
+      c.beginPath();c.arc(sx+wiggle,-10-rise,2.8+n%3,0,Math.PI*2);
+      c.fillStyle='#2e9f6ba6';c.fill();c.strokeStyle='#94efb7';c.lineWidth=1.3;c.stroke();
+      c.fillStyle='#c3f9cd';c.beginPath();c.arc(sx+wiggle-1,-11-rise,1.2,0,Math.PI*2);c.fill();
+     }
+    }
+   }else{
+    const palette={seaMineral:'#8cd5dd',phosphorite:'#d4be75',ferromanganeseCrust:'#ae83cc',polymetallicNodule:'#90a2be',hydrothermalSulfide:'#d6a365'};
+    const col=palette[type]||'#7bd9cd';
+    for(let n=0;n<5;n++){
+     const px=-18+n*9,py=n%2===0?-4:4,size=7+(n%3)*2;
+     c.fillStyle=col;c.globalAlpha=.64+n*.06;
+     c.beginPath();c.moveTo(px,py-size);c.lineTo(px+size*.8,py-2);c.lineTo(px+size*.45,py+size*.5);c.lineTo(px-size*.6,py+size*.35);c.closePath();c.fill();
+     c.fillStyle='#f3e9c6';c.fillRect(px-1,py-size*.5,2,2);
+    }
+    c.globalAlpha=1;
+   }
+   if(selected){c.strokeStyle='#e6d19a';c.lineWidth=1.6;c.setLineDash([3,4]);c.beginPath();c.arc(0,0,38,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+   c.restore();
+   if(Math.hypot(node.x-p.x,node.y-p.y)<430){
+    c.fillStyle='#e9f2ef';c.font='bold 11px Inter,sans-serif';
+    c.shadowColor='#000';c.shadowBlur=5;c.fillText(config.RESOURCES[type]?.name||type,x+23,y-28);c.shadowBlur=0;
+   }
   }
  }
  function tick(time){
