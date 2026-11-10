@@ -1239,6 +1239,8 @@ function showVictoryModal() {
 }
 
 function startGame(){
+ // A previous PvP session cannot leak its arena rules into a new Solo dive.
+ if(!onlineMode)onlineRoomMode='coop';
  if(isRiftRun()||isOpenSeaRun()){controlSettings.pc='wasd-aim';controlSettings.mobile='dual-stick';}
  else {controlSettings.pc=localStorage.getItem('abyssalControlsPc')||'classic';controlSettings.mobile=localStorage.getItem('abyssalControlsMobile')||'classic';}
  // Control 1 belongs to the classic shooter. Exploration and Fossas force Control 2.
