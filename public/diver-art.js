@@ -53,13 +53,18 @@
    c.closePath();c.fill();c.stroke();
    line(-57,ankle[1],-76,ankle[1]+finSwing,'rgba(168,206,217,.56)',.8);
   }
-  // Armoured oxygen pack is behind the shoulders, not a second silhouette.
-  c.fillStyle='#0c151e';c.strokeStyle='#7e9da9';c.lineWidth=1.5;
-  c.beginPath();c.roundRect(-13,-20,32,12,5);c.fill();c.stroke();
-  c.fillStyle='#394653';c.beginPath();c.roundRect(-8,-19,24,10,4);c.fill();
-  c.fillStyle='#0b253b';c.fillRect(5,-18,6,8);
-  line(-4,-18,-4,-8,'#a7c3ca',1.8);
-  line(12,-18,12,-8,'#a7c3ca',1.8);
+  // Paired metal oxygen tanks with separate valves and illuminated gauges.
+  for(const tank of [-1,1]){
+   const ty=tank<0?-23:-14;
+   c.save();c.globalAlpha=tank<0?.79:1;
+   c.fillStyle='#0b1b2b';c.strokeStyle='#88acbb';c.lineWidth=1.4;
+   c.beginPath();c.roundRect(-19,ty,38,10,4);c.fill();c.stroke();
+   c.fillStyle='#29516b';c.beginPath();c.roundRect(-14,ty+1.8,27,6.4,2.5);c.fill();
+   line(-3,ty+2,-3,ty+8,'#83dbe5',1.1);
+   c.fillStyle='#a5b7b7';c.fillRect(17,ty+3,5,4);c.restore();
+  }
+  line(-10,-22,-8,-5,'#b0c6cc',1.6);
+  line(11,-20,13,-5,'#b0c6cc',1.6);
   // Black/graphite diving suit with deep abyss-blue armour and small cyan nodes.
   const suit=c.createLinearGradient(-20,-10,24,11);
   suit.addColorStop(0,'#040c16');suit.addColorStop(.33,'#1c2834');
@@ -69,6 +74,10 @@
   c.quadraticCurveTo(27,-1,20,9);c.bezierCurveTo(5,15,-9,12,-19,7);
   c.quadraticCurveTo(-23,-1,-19,-7);c.closePath();c.fill();c.stroke();
   c.fillStyle='#09141e';c.beginPath();c.roundRect(-11,-4,21,8,3);c.fill();
+  c.strokeStyle='rgba(146,210,219,.67)';c.lineWidth=1.35;
+  c.beginPath();c.moveTo(-13,-8);c.quadraticCurveTo(2,-15,16,-8);c.stroke();
+  c.beginPath();c.moveTo(-14,9);c.quadraticCurveTo(3,15,17,8);c.stroke();
+  c.fillStyle='#c7d9d2';c.beginPath();c.roundRect(-4,3,11,2,1);c.fill();
   line(-17,7,15,8,'#63879a',.9);
   c.shadowColor='#18a8c8';c.shadowBlur=4;c.fillStyle='#5cd7e7';
   for(const [px,py] of [[-8,-8],[11,10],[19,-8]]){c.beginPath();c.arc(px,py,1.6,0,TAU);c.fill();}
@@ -96,24 +105,25 @@
   // Loose hair in both versions, never a ponytail. Each lock has separate
   // water-driven curvature. Female locks extend farther; male locks are short.
   c.save();c.strokeStyle='#05070b';c.lineCap='round';
-  // Underwater hair consists of many independent flowing strands.
+  // Streamlined locks keep the female silhouette and avoid a radial hair halo.
   const hairLength=female?60:20; // 3:1 length ratio
   const locks=female?46:34;
-  // Layered, flowing silhouette makes the hair fuller without tying it back.
-  const sweep=female?50:18;
-  c.fillStyle='rgba(3,7,12,.83)';c.beginPath();c.moveTo(17,-10);
-  c.bezierCurveTo(9,-27,15-sweep*.7,-26,18-sweep,-14);
-  c.quadraticCurveTo(20-sweep,-4,25,-8);c.closePath();c.fill();
-  for(let i=0;i<locks;i++){
-   const f=i/(locks-1),rootX=16.5+f*11,rootY=-10.5-Math.sin(f*Math.PI)*8+Math.sin(i*2.29)*1.8;
-   const phase=(Number(t)||0)*.0014+i*.61,flow=Math.sin(phase)*(.8+f*2.5)+Math.cos(phase*.73)*1.1;
-   const tipX=rootX-hairLength+Math.sin(i*1.73)*1.9;
-   const tipY=rootY-Math.sin(f*7.5)*3.5+flow+(female?-5:0);
-   c.strokeStyle=i%5===0?'#303540':i%3===0?'#11151e':'#05080e';
-   c.lineWidth=.72+(i%5)*.16;
-   c.beginPath();c.moveTo(rootX,rootY);
-   c.bezierCurveTo(rootX-hairLength*.24,rootY-10+flow*.4,
-    tipX+hairLength*.35,tipY+Math.sin(phase+.9)*(female?6:2.5),tipX,tipY);
+  const sway=Math.sin(phase*.22)*3;
+  c.fillStyle='rgba(5,8,14,.88)';c.beginPath();c.moveTo(14,-12);
+  c.bezierCurveTo(6,-24,-hairLength*.40,-21,-hairLength*.80,-15+sway);
+  c.quadraticCurveTo(-hairLength*.62,0,16,-5);c.closePath();c.fill();
+  const step=female?4:5;
+  for(let i=0;i<locks;i+=step){
+   const f=i/(locks-1),originX=17+f*8,originY=-12.5-Math.sin(f*Math.PI)*4;
+   const strandPhase=phase*.16+i*.37;
+   const wave=Math.sin(strandPhase)*2.7+Math.cos(strandPhase*.61)*1.7;
+   const endX=originX-hairLength*(.68+.22*Math.sin(f*Math.PI));
+   const endY=originY-7-f*9+wave;
+   c.strokeStyle=i%3===0?'#354052':i%2?'#111924':'#090d15';
+   c.lineWidth=female?2.2+f*1.3:1.8;
+   c.beginPath();c.moveTo(originX,originY);
+   c.bezierCurveTo(originX-hairLength*.22,originY-11,
+    endX+hairLength*.33,endY+Math.sin(strandPhase+.8)*(female?4:2),endX,endY);
    c.stroke();
   }
   c.fillStyle='#040608';c.beginPath();c.moveTo(16,-8);c.quadraticCurveTo(17,-16,26,-15);
@@ -209,6 +219,7 @@
   c.beginPath();c.moveTo(47,-3.3);c.lineTo(66,-3.3);c.stroke();
   c.fillStyle='#f4ffff';c.shadowColor='#d5fcff';c.shadowBlur=4;
   c.beginPath();c.arc(BARREL_TIP_X,0,1.4,0,TAU);c.fill();c.shadowBlur=0;
+  c.fillStyle='#65d5e2';c.fillRect(47,-2.2,10,1.2);
   // Gloves settle on two separate contact points, never doubling the arm.
   c.fillStyle='#0b1f2c';c.strokeStyle='#98d3dc';c.lineWidth=.75;
   c.beginPath();c.ellipse(31,-6,3.3,2.2,-.15,0,TAU);c.fill();c.stroke();
