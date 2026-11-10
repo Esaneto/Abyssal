@@ -16,19 +16,19 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function hash(text){let x=2166136261;for(const c of String(text)){x^=c.charCodeAt(0);x=Math.imul(x,16777619);}return x>>>0;}
  function rng(seed){let s=hash(seed);return ()=>((s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296);}
- function depthAt(y){return clamp(Number(y)||0,0,geo?.HEIGHT||21000)/(geo?.DEPTH_SCALE||2.3333);}
+ function depthAt(y){return geo?.metersAt?.(y)??clamp(Number(y)||0,0,geo?.HEIGHT||21000)/(geo?.HEIGHT||21000)*2200;}
  function rollType(depth,rock,random){
-  const pool=depth<400?['seaMineral','seaMineral','phosphorite']:
-   depth<1400?['seaMineral','phosphorite','ferromanganeseCrust','ferromanganeseCrust','oilSeep']:
-   depth<3500?['ferromanganeseCrust','hydrothermalSulfide','phosphorite','oilSeep','gasSeep','ferromanganeseCrust']:
+  const pool=depth<180?['seaMineral','seaMineral','phosphorite']:
+   depth<550?['seaMineral','phosphorite','ferromanganeseCrust','ferromanganeseCrust','oilSeep']:
+   depth<1200?['ferromanganeseCrust','hydrothermalSulfide','phosphorite','oilSeep','gasSeep','ferromanganeseCrust']:
    ['polymetallicNodule','polymetallicNodule','ferromanganeseCrust','hydrothermalSulfide','gasSeep','oilSeep'];
   // Seeps are rare geological fractures, not guaranteed merely by diving deeper.
   let kind=pool[Math.floor(random()*pool.length)];
   if((kind==='oilSeep'||kind==='gasSeep')&&random()>.38)
-   kind=depth>3500?'polymetallicNodule':'ferromanganeseCrust';
+   kind=depth>1200?'polymetallicNodule':'ferromanganeseCrust';
   if(kind==='polymetallicNodule'&&rock)kind='ferromanganeseCrust';
-  if(kind==='hydrothermalSulfide'&&depth<1200)kind='phosphorite';
-  if(kind==='hydrothermalSulfide'&&!rock)kind=depth>3500?'polymetallicNodule':'ferromanganeseCrust';
+  if(kind==='hydrothermalSulfide'&&depth<650)kind='phosphorite';
+  if(kind==='hydrothermalSulfide'&&!rock)kind=depth>1200?'polymetallicNodule':'ferromanganeseCrust';
   return kind;
  }
  const cache=new Map();
@@ -50,7 +50,7 @@
      x=rock.x+Math.cos(angle)*(rock.rx-6);y=rock.y+Math.sin(angle)*(rock.ry-6);
     }else{
      x=minX+60+random()*Math.max(1,maxX-minX-120);
-     y=geo.floorAt(x)-42-random()*15;
+     y=geo.floorAt(x)-24-random()*8;
     }
     if(x<minX+16||x>=maxX-16||y<minY+16||y>=maxY-16)continue;
     if(!rock&&geo.isSolid(x,y,17))continue;

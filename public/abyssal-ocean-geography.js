@@ -12,8 +12,8 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
-  [0,2450],[1200,2610],[2400,2330],[3400,3900],[4400,6350],
-  [5600,6870],[6800,6500],[7900,7400],[8800,8150],[9800,8250],
+  [0,520],[1200,600],[2400,720],[3400,1200],[4400,4000],
+  [5600,6250],[6800,6500],[7900,7400],[8800,8150],[9800,8250],
   [10800,8750],[11900,8070],[13000,7500],[14100,8300],
   [15100,8640],[16200,8060],[17400,8470],[18600,7220],
   [19800,6850],[20800,7690],[21800,8460],[23000,8360],[24000,8720]
@@ -25,7 +25,7 @@
   const a=KNOTS[lo],b=KNOTS[Math.min(lo+1,KNOTS.length-1)];
   const q=clamp((x-a[0])/Math.max(1,b[0]-a[0]),0,1);
   const smooth=q*q*(3-2*q);
-  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,1650*DEPTH_SCALE,8850*DEPTH_SCALE);
+  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,300*DEPTH_SCALE,8850*DEPTH_SCALE);
  }
  // Rock spires and natural suspended shelves. They never form a full-width wall.
  // Coordinates use floor-relative elevation, preserving large swim passages.
@@ -42,7 +42,7 @@
   [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
   [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf'],
   // Strong overhangs near the starting shelf, physically collidable, not decals.
-  [580,4850,690,290,'shelf'],[2950,4250,730,230,'arch'],
+  [580,480,690,290,'shelf'],[2950,810,730,230,'arch'],
   // Wide cave canopy at entry, with a broad swim corridor below its hanging flora.
   [1040,0,590,240,'overhang',130],[3000,0,740,205,'overhang',100],
   [1780,0,720,195,'shelf',1250]
@@ -156,13 +156,14 @@
   return best||{x,y,direct:false};
  }
  function classify(x,y){
-  const floor=floorAt(x),clearance=floor-y;
-  if(x<1900&&clearance<650&&y<3500*DEPTH_SCALE)return 'reef';
-  if(x>=1900&&x<3500&&clearance<650&&y<4600*DEPTH_SCALE)return 'kelp';
-  if(y>7300*DEPTH_SCALE)return 'abyss';
-  if(y>5100*DEPTH_SCALE)return clearance<750?'canyon':'deep';
+  const clearance=floorAt(x)-y,depth=metersAt(y);
+  // Habitat follows the same 2,200 m scale as oxygen, HUD and illumination.
+  if(x<1900&&clearance<650&&depth<=210)return 'reef';
+  if(x>=1900&&x<3500&&clearance<650&&depth<=210)return 'kelp';
+  if(depth>1850)return 'abyss';
+  if(depth>1100)return clearance<750?'canyon':'deep';
   if(clearance<480)return 'rocks';
-  if(y<3400*DEPTH_SCALE)return 'open';
+  if(depth<220)return 'open';
   return 'twilight';
  }
  // The gameplay world spans 2,200 meters; biological light boundaries must use

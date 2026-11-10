@@ -660,7 +660,7 @@ function updateCamera(){
  if(!player){cameraX=0;cameraY=0;return;}
  const visibleWorldW=viewW/worldZoom,visibleWorldH=viewH/worldZoom;
  cameraX=clamp(player.x-visibleWorldW*.5,0,Math.max(0,W-visibleWorldW));
- cameraY=clamp(player.y-visibleWorldH*.5,0,Math.max(0,H-visibleWorldH));
+ cameraY=clamp(player.y-visibleWorldH*.5,isOpenSeaRun()?-Math.min(240,visibleWorldH*.32):0,Math.max(0,H-visibleWorldH));
 }
 function resize(){
  const r=$('gameShell').getBoundingClientRect();

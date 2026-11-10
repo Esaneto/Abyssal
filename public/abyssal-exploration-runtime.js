@@ -187,9 +187,15 @@
    const seed=String(node.id).split('').reduce((s,ch)=>((s*31+ch.charCodeAt(0))>>>0),17);
    const a=(seed%53)*.11,shape=seep?32:26;
    c.fillStyle=seep?'#16262d':'#23373c';c.strokeStyle='rgba(83,112,119,.45)';c.lineWidth=1.2;
-   c.beginPath();
-   for(let j=0;j<=13;j++){const angle=j/13*Math.PI*2,r=shape*(.74+.23*Math.sin(j*2.43+a)+.12*Math.cos(j*4.13+a)),x=Math.cos(angle)*r,y=Math.sin(angle)*r*.57+5;if(j===0)c.moveTo(x,y);else c.lineTo(x,y);}
-   c.closePath();c.fill();c.stroke();
+   if(node.feature==='embedded-rock'){
+    // Veins sit directly on the rendered rock instead of painting a second floating boulder.
+    c.strokeStyle='rgba(135,166,165,.36)';c.lineWidth=2.3;
+    c.beginPath();c.moveTo(-23,9);c.quadraticCurveTo(-11,-12,4,-6);c.quadraticCurveTo(18,-14,23,-5);c.stroke();
+   }else{
+    c.beginPath();
+    for(let j=0;j<=13;j++){const angle=j/13*Math.PI*2,r=shape*(.74+.23*Math.sin(j*2.43+a)+.12*Math.cos(j*4.13+a)),x=Math.cos(angle)*r,y=Math.sin(angle)*r*.57+5;if(j===0)c.moveTo(x,y);else c.lineTo(x,y);}
+    c.closePath();c.fill();c.stroke();
+   }
    c.strokeStyle='rgba(126,161,161,.16)';c.lineWidth=1;c.beginPath();c.moveTo(-21,7);c.quadraticCurveTo(-8,-11,4,-6);c.quadraticCurveTo(18,-14,23,-7);c.stroke();
    if(type==='polymetallicNodule'){for(let n=0;n<7;n++){const x=-22+n*7.6,y=(n%3)*3+2,r=5+(n%3)*1.5;c.fillStyle=n%2?'#454c56':'#333b45';c.beginPath();c.ellipse(x,y,r,r*.78,n*.37,0,Math.PI*2);c.fill();}}
    else if(type==='ferromanganeseCrust'){c.fillStyle='#151d28';c.beginPath();c.moveTo(-25,3);c.lineTo(-16,-7);c.lineTo(-4,-3);c.lineTo(8,-13);c.lineTo(25,-7);c.lineTo(29,1);c.lineTo(8,7);c.lineTo(-13,9);c.closePath();c.fill();}
