@@ -29,11 +29,11 @@
   const hy=player.y+Math.sin(heading)*42*scale+Math.cos(heading)*(-9*scale);
   c.save();
   // Ambient attenuation, lifted near the diver so silhouettes remain readable.
-  c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.52).toFixed(3)+')';
+  c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.28).toFixed(3)+')';
   c.fillRect(left,top,w,h);
   const len=lamp.range,arc=lamp.halfAngle;
   if(depth>=110){
-   const dark=.68*clamp((depth-110)/540,0,1);
+   const dark=.40*clamp((depth-110)/540,0,1);
    // Even-odd clipping leaves a real illuminated sector in the darkness overlay.
    if(dark>.001){
     c.save();c.beginPath();c.rect(left,top,w,h);

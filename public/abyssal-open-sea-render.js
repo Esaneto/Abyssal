@@ -48,8 +48,8 @@
   for(let k=0;k<=12;k++){
    const depth=geo.metersAt(top+(bottom-top)*k/12),p=clamp(depth/2200,0,1);
    const smooth=p*p*(3-2*p),twilight=clamp(depth/530,0,1);
-   const red=Math.round(8-7*smooth),green=Math.round(105*(1-twilight)+27*twilight-22*smooth);
-   const blue=Math.round(148*(1-twilight)+57*twilight-34*smooth);
+   const red=Math.round(8-5*smooth),green=Math.round(105*(1-twilight)+58*twilight-21*smooth);
+   const blue=Math.round(148*(1-twilight)+103*twilight-35*smooth);
    gradient.addColorStop(k/12,'rgb('+red+','+Math.max(5,green)+','+Math.max(14,blue)+')');
   }
   ctx.fillStyle=gradient;ctx.fillRect(left,top,right-left,bottom-top);
@@ -186,7 +186,7 @@
   const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
   if(depthBottom<140)return;
   const veil=ctx.createLinearGradient(0,top,0,bottom);
-  const attenuation=d=>clamp((d-140)/1450,0,.34);
+  const attenuation=d=>clamp((d-140)/1450,0,.22);
   veil.addColorStop(0,'rgba(1,9,23,'+attenuation(depthTop).toFixed(3)+')');
   veil.addColorStop(1,'rgba(1,7,19,'+attenuation(depthBottom).toFixed(3)+')');
   ctx.fillStyle=veil;ctx.fillRect(left,top,right-left,bottom-top);
