@@ -40,13 +40,13 @@
   emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
   oilCylinder:{name:'Cilindro de petróleo',habitats:[],kind:'container'},
   gasCylinder:{name:'Cilindro de gás natural',habitats:[],kind:'container'},
-  offshoreCable:{name:'Linha umbilical offshore',habitats:[],kind:'tool'}
+  offshoreCable:{name:'Duto flexível de produção',habitats:[],kind:'tool'}
  });
  // Legacy IDs are mapped without deleting owned shop data.
  const RESEARCH=Object.freeze({
   offshoreSurvey:{id:'offshoreSurvey',name:'Geofísica Offshore',group:'industry',max:1,requires:['sonar'],cost:{phosphorite:8,polymetallicNodule:6},effect:'hydrocarbonSurvey',description:'Interpreta exsudações naturais e transforma indícios de petróleo e gás em reservas mapeadas.'},
   offshorePlatform:{id:'offshorePlatform',name:'Plataforma de Produção Abissal',group:'industry',max:1,requires:['offshoreSurvey','pressureSuit'],cost:{ferromanganeseCrust:14,polymetallicNodule:10,hydrothermalSulfide:6},effect:'offshorePlatform',description:'Projeto de uma unidade de produção na superfície. Libera a plataforma no ponto inicial do Mar Aberto.'},
-  subseaUmbilical:{id:'subseaUmbilical',name:'Linhas Submarinas de Produção',group:'industry',max:3,requires:['offshorePlatform'],cost:{ferromanganeseCrust:8,polymetallicNodule:8,hydrothermalSulfide:4},effect:'offshoreCable',description:'Fabrica linhas flexíveis e umbilicais para conectar a plataforma a uma reserva mapeada. Cada nível libera uma linha.'},
+  subseaUmbilical:{id:'subseaUmbilical',name:'Dutos Submarinos de Produção',group:'industry',max:3,requires:['offshorePlatform'],cost:{ferromanganeseCrust:8,polymetallicNodule:8,hydrothermalSulfide:4},effect:'offshoreCable',description:'Fabrica flowlines flexíveis para transportar petróleo e gás da reserva até a plataforma. Cada nível libera um novo duto de produção.'},
   oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
   pressureSuit:{id:'pressureSuit',name:'Traje de profundidade',group:'equipment',max:5,requires:[],cost:{seaMineral:4,salvageMetal:1},effect:'depthRating'},
   salvageTool:{id:'salvageTool',name:'Ferramenta de salvamento',group:'equipment',max:1,requires:[],cost:{seaMineral:2},effect:'salvage'},

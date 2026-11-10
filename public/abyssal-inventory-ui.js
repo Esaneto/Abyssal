@@ -9,7 +9,7 @@
  root.innerHTML='<button id="abyssInventoryToggle" type="button" title="Inventário (I)" aria-label="Abrir inventário">MOCHILA <kbd>I</kbd></button>'+
  '<section id="abyssInventoryPanel" class="abyss-inventory-panel" role="dialog" aria-label="Inventário do Mar Aberto" hidden>'+
  '<header><div><small>EQUIPAMENTOS / CARGA</small><h2>INVENTÁRIO ABISSAL</h2></div><button id="abyssInventoryClose" type="button" aria-label="Fechar inventário">×</button></header>'+
- '<p class="abyss-inventory-help">Selecione a picareta para minerar. Petróleo e gás exigem pesquisa offshore, plataforma e uma linha submarina conectada à reserva.</p>'+
+ '<p class="abyss-inventory-help">Selecione a picareta para minerar. Petróleo e gás exigem pesquisa offshore, plataforma e uma duto submarino conectada à reserva.</p>'+
  '<div id="abyssInventoryGrid" class="abyss-inventory-grid" role="group" aria-label="Itens em posse"></div><p class="abyss-inventory-help">Arraste qualquer item para a barra rápida. Teclas 1–9 trocam o item na mão.</p>'+
  '<footer><strong id="abyssInventorySelected">PICARETA ABISSAL</strong><span id="abyssInventoryCargo">0 ITENS</span></footer>'+
  '</section>';
