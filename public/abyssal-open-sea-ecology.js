@@ -182,6 +182,24 @@
   entity.aiPreyId=null;
   return commit(entity,{mode:'patrol',target:patrol,aggressive:false},now);
  }
+ // Specimens are the single authoritative active-skill catalog for living fauna.
+ // A cast returns intent only; Solo/Online apply hits through their existing damage code.
+ function activateAgainstPlayer(entity,player,now=Date.now()){
+  if(!entity||!player||player.alive===false||entity.hp<=0||entity.aiMode!=='attack')return null;
+  if(now<(Number(entity.wildlifeAbilityReadyAt)||0))return null;
+  const skill=standard?.activeSpec?.(entity.specimenSkinId);
+  if(!skill)return null;
+  const distance=Math.hypot(Number(player.x)-Number(entity.x),Number(player.y)-Number(entity.y));
+  const radius=Math.max(65,Math.min(285,(Number(skill.range)||0)*.72));
+  if(distance>radius||!geo.segmentClear(entity.x,entity.y,player.x,player.y,8))return null;
+  entity.wildlifeAbilityReadyAt=now+Math.max(3500,(Number(skill.cooldown)||10)*1000);
+  entity.wildlifeAbilityUntil=now+820;
+  entity.wildlifeAbilityId=skill.id;
+  if(skill.id==='shield')entity.wildlifeShieldUntil=now+2000;
+  const damage=skill.id==='shield'?0:Math.min(22,Math.max(2,Math.round((Number(skill.damage)||0)*.24)+2));
+  return {id:skill.id,damage,range:radius,color:skill.color||'#76e7e3',
+   neurotoxinMs:skill.id==='paralysis'?100:skill.id==='poison'?2500:skill.id==='slowShot'?1400:0};
+ }
  // Separate wildlife-versus-wildlife combat from player kill/reward accounting.
  // Every active is sourced from the already configured Specimens ability registry.
  function simulatePredation(entities,delta=0,now=Date.now()){
@@ -225,5 +243,5 @@
   }
   return hits;
  }
- return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,simulatePredation});
+ return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,activateAgainstPlayer,simulatePredation});
 });
