@@ -10,16 +10,20 @@
  '<section id="abyssInventoryPanel" class="abyss-inventory-panel" role="dialog" aria-label="Inventário do Mar Aberto" hidden>'+
  '<header><div><small>EQUIPAMENTOS / CARGA</small><h2>INVENTÁRIO ABISSAL</h2></div><button id="abyssInventoryClose" type="button" aria-label="Fechar inventário">×</button></header>'+
  '<p class="abyss-inventory-help">Selecione a picareta para minerar ou o cilindro vazio para extrair petróleo e gás. Use G perto de um depósito.</p>'+
- '<div id="abyssInventoryGrid" class="abyss-inventory-grid" role="group" aria-label="Itens em posse"></div>'+
+ '<div id="abyssInventoryGrid" class="abyss-inventory-grid" role="group" aria-label="Itens em posse"></div><p class="abyss-inventory-help">Arraste qualquer item para a barra rápida. Teclas 1–9 trocam o item na mão.</p>'+
  '<footer><strong id="abyssInventorySelected">PICARETA ABISSAL</strong><span id="abyssInventoryCargo">0 ITENS</span></footer>'+
  '</section>';
+ root.insertAdjacentHTML('beforeend','<div id="abyssHotbar" class="abyss-hotbar" aria-label="Barra rápida de exploração"></div>');
  shell.appendChild(root);
  const $=id=>document.getElementById(id),panel=$('abyssInventoryPanel'),grid=$('abyssInventoryGrid');
  const order=['abyssPickaxe','emptyCylinder','oilCylinder','gasCylinder','seaMineral','phosphorite','ferromanganeseCrust','polymetallicNodule','hydrothermalSulfide'];
- let active=false,selected='abyssPickaxe',inventory={},signature='';
+ let active=false,selected='abyssWeapon',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder',null,null,null,null,null,null];
+ config.RESOURCES.abyssWeapon||(console.warn('[Abyssal] abyssWeapon missing from config'));
  const colors={seaMineral:'#63c1cd',phosphorite:'#d8bd81',ferromanganeseCrust:'#a884da',polymetallicNodule:'#758aab',hydrothermalSulfide:'#ca9e6f',deepCrystal:'#a6cfff',abyssCrystal:'#a77aff'};
  function icon(id){
-  if(id==='abyssPickaxe')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M38 11L44 14 21 55 15 51Z" fill="#986341" stroke="#e8bb75" stroke-width="2"/><path d="M8 18Q28 -1 56 19L49 29Q33 12 14 29Z" fill="#b6c2cf" stroke="#f5e7c8" stroke-width="2"/><path d="M17 24L47 24" stroke="#6d8494" stroke-width="2"/></svg>';
+  if(id==='abyssWeapon')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 31L46 18 57 23 48 31 27 37 20 49 12 47 17 36Z" fill="#263f50" stroke="#a9dce3" stroke-width="2"/><path d="M18 29L48 20" stroke="#7cf5ff" stroke-width="3"/><path d="M45 25L60 23" stroke="#d9fbff" stroke-width="4"/><path d="M25 37L20 48" stroke="#d6a56b" stroke-width="4"/></svg>';
+
+  if(id==='abyssPickaxe')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M35 18L42 22 22 58 15 54Z" fill="#704a31" stroke="#c98b52" stroke-width="2"/><path d="M8 19Q25 4 49 9L59 15 52 22Q32 15 15 30L7 28Z" fill="#8599a5" stroke="#e4edf0" stroke-width="2.5"/><path d="M49 9L59 15 52 22" fill="#506977"/><path d="M30 25L38 29" stroke="#d6b36d" stroke-width="3"/></svg>';
   if(['emptyCylinder','oilCylinder','gasCylinder'].includes(id)){
    const filled=id!=='emptyCylinder',liquid=id==='oilCylinder'?'#111b23':'#59bd88',edge=id==='gasCylinder'?'#8be9b0':'#e3bd83';
    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M22 7H42V13H22Z" fill="#c0cbd0" stroke="#728996" stroke-width="2"/><rect x="18" y="14" width="28" height="43" rx="7" fill="#1c3444" stroke="#cfb98a" stroke-width="3"/><rect x="22" y="22" width="20" height="31" rx="4" fill="'+(filled?liquid:'#396072')+'"/><path d="M23 28V49" stroke="'+edge+'" stroke-width="2" opacity=".9"/><path d="M41 28V49" stroke="'+edge+'" stroke-width="1.5" opacity=".8"/>'+(id==='gasCylinder'?'<circle cx="32" cy="39" r="3" fill="#b6ffc6"/><circle cx="36" cy="31" r="2" fill="#b6ffc6"/>':'')+'<rect x="27" y="5" width="10" height="4" rx="1" fill="#edcf9e"/></svg>';
@@ -38,33 +42,36 @@
   if(!active)return;
   const key=JSON.stringify(inventory)+'/'+selected;
   if(key===signature&&grid.childElementCount)return;signature=key;
-  const items=Object.keys(inventory).filter(id=>(Number(inventory[id])||0)>0&&config.RESOURCES[id])
+  const items=Object.keys(inventory).filter(id=>(Number(inventory[id])||0)>0&&config.RESOURCES[id]);if(!items.includes('abyssWeapon'))items.unshift('abyssWeapon');items
    .sort((a,b)=>{const x=order.indexOf(a),y=order.indexOf(b);return (x<0?99:x)-(y<0?99:y)||a.localeCompare(b);});
   grid.replaceChildren();
   for(let i=0;i<30;i++){
    const id=items[i],button=document.createElement('button');button.type='button';button.className='abyss-inventory-slot'+(id===selected?' is-selected':'');
    if(id){
-    button.dataset.item=id;button.title=config.RESOURCES[id].name+' ('+inventory[id]+')';
+    button.dataset.item=id;button.draggable=true;button.title=config.RESOURCES[id].name+' ('+(id==='abyssWeapon'?'∞':inventory[id])+')';button.ondragstart=e=>e.dataTransfer.setData('text/plain',id);
     const artwork=document.createElement('span');artwork.className='abyss-inventory-art';artwork.innerHTML=icon(id);
     const quantity=document.createElement('span');quantity.className='abyss-inventory-count';quantity.textContent=String(inventory[id]);
     button.append(artwork,quantity);
     button.setAttribute('aria-label',config.RESOURCES[id].name+', '+inventory[id]);
-    button.onclick=()=>{if(id==='abyssPickaxe'||id==='emptyCylinder'){selected=id;signature='';render();}else{ $('abyssInventorySelected').textContent=config.RESOURCES[id].name.toUpperCase();}};
+    button.onclick=()=>{selected=id;signature='';render();renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};
    }else{button.disabled=true;button.setAttribute('aria-hidden','true');}
    grid.appendChild(button);
   }
-  $('abyssInventorySelected').textContent='EQUIPADO: '+(config.RESOURCES[selected]?.name||'Picareta abissal').toUpperCase();
+  $('abyssInventorySelected').textContent='NA MÃO: '+(config.RESOURCES[selected]?.name||selected).toUpperCase();
   $('abyssInventoryCargo').textContent=items.length+' TIPOS DE ITEM';
  }
+ function renderHotbar(){const bar=$('abyssHotbar');if(!bar)return;bar.replaceChildren();hotbar.forEach((id,index)=>{const b=document.createElement('button');b.type='button';b.className='abyss-hotbar-slot'+(id===selected?' is-selected':'');b.dataset.index=index;b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>':'<kbd>'+(index+1)+'</kbd>';b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const item=e.dataTransfer.getData('text/plain');if(item&&config.RESOURCES[item]){hotbar[index]=item;localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));renderHotbar();}};b.onclick=()=>{if(!id)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);});}
+ try{const saved=JSON.parse(localStorage.getItem('abyssalHotbarV1')||'null');if(Array.isArray(saved)&&saved.length===9)hotbar=saved;}catch(_){}
+ renderHotbar();
  $('abyssInventoryToggle').onclick=()=>setOpen(panel.hidden);
  $('abyssInventoryClose').onclick=()=>setOpen(false);
  window.addEventListener('keydown',event=>{
   if(!isExploring()||event.repeat||event.altKey||event.ctrlKey||event.metaKey)return;
   if(event.target?.closest?.('input,textarea,select,[contenteditable]'))return;
-  if(event.key?.toLowerCase()==='i'){event.preventDefault();event.stopImmediatePropagation();setOpen(panel.hidden);}
+  if(event.key?.toLowerCase()==='i'){event.preventDefault();event.stopImmediatePropagation();setOpen(panel.hidden);} else if(/^[1-9]$/.test(event.key)){const id=hotbar[Number(event.key)-1];if(id){event.preventDefault();selected=id;renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));}}
   else if(event.key==='Escape'&&!panel.hidden){event.preventDefault();event.stopImmediatePropagation();setOpen(false);}
  },true);
- function setActive(value){const next=Boolean(value);if(next===active)return;active=next;root.hidden=!active;if(!active){panel.hidden=true;$('abyssInventoryToggle').setAttribute('aria-expanded','false');}}
- function setInventory(items){inventory=items||{};if(!Number(inventory[selected]))selected=Number(inventory.abyssPickaxe)>0?'abyssPickaxe':Number(inventory.emptyCylinder)>0?'emptyCylinder':'abyssPickaxe';if(!panel.hidden)render();}
- window.AbyssalInventoryUI=Object.freeze({setActive,setInventory,selectedTool:()=>selected,close:()=>setOpen(false),isOpen:()=>!panel.hidden&&active});
+ function setActive(value){const next=Boolean(value);if(next===active)return;active=next;root.hidden=!active;renderHotbar();if(!active){panel.hidden=true;$('abyssInventoryToggle').setAttribute('aria-expanded','false');}}
+ function setInventory(items){inventory=items||{};if(selected!=='abyssWeapon'&&!Number(inventory[selected]))selected='abyssWeapon';renderHotbar();if(!panel.hidden)render();}
+ window.AbyssalInventoryUI=Object.freeze({setActive,setInventory,selectedTool:()=>selected,heldItem:()=>selected,hotbar:()=>hotbar.slice(),close:()=>setOpen(false),isOpen:()=>!panel.hidden&&active});
 })();

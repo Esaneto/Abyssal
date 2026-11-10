@@ -41,16 +41,7 @@
  }
  // Owners retain benefits already purchased with coins even when shop sales
  // are retired. Migration never spends resources or degrades owned levels.
- function migrateLegacy(levels={},metaUpgrades={}){
-  const next=sanitizeLevels(levels),transferred=[];
-  for(const [id,definition] of Object.entries(DEFINITIONS)){
-   if(!definition.legacyMeta)continue;
-   const legacy=toCount(metaUpgrades[definition.legacyMeta]);
-   const level=Math.min(definition.max,legacy);
-   if(level>next[id]){next[id]=level;transferred.push(id);}
-  }
-  return {levels:next,transferred};
- }
+ function migrateLegacy(levels={}){return {levels:sanitizeLevels(levels),transferred:[]};}
  function unlocked(id,levels={},legacy={}){
   const definition=DEFINITIONS[id];if(!definition)return false;
   return toCount(levels[id])>0||Boolean(definition.legacyMeta&&toCount(legacy[definition.legacyMeta])>0);

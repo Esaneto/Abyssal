@@ -35,6 +35,7 @@
   hydrothermalSulfide:{name:'Sulfeto polimetálico',habitats:['canyon','deep','abyss'],kind:'ore'},
   oilSeep:{name:'Exsudação de petróleo',habitats:['canyon','deep','abyss'],kind:'seep',filled:'oilCylinder'},
   gasSeep:{name:'Exsudação de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
+  abyssWeapon:{name:'Rifle abissal',habitats:[],kind:'weapon'},
   abyssPickaxe:{name:'Picareta abissal',habitats:[],kind:'tool'},
   emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
   oilCylinder:{name:'Cilindro de petróleo',habitats:[],kind:'container'},
