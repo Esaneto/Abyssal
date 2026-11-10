@@ -58,7 +58,7 @@ test('server, solo and UI explicitly share AOI streaming contract',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
  assert.match(server,/function roomWorldWidth\(room\)/);
- assert.match(server,/if\(room\.mode==='coop'\)for\(const recipient of room\.players\.values\(\)\)/);
+ assert.match(server,/if\(\['coop','open-sea'\]\.includes\(room\.mode\)\)for\(const recipient of room\.players\.values\(\)\)/);
  assert.match(server,/getRoomSnapshot\(room,\{criticalReason:'area-refresh'\},recipient\)/);
  assert.match(sim,/function updateOceanStreaming\(world,players,now\)/);
  assert.match(game,/function updateSoloOceanChunks\(force=false\)/);
