@@ -3921,7 +3921,7 @@ function drawRiftShopSpecimen(enemy,skin,time){
 }
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon'){
  if(DIVER_ART?.draw){
-  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true,heldItem,swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0});
+  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true,heldItem,swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
   return;
  }
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.fillStyle='#1599de';ctx.beginPath();ctx.ellipse(0,0,r*1.7,r*.65,0,0,Math.PI*2);ctx.fill();ctx.restore();

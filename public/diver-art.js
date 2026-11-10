@@ -125,6 +125,7 @@
   c.save();c.rotate((Number(aim)||0)-a);
   if(held!=='abyssWeapon'){
    c.translate(0,5);
+   if(held==='abyssPickaxe')c.rotate((Number(options.swing)||0)*.17);
    limb([5,-7],[17,-10],4.8,'#182634','#617b87');
    limb([17,-10],[27,-2],4.2,'#152b3a','#688391');
    limb([4,7],[16,11],5.2,'#192733','#698797');
@@ -134,9 +135,24 @@
     c.rotate(-.28+(Number(options.swing)||0)*.45);c.strokeStyle='#754a2d';c.lineWidth=5;c.beginPath();c.moveTo(-8,0);c.lineTo(28,0);c.stroke();
     c.strokeStyle='#c7d3d7';c.lineWidth=4;c.beginPath();c.moveTo(20,-13);c.quadraticCurveTo(31,-15,39,-6);c.stroke();
     c.strokeStyle='#6f858d';c.lineWidth=2;c.beginPath();c.moveTo(20,-13);c.lineTo(17,-6);c.stroke();
+   }else if(['emptyCylinder','gasCylinder','oilCylinder'].includes(held)){
+    const progress=Math.max(0,Math.min(1,Number(options.fillProgress)||0));
+    const kind=String(options.fillType||'');
+    const gas=held==='gasCylinder'||held==='emptyCylinder'&&kind==='gasSeep';
+    const oil=held==='oilCylinder'||held==='emptyCylinder'&&kind==='oilSeep';
+    c.rotate(.08);c.fillStyle='#243842';c.strokeStyle='#bfccb9';c.lineWidth=1.8;
+    c.beginPath();c.roundRect(-4,-17,18,34,5);c.fill();c.stroke();
+    const level=held==='emptyCylinder'?progress:1;
+    if(level>0){c.fillStyle=gas?'#55bc7b':oil?'#17181e':'#6f93a4';c.fillRect(-1,12-25*level,12,25*level);}
+    c.strokeStyle='#d4b77b';c.lineWidth=2;c.strokeRect(-4,-17,18,34);
+    c.fillStyle='#cbd8d2';c.fillRect(1,-23,8,6);
+    if(gas&&level>0){c.fillStyle='#9fecc1';c.beginPath();c.arc(5,8-15*level,2.1,0,TAU);c.fill();}
+   }else if(held==='offshoreCable'){
+    c.strokeStyle='#d5b46c';c.lineWidth=5;c.beginPath();c.arc(8,0,12,0,TAU);c.stroke();c.strokeStyle='#769baa';c.lineWidth=4;c.beginPath();c.arc(8,0,6,0,TAU);c.stroke();
+    c.strokeStyle='#d6b87e';c.lineWidth=3;c.beginPath();c.moveTo(19,5);c.quadraticCurveTo(27,4,31,12);c.stroke();
    }else{
-    const gas=held==='gasCylinder',oil=held==='oilCylinder';c.fillStyle=gas?'#657d8c':oil?'#292d31':'#87959b';c.strokeStyle='#d4c28e';c.lineWidth=1.5;
-    c.beginPath();c.roundRect(-3,-7,25,14,5);c.fill();c.stroke();c.fillStyle='#c6d2d4';c.fillRect(21,-3,5,6);
+    c.fillStyle='#617f83';c.strokeStyle='#c0c8aa';c.lineWidth=1.5;
+    c.beginPath();c.moveTo(-8,3);c.lineTo(-1,-9);c.lineTo(18,-4);c.lineTo(20,7);c.lineTo(5,12);c.closePath();c.fill();c.stroke();
    }
    c.restore();c.restore();return;
   }
