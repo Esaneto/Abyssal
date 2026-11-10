@@ -30,7 +30,7 @@
   stage.insertBefore(routesCanvas,diver);
   stage.insertBefore(bubblesCanvas,diver);
   const currents=routesCanvas.getContext('2d'),bubbleCtx=bubblesCanvas.getContext('2d');
-  const stations=[...ROUTES,{id:'submarineWorkshopBtn',x:.5,y:0,tone:'#d4ad68',label:'LABORATÓRIO',kind:'lab'}].map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
+  const stations=[...ROUTES,{id:'submarineWorkshopBtn',x:.5,y:0,tone:'#d4ad68',label:'CABINE',kind:'lab'}].map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
   if(stations.length!==4)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
   let initialized=false,wasVisible=false,transition=null,waitingForModal=false;
