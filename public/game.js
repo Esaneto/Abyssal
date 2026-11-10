@@ -2938,7 +2938,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
      }
      soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
-     const swimRoute=OCEAN_GEOGRAPHY?.steer?.(e.x,e.y,ec.target.x,ec.target.y,Math.max(10,Math.min(52,e.r*.56)),e.id)||ec.target;
+     const swimRoute=OPEN_SEA_ECOLOGY.navigationTarget(e,ec.target,Math.max(10,Math.min(52,e.r*.56)),performance.now());
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
      soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
      movementTargets=soloMapNavTargets;

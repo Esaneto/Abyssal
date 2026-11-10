@@ -74,6 +74,30 @@
   return Math.abs(Math.atan2(Math.sin(a),Math.cos(a)))<=halfAngle&&(!geo||geo.segmentClear(entity.x,entity.y,target.x,target.y,2));
  }
 
+ // Hold obstacle bypass headings briefly so active swimmers do not ping-pong
+ // between opposite sides of a rock on successive 20 Hz AI ticks.
+ function navigationTarget(entity,goal,padding=24,now=Date.now()){
+  if(!entity||!goal||!geo||!Number.isFinite(goal.x)||!Number.isFinite(goal.y))return goal;
+  const radius=clamp(Number(padding)||24,4,70);
+  const close=Math.hypot(goal.x-entity.x,goal.y-entity.y);
+  if(close<8||geo.segmentClear(entity.x,entity.y,goal.x,goal.y,radius)){
+   entity.aiNavGoal=null;entity.aiNavUntil=0;return goal;
+  }
+  const cached=entity.aiNavGoal;
+  if(cached&&entity.aiNavMode===entity.aiMode&&now<(Number(entity.aiNavUntil)||0)&&
+    Math.hypot(cached.x-entity.x,cached.y-entity.y)>44&&
+    Math.hypot((Number(entity.aiNavDestinationX)||0)-goal.x,(Number(entity.aiNavDestinationY)||0)-goal.y)<340&&
+    geo.segmentClear(entity.x,entity.y,cached.x,cached.y,radius)){
+    return {x:cached.x,y:cached.y,direct:false};
+  }
+  const next=geo.steer(entity.x,entity.y,goal.x,goal.y,radius,entity.id||0);
+  entity.aiNavGoal={x:next.x,y:next.y};
+  entity.aiNavMode=entity.aiMode;
+  entity.aiNavDestinationX=goal.x;
+  entity.aiNavDestinationY=goal.y;
+  entity.aiNavUntil=now+650;
+  return next;
+ }
  function creatureId(entity){return String(entity?.id??entity?.streamId??'');}
  function hashSchool(entity){
   let seed=0;for(const ch of String(entity?.schoolId||entity?.id||1))seed=(Math.imul(seed,31)+ch.charCodeAt(0))>>>0;
@@ -243,5 +267,5 @@
   }
   return hits;
  }
- return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,activateAgainstPlayer,simulatePredation});
+ return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,navigationTarget,activateAgainstPlayer,simulatePredation});
 });

@@ -114,3 +114,15 @@ test('discoveries do not create removed resource items in either world mode',()=
  assert.doesNotMatch(serverDiscovery,/resourceInventory\.(?:bioSample|deepCrystal)\s*[+]?=/,'no material mint on online discovery');
  assert.doesNotMatch(soloDiscovery,/localInventory\.bioSample\s*[+]?=/,'no material mint on solo discovery');
 });
+
+test('ocean obstacle navigation holds a coherent bypass waypoint between ticks',()=>{
+ const rock=geo.ROCKS.find(r=>r.type==='spire');
+ const animal={id:99,x:rock.x-rock.rx-160,y:rock.y,aiMode:'patrol'};
+ const goal={x:rock.x+rock.rx+160,y:rock.y};
+ assert.equal(geo.segmentClear(animal.x,animal.y,goal.x,goal.y,18),false);
+ const a=eco.navigationTarget(animal,goal,18,1000);
+ assert.ok(Number.isFinite(a.x)&&Number.isFinite(a.y));
+ const b=eco.navigationTarget(animal,{x:goal.x+20,y:goal.y+10},18,1200);
+ assert.deepEqual({x:a.x,y:a.y},{x:b.x,y:b.y});
+ assert.ok(animal.aiNavUntil>1200);
+});

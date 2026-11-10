@@ -724,7 +724,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
         const swimTarget=ecology.target;
-        const swimRoute=world.mode==='open-sea'?OceanGeography.steer(enemy.x,enemy.y,swimTarget.x,swimTarget.y,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),enemy.id):swimTarget;
+        const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
         movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
         movementNavigationProxy.alive=true;
