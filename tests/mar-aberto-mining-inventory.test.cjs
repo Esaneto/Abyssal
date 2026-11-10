@@ -87,7 +87,7 @@ test('mining UI is isolated to open sea and asynchronous callbacks cannot leak a
  const gathering=source('public/abyssal-extraction-ui.js');
  assert.match(gathering,/if\(action!==a\)return/,'late extraction acknowledgements must not affect a new run');
  assert.match(gathering,/if\(drop!==d\)return/,'late collection acknowledgements must not affect a new run');
- assert.match(runtime,/if\(typeof send!=='function'\)\{busy=false;/,'missing online transport must not leave resource collection permanently locked');
+ assert.match(gathering,/if\(!begin\)\{action=null;bridge\.notify\('Extração online indisponível\.'/,'missing online extraction transport must abandon the pending action');
 });
 test('all geological deposits have their own visual silhouette in exploration',()=>{
  const runtime=source('public/abyssal-exploration-runtime.js');
