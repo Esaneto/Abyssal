@@ -218,6 +218,18 @@
   }
   return best||{x,y,direct:false};
  }
+ // Visual biome selection is deterministic and shared by client, server and fauna.
+ const VISUAL_BIOMES=Object.freeze({
+  coastal:Object.freeze({id:'coastal',label:'RECIFES E COSTA'}),
+  cinematic:Object.freeze({id:'cinematic',label:'CÂNIONS SUBMERSOS'}),
+  geological:Object.freeze({id:'geological',label:'DOMÍNIO GEOLÓGICO'})
+ });
+ function visualBiomeAt(x,y){
+  const xx=clamp(Number(x)||0,0,WIDTH),depth=metersAt(y);
+  if(depth>=1150||(xx>=15800&&depth>=360)||(xx>=10500&&xx<13400&&depth>=690))return VISUAL_BIOMES.geological;
+  if(depth<245&&(xx<4550||(xx>=5850&&xx<7550)||(xx>=18700&&xx<20600)))return VISUAL_BIOMES.coastal;
+  return VISUAL_BIOMES.cinematic;
+ }
  function classify(x,y){
   const clearance=floorAt(x)-y,depth=metersAt(y);
   // Habitat follows the same 2,200 m scale as oxygen, HUD and illumination.
@@ -242,5 +254,5 @@
   if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,BRANCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,VISUAL_BIOMES,visualBiomeAt,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,BRANCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });
