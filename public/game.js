@@ -136,7 +136,7 @@ function setDiverGender(value,saveRemote=true){
 document.addEventListener('click',event=>{const b=event.target.closest?.('[data-diver-gender]');if(b&&!b.disabled)setDiverGender(b.dataset.diverGender);});
 let specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.((()=>{try{return JSON.parse(localStorage.getItem('abyssalSpecimenProficiency')||'{}')}catch{return {}}})())||{};
 function specimenPoints(id=equippedSkin){return SPECIMEN_SYSTEM?.pointsFor?.(specimenProficiency,id)||0;}
-function specimenProgressStats(id=equippedSkin){return SPECIMEN_SYSTEM?.stats?.(specimenPoints(id))||{points:0,progress:0,percent:0,cooldown:10,cooldownReduction:0,attributeBonus:0,rangeMultiplier:1,rangeBonus:0,respawnSeconds:300,respawnReduction:0};}
+function specimenProgressStats(id=equippedSkin){return SPECIMEN_SYSTEM?.stats?.(specimenPoints(id))||{points:0,progress:0,percent:0,cooldown:10,cooldownReduction:0,attributeBonus:0,rangeMultiplier:1,rangeBonus:0,respawnSeconds:20,respawnReduction:0};}
 function specimenAlive(){return Boolean(player?.specimen?.alive!==false);}
 function specimenPassiveActive(){return Boolean(player&&player.specimen&&player.specimen.alive!==false);}
 function specimenOrigin(){if(player?.specimen)return {x:Number(player.specimen.x)||player.x,y:Number(player.specimen.y)||player.y};return {x:Number(player?.x)||0,y:Number(player?.y)||0};}
