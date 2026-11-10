@@ -297,7 +297,7 @@
   if(t-lastPaint<34)return;lastPaint=t;
   scene(t);
  }
- function open(){if(screen.hidden)return;active=true;lastPaint=0;cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}
+ function open(){if(screen.hidden)return;active=true;lastPaint=0;cancelAnimationFrame(frame);scene(0);frame=requestAnimationFrame(tick);}
  function close(){active=false;cancelAnimationFrame(frame);frame=0;}
  window.addEventListener('abyssal-account-data',e=>{accountGender=e.detail?.diverGender==='female'?'female':'male';});
  window.addEventListener('resize',()=>{if(active)size();});
