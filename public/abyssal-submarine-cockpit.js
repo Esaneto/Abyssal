@@ -56,12 +56,74 @@
    c.lineWidth=3;c.beginPath();c.moveTo(side*.9,-dy*.63);c.lineTo(side*.9+12,-dy*.79);c.stroke();
   }c.restore();
  }
+
+ // Readable game-art silhouettes. Everything is vector Canvas, not a baked image.
+ function manta(x,y,scale,t,phase){
+  c.save();c.translate(x,y+Math.sin(t*.00075+phase)*13);c.scale(scale,scale);
+  const wing=Math.sin(t*.002+phase)*9;
+  c.fillStyle='#21516e';c.strokeStyle='#83d9e4';c.lineWidth=2.7;
+  c.beginPath();c.moveTo(-12,-7);
+  c.quadraticCurveTo(-41,-26-wing,-83,-29-wing);
+  c.quadraticCurveTo(-46,18,0,24);
+  c.quadraticCurveTo(49,18,84,-28+wing);
+  c.quadraticCurveTo(39,-25+wing,12,-7);
+  c.quadraticCurveTo(0,-20,-12,-7);c.closePath();c.fill();c.stroke();
+  c.strokeStyle='#bde5e6';c.lineWidth=2;c.beginPath();c.moveTo(0,13);
+  c.quadraticCurveTo(-5,45,-15,91);c.stroke();
+  c.fillStyle='#94dfed';for(const xx of [-14,14]){c.beginPath();c.arc(xx,-5,2.5,0,TAU);c.fill();}
+  c.restore();
+ }
+ function turtle(x,y,scale,t,seed){
+  c.save();c.translate(x,y+Math.sin(t*.0009+seed)*8);c.rotate(Math.sin(t*.0003+seed)*.04);c.scale(scale,scale);
+  c.fillStyle='#466e66';c.strokeStyle='#b7d6a1';c.lineWidth=3;
+  const flap=Math.sin(t*.0019+seed)*12;
+  poly([[-30,-12],[-64,-34-flap],[-78,-11-flap],[-41,7]],'#567d68','#b4d29e',2);
+  poly([[20,-14],[59,-37+flap],[76,-10+flap],[36,6]],'#4f745f','#b4d29e',2);
+  poly([[-27,14],[-52,28],[-46,37],[-6,20]],'#57735c','#aec99a',2);
+  poly([[20,13],[49,29],[42,37],[7,21]],'#56745e','#aec99a',2);
+  c.beginPath();c.ellipse(0,0,40,26,0,0,TAU);c.fill();c.stroke();
+  c.strokeStyle='#90c6aa';c.lineWidth=1.8;
+  for(let i=-1;i<=1;i++){c.beginPath();c.moveTo(-20,i*10);c.lineTo(0,i*12+3);c.lineTo(23,i*9);c.stroke();}
+  c.fillStyle='#789d85';c.beginPath();c.ellipse(47,0,15,11,0,0,TAU);c.fill();c.stroke();
+  c.fillStyle='#061c24';c.beginPath();c.arc(54,-3,2.5,0,TAU);c.fill();
+  c.restore();
+ }
+ function jelly(x,y,scale,t,phase){
+  c.save();c.translate(x,y+Math.sin(t*.001+phase)*12);c.scale(scale,scale);
+  c.fillStyle='rgba(109,158,204,.22)';c.strokeStyle='rgba(142,205,242,.82)';c.lineWidth=2.5;
+  c.beginPath();c.moveTo(-25,0);c.bezierCurveTo(-24,-43,24,-43,26,0);c.quadraticCurveTo(0,12,-25,0);c.fill();c.stroke();
+  for(let i=-2;i<=2;i++){
+   const xx=i*8;c.strokeStyle=i%2?'rgba(131,217,226,.62)':'rgba(173,134,226,.62)';
+   c.lineWidth=1.4;c.beginPath();c.moveTo(xx,2);
+   c.bezierCurveTo(xx+Math.sin(t*.001+i)*9,20,xx-8,43,xx+Math.sin(t*.0007+phase+i)*10,64);c.stroke();
+  }
+  c.restore();
+ }
+ function panoramicDetails(t){
+  // Gentle reflections across the glazing, not a fullscreen translucent UI card.
+  c.save();c.globalAlpha=.14;
+  for(const x of [136,478,918,1274]){
+   c.fillStyle=grad(x,115,x+82,480,[[0,'#e1fbfa21'],[.42,'#8beef322'],[1,'#ffffff00']]);
+   poly([[x,113],[x+18,113],[x+85,485],[x+42,485]],c.fillStyle);
+  }
+  c.restore();
+  for(const x of [327,739,1140]){
+   c.fillStyle='#081b2a';c.strokeStyle='#9fabb3';c.lineWidth=2;
+   c.beginPath();c.arc(x,120,8,0,TAU);c.fill();c.stroke();
+   c.fillStyle='#d9c9a8';c.beginPath();c.arc(x,120,2.3,0,TAU);c.fill();
+  }
+  // Bridge ambient light follows the outside caustics with a subtle delayed shimmer.
+  const pulse=.11+.05*Math.sin(t*.0006);
+  c.fillStyle='rgba(47,205,226,'+pulse+')';
+  c.fillRect(60,541,1316,3);
+ }
+
  function ocean(t){
   // Ocean is clipped to the glass, with no stock illustration or remote assets.
   c.save();c.beginPath();c.moveTo(70,105);c.lineTo(1370,105);c.lineTo(1390,493);
   c.quadraticCurveTo(1370,555,1310,562);c.lineTo(124,562);
   c.quadraticCurveTo(53,555,50,490);c.closePath();c.clip();
-  c.fillStyle=grad(0,100,0,575,[[0,'#68daf2'],[.18,'#268abf'],[.62,'#126390'],[1,'#092a52']]);
+  c.fillStyle=grad(0,100,0,575,[[0,'#2788a8'],[.18,'#15729e'],[.62,'#0e4c72'],[1,'#081e3c']]);
   c.fillRect(0,100,1440,480);
   // Underwater sun shafts terminate in gradually darkening water.
   for(let i=0;i<9;i++){
@@ -74,11 +136,31 @@
    c.beginPath();c.moveTo(x,570);c.bezierCurveTo(x+60,475-i%2*25,x+140,492,x+205,412-i%3*28);
    c.quadraticCurveTo(x+270,465,x+365,570);c.closePath();c.fill();
   }
+
+  // Three staggered canyon layers beyond the submarine, with an illuminated
+  // opening, irregular ridges and a distant natural rock arch.
+  for(let layer=0;layer<3;layer++){
+   const offset=layer*37,wave=Math.sin(t*.00006+layer)*9;
+   c.save();c.globalAlpha=.40-layer*.08;
+   c.fillStyle=['#123953','#15465b','#0e3149'][layer];
+   for(let i=-1;i<7;i++){
+    const x=i*295+offset+wave,y=545-layer*28;
+    c.beginPath();c.moveTo(x-95,565);c.lineTo(x-72,y-34);
+    c.lineTo(x-39,y-86-(i%3)*28);c.lineTo(x+8,y-97-(i%2)*25);
+    c.lineTo(x+45,y-49);c.lineTo(x+79,565);c.closePath();c.fill();
+   }
+   c.restore();
+  }
+  c.strokeStyle='rgba(9,44,59,.60)';c.lineWidth=56;c.lineCap='round';
+  c.beginPath();c.moveTo(794,566);c.bezierCurveTo(845,350,972,347,1100,559);c.stroke();
+  c.strokeStyle='rgba(74,157,164,.12)';c.lineWidth=7;
+  c.beginPath();c.moveTo(796,557);c.bezierCurveTo(839,372,961,365,1087,553);c.stroke();
+
   // Bottom foreground rock terraces and reef, seen through the window.
   poly([[0,445],[100,405],[230,476],[325,461],[485,548],[600,550],[0,580]],'#10577b');
   poly([[880,555],[1010,497],[1110,463],[1258,489],[1440,404],[1440,585]],'#134e72');
-  for(let i=0;i<25;i++){
-   const x=i*61+(i%3)*14;
+  for(let i=0;i<18;i++){
+   const x=i*82+(i%3)*14;
    const y=523+(i%4)*11;
    c.strokeStyle=i%2?'#286e70':'#246b8b';c.lineWidth=3;c.beginPath();
    c.moveTo(x,y+25);c.quadraticCurveTo(x-18,y-42,x+Math.sin(t*.0005+i)*16,y-79-(i%5)*13);c.stroke();
@@ -95,10 +177,15 @@
    poly([[-108,-3],[-180,-54],[-170,39]],'#092d55');
    poly([[-18,-21],[35,-92],[56,-18]],'#092d55');c.restore();
   }
-  for(let i=0;i<18;i++){
-   const x=((i*171+t*.008*(1+i%4*.4))%1550)-55;
-   fish(x,176+(i*49)%258,.38+(i%4)*.18,t,i);
+  for(let i=0;i<9;i++){
+   const x=((i*271+t*.012*(1+i%3*.25))%1640)-90;
+   fish(x,181+(i*79)%244,.34+(i%3)*.11,t,i);
   }
+  // Larger recognizable species swim singly or in small, spaced groups.
+  manta(((t*.029+850)%1810)-170,280,.57,t,2);
+  manta(((t*.029+690)%1810)-170,316,.37,t,3);
+  turtle(1050+Math.sin(t*.00032)*52,243,.66,t,5);
+  jelly(509+Math.sin(t*.00021)*28,324,.62,t,1);
   // Tiny bubble trails and depth haze.
   for(let i=0;i<39;i++){
    const x=70+(i*127)%1310,y=130+(i*79+(t*.017*(1+i%3)))%407;
@@ -124,6 +211,7 @@
   for(const x of [112,1245]){
    rr(x-8,112,15,405,6,'#344b60','#8ba2b0',2);
   }
+  panoramicDetails(t);
   // Bottom sill physically extends into the control dashboard.
   poly([[36,550],[705,574],[1403,548],[1440,585],[1440,622],[0,622],[0,585]],'#273a51','#7895a6',4);
   line(110,558,1310,560,'#edb96c',5);
@@ -141,6 +229,13 @@
    rr(x+19,74,140,3,1,'#8bdef1');
   }
   for(const x of [45,1365])rr(x,0,30,95,10,'#364d65','#8099a8',3);
+  // Marine-grade overhead strip lighting and protective retaining rails.
+  rr(443,84,558,7,3,'#0b2437','#64879c',2);
+  rr(472,87,495,3,1,'rgba(105,213,227,.67)');
+  for(const x of [120,1317]){
+   rr(x-48,17,96,17,6,'#0c2538','#77909c',2);
+   rr(x-30,22,60,6,3,'#ca9d58');
+  }
  }
  function consoleBase(t){
   const deck=grad(0,540,0,900,[[0,'#60748a'],[.08,'#344f67'],[.45,'#162a3f'],[1,'#0c192d']]);
@@ -171,6 +266,14 @@
    c.beginPath();c.arc(x,662,3.2,0,TAU);c.fill();
   }c.globalAlpha=1;
   line(215,888,1210,888,'#5c7d91',5);
+  // Instrument panel plinth and live submarine operating indicators.
+  rr(312,649,823,26,8,'#0c1e2c','#627b87',2);
+  c.font='700 11px sans-serif';c.textAlign='left';
+  for(const [x,label] of [[339,'SONAR ATIVO'],[553,'PRESSÃO ESTÁVEL'],[786,'SISTEMAS ONLINE']]){
+   c.fillStyle='#72dcd5';c.beginPath();c.arc(x,662,3.7,0,TAU);c.fill();
+   c.fillStyle='#94b9c4';c.fillText(label,x+12,665);
+  }
+  c.textAlign='start';
  }
  function chair(x,y,scale=1){
   c.save();c.translate(x,y);c.scale(scale,scale);
@@ -207,6 +310,14 @@
   line(-94,156,94,249,'#071927',12);line(94,156,-94,249,'#071927',12);
   line(-90,156,90,249,'#72cbd9',3);line(90,156,-90,249,'#72cbd9',3);
   rr(-29,211,58,27,8,'#102d43','#65e3ef',3);
+  // Reflective suit seam panels, pressure straps, and compact life-support status.
+  for(const side of [-1,1]){
+   c.strokeStyle='rgba(121,228,234,.57)';c.lineWidth=2.8;c.beginPath();
+   c.moveTo(side*83,133);c.quadraticCurveTo(side*116,165,side*87,197);c.stroke();
+   rr(side*64-10,247,20,13,4,'#10293d','#78bfcb',2);
+  }
+  rr(-18,220,36,12,4,'#172d40','#84d9e7',2);
+  rr(-9,224,18,4,2,'#8be3c8');
   // Rear of helmet. Hair emerges beneath the lower rim, not through the shell.
   rr(-49,80,98,41,15,'#0e263a','#71aabf',5);
   c.fillStyle='#0d2238';c.strokeStyle='#81b5ca';c.lineWidth=5;c.beginPath();
@@ -224,6 +335,14 @@
    c.stroke();
   }
   rr(-24,-82,48,17,6,'#173c54','#8ae6ee',3);rr(-13,-78,26,9,3,'#f4e9af');
+  // Helmet ring and subtle breathing animation.
+  c.strokeStyle='rgba(121,234,242,.58)';c.lineWidth=2.7;c.beginPath();
+  c.arc(0,7,71,Math.PI*.83,Math.PI*1.13);c.stroke();
+  for(let i=0;i<3;i++){
+   const travel=(t*.014+i*22)%73;
+   c.strokeStyle='rgba(159,228,232,'+(0.29-(travel/73)*.20)+')';c.lineWidth=1.2;
+   c.beginPath();c.arc(83+Math.sin(i*2+travel*.12)*6,70-travel,2+i*.7,0,TAU);c.stroke();
+  }
   c.restore();
  }
  function scene(t){
