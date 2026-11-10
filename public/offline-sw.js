@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-09-single-swimmer-menu-v62-classic-perimeter';
+const VERSION = '2026-11-10-mar-aberto-inventory-v1';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -36,6 +36,8 @@ const GAME_FILES = [
   'abyssal-ocean-stream.js',
   'abyssal-open-sea-render.js',
   'abyssal-exploration-config.js',
+  'abyssal-inventory-ui.css',
+  'abyssal-inventory-ui.js',
   'abyssal-exploration-runtime.js',
   'abyssal-research-system.js',
   'abyssal-resource-fields.js',
