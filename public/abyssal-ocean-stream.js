@@ -9,8 +9,8 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
  const WIDTH=geo?.WIDTH||24000,HEIGHT=geo?.HEIGHT||21000,CHUNK=1200,AREA_RATIO=35;
- const MAX_NEARBY=150,INITIAL_FAUNA=6,RESOURCE_COUNT=0; // No unapproved resource nodes.
- const MIN_FAUNA_SPACING=155; // Spawn cores stay separated even in a natural school.
+ const MAX_NEARBY=48,INITIAL_FAUNA=3,RESOURCE_COUNT=0; // No unapproved resource nodes.
+ const MIN_FAUNA_SPACING=245; // Spawn cores stay separated even in a natural school.
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
@@ -37,6 +37,7 @@
   function clearWater(x,y,padding=30,separation=0){
    if(x<x0+65||x>=x0+cellWidth-65||y<y0+65||y>=y0+cellHeight-65)return false;
    if(geo?.isSolid?.(x,y,padding))return false;
+    if(x<850&&y<780)return false; // Small upper-left entry sanctuary.
    return !separation||animals.every(other=>Math.hypot(other.x-x,other.y-y)>=separation);
   }
   function randomWater(padding=30,separation=0){
@@ -52,7 +53,7 @@
   // two-animal schools; no single cloned formation consumes an entire area.
   for(let i=0;i<INITIAL_FAUNA;i++){
    let point=null,species=null,schoolId=null;
-   const leader=i>0&&i%3===1?animals[i-1]:null;
+   const leader=i>0&&i%2===1?animals[i-1]:null;
    if(leader&&ecology?.isSchooling?.(leader.species)){
     species=leader.species;schoolId=leader.schoolId;
     for(let k=0;k<16;k++){
@@ -64,7 +65,7 @@
    if(!point){
     point=randomWater(95,MIN_FAUNA_SPACING);if(!point)break;
     species=ecology?.speciesAt?.(point.x,point.y,next)||'seapig';
-    schoolId=ecology?.isSchooling?.(species)?id(cx,cy)+':school'+Math.floor(i/3):id(cx,cy)+':solo'+i;
+    schoolId=ecology?.isSchooling?.(species)?id(cx,cy)+':school'+Math.floor(i/2):id(cx,cy)+':solo'+i;
    }
    animals.push({id:id(cx,cy)+':f'+i,x:point.x,y:point.y,species,
     temperament:ecology?.temperament?.(species)||'passive',schoolId});

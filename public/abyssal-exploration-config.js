@@ -93,13 +93,13 @@
  // Gas usage rises with ambient pressure. This is a gameplay budget, not a
  // decompression simulation or a claim that ordinary wetsuits withstand pressure.
  function gasConsumption(depthMeters,exertion=1){return pressureAt(depthMeters)*clamp(exertion,.5,2);}
- function oxygenCapacity(level=0){return 900*(1+clamp(Math.floor(level),0,5)*.22);}
+ function oxygenCapacity(level=0){return 300*(1+clamp(Math.floor(level),0,5));}
  // The diver must reach the sea-air boundary to refill the oxygen tank.
  function atBreathingSurface(y,radius=18){return Number.isFinite(y)&&y<=Math.max(44,Math.min(80,(Number(radius)||18)+18));}
  function oxygenAfterTick(current,capacity,seconds,depth,y,radius=18){
   const cap=Math.max(1,Number(capacity)||1),dt=Math.max(0,Math.min(.25,Number(seconds)||0));
   const gas=Math.max(0,Math.min(cap,Number(current)||0));
-  return atBreathingSurface(y,radius)?Math.min(cap,gas+cap*.65*dt):Math.max(0,gas-gasConsumption(depth,1)*dt);
+  return atBreathingSurface(y,radius)?Math.min(cap,gas+cap*.65*dt):Math.max(0,gas-dt);
  }
  function safeDepth(level=0){return 300+clamp(Math.floor(level),0,5)*180;}
  // Pressure danger scales above suit rating and outpaces natural health regeneration.

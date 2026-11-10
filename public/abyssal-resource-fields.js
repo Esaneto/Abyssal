@@ -43,7 +43,7 @@
    let point=null,isRock=false;
    for(let attempt=0;attempt<13;attempt++){
     const nearbyRocks=geo.ROCKS.filter(r=>r.x+r.rx>=minX&&r.x-r.rx<=maxX&&r.y+r.ry>=minY&&r.y-r.ry<=maxY);
-    const rock=nearbyRocks.length&&random()<.56?nearbyRocks[Math.floor(random()*nearbyRocks.length)]:null;
+    const rock=nearbyRocks.length&&random()<.82?nearbyRocks[Math.floor(random()*nearbyRocks.length)]:null;
     let x,y;
     if(rock){
      const angle=-Math.PI*.95+random()*Math.PI*.9;
@@ -61,12 +61,12 @@
    if(!point)continue;
    const depth=depthAt(point.y);let type=rollType(depth,isRock,random);
    // Reservoirs are anchored in the seabed, never embedded in loose rock.
-   if(isRock&&(type==='oilSeep'||type==='gasSeep'))type='ferromanganeseCrust';
+   if(!isRock&&(type==='oilSeep'||type==='gasSeep'))type='ferromanganeseCrust';
    const isSeep=type==='oilSeep'||type==='gasSeep';
    nodes.push({id:'geo:'+cx+':'+cy+':'+i,type,x:point.x,y:point.y,
     amount:isSeep?1:1+Math.floor(random()*3),depth:Math.round(depth),
-    reservoirRadius:isSeep?210+Math.floor(random()*125):0,
-    feature:isSeep?'reservoir':isRock?'embedded-rock':'seabed'});
+    reservoirRadius:isSeep?85+Math.floor(random()*35):0,
+    feature:isSeep?'rock-reservoir':isRock?'embedded-rock':'seabed'});
   }
   // Bounded cache; sector generation is deterministic across eviction.
   if(cache.size>=320)cache.delete(cache.keys().next().value);
