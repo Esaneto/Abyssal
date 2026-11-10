@@ -117,18 +117,37 @@
    const biome=geo.visualBiomeAt?.(x,y)?.id||'coastal';
    const scale=biome==='cinematic'?1.16:biome==='geological'?.88:.70;
    const w=(185+seed*155)*scale,h=(245+seeded(bx+13,by+8)*290)*scale;
-   ctx.save();ctx.globalAlpha=lowPower?.15:.22;
-   ctx.fillStyle=biome==='geological'?'#0c1c2b':biome==='cinematic'?'#073e54':'#135465';
+   ctx.save();ctx.globalAlpha=lowPower?.13:biome==='cinematic'?.34:biome==='coastal'?.28:.22;
+   ctx.fillStyle=biome==='geological'?'#0c1c2b':biome==='cinematic'?'#0d526b':'#185e70';
    ctx.beginPath();ctx.moveTo(x-w,y+h*.53);
    ctx.lineTo(x-w*.68,y-h*.45);ctx.lineTo(x-w*.26,y-h*.73);
    ctx.lineTo(x+w*.10,y-h*.58);ctx.lineTo(x+w*.57,y-h*.75);
    ctx.lineTo(x+w*.91,y+h*.49);ctx.closePath();ctx.fill();
-   if(!lowPower&&biome==='cinematic'&&seed>.56){
-    // The arch is background-only and visibly distant, never a fake collision gate.
-    ctx.globalAlpha=.17;ctx.fillStyle='#12708a';ctx.beginPath();
-    ctx.moveTo(x-w*.92,y-h*.05);ctx.quadraticCurveTo(x-w*.20,y-h*.73,x+w*.66,y-h*.23);
-    ctx.lineTo(x+w*.7,y-h*.05);ctx.quadraticCurveTo(x,y-h*.50,x-w*.92,y+h*.05);
-    ctx.closePath();ctx.fill();
+   if(!lowPower&&biome==='cinematic'&&seed>.49){
+    // Background-only luminous canyon arch with a physically open center.
+    ctx.globalAlpha=.25;ctx.fillStyle='#124e68';ctx.beginPath();
+    ctx.moveTo(x-w*1.28,y+h*.55);ctx.lineTo(x-w*1.17,y-h*.15);
+    ctx.bezierCurveTo(x-w*.95,y-h*1.13,x+w*.66,y-h*1.13,x+w*1.18,y-h*.14);
+    ctx.lineTo(x+w*1.32,y+h*.55);ctx.lineTo(x+w*.89,y+h*.55);
+    ctx.lineTo(x+w*.70,y-h*.10);
+    ctx.bezierCurveTo(x+w*.25,y-h*.74,x-w*.45,y-h*.73,x-w*.69,y-h*.12);
+    ctx.lineTo(x-w*.85,y+h*.55);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(93,200,205,.30)';ctx.lineWidth=3;ctx.beginPath();
+    ctx.moveTo(x-w*1.17,y-h*.15);
+    ctx.bezierCurveTo(x-w*.95,y-h*1.13,x+w*.66,y-h*1.13,x+w*1.18,y-h*.14);ctx.stroke();
+   }else if(!lowPower&&biome==='coastal'&&seed>.62){
+    ctx.globalAlpha=.28;ctx.fillStyle='#177084';ctx.beginPath();
+    ctx.moveTo(x-w*.92,y+h*.37);ctx.lineTo(x-w*.75,y-h*.17);
+    ctx.lineTo(x-w*.31,y-h*.21);ctx.lineTo(x-w*.11,y-h*.07);
+    ctx.lineTo(x+w*.25,y-h*.13);ctx.lineTo(x+w*.84,y+h*.35);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(117,199,193,.18)';ctx.lineWidth=2;ctx.beginPath();
+    ctx.moveTo(x-w*.75,y-h*.17);ctx.lineTo(x-w*.31,y-h*.21);
+    ctx.lineTo(x-w*.11,y-h*.07);ctx.stroke();
+   }else if(!lowPower&&biome==='geological'&&seed>.51){
+    ctx.globalAlpha=.23;ctx.strokeStyle='#8ad7cf';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x-w*.69,y+h*.32);
+    ctx.lineTo(x-w*.32,y+h*.15);ctx.lineTo(x+w*.05,y+h*.19);
+    ctx.lineTo(x+w*.35,y+h*.02);ctx.stroke();
    }
    ctx.restore();
   }
