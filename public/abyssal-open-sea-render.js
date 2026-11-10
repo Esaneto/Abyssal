@@ -152,18 +152,27 @@
   ctx.restore();
  }
  function seaFan(ctx,x,y,scale,seed){
+  // Irregular branching gorgonia, not a repeated triangular comb.
   const colors=['#597ddb','#865ed1','#43c8cb','#a85d9b'];
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.lineCap='round';
-  ctx.strokeStyle=colors[Math.min(3,Math.floor(seed*4))];ctx.lineWidth=3.8;
-  for(let arm=0;arm<10;arm++){
-   const a=-Math.PI*.92+arm*.185,tx=Math.cos(a)*73,ty=-20-Math.abs(Math.sin(a))*92;
-   ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(tx*.24,ty*.63,tx,ty);ctx.stroke();
-   ctx.lineWidth=1.4;
-   for(let j=1;j<5;j++){
-    const t=j/5,px=tx*t,py=ty*t,side=arm%2?1:-1;
-    ctx.beginPath();ctx.moveTo(px,py);ctx.quadraticCurveTo(px+side*7,py-7,px+side*16,py-12);ctx.stroke();
-   }ctx.lineWidth=3.8;
-  }ctx.restore();
+  const color=colors[Math.min(3,Math.floor(seed*4))];
+  for(let arm=0;arm<8;arm++){
+   const a=-Math.PI*.93+arm*.255+(seed-.5)*.10;
+   const bend=Math.sin(seed*17+arm*1.71)*12;
+   const reach=55+seeded(arm+5,seed*29)*35;
+   const tx=Math.cos(a)*reach+bend,ty=-12-Math.abs(Math.sin(a))*reach;
+   ctx.strokeStyle=color;ctx.lineWidth=2.4+seeded(arm,seed*17)*1.7;
+   ctx.beginPath();ctx.moveTo(0,0);
+   ctx.bezierCurveTo(tx*.12-7,ty*.28,tx*.67+bend*.3,ty*.72,tx,ty);ctx.stroke();
+   ctx.lineWidth=1.1;
+   for(let j=1;j<=3;j++){
+    const q=j/4,px=tx*q+bend*.15*Math.sin(Math.PI*q),py=ty*q;
+    const side=(arm+j)%2?1:-1,spread=7+seeded(j,arm+seed)*10;
+    ctx.beginPath();ctx.moveTo(px,py);
+    ctx.quadraticCurveTo(px+side*spread*.4,py-5,px+side*spread,py-11-seeded(arm,j)*6);ctx.stroke();
+   }
+  }
+  ctx.restore();
  }
  function glowAnemone(ctx,x,y,scale,seed,lowPower){
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
@@ -215,9 +224,14 @@
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
      const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
      if(rock.type==='overhang'&&seed>.12){
-      // Inverted sea fans and tube sponges grow from the real cave ceiling.
+      // Multiple asymmetric biological silhouettes, not identical hanging brushes.
+      const form=seeded(rock.x+i*7,29);
       ctx.save();ctx.translate(x,underside+3);ctx.scale(1,-1);
-      rockGarden(ctx,0,0,'reef',seed,time,lowPower);ctx.restore();
+      if(form<.26)kelp(ctx,0,0,105+seed*155,time,seed*TAU);
+      else if(form<.51)tubeSponges(ctx,0,0,.46+seed*.62,seed);
+      else if(form<.79)seaFan(ctx,0,0,.42+seed*.72,seed);
+      else coral(ctx,0,0,.62+seed*.58,seed);
+      ctx.restore();
      }
      if(!lowPower&&i%2===0)danglingPlants(ctx,x,underside,55+seed*185,time,seed+i);
     }
