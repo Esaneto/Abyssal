@@ -86,8 +86,8 @@
    const requestedRun=runKey,send=window.AbyssalOnline?.explorationCollect;
    if(typeof send!=='function'){busy=false;notify('Coleta online indisponível.');return;}
    send(target.id,result=>{
-    busy=false;
     if(runKey!==requestedRun)return;
+    busy=false;
     if(result?.ok){
      taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
      if(result.account)account=result.account;
