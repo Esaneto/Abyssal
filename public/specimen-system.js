@@ -67,11 +67,11 @@
    points:Math.round(clamp(points,0,MAX_PROGRESS)),
    progress:p,
    percent:p*100,
-   cooldown:BASE_COOLDOWN-MAX_COOLDOWN_REDUCTION*p,
-   cooldownReduction:MAX_COOLDOWN_REDUCTION*p,
+   cooldown:BASE_COOLDOWN,
+   cooldownReduction:0,
    attributeBonus:MAX_ATTRIBUTE_BONUS*p,
-   rangeMultiplier:1+MAX_RANGE_BONUS*p,
-   rangeBonus:MAX_RANGE_BONUS*p,
+   rangeMultiplier:1,
+   rangeBonus:0,
    respawnSeconds:BASE_RESPAWN-MAX_RESPAWN_REDUCTION*p,
    respawnReduction:MAX_RESPAWN_REDUCTION*p
   });
