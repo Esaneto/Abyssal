@@ -1,3 +1,7 @@
+/* Do not flash the legacy stage before the swimmer scene initializes. */
+#menuScreen.ocean-menu-v2:not(.menu-ready) #menuOceanStage{
+ visibility:hidden!important;
+}
 /* Restored swimmer menu: left current chooses a dive; right enters open sea.
  * Legacy game handlers remain in the DOM but cannot be selected as destinations.
  */
