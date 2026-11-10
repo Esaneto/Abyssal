@@ -37,6 +37,11 @@
  window.addEventListener('abyssal-companion-sonar',()=>{lastScan=0;const nearby=nodes.length;notify('Sonar do espécime ativado: '+nearby+' depósitos no radar.');});
  window.addEventListener('abyssal-resource-collected',ev=>{if(ev.detail?.id!=null){taken.add(String(ev.detail.id));nodes=nodes.filter(n=>n.id!==String(ev.detail.id));}});
  window.addEventListener('exploration-vitals',ev=>{serverVitals=ev.detail||null;});
+ window.addEventListener('abyssal-start-open-sea',()=>{
+  inventoryUI()?.setActive(true);
+  inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));
+ });
+ window.addEventListener('abyssal-start-rift-solo',()=>inventoryUI()?.setActive(false));
  function stateLevels(){return research.migrateLegacy(account?.researchLevels||localLevels,account?.metaUpgrades||{}).levels;}
  function stateInventory(){const p=cfg();return p?(p.online?account?.resourceInventory||{}:localInventory):(account?.resourceInventory||localInventory);}
  function saveLocal(){
