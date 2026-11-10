@@ -39,7 +39,7 @@
   emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
   oilCylinder:{name:'Cilindro de petróleo',habitats:[],kind:'container'},
   gasCylinder:{name:'Cilindro de gás natural',habitats:[],kind:'container'}
- });;
+ });
  // Legacy IDs are mapped without deleting owned shop data.
  const RESEARCH=Object.freeze({
   oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
