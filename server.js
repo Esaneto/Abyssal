@@ -2543,48 +2543,59 @@ io.on('connection', socket => {
   u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
   socket.emit('code-redeem-result',{ok:true,message,skinId,coinsAwarded,account:publicUser(u)});
  });
- // Deposits are deterministic and shared. Coordinates and pickup radius are
- // validated from the server player state, not from client supplied positions.
- function nodesForWorld(room,x,y,radius=350){
-  return []; // Disable unapproved deposits across all modes.
-  const world=room?.world;if(!world)return [];
-  if(room.mode!=='rift')return ResourceFields.streamNear(world.worldId||room.id,x,y,radius,world.collectedResources||[]);
-  // Fossas keep their existing hand-authored traversable cave resource layout.
-  if(!world.riftResourceNodes){
-   const layout=WorldSimulation.mapLayoutFor(world);
-   world.riftResourceNodes=ResourceFields.create(world.worldId||room.id,'rift',Number(layout?.width)||4800,Number(layout?.height)||3000,70)
-    .filter(node=>AbyssalMap.isWalkable(layout,node.x,node.y,18));
-  }
-  return ResourceFields.nearby(world.riftResourceNodes,x,y,radius,world.collectedResources||[]);
+ // Mar Aberto exploration geology is separate from the Solo/Online shooter.
+ // Only the server can award resources and convert empty cylinders.
+ function ensureExplorationStarter(u){
+  if(!u||u.explorationStarterGranted===true)return;
+  const kit=ResourceFields.starterKit(ResearchSystem.sanitizeInventory(u.resourceInventory||{}),false);
+  u.resourceInventory=ResearchSystem.sanitizeInventory(kit.inventory);
+  u.explorationStarterGranted=true;
+  saveUsers();
  }
- socket.on('exploration-scan',(payload={},ack)=>{
+ function nodesForWorld(room,x,y,radius=350){
+  if(room?.mode!=='open-sea'||!room.world)return [];
+  return ResourceFields.streamNear(room.world.worldId||room.id,x,y,radius,room.world.collectedResources||[]);
+ }
+ socket.on('exploration-scan',(_payload={},ack)=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
-  const result=!u||!p||room.mode==='pvp'?{ok:false,reason:'unavailable'}:
-   {ok:true,nodes:nodesForWorld(room,p.x,p.y,560).slice(0,16),
-    inventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}),
-    levels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels};
+  if(!u||!p||room.mode!=='open-sea'||p.alive===false){
+   if(typeof ack==='function')ack({ok:false,reason:'unavailable'});return;
+  }
+  const kitNeeded=u.explorationStarterGranted!==true;
+  ensureExplorationStarter(u);
+  const result={ok:true,nodes:nodesForWorld(room,p.x,p.y,1800).slice(0,64),
+   inventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}),
+   levels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels};
   if(typeof ack==='function')ack(result);
+  if(kitNeeded)socket.emit('account-data',publicUser(u));
  });
  socket.on('exploration-collect',(payload={},ack)=>{
   const respond=data=>{if(typeof ack==='function')ack(data);};
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
-  if(!u||!p||room.mode==='pvp'||p.alive===false)return respond({ok:false,reason:'unavailable'});
-  return respond({ok:false,reason:'resources-disabled'});
-  const now=Date.now();if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
-  const id=String(payload.id||'');
+  if(!u||!p||room.mode!=='open-sea'||p.alive===false)return respond({ok:false,reason:'unavailable'});
+  const now=Date.now();
+  if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
+  const id=String(payload?.id||'').slice(0,100);
+  if(!id.startsWith('geo:'))return respond({ok:false,reason:'invalid-node'});
   const node=nodesForWorld(room,p.x,p.y,180).find(row=>row.id===id);
   if(!node)return respond({ok:false,reason:'unknown-node'});
   room.world.collectedResources ||= [];
   if(room.world.collectedResources.includes(id))return respond({ok:false,reason:'already-collected'});
-  const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
-  const check=ResourceFields.eligible(node,p.x,p.y,levels,115);
-  if(!check.ok)return respond(check);
-  p.lastResourceAt=now;room.world.collectedResources.push(id);
+  ensureExplorationStarter(u);
   u.resourceInventory=ResearchSystem.sanitizeInventory(u.resourceInventory||{});
-  u.resourceInventory[node.type]=Math.min(1000000,u.resourceInventory[node.type]+node.amount);
+  const chosenTool=String(payload?.tool||'');
+  if(chosenTool!==ResourceFields.toolFor(node.type))return respond({ok:false,reason:'select-tool',tool:ResourceFields.toolFor(node.type)});
+  const check=ResourceFields.eligible(node,p.x,p.y,u.resourceInventory,115,chosenTool);
+  if(!check.ok)return respond(check);
+  const result=ResourceFields.collect(node,u.resourceInventory);
+  if(!result.ok)return respond(result);
+  p.lastResourceAt=now;
+  u.resourceInventory=ResearchSystem.sanitizeInventory(result.inventory);
+  room.world.collectedResources.push(id);
   saveUsers();
-  const result={ok:true,node,inventory:u.resourceInventory,account:publicUser(u)};
-  respond(result);socket.emit('account-data',result.account);
+  const answer={ok:true,node,item:result.item,amount:result.amount,inventory:u.resourceInventory,account:publicUser(u)};
+  respond(answer);
+  socket.emit('account-data',answer.account);
   socket.to(channelFor(room)).emit('exploration-resource-collected',{id});
  });
  socket.on('exploration-study',(payload={},ack)=>{
