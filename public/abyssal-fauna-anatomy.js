@@ -5,6 +5,9 @@
 (function(root){
  'use strict';
  const TAU=Math.PI*2;
+ // Reuse specimen-shop color identity without changing wildlife anatomy.
+ const SHOP_COLORS=Object.freeze({goblin:'#3a72c2',frilled:'#405879',butterflyray:'#d6b36a',eagleray:'#668fa5',nautilus:'#d0af84',yeticrab:'#93a8ae',reefshark:'#557c8c',hawksbill:'#78975d',leatherback:'#557e69',stingray:'#9d6d8d',zebramoray:'#607a9c',spidercrab:'#927c73',bigfin:'#8e83b6',whiplash:'#9f8cbd',angler:'#7b8d57',viperfish:'#a47c69',blackdragon:'#514f91',seapig:'#ba879c',leviathan:'#668a96',siphonophore:'#b68ebc'});
+ function shopTint(id){const hex=SHOP_COLORS[id];if(!hex)return 0;const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0;if(d){if(max===r)h=((g-b)/d)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=(h*60+360)%360;}return Math.round(h-205);}
  function path(c,points,color){c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}
  function curve(c,coords,color,width=1){c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.beginPath();c.moveTo(coords[0],coords[1]);c.bezierCurveTo(...coords.slice(2));c.stroke();}
  function eye(c,x,y){c.fillStyle='#d9e1d9';c.beginPath();c.arc(x,y,2.3,0,TAU);c.fill();c.fillStyle='#061119';c.beginPath();c.arc(x+.5,y,.9,0,TAU);c.fill();}
@@ -122,6 +125,8 @@
   if(!known.has(kind))return false;
   const s=Math.min(2.3,Math.max(.22,Number(r)||32)/57),t=(Number(time)||0)+((Number(enemy.phase)||0)*570);
   ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate((Number(enemy.angle)||0)+Math.sin(t*.0017)*.025);ctx.scale(s,s);
+  // Hue is taken from the matching shop specimen, preserving the new body shapes.
+  ctx.filter='hue-rotate('+shopTint(kind)+'deg) saturate(1.28)';
   if(/shark|goblin|frilled|leviathan/.test(kind))fish(ctx,t,kind);
   else if(/zebramoray|whiplash|viperfish|blackdragon/.test(kind))eel(ctx,t,kind);
   else if(kind==='bigfin')bigfinSquid(ctx,t);
@@ -132,6 +137,7 @@
   else if(kind==='seapig')seaPig(ctx,t);
   else if(kind==='angler')fish(ctx,t,kind);
   else jelly(ctx,t,kind==='siphonophore');
+  ctx.filter='none';
   if(enemy.hit>0){ctx.globalAlpha=Math.min(.35,Number(enemy.hit)*.4);ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(0,0,65,32,0,0,TAU);ctx.fill();}
   ctx.restore();return true;
  }
