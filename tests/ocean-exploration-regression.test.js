@@ -9,7 +9,7 @@ const config=require('../public/abyssal-exploration-config.js');
 const research=require('../public/abyssal-research-system.js');
 
 test('open-sea fauna inhabit defined zones and behavior is not automatic pursuit',()=>{
- assert.ok(eco.ZONES.length>=6);
+ assert.ok(eco.ZONES.length>=5); // Only reachable geological biomes are listed.
  const animal={id:9,x:100,y:100,homeX:100,homeY:100,angle:0,hp:70,maxHp:70,wildlifeMode:'passive'};
  const diver={x:170,y:100,alive:true,hp:100};
  assert.equal(eco.decide(animal,[diver],0,100).mode,'flee');
