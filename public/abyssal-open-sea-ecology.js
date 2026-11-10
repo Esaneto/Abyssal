@@ -99,12 +99,14 @@
  }
  function decide(entity,players,seconds=0,now=Date.now(),neighbors=[]){
   const nature=entity.wildlifeMode||temperament(entity.specimenSkinId);
+  if(entity.aiNature!==nature){entity.aiNature=nature;entity.aiMode=null;entity.aiDecisionUntil=0;}
   const hash=hashSchool(entity);
   const centerX=Number.isFinite(entity.homeX)?entity.homeX:entity.x;
   const centerY=Number.isFinite(entity.homeY)?entity.homeY:entity.y;
   const angle=seconds*.14+(hash%628)/100;
   const group=isSchooling(entity.specimenSkinId);
-  const offset=group?(Number.parseInt(creatureId(entity).split('f').pop(),10)||0):((hash%5)-2);
+  const ordinal=Number.parseInt(String(entity.streamId||entity.id||'0').split('f').pop(),10)||0;
+  const offset=group?ordinal%3:((hash%5)-2);
   let formationX=centerX+Math.cos(angle)*165+Math.cos(offset*2.4)*Math.min(72,offset*16);
   let formationY=centerY+Math.sin(angle*.72)*92+Math.sin(offset*2.4)*Math.min(72,offset*16);
   if(group&&Array.isArray(neighbors)){

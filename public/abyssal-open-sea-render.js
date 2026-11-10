@@ -42,7 +42,9 @@
   ctx.fillStyle=gradient;ctx.fillRect(left,top,right-left,bottom-top);
   // The distant cyan opening is anchored in world space. No screen-sized repeating wallpaper.
   if(top<geo.HEIGHT*.43){
-   const sourceX=geo.WIDTH*.77,sourceY=-geo.HEIGHT*.016;
+   for(const sourceX of [1800,6700,12200,18400,22600]){
+   if(sourceX+geo.HEIGHT*.4<left||sourceX-geo.HEIGHT*.4>right)continue;
+   const sourceY=-geo.HEIGHT*.016;
    const glow=ctx.createRadialGradient(sourceX,sourceY,60,sourceX,sourceY,geo.HEIGHT*.37);
    glow.addColorStop(0,'rgba(58,219,252,.49)');
    glow.addColorStop(.22,'rgba(20,165,231,.20)');
@@ -58,6 +60,7 @@
      ctx.lineTo(start+reach*.51+wobble,reach);ctx.lineTo(start+reach*.22+wobble,reach);
      ctx.closePath();ctx.fill();
     }
+   }
    }
   }
   // Surface caustics fade before deep water and never form a repeated grid.

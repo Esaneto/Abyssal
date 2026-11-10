@@ -40,7 +40,9 @@
   [1550,360,520,195,'shelf'],[3360,820,290,480,'spire'],
   [5230,780,515,235,'shelf'],[8750,1160,650,235,'arch'],
   [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
-  [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf']
+  [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf'],
+  // Strong overhangs near the starting shelf, physically collidable, not decals.
+  [580,4850,690,290,'shelf'],[2950,4250,730,230,'arch']
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),

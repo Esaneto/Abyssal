@@ -17,23 +17,11 @@ test('open-sea fauna inhabit defined zones and behavior is not automatic pursuit
  assert.equal(eco.decide({...animal,wildlifeMode:'aggressive'},[{...diver,x:900}],0,100).mode,'patrol');
 });
 
-test('resource deposits are reproducible, restricted to habitat resources',()=>{
- const a=resources.create('unit-world','classic',4800,3000,90),b=resources.create('unit-world','classic',4800,3000,90);
- assert.deepEqual(a,b);
- assert.equal(a.length,90);
- for(const row of a){
-  assert.ok(eco.habitatAt(row.x,row.y).resources.includes(row.type));
-  assert.ok(config.RESOURCES[row.type]);
- }
+test('legacy resource generator stays empty until the approved Mar Aberto catalog exists',()=>{
+ assert.deepEqual(resources.create('unit-world','classic',4800,3000,90),[]);
+ assert.deepEqual(resources.streamNear('unit-world',400,500,1400),[]);
+ assert.equal(resources.eligible({id:'3',type:'salvageMetal',x:200,y:220},200,220).reason,'resources-disabled');
 });
-
-test('server-style gathering checks exact range and researched tools',()=>{
- const point={id:'3',type:'salvageMetal',x:200,y:220};
- assert.equal(resources.eligible(point,500,220,{}).reason,'too-far');
- assert.equal(resources.eligible(point,200,220,{}).reason,'tool-required');
- assert.equal(resources.eligible(point,200,220,{salvageTool:1}).ok,true);
-});
-
 test('combat technologies require lab research and legacy purchases migrate',()=>{
  assert.equal(config.RESEARCH.dash.slot,'E');
  assert.equal(config.RESEARCH.pulse.slot,'Q');

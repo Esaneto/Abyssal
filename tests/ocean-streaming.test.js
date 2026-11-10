@@ -7,11 +7,11 @@ const stream=require('../public/abyssal-ocean-stream.js');
 const ecology=require('../public/abyssal-open-sea-ecology.js');
 const resource=require('../public/abyssal-resource-fields.js');
 
-test('Mar Aberto is exactly 15 times the original 4800x3000 surface',()=>{
+test('Mar Aberto expands to 35 times the original 4800x3000 surface',()=>{
  assert.equal(stream.WIDTH,24000);
- assert.equal(stream.HEIGHT,9000);
- assert.equal(stream.WIDTH*stream.HEIGHT/(4800*3000),15);
- assert.equal(stream.AREA_RATIO,15);
+ assert.equal(stream.HEIGHT,21000);
+ assert.equal(stream.WIDTH*stream.HEIGHT/(4800*3000),35);
+ assert.equal(stream.AREA_RATIO,35);
 });
 
 test('cells are generated on demand with stable IDs and distinct regions',()=>{
@@ -20,10 +20,10 @@ test('cells are generated on demand with stable IDs and distinct regions',()=>{
  const distant=stream.generate('session',18,6,ecology);
  assert.deepEqual(a,b);
  assert.equal(a.animals.length,3);
- assert.equal(a.resources.length,5);
+ assert.equal(a.resources.length,0);
  assert.notDeepEqual(a,distant);
  assert.ok(a.animals.every(n=>n.x>=12000&&n.x<13200));
- assert.ok(a.resources.every(n=>n.id.startsWith('10:3:r')));
+ assert.deepEqual(a.resources,[]);
 });
 
 test('large distant parties receive fair interest-area allocations',()=>{
@@ -35,15 +35,10 @@ test('large distant parties receive fair interest-area allocations',()=>{
  assert.equal(new Set(cells.map(c=>c.key)).size,cells.length);
 });
 
-test('resource scanner does not enumerate or instantiate the entire ocean',()=>{
- const x=12400,y=1600;
- const nodes=resource.streamNear('test-world',x,y,1800);
- assert.ok(nodes.length>0);
- assert.ok(nodes.length<150);
- assert.ok(nodes.every(n=>Math.hypot(n.x-x,n.y-y)<=1800));
- assert.ok(nodes.every(n=>ecology.habitatAt(n.x,n.y).resources.includes(n.type)));
- const skipped=resource.streamNear('test-world',x,y,1800,[nodes[0].id]);
- assert.equal(skipped.some(n=>n.id===nodes[0].id),false);
+test('legacy resources remain disabled without losing the on-demand sector contract',()=>{
+ assert.deepEqual(resource.streamNear('test-world',12400,1600,1800),[]);
+ assert.deepEqual(resource.create('test-world'),[]);
+ assert.equal(resource.eligible({id:'1',x:0,y:0,type:'seaMineral'},0,0).reason,'resources-disabled');
 });
 
 test('fauna migrates within 15x world and never clamps to original 4800x3000',()=>{
@@ -73,20 +68,20 @@ test('server, solo and UI explicitly share AOI streaming contract',()=>{
 
 test('last partial ocean row never creates out-of-bounds fauna or resources',()=>{
  for(const cx of [0,10,19]){
-  const cell=stream.generate('partial-row',cx,7,ecology);
+  const cell=stream.generate('partial-row',cx,17,ecology);
   // The bottom row is mostly seabed. Only open pockets and caves can spawn.
   assert.ok(cell.animals.length>=0&&cell.animals.length<=stream.INITIAL_FAUNA);
   assert.ok(cell.resources.length>=0&&cell.resources.length<=stream.RESOURCE_COUNT);
   for(const entity of [...cell.animals,...cell.resources]){
    assert.ok(entity.x>=cx*stream.CHUNK&&entity.x<Math.min(stream.WIDTH,(cx+1)*stream.CHUNK));
-   assert.ok(entity.y>=7*stream.CHUNK&&entity.y<stream.HEIGHT);
+   assert.ok(entity.y>=17*stream.CHUNK&&entity.y<stream.HEIGHT);
   }
  }
 });
 
 
 test('invalid sectors never spawn creatures or resource nodes',()=>{
- for(const [cx,cy] of [[-1,0],[0,-1],[20,0],[0,8],[NaN,0],[1.5,0]]){
+ for(const [cx,cy] of [[-1,0],[0,-1],[20,0],[0,18],[NaN,0],[1.5,0]]){
   const cell=stream.generate('invalid-sector',cx,cy,ecology);
   assert.equal(cell.animals.length,0);
   assert.equal(cell.resources.length,0);

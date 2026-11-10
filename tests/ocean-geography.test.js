@@ -10,8 +10,8 @@ const renderer=require('../public/abyssal-open-sea-render.js');
 
 test('ocean is a wide side section with a sunlit shelf, canyon and abyssal basin',()=>{
  assert.equal(geo.WIDTH,24000);
- assert.equal(geo.HEIGHT,9000);
- assert.ok(geo.floorAt(1000)<3200);
+ assert.equal(geo.HEIGHT,21000);
+ assert.ok(geo.floorAt(1000)>4000&&geo.floorAt(1000)<9000);
  assert.ok(geo.floorAt(10000)>7700);
  assert.ok(geo.ROCKS.length>=10);
  assert.ok(geo.CAVES.length>=5);
