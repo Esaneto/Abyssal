@@ -24,7 +24,7 @@ const OPEN_SEA_ECOLOGY=window.AbyssalOpenSeaEcology;
 const OCEAN_STREAM=window.AbyssalOceanStream;
 const OCEAN_GEOGRAPHY=window.AbyssalOceanGeography;
 const oceanWidth=()=>OCEAN_STREAM?.WIDTH||24000,oceanHeight=()=>OCEAN_STREAM?.HEIGHT||9000;
-const defaultWidth=()=>onlineRoomMode==='pvp'?4800:oceanWidth(),defaultHeight=()=>onlineRoomMode==='pvp'?3000:oceanHeight();
+const defaultWidth=()=>isOpenSeaRun()?oceanWidth():4800,defaultHeight=()=>isOpenSeaRun()?oceanHeight():3000;
 const PHOTON_RAY_VISUAL=window.AbyssalPhotonRay;
 const EXPEDITION_RULES=window.AbyssalExpeditionRules;
 const ABYSSAL_MAP=window.AbyssalMap;
@@ -2168,10 +2168,10 @@ const SHOT_BALANCE=Object.freeze({
 });
 function shotBalanceValue(id,key,level,fallback){const cfg=SHOT_BALANCE[id],rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1))),value=cfg?.[key]?.[rank];return Number.isFinite(value)?value:fallback;}
 function getShotDamageAtLevel(level,shotId=null){const rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1)));return shotBalanceValue(shotId,'damage',rank,[0,12,15,18][rank]);}
-function isPcMouseAimMode(){return !isMobileDevice()&&controlSettings.pc==='wasd-aim';}
-function isManualFiringMode(){return isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');}
+function isPcMouseAimMode(){return !isMobileDevice()&&(!isClassicShooterRun()||controlSettings.pc==='wasd-aim');}
+function isManualFiringMode(){return !isClassicShooterRun()||isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');}
 function manualFireDown(){return isMobileDevice()?mobileFireHeld:pointer.down;}
-function syncMobileFireButton(){const btn=$('mobileFireBtn');if(btn)btn.hidden=!(gameState==='playing'&&isMobileDevice()&&controlSettings.mobile==='dual-stick');}
+function syncMobileFireButton(){const btn=$('mobileFireBtn');if(btn)btn.hidden=!(gameState==='playing'&&isMobileDevice()&&isManualFiringMode());}
 function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
 function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';}
 // A side-beam and its actual hit segment must stop at the same solid rock.
@@ -2194,7 +2194,7 @@ function fire(){
   const peers=window.AbyssalOnline?.getPlayers?.()||[];
   for(const peer of peers){if(!peer||peer.alive===false)continue;const d=Math.hypot((Number(peer.x)||0)-player.x,(Number(peer.y)||0)-player.y);if(d<maxRange&&d<bd){target=peer;bd=d;}}
  }else for(const e of enemies){if(enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
- const mouseAimMode=isPcMouseAimMode(),aimedMode=mouseAimMode||(isMobileDevice()&&controlSettings.mobile==='dual-stick');
+ const mouseAimMode=isPcMouseAimMode(),aimedMode=isManualFiringMode();
  if(!target&&!aimedMode)return;
  if(mouseAimMode)updateMouseAimFromCursor();
  const a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
@@ -2549,7 +2549,11 @@ function update(dt){
      particles.push(p);
     }
    }}
-   player.fireTimer=(player.fireTimer||0)-dt;if(player.fireTimer<=0&&(!isManualFiringMode()||manualFireDown())){fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')))}
+   // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
+   player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
+   if(player.fireTimer<=0&&(!isManualFiringMode()||manualFireDown())){
+    fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
+   }
  }
  // Companion sim runs even if diver is not moving.
  updateSpecimenRuntime(dt);
@@ -4161,7 +4165,7 @@ function loop(t){
  requestAnimationFrame(loop);
 }
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
-canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),clientX:e.clientX,clientY:e.clientY,down:true,active:true};canvas.setPointerCapture?.(e.pointerId);if(isManualFiringMode()&&player)player.fireTimer=0;});
+canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),clientX:e.clientX,clientY:e.clientY,down:true,active:true};canvas.setPointerCapture?.(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){pointer.clientX=e.clientX;pointer.clientY=e.clientY;Object.assign(pointer,coords(e));pointer.active=true;}});
 window.addEventListener('pointermove',e=>{if(isMobileDevice())return;pointer.clientX=e.clientX;pointer.clientY=e.clientY;if(isPcMouseAimMode()&&gameState==='playing')updateMouseAimFromCursor();},{passive:true});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{pointer.down=false;pointer.active=false}));
@@ -4218,7 +4222,7 @@ function setupDualStickEvents(){
 const mobileFireBtn=$('mobileFireBtn');
 if(mobileFireBtn){
  const release=()=>{mobileFireHeld=false;mobileFireBtn.classList.remove('is-firing');};
- mobileFireBtn.addEventListener('pointerdown',e=>{if(gameState!=='playing'||controlSettings.mobile!=='dual-stick')return;e.preventDefault();e.stopPropagation();mobileFireHeld=true;mobileFireBtn.classList.add('is-firing');if(player)player.fireTimer=0;try{mobileFireBtn.setPointerCapture(e.pointerId)}catch(_){}});
+ mobileFireBtn.addEventListener('pointerdown',e=>{if(gameState!=='playing'||controlSettings.mobile!=='dual-stick')return;e.preventDefault();e.stopPropagation();mobileFireHeld=true;mobileFireBtn.classList.add('is-firing');try{mobileFireBtn.setPointerCapture(e.pointerId)}catch(_){}});
  ['pointerup','pointercancel','lostpointercapture'].forEach(name=>mobileFireBtn.addEventListener(name,release));
  window.addEventListener('blur',release);
 }
