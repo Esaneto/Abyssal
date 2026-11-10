@@ -20,14 +20,26 @@
   abyss:{label:'Regiões abissais',minDepth:3500,maxDepth:11000,creatures:['seapig','yeticrab','whiplash'],resources:['abyssCrystal','bioSample']}
  });
  const RESOURCES=Object.freeze({
-  seaMineral:{name:'Minerais submarinos',habitats:['reef','kelp','rocks']},
+  // Existing identifiers remain valid for researched technologies and old saves.
+  seaMineral:{name:'Minério submarino',habitats:['reef','kelp','rocks'],kind:'ore'},
   kelpFiber:{name:'Fibra de algas',habitats:['kelp']},
   coralSample:{name:'Amostra de coral',habitats:['reef']},
   salvageMetal:{name:'Metal recuperado',habitats:['rocks','canyon'],tool:'salvageTool'},
   deepCrystal:{name:'Cristal profundo',habitats:['canyon','deep'],tool:'extractor'},
   abyssCrystal:{name:'Cristal abissal',habitats:['abyss'],tool:'extractor'},
-  bioSample:{name:'Amostra biológica',habitats:['deep','abyss'],tool:'sampler'}
- });
+  bioSample:{name:'Amostra biológica',habitats:['deep','abyss'],tool:'sampler'},
+  // Geological Mar Aberto exploration deposits (not shooter mode).
+  phosphorite:{name:'Fosforita',habitats:['rocks','canyon'],kind:'ore'},
+  ferromanganeseCrust:{name:'Crosta ferromanganesífera',habitats:['rocks','canyon','deep','abyss'],kind:'ore'},
+  polymetallicNodule:{name:'Nódulo polimetálico',habitats:['deep','abyss'],kind:'ore'},
+  hydrothermalSulfide:{name:'Sulfeto polimetálico',habitats:['canyon','deep','abyss'],kind:'ore'},
+  oilSeep:{name:'Exsudação de petróleo',habitats:['canyon','deep'],kind:'seep',filled:'oilCylinder'},
+  gasSeep:{name:'Exsudação de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
+  abyssPickaxe:{name:'Picareta abissal',habitats:[],kind:'tool'},
+  emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
+  oilCylinder:{name:'Cilindro de petróleo',habitats:[],kind:'container'},
+  gasCylinder:{name:'Cilindro de gás natural',habitats:[],kind:'container'}
+ });;
  // Legacy IDs are mapped without deleting owned shop data.
  const RESEARCH=Object.freeze({
   oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
