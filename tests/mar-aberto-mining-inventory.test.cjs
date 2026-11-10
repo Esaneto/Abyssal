@@ -71,8 +71,8 @@ test('inventory is exclusive to Mar Aberto and server rejects untrusted collecti
  const server=source('server.js'),runtime=source('public/abyssal-exploration-runtime.js');
  const ui=source('public/abyssal-inventory-ui.js'),html=source('public/index.html');
  assert.match(server,/room\.mode!=='open-sea'/);
- assert.match(server,/chosenTool!==ResourceFields\.toolFor\(node\.type\)/);
- assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,u\.resourceInventory,115,chosenTool\)/);
+ assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,inventory,125,tool\)/);
+ assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,ResearchSystem\.sanitizeInventory\(u\.resourceInventory\|\|\{\}\),125,action\.tool\)/);
  assert.match(server,/ResourceFields\.collect\(node,u\.resourceInventory\)/);
  assert.match(runtime,/p\.mode==='open-sea'\?closest\(p\):null/);
  assert.match(ui,/event\.key\?\.toLowerCase\(\)==='i'/);
@@ -82,7 +82,7 @@ test('inventory is exclusive to Mar Aberto and server rejects untrusted collecti
 test('mining UI is isolated to open sea and asynchronous callbacks cannot leak across game modes',()=>{
  const runtime=source('public/abyssal-exploration-runtime.js');
  assert.match(runtime,/if\(runKey!==expectedRun\)startRun\(p\)/,'returning from Fossas must start a fresh Mar Aberto session');
- assert.match(runtime,/drawMarkers\(p,p\.mode==='open-sea'\)/,'do not render mineral fields inside Fossas');
+ assert.match(runtime,/if\(!c\|\|!p\|\|p\.mode!=='open-sea'\)return/,'world resources must not render inside Fossas');
  assert.match(runtime,/if\(!result\?\.ok\|\|runKey!==requestedRun\|\|cfg\(\)\?\.mode!=='open-sea'/,'obsolete online sector scans must be discarded');
  assert.match(runtime,/if\(runKey!==requestedRun\)return;\s*busy=false;/,'obsolete mining acknowledgements must not unlock another session');
  assert.match(runtime,/if\(typeof send!=='function'\)\{busy=false;/,'missing online transport must not leave resource collection permanently locked');
@@ -107,6 +107,8 @@ test('resource markers use the authoritative game camera so deposits stay fused 
 test('mined deposits animate only on collection and breakup stays in world coordinates',()=>{
  const runtime=source('public/abyssal-exploration-runtime.js');
  assert.match(runtime,/collectionFx\.push\(\{x:target\.x,y:target\.y,started:performance\.now\(\)/);
+ const gather=source('public/abyssal-extraction-ui.js');
+ assert.match(gather,/if\(a\.tool==='abyssPickaxe'\)bridge\.extractionBurst\?\.\(n\)/,'ore fractures only after confirmed extraction');
  assert.match(runtime,/const x=\(fx\.x-originX\)\*zoom,y=\(fx\.y-originY\)\*zoom/);
  assert.match(runtime,/nodes\.length===0&&collectionFx\.length===0/);
 });
