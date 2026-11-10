@@ -116,6 +116,89 @@
   workshopGrid.appendChild(cardGrid);
   mountCockpitConsole();
  }
+
+ // Six actual console keys share one built-in display. They never create
+ // duplicate floating menus on top of the submarine dashboard.
+ const CONSOLE_BUTTONS=Object.freeze([
+  {id:'laboratory',name:'LABORATÓRIO',symbol:'⌬',title:'LABORATÓRIO ABISSAL'},
+  {id:'minerals',name:'MINÉRIOS',symbol:'◆',title:'AMOSTRAS GEOLÓGICAS'},
+  {id:'shop',name:'LOJA',symbol:'▣',title:'LOJA DE ESPÉCIMES'},
+  {id:'specimens',name:'ESPÉCIMES',symbol:'◈',title:'ABISSÁRIO'},
+  {id:'sea',name:'MAR ABERTO',symbol:'≈',title:'EXPLORAÇÃO OCEÂNICA'},
+  {id:'rift',name:'FOSSAS',symbol:'⌄',title:'FOSSAS ABISSAIS'}
+ ]);
+ function mountCockpitConsole(utility){
+  const old=utility?[utility]:Array.from(workshopGrid.children);
+  const chosen=CONSOLE_BUTTONS.find(option=>option.id===activeConsoleSection)||CONSOLE_BUTTONS[0];
+  const visor=document.createElement('section');visor.className='abyss-cockpit-visor';
+  visor.setAttribute('aria-label','Visor central de comandos');
+  const heading=document.createElement('header');heading.className='abyss-visor-heading';
+  const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=chosen.title;column.append(small,title);
+  const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
+  heading.append(column,status);visor.append(heading);
+  const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;
+  for(const node of old){
+   if(node.classList.contains('submarine-console-overview'))continue;
+   if(node.classList.contains('submarine-console-tabs'))node.classList.add('abyss-lab-subnav');
+   body.append(node);
+  }
+  visor.append(body);
+  const keys=document.createElement('nav');keys.className='abyss-control-deck';keys.setAttribute('aria-label','Controles físicos da cabine');
+  for(const option of CONSOLE_BUTTONS){
+   const key=document.createElement('button');key.type='button';
+   key.className='abyss-control-key'+(option.id===activeConsoleSection?' is-active':'');
+   key.setAttribute('aria-label',option.name);
+   key.setAttribute('aria-pressed',String(option.id===activeConsoleSection));
+   const symbol=document.createElement('span');symbol.className='abyss-control-icon';
+   symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
+   const name=document.createElement('span');name.textContent=option.name;
+   key.append(symbol,name);
+   key.addEventListener('click',()=>{if(activeConsoleSection!==option.id){activeConsoleSection=option.id;renderWorkshop();}});
+   keys.append(key);
+  }
+  workshopGrid.replaceChildren(visor,keys);
+ }
+ function renderConsoleUtility(){
+  if(!workshopGrid)return;
+  const utility=document.createElement('div');utility.className='abyss-console-info';
+  if(activeConsoleSection==='minerals'){
+   const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';
+   const inventory=research.sanitizeInventory(stateInventory());
+   for(const id of ['polymetallicNodule','ferromanganeseCrust','phosphorite','hydrothermalSulfide','oilSeep','gasSeep']){
+    const card=document.createElement('div');card.className='abyss-mineral-tile';
+    const art=document.createElement('span');art.innerHTML=window.AbyssalResourceIcons?.svg?.(id)||'';
+    const data=document.createElement('div'),label=document.createElement('strong'),stock=document.createElement('small');
+    label.textContent=config.RESOURCES[id]?.name||id;
+    const item=id==='oilSeep'?'oilCylinder':id==='gasSeep'?'gasCylinder':id;
+    stock.textContent=(id!==item?'AMOSTRAS ':'ESTOQUE ')+(Number(inventory[item])||0);
+    data.append(label,stock);card.append(art,data);gallery.append(card);
+   }
+   utility.append(gallery);
+   const note=document.createElement('p');note.textContent='Minérios coletados no Mar Aberto financiam as pesquisas. As imagens aparecem também nos requisitos de cada tecnologia.';
+   utility.append(note);
+  }else{
+   const pages={
+    shop:['LOJA DE ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ACESSAR LOJA','shopBtn'],
+    specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABISSÁRIO','catalogBtn'],
+    sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
+    rift:['DESCIDA ÀS FOSSAS','Enfrente as cavernas, armadilhas e os chefes das Fossas Abissais.','INICIAR DESCIDA','riftPortalBtn']
+   };
+   const info=pages[activeConsoleSection];if(info){
+    const heading=document.createElement('strong');heading.textContent=info[0];
+    const body=document.createElement('p');body.textContent=info[1];
+    const action=document.createElement('button');action.className='abyss-visor-action';action.type='button';action.textContent=info[2];
+    action.addEventListener('click',()=>{
+     // Reuse the existing portal animation / actual screen handler.
+     closeWorkshop();
+     const target=document.getElementById(info[3]);if(target&&!target.disabled)target.click();
+    });
+    utility.append(heading,body,action);
+   }
+  }
+  mountCockpitConsole(utility);
+ }
+
  const openWorkshop=()=>{if(!workshop)return;workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
