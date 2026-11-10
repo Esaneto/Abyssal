@@ -315,3 +315,23 @@
 @media(prefers-reduced-motion:reduce){
  #submarineWorkshop .abyss-control-key{transition:none}
 }
+
+/* IMPORTANT: inventory CSS defines auto-fit columns on this legacy class.
+ * Override its columns explicitly so the monitor sits ABOVE six compact keys.
+ * This corrects the stretched 300px-tall buttons seen in desktop smoke images. */
+#submarineWorkshop .submarine-workshop-grid{
+ grid-template-columns:minmax(0,1fr)!important;
+ grid-template-rows:minmax(0,1fr) auto!important;
+ grid-auto-flow:row!important;
+ margin:0!important;align-items:stretch;gap:10px;
+}
+#submarineWorkshop .submarine-workshop-grid>.abyss-cockpit-visor{
+ grid-column:1!important;grid-row:1!important;min-width:0;width:100%;max-width:100%;
+}
+#submarineWorkshop .submarine-workshop-grid>.abyss-control-deck{
+ grid-column:1!important;grid-row:2!important;min-width:0;width:100%;max-width:100%;
+ align-content:end;align-items:stretch;
+}
+@media(max-width:1100px){
+ #submarineWorkshop .submarine-workshop-grid{gap:6px}
+}
