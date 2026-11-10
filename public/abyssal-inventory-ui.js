@@ -64,7 +64,7 @@
   if(event.key?.toLowerCase()==='i'){event.preventDefault();event.stopImmediatePropagation();setOpen(panel.hidden);}
   else if(event.key==='Escape'&&!panel.hidden){event.preventDefault();event.stopImmediatePropagation();setOpen(false);}
  },true);
- function setActive(value){active=Boolean(value);root.hidden=!active;if(!active)setOpen(false);}
+ function setActive(value){active=Boolean(value);root.hidden=!active;if(!active){panel.hidden=true;$('abyssInventoryToggle').setAttribute('aria-expanded','false');}}
  function setInventory(items){inventory=items||{};if(!Number(inventory[selected]))selected=Number(inventory.abyssPickaxe)>0?'abyssPickaxe':'emptyCylinder';if(!panel.hidden)render();}
  window.AbyssalInventoryUI=Object.freeze({setActive,setInventory,selectedTool:()=>selected,close:()=>setOpen(false),isOpen:()=>!panel.hidden&&active});
 })();
