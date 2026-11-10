@@ -33,7 +33,7 @@ test('large navigable ocean, seabed collision and open paths around cliffs',()=>
  const moved=geo.resolveMove(x,y-250,x,y+150,18);
  assert.equal(moved.blocked,true);
  assert.equal(geo.isSolid(moved.x,moved.y,18),false);
- assert.equal(geo.segmentClear(1000,900,5000,900,20),true);
+ assert.equal(geo.segmentClear(1000,200,5000,200,20),true); // Higher route over new rock canopy
 });
 
 test('real cave entrances and chambers are accessible water voids',()=>{

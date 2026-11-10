@@ -86,13 +86,14 @@
   // Keep intent stable briefly. Never retain live player objects on server enemies:
   // enemies are serialized into room snapshots and would otherwise leak player state.
   if(locked&&!force&&current&&current!==mode){
-   if(current==='flee'||current==='evade-predator')return {...decision,mode:current,aggressive:false};
-   if(current==='alert'&&mode==='patrol')return {...decision,mode:current,aggressive:false};
+   if(current==='flee'||current==='evade-predator')return {...decision,target:entity.aiGoal||decision.target,mode:current,aggressive:false};
+   if(current==='alert'&&mode==='patrol')return {...decision,target:entity.aiGoal||decision.target,mode:current,aggressive:false};
   }
   if(current!==mode){
    entity.aiMode=mode;
    entity.aiDecisionUntil=now+(mode==='attack'?1150:mode==='flee'||mode==='evade-predator'?920:mode==='forage'?1200:720);
   }
+  entity.aiGoal=decision.target?{x:Number(decision.target.x)||0,y:Number(decision.target.y)||0,alive:true,moveSpeed:Number(decision.target.moveSpeed)||110}:null;
   entity.aiIndicator=(mode==='attack'||mode==='forage')?'attack':
    (mode==='flee'||mode==='evade-predator')?'flee':mode==='alert'?'evaluate':null;
   return decision;

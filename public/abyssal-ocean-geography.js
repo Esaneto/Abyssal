@@ -71,13 +71,12 @@
  function isCaveWater(x,y,padding=0){
   for(const cave of CAVES){
    const nodes=cave.nodes;
-   // Coarse bounding box before capsule checks.
-   let near=false;
-   for(const n of nodes)if(Math.abs(x-n.x)<680&&Math.abs(y-n.y)<690){near=true;break;}
-   if(!near)continue;
+   // Segment bounds remain correct after the deeper floor stretches cave slopes.
    for(let i=1;i<nodes.length;i++){
     const a=nodes[i-1],b=nodes[i],r=Math.min(a.r,b.r)-padding;
-    if(r>0&&capsuleSigned(x,y,a.x,a.y,b.x,b.y,r)<0)return true;
+    if(r<=0||x<Math.min(a.x,b.x)-r||x>Math.max(a.x,b.x)+r||
+       y<Math.min(a.y,b.y)-r||y>Math.max(a.y,b.y)+r)continue;
+    if(capsuleSigned(x,y,a.x,a.y,b.x,b.y,r)<0)return true;
    }
   }
   for(const tunnel of ARCH_TUNNELS)
