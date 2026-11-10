@@ -22,7 +22,7 @@
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
- let activeLabSection='survival';
+ let activeLabSection='survival',activeConsoleSection='laboratory';
  const LAB_SECTIONS=Object.freeze([
   {id:'survival',label:'SOBREVIVÊNCIA',groups:['essential','equipment']},
   {id:'weapons',label:'ARMAMENTO',groups:['starter','shot','active']},
@@ -31,6 +31,7 @@
  ]);
  function renderWorkshop(){
   if(!workshopGrid)return;
+  if(activeConsoleSection!=='laboratory'){renderConsoleUtility();return;}
   const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory()),offshore=currentOffshore();
   workshopGrid.replaceChildren();
   const title=document.createElement('div');title.className='submarine-console-overview';
@@ -73,11 +74,22 @@
    const status=def.starter?'EQUIPAMENTO ESSENCIAL':level>=def.max?'PESQUISA CONCLUÍDA':available.ok?'DISPONÍVEL':available.reason==='prerequisite'?'BLOQUEADA':available.reason==='offshore-resources'?'AGUARDANDO PRODUÇÃO OFFSHORE':'MATERIAIS INSUFICIENTES';
    const header=document.createElement('small');header.textContent=status;const h=document.createElement('strong');h.textContent=def.name+'  '+level+'/'+def.max;
    const desc=document.createElement('p');desc.textContent=def.description||((def.group==='active'?'Habilidade '+(def.slot||''):def.group==='shot'?'Tecnologia de disparo':def.group==='passive'?'Tecnologia passiva':'Sistema do traje')+'.');
-   const req=document.createElement('span');
-   const materialCost=Object.entries(cost).map(([material,n])=>(config.RESOURCES[material]?.name||material)+' ×'+n);
-   const productionCost=Object.entries(offshoreCost).filter(([,n])=>n>0).map(([type,n])=>(type==='oil'?'Petróleo':'Gás natural')+' ×'+n);
-   req.textContent=level>=def.max?'MÓDULO INSTALADO':[...materialCost,...productionCost].join(' · ')||'SEM CUSTO';
-   if(available.reason==='prerequisite')req.textContent+=' · REQUER: '+(def.requires||[]).filter(dep=>!levels[dep]).map(dep=>config.RESEARCH[dep]?.name||dep).join(', ');
+   const req=document.createElement('span');req.className='abyss-mineral-requirements';
+   function addReq(id,n){
+    const tag=document.createElement('span');tag.className='abyss-requirement';
+    const art=document.createElement('span');art.innerHTML=window.AbyssalResourceIcons?.svg?.(id)||'';
+    const label=document.createElement('span');label.textContent=(config.RESOURCES[id]?.name||id)+' ×'+n;
+    tag.append(art,label);req.append(tag);
+   }
+   if(level>=def.max)req.textContent='MÓDULO INSTALADO';
+   else{
+    for(const [material,n] of Object.entries(cost))addReq(material,n);
+    for(const [type,n] of Object.entries(offshoreCost))if(n>0)addReq(type==='oil'?'oilSeep':'gasSeep',n);
+    if(!req.childNodes.length)req.textContent='SEM CUSTO';
+    if(available.reason==='prerequisite'){
+     const missing=document.createElement('small');missing.textContent='REQUER: '+(def.requires||[]).filter(dep=>!levels[dep]).map(dep=>config.RESEARCH[dep]?.name||dep).join(', ');req.append(missing);
+    }
+   }
    const button=document.createElement('button');button.type='button';button.className='secondary-btn';
    button.textContent=def.starter?'ATIVO':level>=def.max?'CONCLUÍDO':available.reason==='prerequisite'?'REQUER PESQUISA':available.reason==='resources'?'FALTAM MINÉRIOS':available.reason==='offshore-resources'?'AGUARDANDO PETRÓLEO/GÁS':'PESQUISAR';
    button.disabled=Boolean(def.starter)||!available.ok;
@@ -102,6 +114,7 @@
    card.append(header,h,desc,req,button);cardGrid.appendChild(card);
   }
   workshopGrid.appendChild(cardGrid);
+  mountCockpitConsole();
  }
  const openWorkshop=()=>{if(!workshop)return;workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
