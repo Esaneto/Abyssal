@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-09-rift-wildlife-manual-fire-v58';
+const VERSION = '2026-11-09-single-swimmer-menu-v59';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -10,8 +10,8 @@ const GAME_FILES = [
   'abyssal-icon.svg',
   'style.css',
   'abyssal-rebuild.css',
-  'abyssal-menu-orbit.css',
   'abyssal-menu-v2.css',
+  'abyssal-menu-navigation.css',
   'abyssal-lab-menu.css',
   'abyssal-specimen-themes.css',
   'abyssal-shop-blood-theme.css',
@@ -30,8 +30,16 @@ const GAME_FILES = [
   'specimen-evasion.js','specimen-rarity.js',
   'gravity-cone.js',
   'abyssal-curated-skins.js',
-  'abyssal-menu-orbit.js',
   'abyssal-menu-ocean.js',
+  'abyssal-ocean-geography.js',
+  'abyssal-open-sea-ecology.js',
+  'abyssal-ocean-stream.js',
+  'abyssal-open-sea-render.js',
+  'abyssal-exploration-config.js',
+  'abyssal-exploration-runtime.js',
+  'abyssal-research-system.js',
+  'abyssal-resource-fields.js',
+  'abyssal-navigation-chart.js',
   'ocean-menu-scenery.js',
   'diver-art.js',
   'enemy-ai.js',
@@ -90,16 +98,12 @@ self.addEventListener('fetch', event => {
   if (!isNavigation && !inShell) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Cache keys include the declared asset version. An older game.js?v=N
-    // must never replace game.js?v=N+1 on the first visit after a deploy.
-    // Keep the unversioned pre-cache only as an offline fallback.
+    // Exact versioned requests prevent a stale controller from reviving another
+    // menu implementation. No silent fallback from v=NEW to unversioned v=OLD.
     const versionedAsset = inShell && !isNavigation && url.searchParams.has('v');
     const cachePath = isNavigation ? 'index.html' : shellPath.slice(1);
     const cacheRequest = new Request(new URL(cachePath + (versionedAsset ? url.search : ''), self.registration.scope));
     const cached = await cache.match(cacheRequest);
-    const offlineFallback = versionedAsset
-      ? await cache.match(new Request(new URL(cachePath, self.registration.scope)))
-      : null;
     // HTML still prefers the network to receive new releases. Cached static
     // JS/CSS/SVG must not wait 3.5 seconds EACH when a connection is weak:
     // sequential parser-blocking scripts previously delayed Fossas startup.
@@ -112,9 +116,10 @@ self.addEventListener('fetch', event => {
       event.waitUntil?.(refresh);
       return cached;
     }
-    if (isNavigation && cached && typeof navigator !== 'undefined' && navigator.onLine === false) return cached;
+    // For online launches prefer current HTML; serve the offline shell only if
+    // that navigation actually fails. No premature timeout that revives old UI.
     const controller = new AbortController();
-    const deadline = setTimeout(() => controller.abort(), isNavigation ? 1500 : 1200);
+    const deadline = setTimeout(() => controller.abort(), isNavigation ? 10000 : 3500);
     try {
       const response = await fetch(request, { signal: controller.signal });
       if (response.ok && response.type === 'basic') {
@@ -123,7 +128,6 @@ self.addEventListener('fetch', event => {
       return response;
     } catch (error) {
       if (cached) return cached;
-      if (offlineFallback) return offlineFallback;
       throw error;
     } finally {
       clearTimeout(deadline);
