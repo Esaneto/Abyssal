@@ -72,7 +72,7 @@ test('old solo/online handlers live outside the visual menu',()=>{
 
 test('classic co-op never consumes oxygen, suffers depth pressure or receives depth events',()=>{
  const server=source('server.js');
- assert.match(server,/if\(room\.mode==='rift'\|\|room\.mode==='open-sea'\)\{\s*for\(const diver of activePlayers\)/);
+ assert.match(server,/if\(room\.mode==='open-sea'\)\{\s*for\(const diver of activePlayers\)/);
  assert.match(server,/if\(room\.mode==='rift'\|\|room\.mode==='open-sea'\)\{\s*const research=/);
  assert.match(server,/if\(room\.mode==='rift'\)\{\s*WorldSimulation\.startDepthEvent\(w,Math\.random\)/);
  const game=source('public/game.js');
