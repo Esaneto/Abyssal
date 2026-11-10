@@ -12,7 +12,7 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
-  [0,520],[1200,600],[2400,720],[3400,1200],[4400,4000],
+  [0,180],[1200,280],[2400,340],[3400,1200],[4400,4000],
   [5600,6250],[6800,6500],[7900,7400],[8800,8150],[9800,8250],
   [10800,8750],[11900,8070],[13000,7500],[14100,8300],
   [15100,8640],[16200,8060],[17400,8470],[18600,7220],
@@ -25,7 +25,7 @@
   const a=KNOTS[lo],b=KNOTS[Math.min(lo+1,KNOTS.length-1)];
   const q=clamp((x-a[0])/Math.max(1,b[0]-a[0]),0,1);
   const smooth=q*q*(3-2*q);
-  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,300*DEPTH_SCALE,8850*DEPTH_SCALE);
+  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,120*DEPTH_SCALE,8850*DEPTH_SCALE);
  }
  // Rock spires and natural suspended shelves. They never form a full-width wall.
  // Coordinates use floor-relative elevation, preserving large swim passages.
@@ -42,10 +42,10 @@
   [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
   [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf'],
   // Strong overhangs near the starting shelf, physically collidable, not decals.
-  [580,480,690,290,'shelf'],[2950,810,730,230,'arch'],
+  [650,145,400,190,'shelf'],[2950,810,730,230,'arch'],
   // Wide cave canopy at entry, with a broad swim corridor below its hanging flora.
   [1040,0,590,240,'overhang',130],[3000,0,740,205,'overhang',100],
-  [1780,0,720,195,'shelf',1250]
+  [1780,0,720,195,'shelf',690]
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Number.isFinite(r[5])?r[5]:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
@@ -172,8 +172,8 @@
  function lightAt(y){
   const depth=metersAt(y);
   // Strong extinction in the euphotic zone, thin residual twilight, none after 1 km.
-  if(depth<=200)return clamp(Math.exp(-depth/95),.12,1);
-  if(depth<1000)return .12*Math.pow((1000-depth)/800,1.65);
+  if(depth<=200)return Math.exp(-depth/33);
+  if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
  return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
