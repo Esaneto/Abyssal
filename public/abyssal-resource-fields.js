@@ -28,6 +28,7 @@
    kind=depth>3500?'polymetallicNodule':'ferromanganeseCrust';
   if(kind==='polymetallicNodule'&&rock)kind='ferromanganeseCrust';
   if(kind==='hydrothermalSulfide'&&depth<1200)kind='phosphorite';
+  if(kind==='hydrothermalSulfide'&&!rock)kind=depth>3500?'polymetallicNodule':'ferromanganeseCrust';
   return kind;
  }
  const cache=new Map();
