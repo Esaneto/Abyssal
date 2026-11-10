@@ -10,6 +10,7 @@
  'use strict';
  const WIDTH=geo?.WIDTH||24000,HEIGHT=geo?.HEIGHT||21000,CHUNK=1200,AREA_RATIO=35;
  const MAX_NEARBY=150,INITIAL_FAUNA=6,RESOURCE_COUNT=0; // No unapproved resource nodes.
+ const MIN_FAUNA_SPACING=145; // Spawn cores stay separated even in a natural school.
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
@@ -33,24 +34,32 @@
   // Reject invalid coordinates instead of synthesizing off-map entities.
   if(!Number.isInteger(cx)||!Number.isInteger(cy)||cx<0||cy<0||cellWidth===0||cellHeight===0)return {key:id(cx,cy),animals,resources};
   const position=(margin,span)=>Math.min(span,margin)+next()*Math.max(0,span-2*margin);
-  function randomWater(padding=30){
-   // Bounded, deterministic rejection sampling. Fully solid sectors stay empty.
-   for(let tries=0;tries<26;tries++){
+  function clearWater(x,y,padding=30,separation=0){
+   if(x<x0+65||x>=x0+cellWidth-65||y<y0+65||y>=y0+cellHeight-65)return false;
+   if(geo?.isSolid?.(x,y,padding))return false;
+   return !separation||animals.every(other=>Math.hypot(other.x-x,other.y-y)>=separation);
+  }
+  function randomWater(padding=30,separation=0){
+   // All entities, including those of different species, need spawn clearance.
+   // A bounded retry budget keeps dense/solid chunks inexpensive to generate.
+   for(let tries=0;tries<42;tries++){
     const x=x0+position(65,cellWidth),y=y0+position(65,cellHeight);
-    if(!geo||!geo.isSolid(x,y,padding))return {x,y};
+    if(clearWater(x,y,padding,separation))return {x,y};
    }
    return null;
   }
   for(let i=0;i<INITIAL_FAUNA;i++){
-   const point=randomWater(62);if(!point)break;
+   const point=randomWater(62,MIN_FAUNA_SPACING);if(!point)break;
    const {x,y}=point,species=ecology?.speciesAt?.(x,y,next)||'seapig';
    const schooling=Boolean(ecology?.isSchooling?.(species)),schoolId=schooling?id(cx,cy)+':s0':id(cx,cy)+':solo'+i;
    animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
    if(schooling){
-    // Cohesive same-species groups spawn near a shared anchor rather than random points.
+    // Golden-angle positions give a loose, readable school, not six animals
+    // occupying a single collision core. Fall back to a clear water pocket.
     for(let n=i+1;n<INITIAL_FAUNA;n++){
-     const angle=n*2.39996,px=x+Math.cos(angle)*Math.min(58,20*n),py=y+Math.sin(angle)*Math.min(58,20*n);
-     const point=px>=x0+24&&px<x0+cellWidth-24&&py>=y0+24&&py<y0+cellHeight-24&&!geo?.isSolid?.(px,py,28)?{x:px,y:py}:randomWater(36);
+     const angle=n*2.399963229728653,radial=MIN_FAUNA_SPACING*Math.sqrt(n)*1.18;
+     const px=x+Math.cos(angle)*radial,py=y+Math.sin(angle)*radial;
+     const point=clearWater(px,py,38,MIN_FAUNA_SPACING)?{x:px,y:py}:randomWater(45,MIN_FAUNA_SPACING);
      if(!point)break;
      animals.push({id:id(cx,cy)+':f'+n,x:point.x,y:point.y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
     }
@@ -97,5 +106,5 @@
   return [...chunks.values()];
  }
  function within(a,b,r=2300){return !!a&&!!b&&Math.hypot(a.x-b.x,a.y-b.y)<=r;}
- return Object.freeze({WIDTH,HEIGHT,CHUNK,AREA_RATIO,MAX_NEARBY,INITIAL_FAUNA,RESOURCE_COUNT,chunkAt,id,near,generate,active,within,random});
+ return Object.freeze({WIDTH,HEIGHT,CHUNK,AREA_RATIO,MAX_NEARBY,INITIAL_FAUNA,MIN_FAUNA_SPACING,RESOURCE_COUNT,chunkAt,id,near,generate,active,within,random});
 });
