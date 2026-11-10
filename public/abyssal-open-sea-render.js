@@ -21,6 +21,13 @@
    ctx.strokeStyle=i%2?'rgba(55,146,129,.80)':'rgba(19,117,112,.78)';
    ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(sway*(h/length),-h);ctx.quadraticCurveTo(side*35,-h-19,side*58+sway*.65,-h-45);ctx.stroke();
   }
+  // Broad blades make the coastal algae resemble plants, not bare wireframes.
+  for(let i=1;i<=4;i++){
+   const q=i/5,xx=sway*q,yy=-q*length,side=i%2===0?1:-1;
+   ctx.fillStyle=i%2?'rgba(54,144,115,.62)':'rgba(91,171,123,.56)';
+   ctx.beginPath();ctx.ellipse(xx+side*35,yy-34,21,5.5,side*.34,0,TAU);ctx.fill();
+   ctx.beginPath();ctx.ellipse(xx+side*18,yy-22,15,4.5,side*.6,0,TAU);ctx.fill();
+  }
   ctx.restore();
  }
  function coral(ctx,x,y,scale,phase){
@@ -31,6 +38,7 @@
    const spread=(branch-2)*10,twist=Math.sin(phase*11+branch)*9;
    ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(spread*.7,-21,spread+twist,-55);ctx.stroke();
    ctx.beginPath();ctx.moveTo(spread*.53,-31);ctx.lineTo(spread+twist+11,-43);ctx.stroke();
+   ctx.fillStyle=color;ctx.beginPath();ctx.arc(spread+twist,-55,2.7,0,TAU);ctx.fill();
   }
   ctx.restore();
  }
@@ -192,7 +200,7 @@
   ctx.strokeStyle='rgba(89,120,130,.1)';ctx.lineWidth=5;ctx.beginPath();
   for(let x=start,i=0;x<=stop+step;x+=step,i++){const px=Math.min(stop,x),y=geo.floorAt(px)+80+Math.sin(px*.007)*18;if(!i)ctx.moveTo(px,y);else ctx.lineTo(px,y);}ctx.stroke();
  }
- function drawRocks(ctx,left,top,right,bottom){
+ function drawRocks(ctx,left,top,right,bottom,lowPower=false){
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+95<left||rock.x-rock.rx-95>right||rock.y+rock.ry+95<top||rock.y-rock.ry-95>bottom)continue;
    const lit=geo.lightAt(rock.y-rock.ry),seed=rock.x*.00031+rock.y*.00017;
@@ -208,6 +216,36 @@
    ctx.closePath();ctx.fillStyle=gradient;ctx.fill();
    ctx.strokeStyle='rgba(125,149,148,'+(.08+lit*.10)+')';ctx.lineWidth=1.6;ctx.stroke();
    ctx.save();ctx.clip();
+   // Each rock has irregular shaded planes clipped inside the actual physics outline.
+   const region=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.42)?.id||'coastal';
+   const hues=region==='geological'?
+    ['rgba(69,104,111,.28)','rgba(13,32,43,.55)','rgba(63,77,82,.30)','rgba(5,19,30,.42)']:
+    region==='cinematic'?
+    ['rgba(51,111,132,.27)','rgba(9,37,56,.52)','rgba(65,136,144,.16)','rgba(7,29,46,.34)']:
+    ['rgba(70,122,127,.29)','rgba(12,44,56,.46)','rgba(102,142,136,.21)','rgba(5,25,39,.41)'];
+   const faces=Math.min(lowPower?12:30,Math.max(8,Math.ceil(rock.ry/115)));
+   for(let j=0;j<faces;j++){
+    const px=rock.x+(seeded(rock.x*.017+j,rock.y*.001)-.5)*rock.rx*1.7;
+    const py=rock.y+(seeded(rock.y*.013+j,rock.x*.004)-.5)*rock.ry*1.76;
+    const wx=rock.rx*(.20+seeded(j,rock.x*.01)*.30);
+    const wy=Math.min(300,rock.ry*(.13+seeded(j,rock.y*.01)*.21));
+    ctx.fillStyle=hues[j%hues.length];ctx.beginPath();
+    ctx.moveTo(px-wx,py-wy*.23);ctx.lineTo(px-wx*.16,py-wy);
+    ctx.lineTo(px+wx*.84,py-wy*.32);ctx.lineTo(px+wx,py+wy*.55);
+    ctx.lineTo(px-wx*.34,py+wy);ctx.closePath();ctx.fill();
+    if(!lowPower&&j%3===0){
+     ctx.strokeStyle='rgba(116,158,162,.14)';ctx.lineWidth=1.5;
+     ctx.beginPath();ctx.moveTo(px-wx,py-wy*.23);ctx.lineTo(px-wx*.16,py-wy);
+     ctx.lineTo(px+wx*.84,py-wy*.32);ctx.stroke();
+    }
+   }
+   // Bright upper geological lip; no glowing ellipse around the entire stone.
+   ctx.strokeStyle=region==='geological'?'rgba(117,166,165,.37)':'rgba(77,179,199,.41)';
+   ctx.lineWidth=lowPower?2.5:3.8;ctx.beginPath();
+   for(let k=0;k<=30;k++){
+    const pt=geo.rockSurfaceAt(rock,Math.PI+k/30*Math.PI);
+    if(!k)ctx.moveTo(pt.x,pt.y);else ctx.lineTo(pt.x,pt.y);
+   }ctx.stroke();
    // Broken joints and diagonally stratified rock, no perfect elliptical rings.
    const layers=rock.type==='spire'?7:rock.type==='boulder'?3:5;
    for(let k=0;k<layers;k++){
@@ -484,7 +522,7 @@
   drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.69)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(188,244,255,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
-  drawRocks(ctx,left,top,right,bottom);
+  drawRocks(ctx,left,top,right,bottom,lowPower);
   drawCaves(ctx,left,top,right,bottom);
   drawSediment(ctx,left,top,right,bottom,time,lowPower);
   drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower);
