@@ -33,7 +33,7 @@
   ferromanganeseCrust:{name:'Crosta ferromanganesífera',habitats:['rocks','canyon','deep','abyss'],kind:'ore'},
   polymetallicNodule:{name:'Nódulo polimetálico',habitats:['deep','abyss'],kind:'ore'},
   hydrothermalSulfide:{name:'Sulfeto polimetálico',habitats:['canyon','deep','abyss'],kind:'ore'},
-  oilSeep:{name:'Exsudação de petróleo',habitats:['canyon','deep'],kind:'seep',filled:'oilCylinder'},
+  oilSeep:{name:'Exsudação de petróleo',habitats:['canyon','deep','abyss'],kind:'seep',filled:'oilCylinder'},
   gasSeep:{name:'Exsudação de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
   abyssPickaxe:{name:'Picareta abissal',habitats:[],kind:'tool'},
   emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
