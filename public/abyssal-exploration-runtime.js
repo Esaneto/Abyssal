@@ -3,7 +3,7 @@
  */
 (function(){
  'use strict';
- const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream;
+ const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream,inventoryUI=window.AbyssalInventoryUI;
  if(!config||!research||!fields)return;
  const $=id=>document.getElementById(id);
  const shell=$('gameShell'),canvas=$('game');if(!shell||!canvas)return;
@@ -16,13 +16,19 @@
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
  shell.appendChild(hud);
- hud.querySelector('.exploration-collect').hidden=true; // Await curated Mar Aberto resources.
+ hud.querySelector('.exploration-collect').hidden=true; // Mar Aberto only.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
+ // Starter equipment is granted once per offline device, not on each run.
+ try{
+  const kit=fields.starterKit(localInventory,localStorage.getItem('abyssalSoloKitGrantedV1')==='1');
+  localInventory=research.sanitizeInventory(kit.inventory);
+  if(kit.changed){localStorage.setItem('abyssalSoloKitGrantedV1','1');localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));}
+ }catch(_){}
  const notify=message=>{const node=$('explorationGatherStatus');if(node)node.textContent=message;};
- window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;renderResearch();});
+ window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;if(cfg()?.online)inventoryUI?.setInventory(research.sanitizeInventory(account?.resourceInventory||{}));renderResearch();});
  window.addEventListener('abyssal-specimen-discovery-request',()=>{
   // Discovery is recorded in the Abissário; no legacy resources are awarded in Solo.
   notify('Espécie registrada no Abissário.');
@@ -31,20 +37,30 @@
  window.addEventListener('abyssal-resource-collected',ev=>{if(ev.detail?.id!=null){taken.add(String(ev.detail.id));nodes=nodes.filter(n=>n.id!==String(ev.detail.id));}});
  window.addEventListener('exploration-vitals',ev=>{serverVitals=ev.detail||null;});
  function stateLevels(){return research.migrateLegacy(account?.researchLevels||localLevels,account?.metaUpgrades||{}).levels;}
- function stateInventory(){return account?.resourceInventory||localInventory;}
- function saveLocal(){localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));localStorage.setItem('abyssalSoloResearch',JSON.stringify(localLevels));}
+ function stateInventory(){const p=cfg();return p?(p.online?account?.resourceInventory||{}:localInventory):(account?.resourceInventory||localInventory);}
+ function saveLocal(){
+  try{
+   localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));
+   localStorage.setItem('abyssalSoloResearch',JSON.stringify(localLevels));
+   localStorage.setItem('abyssalSoloGeologyTakenV1',JSON.stringify([...taken].slice(-5000)));
+  }catch(_){}
+ }
  function startRun(p){
-  runKey=(p.online?'online:':'solo:')+p.mode+':'+Date.now();
+  runKey=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
   taken=new Set();nodes=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
-  // No legacy resource generation in either mode.
-  lastScan=0;notify(p.online?'Varredura online iniciada.':'Coleta solo: materiais armazenados neste dispositivo.');
+  if(!p.online&&p.mode==='open-sea'){
+   try{taken=new Set(JSON.parse(localStorage.getItem('abyssalSoloGeologyTakenV1')||'[]'));}catch(_){}
+  }
+  lastScan=0;notify(p.online?'Depósitos do Mar Aberto sincronizados.':'Depósitos locais: G para coletar, I para inventário.');
+  inventoryUI?.setInventory(research.sanitizeInventory(stateInventory()));
  }
  function scan(p,time){
-  if(!fields.ENABLED||!p.online||time-lastScan<2200||busy)return;
+  if(!fields.ENABLED||!p.online||p.mode!=='open-sea'||time-lastScan<2200||busy)return;
   lastScan=time;
   window.AbyssalOnline?.explorationScan?.(result=>{
-   if(!result?.ok)return;
-   nodes=result.nodes||[];
+   if(!result?.ok||cfg()?.mode!=='open-sea')return;
+   nodes=Array.isArray(result.nodes)?result.nodes:[];
+   if(result.inventory){account={...(account||{}),resourceInventory:result.inventory};inventoryUI?.setInventory(result.inventory);}
   });
  }
  function closest(p){
@@ -54,20 +70,33 @@
   return item?{...item,distance}:null;
  }
  function collect(){
-  const p=cfg();if(!p||p.paused||!near||busy)return;
-  const levels=stateLevels();
-  const check=fields.eligible(near,p.x,p.y,levels,115);
-  if(!check.ok){notify(check.reason==='tool-required'?'É necessária a ferramenta: '+(config.RESEARCH[check.tool]?.name||check.tool):'Aproxime-se mais do depósito.');return;}
-  busy=true;
+  const p=cfg();if(!p||p.mode!=='open-sea'||p.paused||!near||busy)return;
+  const selected=inventoryUI?.selectedTool?.()||'abyssPickaxe';
+  const inventory=research.sanitizeInventory(stateInventory());
+  const check=fields.eligible(near,p.x,p.y,inventory,115,selected);
+  if(!check.ok){
+   const messages={'too-far':'Aproxime-se do depósito.','select-tool':'Selecione '+(config.RESOURCES[check.tool]?.name||'a ferramenta')+' no inventário (I).',
+    'tool-required':'Você precisa da picareta.','empty-cylinder-required':'Não há cilindros vazios.'};
+   notify(messages[check.reason]||'Não foi possível coletar este recurso.');return;
+  }
+  busy=true;const target=near;
   if(p.online){
-   window.AbyssalOnline?.explorationCollect?.(near.id,result=>{
-    busy=false;if(result?.ok){
-     taken.add(near.id);nodes=nodes.filter(n=>n.id!==near.id);notify('Coletado: '+config.RESOURCES[result.node.type]?.name+' +'+result.node.amount);
+   window.AbyssalOnline?.explorationCollect?.(target.id,result=>{
+    busy=false;
+    if(result?.ok){
+     taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
+     if(result.account)account=result.account;
+     inventoryUI?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));
+     notify('Coletado: '+(config.RESOURCES[result.item]?.name||result.item)+' +'+result.amount);
     }else notify('Coleta indisponível: '+String(result?.reason||'erro'));
-   });
+   },selected);
   }else{
-   const node=near;taken.add(node.id);localInventory[node.type]=(localInventory[node.type]||0)+node.amount;nodes=nodes.filter(n=>n.id!==node.id);
-   saveLocal();busy=false;notify('Coletado: '+config.RESOURCES[node.type]?.name+' +'+node.amount+' (salvo localmente)');
+   const result=fields.collect(target,inventory);busy=false;
+   if(!result.ok){notify('Não foi possível coletar: '+result.reason);return;}
+   taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
+   localInventory=research.sanitizeInventory(result.inventory);saveLocal();
+   inventoryUI?.setInventory(localInventory);
+   notify('Coletado: '+config.RESOURCES[result.item].name+' +'+result.amount+' (inventário local)');
   }
  }
  $('explorationGatherBtn').addEventListener('click',collect);
@@ -132,7 +161,7 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;
+  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;inventoryUI?.setActive(p?.mode==='open-sea');hud.querySelector('.exploration-collect').hidden=p?.mode!=='open-sea';
   if(!active){markers.hidden=true;runKey='';return;}
   if(!runKey)startRun(p);
   if(!p.paused&&!p.online){
@@ -143,9 +172,9 @@
    const hazard=p.mode==='rift'?(depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0):config.environmentDamage(depth,safe,noOxygenSeconds);
    if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
   }
-  if(fields.ENABLED&&!p.online&&p.mode!=='rift'&&time-lastScan>450){
+  if(fields.ENABLED&&!p.online&&p.mode==='open-sea'&&time-lastScan>850){
    lastScan=time;
-   nodes=fields.streamNear(runKey,p.x,p.y,1700,taken);
+   nodes=fields.streamNear(runKey,p.x,p.y,1900,taken);
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
@@ -157,8 +186,8 @@
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent=Math.round(depth)+' m · '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
-  near=closest(p);$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
-  const can=Boolean(near)&&fields.eligible(near,p.x,p.y,stateLevels(),115).ok&&!p.paused&&!busy;
+  near=p.mode==='open-sea'?closest(p):null;inventoryUI?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
+  const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
   $('explorationGatherBtn').disabled=!can;
   signal.hidden=p.mode!=='rift';
   if(p.mode==='rift'){
