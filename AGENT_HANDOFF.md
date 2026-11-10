@@ -1562,3 +1562,27 @@ Não reintroduzir:
 - Testes atualizados: `tests/specimen-system.test.cjs`, `tests/ocean-specimen-respawn.test.cjs`; testar em ambiente real solo e multiplayer para validar a reaparição visual e a persistência do estado dos selvagens após reconexão.
 - O último merge antes destas correções foi PR #225 (`549741c2`), incluindo reformulação do Mar Aberto e rastreamento do tempo individual de fauna.
 - Pendência de validação: conferir conclusão do workflow GitHub Actions do commit final e executar smoke em navegador com um companheiro morto e uma criatura selvagem morta; esta sessão não dispõe de execução local do repositório.
+
+
+## 2026-11-10: Inventário e geologia colecionável exclusivos do Mar Aberto
+
+**Separação de modos, requisito do produto:** Mar Aberto/exploração é o mundo de 24000 x 21000. Mergulhar Solo/Online shooter ("classic"/"coop") é OUTRO modo. A extração somente ocorre quando `mode==='open-sea'`. Fossas (`rift`) e PvP não geram nem coletam recursos desse sistema.
+
+Arquivos e responsabilidades:
+- `public/abyssal-exploration-config.js`: mantém os IDs legados e adiciona fosforita, crosta ferromanganesífera, nódulo polimetálico, sulfeto hidrotermal, exsudação de petróleo/gás; itens picareta, cilindro vazio, cilindro de petróleo, cilindro de gás natural.
+- `public/abyssal-resource-fields.js`: fonte pura de verdade para geração determinística próxima ao jogador e transação `collect()`; máximo dois depósitos por setor; cache LRU simples de 320 setores; spawn sempre em água nas bordas rochosas ou junto ao fundo; `toolFor`, `eligible`, `starterKit`, `collect`.
+- `server.js`: valida modo `open-sea`, proximidade <=115, existência do depósito, não coleta dupla, intervalo >=800 ms, ferramenta selecionada, posse de cilindro; registra a mudança em `resourceInventory` e `world.collectedResources`. Para usuários antigos e novos, kit inicial uma única vez por conta `explorationStarterGranted=true`: uma picareta e quatro cilindros vazios.
+- `public/abyssal-exploration-runtime.js`: coleta com G ou botão, inventário local exclusivo do Mar Aberto Solo, scan autoritativo no Online, persistência local (`abyssalSoloInventory`, `abyssalSoloGeologyTakenV1`, `abyssalSoloKitGrantedV1`), renderização Canvas de rocha, minérios, jatos negros de petróleo, rachaduras e bolhas verdes de gás.
+- `public/abyssal-inventory-ui.js` + `public/abyssal-inventory-ui.css`: janela visual original baseada no princípio de slots de jogos de sobrevivência, abre I e fecha Esc, botão para touch, escolha de picareta ou cilindro vazio e pilhas separadas para os conteúdos; não altera itens diretamente.
+- `public/online.js`: transporta `tool` no evento `exploration-collect`; preserva a assinatura da API existente.
+- `public/index.html`, `public/offline-sw.js`: asset wiring, cache-busting e inclusão do inventário no shell offline.
+- `tests/mar-aberto-mining-inventory.test.cjs` + revisão dos testes de exploração antigos: verificam kit uma vez, ferramentas, conversão atômica, geração determinística, água navegável, separação do shooter.
+- `tests/ocean-specimen-respawn.test.cjs`: corrigida aspa em título do teste anterior que impedia a execução da suite.
+
+**Geologia:** a distribuição de nódulos nas planícies abissais, crostas em rochas, fosforita em margens e exsudações frias é inspirada em NOAA Ocean Exploration/BOEM (não é uma simulação geológica quantitativa). Verde das bolhas de gás é sinalização ficcional de jogabilidade; metano real é incolor. Reservatórios subterrâneos não são acessíveis: o jogador coleta em exsudações visíveis em fissuras.
+
+**Invariantes:** `emptyCylinder -= 1` para petróleo OU gás; incrementa só o item `oilCylinder` ou `gasCylinder`. Picareta não se consome. Inventário de solo nunca envia objetos arbitrários ao servidor. Servidor nunca confia na coordenada de depósito declarada pelo cliente. O mapa continua por proximidade, sem instanciar todos os setores.
+
+**Validação executada:** compilação sintática por V8 de todos os módulos alterados; execução isolada de geração/cilindros confirmou 15 depósitos próximos a um ponto profundo, todos fora de rochas, 5 recursos próximos da entrada e ambas as fontes de hidrocarbonetos distribuídas no mapa. Os 5 testes novos foram aprovados no workflow de 2026-11-10, mas a suite geral ainda tinha dezenas de testes históricos divergentes da `main`, não ligados a estas adições. O teste de respawn também falhava por erro de aspas já corrigido. Aguardar novo run da Actions e validar visualmente o inventário, a mineração e a extração em navegador/mobile reais; nenhuma validação manual com conta e partida online foi executada nesta sessão.
+
+**Pendências úteis, fora deste primeiro escopo:** ferramentas de mineração e transferência visíveis nas mãos do mergulhador; animação própria de extração e balanceamento de reabastecimento de cilindros (kit inicial só uma vez); destinação industrial dos novos minérios e combustíveis nas pesquisas; definir comportamento de depósitos esgotados após reinicialização do mundo Online.
