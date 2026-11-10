@@ -257,6 +257,12 @@
    if(result.account)account=result.account;
    inventoryUI()?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));return result;
   },
+  extractionBurst:target=>{
+   if(cfg()?.mode!=='open-sea'||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return;
+   const seed=String(target.id||'').split('').reduce((n,c)=>(Math.imul(n,31)+c.charCodeAt(0))>>>0,0);
+   collectionFx.push({x:target.x,y:target.y,started:performance.now(),seed});
+   if(collectionFx.length>24)collectionFx.splice(0,collectionFx.length-24);
+  },
   feedback:(item,amount)=>inventoryUI()?.collectFeedback?.(item,amount),
   sprite:()=>window.AbyssalExplorationToolState
  });
