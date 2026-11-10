@@ -160,7 +160,7 @@ test('offshore production funds real research with atomic stock deductions',()=>
 test('online world and HUD always use account-owned offshore connections',()=>{
  const source=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
  assert.match(source,/function currentOffshore\(now=Date\.now\(\)\)/);
- assert.match(source,/account\?\.offshoreProduction\|\|offshore/);
+ assert.match(source,/account\?\.offshoreProduction\|\|\{oil:0,gas:0,lastAt:now,connections:\[\],installation:null\}/);
  assert.match(source,/installation:\(\)=>currentOffshore\(\)\.installation/);
  assert.match(source,/isConnected:id=>currentOffshore\(\)\.connections\.some/);
  assert.match(source,/currentOffshore\(\)\.connections\.some\(l=>l\.id===String\(near\.id\)\)/);
