@@ -61,40 +61,83 @@
   if(promo.has(id))return 'promo';
   return 'coins';
  }
- const forced=Object.freeze({
+ const PROFILE_ASSIGNMENTS=Object.freeze({
+  default:['dash','damage'],
   violet:['pulse','range'],
+  solar:['dash','movement'],
   toxic:['cloud','experience'],
-  reefshark:['trail','movement'],
-  saltcroc:['push','damage'],
-  armoredgator:['push','defense'],
-  greensnake:['poison','damage'],
-  electriceel:['paralysis','fireRate'],
-  electriceellegacy:['paralysis','movement'],
   leviathan:['shot','bossDamage'],
+  thorn:['dash','fireRate'],
+  abyssking:['dash','experience'],
+  royal:['dash','bossDamage'],
   glacier:['slowShot','range'],
-  abysscroc:['dash','defense'],
-  hammerhead:['pulse','experience'],
+  coral:['dash','activeCooldown'],
+  bloodmoon:['cloud','movement'],
+  voidwing:['cloud','fireRate'],
+  abyssaleye:['cloud','range'],
+  deepwarden:['cloud','defense'],
+  riftSmileRelic:['shield','defense'],
   kraken:['push','bossDamage'],
   aberration:['trail','activeCooldown'],
   angler:['dash','range'],
   maw:['cloud','damage'],
   devourer:['pulse','bossDamage'],
-  riftSmileRelic:['shield','defense'],
-  blackcaiman:['shield','movement']
+  saltcroc:['push','damage'],
+  blackcaiman:['shield','movement'],
+  reefshark:['trail','movement'],
+  hammerhead:['pulse','experience'],
+  abysscroc:['dash','defense'],
+  armoredgator:['push','defense'],
+  greensnake:['poison','damage'],
+  electriceel:['paralysis','fireRate'],
+  electriceellegacy:['paralysis','movement'],
+  eagleray:['cloud','bossDamage'],
+  ribbonmoray:['cloud','activeCooldown'],
+  dumbo:['trail','damage'],
+  blanket:['trail','fireRate'],
+  atolla:['trail','range'],
+  phantomjelly:['trail','defense'],
+  yeticrab:['trail','experience'],
+  nautilus:['trail','bossDamage'],
+  gharial:['push','movement'],
+  goblin:['push','fireRate'],
+  frilled:['push','range'],
+  greenland:['push','experience'],
+  butterflyray:['push','activeCooldown'],
+  stingray:['poison','movement'],
+  guitarfish:['poison','fireRate'],
+  sawtootheel:['poison','range'],
+  zebramoray:['poison','defense'],
+  dogtootheel:['poison','experience'],
+  mimic:['poison','bossDamage'],
+  glassoctopus:['poison','activeCooldown'],
+  combjelly:['shot','damage'],
+  helmetjelly:['shot','movement'],
+  siphonophore:['shot','fireRate'],
+  spidercrab:['shot','range'],
+  deeplobster:['shot','defense'],
+  pistolshrimp:['shot','experience'],
+  scalyfoot:['shot','activeCooldown'],
+  bluedragon:['pulse','damage'],
+  whelk:['pulse','movement'],
+  leatherback:['pulse','fireRate'],
+  seasnake:['pulse','defense'],
+  hawksbill:['pulse','activeCooldown'],
+  jewelsquid:['slowShot','damage'],
+  bigfin:['slowShot','movement'],
+  whiplash:['slowShot','fireRate'],
+  viperfish:['slowShot','defense'],
+  blackdragon:['slowShot','experience'],
+  hatchetfish:['slowShot','bossDamage'],
+  basketstar:['slowShot','activeCooldown'],
+  crinoid:['shield','damage'],
+  seapig:['shield','fireRate']
  });
- const all=[...legacy,...curated],used=new Set(),profiles=Object.create(null);
- for(const [id,pair] of Object.entries(forced))used.add(pair.join('|'));
- let cursor=0;
- function nextPair(){
-  while(cursor<ACTIVE_KEYS.length*ATTRIBUTES.length){
-   const active=ACTIVE_KEYS[Math.floor(cursor/ATTRIBUTES.length)],attribute=ATTRIBUTES[cursor%ATTRIBUTES.length];cursor++;
-   if(active==='paralysis')continue;
-   const key=active+'|'+attribute;if(!used.has(key)){used.add(key);return [active,attribute];}
-  }
-  throw new Error('Skin profile combinations exhausted');
- }
+ const all=[...legacy,...curated],profiles=Object.create(null);
  for(const id of all){
-  const [active,attribute]=forced[id]||nextPair(),tier=tierFor(id),percent=TIER_PERCENT[tier];
+  const pair=PROFILE_ASSIGNMENTS[id];
+  if(!pair)throw new Error('Missing locked specimen profile: '+id);
+  const [active,attribute]=pair,tier=tierFor(id),percent=TIER_PERCENT[tier];
   profiles[id]=Object.freeze({id,tier,percent,attribute,active,cooldown:ACTIVE[active].cooldown});
  }
  function profile(id){return profiles[String(id||'default')]||profiles.default;}
@@ -131,5 +174,5 @@
   return true;
  }
  validate();
- return Object.freeze({TIER_PERCENT,ATTRIBUTE_LABELS,ATTRIBUTE_LABELS_EN,ACTIVE,ATTRIBUTES,ACTIVE_KEYS,profiles,profile,passiveMultiplier,activeSpec,describe,validate,isInkTrailSkin,trailColor,bossPaid,paid199,paid499,mission,promo});
+ return Object.freeze({TIER_PERCENT,ATTRIBUTE_LABELS,ATTRIBUTE_LABELS_EN,ACTIVE,ATTRIBUTES,ACTIVE_KEYS,PROFILE_ASSIGNMENTS,profiles,profile,passiveMultiplier,activeSpec,describe,validate,isInkTrailSkin,trailColor,bossPaid,paid199,paid499,mission,promo});
 });
