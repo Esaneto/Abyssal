@@ -42,7 +42,7 @@
    c.shadowColor='#8cebc7';c.shadowBlur=12;c.fillStyle='#a8f6d4';c.beginPath();c.arc(79,-39,6,0,TAU);c.fill();c.shadowBlur=0;return;
   }
   path(c,[[-78,0],[-110,-32-flap],[-106,28+flap],[-78,6]],p.dark);
-  const body=c.createLinearGradient(0,-30,0,36);body.addColorStop(0,p.light);body.addColorStop(1,p.deep);
+  const body=c.createLinearGradient(0,-30,0,36);body.addColorStop(0,p.primary);body.addColorStop(.42,p.light);body.addColorStop(1,p.deep);
   c.fillStyle=body;c.beginPath();c.moveTo(-84,0);c.bezierCurveTo(-47,-29,12,-31,66,-8);c.quadraticCurveTo(95,-1,75,10);c.bezierCurveTo(25,40,-45,24,-84,0);c.fill();
   path(c,[[-34,-19],[-7,-62], [8,-18]],p.mid);
   path(c,[[9,18],[-13,40],[-28,21]],p.dark);
@@ -57,7 +57,7 @@
   c.strokeStyle=/blackdragon|viperfish/.test(species)?p.deep:p.dark;c.lineCap='round';
   c.lineWidth=15;c.beginPath();c.moveTo(70,0);c.bezierCurveTo(15,-18,-20,19+sw,-length,-sw*.4);c.stroke();
   c.strokeStyle=p.light;c.lineWidth=2;c.beginPath();c.moveTo(47,-8);c.bezierCurveTo(8,-25,-40,8+sw,-length+12,-sw*.4);c.stroke();
-  path(c,[[46,-12],[76,-11],[88,5],[60,17],[46,7]],p.mid);eye(c,73,-7);
+  path(c,[[46,-12],[76,-11],[88,5],[60,17],[46,7]],p.primary);eye(c,73,-7);
   path(c,[[65,9],[91,17],[86,3]],p.deep);
   if(species==='viperfish'||species==='blackdragon')for(let i=0;i<7;i++){
    path(c,[[65+i*2,8],[71+i*2,19],[75+i*2,8]],'#9bb2b1');
@@ -67,7 +67,7 @@
   const flap=Math.sin(t*.0036)*12;
   // Bigfin squid: slender mantle, oversized paired fins and very long suspended arms.
   path(c,[[-26,-9],[-56,-34-flap],[-49,8],[-23,16]],p.dark);
-  path(c,[[2,-10],[29,-37+flap],[32,7],[6,21]],p.mid);
+  path(c,[[2,-10],[29,-37+flap],[32,7],[6,21]],p.primary);
   c.fillStyle=p.soft;c.beginPath();c.moveTo(-31,-12);
   c.bezierCurveTo(-9,-28,31,-23,43,-7);c.quadraticCurveTo(50,13,26,23);
   c.bezierCurveTo(0,29,-31,13,-31,-12);c.fill();
@@ -131,7 +131,7 @@
  }
  function jelly(c,t,siphon=false,p){
   if(siphon){
-   curve(c,[-110,0,-55,Math.sin(t*.003)*9,30,-8,105,1],alpha(p.light,.8),3);
+   curve(c,[-110,0,-55,Math.sin(t*.003)*9,30,-8,105,1],p.primary,3);
    for(let i=0;i<16;i++){const x=-99+i*13; c.fillStyle=i%2?alpha(p.light,.31):p.veil;c.beginPath();c.ellipse(x,Math.sin(i*.7+t*.002)*6,6,9,i*.4,0,TAU);c.fill();}
   }else{
    c.fillStyle=p.veil;c.beginPath();c.moveTo(-45,0);c.bezierCurveTo(-45,-68,55,-74,59,1);c.quadraticCurveTo(7,23,-45,0);c.fill();
