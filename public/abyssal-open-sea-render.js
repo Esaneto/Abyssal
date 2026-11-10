@@ -325,6 +325,36 @@
    }
   }
  }
+ // Drifting Sargassum-style rafts: surface vegetation in every ocean province.
+ // Only patches close to the camera are drawn; none remain at abyssal depth.
+ function drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower){
+  if(top>135||bottom<12)return;
+  const spacing=540;
+  for(let i=Math.floor(left/spacing)-1;i<=Math.ceil(right/spacing)+1;i++){
+   const seed=seeded(i,87);
+   if(seed<.35)continue;
+   const x=i*spacing+seeded(i,91)*spacing*.75;
+   const y=22+seeded(i,83)*19;
+   const stretch=34+seeded(i,93)*47;
+   const sway=Math.sin(time*.00035+i*2.17)*5;
+   ctx.save();ctx.translate(x+sway,y);ctx.lineCap='round';
+   ctx.strokeStyle='rgba(26,101,83,.76)';ctx.lineWidth=3.2;
+   ctx.beginPath();ctx.moveTo(-stretch,0);
+   ctx.bezierCurveTo(-stretch*.48,8,stretch*.27,-6,stretch,3);ctx.stroke();
+   const leaves=lowPower?3:8;
+   for(let k=0;k<leaves;k++){
+    const u=leaves===1?0:k/(leaves-1),xx=(u*2-1)*stretch;
+    const yy=2+Math.sin(u*6+i)*3,side=k%2===0?1:-1;
+    const len=10+seeded(i,k+19)*19;
+    ctx.strokeStyle=k%3?'rgba(56,142,106,.83)':'rgba(87,160,111,.83)';
+    ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(xx,yy);
+    ctx.quadraticCurveTo(xx+side*len*.55,yy+len*.52,xx+side*len*.4,yy+len);ctx.stroke();
+    ctx.fillStyle='rgba(90,155,96,.56)';ctx.beginPath();
+    ctx.ellipse(xx+side*len*.5,yy+len*.7,5,2.5,side*.4,0,TAU);ctx.fill();
+   }
+   ctx.restore();
+  }
+ }
  function drawSky(ctx,left,top,right,time){
   if(top>=0)return;
   const sky=ctx.createLinearGradient(0,top,0,0);
@@ -343,6 +373,7 @@
   if(bottom<=top)return;
   ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
   drawWater(ctx,left,top,right,bottom,time,lowPower);
+  drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.69)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(188,244,255,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
   drawRocks(ctx,left,top,right,bottom);
