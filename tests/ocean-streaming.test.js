@@ -97,3 +97,22 @@ test('sector budget and invalid player positions are handled safely',()=>{
  const cells=stream.active([{x:1500,y:1500},{x:NaN,y:1500}],30);
  assert.ok(cells.length>0&&cells.length<=10);
 });
+
+test('wild fauna spawn clear of all other animals while retaining deterministic schools',()=>{
+ let schoolCount=0,checked=0;
+ for(const seed of ['ocean-school-a','ocean-school-b','ocean-school-c']){
+  for(const [cx,cy] of [[10,3],[2,0],[5,2],[12,1],[17,5]]){
+   const a=stream.generate(seed,cx,cy,ecology),b=stream.generate(seed,cx,cy,ecology);
+   assert.deepEqual(a,b,'existing world seeds must keep stable creature positions');
+   for(let i=0;i<a.animals.length;i++)for(let j=i+1;j<a.animals.length;j++){
+    const x=a.animals[i],y=a.animals[j];
+    assert.ok(Math.hypot(x.x-y.x,x.y-y.y)>=stream.MIN_FAUNA_SPACING-.001,
+     'spawn collision in '+a.key+': '+x.id+'/'+y.id);
+    checked++;
+   }
+   if(a.animals.length>=2&&a.animals.some(x=>a.animals.filter(y=>y.schoolId===x.schoolId).length>1))schoolCount++;
+  }
+ }
+ assert.ok(checked>10,'inspect multiple real spawning configurations');
+ assert.ok(schoolCount>=1,'same-species groups must still exist with space between members');
+});
