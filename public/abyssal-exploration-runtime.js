@@ -206,7 +206,23 @@
    for(const link of offshore.connections||[]){if(link.x<left-300&&platformX<left-300||link.x>right+300&&platformX>right+300)continue;const midY=Math.max(230,link.y*.42);c.save();c.strokeStyle=link.type==='oilSeep'?'#594c37':'#628b7c';c.lineWidth=8;c.beginPath();c.moveTo(platformX,platformY+80);c.bezierCurveTo(platformX+80,midY,link.x-120,midY,link.x,link.y);c.stroke();c.strokeStyle='rgba(205,222,211,.28)';c.lineWidth=2;c.stroke();const phase=(t*.18)%1;for(let k=0;k<4;k++){const u=(phase+k*.25)%1,iu=1-u,x=Math.pow(iu,3)*link.x+3*Math.pow(iu,2)*u*(link.x-120)+3*iu*u*u*(platformX+80)+u*u*u*platformX,y=Math.pow(iu,3)*link.y+3*Math.pow(iu,2)*u*midY+3*iu*u*u*midY+u*u*u*(platformY+80);c.fillStyle=link.type==='oilSeep'?'#d4a65a':'#8fe0b3';c.beginPath();c.arc(x,y,4.5,0,Math.PI*2);c.fill();}c.fillStyle='#1b2a30';c.strokeStyle='#d8b85e';c.lineWidth=2;c.fillRect(link.x-18,link.y-13,36,18);c.strokeRect(link.x-18,link.y-13,36,18);c.fillStyle='#b9e9d2';c.font='700 9px sans-serif';c.fillText('ATIVO',link.x-15,link.y-1);c.restore();}
   }
   if(levels.offshorePlatform&&top<650){
-   const px=520,py=95;c.save();c.translate(px,py);c.strokeStyle='#9ba9ac';c.lineWidth=7;c.beginPath();c.moveTo(-45,5);c.lineTo(-58,105);c.moveTo(45,5);c.lineTo(58,105);c.stroke();c.fillStyle='#d6a52f';c.fillRect(-78,-18,156,28);c.fillStyle='#26343b';c.fillRect(-55,-42,72,24);c.strokeStyle='#d9c36d';c.lineWidth=3;c.beginPath();c.moveTo(28,-18);c.lineTo(50,-92);c.lineTo(62,-18);c.stroke();c.fillStyle='#d7edf0';c.font='700 12px sans-serif';c.fillText('PLATAFORMA OFFSHORE',-72,-50);c.font='700 11px sans-serif';c.fillStyle='#f0d989';c.fillText('PETRÓLEO '+offshore.oil.toFixed(1)+' / '+offshoreCapacity(),-72,128);c.fillStyle='#9ee6bf';c.fillText('GÁS '+offshore.gas.toFixed(1)+' / '+offshoreCapacity(),-72,145);c.fillStyle='#d7edf0';c.fillText('POÇOS '+offshore.connections.length+' / '+Math.max(1,Number(levels.subseaUmbilical)||0),-72,162);c.restore();
+   const px=520,py=95;c.save();c.translate(px,py);
+   // Floating production vessel: a deep-water production system, not a rigid seabed tripod.
+   const bob=Math.sin(t*.47)*1.8;c.translate(0,bob);
+   c.fillStyle='#253942';c.strokeStyle='#819ba1';c.lineWidth=2;
+   c.beginPath();c.moveTo(-112,-69);c.lineTo(112,-69);c.lineTo(99,-42);c.quadraticCurveTo(0,-30,-102,-42);c.closePath();c.fill();c.stroke();
+   c.fillStyle='#a8493e';c.fillRect(-99,-49,195,5);
+   c.fillStyle='#b3b9ab';c.fillRect(-106,-83,212,14);
+   c.fillStyle='#40535c';c.fillRect(-82,-119,50,36);c.fillStyle='#9eb3b6';c.fillRect(-76,-113,15,10);c.fillRect(-53,-113,15,10);
+   for(let j=0;j<3;j++){c.fillStyle=j%2?'#859e9f':'#78939a';c.fillRect(-16+j*28,-106,21,23);c.strokeStyle='#b8b49e';c.lineWidth=1.6;c.strokeRect(-16+j*28,-106,21,23);}
+   c.strokeStyle='#b8a36c';c.lineWidth=3;c.beginPath();c.moveTo(72,-83);c.lineTo(87,-153);c.lineTo(96,-83);c.moveTo(75,-114);c.lineTo(93,-114);c.stroke();
+   c.fillStyle='#e3a653';c.fillRect(84,-154,8,5);
+   const tanks=[offshore.oil,offshore.gas],colors=['#cba05b','#82c9a3'];
+   for(let i=0;i<2;i++){const x=-85+i*46;c.fillStyle='#1a2d34';c.fillRect(x,-138,29,20);c.strokeStyle='#90a5a4';c.strokeRect(x,-138,29,20);c.fillStyle=colors[i];c.fillRect(x+3,-121-14*Math.min(1,tanks[i]/offshoreCapacity()),23,14*Math.min(1,tanks[i]/offshoreCapacity()));}
+   c.fillStyle='#d9e5df';c.font='700 11px sans-serif';c.fillText('UNIDADE DE PRODUÇÃO',-101,-165);
+   c.fillStyle='#d3ae6e';c.fillText('ÓLEO '+offshore.oil.toFixed(0)+' / '+offshoreCapacity(),-99,26);
+   c.fillStyle='#9cdeb9';c.fillText('GÁS '+offshore.gas.toFixed(0)+' / '+offshoreCapacity(),-99,41);
+   c.fillStyle='#ccdbd5';c.fillText('POÇOS '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0),-99,56);c.restore();
   }
   const now=performance.now();collectionFx=collectionFx.filter(fx=>now-fx.started<650);
   for(const fx of collectionFx){const age=(now-fx.started)/650;if(age<0||age>=1)continue;c.save();c.translate(fx.x,fx.y);c.globalAlpha=1-age;for(let i=0;i<8;i++){const a=i/8*Math.PI*2,travel=12+age*(25+i%3*8);c.fillStyle=i%2?'#718083':'#394a50';c.beginPath();c.arc(Math.cos(a)*travel,Math.sin(a)*travel+age*age*18,2.8,0,Math.PI*2);c.fill();}c.restore();}
