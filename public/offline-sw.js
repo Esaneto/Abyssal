@@ -99,7 +99,7 @@ self.addEventListener('install', event => {
     }
     await cache.addAll(GAME_FILES.filter(p => p !== 'index.html')
       .map(p => versioned.get(p) || new URL(p, scope).href));
-    await cache.put(indexURL, indexResponse);
+    await cache.put(new Request(indexURL.href), indexResponse);
     await self.skipWaiting();
   })());
 });
