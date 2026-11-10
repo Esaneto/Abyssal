@@ -20,6 +20,12 @@
  hud.querySelector('.exploration-collect').hidden=true; // Mar Aberto only.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
+ const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
+ function renderWorkshop(){if(!workshopGrid)return;const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory());workshopGrid.replaceChildren();for(const [id,def] of Object.entries(config.RESEARCH)){const card=document.createElement('article');card.className='submarine-upgrade';const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};card.innerHTML='<small>'+String(def.group||'sistema').toUpperCase()+'</small><strong>'+def.name+' · '+level+'/'+def.max+'</strong><span>'+Object.entries(cost).map(([r,n])=>(config.RESOURCES[r]?.name||r)+' × '+n).join(' · ')+'</span>';const btn=document.createElement('button');btn.type='button';btn.className='secondary-btn';btn.textContent=level>=def.max?'MÁXIMO':'MELHORAR';btn.disabled=level>=def.max;btn.onclick=()=>window.dispatchEvent(new CustomEvent('abyssal-exploration-research-request',{detail:{id}}));card.appendChild(btn);workshopGrid.appendChild(card);}}
+ document.getElementById('submarineWorkshopBtn')?.addEventListener('click',()=>{if(workshop){workshop.hidden=false;renderWorkshop();}});
+ document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{if(workshop)workshop.hidden=true;});
+ window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
+
  let account=null,localInventory={},localLevels={},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  // Starter equipment is granted once per offline device, not on each run.
