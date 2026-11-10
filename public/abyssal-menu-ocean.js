@@ -30,9 +30,6 @@
   stage.insertBefore(routesCanvas,diver);
   stage.insertBefore(bubblesCanvas,diver);
   const currents=routesCanvas.getContext('2d'),bubbleCtx=bubblesCanvas.getContext('2d');
-  const specimen=document.getElementById('menuOceanSpecimen');
-  if(specimen){specimen.hidden=true;specimen.style.display='none';}
-  const enter=document.getElementById('menuOceanEnterBtn');if(enter)enter.hidden=true;
   const stations=ROUTES.map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
   if(stations.length!==3)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
