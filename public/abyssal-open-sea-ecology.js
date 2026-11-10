@@ -22,6 +22,24 @@
   twilight:{id:'twilight',label:'ZONA CREPUSCULAR',fauna:['nautilus','bigfin','frilled','goblin'],resources:['bioSample','deepCrystal']},
   abyss:{id:'abyss',label:'PLANÍCIE ABISSAL',fauna:['seapig','yeticrab','whiplash','angler'],resources:['abyssCrystal','bioSample']}
  });
+ // Only curated shop species. Different visual regions have different populations.
+ const VISUAL_FAUNA=Object.freeze({
+  coastal:Object.freeze({
+   shelf:['hawksbill','leatherback','butterflyray','eagleray','stingray'],
+   twilight:['nautilus','bigfin','whiplash'],
+   deep:['seapig','yeticrab','bigfin']
+  }),
+  cinematic:Object.freeze({
+   shelf:['eagleray','butterflyray','hawksbill','stingray','reefshark','hammerhead'],
+   twilight:['nautilus','bigfin','whiplash','frilled','goblin'],
+   deep:['bigfin','whiplash','angler','viperfish','blackdragon']
+  }),
+  geological:Object.freeze({
+   shelf:['stingray','spidercrab','zebramoray','nautilus'],
+   twilight:['nautilus','ribbonmoray','spidercrab','goblin','frilled'],
+   deep:['seapig','yeticrab','whiplash','angler','blackdragon','viperfish']
+  })
+ });
  const PREDATORS=new Set(['reefshark','hammerhead','abysscroc','greenland','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
  // Shallow predators start exclusively east of the safe western entry zone.
  function predatorAllowedAt(id,x,y){
@@ -60,7 +78,7 @@
   const type=geo?.classify?.(x,y)||'open';
   const base=ZONES.find(z=>z.id===type)||REGION_VARIANTS[type]||REGION_VARIANTS.open;
   const depth=geo?.metersAt?.(y)||0,depthBand=depth>1000?'deep':depth>200?'twilight':'shelf';
-  return {...base,depthBand,province:Math.floor(x/4800)+':'+Math.floor(y/3000),
+  return {...base,depthBand,visualId:geo?.visualBiomeAt?.(x,y)?.id||'coastal',province:Math.floor(x/4800)+':'+Math.floor(y/3000),
    x:Number(x)||0,y:Number(y)||0};
  }
  function speciesAt(x,y,random=Math.random){
@@ -70,7 +88,9 @@
   if(zone.depthBand!=='shelf'&&roll<.024)return 'siphonophore';
   const bottomClearance=(geo?.floorAt?.(x)||21000)-y;
   // Benthic sea pigs and crabs live on the bottom; they do not drift in midwater.
-  const candidates=(zone.fauna||REGION_VARIANTS.open.fauna).filter(id=>(!['seapig','yeticrab','spidercrab'].includes(id)||bottomClearance<400)&&predatorAllowedAt(id,x,y));
+  const regional=VISUAL_FAUNA[zone.visualId]?.[zone.depthBand];
+  const candidates=(regional||zone.fauna||REGION_VARIANTS.open.fauna)
+   .filter(id=>(!['seapig','yeticrab','spidercrab','zebramoray','ribbonmoray'].includes(id)||bottomClearance<420)&&predatorAllowedAt(id,x,y));
   const fauna=candidates.length?candidates:REGION_VARIANTS.open.fauna.filter(id=>predatorAllowedAt(id,x,y));
   return fauna[Math.min(fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*fauna.length))];
  }
@@ -356,5 +376,5 @@
   }
   return hits;
  }
- return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,predatorAllowedAt,comparePredators,canSee,decide,navigationTarget,separateContact,activateAgainstPlayer,simulatePredation});
+ return Object.freeze({ZONES,HABITAT_DEPTH,VISUAL_FAUNA,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,predatorAllowedAt,comparePredators,canSee,decide,navigationTarget,separateContact,activateAgainstPlayer,simulatePredation});
 });
