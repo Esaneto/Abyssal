@@ -371,14 +371,14 @@ function segmentDistance(px,py,ax,ay,bx,by){
 
 function markOceanSpecimenDeath(world,enemy,now=Date.now()){
  if(world?.mode!=='open-sea'||!enemy?.streamId)return false;
- world.oceanRespawn ||= OceanRespawn.createTracker();
+ world.oceanRespawn=OceanRespawn.restoreTracker(world.oceanRespawn);
  return world.oceanRespawn.mark(enemy.streamId,now);
 }
 
 function updateOceanStreaming(world,players,now){
  if(world.mode!=='open-sea'||now-(Number(world.streamLastAt)||0)<360)return [];
  world.streamLastAt=now;
- world.oceanRespawn ||= OceanRespawn.createTracker();
+ world.oceanRespawn=OceanRespawn.restoreTracker(world.oceanRespawn);
  if(now>=(Number(world.oceanRespawnCleanupAt)||0)){
   world.oceanRespawn.prune(now);
   world.oceanRespawnCleanupAt=now+30000;

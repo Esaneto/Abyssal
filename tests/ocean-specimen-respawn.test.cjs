@@ -56,6 +56,22 @@ test('every equipped companion also uses five minutes, with no proficiency short
  assert.equal(Specimens.MAX_RESPAWN_REDUCTION,0);
 });
 
+test('saved online room keeps independent death deadlines after serialization and reconnect',()=>{
+ const start=12_000_000;
+ const world=WorldSimulation.createWorldState(start,'open-sea');
+ assert.equal(WorldSimulation.markOceanSpecimenDeath(world,{streamId:'5:3:f0'},start),true);
+ assert.equal(WorldSimulation.markOceanSpecimenDeath(world,{streamId:'5:3:f1'},start+120000),true);
+ const restored=JSON.parse(JSON.stringify(world));
+ assert.equal(typeof restored.oceanRespawn.ready,'undefined');
+ assert.equal(WorldSimulation.markOceanSpecimenDeath(restored,{streamId:'5:3:f2'},start+180000),true);
+ assert.equal(restored.oceanRespawn.ready('5:3:f0',start+299999),false);
+ assert.equal(restored.oceanRespawn.ready('5:3:f0',start+300000),true);
+ assert.equal(restored.oceanRespawn.ready('5:3:f1',start+300000),false);
+ assert.equal(restored.oceanRespawn.ready('5:3:f1',start+420000),true);
+ assert.equal(restored.oceanRespawn.ready('5:3:f2',start+479999),false);
+ assert.equal(restored.oceanRespawn.ready('5:3:f2',start+480000),true);
+});
+
 test('all death paths and client loading use the same contract',()=>{
  const load=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
  const sim=load('world-simulation.js'),server=load('server.js');
