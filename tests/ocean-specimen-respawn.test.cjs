@@ -49,7 +49,7 @@ test('server tracks deaths by stable stream ID only in Mar Aberto',()=>{
  assert.equal(WorldSimulation.createWorldState(now,'open-sea').oceanRespawn.ready('0:1:f2',now+1),true);
 });
 
-test('equipped companions use twenty seconds independently of wild fauna's five minutes',()=>{
+test("equipped companions use twenty seconds independently of wild fauna\'s five minutes",()=>{
  assert.equal(Specimens.BASE_RESPAWN,20);
  assert.equal(Specimens.respawnSeconds(0),20);
  assert.equal(Specimens.respawnSeconds(5000),20);
