@@ -11,7 +11,7 @@ const renderer=require('../public/abyssal-open-sea-render.js');
 test('ocean is a wide side section with a sunlit shelf, canyon and abyssal basin',()=>{
  assert.equal(geo.WIDTH,24000);
  assert.equal(geo.HEIGHT,21000);
- assert.ok(geo.floorAt(1000)>4000&&geo.floorAt(1000)<9000);
+ assert.ok(geo.floorAt(1000)>300&&geo.floorAt(1000)<1500,'starter shelf must remain shallow and swimmable');
  assert.ok(geo.floorAt(10000)>7700);
  assert.ok(geo.ROCKS.length>=10);
  assert.ok(geo.CAVES.length>=5);
@@ -33,7 +33,7 @@ test('large navigable ocean, seabed collision and open paths around cliffs',()=>
  const moved=geo.resolveMove(x,y-250,x,y+150,18);
  assert.equal(moved.blocked,true);
  assert.equal(geo.isSolid(moved.x,moved.y,18),false);
- assert.equal(geo.segmentClear(1000,600,5000,600,20),true); // Open-water route beneath the cave canopy
+ assert.equal(geo.segmentClear(1000,100,5000,100,20),true); // Clear surface passage without suspended ledges
 });
 
 test('real cave entrances and chambers are accessible water voids',()=>{
@@ -77,11 +77,10 @@ test('solo, coop, ecology, render and chart depend on one shared geography',()=>
  assert.equal(typeof renderer.draw,'function');
 });
 
-test('Mar Aberto entry uses a collidable coral canopy without trapping the starting diver',()=>{
- const start={x:1300,y:420};
- assert.equal(geo.isSolid(start.x,start.y,23),false,'starting diver remains in water');
- assert.equal(geo.isSolid(1000,190,18),true,'reef canopy is actual geology');
- assert.equal(geo.segmentClear(1300,420,1700,480,20),true,'entry corridor remains swimmable');
- const overhang=geo.ROCKS.filter(r=>r.type==='overhang');
- assert.ok(overhang.length>=2,'large hanging reef ledges exist in scene and collision');
+test('Mar Aberto entry remains a navigable water corridor without the removed overhead barrier',()=>{
+ const start={x:520,y:95};
+ assert.equal(geo.isSolid(start.x,start.y,23),false,'submarine entry remains in open water');
+ assert.equal(geo.segmentClear(520,95,1200,95,20),true,'diver must be able to leave the starting shelf');
+ assert.equal(geo.isSolid(1000,190,18),false,'obsolete hanging-reef collision must not return');
+ assert.ok(geo.ROCKS.some(r=>r.type==='boulder'),'grounded boulders remain real collisions away from the corridor');
 });
