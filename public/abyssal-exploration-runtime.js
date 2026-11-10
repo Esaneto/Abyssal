@@ -35,7 +35,7 @@
   workshopGrid.replaceChildren();
   const title=document.createElement('div');title.className='submarine-console-overview';
   const researched=Object.entries(config.RESEARCH).filter(([id,def])=>Number(levels[id])>0&&!def.starter).length;
-  title.innerHTML='<small>CENTRAL DE CONTROLE · TERMINAL DE PESQUISAS</small><strong>LABORATÓRIO ABISSAL</strong><span>TECNOLOGIAS '+researched+'/'+Object.keys(config.RESEARCH).length+' · SISTEMA DE ILUMINAÇÃO: NÍVEL '+(Number(levels.helmetLamp)||0)+'/3 · PLATAFORMA: '+(levels.offshorePlatform?'OPERACIONAL':'NÃO CONSTRUÍDA')+'</span>';
+  title.innerHTML='<small>CENTRAL DE CONTROLE · '+(localResearchMode()?'EXPEDIÇÃO SOLO / DISPOSITIVO':'CONTA ONLINE / SERVIDOR')+'</small><strong>LABORATÓRIO ABISSAL</strong><span>TECNOLOGIAS '+researched+'/'+Object.keys(config.RESEARCH).length+' · SISTEMA DE ILUMINAÇÃO: NÍVEL '+(Number(levels.helmetLamp)||0)+'/3 · PLATAFORMA: '+(levels.offshorePlatform?'OPERACIONAL':'NÃO CONSTRUÍDA')+'</span>';
   workshopGrid.appendChild(title);
   const nav=document.createElement('nav');nav.className='submarine-console-tabs';nav.setAttribute('aria-label','Estações de pesquisa');
   for(const item of LAB_SECTIONS){
@@ -93,7 +93,7 @@
       renderWorkshop();
      }else{button.disabled=false;req.textContent='FALHA: '+String(result?.reason||'erro');}
     };
-    if(account)window.AbyssalOnline?.explorationStudy?.(id,done);
+    if(account&&!localResearchMode())window.AbyssalOnline?.explorationStudy?.(id,done);
     else done(research.study(id,localLevels,localInventory));
    });
    card.append(header,h,desc,req,button);cardGrid.appendChild(card);
@@ -129,8 +129,14 @@
   inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));
  });
  window.addEventListener('abyssal-start-rift-solo',()=>inventoryUI()?.setActive(false));
- function stateLevels(){return research.migrateLegacy(account?.researchLevels||localLevels,account?.metaUpgrades||{}).levels;}
- function stateInventory(){const p=cfg();return p?(p.online?account?.resourceInventory||{}:localInventory):(account?.resourceInventory||localInventory);}
+ function localResearchMode(){
+  const p=cfg();
+  if(p?.mode==='open-sea')return !p.online;
+  let recent='';try{recent=localStorage.getItem('abyssalLabProgressModeV2')||'';}catch(_){}
+  return recent==='solo'||!account;
+ }
+ function stateLevels(){return research.migrateLegacy(localResearchMode()?localLevels:account?.researchLevels||localLevels,account?.metaUpgrades||{}).levels;}
+ function stateInventory(){return localResearchMode()?localInventory:(account?.resourceInventory||localInventory);}
  function saveLocal(){
   try{
    offshore=Offshore?.accrue?.(offshore,localLevels,Date.now())||offshore;
@@ -140,8 +146,7 @@
   }catch(_){}
  }
  function currentOffshore(now=Date.now()){
-  const p=cfg(),onlineMode=p?.mode==='open-sea'&&p.online===true;
-  const source=onlineMode?(account?.offshoreProduction||{}):!p&&account?.offshoreProduction?account.offshoreProduction:offshore;
+  const source=localResearchMode()?offshore:(account?.offshoreProduction||offshore);
   return Offshore?.accrue?.(source,stateLevels(),now)||source;
  }
  function offshoreRates(){return Offshore?.rates?.(currentOffshore(),stateLevels())||{oil:0,gas:0};}
@@ -195,6 +200,7 @@
   return applyOffshoreResult(Offshore.transition(offshore,levels,'connect',p,target,Date.now()),'solo','connect');
  }
  function startRun(p){
+  if(p.mode==='open-sea')try{localStorage.setItem('abyssalLabProgressModeV2',p.online?'online':'solo');}catch(_){}
   runKey=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
   busy=false;
   taken=new Set();nodes=[];collectionFx=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
@@ -282,7 +288,7 @@
       renderResearch();
      }else{materials.textContent='Falha: '+String(result.reason||'erro');button.disabled=false;}
     };
-    if(account)window.AbyssalOnline?.explorationStudy?.(id,done);
+    if(account&&!localResearchMode())window.AbyssalOnline?.explorationStudy?.(id,done);
     else done(research.study(id,localLevels,localInventory));
    });
    card.append(heading,desc,materials,button);grid.append(card);
