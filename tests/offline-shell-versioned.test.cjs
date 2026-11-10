@@ -20,7 +20,7 @@ test('offline install precaches the exact versioned assets referenced by the cur
   addEventListener:(type,callback)=>{callbacks[type]=callback;},
   skipWaiting:async()=>{}
  };
- const context={self,URL,fetch:async()=>response,caches:{open:async()=>cache}};
+ const context={self,URL,Request,fetch:async()=>response,caches:{open:async()=>cache}};
  vm.runInNewContext(sw,context,{filename:'offline-sw.js'});
  let pending=null;
  callbacks.install({waitUntil:task=>{pending=task;}});
