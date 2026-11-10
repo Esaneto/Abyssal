@@ -597,8 +597,9 @@ function explorationScan(callback){
  socket.timeout(7000).emit('exploration-scan',{},(error,data)=>callback?.(error?{ok:false,reason:'timeout'}:data));
 }
 function explorationCollect(id,callback){
+ const tool=String(arguments[2]||'abyssPickaxe');
  if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
- socket.timeout(7000).emit('exploration-collect',{id},(error,data)=>{
+ socket.timeout(7000).emit('exploration-collect',{id,tool},(error,data)=>{
   const result=error?{ok:false,reason:'timeout'}:data;
   if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}
   callback?.(result);
