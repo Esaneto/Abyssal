@@ -148,9 +148,9 @@ test('reusable sampler can fill multiple cylinders without being depleted',()=>{
 
 test('breathing at the air-water interface refills both solo and online tanks',()=>{
  const capacity=cfg.oxygenCapacity(0);
- assert.equal(cfg.atBreathingSurface(60,18),true);
+ assert.equal(cfg.atBreathingSurface(20,18),true);
  assert.equal(cfg.atBreathingSurface(160,18),false);
- assert.ok(cfg.oxygenAfterTick(100,capacity,.2,0,50,18)>100);
+ assert.ok(cfg.oxygenAfterTick(100,capacity,.2,0,20,18)>100);
  assert.ok(cfg.oxygenAfterTick(100,capacity,.2,200,800,18)<100);
- assert.ok(cfg.oxygenAfterTick(capacity,capacity,.2,0,50,18)<=capacity);
+ assert.ok(cfg.oxygenAfterTick(capacity,capacity,.2,0,20,18)<=capacity);
 });
