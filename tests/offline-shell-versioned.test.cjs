@@ -29,7 +29,7 @@ test('offline install precaches the exact versioned assets referenced by the cur
  for(const match of html.matchAll(/(?:src|href)="([^"]+[?]v=[^"]+)"/g)){
   const expected=new URL(match[1],self.registration.scope);
   if(expected.origin!==self.location.origin)continue;
-  if(!/\\.(?:css|js)(?:$)/.test(expected.pathname))continue;
+  if(!/[.](?:css|js)$/.test(expected.pathname))continue;
   assert.ok(cachedURLs.includes(expected.href),expected.pathname+' is missing its exact versioned cache entry');
  }
  for(const name of ['abyssal-offshore-system.js','abyssal-submarine-cockpit.js',
