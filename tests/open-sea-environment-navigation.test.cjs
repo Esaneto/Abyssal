@@ -74,12 +74,15 @@ test('muzzle, hatch, and offshore installation states remain integrated',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const oceanMenu=fs.readFileSync(path.join(__dirname,'../public/abyssal-menu-ocean.js'),'utf8');
  const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
+ const offshore=fs.readFileSync(path.join(__dirname,'../public/abyssal-offshore-system.js'),'utf8');
  const surface=fs.readFileSync(path.join(__dirname,'../public/abyssal-submarine-laboratory.css'),'utf8');
  assert.match(game,/x:gunTip\.x,y:gunTip\.y/);
  assert.match(game,/x:gunTip\.x\/W,y:gunTip\.y\/H/);
  assert.match(oceanMenu,/--abyss-hatch-y/);
  assert.match(surface,/#submarineWorkshopBtn\.abyss-laboratory-hatch/);
- assert.match(runtime,/installation=\{phase:'laying'/);
- assert.match(runtime,/phase:'return'/);
- assert.match(runtime,/connections\.push\(/);
+ assert.match(runtime,/Offshore\.transition\(/);
+ assert.match(runtime,/explorationOffshoreAction/);
+ assert.match(offshore,/phase:'laying'/);
+ assert.match(offshore,/phase:'return'/);
+ assert.match(offshore,/connections:\[\.\.\.data\.connections/);
 });
