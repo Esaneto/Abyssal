@@ -7,9 +7,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test",
+    "test": "node scripts/test-current.cjs",
     "capacity:sample": "node scripts/capacity-sample.cjs",
-    "preflight:roxycloud": "node scripts/roxycloud-preflight.cjs"
+    "preflight:roxycloud": "node scripts/roxycloud-preflight.cjs",
+    "test:legacy": "node --test"
   },
   "engines": {
     "node": ">=22 <27"
