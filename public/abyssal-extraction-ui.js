@@ -50,6 +50,7 @@
   action=null;window.AbyssalExplorationToolState=null;
   if(!result?.ok){bridge.notify('Extração interrompida: '+String(result?.reason||'erro'));return;}
   const n=a.node;
+  if(a.tool==='abyssPickaxe')bridge.extractionBurst?.(n);
   drop={node:n,item:result.item,amount:Math.max(1,Number(result.amount)||1),x:n.x,y:n.y,at:now(),busy:false,result:a.localResult||null};
   bridge.notify('RECURSO LIBERADO! Aproxime-se para atraí-lo com o coletor magnético.');
  }
