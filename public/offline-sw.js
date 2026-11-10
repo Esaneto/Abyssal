@@ -91,7 +91,7 @@ self.addEventListener('install', event => {
     if (!indexResponse.ok) throw new Error('Offline shell index unavailable');
     const html = await indexResponse.clone().text();
     const versioned = new Map();
-    for (const match of html.matchAll(/(?:src|href)="([^"]+\\?v=[^"]+)"/g)) {
+    for (const match of html.matchAll(/(?:src|href)="([^"]+[?]v=[^"]+)"/g)) {
       const asset = new URL(match[1], scope);
       if (asset.origin !== scope.origin) continue;
       const name = asset.pathname.slice(scope.pathname.length);
