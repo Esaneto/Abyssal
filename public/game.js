@@ -3899,7 +3899,9 @@ function drawRiftShopSpecimen(enemy,skin,time){
   sprite.lastPaint=time;riftSpecimenSpritePaints++;
  }
  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);
- ctx.scale(renderScale,renderScale);
+ let organicSeed=0;for(const ch of String(enemy.streamId||enemy.id||skin.id))organicSeed=(Math.imul(organicSeed,33)+ch.charCodeAt(0))>>>0;
+ const organicX=.96+(organicSeed%9)*.01,organicY=.94+((organicSeed>>>5)%13)*.01,organicShear=((organicSeed>>>11)%9-4)*.006;
+ ctx.transform(renderScale*organicX,organicShear,organicShear*.45,renderScale*organicY,0,0);
  ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
  if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,bucket*.65,0,Math.PI*2);ctx.fill();}
  ctx.restore();

@@ -102,3 +102,11 @@ test('resource markers use the authoritative game camera so deposits stay fused 
  assert.match(runtime,/AbyssalGameHooks\?\.cameraState\?\.\(\)/);
  assert.match(runtime,/Number\.isFinite\(camera\?\.x\)\?camera\.x/);
 });
+
+
+test('mined deposits animate only on collection and breakup stays in world coordinates',()=>{
+ const runtime=source('public/abyssal-exploration-runtime.js');
+ assert.match(runtime,/collectionFx\.push\(\{x:target\.x,y:target\.y,started:performance\.now\(\)/);
+ assert.match(runtime,/const x=\(fx\.x-originX\)\*zoom,y=\(fx\.y-originY\)\*zoom/);
+ assert.match(runtime,/nodes\.length===0&&collectionFx\.length===0/);
+});

@@ -20,7 +20,7 @@
  hud.querySelector('.exploration-collect').hidden=true; // Mar Aberto only.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
- let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ let account=null,localInventory={},localLevels={},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  // Starter equipment is granted once per offline device, not on each run.
  try{
@@ -54,7 +54,7 @@
  function startRun(p){
   runKey=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
   busy=false;
-  taken=new Set();nodes=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
+  taken=new Set();nodes=[];collectionFx=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
   if(!p.online&&p.mode==='open-sea'){
    try{taken=new Set(JSON.parse(localStorage.getItem('abyssalSoloGeologyTakenV1')||'[]'));}catch(_){}
   }
@@ -95,7 +95,7 @@
     if(runKey!==requestedRun)return;
     busy=false;
     if(result?.ok){
-     taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
+     collectionFx.push({x:target.x,y:target.y,started:performance.now(),seed:String(target.id).length*97});taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
      if(result.account)account=result.account;
      inventoryUI()?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));
      notify('Coletado: '+(config.RESOURCES[result.item]?.name||result.item)+' +'+result.amount);
@@ -104,7 +104,7 @@
   }else{
    const result=fields.collect(target,inventory);busy=false;
    if(!result.ok){notify('Não foi possível coletar: '+result.reason);return;}
-   taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
+   collectionFx.push({x:target.x,y:target.y,started:performance.now(),seed:String(target.id).length*97});taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
    localInventory=research.sanitizeInventory(result.inventory);saveLocal();
    inventoryUI()?.setInventory(localInventory);
    notify('Coletado: '+config.RESOURCES[result.item].name+' +'+result.amount+' (inventário local)');
@@ -153,7 +153,8 @@
  const baseButton=$('openSubmarineBaseBtn');
  baseButton?.addEventListener('click',()=>{renderResearch();});
  function drawMarkers(p,visible){
-  if(!visible||nodes.length===0){markers.hidden=true;return;}
+  const fxNow=performance.now();collectionFx=collectionFx.filter(fx=>fxNow-fx.started<650);
+  if(!visible||(nodes.length===0&&collectionFx.length===0)){markers.hidden=true;return;}
   const rect=canvas.getBoundingClientRect(),shellRect=shell.getBoundingClientRect();
   const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
   markers.hidden=false;markers.style.position='absolute';markers.style.left=(rect.left-shellRect.left)+'px';markers.style.top=(rect.top-shellRect.top)+'px';
@@ -230,6 +231,17 @@
     c.fillStyle='#e9f2ef';c.font='bold 11px Inter,sans-serif';
     c.shadowColor='#000';c.shadowBlur=5;c.fillText(config.RESOURCES[type]?.name||type,x+23,y-28);c.shadowBlur=0;
    }
+  }
+  for(const fx of collectionFx){
+   const age=(fxNow-fx.started)/650;if(age<0||age>=1)continue;
+   const x=(fx.x-originX)*zoom,y=(fx.y-originY)*zoom;
+   if(x< -90||y< -90||x>w+90||y>h+90)continue;
+   c.save();c.translate(x,y);c.globalAlpha=1-age;
+   for(let i=0;i<8;i++){
+    const a=(i/8)*Math.PI*2+(fx.seed%17)*.11,travel=12+age*(25+(i%3)*8),px=Math.cos(a)*travel,py=Math.sin(a)*travel+age*age*18;
+    c.fillStyle=i%2?'#7d8f91':'#3d5157';c.beginPath();c.moveTo(px-4,py+3);c.lineTo(px,py-5);c.lineTo(px+5,py+2);c.closePath();c.fill();
+   }
+   c.strokeStyle='#d8c99a';c.lineWidth=2;c.beginPath();c.arc(0,0,34+age*18,0,Math.PI*2);c.stroke();c.restore();
   }
  }
  function tick(time){
