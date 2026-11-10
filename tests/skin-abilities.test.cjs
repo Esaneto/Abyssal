@@ -507,6 +507,33 @@ test('skin active attacks are manual-only and old automatic attacks are absent',
 });
 
 
+test('equipped specimen active is exactly the same contract shown in the shop',()=>{
+ const S=require('../public/skin-standard.js');
+ const Specimen=require('../public/specimen-system.js');
+ const game=read('public/game.js'),server=read('server.js');
+ for(const [id,profile] of Object.entries(S.profiles)){
+  const shop=S.activeSpec(id);
+  assert.equal(shop.id,profile.active,id+' active identity');
+  assert.equal(Specimen.abilityRange(shop.range,5000),shop.range,id+' range must stay fixed');
+  assert.equal(Specimen.abilityCooldown(5000),10,id+' cooldown helper must stay fixed');
+ }
+ assert.match(game,/return base;\/\/ Active identity, cooldown, duration, damage and range are the shop contract\.|return base;/);
+ assert.doesNotMatch(game,/cooldown:base\.id==='poison'\|\|base\.id==='paralysis'\?10:mastery\.cooldown/);
+ assert.doesNotMatch(game,/range:\(Number\(base\.range\)\|\|0\)\*mastery\.rangeMultiplier/);
+ assert.match(server,/const spec=baseSpec; \/\/ Exact shop contract/);
+ assert.doesNotMatch(server,/mastery\.cooldown/);
+ assert.doesNotMatch(server,/mastery\.rangeMultiplier/);
+});
+
+test('specimen profile assignments are locked and independent of catalog order',()=>{
+ const S=require('../public/skin-standard.js');
+ assert.equal(Object.keys(S.PROFILE_ASSIGNMENTS).length,Object.keys(S.profiles).length);
+ for(const [id,pair] of Object.entries(S.PROFILE_ASSIGNMENTS)){
+  const profile=S.profile(id);
+  assert.deepEqual([profile.active,profile.attribute],pair,id);
+ }
+});
+
 test('shop uses the standardized current ability copy and proportional bundle discount',()=>{
  const game=read('public/game.js'),S=require('../public/skin-standard.js');
  assert.match(S.describe('reefshark'),/Ativa do Espécime \[R\]:/);
