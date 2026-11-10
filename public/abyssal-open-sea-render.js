@@ -323,17 +323,24 @@
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+95<left||rock.x-rock.rx-95>right||rock.y+rock.ry+95<top||rock.y-rock.ry-95>bottom)continue;
    const lit=geo.lightAt(rock.y-rock.ry),seed=rock.x*.00031+rock.y*.00017;
+   // Reflected cinematic light preserves rock volume where solar light is gone.
+   // This is purely visual; collision and depth lighting rules stay unchanged.
+   const province=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.42)?.id||'coastal';
+   const palette=province==='cinematic'?['#457b87','#295468','#122e41','#071a2d']
+    :province==='geological'?['#405969','#2b4352','#102737','#071622']
+    :['#557773','#30575c','#132c37','#071725'];
    const gradient=ctx.createLinearGradient(rock.x-rock.rx,rock.y-rock.ry,rock.x+rock.rx,rock.y+rock.ry);
-   gradient.addColorStop(0,lit>.12?'#3e595c':'#273b42');
-   gradient.addColorStop(.38,lit>.12?'#263d42':'#172a32');
-   gradient.addColorStop(.83,'#0b1c26');gradient.addColorStop(1,'#050d17');
+   gradient.addColorStop(0,lit>.12?'#657a75':palette[0]);
+   gradient.addColorStop(.38,lit>.12?'#375759':palette[1]);
+   gradient.addColorStop(.83,palette[2]);gradient.addColorStop(1,palette[3]);
    ctx.beginPath();
    for(let k=0;k<=80;k++){
     const a=k/80*TAU,point=geo.rockSurfaceAt(rock,a);
     if(k===0)ctx.moveTo(point.x,point.y);else ctx.lineTo(point.x,point.y);
    }
    ctx.closePath();ctx.fillStyle=gradient;ctx.fill();
-   ctx.strokeStyle='rgba(125,149,148,'+(.08+lit*.10)+')';ctx.lineWidth=1.6;ctx.stroke();
+   ctx.strokeStyle=province==='cinematic'?'rgba(113,215,224,.38)':province==='geological'?'rgba(108,163,163,.28)':'rgba(124,195,186,.34)';
+   ctx.lineWidth=2.2;ctx.stroke();
    ctx.save();ctx.clip();
    // Each rock has irregular shaded planes clipped inside the actual physics outline.
    const region=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.42)?.id||'coastal';
