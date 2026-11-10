@@ -11,6 +11,31 @@ permissions:
   contents: read
 
 jobs:
+  open-sea-regression:
+    name: Open sea ecology, pressure and scenery contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate Open Sea game modules
+        run: |
+          node --check public/abyssal-ocean-geography.js
+          node --check public/abyssal-ocean-stream.js
+          node --check public/abyssal-open-sea-ecology.js
+          node --check public/abyssal-open-sea-render.js
+          node --check world-simulation.js
+          node --check public/game.js
+          node --check server.js
+      - name: Run focused Open Sea regression suite
+        run: node --test tests/ocean-ecosystem-integrity.test.cjs tests/ocean-geography.test.js tests/ocean-streaming.test.js tests/ocean-exploration-regression.test.js tests/ocean-specimen-respawn.test.cjs
+
   specimen-journal-acceptance:
     name: Specimens, journal and laboratory acceptance
     runs-on: ubuntu-latest

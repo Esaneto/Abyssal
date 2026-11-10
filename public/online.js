@@ -79,7 +79,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  function renderSpecimenProfile(user={}){
-  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:20};
+  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:300};
   const specimen=window.AbyssalGameHooks?.skinForId?.(id),name=specimen?.name||id;
   const nameNode=$('profileSpecimenName'),pct=$('profileAdaptationPercent'),fill=$('profileAdaptationFill'),pointsNode=$('profileAdaptationPoints');
   if(nameNode)nameNode.textContent=name;
@@ -90,7 +90,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if($('profileAdaptCooldown'))$('profileAdaptCooldown').textContent='RECARGA: '+stats.cooldown.toFixed(1).replace('.',',')+'s';
   if($('profileAdaptAttribute'))$('profileAdaptAttribute').textContent='ATRIBUTO: +'+(stats.attributeBonus*100).toFixed(1).replace('.',',')+'%';
   if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE: +'+Math.round(stats.rangeBonus*100)+'%';
-  if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+stats.respawnSeconds.toFixed(1).replace('.',',')+'s';
+  if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+Math.floor(stats.respawnSeconds/60).toString().padStart(2,'0')+':'+Math.floor(stats.respawnSeconds%60).toString().padStart(2,'0');
   window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id}}));
  }
  let viewedPublicProfile=null;
@@ -393,7 +393,7 @@ function publishMergedRooms(){
   const id=String(room.id).toUpperCase();
   clean.set(id,{...room,id,code:room.code||id,isPrivate:Boolean(room.isPrivate),playerCount:Math.max(0,Number(room.playerCount)||0),capacity:Math.max(1,Number(room.capacity)||6)});
  }
- if(!clean.has('MAR-ABERTO'))clean.set('MAR-ABERTO',{id:'MAR-ABERTO',code:'MAR-ABERTO',name:'Mar Aberto',mode:'coop',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
+ if(!clean.has('MAR-ABERTO'))clean.set('MAR-ABERTO',{id:'MAR-ABERTO',code:'MAR-ABERTO',name:'Mar Aberto',mode:'open-sea',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
  if(!clean.has('MAR-VERMELHO'))clean.set('MAR-VERMELHO',{id:'MAR-VERMELHO',code:'MAR-VERMELHO',name:'Mar Vermelho',mode:'pvp',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
  if(!clean.has('MAR-ABYSSAL'))clean.set('MAR-ABYSSAL',{id:'MAR-ABYSSAL',code:'MAR-ABYSSAL',name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
  list=[...clean.values()].sort((a,b)=>{const priority=id=>id==='MAR-ABERTO'?0:id==='MAR-VERMELHO'?1:id==='MAR-ABYSSAL'?2:3;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0);});
@@ -411,7 +411,7 @@ function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPo
 function showRooms(){
  const s=connect();if(!s)return;
  const screen=$('roomsScreen');if(screen)screen.hidden=false;
- const mode=$('roomModeInput');if(mode)mode.value=window.AbyssalPreferredRoomMode==='rift'?'rift':'coop';
+ const mode=$('roomModeInput');if(mode)mode.value=window.AbyssalPreferredRoomMode==='rift'?'rift':'open-sea';
  const message=$('roomsMessage');if(message)message.textContent='Sondando expedições ativas…';
  refreshRoomsHttp();
  const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
@@ -438,7 +438,7 @@ function joinRoom(roomId='MAR-ABERTO',password='',options={}){
 function createRoom(data={}){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Entre na sua conta antes de criar uma sala.'}}));return false;}
  const isPrivate=Boolean(data.isPrivate),password=String(data.password||'');if(isPrivate&&(password.length<4||password.length>64)){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'}}));return false;}
- pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:['pvp','rift'].includes(data.mode)?data.mode:'coop'});return true;
+ pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:['pvp','rift','open-sea'].includes(data.mode)?data.mode:'coop'});return true;
 }
 function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}

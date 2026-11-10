@@ -19,6 +19,7 @@ function riftSpecimenSkin(random=Math.random){
 }
 const { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS } = EnemyAI;
 const OceanStream=require('./public/abyssal-ocean-stream.js');
+const OceanRespawn=require('./public/abyssal-ocean-respawn.js');
 const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
@@ -30,7 +31,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
     mode: mode === 'rift' ? 'rift' : mode==='open-sea'?'open-sea':'classic', riftEncountersSeeded: false, riftActivatedRooms: {}, riftCompleted: false,
-    initialized: false, width:mode==='open-sea'?OceanStream.WIDTH:WORLD_WIDTH,height:mode==='open-sea'?OceanStream.HEIGHT:WORLD_HEIGHT, streamCellIds:{}, streamLastAt:0, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0,
+    initialized: false, width:mode==='open-sea'?OceanStream.WIDTH:WORLD_WIDTH,height:mode==='open-sea'?OceanStream.HEIGHT:WORLD_HEIGHT, streamCellIds:{}, streamLastAt:0, oceanRespawn:OceanRespawn.createTracker(),oceanRespawnCleanupAt:0, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
@@ -220,8 +221,9 @@ function spawnEnemy(world, options = {}) {
   if(type!=='boss'){
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
-    if(world.mode!=='rift')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
+    if(world.mode!=='rift'&&world.mode!=='open-sea')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
     if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){stats.hp=Math.max(300,Number(stats.hp)*8);stats.speed=Math.max(22,Number(stats.speed)*.5);stats.damage=0;stats.value=Math.max(5,Number(stats.value)*5);}
+    else if(openSeaSkin)stats.hp=SpecimenSystem.biologicalStats(openSeaSkin).hp; // Preserve species biology instead of escalating generic enemy HP.
   }
   if (type === 'boss') {
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
@@ -367,9 +369,20 @@ function segmentDistance(px,py,ax,ay,bx,by){
  const q=clamp(((px-ax)*dx+(py-ay)*dy)/l2,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));
 }
 
+function markOceanSpecimenDeath(world,enemy,now=Date.now()){
+ if(world?.mode!=='open-sea'||!enemy?.streamId)return false;
+ world.oceanRespawn=OceanRespawn.restoreTracker(world.oceanRespawn);
+ return world.oceanRespawn.mark(enemy.streamId,now);
+}
+
 function updateOceanStreaming(world,players,now){
  if(world.mode!=='open-sea'||now-(Number(world.streamLastAt)||0)<360)return [];
  world.streamLastAt=now;
+ world.oceanRespawn=OceanRespawn.restoreTracker(world.oceanRespawn);
+ if(now>=(Number(world.oceanRespawnCleanupAt)||0)){
+  world.oceanRespawn.prune(now);
+  world.oceanRespawnCleanupAt=now+30000;
+ }
  const alive=players.filter(p=>p?.alive!==false);
  if(!alive.length)return [];
  const radius=Math.max(1900,Math.min(4700,Math.max(...alive.map(p=>{
@@ -387,7 +400,7 @@ function updateOceanStreaming(world,players,now){
   if(budget<=0)break;
   const fauna=OceanStream.generate(world.worldId,chunk.cx,chunk.cy,OpenSeaEcology);
   for(const specimen of fauna.animals){
-   if(budget<=0||existing.has(specimen.id))continue;
+   if(budget<=0||existing.has(specimen.id)||!world.oceanRespawn.ready(specimen.id,now))continue;
    // Avoid spawning within direct contact of a diver.
    if(alive.some(p=>Math.hypot(p.x-specimen.x,p.y-specimen.y)<180))continue;
    const created=spawnEnemy(world,{type:'common',position:{x:specimen.x,y:specimen.y},species:specimen.species,streamId:specimen.id,schoolId:specimen.schoolId});
@@ -723,7 +736,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
         const swimTarget=ecology.target;
-        const swimRoute=world.mode==='open-sea'?OceanGeography.steer(enemy.x,enemy.y,swimTarget.x,swimTarget.y,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),enemy.id):swimTarget;
+        const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
         movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
         movementNavigationProxy.alive=true;
@@ -808,6 +821,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       movement.moved=Math.hypot(enemy.x-seaBeforeX,enemy.y-seaBeforeY)>.04;
     }
     if (movement.moved) movedEnemyCount++;
+    if(world.mode==='open-sea'&&enemy.wildlifeMode&&actualTarget){
+      const sampleAt=Number(actualTarget.lastPositionAt)||0;
+      if(actualTarget.clientHidden===true||(sampleAt>0&&now-sampleAt<=250)){
+        const skill=OpenSeaEcology.activateAgainstPlayer(enemy,actualTarget,now);
+        if(skill){
+          bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'wildlife-'+skill.id,
+            x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:skill.range,color:skill.color});
+          if(skill.damage>0){
+            const hit=bossAbilityHit(enemy,actualTarget,skill.damage,now,'wildlife-'+skill.id,{neurotoxinMs:skill.neurotoxinMs});
+            if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(actualTarget);}
+          }
+        }
+      }
+    }
 
     // Contact attacks are resolved here on the server, never in requestAnimationFrame.
     // A minimized tab keeps taking damage at its last known position; a visible tab must
@@ -910,6 +937,18 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
+  if(world.mode==='open-sea'){
+   const clashes=OpenSeaEcology.simulatePredation(world.enemies,dt,now);
+   if(clashes.length){
+    const byId=new Map(world.enemies.map(enemy=>[String(enemy.id),enemy]));
+    for(const conflict of clashes){
+     const victim=byId.get(String(conflict.preyId));if(!victim)continue;
+     environmentDamages.push({id:victim.id,hp:victim.hp,maxHp:victim.maxHp,damageRevision:victim.damageRevision,damage:conflict.damage,skillId:'wildlife-'+(conflict.abilityId||'bite'),kind:victim.kind,enemyX:victim.x,enemyY:victim.y,enemyColor:victim.color,killed:victim.hp<=0});
+     if(conflict.killed){markOceanSpecimenDeath(world,victim,now);environmentKills.push({id:victim.id,x:victim.x,y:victim.y,kind:victim.kind,value:0,xpValue:0,contributors:{},color:victim.color,boss:false,ecology:true});}
+    }
+    if(environmentKills.length){const dead=new Set(environmentKills.filter(k=>k.ecology).map(k=>String(k.id)));world.enemies=world.enemies.filter(e=>!dead.has(String(e.id)));}
+   }
+  }
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
@@ -967,4 +1006,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };

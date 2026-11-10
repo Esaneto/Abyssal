@@ -92,7 +92,7 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{window.dispatchEvent(new CustomEvent('abyssal-start-rift-solo'));check()},950);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
  });
@@ -292,6 +292,8 @@ async function main(){
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
    ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
+   ['ocean-desktop',1280,720,null,'sea'],
+   ['ocean-mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36','sea'],
    ['deep-desktop',1280,720,null,'deep'],
    ['boss-desktop',1280,720,null,'boss']]){
    const common=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
@@ -309,6 +311,7 @@ async function main(){
    assert.equal(status,'playing',label+' did not start gameplay, canvas='+canvas+', error='+error);
    assert.ok(!error,label+' triggered a runtime error: '+error);
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
+   if(stage==='sea')assert.equal(Number(page.match(/data-smoke-world-height="([^"]*)"/)?.[1]),21000,label+' must actually run the deep Mar Aberto world');
    if(stage==='deep')assert.ok(depth>130&&depth<300,label+' should be mid-Fossa, depth='+depth);
    if(stage==='boss')assert.ok(depth>=320,label+' should reach boss chamber, depth='+depth);
    console.log('[browser-smoke] '+label+' depth='+depth+' elapsed='+page.match(/data-smoke-elapsed="([^"]*)"/)?.[1]+' worldHeight='+page.match(/data-smoke-world-height="([^"]*)"/)?.[1]+' active='+page.match(/data-smoke-rift-playing="([^"]*)"/)?.[1]);

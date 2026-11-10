@@ -560,7 +560,7 @@ function isBossKind(kind){ return BOSS_KINDS.has(kind); }
 function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
 function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
 function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===normalizeRoomMode(room.mode);if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
-function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
+function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
 function ensureMatchParticipant(room,p){
  if(!room||!p)return null;room.matchParticipants ||= new Map();
  const key=String(p.userKey||p.nickname||p.id);let row=room.matchParticipants.get(key);
@@ -591,13 +591,13 @@ function sendKillTitleProgress(socket,immediate=false){
  timer.unref?.();
  pendingKillTitleProgress.set(socket,timer);
 }
-function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':'coop';}
-function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':'classic');}
+function normalizeRoomMode(mode){return mode==='pvp'?'pvp':mode==='rift'?'rift':mode==='open-sea'?'open-sea':'coop';}
+function makeWorldState(mode='coop'){return WorldSimulation.createWorldState(Date.now(),mode==='rift'?'rift':mode==='open-sea'?'open-sea':'classic');}
 function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,capacity=6,mode='coop'}={}){
  mode=normalizeRoomMode(mode);
  return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
-rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6}));
+rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6,mode:'open-sea'}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
 rooms.set(FOSSAS_ROOM_ID,makeRoom({id:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',capacity:6,mode:'rift'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
@@ -683,7 +683,7 @@ function getRoomSnapshot(room, metadata = {}, recipient=null){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>room.mode!=='coop'||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>room.mode!=='coop'||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -718,7 +718,7 @@ function getRoomMotionSnapshot(room, options = {}){
  // Near entities follow the authoritative 20 Hz simulation cadence. Off-screen entities
  // receive a lighter 4 Hz keep-warm sample so they enter the viewport with fresh history
  // without sending the full 400-enemy set on every tick.
- const motionNow=Date.now(),sendFar=room.mode!=='coop'&&(!recipient||motionNow-(Number(recipient.lastFarMotionAt)||0)>=250);
+ const motionNow=Date.now(),sendFar=!['coop','open-sea'].includes(room.mode)&&(!recipient||motionNow-(Number(recipient.lastFarMotionAt)||0)>=250);
  if(recipient&&sendFar)recipient.lastFarMotionAt=motionNow;
  const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
  return {
@@ -729,6 +729,7 @@ function getRoomMotionSnapshot(room, options = {}){
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
    if(e.kind==='devourer')return [...base,e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100];
    if(e.kind==='kraken')return [...base,false,0,0,0,e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100];
+   if(e.wildlifeMode)return [...base,e.aiIndicator==='attack'?1:e.aiIndicator==='evaluate'?2:e.aiIndicator==='flee'?3:0,String(e.wildlifeAbilityId||''),Math.max(0,Math.ceil((Number(e.wildlifeAbilityUntil)||0)-motionNow))];
    return base;
   }),
 
@@ -748,7 +749,7 @@ function getRoomPlayerMotion(room){
  if(!room?.players?.size)return [];
  return [...room.players.values()].map(peer=>[Number(peer.netId)||0,Number(peer.x)||0,Number(peer.y)||0,Number(peer.angle)||0]);
 }
-function broadcastWorld(room, metadata = {}){if(!room?.world?.initialized||!room.players.size)return;if(room.mode==='coop'){for(const p of room.players.values())io.to(p.id).emit('game-snapshot',getRoomSnapshot(room,metadata,p));}else io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
+function broadcastWorld(room, metadata = {}){if(!room?.world?.initialized||!room.players.size)return;if(['coop','open-sea'].includes(room.mode)){for(const p of room.players.values())io.to(p.id).emit('game-snapshot',getRoomSnapshot(room,metadata,p));}else io.to(channelFor(room)).emit('game-snapshot',getRoomSnapshot(room,metadata));}
 async function persistRoomRow(room){
  if(!pgPool||!roomRegistryReady||!room||room.id===DEFAULT_ROOM_ID)return;
  if(room.players.size===0){deletingRoomIds.add(room.id);pendingRoomDeletion.add(room.id);return deleteRoomRow(room.id);}
@@ -844,11 +845,11 @@ function awardWorldBossCoins(room){
    const chest=RiftRewards.grant(u,`${room.world.worldId}:${room.world.mapTier}`,{final:Number(room.world.mapTier)===RiftHardcore.FINAL_TIER&&room.world.lastBossKind===RiftHardcore.FINAL_KIND});
    io.to(p.id).emit('rift-chest-ready',{id:chest.id,tier:room.world.mapTier,final:Boolean(chest.final)});
   }
-  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=7&&grantFirstProgressionReward(u)){
+  if(['coop','open-sea'].includes(room.mode)&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=7&&grantFirstProgressionReward(u)){
    p.invulnerableUntil=Math.max(Number(p.invulnerableUntil)||0,Date.now()+25000);
    io.to(p.id).emit('first-progression-reward',{ok:true,awarded:true,amount:FIRST_PROGRESSION_REWARD_COINS});
   }
-  if(room.mode==='coop'&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
+  if(['coop','open-sea'].includes(room.mode)&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
    io.to(p.id).emit('abyssal-final-victory',{ok:true,skinId:'greensnake',titleId:'abyssal-conqueror'});
   }
   u.coins=(Number(u.coins)||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
@@ -959,6 +960,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
+  // Only a confirmed kill starts this individual's five-minute revival clock.
+  WorldSimulation.markOceanSpecimenDeath(w,enemy,now);
   const removeIdx=idx>=0?idx:w.enemies.indexOf(enemy);if(removeIdx>=0)w.enemies.splice(removeIdx,1);if(enemyLookup)enemyLookup.delete(normalizedId);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
   const killer=users[socket.data.userKey];
@@ -986,7 +989,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + ESPÉCIME ALEATÓRIO + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
    // Fossas waits for the next tier; Mar Aberto schedules the next
    // boss after another complete progression segment.
-   w.nextBossAt=room.mode==='coop'?(Number(w.elapsed)||0)+100/3.8:Infinity;
+   w.nextBossAt=['coop','open-sea'].includes(room.mode)?(Number(w.elapsed)||0)+100/3.8:Infinity;
   }
   grantSharedXp(room,WorldSimulation.xpValueForEnemy(w,enemy),null,'kill',enemy.id,{x:enemy.x,y:enemy.y});
   if(!boss&&enemy.eliteId&&enemy.spawnRoomId==='elite'&&Number(w.eliteRewardClaimedTier)!==Number(w.mapTier)){
@@ -1155,7 +1158,7 @@ function tickSkinTrailNodes(room,players,now){
 }
 function tickRoom(room, now) {
  // 1.6-second interest-area baseline; bounded by current local entities, not map size.
- if(room?.mode==='coop'&&room.players.size&&room.world?.initialized&&now-(room.lastAreaRefreshAt||0)>1600){
+ if(['coop','open-sea'].includes(room?.mode)&&room.players.size&&room.world?.initialized&&now-(room.lastAreaRefreshAt||0)>1600){
   room.lastAreaRefreshAt=now;
   for(const recipient of room.players.values()){
    const frame=getRoomSnapshot(room,{criticalReason:'area-refresh'},recipient);
@@ -1180,15 +1183,17 @@ function tickRoom(room, now) {
    const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
    const capacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
    const worldHeight=roomWorldHeight(room);
-   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:200);
+   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:600);
    const maxDepth=ExplorationConfig.safeDepth(research.pressureSuit);
    const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
    diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
    if(!Number.isFinite(diver.oxygen))diver.oxygen=capacity;
    diver.oxygen=Math.max(0,Math.min(capacity,diver.oxygen-ExplorationConfig.gasConsumption(depth,1)*elapsed));
    // Warnings precede equipment damage, rather than hiding a hard depth wall.
-   const pressureDamage=depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0;
-   const asphyxiaDamage=diver.oxygen<=0?6:0;
+   if(diver.oxygen<=0)diver.oxygenEmptySeconds=(Number(diver.oxygenEmptySeconds)||0)+elapsed;
+   else diver.oxygenEmptySeconds=0;
+   const pressureDamage=room.mode==='open-sea'?ExplorationConfig.pressureDamage(depth,maxDepth):(depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0);
+   const asphyxiaDamage=room.mode==='open-sea'?ExplorationConfig.oxygenDamage(diver.oxygenEmptySeconds):(diver.oxygen<=0?6:0);
    if(pressureDamage+asphyxiaDamage>0&&elapsed>0){
     diver.hp=Math.max(0,Number(diver.hp)-(pressureDamage+asphyxiaDamage)*elapsed);
     if(diver.hp<=0)diver.alive=false;
@@ -1349,7 +1354,7 @@ function tickRoom(room, now) {
  for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
  for(const death of environmentKills){
   io.to(channelFor(room)).emit('world-enemy-defeated',death);
-  grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
+  if(!death.ecology)grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
   if(death.boss){awardWorldBossCoins(room);if(room.mode==='rift'){WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}}
  }
  if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
@@ -1364,14 +1369,14 @@ function tickRoom(room, now) {
   const reason=playerHits.length?'enemy-contact':'periodic-baseline';
   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
   if(criticalSnapshot){
-    if(room.mode==='coop')for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
+    if(['coop','open-sea'].includes(room.mode))for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
     else io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
    }
   // Keep the periodic full-state recovery aligned with world-simulation.js (30 s).
   w.reliableSnapshotTimer=30;
  }else if(spawnedEnemies.length>0){
   const spawnFrame=getRoomSpawnSnapshot(room,spawnedEnemies);
-  if(spawnFrame){if(room.mode==='coop')for(const recipient of room.players.values()){const local=spawnFrame.enemies.filter(e=>OceanStream.within(e,recipient,roomAoiRadius(recipient)));if(local.length)io.to(recipient.id).emit('world-enemies-spawned',{...spawnFrame,enemies:local,criticalEnemyIds:local.map(e=>String(e.id))});}else io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);}
+  if(spawnFrame){if(['coop','open-sea'].includes(room.mode))for(const recipient of room.players.values()){const local=spawnFrame.enemies.filter(e=>OceanStream.within(e,recipient,roomAoiRadius(recipient)));if(local.length)io.to(recipient.id).emit('world-enemies-spawned',{...spawnFrame,enemies:local,criticalEnemyIds:local.map(e=>String(e.id))});}else io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);}
  }
  if(result.sendSnapshot){
   for(const recipient of activePlayers){
@@ -1389,7 +1394,7 @@ function tickRoom(room, now) {
    // Fail safe: preserve strict collision verification if the attacker disappeared mid-tick.
    criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:'enemy-contact'});
    if(criticalSnapshot){
-    if(room.mode==='coop')for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
+    if(['coop','open-sea'].includes(room.mode))for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
     else io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
    }
    w.reliableSnapshotTimer=1;
@@ -1663,8 +1668,8 @@ io.on('connection', socket => {
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
-  const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp((room.mode==='coop'?roomWorldHeight(room)*.11:roomWorldHeight(room)*.5)+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
-  const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
+  const spawnX=expeditionSpawn?expeditionSpawn.x:clamp((room.mode==='open-sea'?1300:roomWorldWidth(room)*.5)+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp((room.mode==='open-sea'?420:room.mode==='coop'?roomWorldHeight(room)*.11:roomWorldHeight(room)*.5)+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
+  const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenMaxHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
    if(room.mode==='rift'||room.mode==='open-sea'){
     const research=ResearchSystem.migrateLegacy(u?.researchLevels||{},u?.metaUpgrades||{}).levels;
@@ -1873,10 +1878,9 @@ io.on('connection', socket => {
   user.discoveredSpecimens=Array.isArray(user.discoveredSpecimens)?user.discoveredSpecimens:[];
   if(user.discoveredSpecimens.includes(id))return;
   user.discoveredSpecimens.push(id);
-  user.resourceInventory=ResearchSystem.sanitizeInventory(user.resourceInventory||{});
-  user.resourceInventory.bioSample=Math.min(1000000,user.resourceInventory.bioSample+1);
-  // Five verified, unique species yield an additional deep-ocean research sample.
-  if(user.discoveredSpecimens.length%5===0)user.resourceInventory.deepCrystal=Math.min(1000000,user.resourceInventory.deepCrystal+1);
+  // Catalog discovery is informational. Do not mint old research resources
+  // until the player-approved Mar Aberto resource catalog is introduced.
+  // Historical resourceInventory values remain untouched.
   saveUsers();socket.emit('account-data',publicUser(user));
   socket.emit('specimen-discovered',{id});
  });
@@ -2478,7 +2482,18 @@ io.on('connection', socket => {
   if (u.ownedSkins.includes(payload.equippedSkin)){
    u.equippedSkin = payload.equippedSkin;
    const room=socketRoom(socket),p=room?.players.get(socket.id);
-   if(p){p.skinId=u.equippedSkin;p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);p.specimenAlive=true;p.specimenMaxHp=SpecimenSystem.biologicalStats(p.skinId).hp;p.specimenHp=p.specimenMaxHp;p.specimenRespawnAt=0;p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;p.specimenLastAt=Date.now();emitSpecimenState(room,p,'equipped');}
+   if(p&&p.skinId!==u.equippedSkin){
+    const now=Date.now(),stillDefeated=p.specimenAlive===false&&now<(Number(p.specimenRespawnAt)||0);
+    p.skinId=u.equippedSkin;
+    p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);
+    p.specimenMaxHp=SpecimenSystem.biologicalStats(p.skinId).hp;
+    // Equipping a different specimen must not cancel an existing death penalty.
+    p.specimenAlive=!stillDefeated;
+    p.specimenHp=stillDefeated?0:p.specimenMaxHp;
+    if(!stillDefeated)p.specimenRespawnAt=0;
+    p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;
+    p.specimenLastAt=now;emitSpecimenState(room,p,'equipped');
+   }
   }
   saveUsers();
   socket.emit('account-data', publicUser(u));
@@ -2531,6 +2546,7 @@ io.on('connection', socket => {
  // Deposits are deterministic and shared. Coordinates and pickup radius are
  // validated from the server player state, not from client supplied positions.
  function nodesForWorld(room,x,y,radius=350){
+  return []; // Disable unapproved deposits across all modes.
   const world=room?.world;if(!world)return [];
   if(room.mode!=='rift')return ResourceFields.streamNear(world.worldId||room.id,x,y,radius,world.collectedResources||[]);
   // Fossas keep their existing hand-authored traversable cave resource layout.
@@ -2553,6 +2569,7 @@ io.on('connection', socket => {
   const respond=data=>{if(typeof ack==='function')ack(data);};
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
   if(!u||!p||room.mode==='pvp'||p.alive===false)return respond({ok:false,reason:'unavailable'});
+  return respond({ok:false,reason:'resources-disabled'});
   const now=Date.now();if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
   const id=String(payload.id||'');
   const node=nodesForWorld(room,p.x,p.y,180).find(row=>row.id===id);

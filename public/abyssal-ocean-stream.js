@@ -8,8 +8,8 @@
  if(root)root.AbyssalOceanStream=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
- const WIDTH=24000,HEIGHT=9000,CHUNK=1200,AREA_RATIO=15;
- const MAX_NEARBY=110,INITIAL_FAUNA=3,RESOURCE_COUNT=5;
+ const WIDTH=geo?.WIDTH||24000,HEIGHT=geo?.HEIGHT||21000,CHUNK=1200,AREA_RATIO=35;
+ const MAX_NEARBY=110,INITIAL_FAUNA=3,RESOURCE_COUNT=0; // No unapproved resource nodes.
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
@@ -44,7 +44,18 @@
   for(let i=0;i<INITIAL_FAUNA;i++){
    const point=randomWater(62);if(!point)break;
    const {x,y}=point,species=ecology?.speciesAt?.(x,y,next)||'seapig';
-   animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId:id(cx,cy)+':s'+Math.floor(i/2)});
+   const schooling=Boolean(ecology?.isSchooling?.(species)),schoolId=schooling?id(cx,cy)+':s0':id(cx,cy)+':solo'+i;
+   animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
+   if(schooling){
+    // Cohesive same-species groups spawn near a shared anchor rather than random points.
+    for(let n=i+1;n<INITIAL_FAUNA;n++){
+     const angle=n*2.39996,px=x+Math.cos(angle)*Math.min(58,20*n),py=y+Math.sin(angle)*Math.min(58,20*n);
+     const point=px>=x0+24&&px<x0+cellWidth-24&&py>=y0+24&&py<y0+cellHeight-24&&!geo?.isSolid?.(px,py,28)?{x:px,y:py}:randomWater(36);
+     if(!point)break;
+     animals.push({id:id(cx,cy)+':f'+n,x:point.x,y:point.y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
+    }
+    break;
+   }
   }
   for(let i=0;i<RESOURCE_COUNT;i++){
    let point=null;

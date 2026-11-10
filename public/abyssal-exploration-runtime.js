@@ -16,16 +16,16 @@
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
  shell.appendChild(hud);
+ hud.querySelector('.exploration-collect').hidden=true; // Await curated Mar Aberto resources.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
- let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  const notify=message=>{const node=$('explorationGatherStatus');if(node)node.textContent=message;};
  window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;renderResearch();});
- window.addEventListener('abyssal-specimen-discovery-request',event=>{
-  const p=cfg();if(!p||p.online)return;
-  localInventory.bioSample=Math.min(1000000,(localInventory.bioSample||0)+1);
-  saveLocal();notify('Espécie registrada: +1 amostra biológica (solo local).');
+ window.addEventListener('abyssal-specimen-discovery-request',()=>{
+  // Discovery is recorded in the Abissário; no legacy resources are awarded in Solo.
+  notify('Espécie registrada no Abissário.');
  });
  window.addEventListener('abyssal-companion-sonar',()=>{lastScan=0;const nearby=nodes.length;notify('Sonar do espécime ativado: '+nearby+' depósitos no radar.');});
  window.addEventListener('abyssal-resource-collected',ev=>{if(ev.detail?.id!=null){taken.add(String(ev.detail.id));nodes=nodes.filter(n=>n.id!==String(ev.detail.id));}});
@@ -35,12 +35,12 @@
  function saveLocal(){localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));localStorage.setItem('abyssalSoloResearch',JSON.stringify(localLevels));}
  function startRun(p){
   runKey=(p.online?'online:':'solo:')+p.mode+':'+Date.now();
-  taken=new Set();nodes=[];serverVitals=null;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
-  if(!p.online&&p.mode==='rift')nodes=fields.create(runKey,'rift',p.worldWidth,p.worldHeight,70);
+  taken=new Set();nodes=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
+  // No legacy resource generation in either mode.
   lastScan=0;notify(p.online?'Varredura online iniciada.':'Coleta solo: materiais armazenados neste dispositivo.');
  }
  function scan(p,time){
-  if(!p.online||time-lastScan<2200||busy)return;
+  if(!fields.ENABLED||!p.online||time-lastScan<2200||busy)return;
   lastScan=time;
   window.AbyssalOnline?.explorationScan?.(result=>{
    if(!result?.ok)return;
@@ -113,7 +113,7 @@
  const baseButton=$('openSubmarineBaseBtn');
  baseButton?.addEventListener('click',()=>{renderResearch();});
  function drawMarkers(p,visible){
-  if(!visible){markers.hidden=true;return;}
+  if(!visible||nodes.length===0){markers.hidden=true;return;}
   const rect=canvas.getBoundingClientRect(),shellRect=shell.getBoundingClientRect();
   const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
   markers.hidden=false;markers.style.position='absolute';markers.style.left=(rect.left-shellRect.left)+'px';markers.style.top=(rect.top-shellRect.top)+'px';
@@ -132,22 +132,24 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p&&p.mode!=='pvp';hud.hidden=!active;
+  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;
   if(!active){markers.hidden=true;runKey='';return;}
   if(!runKey)startRun(p);
   if(!p.paused&&!p.online){
-   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:40);
+   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
    const safe=config.safeDepth(stateLevels().pressureSuit);
    oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
-   if(depth>safe||oxygen===0)window.AbyssalGameHooks?.explorationHit?.(delta*((depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0)));
+   if(oxygen<=0)noOxygenSeconds+=delta;else noOxygenSeconds=0;
+   const hazard=p.mode==='rift'?(depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0):config.environmentDamage(depth,safe,noOxygenSeconds);
+   if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
   }
-  if(!p.online&&p.mode!=='rift'&&time-lastScan>450){
+  if(fields.ENABLED&&!p.online&&p.mode!=='rift'&&time-lastScan>450){
    lastScan=time;
    nodes=fields.streamNear(runKey,p.x,p.y,1700,taken);
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
-  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:40);
+  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
   const gas=p.online&&serverVitals?serverVitals.oxygen:oxygen;
   const max=p.online&&serverVitals?serverVitals.capacity:capacity;

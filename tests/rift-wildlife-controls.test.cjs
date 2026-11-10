@@ -51,7 +51,7 @@ test('Fossas population prewarms in capped batches both clients',()=>{
 });
 test('manual firing: aim mode never autofires and mobile has ammunition trigger',()=>{
  const game=src('public/game.js'),html=src('public/index.html'),style=src('public/style.css');
- assert.match(game,/if\(isRiftRun\(\)\)\{controlSettings\.pc='wasd-aim';controlSettings\.mobile='dual-stick';\}/);
+ assert.match(game,/if\(isRiftRun\(\)\|\|isOpenSeaRun\(\)\)\{controlSettings\.pc='wasd-aim';controlSettings\.mobile='dual-stick';\}/);
  assert.match(game,/fireTimer<=0&&\(!isManualFiringMode\(\)\|\|manualFireDown\(\)\)/);
  assert.match(game,/mobileFireBtn\.addEventListener\('pointerdown'/);
  assert.match(html,/id="mobileFireBtn"/);

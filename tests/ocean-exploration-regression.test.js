@@ -9,7 +9,7 @@ const config=require('../public/abyssal-exploration-config.js');
 const research=require('../public/abyssal-research-system.js');
 
 test('open-sea fauna inhabit defined zones and behavior is not automatic pursuit',()=>{
- assert.ok(eco.ZONES.length>=6);
+ assert.ok(eco.ZONES.length>=5); // Only reachable geological biomes are listed.
  const animal={id:9,x:100,y:100,homeX:100,homeY:100,angle:0,hp:70,maxHp:70,wildlifeMode:'passive'};
  const diver={x:170,y:100,alive:true,hp:100};
  assert.equal(eco.decide(animal,[diver],0,100).mode,'flee');
@@ -17,23 +17,11 @@ test('open-sea fauna inhabit defined zones and behavior is not automatic pursuit
  assert.equal(eco.decide({...animal,wildlifeMode:'aggressive'},[{...diver,x:900}],0,100).mode,'patrol');
 });
 
-test('resource deposits are reproducible, restricted to habitat resources',()=>{
- const a=resources.create('unit-world','classic',4800,3000,90),b=resources.create('unit-world','classic',4800,3000,90);
- assert.deepEqual(a,b);
- assert.equal(a.length,90);
- for(const row of a){
-  assert.ok(eco.habitatAt(row.x,row.y).resources.includes(row.type));
-  assert.ok(config.RESOURCES[row.type]);
- }
+test('legacy resource generator stays empty until the approved Mar Aberto catalog exists',()=>{
+ assert.deepEqual(resources.create('unit-world','classic',4800,3000,90),[]);
+ assert.deepEqual(resources.streamNear('unit-world',400,500,1400),[]);
+ assert.equal(resources.eligible({id:'3',type:'salvageMetal',x:200,y:220},200,220).reason,'resources-disabled');
 });
-
-test('server-style gathering checks exact range and researched tools',()=>{
- const point={id:'3',type:'salvageMetal',x:200,y:220};
- assert.equal(resources.eligible(point,500,220,{}).reason,'too-far');
- assert.equal(resources.eligible(point,200,220,{}).reason,'tool-required');
- assert.equal(resources.eligible(point,200,220,{salvageTool:1}).ok,true);
-});
-
 test('combat technologies require lab research and legacy purchases migrate',()=>{
  assert.equal(config.RESEARCH.dash.slot,'E');
  assert.equal(config.RESEARCH.pulse.slot,'Q');

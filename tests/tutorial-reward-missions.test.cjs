@@ -29,7 +29,7 @@ test('the 50000 first bar bonus is claimed only once on the server after qualify
  assert.match(server,/if\(!grantFirstProgressionReward\(user\)\)/);
  assert.match(server,/run\.mode!=='solo'/);
  assert.match(server,/run\.bossesKilled\)\|\|0\)<7/);
- assert.match(server,/room\.mode==='coop'.*bossesKilled.*>=7/);
+ assert.match(server,/\['coop','open-sea'\]\.includes\(room\.mode\).*bossesKilled.*>=7/);
  assert.match(server,/saveUsers\(\);await flushPersistence\(\)/);
  assert.match(game,/claimFirstProgressionBonus/);
  assert.match(online,/socket\.on\('first-progression-reward'/);
