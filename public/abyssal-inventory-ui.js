@@ -70,8 +70,28 @@
   b.onclick=()=>{if(!id||id!=='abyssWeapon'&&!count)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);
  });}
  function pinNew(items){let changed=false;for(const [id,count] of Object.entries(items||{})){if(id==='abyssWeapon'||!config.RESOURCES[id]||Number(count)<=0||hotbar.includes(id))continue;const slot=hotbar.findIndex(old=>!old||(old!=='abyssWeapon'&&!Number(items[old])));if(slot<0)break;hotbar[slot]=id;changed=true;}if(changed)try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}}
- function collectFeedback(id,amount){const slotIndex=hotbar.indexOf(id);const slot=slotIndex<0?null:$('abyssHotbar')?.children[slotIndex];
-  if(!slot)return;slot.classList.remove('abyss-collected');void slot.offsetWidth;slot.classList.add('abyss-collected');
+ function collectFeedback(id,amount){
+  const slotIndex=hotbar.indexOf(id),slot=slotIndex<0?null:$('abyssHotbar')?.children[slotIndex];
+  if(!slot)return;
+  // Only once a pickup has reached the diver and the inventory is confirmed
+  // does its item fly visibly into the first available hotbar slot.
+  const p=window.AbyssalGameHooks?.explorationPosition?.(),camera=window.AbyssalGameHooks?.cameraState?.();
+  const canvas=document.getElementById('game');
+  if(p&&camera&&canvas){
+   const box=canvas.getBoundingClientRect(),rootRect=root.getBoundingClientRect(),target=slot.getBoundingClientRect();
+   const startX=box.left+(p.x-camera.x)*camera.zoom-rootRect.left-12;
+   const startY=box.top+(p.y-camera.y)*camera.zoom-rootRect.top-12;
+   const finishX=target.left+target.width*.5-rootRect.left-12,finishY=target.top+target.height*.5-rootRect.top-12;
+   if([startX,startY,finishX,finishY].every(Number.isFinite)){
+    const flying=document.createElement('span');flying.className='abyss-pickup-flight';
+    flying.style.left=startX+'px';flying.style.top=startY+'px';flying.innerHTML=icon(id);root.appendChild(flying);
+    if(typeof flying.animate==='function'){
+     const motion=flying.animate([{transform:'translate(0,0) scale(1.1)',opacity:1},{transform:'translate('+(finishX-startX)+'px,'+(finishY-startY)+'px) scale(.55)',opacity:.7}],{duration:480,easing:'cubic-bezier(.2,.65,.2,1)',fill:'forwards'});
+     motion.finished.then(()=>flying.remove(),()=>flying.remove());
+    }else flying.remove();
+   }
+  }
+  slot.classList.remove('abyss-collected');void slot.offsetWidth;slot.classList.add('abyss-collected');
   const fly=document.createElement('span');fly.className='abyss-pickup-label';fly.textContent='+'+amount;slot.appendChild(fly);setTimeout(()=>fly.remove(),950);
  }
  try{const saved=JSON.parse(localStorage.getItem('abyssalHotbarV1')||'null');if(Array.isArray(saved)&&saved.length===9)hotbar=saved;}catch(_){}

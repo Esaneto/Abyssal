@@ -35,3 +35,5 @@
 
 /* Physical gathering: tool progress, floating pickup and hotbar receipt. */
 .exploration-work-track{height:6px;margin:7px 0;border:1px solid #57717680;border-radius:7px;overflow:hidden;background:#081823}.exploration-work-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,#729eb3,#d8bb7a);transition:width .10s linear}.abyss-hotbar-count{position:absolute;right:3px;bottom:2px;font:800 11px Inter,sans-serif;color:#f3e5c5;text-shadow:0 1px 4px #000}.abyss-hotbar-slot.abyss-collected{animation:abyssAcquiredGlow .78s ease-out}.abyss-pickup-label{position:absolute;left:38%;top:-12px;pointer-events:none;color:#b0f5cb;font:bold 14px Inter,sans-serif;text-shadow:0 2px 4px #001;animation:abyssAcquireFloat .9s ease forwards}@keyframes abyssAcquiredGlow{0%{box-shadow:0 0 0 3px #92edc6,0 0 19px #74dab3}100%{box-shadow:0 0 0 0 #92edc600}}@keyframes abyssAcquireFloat{to{transform:translateY(-24px);opacity:0}}
+
+.abyss-pickup-flight{position:absolute;width:24px;height:24px;z-index:120;pointer-events:none;filter:drop-shadow(0 0 7px rgba(176,255,205,.65))}.abyss-pickup-flight svg{display:block;width:100%;height:100%}
