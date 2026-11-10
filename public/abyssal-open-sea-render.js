@@ -191,6 +191,20 @@
   veil.addColorStop(1,'rgba(1,7,19,'+attenuation(depthBottom).toFixed(3)+')');
   ctx.fillStyle=veil;ctx.fillRect(left,top,right-left,bottom-top);
  }
+ function rockCrystals(ctx,x,y,seed,lowPower){
+  // Inset geological sulfides and prisms. Collectible nodes are separate objects.
+  ctx.save();ctx.translate(x,y);ctx.lineJoin='round';
+  for(let i=0;i<(lowPower?2:5);i++){
+   const xx=(i-2)*12,height=12+seeded(i+7,seed*21)*27;
+   ctx.fillStyle=i%3===0?'rgba(150,121,173,.65)':'rgba(73,165,179,.64)';
+   ctx.strokeStyle=i%3===0?'rgba(191,156,232,.68)':'rgba(146,223,222,.66)';
+   ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(xx-7,4);
+   ctx.lineTo(xx-4,-height*.74);ctx.lineTo(xx+1,-height);
+   ctx.lineTo(xx+6,-height*.7);ctx.lineTo(xx+7,4);ctx.closePath();ctx.fill();ctx.stroke();
+   ctx.strokeStyle='rgba(202,238,226,.34)';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(xx+1,-height);ctx.lineTo(xx+1,2);ctx.stroke();
+  }ctx.restore();
+ }
  function drawSediment(ctx,left,top,right,bottom,time,lowPower){
   const spacing=lowPower?165:110;
   for(let i=Math.floor(left/spacing);i<=Math.ceil(right/spacing);i++){
@@ -312,6 +326,13 @@
     ctx.strokeStyle='rgba(53,175,190,.16)';ctx.lineWidth=3.5;ctx.beginPath();
     ctx.moveTo(rock.x-rock.rx*.8,rock.y-rock.ry*.6);
     ctx.quadraticCurveTo(rock.x,rock.y-rock.ry*.76,rock.x+rock.rx*.7,rock.y-rock.ry*.48);ctx.stroke();
+   }
+   if(visual==='geological'){
+    for(let j=0;j<(lowPower?1:3);j++){
+     const q=-.5+j*.52,pt=geo.rockSurfaceAt(rock,-Math.acos(q));
+     if(pt.y>=top-80&&pt.y<=bottom+80&&seeded(j,rock.x)>.21)
+      rockCrystals(ctx,pt.x,pt.y+7,seeded(j+2,rock.y),lowPower);
+    }
    }
    ctx.restore();
   }
