@@ -6,6 +6,17 @@ const path=require('node:path');
 const vm=require('node:vm');
 const read=name=>fs.readFileSync(path.join(__dirname,'..',name),'utf8');
 
+test('main-menu hatch is always named CABINE and opens the laboratory visor',()=>{
+ const html=read('public/index.html');
+ const menu=read('public/abyssal-menu-ocean.js');
+ const runtime=read('public/abyssal-exploration-runtime.js');
+ assert.match(html,/id="submarineWorkshopBtn"[^>]*aria-label="Entrar na cabine do submarino"[^>]*><span class="abyss-hatch-label">CABINE<\/span>/);
+ assert.doesNotMatch(html,/abyss-hatch-label">LABORATÓRIO/);
+ assert.match(html,/ABYSSAL \/ SUBMARINO \/ CABINE DE COMANDO/);
+ assert.match(menu,/id:'submarineWorkshopBtn'.*label:'CABINE'.*kind:'lab'/);
+ assert.match(runtime,/activeConsoleSection='laboratory';workshop\.hidden=false;renderWorkshop\(\)/);
+});
+
 test('six clickable hardware controls update a single integrated cockpit visor',()=>{
  const source=read('public/abyssal-exploration-runtime.js');
  const style=read('public/abyssal-submarine-laboratory.css');
