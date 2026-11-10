@@ -2482,7 +2482,18 @@ io.on('connection', socket => {
   if (u.ownedSkins.includes(payload.equippedSkin)){
    u.equippedSkin = payload.equippedSkin;
    const room=socketRoom(socket),p=room?.players.get(socket.id);
-   if(p){p.skinId=u.equippedSkin;p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);p.specimenAlive=true;p.specimenMaxHp=SpecimenSystem.biologicalStats(p.skinId).hp;p.specimenHp=p.specimenMaxHp;p.specimenRespawnAt=0;p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;p.specimenLastAt=Date.now();emitSpecimenState(room,p,'equipped');}
+   if(p&&p.skinId!==u.equippedSkin){
+    const now=Date.now(),stillDefeated=p.specimenAlive===false&&now<(Number(p.specimenRespawnAt)||0);
+    p.skinId=u.equippedSkin;
+    p.specimenPoints=SpecimenSystem.pointsFor(u.specimenProficiency,p.skinId);
+    p.specimenMaxHp=SpecimenSystem.biologicalStats(p.skinId).hp;
+    // Equipping a different specimen must not cancel an existing death penalty.
+    p.specimenAlive=!stillDefeated;
+    p.specimenHp=stillDefeated?0:p.specimenMaxHp;
+    if(!stillDefeated)p.specimenRespawnAt=0;
+    p.specimenX=Number(p.x)||0;p.specimenY=(Number(p.y)||0)-34/WORLD_ZOOM;
+    p.specimenLastAt=now;emitSpecimenState(room,p,'equipped');
+   }
   }
   saveUsers();
   socket.emit('account-data', publicUser(u));
