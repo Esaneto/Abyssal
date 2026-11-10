@@ -46,7 +46,8 @@
   }catch(_){}
  }
  function startRun(p){
-  runKey=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
+  runKey=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
+  busy=false;
   taken=new Set();nodes=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
   if(!p.online&&p.mode==='open-sea'){
    try{taken=new Set(JSON.parse(localStorage.getItem('abyssalSoloGeologyTakenV1')||'[]'));}catch(_){}
@@ -57,8 +58,9 @@
  function scan(p,time){
   if(!fields.ENABLED||!p.online||p.mode!=='open-sea'||time-lastScan<2200||busy)return;
   lastScan=time;
+  const requestedRun=runKey;
   window.AbyssalOnline?.explorationScan?.(result=>{
-   if(!result?.ok||cfg()?.mode!=='open-sea')return;
+   if(!result?.ok||runKey!==requestedRun||cfg()?.mode!=='open-sea'||!cfg()?.online)return;
    nodes=Array.isArray(result.nodes)?result.nodes:[];
    if(result.inventory){account={...(account||{}),resourceInventory:result.inventory};inventoryUI?.setInventory(result.inventory);}
   });
@@ -81,8 +83,11 @@
   }
   busy=true;const target=near;
   if(p.online){
-   window.AbyssalOnline?.explorationCollect?.(target.id,result=>{
+   const requestedRun=runKey,send=window.AbyssalOnline?.explorationCollect;
+   if(typeof send!=='function'){busy=false;notify('Coleta online indisponível.');return;}
+   send(target.id,result=>{
     busy=false;
+    if(runKey!==requestedRun)return;
     if(result?.ok){
      taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
      if(result.account)account=result.account;
@@ -223,7 +228,8 @@
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
   const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;inventoryUI?.setActive(p?.mode==='open-sea');hud.querySelector('.exploration-collect').hidden=p?.mode!=='open-sea';
   if(!active){markers.hidden=true;runKey='';return;}
-  if(!runKey)startRun(p);
+  const expectedRun=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
+  if(runKey!==expectedRun)startRun(p);
   if(!p.paused&&!p.online){
    const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
    const safe=config.safeDepth(stateLevels().pressureSuit);
@@ -255,7 +261,7 @@
    const closest=signals[0];
    $('explorationRiftSignalText').textContent=closest?closest.label+' · '+Math.round(closest.distance)+' u':'SEM SINAIS PRÓXIMOS';
   }
-  drawMarkers(p,true);
+  drawMarkers(p,p.mode==='open-sea');
  }
  requestAnimationFrame(tick);
 })();
