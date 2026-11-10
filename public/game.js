@@ -3900,11 +3900,15 @@ const remoteWeaponParalysis=new Map();
 const remoteSpecimenDashes=new Map();
 // Shared sprite atlas for enemy specimens summoned from the shop in Fossas.
 // A refresh budget avoids redrawing complex skin anatomy for every hostile each frame.
+const OCEAN_SHARK_HEIGHTS=Object.freeze({reefshark:2.8,hammerhead:3,goblin:2.6,frilled:2.1,greenland:3,abysscroc:2.9});
 const riftSpecimenSpriteCache=new Map();
 let riftSpecimenSpriteFrame=-1,riftSpecimenSpritePaints=0;
 function drawRiftShopSpecimen(enemy,skin,time){
  if(riftSpecimenSpriteFrame!==time){riftSpecimenSpriteFrame=time;riftSpecimenSpritePaints=0;}
- const radius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
+ const oceanFauna=isOpenSeaRun()&&Boolean(enemy.wildlifeMode),sharkHeight=OCEAN_SHARK_HEIGHTS[skin.id]||0;
+ const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
+ // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
+ const radius=oceanFauna?(sharkHeight?16+sharkHeight*9:Math.min(79,CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||normalRadius)):normalRadius;
  // Render very large real-life silhouettes from a capped sprite and scale the
  // composited image. Never allocate a multi-megapixel canvas per giant specimen.
  const bucket=Math.max(4,Math.min(80,Math.round(radius*2)/2));
@@ -3928,7 +3932,13 @@ function drawRiftShopSpecimen(enemy,skin,time){
  let organicSeed=0;for(const ch of String(enemy.streamId||enemy.id||skin.id))organicSeed=(Math.imul(organicSeed,33)+ch.charCodeAt(0))>>>0;
  const organicX=.96+(organicSeed%9)*.01,organicY=.94+((organicSeed>>>5)%13)*.01,organicShear=((organicSeed>>>11)%9-4)*.006;
  ctx.transform(renderScale*organicX,organicShear,organicShear*.45,renderScale*organicY,0,0);
- ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
+ if(oceanFauna&&sharkHeight){
+   // Menacing contrast, preserving the exact specimen-shop silhouette and palette.
+   ctx.shadowColor=enemy.aiIndicator==='attack'?'#b72a34':'#273c52';
+   ctx.shadowBlur=enemy.aiIndicator==='attack'?bucket*.48:bucket*.17;
+  }
+  ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
+  ctx.shadowBlur=0;
  if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,bucket*.65,0,Math.PI*2);ctx.fill();}
  ctx.restore();
 }
@@ -4075,7 +4085,7 @@ function draw(t){
    &&(!activeMapLayout||!ABYSSAL_MAP?.segmentWalkable||ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,e.x,e.y,3/GAME_WORLD_ZOOM))){
    registerSpecimenDiscovery(e.specimenSkinId);
   }
-  if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):isOpenSeaRun()&&e.wildlifeMode?(.12+.88*clamp((Date.now()-(Number(e.spawnedAt)||0))/2400,0,1)):1;if(isOpenSeaRun()&&e.wildlifeMode&&window.AbyssalFaunaAnatomy?.draw?.(ctx,e,renderRadius,t)){/* unique biological silhouette */}else if(e.specimenSkinId){
+  if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):isOpenSeaRun()&&e.wildlifeMode?(.12+.88*clamp((Date.now()-(Number(e.spawnedAt)||0))/2400,0,1)):1;if(e.specimenSkinId){ /* Shop specimen artwork is also the wild fauna of Mar Aberto. */
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);

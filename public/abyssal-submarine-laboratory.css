@@ -211,3 +211,8 @@
 #menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage #submarineWorkshopBtn.abyss-laboratory-hatch:is(:hover,:focus-visible) .abyss-hatch-label{
  opacity:1!important;
 }
+
+/* The full-screen command bridge is the only laboratory presentation. */
+#submarineWorkshop.abyss-cockpit-screen > .modal-card,
+#submarineWorkshop.abyss-cockpit-screen .submarine-console-overview{display:none!important}
+#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console .abyss-cockpit-visor{display:flex!important}

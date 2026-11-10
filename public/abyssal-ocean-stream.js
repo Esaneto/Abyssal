@@ -58,7 +58,7 @@
     for(let k=0;k<16;k++){
      const angle=i*2.3999632297+k*.73,distance=MIN_FAUNA_SPACING*(1.1+k*.12);
      const px=leader.x+Math.cos(angle)*distance,py=leader.y+Math.sin(angle)*distance;
-     if(clearWater(px,py,90,MIN_FAUNA_SPACING)){point={x:px,y:py};break;}
+     if(clearWater(px,py,90,MIN_FAUNA_SPACING)&&(!ecology?.predatorAllowedAt||ecology.predatorAllowedAt(species,px,py))){point={x:px,y:py};break;}
     }
    }
    if(!point){

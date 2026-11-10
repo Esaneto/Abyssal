@@ -11,21 +11,27 @@
  'use strict';
  const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
  const ZONES=Object.freeze([
-  {id:'reef',label:'RECIFE VIVO',x:560,y:650,rx:790,ry:540,fauna:['reefshark','hawksbill','butterflyray','eagleray'],resources:['coralSample','seaMineral']},
+  {id:'reef',label:'RECIFE VIVO',x:560,y:650,rx:790,ry:540,fauna:['reefshark','hammerhead','hawksbill','butterflyray','eagleray'],resources:['coralSample','seaMineral']},
   {id:'kelp',label:'FLORESTA DE ALGAS',x:1810,y:680,rx:850,ry:510,fauna:['leatherback','stingray','zebramoray'],resources:['kelpFiber','seaMineral']},
-  {id:'rocks',label:'COSTA ROCHOSA',x:3780,y:710,rx:850,ry:640,fauna:['spidercrab','nautilus','zebramoray'],resources:['salvageMetal','seaMineral']},
+  {id:'rocks',label:'COSTA ROCHOSA',x:3780,y:710,rx:850,ry:640,fauna:['spidercrab','nautilus','zebramoray','ribbonmoray','greenland'],resources:['salvageMetal','seaMineral']},
   {id:'canyon',label:'CÂNION SUBMARINO',x:820,y:2240,rx:900,ry:670,fauna:['goblin','frilled','bigfin','whiplash'],resources:['deepCrystal','salvageMetal']},
   {id:'deep',label:'ÁGUAS PROFUNDAS',x:2740,y:2230,rx:940,ry:670,fauna:['angler','viperfish','blackdragon','seapig'],resources:['deepCrystal','bioSample']},
  ]);
  const REGION_VARIANTS=Object.freeze({
-  open:{id:'open',label:'ÁGUAS LIVRES',fauna:['leatherback','eagleray','butterflyray'],resources:['seaMineral','bioSample']},
+  open:{id:'open',label:'ÁGUAS LIVRES',fauna:['leatherback','eagleray','butterflyray','hawksbill','stingray'],resources:['seaMineral','bioSample']},
   twilight:{id:'twilight',label:'ZONA CREPUSCULAR',fauna:['nautilus','bigfin','frilled','goblin'],resources:['bioSample','deepCrystal']},
   abyss:{id:'abyss',label:'PLANÍCIE ABISSAL',fauna:['seapig','yeticrab','whiplash','angler'],resources:['abyssCrystal','bioSample']}
  });
- const PREDATORS=new Set(['reefshark','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
+ const PREDATORS=new Set(['reefshark','hammerhead','abysscroc','greenland','goblin','frilled','viperfish','blackdragon','angler','zebramoray']);
+ // Shallow predators start exclusively east of the safe western entry zone.
+ function predatorAllowedAt(id,x,y){
+  if(!PREDATORS.has(String(id||'')))return true;
+  const depth=geo?.metersAt?.(y)||Math.max(0,Number(y)||0)*9000/21000;
+  return Number(y)>0&&(depth>=260||(Number(x)>=6000&&depth>=75));
+ }
  const SMART=new Set(['bigfin','whiplash','nautilus','spidercrab']);
- const SCHOOLING=new Set(['butterflyray','eagleray','viperfish','hatchetfish','reefshark']);
- const PREDATOR_STRENGTH=Object.freeze({reefshark:4,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
+ const SCHOOLING=new Set(['butterflyray','eagleray','viperfish','hatchetfish']);
+ const PREDATOR_STRENGTH=Object.freeze({reefshark:4,hammerhead:4,abysscroc:4,greenland:5,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
  const HABITAT_DEPTH=Object.freeze({
   reef:[0,200],kelp:[0,200],rocks:[0,800],canyon:[400,1800],
   deep:[850,2200],abyss:[1600,2200],open:[0,850],twilight:[200,1050]
@@ -64,8 +70,8 @@
   if(zone.depthBand!=='shelf'&&roll<.024)return 'siphonophore';
   const bottomClearance=(geo?.floorAt?.(x)||21000)-y;
   // Benthic sea pigs and crabs live on the bottom; they do not drift in midwater.
-  const candidates=(zone.fauna||REGION_VARIANTS.open.fauna).filter(id=>!['seapig','yeticrab','spidercrab'].includes(id)||bottomClearance<400);
-  const fauna=candidates.length?candidates:REGION_VARIANTS.twilight.fauna;
+  const candidates=(zone.fauna||REGION_VARIANTS.open.fauna).filter(id=>(!['seapig','yeticrab','spidercrab'].includes(id)||bottomClearance<400)&&predatorAllowedAt(id,x,y));
+  const fauna=candidates.length?candidates:REGION_VARIANTS.open.fauna.filter(id=>predatorAllowedAt(id,x,y));
   return fauna[Math.min(fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*fauna.length))];
  }
  function temperament(id){
@@ -350,5 +356,5 @@
   }
   return hits;
  }
- return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,navigationTarget,separateContact,activateAgainstPlayer,simulatePredation});
+ return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,predatorAllowedAt,comparePredators,canSee,decide,navigationTarget,separateContact,activateAgainstPlayer,simulatePredation});
 });
