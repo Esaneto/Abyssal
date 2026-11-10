@@ -410,6 +410,18 @@ function drawDetails(c,x,y,r,angle,s,t,hit){
     stroke(()=>{c.moveTo(gx,yy*.55);c.quadraticCurveTo(gx-.08,yy*.93,gx-.045,yy*1.13);},'#183642',.031);
    }
   }
+  if(shark){
+   // Shark teeth and a sharp jaw line add menace without replacing the original shape.
+   for(const side of [-1,1]){
+    stroke(()=>{c.moveTo(.59,side*thick*.23);
+     c.quadraticCurveTo(.88,side*.12,1.19,side*.038);},'#112935',.033);
+    for(let j=0;j<5;j++){
+     const px=.70+j*.089,lip=side*(thick*.22-j*.012);
+     path(()=>{c.moveTo(px,lip);c.lineTo(px+.039,lip+side*.096);
+      c.lineTo(px+.077,lip+side*.008);c.closePath();},'#e0e8df','#405a62',.008);
+    }
+   }
+  }
   if(id==='goblin'){
    path(()=>{c.moveTo(.85,-thick*.24);c.lineTo(1.71,-.07);
     c.lineTo(1.62,.06);c.lineTo(.85,thick*.24);c.closePath();},'#527a8a','#b1d3d9',.029);
