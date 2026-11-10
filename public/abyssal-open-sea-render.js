@@ -127,39 +127,36 @@
  }
  function drawRocks(ctx,left,top,right,bottom){
   for(const rock of geo.ROCKS){
-   if(rock.x+rock.rx+90<left||rock.x-rock.rx-90>right||rock.y+rock.ry+90<top||rock.y-rock.ry-90>bottom)continue;
-   const lit=geo.lightAt(rock.y-rock.ry),seed=(rock.x*.001+rock.y*.002);
+   if(rock.x+rock.rx+95<left||rock.x-rock.rx-95>right||rock.y+rock.ry+95<top||rock.y-rock.ry-95>bottom)continue;
+   const lit=geo.lightAt(rock.y-rock.ry),seed=rock.x*.00031+rock.y*.00017;
    const gradient=ctx.createLinearGradient(rock.x-rock.rx,rock.y-rock.ry,rock.x+rock.rx,rock.y+rock.ry);
-   gradient.addColorStop(0,lit>.12?'#52737a':'#324751');
-   gradient.addColorStop(.38,lit>.12?'#294956':'#213541');
-   gradient.addColorStop(.83,'#0b1d2a');gradient.addColorStop(1,'#050e18');
-   // The visible shape stays inside the identical ellipse used for collisions.
+   gradient.addColorStop(0,lit>.12?'#3e595c':'#273b42');
+   gradient.addColorStop(.38,lit>.12?'#263d42':'#172a32');
+   gradient.addColorStop(.83,'#0b1c26');gradient.addColorStop(1,'#050d17');
    ctx.beginPath();
-   for(let k=0;k<=56;k++){
-    const a=k/56*TAU;
-    const relief=.994-.021*Math.abs(Math.sin(a*7+seed)*.72+Math.sin(a*13-seed*.8)*.28);
-    const x=rock.x+Math.cos(a)*rock.rx*relief,y=rock.y+Math.sin(a)*rock.ry*relief;
-    if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+   for(let k=0;k<=80;k++){
+    const a=k/80*TAU,point=geo.rockSurfaceAt(rock,a);
+    if(k===0)ctx.moveTo(point.x,point.y);else ctx.lineTo(point.x,point.y);
    }
    ctx.closePath();ctx.fillStyle=gradient;ctx.fill();
-   ctx.strokeStyle='rgba(129,169,170,'+(.08+lit*.15)+')';ctx.lineWidth=2;ctx.stroke();
+   ctx.strokeStyle='rgba(125,149,148,'+(.08+lit*.10)+')';ctx.lineWidth=1.6;ctx.stroke();
    ctx.save();ctx.clip();
-   // Broad strata, broken joints and subdued mineral weathering, all anchored to rock.
-   const layers=rock.type==='spire'?7:5;
+   // Broken joints and diagonally stratified rock, no perfect elliptical rings.
+   const layers=rock.type==='spire'?7:rock.type==='boulder'?3:5;
    for(let k=0;k<layers;k++){
-    const u=(k+1)/(layers+1),y=rock.y-rock.ry+u*rock.ry*2;
-    const wobble=Math.sin(seed*8+k*1.7)*rock.ry*.048;
-    ctx.strokeStyle=k%2?'rgba(120,154,152,.12)':'rgba(5,14,24,.28)';
-    ctx.lineWidth=3+(k%3)*2;ctx.beginPath();
-    ctx.moveTo(rock.x-rock.rx,y+wobble);
-    ctx.bezierCurveTo(rock.x-rock.rx*.35,y-22,rock.x+rock.rx*.2,y+30,rock.x+rock.rx,y+wobble*.6);
+    const v=(k+1)/(layers+1),y=rock.y-rock.ry+v*rock.ry*2;
+    const wave=Math.sin(seed*7+k*1.81)*rock.ry*.06;
+    ctx.strokeStyle=k%2?'rgba(96,128,132,.12)':'rgba(3,12,20,.23)';
+    ctx.lineWidth=2+k%3;ctx.beginPath();
+    ctx.moveTo(rock.x-rock.rx-35,y+wave);
+    ctx.bezierCurveTo(rock.x-rock.rx*.37,y-18,rock.x+rock.rx*.32,y+24,rock.x+rock.rx+25,y+wave);
     ctx.stroke();
    }
-   for(let k=0;k<4;k++){
-    const ox=rock.x+(k-1.4)*rock.rx*.35,oy=rock.y+(Math.sin(seed*4+k*5)*.25)*rock.ry;
-    ctx.strokeStyle='rgba(4,13,23,.28)';ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(ox-rock.rx*.11,oy-rock.ry*.24);
-    ctx.lineTo(ox,oy);ctx.lineTo(ox+rock.rx*.04,oy+rock.ry*.18);ctx.stroke();
+   for(let k=0;k<7;k++){
+    const x=rock.x+(seeded(rock.x,k+9)-.5)*rock.rx*1.7;
+    const y=rock.y+(seeded(rock.y,k+2)-.5)*rock.ry*1.5;
+    ctx.strokeStyle='rgba(4,12,19,.22)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x-20,y-25);ctx.lineTo(x+4,y+10);ctx.lineTo(x+13,y+27);ctx.stroke();
    }
    ctx.restore();
   }

@@ -8,7 +8,7 @@
  if(root)root.AbyssalOceanGeography=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WIDTH=24000,HEIGHT=21000,VERSION=2,DEPTH_SCALE=HEIGHT/9000;
+ const WIDTH=24000,HEIGHT=21000,VERSION=3,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
@@ -27,30 +27,44 @@
   const smooth=q*q*(3-2*q);
   return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,120*DEPTH_SCALE,8850*DEPTH_SCALE);
  }
- // Rock spires and natural suspended shelves. They never form a full-width wall.
- // Coordinates use floor-relative elevation, preserving large swim passages.
+ // Only grounded outcrops and spaced cliffs are solid. The old suspended
+ // plates across the coastal spawning corridor were impassable and are removed.
  const ROCK_DATA=[
-  [2900,510,235,670,'spire'],[4100,380,320,570,'spire'],
-  [6350,1260,790,210,'arch'],[7500,470,295,820,'spire'],
-  [9450,850,480,330,'shelf'],[10850,450,260,790,'spire'],
-  [12450,1220,690,220,'arch'],[14380,460,285,740,'spire'],
-  [15800,1040,550,285,'shelf'],[17600,440,250,710,'spire'],
-  [19380,1100,780,240,'arch'],[21150,410,300,640,'spire'],
-  [22750,890,580,300,'shelf'],
-  [1550,360,520,195,'shelf'],[3360,820,290,480,'spire'],
-  [5230,780,515,235,'shelf'],[8750,1160,650,235,'arch'],
-  [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
-  [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf'],
-  // Strong overhangs near the starting shelf, physically collidable, not decals.
-  [650,145,400,190,'shelf'],[2950,810,730,230,'arch'],
-  // Wide cave canopy at entry, with a broad swim corridor below its hanging flora.
-  [1040,0,590,240,'overhang',130],[3000,0,740,205,'overhang',100],
-  [1780,0,720,195,'shelf',690]
+  [1550,128,210,95,'boulder'],[1980,144,155,110,'boulder'],[2560,158,185,105,'boulder'],
+  [2900,510,235,540,'spire'],[4100,380,320,510,'spire'],
+  [6350,1260,620,190,'arch'],[7500,470,295,750,'spire'],
+  [9450,850,460,290,'shelf'],[10850,450,260,700,'spire'],
+  [12450,1220,650,200,'arch'],[14380,460,285,690,'spire'],
+  [15800,1040,500,245,'shelf'],[17600,440,250,650,'spire'],
+  [19380,1100,700,220,'arch'],[21150,410,300,590,'spire'],
+  [22750,890,550,270,'shelf'],
+  [3360,820,250,400,'spire'],[5230,780,480,210,'shelf'],
+  [8750,1160,600,215,'arch'],[11380,1570,505,220,'shelf'],
+  [13660,990,355,360,'spire'],[16700,1450,660,205,'arch'],
+  [20100,1030,520,240,'shelf']
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
-  id:'rock-'+i,x:r[0],y:Number.isFinite(r[5])?r[5]:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
+  id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
  })));
+ function rockRelief(rock,angle){
+  const seed=rock.x*.00039+rock.y*.00017;
+  // Multiscale weathering, deterministic and shared by collisions and paint.
+  return clamp(.924+.032*Math.sin(angle*5.0+seed)
+    +.021*Math.sin(angle*9.0-seed*.8)+.014*Math.cos(angle*13+seed*2.3),.84,.994);
+ }
+ function rockSurfaceAt(rock,angle,offset=0){
+  const relief=rockRelief(rock,angle);
+  return {x:rock.x+Math.cos(angle)*(rock.rx*relief+offset),
+          y:rock.y+Math.sin(angle)*(rock.ry*relief+offset)};
+ }
+ function rockContains(rock,x,y,padding=0){
+  const dx=x-rock.x,dy=y-rock.y;
+  if(Math.abs(dx)>rock.rx+padding||Math.abs(dy)>rock.ry+padding)return false;
+  const u=dx/rock.rx,v=dy/rock.ry;
+  const q=Math.hypot(u,v),angle=Math.atan2(v,u);
+  return q<=rockRelief(rock,angle)+Math.max(0,padding)/Math.max(50,Math.min(rock.rx,rock.ry));
+ }
  // Cave systems pierce the seabed, with wide surface entrances and multiple
  // chambers. They are actual water voids in collision, not painted dark holes.
  const CAVE_CENTERS=[3650,8600,11750,15150,20500,23000];
@@ -93,10 +107,7 @@
   if(x<0||x>WIDTH||y<0||y>HEIGHT)return true;
   let solid=y>=floorAt(x)-padding;
   if(!solid)for(const rock of ROCKS){
-   const dx=x-rock.x,dy=y-rock.y;
-   if(Math.abs(dx)>rock.rx+padding||Math.abs(dy)>rock.ry+padding)continue;
-   const a=(dx/(rock.rx+padding))**2+(dy/(rock.ry+padding))**2;
-   if(a<=1){solid=true;break;}
+   if(rockContains(rock,x,y,padding)){solid=true;break;}
   }
   return solid&&!isCaveWater(x,y,padding);
  }
@@ -176,5 +187,5 @@
   if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });

@@ -35,7 +35,7 @@
  function sector(seed,cx,cy){
   const key=String(seed)+':'+cx+':'+cy;
   if(cache.has(key))return cache.get(key);
-  const random=rng('seabed:v2:'+key),nodes=[];
+  const random=rng('seabed:v3:'+key),nodes=[];
   const minX=cx*CHUNK,minY=cy*CHUNK,maxX=Math.min(geo.WIDTH,minX+CHUNK),maxY=Math.min(geo.HEIGHT,minY+CHUNK);
   if(minX>=geo.WIDTH||minY>=geo.HEIGHT)return nodes;
   // A maximum of two stationary deposits per sector. Nothing is simulated off screen.
@@ -47,13 +47,13 @@
     let x,y;
     if(rock){
      const angle=-Math.PI*.95+random()*Math.PI*.9;
-     x=rock.x+Math.cos(angle)*(rock.rx-6);y=rock.y+Math.sin(angle)*(rock.ry-6);
+     const anchor=geo.rockSurfaceAt(rock,angle,20);x=anchor.x;y=anchor.y;
     }else{
      x=minX+60+random()*Math.max(1,maxX-minX-120);
      y=geo.floorAt(x)-24-random()*8;
     }
     if(x<minX+16||x>=maxX-16||y<minY+16||y>=maxY-16)continue;
-    if(!rock&&geo.isSolid(x,y,17))continue;
+    if(geo.isSolid(x,y,12))continue;
     point={x:Math.round(x),y:Math.round(y)};isRock=Boolean(rock);break;
    }
    if(!point)continue;
