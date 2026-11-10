@@ -289,6 +289,8 @@
    const visible=!menu.hidden&&!document.body.classList.contains('game-active');
    if(visible&&!wasVisible){sizeScene();resetToHatch();}
    wasVisible=visible;
+   // No menu paint, currents or particles while gameplay/other screens own the UI.
+   if(!visible){vx=0;vy=0;held.clear();followPointer=null;setTimeout(()=>requestAnimationFrame(animate),250);return;}
    if(visible){
     if(Math.abs(stage.clientWidth-w)>2||Math.abs(stage.clientHeight-h)>2)sizeScene();
     if(transition){
@@ -356,10 +358,12 @@
      gender:window.AbyssalDiverGender||'male',
      moving:emergence<1||Boolean(transition)||Math.hypot(vx,vy)>6
     });
-   }else{vx=0;vy=0;held.clear();followPointer=null;}
+   }
    requestAnimationFrame(animate);
   }
   sizeScene();
+  // Only expose the menu after the active swimmer/currents have their geometry.
+  menu.classList.add('menu-ready');
   window.addEventListener('resize',()=>{if(!menu.hidden)sizeScene();});
   if(typeof ResizeObserver==='function'){
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&Math.abs(stage.clientWidth-w)>2)sizeScene();});
