@@ -5008,10 +5008,6 @@ window.addEventListener('abyssal-purchase-result',e=>{
 });
 function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
 renderShop();
-document.querySelectorAll('#menuScreen canvas[data-menu-creature]').forEach(canvas=>{
-  const kind=canvas.dataset.menuCreature, color=canvas.dataset.menuColor||'#79f3f0';
-  renderCreaturePreview(canvas,kind,color,null);
-});
 
 initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
