@@ -138,9 +138,15 @@
    limb([16,11],[27,3],4.5,'#162c3b','#5d8191');
    c.translate(27,0);
    if(held==='abyssPickaxe'){
-    c.rotate(-.28+(Number(options.swing)||0)*.45);c.strokeStyle='#754a2d';c.lineWidth=5;c.beginPath();c.moveTo(-8,0);c.lineTo(28,0);c.stroke();
-    c.strokeStyle='#c7d3d7';c.lineWidth=4;c.beginPath();c.moveTo(20,-13);c.quadraticCurveTo(31,-15,39,-6);c.stroke();
-    c.strokeStyle='#6f858d';c.lineWidth=2;c.beginPath();c.moveTo(20,-13);c.lineTo(17,-6);c.stroke();
+    // Original voxel-inspired miner tool, matching the backpack illustration.
+    c.rotate(-.35+(Number(options.swing)||0)*.45);
+    c.fillStyle='#513822';c.strokeStyle='#d3a46b';c.lineWidth=1.4;
+    c.beginPath();c.moveTo(-8,-3);c.lineTo(28,-3);c.lineTo(28,3);c.lineTo(-8,3);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#173b4e';c.strokeStyle='#b9f4fa';c.lineWidth=1.3;
+    c.beginPath();c.moveTo(18,-15);c.lineTo(27,-15);c.lineTo(35,-11);c.lineTo(42,-3);
+    c.lineTo(32,-7);c.lineTo(23,-9);c.lineTo(14,-6);c.lineTo(11,-12);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#69e6f5';c.fillRect(18,-14,9,4);c.fillRect(12,-11,5,5);
+    c.fillStyle='#314755';c.fillRect(21,-6,9,8);
    }else if(['emptyCylinder','gasCylinder','oilCylinder'].includes(held)){
     const progress=Math.max(0,Math.min(1,Number(options.fillProgress)||0));
     const kind=String(options.fillType||'');
