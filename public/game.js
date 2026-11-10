@@ -2994,6 +2994,10 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const sea=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));e.x=sea.x;e.y=sea.y;if(sea.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);}}
+   if(!activeMapLayout&&e.wildlifeMode&&OPEN_SEA_ECOLOGY?.separateContact){
+    const spaced=OPEN_SEA_ECOLOGY.separateContact(e,enemies,dt);
+    e.x=spaced.x;e.y=spaced.y;
+   }
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
    if(enemyParalyzedNow(e)){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
