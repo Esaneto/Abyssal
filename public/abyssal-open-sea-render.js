@@ -165,32 +165,42 @@
   const entries=geo.CAVES.map(c=>c.nodes).concat(geo.ARCH_TUNNELS.map(t=>[{x:t.ax,y:t.ay,r:t.r},{x:t.bx,y:t.by,r:t.r}]));
   for(const nodes of entries){
    const x0=Math.min(...nodes.map(n=>n.x)),x1=Math.max(...nodes.map(n=>n.x)),y0=Math.min(...nodes.map(n=>n.y)),y1=Math.max(...nodes.map(n=>n.y));
-   if(x1+280<left||x0-280>right||y1+280<top||y0-280>bottom)continue;
-   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-   // Cave water is the same ocean water. The passage is revealed by the absence
-   // of rock, not by a bright gameplay outline or a painted corridor ribbon.
+   if(x1+320<left||x0-320>right||y1+320<top||y0-320>bottom)continue;
+   ctx.save();
+   // Organic water voids: shape sampled from the same radius that governs cave
+   // collision. Their irregular edges are passable, not fake painted walls.
    for(let i=1;i<nodes.length;i++){
-    const a=nodes[i-1],b=nodes[i],r=Math.min(a.r,b.r);
-    const midY=(a.y+b.y)*.5,light=geo.lightAt(midY);
-    const water=ctx.createLinearGradient(0,midY-r,0,midY+r);
-    water.addColorStop(0,'rgba(4,31,51,'+(.82-light*.20)+')');
-    water.addColorStop(.55,'rgba(3,24,42,'+(.88-light*.14)+')');
-    water.addColorStop(1,'rgba(2,17,32,.94)');
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.strokeStyle=water;ctx.lineWidth=r*2.04;ctx.stroke();
-    // A broad, very faint mineral falloff softens the cut into surrounding rock.
-    // It is deliberately not an edge line and disappears into the stone.
-    ctx.globalAlpha=.12;
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.strokeStyle='#42606a';ctx.lineWidth=r*2.16;ctx.stroke();
-    ctx.globalAlpha=1;
-    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.strokeStyle=water;ctx.lineWidth=r*2.01;ctx.stroke();
+    const a=nodes[i-1],b=nodes[i],r=Math.min(a.r,b.r),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+    const nx=-dy/len,ny=dx/len,centerY=(a.y+b.y)*.5,light=geo.lightAt(centerY);
+    const water=ctx.createLinearGradient(0,centerY-r,0,centerY+r);
+    water.addColorStop(0,'rgba(3,31,47,'+(.75-light*.12)+')');
+    water.addColorStop(.5,'rgba(3,23,39,.92)');water.addColorStop(1,'rgba(2,16,29,.96)');
+    ctx.fillStyle=water;ctx.beginPath();
+    const count=22;
+    for(let j=0;j<=count;j++){
+     const t=j/count,rad=geo.caveRadiusAt(a,b,t,r),x=a.x+dx*t+nx*rad,y=a.y+dy*t+ny*rad;
+     if(!j)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    for(let j=count;j>=0;j--){
+     const t=j/count,rad=geo.caveRadiusAt(a,b,t,r),x=a.x+dx*t-nx*rad,y=a.y+dy*t-ny*rad;
+     ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='rgba(66,90,99,.12)';ctx.lineWidth=5;ctx.stroke();
+    // The capsule's rounded ends are drawn with fractured arcs, not a perfect oval.
+    for(const center of [a,b]){
+     ctx.fillStyle=water;ctx.beginPath();
+     for(let j=0;j<=48;j++){
+      const theta=j/48*TAU,rad=r*(.91+.04*Math.sin(theta*5+center.x*.001)+.03*Math.cos(theta*9+center.y*.001));
+      const x=center.x+Math.cos(theta)*rad,y=center.y+Math.sin(theta)*rad;
+      if(!j)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+     }
+     ctx.closePath();ctx.fill();
+    }
    }
    ctx.restore();
   }
  }
-
  function tubeSponges(ctx,x,y,scale,seed){
   const tones=['#907985','#9f808a','#99828b','#b39493'];
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.lineCap='round';

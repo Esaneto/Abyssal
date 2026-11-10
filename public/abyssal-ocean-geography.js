@@ -8,7 +8,7 @@
  if(root)root.AbyssalOceanGeography=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WIDTH=24000,HEIGHT=21000,VERSION=3,DEPTH_SCALE=HEIGHT/9000;
+ const WIDTH=24000,HEIGHT=21000,VERSION=4,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
@@ -81,9 +81,15 @@
  const ARCH_TUNNELS=Object.freeze(ROCKS.filter(r=>r.type==='arch').map(r=>Object.freeze({
   ax:r.x-r.rx-55,ay:r.y+16,bx:r.x+r.rx+55,by:r.y-18,r:118
  })));
+ function caveRadiusAt(a,b,t,r){
+  // A narrow geological irregularity shared by navigable tunnel collision and paint.
+  const seed=(a.x+b.x)*.0017+(a.y+b.y)*.0009;
+  return r*clamp(.935+.030*Math.sin(t*11+seed)+.021*Math.cos(t*23-seed*.5),.855,.995);
+ }
  function capsuleSigned(x,y,ax,ay,bx,by,r){
   const dx=bx-ax,dy=by-ay,t=clamp(((x-ax)*dx+(y-ay)*dy)/Math.max(1,dx*dx+dy*dy),0,1);
-  return Math.hypot(x-ax-dx*t,y-ay-dy*t)-r;
+  const a={x:ax,y:ay},b={x:bx,y:by};
+  return Math.hypot(x-ax-dx*t,y-ay-dy*t)-caveRadiusAt(a,b,t,r);
  }
  function isCaveWater(x,y,padding=0){
   for(const cave of CAVES){
@@ -187,5 +193,5 @@
   if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });
