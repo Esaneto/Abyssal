@@ -48,6 +48,18 @@ test('petroleum and natural gas deposits only identify rock-hosted fractures',()
  assert.ok(seen.size>0,'geological outcrops should expose resource nodes');
  assert.ok(checked>0,'real rock fissures should host at least one hydrocarbon node');
 });
+test('canyon pillars provide solid but passable midwater passages',()=>{
+ assert.ok(geo.ROCKS.length>=34);
+ assert.equal(geo.isSolid(8200,2900,18),true,'narrow real rock pillar');
+ assert.equal(geo.isSolid(8500,2900,18),false,'diver can swim beside pillar');
+ assert.equal(geo.isSolid(9500,2900,18),false,'alternate passage remains');
+ assert.equal(geo.segmentClear(520,95,1200,95,20),true);
+ let free=0,total=0;
+ for(let x=400;x<geo.WIDTH;x+=400)for(let y=300;y<geo.HEIGHT;y+=450){
+  if(!geo.isSolid(x,y,18))free++;total++;
+ }
+ assert.ok(free/total>.57,'most of the ocean remains passable');
+});
 test('camera-limited biome renderers and UI remain available across the same ocean',()=>{
  const canvas=new Proxy({}, {get(_,key){
   if(key==='createLinearGradient'||key==='createRadialGradient')return ()=>({addColorStop(){}});
