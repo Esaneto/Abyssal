@@ -3,7 +3,8 @@
  */
 (function(){
  'use strict';
- const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream,inventoryUI=window.AbyssalInventoryUI;
+ const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream;
+ const inventoryUI=()=>window.AbyssalInventoryUI;
  if(!config||!research||!fields)return;
  const $=id=>document.getElementById(id);
  const shell=$('gameShell'),canvas=$('game');if(!shell||!canvas)return;
@@ -28,7 +29,7 @@
   if(kit.changed){localStorage.setItem('abyssalSoloKitGrantedV1','1');localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));}
  }catch(_){}
  const notify=message=>{const node=$('explorationGatherStatus');if(node)node.textContent=message;};
- window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;if(cfg()?.online)inventoryUI?.setInventory(research.sanitizeInventory(account?.resourceInventory||{}));renderResearch();});
+ window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;if(cfg()?.online)inventoryUI()?.setInventory(research.sanitizeInventory(account?.resourceInventory||{}));renderResearch();});
  window.addEventListener('abyssal-specimen-discovery-request',()=>{
   // Discovery is recorded in the Abissário; no legacy resources are awarded in Solo.
   notify('Espécie registrada no Abissário.');
@@ -53,7 +54,7 @@
    try{taken=new Set(JSON.parse(localStorage.getItem('abyssalSoloGeologyTakenV1')||'[]'));}catch(_){}
   }
   lastScan=0;notify(p.online?'Depósitos do Mar Aberto sincronizados.':'Depósitos locais: G para coletar, I para inventário.');
-  inventoryUI?.setInventory(research.sanitizeInventory(stateInventory()));
+  inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));
  }
  function scan(p,time){
   if(!fields.ENABLED||!p.online||p.mode!=='open-sea'||time-lastScan<2200||busy)return;
@@ -62,7 +63,7 @@
   window.AbyssalOnline?.explorationScan?.(result=>{
    if(!result?.ok||runKey!==requestedRun||cfg()?.mode!=='open-sea'||!cfg()?.online)return;
    nodes=Array.isArray(result.nodes)?result.nodes:[];
-   if(result.inventory){account={...(account||{}),resourceInventory:result.inventory};inventoryUI?.setInventory(result.inventory);}
+   if(result.inventory){account={...(account||{}),resourceInventory:result.inventory};inventoryUI()?.setInventory(result.inventory);}
   });
  }
  function closest(p){
@@ -73,7 +74,7 @@
  }
  function collect(){
   const p=cfg();if(!p||p.mode!=='open-sea'||p.paused||!near||busy)return;
-  const selected=inventoryUI?.selectedTool?.()||'abyssPickaxe';
+  const selected=inventoryUI()?.selectedTool?.()||'abyssPickaxe';
   const inventory=research.sanitizeInventory(stateInventory());
   const check=fields.eligible(near,p.x,p.y,inventory,115,selected);
   if(!check.ok){
@@ -91,7 +92,7 @@
     if(result?.ok){
      taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
      if(result.account)account=result.account;
-     inventoryUI?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));
+     inventoryUI()?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));
      notify('Coletado: '+(config.RESOURCES[result.item]?.name||result.item)+' +'+result.amount);
     }else notify('Coleta indisponível: '+String(result?.reason||'erro'));
    },selected);
@@ -100,7 +101,7 @@
    if(!result.ok){notify('Não foi possível coletar: '+result.reason);return;}
    taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
    localInventory=research.sanitizeInventory(result.inventory);saveLocal();
-   inventoryUI?.setInventory(localInventory);
+   inventoryUI()?.setInventory(localInventory);
    notify('Coletado: '+config.RESOURCES[result.item].name+' +'+result.amount+' (inventário local)');
   }
  }
@@ -226,7 +227,7 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;inventoryUI?.setActive(p?.mode==='open-sea');hud.querySelector('.exploration-collect').hidden=p?.mode!=='open-sea';
+  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;inventoryUI()?.setActive(p?.mode==='open-sea');hud.querySelector('.exploration-collect').hidden=p?.mode!=='open-sea';
   if(!active){markers.hidden=true;runKey='';return;}
   const expectedRun=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
   if(runKey!==expectedRun)startRun(p);
@@ -252,8 +253,8 @@
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent=Math.round(depth)+' m · '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
-  near=p.mode==='open-sea'?closest(p):null;inventoryUI?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
-  const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
+  near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
+  const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI()?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
   $('explorationGatherBtn').disabled=!can;
   signal.hidden=p.mode!=='rift';
   if(p.mode==='rift'){
