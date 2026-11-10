@@ -728,6 +728,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let actualTarget=null,nearestTargetDistance=Infinity;
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
+    movementOptions.freeSwim=false;
     const seaBeforeX=Number(enemy.x),seaBeforeY=Number(enemy.y);
     if (!riftMode) {
       if(enemy.wildlifeMode){
