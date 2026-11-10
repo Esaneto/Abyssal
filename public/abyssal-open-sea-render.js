@@ -93,6 +93,68 @@
    ctx.beginPath();ctx.arc(x,y,.8+seeded(bx+4,by+8)*1.4,0,TAU);ctx.fill();
   }
  }
+
+ // Distant formations are deliberately desaturated and non-solid. Brightly edged
+ // near-field rocks still use the exact collision geometry from OceanGeography.
+ function drawProvinceBackdrop(ctx,left,top,right,bottom,time,lowPower){
+  const tileX=1120,tileY=1250,cols=[Math.floor(left/tileX)-1,Math.ceil(right/tileX)+1];
+  const rows=[Math.floor(top/tileY)-1,Math.ceil(bottom/tileY)+1];
+  for(let bx=cols[0];bx<=cols[1];bx++)for(let by=rows[0];by<=rows[1];by++){
+   if(bx<0||by<0)continue;
+   const seed=seeded(bx*29+23,by*11+9);
+   if(seed<.34)continue;
+   const x=bx*tileX+tileX*(.28+seeded(bx,by+27)*.47);
+   const y=by*tileY+tileY*(.25+seeded(bx+19,by)*.46);
+   if(x<0||x>geo.WIDTH||y>geo.HEIGHT)continue;
+   const biome=geo.visualBiomeAt?.(x,y)?.id||'coastal';
+   const scale=biome==='cinematic'?1.16:biome==='geological'?.88:.70;
+   const w=(185+seed*155)*scale,h=(245+seeded(bx+13,by+8)*290)*scale;
+   ctx.save();ctx.globalAlpha=lowPower?.15:.22;
+   ctx.fillStyle=biome==='geological'?'#0c1c2b':biome==='cinematic'?'#073e54':'#135465';
+   ctx.beginPath();ctx.moveTo(x-w,y+h*.53);
+   ctx.lineTo(x-w*.68,y-h*.45);ctx.lineTo(x-w*.26,y-h*.73);
+   ctx.lineTo(x+w*.10,y-h*.58);ctx.lineTo(x+w*.57,y-h*.75);
+   ctx.lineTo(x+w*.91,y+h*.49);ctx.closePath();ctx.fill();
+   if(!lowPower&&biome==='cinematic'&&seed>.56){
+    // The arch is background-only and visibly distant, never a fake collision gate.
+    ctx.globalAlpha=.17;ctx.fillStyle='#12708a';ctx.beginPath();
+    ctx.moveTo(x-w*.92,y-h*.05);ctx.quadraticCurveTo(x-w*.20,y-h*.73,x+w*.66,y-h*.23);
+    ctx.lineTo(x+w*.7,y-h*.05);ctx.quadraticCurveTo(x,y-h*.50,x-w*.92,y+h*.05);
+    ctx.closePath();ctx.fill();
+   }
+   ctx.restore();
+  }
+ }
+ // Province lighting: coastal sun shafts, cinematic cyan corridors and tiny
+ // abyssal mineral glints. Nothing uses a world-sized texture.
+ function drawProvinceLight(ctx,left,top,right,bottom,time,lowPower){
+  const centerY=(top+bottom)*.5,centerX=(left+right)*.5;
+  const biome=geo.visualBiomeAt?.(centerX,centerY)?.id||'coastal';
+  if(biome==='cinematic'&&geo.metersAt(top)<950){
+   const pitch=780;
+   for(let i=Math.floor(left/pitch)-1;i<=Math.ceil(right/pitch)+1;i++){
+    if(seeded(i,48)<.38)continue;
+    const x=i*pitch+seeded(i,61)*270;
+    const y=geo.metersAt(top)<150?0:Math.max(0,top-100);
+    const reach=Math.min(1250,bottom-y),swing=Math.sin(time*.00019+i*1.7)*24;
+    ctx.fillStyle='rgba(62,197,235,'+(lowPower?.023:.057)+')';
+    ctx.beginPath();ctx.moveTo(x-35+swing,y);ctx.lineTo(x+25+swing,y);
+    ctx.lineTo(x+250+swing,y+reach);ctx.lineTo(x+70+swing,y+reach);ctx.closePath();ctx.fill();
+   }
+  }else if(biome==='geological'&&!lowPower){
+   const cell=410;
+   for(let bx=Math.floor(left/cell);bx<=Math.ceil(right/cell);bx++)
+    for(let by=Math.floor(top/cell);by<=Math.ceil(bottom/cell);by++){
+     const seed=seeded(bx*7+17,by*13+9);
+     if(seed<.78)continue;
+     const x=bx*cell+seed*cell*.65,y=by*cell+seeded(bx+4,by+6)*cell*.77;
+     if(geo.isSolid(x,y,25))continue;
+     ctx.fillStyle='rgba(112,212,198,'+(.06+seed*.045)+')';
+     ctx.beginPath();ctx.arc(x+Math.sin(time*.00028+bx)*5,y,1.1+seed,0,TAU);ctx.fill();
+    }
+  }
+ }
+
  function drawDepthHaze(ctx,left,top,right,bottom){
   const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
   if(depthBottom<140)return;
@@ -373,6 +435,8 @@
   if(bottom<=top)return;
   ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
   drawWater(ctx,left,top,right,bottom,time,lowPower);
+  drawProvinceBackdrop(ctx,left,top,right,bottom,time,lowPower);
+  drawProvinceLight(ctx,left,top,right,bottom,time,lowPower);
   drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.69)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(188,244,255,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
