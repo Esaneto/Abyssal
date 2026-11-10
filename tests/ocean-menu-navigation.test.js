@@ -55,7 +55,7 @@ test('offline service worker excludes old menu versions and refreshes cache on d
  const sw=src('offline-sw.js'),offline=src('offline-ui.js');
  assert.doesNotMatch(sw,/['"]abyssal-menu-orbit\.(?:js|css)['"]/);
  assert.doesNotMatch(sw,/['"]abyssal-expedition-hub\.(?:js|css)['"]/);
- assert.match(sw,/single-swimmer-menu-v59/);
+ assert.match(sw,/single-swimmer-menu-v60/);
  assert.match(sw,/'abyssal-menu-navigation\.css'/);
  assert.match(sw,/'abyssal-menu-ocean\.js'/);
  assert.match(sw,/'diver-hitbox\.js'/);
