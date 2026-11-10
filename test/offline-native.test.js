@@ -10,6 +10,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
 test('offline web shell caches the complete solo game and ignores account APIs',async()=>{
  const events={};
+ let networkAvailable=true;
  const stored=new Map();
  const cache={
   addAll:async urls=>{for(const url of urls){
@@ -30,7 +31,11 @@ test('offline web shell caches the complete solo game and ignores account APIs',
   },
   caches:{open:async()=>cache,keys:async()=>['abyssal-game-shell-old','abyssal-game-shell-2026-11-06-offline-v1'],delete:async()=>true},
   URL,Request,Response,AbortController,setTimeout,clearTimeout,
-  fetch:async()=>{throw new Error('network down')}
+  fetch:async req=>{
+   if(networkAvailable&&new URL(String(req)).pathname==='/index.html')
+    return new Response(read('public/index.html'),{status:200,headers:{'content-type':'text/html'}});
+   throw new Error('network down');
+  }
  };
  vm.runInNewContext(read('public/offline-sw.js'),context,{filename:'offline-sw.js'});
  assert.equal(typeof events.install,'function');
@@ -38,6 +43,7 @@ test('offline web shell caches the complete solo game and ignores account APIs',
  let installPromise;
  events.install({waitUntil:p=>{installPromise=p;}});
  await installPromise;
+ networkAvailable=false;
  for(const asset of ['index.html','game.js','online.js','abyssal-map.js','offline-ui.js','offline-ui.css','server-config.js']){
   assert.ok(stored.has(asset),'Game unavailable offline: '+asset);
  }
@@ -48,7 +54,7 @@ test('offline web shell caches the complete solo game and ignores account APIs',
  }
  const page=await simulate('https://abyssal.example/','navigate');
  const game=await simulate('https://abyssal.example/game.js?v=2026','cors');
- assert.match(await page.text(),/offline-index\.html/);
+ assert.match(await page.text(),/<title>Abyssal/);
  assert.match(await game.text(),/offline-game\.js/);
  assert.equal(await simulate('https://abyssal.example/api/account'),null);
  assert.equal(await simulate('https://abyssal.example/socket.io/?EIO=4'),null);
