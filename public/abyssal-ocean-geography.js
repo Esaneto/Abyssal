@@ -8,9 +8,10 @@
  if(root)root.AbyssalOceanGeography=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WIDTH=24000,HEIGHT=21000,VERSION=4,DEPTH_SCALE=HEIGHT/9000;
+ const WIDTH=24000,HEIGHT=21000,VERSION=5,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
+ const SHOALS=Object.freeze([[6250,980,.83],[14200,1320,.77],[18600,1150,.82],[22400,850,.67]]);
  const KNOTS=Object.freeze([
   [0,180],[1200,280],[2400,340],[3400,1200],[4400,4000],
   [5600,6250],[6800,6500],[7900,7400],[8800,8150],[9800,8250],
@@ -25,7 +26,11 @@
   const a=KNOTS[lo],b=KNOTS[Math.min(lo+1,KNOTS.length-1)];
   const q=clamp((x-a[0])/Math.max(1,b[0]-a[0]),0,1);
   const smooth=q*q*(3-2*q);
-  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,120*DEPTH_SCALE,8850*DEPTH_SCALE);
+  const base=a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28;
+  // Smooth submerged seamounts periodically reconnect the eastern water column
+  // to shallow reefs, without rectangular transitions between biomes.
+  let lift=0;for(const [center,spread,strength] of SHOALS){const q=(x-center)/spread;lift=Math.max(lift,Math.exp(-q*q*.72)*strength);}
+  return clamp(base*(1-lift),120*DEPTH_SCALE,8850*DEPTH_SCALE);
  }
  // Only grounded outcrops and spaced cliffs are solid. The old suspended
  // plates across the coastal spawning corridor were impassable and are removed.
@@ -43,10 +48,37 @@
   [13660,990,355,360,'spire'],[16700,1450,660,205,'arch'],
   [20100,1030,520,240,'shelf']
  ];
+ // Seamount outcrops: grounded, separated, organically shaped rock towers.
+ // Sparse spatial buckets preserve cheap collision checks over the huge map.
+ const rockRandom=i=>((Math.imul(i+913,1103515245)+12345)>>>0)/4294967296;
+ const EXTRA_ROCKS=[];
+ for(let i=0;i<29;i++){
+  const x=Math.round(4750+i*665+(rockRandom(i*7)-.5)*250);
+  if(x>WIDTH-260)break;
+  const floor=floorAt(x),r=rockRandom(i*11+3),longSpire=i%5===2;
+  const ry=Math.min(Math.max(170,floor*.12+(longSpire?floor*.20:0)),longSpire?4400:1900);
+  const rx=Math.round(180+r*220+(longSpire?40:0));
+  const y=Math.max(ry+320,floor-ry*.76);
+  if(y+ry>floor+270||y-ry<270)continue;
+  EXTRA_ROCKS.push([x,y,rx,ry,i%6===0?'arch':longSpire?'spire':i%3===0?'shelf':'boulder']);
+  if(i%2===0){
+   const side=x+(i%4===0?-1:1)*(rx*.7+120),sr=100+rockRandom(i*17+5)*130;
+   EXTRA_ROCKS.push([Math.round(side),Math.max(270+sr,floorAt(side)-sr*.86),sr*1.5,sr,'boulder']);
+  }
+ }
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
- })));
+ })).concat(EXTRA_ROCKS.map((r,i)=>Object.freeze({id:'ridge-'+i,x:r[0],y:r[1],rx:r[2],ry:r[3],type:r[4]}))));
+ const ROCK_GRID_SIZE=900,ROCK_GRID=new Map();
+ for(const rock of ROCKS){
+  for(let bx=Math.floor((rock.x-rock.rx-95)/ROCK_GRID_SIZE);bx<=Math.floor((rock.x+rock.rx+95)/ROCK_GRID_SIZE);bx++)
+   for(let by=Math.floor((rock.y-rock.ry-95)/ROCK_GRID_SIZE);by<=Math.floor((rock.y+rock.ry+95)/ROCK_GRID_SIZE);by++){
+    const key=bx+':'+by;if(!ROCK_GRID.has(key))ROCK_GRID.set(key,[]);
+    ROCK_GRID.get(key).push(rock);
+   }
+ }
+ function rocksNear(x,y){return ROCK_GRID.get(Math.floor(x/ROCK_GRID_SIZE)+':'+Math.floor(y/ROCK_GRID_SIZE))||[];}
  function rockRelief(rock,angle){
   const seed=rock.x*.00039+rock.y*.00017;
   // Multiscale weathering, deterministic and shared by collisions and paint.
@@ -81,6 +113,11 @@
  const ARCH_TUNNELS=Object.freeze(ROCKS.filter(r=>r.type==='arch').map(r=>Object.freeze({
   ax:r.x-r.rx-55,ay:r.y+16,bx:r.x+r.rx+55,by:r.y-18,r:118
  })));
+ const BRANCH_TUNNELS=Object.freeze(CAVES.flatMap((c,i)=>{
+  const a=c.nodes[1],b=c.nodes[2],dir=i%2?-1:1;
+  return [{ax:a.x,ay:a.y,bx:a.x+dir*470,by:a.y+170,r:118},
+          {ax:b.x,ay:b.y,bx:b.x-dir*390,by:b.y+250,r:112}].map(t=>Object.freeze(t));
+ }));
  function caveRadiusAt(a,b,t,r){
   // A narrow geological irregularity shared by navigable tunnel collision and paint.
   const seed=(a.x+b.x)*.0017+(a.y+b.y)*.0009;
@@ -102,7 +139,7 @@
     if(capsuleSigned(x,y,a.x,a.y,b.x,b.y,r)<0)return true;
    }
   }
-  for(const tunnel of ARCH_TUNNELS)
+  for(const tunnel of [...ARCH_TUNNELS,...BRANCH_TUNNELS]
    if(Math.abs(y-tunnel.ay)<160&&x>Math.min(tunnel.ax,tunnel.bx)-140&&x<Math.max(tunnel.ax,tunnel.bx)+140
     &&capsuleSigned(x,y,tunnel.ax,tunnel.ay,tunnel.bx,tunnel.by,tunnel.r-padding)<0)return true;
   return false;
@@ -112,7 +149,7 @@
   padding=Math.max(0,Number(padding)||0);
   if(x<0||x>WIDTH||y<0||y>HEIGHT)return true;
   let solid=y>=floorAt(x)-padding;
-  if(!solid)for(const rock of ROCKS){
+  if(!solid)for(const rock of rocksNear(x,y)){
    if(rockContains(rock,x,y,padding)){solid=true;break;}
   }
   return solid&&!isCaveWater(x,y,padding);
@@ -175,8 +212,11 @@
  function classify(x,y){
   const clearance=floorAt(x)-y,depth=metersAt(y);
   // Habitat follows the same 2,200 m scale as oxygen, HUD and illumination.
-  if(x<1900&&clearance<650&&depth<=210)return 'reef';
-  if(x>=1900&&x<3500&&clearance<650&&depth<=210)return 'kelp';
+  if(clearance<650&&depth<=210){
+   if(x<1900||x>4500&&Math.sin(x*.0019)>.30)return 'reef';
+   if(x<3500||Math.cos(x*.0011)>.05)return 'kelp';
+   return 'rocks';
+  }
   if(depth>1850)return 'abyss';
   if(depth>1100)return clearance<750?'canyon':'deep';
   if(clearance<480)return 'rocks';
@@ -193,5 +233,5 @@
   if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,BRANCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });

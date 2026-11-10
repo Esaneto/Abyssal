@@ -139,11 +139,11 @@
   if(reached||expired){
    const index=(Number(entity.aiPatrolIndex)||0)+1;entity.aiPatrolIndex=index;
    let chosen=null;
-   for(let attempt=0;attempt<10&&!chosen;attempt++){
+   for(let attempt=0;attempt<20&&!chosen;attempt++){
     const seed=(hash+Math.imul(index+attempt,2654435761))>>>0;
     const angle=(seed%6283)/1000;
-    const radius=(group?360:430)+((seed>>>8)%420);
-    const vertical=.48+((seed>>>17)%30)/100;
+    const radius=(group?540:680)+((seed>>>8)%860);
+    const vertical=.42+((seed>>>17)%45)/100;
     const x=clamp(centerX+Math.cos(angle)*radius,45,worldW-45);
     const y=clamp(centerY+Math.sin(angle)*radius*vertical,45,worldH-45);
     const sameHabitat=habitatAt(x,y).id===habitat.id;
@@ -164,7 +164,7 @@
     const sameSchool=group&&mate.schoolId===entity.schoolId&&mate.specimenSkinId===entity.specimenSkinId;
     if(sameSchool){averageX+=mate.x;averageY+=mate.y;count++;}
     // Schoolmates leave generous room, while other wildlife does not collide.
-    const personalSpace=sameSchool?160:112;
+    const personalSpace=sameSchool?185:125;
     if(d>=personalSpace)continue;
     let ux=dx/Math.max(d,.0001),uy=dy/Math.max(d,.0001);
     if(d<.0001){

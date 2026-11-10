@@ -10,7 +10,7 @@
  'use strict';
  const WIDTH=geo?.WIDTH||24000,HEIGHT=geo?.HEIGHT||21000,CHUNK=1200,AREA_RATIO=35;
  const MAX_NEARBY=150,INITIAL_FAUNA=6,RESOURCE_COUNT=0; // No unapproved resource nodes.
- const MIN_FAUNA_SPACING=145; // Spawn cores stay separated even in a natural school.
+ const MIN_FAUNA_SPACING=155; // Spawn cores stay separated even in a natural school.
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
@@ -42,29 +42,32 @@
   function randomWater(padding=30,separation=0){
    // All entities, including those of different species, need spawn clearance.
    // A bounded retry budget keeps dense/solid chunks inexpensive to generate.
-   for(let tries=0;tries<42;tries++){
+   for(let tries=0;tries<88;tries++){
     const x=x0+position(65,cellWidth),y=y0+position(65,cellHeight);
     if(clearWater(x,y,padding,separation))return {x,y};
    }
    return null;
   }
+  // Mix species inside each streamed water sector while retaining natural
+  // two-animal schools; no single cloned formation consumes an entire area.
   for(let i=0;i<INITIAL_FAUNA;i++){
-   const point=randomWater(62,MIN_FAUNA_SPACING);if(!point)break;
-   const {x,y}=point,species=ecology?.speciesAt?.(x,y,next)||'seapig';
-   const schooling=Boolean(ecology?.isSchooling?.(species)),schoolId=schooling?id(cx,cy)+':s0':id(cx,cy)+':solo'+i;
-   animals.push({id:id(cx,cy)+':f'+i,x,y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
-   if(schooling){
-    // Golden-angle positions give a loose, readable school, not six animals
-    // occupying a single collision core. Fall back to a clear water pocket.
-    for(let n=i+1;n<INITIAL_FAUNA;n++){
-     const angle=n*2.399963229728653,radial=MIN_FAUNA_SPACING*Math.sqrt(n)*1.18;
-     const px=x+Math.cos(angle)*radial,py=y+Math.sin(angle)*radial;
-     const point=clearWater(px,py,38,MIN_FAUNA_SPACING)?{x:px,y:py}:randomWater(45,MIN_FAUNA_SPACING);
-     if(!point)break;
-     animals.push({id:id(cx,cy)+':f'+n,x:point.x,y:point.y,species,temperament:ecology?.temperament?.(species)||'passive',schoolId});
+   let point=null,species=null,schoolId=null;
+   const leader=i>0&&i%3===1?animals[i-1]:null;
+   if(leader&&ecology?.isSchooling?.(leader.species)){
+    species=leader.species;schoolId=leader.schoolId;
+    for(let k=0;k<16;k++){
+     const angle=i*2.3999632297+k*.73,distance=MIN_FAUNA_SPACING*(1.1+k*.12);
+     const px=leader.x+Math.cos(angle)*distance,py=leader.y+Math.sin(angle)*distance;
+     if(clearWater(px,py,90,MIN_FAUNA_SPACING)){point={x:px,y:py};break;}
     }
-    break;
    }
+   if(!point){
+    point=randomWater(95,MIN_FAUNA_SPACING);if(!point)break;
+    species=ecology?.speciesAt?.(point.x,point.y,next)||'seapig';
+    schoolId=ecology?.isSchooling?.(species)?id(cx,cy)+':school'+Math.floor(i/3):id(cx,cy)+':solo'+i;
+   }
+   animals.push({id:id(cx,cy)+':f'+i,x:point.x,y:point.y,species,
+    temperament:ecology?.temperament?.(species)||'passive',schoolId});
   }
   for(let i=0;i<RESOURCE_COUNT;i++){
    let point=null;
