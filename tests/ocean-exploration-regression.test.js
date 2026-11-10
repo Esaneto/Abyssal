@@ -27,10 +27,11 @@ test('curated geological resources stream only in Mar Aberto and keep Fossas unt
 test('combat technologies require lab research and legacy purchases migrate',()=>{
  assert.equal(config.RESEARCH.dash.slot,'E');
  assert.equal(config.RESEARCH.pulse.slot,'Q');
- for(const id of ['burst','ricochet','spread','power','range','photonRay']){
+ for(const id of ['burst','ricochet','spread','power','photonRay']){
   assert.ok(config.RESEARCH[id],id);
   assert.equal(research.unlocked(id,{}),false);
  }
+ assert.equal(research.unlocked('range',{}),true,'basic optics are standard equipment');
  assert.equal(research.migrateLegacy({}, {pulse:1,dash:1}).levels.pulse,1);
 });
 
@@ -39,7 +40,7 @@ test('online gameplay integrates authoritative pickup, study and survival',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const online=fs.readFileSync(path.join(__dirname,'../public/online.js'),'utf8');
  assert.match(server,/socket\.on\('exploration-collect'/);
- assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,u\.resourceInventory,115,chosenTool\)/);
+ assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,inventory,125,tool\)/);
  assert.match(server,/socket\.on\('exploration-study'/);
  assert.match(server,/ExplorationConfig\.gasConsumption\(depth,1\)/);
  assert.match(online,/function explorationCollect\(id,callback\)/);
