@@ -22,6 +22,8 @@ const CREATURE_SCALE=window.AbyssalCreatureScale;
 const RIFT_WILDLIFE=window.AbyssalRiftWildlife;
 const OPEN_SEA_ECOLOGY=window.AbyssalOpenSeaEcology;
 const OCEAN_STREAM=window.AbyssalOceanStream;
+const soloOceanRespawn=window.AbyssalOceanRespawn?.createTracker?.();
+let soloOceanRespawnCleanupAt=0;
 const OCEAN_GEOGRAPHY=window.AbyssalOceanGeography;
 const oceanWidth=()=>OCEAN_STREAM?.WIDTH||24000,oceanHeight=()=>OCEAN_STREAM?.HEIGHT||21000;
 const defaultWidth=()=>isOpenSeaRun()?oceanWidth():4800,defaultHeight=()=>isOpenSeaRun()?oceanHeight():3000;
@@ -134,7 +136,7 @@ function setDiverGender(value,saveRemote=true){
 document.addEventListener('click',event=>{const b=event.target.closest?.('[data-diver-gender]');if(b&&!b.disabled)setDiverGender(b.dataset.diverGender);});
 let specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.((()=>{try{return JSON.parse(localStorage.getItem('abyssalSpecimenProficiency')||'{}')}catch{return {}}})())||{};
 function specimenPoints(id=equippedSkin){return SPECIMEN_SYSTEM?.pointsFor?.(specimenProficiency,id)||0;}
-function specimenProgressStats(id=equippedSkin){return SPECIMEN_SYSTEM?.stats?.(specimenPoints(id))||{points:0,progress:0,percent:0,cooldown:10,cooldownReduction:0,attributeBonus:0,rangeMultiplier:1,rangeBonus:0,respawnSeconds:20,respawnReduction:0};}
+function specimenProgressStats(id=equippedSkin){return SPECIMEN_SYSTEM?.stats?.(specimenPoints(id))||{points:0,progress:0,percent:0,cooldown:10,cooldownReduction:0,attributeBonus:0,rangeMultiplier:1,rangeBonus:0,respawnSeconds:300,respawnReduction:0};}
 function specimenAlive(){return Boolean(player?.specimen?.alive!==false);}
 function specimenPassiveActive(){return Boolean(player&&player.specimen&&player.specimen.alive!==false);}
 function specimenOrigin(){if(player?.specimen)return {x:Number(player.specimen.x)||player.x,y:Number(player.specimen.y)||player.y};return {x:Number(player?.x)||0,y:Number(player?.y)||0};}
@@ -1298,12 +1300,13 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])].
  runShotId=selectedOpeningShot;
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
+ soloOceanRespawn?.clear();soloOceanRespawnCleanupAt=0;soloOceanLastUpdate=0;
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?1300:W*.5,y:isOpenSeaRun()?420:onlineRoomMode==='pvp'?H*.5:H*.11};
  expandingSkinClouds.length=0;
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,invuln:1.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
@@ -1499,6 +1502,8 @@ function updateSoloOceanChunks(force=false){
  if(!player||!isOpenSeaRun()||!OCEAN_STREAM||!OPEN_SEA_ECOLOGY)return;
  const now=performance.now();if(!force&&now-soloOceanLastUpdate<330)return;
  soloOceanLastUpdate=now;
+ const respawnNow=Date.now();
+ if(respawnNow>=soloOceanRespawnCleanupAt){soloOceanRespawn?.prune(respawnNow);soloOceanRespawnCleanupAt=respawnNow+30000;}
  const radius=clamp(Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+850,1880,4700);
  const nearby=OCEAN_STREAM.active([player],90,radius),active=new Set(nearby.map(c=>c.key));
  enemies=enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
@@ -1508,7 +1513,7 @@ function updateSoloOceanChunks(force=false){
   if(budget<=0)break;
   const fauna=OCEAN_STREAM.generate('solo-ocean-'+runSeed,cell.cx,cell.cy,OPEN_SEA_ECOLOGY);
   for(const specimen of fauna.animals){
-   if(budget<=0||have.has(specimen.id))continue;
+   if(budget<=0||have.has(specimen.id)||(soloOceanRespawn&&!soloOceanRespawn.ready(specimen.id,respawnNow)))continue;
    if(Math.hypot(specimen.x-player.x,specimen.y-player.y)<170)continue;
    const mob=spawnEnemy(false,'common',{position:specimen,species:specimen.species,streamId:specimen.id,schoolId:specimen.schoolId});
    if(mob){have.add(specimen.id);budget--;}
@@ -2168,6 +2173,7 @@ function drawExperienceOrbs(t){
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
 function killEnemy(i){
  const e=enemies[i];
+ if(!onlineMode&&isOpenSeaRun()&&e?.streamId)soloOceanRespawn?.mark(e.streamId,Date.now());
  const proficiencyBoss=BOSS_KINDS.includes(e.kind);
  if(!onlineMode&&specimenAlive()){
   specimenProficiency=SPECIMEN_SYSTEM?.addKill?.(specimenProficiency,equippedSkin,proficiencyBoss)||specimenProficiency;
@@ -2491,8 +2497,8 @@ function updateSpecimenRuntime(dt){
  if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
  if(s.alive===false){
   s.dash=null;
-  s.respawnTimer=Math.max(0,(Number(s.respawnTimer)||0)-dt);
-  if(!onlineMode&&s.respawnTimer<=0){s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}
+  s.respawnTimer=Number(s.respawnAt)>0?Math.max(0,(s.respawnAt-Date.now())/1000):Math.max(0,(Number(s.respawnTimer)||0)-dt);
+  if(!onlineMode&&s.respawnTimer<=0){s.respawnAt=0;s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}
   return;
  }
  if(s.dash){
@@ -2535,7 +2541,7 @@ function updateSpecimenRuntime(dt){
 function hurtSpecimenSolo(amount){
  const s=player?.specimen;if(!s||s.alive===false||s.invuln>0||!Number.isFinite(amount)||amount<=0)return false;
  s.hp=Math.max(0,s.hp-amount);s.invuln=.35;burst(s.x,s.y,'#ff6f8d',8,65);
- if(s.hp<=0){s.alive=false;s.respawnTimer=specimenProgressStats().respawnSeconds;const trailing=Number(player.skinTrailUntil)>0;player.skinTrailUntil=0;player.skinActiveCooldown=trailing?(Number(player.skinTrailCooldownSeconds)||10):0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${s.respawnTimer.toFixed(1)}s`);updateAbilityButtons(true);}
+ if(s.hp<=0){s.alive=false;s.respawnAt=Date.now()+specimenProgressStats().respawnSeconds*1000;s.respawnTimer=specimenProgressStats().respawnSeconds;const trailing=Number(player.skinTrailUntil)>0;player.skinTrailUntil=0;player.skinActiveCooldown=trailing?(Number(player.skinTrailCooldownSeconds)||10):0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${fmtTime(s.respawnTimer)}`);updateAbilityButtons(true);}
  return true;
 }
 function updateSoloSpecimenContact(){
@@ -2983,7 +2989,11 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
   const clashes=OPEN_SEA_ECOLOGY.simulatePredation(enemies,dt,performance.now());
   if(clashes.length){const dead=new Set(clashes.filter(c=>c.killed).map(c=>String(c.preyId)));
-   if(dead.size)enemies=enemies.filter(e=>!dead.has(String(e.id)));
+   if(dead.size){
+    const now=Date.now();
+    for(const prey of enemies)if(prey.streamId&&dead.has(String(prey.id)))soloOceanRespawn?.mark(prey.streamId,now);
+    enemies=enemies.filter(e=>!dead.has(String(e.id)));
+   }
   }
  }
  // Contact applies to companion independently of the diver's hurtbox.
@@ -5065,7 +5075,8 @@ window.addEventListener('abyssal-specimen-state',event=>{
  const d=event.detail||{},selfId=window.AbyssalOnline?.getSocketId?.();
  if(selfId&&String(d.playerId)===String(selfId)&&player?.specimen){
   player.specimen.alive=d.alive!==false;player.specimen.hp=Math.max(0,Number(d.hp)||0);player.specimen.maxHp=Math.max(1,Number(d.maxHp)||55);
-  player.specimen.respawnTimer=d.alive===false?Math.max(0,((Number(d.respawnAt)||Date.now())-Date.now())/1000):0;
+  player.specimen.respawnAt=d.alive===false?Number(d.respawnAt)||0:0;
+  player.specimen.respawnTimer=d.alive===false?Math.max(0,(player.specimen.respawnAt-Date.now())/1000):0;
   if(Number.isFinite(Number(d.x)))player.specimen.x=Number(d.x)*W;if(Number.isFinite(Number(d.y)))player.specimen.y=Number(d.y)*H;
   if(Number.isFinite(Number(d.points)))specimenProficiency={...specimenProficiency,[equippedSkin]:Number(d.points)};
   updateAbilityButtons(true);
