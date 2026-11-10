@@ -109,6 +109,15 @@
    nearElapsed=0;nearStationId=null;
    vx=0;vy=0;
    stage.dataset.abyssTransit=s.kind;
+   if(s.kind==='lab'){
+    // RAF can be throttled on mobile/browser background tabs. Never strand
+    // the player outside the hatch if its interpolation stops receiving frames.
+    const entrance=transition;
+    setTimeout(()=>{
+     if(transition===entrance&&!menu.hidden&&!document.body.classList.contains('game-active'))
+      finishEntrance();
+    },Math.ceil((entrance.duration+.35)*1000));
+   }
   }
   function finishEntrance(){
    const s=transition?.station;if(!s)return;
