@@ -38,104 +38,10 @@ var activeFilter='all';
 
 // Correntes desenhadas uma vez em SVG; a animação fica a cargo do compositor CSS.
 // Correntes de comprimentos e curvaturas irregulares: geometria estática e leve.
-function buildVortexStreams(){
-  var streams=[],count=11,steps=84;
-  function noise(seed){var a=Math.sin(seed*127.1+31.7)*43758.5453;return a-Math.floor(a);}
-  for(var arm=0;arm<count;arm++){
-    var outer=207+noise(arm+3)*37;
-    var twist=1.32+noise(arm+19)*.76;
-    var phase=(arm+noise(arm+37)*.75)/count*Math.PI*2;
-    var thickness=1.5+noise(arm+12)*3.3;
-    var path=[];
-    for(var step=0;step<=steps;step++){
-      var t=step/steps;
-      var radius=outer*Math.pow(1-t,1.11)+7;
-      var angle=phase+(twist*Math.PI*2*t)+
-        Math.sin(t*12.4+arm*2.9)*(.055+.044*noise(arm+8))*(1-t)+
-        Math.sin(t*26.9+arm*1.6)*.017*(1-t);
-      var x=260+Math.cos(angle)*radius;
-      var y=260+Math.sin(angle)*radius+
-        Math.sin(t*8.1+arm*3.2)*6*(1-t);
-      path.push((step?'L':'M')+x.toFixed(1)+' '+y.toFixed(1));
-    }
-    var tone=arm%4===0?'#a65bfa':arm%3===0?'#82e9ff':'#08bcf6';
-    var opacity=(.35+noise(arm+27)*.45).toFixed(2);
-    var d=path.join(' ');
-    // Um traço luminoso e um reflexo fino substituem os antigos anéis concêntricos.
-    streams.push('<path d="'+d+'" fill="none" stroke="'+tone+
-      '" stroke-opacity="'+opacity+'" stroke-width="'+thickness.toFixed(1)+
-      '" stroke-linecap="round"/>');
-    if(arm%2===0)streams.push('<path d="'+d+'" fill="none" stroke="#acf6ff" stroke-opacity=".19" stroke-width=".75"/>');
-  }
-  return '<svg class="abyss-vortex-streams" viewBox="0 0 520 520" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g>'+
-    streams.join('')+'</g></svg>';
-}
-
+// The old orbital SVG/vortex is retired. Fossas keeps its existing dialog.
 function createGate(){
   var menu=$('menuScreen');
-  if(!menu||$('abyssGate'))return;
-
-  var gate=document.createElement('aside');
-  gate.id='abyssGate';
-  gate.className='abyss-gate';
-  gate.setAttribute('aria-label','Entrada para a Descida Abissal');
-  gate.innerHTML=
-    '<div class="abyss-vortex-plane" aria-hidden="true">'+
-      '<div class="abyss-vortex-current"></div>'+
-      '<div class="abyss-vortex-flow-layer" aria-hidden="true">'+buildVortexStreams()+'</div>'+
-      '<div class="abyss-vortex-shaft"></div>'+ 
-    '</div>'+ 
-    '<div class="abyss-gate-rim" aria-hidden="true"></div>'+
-    '<div class="abyss-gate-depth" aria-hidden="true"><span class="abyss-gate-eye"></span></div>'+
-    '<div class="abyss-gate-content">'+
-      '<span class="abyss-gate-kicker">SINAL ABAIXO DO LIMITE CARTOGRAFADO</span>'+
-      '<strong>DESCIDA ABISSAL</strong>'+
-      '<p>Quanto mais fundo você for, maior a recompensa. Voltar ainda é uma escolha.</p>'+
-      '<button id="abyssGateButton" class="abyss-gate-button" type="button">FOSSAS ABISSAIS</button>'+
-    '</div>';
-
-  // Desktop: Web Animations sometimes stop inside a masked and perspective-rotated
-  // SVG layer. Drive just two transforms directly with requestAnimationFrame.
-  // The mobile layout retains its existing CSS animation.
-  function runDesktopVortex(){
-    var finePointer=window.matchMedia&&window.matchMedia('(hover:hover) and (pointer:fine)');
-    if(!finePointer)return;
-    var flow=gate.querySelector('.abyss-vortex-flow-layer');
-    var water=gate.querySelector('.abyss-vortex-current');
-    if(!flow||!water)return;
-    var last=0,phase=0,handle=0,wasDesktop=false;
-    function tick(now){
-      handle=window.requestAnimationFrame(tick);
-      if(!finePointer.matches){
-        if(wasDesktop){
-          flow.style.removeProperty('transform');
-          water.style.removeProperty('transform');
-          wasDesktop=false;
-        }
-        last=0;return;
-      }
-      wasDesktop=true;
-      if(document.hidden||menu.hidden||document.body.classList.contains('game-active')){
-        last=0;return;
-      }
-      var dt=last?Math.min((now-last)/1000,.08):0;
-      last=now;
-      phase=(phase+dt*30)%360;
-      flow.style.setProperty('transform','translateZ(0) rotate('+phase.toFixed(2)+'deg)','important');
-      water.style.setProperty('transform','translateZ(0) rotate('+(-phase*.68).toFixed(2)+'deg)','important');
-    }
-    handle=window.requestAnimationFrame(tick);
-    window.addEventListener('pagehide',function(){window.cancelAnimationFrame(handle);},{once:true});
-  }
-
-  var legacyMenu=!menu.classList.contains('ocean-menu-v2');
-  if(legacyMenu){
-   var orbit=menu.querySelector('.abyss-orbit-navigation');
-   if(orbit)orbit.appendChild(gate);
-   else { var fauna=menu.querySelector('.menu-fauna');menu.insertBefore(gate,fauna||menu.lastChild); }
-   runDesktopVortex();
-  }
-
+  if(!menu||$('abyssDescentPanel'))return;
   var panel=document.createElement('section');
   panel.id='abyssDescentPanel';
   panel.className='abyss-descent-panel';
@@ -166,9 +72,8 @@ function createGate(){
 
   document.body.appendChild(panel);
 
-  var portalTrigger=legacyMenu?$('abyssGateButton'):$('riftPortalBtn');
+  var portalTrigger=$('riftPortalBtn');
   var close=function(cancelled=true){panel.hidden=true;if(cancelled)window.dispatchEvent(new CustomEvent('abyssal-menu-portal-cancelled',{detail:{portal:'riftPortalBtn'}}));portalTrigger?.focus();};
-  if(legacyMenu)gate.addEventListener('click',function(e){if(e.target!==$('abyssGateButton'))$('abyssGateButton').click();});
   portalTrigger?.addEventListener('click',function(){
     panel.hidden=false;
     var first=panel.querySelector('[data-mode="solo"]');
