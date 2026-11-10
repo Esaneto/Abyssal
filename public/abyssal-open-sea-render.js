@@ -41,24 +41,24 @@
   gradient.addColorStop(1,'rgba(0,5,21,'+clamp(.21+(1-dark)*.77,.21,.98)+')');
   ctx.fillStyle=gradient;ctx.fillRect(left,top,right-left,bottom-top);
   // The distant cyan opening is anchored in world space. No screen-sized repeating wallpaper.
-  if(top<geo.HEIGHT*.43){
+  if(geo.metersAt(top)<400){
    for(const sourceX of [1800,6700,12200,18400,22600]){
    if(sourceX+geo.HEIGHT*.4<left||sourceX-geo.HEIGHT*.4>right)continue;
    const sourceY=-geo.HEIGHT*.016;
    // Smaller turquoise openings interrupt broad dark reef silhouettes.
-   const opening=ctx.createRadialGradient(sourceX,260,40,sourceX,260,1650);
+   const opening=ctx.createRadialGradient(sourceX,210,40,sourceX,210,1250);
    opening.addColorStop(0,'rgba(58,225,255,.30)');
    opening.addColorStop(.42,'rgba(15,143,199,.13)');
    opening.addColorStop(1,'rgba(0,30,65,0)');
    ctx.fillStyle=opening;ctx.fillRect(left,top,right-left,bottom-top);
-   const glow=ctx.createRadialGradient(sourceX,sourceY,60,sourceX,sourceY,geo.HEIGHT*.37);
+   const glow=ctx.createRadialGradient(sourceX,sourceY,60,sourceX,sourceY,geo.HEIGHT*.12);
    glow.addColorStop(0,'rgba(58,219,252,.49)');
    glow.addColorStop(.22,'rgba(20,165,231,.20)');
    glow.addColorStop(1,'rgba(6,70,136,0)');
    ctx.fillStyle=glow;ctx.fillRect(left,top,right-left,bottom-top);
    if(!lowPower){
     for(let i=-8;i<=8;i++){
-     const start=sourceX+i*330,reach=geo.HEIGHT*.36;
+     const start=sourceX+i*330,reach=geo.HEIGHT*.10;
      if(start+reach*.55<left||start-reach*.55>right)continue;
      const wobble=Math.sin(time*.000085+i*.61)*37;
      ctx.fillStyle='rgba(112,227,248,'+(0.028+seeded(i,31)*.032)+')';
@@ -70,22 +70,45 @@
    }
   }
   // Surface caustics fade before deep water and never form a repeated grid.
-  if(top<2400){
+  if(geo.metersAt(top)<240){
    const begin=Math.max(0,Math.floor(left/750)),end=Math.ceil(right/750);
    for(let i=begin;i<=end;i++){
-    const x=i*750+seeded(i,3)*160,limit=clamp((2450-top)/1400,0,1);
+    const x=i*750+seeded(i,3)*160,limit=clamp((200-geo.metersAt(top))/150,0,1);
     ctx.fillStyle='rgba(120,206,203,'+(.028*limit)+')';
-    ctx.beginPath();ctx.moveTo(x,-20);ctx.lineTo(x+170,-20);ctx.lineTo(x+600,Math.min(bottom,2000));ctx.lineTo(x+450,Math.min(bottom,2000));ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(x,-20);ctx.lineTo(x+170,-20);ctx.lineTo(x+600,Math.min(bottom,geo.HEIGHT*200/2200));ctx.lineTo(x+450,Math.min(bottom,2000));ctx.closePath();ctx.fill();
    }
   }
   if(lowPower)return;
-  // Sparse suspended plankton: camera-culled, deterministic, no network traffic.
+  // Sparse marine snow: camera-culled, increasingly visible in the dark water column.
   const bx0=Math.floor(left/250),bx1=Math.ceil(right/250),by0=Math.floor(top/260),by1=Math.ceil(bottom/260);
   for(let bx=bx0;bx<=bx1;bx++)for(let by=by0;by<=by1;by++){
    if(seeded(bx,by)<.65)continue;
    const x=bx*250+seeded(bx+12,by)*200,y=by*260+seeded(bx,by+23)*210;
-   ctx.fillStyle='rgba(152,213,209,'+(.05+geo.lightAt(y)*.11)+')';
+   ctx.fillStyle='rgba(152,213,209,'+(.045+geo.lightAt(y)*.095)+')';
    ctx.beginPath();ctx.arc(x,y,.8+seeded(bx+4,by+8)*1.4,0,TAU);ctx.fill();
+  }
+ }
+ function drawDepthHaze(ctx,left,top,right,bottom){
+  const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
+  if(depthBottom<140)return;
+  const veil=ctx.createLinearGradient(0,top,0,bottom);
+  const attenuation=d=>clamp((d-140)/1050,0,.74);
+  veil.addColorStop(0,'rgba(1,9,23,'+attenuation(depthTop).toFixed(3)+')');
+  veil.addColorStop(1,'rgba(1,7,19,'+attenuation(depthBottom).toFixed(3)+')');
+  ctx.fillStyle=veil;ctx.fillRect(left,top,right-left,bottom-top);
+ }
+ function drawSediment(ctx,left,top,right,bottom,time,lowPower){
+  const spacing=lowPower?165:110;
+  for(let i=Math.floor(left/spacing);i<=Math.ceil(right/spacing);i++){
+   const x=i*spacing+seeded(i,11)*spacing*.6,y=geo.floorAt(x);
+   if(y<top-20||y>bottom+20)continue;
+   const rough=seeded(i,51);
+   ctx.save();ctx.strokeStyle='rgba(116,149,150,'+(.07+rough*.12)+')';ctx.lineWidth=1.5;
+   for(let j=0;j<3;j++){const dx=(j-1)*19;ctx.beginPath();ctx.moveTo(x+dx-12,y+3+j*3);ctx.quadraticCurveTo(x+dx,y-4+j*3,x+dx+13,y+2+j*3);ctx.stroke();}
+   if(!lowPower&&geo.metersAt(y)>400&&rough>.65){
+    ctx.fillStyle='rgba(112,161,153,.22)';ctx.beginPath();ctx.ellipse(x+11,y-4,8+rough*8,2.2,0,0,TAU);ctx.fill();
+   }
+   ctx.restore();
   }
  }
  function drawFloor(ctx,left,right,bottom){
@@ -197,14 +220,14 @@
   }ctx.restore();
  }
  function rockGarden(ctx,x,y,type,seed,time,lowPower){
-  if(type==='kelp'){kelp(ctx,x,y,120+seed*180,time,seed*TAU);return;}
-  if(type==='reef'){
+  if(type==='kelp'){if(geo.metersAt(y)<210)kelp(ctx,x,y,120+seed*180,time,seed*TAU);return;}
+  if(type==='reef'&&geo.metersAt(y)<215){
    if(seed<.31)tubeSponges(ctx,x,y,.62+seed,seed);
    else if(seed<.70)seaFan(ctx,x,y,.57+seed*.7,seed);
    else coral(ctx,x,y,.7+seed*.7,seed);
-  }else if(type==='rocks'||type==='canyon'){
-   if(seed>.46)tubeSponges(ctx,x,y,.50+seed*.52,seed);
-   else if(seed<.25&&!lowPower)seaFan(ctx,x,y,.38+seed*.45,seed);
+   }else if(type==='rocks'||type==='canyon'){
+   if(geo.metersAt(y)<420&&seed>.46)tubeSponges(ctx,x,y,.50+seed*.52,seed);
+   else if(geo.metersAt(y)<230&&seed<.25&&!lowPower)seaFan(ctx,x,y,.38+seed*.45,seed);
   }else if(type==='abyss'&&!lowPower&&seed>.62){
    glowAnemone(ctx,x,y,.42+seed*.38,seed,lowPower);
   }
@@ -253,7 +276,7 @@
     if(seed>.16)rockGarden(ctx,x,y,rock.y<geo.HEIGHT*.53?'reef':'rocks',seed,time,lowPower);
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
      const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
-     if(rock.type==='overhang'&&seed>.12){
+     if(rock.type==='overhang'&&seed>.12&&geo.metersAt(underside)<450){
       // Multiple asymmetric biological silhouettes, not identical hanging brushes.
       const form=seeded(rock.x+i*7,29);
       ctx.save();ctx.translate(x,underside+3);ctx.scale(1,-1);
@@ -263,7 +286,7 @@
       else coral(ctx,0,0,.62+seed*.58,seed);
       ctx.restore();
      }
-     if(!lowPower&&i%2===0)danglingPlants(ctx,x,underside,55+seed*185,time,seed+i);
+     if(!lowPower&&i%2===0&&geo.metersAt(underside)<400)danglingPlants(ctx,x,underside,55+seed*185,time,seed+i);
     }
    }
   }
@@ -280,8 +303,10 @@
   drawFloor(ctx,left,right,bottom);
   drawRocks(ctx,left,top,right,bottom);
   drawCaves(ctx,left,top,right,bottom);
+  drawSediment(ctx,left,top,right,bottom,time,lowPower);
   drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower);
   drawBiomes(ctx,left,top,right,bottom,time,lowPower);
+  drawDepthHaze(ctx,left,top,right,bottom);
   ctx.restore();
  }
  return Object.freeze({draw});

@@ -165,6 +165,15 @@
   if(y<3400*DEPTH_SCALE)return 'open';
   return 'twilight';
  }
- function lightAt(y){return clamp(1-Math.pow(clamp(y/HEIGHT,0,1),.72)*.94,.06,1);}
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt});
+ // The gameplay world spans 2,200 meters; biological light boundaries must use
+ // real depth, not the older 9,000 m terrain-generation scale.
+ function metersAt(y){return clamp(Number(y)||0,0,HEIGHT)/HEIGHT*2200;}
+ function lightAt(y){
+  const depth=metersAt(y);
+  // Strong extinction in the euphotic zone, thin residual twilight, none after 1 km.
+  if(depth<=200)return clamp(Math.exp(-depth/95),.12,1);
+  if(depth<1000)return .12*Math.pow((1000-depth)/800,1.65);
+  return 0;
+ }
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });
