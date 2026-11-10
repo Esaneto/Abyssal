@@ -35,10 +35,13 @@ test('large distant parties receive fair interest-area allocations',()=>{
  assert.equal(new Set(cells.map(c=>c.key)).size,cells.length);
 });
 
-test('legacy resources remain disabled without losing the on-demand sector contract',()=>{
- assert.deepEqual(resource.streamNear('test-world',12400,1600,1800),[]);
+test('geological nodes are independently streamed while legacy shooter and Fossas generation stays disabled',()=>{
+ const a=resource.streamNear('test-world',12400,1600,1800);
+ const b=resource.streamNear('test-world',12400,1600,1800);
+ assert.deepEqual(a,b);
+ assert.ok(a.every(node=>node.id.startsWith('geo:')));
  assert.deepEqual(resource.create('test-world'),[]);
- assert.equal(resource.eligible({id:'1',x:0,y:0,type:'seaMineral'},0,0).reason,'resources-disabled');
+ assert.equal(resource.eligible({id:'1',x:0,y:0,type:'seaMineral'},0,0).reason,'tool-required');
 });
 
 test('fauna migrates within 15x world and never clamps to original 4800x3000',()=>{
