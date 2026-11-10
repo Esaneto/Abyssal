@@ -4140,6 +4140,9 @@ if(performanceDebugEnabled){
  setInterval(()=>{const snap=getAbyssalPerformanceSnapshot();panel.textContent=JSON.stringify(snap,null,2);},500);
 }
 function loop(t){
+ // The swimmer menu owns its own renderer; don't run the gameplay pipeline there.
+ // A low-rate wake-up is sufficient to resume gameplay after a mode selection.
+ if(gameState==='menu'&&!onlineMode){last=t;setTimeout(()=>requestAnimationFrame(loop),125);return;}
  const active=!abyssalTutorialActive&&(gameState==='playing'||(onlineMode&&gameState==='upgrade'));
  // During active gameplay, trust requestAnimationFrame instead of manually skipping
  // frames. The old 60-FPS divisor produced 37-55 FPS on 75/90/144/165 Hz displays.
