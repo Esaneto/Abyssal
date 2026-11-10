@@ -2226,7 +2226,7 @@ io.on('connection', socket => {
   const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),baseSpec=SkinStandard.activeSpec(skin);
   if(!baseSpec||player.skinId!==skin||baseSpec.id!==active)return ack(false,'skin-active-mismatch');
   if(player.specimenAlive===false)return ack(false,'specimen-defeated');
-  const mastery=specimenStatsFor(player),spec={...baseSpec,cooldown:active==='paralysis'||active==='poison'?10:mastery.cooldown,range:(Number(baseSpec.range)||0)*mastery.rangeMultiplier};
+  const spec=baseSpec; // Exact shop contract: proficiency cannot rewrite active stats.
   if(active==='paralysis'&&!['electriceel','electriceellegacy'].includes(skin))return ack(false,'paralysis-electric-only');
   const now=Date.now(),ready=Number(player.skinActiveReadyAt)||0;
   if(now<ready)return ack(false,'skin-active-cooldown',{remainingMs:ready-now});
