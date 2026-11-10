@@ -1,54 +1,4 @@
-/* Station hatch marker and compact submarine control center.
- * Loaded after all ocean-menu themes so legacy portal CSS cannot move it. */
-#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn.abyss-laboratory-hatch{
- position:absolute!important;left:50%!important;top:calc(var(--abyss-hatch-y, 86px) + 34px)!important;
- transform:translate(-50%,0)!important;z-index:12!important;pointer-events:auto!important;
- min-width:104px!important;height:auto!important;padding:5px 11px!important;
- border:1px solid rgba(225,181,86,.7)!important;border-radius:6px!important;
- background:linear-gradient(180deg,rgba(13,27,34,.96),rgba(5,14,19,.94))!important;
- box-shadow:0 5px 19px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,224,128,.18)!important;
- color:#eddbaf!important;display:flex!important;align-items:center!important;flex-direction:column!important;gap:2px!important;
- cursor:pointer!important;line-height:1.15!important;font:700 11px Inter,system-ui,sans-serif!important;
- letter-spacing:.10em!important;animation:none!important;
-}
-#submarineWorkshopBtn.abyss-laboratory-hatch .abyss-hatch-label{font-size:11px!important;white-space:nowrap!important;text-shadow:0 1px 5px #000!important;}
-#submarineWorkshopBtn.abyss-laboratory-hatch small{font:600 8px Inter,system-ui,sans-serif!important;letter-spacing:.04em!important;color:#a6b9b7!important;display:block!important;}
-#submarineWorkshopBtn.abyss-laboratory-hatch:hover,#submarineWorkshopBtn.abyss-laboratory-hatch:focus-visible{border-color:#ffda85!important;background:#263e43!important;outline:2px solid rgba(255,213,117,.6);outline-offset:3px}
-#submarineWorkshop .submarine-workshop-card{
- width:min(1030px,95vw)!important;max-height:min(92vh,830px)!important;padding:19px 21px!important;
- overflow:auto!important;border:2px solid #667c7b!important;border-radius:15px!important;
- background:radial-gradient(ellipse at 50% -20%,rgba(39,84,94,.62),transparent 60%),linear-gradient(150deg,#102630,#07161e 55%,#040c14)!important;
- box-shadow:0 0 0 9999px rgba(1,5,9,.82),inset 0 0 0 3px rgba(96,150,157,.16),0 24px 80px #000b!important;
-}
-#submarineWorkshop .submarine-workshop-grid{display:block!important;max-width:100%!important;}
-.submarine-console-overview{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid #46616b;border-radius:8px;background:linear-gradient(125deg,#0b2531,#0c1b23)}
-.submarine-console-overview small{font:800 10px Inter,sans-serif;color:#79c2ca;letter-spacing:.15em}
-.submarine-console-overview strong{font:800 clamp(18px,3vw,27px) Cinzel,Georgia,serif;color:#eee4cc;letter-spacing:.07em}
-.submarine-console-overview span{font:700 10px Inter,sans-serif;color:#9bc2c5;letter-spacing:.05em}
-.submarine-console-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 8px;scrollbar-width:thin}
-.submarine-console-tab{flex:0 0 auto;border:1px solid #4c6b73;border-radius:7px;background:#102832;color:#a9c2c1;padding:10px 12px;font:800 10px Inter,sans-serif;letter-spacing:.07em;cursor:pointer}
-.submarine-console-tab.is-active{border-color:#d9ad68;color:#fff1d4;background:linear-gradient(155deg,#375062,#20333e);box-shadow:inset 0 -2px 0 #ddbe75}
-.submarine-console-stock{padding:8px 11px;background:#06151b;border:1px solid #35525d;border-radius:6px;color:#a8c4bf;font:600 10px Inter,sans-serif;line-height:1.5}
-.submarine-console-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,236px),1fr));gap:10px;margin-top:12px}
-.submarine-console-card{display:flex;flex-direction:column;gap:6px;min-height:170px;padding:12px 13px;border:1px solid #38525c;border-radius:8px;background:linear-gradient(160deg,#122b37,#0a1922)}
-.submarine-console-card small{font:750 9px Inter,sans-serif;color:#d9b576;letter-spacing:.10em}
-.submarine-console-card strong{font:700 14px Inter,sans-serif;color:#f3eee0}
-.submarine-console-card p{font:500 11px/1.45 Inter,sans-serif;color:#b6cbcc;margin:0}
-.submarine-console-card span{font:600 10px/1.45 Inter,sans-serif;color:#9eada8}
-.submarine-console-card button{margin-top:auto;font-size:10px}
-.submarine-console-card.is-complete{border-color:rgba(131,192,161,.40);background:#0c242a}
-.submarine-console-production{display:grid;gap:8px;margin-top:12px;border:1px solid #99784d;border-radius:10px;background:linear-gradient(140deg,#2e302a,#112b30);padding:13px;color:#e8dbc7}
-.submarine-console-production>small{font:750 10px Inter,sans-serif;color:#dfc48a;letter-spacing:.09em}
-.submarine-console-production>strong{font:800 15px Inter,sans-serif}
-.submarine-console-production>p{font:500 12px/1.5 Inter,sans-serif;margin:0;color:#c8ccc3}
-.submarine-console-meter{display:grid;grid-template-columns:110px 1fr 140px;gap:10px;align-items:center}
-.submarine-console-meter b{font:700 10px Inter,sans-serif}
-.submarine-console-meter i{background:#081a20;border-radius:5px;overflow:hidden;height:9px}
-.submarine-console-meter i em{display:block;height:100%;background:#bd9356}
-.submarine-console-meter.gas i em{background:#76b6a0}
-.submarine-console-meter span{font:600 10px Inter,sans-serif}
-@media(max-width:700px){#submarineWorkshop .submarine-workshop-card{padding:13px!important}.submarine-console-card-grid{grid-template-columns:1fr}.submarine-console-meter{grid-template-columns:85px 1fr;gap:6px}.submarine-console-meter span{grid-column:2}.submarine-console-tab{padding:8px 9px}}
-
+/* Submarine hatch retains the existing swim-back interaction. */
 /* The hatch itself is the click target. The label is below its rim. */
 #menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn.abyss-laboratory-hatch{
  left:50%!important;top:var(--abyss-hatch-y,86px)!important;
@@ -71,61 +21,171 @@
 }
 #submarineWorkshopBtn.abyss-laboratory-hatch::before,
 #submarineWorkshopBtn.abyss-laboratory-hatch::after{content:none!important;display:none!important}
-/* No popup card: the viewport is now the submarine interior. */
+
+/* Full-screen cockpit. Physical controls form a single integrated console,
+ * while only its small central monitor scrolls. No floating modal or menu cards.
+ */
+#submarineWorkshop.abyss-cockpit-screen[hidden]{display:none!important}
 #submarineWorkshop.abyss-cockpit-screen:not([hidden]){
  display:block!important;position:fixed!important;inset:0!important;
- width:100vw!important;height:100dvh!important;max-width:none!important;max-height:none!important;
- padding:0!important;margin:0!important;border:0!important;
- z-index:30000!important;overflow:hidden!important;
- background:#060e15!important;isolation:isolate!important;
+ height:100dvh!important;width:100vw!important;max-width:none!important;max-height:none!important;
+ padding:0!important;margin:0!important;border:0!important;overflow:hidden!important;
+ z-index:30000!important;isolation:isolate;background:#051320!important;color:#e9f7f8!important;
 }
-#submarineWorkshop.abyss-cockpit-screen[hidden]{display:none!important}
-#submarineWorkshop .abyss-cockpit-canvas{
- position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0;
-}
+#submarineWorkshop .abyss-cockpit-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;z-index:0}
 #submarineWorkshop .abyss-cockpit-chrome{
- position:absolute;z-index:3;left:0;right:0;top:0;
- display:flex;align-items:center;justify-content:space-between;gap:15px;
- padding:max(12px,env(safe-area-inset-top)) 2vw;
- color:#e0cb99;font:800 10px Inter,sans-serif;letter-spacing:.16em;
- background:linear-gradient(180deg,rgba(4,12,17,.93),rgba(4,12,17,0));
+ position:absolute;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;justify-content:space-between;
+ gap:12px;padding:max(11px,env(safe-area-inset-top)) max(14px,3vw);
+ font:800 clamp(10px,1.2vw,15px) Inter,system-ui,sans-serif;letter-spacing:.13em;color:#e4f7fa;
+ background:linear-gradient(180deg,#04121bd9,transparent);pointer-events:none
 }
+#submarineWorkshop .abyss-cockpit-chrome>*{pointer-events:auto}
 #submarineWorkshop .abyss-cockpit-exit{
- border:1px solid rgba(192,164,108,.75);background:#182b32df;color:#f2dbab;
- border-radius:5px;padding:9px 12px;font:750 10px Inter,sans-serif;letter-spacing:.05em;cursor:pointer;
+ min-height:39px;background:linear-gradient(180deg,#223d4d,#102431);
+ border:2px solid #8bacb3;border-bottom-color:#52717c;border-radius:9px;
+ color:#f4e4bb;padding:8px 12px;box-shadow:0 4px 0 #071119,0 0 14px #0008;
+ font:800 11px Inter,system-ui,sans-serif;letter-spacing:.04em;cursor:pointer
 }
-#submarineWorkshop .abyss-cockpit-exit:hover{background:#324348}
+#submarineWorkshop .abyss-cockpit-exit:hover{background:#335666;border-color:#f1c67d}
 #submarineWorkshop .abyss-cockpit-console{
- position:absolute;z-index:2;bottom:max(10px,env(safe-area-inset-bottom));left:50%;
- transform:translateX(-50%);width:min(1210px,96vw);max-height:46vh;
- overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;
- border:2px solid #546a69;border-bottom:5px solid #b28a4a;border-radius:16px 16px 8px 8px;
- padding:15px 16px;
- background:linear-gradient(180deg,rgba(16,38,48,.97),rgba(5,18,25,.98));
- box-shadow:0 15px 60px #000c,inset 0 0 0 3px rgba(216,190,128,.07),0 0 28px rgba(60,142,153,.15);
+ box-sizing:border-box;position:absolute;z-index:3;left:64%;bottom:clamp(12px,3.8dvh,46px);
+ transform:translateX(-50%);width:min(960px,70vw);height:clamp(275px,43dvh,404px);
+ min-width:0;min-height:0;max-width:none;max-height:none;overflow:visible;
+ padding:17px 19px 15px;border:5px solid #465967;border-top:9px solid #7893a3;
+ border-bottom:9px solid #182c3b;border-radius:29px 29px 24px 24px;
+ background:linear-gradient(140deg,#394c66 0%,#17293d 24%,#102335 70%,#344d60 100%);
+ box-shadow:0 18px 45px #000e,inset 0 1px 0 #badde34d,inset 0 -6px 16px #030d1ac7;
 }
-#submarineWorkshop .submarine-workshop-grid{display:block!important;max-width:100%!important;}
-#submarineWorkshop .submarine-console-overview{padding:10px 12px}
-#submarineWorkshop .submarine-console-overview strong{font-size:clamp(15px,2vw,22px)}
-#submarineWorkshop .submarine-console-tabs{padding:9px 0 7px}
-#submarineWorkshop .submarine-console-tab{min-height:38px}
-#submarineWorkshop .submarine-console-card-grid{margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-#submarineWorkshop .submarine-console-card{min-height:140px}
-#submarineWorkshop .submarine-console-tab:focus-visible,#submarineWorkshop .submarine-console-card button:focus-visible{
- outline:2px solid #edcd87;outline-offset:3px;
+#submarineWorkshop .abyss-cockpit-console:before{
+ content:'';position:absolute;top:5px;left:4%;right:4%;height:4px;border-radius:4px;
+ background:linear-gradient(90deg,transparent,#ffbd60,#fff0af,#ffbd60,transparent);
+ box-shadow:0 0 13px #ffad57a8;pointer-events:none
+}
+#submarineWorkshop .abyss-cockpit-console:after{
+ content:'';position:absolute;bottom:5px;left:4%;right:4%;height:3px;
+ background:linear-gradient(90deg,transparent,#50d9e3,transparent);opacity:.55;pointer-events:none
+}
+#submarineWorkshop .submarine-workshop-grid{display:grid!important;grid-template-rows:minmax(0,1fr) auto!important;height:100%;max-width:none!important;gap:10px;min-height:0}
+#submarineWorkshop .abyss-cockpit-visor{
+ box-sizing:border-box;position:relative;min-height:0;height:100%;overflow:hidden;
+ display:flex;flex-direction:column;border:4px solid #67889e;border-bottom-color:#304c62;border-radius:15px;
+ background:linear-gradient(145deg,#092b41,#041523 80%);box-shadow:0 0 0 4px #081926,inset 0 0 22px #12a5b021,0 3px 16px #0009
+}
+#submarineWorkshop .abyss-cockpit-visor:before{
+ content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+ background:repeating-linear-gradient(0deg,transparent 0,transparent 7px,#9fe9ef06 8px);z-index:3
+}
+#submarineWorkshop .abyss-visor-heading{
+ position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;
+ gap:12px;padding:10px 15px 7px;border-bottom:1px solid #47839585;
+ background:linear-gradient(90deg,#0f4053,#0c263d)
+}
+#submarineWorkshop .abyss-visor-heading small{font:800 9px Inter,sans-serif;letter-spacing:.15em;color:#88d6e5}
+#submarineWorkshop .abyss-visor-heading strong{display:block;font:800 clamp(13px,1.65vw,20px) Cinzel,Georgia,serif;color:#f6e2ad}
+#submarineWorkshop .abyss-visor-heading span{font:700 10px Inter,sans-serif;color:#a0c9d3;text-align:right}
+#submarineWorkshop .abyss-visor-body{position:relative;z-index:2;min-height:0;flex:1;overflow:auto;scrollbar-color:#3b8195 #0a2332;scrollbar-width:thin;padding:10px 14px 13px}
+#submarineWorkshop .abyss-visor-body:focus-visible{outline:2px solid #ffdf91;outline-offset:-3px}
+#submarineWorkshop .abyss-control-deck{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:0 2px 5px}
+#submarineWorkshop .abyss-control-key{
+ box-sizing:border-box;position:relative;min-width:0;min-height:58px;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:4px;padding:5px 3px 7px;cursor:pointer;
+ color:#cceef4;background:linear-gradient(165deg,#2a4d61,#0e2639 80%);
+ border:2px solid #6286a0;border-bottom:5px solid #071724;border-radius:10px;
+ box-shadow:inset 0 1px 0 #96d5ec55,0 4px 0 #07121d,0 6px 10px #0009;
+ text-shadow:0 1px 5px #000;font:800 clamp(8px,.86vw,11px) Inter,system-ui,sans-serif;letter-spacing:.025em;
+}
+#submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:clamp(15px,1.4vw,21px);line-height:1.1;color:#68dbed}
+#submarineWorkshop .abyss-control-key.is-active{
+ color:#fff2d0;border-color:#e4ba62;border-bottom-color:#805526;
+ background:linear-gradient(165deg,#586455,#233a42 78%);box-shadow:inset 0 1px 0 #ffe3a6aa,0 3px 0 #56361b,0 0 15px #ffc45c77
+}
+#submarineWorkshop .abyss-control-key.is-active .abyss-control-icon{color:#ffd17d}
+#submarineWorkshop .abyss-control-key:hover{filter:brightness(1.2)}
+#submarineWorkshop .abyss-control-key:active{transform:translateY(3px);box-shadow:inset 0 1px 4px #050d19}
+#submarineWorkshop button:focus-visible{outline:2px solid #ffdb8c!important;outline-offset:2px}
+#submarineWorkshop .abyss-lab-subnav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+#submarineWorkshop .abyss-lab-subnav button{
+ padding:5px 9px;border:1px solid #447489;border-radius:6px;background:#092c40;
+ color:#b4dfec;font:800 9px Inter,sans-serif;cursor:pointer
+}
+#submarineWorkshop .abyss-lab-subnav button.is-active{background:#3d5560;border-color:#e0be7e;color:#ffe3a9}
+#submarineWorkshop .submarine-console-stock{font:600 10px Inter,sans-serif;color:#8ebdcc;line-height:1.5;padding:3px 0 8px}
+#submarineWorkshop .submarine-console-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-width:none!important}
+#submarineWorkshop .submarine-console-card{
+ display:flex;flex-direction:column;gap:6px;min-height:134px;min-width:0;
+ padding:9px 10px;border-radius:8px;border:1px solid #385e6f;
+ background:linear-gradient(160deg,#14364b,#0a1d2c);box-shadow:inset 0 1px 0 #8aefff12
+}
+#submarineWorkshop .submarine-console-card.is-complete{border-color:#6d9d8e;background:#123039}
+#submarineWorkshop .submarine-console-card small{font:800 9px Inter,sans-serif;color:#f1c77f;letter-spacing:.055em}
+#submarineWorkshop .submarine-console-card strong{font:700 13px Inter,sans-serif;color:#f4f8f4}
+#submarineWorkshop .submarine-console-card p{font:500 10px/1.4 Inter,sans-serif;color:#b5d4d7;margin:0}
+#submarineWorkshop .submarine-console-card .abyss-mineral-requirements{display:flex;gap:5px;flex-wrap:wrap;margin-top:auto}
+#submarineWorkshop .abyss-requirement{
+ display:inline-flex;gap:3px;align-items:center;padding:2px 5px 2px 2px;
+ border-radius:5px;border:1px solid #3a6770;background:#0b2534;
+ font:800 10px Inter,sans-serif;color:#dbe9e9
+}
+#submarineWorkshop .abyss-requirement .abyss-resource-graphic{width:25px;height:25px;flex-shrink:0}
+#submarineWorkshop .submarine-console-card button,#submarineWorkshop .abyss-visor-action{
+ align-self:flex-start;min-height:29px;border:1px solid #71b9c8;border-radius:6px;padding:6px 10px;
+ background:#125066;color:#e6faff;font:800 10px Inter,sans-serif;cursor:pointer
+}
+#submarineWorkshop .submarine-console-card button:disabled{opacity:.6;cursor:default;border-color:#496877}
+#submarineWorkshop .abyss-mineral-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+#submarineWorkshop .abyss-mineral-tile{
+ display:flex;align-items:center;gap:9px;min-width:0;border:1px solid #396b84;border-radius:8px;
+ padding:8px;background:linear-gradient(150deg,#183f54,#082132);color:#e8f7fa
+}
+#submarineWorkshop .abyss-mineral-tile .abyss-resource-graphic{flex:none;width:clamp(36px,4vw,55px);height:55px;filter:drop-shadow(0 0 6px #5bdbef66)}
+#submarineWorkshop .abyss-mineral-tile strong{font:800 10px Inter,sans-serif;line-height:1.2;display:block}
+#submarineWorkshop .abyss-mineral-tile small{display:block;margin-top:3px;color:#a9c2c8;font:600 9px Inter,sans-serif}
+#submarineWorkshop .abyss-console-info{display:grid;gap:10px;align-content:start;max-width:610px}
+#submarineWorkshop .abyss-console-info p{margin:0;color:#b4d9e5;font:500 12px/1.5 Inter,sans-serif}
+#submarineWorkshop .abyss-console-info strong{font:800 18px Cinzel,serif;color:#f5e3b7}
+#submarineWorkshop .submarine-console-production{display:grid;gap:6px;padding:9px;margin-bottom:9px;border:1px solid #ab8754;border-radius:7px;background:#0a2931;color:#e1f0e4}
+#submarineWorkshop .submarine-console-production>small{font:800 9px Inter,sans-serif;color:#ddc28b}
+#submarineWorkshop .submarine-console-production>strong{font:800 12px Inter,sans-serif}
+#submarineWorkshop .submarine-console-production p{font:500 10px/1.4 Inter,sans-serif}
+#submarineWorkshop .submarine-console-meter{display:grid;grid-template-columns:90px 1fr 115px;align-items:center;gap:7px;font:600 10px Inter,sans-serif}
+#submarineWorkshop .submarine-console-meter i{height:7px;overflow:hidden;background:#051722;border-radius:5px}
+#submarineWorkshop .submarine-console-meter i em{display:block;height:100%;background:#e2ba74}
+#submarineWorkshop .submarine-console-meter.gas i em{background:#70d4ba}
+#submarineWorkshop .abyss-cockpit-ticker{
+ position:absolute;z-index:4;bottom:max(3px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);
+ width:min(1000px,85vw);height:21px;overflow:hidden;white-space:nowrap;
+ border:1px solid #42738a;border-radius:6px;background:#061927ec;color:#5fe2e8;
+ box-shadow:0 0 11px #27a7bc55;font:700 10px Inter,sans-serif;line-height:20px
+}
+#submarineWorkshop .abyss-cockpit-ticker span{display:inline-block;padding-left:100%;animation:abyss-cockpit-scroll 22s linear infinite}
+@keyframes abyss-cockpit-scroll{to{transform:translateX(-100%)}}
+@media(max-width:1000px){
+ #submarineWorkshop .abyss-cockpit-console{left:61%;width:min(800px,80vw);height:clamp(300px,46dvh,410px)}
+ #submarineWorkshop .abyss-mineral-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:700px){
- #submarineWorkshop .abyss-cockpit-chrome{padding:10px;font-size:8px}
- #submarineWorkshop .abyss-cockpit-exit{padding:8px;font-size:9px}
+ #submarineWorkshop .abyss-cockpit-chrome{padding:8px 10px;gap:5px;font-size:8px;letter-spacing:0}
+ #submarineWorkshop .abyss-cockpit-exit{font-size:8px;min-height:33px;padding:6px}
  #submarineWorkshop .abyss-cockpit-console{
-  width:98vw;max-height:62dvh;bottom:0;border-radius:10px 10px 0 0;
-  padding:9px 10px;
+  left:50%;width:97vw;height:clamp(315px,57dvh,510px);
+  bottom:26px;padding:12px 10px 10px;border-width:3px;border-top-width:7px;border-bottom-width:7px;
+  border-radius:17px
  }
+ #submarineWorkshop .submarine-workshop-grid{gap:7px}
+ #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ #submarineWorkshop .abyss-control-key{min-height:37px;flex-direction:row;gap:4px;padding:3px 4px 5px;font-size:9px;border-bottom-width:3px}
+ #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:15px}
+ #submarineWorkshop .abyss-visor-heading{padding:6px 9px}
+ #submarineWorkshop .abyss-visor-heading strong{font-size:13px}
+ #submarineWorkshop .abyss-visor-heading span{font-size:8px}
+ #submarineWorkshop .abyss-visor-body{padding:8px}
  #submarineWorkshop .submarine-console-card-grid{grid-template-columns:1fr}
- #submarineWorkshop .submarine-console-overview span{font-size:9px}
+ #submarineWorkshop .abyss-mineral-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #submarineWorkshop .abyss-mineral-tile{padding:5px;gap:4px}
+ #submarineWorkshop .abyss-mineral-tile .abyss-resource-graphic{width:36px;height:40px}
+ #submarineWorkshop .abyss-mineral-tile strong{font-size:9px}
+ #submarineWorkshop .submarine-console-meter{grid-template-columns:70px 1fr;gap:4px}
+ #submarineWorkshop .submarine-console-meter span{grid-column:2}
+ #submarineWorkshop .abyss-cockpit-ticker{width:94vw;font-size:8px}
 }
-
-/* Keep the seated explorer and ocean viewport visible above the research deck. */
-#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{max-height:34dvh!important;}
-#submarineWorkshop.abyss-cockpit-screen .submarine-console-tabs{position:sticky;top:0;z-index:4;background:linear-gradient(180deg,#152f39 82%,rgba(9,27,34,.94));border-radius:6px}
-@media(max-width:700px){#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{max-height:48dvh!important;}}
+@media(prefers-reduced-motion:reduce){#submarineWorkshop .abyss-cockpit-ticker span{animation:none;padding-left:10px}}
