@@ -100,7 +100,8 @@ const injected=`<script>
    },300);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='sea')document.getElementById('abyssInventoryToggle')?.click();check()},2300);
+   const openSeaInventory=()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage!=='sea')return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}setTimeout(openSeaInventory,150);};
+   setTimeout(openSeaInventory,2200);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
  });
 })();
