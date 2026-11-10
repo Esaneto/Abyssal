@@ -5,11 +5,11 @@ const Specimen=require('../public/specimen-system.js');
 const Standard=require('../public/skin-standard.js');
 const Abilities=require('../public/skin-abilities.js');
 
-test('specimen proficiency scales from 0 to 5000 with requested caps',()=>{
+test('specimen proficiency scales abilities but retains the five-minute death penalty',()=>{
  const zero=Specimen.stats(0),half=Specimen.stats(2500),max=Specimen.stats(5000);
- assert.equal(zero.cooldown,10);assert.equal(zero.respawnSeconds,20);assert.equal(zero.attributeBonus,0);assert.equal(zero.rangeBonus,0);
- assert.equal(half.cooldown,7.5);assert.equal(half.respawnSeconds,15);assert.equal(half.attributeBonus,.025);assert.equal(half.rangeBonus,.10);
- assert.equal(max.cooldown,5);assert.equal(max.respawnSeconds,10);assert.equal(max.attributeBonus,.05);assert.equal(max.rangeBonus,.20);
+ assert.equal(zero.cooldown,10);assert.equal(zero.respawnSeconds,300);assert.equal(zero.attributeBonus,0);assert.equal(zero.rangeBonus,0);
+ assert.equal(half.cooldown,7.5);assert.equal(half.respawnSeconds,300);assert.equal(half.attributeBonus,.025);assert.equal(half.rangeBonus,.10);
+ assert.equal(max.cooldown,5);assert.equal(max.respawnSeconds,300);assert.equal(max.attributeBonus,.05);assert.equal(max.rangeBonus,.20);
  assert.equal(Specimen.pointsForKill(false),1);assert.equal(Specimen.pointsForKill(true),10);
  assert.equal(Specimen.addKill({kraken:4995},'kraken',true).kraken,5000);
 });
