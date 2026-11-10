@@ -42,10 +42,13 @@
   [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
   [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf'],
   // Strong overhangs near the starting shelf, physically collidable, not decals.
-  [580,4850,690,290,'shelf'],[2950,4250,730,230,'arch']
+  [580,4850,690,290,'shelf'],[2950,4250,730,230,'arch'],
+  // Wide cave canopy at entry, with a broad swim corridor below its hanging flora.
+  [810,0,880,240,'overhang',130],[3000,0,740,205,'overhang',100],
+  [1780,0,720,195,'shelf',1250]
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
-  id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
+  id:'rock-'+i,x:r[0],y:Number.isFinite(r[5])?r[5]:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
  })));
  // Cave systems pierce the seabed, with wide surface entrances and multiple

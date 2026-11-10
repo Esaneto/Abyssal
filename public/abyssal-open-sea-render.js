@@ -45,6 +45,12 @@
    for(const sourceX of [1800,6700,12200,18400,22600]){
    if(sourceX+geo.HEIGHT*.4<left||sourceX-geo.HEIGHT*.4>right)continue;
    const sourceY=-geo.HEIGHT*.016;
+   // Smaller turquoise openings interrupt broad dark reef silhouettes.
+   const opening=ctx.createRadialGradient(sourceX,260,40,sourceX,260,1650);
+   opening.addColorStop(0,'rgba(58,225,255,.30)');
+   opening.addColorStop(.42,'rgba(15,143,199,.13)');
+   opening.addColorStop(1,'rgba(0,30,65,0)');
+   ctx.fillStyle=opening;ctx.fillRect(left,top,right-left,bottom-top);
    const glow=ctx.createRadialGradient(sourceX,sourceY,60,sourceX,sourceY,geo.HEIGHT*.37);
    glow.addColorStop(0,'rgba(58,219,252,.49)');
    glow.addColorStop(.22,'rgba(20,165,231,.20)');
@@ -201,14 +207,19 @@
   }
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+140<left||rock.x-rock.rx-140>right||rock.y+rock.ry+220<top||rock.y-rock.ry-290>bottom)continue;
-   const n=lowPower?5:10;
+   const n=lowPower?5:rock.type==='overhang'?20:12;
    for(let i=0;i<n;i++){
     const q=(i+.5)/n*1.72-.86,x=rock.x+q*rock.rx;
     const y=rock.y-rock.ry*Math.sqrt(Math.max(0,1-q*q)),seed=seeded(rock.x,i+19);
     if(seed>.16)rockGarden(ctx,x,y,rock.y<geo.HEIGHT*.53?'reef':'rocks',seed,time,lowPower);
-    if(rock.type!=='spire'&&i%2===0&&!lowPower){
+    if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
      const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
-     danglingPlants(ctx,x,underside,50+seed*150,time,seed+i);
+     if(rock.type==='overhang'&&seed>.12){
+      // Inverted sea fans and tube sponges grow from the real cave ceiling.
+      ctx.save();ctx.translate(x,underside+3);ctx.scale(1,-1);
+      rockGarden(ctx,0,0,'reef',seed,time,lowPower);ctx.restore();
+     }
+     if(!lowPower&&i%2===0)danglingPlants(ctx,x,underside,55+seed*185,time,seed+i);
     }
    }
   }

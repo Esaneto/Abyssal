@@ -76,3 +76,12 @@ test('solo, coop, ecology, render and chart depend on one shared geography',()=>
  assert.match(chart,/geo\.floorAt/);
  assert.equal(typeof renderer.draw,'function');
 });
+
+test('Mar Aberto entry uses a collidable coral canopy without trapping the starting diver',()=>{
+ const start={x:1300,y:420};
+ assert.equal(geo.isSolid(start.x,start.y,23),false,'starting diver remains in water');
+ assert.equal(geo.isSolid(1000,190,18),true,'reef canopy is actual geology');
+ assert.equal(geo.segmentClear(1300,420,1700,480,20),true,'entry corridor remains swimmable');
+ const overhang=geo.ROCKS.filter(r=>r.type==='overhang');
+ assert.ok(overhang.length>=2,'large hanging reef ledges exist in scene and collision');
+});
