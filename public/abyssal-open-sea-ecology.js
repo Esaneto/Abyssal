@@ -95,7 +95,7 @@
   entity.aiNavMode=entity.aiMode;
   entity.aiNavDestinationX=goal.x;
   entity.aiNavDestinationY=goal.y;
-  entity.aiNavUntil=now+650;
+  entity.aiNavUntil=now+1500;
   return next;
  }
  function creatureId(entity){return String(entity?.id??entity?.streamId??'');}
@@ -127,24 +127,42 @@
   const hash=hashSchool(entity);
   const centerX=Number.isFinite(entity.homeX)?entity.homeX:entity.x;
   const centerY=Number.isFinite(entity.homeY)?entity.homeY:entity.y;
-  const angle=seconds*.14+(hash%628)/100;
   const group=isSchooling(entity.specimenSkinId);
-  const ordinal=Number.parseInt(String(entity.streamId||entity.id||'0').split('f').pop(),10)||0;
-  const offset=group?ordinal%3:((hash%5)-2);
-  let formationX=centerX+Math.cos(angle)*165+Math.cos(offset*2.4)*Math.min(72,offset*16);
-  let formationY=centerY+Math.sin(angle*.72)*92+Math.sin(offset*2.4)*Math.min(72,offset*16);
+  const habitat=habitatAt(centerX,centerY),worldW=geo?.WIDTH||24000,worldH=geo?.HEIGHT||21000;
+  // Wildlife owns a persistent roaming waypoint inside its habitat. The old tiny
+  // sinusoid changed direction continuously and made animals shiver around spawn.
+  const reached=!entity.aiPatrolGoal||Math.hypot(entity.x-entity.aiPatrolGoal.x,entity.y-entity.aiPatrolGoal.y)<70;
+  const expired=now>=(Number(entity.aiPatrolUntil)||0);
+  if(reached||expired){
+   const index=(Number(entity.aiPatrolIndex)||0)+1;entity.aiPatrolIndex=index;
+   let chosen=null;
+   for(let attempt=0;attempt<10&&!chosen;attempt++){
+    const seed=(hash+Math.imul(index+attempt,2654435761))>>>0;
+    const angle=(seed%6283)/1000;
+    const radius=(group?360:430)+((seed>>>8)%420);
+    const vertical=.48+((seed>>>17)%30)/100;
+    const x=clamp(centerX+Math.cos(angle)*radius,45,worldW-45);
+    const y=clamp(centerY+Math.sin(angle)*radius*vertical,45,worldH-45);
+    const sameHabitat=habitatAt(x,y).id===habitat.id;
+    if(sameHabitat&&!geo?.isSolid?.(x,y,38))chosen={x,y};
+   }
+   if(!chosen)chosen={x:centerX,y:centerY};
+   entity.aiPatrolGoal=chosen;
+   entity.aiPatrolUntil=now+6500+(hash%4500);
+  }
+  let formationX=entity.aiPatrolGoal.x,formationY=entity.aiPatrolGoal.y;
   if(group&&Array.isArray(neighbors)){
    let count=0,averageX=0,averageY=0,repulseX=0,repulseY=0;
    for(const mate of neighbors){
     if(!mate||mate===entity||mate.hp<=0||mate.schoolId!==entity.schoolId||mate.specimenSkinId!==entity.specimenSkinId)continue;
     const dx=entity.x-mate.x,dy=entity.y-mate.y,d=Math.hypot(dx,dy);
-    if(d>260||d<.0001)continue;
+    if(d>420||d<.0001)continue;
     averageX+=mate.x;averageY+=mate.y;count++;
-    if(d<35){repulseX+=dx/d*(35-d);repulseY+=dy/d*(35-d);}
+    if(d<48){repulseX+=dx/d*(48-d);repulseY+=dy/d*(48-d);}
    }
-   if(count){formationX=formationX*.7+(averageX/count)*.3+repulseX*.9;formationY=formationY*.7+(averageY/count)*.3+repulseY*.9;}
+   if(count){formationX=formationX*.82+(averageX/count)*.18+repulseX*1.15;formationY=formationY*.82+(averageY/count)*.18+repulseY*1.15;}
   }
-  const patrol={x:clamp(formationX,34,(geo?.WIDTH||24000)-34),y:clamp(formationY,34,(geo?.HEIGHT||21000)-34),alive:true,moveSpeed:group?125:105};
+  const patrol={x:clamp(formationX,34,worldW-34),y:clamp(formationY,34,worldH-34),alive:true,moveSpeed:group?118:102};
   const crowd=Array.isArray(neighbors)?neighbors:[];
   const provoked=(Number(entity.provokedUntil)||0)>now;
   let target=null,distance=Infinity,visibleTarget=false;

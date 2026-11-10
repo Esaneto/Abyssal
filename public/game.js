@@ -3856,7 +3856,7 @@ function renderSpecimenPortraits(t){
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
-  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!isSpecimenVessel){c.fillStyle=bg;c.fillRect(0,0,w,h);}
+  const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
   const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
   DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
@@ -4465,6 +4465,7 @@ window.AbyssalGameHooks={
  worldWidth:()=>W,
  worldHeight:()=>H,
  worldZoom:()=>worldZoom,
+ cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
  skinId:()=>equippedSkin,
  isFossasActive:()=>isRiftRun()&&gameState!=='menu'&&gameState!=='over',
  isRiftPlaying:()=>isRiftRun()&&gameState==='playing',

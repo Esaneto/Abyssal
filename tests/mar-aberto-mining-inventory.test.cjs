@@ -94,3 +94,11 @@ test('all geological deposits have their own visual silhouette in exploration',(
  }
  for(const kind of ['oilSeep','gasSeep'])assert.ok(runtime.includes("type==='"+kind+"'"),kind);
 });
+
+
+test('resource markers use the authoritative game camera so deposits stay fused to world geometry',()=>{
+ const runtime=source('public/abyssal-exploration-runtime.js'),game=source('public/game.js');
+ assert.match(game,/cameraState:\(\)=>\(\{x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH\}\)/);
+ assert.match(runtime,/AbyssalGameHooks\?\.cameraState\?\.\(\)/);
+ assert.match(runtime,/Number\.isFinite\(camera\?\.x\)\?camera\.x/);
+});

@@ -160,8 +160,11 @@
   markers.style.width=w+'px';markers.style.height=h+'px';markers.style.zIndex='14';
   if(markers.width!==w||markers.height!==h){markers.width=w;markers.height=h;}
   const c=markers.getContext('2d');c.clearRect(0,0,w,h);
-  const zoom=window.AbyssalGameHooks?.worldZoom?.()||.78;
-  const originX=Math.max(0,Math.min(p.worldWidth-w/zoom,p.x-w/(2*zoom))),originY=Math.max(0,Math.min(p.worldHeight-h/zoom,p.y-h/(2*zoom)));
+  const camera=window.AbyssalGameHooks?.cameraState?.(),zoom=Number(camera?.zoom)||window.AbyssalGameHooks?.worldZoom?.()||.78;
+  // Deposits are world geometry. Project them through the exact game camera instead
+  // of rebuilding an approximate camera from the diver position, which caused jumps.
+  const originX=Number.isFinite(camera?.x)?camera.x:Math.max(0,Math.min(p.worldWidth-w/zoom,p.x-w/(2*zoom)));
+  const originY=Number.isFinite(camera?.y)?camera.y:Math.max(0,Math.min(p.worldHeight-h/zoom,p.y-h/(2*zoom)));
   const t=performance.now()/1000;
   for(const node of nodes){
    const x=(node.x-originX)*zoom,y=(node.y-originY)*zoom;

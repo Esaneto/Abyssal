@@ -126,3 +126,14 @@ test('ocean obstacle navigation holds a coherent bypass waypoint between ticks',
  assert.deepEqual({x:a.x,y:a.y},{x:b.x,y:b.y});
  assert.ok(animal.aiNavUntil>1200);
 });
+
+
+test('idle fauna commits to broad habitat waypoints instead of vibrating around spawn',()=>{
+ const animal={id:731,streamId:'4:5:f1',schoolId:'4:5:solo1',specimenSkinId:'seapig',x:6200,y:5200,homeX:6200,homeY:5200,angle:0,hp:50,maxHp:50,wildlifeMode:'passive'};
+ const first=eco.decide(animal,[],0,1000,[animal]);
+ assert.equal(first.mode,'patrol');
+ assert.ok(Math.hypot(first.target.x-animal.homeX,first.target.y-animal.homeY)>250,'patrol target should use meaningful habitat space');
+ const second=eco.decide(animal,[],.05,1050,[animal]);
+ assert.deepEqual(second.target,first.target,'waypoint must remain stable across AI ticks');
+ assert.equal(eco.habitatAt(first.target.x,first.target.y).id,eco.habitatAt(animal.homeX,animal.homeY).id,'roaming remains inside the creature habitat');
+});
