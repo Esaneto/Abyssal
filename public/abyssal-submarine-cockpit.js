@@ -292,7 +292,7 @@
  }
  function diver(t,compact=false){
   // Rear-facing seated pilot in the playable diver's dark blue and cyan suit.
-  const female=gender()==='female',x=compact?720:258,y=compact?273:453;
+  const female=gender()==='female',x=compact?720:258,y=compact?200:453;
   c.save();c.translate(x,y);c.scale(compact?.49:.81,compact?.49:.81);
   c.lineJoin='round';c.lineCap='round';chair(0,104,.95);
   poly([[-72,260],[-95,315],[-48,370],[22,382],[40,356],[-14,326]],'#142d48','#66869e',4);

@@ -335,3 +335,12 @@
 @media(max-width:1100px){
  #submarineWorkshop .submarine-workshop-grid{gap:6px}
 }
+
+/* Desktop cinematic layout: reveal the entire seated pilot left of the real command monitor. */
+@media(min-width:1101px){
+ #submarineWorkshop .abyss-cockpit-console{left:65%;width:min(865px,68vw);height:clamp(310px,47dvh,435px)}
+ #submarineWorkshop .abyss-visor-body{padding:11px 14px 13px}
+}
+@media(min-width:701px) and (max-width:1100px){
+ #submarineWorkshop .abyss-cockpit-console{left:62%;width:min(750px,73vw);height:clamp(295px,48dvh,420px)}
+}
