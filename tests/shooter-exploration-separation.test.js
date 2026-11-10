@@ -69,3 +69,32 @@ test('old solo/online handlers live outside the visual menu',()=>{
  assert.match(html,/id="onlineBtn" type="button" hidden tabindex="-1"/);
  assert.match(html,/#menuScreen\.ocean-menu-v2:not\(\.menu-ready\)\{visibility:hidden!important\}/);
 });
+
+test('classic co-op never consumes oxygen, suffers depth pressure or receives depth events',()=>{
+ const server=source('server.js');
+ assert.match(server,/if\(room\.mode==='rift'\|\|room\.mode==='open-sea'\)\{\s*for\(const diver of activePlayers\)/);
+ assert.match(server,/if\(room\.mode==='rift'\|\|room\.mode==='open-sea'\)\{\s*const research=/);
+ assert.match(server,/if\(room\.mode==='rift'\)\{\s*WorldSimulation\.startDepthEvent\(w,Math\.random\)/);
+ const game=source('public/game.js');
+ assert.match(game,/function publishSoloDepthState\(\)\{\s*if\(onlineMode\|\|!isRiftRun\(\)\)return;/);
+ assert.match(game,/if\(isRiftRun\(\)&&data\.depthState\)window\.dispatchEvent/);
+});
+
+test('classic arena builds visible perimeter rocks but exploration does not',()=>{
+ const game=source('public/game.js');
+ assert.match(game,/if\(usesNaturalOceanTerrain\(\)\|\|isRiftRun\(\)\)return;/);
+ assert.match(game,/const spacing=95\/worldZoom,offset=24\/worldZoom;/);
+ assert.match(game,/arenaRocks\.push\(\{x,y,r:radius,edge,vertices,shade:fraction,visualOnly:true\}\)/);
+ assert.match(game,/createArenaRocks\(\);\s*const soloSpawn=/);
+ assert.match(game,/if\(usesNaturalOceanTerrain\(\)\)\{\s*window\.AbyssalOpenSeaRender/);
+});
+
+test('T follows mouse with manual control 2 and never toggles auto-fire',()=>{
+ const game=source('public/game.js');
+ assert.match(game,/autoFollowCursor\|\|controlSettings\.pc==='classic'&&pointer\.down/);
+ assert.match(game,/&&!?\(mx\|\|my\)/);
+ assert.match(game,/if\(dd>12\)\{mx=dx\/dd;my=dy\/dd\}/);
+ assert.match(game,/if\(isPcMouseAimMode\(\)\)updateMouseAimFromCursor\(\)/);
+ assert.match(game,/autoFollowCursor=!autoFollowCursor/);
+ assert.match(game,/autoFollowCursor=false;\s*document\.body\.classList\.add\('game-active'\)/);
+});
