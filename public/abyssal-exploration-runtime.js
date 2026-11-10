@@ -21,13 +21,13 @@
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
- function renderWorkshop(){if(!workshopGrid)return;const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory());workshopGrid.replaceChildren();const labTitle=document.createElement('div');labTitle.className='submarine-lab-heading';labTitle.innerHTML='<strong>ÁRVORE TECNOLÓGICA · LABORATÓRIO ABISSAL</strong><span>NÚCLEO ESSENCIAL → SOBREVIVÊNCIA / ENGENHARIA / ENERGIA → TECNOLOGIAS AVANÇADAS</span>';workshopGrid.appendChild(labTitle);for(const [id,def] of Object.entries(config.RESEARCH)){const card=document.createElement('article');card.className='submarine-upgrade branch-'+(def.starter?'core':def.group==='industry'?'industry':def.group==='shot'?'energy':def.group==='active'?'energy':def.group==='passive'?'adaptation':'engineering');const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};const label=def.starter?'TECNOLOGIA ESSENCIAL':def.group==='industry'?'ENGENHARIA OFFSHORE':def.group==='shot'?'PESQUISA DE DISPARO':def.group==='active'?'ENERGIA ATIVA':def.group==='passive'?'TECNOLOGIA PASSIVA':String(def.group||'sistema').toUpperCase();card.innerHTML='<small>'+label+'</small><strong>'+def.name+' · '+level+'/'+def.max+'</strong><span>'+(def.description||'')+(def.starter?' · Equipamento padrão do mergulhador.':Object.entries(cost).map(([r,n])=>' · '+(config.RESOURCES[r]?.name||r)+' × '+n).join(''))+(def.requires?.length?' · Requer: '+def.requires.map(r=>config.RESEARCH[r]?.name||r).join(', '):'')+'</span>';const btn=document.createElement('button');btn.type='button';btn.className='secondary-btn';btn.textContent=def.starter?'PADRÃO':level>=def.max?'MÁXIMO':'PESQUISAR';btn.disabled=Boolean(def.starter)||level>=def.max;btn.onclick=()=>window.dispatchEvent(new CustomEvent('abyssal-exploration-research-request',{detail:{id}}));card.appendChild(btn);workshopGrid.appendChild(card);}}
+ function renderWorkshop(){if(!workshopGrid)return;const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory());updateOffshoreProduction();workshopGrid.replaceChildren();const labTitle=document.createElement('div');labTitle.className='submarine-lab-heading';labTitle.innerHTML='<strong>ÁRVORE TECNOLÓGICA · LABORATÓRIO ABISSAL</strong><span>NÚCLEO ESSENCIAL → SOBREVIVÊNCIA / ENGENHARIA / ENERGIA → TECNOLOGIAS AVANÇADAS</span>';workshopGrid.appendChild(labTitle);if(levels.offshorePlatform){const production=document.createElement('article');production.className='submarine-upgrade branch-industry';production.innerHTML='<small>PRODUÇÃO OFFSHORE</small><strong>ESTOQUE DA PLATAFORMA</strong><span>Petróleo: '+offshore.oil.toFixed(1)+' / '+offshoreCapacity()+' · Gás: '+offshore.gas.toFixed(1)+' / '+offshoreCapacity()+' · Reservas conectadas: '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0)+'</span>';workshopGrid.appendChild(production);}for(const [id,def] of Object.entries(config.RESEARCH)){const card=document.createElement('article');card.className='submarine-upgrade branch-'+(def.starter?'core':def.group==='industry'?'industry':def.group==='shot'?'energy':def.group==='active'?'energy':def.group==='passive'?'adaptation':'engineering');const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};const label=def.starter?'TECNOLOGIA ESSENCIAL':def.group==='industry'?'ENGENHARIA OFFSHORE':def.group==='shot'?'PESQUISA DE DISPARO':def.group==='active'?'ENERGIA ATIVA':def.group==='passive'?'TECNOLOGIA PASSIVA':String(def.group||'sistema').toUpperCase();card.innerHTML='<small>'+label+'</small><strong>'+def.name+' · '+level+'/'+def.max+'</strong><span>'+(def.description||'')+(def.starter?' · Equipamento padrão do mergulhador.':Object.entries(cost).map(([r,n])=>' · '+(config.RESOURCES[r]?.name||r)+' × '+n).join(''))+(def.requires?.length?' · Requer: '+def.requires.map(r=>config.RESEARCH[r]?.name||r).join(', '):'')+'</span>';const btn=document.createElement('button');btn.type='button';btn.className='secondary-btn';btn.textContent=def.starter?'PADRÃO':level>=def.max?'MÁXIMO':'PESQUISAR';btn.disabled=Boolean(def.starter)||level>=def.max;btn.onclick=()=>window.dispatchEvent(new CustomEvent('abyssal-exploration-research-request',{detail:{id}}));card.appendChild(btn);workshopGrid.appendChild(card);}}
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',()=>{if(workshop){workshop.hidden=false;renderWorkshop();}});
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{if(workshop)workshop.hidden=true;});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
 
- let account=null,localInventory={},localLevels={},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
- try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
+ let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[]},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));const saved=JSON.parse(localStorage.getItem('abyssalSoloOffshoreV1')||'null');if(saved&&typeof saved==='object')offshore={oil:Math.max(0,Number(saved.oil)||0),gas:Math.max(0,Number(saved.gas)||0),lastAt:Number(saved.lastAt)||Date.now(),connections:Array.isArray(saved.connections)?saved.connections.slice(0,24):[]};}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  // Starter equipment is granted once per offline device, not on each run.
  try{
   const kit=fields.starterKit(localInventory,localStorage.getItem('abyssalSoloKitGrantedV1')==='1');
@@ -54,8 +54,22 @@
   try{
    localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));
    localStorage.setItem('abyssalSoloResearch',JSON.stringify(localLevels));
-   localStorage.setItem('abyssalSoloGeologyTakenV1',JSON.stringify([...taken].slice(-5000)));
+   localStorage.setItem('abyssalSoloGeologyTakenV1',JSON.stringify([...taken].slice(-5000)));localStorage.setItem('abyssalSoloOffshoreV1',JSON.stringify(offshore));
   }catch(_){}
+ }
+ function offshoreCapacity(){return 500+Math.max(0,(Number(stateLevels().subseaUmbilical)||1)-1)*250;}
+ function updateOffshoreProduction(now=Date.now()){
+  const elapsed=Math.max(0,Math.min(86400000,now-(Number(offshore.lastAt)||now)))/1000;offshore.lastAt=now;if(!elapsed)return;
+  let oilRate=0,gasRate=0;for(const link of offshore.connections||[]){if(link.type==='oilSeep')oilRate+=.025;else if(link.type==='gasSeep')gasRate+=.035;}
+  const cap=offshoreCapacity();offshore.oil=Math.min(cap,offshore.oil+oilRate*elapsed);offshore.gas=Math.min(cap,offshore.gas+gasRate*elapsed);
+ }
+ function connectOffshoreReserve(target){
+  const id=String(target.id),levels=stateLevels(),selected=inventoryUI()?.selectedTool?.();
+  if(!levels.offshorePlatform||!levels.subseaUmbilical||selected!=='offshoreCable')return false;
+  if(offshore.connections.some(link=>link.id===id)){notify('Esta reserva já está ligada à plataforma.');return true;}
+  if(offshore.connections.length>=Number(levels.subseaUmbilical)){notify('Todas as linhas submarinas pesquisadas já estão em uso.');return true;}
+  offshore.connections.push({id,type:target.type,x:target.x,y:target.y,connectedAt:Date.now()});offshore.lastAt=Date.now();saveLocal();
+  notify((target.type==='oilSeep'?'PETRÓLEO':'GÁS')+' CONECTADO · produção automática iniciada na plataforma.');return true;
  }
  function startRun(p){
   runKey=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
@@ -85,7 +99,7 @@
  }
  function collect(){
   const p=cfg();if(!p||p.mode!=='open-sea'||p.paused||!near||busy)return;
-  if(near.type==='oilSeep'||near.type==='gasSeep'){const levels=stateLevels();if(!levels.offshoreSurvey){notify('INDÍCIO DE HIDROCARBONETO. Pesquise Geofísica Offshore no submarino para mapear a reserva.');return;}if(!levels.offshorePlatform){notify('RESERVA MAPEADA. Construa a Plataforma de Produção Abissal no submarino.');return;}if(!levels.subseaUmbilical){notify('PLATAFORMA SEM LINHA. Pesquise Linhas Submarinas de Produção para conectar esta reserva.');return;}notify('RESERVA PRONTA PARA CONEXÃO. Equipe a linha umbilical e conecte plataforma e reservatório.');return;}
+  if(near.type==='oilSeep'||near.type==='gasSeep'){const levels=stateLevels();if(!levels.offshoreSurvey){notify('INDÍCIO DE HIDROCARBONETO. Pesquise Geofísica Offshore no submarino para mapear a reserva.');return;}if(!levels.offshorePlatform){notify('RESERVA MAPEADA. Construa a Plataforma de Produção Abissal no submarino.');return;}if(!levels.subseaUmbilical){notify('PLATAFORMA SEM LINHA. Pesquise Linhas Submarinas de Produção para conectar esta reserva.');return;}if((inventoryUI()?.selectedTool?.()||'')!=='offshoreCable'){notify('EQUIPE A LINHA UMBILICAL. Leve-a até a reserva para concluir a ligação.');return;}connectOffshoreReserve(near);return;}
   const selected=inventoryUI()?.selectedTool?.()||'abyssPickaxe';
   const inventory=research.sanitizeInventory(stateInventory());
   const check=fields.eligible(near,p.x,p.y,inventory,115,selected);
@@ -179,8 +193,13 @@
   }
   // Surface production platform is a researched world structure, never a starter object.
   const levels=stateLevels();
+  updateOffshoreProduction();
+  if(levels.offshorePlatform){
+   const platformX=520,platformY=95;
+   for(const link of offshore.connections||[]){if(link.x<left-300&&platformX<left-300||link.x>right+300&&platformX>right+300)continue;c.save();c.strokeStyle=link.type==='oilSeep'?'#594c37':'#628b7c';c.lineWidth=8;c.beginPath();c.moveTo(platformX,platformY+80);const midY=Math.max(230,link.y*.42);c.bezierCurveTo(platformX+80,midY,link.x-120,midY,link.x,link.y);c.stroke();c.strokeStyle='rgba(205,222,211,.28)';c.lineWidth=2;c.stroke();c.restore();}
+  }
   if(levels.offshorePlatform&&top<650){
-   const px=520,py=95;c.save();c.translate(px,py);c.strokeStyle='#9ba9ac';c.lineWidth=7;c.beginPath();c.moveTo(-45,5);c.lineTo(-58,105);c.moveTo(45,5);c.lineTo(58,105);c.stroke();c.fillStyle='#d6a52f';c.fillRect(-78,-18,156,28);c.fillStyle='#26343b';c.fillRect(-55,-42,72,24);c.strokeStyle='#d9c36d';c.lineWidth=3;c.beginPath();c.moveTo(28,-18);c.lineTo(50,-92);c.lineTo(62,-18);c.stroke();c.fillStyle='#d7edf0';c.font='700 12px sans-serif';c.fillText('PLATAFORMA OFFSHORE',-72,-50);c.restore();
+   const px=520,py=95;c.save();c.translate(px,py);c.strokeStyle='#9ba9ac';c.lineWidth=7;c.beginPath();c.moveTo(-45,5);c.lineTo(-58,105);c.moveTo(45,5);c.lineTo(58,105);c.stroke();c.fillStyle='#d6a52f';c.fillRect(-78,-18,156,28);c.fillStyle='#26343b';c.fillRect(-55,-42,72,24);c.strokeStyle='#d9c36d';c.lineWidth=3;c.beginPath();c.moveTo(28,-18);c.lineTo(50,-92);c.lineTo(62,-18);c.stroke();c.fillStyle='#d7edf0';c.font='700 12px sans-serif';c.fillText('PLATAFORMA OFFSHORE',-72,-50);c.font='700 11px sans-serif';c.fillStyle='#f0d989';c.fillText('PETRÓLEO '+offshore.oil.toFixed(1)+' / '+offshoreCapacity(),-72,128);c.fillStyle='#9ee6bf';c.fillText('GÁS '+offshore.gas.toFixed(1)+' / '+offshoreCapacity(),-72,145);c.fillStyle='#d7edf0';c.fillText('POÇOS '+offshore.connections.length+' / '+Math.max(1,Number(levels.subseaUmbilical)||0),-72,162);c.restore();
   }
   const now=performance.now();collectionFx=collectionFx.filter(fx=>now-fx.started<650);
   for(const fx of collectionFx){const age=(now-fx.started)/650;if(age<0||age>=1)continue;c.save();c.translate(fx.x,fx.y);c.globalAlpha=1-age;for(let i=0;i<8;i++){const a=i/8*Math.PI*2,travel=12+age*(25+i%3*8);c.fillStyle=i%2?'#718083':'#394a50';c.beginPath();c.arc(Math.cos(a)*travel,Math.sin(a)*travel+age*age*18,2.8,0,Math.PI*2);c.fill();}c.restore();}
@@ -298,7 +317,7 @@
    nodes=fields.streamNear(runKey,p.x,p.y,1900,taken);
   }
   scan(p,time);
-  if(time-lastRender<160)return;lastRender=time;
+  if(!p.online&&time-lastLocalSave>5000){lastLocalSave=time;updateOffshoreProduction();saveLocal();}if(time-lastRender<160)return;lastRender=time;
   const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,2200);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
   const gas=p.online&&serverVitals?serverVitals.oxygen:oxygen;
@@ -308,7 +327,7 @@
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
-  const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI()?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
+  const selectedTool=inventoryUI()?.selectedTool?.()||'abyssPickaxe',isHydrocarbon=near&&(near.type==='oilSeep'||near.type==='gasSeep');const can=Boolean(near)&&(isHydrocarbon?(near.distance<=115&&selectedTool==='offshoreCable'&&stateLevels().offshorePlatform&&stateLevels().subseaUmbilical):fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,selectedTool).ok)&&!p.paused&&!busy;
   $('explorationGatherBtn').disabled=!can;
   signal.hidden=true;
   markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
