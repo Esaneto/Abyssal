@@ -17,10 +17,12 @@ test('open-sea fauna inhabit defined zones and behavior is not automatic pursuit
  assert.equal(eco.decide({...animal,wildlifeMode:'aggressive'},[{...diver,x:900}],0,100).mode,'patrol');
 });
 
-test('legacy resource generator stays empty until the approved Mar Aberto catalog exists',()=>{
+test('curated geological resources stream only in Mar Aberto and keep Fossas untouched',()=>{
+ assert.equal(resources.ENABLED,true);
  assert.deepEqual(resources.create('unit-world','classic',4800,3000,90),[]);
- assert.deepEqual(resources.streamNear('unit-world',400,500,1400),[]);
- assert.equal(resources.eligible({id:'3',type:'salvageMetal',x:200,y:220},200,220).reason,'resources-disabled');
+ assert.equal(resources.eligible({id:'3',type:'salvageMetal',x:200,y:220},200,220).reason,'invalid-node');
+ const ores=resources.streamNear('unit-world',4000,8000,1800);
+ assert.deepEqual(ores,resources.streamNear('unit-world',4000,8000,1800));
 });
 test('combat technologies require lab research and legacy purchases migrate',()=>{
  assert.equal(config.RESEARCH.dash.slot,'E');
