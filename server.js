@@ -2656,9 +2656,11 @@ io.on('connection', socket => {
   if(p&&p.alive!==false)return respond({ok:false,reason:'return-to-base'});
   const id=String(payload.id||'');
   const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
-  const result=ResearchSystem.study(id,levels,u.resourceInventory||{});
+  const offshoreBalance=OffshoreSystem.accrue(u.offshoreProduction||{},levels,Date.now());
+  const result=ResearchSystem.study(id,levels,u.resourceInventory||{},offshoreBalance);
   if(!result.ok)return respond(result);
   u.researchLevels=result.levels;u.resourceInventory=result.inventory;
+  if(result.offshore)u.offshoreProduction=result.offshore;
   if(id==='subseaUmbilical')u.resourceInventory.offshoreCable=Math.max(Number(u.resourceInventory.offshoreCable)||0,Number(result.level)||1);
   if(ExplorationConfig.RESEARCH[id]?.legacyMeta){
    u.metaUpgrades||={};u.metaUpgrades[id]=Math.max(Number(u.metaUpgrades[id])||0,result.level);

@@ -25,19 +25,28 @@
   const level=toCount(currentLevel),scale=1+level;
   return Object.fromEntries(Object.entries(definition.cost).map(([resource,amount])=>[resource,Math.max(1,amount*scale)]));
  }
- function study(id,levels={},inventory={}){
+ function offshoreCostFor(id,currentLevel=0){
+  const definition=DEFINITIONS[id];if(!definition)return null;
+  const multiplier=1+toCount(currentLevel);
+  return Object.fromEntries(Object.entries(definition.offshoreCost||{}).map(([type,amount])=>[type,Math.max(0,toCount(amount)*multiplier)]));
+ }
+ function study(id,levels={},inventory={},offshore=null){
   const definition=DEFINITIONS[id];
   if(!definition)return {ok:false,reason:'unknown-research'};
   const safeLevels=sanitizeLevels(levels),safeInventory=sanitizeInventory(inventory);
-  const level=safeLevels[id],cost=costFor(id,level);
+  const level=safeLevels[id],cost=costFor(id,level),offshoreCost=offshoreCostFor(id,level)||{};
   if(level>=definition.max)return {ok:false,reason:'max-level'};
   if(definition.requires.some(prerequisite=>safeLevels[prerequisite]<1))return {ok:false,reason:'prerequisite'};
   if(Object.entries(cost).some(([material,amount])=>safeInventory[material]<amount))
-   return {ok:false,reason:'resources',cost};
+   return {ok:false,reason:'resources',cost,offshoreCost};
+  if(Object.entries(offshoreCost).some(([material,amount])=>!offshore||Number(offshore[material])<amount))
+   return {ok:false,reason:'offshore-resources',cost,offshoreCost};
   const nextInventory={...safeInventory};
   for(const [material,amount] of Object.entries(cost))nextInventory[material]-=amount;
   const nextLevels={...safeLevels,[id]:level+1};
-  return {ok:true,levels:nextLevels,inventory:nextInventory,cost,level:level+1};
+  const nextOffshore=offshore&&Object.keys(offshoreCost).length?
+   {...offshore,...Object.fromEntries(Object.entries(offshoreCost).map(([type,amount])=>[type,Math.max(0,Number(offshore[type])-amount)]))}:null;
+  return {ok:true,levels:nextLevels,inventory:nextInventory,cost,offshoreCost,level:level+1,...(nextOffshore?{offshore:nextOffshore}:{})};
  }
  // Owners retain benefits already purchased with coins even when shop sales
  // are retired. Migration never spends resources or degrades owned levels.
@@ -53,5 +62,5 @@
   }
   return valid;
  }
- return Object.freeze({VERSION:1,DEFINITIONS,sanitizeLevels,sanitizeInventory,costFor,study,migrateLegacy,unlocked,equipActives});
+ return Object.freeze({VERSION:1,DEFINITIONS,sanitizeLevels,sanitizeInventory,costFor,offshoreCostFor,study,migrateLegacy,unlocked,equipActives});
 });

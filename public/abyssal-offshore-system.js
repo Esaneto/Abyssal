@@ -27,11 +27,12 @@
   return {oil:clamp(raw?.oil,0,1000000),gas:clamp(raw?.gas,0,1000000),
    lastAt:clamp(raw?.lastAt||now,0,now),connections:entries,installation};
  }
- function capacity(levels={}){return 500+Math.max(0,integer(levels?.subseaUmbilical,MAX_LINKS)-1)*250;}
+ function capacity(levels={}){return 500+Math.max(0,integer(levels?.subseaUmbilical,MAX_LINKS)-1)*250+integer(levels?.offshoreStorage,2)*250;}
  function rates(state={},levels={}){
   if(!Number(levels?.offshorePlatform)||!Number(levels?.subseaUmbilical))return {oil:0,gas:0};
   const links=(state?.connections||[]).slice(0,integer(levels.subseaUmbilical,MAX_LINKS));
-  return {oil:links.filter(l=>l.type==='oilSeep').length*.025,gas:links.filter(l=>l.type==='gasSeep').length*.035};
+  return {oil:links.filter(l=>l.type==='oilSeep').length*.025*(1+.18*integer(levels?.oilProcessing,3)),
+    gas:links.filter(l=>l.type==='gasSeep').length*.035*(1+.18*integer(levels?.gasProcessing,3))};
  }
  function accrue(raw,levels={},now=Date.now()){
   const data=normalize(raw,now),seconds=clamp(now-data.lastAt,0,MAX_AGE_MS)/1000,production=rates(data,levels),max=capacity(levels);
