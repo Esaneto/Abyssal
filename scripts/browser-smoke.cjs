@@ -125,6 +125,25 @@ const injected=`<script>
       const cards=box.querySelectorAll('.submarine-console-card').length;
       const req=box.querySelectorAll('.abyss-requirement svg').length;
       if(cards<1||req<1)throw Error('Laboratory lost real research costs: '+cards+'/'+req);
+      // Real-browser layout contract: compact keys must remain beneath the monitor.
+      const monitor=box.querySelector('.abyss-cockpit-visor');
+      const deck=box.querySelector('.abyss-control-deck');
+      const monitorRect=monitor?.getBoundingClientRect();
+      const deckRect=deck?.getBoundingClientRect();
+      const keyRects=keys.map(key=>key.getBoundingClientRect());
+      if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
+      if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
+      if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)
+       throw Error('Console keys are not aligned with the main monitor');
+      if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))
+       throw Error('Oversized vertically stretched console key');
+      if(monitorRect.width<210||monitorRect.height<95)
+       throw Error('Central cockpit display is too small');
+      document.body.dataset.cockpitLayout=JSON.stringify({
+       visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],
+       keys:[Math.round(deckRect.width),Math.round(deckRect.height)],
+       keyHeight:Math.round(keyRects[0].height)
+      });
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
       document.body.dataset.cockpitIcons=icons;
