@@ -48,8 +48,8 @@
   for(let k=0;k<=12;k++){
    const depth=geo.metersAt(top+(bottom-top)*k/12),p=clamp(depth/2200,0,1);
    const smooth=p*p*(3-2*p),twilight=clamp(depth/530,0,1);
-   const red=Math.round(8-5*smooth),green=Math.round(105*(1-twilight)+58*twilight-21*smooth);
-   const blue=Math.round(148*(1-twilight)+103*twilight-35*smooth);
+   const red=Math.round(8-5*smooth),green=Math.round(105*(1-twilight)+84*twilight-12*smooth);
+   const blue=Math.round(148*(1-twilight)+142*twilight-17*smooth);
    gradient.addColorStop(k/12,'rgb('+red+','+Math.max(5,green)+','+Math.max(14,blue)+')');
   }
   ctx.fillStyle=gradient;ctx.fillRect(left,top,right-left,bottom-top);
@@ -171,7 +171,10 @@
     const geological=biome==='geological';
     const w=(310+seed*230)*(geological?.86:1);
     const h=(190+seeded(ix,iy+17)*180)*(geological?1.14:1);
-    ctx.save();ctx.globalAlpha=lowPower?.23:geological?.42:.48;
+    // Extend the distant wall down toward the real seabed. These are
+    // non-solid background formations, never floating mining platforms.
+    const foot=Math.max(y+h,Math.min(geo.floorAt(x)+70,bottom+370));
+    ctx.save();ctx.globalAlpha=lowPower?.25:geological?.53:.55;
     const shade=ctx.createLinearGradient(x,y-25,x,y+h);
     if(geological){
      shade.addColorStop(0,'#315965');shade.addColorStop(.35,'#163645');shade.addColorStop(1,'#071828');
@@ -183,8 +186,21 @@
     ctx.moveTo(x-w*.58,y+15);ctx.lineTo(x-w*.42,y-19);
     ctx.lineTo(x-w*.14,y-32);ctx.lineTo(x+w*.12,y-21);
     ctx.lineTo(x+w*.36,y-28);ctx.lineTo(x+w*.55,y+7);
-    ctx.lineTo(x+w*.40,y+h*.85);ctx.lineTo(x-w*.27,y+h);
+    ctx.lineTo(x+w*.43,foot);ctx.lineTo(x-w*.36,foot+36);
+    ctx.lineTo(x-w*.51,y+h*.68);
     ctx.closePath();ctx.fill();ctx.stroke();
+    // Interlocking rock faces follow the wall's length, not a rectangle.
+    ctx.save();ctx.globalAlpha=.46;
+    ctx.fillStyle=geological?'#092b3b':'#0b3854';ctx.beginPath();
+    ctx.moveTo(x-w*.14,y-32);ctx.lineTo(x+w*.12,y-21);
+    ctx.lineTo(x+w*.10,y+h*.34);ctx.lineTo(x+w*.28,foot);
+    ctx.lineTo(x-w*.09,foot);ctx.lineTo(x-w*.25,y+h*.52);
+    ctx.closePath();ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle=geological?'rgba(125,202,192,.50)':'rgba(109,224,237,.56)';
+    ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(x-w*.42,y-19);
+    ctx.lineTo(x-w*.14,y-32);ctx.lineTo(x+w*.12,y-21);
+    ctx.lineTo(x+w*.36,y-28);ctx.stroke();
     // Layered mineral strata and overhang fault lines.
     ctx.strokeStyle=geological?'rgba(136,170,155,.50)':'rgba(75,177,191,.41)';
     ctx.lineWidth=1.8;ctx.beginPath();
@@ -238,7 +254,7 @@
   const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
   if(depthBottom<140)return;
   const veil=ctx.createLinearGradient(0,top,0,bottom);
-  const attenuation=d=>clamp((d-140)/1450,0,.22);
+  const attenuation=d=>clamp((d-140)/1450,0,.15);
   veil.addColorStop(0,'rgba(1,9,23,'+attenuation(depthTop).toFixed(3)+')');
   veil.addColorStop(1,'rgba(1,7,19,'+attenuation(depthBottom).toFixed(3)+')');
   ctx.fillStyle=veil;ctx.fillRect(left,top,right-left,bottom-top);
