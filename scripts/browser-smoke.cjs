@@ -84,6 +84,7 @@ const injected=`<script>
   document.body.dataset.smokeInventoryOpen=String(Boolean(inventoryPanel&&!inventoryPanel.hidden));
   document.body.dataset.smokeInventorySlots=String(document.querySelectorAll('#abyssInventoryGrid .abyss-inventory-slot').length);
   document.body.dataset.smokeInventorySelected=String(document.getElementById('abyssInventorySelected')?.textContent||'');
+  document.body.dataset.smokeInventoryDiag=JSON.stringify({ui:Boolean(window.AbyssalInventoryUI),root:Boolean(inventoryRoot),rootHidden:inventoryRoot?.hidden??null,mode:window.AbyssalGameHooks?.explorationPosition?.()?.mode??null});
 
   document.body.dataset.smokeError=errors.filter(e=>/Abyssal frame error|ReferenceError|TypeError|SyntaxError/i.test(e)).slice(0,2).join('|').slice(0,180);
  };
@@ -100,7 +101,8 @@ const injected=`<script>
    },300);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
-   const openSeaInventory=()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage!=='sea')return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}setTimeout(openSeaInventory,150);};
+   let inventoryAttempts=0;
+   const openSeaInventory=()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage!=='sea')return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
    setTimeout(openSeaInventory,2200);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
  });
@@ -321,7 +323,8 @@ async function main(){
    const depth=Number(page.match(/data-smoke-depth="([^"]*)"/)?.[1]);
    if(stage==='sea'){
     assert.equal(Number(page.match(/data-smoke-world-height="([^"]*)"/)?.[1]),21000,label+' must actually run the deep Mar Aberto world');
-    assert.equal(page.match(/data-smoke-inventory-active="([^"]*)"/)?.[1],'true',label+' must expose the Mar Aberto inventory');
+    const inventoryDiag=(page.match(/data-smoke-inventory-diag="([^"]*)"/)?.[1]||'').replace(/&quot;/g,'"').replace(/&amp;/g,'&');
+    assert.equal(page.match(/data-smoke-inventory-active="([^"]*)"/)?.[1],'true',label+' must expose the Mar Aberto inventory; diag='+inventoryDiag);
     assert.equal(page.match(/data-smoke-inventory-open="([^"]*)"/)?.[1],'true',label+' inventory must open through the real UI control');
     assert.equal(Number(page.match(/data-smoke-inventory-slots="([^"]*)"/)?.[1]),30,label+' inventory must render all 30 slots');
     assert.match(page.match(/data-smoke-inventory-selected="([^"]*)"/)?.[1]||'',/PICARETA ABISSAL|CILINDRO VAZIO/i,label+' must expose a valid selected extraction tool');
