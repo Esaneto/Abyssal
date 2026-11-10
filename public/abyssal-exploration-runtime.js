@@ -149,7 +149,7 @@
   }catch(_){}
  }
  function currentOffshore(now=Date.now()){
-  const source=localResearchMode()?offshore:(account?.offshoreProduction||offshore);
+  const source=localResearchMode()?offshore:(account?.offshoreProduction||{oil:0,gas:0,lastAt:now,connections:[],installation:null});
   return Offshore?.accrue?.(source,stateLevels(),now)||source;
  }
  function offshoreRates(){return Offshore?.rates?.(currentOffshore(),stateLevels())||{oil:0,gas:0};}
