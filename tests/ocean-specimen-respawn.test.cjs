@@ -52,7 +52,8 @@ test('server tracks deaths by stable stream ID only in Mar Aberto',()=>{
 test("equipped companions respawn from twenty to ten seconds as adaptation increases, independently of wild fauna",()=>{
  assert.equal(Specimens.BASE_RESPAWN,20);
  assert.equal(Specimens.respawnSeconds(0),20);
- assert.equal(Specimens.respawnSeconds(2500),15);\n assert.equal(Specimens.respawnSeconds(5000),10);
+ assert.equal(Specimens.respawnSeconds(2500),15);
+ assert.equal(Specimens.respawnSeconds(5000),10);
  assert.equal(Specimens.MAX_RESPAWN_REDUCTION,10);
 });
 
