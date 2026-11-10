@@ -13,9 +13,9 @@ test('research consumes materials atomically and increases exactly one level',()
 });
 
 test('research rejects unaffordable or missing prerequisites',()=>{
- assert.equal(research.study('sonar',{}, {salvageMetal:3,bioSample:3}).reason,'prerequisite');
- assert.equal(research.study('sonar',{sampler:1},{salvageMetal:0,bioSample:2}).reason,'resources');
- assert.equal(research.study('sonar',{sampler:1},{salvageMetal:2,bioSample:1}).ok,true);
+ assert.equal(research.study('sonar',{}, {ferromanganeseCrust:3,phosphorite:3}).reason,'prerequisite');
+ assert.equal(research.study('sonar',{sampler:1},{ferromanganeseCrust:0,phosphorite:2}).reason,'resources');
+ assert.equal(research.study('sonar',{sampler:1},{ferromanganeseCrust:2,phosphorite:1}).ok,true);
 });
 
 test('higher research levels require more materials',()=>{
@@ -33,6 +33,7 @@ test('old paid abilities remain usable after the research migration',()=>{
  assert.equal(research.equipActives(['pulse','dash','unknown'],moved.levels,legacy).length,2);
  assert.equal(research.unlocked('pulse',{},legacy),true);
  assert.deepEqual(legacy,{pulse:1,dash:1,bulkhead:2});
+ assert.equal(research.unlocked('ricochet',{},legacy),false,'legacy ownership must not grant unrelated technologies');
 });
 
 test('untrusted inventory and research counts are bounded and sanitized',()=>{
