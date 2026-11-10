@@ -225,6 +225,19 @@
     ctx.strokeStyle='rgba(4,12,19,.22)';ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(x-20,y-25);ctx.lineTo(x+4,y+10);ctx.lineTo(x+13,y+27);ctx.stroke();
    }
+   const visual=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.4)?.id||'coastal';
+   if(visual==='geological'){
+    for(let j=0;j<5;j++){
+     const yy=rock.y-rock.ry*.65+j*rock.ry*.29;
+     ctx.strokeStyle=j%2?'rgba(95,160,149,.21)':'rgba(201,155,98,.18)';ctx.lineWidth=3+j%2;
+     ctx.beginPath();ctx.moveTo(rock.x-rock.rx*.79,yy);ctx.lineTo(rock.x-rock.rx*.30,yy+13);
+     ctx.lineTo(rock.x+rock.rx*.19,yy-21);ctx.lineTo(rock.x+rock.rx*.73,yy+8);ctx.stroke();
+    }
+   }else if(visual==='cinematic'){
+    ctx.strokeStyle='rgba(53,175,190,.16)';ctx.lineWidth=3.5;ctx.beginPath();
+    ctx.moveTo(rock.x-rock.rx*.8,rock.y-rock.ry*.6);
+    ctx.quadraticCurveTo(rock.x,rock.y-rock.ry*.76,rock.x+rock.rx*.7,rock.y-rock.ry*.48);ctx.stroke();
+   }
    ctx.restore();
   }
  }
@@ -313,7 +326,38 @@
    ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(Math.cos(a+.2)*reach*.5,-8+Math.sin(a)*reach*.5,Math.cos(a)*reach,Math.sin(a)*reach*.42-13);ctx.stroke();
   }ctx.restore();
  }
- function rockGarden(ctx,x,y,type,seed,time,lowPower){
+ function drawCinematicPolyps(ctx,x,y,seed,lowPower){
+  ctx.save();ctx.translate(x,y);ctx.lineCap='round';
+  const n=lowPower?3:6;
+  for(let i=0;i<n;i++){
+   const px=(i-(n-1)/2)*13,h=18+seeded(i,seed*31)*34;
+   ctx.strokeStyle=i%2?'rgba(110,202,199,.72)':'rgba(185,158,111,.62)';ctx.lineWidth=2.5;
+   ctx.beginPath();ctx.moveTo(px,0);ctx.quadraticCurveTo(px+8,-h*.58,px-5,-h);ctx.stroke();
+   ctx.fillStyle=i%2?'rgba(123,225,230,.82)':'rgba(217,191,125,.74)';
+   ctx.beginPath();ctx.ellipse(px-5,-h,4.5,2.7,-.15,0,TAU);ctx.fill();
+  }ctx.restore();
+ }
+ function drawRockMineralVein(ctx,x,y,seed,lowPower){
+  ctx.save();ctx.translate(x,y);ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(65,128,133,.42)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-26,3);ctx.lineTo(-11,-7);ctx.lineTo(0,-3);ctx.lineTo(9,-17);ctx.lineTo(26,-11);ctx.stroke();
+  for(let i=0;i<(lowPower?2:4);i++){
+   const px=-21+i*13,py=-2-(i%2)*8,size=3.2+seeded(i,seed)*4;
+   ctx.fillStyle=i%3===0?'rgba(190,153,101,.67)':'rgba(67,158,166,.56)';
+   ctx.beginPath();ctx.moveTo(px-size,py);ctx.lineTo(px,py-size*1.4);ctx.lineTo(px+size*.86,py-size*.2);
+   ctx.lineTo(px+size*.2,py+size*.54);ctx.closePath();ctx.fill();
+  }ctx.restore();
+ }
+ function rockGarden(ctx,x,y,type,seed,time,lowPower,visualId='coastal'){
+  if(visualId==='geological'){
+   if(seed>.27)drawRockMineralVein(ctx,x,y,seed,lowPower);
+   if(type==='abyss'&&seed>.78&&!lowPower)glowAnemone(ctx,x,y,.38+seed*.22,seed,lowPower);
+   return;
+  }
+  if(visualId==='cinematic'&&seed>.38){
+   drawCinematicPolyps(ctx,x,y,seed,lowPower);
+   if(seed>.62)return;
+  }
   if(type==='kelp'){if(geo.metersAt(y)<210)kelp(ctx,x,y,120+seed*180,time,seed*TAU);return;}
   if(type==='reef'&&geo.metersAt(y)<215){
    if(seed<.31)tubeSponges(ctx,x,y,.62+seed,seed);
@@ -345,7 +389,7 @@
    ctx.save();ctx.translate(x,y);
    if(nearFloor){
     const r=8+seed*16;ctx.fillStyle='rgba(42,68,72,.65)';ctx.beginPath();ctx.ellipse(0,0,r*1.7,r*.72,seed*2.4,0,TAU);ctx.fill();
-    if(seed>.57)rockGarden(ctx,0,3,geo.classify(x,y),seed,time,lowPower);
+    if(seed>.57)rockGarden(ctx,0,3,geo.classify(x,y),seed,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
    }else if(seed>.78&&!lowPower){
     // Sparse suspended organic silhouettes make mid-water feel inhabited without fake UI sprites.
     ctx.fillStyle='rgba(98,147,144,.12)';ctx.beginPath();ctx.ellipse(0,0,2.3+seed*2,1.1,seed*3,0,TAU);ctx.fill();
@@ -361,7 +405,7 @@
    const x=i*step+seeded(i,1)*48,y=geo.floorAt(x)-5;
    if(y<top-320||y>bottom+40)continue;
    const rand=seeded(i,7),type=geo.classify(x,y-110);
-   if(rand>.37)rockGarden(ctx,x,y,type,rand,time,lowPower);
+   if(rand>.37)rockGarden(ctx,x,y,type,rand,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
   }
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+140<left||rock.x-rock.rx-140>right||rock.y+rock.ry+220<top||rock.y-rock.ry-290>bottom)continue;
@@ -369,7 +413,7 @@
    for(let i=0;i<n;i++){
     const q=(i+.5)/n*1.72-.86,x=rock.x+q*rock.rx;
     const y=rock.y-rock.ry*Math.sqrt(Math.max(0,1-q*q)),seed=seeded(rock.x,i+19);
-    if(seed>.52)rockGarden(ctx,x,y,geo.classify(x,y-10),seed,time,lowPower);
+    if(seed>.52)rockGarden(ctx,x,y,geo.classify(x,y-10),seed,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
      const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
      if(rock.type==='overhang'&&seed>.12&&geo.metersAt(underside)<450){
