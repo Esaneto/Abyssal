@@ -200,6 +200,24 @@
   ctx.strokeStyle='rgba(89,120,130,.1)';ctx.lineWidth=5;ctx.beginPath();
   for(let x=start,i=0;x<=stop+step;x+=step,i++){const px=Math.min(stop,x),y=geo.floorAt(px)+80+Math.sin(px*.007)*18;if(!i)ctx.moveTo(px,y);else ctx.lineTo(px,y);}ctx.stroke();
  }
+ function drawFloorDetails(ctx,left,top,right,bottom,lowPower){
+  const pitch=lowPower?190:125,start=Math.max(0,Math.floor(left/pitch)-1),end=Math.ceil(right/pitch)+1;
+  for(let i=start;i<=end;i++){
+   const x=i*pitch,y=geo.floorAt(x),depth=geo.metersAt(y);
+   if(y<top-80||y>bottom+45)continue;
+   const r=seeded(i,97),w=45+r*75;
+   ctx.fillStyle=depth>1200?'rgba(84,104,113,.20)':'rgba(79,127,133,.20)';
+   ctx.beginPath();ctx.moveTo(x-w,y+11);ctx.lineTo(x-w*.34,y-7-r*6);
+   ctx.lineTo(x+w*.32,y-5+r*7);ctx.lineTo(x+w,y+13);
+   ctx.lineTo(x+w*.24,y+26);ctx.closePath();ctx.fill();
+   ctx.strokeStyle='rgba(96,155,160,.20)';ctx.lineWidth=1.5;
+   ctx.beginPath();ctx.moveTo(x-w*.31,y-7);ctx.lineTo(x+w*.3,y-4);ctx.stroke();
+   if(!lowPower&&r>.75){
+    ctx.fillStyle='rgba(135,153,136,.24)';
+    for(let k=0;k<3;k++){ctx.beginPath();ctx.arc(x+(k-1)*13,y-4,2.2+k*.5,0,TAU);ctx.fill();}
+   }
+  }
+ }
  function drawRocks(ctx,left,top,right,bottom,lowPower=false){
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+95<left||rock.x-rock.rx-95>right||rock.y+rock.ry+95<top||rock.y-rock.ry-95>bottom)continue;
@@ -443,17 +461,31 @@
    const x=i*step+seeded(i,1)*48,y=geo.floorAt(x)-5;
    if(y<top-320||y>bottom+40)continue;
    const rand=seeded(i,7),type=geo.classify(x,y-110);
-   if(rand>.37)rockGarden(ctx,x,y,type,rand,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
+   if(rand>(geo.visualBiomeAt?.(x,y)?.id==='coastal'?.19:.42)){
+    ctx.save();ctx.translate(x,y);
+    const size=.78+rand*.65;ctx.scale(size,size);
+    rockGarden(ctx,0,0,type,rand,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
+    ctx.restore();
+   }
   }
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+140<left||rock.x-rock.rx-140>right||rock.y+rock.ry+220<top||rock.y-rock.ry-290>bottom)continue;
-   const n=lowPower?3:rock.type==='boulder'?7:8;
+   const province=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.45)?.id||'coastal';
+   const n=lowPower?3:province==='coastal'?12:province==='cinematic'?9:7;
    for(let i=0;i<n;i++){
-    const q=(i+.5)/n*1.72-.86,x=rock.x+q*rock.rx;
-    const y=rock.y-rock.ry*Math.sqrt(Math.max(0,1-q*q)),seed=seeded(rock.x,i+19);
-    if(seed>.52)rockGarden(ctx,x,y,geo.classify(x,y-10),seed,time,lowPower,geo.visualBiomeAt?.(x,y)?.id);
+    const q=(i+.5)/n*1.72-.86,place=geo.rockSurfaceAt(rock,-Math.acos(q),0);
+    const x=place.x,y=place.y,seed=seeded(rock.x,i+19);
+    if(seed>(province==='coastal'?.16:.35)){
+     // Botanical roots are projected onto the exact same rock contour as collisions.
+     ctx.save();ctx.translate(x,y);
+     const plantSize=.65+seeded(i,rock.x*.03)*.75;
+     ctx.scale(plantSize,plantSize);
+     rockGarden(ctx,0,0,geo.classify(x,y-10),seed,time,lowPower,province);
+     if(!lowPower&&province==='coastal'&&i%3===1)seaFan(ctx,19,0,.42+seed*.35,seed);
+     ctx.restore();
+    }
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
-     const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
+     const underside=geo.rockSurfaceAt(rock,Math.acos(q),0).y;
      if(rock.type==='overhang'&&seed>.12&&geo.metersAt(underside)<450){
       // Multiple asymmetric biological silhouettes, not identical hanging brushes.
       const form=seeded(rock.x+i*7,29);
@@ -522,6 +554,7 @@
   drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.69)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(188,244,255,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
+  drawFloorDetails(ctx,left,top,right,bottom,lowPower);
   drawRocks(ctx,left,top,right,bottom,lowPower);
   drawCaves(ctx,left,top,right,bottom);
   drawSediment(ctx,left,top,right,bottom,time,lowPower);
