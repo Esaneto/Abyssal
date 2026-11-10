@@ -613,6 +613,14 @@ function explorationCollect(id,callback){
   callback?.(result);
  });
 }
+function explorationOffshoreAction(action,nodeId,callback){
+ if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
+ socket.timeout(7000).emit('exploration-offshore-action',{action,nodeId},(error,data)=>{
+  const result=error?{ok:false,reason:'timeout'}:data;
+  if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}
+  callback?.(result);
+ });
+}
 function explorationStudy(id,callback){
  if(!socket?.connected||!authenticated){callback?.({ok:false,reason:'authentication'});return;}
  socket.timeout(7000).emit('exploration-study',{id},(error,data)=>{
@@ -708,7 +716,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
   if(payload.progress)socket.emit('run-progress',payload.progress);
   socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
  }
- window.AbyssalOnline={explorationScan,explorationCollect,explorationExtractBegin,explorationExtractComplete,explorationStudy,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={explorationScan,explorationCollect,explorationExtractBegin,explorationExtractComplete,explorationStudy,explorationOffshoreAction,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());

@@ -30,6 +30,7 @@ const RiftHardcore = require('./public/abyssal-rift-hardcore.js');
 const ExplorationConfig=require('./public/abyssal-exploration-config.js');
 const ResearchSystem=require('./public/abyssal-research-system.js');
 const ResourceFields=require('./public/abyssal-resource-fields.js');
+const OffshoreSystem=require('./public/abyssal-offshore-system.js');
 const OceanStream=require('./public/abyssal-ocean-stream.js');
 const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
@@ -274,7 +275,7 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -2546,11 +2547,18 @@ io.on('connection', socket => {
  // Mar Aberto exploration geology is separate from the Solo/Online shooter.
  // Only the server can award resources and convert empty cylinders.
  function ensureExplorationStarter(u){
-  if(!u||u.explorationStarterGranted===true)return;
-  const kit=ResourceFields.starterKit(ResearchSystem.sanitizeInventory(u.resourceInventory||{}),false);
-  u.resourceInventory=ResearchSystem.sanitizeInventory(kit.inventory);
-  u.explorationStarterGranted=true;
-  saveUsers();
+  if(!u)return;
+  let changed=false;
+  if(u.explorationStarterGranted!==true){
+   const kit=ResourceFields.starterKit(ResearchSystem.sanitizeInventory(u.resourceInventory||{}),false);
+   u.resourceInventory=ResearchSystem.sanitizeInventory(kit.inventory);
+   u.explorationStarterGranted=true;changed=true;
+  }
+  const cableLevel=Number(ResearchSystem.sanitizeLevels(u.researchLevels||{}).subseaUmbilical)||0;
+  if(cableLevel>0&&(Number(u.resourceInventory?.offshoreCable)||0)<cableLevel){
+   u.resourceInventory ||= {};u.resourceInventory.offshoreCable=cableLevel;changed=true;
+  }
+  if(changed)saveUsers();
  }
  function nodesForWorld(room,x,y,radius=350){
   if(room?.mode!=='open-sea'||!room.world)return [];
@@ -2620,6 +2628,25 @@ io.on('connection', socket => {
   reply(answer);socket.emit('account-data',answer.account);
   socket.to(channelFor(room)).emit('exploration-resource-collected',{id});
  });
+ socket.on('exploration-offshore-action',(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const u=users[socket.data.userKey],room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(!u||!p||room?.mode!=='open-sea'||p.alive===false)return reply({ok:false,reason:'open-sea-only'});
+  ensureExplorationStarter(u);
+  if((Number(u.resourceInventory?.offshoreCable)||0)<1)return reply({ok:false,reason:'offshore-cable-required'});
+  const levels=ResearchSystem.sanitizeLevels(u.researchLevels||{});
+  const action=String(payload.action||'');
+  const id=String(payload.nodeId||'').slice(0,100);
+  // Only the server's deterministic world generator may designate a reservoir.
+  const well=action==='connect'?nodesForWorld(room,p.x,p.y,190).find(n=>n.id===id&&['oilSeep','gasSeep'].includes(n.type)):null;
+  if(action==='connect'&&!well)return reply({ok:false,reason:'unknown-reservoir'});
+  const result=OffshoreSystem.transition(u.offshoreProduction||{},levels,action,{x:p.x,y:p.y},well,Date.now());
+  if(!result.ok)return reply(result);
+  u.offshoreProduction=result.state;saveUsers();
+  const account=publicUser(u);
+  reply({ok:true,phase:result.phase,offshore:account.offshoreProduction,account});
+  socket.emit('account-data',account);
+ });
  socket.on('exploration-study',(payload={},ack)=>{
   const respond=data=>{if(typeof ack==='function')ack(data);};
   const u=users[socket.data.userKey],room=socketRoom(socket),p=room?.players.get(socket.id);
@@ -2632,6 +2659,7 @@ io.on('connection', socket => {
   const result=ResearchSystem.study(id,levels,u.resourceInventory||{});
   if(!result.ok)return respond(result);
   u.researchLevels=result.levels;u.resourceInventory=result.inventory;
+  if(id==='subseaUmbilical')u.resourceInventory.offshoreCable=Math.max(Number(u.resourceInventory.offshoreCable)||0,Number(result.level)||1);
   if(ExplorationConfig.RESEARCH[id]?.legacyMeta){
    u.metaUpgrades||={};u.metaUpgrades[id]=Math.max(Number(u.metaUpgrades[id])||0,result.level);
   }
