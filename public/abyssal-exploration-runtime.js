@@ -67,17 +67,19 @@
   const visible=Object.entries(config.RESEARCH).filter(([,def])=>selected.groups.includes(def.group));
   const cardGrid=document.createElement('div');cardGrid.className='submarine-console-card-grid';
   for(const [id,def] of visible){
-   const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};
-   const available=research.study(id,levels,inventory);
+   const level=Number(levels[id])||0,cost=research.costFor(id,level)||{},offshoreCost=research.offshoreCostFor?.(id,level)||{};
+   const available=research.study(id,levels,inventory,offshore);
    const card=document.createElement('article');card.className='submarine-console-card'+(level>=def.max?' is-complete':'');
-   const status=def.starter?'EQUIPAMENTO ESSENCIAL':level>=def.max?'PESQUISA CONCLUÍDA':available.ok?'DISPONÍVEL':available.reason==='prerequisite'?'BLOQUEADA':'MATERIAIS INSUFICIENTES';
+   const status=def.starter?'EQUIPAMENTO ESSENCIAL':level>=def.max?'PESQUISA CONCLUÍDA':available.ok?'DISPONÍVEL':available.reason==='prerequisite'?'BLOQUEADA':available.reason==='offshore-resources'?'AGUARDANDO PRODUÇÃO OFFSHORE':'MATERIAIS INSUFICIENTES';
    const header=document.createElement('small');header.textContent=status;const h=document.createElement('strong');h.textContent=def.name+'  '+level+'/'+def.max;
    const desc=document.createElement('p');desc.textContent=def.description||((def.group==='active'?'Habilidade '+(def.slot||''):def.group==='shot'?'Tecnologia de disparo':def.group==='passive'?'Tecnologia passiva':'Sistema do traje')+'.');
    const req=document.createElement('span');
-   req.textContent=level>=def.max?'MÓDULO INSTALADO':Object.entries(cost).map(([material,n])=>(config.RESOURCES[material]?.name||material)+' ×'+n).join(' · ')||'SEM CUSTO';
+   const materialCost=Object.entries(cost).map(([material,n])=>(config.RESOURCES[material]?.name||material)+' ×'+n);
+   const productionCost=Object.entries(offshoreCost).filter(([,n])=>n>0).map(([type,n])=>(type==='oil'?'Petróleo':'Gás natural')+' ×'+n);
+   req.textContent=level>=def.max?'MÓDULO INSTALADO':[...materialCost,...productionCost].join(' · ')||'SEM CUSTO';
    if(available.reason==='prerequisite')req.textContent+=' · REQUER: '+(def.requires||[]).filter(dep=>!levels[dep]).map(dep=>config.RESEARCH[dep]?.name||dep).join(', ');
    const button=document.createElement('button');button.type='button';button.className='secondary-btn';
-   button.textContent=def.starter?'ATIVO':level>=def.max?'CONCLUÍDO':available.reason==='prerequisite'?'REQUER PESQUISA':available.reason==='resources'?'FALTAM RECURSOS':'PESQUISAR';
+   button.textContent=def.starter?'ATIVO':level>=def.max?'CONCLUÍDO':available.reason==='prerequisite'?'REQUER PESQUISA':available.reason==='resources'?'FALTAM MINÉRIOS':available.reason==='offshore-resources'?'AGUARDANDO PETRÓLEO/GÁS':'PESQUISAR';
    button.disabled=Boolean(def.starter)||!available.ok;
    button.addEventListener('click',()=>{
     button.disabled=true;
@@ -86,6 +88,7 @@
       if(result.account)account=result.account;
       else{
        localLevels=result.levels;localInventory=result.inventory;
+       if(result.offshore)offshore=result.offshore;
        if(id==='subseaUmbilical')localInventory.offshoreCable=Math.max(Number(localInventory.offshoreCable)||0,Number(result.level)||1);
        saveLocal();inventoryUI()?.setInventory(localInventory);
        window.AbyssalGameHooks?.applyResearchUnlock?.(id,result.level);
@@ -94,7 +97,7 @@
      }else{button.disabled=false;req.textContent='FALHA: '+String(result?.reason||'erro');}
     };
     if(account&&!localResearchMode())window.AbyssalOnline?.explorationStudy?.(id,done);
-    else done(research.study(id,localLevels,localInventory));
+    else done(research.study(id,localLevels,localInventory,currentOffshore()));
    });
    card.append(header,h,desc,req,button);cardGrid.appendChild(card);
   }
@@ -273,16 +276,21 @@
    const desc=document.createElement('small');
    desc.textContent='Nível '+level+'/'+def.max+' · '+(def.group==='active'?'Habilidade '+def.slot:def.group==='passive'?'Passiva':'Equipamento');
    const materials=document.createElement('p');
-   materials.textContent=level>=def.max?'Pesquisa concluída':Object.entries(cost).map(([material,amount])=>(config.RESOURCES[material]?.name||material)+': '+amount).join(' · ');
+   materials.textContent=level>=def.max?'Pesquisa concluída':[
+    ...Object.entries(cost).map(([material,amount])=>(config.RESOURCES[material]?.name||material)+': '+amount),
+    ...Object.entries(research.offshoreCostFor?.(id,level)||{}).map(([type,amount])=>(type==='oil'?'Petróleo':'Gás')+': '+amount)
+   ].join(' · ');
    const button=document.createElement('button');button.type='button';button.textContent=level>=def.max?'CONCLUÍDO':'ESTUDAR';
-   const available=research.study(id,levels,inventory);button.disabled=!available.ok;
+   const available=research.study(id,levels,inventory,currentOffshore());button.disabled=!available.ok;
    if(!available.ok&&available.reason==='prerequisite')materials.textContent+=' · Pré-requisito: '+def.requires.map(r=>config.RESEARCH[r]?.name||r).join(', ');
    button.addEventListener('click',()=>{
     button.disabled=true;
     const done=result=>{
      if(result.ok){
       if(result.account){account=result.account;}else{
-       localLevels=result.levels;localInventory=result.inventory;saveLocal();
+       localLevels=result.levels;localInventory=result.inventory;
+       if(result.offshore)offshore=result.offshore;
+       saveLocal();
        window.AbyssalGameHooks?.applyResearchUnlock?.(id,result.level);
        if(id==='subseaUmbilical'){localInventory.offshoreCable=Math.max(Number(localInventory.offshoreCable)||0,Number(result.level)||1);saveLocal();inventoryUI()?.setInventory(localInventory);}
       }
@@ -290,7 +298,7 @@
      }else{materials.textContent='Falha: '+String(result.reason||'erro');button.disabled=false;}
     };
     if(account&&!localResearchMode())window.AbyssalOnline?.explorationStudy?.(id,done);
-    else done(research.study(id,localLevels,localInventory));
+    else done(research.study(id,localLevels,localInventory,currentOffshore()));
    });
    card.append(heading,desc,materials,button);grid.append(card);
   }
