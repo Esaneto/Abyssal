@@ -78,3 +78,19 @@ test('inventory is exclusive to Mar Aberto and server rejects untrusted collecti
  assert.match(ui,/event\.key\?\.toLowerCase\(\)==='i'/);
  assert.ok(html.indexOf('abyssal-inventory-ui.js')<html.indexOf('abyssal-exploration-runtime.js'));
 });
+
+test('mining UI is isolated to open sea and asynchronous callbacks cannot leak across game modes',()=>{
+ const runtime=source('public/abyssal-exploration-runtime.js');
+ assert.match(runtime,/if\(runKey!==expectedRun\)startRun\(p\)/,'returning from Fossas must start a fresh Mar Aberto session');
+ assert.match(runtime,/drawMarkers\(p,p\.mode==='open-sea'\)/,'do not render mineral fields inside Fossas');
+ assert.match(runtime,/if\(!result\?\.ok\|\|runKey!==requestedRun\|\|cfg\(\)\?\.mode!=='open-sea'/,'obsolete online sector scans must be discarded');
+ assert.match(runtime,/if\(runKey!==requestedRun\)return;\s*busy=false;/,'obsolete mining acknowledgements must not unlock another session');
+ assert.match(runtime,/if\(typeof send!=='function'\)\{busy=false;/,'missing online transport must not leave resource collection permanently locked');
+});
+test('all geological deposits have their own visual silhouette in exploration',()=>{
+ const runtime=source('public/abyssal-exploration-runtime.js');
+ for(const kind of ['polymetallicNodule','ferromanganeseCrust','hydrothermalSulfide']){
+  assert.ok(runtime.includes("type==='"+kind+"'"),kind+' needs a distinctive art branch');
+ }
+ for(const kind of ['oilSeep','gasSeep'])assert.ok(runtime.includes("type==='"+kind+"'"),kind);
+});
