@@ -15,7 +15,7 @@ test('Mar Aberto uses one deeper geometry shared by rendering and fauna streamin
  assert.equal(cell.resources.length,0);
  assert.deepEqual(resources.streamNear('ecosystem-contract',1500,900,2000),resources.streamNear('ecosystem-contract',1500,900,2000));
  assert.deepEqual(resources.create('ecosystem-contract','classic',4800,3000,80),[]);
- assert.equal(resources.ENABLED,false);
+ assert.equal(resources.ENABLED,true);
  assert.ok(geo.ROCKS.some(r=>r.x<1200&&r.y<1800),'the starter reef must have a visible elevated overhang');
 });
 
