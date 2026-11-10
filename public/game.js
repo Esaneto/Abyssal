@@ -58,8 +58,9 @@ let explorationResearchLevels={};
 let explorationLegacyMeta={};
 try{explorationResearchLevels=JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}')||{};explorationLegacyMeta=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')||{};}catch(_){}
 function resonanceAvailable(id,mode='pve'){
- if(mode==='pvp'||id==='electric')return true;
- return Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,explorationLegacyMeta));
+ if(!isOpenSeaRun())return true;
+ if(id==='photon'||id==='range'||id==='regen')return true;
+ return Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels));
 }
 window.addEventListener('abyssal-account-data',event=>{
  const data=event.detail||{};
@@ -1295,9 +1296,15 @@ function startGame(){
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
  if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
   riftBossMarks=[];riftSoloHazardCooldowns.clear();soloRiftCheckpointRoomId='start';
-runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])].filter(id=>resonanceAvailable(id,onlineRoomMode==='pvp'?'pvp':'pve'));if(!runResonanceIds.some(id=>RESONANCE_CATEGORIES.shots.includes(id)))runResonanceIds.unshift('electric');
- // Rajada Prismática is a universal passive, applied alongside the main shot.
- const selectedOpeningShot=runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';
+if(isOpenSeaRun()){
+ const researched=[...(resonancePresets.pve||[])].filter(id=>resonanceAvailable(id,'pve')&&id!=='range'&&id!=='regen');
+ runResonanceIds=['photon','range','regen',...researched.filter(id=>id!=='photon')];
+}else{
+ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])].filter(id=>resonanceAvailable(id,onlineRoomMode==='pvp'?'pvp':'pve'));
+ if(!runResonanceIds.some(id=>RESONANCE_CATEGORIES.shots.includes(id)))runResonanceIds.unshift('electric');
+}
+ // Open Sea starts with a plain photon shot. Classic shooter keeps its own loadout.
+ const selectedOpeningShot=isOpenSeaRun()?'photon':(runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric');
  runShotId=selectedOpeningShot;
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
@@ -1309,6 +1316,7 @@ runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])].
  expandingSkinClouds.length=0;
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
+ if(isOpenSeaRun()){const rangeSkill=upgradeList.find(item=>item.id==='range'),regenSkill=upgradeList.find(item=>item.id==='regen');if(!upgradeLevels.range){rangeSkill?.apply();upgradeLevels.range=1;}if(!upgradeLevels.regen){regenSkill?.apply();upgradeLevels.regen=1;}}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
  const activePassiveSounds=[];
  if(Number(metaUpgrades.bulkhead)>0)activePassiveSounds.push('bulkhead');

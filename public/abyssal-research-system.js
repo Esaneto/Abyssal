@@ -12,7 +12,7 @@
  const toCount=v=>Number.isFinite(Number(v))?Math.max(0,Math.floor(Number(v))):0;
  function sanitizeLevels(raw={}){
   const result=Object.create(null);
-  for(const [id,def] of Object.entries(DEFINITIONS))result[id]=Math.min(def.max,toCount(raw?.[id]));
+  for(const [id,def] of Object.entries(DEFINITIONS))result[id]=def.starter?Math.max(1,Math.min(def.max,toCount(raw?.[id]))):Math.min(def.max,toCount(raw?.[id]));
   return result;
  }
  function sanitizeInventory(raw={}){
@@ -42,10 +42,7 @@
  // Owners retain benefits already purchased with coins even when shop sales
  // are retired. Migration never spends resources or degrades owned levels.
  function migrateLegacy(levels={}){return {levels:sanitizeLevels(levels),transferred:[]};}
- function unlocked(id,levels={},legacy={}){
-  const definition=DEFINITIONS[id];if(!definition)return false;
-  return toCount(levels[id])>0||Boolean(definition.legacyMeta&&toCount(legacy[definition.legacyMeta])>0);
- }
+ function unlocked(id,levels={}){const definition=DEFINITIONS[id];if(!definition)return false;return Boolean(definition.starter)||toCount(levels[id])>0;}
  function equipActives(selected=[],levels={},legacy={}){
   const valid=[];
   for(const id of selected||[]){

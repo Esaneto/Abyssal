@@ -43,6 +43,8 @@
  });
  // Legacy IDs are mapped without deleting owned shop data.
  const RESEARCH=Object.freeze({
+  photonStarter:{id:'photonStarter',name:'Lança de Fótons',group:'starter',max:1,requires:[],cost:{},effect:'starterShot',starter:true,description:'Emissor fotônico básico. Disparo direto, sem efeito secundário.'},
+
   oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
   pressureSuit:{id:'pressureSuit',name:'Traje de profundidade',group:'equipment',max:5,requires:[],cost:{seaMineral:4,salvageMetal:1},effect:'depthRating'},
   salvageTool:{id:'salvageTool',name:'Ferramenta de salvamento',group:'equipment',max:1,requires:[],cost:{seaMineral:2},effect:'salvage'},
@@ -58,9 +60,9 @@
   power:{id:'power',name:'Pulso Intenso',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,kelpFiber:1}},
   rate:{id:'rate',name:'Ressonância Veloz',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:4,kelpFiber:2}},
   speed:{id:'speed',name:'Propulsão Abissal',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,kelpFiber:3}},
-  range:{id:'range',name:'Olho Profundo',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:6,kelpFiber:1}},
+  range:{id:'range',name:'Olho Profundo',group:'essential',max:1,requires:[],cost:{},starter:true,effect:'range',description:'Óptica essencial do traje para enxergar e combater no Mar Aberto.'},
   magnet:{id:'magnet',name:'Campo Magnético',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:3,kelpFiber:2}},
-  regen:{id:'regen',name:'Membrana Viva',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:4,kelpFiber:3}},
+  regen:{id:'regen',name:'Membrana Viva',group:'essential',max:1,requires:[],cost:{},starter:true,effect:'regen',description:'Sistema biotecnológico básico de recuperação do mergulhador.'},
   shield:{id:'shield',name:'Escudo Espectral',group:'passive',max:1,requires:['oxygenTank'],cost:{seaMineral:5,kelpFiber:1}},
   shell:{id:'shell',name:'Carapaça Abissal',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:6,kelpFiber:2}},
   ward:{id:'ward',name:'Véu de Maré',group:'passive',max:1,requires:['pressureSuit'],cost:{seaMineral:3,kelpFiber:3}},
@@ -102,5 +104,6 @@
   const depth=Math.max(0,Number(depthMeters)||0);
   return Object.entries(HABITATS).filter(([,h])=>depth>=h.minDepth&&depth<=h.maxDepth).map(([id])=>id);
  }
- return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
+ const STARTER_RESEARCH=Object.freeze(['photonStarter','range','regen']);
+ return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,STARTER_RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
 });
