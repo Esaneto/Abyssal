@@ -209,7 +209,41 @@
   updateOffshoreProduction();
   if(levels.offshorePlatform){
    const platformX=520,platformY=95;
-   for(const link of offshore.connections||[]){if(link.x<left-300&&platformX<left-300||link.x>right+300&&platformX>right+300)continue;const midY=Math.max(230,link.y*.42);c.save();c.strokeStyle=link.type==='oilSeep'?'#594c37':'#628b7c';c.lineWidth=8;c.beginPath();c.moveTo(platformX,platformY+80);c.bezierCurveTo(platformX+80,midY,link.x-120,midY,link.x,link.y);c.stroke();c.strokeStyle='rgba(205,222,211,.28)';c.lineWidth=2;c.stroke();const phase=(t*.18)%1;for(let k=0;k<4;k++){const u=(phase+k*.25)%1,iu=1-u,x=Math.pow(iu,3)*link.x+3*Math.pow(iu,2)*u*(link.x-120)+3*iu*u*u*(platformX+80)+u*u*u*platformX,y=Math.pow(iu,3)*link.y+3*Math.pow(iu,2)*u*midY+3*iu*u*u*midY+u*u*u*(platformY+80);c.fillStyle=link.type==='oilSeep'?'#d4a65a':'#8fe0b3';c.beginPath();c.arc(x,y,4.5,0,Math.PI*2);c.fill();}c.fillStyle='#1b2a30';c.strokeStyle='#d8b85e';c.lineWidth=2;c.fillRect(link.x-18,link.y-13,36,18);c.strokeRect(link.x-18,link.y-13,36,18);c.fillStyle='#b9e9d2';c.font='700 9px sans-serif';c.fillText('ATIVO',link.x-15,link.y-1);c.restore();}
+   for(const link of offshore.connections||[]){
+    // A subsea flowline lies over the seabed; a flexible riser reaches the floating vessel.
+    const from=Math.max(Math.min(platformX,link.x),left-160);
+    const to=Math.min(Math.max(platformX,link.x),right+160);
+    if(from>to)continue;
+    const oil=link.type==='oilSeep',body=oil?'#514639':'#48635f',indicator=oil?'#d7ad6c':'#83d6b0';
+    c.save();c.lineCap='round';c.lineJoin='round';
+    if(platformX>=left-120&&platformX<=right+120){
+     const bottomY=window.AbyssalOceanGeography.floorAt(platformX)-26;
+     c.beginPath();c.moveTo(platformX,platformY-28);
+     c.bezierCurveTo(platformX+44,platformY+100,platformX+55,bottomY-155,platformX+24,bottomY);
+     c.strokeStyle=body;c.lineWidth=8;c.stroke();
+     c.strokeStyle='rgba(173,207,199,.32)';c.lineWidth=2;c.stroke();
+    }
+    c.beginPath();
+    let started=false;
+    for(let x=from;x<=to;x+=90){
+     const y=window.AbyssalOceanGeography.floorAt(x)-26;
+     if(!started){c.moveTo(x,y);started=true;}else c.lineTo(x,y);
+    }
+    c.lineTo(to,window.AbyssalOceanGeography.floorAt(to)-26);
+    c.strokeStyle=body;c.lineWidth=8;c.stroke();
+    c.strokeStyle=indicator;c.globalAlpha=.66;c.lineWidth=2;
+    c.setLineDash([9,42]);c.lineDashOffset=t*26;c.stroke();c.setLineDash([]);
+    c.globalAlpha=1;
+    if(link.x>=left-90&&link.x<=right+90&&link.y>=top-180&&link.y<=bottom+180){
+     const floor=window.AbyssalOceanGeography.floorAt(link.x)-26;
+     c.strokeStyle=body;c.lineWidth=6;c.beginPath();c.moveTo(link.x,floor);c.quadraticCurveTo(link.x-23,link.y+52,link.x,link.y);c.stroke();
+     c.fillStyle='#263842';c.strokeStyle='#7f9895';c.lineWidth=2;
+     c.fillRect(link.x-16,link.y-13,32,21);c.strokeRect(link.x-16,link.y-13,32,21);
+     c.strokeStyle='#b7a571';c.beginPath();c.moveTo(link.x,link.y-13);c.lineTo(link.x,link.y-28);c.moveTo(link.x-9,link.y-24);c.lineTo(link.x+9,link.y-24);c.stroke();
+     c.fillStyle=indicator;c.beginPath();c.arc(link.x+10,link.y-7,3.2,0,Math.PI*2);c.fill();
+    }
+    c.restore();
+   }
   }
   if(levels.offshorePlatform&&top<650){
    const px=520,py=95;c.save();c.translate(px,py);
