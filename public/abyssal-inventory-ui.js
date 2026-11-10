@@ -17,7 +17,7 @@
  shell.appendChild(root);
  const $=id=>document.getElementById(id),panel=$('abyssInventoryPanel'),grid=$('abyssInventoryGrid');
  const order=['abyssPickaxe','offshoreCable','emptyCylinder','oilCylinder','gasCylinder','seaMineral','phosphorite','ferromanganeseCrust','polymetallicNodule','hydrothermalSulfide'];
- let active=false,selected='abyssWeapon',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder',null,null,null,null,null,null];
+ let active=false,selected='abyssPickaxe',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder',null,null,null,null,null,null];
  config.RESOURCES.abyssWeapon||(console.warn('[Abyssal] abyssWeapon missing from config'));
  const colors={seaMineral:'#63c1cd',phosphorite:'#d8bd81',ferromanganeseCrust:'#a884da',polymetallicNodule:'#758aab',hydrothermalSulfide:'#ca9e6f',deepCrystal:'#a6cfff',abyssCrystal:'#a77aff'};
  function icon(id){
