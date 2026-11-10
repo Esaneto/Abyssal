@@ -29,8 +29,8 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
-    mode: mode === 'rift' ? 'rift' : 'classic', riftEncountersSeeded: false, riftActivatedRooms: {}, riftCompleted: false,
-    initialized: false, width:mode==='rift'?WORLD_WIDTH:OceanStream.WIDTH,height:mode==='rift'?WORLD_HEIGHT:OceanStream.HEIGHT, streamCellIds:{}, streamLastAt:0, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0,
+    mode: mode === 'rift' ? 'rift' : mode==='open-sea'?'open-sea':'classic', riftEncountersSeeded: false, riftActivatedRooms: {}, riftCompleted: false,
+    initialized: false, width:mode==='open-sea'?OceanStream.WIDTH:WORLD_WIDTH,height:mode==='open-sea'?OceanStream.HEIGHT:WORLD_HEIGHT, streamCellIds:{}, streamLastAt:0, worldId: `${now}-${Math.random().toString(36).slice(2, 10)}`, snapshotSeq: 0, elapsed: 0, enemies: [], nextEnemyId: 0, orbs: [], nextOrbId: 0,
     nextBossAt: 100 / 3.8, bossSpawnCount: 0, bossesDefeated: 0, lastBossKind: null,
     lastBossMaxHp: 0, lastBossDamage: 0, lastBossSpeed: 0, lastBossSpawnAt: 0,
     commonSpawnTimer: 0.45, lastTick: now, snapshotTimer: 0, reliableSnapshotTimer: 0,
@@ -177,7 +177,7 @@ function spawnEnemy(world, options = {}) {
     type: type === 'boss' ? 'boss' : type,
     initial, random, bossesDefeated: world.bossesDefeated, roomId: options.roomId
   }) : (options.position||EnemyAI.chooseSpawnPoint(random, initial ? world.nextEnemyId % 4 : null, world.width||WORLD_WIDTH, world.height||WORLD_HEIGHT));
-  if(!layout&&OceanGeography.isSolid(point.x,point.y,35)){
+  if(world.mode==='open-sea'&&!layout&&OceanGeography.isSolid(point.x,point.y,35)){
    const water=OceanGeography.nearestWater(point.x,point.y,35);
    if(!water)return null;
    point={...point,x:water.x,y:water.y};
@@ -202,7 +202,7 @@ function spawnEnemy(world, options = {}) {
 
   // Keep species physiology coherent with combat movement classes.
   // Passive turtles and rays must never inherit a random shark dash.
-  const openSeaSkin=world.mode!=='rift'&&type!=='boss'?(options.species||OpenSeaEcology.speciesAt(point.x,point.y,random)):null;
+  const openSeaSkin=world.mode==='open-sea'&&type!=='boss'?(options.species||OpenSeaEcology.speciesAt(point.x,point.y,random)):null;
   if(openSeaSkin){
    const nature=OpenSeaEcology.temperament(openSeaSkin);
    kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
@@ -368,7 +368,7 @@ function segmentDistance(px,py,ax,ay,bx,by){
 }
 
 function updateOceanStreaming(world,players,now){
- if(world.mode==='rift'||now-(Number(world.streamLastAt)||0)<360)return [];
+ if(world.mode!=='open-sea'||now-(Number(world.streamLastAt)||0)<360)return [];
  world.streamLastAt=now;
  const alive=players.filter(p=>p?.alive!==false);
  if(!alive.length)return [];
@@ -414,7 +414,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const spawnedEnemies = [...initialSpawns];
   if (riftMode && !world.riftEncountersSeeded) spawnedEnemies.push(...seedRiftEncounters(world, random));
   if (riftMode) spawnedEnemies.push(...activateRiftEncounters(world, validPlayers, random));
-  if (!riftMode) spawnedEnemies.push(...updateOceanStreaming(world,validPlayers,now));
+  if (world.mode==='open-sea') spawnedEnemies.push(...updateOceanStreaming(world,validPlayers,now));
   const previousTick = Number(world.lastTick) || now;
   // The server runs this ticker independently of browser rendering. Clamp a single
   // catch-up step to avoid huge jumps after GC or brief event-loop contention.
@@ -476,12 +476,12 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
   world.commonSpawnTimer -= dt;
   let commonCount = countCommons(world);
-  if (false && !riftMode && commonCount === 0 && world.enemies.length < enemyLimitForWorld(world)) {
+  if (world.mode==='classic' && commonCount === 0 && world.enemies.length < enemyLimitForWorld(world)) {
     const spawned = spawnEnemy(world, { type: 'common', random });
     if (spawned) spawnedEnemies.push(spawned);
     commonCount = countCommons(world);
     world.commonSpawnTimer = 0.35;
-  } else if (false && !riftMode && world.commonSpawnTimer <= 0) {
+  } else if (world.mode==='classic' && world.commonSpawnTimer <= 0) {
     if (commonCount < commonLimitForWorld(world) && world.enemies.length < enemyLimitForWorld(world)) {
       const spawned = spawnEnemy(world, { type: 'common', random });
       if (spawned) spawnedEnemies.push(spawned);
@@ -495,11 +495,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const spawnedBosses = [];
   // Recover pre-fix live rooms whose next boss timer was left at Infinity.
   // An active boss legitimately keeps the timer at Infinity until defeated.
-  if(!riftMode&&!Number.isFinite(Number(world.nextBossAt))&&countBossCount(world)===0){
+  if(world.mode==='classic'&&!Number.isFinite(Number(world.nextBossAt))&&countBossCount(world)===0){
    world.nextBossAt=world.elapsed+100/3.8;
   }
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
-  if (!riftMode && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
+  if (world.mode==='classic' && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
     if (world.enemies.length < enemyLimitForWorld(world)) {
       const anchorPlayer=validPlayers[Math.floor(random()*validPlayers.length)];const a=random()*Math.PI*2;
        const boss = spawnEnemy(world, { type: 'boss', random, position:{x:clamp(anchorPlayer.x+Math.cos(a)*1050,100,world.width-100),y:clamp(anchorPlayer.y+Math.sin(a)*1050,100,world.height-100)} });
@@ -723,7 +723,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
         const swimTarget=ecology.target;
-        const swimRoute=OceanGeography.steer(enemy.x,enemy.y,swimTarget.x,swimTarget.y,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),enemy.id);
+        const swimRoute=world.mode==='open-sea'?OceanGeography.steer(enemy.x,enemy.y,swimTarget.x,swimTarget.y,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),enemy.id):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
         movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
         movementNavigationProxy.alive=true;
@@ -794,7 +794,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
     }
-    if(!riftMode){
+    if(world.mode==='open-sea'){
       // Same geometry as the browser and server-authoritative diver movement.
       const radius=Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
       if(OceanGeography.isSolid(enemy.x,enemy.y,radius)){
