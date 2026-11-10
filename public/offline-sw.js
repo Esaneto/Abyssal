@@ -82,7 +82,24 @@ self.addEventListener('install', event => {
     const cache = await caches.open(CACHE_NAME);
     // Atomic install: never activate a cache missing the files necessary
     // to start solo gameplay. External SDKs/fonts intentionally excluded.
-    await cache.addAll(GAME_FILES.map(p => new URL(p, self.registration.scope).href));
+    // Offline HTML loads JS/CSS with ?v= revision parameters. Precache those
+    // exact URLs, otherwise the no-stale-fallback fetch policy cannot start
+    // the game without a connection even after a successful installation.
+    const scope = new URL(self.registration.scope);
+    const indexURL = new URL('index.html', scope);
+    const indexResponse = await fetch(indexURL, { cache: 'no-store' });
+    if (!indexResponse.ok) throw new Error('Offline shell index unavailable');
+    const html = await indexResponse.clone().text();
+    const versioned = new Map();
+    for (const match of html.matchAll(/(?:src|href)="([^"]+\\?v=[^"]+)"/g)) {
+      const asset = new URL(match[1], scope);
+      if (asset.origin !== scope.origin) continue;
+      const name = asset.pathname.slice(scope.pathname.length);
+      if (GAME_FILES.includes(name)) versioned.set(name, asset.href);
+    }
+    await cache.addAll(GAME_FILES.filter(p => p !== 'index.html')
+      .map(p => versioned.get(p) || new URL(p, scope).href));
+    await cache.put(indexURL, indexResponse);
     await self.skipWaiting();
   })());
 });
