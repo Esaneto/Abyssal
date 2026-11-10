@@ -125,6 +125,12 @@
   c.quadraticCurveTo(53,555,50,490);c.closePath();c.clip();
   c.fillStyle=grad(0,100,0,575,[[0,'#2788a8'],[.18,'#15729e'],[.62,'#0e4c72'],[1,'#081e3c']]);
   c.fillRect(0,100,1440,480);
+  // Soft focal illumination deepens the panoramic scene without an image texture.
+  const light=c.createRadialGradient(960,130,36,850,270,710);
+  light.addColorStop(0,'rgba(113,234,239,.25)');
+  light.addColorStop(.48,'rgba(41,169,206,.10)');
+  light.addColorStop(1,'rgba(5,34,62,0)');
+  c.fillStyle=light;c.fillRect(0,100,1440,480);
   // Underwater sun shafts terminate in gradually darkening water.
   for(let i=0;i<9;i++){
    const x=110+i*155+Math.sin(t*.00014+i)*6;
@@ -324,6 +330,21 @@
   c.ellipse(0,7,74,83,0,0,Math.PI*2);c.fill();c.stroke();
   c.fillStyle=grad(-65,-45,65,45,[[0,'#1e4b65'],[.6,'#0d3049'],[1,'#183b53']]);
   c.beginPath();c.ellipse(0,9,61,70,0,0,Math.PI*2);c.fill();
+  // A pressure-rated rear helmet shell with distinct armor panels, not an empty oval.
+  c.fillStyle=grad(-47,-47,45,56,[[0,'#315c72'],[.48,'#1b3d54'],[1,'#0a2235']]);
+  c.strokeStyle='#6ea4b3';c.lineWidth=2.5;c.beginPath();
+  c.moveTo(-35,-39);c.lineTo(-16,-52);c.lineTo(17,-52);c.lineTo(37,-33);
+  c.lineTo(31,15);c.lineTo(13,38);c.lineTo(-18,38);c.lineTo(-34,14);
+  c.closePath();c.fill();c.stroke();
+  c.strokeStyle='rgba(148,209,213,.55)';c.lineWidth=2;
+  c.beginPath();c.moveTo(-25,-24);c.lineTo(-10,-35);c.lineTo(10,-35);c.lineTo(27,-18);c.stroke();
+  rr(-25,-6,50,28,9,'#0d293e','#69c0cf',2.5);
+  for(const x of [-14,-7,0,7,14])rr(x-1,2,2,14,1,'#7aafbc');
+  for(const side of [-1,1]){
+   rr(side*51-8,-4,16,38,7,'#17374c','#82d4dc',2);
+   rr(side*51-3,3,6,23,3,'#62bac9');
+  }
+  c.fillStyle='#ddc58b';c.beginPath();c.arc(0,-46,4.6,0,Math.PI*2);c.fill();
   c.strokeStyle='#64deea';c.lineWidth=4;c.beginPath();c.arc(0,11,64,Math.PI*.19,Math.PI*.81);c.stroke();
   const sway=Math.sin(t*.0012)*5,locks=female?9:10;
   for(let j=0;j<locks;j++){
