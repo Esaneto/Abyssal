@@ -110,7 +110,7 @@ const injected=`<script>
     setTimeout(()=>{
      try{
       const box=document.getElementById('submarineWorkshop');
-      if(!box||box.hidden)throw Error('Hatch did not open cockpit '+JSON.stringify({menuHidden:document.getElementById('menuScreen')?.hidden,btn:Boolean(document.getElementById('submarineWorkshopBtn')),body:document.body.className,guideHidden:document.getElementById('abyssalGuide')?.hidden}));
+      if(!box||box.hidden)throw Error('Hatch did not open cockpit '+JSON.stringify({menuHidden:document.getElementById('menuScreen')?.hidden,menuClass:document.getElementById('menuScreen')?.className,stageTransit:document.getElementById('menuOceanStage')?.dataset.abyssTransit,btn:Boolean(document.getElementById('submarineWorkshopBtn')),btnDisabled:document.getElementById('submarineWorkshopBtn')?.disabled,body:document.body.className,guideHidden:document.getElementById('abyssalGuide')?.hidden,workshopAPI:Boolean(window.AbyssalSubmarineCockpit),blockers:[...document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')].filter(el=>!el.hidden&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden').slice(0,8).map(el=>el.id)}));
       const canvas=document.getElementById('abyssCockpitCanvas');
       if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
       const keys=[...box.querySelectorAll('.abyss-control-key')];
