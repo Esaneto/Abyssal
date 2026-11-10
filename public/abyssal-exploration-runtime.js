@@ -157,6 +157,15 @@
    key.addEventListener('click',()=>{if(activeConsoleSection!==option.id){activeConsoleSection=option.id;renderWorkshop();}});
    keys.append(key);
   }
+  // Show scrolling guidance only when the actual monitor contains hidden rows.
+  const hint=document.createElement('span');
+  hint.className='abyss-visor-scroll-hint';
+  hint.textContent='▾ ROLE OU DESLIZE PARA VER MAIS';
+  hint.setAttribute('aria-hidden','true');hint.hidden=true;visor.append(hint);
+  const refreshHint=()=>{hint.hidden=body.scrollHeight<=body.clientHeight+5
+   ||body.scrollTop+body.clientHeight>=body.scrollHeight-5;};
+  body.addEventListener('scroll',refreshHint,{passive:true});
+  requestAnimationFrame(refreshHint);
   workshopGrid.replaceChildren(visor,keys);
  }
  function renderConsoleUtility(){

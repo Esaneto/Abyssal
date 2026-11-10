@@ -125,6 +125,7 @@ const injected=`<script>
       const cards=box.querySelectorAll('.submarine-console-card').length;
       const req=box.querySelectorAll('.abyss-requirement svg').length;
       if(cards<1||req<1)throw Error('Laboratory lost real research costs: '+cards+'/'+req);
+      if(!box.querySelector('.abyss-visor-scroll-hint'))throw Error('Cockpit missing scrolling guidance');
       // Real-browser layout contract: compact keys must remain beneath the monitor.
       const monitor=box.querySelector('.abyss-cockpit-visor');
       const deck=box.querySelector('.abyss-control-deck');
