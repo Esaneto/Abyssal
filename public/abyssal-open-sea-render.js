@@ -187,16 +187,15 @@
     ctx.lineTo(x-w*.14,y-32);ctx.lineTo(x+w*.12,y-21);
     ctx.lineTo(x+w*.36,y-28);ctx.lineTo(x+w*.55,y+7);
     // Fractured cliff edge instead of an uninterrupted vertical column.
-    ctx.lineTo(x+w*.41,y+h*.32);
-    ctx.lineTo(x+w*.56,y+h*.41);
-    ctx.lineTo(x+w*.35,y+h*.61);
-    ctx.lineTo(x+w*.44,y+h*.83);
-    ctx.lineTo(x+w*.25,y+h*1.15);
-    ctx.lineTo(x+w*.38,foot);ctx.lineTo(x-w*.36,foot+36);
-    ctx.lineTo(x-w*.46,y+h*1.13);
-    ctx.lineTo(x-w*.28,y+h*.84);
-    ctx.lineTo(x-w*.57,y+h*.64);
-    ctx.lineTo(x-w*.40,y+h*.41);
+    // Long weathered slopes and occasional shelves, without sawtooth repetition.
+    ctx.lineTo(x+w*.44,y+h*.32);
+    ctx.lineTo(x+w*.33,y+h*.67);
+    ctx.lineTo(x+w*.39,y+h*.78);
+    ctx.lineTo(x+w*.28,y+h*1.17);
+    ctx.lineTo(x+w*.35,foot);ctx.lineTo(x-w*.34,foot+36);
+    ctx.lineTo(x-w*.41,y+h*1.16);
+    ctx.lineTo(x-w*.39,y+h*.67);
+    ctx.lineTo(x-w*.54,y+h*.46);
     ctx.lineTo(x-w*.53,y+15);
     ctx.closePath();ctx.fill();ctx.stroke();
     // Interlocking rock faces follow the wall's length, not a rectangle.
@@ -209,18 +208,16 @@
     ctx.closePath();ctx.fill();
     ctx.restore();
     // Separate sandstone/basalt plates show up at gameplay camera scales.
-    ctx.save();ctx.globalAlpha=geological?.28:.38;
-    for(let plate=0;plate<(lowPower?2:4);plate++){
-     const yy=y+h*(.15+plate*.27);
-     const leftW=w*(.36+seeded(ix,iy+plate)*.10);
-     ctx.fillStyle=plate%2?(geological?'#517682':'#2c8493'):(geological?'#244c5b':'#266579');
+    ctx.save();ctx.globalAlpha=geological?.17:.23;
+    for(let plate=0;plate<(lowPower?1:3);plate++){
+     const shift=seeded(ix+plate*13,iy+9);
+     const yy=y+h*(.17+plate*.38+shift*.09);
+     const leftW=w*(.23+shift*.15);
+     ctx.fillStyle=plate%2?(geological?'#496b78':'#307889'):(geological?'#244c5b':'#266579');
      ctx.beginPath();ctx.moveTo(x-leftW,yy);
-     ctx.lineTo(x-w*.06,yy-15);ctx.lineTo(x+w*.25,yy+3);
-     ctx.lineTo(x+w*.17,yy+26);ctx.lineTo(x-w*.19,yy+40);
+     ctx.lineTo(x-w*.09,yy-11-shift*9);ctx.lineTo(x+w*.18,yy+6);
+     ctx.lineTo(x+w*.13,yy+18);ctx.lineTo(x-w*.16,yy+27);
      ctx.closePath();ctx.fill();
-     ctx.strokeStyle='rgba(143,218,221,.45)';ctx.lineWidth=2;
-     ctx.beginPath();ctx.moveTo(x-leftW,yy);ctx.lineTo(x-w*.06,yy-15);
-     ctx.lineTo(x+w*.25,yy+3);ctx.stroke();
     }
     ctx.restore();
     ctx.strokeStyle=geological?'rgba(125,202,192,.50)':'rgba(109,224,237,.56)';
