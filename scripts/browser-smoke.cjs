@@ -102,9 +102,9 @@ const injected=`<script>
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
    let inventoryAttempts=0;
-   const openSeaInventory=()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage!=='sea')return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
+   const openSeaInventory=()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage!=='sea'||q.has('biome'))return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
    setTimeout(openSeaInventory,2200);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
+   setTimeout(()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);if(stage==='sea'&&q.has('biome')){const spots={coastal:[1580,480],cinematic:[8500,2900],geological:[19000,9000]};const v=spots[q.get('biome')];if(v)window.AbyssalGameHooks?.setPlayerPosition?.(...v);}check()},2550);
    if(new URLSearchParams(location.search).get('stage')==='cockpit'){
     setTimeout(()=>document.getElementById('submarineWorkshopBtn')?.click(),2900);
     setTimeout(()=>{
@@ -362,6 +362,15 @@ async function main(){
    const screenshot=path.join(output,label+'.png');
    await run(browser,[...flags,'--screenshot='+screenshot,cockpitURL]);
    assert.ok(fs.statSync(screenshot).size>10000,label+' cockpit screenshot missing');
+  }
+  // Real, unmasked screenshots from the running game for biome art acceptance.
+  for(const biome of ['coastal','cinematic','geological']){
+   const file=path.join(output,'open-sea-'+biome+'.png');
+   await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
+    '--disable-gpu','--hide-scrollbars','--no-first-run','--disable-background-networking',
+    '--window-size=1280,720','--force-device-scale-factor=1',
+    '--virtual-time-budget=8500','--screenshot='+file,url+'?stage=sea&biome='+biome]);
+   assert.ok(fs.statSync(file).size>15000,'Open Sea screenshot missing: '+biome);
   }
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
