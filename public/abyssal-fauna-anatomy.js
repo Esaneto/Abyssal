@@ -5,13 +5,33 @@
 (function(root){
  'use strict';
  const TAU=Math.PI*2;
- // Reuse specimen-shop color identity without changing wildlife anatomy.
- const SHOP_COLORS=Object.freeze({goblin:'#3a72c2',frilled:'#405879',butterflyray:'#d6b36a',eagleray:'#668fa5',nautilus:'#d0af84',yeticrab:'#93a8ae',reefshark:'#557c8c',hawksbill:'#78975d',leatherback:'#557e69',stingray:'#9d6d8d',zebramoray:'#607a9c',spidercrab:'#927c73',bigfin:'#8e83b6',whiplash:'#9f8cbd',angler:'#7b8d57',viperfish:'#a47c69',blackdragon:'#514f91',seapig:'#ba879c',leviathan:'#668a96',siphonophore:'#b68ebc'});
- function shopTint(id){const hex=SHOP_COLORS[id];if(!hex)return 0;const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0;if(d){if(max===r)h=((g-b)/d)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=(h*60+360)%360;}return Math.round(h-205);}
+ // Palette is read directly from the Specimens shop catalog. Keeping the
+ // drawing functions separate means each approved silhouette stays unchanged.
+ const LEGACY_COLORS=Object.freeze({reefshark:'#507989',leviathan:'#607e8f',angler:'#76947b'});
+ const paletteCache=new Map();
+ function mix(hex,factor){
+  const n=parseInt(hex.slice(1),16),c=[(n>>16)&255,(n>>8)&255,n&255];
+  return '#'+c.map(v=>Math.max(0,Math.min(255,Math.round(factor>=0?v+(255-v)*factor:v*(1+factor)))).toString(16).padStart(2,'0')).join('');
+ }
+ function alpha(hex,opacity){
+  const n=parseInt(hex.slice(1),16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+opacity+')';
+ }
+ function paletteFor(id){
+  const catalog=root.AbyssalCuratedSkins?.byId?.[id]?.color;
+  const legacy=root.AbyssalGameHooks?.skinForId?.(id)?.color;
+  const hex= /^#[0-9a-fA-F]{6}$/.test(catalog)?catalog:
+   /^#[0-9a-fA-F]{6}$/.test(legacy)?legacy:LEGACY_COLORS[id]||'#688395';
+  const cached=paletteCache.get(id);
+  if(cached?.primary.toLowerCase()===hex.toLowerCase())return cached;
+  const p=Object.freeze({primary:hex,mid:mix(hex,-.12),dark:mix(hex,-.42),deep:mix(hex,-.68),
+   light:mix(hex,.36),highlight:mix(hex,.65),soft:alpha(hex,.72),veil:alpha(hex,.4)});
+  paletteCache.set(id,p);return p;
+ }
  function path(c,points,color){c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}
  function curve(c,coords,color,width=1){c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.beginPath();c.moveTo(coords[0],coords[1]);c.bezierCurveTo(...coords.slice(2));c.stroke();}
  function eye(c,x,y){c.fillStyle='#d9e1d9';c.beginPath();c.arc(x,y,2.3,0,TAU);c.fill();c.fillStyle='#061119';c.beginPath();c.arc(x+.5,y,.9,0,TAU);c.fill();}
- function fish(c,t,species){
+ function fish(c,t,species,p){
   const shark=/shark|goblin|frilled|leviathan/.test(species),angler=species==='angler',flap=Math.sin(t*.006)*7;
   if(angler){
    path(c,[[-66,-9],[-44,-25],[3,-31],[32,-17],[48,-5],[53,26],[22,40],[-25,24]],'#28313b');
@@ -31,7 +51,7 @@
   if(species==='frilled'){for(let j=0;j<5;j++)curve(c,[44-j*5,-17,43-j*5,-5,45-j*5,0,43-j*5,10],'#9f7777',1.2);}
   if(species==='blackdragon'||species==='viperfish'){for(let j=0;j<9;j++){c.fillStyle='#80d7d1';c.beginPath();c.arc(-58+j*14,14+Math.sin(j)*3,1.5,0,TAU);c.fill();}}
  }
- function eel(c,t,species){
+ function eel(c,t,species,p){
   const sw=Math.sin(t*.004)*17,long=/whiplash|bigfin/.test(species);
   const length=long?170:130;
   c.strokeStyle=/blackdragon|viperfish/.test(species)?'#1b222d':'#405663';c.lineCap='round';
@@ -43,7 +63,7 @@
    path(c,[[65+i*2,8],[71+i*2,19],[75+i*2,8]],'#9bb2b1');
   }
  }
- function bigfinSquid(c,t){
+ function bigfinSquid(c,t,p){
   const flap=Math.sin(t*.0036)*12;
   // Bigfin squid: slender mantle, oversized paired fins and very long suspended arms.
   path(c,[[-26,-9],[-56,-34-flap],[-49,8],[-23,16]],'#6d6975');
@@ -58,7 +78,7 @@
    curve(c,[66,oy+45,66,oy+80,86+Math.sin(t*.001+j)*15,oy+110,80+Math.sin(t*.002+j)*20,oy+142],'rgba(147,139,153,.55)',1.2);
   }
  }
- function ray(c,t){
+ function ray(c,t,p){
   const wing=Math.sin(t*.0043)*13;
   path(c,[[-105,-4],[-155,-12],[-140,-2]],'#3b4e55');
   c.fillStyle='#465962';c.beginPath();c.moveTo(75,1);c.bezierCurveTo(19,-38,-24,-86-wing,-75,-56-wing);
@@ -66,7 +86,7 @@
   curve(c,[66,1,15,0,-42,0,-150,3],'#9bb7b5',2.5);eye(c,51,-7);
   c.strokeStyle='rgba(208,233,223,.20)';c.lineWidth=2;c.beginPath();c.moveTo(60,1);c.lineTo(-75,-54-wing);c.moveTo(60,1);c.lineTo(-75,54+wing);c.stroke();
  }
- function turtle(c,t){
+ function turtle(c,t,p){
   const flap=Math.sin(t*.0036)*20;
   path(c,[[-48,-20],[-94,-38-flap],[-75,-4],[-50,7]],'#43575a');
   path(c,[[-41,14],[-92,39+flap],[-62,46],[-25,25]],'#43575a');
@@ -77,7 +97,7 @@
   for(let i=0;i<5;i++)curve(c,[Math.cos(i*TAU/5)*29,Math.sin(i*TAU/5)*18,5,-4,16,9,0,0],'rgba(162,175,129,.3)',2);
   c.fillStyle='#456365';c.beginPath();c.ellipse(62,-2,20,14,0,0,TAU);c.fill();eye(c,70,-7);
  }
- function crab(c,t,spider=false){
+ function crab(c,t,spider=false,p){
   const step=Math.sin(t*.0028)*8;
   for(let side of [-1,1])for(let i=0;i<4;i++){
    const anchor=(i-1.5)*17;
@@ -89,7 +109,7 @@
   for(let a of [-1,1]){c.fillStyle='#4b5d59';c.beginPath();c.arc(35,a*22,9,0,TAU);c.fill();}
   eye(c,34,-12);eye(c,34,1);
  }
- function nautilus(c,t){
+ function nautilus(c,t,p){
   c.fillStyle='#876d62';c.beginPath();c.arc(-13,0,49,0,TAU);c.fill();
   c.strokeStyle='#dfc6a2';c.lineWidth=4;c.beginPath();
   for(let i=0;i<70;i++){const q=i/69*3.9*Math.PI,r=3+q*3.25,x=-13+r*Math.cos(q),y=r*Math.sin(q);
@@ -97,19 +117,19 @@
   path(c,[[2,-26],[57,-16],[73,12],[19,27]],'#675350');eye(c,47,-10);
   for(let j=0;j<8;j++)curve(c,[58,j*3-10,78,Math.sin(t*.003+j)*7+j*3-12,92+j*2,j*4-20,106+j*4,j*4-12],'#9e8b78',1.5);
  }
- function octopus(c,t){
+ function octopus(c,t,p){
   c.fillStyle='#705f79';c.beginPath();c.ellipse(23,-16,36,43,.1,0,TAU);c.fill();
   for(let i=0;i<8;i++){
    const q=(i-3.5)/3.5,sw=Math.sin(t*.003+i)*13;
    curve(c,[13+q*12,15,6+q*34,51,sw+q*58,74,sw+q*42,96],i%2?'#7a6680':'#62576e',8-i*.45);
   }eye(c,39,-16);
  }
- function seaPig(c,t){
+ function seaPig(c,t,p){
   c.fillStyle='#9a7d89';c.beginPath();c.moveTo(-74,-9);c.bezierCurveTo(-56,-34,48,-28,68,-3);c.quadraticCurveTo(52,35,-58,21);c.closePath();c.fill();
   for(let j=0;j<7;j++)curve(c,[-54+j*17,7,-51+j*16,30,-42+j*17,42+Math.sin(t*.003+j)*4,-37+j*17,45],'#c3a3aa',3);
   for(let j=0;j<5;j++)curve(c,[53,0,68+j*3,-12,76+j*4,-4,90+j*4,-10],'#a68d93',2);
  }
- function jelly(c,t,siphon=false){
+ function jelly(c,t,siphon=false,p){
   if(siphon){
    curve(c,[-110,0,-55,Math.sin(t*.003)*9,30,-8,105,1],'rgba(139,190,199,.8)',3);
    for(let i=0;i<16;i++){const x=-99+i*13; c.fillStyle=i%2?'rgba(135,183,199,.27)':'rgba(177,131,169,.38)';c.beginPath();c.ellipse(x,Math.sin(i*.7+t*.002)*6,6,9,i*.4,0,TAU);c.fill();}
