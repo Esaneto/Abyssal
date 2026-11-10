@@ -133,7 +133,7 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p&&p.mode!=='pvp';hud.hidden=!active;
+  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;
   if(!active){markers.hidden=true;runKey='';return;}
   if(!runKey)startRun(p);
   if(!p.paused&&!p.online){

@@ -19,7 +19,7 @@
  try{visited=new Set(JSON.parse(localStorage.getItem('abyssalVisitedOceanSectors')||'[]'));}catch(_){}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const current=()=>window.AbyssalGameHooks?.explorationPosition?.();
- function toggle(){if(!current())return;panel.hidden=!panel.hidden;if(!panel.hidden)draw(performance.now());}
+ function toggle(){if(!['rift','open-sea'].includes(current()?.mode))return;panel.hidden=!panel.hidden;if(!panel.hidden)draw(performance.now());}
  trigger.addEventListener('click',toggle);
  panel.querySelector('#oceanChartClose').addEventListener('click',()=>panel.hidden=true);
  document.addEventListener('keydown',ev=>{
@@ -77,8 +77,8 @@
   panel.querySelector('#oceanChartDetails').textContent='Radar local: '+signals.length+' sinais próximos. Obstáculos e salas fora do alcance permanecem desconhecidos.';
  }
  function draw(now){
-  const p=current();trigger.hidden=!p||p.mode==='pvp';
-  if(!p||p.mode==='pvp'){panel.hidden=true;lastCell='';return;}
+  const p=current();trigger.hidden=!p||!['rift','open-sea'].includes(p.mode);
+  if(!p||!['rift','open-sea'].includes(p.mode)){panel.hidden=true;lastCell='';return;}
   if(p.mode!=='rift'){
    const key=stream.id(stream.chunkAt(p.x,p.y).cx,stream.chunkAt(p.x,p.y).cy);
    if(key!==lastCell){lastCell=key;visited.add(key);

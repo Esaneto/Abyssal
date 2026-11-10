@@ -73,6 +73,10 @@ test('default Online Mar Aberto is an actual open-sea world, not a renamed class
  assert.match(game,/isOpenSeaRun=\(\)=>onlineMode\?onlineRoomMode==='open-sea'/);
  assert.match(online,/mode\.value=window\.AbyssalPreferredRoomMode==='rift'\?'rift':'open-sea'/);
  assert.match(html,/<option value="open-sea" selected>/);
+ const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
+ const chart=fs.readFileSync(path.join(__dirname,'../public/abyssal-navigation-chart.js'),'utf8');
+ assert.match(runtime,/active=p&&\['rift','open-sea'\]\.includes\(p\.mode\)/);
+ assert.match(chart,/!\['rift','open-sea'\]\.includes\(p\.mode\)/);
 });
 
 test('sighted species have stable habitat and depth metadata',()=>{
