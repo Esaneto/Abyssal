@@ -9,7 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
  const WIDTH=geo?.WIDTH||24000,HEIGHT=geo?.HEIGHT||21000,CHUNK=1200,AREA_RATIO=35;
- const MAX_NEARBY=110,INITIAL_FAUNA=3,RESOURCE_COUNT=0; // No unapproved resource nodes.
+ const MAX_NEARBY=150,INITIAL_FAUNA=6,RESOURCE_COUNT=0; // No unapproved resource nodes.
  const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
  function hash(key){let h=2166136261;for(const c of String(key)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  function random(key){let n=hash(key);return ()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}

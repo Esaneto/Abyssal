@@ -216,7 +216,25 @@
   ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x+12,y+length*.30,x-16+motion,y+length*.66,x+motion,y+length);ctx.stroke();
   ctx.restore();
  }
-  function drawBiomes(ctx,left,top,right,bottom,time,lowPower){
+  function drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower){
+  const cell=lowPower?420:300,bx0=Math.floor(left/cell)-1,bx1=Math.ceil(right/cell)+1,by0=Math.floor(top/cell)-1,by1=Math.ceil(bottom/cell)+1;
+  for(let bx=bx0;bx<=bx1;bx++)for(let by=by0;by<=by1;by++){
+   const seed=seeded(bx*13+7,by*17+3);if(seed<.34)continue;
+   const x=bx*cell+seeded(bx+31,by)*cell*.82,y=by*cell+seeded(bx,by+41)*cell*.78;
+   if(x<0||x>geo.WIDTH||y<80||y>geo.HEIGHT-80||geo.isSolid(x,y,28))continue;
+   const floor=geo.floorAt(x),nearFloor=floor-y<260;
+   ctx.save();ctx.translate(x,y);
+   if(nearFloor){
+    const r=8+seed*16;ctx.fillStyle='rgba(42,68,72,.65)';ctx.beginPath();ctx.ellipse(0,0,r*1.7,r*.72,seed*2.4,0,TAU);ctx.fill();
+    if(seed>.57)rockGarden(ctx,0,3,geo.classify(x,y),seed,time,lowPower);
+   }else if(seed>.78&&!lowPower){
+    // Sparse suspended organic silhouettes make mid-water feel inhabited without fake UI sprites.
+    ctx.strokeStyle='rgba(79,132,128,.18)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,4+seed*5,0,TAU);ctx.stroke();
+   }
+   ctx.restore();
+  }
+ }
+ function drawBiomes(ctx,left,top,right,bottom,time,lowPower){
   // Vegetation grows only on geological supports, never as floating random icons.
   const step=lowPower?150:105;
   const start=Math.max(0,Math.floor(left/step)-1),end=Math.min(Math.ceil(geo.WIDTH/step),Math.ceil(right/step)+1);
@@ -261,6 +279,7 @@
   drawFloor(ctx,left,right,bottom);
   drawRocks(ctx,left,top,right,bottom);
   drawCaves(ctx,left,top,right,bottom);
+  drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower);
   drawBiomes(ctx,left,top,right,bottom,time,lowPower);
   ctx.restore();
  }

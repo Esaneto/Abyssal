@@ -11,7 +11,7 @@
  const hud=document.createElement('section');
  hud.id='explorationOverlay';hud.className='exploration-overlay';hud.hidden=true;
  hud.innerHTML='<div class="exploration-stat"><span>GÁS RESPIRÁVEL</span><strong id="explorationGas">100%</strong><div class="exploration-track"><i id="explorationGasFill"></i></div></div>'+
- '<div class="exploration-stat"><span>PROFUNDIDADE / PRESSÃO</span><strong id="explorationDepth">0 m · 1 atm</strong><small id="explorationPressureWarning"></small></div>'+
+ '<div class="exploration-stat exploration-instruments"><span>INSTRUMENTOS DE MERGULHO</span><strong id="explorationDepth">PROF. 0 m</strong><strong id="explorationPressure">PRESSÃO 1.0 atm</strong><small id="explorationPressureWarning"></small></div>'+
  '<div class="exploration-stat exploration-collect"><span>SONAR DE RECURSOS · G</span><strong id="explorationDeposit">PROCURANDO SINAIS...</strong><small id="explorationGatherStatus">Aproxime-se de um depósito para coletar.</small><button type="button" id="explorationGatherBtn" disabled>COLETAR RECURSO</button></div>';
  const signal=document.createElement('div');signal.id='explorationRiftSignals';signal.className='exploration-stat exploration-sonar';signal.hidden=true;
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
@@ -273,7 +273,7 @@
   const expectedRun=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
   if(runKey!==expectedRun)startRun(p);
   if(!p.paused&&!p.online){
-   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
+   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:2200);
    const safe=config.safeDepth(stateLevels().pressureSuit);
    oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
    if(oxygen<=0)noOxygenSeconds+=delta;else noOxygenSeconds=0;
@@ -286,13 +286,13 @@
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
-  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
+  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:2200);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
   const gas=p.online&&serverVitals?serverVitals.oxygen:oxygen;
   const max=p.online&&serverVitals?serverVitals.capacity:capacity;
   $('explorationGas').textContent=Math.ceil(gas/Math.max(1,max)*100)+'%';
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
-  $('explorationDepth').textContent=Math.round(depth)+' m · '+pressure.toFixed(1)+' atm';
+  $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
   const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI()?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
