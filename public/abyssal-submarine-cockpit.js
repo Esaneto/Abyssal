@@ -94,7 +94,7 @@
    c.restore();
   }
   // Headrest, seated diver from behind; hair length follows profile selection.
-  c.save();c.translate(720,640);
+  c.save();c.translate(720,425);
   c.fillStyle='#030d14';c.strokeStyle='#455961';c.lineWidth=9;
   c.beginPath();c.roundRect(-83,5,166,255,29);c.fill();c.stroke();
   c.fillStyle='#1b3039';c.beginPath();c.roundRect(-71,12,142,220,26);c.fill();

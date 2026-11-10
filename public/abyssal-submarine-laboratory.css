@@ -124,3 +124,8 @@
  #submarineWorkshop .submarine-console-card-grid{grid-template-columns:1fr}
  #submarineWorkshop .submarine-console-overview span{font-size:9px}
 }
+
+/* Keep the seated explorer and ocean viewport visible above the research deck. */
+#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{max-height:34dvh!important;}
+#submarineWorkshop.abyss-cockpit-screen .submarine-console-tabs{position:sticky;top:0;z-index:4;background:linear-gradient(180deg,#152f39 82%,rgba(9,27,34,.94));border-radius:6px}
+@media(max-width:700px){#submarineWorkshop.abyss-cockpit-screen .abyss-cockpit-console{max-height:48dvh!important;}}
