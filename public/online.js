@@ -79,7 +79,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  function renderSpecimenProfile(user={}){
-  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:300};
+  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:20};
   const specimen=window.AbyssalGameHooks?.skinForId?.(id),name=specimen?.name||id;
   const nameNode=$('profileSpecimenName'),pct=$('profileAdaptationPercent'),fill=$('profileAdaptationFill'),pointsNode=$('profileAdaptationPoints');
   if(nameNode)nameNode.textContent=name;
