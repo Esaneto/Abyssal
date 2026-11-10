@@ -1604,3 +1604,19 @@ Arquivos e responsabilidades:
 **Validação:** antes destas correções, a Actions `Abyssal checks v2` falhava por SyntaxError e 17 falhas em testes. No commit `c20f09e` (intermediário), o job `syntax-and-tests` chegou a apenas três testes históricos falhando; os jobs `android-api36`, `roxycloud-node26` e `Specimens, journal and laboratory acceptance` estavam verdes. As duas incompatibilidades de mineração e a asserção do co-op foram corrigidas em commits posteriores. Verificar o resultado **do último commit**, não afirmar verde apenas com base no intermediário.
 
 **Ainda necessário:** smoke visual manual de entrada/saída pela escotilha, escopo de UI da pesquisa no cockpit, extração/fragmentação e instalação de dutos em partida real Solo e Online; teste do Service Worker no navegador desconectado; avaliar riscos em novas alterações sem sobrescrever os estados do servidor.
+
+## 2026-11-10: Cabine reconstruída como menu real no código (referência visual do usuário)
+
+**Pedido:** a referência mostrava a ponte de comando de um submarino com vidraças panorâmicas, dois assentos e botões reais incorporados ao console. O usuário rejeitou imagens estáticas e menus colados por cima; a implementação deve ser HTML/CSS/Canvas funcional dentro do jogo.
+
+**Implementado na `main`:**
+- `public/abyssal-submarine-cockpit.js`: cena inteiramente redesenhada com vários painéis de vidro, correntes de luz, recifes, cardumes, bolhas, uma silhueta marinha ocasional e detalhes do casco/console; personagem piloto sentado em 3/4, rosto, anatomia humana, tanque, máscara e cabelo masculino/feminino seguindo `diverGender` (cabelo escuro comprido e solto na variante feminina). Canvas ativo apenas enquanto a cabine está aberta.
+- `public/abyssal-submarine-laboratory.css`: a cabine ocupa a tela inteira; painel fixo inspirado numa bancada de controle (não popup), visor central com conteúdo rolável, seis teclas físicas e comportamento responsivo 3×2 no celular.
+- `public/abyssal-exploration-runtime.js`: `activeConsoleSection` controla seis botões `laboratory`, `minerals`, `shop`, `specimens`, `sea`, `rift`. `mountCockpitConsole()` pega as pesquisas reais e as mostra apenas dentro do visor. `renderConsoleUtility()` mostra estoque e ilustrações dos minérios; loja/Abissário/Mar Aberto/Fossas usam os handlers existentes via botão explícito no visor. Mantidas as transações solo e online de `research.study` e `explorationStudy` e a animação de escotilha existente.
+- `public/abyssal-resource-icons.js`: ícones SVG originais para fosforita, nódulos, crostas, sulfeto hidrotermal, petróleo e gás, assim como picareta original em estilo voxel. Os requisitos de pesquisa na cabine mostram cada ícone e seu custo; as mesmas artes são usadas no inventário `public/abyssal-inventory-ui.js`. A picareta em mãos foi remodelada em `public/diver-art.js`.
+- `public/index.html`: ticker informativo fixo no painel e versões atualizadas dos assets. `public/offline-sw.js`: novo catálogo de ícones e versão do shell.
+- `tests/cockpit-physical-controls.test.cjs`: regressão para teclas, visor único, custos com imagens, asset wiring e pintura no Canvas em perfil masculino/feminino.
+
+**Regra principal:** não substituir os seis comandos por cartões flutuantes no topo do fundo. O Canvas é puramente visual; HTML cobre somente o console integrado. Compras, estudos, partidas e desbloqueios continuam usando os handlers oficiais. O exemplo do usuário é referência estética, não asset para copiar (tem marca d'água).
+
+**Validação:** arquivos JS de cockpit, pesquisa, ícones, personagem, inventário e Service Worker passaram no parser. As execuções do GitHub Actions em commits intermediários `6c2878da` e `4a45973f` concluíram com sucesso nos workflows gerais e de Windows; o último commit contendo o teste específico deve ser conferido no Actions antes de afirmar validação final.
