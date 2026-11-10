@@ -181,9 +181,27 @@
       c.fillStyle='#c3f9cd';c.beginPath();c.arc(sx+wiggle-1,-11-rise,1.2,0,Math.PI*2);c.fill();
      }
     }
+   }else if(type==='polymetallicNodule'){
+    // Actual abyssal nodules resemble dark rounded concretions, not bright crystals.
+    for(let n=0;n<7;n++){
+     const px=-22+n*7.6,py=(n%3)*3+2,r=5+(n%3)*1.5;
+     c.fillStyle=n%2?'#454c56':'#333b45';c.strokeStyle='#899298';c.lineWidth=1;
+     c.beginPath();c.ellipse(px,py,r,r*.78,n*.37,0,Math.PI*2);c.fill();c.stroke();
+     c.fillStyle='#a5afb1';c.beginPath();c.arc(px-2,py-2,1.2,0,Math.PI*2);c.fill();
+    }
+   }else if(type==='ferromanganeseCrust'){
+    // Metallic mineral crust is laminated onto rock, not standing as ore crystals.
+    c.fillStyle='#141e2e';c.strokeStyle='#9a8cc0';c.lineWidth=2;
+    c.beginPath();c.moveTo(-25,3);c.lineTo(-16,-7);c.lineTo(-4,-3);c.lineTo(8,-13);c.lineTo(25,-7);c.lineTo(29,1);c.lineTo(8,7);c.lineTo(-13,9);c.closePath();c.fill();c.stroke();
+    c.strokeStyle='#af9cb9';c.lineWidth=1;c.beginPath();c.moveTo(-20,2);c.lineTo(-6,0);c.lineTo(8,-8);c.lineTo(21,-3);c.stroke();
+   }else if(type==='hydrothermalSulfide'){
+    // Sulfides are visibly clustered at a metal-rich chimney/fracture.
+    c.fillStyle='#30262a';c.strokeStyle='#c9a078';c.lineWidth=2;
+    c.beginPath();c.moveTo(-10,11);c.lineTo(-13,-28);c.lineTo(-4,-34);c.lineTo(2,-24);c.lineTo(11,-30);c.lineTo(14,8);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#ceb98c';for(let n=0;n<6;n++)c.fillRect(-9+(n*5)%18,-22+n*4,2,2);
+    for(let n=0;n<3;n++){const dy=(t*8+n*17)%35;c.strokeStyle='#849c9580';c.lineWidth=2;c.beginPath();c.moveTo(-1+n*4,-25);c.quadraticCurveTo(-9+n*6,-36-dy*.3,3+n*8,-41-dy);c.stroke();}
    }else{
-    const palette={seaMineral:'#8cd5dd',phosphorite:'#d4be75',ferromanganeseCrust:'#ae83cc',polymetallicNodule:'#90a2be',hydrothermalSulfide:'#d6a365'};
-    const col=palette[type]||'#7bd9cd';
+    const col=type==='phosphorite'?'#d7bb81':'#81cbd0';
     for(let n=0;n<5;n++){
      const px=-18+n*9,py=n%2===0?-4:4,size=7+(n%3)*2;
      c.fillStyle=col;c.globalAlpha=.64+n*.06;
