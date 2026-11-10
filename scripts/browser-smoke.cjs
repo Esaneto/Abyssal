@@ -99,12 +99,41 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
    let inventoryAttempts=0;
    const openSeaInventory=()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage!=='sea')return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
    setTimeout(openSeaInventory,2200);
    setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='deep')window.AbyssalGameHooks?.setPlayerPosition?.(2720,4180);if(stage==='boss')window.AbyssalGameHooks?.setPlayerPosition?.(2400,8660);check()},2550);
+   if(new URLSearchParams(location.search).get('stage')==='cockpit'){
+    setTimeout(()=>document.getElementById('submarineWorkshopBtn')?.click(),1450);
+    setTimeout(()=>{
+     try{
+      const box=document.getElementById('submarineWorkshop');
+      if(!box||box.hidden)throw Error('Hatch did not open cockpit');
+      const canvas=document.getElementById('abyssCockpitCanvas');
+      if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
+      const keys=[...box.querySelectorAll('.abyss-control-key')];
+      if(keys.length!==6)throw Error('Physical control keys: '+keys.length);
+      const mineral=keys.find(b=>b.textContent.includes('MINÉRIOS'));
+      mineral?.click();
+      const tiles=box.querySelectorAll('.abyss-mineral-tile').length;
+      const icons=box.querySelectorAll('.abyss-mineral-tile svg').length;
+      if(tiles!==6||icons!==6)throw Error('Mineral monitor missing art: '+tiles+'/'+icons);
+      const lab=[...box.querySelectorAll('.abyss-control-key')].find(b=>b.textContent.includes('LABORATÓRIO'));
+      lab?.click();
+      const cards=box.querySelectorAll('.submarine-console-card').length;
+      const req=box.querySelectorAll('.abyss-requirement svg').length;
+      if(cards<1||req<1)throw Error('Laboratory lost real research costs: '+cards+'/'+req);
+      document.body.dataset.cockpitStatus='ok';
+      document.body.dataset.cockpitCards=cards;
+      document.body.dataset.cockpitIcons=icons;
+     }catch(error){
+      document.body.dataset.cockpitStatus='error';
+      document.body.dataset.cockpitError=String(error).slice(0,160);
+     }
+    },4000);
+   }
  });
 })();
 </script>`;
@@ -299,6 +328,22 @@ async function main(){
    assert.ok(fs.statSync(png).size>7000,'Journal screenshot missing');
   }
   if(process.argv.includes('--journal-only'))return;
+  // Test the actual hatch transition and physical console in a real browser,
+  // including mobile; save screenshots for visual acceptance inspection.
+  for(const [label,w,h] of [['cockpit-desktop',1280,720],['cockpit-mobile',390,844]]){
+   const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
+    '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
+    '--force-device-scale-factor=1','--virtual-time-budget=7800'];
+   const cockpitURL=url+'?stage=cockpit';
+   const dom=await run(browser,[...flags,'--dump-dom',cockpitURL]);
+   const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
+   const error=dom.match(/data-cockpit-error="([^"]*)"/)?.[1];
+   assert.equal(status,'ok',label+' failed cockpit integration: '+error);
+   console.log('[cockpit-smoke] '+label+' cards='+dom.match(/data-cockpit-cards="([^"]*)"/)?.[1]);
+   const screenshot=path.join(output,label+'.png');
+   await run(browser,[...flags,'--screenshot='+screenshot,cockpitURL]);
+   assert.ok(fs.statSync(screenshot).size>10000,label+' cockpit screenshot missing');
+  }
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
    ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
