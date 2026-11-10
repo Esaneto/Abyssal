@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-10-mar-aberto-inventory-v3';
+const VERSION = '2026-11-10-cockpit-offshore-v4';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -13,6 +13,7 @@ const GAME_FILES = [
   'abyssal-menu-v2.css',
   'abyssal-menu-navigation.css',
   'abyssal-lab-menu.css',
+  'abyssal-submarine-laboratory.css',
   'abyssal-specimen-themes.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',
@@ -31,11 +32,17 @@ const GAME_FILES = [
   'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-ocean.js',
+  'abyssal-submarine-cockpit.js',
   'abyssal-ocean-geography.js',
   'abyssal-open-sea-ecology.js',
+  'abyssal-fauna-anatomy.js',
+  'abyssal-ocean-respawn.js',
   'abyssal-ocean-stream.js',
   'abyssal-open-sea-render.js',
+  'abyssal-open-sea-lighting.js',
   'abyssal-exploration-config.js',
+  'abyssal-offshore-system.js',
+  'abyssal-extraction-ui.js',
   'abyssal-inventory-ui.css',
   'abyssal-inventory-ui.js',
   'abyssal-exploration-runtime.js',
