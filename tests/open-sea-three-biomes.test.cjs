@@ -34,16 +34,19 @@ test('streaming is sparse, stable and preserves the small safe entry region',()=
  assert.ok(stream.INITIAL_FAUNA<=3);
 });
 test('petroleum and natural gas deposits only identify rock-hosted fractures',()=>{
- let checked=0;
- for(const cx of [3,5,8,11,14,17,19])for(const cy of [1,2,4,7,10,12,14]){
-  for(const node of fields.sector('three-biomes-resource-test',cx,cy)){
+ const seen=new Set();let checked=0;
+ const supports=geo.ROCKS.filter(r=>geo.metersAt(r.y)>350).slice(0,32);
+ for(const rock of supports){
+  for(const node of fields.streamNear('three-biomes-resource-test',rock.x,rock.y,1500)){
+   if(seen.has(node.id))continue;seen.add(node.id);
    if(node.type!=='oilSeep'&&node.type!=='gasSeep')continue;
    checked++;assert.equal(node.feature,'rock-reservoir');
    assert.ok(Number.isFinite(node.rockAngle));
    assert.equal(geo.isSolid(node.x,node.y,18),false);
   }
  }
- assert.ok(checked>=0);
+ assert.ok(seen.size>0,'geological outcrops should expose resource nodes');
+ assert.ok(checked>0,'real rock fissures should host at least one hydrocarbon node');
 });
 test('camera-limited biome renderers and UI remain available across the same ocean',()=>{
  const canvas=new Proxy({}, {get(_,key){
