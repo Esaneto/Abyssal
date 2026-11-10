@@ -735,12 +735,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,world.enemies);
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
+        movementOptions.freeSwim=world.mode==='open-sea';
         const swimTarget=ecology.target;
         const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
         movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
         movementNavigationProxy.alive=true;
         movement=EnemyAI.moveTowardTarget(enemy,movementNavigationTargets,dt,movementOptions,movementResult);
+        if(world.mode==='open-sea'){
+          const radius=Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
+          const resolved=OceanGeography.resolveMove(seaBeforeX,seaBeforeY,enemy.x,enemy.y,radius);
+          enemy.x=resolved.x;enemy.y=resolved.y;
+          if(resolved.blocked){enemy.vx=(enemy.x-seaBeforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-seaBeforeY)/Math.max(dt,.001);}
+        }
         movement.target=actualTarget;
       }else{
         movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);

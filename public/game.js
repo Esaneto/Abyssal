@@ -2944,6 +2944,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
      }
      soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
+     soloEnemyMovementOptions.freeSwim=true;
      const swimRoute=OPEN_SEA_ECOLOGY.navigationTarget(e,ec.target,Math.max(10,Math.min(52,e.r*.56)),performance.now());
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
      soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
@@ -2973,11 +2974,12 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     }
    }
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
+   if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const sea=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));e.x=sea.x;e.y=sea.y;if(sea.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);}}
    if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
   }else{
    if(enemyParalyzedNow(e)){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
   }
-  if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
+  if(false&&!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
    const corrected=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));
    e.x=corrected.x;e.y=corrected.y;
   }
@@ -3775,6 +3777,7 @@ function drawArenaTerrain(t){
  // Open sea now has one source of truth for geology and drawing. Rift/PvP keep their own terrain.
  if(usesNaturalOceanTerrain()){
   window.AbyssalOpenSeaRender?.draw?.(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,lowPowerRendering);
+  window.AbyssalExplorationWorldRender?.(ctx,t,{left:cameraX,top:cameraY,right:cameraX+viewW/worldZoom,bottom:cameraY+viewH/worldZoom});
   return;
  }
  // Quatro vórtices fixos nos cantos do mapa marcam fendas de onde a fauna entra. Eles não seguem a câmera/jogador.

@@ -110,3 +110,19 @@ test('mined deposits animate only on collection and breakup stays in world coord
  assert.match(runtime,/const x=\(fx\.x-originX\)\*zoom,y=\(fx\.y-originY\)\*zoom/);
  assert.match(runtime,/nodes\.length===0&&collectionFx\.length===0/);
 });
+
+
+test('open sea resources render in world canvas instead of overlay UI',()=>{
+ const runtime=source('public/abyssal-exploration-runtime.js');
+ const game=source('public/game.js');
+ assert.match(runtime,/window\.AbyssalExplorationWorldRender=drawWorldResources/);
+ assert.match(game,/AbyssalExplorationWorldRender\?\.\(ctx,t/);
+ assert.match(runtime,/markers\.hidden=true; \/\/ Resources render inside the game world canvas/);
+});
+
+test('open sea wildlife disables legacy shark wall dash',()=>{
+ const ai=source('public/enemy-ai.js');
+ const game=source('public/game.js');
+ assert.match(ai,/options\.freeSwim !== true/);
+ assert.match(game,/soloEnemyMovementOptions\.freeSwim=true/);
+});

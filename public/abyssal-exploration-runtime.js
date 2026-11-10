@@ -152,6 +152,27 @@
  }
  const baseButton=$('openSubmarineBaseBtn');
  baseButton?.addEventListener('click',()=>{renderResearch();});
+ function drawWorldResources(c,time,view){
+  const p=cfg();if(!c||!p||p.mode!=='open-sea')return;
+  const left=Number(view?.left)||0,top=Number(view?.top)||0,right=Number(view?.right)||p.worldWidth,bottom=Number(view?.bottom)||p.worldHeight;
+  const t=(Number(time)||performance.now())/1000;
+  for(const node of nodes){
+   if(node.x<left-90||node.x>right+90||node.y<top-110||node.y>bottom+90)continue;
+   const type=node.type,oil=type==='oilSeep',gas=type==='gasSeep',seep=oil||gas;
+   c.save();c.translate(node.x,node.y);
+   c.fillStyle=seep?'#202c33':'#243941';c.strokeStyle='#49616a';c.lineWidth=1.4;
+   c.beginPath();c.moveTo(-32,16);c.lineTo(-27,-10);c.lineTo(-12,-22);c.lineTo(6,-17);c.lineTo(25,-26);c.lineTo(34,-3);c.lineTo(24,17);c.lineTo(4,24);c.lineTo(-17,21);c.closePath();c.fill();c.stroke();
+   if(type==='polymetallicNodule'){for(let n=0;n<7;n++){const x=-22+n*7.6,y=(n%3)*3+2,r=5+(n%3)*1.5;c.fillStyle=n%2?'#454c56':'#333b45';c.beginPath();c.ellipse(x,y,r,r*.78,n*.37,0,Math.PI*2);c.fill();}}
+   else if(type==='ferromanganeseCrust'){c.fillStyle='#151d28';c.beginPath();c.moveTo(-25,3);c.lineTo(-16,-7);c.lineTo(-4,-3);c.lineTo(8,-13);c.lineTo(25,-7);c.lineTo(29,1);c.lineTo(8,7);c.lineTo(-13,9);c.closePath();c.fill();}
+   else if(type==='hydrothermalSulfide'){c.fillStyle='#30262a';c.beginPath();c.moveTo(-10,11);c.lineTo(-13,-28);c.lineTo(-4,-34);c.lineTo(2,-24);c.lineTo(11,-30);c.lineTo(14,8);c.closePath();c.fill();}
+   else if(seep){for(let n=0;n<4;n++){const phase=t*(gas?1.5:.55)+n*1.4,rise=(phase*20)%58;c.strokeStyle=gas?'rgba(92,190,137,.5)':'rgba(8,15,20,.65)';c.lineWidth=2;c.beginPath();c.moveTo(-8+n*5,-3);c.quadraticCurveTo(-13+n*7,-18-rise*.4,-5+n*6,-18-rise);c.stroke();}}
+   else {const col=type==='phosphorite'?'#9f8c66':'#609ca0';for(let n=0;n<5;n++){const x=-18+n*9,y=n%2?-1:-7,s=5+(n%3)*2;c.fillStyle=col;c.beginPath();c.moveTo(x,y-s);c.lineTo(x+s*.8,y);c.lineTo(x+s*.4,y+s*.5);c.lineTo(x-s*.6,y+s*.3);c.closePath();c.fill();}}
+   c.restore();
+  }
+  const now=performance.now();collectionFx=collectionFx.filter(fx=>now-fx.started<650);
+  for(const fx of collectionFx){const age=(now-fx.started)/650;if(age<0||age>=1)continue;c.save();c.translate(fx.x,fx.y);c.globalAlpha=1-age;for(let i=0;i<8;i++){const a=i/8*Math.PI*2,travel=12+age*(25+i%3*8);c.fillStyle=i%2?'#718083':'#394a50';c.beginPath();c.arc(Math.cos(a)*travel,Math.sin(a)*travel+age*age*18,2.8,0,Math.PI*2);c.fill();}c.restore();}
+ }
+ window.AbyssalExplorationWorldRender=drawWorldResources;
  function drawMarkers(p,visible){
   const fxNow=performance.now();collectionFx=collectionFx.filter(fx=>fxNow-fx.started<650);
   if(!visible||(nodes.length===0&&collectionFx.length===0)){markers.hidden=true;return;}
@@ -282,7 +303,7 @@
    const closest=signals[0];
    $('explorationRiftSignalText').textContent=closest?closest.label+' · '+Math.round(closest.distance)+' u':'SEM SINAIS PRÓXIMOS';
   }
-  drawMarkers(p,p.mode==='open-sea');
+  markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
  }
  requestAnimationFrame(tick);
 })();

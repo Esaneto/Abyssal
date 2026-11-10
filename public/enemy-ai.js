@@ -184,7 +184,7 @@
     // Movimentação especial de investida para tubarões (whiteShark e whiteSharkBoss):
     // Move-se APENAS por investidas em linha reta que só param ao colidir com o fim do mapa.
     // Ao bater na parede, vira imediatamente na direção do jogador mais próximo e investe novamente.
-    const isShark = enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss';
+    const isShark = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') && options.freeSwim !== true;
     if (isShark) {
       const minX = Number.isFinite(options.minX) ? options.minX : 0;
       const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
