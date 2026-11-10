@@ -923,6 +923,29 @@ function renderBossAbilityVisual(data){
  }
  const x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
  const color=d.color||'#79f3f0',angle=Number(d.angle)||0,radius=Math.max(40/GAME_WORLD_ZOOM,Number(d.radius)||180/GAME_WORLD_ZOOM),id=String(d.abilityId||'');
+ if(id.startsWith('wildlife-')){
+  const active=id.slice(9);
+  ctx.save();
+  if(active==='cloud'||active==='poison'){
+   spawnPoisonPlantCloudVisual(x,y,radius*.9,active==='poison'?'#a979ee':'#7dff73');
+  }else if(active==='paralysis'){
+   for(let i=0;i<7;i++){const a=i*2.4+performance.now()*.0009;
+    effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*.72,y2:y+Math.sin(a)*radius*.72,
+     life:.34,maxLife:.34,color:i%2?'#eefcff':'#51eaff',width:3/GAME_WORLD_ZOOM});}
+   burst(x,y,'#78edff',10,90);
+  }else if(active==='trail'){
+   for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=radius*.5;
+    effects.push({type:'ring',x:x+Math.cos(a)*rr,y:y+Math.sin(a)*rr,r:4,max:radius*.27,life:.35,maxLife:.35,color});}
+  }else if(active==='dash'){
+   for(const d of [-1,1])effects.push({type:'beam',x1:x,y1:y+d*radius*.22,
+    x2:x+Math.cos(angle)*radius,y2:y+Math.sin(angle)*radius+d*radius*.15,
+    life:.35,maxLife:.35,color:'#66dfff',width:4/GAME_WORLD_ZOOM});
+  }else{
+   effects.push({type:'ring',x,y,r:0,max:radius,life:.45,maxLife:.45,color});
+   burst(x,y,color,8,85);
+  }
+  ctx.restore();return;
+ }
  const bossKind=String(d.kind||activeBossEntity?.kind||'boss');
  const cue=window.AbyssalWorldAudio?.PATTERNS?.['boss-attack-'+bossKind]?'boss-attack-'+bossKind:'boss-attack-boss';
  playWorldSound(cue,{x,y},1000,.82);
@@ -2903,6 +2926,17 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      if(Math.hypot(e.x-player.x,e.y-player.y)<=e.r+player.r+8/GAME_WORLD_ZOOM)e.provokedUntil=performance.now()+4000;
      const ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,performance.now(),enemies);
      e.openSeaWantsAttack=ec.aggressive;
+     if(ec.aggressive&&player){
+      const skill=OPEN_SEA_ECOLOGY?.activateAgainstPlayer?.(e,player,performance.now());
+      if(skill){
+       renderBossAbilityVisual({abilityId:'wildlife-'+skill.id,kind:e.kind,x:e.x,y:e.y,
+        angle:e.angle||0,radius:skill.range,color:skill.color});
+       if(skill.damage>0){
+        hurtPlayer(skill.damage);
+        if(skill.neurotoxinMs>0)player.neurotoxinUntil=performance.now()+skill.neurotoxinMs;
+       }
+      }
+     }
      soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
      const swimRoute=OCEAN_GEOGRAPHY?.steer?.(e.x,e.y,ec.target.x,ec.target.y,Math.max(10,Math.min(52,e.r*.56)),e.id)||ec.target;
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;

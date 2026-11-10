@@ -52,6 +52,21 @@ test('prey flee a nearby predator while predators hunt and use catalog actives',
  assert.deepEqual(eco.simulatePredation([shark,turtle],.05,1050),[],'ecological damage is not broadcast on every 50ms tick');
 });
 
+test('predatory sea creatures use their configured Specimens skills, without zero-damage shields becoming attacks',()=>{
+ const diver={id:'diver',x:170,y:100,alive:true};
+ const reefshark={id:11,specimenSkinId:'reefshark',x:100,y:100,angle:0,aiMode:'attack',hp:96};
+ const skill=eco.activateAgainstPlayer(reefshark,diver,1000);
+ assert.ok(skill);
+ assert.equal(skill.id,'trail');
+ assert.ok(skill.damage>0);
+ assert.equal(eco.activateAgainstPlayer(reefshark,diver,1100),null,'skill cooldown is enforced');
+ const shieldBearer={id:12,specimenSkinId:'blackcaiman',x:100,y:100,angle:0,aiMode:'attack',hp:110};
+ const shield=eco.activateAgainstPlayer(shieldBearer,diver,1000);
+ assert.equal(shield.id,'shield');
+ assert.equal(shield.damage,0);
+ assert.ok(shieldBearer.wildlifeShieldUntil>1000);
+});
+
 test('suit pressure and empty tank injury progress rather than being overcome by low passive regeneration',()=>{
  const safe=survival.safeDepth(0);
  assert.equal(survival.pressureDamage(safe-1,safe),0);

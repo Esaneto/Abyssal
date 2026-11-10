@@ -809,6 +809,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       movement.moved=Math.hypot(enemy.x-seaBeforeX,enemy.y-seaBeforeY)>.04;
     }
     if (movement.moved) movedEnemyCount++;
+    if(world.mode==='open-sea'&&enemy.wildlifeMode&&actualTarget){
+      const sampleAt=Number(actualTarget.lastPositionAt)||0;
+      if(actualTarget.clientHidden===true||(sampleAt>0&&now-sampleAt<=250)){
+        const skill=OpenSeaEcology.activateAgainstPlayer(enemy,actualTarget,now);
+        if(skill){
+          bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'wildlife-'+skill.id,
+            x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:skill.range,color:skill.color});
+          if(skill.damage>0){
+            const hit=bossAbilityHit(enemy,actualTarget,skill.damage,now,'wildlife-'+skill.id,{neurotoxinMs:skill.neurotoxinMs});
+            if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(actualTarget);}
+          }
+        }
+      }
+    }
 
     // Contact attacks are resolved here on the server, never in requestAnimationFrame.
     // A minimized tab keeps taking damage at its last known position; a visible tab must
