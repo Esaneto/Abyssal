@@ -74,6 +74,10 @@
  function gasConsumption(depthMeters,exertion=1){return pressureAt(depthMeters)*clamp(exertion,.5,2);}
  function oxygenCapacity(level=0){return 900*(1+clamp(Math.floor(level),0,5)*.22);}
  function safeDepth(level=0){return 30+clamp(Math.floor(level),0,5)*40;}
+ // Pressure danger scales above suit rating and outpaces natural health regeneration.
+ function pressureDamage(depthMeters,limitMeters){const excess=Math.max(0,(Number(depthMeters)||0)-(Number(limitMeters)||0));return Math.min(160,3*Math.pow(excess/10,1.55));}
+ function oxygenDamage(secondsWithoutGas){const seconds=Math.max(0,Number(secondsWithoutGas)||0);return seconds>0?Math.min(160,9+3*seconds):0;}
+ function environmentDamage(depthMeters,limitMeters,secondsWithoutGas=0){return pressureDamage(depthMeters,limitMeters)+oxygenDamage(secondsWithoutGas);}
  function canResearch(id,levels={},inventory={}){
   const item=RESEARCH[id];if(!item)return {ok:false,reason:'unknown-research'};
   if((Number(levels[id])||0)>=item.max)return {ok:false,reason:'max-level'};
@@ -85,5 +89,5 @@
   const depth=Math.max(0,Number(depthMeters)||0);
   return Object.entries(HABITATS).filter(([,h])=>depth>=h.minDepth&&depth<=h.maxDepth).map(([id])=>id);
  }
- return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,canResearch,habitatFor});
+ return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
 });

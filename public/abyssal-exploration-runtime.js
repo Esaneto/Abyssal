@@ -16,9 +16,10 @@
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
  shell.appendChild(hud);
+ hud.querySelector('.exploration-collect').hidden=true; // Await curated Mar Aberto resources.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
- let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ let account=null,localInventory={},localLevels={},nodes=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  const notify=message=>{const node=$('explorationGatherStatus');if(node)node.textContent=message;};
  window.addEventListener('abyssal-account-data',ev=>{account=ev.detail||null;renderResearch();});
@@ -35,8 +36,8 @@
  function saveLocal(){localStorage.setItem('abyssalSoloInventory',JSON.stringify(localInventory));localStorage.setItem('abyssalSoloResearch',JSON.stringify(localLevels));}
  function startRun(p){
   runKey=(p.online?'online:':'solo:')+p.mode+':'+Date.now();
-  taken=new Set();nodes=[];serverVitals=null;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
-  if(!p.online&&p.mode==='rift')nodes=fields.create(runKey,'rift',p.worldWidth,p.worldHeight,70);
+  taken=new Set();nodes=[];serverVitals=null;noOxygenSeconds=0;oxygen=capacity=config.oxygenCapacity(stateLevels().oxygenTank);
+  // No legacy resource generation in either mode.
   lastScan=0;notify(p.online?'Varredura online iniciada.':'Coleta solo: materiais armazenados neste dispositivo.');
  }
  function scan(p,time){
@@ -113,7 +114,7 @@
  const baseButton=$('openSubmarineBaseBtn');
  baseButton?.addEventListener('click',()=>{renderResearch();});
  function drawMarkers(p,visible){
-  if(!visible){markers.hidden=true;return;}
+  if(!visible||nodes.length===0){markers.hidden=true;return;}
   const rect=canvas.getBoundingClientRect(),shellRect=shell.getBoundingClientRect();
   const w=Math.max(1,Math.round(rect.width)),h=Math.max(1,Math.round(rect.height));
   markers.hidden=false;markers.style.position='absolute';markers.style.left=(rect.left-shellRect.left)+'px';markers.style.top=(rect.top-shellRect.top)+'px';
@@ -136,10 +137,12 @@
   if(!active){markers.hidden=true;runKey='';return;}
   if(!runKey)startRun(p);
   if(!p.paused&&!p.online){
-   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:40);
+   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
    const safe=config.safeDepth(stateLevels().pressureSuit);
    oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
-   if(depth>safe||oxygen===0)window.AbyssalGameHooks?.explorationHit?.(delta*((depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0)));
+   if(oxygen<=0)noOxygenSeconds+=delta;else noOxygenSeconds=0;
+   const hazard=p.mode==='rift'?(depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0):config.environmentDamage(depth,safe,noOxygenSeconds);
+   if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
   }
   if(!p.online&&p.mode!=='rift'&&time-lastScan>450){
    lastScan=time;
@@ -147,7 +150,7 @@
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
-  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:40);
+  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:600);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
   const gas=p.online&&serverVitals?serverVitals.oxygen:oxygen;
   const max=p.online&&serverVitals?serverVitals.capacity:capacity;

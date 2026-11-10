@@ -1180,15 +1180,17 @@ function tickRoom(room, now) {
    const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
    const capacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
    const worldHeight=roomWorldHeight(room);
-   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:200);
+   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:600);
    const maxDepth=ExplorationConfig.safeDepth(research.pressureSuit);
    const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
    diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
    if(!Number.isFinite(diver.oxygen))diver.oxygen=capacity;
    diver.oxygen=Math.max(0,Math.min(capacity,diver.oxygen-ExplorationConfig.gasConsumption(depth,1)*elapsed));
    // Warnings precede equipment damage, rather than hiding a hard depth wall.
-   const pressureDamage=depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0;
-   const asphyxiaDamage=diver.oxygen<=0?6:0;
+   if(diver.oxygen<=0)diver.oxygenEmptySeconds=(Number(diver.oxygenEmptySeconds)||0)+elapsed;
+   else diver.oxygenEmptySeconds=0;
+   const pressureDamage=room.mode==='open-sea'?ExplorationConfig.pressureDamage(depth,maxDepth):(depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0);
+   const asphyxiaDamage=room.mode==='open-sea'?ExplorationConfig.oxygenDamage(diver.oxygenEmptySeconds):(diver.oxygen<=0?6:0);
    if(pressureDamage+asphyxiaDamage>0&&elapsed>0){
     diver.hp=Math.max(0,Number(diver.hp)-(pressureDamage+asphyxiaDamage)*elapsed);
     if(diver.hp<=0)diver.alive=false;
@@ -2531,6 +2533,7 @@ io.on('connection', socket => {
  // Deposits are deterministic and shared. Coordinates and pickup radius are
  // validated from the server player state, not from client supplied positions.
  function nodesForWorld(room,x,y,radius=350){
+  return []; // Disable unapproved deposits across all modes.
   const world=room?.world;if(!world)return [];
   if(room.mode!=='rift')return ResourceFields.streamNear(world.worldId||room.id,x,y,radius,world.collectedResources||[]);
   // Fossas keep their existing hand-authored traversable cave resource layout.
@@ -2553,6 +2556,7 @@ io.on('connection', socket => {
   const respond=data=>{if(typeof ack==='function')ack(data);};
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
   if(!u||!p||room.mode==='pvp'||p.alive===false)return respond({ok:false,reason:'unavailable'});
+  return respond({ok:false,reason:'resources-disabled'});
   const now=Date.now();if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
   const id=String(payload.id||'');
   const node=nodesForWorld(room,p.x,p.y,180).find(row=>row.id===id);

@@ -8,7 +8,7 @@
  if(root)root.AbyssalOceanGeography=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WIDTH=24000,HEIGHT=9000,VERSION=1;
+ const WIDTH=24000,HEIGHT=21000,VERSION=2,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const KNOTS=Object.freeze([
@@ -17,7 +17,7 @@
   [10800,8750],[11900,8070],[13000,7500],[14100,8300],
   [15100,8640],[16200,8060],[17400,8470],[18600,7220],
   [19800,6850],[20800,7690],[21800,8460],[23000,8360],[24000,8720]
- ]);
+ ].map(([x,y])=>Object.freeze([x,Math.round(y*DEPTH_SCALE)])));
  function floorAt(x){
   x=clamp(Number(x)||0,0,WIDTH);
   let lo=0,hi=KNOTS.length-1;
@@ -25,7 +25,7 @@
   const a=KNOTS[lo],b=KNOTS[Math.min(lo+1,KNOTS.length-1)];
   const q=clamp((x-a[0])/Math.max(1,b[0]-a[0]),0,1);
   const smooth=q*q*(3-2*q);
-  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,1650,8850);
+  return clamp(a[1]+(b[1]-a[1])*smooth+Math.sin(x*.0041)*64+Math.sin(x*.0093+1.5)*28,1650*DEPTH_SCALE,8850*DEPTH_SCALE);
  }
  // Rock spires and natural suspended shelves. They never form a full-width wall.
  // Coordinates use floor-relative elevation, preserving large swim passages.
@@ -36,7 +36,11 @@
   [12450,1220,690,220,'arch'],[14380,460,285,740,'spire'],
   [15800,1040,550,285,'shelf'],[17600,440,250,710,'spire'],
   [19380,1100,780,240,'arch'],[21150,410,300,640,'spire'],
-  [22750,890,580,300,'shelf']
+  [22750,890,580,300,'shelf'],
+  [1550,360,520,195,'shelf'],[3360,820,290,480,'spire'],
+  [5230,780,515,235,'shelf'],[8750,1160,650,235,'arch'],
+  [11380,1570,550,245,'shelf'],[13660,990,390,400,'spire'],
+  [16700,1450,720,225,'arch'],[20100,1030,555,270,'shelf']
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
@@ -149,14 +153,14 @@
  }
  function classify(x,y){
   const floor=floorAt(x),clearance=floor-y;
-  if(x<1900&&clearance<650&&y<3500)return 'reef';
-  if(x>=1900&&x<3500&&clearance<650&&y<4600)return 'kelp';
-  if(y>7300)return 'abyss';
-  if(y>5100)return clearance<750?'canyon':'deep';
+  if(x<1900&&clearance<650&&y<3500*DEPTH_SCALE)return 'reef';
+  if(x>=1900&&x<3500&&clearance<650&&y<4600*DEPTH_SCALE)return 'kelp';
+  if(y>7300*DEPTH_SCALE)return 'abyss';
+  if(y>5100*DEPTH_SCALE)return clearance<750?'canyon':'deep';
   if(clearance<480)return 'rocks';
-  if(y<3400)return 'open';
+  if(y<3400*DEPTH_SCALE)return 'open';
   return 'twilight';
  }
  function lightAt(y){return clamp(1-Math.pow(clamp(y/HEIGHT,0,1),.72)*.94,.06,1);}
- return Object.freeze({WIDTH,HEIGHT,VERSION,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt});
 });
