@@ -1550,3 +1550,15 @@ Não reintroduzir:
 - boss premium dentro do mapa de preços por moedas;
 - skin muito poderosa com preço inferior a skins claramente menos fortes;
 - premium visualmente indistinguível de tier comum.
+
+
+## 2026-11-09: Ressurgimento independente de espécimes equipados e selvagens
+
+- Regra vigente: companheiro equipado ao jogador revive exatamente 20 segundos depois da morte; espécie selvagem derrotada em Mar Aberto/exploração reaparece depois de 300 segundos, com identificador persistente individual.
+- `public/specimen-system.js`: `BASE_RESPAWN=20`, redução por proficiência continua 0. Todas as chamadas `SpecimenSystem.stats(...).respawnSeconds` do servidor e cliente refletem essa regra.
+- `public/abyssal-ocean-respawn.js`: permanece `RESPAWN_MS=300000` apenas para fauna selvagem; `world-simulation.js` conserva mortes por `streamId`.
+- `public/game.js` e `public/online.js`: fallbacks de `respawnSeconds` foram alinhados a 20 para evitar regressões quando os módulos carregarem incompletos.
+- `public/index.html`: cache-busting de `specimen-system.js`, `game.js` e `online.js` na revisão `2026.11.9.24`.
+- Testes atualizados: `tests/specimen-system.test.cjs`, `tests/ocean-specimen-respawn.test.cjs`; testar em ambiente real solo e multiplayer para validar a reaparição visual e a persistência do estado dos selvagens após reconexão.
+- O último merge antes destas correções foi PR #225 (`549741c2`), incluindo reformulação do Mar Aberto e rastreamento do tempo individual de fauna.
+- Pendência de validação: conferir conclusão do workflow GitHub Actions do commit final e executar smoke em navegador com um companheiro morto e uma criatura selvagem morta; esta sessão não dispõe de execução local do repositório.
