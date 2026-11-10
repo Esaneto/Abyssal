@@ -17,7 +17,10 @@
  }
  function start(node){
   const p=pos();if(!p||p.mode!=='open-sea'||p.paused||action||drop)return;
-  const target=node||bridge.closest(),tool=selected();
+  const tool=selected();
+  // Pipe-laying starts and completes at the FPSO, not at an arbitrary deposit.
+  if(tool==='offshoreCable'&&bridge.platformNearby?.(p)){bridge.platformAction?.();return;}
+  const target=node||bridge.closest();
   if(!target||Math.hypot(target.x-p.x,target.y-p.y)>135){bridge.notify('Aproxime-se da rocha ou da exsudação.');return;}
   const seep=target.type==='oilSeep'||target.type==='gasSeep';
   if(seep&&tool==='offshoreCable'){
@@ -106,10 +109,11 @@
   if(!button)return;
   const tool=selected(),seep=near&&(near.type==='oilSeep'||near.type==='gasSeep');
   const can=near&&Math.hypot(p.x-near.x,p.y-near.y)<=135&&(seep&&tool==='offshoreCable'?bridge.levels().offshorePlatform&&bridge.levels().subseaUmbilical&&!bridge.isConnected(near.id):bridge.fields.eligible(near,p.x,p.y,bridge.inventory(),135,tool).ok);
-  button.disabled=!(can||action)||Boolean(drop)||Boolean(p.paused);
+  const platform=tool==='offshoreCable'&&bridge.platformNearby?.(p)&&bridge.levels().offshorePlatform;
+  button.disabled=!(can||platform||action)||Boolean(drop)||Boolean(p.paused);
   const percent=action?.phase==='working'?Math.max(0,Math.min(100,(now()-action.began)/action.duration*100)):0;
   if(bar)bar.style.width=percent.toFixed(1)+'%';
-  button.textContent=action?(action.tool==='abyssPickaxe'?'GOLPEANDO ROCHA '+Math.floor(percent)+'%':'ENCHENDO CILINDRO '+Math.floor(percent)+'%'):drop?'APROXIME-SE DO RECURSO':tool==='offshoreCable'?'CONECTAR DUTO':'SEGURE PARA EXTRAIR';
+  button.textContent=action?(action.tool==='abyssPickaxe'?'GOLPEANDO ROCHA '+Math.floor(percent)+'%':'ENCHENDO CILINDRO '+Math.floor(percent)+'%'):drop?'APROXIME-SE DO RECURSO':platform?(bridge.installation?.()?.phase==='return'?'LIGAR DUTO NO FPSO':'RETIRAR BOBINA DO FPSO'):tool==='offshoreCable'?'FIXAR DUTO NO POÇO':'SEGURE PARA EXTRAIR';
  }
  function pendingId(){return drop?.node?.id||null;}
  function draw(c,time,view){
@@ -161,7 +165,7 @@
   const x=(Number(cam?.x)||0)+(e.clientX-box.left)/zoom,y=(Number(cam?.y)||0)+(e.clientY-box.top)/zoom;
   let hit=null,r=72;
   for(const n of bridge.nearby()){const dist=Math.hypot(n.x-x,n.y-y);if(dist<r){r=dist;hit=n;}}
-  if(hit){e.preventDefault();e.stopPropagation();start(hit);}
+  if(hit){e.preventDefault();e.stopPropagation();start(hit);}else if(selected()==='offshoreCable'&&bridge.platformNearby?.(pos())&&Math.hypot(x-520,y-95)<185){e.preventDefault();e.stopPropagation();start();}
  },true);
  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,interrupt,true);
  window.addEventListener('blur',interrupt);

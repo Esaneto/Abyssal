@@ -58,7 +58,7 @@
     panel.innerHTML='<small>MÓDULO DE PRODUÇÃO OFFSHORE · '+(offshore.connections.length?'FLUXO ATIVO':'AGUARDANDO POÇOS')+'</small><strong>ESTOQUES DA UNIDADE FLUTUANTE</strong>'+
      '<div class="submarine-console-meter"><b>PETRÓLEO</b><i><em style="width:'+oil+'%"></em></i><span>'+offshore.oil.toFixed(1)+' / '+cap+' · '+(rates.oil*60).toFixed(1)+'/min</span></div>'+
      '<div class="submarine-console-meter gas"><b>GÁS NATURAL</b><i><em style="width:'+gas+'%"></em></i><span>'+offshore.gas.toFixed(1)+' / '+cap+' · '+(rates.gas*60).toFixed(1)+'/min</span></div>'+
-     '<small>RESERVAS CONECTADAS: '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0)+'</small>';
+     '<small>RESERVAS CONECTADAS: '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0)+(offshore.installation?' · DUTO EM INSTALAÇÃO: '+(offshore.installation.phase==='laying'?'FIXAR NA RESERVA':'RETORNAR AO FPSO'):'')+'</small>';
    }else panel.innerHTML='<small>MÓDULO DE PRODUÇÃO OFFSHORE</small><strong>PLATAFORMA AINDA NÃO CONSTRUÍDA</strong><p>Estude geofísica, descubra reservatórios e construa a unidade flutuante para liberar esta estação.</p>';
    workshopGrid.appendChild(panel);
   }
@@ -103,8 +103,8 @@
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{if(workshop)workshop.hidden=true;});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
 
- let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[]},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
- try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));const saved=JSON.parse(localStorage.getItem('abyssalSoloOffshoreV1')||'null');if(saved&&typeof saved==='object')offshore={oil:Math.max(0,Number(saved.oil)||0),gas:Math.max(0,Number(saved.gas)||0),lastAt:Number(saved.lastAt)||Date.now(),connections:Array.isArray(saved.connections)?saved.connections.slice(0,24):[]};}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
+ let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[],installation:null},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));const saved=JSON.parse(localStorage.getItem('abyssalSoloOffshoreV1')||'null');if(saved&&typeof saved==='object')offshore={oil:Math.max(0,Number(saved.oil)||0),gas:Math.max(0,Number(saved.gas)||0),lastAt:Number(saved.lastAt)||Date.now(),connections:Array.isArray(saved.connections)?saved.connections.slice(0,24):[],installation:saved.installation&&['laying','return'].includes(saved.installation.phase)?saved.installation:null};}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  // Starter equipment is granted once per offline device, not on each run.
  try{
   const kit=fields.starterKit(localInventory,localStorage.getItem('abyssalSoloKitGrantedV1')==='1');
@@ -141,13 +141,40 @@
   const rates=offshoreRates(),oilRate=rates.oil,gasRate=rates.gas;
   const cap=offshoreCapacity();offshore.oil=Math.min(cap,offshore.oil+oilRate*elapsed);offshore.gas=Math.min(cap,offshore.gas+gasRate*elapsed);
  }
+ const PLATFORM_X=520,PLATFORM_Y=95;
+ function platformNearby(p=cfg()){return Boolean(p&&p.mode==='open-sea'&&Math.hypot(p.x-PLATFORM_X,p.y-PLATFORM_Y)<175);}
+ function platformAction(){
+  const p=cfg(),levels=stateLevels(),selected=inventoryUI()?.selectedTool?.();
+  if(!platformNearby(p)||selected!=='offshoreCable')return false;
+  if(!levels.offshorePlatform||!levels.subseaUmbilical){notify('Pesquise a plataforma e os dutos no Laboratório.');return false;}
+  if(offshore.installation?.phase==='return'){
+   const well=offshore.installation.target;
+   if(!well||offshore.connections.some(link=>link.id===well.id)){offshore.installation=null;saveLocal();return false;}
+   updateOffshoreProduction();
+   offshore.connections.push({...well,connectedAt:Date.now()});
+   offshore.installation=null;offshore.lastAt=Date.now();saveLocal();
+   notify('DUTO LIGADO AO FPSO · bombeamento automático ativado. Estoques disponíveis na central de produção.');
+   if(workshop&&!workshop.hidden)renderWorkshop();return true;
+  }
+  if(offshore.installation?.phase==='laying'){notify('Duto em transporte. Siga até um poço mapeado para fixar a extremidade.');return true;}
+  if(offshore.connections.length>=Number(levels.subseaUmbilical)){notify('As linhas pesquisadas já estão conectadas. Pesquise mais dutos.');return false;}
+  offshore.installation={phase:'laying',startedAt:Date.now()};saveLocal();
+  notify('BOBINA RETIRADA DO FPSO. Nade até a reserva de petróleo ou gás e fixe a primeira conexão.');
+  return true;
+ }
  function connectOffshoreReserve(target){
-  const id=String(target.id),levels=stateLevels(),selected=inventoryUI()?.selectedTool?.();
-  if(!levels.offshorePlatform||!levels.subseaUmbilical||selected!=='offshoreCable')return false;
-  if(offshore.connections.some(link=>link.id===id)){notify('Esta reserva já está ligada à plataforma.');return true;}
-  if(offshore.connections.length>=Number(levels.subseaUmbilical)){notify('Todas as linhas submarinas pesquisadas já estão em uso.');return true;}
-  offshore.connections.push({id,type:target.type,x:target.x,y:target.y,connectedAt:Date.now()});offshore.lastAt=Date.now();saveLocal();
-  notify((target.type==='oilSeep'?'PETRÓLEO':'GÁS')+' CONECTADO · produção automática iniciada na plataforma.');return true;
+  const p=cfg(),id=String(target.id),levels=stateLevels();
+  if(!p||!['oilSeep','gasSeep'].includes(target.type)||!levels.offshorePlatform||!levels.subseaUmbilical)return false;
+  if(inventoryUI()?.selectedTool?.()!=='offshoreCable')return false;
+  if(offshore.connections.some(link=>link.id===id)){notify('Poço já conectado e produzindo.');return true;}
+  if(!offshore.installation||offshore.installation.phase!=='laying'){
+   notify('PRIMEIRO RETIRE UM DUTO NO FPSO. Depois venha até este reservatório para instalá-lo.');return false;
+  }
+  if(Math.hypot(p.x-target.x,p.y-target.y)>155){notify('Aproxime-se do cabeçote da reserva.');return false;}
+  offshore.installation={...offshore.installation,phase:'return',target:{id,type:target.type,x:target.x,y:target.y}};
+  saveLocal();
+  notify('CABEÇA DE POÇO CONECTADA. Volte ao FPSO, na superfície, para ligar a outra extremidade no manifold.');
+  return true;
  }
  function startRun(p){
   runKey=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
@@ -185,6 +212,9 @@
   inventory:()=>research.sanitizeInventory(stateInventory()),
   levels:()=>stateLevels(),
   connect:node=>connectOffshoreReserve(node),
+  platformNearby:p=>platformNearby(p),
+  platformAction:()=>platformAction(),
+  installation:()=>offshore.installation,
   isConnected:id=>offshore.connections.some(l=>l.id===String(id)),
   prepareSolo:node=>fields.collect(node,research.sanitizeInventory(localInventory)),
   claimSolo:(node,result)=>{
@@ -279,12 +309,17 @@
   updateOffshoreProduction();
   if(levels.offshorePlatform){
    const platformX=520,platformY=95;
-   for(const link of offshore.connections||[]){
+   const installing=offshore.installation;
+   const draft=installing?installing.phase==='laying'?
+    {id:'draft',type:'oilSeep',x:p.x,y:p.y,preview:true}:
+    {...installing.target,preview:true}:null;
+   const allLines=draft?[...offshore.connections,draft]:offshore.connections;
+   for(const link of allLines){
     // A subsea flowline lies over the seabed; a flexible riser reaches the floating vessel.
     const from=Math.max(Math.min(platformX,link.x),left-160);
     const to=Math.min(Math.max(platformX,link.x),right+160);
     if(from>to)continue;
-    const oil=link.type==='oilSeep',body=oil?'#514639':'#48635f',indicator=oil?'#d7ad6c':'#83d6b0';
+    const oil=link.type==='oilSeep',body=link.preview?'#aa8a52':oil?'#514639':'#48635f',indicator=oil?'#d7ad6c':'#83d6b0';
     c.save();c.lineCap='round';c.lineJoin='round';
     if(platformX>=left-120&&platformX<=right+120){
      const bottomY=window.AbyssalOceanGeography.floorAt(platformX)-26;
@@ -300,17 +335,23 @@
      if(!started){c.moveTo(x,y);started=true;}else c.lineTo(x,y);
     }
     c.lineTo(to,window.AbyssalOceanGeography.floorAt(to)-26);
-    c.strokeStyle=body;c.lineWidth=8;c.stroke();
-    c.strokeStyle=indicator;c.globalAlpha=.66;c.lineWidth=2;
+    c.strokeStyle=body;c.lineWidth=link.preview?6:8;c.stroke();
+    c.strokeStyle=indicator;c.globalAlpha=link.preview?.38:.66;c.lineWidth=2;
     c.setLineDash([9,42]);c.lineDashOffset=t*26;c.stroke();c.setLineDash([]);
     c.globalAlpha=1;
-    if(link.x>=left-90&&link.x<=right+90&&link.y>=top-180&&link.y<=bottom+180){
+    if(!link.preview&&link.x>=left-90&&link.x<=right+90&&link.y>=top-180&&link.y<=bottom+180){
      const floor=window.AbyssalOceanGeography.floorAt(link.x)-26;
      c.strokeStyle=body;c.lineWidth=6;c.beginPath();c.moveTo(link.x,floor);c.quadraticCurveTo(link.x-23,link.y+52,link.x,link.y);c.stroke();
      c.fillStyle='#263842';c.strokeStyle='#7f9895';c.lineWidth=2;
      c.fillRect(link.x-16,link.y-13,32,21);c.strokeRect(link.x-16,link.y-13,32,21);
      c.strokeStyle='#b7a571';c.beginPath();c.moveTo(link.x,link.y-13);c.lineTo(link.x,link.y-28);c.moveTo(link.x-9,link.y-24);c.lineTo(link.x+9,link.y-24);c.stroke();
      c.fillStyle=indicator;c.beginPath();c.arc(link.x+10,link.y-7,3.2,0,Math.PI*2);c.fill();
+    }
+    if(link.preview&&link.x>=left-90&&link.x<=right+90&&link.y>=top-90&&link.y<=bottom+90){
+     c.strokeStyle='#e6ce91';c.lineWidth=3;c.setLineDash([6,7]);
+     const bed=window.AbyssalOceanGeography.floorAt(link.x)-26;
+     c.beginPath();c.moveTo(link.x,bed);c.lineTo(link.x,link.y);c.stroke();c.setLineDash([]);
+     c.fillStyle='#ddbc71';c.font='700 11px sans-serif';c.fillText(installing.phase==='laying'?'BOBINA EM INSTALAÇÃO':'LIGAR NO FPSO',link.x+16,link.y-14);
     }
     c.restore();
    }
@@ -329,10 +370,50 @@
    c.fillStyle='#e3a653';c.fillRect(84,-154,8,5);
    const tanks=[offshore.oil,offshore.gas],colors=['#cba05b','#82c9a3'];
    for(let i=0;i<2;i++){const x=-85+i*46;c.fillStyle='#1a2d34';c.fillRect(x,-138,29,20);c.strokeStyle='#90a5a4';c.strokeRect(x,-138,29,20);c.fillStyle=colors[i];c.fillRect(x+3,-121-14*Math.min(1,tanks[i]/offshoreCapacity()),23,14*Math.min(1,tanks[i]/offshoreCapacity()));}
-   c.fillStyle='#d9e5df';c.font='700 11px sans-serif';c.fillText('UNIDADE DE PRODUÇÃO',-101,-165);
+   c.fillStyle='#d9e5df';c.font='700 11px sans-serif';c.fillText('FPSO · PRODUÇÃO E ARMAZENAMENTO',-104,-165);
    c.fillStyle='#d3ae6e';c.fillText('ÓLEO '+offshore.oil.toFixed(0)+' / '+offshoreCapacity(),-99,26);
    c.fillStyle='#9cdeb9';c.fillText('GÁS '+offshore.gas.toFixed(0)+' / '+offshoreCapacity(),-99,41);
-   c.fillStyle='#ccdbd5';c.fillText('POÇOS '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0),-99,56);c.restore();
+   c.fillStyle='#ccdbd5';c.fillText('POÇOS '+offshore.connections.length+'/'+Math.max(1,Number(levels.subseaUmbilical)||0),-99,56);
+   if(platformNearby(p)&&inventoryUI()?.selectedTool?.()==='offshoreCable'){
+    c.fillStyle='#f2d594';c.font='700 11px sans-serif';
+    c.fillText(installing?.phase==='return'?'G · FINALIZAR LIGAÇÃO':'G · RETIRAR DUTO',-99,77);
+   }
+   c.restore();
+  }
+  if(levels.offshorePlatform){
+   // Separate survey/drilling vessel and subsea strata, inspired by offshore
+   // well sections. These illustrations add no invisible solid collisions.
+   if(left<1200&&right>780&&top<340){
+    const bx=940,by=85;c.save();c.translate(bx,by);
+    c.fillStyle='#374954';c.beginPath();c.moveTo(-82,-36);c.lineTo(86,-36);c.lineTo(71,-19);c.quadraticCurveTo(0,-6,-73,-19);c.closePath();c.fill();
+    c.strokeStyle='#b7bdba';c.lineWidth=2;c.stroke();
+    c.fillStyle='#9caeb0';c.fillRect(-70,-46,135,11);c.fillStyle='#33444a';c.fillRect(40,-65,25,19);
+    c.strokeStyle='#ddb46e';c.lineWidth=3;c.beginPath();c.moveTo(-12,-44);c.lineTo(5,-156);c.lineTo(25,-44);c.moveTo(-8,-78);c.lineTo(19,-78);c.moveTo(-6,-105);c.lineTo(14,-105);c.stroke();
+    c.fillStyle='#cee3db';c.font='700 10px sans-serif';c.fillText('NAVIO-SONDA',-58,-160);c.restore();
+   }
+   const wells=[...offshore.connections,...(installing?.phase==='return'?[installing.target]:[])];
+   for(const well of wells){
+    const wx=Number(well.x),fy=window.AbyssalOceanGeography.floorAt(wx);
+    if(wx<left-170||wx>right+170||fy<top-310||fy>bottom+260)continue;
+    c.save();
+    // Geological cutaway: sediment, caprock, and confined fluid pocket.
+    c.fillStyle='rgba(126,137,140,.11)';c.beginPath();c.moveTo(wx-138,fy+65);
+    c.quadraticCurveTo(wx-60,fy+43,wx+12,fy+65);c.quadraticCurveTo(wx+84,fy+38,wx+140,fy+60);
+    c.lineTo(wx+140,fy+91);c.quadraticCurveTo(wx,fy+110,wx-138,fy+96);c.closePath();c.fill();
+    const oil=well.type==='oilSeep';
+    c.fillStyle=oil?'rgba(21,20,24,.77)':'rgba(73,149,165,.50)';
+    c.beginPath();c.moveTo(wx-117,fy+179);c.bezierCurveTo(wx-59,fy+141,wx+45,fy+153,wx+124,fy+176);
+    c.quadraticCurveTo(wx+75,fy+230,wx-112,fy+221);c.closePath();c.fill();
+    c.strokeStyle='rgba(164,180,170,.32)';c.lineWidth=3;c.beginPath();
+    c.moveTo(wx-135,fy+136);c.quadraticCurveTo(wx,fy+119,wx+135,fy+137);c.stroke();
+    c.strokeStyle='#8d9893';c.lineWidth=10;c.beginPath();c.moveTo(wx,fy-36);c.lineTo(wx,fy+183);c.stroke();
+    c.strokeStyle='#c4a776';c.lineWidth=3;c.beginPath();c.moveTo(wx,fy-31);c.lineTo(wx,fy+182);c.stroke();
+    c.strokeStyle=oil?'#d2a669':'#8be6bf';c.lineWidth=2;c.beginPath();
+    c.moveTo(wx+8,fy+167);c.lineTo(wx+8,fy-28);c.stroke();
+    c.font='700 10px sans-serif';c.fillStyle=oil?'#e1c49b':'#a8ead5';
+    c.fillText(oil?'RESERVATÓRIO DE PETRÓLEO':'RESERVATÓRIO DE GÁS',wx-105,fy+258);
+    c.restore();
+   }
   }
   const now=performance.now();collectionFx=collectionFx.filter(fx=>now-fx.started<650);
   for(const fx of collectionFx){const age=(now-fx.started)/650;if(age<0||age>=1)continue;c.save();c.translate(fx.x,fx.y);c.globalAlpha=1-age;for(let i=0;i<8;i++){const a=i/8*Math.PI*2,travel=12+age*(25+i%3*8);c.fillStyle=i%2?'#718083':'#394a50';c.beginPath();c.arc(Math.cos(a)*travel,Math.sin(a)*travel+age*age*18,2.8,0,Math.PI*2);c.fill();}c.restore();}

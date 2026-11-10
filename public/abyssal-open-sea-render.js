@@ -25,7 +25,7 @@
  }
  function coral(ctx,x,y,scale,phase){
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.lineCap='round';
-  const colors=['#76d2ee','#9280e2','#ec967e','#58c8b4','#6487cb','#a773b1'],color=colors[Math.floor(phase*colors.length)];
+  const colors=['#507b86','#746c83','#94716e','#4c8078','#626e84','#805d72'],color=colors[Math.floor(phase*colors.length)];
   ctx.strokeStyle=color;ctx.lineWidth=5;
   for(let branch=0;branch<5;branch++){
    const spread=(branch-2)*10,twist=Math.sin(phase*11+branch)*9;
@@ -192,7 +192,7 @@
  }
 
  function tubeSponges(ctx,x,y,scale,seed){
-  const tones=['#a37b9c','#bd8d9e','#b794a4','#d0a096'];
+  const tones=['#907985','#9f808a','#99828b','#b39493'];
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.lineCap='round';
   for(let j=0;j<6;j++){
    const xx=(j-2.5)*17,hh=25+seeded(j,seed)*54,rr=4+seeded(seed,j+6)*5;
@@ -205,7 +205,7 @@
  }
  function seaFan(ctx,x,y,scale,seed){
   // Irregular branching gorgonia, not a repeated triangular comb.
-  const colors=['#597ddb','#865ed1','#43c8cb','#a85d9b'];
+  const colors=['#486b80','#686b86','#4b8790','#7a607c'];
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ctx.lineCap='round';
   const color=colors[Math.min(3,Math.floor(seed*4))];
   for(let arm=0;arm<8;arm++){
@@ -271,28 +271,28 @@
     if(seed>.57)rockGarden(ctx,0,3,geo.classify(x,y),seed,time,lowPower);
    }else if(seed>.78&&!lowPower){
     // Sparse suspended organic silhouettes make mid-water feel inhabited without fake UI sprites.
-    ctx.strokeStyle='rgba(79,132,128,.18)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,4+seed*5,0,TAU);ctx.stroke();
+    ctx.fillStyle='rgba(98,147,144,.12)';ctx.beginPath();ctx.ellipse(0,0,2.3+seed*2,1.1,seed*3,0,TAU);ctx.fill();
    }
    ctx.restore();
   }
  }
  function drawBiomes(ctx,left,top,right,bottom,time,lowPower){
   // Vegetation grows only on geological supports, never as floating random icons.
-  const step=lowPower?150:105;
+  const step=lowPower?240:180;
   const start=Math.max(0,Math.floor(left/step)-1),end=Math.min(Math.ceil(geo.WIDTH/step),Math.ceil(right/step)+1);
   for(let i=start;i<=end;i++){
    const x=i*step+seeded(i,1)*48,y=geo.floorAt(x)-5;
    if(y<top-320||y>bottom+40)continue;
    const rand=seeded(i,7),type=geo.classify(x,y-110);
-   if(rand>.13)rockGarden(ctx,x,y,type,rand,time,lowPower);
+   if(rand>.37)rockGarden(ctx,x,y,type,rand,time,lowPower);
   }
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+140<left||rock.x-rock.rx-140>right||rock.y+rock.ry+220<top||rock.y-rock.ry-290>bottom)continue;
-   const n=lowPower?5:rock.type==='overhang'?20:12;
+   const n=lowPower?3:rock.type==='boulder'?7:8;
    for(let i=0;i<n;i++){
     const q=(i+.5)/n*1.72-.86,x=rock.x+q*rock.rx;
     const y=rock.y-rock.ry*Math.sqrt(Math.max(0,1-q*q)),seed=seeded(rock.x,i+19);
-    if(seed>.16)rockGarden(ctx,x,y,rock.y<geo.HEIGHT*.53?'reef':'rocks',seed,time,lowPower);
+    if(seed>.52)rockGarden(ctx,x,y,geo.classify(x,y-10),seed,time,lowPower);
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
      const underside=rock.y+rock.ry*Math.sqrt(Math.max(0,1-q*q));
      if(rock.type==='overhang'&&seed>.12&&geo.metersAt(underside)<450){
