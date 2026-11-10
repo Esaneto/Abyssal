@@ -387,7 +387,7 @@ function updateOceanStreaming(world,players,now){
  if(!alive.length)return [];
  const radius=Math.max(1900,Math.min(4700,Math.max(...alive.map(p=>{
   const zoom=clamp(Number(p.worldZoom)||WORLD_ZOOM,.35,1.2);
-  return Math.hypot((Number(p.viewportWidth)||1200)/zoom,(Number(p.viewportHeight)||700)/zoom)*.5+850;
+  return Math.hypot((Number(p.viewportWidth)||1200)/zoom,(Number(p.viewportHeight)||700)/zoom)*.5+1250;
  }))));
  const nearby=OceanStream.active(alive,120,radius),active=new Set(nearby.map(c=>c.key));
  world.streamCellIds ||= {};
@@ -395,7 +395,7 @@ function updateOceanStreaming(world,players,now){
  world.enemies=world.enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
  const existing=new Set(world.enemies.map(e=>e.streamId).filter(Boolean));
  const spawned=[];
- let budget=Math.min(6,Math.max(0,100-countCommons(world)));
+ let budget=Math.min(9,Math.max(0,100-countCommons(world)));
  for(const chunk of nearby){
   if(budget<=0)break;
   const fauna=OceanStream.generate(world.worldId,chunk.cx,chunk.cy,OpenSeaEcology);

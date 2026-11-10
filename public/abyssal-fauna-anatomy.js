@@ -120,8 +120,8 @@
  function draw(ctx,enemy,r,time){
   const kind=String(enemy?.specimenSkinId||'');
   if(!known.has(kind))return false;
-  const s=Math.min(2.3,Math.max(.22,Number(r)||32)/57),t=Number(time)||0;
-  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);ctx.scale(s,s);
+  const s=Math.min(2.3,Math.max(.22,Number(r)||32)/57),t=(Number(time)||0)+((Number(enemy.phase)||0)*570);
+  ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate((Number(enemy.angle)||0)+Math.sin(t*.0017)*.025);ctx.scale(s,s);
   if(/shark|goblin|frilled|leviathan/.test(kind))fish(ctx,t,kind);
   else if(/zebramoray|whiplash|viperfish|blackdragon/.test(kind))eel(ctx,t,kind);
   else if(kind==='bigfin')bigfinSquid(ctx,t);

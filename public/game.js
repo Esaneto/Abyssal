@@ -1308,7 +1308,8 @@ if(isOpenSeaRun()){
  runShotId=selectedOpeningShot;
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
- soloOceanRespawn?.clear();soloOceanRespawnCleanupAt=0;soloOceanLastUpdate=0;
+ // Keep five-minute wildlife death timers when the player returns to the menu.
+ soloOceanRespawnCleanupAt=0;soloOceanLastUpdate=0;
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
@@ -1513,14 +1514,14 @@ function updateSoloOceanChunks(force=false){
  soloOceanLastUpdate=now;
  const respawnNow=Date.now();
  if(respawnNow>=soloOceanRespawnCleanupAt){soloOceanRespawn?.prune(respawnNow);soloOceanRespawnCleanupAt=respawnNow+30000;}
- const radius=clamp(Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+850,1880,4700);
+ const radius=clamp(Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+1250,2200,4700);
  const nearby=OCEAN_STREAM.active([player],90,radius),active=new Set(nearby.map(c=>c.key));
  enemies=enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
  const have=new Set(enemies.map(e=>e.streamId).filter(Boolean));
- let budget=Math.min(force?18:6,Math.max(0,90-enemies.length));
+ let budget=Math.min(force?26:9,Math.max(0,90-enemies.length));
  for(const cell of nearby){
   if(budget<=0)break;
-  const fauna=OCEAN_STREAM.generate('solo-ocean-'+runSeed,cell.cx,cell.cy,OPEN_SEA_ECOLOGY);
+  const fauna=OCEAN_STREAM.generate('abyssal-persistent-solo-v1',cell.cx,cell.cy,OPEN_SEA_ECOLOGY);
   for(const specimen of fauna.animals){
    if(budget<=0||have.has(specimen.id)||(soloOceanRespawn&&!soloOceanRespawn.ready(specimen.id,respawnNow)))continue;
    if(Math.hypot(specimen.x-player.x,specimen.y-player.y)<170)continue;
@@ -4062,7 +4063,7 @@ function draw(t){
    &&(!activeMapLayout||!ABYSSAL_MAP?.segmentWalkable||ABYSSAL_MAP.segmentWalkable(activeMapLayout,player.x,player.y,e.x,e.y,3/GAME_WORLD_ZOOM))){
    registerSpecimenDiscovery(e.specimenSkinId);
   }
-  if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):1;if(isOpenSeaRun()&&e.wildlifeMode&&window.AbyssalFaunaAnatomy?.draw?.(ctx,e,renderRadius,t)){/* unique biological silhouette */}else if(e.specimenSkinId){
+  if(!anglerConcealed)drawEnemyThreatAura(e,t);ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):isOpenSeaRun()&&e.wildlifeMode?(.12+.88*clamp((Date.now()-(Number(e.spawnedAt)||0))/2400,0,1)):1;if(isOpenSeaRun()&&e.wildlifeMode&&window.AbyssalFaunaAnatomy?.draw?.(ctx,e,renderRadius,t)){/* unique biological silhouette */}else if(e.specimenSkinId){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
