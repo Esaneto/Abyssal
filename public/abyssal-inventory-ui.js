@@ -50,11 +50,11 @@
   for(let i=0;i<30;i++){
    const id=items[i],button=document.createElement('button');button.type='button';button.className='abyss-inventory-slot'+(id===selected?' is-selected':'');
    if(id){
-    button.dataset.item=id;button.draggable=true;button.title=config.RESOURCES[id].name+' ('+(id==='abyssWeapon'?'∞':inventory[id])+')';button.ondragstart=e=>e.dataTransfer.setData('text/plain',id);
+    button.dataset.item=id;button.draggable=true;button.title=config.RESOURCES[id].name+' ('+(['abyssWeapon','emptyCylinder'].includes(id)?'∞':inventory[id])+')';button.ondragstart=e=>e.dataTransfer.setData('text/plain',id);
     const artwork=document.createElement('span');artwork.className='abyss-inventory-art';artwork.innerHTML=icon(id);
-    const quantity=document.createElement('span');quantity.className='abyss-inventory-count';quantity.textContent=String(inventory[id]);
+    const quantity=document.createElement('span');quantity.className='abyss-inventory-count';quantity.textContent=id==='emptyCylinder'?'∞':String(inventory[id]);
     button.append(artwork,quantity);
-    button.setAttribute('aria-label',config.RESOURCES[id].name+', '+inventory[id]);
+    button.setAttribute('aria-label',config.RESOURCES[id].name+', '+(id==='emptyCylinder'?'reutilizável':inventory[id]));
     button.onclick=()=>{selected=id;signature='';render();renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};
    }else{button.disabled=true;button.setAttribute('aria-hidden','true');}
    grid.appendChild(button);
@@ -66,7 +66,7 @@
  function renderHotbar(){const bar=$('abyssHotbar');if(!bar)return;bar.replaceChildren();hotbar.forEach((id,index)=>{
   const b=document.createElement('button');b.type='button';b.className='abyss-hotbar-slot'+(id===selected?' is-selected':'');b.dataset.index=index;
   const count=Number(inventory[id])||0;
-  b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>'+(id==='abyssWeapon'||count<=0?'':'<span class="abyss-hotbar-count">'+Math.floor(count)+'</span>'):'<kbd>'+(index+1)+'</kbd>';
+  b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>'+(id==='abyssWeapon'||count<=0?'':('<span class="abyss-hotbar-count">'+(id==='emptyCylinder'?'∞':Math.floor(count))+'</span>')):'<kbd>'+(index+1)+'</kbd>';
   b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const item=e.dataTransfer.getData('text/plain');if(item&&config.RESOURCES[item]){hotbar[index]=item;try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}renderHotbar();}};
   b.onclick=()=>{if(!id||id!=='abyssWeapon'&&!count)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);
  });}

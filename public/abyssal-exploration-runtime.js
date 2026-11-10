@@ -458,15 +458,63 @@
   }
   c.restore();
  }
+ // Large stationary bedrock reservoir with a tiny pressure seep at its top.
+ // The same object can later receive an industrial subsea production pipeline.
+ function drawNaturalReservoir(c,node,t){
+  const gas=node.type==='gasSeep',r=Math.max(190,Math.min(375,Number(node.reservoirRadius)||260));
+  const hash=String(node.id).split('').reduce((h,ch)=>(Math.imul(h,31)+ch.charCodeAt(0))>>>0,19);
+  const phase=(hash%47)*.1;
+  c.save();c.lineJoin='round';
+  const rock=c.createLinearGradient(-r,-r*.4,r,r*.62);
+  rock.addColorStop(0,'#3d5557');rock.addColorStop(.45,'#223940');rock.addColorStop(1,'#081724');
+  c.fillStyle=rock;c.strokeStyle='rgba(125,158,158,.53)';c.lineWidth=4;
+  c.beginPath();
+  for(let i=0;i<=36;i++){
+   const a=i/36*Math.PI*2,rough=.91+.075*Math.sin(a*5+phase)+.055*Math.sin(a*11-phase);
+   const x=Math.cos(a)*r*rough,y=34+Math.sin(a)*r*.47*rough;
+   if(!i)c.moveTo(x,y);else c.lineTo(x,y);
+  }
+  c.closePath();c.fill();c.stroke();
+  // Subsurface pockets of hydrocarbon-bearing rock beneath the caprock.
+  c.save();c.beginPath();c.ellipse(0,42,r*.81,r*.31,-.05,0,Math.PI*2);c.clip();
+  const fluid=c.createLinearGradient(0,-r*.25,0,r*.45);
+  if(gas){fluid.addColorStop(0,'#24464c');fluid.addColorStop(1,'#357e75');}
+  else{fluid.addColorStop(0,'#0b1720');fluid.addColorStop(1,'#02060d');}
+  c.fillStyle=fluid;c.fillRect(-r,-r*.3,r*2,r);
+  c.strokeStyle=gas?'rgba(154,240,198,.22)':'rgba(167,145,108,.30)';
+  for(let i=0;i<13;i++){
+   const x=(i/12-.5)*r*1.62;
+   c.lineWidth=1+i%3;c.beginPath();c.moveTo(x,10);
+   c.bezierCurveTo(x-10,32,x+12,60,x+7,100);c.stroke();
+  }
+  if(gas)for(let i=0;i<9;i++){
+   const x=(i/8-.5)*r*1.25,y=28+Math.sin(i*2.8+phase)*18;
+   c.fillStyle='rgba(151,246,199,.35)';c.beginPath();c.arc(x,y,4+i%3,0,Math.PI*2);c.fill();
+  }
+  c.restore();
+  c.strokeStyle='rgba(137,162,153,.42)';c.lineWidth=7;
+  c.beginPath();c.moveTo(-r*.82,-r*.04);c.bezierCurveTo(-r*.37,-r*.23,r*.23,-r*.28,r*.83,-r*.10);c.stroke();
+  c.strokeStyle='rgba(10,20,26,.84)';c.lineWidth=5;
+  c.beginPath();c.moveTo(-31,-r*.13);c.lineTo(-9,-r*.21);c.lineTo(11,-r*.14);c.lineTo(24,-r*.20);c.stroke();
+  const ventY=-r*.20;
+  for(let i=0;i<5;i++){
+   const p=t*(gas?21:12)+i*11+phase*7,travel=p%85;
+   const x=Math.sin(p*.28+i)*7+(i-2)*2;
+   if(gas){c.fillStyle='rgba(151,248,201,.64)';c.beginPath();c.arc(x,ventY-travel,2.2+i%2,0,Math.PI*2);c.fill();}
+   else{c.strokeStyle='rgba(7,11,17,.74)';c.lineWidth=2.8;c.beginPath();c.moveTo(x,ventY-4-travel);c.lineTo(x+2,ventY-12-travel);c.stroke();}
+  }
+  c.restore();
+ }
  function drawWorldResources(c,time,view){
   const p=cfg();if(!c||!p||p.mode!=='open-sea')return;
   const left=Number(view?.left)||0,top=Number(view?.top)||0,right=Number(view?.right)||p.worldWidth,bottom=Number(view?.bottom)||p.worldHeight;
   const t=(Number(time)||performance.now())/1000;
   for(const node of nodes){
    if(window.AbyssalGathering?.pendingId?.()===node.id)continue;
-   if(node.x<left-90||node.x>right+90||node.y<top-110||node.y>bottom+90)continue;
+   if(node.x<left-390||node.x>right+390||node.y<top-240||node.y>bottom+245)continue;
    const type=node.type,oil=type==='oilSeep',gas=type==='gasSeep',seep=oil||gas;
    c.save();c.translate(node.x,node.y);
+   if(seep){drawNaturalReservoir(c,node,t);c.restore();continue;}
    // Deposit is part of a fractured bedrock outcrop, not an identical icon.
    const seed=String(node.id).split('').reduce((s,ch)=>((s*31+ch.charCodeAt(0))>>>0),17);
    const a=(seed%53)*.11,shape=seep?32:26;
@@ -711,7 +759,7 @@
   if(!p.paused&&!p.online){
    const depth=config.depthAt(p.y,p.worldHeight,2200);
    const safe=config.safeDepth(stateLevels().pressureSuit);
-   oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
+   oxygen=config.oxygenAfterTick(oxygen,capacity,delta,depth,p.y,p.r);
    if(oxygen<=0)noOxygenSeconds+=delta;else noOxygenSeconds=0;
    const hazard=config.environmentDamage(depth,safe,noOxygenSeconds);
    if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
@@ -730,7 +778,7 @@
   $('explorationGas').textContent=Math.ceil(gas/Math.max(1,max)*100)+'%';
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
-  $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
+  $('explorationPressureWarning').textContent=config.atBreathingSurface(p.y,p.r)?'SUPERFÍCIE · RECARREGANDO OXIGÊNIO':depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?((near.type==='oilSeep'||near.type==='gasSeep')?(currentOffshore().connections.some(l=>l.id===String(near.id))?'POÇO CONECTADO · PRODUZINDO':stateLevels().offshoreSurvey?'RESERVA MAPEADA · '+Math.round(near.distance)+' u':'INDÍCIO GEOLÓGICO · '+Math.round(near.distance)+' u'):(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u'):'NENHUM DEPÓSITO PRÓXIMO';
   window.AbyssalGathering?.refreshHUD?.(near,p);
   signal.hidden=true;

@@ -33,8 +33,8 @@
   ferromanganeseCrust:{name:'Crosta ferromanganesífera',habitats:['rocks','canyon','deep','abyss'],kind:'ore'},
   polymetallicNodule:{name:'Nódulo polimetálico',habitats:['deep','abyss'],kind:'ore'},
   hydrothermalSulfide:{name:'Sulfeto polimetálico',habitats:['canyon','deep','abyss'],kind:'ore'},
-  oilSeep:{name:'Exsudação de petróleo',habitats:['canyon','deep','abyss'],kind:'seep',filled:'oilCylinder'},
-  gasSeep:{name:'Exsudação de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
+  oilSeep:{name:'Reservatório de petróleo',habitats:['canyon','deep','abyss'],kind:'seep',filled:'oilCylinder'},
+  gasSeep:{name:'Reservatório de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
   abyssWeapon:{name:'Rifle abissal',habitats:[],kind:'weapon'},
   abyssPickaxe:{name:'Picareta abissal',habitats:[],kind:'tool'},
   emptyCylinder:{name:'Cilindro de amostra vazio',habitats:[],kind:'container'},
@@ -94,6 +94,13 @@
  // decompression simulation or a claim that ordinary wetsuits withstand pressure.
  function gasConsumption(depthMeters,exertion=1){return pressureAt(depthMeters)*clamp(exertion,.5,2);}
  function oxygenCapacity(level=0){return 900*(1+clamp(Math.floor(level),0,5)*.22);}
+ // The diver must reach the sea-air boundary to refill the oxygen tank.
+ function atBreathingSurface(y,radius=18){return Number.isFinite(y)&&y<=Math.max(44,Math.min(80,(Number(radius)||18)+18));}
+ function oxygenAfterTick(current,capacity,seconds,depth,y,radius=18){
+  const cap=Math.max(1,Number(capacity)||1),dt=Math.max(0,Math.min(.25,Number(seconds)||0));
+  const gas=Math.max(0,Math.min(cap,Number(current)||0));
+  return atBreathingSurface(y,radius)?Math.min(cap,gas+cap*.65*dt):Math.max(0,gas-gasConsumption(depth,1)*dt);
+ }
  function safeDepth(level=0){return 300+clamp(Math.floor(level),0,5)*180;}
  // Pressure danger scales above suit rating and outpaces natural health regeneration.
  function pressureDamage(depthMeters,limitMeters){const excess=Math.max(0,(Number(depthMeters)||0)-(Number(limitMeters)||0));return Math.min(160,3*Math.pow(excess/10,1.55));}
@@ -111,5 +118,5 @@
   return Object.entries(HABITATS).filter(([,h])=>depth>=h.minDepth&&depth<=h.maxDepth).map(([id])=>id);
  }
  const STARTER_RESEARCH=Object.freeze(['photon','range','regen']);
- return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,STARTER_RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
+ return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,STARTER_RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,atBreathingSurface,oxygenAfterTick,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
 });

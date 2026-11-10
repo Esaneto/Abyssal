@@ -59,11 +59,14 @@
     point={x:px,y:py};isRock=Boolean(rock);break;
    }
    if(!point)continue;
-   const depth=depthAt(point.y),type=rollType(depth,isRock,random);
+   const depth=depthAt(point.y);let type=rollType(depth,isRock,random);
+   // Reservoirs are anchored in the seabed, never embedded in loose rock.
+   if(isRock&&(type==='oilSeep'||type==='gasSeep'))type='ferromanganeseCrust';
    const isSeep=type==='oilSeep'||type==='gasSeep';
    nodes.push({id:'geo:'+cx+':'+cy+':'+i,type,x:point.x,y:point.y,
     amount:isSeep?1:1+Math.floor(random()*3),depth:Math.round(depth),
-    feature:isSeep?'fracture':isRock?'embedded-rock':'seabed'});
+    reservoirRadius:isSeep?210+Math.floor(random()*125):0,
+    feature:isSeep?'reservoir':isRock?'embedded-rock':'seabed'});
   }
   // Bounded cache; sector generation is deterministic across eviction.
   if(cache.size>=320)cache.delete(cache.keys().next().value);
@@ -103,8 +106,9 @@
   const inventory={...(raw||{})};
   if(!alreadyGranted){
    inventory.abyssPickaxe=Math.max(1,Math.floor(Number(inventory.abyssPickaxe)||0));
-   inventory.emptyCylinder=clamp(Math.floor(Number(inventory.emptyCylinder)||0)+4,0,MAX_COUNT);
+   inventory.emptyCylinder=Math.max(1,Math.floor(Number(inventory.emptyCylinder)||0));
   }
+  inventory.emptyCylinder=Math.max(1,Math.floor(Number(inventory.emptyCylinder)||0));
   return {inventory,granted:true,changed:!alreadyGranted};
  }
  function collect(node,inventory){
@@ -117,7 +121,7 @@
   const item=isSeep?def.filled:node.type,amount=isSeep?1:clamp(Math.floor(Number(node.amount)||1),1,3);
   if(!config.RESOURCES[item])return {ok:false,reason:'unknown-item'};
   if(Number(next[item]||0)+amount>MAX_COUNT)return {ok:false,reason:'inventory-full'};
-  if(isSeep)next.emptyCylinder=Math.floor(Number(next.emptyCylinder))-1;
+  // Empty cylinder is a reusable sampler, each collection yields a new filled sample.
   next[item]=Math.floor(Number(next[item])||0)+amount;
   return {ok:true,inventory:next,item,amount};
  }

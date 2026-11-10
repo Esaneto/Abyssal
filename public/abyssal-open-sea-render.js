@@ -35,10 +35,15 @@
   ctx.restore();
  }
  function drawWater(ctx,left,top,right,bottom,time,lowPower){
+  // Absolute-depth gradient avoids abrupt steps as the camera dives.
   const gradient=ctx.createLinearGradient(0,top,0,bottom);
-  const light=geo.lightAt(top),dark=geo.lightAt(bottom);
-  gradient.addColorStop(0,'rgba(6,50,91,'+(0.21+(1-light)*.48)+')');
-  gradient.addColorStop(1,'rgba(0,5,21,'+clamp(.21+(1-dark)*.77,.21,.98)+')');
+  for(let k=0;k<=12;k++){
+   const depth=geo.metersAt(top+(bottom-top)*k/12),p=clamp(depth/2200,0,1);
+   const smooth=p*p*(3-2*p),twilight=clamp(depth/530,0,1);
+   const red=Math.round(8-7*smooth),green=Math.round(105*(1-twilight)+27*twilight-22*smooth);
+   const blue=Math.round(148*(1-twilight)+57*twilight-34*smooth);
+   gradient.addColorStop(k/12,'rgb('+red+','+Math.max(5,green)+','+Math.max(14,blue)+')');
+  }
   ctx.fillStyle=gradient;ctx.fillRect(left,top,right-left,bottom-top);
   // The distant cyan opening is anchored in world space. No screen-sized repeating wallpaper.
   if(geo.metersAt(top)<400){
@@ -162,7 +167,7 @@
   }
  }
  function drawCaves(ctx,left,top,right,bottom){
-  const entries=geo.CAVES.map(c=>c.nodes).concat(geo.ARCH_TUNNELS.map(t=>[{x:t.ax,y:t.ay,r:t.r},{x:t.bx,y:t.by,r:t.r}]));
+  const entries=geo.CAVES.map(c=>c.nodes).concat([...geo.ARCH_TUNNELS,...(geo.BRANCH_TUNNELS||[])].map(t=>[{x:t.ax,y:t.ay,r:t.r},{x:t.bx,y:t.by,r:t.r}]));
   for(const nodes of entries){
    const x0=Math.min(...nodes.map(n=>n.x)),x1=Math.max(...nodes.map(n=>n.x)),y0=Math.min(...nodes.map(n=>n.y)),y1=Math.max(...nodes.map(n=>n.y));
    if(x1+320<left||x0-320>right||y1+320<top||y0-320>bottom)continue;

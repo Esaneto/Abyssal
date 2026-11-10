@@ -9,18 +9,18 @@ const cfg=require('../public/abyssal-exploration-config.js');
 const research=require('../public/abyssal-research-system.js');
 const source=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
 
-test('first-time exploration grants one pickaxe and four empty cylinders only once',()=>{
+test('first-time exploration grants one pickaxe and one reusable cylinder',()=>{
  const first=fields.starterKit({},false);
  assert.equal(first.granted,true);
  assert.equal(first.inventory.abyssPickaxe,1);
- assert.equal(first.inventory.emptyCylinder,4);
+ assert.equal(first.inventory.emptyCylinder,1);
  const second=fields.starterKit(first.inventory,true);
  assert.equal(second.changed,false);
  assert.deepEqual(second.inventory,first.inventory);
- assert.equal(research.sanitizeInventory(first.inventory).emptyCylinder,4);
+ assert.equal(research.sanitizeInventory(first.inventory).emptyCylinder,1);
 });
 
-test('ore requires picareta, and each seep consumes one empty cylinder atomically',()=>{
+test('ore requires picareta, and each seep creates a filled cylinder and retains the sampler',()=>{
  const ore={id:'geo:2:3:1',x:60,y:70,type:'polymetallicNodule',amount:3};
  const oil={id:'geo:2:3:2',x:60,y:70,type:'oilSeep',amount:1};
  const gas={id:'geo:2:3:3',x:60,y:70,type:'gasSeep',amount:1};
@@ -33,10 +33,10 @@ test('ore requires picareta, and each seep consumes one empty cylinder atomicall
  assert.equal(result.ok,true);assert.equal(result.amount,3);assert.equal(result.inventory.polymetallicNodule,3);
  assert.equal(result.inventory.abyssPickaxe,1,'pickaxe is reusable');
  inv=result.inventory;result=fields.collect(oil,inv);assert.equal(result.ok,true);
- assert.equal(result.item,'oilCylinder');assert.equal(result.inventory.emptyCylinder,3);
+ assert.equal(result.item,'oilCylinder');assert.equal(result.inventory.emptyCylinder,1);
  assert.equal(result.inventory.oilCylinder,1);assert.equal(result.inventory.gasCylinder,undefined);
  inv=result.inventory;result=fields.collect(gas,inv);assert.equal(result.ok,true);
- assert.equal(result.item,'gasCylinder');assert.equal(result.inventory.emptyCylinder,2);
+ assert.equal(result.item,'gasCylinder');assert.equal(result.inventory.emptyCylinder,1);
  assert.equal(result.inventory.oilCylinder,1);assert.equal(result.inventory.gasCylinder,1);
  assert.equal(inv.gasCylinder,undefined,'the original inventory is not mutated');
  assert.equal(fields.collect(oil,{abyssPickaxe:1,emptyCylinder:0}).reason,'empty-cylinder-required');

@@ -1189,7 +1189,7 @@ function tickRoom(room, now) {
    const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
    diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
    if(!Number.isFinite(diver.oxygen))diver.oxygen=capacity;
-   diver.oxygen=Math.max(0,Math.min(capacity,diver.oxygen-ExplorationConfig.gasConsumption(depth,1)*elapsed));
+   diver.oxygen=ExplorationConfig.oxygenAfterTick(diver.oxygen,capacity,elapsed,depth,diver.y,diver.r);
    // Warnings precede equipment damage, rather than hiding a hard depth wall.
    if(diver.oxygen<=0)diver.oxygenEmptySeconds=(Number(diver.oxygenEmptySeconds)||0)+elapsed;
    else diver.oxygenEmptySeconds=0;
