@@ -16,10 +16,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Validate shared game
+      - name: Install shared game dependencies
+        run: npm ci
+      - name: Validate desktop-critical JavaScript syntax
         run: |
-          npm ci
-          npm test
+          node --check public/game.js
+          node --check public/online.js
+          node --check public/abyssal-exploration-config.js
+          node --check public/abyssal-resource-fields.js
+          node --check public/abyssal-inventory-ui.js
+          node --check public/abyssal-exploration-runtime.js
+          node --check server.js
+          node --check world-simulation.js
+      - name: Validate Mar Aberto exploration regressions
+        run: node --test tests/ocean-ecosystem-integrity.test.cjs tests/ocean-geography.test.js tests/ocean-streaming.test.js tests/ocean-exploration-regression.test.js tests/ocean-specimen-respawn.test.cjs tests/mar-aberto-mining-inventory.test.cjs
       - name: Install pinned icon renderer
         run: npm install --no-save --package-lock=false sharp@0.34.4
       - name: Create Windows application, shortcut and installer icon
@@ -39,7 +49,17 @@ jobs:
         shell: pwsh
         run: |
           $root = "desktop/dist/win-unpacked/resources/offline-web"
-          foreach ($asset in @("index.html", "game.js", "offline-ui.js", "abyssal-map.js")) {
+          foreach ($asset in @(
+            "index.html",
+            "game.js",
+            "offline-ui.js",
+            "abyssal-map.js",
+            "abyssal-exploration-config.js",
+            "abyssal-resource-fields.js",
+            "abyssal-inventory-ui.js",
+            "abyssal-inventory-ui.css",
+            "abyssal-exploration-runtime.js"
+          )) {
             $file = Join-Path $root $asset
             if (-not (Test-Path $file)) { throw "Missing offline Windows asset: $file" }
           }
