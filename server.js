@@ -986,7 +986,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + ESPÉCIME ALEATÓRIO + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
    // Fossas waits for the next tier; Mar Aberto schedules the next
    // boss after another complete progression segment.
-   w.nextBossAt=room.mode==='rift'?Infinity:(Number(w.elapsed)||0)+100/3.8;
+   w.nextBossAt=room.mode==='coop'?(Number(w.elapsed)||0)+100/3.8:Infinity;
   }
   grantSharedXp(room,WorldSimulation.xpValueForEnemy(w,enemy),null,'kill',enemy.id,{x:enemy.x,y:enemy.y});
   if(!boss&&enemy.eliteId&&enemy.spawnRoomId==='elite'&&Number(w.eliteRewardClaimedTier)!==Number(w.mapTier)){
@@ -995,8 +995,10 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    io.to(channelFor(room)).emit('world-cave-signal',{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:w.mapTier});
   }
  if(boss){
-   WorldSimulation.startDepthEvent(w,Math.random);
-   io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+   if(room.mode==='rift'){
+    WorldSimulation.startDepthEvent(w,Math.random);
+    io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+   }
    awardWorldBossCoins(room);
   }
   // A batch sends one consolidated lifecycle update after every hit has been
@@ -1171,7 +1173,8 @@ function tickRoom(room, now) {
   }
   return;
  }
- if(room.mode!=='pvp'){
+ // The classic co-op shooter has no oxygen, depth pressure or exploration damage.
+ if(room.mode==='rift'||room.mode==='open-sea'){
   for(const diver of activePlayers){
    const account=users[diver.userKey];
    const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
@@ -1340,14 +1343,14 @@ function tickRoom(room, now) {
  const riftAims=Array.isArray(result.riftAims)?result.riftAims:[];
  const environmentDamages=Array.isArray(result.environmentDamages)?result.environmentDamages:[];
  const environmentKills=Array.isArray(result.environmentKills)?result.environmentKills:[];
- if(result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
+ if(room.mode==='rift'&&result.eventEnded)io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));
  // One server-owned curved path per tentacle cycle, synchronized to every observer.
  for(const aim of riftAims)io.to(channelFor(room)).emit('world-rift-tentacle-aim',aim);
  for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
  for(const death of environmentKills){
   io.to(channelFor(room)).emit('world-enemy-defeated',death);
   grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
-  if(death.boss){awardWorldBossCoins(room);WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}
+  if(death.boss){awardWorldBossCoins(room);if(room.mode==='rift'){WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}}
  }
  if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}
  for(const reward of spawnedXpRewards)grantSharedXp(room,reward.value,null,reward.source||'rift-reward');
@@ -1663,7 +1666,7 @@ io.on('connection', socket => {
   const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp((room.mode==='coop'?roomWorldHeight(room)*.11:roomWorldHeight(room)*.5)+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:0,magnetStrength:1,rangeStrength:1,arcChainActive:false,regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:1,specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenMaxHp:SpecimenSystem.biologicalStats(equippedSkinId).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runStats:resumedRun||makeRunStats()};ensureMatchParticipant(room,p);
-   if(room.mode!=='pvp'){
+   if(room.mode==='rift'||room.mode==='open-sea'){
     const research=ResearchSystem.migrateLegacy(u?.researchLevels||{},u?.metaUpgrades||{}).levels;
     p.oxygenCapacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
     p.oxygen=p.oxygenCapacity;p.explorationLastAt=now;p.lastExplorationVitalsAt=0;
