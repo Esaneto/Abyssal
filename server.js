@@ -960,6 +960,8 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(batch)batch.damaged.push(damageEvent);
  else io.to(channelFor(room)).emit('world-enemy-damaged',damageEvent);
  if(enemy.hp<=0){
+  // Only a confirmed kill starts this individual's five-minute revival clock.
+  WorldSimulation.markOceanSpecimenDeath(w,enemy,now);
   const removeIdx=idx>=0?idx:w.enemies.indexOf(enemy);if(removeIdx>=0)w.enemies.splice(removeIdx,1);if(enemyLookup)enemyLookup.delete(normalizedId);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
   const killer=users[socket.data.userKey];
