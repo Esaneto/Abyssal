@@ -242,8 +242,8 @@
   connect:node=>connectOffshoreReserve(node),
   platformNearby:p=>platformNearby(p),
   platformAction:()=>platformAction(),
-  installation:()=>offshore.installation,
-  isConnected:id=>offshore.connections.some(l=>l.id===String(id)),
+  installation:()=>currentOffshore().installation,
+  isConnected:id=>currentOffshore().connections.some(l=>l.id===String(id)),
   prepareSolo:node=>fields.collect(node,research.sanitizeInventory(localInventory)),
   claimSolo:(node,result)=>{
    if(!result?.ok)return result;
@@ -629,7 +629,7 @@
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
-  near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?((near.type==='oilSeep'||near.type==='gasSeep')?(offshore.connections.some(l=>l.id===String(near.id))?'POÇO CONECTADO · PRODUZINDO':stateLevels().offshoreSurvey?'RESERVA MAPEADA · '+Math.round(near.distance)+' u':'INDÍCIO GEOLÓGICO · '+Math.round(near.distance)+' u'):(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u'):'NENHUM DEPÓSITO PRÓXIMO';
+  near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?((near.type==='oilSeep'||near.type==='gasSeep')?(currentOffshore().connections.some(l=>l.id===String(near.id))?'POÇO CONECTADO · PRODUZINDO':stateLevels().offshoreSurvey?'RESERVA MAPEADA · '+Math.round(near.distance)+' u':'INDÍCIO GEOLÓGICO · '+Math.round(near.distance)+' u'):(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u'):'NENHUM DEPÓSITO PRÓXIMO';
   window.AbyssalGathering?.refreshHUD?.(near,p);
   signal.hidden=true;
   markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
