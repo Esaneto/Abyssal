@@ -95,8 +95,8 @@
   const amount=(Math.max(0,Number(profile.percent)||0)/100)+extra;
   return profile.attribute==='defense'?Math.max(.1,1-amount):1+amount;
  }
- function abilityRange(baseRange,points){return Math.max(0,Number(baseRange)||0)*stats(points).rangeMultiplier;}
- function abilityCooldown(points){return stats(points).cooldown;}
+ function abilityRange(baseRange,_points){return Math.max(0,Number(baseRange)||0);}
+ function abilityCooldown(_points){return BASE_COOLDOWN;}
  function respawnSeconds(points){return stats(points).respawnSeconds;}
  return Object.freeze({FAMILY_BASE,FAMILY_LABELS,familyFor,biologicalStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
 });
