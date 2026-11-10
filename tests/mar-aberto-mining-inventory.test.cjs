@@ -73,7 +73,7 @@ test('inventory is exclusive to Mar Aberto and server rejects untrusted collecti
  assert.match(server,/room\.mode!=='open-sea'/);
  assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,inventory,125,tool\)/);
  assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,ResearchSystem\.sanitizeInventory\(u\.resourceInventory\|\|\{\}\),125,action\.tool\)/);
- assert.match(server,/ResourceFields\.collect\(node,u\.resourceInventory\)/);
+ assert.match(server,/ResourceFields\.collect\(pending\.node,current\)/);
  assert.match(runtime,/p\.mode==='open-sea'\?closest\(p\):null/);
  assert.match(ui,/event\.key\?\.toLowerCase\(\)==='i'/);
  assert.ok(html.indexOf('abyssal-inventory-ui.js')<html.indexOf('abyssal-exploration-runtime.js'));
@@ -84,7 +84,9 @@ test('mining UI is isolated to open sea and asynchronous callbacks cannot leak a
  assert.match(runtime,/if\(runKey!==expectedRun\)startRun\(p\)/,'returning from Fossas must start a fresh Mar Aberto session');
  assert.match(runtime,/if\(!c\|\|!p\|\|p\.mode!=='open-sea'\)return/,'world resources must not render inside Fossas');
  assert.match(runtime,/if\(!result\?\.ok\|\|runKey!==requestedRun\|\|cfg\(\)\?\.mode!=='open-sea'/,'obsolete online sector scans must be discarded');
- assert.match(runtime,/if\(runKey!==requestedRun\)return;\s*busy=false;/,'obsolete mining acknowledgements must not unlock another session');
+ const gathering=source('public/abyssal-extraction-ui.js');
+ assert.match(gathering,/if\(action!==a\)return/,'late extraction acknowledgements must not affect a new run');
+ assert.match(gathering,/if\(drop!==d\)return/,'late collection acknowledgements must not affect a new run');
  assert.match(runtime,/if\(typeof send!=='function'\)\{busy=false;/,'missing online transport must not leave resource collection permanently locked');
 });
 test('all geological deposits have their own visual silhouette in exploration',()=>{
