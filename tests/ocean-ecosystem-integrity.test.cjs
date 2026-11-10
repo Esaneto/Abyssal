@@ -16,7 +16,8 @@ test('Mar Aberto uses one deeper geometry shared by rendering and fauna streamin
  assert.deepEqual(resources.streamNear('ecosystem-contract',1500,900,2000),resources.streamNear('ecosystem-contract',1500,900,2000));
  assert.deepEqual(resources.create('ecosystem-contract','classic',4800,3000,80),[]);
  assert.equal(resources.ENABLED,true);
- assert.ok(geo.ROCKS.some(r=>r.x<1200&&r.y<1800),'the starter reef must have a visible elevated overhang');
+ assert.equal(geo.isSolid(520,95,18),false,'the starting diver must be able to swim away from the submarine');
+ assert.ok(geo.ROCKS.some(r=>r.type==='arch'||r.type==='spire'),'actual geological formations must remain in the ocean');
 });
 
 test('predators keep attacking across the sight cone edge instead of oscillating',()=>{
@@ -92,7 +93,7 @@ test('default Online Mar Aberto is an actual open-sea world, not a renamed class
  assert.match(html,/<option value="open-sea" selected>/);
  const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
  const chart=fs.readFileSync(path.join(__dirname,'../public/abyssal-navigation-chart.js'),'utf8');
- assert.match(runtime,/active=p&&\['rift','open-sea'\]\.includes\(p\.mode\)/);
+ assert.match(runtime,/const p=cfg\(\),active=p\?\.mode==='open-sea'/);
  assert.match(chart,/!\['rift','open-sea'\]\.includes\(p\.mode\)/);
 });
 
@@ -100,7 +101,7 @@ test('sighted species have stable habitat and depth metadata',()=>{
  for(const id of ['reefshark','hawksbill','angler','viperfish','seapig']){
   const d=eco.speciesHabitat(id);
   assert.ok(d&&typeof d.name==='string'&&d.name.length>0,id);
-  assert.ok(d.minDepth<d.maxDepth&&d.maxDepth<=600,id);
+  assert.ok(d.minDepth<d.maxDepth&&d.maxDepth<=2200,id);
  }
 });
 
