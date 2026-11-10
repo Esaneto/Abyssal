@@ -45,7 +45,12 @@
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
 <link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
 <link rel="stylesheet" href="abyssal-menu-navigation.css?v=2026.11.9.10">
-<style>#gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }</style>
+<style>
+#gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
+/* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
+#menuScreen.ocean-menu-v2:not(.menu-ready){visibility:hidden!important}
+#classicDiveActionBridges,#classicDiveActionBridges *{display:none!important}
+</style>
 </head>
 <body>
 <div id="app">
@@ -95,8 +100,6 @@
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
           <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
           <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button>
-          <button id="playBtn" class="abyss-destination" type="button" hidden aria-label="Iniciar mergulho solo"><strong>MERGULHAR SOLO</strong></button>
-          <button id="onlineBtn" class="abyss-destination" type="button" hidden aria-label="Abrir salas online"><strong>MERGULHAR ONLINE</strong></button>
           <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
@@ -126,6 +129,11 @@
       <div class="abyss-ocean-legal menu-footer"><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html" target="_blank" rel="noopener">Termos</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidade</a><a href="/community.html" target="_blank" rel="noopener">Comunidade</a><a href="/store-policy.html" target="_blank" rel="noopener">Loja e reembolsos</a></nav></div>
     </section>
 
+    <!-- Legacy event bridges, never menu elements. Existing Solo and Online handlers are retained. -->
+    <div id="classicDiveActionBridges" hidden style="display:none!important" aria-hidden="true">
+      <button id="playBtn" type="button" hidden tabindex="-1">Iniciar Solo</button>
+      <button id="onlineBtn" type="button" hidden tabindex="-1">Abrir Online</button>
+    </div>
     <section id="hud" class="hud" hidden>
       <div class="hud-top">
         <div class="hud-stat"><small>TEMPO</small><strong id="timeText">00:00</strong></div>
