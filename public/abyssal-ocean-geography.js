@@ -44,7 +44,7 @@
   // Strong overhangs near the starting shelf, physically collidable, not decals.
   [580,4850,690,290,'shelf'],[2950,4250,730,230,'arch'],
   // Wide cave canopy at entry, with a broad swim corridor below its hanging flora.
-  [810,0,880,240,'overhang',130],[3000,0,740,205,'overhang',100],
+  [900,0,680,240,'overhang',130],[3000,0,740,205,'overhang',100],
   [1780,0,720,195,'shelf',1250]
  ];
  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
