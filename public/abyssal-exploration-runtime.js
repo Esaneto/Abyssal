@@ -461,7 +461,7 @@
  // Large stationary bedrock reservoir with a tiny pressure seep at its top.
  // The same object can later receive an industrial subsea production pipeline.
  function drawNaturalReservoir(c,node,t){
-  const gas=node.type==='gasSeep',r=Math.max(190,Math.min(375,Number(node.reservoirRadius)||260));
+  const gas=node.type==='gasSeep',r=Math.max(70,Math.min(140,Number(node.reservoirRadius)||100));
   const hash=String(node.id).split('').reduce((h,ch)=>(Math.imul(h,31)+ch.charCodeAt(0))>>>0,19);
   const phase=(hash%47)*.1;
   c.save();c.lineJoin='round';
@@ -475,7 +475,7 @@
    if(!i)c.moveTo(x,y);else c.lineTo(x,y);
   }
   c.closePath();c.fill();c.stroke();
-  // Subsurface pockets of hydrocarbon-bearing rock beneath the caprock.
+  // A compact hydrocarbon pocket inside an existing geological face, not a floating boulder.
   c.save();c.beginPath();c.ellipse(0,42,r*.81,r*.31,-.05,0,Math.PI*2);c.clip();
   const fluid=c.createLinearGradient(0,-r*.25,0,r*.45);
   if(gas){fluid.addColorStop(0,'#24464c');fluid.addColorStop(1,'#357e75');}

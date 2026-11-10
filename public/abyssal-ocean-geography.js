@@ -66,7 +66,15 @@
    EXTRA_ROCKS.push([Math.round(side),Math.max(270+sr,floorAt(side)-sr*.86),sr*1.5,sr,'boulder']);
   }
  }
- const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
+ // Tall volcanic relief periodically reaches the middle ocean, leaving wide
+  // navigable corridors between pillars; both renderer and physics share it.
+  for(const [index,x] of [5850,9100,12400,16000,19400,22700].entries()){
+   const bottom=floorAt(x),ry=Math.min(4900,Math.max(1250,bottom*.43));
+   const y=Math.max(ry+300,bottom-ry*.91);
+   if(y+ry<bottom+400&&y-ry>250)
+    EXTRA_ROCKS.push([x,y,210+rockRandom(index+97)*100,ry,'spire']);
+  }
+  const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
  })).concat(EXTRA_ROCKS.map((r,i)=>Object.freeze({id:'ridge-'+i,x:r[0],y:r[1],rx:r[2],ry:r[3],type:r[4]}))));
