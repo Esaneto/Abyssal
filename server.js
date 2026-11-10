@@ -729,6 +729,7 @@ function getRoomMotionSnapshot(room, options = {}){
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
    if(e.kind==='devourer')return [...base,e.suctionActive===true,Math.round((Number(e.suctionTimer)||0)*100)/100,Math.round((Number(e.suctionCooldown)||0)*100)/100,Math.round((Number(e.suctionPulse)||0)*100)/100];
    if(e.kind==='kraken')return [...base,false,0,0,0,e.krakenSweepActive===true,Math.round((Number(e.krakenTelegraph)||0)*100)/100,Math.round((Number(e.krakenSweepCycle)||0)*100)/100];
+   if(e.wildlifeMode)return [...base,e.aiIndicator==='attack'?1:e.aiIndicator==='evaluate'?2:e.aiIndicator==='flee'?3:0,String(e.wildlifeAbilityId||''),Math.max(0,Math.ceil((Number(e.wildlifeAbilityUntil)||0)-motionNow))];
    return base;
   }),
 
@@ -1351,7 +1352,7 @@ function tickRoom(room, now) {
  for(const hit of environmentDamages)io.to(channelFor(room)).emit('world-enemy-damaged',{ok:true,...hit});
  for(const death of environmentKills){
   io.to(channelFor(room)).emit('world-enemy-defeated',death);
-  grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
+  if(!death.ecology)grantSharedXp(room,death.xpValue||1,null,'rift-hazard-kill',death.id,{x:death.x,y:death.y});
   if(death.boss){awardWorldBossCoins(room);if(room.mode==='rift'){WorldSimulation.startDepthEvent(w,Math.random);io.to(channelFor(room)).emit('world-depth-state',worldDepthState(w));}}
  }
  if(environmentKills.length){combatDiagnostics.kills+=environmentKills.length;combatDiagnostics.appliedHits+=environmentDamages.length;}

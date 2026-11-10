@@ -1534,8 +1534,9 @@ function spawnEnemy(initial=false,type='common',options={}){
  if(!isBossType){
   const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
   data={...data,damage:Math.max(1,Math.round(Number(data.damage||1)*physicalScale)),speed:Number(data.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(data.hp||1)*hpScale))};
-  if(requestedRunMode!=='rift')data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
+  if(requestedRunMode!=='rift'&&!isOpenSeaRun())data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
    if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){data.hp=Math.max(300,Number(data.hp)*8);data.speed=Math.max(22,Number(data.speed)*.5);data.damage=0;data.value=Math.max(5,Number(data.value)*5);}
+   else if(openSeaSkin)data.hp=SPECIMEN_SYSTEM?.biologicalStats?.(openSeaSkin)?.hp||data.hp;
  }
  if(isBossType){data.hp=Math.round(data.hp*getBossCycleMultiplier());lastBossMaxHp=data.hp;lastBossDamage=data.damage;lastBossSpeed=data.speed;bossIndex++;}
  if(eliteId&&map&&!options.roomId&&!isBossType){
@@ -2093,6 +2094,7 @@ function applySharedMotion(data){
   const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
   if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[3])||0);enemy.damageRevision=incomingRevision;}
   enemy.angle=Number(row[5])||0;enemy.phase=Number(row[6])||0;
+  if(enemy.wildlifeMode&&row.length===10){enemy.aiIndicator=['','attack','evaluate','flee'][Number(row[7])||0]||null;enemy.wildlifeAbilityId=String(row[8]||'');enemy.wildlifeAbilityUntil=performance.now()+Math.max(0,Number(row[9])||0);}
   enemy.suctionActive=row[7]===true;enemy.suctionTimer=Math.max(0,Number(row[8])||0);enemy.suctionCooldown=Math.max(0,Number(row[9])||0);enemy.suctionPulse=Math.max(0,Number(row[10])||0);enemy.krakenSweepActive=row[11]===true;enemy.krakenTelegraph=clamp(Number(row[12])||0,0,1);enemy.krakenSweepCycle=Math.max(0,Number(row[13])||0);
   if(Math.hypot(tx-current.x,ty-current.y)>.02)moved++;
  }
@@ -2942,6 +2944,13 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
   e.attackCd=(e.attackCd||0)-dt;if((activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+ }
+ // Predators hunt prey even when the diver is not nearby; no XP is credited for natural predation.
+ if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
+  const clashes=OPEN_SEA_ECOLOGY.simulatePredation(enemies,dt,performance.now());
+  if(clashes.length){const dead=new Set(clashes.filter(c=>c.killed).map(c=>String(c.preyId)));
+   if(dead.size)enemies=enemies.filter(e=>!dead.has(String(e.id)));
+  }
  }
  // Contact applies to companion independently of the diver's hurtbox.
  if(!onlineMode)updateSoloSpecimenContact();
@@ -3998,7 +4007,26 @@ function draw(t){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
-  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed)drawHostileSpeciesEffect(e,t);if(e.eliteId&&!anglerConcealed)drawEliteMarker(e,t);
+  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed)drawHostileSpeciesEffect(e,t);
+  if(!anglerConcealed&&!activeMapLayout&&e.wildlifeMode){
+   const intent=e.aiIndicator;
+   if(intent==='attack'||intent==='flee'||intent==='evaluate'){
+    const radius=12/GAME_WORLD_ZOOM,px=e.x,py=e.y-Math.max(e.r,renderRadius)-19/GAME_WORLD_ZOOM;
+    const color=intent==='attack'?'#e94c55':intent==='flee'?'#48dba2':'#f5f7ff';
+    ctx.save();ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=lowPowerRendering?0:10/GAME_WORLD_ZOOM;
+    ctx.beginPath();ctx.arc(px,py,radius,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold '+(16/GAME_WORLD_ZOOM)+'px Inter,sans-serif';
+    ctx.fillStyle=intent==='evaluate'?'#24384b':'#071b28';ctx.fillText(intent==='evaluate'?'?':'!',px,py);ctx.restore();
+   }
+   const activeUntil=Number(e.wildlifeAbilityUntil)||0;
+   if(activeUntil>(onlineMode?performance.now():performance.now())){
+    const ability=window.AbyssalSkinStandard?.activeSpec?.(e.specimenSkinId);
+    const color=ability?.color||'#76f2e9';
+    ctx.save();ctx.globalAlpha=.35+.15*Math.sin(t*.014);ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=lowPowerRendering?0:14/GAME_WORLD_ZOOM;
+    ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(e.x,e.y,Math.max(e.r,renderRadius)*1.25+6/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.stroke();ctx.restore();
+   }
+  }
+  if(e.eliteId&&!anglerConcealed)drawEliteMarker(e,t);
   if(e.kind==='kraken'&&Number(e.krakenTelegraph)>0&&!e.krakenSweepActive){ctx.save();const kr=e.r*(2.85+Number(e.krakenTelegraph)*.85);ctx.strokeStyle='rgba(213,180,255,.92)';ctx.shadowBlur=16/GAME_WORLD_ZOOM;ctx.shadowColor='#9a5cff';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.setLineDash([14/GAME_WORLD_ZOOM,7/GAME_WORLD_ZOOM]);ctx.beginPath();ctx.arc(e.x,e.y,kr,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);for(let arm=0;arm<8;arm++){const a=arm*Math.PI/4+t*.00022;ctx.beginPath();ctx.moveTo(e.x+Math.cos(a)*e.r*.8,e.y+Math.sin(a)*e.r*.8);ctx.lineTo(e.x+Math.cos(a)*kr,e.y+Math.sin(a)*kr);ctx.stroke();}ctx.restore();}
   if(!anglerConcealed&&performance.now()<(Number(e.weaponPoisonUntil)||0)){
    ctx.save();ctx.globalAlpha=.22+.11*Math.sin(t*.008);ctx.fillStyle='#bd56ef';
@@ -4849,13 +4877,14 @@ function renderCatalog(){
   const known=skin.id==='default'||discoveredSpecimens.has(skin.id);
   const b=SPECIMEN_SYSTEM.biologicalStats(skin.id);
   const family=SPECIMEN_SYSTEM.FAMILY_LABELS[b.family]||b.family;
+  const oceanHabitat=OPEN_SEA_ECOLOGY?.speciesHabitat?.(skin.id);
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
   const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'">'
    +'<small class="journal-page-no">FOLHA '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
-   +(known?'<small class="journal-classification">TIPO: '+escapeHtml(family)+' · '+escapeHtml(rarityLabel)+'</small>'
+   +(known?'<small class="journal-classification">'+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
     +'<div class="journal-stat-row"><span><b>VIDA</b> '+b.hp+'</span><span><b>DANO</b> '+b.damage+'</span><span><b>VELOCIDADE</b> '+b.speed+'</span></div>'
     +'<p class="journal-handwritten">Ataque: '+escapeHtml(b.attack)+'</p>'
     +'<p><b>Efeito:</b> '+escapeHtml(b.effect)+'</p><p class="journal-description">'+escapeHtml(skin.desc)+'</p>'

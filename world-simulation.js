@@ -220,8 +220,9 @@ function spawnEnemy(world, options = {}) {
   if(type!=='boss'){
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
-    if(world.mode!=='rift')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
+    if(world.mode!=='rift'&&world.mode!=='open-sea')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
     if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){stats.hp=Math.max(300,Number(stats.hp)*8);stats.speed=Math.max(22,Number(stats.speed)*.5);stats.damage=0;stats.value=Math.max(5,Number(stats.value)*5);}
+    else if(openSeaSkin)stats.hp=SpecimenSystem.biologicalStats(openSeaSkin).hp; // Preserve species biology instead of escalating generic enemy HP.
   }
   if (type === 'boss') {
     const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
@@ -910,6 +911,18 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     });
   }
 
+  if(world.mode==='open-sea'){
+   const clashes=OpenSeaEcology.simulatePredation(world.enemies,dt,now);
+   if(clashes.length){
+    const byId=new Map(world.enemies.map(enemy=>[String(enemy.id),enemy]));
+    for(const conflict of clashes){
+     const victim=byId.get(String(conflict.preyId));if(!victim)continue;
+     environmentDamages.push({id:victim.id,hp:victim.hp,maxHp:victim.maxHp,damageRevision:victim.damageRevision,damage:conflict.damage,skillId:'wildlife-'+(conflict.abilityId||'bite'),kind:victim.kind,enemyX:victim.x,enemyY:victim.y,enemyColor:victim.color,killed:victim.hp<=0});
+     if(conflict.killed)environmentKills.push({id:victim.id,x:victim.x,y:victim.y,kind:victim.kind,value:0,xpValue:0,contributors:{},color:victim.color,boss:false,ecology:true});
+    }
+    if(environmentKills.length){const dead=new Set(environmentKills.filter(k=>k.ecology).map(k=>String(k.id)));world.enemies=world.enemies.filter(e=>!dead.has(String(e.id)));}
+   }
+  }
   if (movedEnemyCount) world.lastMovementAt = now;
   world.movingEnemyCount = movedEnemyCount;
   world.snapshotTimer -= dt;
