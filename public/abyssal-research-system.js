@@ -50,8 +50,22 @@
  }
  // Owners retain benefits already purchased with coins even when shop sales
  // are retired. Migration never spends resources or degrades owned levels.
- function migrateLegacy(levels={}){return {levels:sanitizeLevels(levels),transferred:[]};}
- function unlocked(id,levels={}){const definition=DEFINITIONS[id];if(!definition)return false;return Boolean(definition.starter)||toCount(levels[id])>0;}
+ function migrateLegacy(levels={},legacy={}){
+  const next=sanitizeLevels(levels),transferred=[];
+  // Honor previously owned meta-upgrades without granting new purchases
+  // or charging research materials a second time.
+  for(const [id,definition] of Object.entries(DEFINITIONS)){
+   if(!definition.legacyMeta)continue;
+   const owned=Math.min(definition.max,toCount(legacy?.[definition.legacyMeta]));
+   if(owned>next[id]){next[id]=owned;transferred.push(id);}
+  }
+  return {levels:next,transferred};
+ }
+ function unlocked(id,levels={},legacy={}){
+  const definition=DEFINITIONS[id];if(!definition)return false;
+  return Boolean(definition.starter)||toCount(levels[id])>0||
+   Boolean(definition.legacyMeta&&toCount(legacy?.[definition.legacyMeta])>0);
+ }
  function equipActives(selected=[],levels={},legacy={}){
   const valid=[];
   for(const id of selected||[]){
