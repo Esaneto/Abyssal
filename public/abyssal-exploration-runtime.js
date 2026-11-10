@@ -306,7 +306,7 @@
  }
  const baseButton=$('openSubmarineBaseBtn');
  baseButton?.addEventListener('click',()=>{renderResearch();});
- function drawPipeFlow(c,link,t,viewport){
+ function drawPipeFlow(c,link,t,viewport,levels){
   if(!link||!['oilSeep','gasSeep'].includes(link.type))return;
   const geo=window.AbyssalOceanGeography;if(!geo)return;
   const bx=PLATFORM_X,by=PLATFORM_Y;
@@ -333,7 +333,9 @@
   }
   const {segments,total}=cached;
   if(total<=0)return;
-  const gas=link.type==='gasSeep',color=gas?'#88e7c4':'#e3b678',speed=gas?62:44;
+  const gas=link.type==='gasSeep',color=gas?'#88e7c4':'#e3b678';
+  const boost=Math.max(0,Math.min(3,Number(gas?levels?.gasProcessing:levels?.oilProcessing)||0));
+  const speed=(gas?62:44)*(1+boost*.18);
   // Flow runs from the geological reserve to the ship, not the reverse.
   const count=Math.max(4,Math.min(24,Math.floor(total/180)));
   c.save();c.lineCap='round';
@@ -439,7 +441,7 @@
      c.fillStyle='#ddbc71';c.font='700 11px sans-serif';c.fillText(installing.phase==='laying'?'BOBINA EM INSTALAÇÃO':'LIGAR NO FPSO',link.x+16,link.y-14);
     }
     c.restore();
-    if(!link.preview)drawPipeFlow(c,link,t,{left,top,right,bottom});
+    if(!link.preview)drawPipeFlow(c,link,t,{left,top,right,bottom},levels);
    }
   }
   if(levels.offshorePlatform&&top<650){
