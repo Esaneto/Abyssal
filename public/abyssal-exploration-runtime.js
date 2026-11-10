@@ -268,16 +268,16 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p&&['rift','open-sea'].includes(p.mode);hud.hidden=!active;inventoryUI()?.setActive(p?.mode==='open-sea');hud.querySelector('.exploration-collect').hidden=p?.mode!=='open-sea';
+  const p=cfg(),active=p?.mode==='open-sea';hud.hidden=!active;inventoryUI()?.setActive(active);hud.querySelector('.exploration-collect').hidden=!active;
   if(!active){markers.hidden=true;runKey='';return;}
-  const expectedRun=p.mode==='open-sea'?(p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1'):(p.online?'abyssal:online:rift':'abyssal:solo:rift');
+  const expectedRun=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
   if(runKey!==expectedRun)startRun(p);
   if(!p.paused&&!p.online){
-   const depth=config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:2200);
+   const depth=config.depthAt(p.y,p.worldHeight,2200);
    const safe=config.safeDepth(stateLevels().pressureSuit);
    oxygen=Math.max(0,oxygen-config.gasConsumption(depth)*delta);
    if(oxygen<=0)noOxygenSeconds+=delta;else noOxygenSeconds=0;
-   const hazard=p.mode==='rift'?(depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0):config.environmentDamage(depth,safe,noOxygenSeconds);
+   const hazard=config.environmentDamage(depth,safe,noOxygenSeconds);
    if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
   }
   if(fields.ENABLED&&!p.online&&p.mode==='open-sea'&&time-lastScan>850){
@@ -286,7 +286,7 @@
   }
   scan(p,time);
   if(time-lastRender<160)return;lastRender=time;
-  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,p.mode==='rift'?160:2200);
+  const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,2200);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
   const gas=p.online&&serverVitals?serverVitals.oxygen:oxygen;
   const max=p.online&&serverVitals?serverVitals.capacity:capacity;
@@ -297,12 +297,7 @@
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u':'NENHUM DEPÓSITO PRÓXIMO';
   const can=Boolean(near)&&fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,inventoryUI()?.selectedTool?.()||'abyssPickaxe').ok&&!p.paused&&!busy;
   $('explorationGatherBtn').disabled=!can;
-  signal.hidden=p.mode!=='rift';
-  if(p.mode==='rift'){
-   const signals=window.AbyssalGameHooks?.riftSonar?.()||[];
-   const closest=signals[0];
-   $('explorationRiftSignalText').textContent=closest?closest.label+' · '+Math.round(closest.distance)+' u':'SEM SINAIS PRÓXIMOS';
-  }
+  signal.hidden=true;
   markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
  }
  requestAnimationFrame(tick);

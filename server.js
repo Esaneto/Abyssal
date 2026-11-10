@@ -1177,13 +1177,13 @@ function tickRoom(room, now) {
   return;
  }
  // The classic co-op shooter has no oxygen, depth pressure or exploration damage.
- if(room.mode==='rift'||room.mode==='open-sea'){
+ if(room.mode==='open-sea'){
   for(const diver of activePlayers){
    const account=users[diver.userKey];
    const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
    const capacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
    const worldHeight=roomWorldHeight(room);
-   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:2200);
+   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,2200);
    const maxDepth=ExplorationConfig.safeDepth(research.pressureSuit);
    const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
    diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
@@ -1192,8 +1192,8 @@ function tickRoom(room, now) {
    // Warnings precede equipment damage, rather than hiding a hard depth wall.
    if(diver.oxygen<=0)diver.oxygenEmptySeconds=(Number(diver.oxygenEmptySeconds)||0)+elapsed;
    else diver.oxygenEmptySeconds=0;
-   const pressureDamage=room.mode==='open-sea'?ExplorationConfig.pressureDamage(depth,maxDepth):(depth>maxDepth?Math.min(8,(depth-maxDepth)*.16):0);
-   const asphyxiaDamage=room.mode==='open-sea'?ExplorationConfig.oxygenDamage(diver.oxygenEmptySeconds):(diver.oxygen<=0?6:0);
+   const pressureDamage=ExplorationConfig.pressureDamage(depth,maxDepth);
+   const asphyxiaDamage=ExplorationConfig.oxygenDamage(diver.oxygenEmptySeconds);
    if(pressureDamage+asphyxiaDamage>0&&elapsed>0){
     diver.hp=Math.max(0,Number(diver.hp)-(pressureDamage+asphyxiaDamage)*elapsed);
     if(diver.hp<=0)diver.alive=false;
