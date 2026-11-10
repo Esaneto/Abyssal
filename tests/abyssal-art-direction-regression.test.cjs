@@ -11,6 +11,7 @@ test('cockpit grid forces monitor over a compact accessible physical deck',()=>{
  assert.match(css,/grid-template-columns:minmax\(0,1fr\)!important/);
  assert.match(css,/grid-auto-flow:row!important/);
  assert.match(smoke,/Console deck overlaps monitor/);
+ assert.match(read('public/abyssal-exploration-runtime.js'),/ROLE OU DESLIZE PARA VER MAIS/);
  assert.match(smoke,/Oversized vertically stretched console key/);
 });
 test('cockpit uses recognizable marine life and real gendered rear pilot equipment',()=>{
