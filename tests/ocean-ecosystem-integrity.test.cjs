@@ -59,6 +59,22 @@ test('suit pressure and empty tank injury progress rather than being overcome by
  assert.equal(survival.environmentDamage(safe-1,safe,0),0);
 });
 
+test('default Online Mar Aberto is an actual open-sea world, not a renamed classic shooter',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ const online=fs.readFileSync(path.join(__dirname,'../public/online.js'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
+ assert.match(server,/makeWorldState\(mode='coop'\)/);
+ assert.match(server,/mode:'open-sea'/);
+ assert.match(server,/mode==='open-sea'\?'open-sea':'classic'/);
+ assert.match(server,/\['coop','open-sea'\]\.includes\(room\.mode\)/);
+ assert.match(game,/onlineRoomMode=\['pvp','rift','open-sea'\]/);
+ assert.match(game,/isOpenSeaRun=\(\)=>onlineMode\?onlineRoomMode==='open-sea'/);
+ assert.match(online,/mode\.value=window\.AbyssalPreferredRoomMode==='rift'\?'rift':'open-sea'/);
+ assert.match(html,/<option value="open-sea" selected>/);
+});
+
 test('sighted species have stable habitat and depth metadata',()=>{
  for(const id of ['reefshark','hawksbill','angler','viperfish','seapig']){
   const d=eco.speciesHabitat(id);
