@@ -89,3 +89,6 @@ body.open-sea-exploration .exploration-collect>button:disabled{opacity:.65;curso
  body.open-sea-exploration .exploration-stat{padding:4px 6px}
  body.open-sea-exploration #hud.hud:not([hidden]){top:var(--abyss-vitals-top,130px)!important}
 }
+
+body.open-sea-exploration #explorationBiome{display:block;border-top:1px solid rgba(110,176,194,.23);padding-top:5px;color:#d0bd8e;font:700 9px/1.35 Inter,system-ui,sans-serif;letter-spacing:.075em}
+@media(max-width:700px){body.open-sea-exploration #explorationBiome{font-size:8px;padding-top:3px}}

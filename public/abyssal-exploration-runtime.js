@@ -3,7 +3,7 @@
  */
 (function(){
  'use strict';
- const config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream;
+ const oceanGeo=window.AbyssalOceanGeography,config=window.AbyssalExplorationConfig,research=window.AbyssalResearchSystem,fields=window.AbyssalResourceFields,stream=window.AbyssalOceanStream;
  const inventoryUI=()=>window.AbyssalInventoryUI;
  const Offshore=window.AbyssalOffshoreSystem;
  if(!config||!research||!fields)return;
@@ -12,7 +12,7 @@
  const hud=document.createElement('section');
  hud.id='explorationOverlay';hud.className='exploration-overlay';hud.hidden=true;
  hud.innerHTML='<div class="exploration-stat"><span>OXIGÊNIO</span><strong id="explorationGas">100%</strong><div class="exploration-track"><i id="explorationGasFill"></i></div></div>'+
- '<div class="exploration-stat exploration-instruments"><span>INSTRUMENTOS DE MERGULHO</span><strong id="explorationDepth">PROF. 0 m</strong><strong id="explorationPressure">PRESSÃO 1.0 atm</strong><small id="explorationPressureWarning"></small></div>'+
+ '<div class="exploration-stat exploration-instruments"><span>INSTRUMENTOS DE MERGULHO</span><strong id="explorationDepth">PROF. 0 m</strong><strong id="explorationPressure">PRESSÃO 1.0 atm</strong><small id="explorationPressureWarning"></small><small id="explorationBiome">REGIÃO · RECIFES E COSTA</small></div>'+
  '<div class="exploration-stat exploration-collect"><span>COLETA · SEGURE G OU CLIQUE NO DEPÓSITO</span><strong id="explorationDeposit">PROCURANDO SINAIS...</strong><small id="explorationGatherStatus">Aproxime-se de uma rocha ou exsudação para interagir.</small><div class="exploration-work-track"><i id="explorationWorkFill"></i></div><button type="button" id="explorationGatherBtn" disabled>SEGURE PARA EXTRAIR</button></div>';
  const signal=document.createElement('div');signal.id='explorationRiftSignals';signal.className='exploration-stat exploration-sonar';signal.hidden=true;
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
@@ -461,49 +461,33 @@
  // Large stationary bedrock reservoir with a tiny pressure seep at its top.
  // The same object can later receive an industrial subsea production pipeline.
  function drawNaturalReservoir(c,node,t){
-  const gas=node.type==='gasSeep',r=Math.max(70,Math.min(140,Number(node.reservoirRadius)||100));
-  const hash=String(node.id).split('').reduce((h,ch)=>(Math.imul(h,31)+ch.charCodeAt(0))>>>0,19);
-  const phase=(hash%47)*.1;
-  c.save();c.lineJoin='round';
-  const rock=c.createLinearGradient(-r,-r*.4,r,r*.62);
-  rock.addColorStop(0,'#3d5557');rock.addColorStop(.45,'#223940');rock.addColorStop(1,'#081724');
-  c.fillStyle=rock;c.strokeStyle='rgba(125,158,158,.53)';c.lineWidth=4;
-  c.beginPath();
-  for(let i=0;i<=36;i++){
-   const a=i/36*Math.PI*2,rough=.91+.075*Math.sin(a*5+phase)+.055*Math.sin(a*11-phase);
-   const x=Math.cos(a)*r*rough,y=34+Math.sin(a)*r*.47*rough;
-   if(!i)c.moveTo(x,y);else c.lineTo(x,y);
+  // The marker is a fissure inset on the actual host rock, not a free-floating oval.
+  const gas=node.type==='gasSeep',r=Math.max(55,Math.min(120,Number(node.reservoirRadius)||90));
+  const angle=Number.isFinite(node.rockAngle)?node.rockAngle:-Math.PI/2;
+  c.save();c.rotate(angle+Math.PI/2);c.lineJoin='round';c.lineCap='round';
+  c.fillStyle=gas?'rgba(13,54,52,.75)':'rgba(8,19,25,.82)';
+  c.strokeStyle=gas?'rgba(116,191,165,.55)':'rgba(135,118,91,.55)';c.lineWidth=3;
+  c.beginPath();c.moveTo(-r*.87,13);c.lineTo(-r*.58,3);c.lineTo(-r*.35,10);
+  c.lineTo(-r*.12,-1);c.lineTo(r*.15,7);c.lineTo(r*.42,-3);
+  c.lineTo(r*.85,8);c.lineTo(r*.63,29);c.lineTo(r*.12,37);
+  c.lineTo(-r*.41,30);c.closePath();c.fill();c.stroke();
+  for(let i=0;i<6;i++){
+   const xx=(i/5-.5)*r*1.4;
+   c.strokeStyle=gas?'rgba(84,162,137,.36)':'rgba(107,108,95,.32)';
+   c.lineWidth=1.2;c.beginPath();c.moveTo(xx,18);c.lineTo(xx-6,31);c.stroke();
   }
-  c.closePath();c.fill();c.stroke();
-  // A compact hydrocarbon pocket inside an existing geological face, not a floating boulder.
-  c.save();c.beginPath();c.ellipse(0,42,r*.81,r*.31,-.05,0,Math.PI*2);c.clip();
-  const fluid=c.createLinearGradient(0,-r*.25,0,r*.45);
-  if(gas){fluid.addColorStop(0,'#24464c');fluid.addColorStop(1,'#357e75');}
-  else{fluid.addColorStop(0,'#0b1720');fluid.addColorStop(1,'#02060d');}
-  c.fillStyle=fluid;c.fillRect(-r,-r*.3,r*2,r);
-  c.strokeStyle=gas?'rgba(154,240,198,.22)':'rgba(167,145,108,.30)';
-  for(let i=0;i<13;i++){
-   const x=(i/12-.5)*r*1.62;
-   c.lineWidth=1+i%3;c.beginPath();c.moveTo(x,10);
-   c.bezierCurveTo(x-10,32,x+12,60,x+7,100);c.stroke();
-  }
-  if(gas)for(let i=0;i<9;i++){
-   const x=(i/8-.5)*r*1.25,y=28+Math.sin(i*2.8+phase)*18;
-   c.fillStyle='rgba(151,246,199,.35)';c.beginPath();c.arc(x,y,4+i%3,0,Math.PI*2);c.fill();
-  }
-  c.restore();
-  c.strokeStyle='rgba(137,162,153,.42)';c.lineWidth=7;
-  c.beginPath();c.moveTo(-r*.82,-r*.04);c.bezierCurveTo(-r*.37,-r*.23,r*.23,-r*.28,r*.83,-r*.10);c.stroke();
-  c.strokeStyle='rgba(10,20,26,.84)';c.lineWidth=5;
-  c.beginPath();c.moveTo(-31,-r*.13);c.lineTo(-9,-r*.21);c.lineTo(11,-r*.14);c.lineTo(24,-r*.20);c.stroke();
-  const ventY=-r*.20;
-  for(let i=0;i<5;i++){
-   const p=t*(gas?21:12)+i*11+phase*7,travel=p%85;
-   const x=Math.sin(p*.28+i)*7+(i-2)*2;
-   if(gas){c.fillStyle='rgba(151,248,201,.64)';c.beginPath();c.arc(x,ventY-travel,2.2+i%2,0,Math.PI*2);c.fill();}
-   else{c.strokeStyle='rgba(7,11,17,.74)';c.lineWidth=2.8;c.beginPath();c.moveTo(x,ventY-4-travel);c.lineTo(x+2,ventY-12-travel);c.stroke();}
-  }
-  c.restore();
+  // Small localized seep animation flows outward from a geological fracture.
+  const hash=String(node.id).length*13;
+  for(let i=0;i<(gas?4:2);i++){
+   const phase=t*(gas?16:9)+i*17+hash,travel=phase%60,xx=-17+i*11+Math.sin(phase*.1)*5;
+   if(gas){
+    c.fillStyle='rgba(136,230,196,.42)';c.beginPath();
+    c.arc(xx,-travel,2.1+i%2,0,Math.PI*2);c.fill();
+   }else{
+    c.strokeStyle='rgba(25,36,40,.66)';c.lineWidth=2.2;
+    c.beginPath();c.moveTo(xx,-travel);c.lineTo(xx+2,-travel-8);c.stroke();
+   }
+  }c.restore();
  }
  function drawWorldResources(c,time,view){
   const p=cfg();if(!c||!p||p.mode!=='open-sea')return;
@@ -778,7 +762,8 @@
   $('explorationGas').textContent=Math.ceil(Math.max(0,gas)/Math.max(1,max)*100)+'%';hud.classList.toggle('oxygen-critical',gas/Math.max(1,max)<.2);
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
-  $('explorationPressureWarning').textContent=config.atBreathingSurface(p.y,p.r)?'SUPERFÍCIE · RECARREGANDO OXIGÊNIO':depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
+  $('explorationBiome').textContent='REGIÃO · '+(oceanGeo?.visualBiomeAt?.(p.x,p.y)?.label||'MAR ABERTO');
+   $('explorationPressureWarning').textContent=config.atBreathingSurface(p.y,p.r)?'SUPERFÍCIE · RECARREGANDO OXIGÊNIO':depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
   // Position vitality from measured oxygen/depth card boundaries. On narrow
   // mobile screens text may wrap, so fixed pixel spacing would overlap.
   const vitals=$('hud'), instruments=hud.querySelector('.exploration-instruments');
