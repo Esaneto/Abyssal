@@ -79,7 +79,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
  function titleArtwork(id){return TITLE_ARTWORK[id]||TITLE_ARTWORK[id.includes('boss')||id.includes('titan')||id.includes('predator')?'leviathan-hunter':id.includes('rift')||id.includes('hadal')||id.includes('sonar')?'abyss-spark':'current-hunter'];}
  const profileNumber=n=>Math.max(0,Number(n)||0);
  function renderSpecimenProfile(user={}){
-  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:20};
+  const id=String(user.equippedSkin||'default'),map=user.specimenProficiency||{},points=window.AbyssalSpecimenSystem?.pointsFor?.(map,id)||0,stats=window.AbyssalSpecimenSystem?.stats?.(points)||{percent:0,cooldown:10,attributeBonus:0,rangeBonus:0,respawnSeconds:300};
   const specimen=window.AbyssalGameHooks?.skinForId?.(id),name=specimen?.name||id;
   const nameNode=$('profileSpecimenName'),pct=$('profileAdaptationPercent'),fill=$('profileAdaptationFill'),pointsNode=$('profileAdaptationPoints');
   if(nameNode)nameNode.textContent=name;
@@ -90,7 +90,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if($('profileAdaptCooldown'))$('profileAdaptCooldown').textContent='RECARGA: '+stats.cooldown.toFixed(1).replace('.',',')+'s';
   if($('profileAdaptAttribute'))$('profileAdaptAttribute').textContent='ATRIBUTO: +'+(stats.attributeBonus*100).toFixed(1).replace('.',',')+'%';
   if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE: +'+Math.round(stats.rangeBonus*100)+'%';
-  if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+stats.respawnSeconds.toFixed(1).replace('.',',')+'s';
+  if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+Math.floor(stats.respawnSeconds/60).toString().padStart(2,'0')+':'+Math.floor(stats.respawnSeconds%60).toString().padStart(2,'0');
   window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id}}));
  }
  let viewedPublicProfile=null;
