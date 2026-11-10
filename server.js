@@ -1183,7 +1183,7 @@ function tickRoom(room, now) {
    const research=ResearchSystem.migrateLegacy(account?.researchLevels||{},account?.metaUpgrades||{}).levels;
    const capacity=ExplorationConfig.oxygenCapacity(research.oxygenTank);
    const worldHeight=roomWorldHeight(room);
-   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:600);
+   const depth=ExplorationConfig.depthAt(diver.y,worldHeight,room.mode==='rift'?160:2200);
    const maxDepth=ExplorationConfig.safeDepth(research.pressureSuit);
    const elapsed=Math.min(.25,Math.max(0,(now-(Number(diver.explorationLastAt)||now))/1000));
    diver.explorationLastAt=now;diver.oxygenCapacity=capacity;
