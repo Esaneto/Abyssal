@@ -39,7 +39,7 @@ test('online gameplay integrates authoritative pickup, study and survival',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const online=fs.readFileSync(path.join(__dirname,'../public/online.js'),'utf8');
  assert.match(server,/socket\.on\('exploration-collect'/);
- assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,levels,115\)/);
+ assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,u\.resourceInventory,115,chosenTool\)/);
  assert.match(server,/socket\.on\('exploration-study'/);
  assert.match(server,/ExplorationConfig\.gasConsumption\(depth,1\)/);
  assert.match(online,/function explorationCollect\(id,callback\)/);
