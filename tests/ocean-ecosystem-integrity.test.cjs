@@ -108,7 +108,7 @@ test('discoveries do not create removed resource items in either world mode',()=
  const fs=require('node:fs'),path=require('node:path');
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
- const serverDiscovery=server.slice(server.indexOf("socket.on('specimen-discover'"),server.indexOf("socket.on('tutorial-state'"));
+ const serverDiscovery=server.slice(server.indexOf("socket.on('specimen-discovered'"),server.indexOf("socket.on('tutorial-state'"));
  const soloDiscovery=runtime.slice(runtime.indexOf("window.addEventListener('abyssal-specimen-discovery-request'"),runtime.indexOf("window.addEventListener('abyssal-companion-sonar'"));
  assert.ok(serverDiscovery.includes('user.discoveredSpecimens.push(id)'),'registered species are retained');
  assert.doesNotMatch(serverDiscovery,/resourceInventory\.(?:bioSample|deepCrystal)\s*[+]?=/,'no material mint on online discovery');
