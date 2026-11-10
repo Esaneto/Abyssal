@@ -124,11 +124,19 @@
   const patrol={x:clamp(formationX,34,(geo?.WIDTH||24000)-34),y:clamp(formationY,34,(geo?.HEIGHT||21000)-34),alive:true,moveSpeed:group?125:105};
   const crowd=Array.isArray(neighbors)?neighbors:[];
   const provoked=(Number(entity.provokedUntil)||0)>now;
-  let target=null,distance=Infinity;
+  let target=null,distance=Infinity,visibleTarget=false;
   for(const p of players||[]){
    if(!p||p.alive===false||!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
    const d=Math.hypot(p.x-entity.x,p.y-entity.y);
-   if(d<distance&&(canSee(entity,p,530,Math.PI*.46)||(provoked&&d<300))){target=p;distance=d;}
+   // A predator that has committed to a chase remembers the diver briefly
+   // when its turning animation moves the prey outside the view cone.
+   // Solid geology still blocks memory-based pursuit.
+   const visible=canSee(entity,p,530,Math.PI*.46);
+   const remembered=entity.aiMode==='attack'&&now<(Number(entity.aiChaseUntil)||0)
+      &&d<410&&(!geo||geo.segmentClear(entity.x,entity.y,p.x,p.y,6));
+   if(d<distance&&(visible||remembered||(provoked&&d<300))){
+    target=p;distance=d;visibleTarget=visible;
+   }
   }
   let predator=null,prey=null,predatorDistance=Infinity,preyDistance=Infinity;
   for(const other of crowd){
@@ -153,11 +161,19 @@
     entity.aiPreyId=null;
     return commit(entity,{mode:'flee',target:{x:clamp(entity.x+dx/d*320,35,(geo?.WIDTH||24000)-35),y:clamp(entity.y+dy/d*320,35,(geo?.HEIGHT||21000)-35),alive:true,moveSpeed:200},aggressive:false},now,lowHealth);
    }
-   if((nature==='aggressive'&&!provoked&&distance>245)||(nature==='smart'&&!provoked&&distance>175)){
+   const maintainingChase=entity.aiMode==='attack'&&now<(Number(entity.aiChaseUntil)||0)&&distance<410;
+   if((nature==='aggressive'&&!provoked&&distance>245&&!maintainingChase)||
+      (nature==='smart'&&!provoked&&distance>175&&!maintainingChase)){
     entity.aiPreyId=null;
     return commit(entity,{mode:'alert',target:patrol,aggressive:false},now);
    }
    entity.aiPreyId=null;
+   // Sight refreshes chase memory. A remembered sighting does not perpetually
+   // refresh itself, so hiding behind terrain eventually ends pursuit.
+   if(visibleTarget||provoked){
+    entity.aiChaseUntil=now+1800;
+    entity.aiLastSeenX=target.x;entity.aiLastSeenY=target.y;
+   }
    return commit(entity,{mode:'attack',target,aggressive:true},now,true);
   }
   if(prey&&nature==='aggressive'){
