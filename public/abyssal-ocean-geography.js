@@ -70,7 +70,7 @@
   // navigable corridors between pillars; both renderer and physics share it.
   for(const [index,x] of [5850,9100,12400,16000,19400,22700].entries()){
    const bottom=floorAt(x),ry=Math.min(4900,Math.max(1250,bottom*.43));
-   const y=Math.max(ry+300,bottom-ry*.91);
+   const y=Math.max(ry+300,bottom-ry*.96);
    if(y+ry<bottom+400&&y-ry>250)
     EXTRA_ROCKS.push([x,y,210+rockRandom(index+97)*100,ry,'spire']);
   }
