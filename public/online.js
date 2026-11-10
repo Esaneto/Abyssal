@@ -87,9 +87,9 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   if(fill)fill.style.width=Math.max(0,Math.min(100,stats.percent))+'%';
   if(pointsNode)pointsNode.textContent=points.toLocaleString('pt-BR')+' / 5000';
   const bar=fill?.parentElement;if(bar){bar.setAttribute('aria-valuenow',String(points));bar.setAttribute('aria-label','Adaptação de '+name);}
-  if($('profileAdaptCooldown'))$('profileAdaptCooldown').textContent='RECARGA: '+stats.cooldown.toFixed(1).replace('.',',')+'s';
+  if($('profileAdaptCooldown'))$('profileAdaptCooldown').textContent='HABILIDADE: FIXA COMO NA LOJA';
   if($('profileAdaptAttribute'))$('profileAdaptAttribute').textContent='ATRIBUTO: +'+(stats.attributeBonus*100).toFixed(1).replace('.',',')+'%';
-  if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE: +'+Math.round(stats.rangeBonus*100)+'%';
+  if($('profileAdaptRange'))$('profileAdaptRange').textContent='ALCANCE DA ATIVA: FIXO';
   if($('profileAdaptRespawn'))$('profileAdaptRespawn').textContent='RESSURGIMENTO: '+Math.floor(stats.respawnSeconds/60).toString().padStart(2,'0')+':'+Math.floor(stats.respawnSeconds%60).toString().padStart(2,'0');
   window.dispatchEvent(new CustomEvent('abyssal-profile-specimen-render',{detail:{canvas:$('profileSpecimenCanvas'),skinId:id}}));
  }
