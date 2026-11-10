@@ -190,7 +190,7 @@
   const skill=standard?.activeSpec?.(entity.specimenSkinId);
   if(!skill)return null;
   const distance=Math.hypot(Number(player.x)-Number(entity.x),Number(player.y)-Number(entity.y));
-  const radius=Math.max(65,Math.min(285,(Number(skill.range)||0)*.72));
+  const radius=Math.max(90,Math.min(285,(Number(skill.range)||0)*.72));
   if(distance>radius||!geo.segmentClear(entity.x,entity.y,player.x,player.y,8))return null;
   entity.wildlifeAbilityReadyAt=now+Math.max(3500,(Number(skill.cooldown)||10)*1000);
   entity.wildlifeAbilityUntil=now+820;
