@@ -130,3 +130,39 @@ test('lab can only open after return-to-hatch animation',()=>{
  assert.match(html,/id="submarineWorkshopBtn"/);
  assert.match(html,/LABORATÓRIO/);
 });
+
+test('offshore production funds real research with atomic stock deductions',()=>{
+ const levels=research.sanitizeLevels({
+  offshoreSurvey:1,offshorePlatform:1,subseaUmbilical:2,oilProcessing:1,gasProcessing:1
+ });
+ const inventory=research.sanitizeInventory({
+  seaMineral:400,phosphorite:400,ferromanganeseCrust:400,
+  polymetallicNodule:400,hydrothermalSulfide:400
+ });
+ const stock=offshore.accrue({oil:100,gas:100,lastAt:1000,connections:[
+  {id:'oil-1',type:'oilSeep',x:3300,y:3000},
+  {id:'gas-1',type:'gasSeep',x:5400,y:4400}
+ ]},levels,1000);
+ const upgrade=research.study('offshoreStorage',levels,inventory,stock);
+ assert.equal(upgrade.ok,true);
+ assert.deepEqual(upgrade.offshoreCost,{oil:24,gas:18});
+ assert.equal(upgrade.offshore.oil,76);
+ assert.equal(upgrade.offshore.gas,82);
+ assert.equal(upgrade.levels.offshoreStorage,1);
+ assert.equal(offshore.capacity(upgrade.levels)-offshore.capacity(levels),250);
+ assert.ok(offshore.rates(stock,{...levels,oilProcessing:2}).oil>offshore.rates(stock,levels).oil);
+ assert.ok(offshore.rates(stock,{...levels,gasProcessing:2}).gas>offshore.rates(stock,levels).gas);
+ const denied=research.study('offshoreStorage',levels,inventory,{...stock,oil:0,gas:0});
+ assert.equal(denied.ok,false);
+ assert.equal(denied.reason,'offshore-resources');
+});
+
+test('FPSO resource spending is validated by the server and shown in cockpit controls',()=>{
+ const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
+ const cockpit=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
+ assert.match(server,/ResearchSystem\.study\(id,levels,u\.resourceInventory\|\|\{\},offshoreBalance\)/);
+ assert.match(server,/if\(result\.offshore\)u\.offshoreProduction=result\.offshore/);
+ assert.match(cockpit,/offshoreCostFor\?\.\(id,level\)/);
+ assert.match(cockpit,/if\(result\.offshore\)offshore=result\.offshore/);
+ assert.match(cockpit,/localResearchMode\(\)/);
+});

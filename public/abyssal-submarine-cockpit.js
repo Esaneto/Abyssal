@@ -12,7 +12,13 @@
   const nx=Math.max(1,Math.round(width*dpr)),ny=Math.max(1,Math.round(height*dpr));
   if(canvas.width!==nx||canvas.height!==ny){canvas.width=nx;canvas.height=ny;}
  }
- function gender(){return window.AbyssalDiverGender==='female'||window.AbyssalOnline?.getAccount?.()?.diverGender==='female'||accountGender==='female'?'female':'male';}
+ function gender(){
+  // Profile selection wins immediately, even before the account event is replayed.
+  const selected=window.AbyssalDiverGender;
+  if(selected==='female'||selected==='male')return selected;
+  const saved=window.AbyssalOnline?.getAccount?.()?.diverGender||accountGender;
+  return saved==='female'?'female':'male';
+ }
  function fish(x,y,size,t,index){
   const sway=Math.sin(t*.0018+index*2.7);
   c.save();c.translate(x,y+sway*3);c.scale(size,size);
