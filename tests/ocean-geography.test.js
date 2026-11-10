@@ -84,3 +84,22 @@ test('Mar Aberto entry remains a navigable water corridor without the removed ov
  assert.equal(geo.isSolid(1000,190,18),false,'obsolete hanging-reef collision must not return');
  assert.ok(geo.ROCKS.some(r=>r.type==='boulder'),'grounded boulders remain real collisions away from the corridor');
 });
+
+
+test('distant ocean provinces spawn fauna outside solid geometry',()=>{
+ for(const seed of ['eastern-sea-one','eastern-sea-two']){
+  for(const cx of [6,10,14,18,19])for(const cy of [0,2,5,9,13]){
+   const cell=stream.generate(seed,cx,cy,ecology);
+   for(const specimen of cell.animals){
+    assert.equal(geo.isSolid(specimen.x,specimen.y,90),false,'fauna solid overlap '+specimen.id);
+    assert.ok(specimen.x>=cx*stream.CHUNK&&specimen.x<Math.min(geo.WIDTH,(cx+1)*stream.CHUNK));
+   }
+  }
+ }
+});
+
+test('upper water column remains connected eastward',()=>{
+ for(let x=300;x<geo.WIDTH-200;x+=240){
+  assert.equal(geo.isSolid(x,95,25),false,'surface path blocked at '+x);
+ }
+});

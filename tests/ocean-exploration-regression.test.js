@@ -42,7 +42,7 @@ test('online gameplay integrates authoritative pickup, study and survival',()=>{
  assert.match(server,/socket\.on\('exploration-collect'/);
  assert.match(server,/ResourceFields\.eligible\(node,p\.x,p\.y,inventory,125,tool\)/);
  assert.match(server,/socket\.on\('exploration-study'/);
- assert.match(server,/ExplorationConfig\.gasConsumption\(depth,1\)/);
+ assert.match(server,/ExplorationConfig\.oxygenAfterTick\(diver\.oxygen,capacity,elapsed,depth,diver\.y,diver\.r\)/);
  assert.match(online,/function explorationCollect\(id,callback\)/);
  assert.match(game,/function resonanceAvailable\(id,mode='pve'\)/);
 });

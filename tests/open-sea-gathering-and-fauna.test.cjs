@@ -20,14 +20,14 @@ test('mining and sampling require distinct equipped tools and time',()=>{
  assert.equal(reward.inventory.phosphorite,3);
  assert.equal(reward.inventory.abyssPickaxe,1);
 });
-test('oil/gas sample requires empty vial and never increments platform stock',()=>{
+test('oil/gas samples use one reusable vial without increasing platform stock',()=>{
  for(const type of ['oilSeep','gasSeep']){
   const node={id:'geo:0:0:0',type,x:50,y:50,amount:1};
   assert.equal(fields.eligible(node,50,50,{emptyCylinder:0},125,'emptyCylinder').ok,false);
   assert.equal(fields.eligible(node,50,50,{emptyCylinder:2},125,'emptyCylinder').ok,true);
   const out=fields.collect(node,{emptyCylinder:2,oilCylinder:0,gasCylinder:0});
   assert.equal(out.ok,true);
-  assert.equal(out.inventory.emptyCylinder,1);
+  assert.equal(out.inventory.emptyCylinder,2);
   assert.equal(out.inventory[type==='oilSeep'?'oilCylinder':'gasCylinder'],1);
   assert.ok(!('oil' in out.inventory)&&!('gas' in out.inventory));
  }

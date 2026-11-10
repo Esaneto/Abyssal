@@ -11,7 +11,7 @@
  const WIDTH=24000,HEIGHT=21000,VERSION=5,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
- const SHOALS=Object.freeze([[6250,980,.83],[14200,1320,.77],[18600,1150,.82],[22400,850,.67]]);
+ const SHOALS=Object.freeze([[6250,850,.40],[14200,1080,.43],[18600,980,.46],[22400,760,.44]]);
  const KNOTS=Object.freeze([
   [0,180],[1200,280],[2400,340],[3400,1200],[4400,4000],
   [5600,6250],[6800,6500],[7900,7400],[8800,8150],[9800,8250],

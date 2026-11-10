@@ -130,3 +130,27 @@ test('open sea wildlife disables legacy shark wall dash',()=>{
  assert.match(ai,/options\.freeSwim !== true/);
  assert.match(game,/soloEnemyMovementOptions\.freeSwim=true/);
 });
+
+
+test('reusable sampler can fill multiple cylinders without being depleted',()=>{
+ let inventory=fields.starterKit({},false).inventory;
+ for(let i=0;i<7;i++){
+  const node={id:'geo:test:'+i,x:100,y:100,type:i%2?'oilSeep':'gasSeep',amount:1};
+  assert.equal(fields.eligible(node,100,100,inventory,115,'emptyCylinder').ok,true);
+  const collected=fields.collect(node,inventory);
+  assert.equal(collected.ok,true);
+  inventory=collected.inventory;
+  assert.equal(inventory.emptyCylinder,1);
+ }
+ assert.equal(inventory.oilCylinder,3);
+ assert.equal(inventory.gasCylinder,4);
+});
+
+test('breathing at the air-water interface refills both solo and online tanks',()=>{
+ const capacity=cfg.oxygenCapacity(0);
+ assert.equal(cfg.atBreathingSurface(60,18),true);
+ assert.equal(cfg.atBreathingSurface(160,18),false);
+ assert.ok(cfg.oxygenAfterTick(100,capacity,.2,0,50,18)>100);
+ assert.ok(cfg.oxygenAfterTick(100,capacity,.2,200,800,18)<100);
+ assert.ok(cfg.oxygenAfterTick(capacity,capacity,.2,0,50,18)<=capacity);
+});
