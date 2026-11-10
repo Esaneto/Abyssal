@@ -84,6 +84,7 @@
    layer.style.width=w+'px';layer.style.height=h+'px';layer.style.transform='none';
    window.AbyssalMenuScenery?.draw?.(scenery,w,h);
    window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
+   stage.style.setProperty('--abyss-hatch-y',hatch().y+'px');
    for(const s of stations){
     s.wx=w*s.x;s.wy=h*s.y;
     s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='dive'?'cyan':'teal';

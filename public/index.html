@@ -46,6 +46,7 @@
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
 <link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
 <link rel="stylesheet" href="abyssal-menu-navigation.css?v=2026.11.9.11">
+<link rel="stylesheet" href="abyssal-submarine-laboratory.css?v=2026.11.10.9">
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
@@ -100,7 +101,7 @@
           <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
           <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
-          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button><button id="submarineWorkshopBtn" class="abyss-destination" type="button" aria-label="Entrar no submarino"><span class="abyss-destination-icon">▣</span><strong>SUBMARINO</strong><small>OFICINA DE EXPLORAÇÃO</small></button>
+          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar no Laboratório do submarino"><span class="abyss-hatch-label">LABORATÓRIO</span><small>ACESSAR ESCOTILHA</small></button>
           <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
@@ -657,9 +658,9 @@
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.8.14"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.9.11"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.10.9"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.7"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.10.5"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.10.9"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.6"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
 </body>
