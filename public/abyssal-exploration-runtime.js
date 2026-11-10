@@ -99,8 +99,11 @@
   }
   workshopGrid.appendChild(cardGrid);
  }
- document.getElementById('submarineWorkshopBtn')?.addEventListener('click',()=>{if(workshop){workshop.hidden=false;renderWorkshop();}});
- document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{if(workshop)workshop.hidden=true;});
+ const openWorkshop=()=>{if(!workshop)return;workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
+ const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
+ document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
+ document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
+ workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeWorkshop();}});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
 
  let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[],installation:null},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;

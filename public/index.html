@@ -46,7 +46,7 @@
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
 <link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
 <link rel="stylesheet" href="abyssal-menu-navigation.css?v=2026.11.9.11">
-<link rel="stylesheet" href="abyssal-submarine-laboratory.css?v=2026.11.10.9">
+<link rel="stylesheet" href="abyssal-submarine-laboratory.css?v=2026.11.10.12">
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
@@ -101,7 +101,7 @@
           <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
           <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
-          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar no Laboratório do submarino"><span class="abyss-hatch-label">LABORATÓRIO</span><small>ACESSAR ESCOTILHA</small></button>
+          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar pela escotilha do submarino"><span class="abyss-hatch-label">LABORATÓRIO</span></button>
           <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
@@ -545,7 +545,13 @@
       <div id="notifPanelList" role="list"></div>
     </div>
   </div>
-<section id="submarineWorkshop" class="screen modal-screen" hidden><div class="modal-card submarine-workshop-card"><div class="eyebrow">SUBMARINO · CENTRO DE PESQUISA</div><h2>LABORATÓRIO ABISSAL</h2><p>Desenvolva tecnologias a partir do que você encontra no oceano. O núcleo inicial mantém o mergulhador vivo; todo o restante nasce de pesquisa.</p><div id="submarineWorkshopGrid" class="submarine-workshop-grid"></div><button id="submarineWorkshopClose" class="primary-btn" type="button">VOLTAR AO SUBMARINO</button></div></section>
+<section id="submarineWorkshop" class="screen modal-screen abyss-cockpit-screen" role="dialog" aria-modal="true" aria-label="Cabine de controle submarina" hidden>
+ <canvas id="abyssCockpitCanvas" class="abyss-cockpit-canvas" aria-hidden="true"></canvas>
+ <div class="abyss-cockpit-chrome"><span>ABYSSAL / SUBMARINO / LABORATÓRIO</span><button id="submarineWorkshopClose" class="abyss-cockpit-exit" type="button">SAIR PELA ESCOTILHA <span aria-hidden="true">✕</span></button></div>
+ <div class="abyss-cockpit-console" role="group" aria-label="Painel de pesquisa do submarino">
+  <div id="submarineWorkshopGrid" class="submarine-workshop-grid"></div>
+ </div>
+</section>
 </main>
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span id="saveStatus" class="sr-only">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>
 </div>
@@ -658,9 +664,10 @@
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.8.14"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.10.9"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.10.12"></script>
+<script src="abyssal-submarine-cockpit.js?v=2026.11.10.12"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.7"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.10.10"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.10.12"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.10"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
 </body>

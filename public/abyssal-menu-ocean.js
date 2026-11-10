@@ -30,8 +30,8 @@
   stage.insertBefore(routesCanvas,diver);
   stage.insertBefore(bubblesCanvas,diver);
   const currents=routesCanvas.getContext('2d'),bubbleCtx=bubblesCanvas.getContext('2d');
-  const stations=ROUTES.map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
-  if(stations.length!==3)return;
+  const stations=[...ROUTES,{id:'submarineWorkshopBtn',x:.5,y:0,tone:'#d4ad68',label:'LABORATÓRIO',kind:'lab'}].map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
+  if(stations.length!==4)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
   let initialized=false,wasVisible=false,transition=null,waitingForModal=false;
   let nearElapsed=0,nearStationId=null;
@@ -66,7 +66,7 @@
    held.clear();joystickX=0;joystickY=0;
    const thumb=stage.querySelector('.ocean-joystick-thumb');if(thumb)thumb.style.transform='translate(0,0)';
    for(let i=0;i<12;i++)bubble(px,py+15,true);
-   diver.style.opacity='1';
+   diver.style.opacity='1';diver.style.setProperty('--abyss-exit-scale','1');
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
@@ -85,8 +85,9 @@
    window.AbyssalMenuScenery?.draw?.(scenery,w,h);
    window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
    stage.style.setProperty('--abyss-hatch-y',hatch().y+'px');
+   stage.style.setProperty('--abyss-hatch-scale',Math.min(1.2,Math.max(.59,w/800)));
    for(const s of stations){
-    s.wx=w*s.x;s.wy=h*s.y;
+    s.wx=w*s.x;s.wy=s.kind==='lab'?hatch().y:h*s.y;
     s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='dive'?'cyan':'teal';
     s.button.classList.remove('abyss-rift-gate');
     s.button.classList.toggle('abyss-current-entry',s.kind!=='rift');
@@ -104,7 +105,7 @@
   function playEntrance(s){
    if(!interactive()||!s||s.button.disabled||s.button.hidden)return;
    held.clear();moveTarget=null;followPointer=null;joystickX=0;joystickY=0;
-   transition={station:s,x: px,y:py,t:0,duration:s.kind==='rift'?1.04:.87};
+   transition={station:s,x:px,y:py,t:0,duration:s.kind==='lab'?1.28:s.kind==='rift'?1.04:.87};
    nearElapsed=0;nearStationId=null;
    vx=0;vy=0;
    stage.dataset.abyssTransit=s.kind;
@@ -112,10 +113,12 @@
   function finishEntrance(){
    const s=transition?.station;if(!s)return;
    transition=null;stage.removeAttribute('data-abyss-transit');
-   waitingForModal=s.kind==='dive'||s.kind==='rift';
+   waitingForModal=s.kind==='dive'||s.kind==='rift'||s.kind==='lab';
    s.button.dataset.portalArriving='1';
    try{s.button.click();}
    finally{delete s.button.dataset.portalArriving;}
+   // The laboratory remains in the main menu, behind a full-screen cockpit interior.
+   if(s.kind==='lab'){diver.style.opacity='0';return;}
    // A right current enters exploration; the left opens the Solo/Online selector.
    if(s.kind==='sea'||document.body.classList.contains('game-active')||menu.hidden){
     wasVisible=false;return;
@@ -175,7 +178,7 @@
    if(!menu.hidden&&!document.body.classList.contains('game-active')&&initialized)resetToHatch();
   }
   window.addEventListener('abyssal-modal-closed',event=>{
-   if(event.detail?.screenId==='roomsScreen')closeReturn();
+   if(['roomsScreen','submarineWorkshop'].includes(event.detail?.screenId))closeReturn();
   });
   window.addEventListener('abyssal-descent-closed',closeReturn);
   window.addEventListener('abyssal-menu-portal-cancelled',event=>{
@@ -248,7 +251,7 @@
    // Water streams past the gates and disappears off-screen. The flow belongs
    // to the ocean, never to the diver's current position.
    for(const s of stations){
-    if(s.kind==='rift')continue;
+    if(s.kind!=='dive'&&s.kind!=='sea')continue;
     const direction=s.kind==='dive'?-1:1;
     const startX=s.wx-direction*w*.19,endX=s.wx+direction*w*.37;
     const span=endX-startX,band=Math.min(64,h*.105);
@@ -295,10 +298,15 @@
      const tx=transition;
      tx.t=Math.min(1,tx.t+dt/tx.duration);
      const t=ease(tx.t),s=tx.station,curve=Math.sin(Math.PI*t)*Math.min(38,w*.055);
-     px=lerp(tx.x,s.wx,t)+(s.kind==='rift'?0:(s.kind==='dive'?-1:1)*curve);
-     py=lerp(tx.y,s.wy,t)+(s.kind==='rift'?Math.sin(Math.PI*t)*-17:Math.sin(Math.PI*t)*8);
+     px=lerp(tx.x,s.wx,t)+(s.kind==='lab'?Math.sin(t*Math.PI)*10:s.kind==='rift'?0:(s.kind==='dive'?-1:1)*curve);
+     py=lerp(tx.y,s.wy,t)+(s.kind==='lab'?-Math.sin(Math.PI*t)*16:s.kind==='rift'?-Math.sin(Math.PI*t)*17:Math.sin(Math.PI*t)*8);
+     if(s.kind==='lab'){
+      const fade=clamp((t-.64)/.36,0,1);
+      diver.style.setProperty('--abyss-exit-scale',String(1-fade*.70));
+      if(t>.71&&Math.random()<.16)bubble(px,py+14,true);
+     }
      heading=Math.atan2(s.wy-py,s.wx-px);
-     diver.style.opacity=String(clamp((1-tx.t)*3.3,0,1));
+     diver.style.opacity=String(clamp((1-tx.t)*(s.kind==='lab'?2.1:3.3),0,1));
      if(tx.t===1)finishEntrance();
     }else if(!waitingForModal){
      // Hatch ejects the diver with a short easing, showering bubbles.
@@ -328,7 +336,7 @@
       }
       // Free swimming only highlights a destination; entering requires a click or F.
       const nearby=nearestStation();
-      if(nearby&&Math.hypot(px-nearby.wx,py-nearby.wy)<Math.max(23,Math.min(nearby.button.offsetWidth*.25,42))){
+      if(nearby&&nearby.kind!=='lab'&&Math.hypot(px-nearby.wx,py-nearby.wy)<Math.max(23,Math.min(nearby.button.offsetWidth*.25,42))){
        nearElapsed=nearStationId===nearby.id?nearElapsed+dt:0;
        nearStationId=nearby.id;
        if(nearElapsed>.38)playEntrance(nearby);
