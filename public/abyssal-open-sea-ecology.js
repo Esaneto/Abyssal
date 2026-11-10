@@ -159,11 +159,15 @@
    for(const mate of neighbors){
     if(!mate||mate===entity||mate.hp<=0||mate.schoolId!==entity.schoolId||mate.specimenSkinId!==entity.specimenSkinId)continue;
     const dx=entity.x-mate.x,dy=entity.y-mate.y,d=Math.hypot(dx,dy);
-    if(d>420||d<.0001)continue;
+    if(d>420)continue;
+    // Deterministic escape direction also separates exact-overlap spawns.
+    const overlap=d<.0001;
+    const direction=overlap?((hashSchool(mate)%6283)/1000):Math.atan2(dy,dx);
+    const ux=overlap?Math.cos(direction):dx/d,uy=overlap?Math.sin(direction):dy/d;
     averageX+=mate.x;averageY+=mate.y;count++;
-    if(d<48){repulseX+=dx/d*(48-d);repulseY+=dy/d*(48-d);}
+    if(d<150){const force=(150-d)*1.9;repulseX+=ux*force;repulseY+=uy*force;}
    }
-   if(count){formationX=formationX*.82+(averageX/count)*.18+repulseX*1.15;formationY=formationY*.82+(averageY/count)*.18+repulseY*1.15;}
+   if(count){formationX=formationX*.94+(averageX/count)*.06+repulseX*1.65;formationY=formationY*.94+(averageY/count)*.06+repulseY*1.65;}
   }
   const patrol={x:clamp(formationX,34,worldW-34),y:clamp(formationY,34,worldH-34),alive:true,moveSpeed:group?118:102};
   const crowd=Array.isArray(neighbors)?neighbors:[];
