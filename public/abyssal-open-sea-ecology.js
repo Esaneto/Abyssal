@@ -252,6 +252,43 @@
   entity.aiPreyId=null;
   return commit(entity,{mode:'patrol',target:patrol,aggressive:false},now);
  }
+ // Small physical contact correction complements the formation target. It is
+ // applied AFTER the normal navigation step in both Solo and Online: bodies
+ // may travel together, but cannot occupy the same space indefinitely.
+ function separateContact(entity,neighbors,dt=.05){
+  const x=Number(entity?.x),y=Number(entity?.y);
+  if(!entity?.wildlifeMode||!Number.isFinite(x)||!Number.isFinite(y)||!Array.isArray(neighbors)||dt<=0)return {x,y};
+  const own=creatureId(entity);
+  let fx=0,fy=0,nearest=Infinity;
+  for(const other of neighbors){
+   if(!other||other===entity||!other.wildlifeMode||other.hp<=0||!Number.isFinite(other.x)||!Number.isFinite(other.y))continue;
+   const otherId=creatureId(other);
+   // Do not override the bite/contact mechanic during legitimate predation.
+   if((entity.aiMode==='forage'&&entity.aiPreyId===otherId)||
+      (other.aiMode==='forage'&&other.aiPreyId===own))continue;
+   const sameSchool=entity.schoolId===other.schoolId&&entity.specimenSkinId===other.specimenSkinId;
+   const distance=Math.hypot(x-other.x,y-other.y),limit=sameSchool?100:75;
+   if(distance>=limit)continue;
+   let ux=(x-other.x)/Math.max(distance,.0001),uy=(y-other.y)/Math.max(distance,.0001);
+   if(distance<.0001){
+    const first=own<otherId?own:otherId,second=own<otherId?otherId:own;
+    let h=0;for(const c of first+':'+second)h=(Math.imul(h,33)+c.charCodeAt(0))>>>0;
+    const angle=h/4294967296*Math.PI*2,sign=own<otherId?1:-1;
+    ux=Math.cos(angle)*sign;uy=Math.sin(angle)*sign;
+   }
+   const weight=(limit-distance)/limit;fx+=ux*weight;fy+=uy*weight;
+   nearest=Math.min(nearest,limit-distance);
+  }
+  const strength=Math.hypot(fx,fy);
+  if(strength<.001)return {x,y};
+  const step=Math.min(95*Math.min(.1,dt),Math.max(0,nearest)*.45);
+  if(step<=0)return {x,y};
+  const nx=x+fx/strength*step,ny=y+fy/strength*step;
+  // The same solid-collision geometry used for navigation guards the push.
+  const radius=clamp(Number(entity.r)*.55||18,10,45);
+  const moved=geo?.resolveMove?.(x,y,nx,ny,radius);
+  return moved&&Number.isFinite(moved.x)&&Number.isFinite(moved.y)?{x:moved.x,y:moved.y}:{x:nx,y:ny};
+ }
  // Specimens are the single authoritative active-skill catalog for living fauna.
  // A cast returns intent only; Solo/Online apply hits through their existing damage code.
  function activateAgainstPlayer(entity,player,now=Date.now()){
@@ -313,5 +350,5 @@
   }
   return hits;
  }
- return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,navigationTarget,activateAgainstPlayer,simulatePredation});
+ return Object.freeze({ZONES,HABITAT_DEPTH,habitatAt,speciesAt,speciesHabitat,temperament,isSchooling,comparePredators,canSee,decide,navigationTarget,separateContact,activateAgainstPlayer,simulatePredation});
 });
