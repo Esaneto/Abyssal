@@ -42,6 +42,7 @@ const GAME_FILES = [
   'abyssal-navigation-chart.js',
   'ocean-menu-scenery.js',
   'diver-art.js',
+  'diver-hitbox.js',
   'enemy-ai.js',
   'creature-scale.js',
   'rift-wildlife.js',
