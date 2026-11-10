@@ -83,17 +83,18 @@
  function commit(entity,decision,now,force=false){
   const current=entity.aiMode,mode=decision.mode;
   const locked=(Number(entity.aiDecisionUntil)||0)>now;
-  const hold=locked&&!force&&current&&current!==mode&&entity.aiLastTarget&&entity.aiLastTarget.alive!==false;
-  // A commitment avoids rapid patrol/attack/flee toggling as the player grazes a threshold.
-  if(hold&&entity.aiLastDecision)return entity.aiLastDecision;
+  // Keep intent stable briefly. Never retain live player objects on server enemies:
+  // enemies are serialized into room snapshots and would otherwise leak player state.
+  if(locked&&!force&&current&&current!==mode){
+   if(current==='flee'||current==='evade-predator')return {...decision,mode:current,aggressive:false};
+   if(current==='alert'&&mode==='patrol')return {...decision,mode:current,aggressive:false};
+  }
   if(current!==mode){
    entity.aiMode=mode;
    entity.aiDecisionUntil=now+(mode==='attack'?1150:mode==='flee'||mode==='evade-predator'?920:mode==='forage'?1200:720);
   }
   entity.aiIndicator=(mode==='attack'||mode==='forage')?'attack':
    (mode==='flee'||mode==='evade-predator')?'flee':mode==='alert'?'evaluate':null;
-  entity.aiLastTarget=decision.target;
-  entity.aiLastDecision=decision;
   return decision;
  }
  function decide(entity,players,seconds=0,now=Date.now(),neighbors=[]){
