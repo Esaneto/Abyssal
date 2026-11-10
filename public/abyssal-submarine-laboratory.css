@@ -189,3 +189,25 @@
  #submarineWorkshop .abyss-cockpit-ticker{width:94vw;font-size:8px}
 }
 @media(prefers-reduced-motion:reduce){#submarineWorkshop .abyss-cockpit-ticker span{animation:none;padding-left:10px}}
+
+/* The hatch is drawn inside #menuOceanStage, not at the top of #menuScreen.
+   Anchor the interactive hit area to that same stage coordinate system. */
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage #submarineWorkshopBtn.abyss-laboratory-hatch{
+ position:absolute!important;
+ left:50%!important;
+ top:var(--abyss-hatch-y,103px)!important;
+ transform:translate(-50%,-50%)!important;
+ width:calc(108px * var(--abyss-hatch-scale,1))!important;
+ height:calc(47px * var(--abyss-hatch-scale,1))!important;
+ z-index:12!important;
+ pointer-events:auto!important;
+ cursor:pointer!important;
+ touch-action:manipulation!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage #submarineWorkshopBtn.abyss-laboratory-hatch .abyss-hatch-label{
+ opacity:0!important;
+ transition:opacity .16s ease!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage #submarineWorkshopBtn.abyss-laboratory-hatch:is(:hover,:focus-visible) .abyss-hatch-label{
+ opacity:1!important;
+}
