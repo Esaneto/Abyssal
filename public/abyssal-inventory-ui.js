@@ -21,6 +21,7 @@
  config.RESOURCES.abyssWeapon||(console.warn('[Abyssal] abyssWeapon missing from config'));
  const colors={seaMineral:'#63c1cd',phosphorite:'#d8bd81',ferromanganeseCrust:'#a884da',polymetallicNodule:'#758aab',hydrothermalSulfide:'#ca9e6f',deepCrystal:'#a6cfff',abyssCrystal:'#a77aff'};
  function icon(id){
+  if(window.AbyssalResourceIcons?.has?.(id))return window.AbyssalResourceIcons.svg(id);
   if(id==='abyssWeapon')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 31L46 18 57 23 48 31 27 37 20 49 12 47 17 36Z" fill="#263f50" stroke="#a9dce3" stroke-width="2"/><path d="M18 29L48 20" stroke="#7cf5ff" stroke-width="3"/><path d="M45 25L60 23" stroke="#d9fbff" stroke-width="4"/><path d="M25 37L20 48" stroke="#d6a56b" stroke-width="4"/></svg>';
 
   if(id==='abyssPickaxe')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M35 18L42 22 22 58 15 54Z" fill="#704a31" stroke="#c98b52" stroke-width="2"/><path d="M8 19Q25 4 49 9L59 15 52 22Q32 15 15 30L7 28Z" fill="#8599a5" stroke="#e4edf0" stroke-width="2.5"/><path d="M49 9L59 15 52 22" fill="#506977"/><path d="M30 25L38 29" stroke="#d6b36d" stroke-width="3"/></svg>';
