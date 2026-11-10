@@ -2304,8 +2304,9 @@ function marineAbilityLineDistance(px,py,ax,ay,bx,by){
 function currentSkinActiveSpec(){
  if(!specimenAlive())return null;
  const base=SKIN_STANDARD?.activeSpec?.(equippedSkin);if(!base)return null;
- const mastery=specimenProgressStats();
- return Object.freeze({...base,cooldown:base.id==='poison'||base.id==='paralysis'?10:mastery.cooldown,range:(Number(base.range)||0)*mastery.rangeMultiplier});
+ // Active identity, cooldown, duration, damage and range are the shop contract.
+ // Proficiency must never silently rewrite a purchased/equipped specimen ability.
+ return base;
 }
 function nearestSkinActiveTarget(range,origin=specimenOrigin()){
  let best=null,bd=Infinity;
