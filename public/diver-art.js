@@ -87,6 +87,12 @@
   c.quadraticCurveTo(10,-10,11,-9);c.quadraticCurveTo(3,-11,-3,-7);
   c.quadraticCurveTo(-8,-5,-10,-7);c.closePath();c.fill();
   c.restore();
+  // A compact pressure-rated LED module is mounted on the helmet, never the rifle.
+  if(options.helmetLamp){
+   c.fillStyle='#374e5a';c.strokeStyle='#a3b6b3';c.lineWidth=1.2;
+   c.beginPath();c.roundRect(34,-16,9,6,2);c.fill();c.stroke();
+   c.fillStyle='#d8fff0';c.beginPath();c.arc(43,-13,2.7,0,TAU);c.fill();
+  }
   // Loose hair in both versions, never a ponytail. Each lock has separate
   // water-driven curvature. Female locks extend farther; male locks are short.
   c.save();c.strokeStyle='#05070b';c.lineCap='round';

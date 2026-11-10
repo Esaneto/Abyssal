@@ -2260,7 +2260,14 @@ function fire(){
  const mouseAimMode=isPcMouseAimMode(),aimedMode=isManualFiringMode();
  if(!target&&!aimedMode)return;
  if(mouseAimMode)updateMouseAimFromCursor();
- const a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
+ // Automatic targeting solves aim from the visible barrel, not from the torso.
+ // All projectiles in a spread share the physical muzzle origin.
+ let a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
+ if(target&&!aimedMode&&DIVER_ART?.muzzle){
+  for(let k=0;k<3;k++){const m=DIVER_ART.muzzle(player.x,player.y,player.r,a);a=Math.atan2(target.y-m.y,target.x-m.x);}
+ }
+ player.weaponAngle=a;
+ const gunTip=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};
  const activeShot=getActiveShotId()||'electric',shotLevel=Math.max(1,Number(upgradeLevels[activeShot])||1);
  const baseDamage=shotLevel?getShotDamageAtLevel(shotLevel,activeShot):12;
  const shotDamage=baseDamage*(upgrades.power||1);
@@ -2271,7 +2278,7 @@ function fire(){
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
- for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM),y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM),vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.x??player.x+Math.cos(shotAngle)*13/GAME_WORLD_ZOOM)/W,y:(DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)?.y??player.y+Math.sin(shotAngle)*13/GAME_WORLD_ZOOM)/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
+ for(const shotAngle of angles){const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:gunTip.x,y:gunTip.y,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:gunTip.x/W,y:gunTip.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=gunTip;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -3922,7 +3929,7 @@ function drawRiftShopSpecimen(enemy,skin,time){
 }
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon'){
  if(DIVER_ART?.draw){
-  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true,heldItem,swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
+  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true,heldItem,helmetLamp:!remote&&isOpenSeaRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
   return;
  }
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.fillStyle='#1599de';ctx.beginPath();ctx.ellipse(0,0,r*1.7,r*.65,0,0,Math.PI*2);ctx.fill();ctx.restore();
@@ -4182,6 +4189,14 @@ function draw(t){
     ctx.save();ctx.textAlign='center';
     if(selfTitle){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[self.equippedTitle]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(selfTitle,player.x,player.y-34/worldZoom);}
     ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font=`700 ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
+ }
+ // The helmet beam is strictly a Mar Aberto exploration visual. Shooter and
+ // Fossas retain their established sight and weapon mechanics.
+ if(isOpenSeaRun()&&player&&gameState==='playing'){
+  const levels=window.AbyssalExplorationBridge?.levels?.()||{};
+  window.AbyssalOpenSeaLighting?.draw?.(ctx,
+   {left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},
+   player,Number(levels.helmetLamp)||0,t,lowPowerRendering);
  }
  // corner scanner details
  ctx.save();ctx.strokeStyle='rgba(123,215,223,.23)';ctx.lineWidth=1;const s=14;[[12,12,1,1],[W-12,12,-1,1],[12,H-12,1,-1],[W-12,H-12,-1,-1]].forEach(([x,y,a,b])=>{ctx.beginPath();ctx.moveTo(x,y+s*b);ctx.lineTo(x,y);ctx.lineTo(x+s*a,y);ctx.stroke()});ctx.restore();
