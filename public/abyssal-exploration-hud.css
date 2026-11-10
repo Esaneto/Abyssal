@@ -28,7 +28,7 @@ body.open-sea-exploration .exploration-overlay.oxygen-critical #explorationPress
 body.open-sea-exploration .exploration-overlay.oxygen-critical .exploration-track>i{background:#d64e56}
 /* Vitality appears below the oxygen and depth instruments, not on top. */
 body.open-sea-exploration #hud.hud:not([hidden]){
- position:absolute!important;z-index:51!important;top:184px!important;
+ position:absolute!important;z-index:51!important;top:var(--abyss-vitals-top,184px)!important;
  left:max(12px,env(safe-area-inset-left))!important;right:auto!important;bottom:auto!important;
  width:min(266px,calc(100% - 24px))!important;min-height:0!important;height:auto!important;
  transform:none!important;margin:0!important;padding:9px 12px!important;
@@ -73,7 +73,7 @@ body.open-sea-exploration .exploration-collect>button:disabled{opacity:.65;curso
  body.open-sea-exploration #explorationPressure{font-size:10px}
  body.open-sea-exploration #explorationPressureWarning{font-size:8px}
  body.open-sea-exploration #hud.hud:not([hidden]){
-  top:148px!important;left:max(8px,env(safe-area-inset-left))!important;
+  top:var(--abyss-vitals-top,148px)!important;left:max(8px,env(safe-area-inset-left))!important;
   width:min(208px,calc(100% - 20px))!important;padding:7px 8px!important
  }
  body.open-sea-exploration .exploration-overlay .exploration-collect:not([hidden]){
@@ -87,5 +87,5 @@ body.open-sea-exploration .exploration-collect>button:disabled{opacity:.65;curso
 @media(max-height:490px) and (max-width:900px){
  body.open-sea-exploration #gameShell>.exploration-overlay:not([hidden]){gap:3px}
  body.open-sea-exploration .exploration-stat{padding:4px 6px}
- body.open-sea-exploration #hud.hud:not([hidden]){top:130px!important}
+ body.open-sea-exploration #hud.hud:not([hidden]){top:var(--abyss-vitals-top,130px)!important}
 }

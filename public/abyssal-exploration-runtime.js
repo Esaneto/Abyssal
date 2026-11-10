@@ -779,6 +779,15 @@
   $('explorationGasFill').style.width=Math.max(0,Math.min(100,gas/Math.max(1,max)*100))+'%';
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=config.atBreathingSurface(p.y,p.r)?'SUPERFÍCIE · RECARREGANDO OXIGÊNIO':depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
+  // Position vitality from measured oxygen/depth card boundaries. On narrow
+  // mobile screens text may wrap, so fixed pixel spacing would overlap.
+  const vitals=$('hud'), instruments=hud.querySelector('.exploration-instruments');
+  if(vitals&&instruments){
+   const lower=instruments.getBoundingClientRect().bottom-shell.getBoundingClientRect().top+8;
+   const nextTop=Math.max(0,Math.ceil(lower))+'px';
+   if(vitals.style.getPropertyValue('--abyss-vitals-top')!==nextTop)
+    vitals.style.setProperty('--abyss-vitals-top',nextTop);
+  }
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?((near.type==='oilSeep'||near.type==='gasSeep')?(currentOffshore().connections.some(l=>l.id===String(near.id))?'POÇO CONECTADO · PRODUZINDO':stateLevels().offshoreSurvey?'RESERVA MAPEADA · '+Math.round(near.distance)+' u':'INDÍCIO GEOLÓGICO · '+Math.round(near.distance)+' u'):(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u'):'NENHUM DEPÓSITO PRÓXIMO';
   window.AbyssalGathering?.refreshHUD?.(near,p);
   signal.hidden=true;

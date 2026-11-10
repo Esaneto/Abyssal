@@ -10,8 +10,9 @@ test('predators only spawn in deep western water or shallow eastern water',()=>{
  for(const id of ['reefshark','hammerhead','goblin','greenland','viperfish','angler']){
   assert.equal(ecology.predatorAllowedAt(id,500,300),false);
   assert.equal(ecology.predatorAllowedAt(id,7500,0),false);
-  assert.equal(ecology.predatorAllowedAt(id,7500,300),true);
-  assert.equal(ecology.predatorAllowedAt(id,500,1100),true);
+  assert.equal(ecology.predatorAllowedAt(id,7500,300),false,'shallow water before 75 m stays safe');
+  assert.equal(ecology.predatorAllowedAt(id,7500,1100),true);
+  assert.equal(ecology.predatorAllowedAt(id,500,3000),true);
  }
 });
 test('streamed fauna uses shop IDs and safe predator spawn positions',()=>{
@@ -35,4 +36,5 @@ test('exploration uses shop art, hides ranking and separates oxygen and vitality
  assert.match(css,/#activeAbilities/);
  assert.match(css,/#selectedSkillsPanel/);
  assert.match(css,/#hud\.hud/);
+ assert.match(css,/--abyss-vitals-top/);
 });
