@@ -1620,3 +1620,10 @@ Arquivos e responsabilidades:
 **Regra principal:** não substituir os seis comandos por cartões flutuantes no topo do fundo. O Canvas é puramente visual; HTML cobre somente o console integrado. Compras, estudos, partidas e desbloqueios continuam usando os handlers oficiais. O exemplo do usuário é referência estética, não asset para copiar (tem marca d'água).
 
 **Validação:** arquivos JS de cockpit, pesquisa, ícones, personagem, inventário e Service Worker passaram no parser. As execuções do GitHub Actions em commits intermediários `6c2878da` e `4a45973f` concluíram com sucesso nos workflows gerais e de Windows; o último commit contendo o teste específico deve ser conferido no Actions antes de afirmar validação final.
+
+### Aceite visual real da nova cabine
+
+- `public/abyssal-menu-ocean.js`: entrada pela escotilha agora tem proteção de conclusão após duração normal + 350 ms quando o navegador bloqueia/throttles `requestAnimationFrame`. Evita transição permanente em `stage.dataset.abyssTransit='lab'`; a animação continua normal quando roda em 60 fps.
+- `public/abyssal-submarine-cockpit.js`: `open()` desenha a primeira cena sincronamente antes do primeiro RAF, para não exibir um Canvas vazio em dispositivos móveis.
+- `scripts/browser-smoke.cjs`: dois testes Chromium completos (`cockpit-desktop` e `cockpit-mobile`) iniciam no menu real, clicam a escotilha, inspecionam seis botões, seis imagens de minérios, nove cartões de pesquisa da categoria inicial e custos com SVG; salvam screenshots no artifact `test-artifacts/browser-smoke/`.
+- No workflow `Abyssal checks v2` da revisão `c16e2050` (run 42872358255), o job `syntax-and-tests` passou com logs `[cockpit-smoke] cockpit-desktop cards=9` e `[cockpit-smoke] cockpit-mobile cards=9`. Também passaram ecologia, espécimes/laboratório e validação RoxyCloud. Acompanhar etapas Android e Windows até conclusão. Não substituir estas validações reais por imagens de IA.
