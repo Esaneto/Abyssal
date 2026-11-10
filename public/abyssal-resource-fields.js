@@ -57,7 +57,7 @@
     // Match the player's clearance using final rounded world coordinates.
     const px=Math.round(x),py=Math.round(y);
     if(geo.isSolid(px,py,18))continue;
-    point={x:px,y:py};isRock=Boolean(rock);rockAngle=rock?angle:null;break;
+    point={x:px,y:py};isRock=Boolean(rock);rockAngle=rock?Math.atan2(py-rock.y,px-rock.x):null;break;
    }
    if(!point)continue;
    const depth=depthAt(point.y);let type=rollType(depth,isRock,random,geo.visualBiomeAt?.(point.x,point.y)?.id);
