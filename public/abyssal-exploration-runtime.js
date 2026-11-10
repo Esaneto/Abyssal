@@ -152,7 +152,8 @@
  function offshoreRates(){return Offshore?.rates?.(currentOffshore(),stateLevels())||{oil:0,gas:0};}
  function offshoreCapacity(){return Offshore?.capacity?.(stateLevels())||500;}
  function updateOffshoreProduction(now=Date.now()){return currentOffshore(now);}
- const PLATFORM_X=520,PLATFORM_Y=95;
+ const PLATFORM_X=Offshore?.PLATFORM_X||520,PLATFORM_Y=Offshore?.PLATFORM_Y||95;
+ const offshorePipePathCache=new Map();
  function platformNearby(p=cfg()){return Boolean(p&&p.mode==='open-sea'&&Math.hypot(p.x-PLATFORM_X,p.y-PLATFORM_Y)<175);}
  function applyOffshoreResult(result,source,action){
   if(!result?.ok){
@@ -300,21 +301,29 @@
  function drawPipeFlow(c,link,t,viewport){
   if(!link||!['oilSeep','gasSeep'].includes(link.type))return;
   const geo=window.AbyssalOceanGeography;if(!geo)return;
-  const bx=Offshore?.PLATFORM_X||520,by=Offshore?.PLATFORM_Y||95;
-  const path=[{x:link.x,y:link.y},{x:link.x,y:geo.floorAt(link.x)-26}];
-  const dx=bx-link.x,steps=Math.ceil(Math.abs(dx)/125);
-  for(let j=1;j<=steps;j++){
-   const x=link.x+dx*j/Math.max(1,steps);path.push({x,y:geo.floorAt(x)-26});
+  const bx=PLATFORM_X,by=PLATFORM_Y;
+  const key=[link.id,link.x,link.y,geo.VERSION||0].join(':');
+  let cached=offshorePipePathCache.get(key);
+  if(!cached){
+   const path=[{x:link.x,y:link.y},{x:link.x,y:geo.floorAt(link.x)-26}];
+   const dx=bx-link.x,steps=Math.ceil(Math.abs(dx)/125);
+   for(let j=1;j<=steps;j++){
+    const x=link.x+dx*j/Math.max(1,steps);path.push({x,y:geo.floorAt(x)-26});
+   }
+   // Segmented subsea pipeline leads into a curved FPSO riser.
+   const seabed=geo.floorAt(bx)-26;
+   path.push({x:bx+26,y:seabed-55},{x:bx+45,y:Math.max(by+90,seabed*.56)},
+    {x:bx+37,y:by+80},{x:bx,y:by-80});
+   const segments=[];let total=0;
+   for(let i=1;i<path.length;i++){
+    const a=path[i-1],b=path[i],len=Math.hypot(b.x-a.x,b.y-a.y);
+    if(len<.001)continue;segments.push({a,b,len,begin:total});total+=len;
+   }
+   cached={segments,total};
+   if(offshorePipePathCache.size>=12)offshorePipePathCache.clear();
+   offshorePipePathCache.set(key,cached);
   }
-  // Catenary: subsea pipe enters a curved riser and climbs to the FPSO manifold.
-  const seabed=geo.floorAt(bx)-26;
-  path.push({x:bx+26,y:seabed-55},{x:bx+45,y:Math.max(by+90,seabed*.56)},
-   {x:bx+37,y:by+80},{x:bx,y:by-28});
-  const segments=[];let total=0;
-  for(let i=1;i<path.length;i++){
-   const a=path[i-1],b=path[i],len=Math.hypot(b.x-a.x,b.y-a.y);
-   if(len<.001)continue;segments.push({a,b,len,begin:total});total+=len;
-  }
+  const {segments,total}=cached;
   if(total<=0)return;
   const gas=link.type==='gasSeep',color=gas?'#88e7c4':'#e3b678',speed=gas?62:44;
   // Flow runs from the geological reserve to the ship, not the reverse.
@@ -386,7 +395,7 @@
     c.save();c.lineCap='round';c.lineJoin='round';
     if(platformX>=left-120&&platformX<=right+120){
      const bottomY=window.AbyssalOceanGeography.floorAt(platformX)-26;
-     c.beginPath();c.moveTo(platformX,platformY-28);
+     c.beginPath();c.moveTo(platformX,platformY-80);
      c.bezierCurveTo(platformX+44,platformY+100,platformX+55,bottomY-155,platformX+24,bottomY);
      c.strokeStyle=body;c.lineWidth=8;c.stroke();
      c.strokeStyle='rgba(173,207,199,.32)';c.lineWidth=2;c.stroke();
@@ -426,7 +435,7 @@
    }
   }
   if(levels.offshorePlatform&&top<650){
-   const px=520,py=95;c.save();c.translate(px,py);
+   const px=PLATFORM_X,py=45;c.save();c.translate(px,py);
    // Floating production vessel: a deep-water production system, not a rigid seabed tripod.
    const bob=Math.sin(t*.47)*1.8;c.translate(0,bob);
    c.fillStyle='#253942';c.strokeStyle='#819ba1';c.lineWidth=2;
