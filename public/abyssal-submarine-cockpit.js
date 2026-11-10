@@ -182,100 +182,48 @@
   line(-88,60,79,60,'#526d88',3);c.restore();
  }
  function diver(t,compact=false){
-  const female=gender()==='female',x=compact?608:282,y=compact?410:428;
-  c.save();c.translate(x,y);c.scale(compact?.77:1.02,compact?.77:1.02);
-  c.lineJoin='round';c.lineCap='round';
-  chair(-14,123,.98);
-  // Thick external oxygen cylinder and its physical shoulder harness.
-  rr(-130,176,57,174,23,'#102638','#96acbb',5);
-  rr(-121,195,38,106,14,'#294760','#c9bd83',3);
-  rr(-121,219,39,10,4,'#d9ae60');
-  rr(-119,316,36,15,4,'#d9ae60');
-  c.strokeStyle='#58d8ed';c.lineWidth=5;c.beginPath();c.moveTo(-101,175);c.bezierCurveTo(-105,97,-42,96,4,126);c.stroke();
-  // Bent legs / lower suit. One leg extends toward the console; both remain connected to the hips.
-  c.fillStyle='#162c40';c.strokeStyle='#607c95';c.lineWidth=4;
-  c.beginPath();c.moveTo(-64,295);c.bezierCurveTo(0,270,67,273,97,306);c.lineTo(176,354);c.lineTo(139,387);
-  c.lineTo(34,352);c.lineTo(-42,366);c.closePath();c.fill();c.stroke();
-  c.beginPath();c.moveTo(-71,320);c.bezierCurveTo(-90,356,-47,401,14,405);c.lineTo(109,414);c.lineTo(123,387);
-  c.lineTo(32,363);c.closePath();c.fill();c.stroke();
-  // Integrated neoprene pressure suit, anatomically shaped torso/shoulders.
-  const suit=grad(-95,110,130,322,[[0,'#050f1e'],[.4,'#183a5a'],[.68,'#0b1e35'],[1,'#263a53']]);
-  c.fillStyle=suit;c.strokeStyle='#678da1';c.lineWidth=4;
-  c.beginPath();c.moveTo(-37,110);c.quadraticCurveTo(-96,109,-116,189);
-  c.lineTo(-77,294);c.quadraticCurveTo(-7,319,92,291);
-  c.lineTo(115,169);c.quadraticCurveTo(107,119,47,106);
-  c.closePath();c.fill();c.stroke();
-  // Side armour, harness, hose couplings and cyan-light strips.
-  poly([[-82,135],[-54,119],[-30,148],[-42,212],[-96,203]],'#283d55','#7494a4',3);
-  poly([[41,117],[88,134],[106,196],[72,211],[48,154]],'#263d58','#84a5b3',3);
-  line(-57,146,32,250,'#0a1729',16);line(-57,146,32,250,'#8f9fb0',3);
-  rr(-13,215,29,25,7,'#123f54','#5fe5ef',3);
-  for(let i=0;i<3;i++)rr(-67+i*28,284,16,5,2,'#e9ad5d');
-  // Right arm on the control desk, articulated at shoulder, elbow and glove.
-  c.strokeStyle='#091828';c.lineWidth=34;c.beginPath();c.moveTo(87,157);c.lineTo(124,222);c.lineTo(205,238);c.stroke();
-  c.strokeStyle='#28465e';c.lineWidth=26;c.stroke();
-  c.strokeStyle='#6e9cb2';c.lineWidth=3;c.beginPath();c.moveTo(95,171);c.lineTo(121,224);c.lineTo(196,235);c.stroke();
-  rr(192,223,26,24,9,'#0d2033','#77b5cc',3);
-  // Left forearm remains separate and visible, not a duplicate right arm.
-  c.strokeStyle='#101b30';c.lineWidth=34;c.beginPath();c.moveTo(-95,180);c.lineTo(-111,260);c.lineTo(-53,281);c.stroke();
-  c.strokeStyle='#345169';c.lineWidth=24;c.stroke();rr(-65,269,31,23,8,'#162c40','#6eb2c4',3);
-  // Neck and rigid pressure collar support the face.
-  rr(-17,89,51,57,18,'#a07056','#24374b',5);
-  c.fillStyle='#1b354a';c.strokeStyle='#81b3c6';c.lineWidth=4;c.beginPath();c.ellipse(12,130,60,24,0,0,TAU);c.fill();c.stroke();
-  // Flowing hair appears behind the entire head and across the collar.
-  const sway=Math.sin(t*.0013)*6;
-  c.fillStyle='#0c101a';c.strokeStyle='#333c51';c.lineWidth=3;
-  c.beginPath();c.moveTo(-58,-39);c.bezierCurveTo(-89,-103,37,-133,77,-79);
-  c.bezierCurveTo(101,-32,61,23,40,29);
-  if(female){
-   c.bezierCurveTo(40,106,12,161,-52,188+sway);
-   c.bezierCurveTo(-37,134,-91,144,-99,80+sway);
-   c.bezierCurveTo(-136,52,-101,-19,-58,-39);
-  }else{
-   c.bezierCurveTo(32,25,-45,45,-77,8);c.bezierCurveTo(-100,-17,-70,-29,-58,-39);
+  // Rear-facing seated pilot in the playable diver's dark blue and cyan suit.
+  const female=gender()==='female',x=compact?570:258,y=compact?421:453;
+  c.save();c.translate(x,y);c.scale(compact?.69:.81,compact?.69:.81);
+  c.lineJoin='round';c.lineCap='round';chair(0,104,.95);
+  poly([[-72,260],[-95,315],[-48,370],[22,382],[40,356],[-14,326]],'#142d48','#66869e',4);
+  poly([[15,264],[64,301],[132,338],[158,318],[99,278],[70,251]],'#172e49','#65869f',4);
+  line(-86,142,-119,205,'#0b1d31',36);line(-119,205,-65,232,'#29465d',29);
+  line(85,142,133,202,'#0b1d31',36);line(133,202,193,218,'#29465d',29);
+  rr(-75,223,27,22,8,'#102238','#75e2e7',3);rr(185,208,27,22,8,'#102238','#75e2e7',3);
+  c.fillStyle=grad(-110,105,108,310,[[0,'#091a2e'],[.5,'#234767'],[1,'#0e253c']]);
+  c.strokeStyle='#77a7ba';c.lineWidth=5;c.beginPath();c.moveTo(-60,106);
+  c.quadraticCurveTo(-112,119,-109,177);c.lineTo(-83,275);c.quadraticCurveTo(0,317,83,275);
+  c.lineTo(109,177);c.quadraticCurveTo(111,119,60,106);c.closePath();c.fill();c.stroke();
+  line(-94,164,-82,268,'#5acfe2',4);line(94,164,82,268,'#5acfe2',4);
+  // Two distinct oxygen cylinders and safety harness mounted on the back.
+  for(const tx of [-46,46]){
+   rr(tx-24,140,48,138,19,'#102437','#94b0be',4);
+   rr(tx-17,151,34,112,14,'#254962','#60c5d5',2);
+   rr(tx-12,129,24,19,5,'#a6b6b6','#253d50',3);
+   rr(tx-24,190,48,13,4,'#102034','#8edee5',3);
+   rr(tx-23,252,46,12,4,'#c99e5a');
   }
-  c.closePath();c.fill();c.stroke();
-  // Visible 3/4 face, cheeks, eyes, nose and jaw, all on a single head.
-  const skin=grad(-36,-60,85,101,[[0,'#c79174'],[.51,'#e9b090'],[1,'#9d6b5b']]);
-  c.fillStyle=skin;c.strokeStyle='#5c4a49';c.lineWidth=3;
-  c.beginPath();c.moveTo(-49,-46);c.bezierCurveTo(-36,-91,44,-96,76,-44);
-  c.quadraticCurveTo(88,-3,94,17);c.quadraticCurveTo(113,27,88,43);
-  c.quadraticCurveTo(74,95,23,103);c.quadraticCurveTo(-43,75,-51,15);c.closePath();c.fill();c.stroke();
-  c.fillStyle='#bb876d';c.beginPath();c.ellipse(-47,25,14,19,-.25,0,TAU);c.fill();
-  // Eyes in believable perspective.
-  c.strokeStyle='#242a38';c.lineWidth=4;
-  c.beginPath();c.moveTo(20,7);c.quadraticCurveTo(39,-2,54,8);c.stroke();
-  c.beginPath();c.moveTo(67,10);c.quadraticCurveTo(80,5,84,14);c.stroke();
-  c.fillStyle='#15283a';c.beginPath();c.ellipse(41,14,4.5,6,0,0,TAU);c.fill();
-  c.beginPath();c.ellipse(78,18,3.2,4.2,0,0,TAU);c.fill();
-  c.fillStyle='#f5e0c0';c.beginPath();c.arc(42,12,1.5,0,TAU);c.fill();
-  c.strokeStyle='#905d56';c.lineWidth=2;
-  c.beginPath();c.moveTo(80,20);c.quadraticCurveTo(92,39,84,40);c.stroke();
-  c.strokeStyle='#743c45';c.lineWidth=3;c.beginPath();c.moveTo(47,65);c.quadraticCurveTo(66,72,81,62);c.stroke();
-  // Diving mask stays attached above the brow, with a dark metal retention band.
-  c.strokeStyle='#263d53';c.lineWidth=13;c.beginPath();c.moveTo(-56,-33);c.quadraticCurveTo(16,-71,81,-36);c.stroke();
-  c.fillStyle='#142d44';c.strokeStyle='#9ad9eb';c.lineWidth=5;
-  c.beginPath();c.moveTo(-33,-52);c.quadraticCurveTo(22,-75,70,-48);c.lineTo(63,-23);
-  c.quadraticCurveTo(20,-31,-25,-23);c.closePath();c.fill();c.stroke();
-  c.fillStyle=grad(-20,-67,67,-25,[[0,'#c3ffff'],[.5,'#2b94bf'],[1,'#163757']]);
-  c.beginPath();c.moveTo(-24,-50);c.quadraticCurveTo(13,-65,60,-45);c.lineTo(54,-30);c.quadraticCurveTo(10,-37,-17,-30);c.closePath();c.fill();
-  line(-16,-46,8,-55,'#efffff',4);
-  rr(-57,-25,20,27,7,'#183a53','#86e2e3',3);
-  c.fillStyle='#85f5f6';c.beginPath();c.arc(-47,-12,4,0,TAU);c.fill();
-  // Hair on top: the same black loose style as the playable diver.
-  c.fillStyle='#090e18';c.strokeStyle='#3c4554';c.lineWidth=2;
-  c.beginPath();c.moveTo(-54,-46);c.bezierCurveTo(-71,-110,39,-113,76,-76);
-  c.quadraticCurveTo(83,-55,71,-47);c.bezierCurveTo(32,-95,-23,-70,-54,-46);c.fill();c.stroke();
-  const locks=female?12:7;
-  for(let i=0;i<locks;i++){
-   const rootX=-55+i*9.2,rootY=-73-Math.sin(i/locks*Math.PI)*23;
-   const len=(female?58:17)+(i%4)*9,dir=i%2===0?-1:1;
-   c.strokeStyle=i%4===0?'#4b5060':'#151d2a';c.lineWidth=2.4+(i%3)*.5;
-   c.beginPath();c.moveTo(rootX,rootY);c.bezierCurveTo(rootX-25,rootY+12,rootX-45+dir*sway,rootY+len*.75,rootX-35+dir*sway,rootY+len);
+  line(-94,156,94,249,'#071927',12);line(94,156,-94,249,'#071927',12);
+  line(-90,156,90,249,'#72cbd9',3);line(90,156,-90,249,'#72cbd9',3);
+  rr(-29,211,58,27,8,'#102d43','#65e3ef',3);
+  // Rear of helmet. Hair emerges beneath the lower rim, not through the shell.
+  rr(-49,80,98,41,15,'#0e263a','#71aabf',5);
+  c.fillStyle='#0d2238';c.strokeStyle='#81b5ca';c.lineWidth=5;c.beginPath();
+  c.ellipse(0,7,74,83,0,0,Math.PI*2);c.fill();c.stroke();
+  c.fillStyle=grad(-65,-45,65,45,[[0,'#1e4b65'],[.6,'#0d3049'],[1,'#183b53']]);
+  c.beginPath();c.ellipse(0,9,61,70,0,0,Math.PI*2);c.fill();
+  c.strokeStyle='#64deea';c.lineWidth=4;c.beginPath();c.arc(0,11,64,Math.PI*.19,Math.PI*.81);c.stroke();
+  const sway=Math.sin(t*.0012)*5,locks=female?9:10;
+  for(let j=0;j<locks;j++){
+   const hx=-51+j*(female?12.6:11.3),hy=59+j%3*4;
+   c.strokeStyle=j%3===0?'#343b4b':'#10121d';c.lineWidth=female?8+j%3:5;
+   c.beginPath();c.moveTo(hx,hy);
+   if(female)c.bezierCurveTo(hx-12+sway,104,hx+10+sway,137,hx+(j%2?12:-8)+sway,164+j%4*8);
+   else c.quadraticCurveTo(hx+4,77+j%3*3,hx+5,87);
    c.stroke();
   }
-  // Helmet-side headlamp on the suit, not an unrelated sci-fi crown.
-  rr(-58,-60,22,13,4,'#344e65','#d8be85',2);rr(-55,-58,12,8,3,'#d9f9e9');
+  rr(-24,-82,48,17,6,'#173c54','#8ae6ee',3);rr(-13,-78,26,9,3,'#f4e9af');
   c.restore();
  }
  function scene(t){
