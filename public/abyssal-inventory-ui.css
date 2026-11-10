@@ -1,0 +1,22 @@
+/* Mar Aberto inventory. Original industrial-diving visual language. */
+#abyssInventoryRoot{position:absolute;inset:0;z-index:87;pointer-events:none;font-family:Inter,system-ui,sans-serif;color:#f1eee5}
+#abyssInventoryRoot[hidden],#abyssInventoryPanel[hidden]{display:none!important}
+#abyssInventoryToggle{pointer-events:auto;position:absolute;right:14px;bottom:76px;border:1px solid #8a785a;border-radius:9px;background:linear-gradient(145deg,#203444ef,#071520eb);color:#f4dba6;padding:9px 12px;font:700 11px Inter,system-ui,sans-serif;letter-spacing:.08em;box-shadow:0 5px 20px #030912ad;cursor:pointer}
+#abyssInventoryToggle kbd{margin-left:7px;padding:2px 6px;border:1px solid #6c8190;border-radius:4px;color:#d1dfde;background:#0d2735}
+#abyssInventoryPanel{pointer-events:auto;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(490px,calc(100% - 22px));max-height:min(90%,650px);overflow-y:auto;box-sizing:border-box;padding:20px;border:2px solid #9f865d;border-radius:12px;background:radial-gradient(ellipse at top,#294354 0,#121f2d 55%,#090e18 100%);box-shadow:0 0 0 9999px #010810a0,0 28px 80px #000d, inset 0 0 0 2px #384e59}
+#abyssInventoryPanel header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #6b755c;padding:0 0 10px;margin-bottom:10px;gap:12px}
+#abyssInventoryPanel header small{color:#cfac73;font-size:10px;letter-spacing:.16em;font-weight:750}
+#abyssInventoryPanel h2{margin:3px 0 0;font-size:clamp(17px,3vw,24px);line-height:1.2;letter-spacing:.06em;font-family:Cinzel,Georgia,serif;color:#f0e7d4}
+#abyssInventoryClose{border:1px solid #9d977b;background:#31404b;color:#ece6da;border-radius:7px;font-size:24px;width:34px;height:34px;cursor:pointer}
+#abyssInventoryPanel .abyss-inventory-help{font-size:12px;line-height:1.5;color:#c6d2d3;margin:11px 0 17px}
+.abyss-inventory-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.abyss-inventory-slot{position:relative;aspect-ratio:1;min-width:0;border:2px solid #435f69;border-radius:6px;background:linear-gradient(140deg,#172c3b,#0c1c29);box-shadow:inset 1px 2px 8px #040d17;cursor:pointer;padding:4px}
+.abyss-inventory-slot:disabled{opacity:.63;cursor:default}
+.abyss-inventory-slot:not(:disabled):hover{border-color:#a6d9ce;background:#27465a}
+.abyss-inventory-slot.is-selected{border-color:#e5c17c;box-shadow:0 0 0 1px #ddb96a,inset 0 0 16px #ad906c33}
+.abyss-inventory-art{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+.abyss-inventory-art svg{width:85%;height:85%;filter:drop-shadow(0 3px 4px #0008)}
+.abyss-inventory-count{position:absolute;right:3px;bottom:2px;font-size:11px;font-weight:800;color:white;text-shadow:0 1px 3px #000,0 0 4px #000}
+#abyssInventoryPanel footer{margin-top:15px;border-top:1px solid #4e6672;padding-top:12px;display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:10px;letter-spacing:.06em;color:#c9dedc}
+#abyssInventorySelected{color:#efd4a0;flex:1;font-size:11px}
+@media(max-width:620px){#abyssInventoryToggle{right:10px;bottom:102px;padding:8px 10px;font-size:10px}#abyssInventoryPanel{padding:13px;max-height:84%;border-radius:9px}.abyss-inventory-grid{gap:4px}.abyss-inventory-slot{border-width:1px}#abyssInventoryPanel .abyss-inventory-help{font-size:11px}#abyssInventoryPanel footer{flex-wrap:wrap}}
