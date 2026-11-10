@@ -4066,10 +4066,10 @@ function draw(t){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
-  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed)drawHostileSpeciesEffect(e,t);
+  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);
   if(!anglerConcealed&&!activeMapLayout&&e.wildlifeMode){
    const intent=e.aiIndicator;
-   if(intent==='attack'||intent==='flee'||intent==='evaluate'){
+   if(intent==='attack'){
     const radius=12/GAME_WORLD_ZOOM,px=e.x,py=e.y-Math.max(e.r,renderRadius)-19/GAME_WORLD_ZOOM;
     const color=intent==='attack'?'#e94c55':intent==='flee'?'#48dba2':'#f5f7ff';
     ctx.save();ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=lowPowerRendering?0:10/GAME_WORLD_ZOOM;
@@ -4189,6 +4189,7 @@ function draw(t){
 }
 function drawEnemyThreatAura(e,t){
  if(!e||BOSS_KINDS.includes(e.kind))return;
+ if(isOpenSeaRun()&&e.wildlifeMode&&e.aiIndicator!=='attack')return;
  const elite=e.eliteId?EXPEDITION_RULES?.eliteConfig?.(e.eliteId):null,accent=elite?.accent||e.color||'#ff668d';
  const pulse=1+Math.sin(t*.007+(Number(e.phase)||0))*.07,scale=e.eliteId?1.75:1.28;
  ctx.save();ctx.globalAlpha=e.eliteId?.24:.08;ctx.strokeStyle=accent;ctx.fillStyle=accent;ctx.shadowBlur=(e.eliteId?14:5)/worldZoom;ctx.shadowColor=accent;ctx.lineWidth=(e.eliteId?2.2:1)/worldZoom;ctx.beginPath();ctx.arc(e.x,e.y,e.r*scale*pulse,0,Math.PI*2);ctx.stroke();

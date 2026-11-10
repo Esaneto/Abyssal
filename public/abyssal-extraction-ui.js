@@ -161,7 +161,7 @@
   const x=(Number(cam?.x)||0)+(e.clientX-box.left)/zoom,y=(Number(cam?.y)||0)+(e.clientY-box.top)/zoom;
   let hit=null,r=72;
   for(const n of bridge.nearby()){const dist=Math.hypot(n.x-x,n.y-y);if(dist<r){r=dist;hit=n;}}
-  if(hit){e.preventDefault();start(hit);}
+  if(hit){e.preventDefault();e.stopPropagation();start(hit);}
  },true);
  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,interrupt,true);
  window.addEventListener('blur',interrupt);

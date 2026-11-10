@@ -40,6 +40,21 @@
    path(c,[[65+i*2,8],[71+i*2,19],[75+i*2,8]],'#9bb2b1');
   }
  }
+ function bigfinSquid(c,t){
+  const flap=Math.sin(t*.0036)*12;
+  // Bigfin squid: slender mantle, oversized paired fins and very long suspended arms.
+  path(c,[[-26,-9],[-56,-34-flap],[-49,8],[-23,16]],'#6d6975');
+  path(c,[[2,-10],[29,-37+flap],[32,7],[6,21]],'#696475');
+  c.fillStyle='rgba(111,119,133,.77)';c.beginPath();c.moveTo(-31,-12);
+  c.bezierCurveTo(-9,-28,31,-23,43,-7);c.quadraticCurveTo(50,13,26,23);
+  c.bezierCurveTo(0,29,-31,13,-31,-12);c.fill();
+  eye(c,39,-4);
+  for(let j=0;j<8;j++){
+   const oy=(j-3.5)*4;
+   curve(c,[32,oy,53,oy+6,70,oy+Math.sin(t*.002+j)*6,66,oy+45],'#89909b',1.8);
+   curve(c,[66,oy+45,66,oy+80,86+Math.sin(t*.001+j)*15,oy+110,80+Math.sin(t*.002+j)*20,oy+142],'rgba(147,139,153,.55)',1.2);
+  }
+ }
  function ray(c,t){
   const wing=Math.sin(t*.0043)*13;
   path(c,[[-105,-4],[-155,-12],[-140,-2]],'#3b4e55');
@@ -107,8 +122,9 @@
   if(!known.has(kind))return false;
   const s=Math.min(2.3,Math.max(.22,Number(r)||32)/57),t=Number(time)||0;
   ctx.save();ctx.translate(enemy.x,enemy.y);ctx.rotate(Number(enemy.angle)||0);ctx.scale(s,s);
-  if(/shark|goblin|frilled|leviathan|viperfish|blackdragon/.test(kind))fish(ctx,t,kind);
-  else if(/zebramoray|whiplash|bigfin/.test(kind))eel(ctx,t,kind);
+  if(/shark|goblin|frilled|leviathan/.test(kind))fish(ctx,t,kind);
+  else if(/zebramoray|whiplash|viperfish|blackdragon/.test(kind))eel(ctx,t,kind);
+  else if(kind==='bigfin')bigfinSquid(ctx,t);
   else if(/ray/.test(kind))ray(ctx,t);
   else if(/hawksbill|leatherback/.test(kind))turtle(ctx,t);
   else if(/crab/.test(kind))crab(ctx,t,kind==='spidercrab');
