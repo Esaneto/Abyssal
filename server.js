@@ -359,9 +359,9 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES_PER_ROOM - MAX_BOSSES_PER_ROOM;
 const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
 const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
-function roomWorldWidth(room){return room?.mode==='coop'?OceanStream.WIDTH:WORLD_WIDTH;}
+function roomWorldWidth(room){return room?.mode==='open-sea'?OceanStream.WIDTH:WORLD_WIDTH;}
 function roomAoiRadius(p){const zoom=clamp(Number(p?.worldZoom)||WORLD_ZOOM,.35,1.2);return clamp(Math.hypot(windowWidthSafe(p?.viewportWidth,1200)/zoom,windowWidthSafe(p?.viewportHeight,700)/zoom)*.5+850,2100,5000);}
-function roomWorldHeight(room){return room?.mode==='rift'?(Number(WorldSimulation.mapLayoutFor(room.world)?.height)||WORLD_HEIGHT):room?.mode==='coop'?OceanStream.HEIGHT:WORLD_HEIGHT;}
+function roomWorldHeight(room){return room?.mode==='rift'?(Number(WorldSimulation.mapLayoutFor(room.world)?.height)||WORLD_HEIGHT):room?.mode==='open-sea'?OceanStream.HEIGHT:WORLD_HEIGHT;}
 function pvpArenaRocks(){
  const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
  // Layout irregular, like eroded reef ridges and broken underwater rock spines.
@@ -786,11 +786,8 @@ async function initializeRoomRegistry(){
  await heartbeatRoomDirectory();
 }
 function ensureWorld(room){
- // Rolling-deploy saves from the 4800x3000 release must adopt expanded bounds.
- if(room?.mode==='coop'&&room.world){
-  room.world.width=OceanStream.WIDTH;
-  room.world.height=OceanStream.HEIGHT;
- }
+ // Co-op is the classic 4800x3000 shooter; never expand an old room to exploration bounds.
+ if(room?.mode==='coop'&&room.world){room.world.mode='classic';room.world.width=WORLD_WIDTH;room.world.height=WORLD_HEIGHT;}
  if(room?.mode==='pvp'){
   room.world.initialized=true;room.world.enemies=[];room.world.orbs=[];room.world.nextEnemyId=0;room.world.nextOrbId=0;
   return [];
@@ -906,7 +903,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
-  if(room.mode==='coop'&&hitOrigin&&!OceanGeography.segmentClear(Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
+  if(room.mode==='open-sea'&&hitOrigin&&!OceanGeography.segmentClear(Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
    return reject('ocean-rock-blocked');
   let requestedDamage=damage;
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
@@ -1682,7 +1679,7 @@ io.on('connection', socket => {
     p.riftCheckpointRoomId='start';
    }
   }
-  if(room.mode==='coop'&&OceanGeography.isSolid(p.x,p.y,p.r+6)){
+  if(room.mode==='open-sea'&&OceanGeography.isSolid(p.x,p.y,p.r+6)){
    const safe=OceanGeography.nearestWater(p.x,p.y,p.r+6)||{x:spawnX,y:spawnY};
    p.x=safe.x;p.y=safe.y;p.velocityX=0;p.velocityY=0;
    p.specimenX=p.x;p.specimenY=p.y-34/WORLD_ZOOM;
@@ -1735,7 +1732,7 @@ io.on('connection', socket => {
   const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
-  if(room.mode==='rift'||room.mode==='coop'){
+  if(room.mode==='rift'||room.mode==='open-sea'){
    const padding=Math.max(10,Number(p.r)||13/WORLD_ZOOM);
    const resolved=room.mode==='rift'
     ?AbyssalMap.resolveMove(WorldSimulation.mapLayoutFor(room.world),previousX,previousY,x,y,padding)
@@ -2080,7 +2077,7 @@ io.on('connection', socket => {
         }
       }
     }
-    if(room.mode==='coop'){
+    if(room.mode==='open-sea'){
       for(let distance=0;distance<=length;distance+=6/WORLD_ZOOM){
        if(OceanGeography.isSolid(sx+ux*distance,sy+uy*distance,4/WORLD_ZOOM)){
         length=Math.max(0,distance-6/WORLD_ZOOM);break;
@@ -2107,7 +2104,7 @@ io.on('connection', socket => {
      for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
       if(!AbyssalMap.isWalkable(layout,sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
      }
-    }else if(room.mode==='coop'){
+    }else if(room.mode==='open-sea'){
      for(let d=0;d<=beamRange;d+=6/WORLD_ZOOM){
       if(OceanGeography.isSolid(sx+dx*d,sy+dy*d,3/WORLD_ZOOM)){sideLength=Math.max(0,d-6/WORLD_ZOOM);break;}
      }
