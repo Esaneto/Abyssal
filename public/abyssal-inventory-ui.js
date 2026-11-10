@@ -9,7 +9,7 @@
  root.innerHTML='<button id="abyssInventoryToggle" type="button" title="Inventário (I)" aria-label="Abrir inventário">MOCHILA <kbd>I</kbd></button>'+
  '<section id="abyssInventoryPanel" class="abyss-inventory-panel" role="dialog" aria-label="Inventário do Mar Aberto" hidden>'+
  '<header><div><small>EQUIPAMENTOS / CARGA</small><h2>INVENTÁRIO ABISSAL</h2></div><button id="abyssInventoryClose" type="button" aria-label="Fechar inventário">×</button></header>'+
- '<p class="abyss-inventory-help">Selecione a picareta para minerar. Petróleo e gás exigem pesquisa offshore, plataforma e uma duto submarino conectada à reserva.</p>'+
+ '<p class="abyss-inventory-help">Segure G ou clique na rocha para minerar. Use cilindro vazio para amostras de petróleo/gás. A produção industrial permanece na plataforma.</p>'+
  '<div id="abyssInventoryGrid" class="abyss-inventory-grid" role="group" aria-label="Itens em posse"></div><p class="abyss-inventory-help">Arraste qualquer item para a barra rápida. Teclas 1–9 trocam o item na mão.</p>'+
  '<footer><strong id="abyssInventorySelected">PICARETA ABISSAL</strong><span id="abyssInventoryCargo">0 ITENS</span></footer>'+
  '</section>';
@@ -61,7 +61,19 @@
   $('abyssInventorySelected').textContent='NA MÃO: '+(config.RESOURCES[selected]?.name||selected).toUpperCase();
   $('abyssInventoryCargo').textContent=items.length+' TIPOS DE ITEM';
  }
- function renderHotbar(){const bar=$('abyssHotbar');if(!bar)return;bar.replaceChildren();hotbar.forEach((id,index)=>{const b=document.createElement('button');b.type='button';b.className='abyss-hotbar-slot'+(id===selected?' is-selected':'');b.dataset.index=index;b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>':'<kbd>'+(index+1)+'</kbd>';b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const item=e.dataTransfer.getData('text/plain');if(item&&config.RESOURCES[item]){hotbar[index]=item;localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));renderHotbar();}};b.onclick=()=>{if(!id)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);});}
+
+ function renderHotbar(){const bar=$('abyssHotbar');if(!bar)return;bar.replaceChildren();hotbar.forEach((id,index)=>{
+  const b=document.createElement('button');b.type='button';b.className='abyss-hotbar-slot'+(id===selected?' is-selected':'');b.dataset.index=index;
+  const count=Number(inventory[id])||0;
+  b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>'+(id==='abyssWeapon'||count<=0?'':'<span class="abyss-hotbar-count">'+Math.floor(count)+'</span>'):'<kbd>'+(index+1)+'</kbd>';
+  b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const item=e.dataTransfer.getData('text/plain');if(item&&config.RESOURCES[item]){hotbar[index]=item;try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}renderHotbar();}};
+  b.onclick=()=>{if(!id||id!=='abyssWeapon'&&!count)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);
+ });}
+ function pinNew(items){let changed=false;for(const [id,count] of Object.entries(items||{})){if(id==='abyssWeapon'||!config.RESOURCES[id]||Number(count)<=0||hotbar.includes(id))continue;const slot=hotbar.findIndex(old=>!old||(old!=='abyssWeapon'&&!Number(items[old])));if(slot<0)break;hotbar[slot]=id;changed=true;}if(changed)try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}}
+ function collectFeedback(id,amount){const slotIndex=hotbar.indexOf(id);const slot=slotIndex<0?null:$('abyssHotbar')?.children[slotIndex];
+  if(!slot)return;slot.classList.remove('abyss-collected');void slot.offsetWidth;slot.classList.add('abyss-collected');
+  const fly=document.createElement('span');fly.className='abyss-pickup-label';fly.textContent='+'+amount;slot.appendChild(fly);setTimeout(()=>fly.remove(),950);
+ }
  try{const saved=JSON.parse(localStorage.getItem('abyssalHotbarV1')||'null');if(Array.isArray(saved)&&saved.length===9)hotbar=saved;}catch(_){}
  renderHotbar();
  $('abyssInventoryToggle').onclick=()=>setOpen(panel.hidden);
@@ -69,10 +81,14 @@
  window.addEventListener('keydown',event=>{
   if(!isExploring()||event.repeat||event.altKey||event.ctrlKey||event.metaKey)return;
   if(event.target?.closest?.('input,textarea,select,[contenteditable]'))return;
-  if(event.key?.toLowerCase()==='i'){event.preventDefault();event.stopImmediatePropagation();setOpen(panel.hidden);} else if(/^[1-9]$/.test(event.key)){const id=hotbar[Number(event.key)-1];if(id){event.preventDefault();selected=id;renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));}}
+  if(event.key?.toLowerCase()==='i'){event.preventDefault();event.stopImmediatePropagation();setOpen(panel.hidden);} else if(/^[1-9]$/.test(event.key)){const id=hotbar[Number(event.key)-1];if(id&&(id==='abyssWeapon'||Number(inventory[id])>0)){event.preventDefault();selected=id;renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));}}
   else if(event.key==='Escape'&&!panel.hidden){event.preventDefault();event.stopImmediatePropagation();setOpen(false);}
  },true);
  function setActive(value){const next=Boolean(value);if(next===active)return;active=next;root.hidden=!active;renderHotbar();if(!active){panel.hidden=true;$('abyssInventoryToggle').setAttribute('aria-expanded','false');}}
- function setInventory(items){inventory=items||{};if(selected!=='abyssWeapon'&&!Number(inventory[selected]))selected='abyssWeapon';renderHotbar();if(!panel.hidden)render();}
- window.AbyssalInventoryUI=Object.freeze({setActive,setInventory,selectedTool:()=>selected,heldItem:()=>selected,hotbar:()=>hotbar.slice(),close:()=>setOpen(false),isOpen:()=>!panel.hidden&&active});
+ function setInventory(items){const incoming=items||{},changed=JSON.stringify(inventory)!==JSON.stringify(incoming);inventory=incoming;
+  if(changed)pinNew(inventory);
+  if(selected!=='abyssWeapon'&&!Number(inventory[selected])){selected='abyssWeapon';window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:selected}}));}
+  if(changed){signature='';renderHotbar();if(!panel.hidden)render();}
+ }
+ window.AbyssalInventoryUI=Object.freeze({setActive,setInventory,selectedTool:()=>selected,heldItem:()=>selected,hotbar:()=>hotbar.slice(),collectFeedback,close:()=>setOpen(false),isOpen:()=>!panel.hidden&&active});
 })();

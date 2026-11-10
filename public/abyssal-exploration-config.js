@@ -37,9 +37,9 @@
   gasSeep:{name:'Exsudação de gás natural',habitats:['canyon','deep','abyss'],kind:'seep',filled:'gasCylinder'},
   abyssWeapon:{name:'Rifle abissal',habitats:[],kind:'weapon'},
   abyssPickaxe:{name:'Picareta abissal',habitats:[],kind:'tool'},
-  emptyCylinder:{name:'Cilindro vazio',habitats:[],kind:'container'},
-  oilCylinder:{name:'Cilindro de petróleo',habitats:[],kind:'container'},
-  gasCylinder:{name:'Cilindro de gás natural',habitats:[],kind:'container'},
+  emptyCylinder:{name:'Cilindro de amostra vazio',habitats:[],kind:'container'},
+  oilCylinder:{name:'Amostra de petróleo',habitats:[],kind:'container'},
+  gasCylinder:{name:'Amostra de gás natural',habitats:[],kind:'container'},
   offshoreCable:{name:'Duto flexível de produção',habitats:[],kind:'tool'}
  });
  // Legacy IDs are mapped without deleting owned shop data.

@@ -596,6 +596,14 @@ function explorationScan(callback){
  if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
  socket.timeout(7000).emit('exploration-scan',{},(error,data)=>callback?.(error?{ok:false,reason:'timeout'}:data));
 }
+function explorationExtractBegin(id,tool,callback){
+ if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
+ socket.timeout(7000).emit('exploration-extract-begin',{id,tool},(error,data)=>callback?.(error?{ok:false,reason:'timeout'}:data));
+}
+function explorationExtractComplete(id,callback){
+ if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
+ socket.timeout(7000).emit('exploration-extract-complete',{id},(error,data)=>callback?.(error?{ok:false,reason:'timeout'}:data));
+}
 function explorationCollect(id,callback){
  const tool=String(arguments[2]||'abyssPickaxe');
  if(!socket?.connected||!authenticated||!currentRoom){callback?.({ok:false,reason:'offline'});return;}
@@ -700,7 +708,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
   if(payload.progress)socket.emit('run-progress',payload.progress);
   socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
  }
- window.AbyssalOnline={explorationScan,explorationCollect,explorationStudy,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
+ window.AbyssalOnline={explorationScan,explorationCollect,explorationExtractBegin,explorationExtractComplete,explorationStudy,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());

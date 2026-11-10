@@ -85,7 +85,10 @@
   return (nodes||[]).filter(n=>!taken.has(n.id)&&(n.x-x)**2+(n.y-y)**2<=radius*radius);
  }
  function create(){return [];} // Fossas and shooter deposits remain disabled.
- function toolFor(type){return type==='oilSeep'||type==='gasSeep'?'offshoreCable':'abyssPickaxe';}
+ // Manual field samples are finite. Industrial extraction remains a separate
+ // long-term platform system; cylinders do not add directly to platform storage.
+ function toolFor(type){return type==='oilSeep'||type==='gasSeep'?'emptyCylinder':'abyssPickaxe';}
+ function durationFor(type){return type==='oilSeep'||type==='gasSeep'?2600:1900;}
  function eligible(node,x,y,inventory={},radius=115,selectedTool=null){
   if(!node||!Number.isFinite(x)||!Number.isFinite(y)||!config.RESOURCES[node.type]||!['ore','seep'].includes(config.RESOURCES[node.type].kind))return {ok:false,reason:'invalid-node'};
   if(Math.hypot(node.x-x,node.y-y)>radius)return {ok:false,reason:'too-far'};
@@ -106,7 +109,7 @@
   const def=config.RESOURCES[node?.type];
   if(!def||!['ore','seep'].includes(def.kind))return {ok:false,reason:'invalid-node'};
   const next={...(inventory||{})},isSeep=def.kind==='seep';
-  if(isSeep)return {ok:false,reason:'offshore-infrastructure-required'};
+  // The physical cylinder fills once, then becomes a laboratory sample.
   const required=toolFor(node.type);
   if(!(Number(next[required])>0))return {ok:false,reason:isSeep?'empty-cylinder-required':'tool-required'};
   const item=isSeep?def.filled:node.type,amount=isSeep?1:clamp(Math.floor(Number(node.amount)||1),1,3);
@@ -116,5 +119,5 @@
   next[item]=Math.floor(Number(next[item])||0)+amount;
   return {ok:true,inventory:next,item,amount};
  }
- return Object.freeze({ENABLED,CHUNK,depthAt,streamNear,nearby,create,eligible,toolFor,starterKit,collect});
+ return Object.freeze({ENABLED,CHUNK,depthAt,streamNear,nearby,create,eligible,toolFor,durationFor,starterKit,collect});
 });

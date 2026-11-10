@@ -248,6 +248,8 @@
    }else if(type==='rocks'||type==='canyon'){
    if(geo.metersAt(y)<420&&seed>.46)tubeSponges(ctx,x,y,.50+seed*.52,seed);
    else if(geo.metersAt(y)<230&&seed<.25&&!lowPower)seaFan(ctx,x,y,.38+seed*.45,seed);
+   // Deepwater corals and filter-feeding sponges do not need photosynthesis.
+   else if(!lowPower&&geo.metersAt(y)>230&&geo.metersAt(y)<1700&&seed>.78){ctx.save();ctx.globalAlpha=.39;seaFan(ctx,x,y,.38+seed*.35,seed);ctx.restore();}
   }else if(type==='abyss'&&!lowPower&&seed>.62){
    glowAnemone(ctx,x,y,.42+seed*.38,seed,lowPower);
   }

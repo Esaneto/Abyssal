@@ -12,7 +12,7 @@
  hud.id='explorationOverlay';hud.className='exploration-overlay';hud.hidden=true;
  hud.innerHTML='<div class="exploration-stat"><span>GÁS RESPIRÁVEL</span><strong id="explorationGas">100%</strong><div class="exploration-track"><i id="explorationGasFill"></i></div></div>'+
  '<div class="exploration-stat exploration-instruments"><span>INSTRUMENTOS DE MERGULHO</span><strong id="explorationDepth">PROF. 0 m</strong><strong id="explorationPressure">PRESSÃO 1.0 atm</strong><small id="explorationPressureWarning"></small></div>'+
- '<div class="exploration-stat exploration-collect"><span>SONAR DE RECURSOS · G</span><strong id="explorationDeposit">PROCURANDO SINAIS...</strong><small id="explorationGatherStatus">Aproxime-se de um depósito para coletar.</small><button type="button" id="explorationGatherBtn" disabled>COLETAR RECURSO</button></div>';
+ '<div class="exploration-stat exploration-collect"><span>COLETA · SEGURE G OU CLIQUE NO DEPÓSITO</span><strong id="explorationDeposit">PROCURANDO SINAIS...</strong><small id="explorationGatherStatus">Aproxime-se de uma rocha ou exsudação para interagir.</small><div class="exploration-work-track"><i id="explorationWorkFill"></i></div><button type="button" id="explorationGatherBtn" disabled>SEGURE PARA EXTRAIR</button></div>';
  const signal=document.createElement('div');signal.id='explorationRiftSignals';signal.className='exploration-stat exploration-sonar';signal.hidden=true;
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
@@ -79,6 +79,7 @@
   if(!p.online&&p.mode==='open-sea'){
    try{taken=new Set(JSON.parse(localStorage.getItem('abyssalSoloGeologyTakenV1')||'[]'));}catch(_){}
   }
+  window.AbyssalGathering?.reset?.();
   lastScan=0;notify(p.online?'Depósitos do Mar Aberto sincronizados.':'Depósitos locais: G para coletar, I para inventário.');
   inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));
  }
@@ -98,42 +99,32 @@
   for(const node of candidates){const d=Math.hypot(node.x-p.x,node.y-p.y);if(d<distance){distance=d;item=node;}}
   return item?{...item,distance}:null;
  }
- function collect(){
-  const p=cfg();if(!p||p.mode!=='open-sea'||p.paused||!near||busy)return;
-  if(near.type==='oilSeep'||near.type==='gasSeep'){const levels=stateLevels();if(!levels.offshoreSurvey){notify('INDÍCIO DE HIDROCARBONETO. Pesquise Geofísica Offshore no submarino para mapear a reserva.');return;}if(!levels.offshorePlatform){notify('RESERVA MAPEADA. Construa a Plataforma de Produção Abissal no submarino.');return;}if(!levels.subseaUmbilical){notify('PLATAFORMA SEM LINHA. Pesquise Linhas Submarinas de Produção para conectar esta reserva.');return;}if((inventoryUI()?.selectedTool?.()||'')!=='offshoreCable'){notify('EQUIPE A DUTO DE PRODUÇÃO. Leve-a até a reserva para concluir a ligação.');return;}connectOffshoreReserve(near);return;}
-  const selected=inventoryUI()?.selectedTool?.()||'abyssPickaxe';
-  const inventory=research.sanitizeInventory(stateInventory());
-  const check=fields.eligible(near,p.x,p.y,inventory,115,selected);
-  if(!check.ok){
-   const messages={'too-far':'Aproxime-se do depósito.','select-tool':'Selecione '+(config.RESOURCES[check.tool]?.name||'a ferramenta')+' no inventário (I).',
-    'tool-required':'Você precisa da picareta.','empty-cylinder-required':'Não há cilindros vazios.','offshore-infrastructure-required':'Petróleo e gás exigem infraestrutura offshore pesquisada no submarino.'};
-   notify(messages[check.reason]||'Não foi possível coletar este recurso.');return;
-  }
-  busy=true;const target=near;
-  if(p.online){
-   const requestedRun=runKey,send=window.AbyssalOnline?.explorationCollect;
-   if(typeof send!=='function'){busy=false;notify('Coleta online indisponível.');return;}
-   send(target.id,result=>{
-    if(runKey!==requestedRun)return;
-    busy=false;
-    if(result?.ok){
-     collectionFx.push({x:target.x,y:target.y,started:performance.now(),seed:String(target.id).length*97});taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
-     if(result.account)account=result.account;
-     inventoryUI()?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));
-     notify('Coletado: '+(config.RESOURCES[result.item]?.name||result.item)+' +'+result.amount);
-    }else notify('Coleta indisponível: '+String(result?.reason||'erro'));
-   },selected);
-  }else{
-   const result=fields.collect(target,inventory);busy=false;
-   if(!result.ok){notify('Não foi possível coletar: '+result.reason);return;}
-   collectionFx.push({x:target.x,y:target.y,started:performance.now(),seed:String(target.id).length*97});taken.add(target.id);nodes=nodes.filter(n=>n.id!==target.id);
-   localInventory=research.sanitizeInventory(result.inventory);saveLocal();
-   inventoryUI()?.setInventory(localInventory);
-   notify('Coletado: '+config.RESOURCES[result.item].name+' +'+result.amount+' (inventário local)');
-  }
- }
- $('explorationGatherBtn').addEventListener('click',collect);
- window.addEventListener('keydown',ev=>{if((ev.key==='g'||ev.key==='G')&&!ev.repeat&&!ev.target.closest?.('input,textarea,select,[contenteditable]'))collect();});
+ // Gatherer handles physical extraction and magnet pickup; this bridge keeps
+ // the separate online authority and solo inventory ownership intact.
+ window.AbyssalExplorationBridge=Object.freeze({
+  config,research,fields,canvas,notify,cfg,
+  nearby:()=>nodes,
+  closest:()=>{const p=cfg();return p?closest(p):null;},
+  inventory:()=>research.sanitizeInventory(stateInventory()),
+  levels:()=>stateLevels(),
+  connect:node=>connectOffshoreReserve(node),
+  isConnected:id=>offshore.connections.some(l=>l.id===String(id)),
+  prepareSolo:node=>fields.collect(node,research.sanitizeInventory(localInventory)),
+  claimSolo:(node,result)=>{
+   if(!result?.ok)return result;
+   localInventory=research.sanitizeInventory(result.inventory);
+   taken.add(node.id);nodes=nodes.filter(n=>n.id!==node.id);saveLocal();
+   inventoryUI()?.setInventory(localInventory);return result;
+  },
+  claimOnline:(node,result)=>{
+   if(!result?.ok)return result;
+   taken.add(node.id);nodes=nodes.filter(n=>n.id!==node.id);
+   if(result.account)account=result.account;
+   inventoryUI()?.setInventory(research.sanitizeInventory(result.inventory||account?.resourceInventory||{}));return result;
+  },
+  feedback:(item,amount)=>inventoryUI()?.collectFeedback?.(item,amount),
+  sprite:()=>window.AbyssalExplorationToolState
+ });
  function renderResearch(){
   const base=$('submarineBasePanel'),index=base?.querySelector('#expeditionResearchIndex');
   if(!index||base.hidden)return;
@@ -180,6 +171,7 @@
   const left=Number(view?.left)||0,top=Number(view?.top)||0,right=Number(view?.right)||p.worldWidth,bottom=Number(view?.bottom)||p.worldHeight;
   const t=(Number(time)||performance.now())/1000;
   for(const node of nodes){
+   if(window.AbyssalGathering?.pendingId?.()===node.id)continue;
    if(node.x<left-90||node.x>right+90||node.y<top-110||node.y>bottom+90)continue;
    const type=node.type,oil=type==='oilSeep',gas=type==='gasSeep',seep=oil||gas;
    c.save();c.translate(node.x,node.y);
@@ -204,6 +196,7 @@
    else {const col=type==='phosphorite'?'#9f8c66':'#609ca0';for(let n=0;n<5;n++){const x=-18+n*9,y=n%2?-1:-7,s=5+(n%3)*2;c.fillStyle=col;c.beginPath();c.moveTo(x,y-s);c.lineTo(x+s*.8,y);c.lineTo(x+s*.4,y+s*.5);c.lineTo(x-s*.6,y+s*.3);c.closePath();c.fill();}}
    c.restore();
   }
+  window.AbyssalGathering?.draw?.(c,time,{left,top,right,bottom});
   // Surface production platform is a researched world structure, never a starter object.
   const levels=stateLevels();
   updateOffshoreProduction();
@@ -364,7 +357,7 @@
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
   const p=cfg(),active=p?.mode==='open-sea';hud.hidden=!active;inventoryUI()?.setActive(active);hud.querySelector('.exploration-collect').hidden=!active;
-  if(!active){markers.hidden=true;runKey='';return;}
+  if(!active){markers.hidden=true;runKey='';window.AbyssalGathering?.reset?.();return;}
   const expectedRun=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
   if(runKey!==expectedRun)startRun(p);
   if(!p.paused&&!p.online){
@@ -380,6 +373,7 @@
    nodes=fields.streamNear(runKey,p.x,p.y,1900,taken);
   }
   scan(p,time);
+  window.AbyssalGathering?.tick?.(time,delta,p);
   if(!p.online&&time-lastLocalSave>5000){lastLocalSave=time;updateOffshoreProduction();saveLocal();}if(time-lastRender<160)return;lastRender=time;
   const depth=p.online&&serverVitals?serverVitals.depth:config.depthAt(p.y,p.worldHeight,2200);
   const pressure=config.pressureAt(depth),safe=config.safeDepth(stateLevels().pressureSuit);
@@ -390,8 +384,7 @@
   $('explorationDepth').textContent='PROF. '+Math.round(depth)+' m';$('explorationPressure').textContent='PRESSÃO '+pressure.toFixed(1)+' atm';
   $('explorationPressureWarning').textContent=depth>safe?'ALERTA: resistência do traje excedida':gas/max<.2?'OXIGÊNIO BAIXO':'Limite do traje: '+safe+' m';
   near=p.mode==='open-sea'?closest(p):null;inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));$('explorationDeposit').textContent=near?((near.type==='oilSeep'||near.type==='gasSeep')?(offshore.connections.some(l=>l.id===String(near.id))?'POÇO CONECTADO · PRODUZINDO':stateLevels().offshoreSurvey?'RESERVA MAPEADA · '+Math.round(near.distance)+' u':'INDÍCIO GEOLÓGICO · '+Math.round(near.distance)+' u'):(config.RESOURCES[near.type]?.name||near.type)+' · '+Math.round(near.distance)+' u'):'NENHUM DEPÓSITO PRÓXIMO';
-  const selectedTool=inventoryUI()?.selectedTool?.()||'abyssPickaxe',isHydrocarbon=near&&(near.type==='oilSeep'||near.type==='gasSeep');const can=Boolean(near)&&(isHydrocarbon?(near.distance<=115&&selectedTool==='offshoreCable'&&stateLevels().offshorePlatform&&stateLevels().subseaUmbilical&&!offshore.connections.some(l=>l.id===String(near.id))):fields.eligible(near,p.x,p.y,research.sanitizeInventory(stateInventory()),115,selectedTool).ok)&&!p.paused&&!busy;
-  $('explorationGatherBtn').disabled=!can;
+  window.AbyssalGathering?.refreshHUD?.(near,p);
   signal.hidden=true;
   markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
  }

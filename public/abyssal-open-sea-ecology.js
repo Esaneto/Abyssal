@@ -27,8 +27,8 @@
  const SCHOOLING=new Set(['butterflyray','eagleray','viperfish','hatchetfish','reefshark']);
  const PREDATOR_STRENGTH=Object.freeze({reefshark:4,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
  const HABITAT_DEPTH=Object.freeze({
-  reef:[0,160],kelp:[20,190],rocks:[70,260],canyon:[300,520],
-  deep:[260,590],abyss:[475,600],open:[0,290],twilight:[180,460]
+  reef:[0,200],kelp:[0,200],rocks:[0,800],canyon:[400,1800],
+  deep:[850,2200],abyss:[1600,2200],open:[0,850],twilight:[200,1050]
  });
  function isSchooling(id){return SCHOOLING.has(String(id||''));}
  function speciesHabitat(id){
@@ -53,7 +53,7 @@
   // Side-view geological habitats replace the repeated six-ellipse pattern.
   const type=geo?.classify?.(x,y)||'open';
   const base=ZONES.find(z=>z.id===type)||REGION_VARIANTS[type]||REGION_VARIANTS.open;
-  const depthBand=y>(geo?.HEIGHT||21000)*.79?'deep':y>(geo?.HEIGHT||21000)*.38?'twilight':'shelf';
+  const depth=geo?.metersAt?.(y)||0,depthBand=depth>1000?'deep':depth>200?'twilight':'shelf';
   return {...base,depthBand,province:Math.floor(x/4800)+':'+Math.floor(y/3000),
    x:Number(x)||0,y:Number(y)||0};
  }
@@ -62,7 +62,10 @@
   // Rare giants and gelatinous filter-feeders remain passive and non-farming.
   if((zone.id==='open'||zone.id==='twilight')&&roll<.007)return 'leviathan';
   if(zone.depthBand!=='shelf'&&roll<.024)return 'siphonophore';
-  const fauna=zone.fauna||REGION_VARIANTS.open.fauna;
+  const bottomClearance=(geo?.floorAt?.(x)||21000)-y;
+  // Benthic sea pigs and crabs live on the bottom; they do not drift in midwater.
+  const candidates=(zone.fauna||REGION_VARIANTS.open.fauna).filter(id=>!['seapig','yeticrab','spidercrab'].includes(id)||bottomClearance<400);
+  const fauna=candidates.length?candidates:REGION_VARIANTS.twilight.fauna;
   return fauna[Math.min(fauna.length-1,Math.floor(clamp(Number(random())||0,0,.999999)*fauna.length))];
  }
  function temperament(id){

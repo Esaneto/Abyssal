@@ -131,7 +131,7 @@
    limb([16,11],[27,3],4.5,'#162c3b','#5d8191');
    c.translate(27,0);
    if(held==='abyssPickaxe'){
-    c.rotate(-.28);c.strokeStyle='#754a2d';c.lineWidth=5;c.beginPath();c.moveTo(-8,0);c.lineTo(28,0);c.stroke();
+    c.rotate(-.28+(Number(options.swing)||0)*.45);c.strokeStyle='#754a2d';c.lineWidth=5;c.beginPath();c.moveTo(-8,0);c.lineTo(28,0);c.stroke();
     c.strokeStyle='#c7d3d7';c.lineWidth=4;c.beginPath();c.moveTo(20,-13);c.quadraticCurveTo(31,-15,39,-6);c.stroke();
     c.strokeStyle='#6f858d';c.lineWidth=2;c.beginPath();c.moveTo(20,-13);c.lineTo(17,-6);c.stroke();
    }else{

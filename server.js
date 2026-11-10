@@ -2569,33 +2569,55 @@ io.on('connection', socket => {
   if(typeof ack==='function')ack(result);
   if(kitNeeded)socket.emit('account-data',publicUser(u));
  });
- socket.on('exploration-collect',(payload={},ack)=>{
-  const respond=data=>{if(typeof ack==='function')ack(data);};
+ socket.on('exploration-extract-begin',(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
   const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
-  if(!u||!p||room.mode!=='open-sea'||p.alive===false)return respond({ok:false,reason:'unavailable'});
-  const now=Date.now();
-  if(now-(Number(p.lastResourceAt)||0)<800)return respond({ok:false,reason:'cooldown'});
-  const id=String(payload?.id||'').slice(0,100);
-  if(!id.startsWith('geo:'))return respond({ok:false,reason:'invalid-node'});
-  const node=nodesForWorld(room,p.x,p.y,180).find(row=>row.id===id);
-  if(!node)return respond({ok:false,reason:'unknown-node'});
-  room.world.collectedResources ||= [];
-  if(room.world.collectedResources.includes(id))return respond({ok:false,reason:'already-collected'});
+  if(!u||!p||room?.mode!=='open-sea'||p.alive===false)return reply({ok:false,reason:'unavailable'});
+  if(p.resourcePickup&&Date.now()-(Number(p.resourcePickup.at)||0)<90000)return reply({ok:false,reason:'pickup-pending'});
+  const id=String(payload?.id||'').slice(0,100),tool=String(payload?.tool||'').slice(0,40);
+  const node=nodesForWorld(room,p.x,p.y,190).find(n=>n.id===id);
+  if(!node||room.world?.collectedResources?.includes(id))return reply({ok:false,reason:'unknown-node'});
   ensureExplorationStarter(u);
-  u.resourceInventory=ResearchSystem.sanitizeInventory(u.resourceInventory||{});
-  const chosenTool=String(payload?.tool||'');
-  if(chosenTool!==ResourceFields.toolFor(node.type))return respond({ok:false,reason:'select-tool',tool:ResourceFields.toolFor(node.type)});
-  const check=ResourceFields.eligible(node,p.x,p.y,u.resourceInventory,115,chosenTool);
-  if(!check.ok)return respond(check);
-  const result=ResourceFields.collect(node,u.resourceInventory);
-  if(!result.ok)return respond(result);
-  p.lastResourceAt=now;
+  const inventory=ResearchSystem.sanitizeInventory(u.resourceInventory||{});
+  const check=ResourceFields.eligible(node,p.x,p.y,inventory,125,tool);
+  if(!check.ok)return reply(check);
+  p.activeExtraction={id,tool,startedAt:Date.now(),type:node.type};
+  p.resourcePickup=null;
+  reply({ok:true,id,durationMs:ResourceFields.durationFor(node.type),type:node.type});
+ });
+ socket.on('exploration-extract-complete',(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
+  if(!u||!p||room?.mode!=='open-sea'||p.alive===false)return reply({ok:false,reason:'unavailable'});
+  const id=String(payload?.id||'').slice(0,100),action=p.activeExtraction,now=Date.now();
+  if(!action||action.id!==id)return reply({ok:false,reason:'no-active-extraction'});
+  if(now-action.startedAt<ResourceFields.durationFor(action.type)-90)return reply({ok:false,reason:'too-fast'});
+  if(now-action.startedAt>15000){p.activeExtraction=null;return reply({ok:false,reason:'expired'});}
+  const node=nodesForWorld(room,p.x,p.y,190).find(n=>n.id===id);
+  if(!node||room.world?.collectedResources?.includes(id)){p.activeExtraction=null;return reply({ok:false,reason:'unknown-node'});}
+  const valid=ResourceFields.eligible(node,p.x,p.y,ResearchSystem.sanitizeInventory(u.resourceInventory||{}),125,action.tool);
+  if(!valid.ok){p.activeExtraction=null;return reply(valid);}
+  p.activeExtraction=null;p.resourcePickup={id,tool:action.tool,node,at:now};
+  reply({ok:true,id,node,item:ExplorationConfig.RESOURCES[node.type]?.filled||node.type,amount:node.type==='oilSeep'||node.type==='gasSeep'?1:node.amount});
+ });
+ socket.on('exploration-collect',(payload={},ack)=>{
+  const reply=data=>{if(typeof ack==='function')ack(data);};
+  const room=socketRoom(socket),p=room?.players.get(socket.id),u=users[socket.data.userKey];
+  if(!u||!p||room?.mode!=='open-sea'||p.alive===false)return reply({ok:false,reason:'unavailable'});
+  const id=String(payload?.id||'').slice(0,100),pending=p.resourcePickup;
+  if(!pending||pending.id!==id||Date.now()-pending.at>90000){p.resourcePickup=null;return reply({ok:false,reason:'no-extracted-resource'});}
+  if(Math.hypot(p.x-pending.node.x,p.y-pending.node.y)>210)return reply({ok:false,reason:'move-closer'});
+  room.world.collectedResources ||= [];
+  if(room.world.collectedResources.includes(id)){p.resourcePickup=null;return reply({ok:false,reason:'already-collected'});}
+  ensureExplorationStarter(u);
+  const current=ResearchSystem.sanitizeInventory(u.resourceInventory||{});
+  const result=ResourceFields.collect(pending.node,current);
+  if(!result.ok)return reply(result);
+  room.world.collectedResources.push(id);p.resourcePickup=null;
   u.resourceInventory=ResearchSystem.sanitizeInventory(result.inventory);
-  room.world.collectedResources.push(id);
   saveUsers();
-  const answer={ok:true,node,item:result.item,amount:result.amount,inventory:u.resourceInventory,account:publicUser(u)};
-  respond(answer);
-  socket.emit('account-data',answer.account);
+  const answer={ok:true,node:pending.node,item:result.item,amount:result.amount,inventory:u.resourceInventory,account:publicUser(u)};
+  reply(answer);socket.emit('account-data',answer.account);
   socket.to(channelFor(room)).emit('exploration-resource-collected',{id});
  });
  socket.on('exploration-study',(payload={},ack)=>{
