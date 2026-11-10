@@ -154,21 +154,42 @@
    entity.aiPatrolUntil=now+6500+(hash%4500);
   }
   let formationX=entity.aiPatrolGoal.x,formationY=entity.aiPatrolGoal.y;
-  if(group&&Array.isArray(neighbors)){
+  if(Array.isArray(neighbors)){
    let count=0,averageX=0,averageY=0,repulseX=0,repulseY=0;
+   const ownKey=creatureId(entity);
    for(const mate of neighbors){
-    if(!mate||mate===entity||mate.hp<=0||mate.schoolId!==entity.schoolId||mate.specimenSkinId!==entity.specimenSkinId)continue;
+    if(!mate||mate===entity||mate.hp<=0||!Number.isFinite(mate.x)||!Number.isFinite(mate.y))continue;
     const dx=entity.x-mate.x,dy=entity.y-mate.y,d=Math.hypot(dx,dy);
-    if(d>420)continue;
-    // Deterministic escape direction also separates exact-overlap spawns.
-    const overlap=d<.0001;
-    const direction=overlap?((hashSchool(mate)%6283)/1000):Math.atan2(dy,dx);
-    const ux=overlap?Math.cos(direction):dx/d,uy=overlap?Math.sin(direction):dy/d;
-    averageX+=mate.x;averageY+=mate.y;count++;
-    if(d<150){const force=(150-d)*1.9;repulseX+=ux*force;repulseY+=uy*force;}
+    if(d>410)continue;
+    const sameSchool=group&&mate.schoolId===entity.schoolId&&mate.specimenSkinId===entity.specimenSkinId;
+    if(sameSchool){averageX+=mate.x;averageY+=mate.y;count++;}
+    // Schoolmates leave generous room, while other wildlife does not collide.
+    const personalSpace=sameSchool?160:112;
+    if(d>=personalSpace)continue;
+    let ux=dx/Math.max(d,.0001),uy=dy/Math.max(d,.0001);
+    if(d<.0001){
+     // Exact overlaps must push a PAIR in opposite deterministic directions.
+     const otherKey=creatureId(mate),low=ownKey<otherKey?ownKey:otherKey,high=ownKey<otherKey?otherKey:ownKey;
+     let pairHash=0;
+     for(const char of low+':'+high)pairHash=(Math.imul(pairHash,33)+char.charCodeAt(0))>>>0;
+     const angle=pairHash/4294967296*Math.PI*2,sign=ownKey<otherKey?1:-1;
+     ux=Math.cos(angle)*sign;uy=Math.sin(angle)*sign;
+    }
+    const force=Math.min(170,(personalSpace-d)*1.5);
+    repulseX+=ux*force;repulseY+=uy*force;
    }
-   if(count){formationX=formationX*.94+(averageX/count)*.06+repulseX*1.65;formationY=formationY*.94+(averageY/count)*.06+repulseY*1.65;}
+   // Loose cohesion, never converge on another creature's actual center.
+   if(count){formationX=formationX*.975+(averageX/count)*.025;formationY=formationY*.975+(averageY/count)*.025;}
+   formationX+=clamp(repulseX,-230,230);formationY+=clamp(repulseY,-230,230);
   }
+  // Filter rapidly alternating avoidance vectors to prevent shivering.
+  if(Number.isFinite(entity.aiFormationX)&&Number.isFinite(entity.aiFormationY)){
+   const elapsed=Math.max(0,now-(Number(entity.aiFormationAt)||now));
+   const alpha=clamp(elapsed/320,.06,.5);
+   formationX=entity.aiFormationX+(formationX-entity.aiFormationX)*alpha;
+   formationY=entity.aiFormationY+(formationY-entity.aiFormationY)*alpha;
+  }
+  entity.aiFormationX=formationX;entity.aiFormationY=formationY;entity.aiFormationAt=now;
   const patrol={x:clamp(formationX,34,worldW-34),y:clamp(formationY,34,worldH-34),alive:true,moveSpeed:group?118:102};
   const crowd=Array.isArray(neighbors)?neighbors:[];
   const provoked=(Number(entity.provokedUntil)||0)>now;
