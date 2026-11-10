@@ -53,11 +53,11 @@
  }
  const MAX_PROGRESS=5000;
  const BASE_COOLDOWN=10;
- const BASE_RESPAWN=20;
+ const BASE_RESPAWN=300;
  const MAX_COOLDOWN_REDUCTION=5;
  const MAX_ATTRIBUTE_BONUS=.05;
  const MAX_RANGE_BONUS=.20;
- const MAX_RESPAWN_REDUCTION=0; // Every defeated equipped companion revives after exactly twenty seconds; wild fauna uses a separate five-minute tracker.
+ const MAX_RESPAWN_REDUCTION=0; // Every defeated specimen, equipped companion or wild fauna, uses the same five-minute respawn contract.
  function clamp(v,min,max){return Math.max(min,Math.min(max,Number(v)||0));}
  function progress(points){return clamp(points,0,MAX_PROGRESS)/MAX_PROGRESS;}
  function pointsForKill(boss=false){return boss?10:1;}
