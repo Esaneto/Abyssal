@@ -748,6 +748,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           const resolved=OceanGeography.resolveMove(seaBeforeX,seaBeforeY,enemy.x,enemy.y,radius);
           enemy.x=resolved.x;enemy.y=resolved.y;
           if(resolved.blocked){enemy.vx=(enemy.x-seaBeforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-seaBeforeY)/Math.max(dt,.001);}
+          const spaced=OpenSeaEcology.separateContact(enemy,world.enemies,dt);
+          enemy.x=spaced.x;enemy.y=spaced.y;
         }
         movement.target=actualTarget;
       }else{
