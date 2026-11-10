@@ -43,8 +43,6 @@
  });
  // Legacy IDs are mapped without deleting owned shop data.
  const RESEARCH=Object.freeze({
-  photonStarter:{id:'photonStarter',name:'Lança de Fótons',group:'starter',max:1,requires:[],cost:{},effect:'starterShot',starter:true,description:'Emissor fotônico básico. Disparo direto, sem efeito secundário.'},
-
   oxygenTank:{id:'oxygenTank',name:'Cilindro de autonomia',group:'equipment',max:5,requires:[],cost:{seaMineral:3},effect:'oxygenCapacity'},
   pressureSuit:{id:'pressureSuit',name:'Traje de profundidade',group:'equipment',max:5,requires:[],cost:{seaMineral:4,salvageMetal:1},effect:'depthRating'},
   salvageTool:{id:'salvageTool',name:'Ferramenta de salvamento',group:'equipment',max:1,requires:[],cost:{seaMineral:2},effect:'salvage'},
@@ -75,7 +73,7 @@
   ricochet:{id:'ricochet',name:'Ricochete Caótico',group:'passive',max:1,requires:['sonar'],cost:{seaMineral:6,deepCrystal:1}},
   spread:{id:'spread',name:'Rajada Prismática',group:'passive',max:1,requires:['sonar'],cost:{seaMineral:3,deepCrystal:2}},
   pierce:{id:'pierce',name:'Lança do Abismo',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:4,deepCrystal:3}},
-  photon:{id:'photon',name:'Lança de Fótons',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:5,deepCrystal:1}},
+  photon:{id:'photon',name:'Lança de Fótons',group:'starter',max:1,requires:[],cost:{},starter:true,effect:'starterShot',description:'Emissor fotônico básico. Disparo direto, sem efeito secundário.'},
   photonRay:{id:'photonRay',name:'Raio de Fótons',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:6,deepCrystal:2}},
   nova:{id:'nova',name:'Nova Gravitacional',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:3,deepCrystal:3}},
   echoShot:{id:'echoShot',name:'Eco de Maré',group:'shot',max:1,requires:['sonar'],cost:{seaMineral:4,deepCrystal:1}}
@@ -104,6 +102,6 @@
   const depth=Math.max(0,Number(depthMeters)||0);
   return Object.entries(HABITATS).filter(([,h])=>depth>=h.minDepth&&depth<=h.maxDepth).map(([id])=>id);
  }
- const STARTER_RESEARCH=Object.freeze(['photonStarter','range','regen']);
+ const STARTER_RESEARCH=Object.freeze(['photon','range','regen']);
  return Object.freeze({VERSION,MODES,HABITATS,RESOURCES,RESEARCH,STARTER_RESEARCH,depthAt,pressureAt,gasConsumption,oxygenCapacity,safeDepth,pressureDamage,oxygenDamage,environmentDamage,canResearch,habitatFor});
 });
