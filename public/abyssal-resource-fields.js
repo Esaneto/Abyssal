@@ -53,8 +53,10 @@
      y=geo.floorAt(x)-24-random()*8;
     }
     if(x<minX+16||x>=maxX-16||y<minY+16||y>=maxY-16)continue;
-    if(geo.isSolid(x,y,12))continue;
-    point={x:Math.round(x),y:Math.round(y)};isRock=Boolean(rock);break;
+    // Match the player's clearance using final rounded world coordinates.
+    const px=Math.round(x),py=Math.round(y);
+    if(geo.isSolid(px,py,18))continue;
+    point={x:px,y:py};isRock=Boolean(rock);break;
    }
    if(!point)continue;
    const depth=depthAt(point.y),type=rollType(depth,isRock,random);
