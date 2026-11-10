@@ -41,7 +41,7 @@
   lastScan=0;notify(p.online?'Varredura online iniciada.':'Coleta solo: materiais armazenados neste dispositivo.');
  }
  function scan(p,time){
-  if(!p.online||time-lastScan<2200||busy)return;
+  if(!fields.ENABLED||!p.online||time-lastScan<2200||busy)return;
   lastScan=time;
   window.AbyssalOnline?.explorationScan?.(result=>{
    if(!result?.ok)return;
@@ -144,7 +144,7 @@
    const hazard=p.mode==='rift'?(depth>safe?Math.min(8,(depth-safe)*.16):0)+(oxygen===0?6:0):config.environmentDamage(depth,safe,noOxygenSeconds);
    if(hazard>0)window.AbyssalGameHooks?.explorationHit?.(delta*hazard);
   }
-  if(!p.online&&p.mode!=='rift'&&time-lastScan>450){
+  if(fields.ENABLED&&!p.online&&p.mode!=='rift'&&time-lastScan>450){
    lastScan=time;
    nodes=fields.streamNear(runKey,p.x,p.y,1700,taken);
   }

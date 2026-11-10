@@ -15,6 +15,7 @@ test('Mar Aberto uses one deeper geometry shared by rendering and fauna streamin
  assert.equal(cell.resources.length,0);
  assert.deepEqual(resources.streamNear('ecosystem-contract',1500,900,2000),[]);
  assert.deepEqual(resources.create('ecosystem-contract','classic',4800,3000,80),[]);
+ assert.equal(resources.ENABLED,false);
  assert.ok(geo.ROCKS.some(r=>r.x<1200&&r.y<1800),'the starter reef must have a visible elevated overhang');
 });
 
@@ -48,6 +49,7 @@ test('prey flee a nearby predator while predators hunt and use catalog actives',
  assert.equal(hits[0].preyId,2);
  assert.ok(turtle.hp<hp);
  assert.equal(hits[0].abilityId,'trail');
+ assert.deepEqual(eco.simulatePredation([shark,turtle],.05,1050),[],'ecological damage is not broadcast on every 50ms tick');
 });
 
 test('suit pressure and empty tank injury progress rather than being overcome by low passive regeneration',()=>{

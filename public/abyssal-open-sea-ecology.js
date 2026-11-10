@@ -16,7 +16,6 @@
   {id:'rocks',label:'COSTA ROCHOSA',x:3780,y:710,rx:850,ry:640,fauna:['spidercrab','nautilus','zebramoray'],resources:['salvageMetal','seaMineral']},
   {id:'canyon',label:'CÂNION SUBMARINO',x:820,y:2240,rx:900,ry:670,fauna:['goblin','frilled','bigfin','whiplash'],resources:['deepCrystal','salvageMetal']},
   {id:'deep',label:'ÁGUAS PROFUNDAS',x:2740,y:2230,rx:940,ry:670,fauna:['angler','viperfish','blackdragon','seapig'],resources:['deepCrystal','bioSample']},
-  {id:'wreck',label:'DESTROÇOS AFUNDADOS',x:4110,y:2200,rx:700,ry:680,fauna:['spidercrab','goblin','nautilus'],resources:['salvageMetal','bioSample']}
  ]);
  const REGION_VARIANTS=Object.freeze({
   open:{id:'open',label:'ÁGUAS LIVRES',fauna:['leatherback','eagleray','butterflyray'],resources:['seaMineral','bioSample']},
@@ -29,7 +28,7 @@
  const PREDATOR_STRENGTH=Object.freeze({reefshark:4,goblin:5,frilled:4,viperfish:3,blackdragon:5,angler:5,zebramoray:3,whiplash:2,bigfin:2});
  const HABITAT_DEPTH=Object.freeze({
   reef:[0,160],kelp:[20,190],rocks:[70,260],canyon:[300,520],
-  deep:[260,590],abyss:[475,600],open:[0,290],twilight:[180,460],wreck:[160,510]
+  deep:[260,590],abyss:[475,600],open:[0,290],twilight:[180,460]
  });
  function isSchooling(id){return SCHOOLING.has(String(id||''));}
  function speciesHabitat(id){
@@ -200,13 +199,25 @@
    let damage=0,abilityId=null;
    if(ready&&active&&distance<=abilityReach){
     abilityId=active.id;
-    damage=Math.max(2,Math.min(50,(Number(active.damage)||0)*.35));
     attacker.wildlifeAbilityReadyAt=now+Math.max(2600,(Number(active.cooldown)||10)*1000);
     attacker.wildlifeAbilityUntil=now+800;
     attacker.wildlifeAbilityId=abilityId;
+    if(abilityId==='shield')attacker.wildlifeShieldUntil=now+2000;
+    else {
+     damage=Math.min(50,Math.max(0,(Number(active.damage)||0)*.35));
+     if(abilityId==='paralysis')prey.paralyzedUntil=Math.max(Number(prey.paralyzedUntil)||0,now+100);
+     if(abilityId==='poison')prey.wildlifePoisonUntil=Math.max(Number(prey.wildlifePoisonUntil)||0,now+3000);
+     if(abilityId==='slowShot')prey.wildlifeSlowUntil=Math.max(Number(prey.wildlifeSlowUntil)||0,now+1400);
+    }
    }
-   if(distance<=reach)damage+=Math.max(1,(Number(attacker.damage)||6)*.32*delta);
+   // Tick-rate-independent bite cadence: no 20 Hz damage events or excessive
+   // networking when two large cardumes fight. Special abilities have separate cooldowns.
+   if(distance<=reach&&now>=(Number(attacker.wildlifeBiteReadyAt)||0)){
+    damage+=Math.max(2,(Number(attacker.damage)||6)*.28);
+    attacker.wildlifeBiteReadyAt=now+650;
+   }
    if(damage<=0)continue;
+   if((Number(prey.wildlifeShieldUntil)||0)>now)damage*=.35;
    prey.hp=Math.max(0,(Number(prey.hp)||0)-damage);
    prey.damageRevision=(Number(prey.damageRevision)||0)+1;
    prey.provokedUntil=now+2500;

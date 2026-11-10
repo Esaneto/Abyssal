@@ -10,6 +10,7 @@
  if(root)root.AbyssalResourceFields=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(config,ecology,stream){
  'use strict';
+ const ENABLED=false; // Await curated Mar Aberto resources; old deposit pools are retired.
  function hash(text){let x=2166136261;for(const c of String(text)){x^=c.charCodeAt(0);x=Math.imul(x,16777619);}return x>>>0;}
  function rng(seed){let state=hash(seed);return ()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);}
  const POOLS=Object.freeze({classic:['seaMineral','kelpFiber','coralSample','salvageMetal'],rift:['salvageMetal','deepCrystal','bioSample','abyssCrystal']});
@@ -28,5 +29,5 @@
   if(required&&!(Number(ownedTools[required])>0))return {ok:false,reason:'tool-required',tool:required};
   return {ok:true};
  }
- return Object.freeze({create,streamNear,nearby,eligible});
+ return Object.freeze({ENABLED,create,streamNear,nearby,eligible});
 });
