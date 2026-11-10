@@ -30,11 +30,15 @@ jobs:
           node --check public/abyssal-ocean-stream.js
           node --check public/abyssal-open-sea-ecology.js
           node --check public/abyssal-open-sea-render.js
+          node --check public/abyssal-exploration-config.js
+          node --check public/abyssal-inventory-ui.js
+          node --check public/abyssal-resource-fields.js
+          node --check public/abyssal-exploration-runtime.js
           node --check world-simulation.js
           node --check public/game.js
           node --check server.js
       - name: Run focused Open Sea regression suite
-        run: node --test tests/ocean-ecosystem-integrity.test.cjs tests/ocean-geography.test.js tests/ocean-streaming.test.js tests/ocean-exploration-regression.test.js tests/ocean-specimen-respawn.test.cjs
+        run: node --test tests/ocean-ecosystem-integrity.test.cjs tests/ocean-geography.test.js tests/ocean-streaming.test.js tests/ocean-exploration-regression.test.js tests/ocean-specimen-respawn.test.cjs tests/mar-aberto-mining-inventory.test.cjs
 
   specimen-journal-acceptance:
     name: Specimens, journal and laboratory acceptance
