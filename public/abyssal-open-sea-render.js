@@ -96,7 +96,7 @@
   ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(start,bottom+250);
   for(let x=start;x<=stop;x+=step)ctx.lineTo(x,geo.floorAt(x));
   ctx.lineTo(stop,geo.floorAt(stop));ctx.lineTo(stop,bottom+250);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(96,149,151,.32)';ctx.lineWidth=5;
+  ctx.strokeStyle='rgba(96,149,151,.13)';ctx.lineWidth=3;
   ctx.beginPath();for(let x=start,i=0;x<=stop+step;x+=step,i++){const px=Math.min(stop,x),y=geo.floorAt(px);if(!i)ctx.moveTo(px,y);else ctx.lineTo(px,y);}ctx.stroke();
   // A secondary geological contour suggests stratification without per-pixel noise.
   ctx.strokeStyle='rgba(89,120,130,.1)';ctx.lineWidth=5;ctx.beginPath();
@@ -113,7 +113,7 @@
     const x=rock.x+Math.cos(a)*rx,y=rock.y+Math.sin(a)*ry;
     if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);
    }
-   ctx.closePath();ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(92,150,158,.26)';ctx.lineWidth=5;ctx.stroke();
+   ctx.closePath();ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(92,150,158,.10)';ctx.lineWidth=2.2;ctx.stroke();
    // Sedimentary striae follow the rock body, not arbitrary floating sprites.
    ctx.strokeStyle='rgba(114,174,176,.12)';ctx.lineWidth=3;
    for(let i=1;i<=3;i++){
@@ -127,13 +127,25 @@
    const x0=Math.min(...nodes.map(n=>n.x)),x1=Math.max(...nodes.map(n=>n.x)),y0=Math.min(...nodes.map(n=>n.y)),y1=Math.max(...nodes.map(n=>n.y));
    if(x1+280<left||x0-280>right||y1+280<top||y0-280>bottom)continue;
    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-   // Dark freshwater-looking cavern water reveals the excavated solid passages.
+   // Cave water is the same ocean water. The passage is revealed by the absence
+   // of rock, not by a bright gameplay outline or a painted corridor ribbon.
    for(let i=1;i<nodes.length;i++){
     const a=nodes[i-1],b=nodes[i],r=Math.min(a.r,b.r);
+    const midY=(a.y+b.y)*.5,light=geo.lightAt(midY);
+    const water=ctx.createLinearGradient(0,midY-r,0,midY+r);
+    water.addColorStop(0,'rgba(4,31,51,'+(.82-light*.20)+')');
+    water.addColorStop(.55,'rgba(3,24,42,'+(.88-light*.14)+')');
+    water.addColorStop(1,'rgba(2,17,32,.94)');
     ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
-    ctx.strokeStyle='rgba(78,125,131,.27)';ctx.lineWidth=r*2+19;ctx.stroke();
-    ctx.strokeStyle='#071624';ctx.lineWidth=r*2;ctx.stroke();
-    ctx.strokeStyle='rgba(18,48,63,.8)';ctx.lineWidth=r*1.8;ctx.stroke();
+    ctx.strokeStyle=water;ctx.lineWidth=r*2.04;ctx.stroke();
+    // A broad, very faint mineral falloff softens the cut into surrounding rock.
+    // It is deliberately not an edge line and disappears into the stone.
+    ctx.globalAlpha=.12;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle='#42606a';ctx.lineWidth=r*2.16;ctx.stroke();
+    ctx.globalAlpha=1;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=water;ctx.lineWidth=r*2.01;ctx.stroke();
    }
    ctx.restore();
   }
