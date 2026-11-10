@@ -1876,10 +1876,9 @@ io.on('connection', socket => {
   user.discoveredSpecimens=Array.isArray(user.discoveredSpecimens)?user.discoveredSpecimens:[];
   if(user.discoveredSpecimens.includes(id))return;
   user.discoveredSpecimens.push(id);
-  user.resourceInventory=ResearchSystem.sanitizeInventory(user.resourceInventory||{});
-  user.resourceInventory.bioSample=Math.min(1000000,user.resourceInventory.bioSample+1);
-  // Five verified, unique species yield an additional deep-ocean research sample.
-  if(user.discoveredSpecimens.length%5===0)user.resourceInventory.deepCrystal=Math.min(1000000,user.resourceInventory.deepCrystal+1);
+  // Catalog discovery is informational. Do not mint old research resources
+  // until the player-approved Mar Aberto resource catalog is introduced.
+  // Historical resourceInventory values remain untouched.
   saveUsers();socket.emit('account-data',publicUser(user));
   socket.emit('specimen-discovered',{id});
  });
