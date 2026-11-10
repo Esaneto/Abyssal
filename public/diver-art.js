@@ -119,10 +119,27 @@
    line(tx,-12,tx+1.3,-8+(i%2)*1.4,'#080a0e',1.35);
   }
   c.restore();
-  // Two anatomically distinct arms: far arm above the shoulder, supporting the
-  // fore-end; near arm is bent DOWN below the torso, holding the trigger.
-  // They never share a shoulder point or merge into a single silhouette.
+  // Held equipment owns the arms. Non-weapon tools use a compact two-hand grip
+  // so the rifle pose can never leak underneath a pickaxe or container.
+  const held=String(options.heldItem||'abyssWeapon');
   c.save();c.rotate((Number(aim)||0)-a);
+  if(held!=='abyssWeapon'){
+   c.translate(0,5);
+   limb([5,-7],[17,-10],4.8,'#182634','#617b87');
+   limb([17,-10],[27,-2],4.2,'#152b3a','#688391');
+   limb([4,7],[16,11],5.2,'#192733','#698797');
+   limb([16,11],[27,3],4.5,'#162c3b','#5d8191');
+   c.translate(27,0);
+   if(held==='abyssPickaxe'){
+    c.rotate(-.28);c.strokeStyle='#754a2d';c.lineWidth=5;c.beginPath();c.moveTo(-8,0);c.lineTo(28,0);c.stroke();
+    c.strokeStyle='#c7d3d7';c.lineWidth=4;c.beginPath();c.moveTo(20,-13);c.quadraticCurveTo(31,-15,39,-6);c.stroke();
+    c.strokeStyle='#6f858d';c.lineWidth=2;c.beginPath();c.moveTo(20,-13);c.lineTo(17,-6);c.stroke();
+   }else{
+    const gas=held==='gasCylinder',oil=held==='oilCylinder';c.fillStyle=gas?'#657d8c':oil?'#292d31':'#87959b';c.strokeStyle='#d4c28e';c.lineWidth=1.5;
+    c.beginPath();c.roundRect(-3,-7,25,14,5);c.fill();c.stroke();c.fillStyle='#c6d2d4';c.fillRect(21,-3,5,6);
+   }
+   c.restore();c.restore();return;
+  }
   c.translate(0,GUN_OFFSET_Y); // Rifle stays below the torso at every aim angle.
   limb([6,-7],[15,-16],4.8,'#182634','#617b87');
   limb([15,-16],[31,-7],4.1,'#152b3a','#688391');

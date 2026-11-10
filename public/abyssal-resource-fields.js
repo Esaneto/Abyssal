@@ -47,13 +47,13 @@
     let x,y;
     if(rock){
      const angle=-Math.PI*.95+random()*Math.PI*.9;
-     x=rock.x+Math.cos(angle)*(rock.rx+39);y=rock.y+Math.sin(angle)*(rock.ry+39);
+     x=rock.x+Math.cos(angle)*(rock.rx-6);y=rock.y+Math.sin(angle)*(rock.ry-6);
     }else{
      x=minX+60+random()*Math.max(1,maxX-minX-120);
      y=geo.floorAt(x)-42-random()*15;
     }
     if(x<minX+16||x>=maxX-16||y<minY+16||y>=maxY-16)continue;
-    if(geo.isSolid(x,y,17))continue;
+    if(!rock&&geo.isSolid(x,y,17))continue;
     point={x:Math.round(x),y:Math.round(y)};isRock=Boolean(rock);break;
    }
    if(!point)continue;
@@ -61,7 +61,7 @@
    const isSeep=type==='oilSeep'||type==='gasSeep';
    nodes.push({id:'geo:'+cx+':'+cy+':'+i,type,x:point.x,y:point.y,
     amount:isSeep?1:1+Math.floor(random()*3),depth:Math.round(depth),
-    feature:isSeep?'fracture':isRock?'rock':'seabed'});
+    feature:isSeep?'fracture':isRock?'embedded-rock':'seabed'});
   }
   // Bounded cache; sector generation is deterministic across eviction.
   if(cache.size>=320)cache.delete(cache.keys().next().value);
