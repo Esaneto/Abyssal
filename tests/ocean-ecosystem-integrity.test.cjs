@@ -138,3 +138,28 @@ test('idle fauna commits to broad habitat waypoints instead of vibrating around 
  assert.deepEqual(second.target,first.target,'waypoint must remain stable across AI ticks');
  assert.equal(eco.habitatAt(first.target.x,first.target.y).id,eco.habitatAt(animal.homeX,animal.homeY).id,'roaming remains inside the creature habitat');
 });
+
+test('a touching school separates symmetrically without breaking its shared habitat patrol',()=>{
+ const a={id:101,streamId:'0:0:f0',schoolId:'0:0:s0',specimenSkinId:'eagleray',
+  wildlifeMode:'passive',x:520,y:95,homeX:520,homeY:95,hp:70,maxHp:70,angle:0,r:20};
+ const b={...a,id:102,streamId:'0:0:f1'};
+ const first=eco.decide(a,[],0,1000,[a,b]);
+ const second=eco.decide(b,[],0,1000,[a,b]);
+ assert.equal(first.mode,'patrol');assert.equal(second.mode,'patrol');
+ assert.ok(Math.hypot(first.target.x-second.target.x,first.target.y-second.target.y)>100,
+  'two creatures at one spot should receive distinct formation targets');
+ const nextA=eco.separateContact(a,[a,b],.05),nextB=eco.separateContact(b,[a,b],.05);
+ const da={x:nextA.x-a.x,y:nextA.y-a.y},db={x:nextB.x-b.x,y:nextB.y-b.y};
+ assert.ok(Math.hypot(da.x,da.y)>0&&Math.hypot(db.x,db.y)>0,'touching animals must be pushed apart');
+ assert.ok(da.x*db.x+da.y*db.y<0,'exact overlap must resolve in opposite directions');
+ assert.equal(geo.isSolid(nextA.x,nextA.y,10),false);
+ assert.equal(geo.isSolid(nextB.x,nextB.y,10),false);
+});
+
+test('both online simulation and solo exploration enforce wildlife spacing after navigation',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const server=fs.readFileSync(path.join(__dirname,'../world-simulation.js'),'utf8');
+ const solo=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ assert.match(server,/OpenSeaEcology\.separateContact\(enemy,world\.enemies,dt\)/);
+ assert.match(solo,/OPEN_SEA_ECOLOGY\.separateContact\(e,enemies,dt\)/);
+});
