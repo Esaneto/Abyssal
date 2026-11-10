@@ -154,6 +154,58 @@
  }
  // Province lighting: coastal sun shafts, cinematic cyan corridors and tiny
  // abyssal mineral glints. Nothing uses a world-sized texture.
+ // Parallax strata are far behind the playable plane: these visible ledges
+ // suggest a much larger ecosystem without inventing impassable hitboxes.
+ function drawBiomeVista(ctx,left,top,right,bottom,time,lowPower){
+  const tileX=730,tileY=670;
+  for(let ix=Math.floor(left/tileX)-1;ix<=Math.ceil(right/tileX)+1;ix++){
+   for(let iy=Math.floor(top/tileY)-1;iy<=Math.ceil(bottom/tileY)+1;iy++){
+    if(ix<0||iy<0)continue;
+    const seed=seeded(ix*11+37,iy*19+5);
+    if(seed<.27||(lowPower&&seed<.60))continue;
+    const x=ix*tileX+210+seeded(ix+3,iy)*290;
+    const y=iy*tileY+145+seeded(ix+19,iy+11)*330;
+    if(y<50||y>geo.HEIGHT||x<0||x>geo.WIDTH)continue;
+    const biome=geo.visualBiomeAt?.(x,y)?.id||'coastal';
+    if(biome==='coastal')continue;
+    const geological=biome==='geological';
+    const w=(310+seed*230)*(geological?.86:1);
+    const h=(190+seeded(ix,iy+17)*180)*(geological?1.14:1);
+    ctx.save();ctx.globalAlpha=lowPower?.23:geological?.42:.48;
+    const shade=ctx.createLinearGradient(x,y-25,x,y+h);
+    if(geological){
+     shade.addColorStop(0,'#315965');shade.addColorStop(.35,'#163645');shade.addColorStop(1,'#071828');
+    }else{
+     shade.addColorStop(0,'#276b82');shade.addColorStop(.35,'#17445c');shade.addColorStop(1,'#071d34');
+    }
+    ctx.fillStyle=shade;ctx.strokeStyle=geological?'rgba(118,195,181,.50)':'rgba(100,206,220,.57)';
+    ctx.lineWidth=2.5;ctx.beginPath();
+    ctx.moveTo(x-w*.58,y+15);ctx.lineTo(x-w*.42,y-19);
+    ctx.lineTo(x-w*.14,y-32);ctx.lineTo(x+w*.12,y-21);
+    ctx.lineTo(x+w*.36,y-28);ctx.lineTo(x+w*.55,y+7);
+    ctx.lineTo(x+w*.40,y+h*.85);ctx.lineTo(x-w*.27,y+h);
+    ctx.closePath();ctx.fill();ctx.stroke();
+    // Layered mineral strata and overhang fault lines.
+    ctx.strokeStyle=geological?'rgba(136,170,155,.50)':'rgba(75,177,191,.41)';
+    ctx.lineWidth=1.8;ctx.beginPath();
+    ctx.moveTo(x-w*.49,y+34);ctx.lineTo(x-w*.05,y+52);
+    ctx.lineTo(x+w*.31,y+38);ctx.stroke();
+    if(!lowPower){
+     const sprouts=geological?3:5;
+     for(let j=0;j<sprouts;j++){
+      const xx=x+(j/(sprouts-1)-.5)*w*.73,yy=y-23+Math.sin(j*2.8+seed)*7;
+      const ht=15+seeded(ix+j,iy+23)*26;
+      ctx.strokeStyle=geological?'rgba(102,196,186,.68)':'rgba(102,204,173,.65)';
+      ctx.lineWidth=1.9;ctx.beginPath();ctx.moveTo(xx,yy);
+      ctx.quadraticCurveTo(xx+7,yy-ht*.6,xx-4,yy-ht);ctx.stroke();
+      ctx.fillStyle=geological?'#8dbee0':'#d5c17f';
+      ctx.beginPath();ctx.ellipse(xx-4,yy-ht,3.8,2.3,0,0,TAU);ctx.fill();
+     }
+    }
+    ctx.restore();
+   }
+  }
+ }
  function drawProvinceLight(ctx,left,top,right,bottom,time,lowPower){
   const centerY=(top+bottom)*.5,centerX=(left+right)*.5;
   const biome=geo.visualBiomeAt?.(centerX,centerY)?.id||'coastal';
@@ -590,6 +642,7 @@
   ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
   drawWater(ctx,left,top,right,bottom,time,lowPower);
   drawProvinceBackdrop(ctx,left,top,right,bottom,time,lowPower);
+  drawBiomeVista(ctx,left,top,right,bottom,time,lowPower);
   drawProvinceLight(ctx,left,top,right,bottom,time,lowPower);
   drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.69)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(188,244,255,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
