@@ -21,7 +21,7 @@
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
- function renderWorkshop(){if(!workshopGrid)return;const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory());workshopGrid.replaceChildren();const labTitle=document.createElement('div');labTitle.className='submarine-lab-heading';labTitle.innerHTML='<strong>ÁRVORE TECNOLÓGICA · LABORATÓRIO ABISSAL</strong><span>NÚCLEO ESSENCIAL → SOBREVIVÊNCIA / ENGENHARIA / ENERGIA → TECNOLOGIAS AVANÇADAS</span>';workshopGrid.appendChild(labTitle);for(const [id,def] of Object.entries(config.RESEARCH)){const card=document.createElement('article');card.className='submarine-upgrade branch-'+(def.starter?'core':def.group==='shot'?'energy':def.group==='active'?'energy':def.group==='passive'?'adaptation':'engineering');const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};const label=def.starter?'TECNOLOGIA ESSENCIAL':def.group==='shot'?'PESQUISA DE DISPARO':def.group==='active'?'ENERGIA ATIVA':def.group==='passive'?'TECNOLOGIA PASSIVA':String(def.group||'sistema').toUpperCase();card.innerHTML='<small>'+label+'</small><strong>'+def.name+' · '+level+'/'+def.max+'</strong><span>'+(def.description||'')+(def.starter?' · Equipamento padrão do mergulhador.':Object.entries(cost).map(([r,n])=>' · '+(config.RESOURCES[r]?.name||r)+' × '+n).join(''))+(def.requires?.length?' · Requer: '+def.requires.map(r=>config.RESEARCH[r]?.name||r).join(', '):'')+'</span>';const btn=document.createElement('button');btn.type='button';btn.className='secondary-btn';btn.textContent=def.starter?'PADRÃO':level>=def.max?'MÁXIMO':'PESQUISAR';btn.disabled=Boolean(def.starter)||level>=def.max;btn.onclick=()=>window.dispatchEvent(new CustomEvent('abyssal-exploration-research-request',{detail:{id}}));card.appendChild(btn);workshopGrid.appendChild(card);}}
+ function renderWorkshop(){if(!workshopGrid)return;const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory());workshopGrid.replaceChildren();const labTitle=document.createElement('div');labTitle.className='submarine-lab-heading';labTitle.innerHTML='<strong>ÁRVORE TECNOLÓGICA · LABORATÓRIO ABISSAL</strong><span>NÚCLEO ESSENCIAL → SOBREVIVÊNCIA / ENGENHARIA / ENERGIA → TECNOLOGIAS AVANÇADAS</span>';workshopGrid.appendChild(labTitle);for(const [id,def] of Object.entries(config.RESEARCH)){const card=document.createElement('article');card.className='submarine-upgrade branch-'+(def.starter?'core':def.group==='industry'?'industry':def.group==='shot'?'energy':def.group==='active'?'energy':def.group==='passive'?'adaptation':'engineering');const level=Number(levels[id])||0,cost=research.costFor(id,level)||{};const label=def.starter?'TECNOLOGIA ESSENCIAL':def.group==='industry'?'ENGENHARIA OFFSHORE':def.group==='shot'?'PESQUISA DE DISPARO':def.group==='active'?'ENERGIA ATIVA':def.group==='passive'?'TECNOLOGIA PASSIVA':String(def.group||'sistema').toUpperCase();card.innerHTML='<small>'+label+'</small><strong>'+def.name+' · '+level+'/'+def.max+'</strong><span>'+(def.description||'')+(def.starter?' · Equipamento padrão do mergulhador.':Object.entries(cost).map(([r,n])=>' · '+(config.RESOURCES[r]?.name||r)+' × '+n).join(''))+(def.requires?.length?' · Requer: '+def.requires.map(r=>config.RESEARCH[r]?.name||r).join(', '):'')+'</span>';const btn=document.createElement('button');btn.type='button';btn.className='secondary-btn';btn.textContent=def.starter?'PADRÃO':level>=def.max?'MÁXIMO':'PESQUISAR';btn.disabled=Boolean(def.starter)||level>=def.max;btn.onclick=()=>window.dispatchEvent(new CustomEvent('abyssal-exploration-research-request',{detail:{id}}));card.appendChild(btn);workshopGrid.appendChild(card);}}
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',()=>{if(workshop){workshop.hidden=false;renderWorkshop();}});
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{if(workshop)workshop.hidden=true;});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
@@ -85,12 +85,13 @@
  }
  function collect(){
   const p=cfg();if(!p||p.mode!=='open-sea'||p.paused||!near||busy)return;
+  if(near.type==='oilSeep'||near.type==='gasSeep'){const levels=stateLevels();if(!levels.offshoreSurvey){notify('INDÍCIO DE HIDROCARBONETO. Pesquise Geofísica Offshore no submarino para mapear a reserva.');return;}if(!levels.offshorePlatform){notify('RESERVA MAPEADA. Construa a Plataforma de Produção Abissal no submarino.');return;}if(!levels.subseaUmbilical){notify('PLATAFORMA SEM LINHA. Pesquise Linhas Submarinas de Produção para conectar esta reserva.');return;}notify('RESERVA PRONTA PARA CONEXÃO. Equipe a linha umbilical e conecte plataforma e reservatório.');return;}
   const selected=inventoryUI()?.selectedTool?.()||'abyssPickaxe';
   const inventory=research.sanitizeInventory(stateInventory());
   const check=fields.eligible(near,p.x,p.y,inventory,115,selected);
   if(!check.ok){
    const messages={'too-far':'Aproxime-se do depósito.','select-tool':'Selecione '+(config.RESOURCES[check.tool]?.name||'a ferramenta')+' no inventário (I).',
-    'tool-required':'Você precisa da picareta.','empty-cylinder-required':'Não há cilindros vazios.'};
+    'tool-required':'Você precisa da picareta.','empty-cylinder-required':'Não há cilindros vazios.','offshore-infrastructure-required':'Petróleo e gás exigem infraestrutura offshore pesquisada no submarino.'};
    notify(messages[check.reason]||'Não foi possível coletar este recurso.');return;
   }
   busy=true;const target=near;
@@ -145,6 +146,7 @@
       if(result.account){account=result.account;}else{
        localLevels=result.levels;localInventory=result.inventory;saveLocal();
        window.AbyssalGameHooks?.applyResearchUnlock?.(id,result.level);
+       if(id==='subseaUmbilical'){localInventory.offshoreCable=Math.max(Number(localInventory.offshoreCable)||0,Number(result.level)||1);saveLocal();inventoryUI()?.setInventory(localInventory);}
       }
       renderResearch();
      }else{materials.textContent='Falha: '+String(result.reason||'erro');button.disabled=false;}
@@ -174,6 +176,11 @@
    else if(seep){for(let n=0;n<4;n++){const phase=t*(gas?1.5:.55)+n*1.4,rise=(phase*20)%58;c.strokeStyle=gas?'rgba(92,190,137,.5)':'rgba(8,15,20,.65)';c.lineWidth=2;c.beginPath();c.moveTo(-8+n*5,-3);c.quadraticCurveTo(-13+n*7,-18-rise*.4,-5+n*6,-18-rise);c.stroke();}}
    else {const col=type==='phosphorite'?'#9f8c66':'#609ca0';for(let n=0;n<5;n++){const x=-18+n*9,y=n%2?-1:-7,s=5+(n%3)*2;c.fillStyle=col;c.beginPath();c.moveTo(x,y-s);c.lineTo(x+s*.8,y);c.lineTo(x+s*.4,y+s*.5);c.lineTo(x-s*.6,y+s*.3);c.closePath();c.fill();}}
    c.restore();
+  }
+  // Surface production platform is a researched world structure, never a starter object.
+  const levels=stateLevels();
+  if(levels.offshorePlatform&&top<650){
+   const px=520,py=95;c.save();c.translate(px,py);c.strokeStyle='#9ba9ac';c.lineWidth=7;c.beginPath();c.moveTo(-45,5);c.lineTo(-58,105);c.moveTo(45,5);c.lineTo(58,105);c.stroke();c.fillStyle='#d6a52f';c.fillRect(-78,-18,156,28);c.fillStyle='#26343b';c.fillRect(-55,-42,72,24);c.strokeStyle='#d9c36d';c.lineWidth=3;c.beginPath();c.moveTo(28,-18);c.lineTo(50,-92);c.lineTo(62,-18);c.stroke();c.fillStyle='#d7edf0';c.font='700 12px sans-serif';c.fillText('PLATAFORMA OFFSHORE',-72,-50);c.restore();
   }
   const now=performance.now();collectionFx=collectionFx.filter(fx=>now-fx.started<650);
   for(const fx of collectionFx){const age=(now-fx.started)/650;if(age<0||age>=1)continue;c.save();c.translate(fx.x,fx.y);c.globalAlpha=1-age;for(let i=0;i<8;i++){const a=i/8*Math.PI*2,travel=12+age*(25+i%3*8);c.fillStyle=i%2?'#718083':'#394a50';c.beginPath();c.arc(Math.cos(a)*travel,Math.sin(a)*travel+age*age*18,2.8,0,Math.PI*2);c.fill();}c.restore();}

@@ -276,6 +276,7 @@
   if(right<=left||bottom<=top)return;
   ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
   drawWater(ctx,left,top,right,bottom,time,lowPower);
+  if(top<130){ctx.save();ctx.strokeStyle='rgba(159,238,255,.78)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(left,18);ctx.lineTo(right,18);ctx.stroke();ctx.fillStyle='rgba(188,244,255,.9)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,45);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
   drawRocks(ctx,left,top,right,bottom);
   drawCaves(ctx,left,top,right,bottom);

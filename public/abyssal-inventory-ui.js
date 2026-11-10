@@ -9,14 +9,14 @@
  root.innerHTML='<button id="abyssInventoryToggle" type="button" title="Inventário (I)" aria-label="Abrir inventário">MOCHILA <kbd>I</kbd></button>'+
  '<section id="abyssInventoryPanel" class="abyss-inventory-panel" role="dialog" aria-label="Inventário do Mar Aberto" hidden>'+
  '<header><div><small>EQUIPAMENTOS / CARGA</small><h2>INVENTÁRIO ABISSAL</h2></div><button id="abyssInventoryClose" type="button" aria-label="Fechar inventário">×</button></header>'+
- '<p class="abyss-inventory-help">Selecione a picareta para minerar ou o cilindro vazio para extrair petróleo e gás. Use G perto de um depósito.</p>'+
+ '<p class="abyss-inventory-help">Selecione a picareta para minerar. Petróleo e gás exigem pesquisa offshore, plataforma e uma linha submarina conectada à reserva.</p>'+
  '<div id="abyssInventoryGrid" class="abyss-inventory-grid" role="group" aria-label="Itens em posse"></div><p class="abyss-inventory-help">Arraste qualquer item para a barra rápida. Teclas 1–9 trocam o item na mão.</p>'+
  '<footer><strong id="abyssInventorySelected">PICARETA ABISSAL</strong><span id="abyssInventoryCargo">0 ITENS</span></footer>'+
  '</section>';
  root.insertAdjacentHTML('beforeend','<div id="abyssHotbar" class="abyss-hotbar" aria-label="Barra rápida de exploração"></div>');
  shell.appendChild(root);
  const $=id=>document.getElementById(id),panel=$('abyssInventoryPanel'),grid=$('abyssInventoryGrid');
- const order=['abyssPickaxe','emptyCylinder','oilCylinder','gasCylinder','seaMineral','phosphorite','ferromanganeseCrust','polymetallicNodule','hydrothermalSulfide'];
+ const order=['abyssPickaxe','offshoreCable','emptyCylinder','oilCylinder','gasCylinder','seaMineral','phosphorite','ferromanganeseCrust','polymetallicNodule','hydrothermalSulfide'];
  let active=false,selected='abyssWeapon',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder',null,null,null,null,null,null];
  config.RESOURCES.abyssWeapon||(console.warn('[Abyssal] abyssWeapon missing from config'));
  const colors={seaMineral:'#63c1cd',phosphorite:'#d8bd81',ferromanganeseCrust:'#a884da',polymetallicNodule:'#758aab',hydrothermalSulfide:'#ca9e6f',deepCrystal:'#a6cfff',abyssCrystal:'#a77aff'};
@@ -24,6 +24,7 @@
   if(id==='abyssWeapon')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M7 31L46 18 57 23 48 31 27 37 20 49 12 47 17 36Z" fill="#263f50" stroke="#a9dce3" stroke-width="2"/><path d="M18 29L48 20" stroke="#7cf5ff" stroke-width="3"/><path d="M45 25L60 23" stroke="#d9fbff" stroke-width="4"/><path d="M25 37L20 48" stroke="#d6a56b" stroke-width="4"/></svg>';
 
   if(id==='abyssPickaxe')return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M35 18L42 22 22 58 15 54Z" fill="#704a31" stroke="#c98b52" stroke-width="2"/><path d="M8 19Q25 4 49 9L59 15 52 22Q32 15 15 30L7 28Z" fill="#8599a5" stroke="#e4edf0" stroke-width="2.5"/><path d="M49 9L59 15 52 22" fill="#506977"/><path d="M30 25L38 29" stroke="#d6b36d" stroke-width="3"/></svg>';
+  if(id==='offshoreCable')return '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="30" cy="33" r="19" fill="#182a33" stroke="#e0bd66" stroke-width="4"/><circle cx="30" cy="33" r="9" fill="none" stroke="#7697a3" stroke-width="4"/><path d="M46 42C56 43 57 51 61 55" fill="none" stroke="#d8a94d" stroke-width="5"/></svg>';
   if(['emptyCylinder','oilCylinder','gasCylinder'].includes(id)){
    const filled=id!=='emptyCylinder',liquid=id==='oilCylinder'?'#111b23':'#59bd88',edge=id==='gasCylinder'?'#8be9b0':'#e3bd83';
    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M22 7H42V13H22Z" fill="#c0cbd0" stroke="#728996" stroke-width="2"/><rect x="18" y="14" width="28" height="43" rx="7" fill="#1c3444" stroke="#cfb98a" stroke-width="3"/><rect x="22" y="22" width="20" height="31" rx="4" fill="'+(filled?liquid:'#396072')+'"/><path d="M23 28V49" stroke="'+edge+'" stroke-width="2" opacity=".9"/><path d="M41 28V49" stroke="'+edge+'" stroke-width="1.5" opacity=".8"/>'+(id==='gasCylinder'?'<circle cx="32" cy="39" r="3" fill="#b6ffc6"/><circle cx="36" cy="31" r="2" fill="#b6ffc6"/>':'')+'<rect x="27" y="5" width="10" height="4" rx="1" fill="#edcf9e"/></svg>';

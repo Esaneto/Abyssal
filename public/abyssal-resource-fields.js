@@ -85,12 +85,12 @@
   return (nodes||[]).filter(n=>!taken.has(n.id)&&(n.x-x)**2+(n.y-y)**2<=radius*radius);
  }
  function create(){return [];} // Fossas and shooter deposits remain disabled.
- function toolFor(type){return type==='oilSeep'||type==='gasSeep'?'emptyCylinder':'abyssPickaxe';}
+ function toolFor(type){return type==='oilSeep'||type==='gasSeep'?'offshoreCable':'abyssPickaxe';}
  function eligible(node,x,y,inventory={},radius=115,selectedTool=null){
   if(!node||!Number.isFinite(x)||!Number.isFinite(y)||!config.RESOURCES[node.type]||!['ore','seep'].includes(config.RESOURCES[node.type].kind))return {ok:false,reason:'invalid-node'};
   if(Math.hypot(node.x-x,node.y-y)>radius)return {ok:false,reason:'too-far'};
   const tool=toolFor(node.type);
-  if(!(Number(inventory?.[tool])>0))return {ok:false,reason:tool==='emptyCylinder'?'empty-cylinder-required':'tool-required',tool};
+  if(!(Number(inventory?.[tool])>0))return {ok:false,reason:tool==='offshoreCable'?'offshore-infrastructure-required':'tool-required',tool};
   if(selectedTool&&selectedTool!==tool)return {ok:false,reason:'select-tool',tool};
   return {ok:true,tool};
  }
@@ -106,6 +106,7 @@
   const def=config.RESOURCES[node?.type];
   if(!def||!['ore','seep'].includes(def.kind))return {ok:false,reason:'invalid-node'};
   const next={...(inventory||{})},isSeep=def.kind==='seep';
+  if(isSeep)return {ok:false,reason:'offshore-infrastructure-required'};
   const required=toolFor(node.type);
   if(!(Number(next[required])>0))return {ok:false,reason:isSeep?'empty-cylinder-required':'tool-required'};
   const item=isSeep?def.filled:node.type,amount=isSeep?1:clamp(Math.floor(Number(node.amount)||1),1,3);
