@@ -58,7 +58,7 @@
       var menu=document.getElementById('menuScreen');
       if(!menu||menu.hidden||document.body.classList.contains('game-active'))return;
       try{
-        var key='abyssal-sw-refresh-2026-11-09-v59';
+        var key='abyssal-sw-refresh-2026-11-09-v60';
         if(sessionStorage.getItem(key)==='1')return;
         sessionStorage.setItem(key,'1');
       }catch(_){return;}
