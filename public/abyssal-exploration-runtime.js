@@ -183,8 +183,14 @@
    if(node.x<left-90||node.x>right+90||node.y<top-110||node.y>bottom+90)continue;
    const type=node.type,oil=type==='oilSeep',gas=type==='gasSeep',seep=oil||gas;
    c.save();c.translate(node.x,node.y);
-   c.fillStyle=seep?'#202c33':'#243941';c.strokeStyle='#49616a';c.lineWidth=1.4;
-   c.beginPath();c.moveTo(-32,16);c.lineTo(-27,-10);c.lineTo(-12,-22);c.lineTo(6,-17);c.lineTo(25,-26);c.lineTo(34,-3);c.lineTo(24,17);c.lineTo(4,24);c.lineTo(-17,21);c.closePath();c.fill();c.stroke();
+   // Deposit is part of a fractured bedrock outcrop, not an identical icon.
+   const seed=String(node.id).split('').reduce((s,ch)=>((s*31+ch.charCodeAt(0))>>>0),17);
+   const a=(seed%53)*.11,shape=seep?32:26;
+   c.fillStyle=seep?'#16262d':'#23373c';c.strokeStyle='rgba(83,112,119,.45)';c.lineWidth=1.2;
+   c.beginPath();
+   for(let j=0;j<=13;j++){const angle=j/13*Math.PI*2,r=shape*(.74+.23*Math.sin(j*2.43+a)+.12*Math.cos(j*4.13+a)),x=Math.cos(angle)*r,y=Math.sin(angle)*r*.57+5;if(j===0)c.moveTo(x,y);else c.lineTo(x,y);}
+   c.closePath();c.fill();c.stroke();
+   c.strokeStyle='rgba(126,161,161,.16)';c.lineWidth=1;c.beginPath();c.moveTo(-21,7);c.quadraticCurveTo(-8,-11,4,-6);c.quadraticCurveTo(18,-14,23,-7);c.stroke();
    if(type==='polymetallicNodule'){for(let n=0;n<7;n++){const x=-22+n*7.6,y=(n%3)*3+2,r=5+(n%3)*1.5;c.fillStyle=n%2?'#454c56':'#333b45';c.beginPath();c.ellipse(x,y,r,r*.78,n*.37,0,Math.PI*2);c.fill();}}
    else if(type==='ferromanganeseCrust'){c.fillStyle='#151d28';c.beginPath();c.moveTo(-25,3);c.lineTo(-16,-7);c.lineTo(-4,-3);c.lineTo(8,-13);c.lineTo(25,-7);c.lineTo(29,1);c.lineTo(8,7);c.lineTo(-13,9);c.closePath();c.fill();}
    else if(type==='hydrothermalSulfide'){c.fillStyle='#30262a';c.beginPath();c.moveTo(-10,11);c.lineTo(-13,-28);c.lineTo(-4,-34);c.lineTo(2,-24);c.lineTo(11,-30);c.lineTo(14,8);c.closePath();c.fill();}
@@ -229,8 +235,8 @@
    const scale=Math.max(.58,Math.min(1.24,zoom*1.18));
    c.save();c.translate(x,y);c.scale(scale,scale);
    // Jagged natural rock/crevice. Every resource is anchored to rock or sediment.
-   c.fillStyle=seep?'#26323a':'#273f48';c.strokeStyle=selected?'#e8ce8a':'#55717b';c.lineWidth=2;
-   c.beginPath();c.moveTo(-32,16);c.lineTo(-27,-10);c.lineTo(-12,-22);c.lineTo(6,-17);c.lineTo(25,-26);c.lineTo(34,-3);c.lineTo(24,17);c.lineTo(4,24);c.lineTo(-17,21);c.closePath();c.fill();c.stroke();
+   c.fillStyle=seep?'#1e2f34':'#2a4044';c.strokeStyle=selected?'#e8ce8a':'rgba(85,113,123,.32)';c.lineWidth=selected?2:1.1;
+   c.beginPath();const signature=String(node.id).split('').reduce((s,ch)=>((s*33+ch.charCodeAt(0))>>>0),11);for(let k=0;k<=15;k++){const angle=k/15*Math.PI*2,r=26+7*Math.sin(k*2.7+signature*.01)+4*Math.cos(k*4.2+signature*.03),x=Math.cos(angle)*r,y=Math.sin(angle)*r*.65+4;if(k===0)c.moveTo(x,y);else c.lineTo(x,y);}c.closePath();c.fill();c.stroke();
    c.strokeStyle='#637f85';c.lineWidth=1;c.beginPath();c.moveTo(-22,-7);c.lineTo(-11,-15);c.lineTo(3,-13);c.lineTo(18,-20);c.stroke();
    if(seep){
     // Dark oil jets and green-tinged gas bubbles are distinct gameplay silhouettes.
