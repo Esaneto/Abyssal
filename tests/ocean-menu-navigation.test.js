@@ -40,3 +40,25 @@ test('right current is a separate launch event and Fossas stay independent',()=>
  assert.match(game,/\$\('playBtn'\)\.addEventListener\('click',[^\n]*requestedRunMode='classic'/);
  assert.match(game,/addEventListener\('abyssal-start-rift-solo'/);
 });
+
+test('boot renders only one swimmer scene with no flash of a legacy portal layout',()=>{
+ const html=src('index.html'),menu=src('abyssal-menu-ocean.js'),css=src('abyssal-menu-navigation.css');
+ assert.match(html,/id="menuScreen" class="screen ocean-menu-v2 submarine-menu"/);
+ assert.match(css,/not\(\.menu-ready\)/);
+ assert.match(menu,/menu\.classList\.add\('menu-ready'\)/);
+ assert.equal((html.match(/id="menuOceanStage"/g)||[]).length,1);
+ assert.doesNotMatch(html,/abyssal-menu-orbit\.(?:js|css)/);
+ assert.doesNotMatch(html,/abyssal-expedition-hub\.(?:js|css)/);
+});
+
+test('offline service worker excludes old menu versions and refreshes cache on deploy',()=>{
+ const sw=src('offline-sw.js'),offline=src('offline-ui.js');
+ assert.doesNotMatch(sw,/['"]abyssal-menu-orbit\.(?:js|css)['"]/);
+ assert.doesNotMatch(sw,/['"]abyssal-expedition-hub\.(?:js|css)['"]/);
+ assert.match(sw,/single-swimmer-menu-v59/);
+ assert.match(sw,/'abyssal-menu-navigation\.css'/);
+ assert.match(sw,/'abyssal-menu-ocean\.js'/);
+ assert.match(sw,/'diver-hitbox\.js'/);
+ assert.match(offline,/controllerchange/);
+ assert.match(offline,/sessionStorage\.setItem/);
+});
