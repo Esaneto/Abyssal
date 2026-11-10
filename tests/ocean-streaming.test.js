@@ -19,7 +19,7 @@ test('cells are generated on demand with stable IDs and distinct regions',()=>{
  const b=stream.generate('session',10,3,ecology);
  const distant=stream.generate('session',18,6,ecology);
  assert.deepEqual(a,b);
- assert.equal(a.animals.length,3);
+ assert.equal(a.animals.length,stream.INITIAL_FAUNA,'open-water cells should reach the bounded fauna budget');
  assert.equal(a.resources.length,0);
  assert.notDeepEqual(a,distant);
  assert.ok(a.animals.every(n=>n.x>=12000&&n.x<13200));
