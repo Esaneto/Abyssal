@@ -454,7 +454,7 @@
    drawCinematicPolyps(ctx,x,y,seed,lowPower);
    if(seed>.62)return;
   }
-  if(type==='kelp'){if(geo.metersAt(y)<210)kelp(ctx,x,y,120+seed*180,time,seed*TAU);return;}
+  if(type==='kelp'){if(geo.metersAt(y)<210)kelp(ctx,x,y,105+seed*140,time,seed*TAU);return;}
   if(type==='reef'&&geo.metersAt(y)<215){
    if(seed<.31)tubeSponges(ctx,x,y,.62+seed,seed);
    else if(seed<.70)seaFan(ctx,x,y,.57+seed*.7,seed);
@@ -511,17 +511,17 @@
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+140<left||rock.x-rock.rx-140>right||rock.y+rock.ry+220<top||rock.y-rock.ry-290>bottom)continue;
    const province=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.45)?.id||'coastal';
-   const n=lowPower?3:province==='coastal'?12:province==='cinematic'?9:7;
+   const n=lowPower?3:province==='coastal'?8:province==='cinematic'?8:6;
    for(let i=0;i<n;i++){
     const q=(i+.5)/n*1.72-.86,place=geo.rockSurfaceAt(rock,-Math.acos(q),0);
     const x=place.x,y=place.y,seed=seeded(rock.x,i+19);
-    if(seed>(province==='coastal'?.16:.35)){
+    if(seed>(province==='coastal'?.30:.41)){
      // Botanical roots are projected onto the exact same rock contour as collisions.
      ctx.save();ctx.translate(x,y);
      const plantSize=.65+seeded(i,rock.x*.03)*.75;
      ctx.scale(plantSize,plantSize);
      rockGarden(ctx,0,0,geo.classify(x,y-10),seed,time,lowPower,province);
-     if(!lowPower&&province==='coastal'&&i%3===1)seaFan(ctx,19,0,.42+seed*.35,seed);
+     if(!lowPower&&province==='coastal'&&i%4===1)seaFan(ctx,19,0,.33+seed*.27,seed);
      ctx.restore();
     }
     if(rock.type==='overhang'||rock.type!=='spire'&&i%2===0&&!lowPower){
