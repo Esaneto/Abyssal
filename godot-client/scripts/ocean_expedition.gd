@@ -427,7 +427,7 @@ func _draw_navigable_arches(area: Rect2) -> void:
 			Art.arch_material(self, outline, _water_light(depth_at_y(arch.y)))
 		# Mineral edges around the genuine opening; no portal-like rectangle.
 		for side in [-1.0, 1.0]:
-			var edge_x := arch.x + side * 155.0
+			var edge_x: float = arch.x + float(side) * 155.0
 			draw_line(Vector2(edge_x, arch.y - 95.0),
 				Vector2(edge_x + side * 4.0, arch.y + 75.0),
 				Color(0.35, 0.61, 0.61, 0.18), 2.0, true)
