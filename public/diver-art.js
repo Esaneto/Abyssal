@@ -51,6 +51,10 @@
    c.quadraticCurveTo(-82,ankle[1]+finSwing,-78,ankle[1]+finSwing+7*side);
    c.quadraticCurveTo(-65,ankle[1]+5*side,ankle[0],ankle[1]+3*side);
    c.closePath();c.fill();c.stroke();
+   // Fin internal reinforcing ribs convey thickness and soft reflected sunlight.
+   c.save();c.globalAlpha=.55;c.strokeStyle='#8fd9e3';c.lineWidth=.75;
+   for(let rib=0;rib<3;rib++){c.beginPath();c.moveTo(ankle[0]-9,ankle[1]+(rib-1)*2);
+    c.lineTo(-73,ankle[1]+finSwing+(rib-1)*3.5);c.stroke();}c.restore();
    line(-57,ankle[1],-76,ankle[1]+finSwing,'rgba(168,206,217,.56)',.8);
   }
   // Paired metal oxygen tanks with separate valves and illuminated gauges.
@@ -59,7 +63,11 @@
    c.save();c.globalAlpha=tank<0?.79:1;
    c.fillStyle='#0b1b2b';c.strokeStyle='#88acbb';c.lineWidth=1.4;
    c.beginPath();c.roundRect(-19,ty,38,10,4);c.fill();c.stroke();
-   c.fillStyle='#29516b';c.beginPath();c.roundRect(-14,ty+1.8,27,6.4,2.5);c.fill();
+   const tankVolume=c.createLinearGradient(-18,ty,18,ty+10);
+   tankVolume.addColorStop(0,'#0a1b2b');tankVolume.addColorStop(.28,'#4c8095');
+   tankVolume.addColorStop(.49,'#23495f');tankVolume.addColorStop(.80,'#102c42');tankVolume.addColorStop(1,'#081a27');
+   c.fillStyle=tankVolume;c.beginPath();c.roundRect(-14,ty+1.8,27,6.4,2.5);c.fill();
+   c.fillStyle='rgba(195,236,237,.37)';c.fillRect(-9,ty+2.4,1.2,4.5);
    line(-3,ty+2,-3,ty+8,'#83dbe5',1.1);
    c.fillStyle='#a5b7b7';c.fillRect(17,ty+3,5,4);c.restore();
   }
@@ -73,6 +81,12 @@
   c.beginPath();c.moveTo(-19,-7);c.bezierCurveTo(-7,-13,12,-13,20,-7);
   c.quadraticCurveTo(27,-1,20,9);c.bezierCurveTo(5,15,-9,12,-19,7);
   c.quadraticCurveTo(-23,-1,-19,-7);c.closePath();c.fill();c.stroke();
+  // Anatomical shoulder guards frame the torso without changing its hitbox.
+  for(const side of [-1,1]){
+   c.fillStyle=side<0?'#1e4054':'#112a3c';c.strokeStyle='rgba(112,188,197,.49)';c.lineWidth=.9;
+   c.beginPath();c.moveTo(-11,side*8);c.lineTo(6,side*11);
+   c.lineTo(18,side*7);c.lineTo(9,side*4);c.closePath();c.fill();c.stroke();
+  }
   c.fillStyle='#09141e';c.beginPath();c.roundRect(-11,-4,21,8,3);c.fill();
   c.strokeStyle='rgba(146,210,219,.67)';c.lineWidth=1.35;
   c.beginPath();c.moveTo(-13,-8);c.quadraticCurveTo(2,-15,16,-8);c.stroke();
@@ -89,6 +103,14 @@
   c.beginPath();c.ellipse(2,0,14.5,12.1,0,0,TAU);c.fill();c.stroke();
   c.fillStyle='#142b3a';c.strokeStyle='#bfdbe0';c.lineWidth=.85;
   c.beginPath();c.ellipse(8.2,-.6,8.7,8.2,0,0,TAU);c.fill();c.stroke();
+  // Curved optical glass with a distinct highlight, dark edge and focal depth.
+  const visorGlass=c.createLinearGradient(0,-9,17,8);
+  visorGlass.addColorStop(0,'rgba(195,248,250,.83)');
+  visorGlass.addColorStop(.23,'rgba(78,185,203,.56)');
+  visorGlass.addColorStop(.65,'rgba(9,46,72,.86)');
+  visorGlass.addColorStop(1,'rgba(11,29,45,.93)');
+  c.fillStyle=visorGlass;c.beginPath();c.ellipse(8.2,-.6,7.5,6.8,0,0,TAU);c.fill();
+  c.fillStyle='rgba(220,251,247,.76)';c.beginPath();c.ellipse(6,-4.2,3.5,1.2,-.5,0,TAU);c.fill();
   c.fillStyle='#789eaa';c.beginPath();c.arc(12.6,-2.1,1.7,0,TAU);c.fill();
   c.strokeStyle='rgba(232,252,255,.92)';c.beginPath();c.arc(7,-.8,8,-.85,.95);c.stroke();
   // A narrow pressure collar ends below the hairline, keeping the human face readable.
@@ -183,6 +205,9 @@
   limb([15,-16],[31,-7],4.1,'#152b3a','#688391');
   limb([4,8],[15,17],5.5,'#192733','#698797');
   limb([15,17],[27,9],4.7,'#162c3b','#5d8191');
+  // Forearm reinforcement follows the rifle grip to reinforce the 2.5D suit.
+  c.strokeStyle='#7bbeca';c.lineWidth=1.1;c.beginPath();c.moveTo(15,17);
+  c.quadraticCurveTo(23,13,26,10);c.stroke();
   // White futuristic AK-profile rifle: ventilated receiver, pronounced stock,
   // curved magazine, trigger guard, optic and a long distinguishable barrel.
   // The muzzle glow and hit origin use BARREL_TIP_X, exactly the same coordinate.
@@ -197,7 +222,10 @@
   c.lineTo(10,-9);c.lineTo(3,-8);c.lineTo(3,-3);c.lineTo(10,1);
   c.lineTo(3,5);c.lineTo(4,10);c.lineTo(10,10);c.lineTo(19,6);c.stroke();
   // Dark inset receiver and luminous upper rail.
-  c.fillStyle='#223342';c.beginPath();c.roundRect(23,-3,19,8,1.8);c.fill();
+  const receiver=c.createLinearGradient(23,-3,42,8);
+  receiver.addColorStop(0,'#597e91');receiver.addColorStop(.28,'#23394c');
+  receiver.addColorStop(.8,'#102c41');receiver.addColorStop(1,'#527a91');
+  c.fillStyle=receiver;c.beginPath();c.roundRect(23,-3,19,8,1.8);c.fill();
   c.fillStyle='#f7fdff';c.fillRect(27,-7.5,14,1.7);
   c.fillStyle='#132635';c.beginPath();c.roundRect(33,-11,9,3.8,1);c.fill();
   c.fillStyle='#c5f7ff';c.fillRect(35,-11.3,5,1);
