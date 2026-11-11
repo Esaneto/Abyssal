@@ -27,7 +27,7 @@ const ROCKS := [
 
 # Seven geological arches; physical openings are passable water corridors.
 const PASSAGE_ARCHES := [
-	Vector2(4800.0, 1350.0), Vector2(6800.0, 2350.0),
+	Vector2(4800.0, 1350.0), Vector2(6800.0, 2000.0),
 	Vector2(10200.0, 3280.0), Vector2(13050.0, 3970.0),
 	Vector2(16500.0, 4850.0), Vector2(18900.0, 5200.0),
 	Vector2(21700.0, 6100.0)
