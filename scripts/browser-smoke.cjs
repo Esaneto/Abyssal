@@ -164,6 +164,10 @@ const injected=`<script>
       if(!box||box.hidden)throw Error('Hatch did not open cockpit '+JSON.stringify({menuHidden:document.getElementById('menuScreen')?.hidden,menuClass:document.getElementById('menuScreen')?.className,stageTransit:document.getElementById('menuOceanStage')?.dataset.abyssTransit,btn:Boolean(document.getElementById('submarineWorkshopBtn')),btnDisabled:document.getElementById('submarineWorkshopBtn')?.disabled,body:document.body.className,guideHidden:document.getElementById('abyssalGuide')?.hidden,workshopAPI:Boolean(window.AbyssalSubmarineCockpit),blockers:[...document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')].filter(el=>!el.hidden&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden').slice(0,8).map(el=>el.id)}));
       const canvas=document.getElementById('abyssCockpitCanvas');
       if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
+      const art=window.AbyssalSubmarineCockpit?.visualStatus?.();
+      if(!art?.panorama)throw Error('Cinematic ocean photo failed to decode');
+      if(innerWidth>=700&&!art?.deck)throw Error('Photographic instrument deck failed to decode');
+      document.body.dataset.cockpitArt=art.panorama+','+art.deck+','+art.mode;
       const keys=[...box.querySelectorAll('.abyss-control-key')];
       if(keys.length!==6)throw Error('Physical control keys: '+keys.length);
       const mineral=keys.find(b=>b.textContent.includes('MINÉRIOS'));
@@ -401,7 +405,7 @@ async function main(){
   if(process.argv.includes('--journal-only'))return;
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h] of [['cockpit-desktop',1280,720],['cockpit-mobile',390,844]]){
+  for(const [label,w,h] of [['cockpit-desktop',1280,720],['cockpit-tablet',900,600],['cockpit-wide',1600,900],['cockpit-mobile',390,844]]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];
@@ -410,7 +414,7 @@ async function main(){
    const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
    const error=dom.match(/data-cockpit-error="([^"]*)"/)?.[1];
    assert.equal(status,'ok',label+' failed cockpit integration: '+error);
-   console.log('[cockpit-smoke] '+label+' cards='+dom.match(/data-cockpit-cards="([^"]*)"/)?.[1]);
+   console.log('[cockpit-smoke] '+label+' cards='+dom.match(/data-cockpit-cards="([^"]*)"/)?.[1]+' photos='+dom.match(/data-cockpit-art="([^"]*)"/)?.[1]+' layout='+dom.match(/data-cockpit-layout="([^"]*)"/)?.[1]);
    const screenshot=path.join(output,label+'.png');
    await run(browser,[...flags,'--screenshot='+screenshot,cockpitURL]);
    assert.ok(fs.statSync(screenshot).size>10000,label+' cockpit screenshot missing');
