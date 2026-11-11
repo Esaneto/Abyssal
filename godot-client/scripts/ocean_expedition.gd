@@ -40,6 +40,7 @@ var deposits: RefCounted
 var visible_deposits: Array[Dictionary] = []
 var nearest_deposit: Dictionary = {}
 var extraction_time := 0.0
+var extraction_target_id := ""
 var resource_refresh := 0.0
 var chart_open := false
 var inventory_open := false
@@ -473,10 +474,16 @@ func _refresh_deposits() -> void:
 func _update_extraction(delta: float) -> void:
 	if progress == null or inventory_open or field_guide_open or chart_open:
 		extraction_time = 0.0
+		extraction_target_id = ""
 		return
 	if not Input.is_action_pressed("extract") or nearest_deposit.is_empty():
 		extraction_time = 0.0
+		extraction_target_id = ""
 		return
+	var current_id := str(nearest_deposit["id"])
+	if current_id != extraction_target_id:
+		extraction_target_id = current_id
+		extraction_time = 0.0
 	var required: String = deposits.tool_for(str(nearest_deposit["type"]))
 	if progress.selected_tool() != required:
 		extraction_time = 0.0
@@ -491,6 +498,7 @@ func _update_extraction(delta: float) -> void:
 		return
 	var result: Dictionary = progress.collect(nearest_deposit, diver.global_position, progress.selected_tool())
 	extraction_time = 0.0
+	extraction_target_id = ""
 	if result.get("ok", false):
 		_set_status("COLETADO: +%d %s" % [int(result["amount"]), str(ProgressScript.RESOURCE_NAMES.get(result["item"], result["item"]))])
 	else:
