@@ -61,7 +61,7 @@ static func atmosphere(c: Node2D, area: Rect2, t: float, solar: float, depth_m: 
 static func _fish(c: CanvasItem, p: Vector2, size: float, tint: Color) -> void:
 	UI.poly(c,[p+Vector2(-size,0),p+Vector2(-size*1.8,-size*0.8),
 		p+Vector2(-size*1.8,size*0.8)],tint)
-	UI.oval(c,p,Vector2(size,size*0.44),tint,14)
+	c.draw_circle(p,size*0.45,tint)
 
 static func reef_stone(c: CanvasItem, points: PackedVector2Array, light: float) -> void:
 	# Strata shading is tied to EXACT same outline used by the collision polygon.
