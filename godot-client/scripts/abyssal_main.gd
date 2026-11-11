@@ -86,7 +86,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var chosen: int = CabinArt.click_menu(pointer)
 		if chosen >= 0:
 			_choose_menu(chosen)
-		elif menu_selected == 2 and Rect2(592,406,485,57).has_point(pointer):
+		elif menu_selected == 2 and Rect2(592,406,485,57).has_point(Vector2((pointer.x-55.0)/0.95,pointer.y)):
 			_start_sea()
 
 func _choose_menu(index: int) -> void:
