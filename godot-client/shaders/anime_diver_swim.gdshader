@@ -39,7 +39,9 @@ void vertex() {
 }
 
 void fragment() {
-    vec4 px = texture(TEXTURE, UV);
+    // Fragment COLOR already includes the texture multiplied by vertex tint.
+    // This retains exact PNG colors while also honoring arc/particle alpha.
+    vec4 px = COLOR;
     if (px.a <= 0.001) {
         COLOR = px;
     } else {
