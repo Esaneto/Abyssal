@@ -36,11 +36,24 @@ func _capture() -> void:
 	for i in range(18):
 		await process_frame
 	_save_screen("mar-aberto-recife.png")
+	# Distinct depths and times for before/after visual review.
+	diver.position = Vector2(11200.0, 5000.0)
+	diver.call("recover")
+	world.sky_time = 145.0
+	for i in range(18):
+		await process_frame
+	_save_screen("mar-aberto-crepusculo.png")
 	diver.position = Vector2(16000.0, 9040.0)
+	diver.call("recover")
 	world.sky_time = 210.0
 	for i in range(18):
 		await process_frame
 	_save_screen("mar-aberto-profundezas.png")
+	diver.position = Vector2(21500.0, 16900.0)
+	diver.call("recover")
+	for i in range(18):
+		await process_frame
+	_save_screen("mar-aberto-abismo.png")
 	main.call("_unhandled_input", _escape_event())
 	for i in range(8):
 		await process_frame

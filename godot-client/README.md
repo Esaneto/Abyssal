@@ -29,6 +29,9 @@ Cliente nativo de testes, em desenvolvimento junto da versao JavaScript. O jogo 
 - Fundo e rochas colidiveis em um Mar Aberto de 24.000 x 21.000 unidades
 - Sete arcos de pedra navegaveis com geometria visual/colisao/sonar coincidente
 - Ciclo de dia/noite, luz dependente de profundidade, sedimentos e algas animadas
+- Materiais nativos texturizados por ruido procedural, estratos em rochas/arcos e distancia atmosferica em camadas
+- Cabine panoramica com metal, reflexos, lampadas localizadas e piloto de costas equipado com cilindro
+- Mergulhador com traje segmentado, nadadeiras articuladas e mascara, sem arma; HUD reposicionado sem sobreposicao de atalhos
 - Fauna inspirada em animais reais com escala minima de 40% do mergulhador
 - Inventario de minerios, amostras, picareta e cilindro, com coleta validada localmente
 - Pesquisas nativas para oxigenio, traje de pressao, lampada, salvamento, amostrador e sonar

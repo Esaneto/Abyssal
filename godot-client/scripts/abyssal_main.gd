@@ -2,6 +2,7 @@ extends Node2D
 ## Cinematic submarine bridge. The world/physics live in ocean_expedition.gd.
 const ExpeditionScript = preload("res://scripts/ocean_expedition.gd")
 const ProgressScript = preload("res://scripts/exploration_progress.gd")
+const Art = preload("res://scripts/cinematic_art.gd")
 var expedition: Node2D
 var progress: RefCounted
 var lab_open := false
@@ -103,6 +104,7 @@ func _draw() -> void:
 	var daylight := 0.53 + 0.47 * cos(TAU * time_s / 420.0)
 	draw_rect(Rect2(0, 0, W, H), Color(0.008, 0.015, 0.055, (1.0 - daylight) * 0.68))
 	_draw_cockpit()
+	Art.cabin_structure(self, time_s)
 	_draw_pilot(Vector2(640, 490))
 	_draw_console()
 	_draw_cabin_instruments(daylight)
@@ -114,42 +116,8 @@ func _draw() -> void:
 		_draw_laboratory()
 
 func _draw_ocean() -> void:
-	# Depth-graded seascape, with layered shafts and suspended particles.
-	for band in range(42):
-		var blend := float(band) / 42.0
-		var shade := Color("#127d98").lerp(Color("#031326"), blend)
-		draw_rect(Rect2(0, band * H / 42.0, W, H / 42.0 + 2), shade)
-	for ray in range(8):
-		var shift := sin(time_s * 0.24 + ray) * 23.0
-		var top := 100.0 + ray * 167.0
-		draw_colored_polygon(PackedVector2Array([
-			Vector2(top + shift, 0), Vector2(top + 31 + shift, 0),
-			Vector2(top + 320 + shift, H), Vector2(top + 200 + shift, H)
-		]), Color(0.16, 0.82, 0.88, 0.025))
-	for i in range(bubbles.size()):
-		var p := bubbles[i]
-		var x := p.x + sin(time_s * 0.8 + float(i)) * 8
-		var y := fposmod(p.y - time_s * (5.0 + float(i % 8) * 2.1), H)
-		draw_circle(Vector2(x, y), 0.9 + float(i % 3) * 0.5, Color(0.7, 0.98, 1, 0.19))
-	for i in range(14):
-		var x := 50.0 + float((i * 251) % 1200)
-		var y := 115.0 + float((i * 149) % 460)
-		var phase := time_s * (0.36 + float(i % 4) * 0.1)
-		_draw_fish(Vector2(x + sin(phase) * 42.0, y + cos(phase * 0.7) * 6.0), 0.6 + float(i % 4) * 0.13)
-
-func _draw_fish(pos: Vector2, scale_factor: float) -> void:
-	var xform := Transform2D(0.0, pos)
-	draw_set_transform_matrix(xform.scaled(Vector2(scale_factor, scale_factor)))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-13, 0), Vector2(-23, -8), Vector2(-21, 8)
-	]), Color("#205f76"))
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-15, 0), Vector2(-8, -6), Vector2(7, -7),
-		Vector2(17, 0), Vector2(7, 7), Vector2(-8, 6)
-	]), Color("#73c7ce"))
-	draw_line(Vector2(-8, -4), Vector2(10, -1), Color("#d0f7ee"), 1.0)
-	draw_circle(Vector2(10, -1), 1.7, INK)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+	# A living panoramic view; atmospheric art is drawn, not a static image.
+	Art.cabin_view(self, time_s)
 
 func _draw_cockpit() -> void:
 	# Layered bulkheads and window frames for a pseudo-3D underwater bridge.
@@ -178,31 +146,8 @@ func _draw_cockpit() -> void:
 			draw_rect(Rect2(px - 16, 183 + j * 27, 32, 4), AQUA.darkened(0.55))
 
 func _draw_pilot(pos: Vector2) -> void:
-	# Stylized bridge pilot assembled as separate shadow, suit, and face layers.
-	_draw_filled_ellipse(pos + Vector2(0, 90), Vector2(88, 20), Color(0, 0, 0, 0.35))
-	draw_colored_polygon(PackedVector2Array([
-		pos + Vector2(-41, 16), pos + Vector2(-70, 132),
-		pos + Vector2(70, 132), pos + Vector2(42, 16)
-	]), Color("#102735"))
-	draw_colored_polygon(PackedVector2Array([
-		pos + Vector2(-31, 19), pos + Vector2(-44, 112),
-		pos + Vector2(43, 112), pos + Vector2(30, 19)
-	]), Color("#28556a"))
-	for side in [-1.0, 1.0]:
-		draw_line(pos + Vector2(side * 27, 39), pos + Vector2(side * 54, 102), Color("#33576b"), 24)
-		draw_line(pos + Vector2(side * 23, 43), pos + Vector2(side * 48, 91), AQUA.darkened(0.65), 3)
-	# Hair rendered behind the face with warm highlights.
-	_draw_filled_ellipse(pos + Vector2(0, -43), Vector2(49, 69), Color("#281c20"))
-	_draw_filled_ellipse(pos + Vector2(-6, -47), Vector2(39, 54), Color("#664038"))
-	_draw_filled_ellipse(pos + Vector2(0, -38), Vector2(31, 39), Color("#dcab90"))
-	_draw_filled_ellipse(pos + Vector2(-10, -12), Vector2(18, 10), Color("#ba7b68"))
-	draw_line(pos + Vector2(-18, -44), pos + Vector2(-5, -43), INK, 2.8)
-	draw_line(pos + Vector2(7, -43), pos + Vector2(20, -44), INK, 2.8)
-	draw_circle(pos + Vector2(-11, -43), 2.5, Color("#263d43"))
-	draw_circle(pos + Vector2(13, -43), 2.5, Color("#263d43"))
-	draw_line(pos + Vector2(-4, -21), pos + Vector2(7, -21), Color("#9e6259"), 1.8)
-	draw_arc(pos + Vector2(0, -51), 42, PI * 1.05, PI * 1.93, 24, Color("#3d2927"), 17)
-	_draw_label("NF", pos + Vector2(-12, 83), 17, GOLD)
+	# Back-facing diver, integrated into seat, cylinders and control desk.
+	Art.cabin_pilot(self, pos, time_s)
 
 func _draw_console() -> void:
 	# Cockpit console is drawn last to occlude the pilot like physical foreground.
