@@ -385,6 +385,7 @@ func _draw() -> void:
 	ReefArt.gardens(self,area,time_s)
 	_draw_resources()
 	_draw_fauna(area)
+	ReefArt.foreground(self,area,time_s,depth_at_y(diver.position.y))
 	_draw_deep_visibility(area)
 	ReefArt.flashlight(self,diver.position,diver.is_facing_right,time_s,depth_at_y(diver.position.y))
 	_draw_hud()
