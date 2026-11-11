@@ -13,6 +13,7 @@ const SPECIES := [
 		"zone": "Zona iluminada", "min_m": 0.0, "max_m": 250.0,
 		"length_px": 260.0, "temperament": "Curiosa e pacifica",
 		"habitat": "Coluna de agua aberta, proxima de areas produtivas.",
+		"how_to_find": "Explore as correntes iluminadas, longe de rochas.",
 		"story": "Filtra plancton; suas asas desenham sombras enormes."
 	},
 	{
@@ -21,6 +22,7 @@ const SPECIES := [
 		"zone": "Zona iluminada", "min_m": 0.0, "max_m": 180.0,
 		"length_px": 111.0, "temperament": "Reservada",
 		"habitat": "Costas rasas, bancos de algas e areas oceanicas.",
+		"how_to_find": "Procure perto do talude raso e dos campos de algas.",
 		"story": "Cruza grandes distancias e retorna para respirar."
 	},
 	{
@@ -29,6 +31,7 @@ const SPECIES := [
 		"zone": "Coluna de agua", "min_m": 0.0, "max_m": 900.0,
 		"length_px": 85.0, "temperament": "Deriva com as correntes",
 		"habitat": "Agua aberta, em varias profundidades.",
+		"how_to_find": "Observe correntes e brilhos entre a superficie e a penumbra.",
 		"story": "Uma pulsacao delicada esconde tentaculos urticantes."
 	},
 	{
@@ -37,6 +40,7 @@ const SPECIES := [
 		"zone": "Penumbra", "min_m": 200.0, "max_m": 1000.0,
 		"length_px": 440.0, "temperament": "Esquivo",
 		"habitat": "Agua oceanica profunda, longe de recifes rasos.",
+		"how_to_find": "Desca alem de 200 m; observe silhuetas longas no vazio.",
 		"story": "Seu corpo prateado se move como uma fita sem fim."
 	},
 	{
@@ -45,6 +49,7 @@ const SPECIES := [
 		"zone": "Penumbra", "min_m": 300.0, "max_m": 1250.0,
 		"length_px": 87.0, "temperament": "Predador de emboscada",
 		"habitat": "Agua escura da zona mesopelagica e abaixo.",
+		"how_to_find": "Desca alem de 300 m e procure fotoforos na escuridao.",
 		"story": "Dentes exagerados e pontos luminosos no ventre."
 	},
 	{
@@ -53,6 +58,7 @@ const SPECIES := [
 		"zone": "Penumbra profunda", "min_m": 600.0, "max_m": 1100.0,
 		"length_px": 124.0, "temperament": "Defensiva e lenta",
 		"habitat": "Coluna de agua pobre em oxigenio, longe da luz.",
+		"how_to_find": "Entre 600 e 1000 m, observe movimentos lentos no escuro.",
 		"story": "Sua capa vermelha forma um guarda-chuva escuro."
 	},
 	{
@@ -61,6 +67,7 @@ const SPECIES := [
 		"zone": "Escuridao", "min_m": 750.0, "max_m": 1400.0,
 		"length_px": 97.0, "temperament": "Predador solitario",
 		"habitat": "Aguas profundas, onde a luz solar ja desapareceu.",
+		"how_to_find": "Alem de 750 m; pequenas iscas luminosas denunciam sua presenca.",
 		"story": "Uma isca luminosa chama criaturas para a mandibula."
 	},
 	{
@@ -69,6 +76,7 @@ const SPECIES := [
 		"zone": "Fundo profundo", "min_m": 220.0, "max_m": 1400.0,
 		"length_px": 95.0, "temperament": "Necrófago de fundo",
 		"habitat": "Sedimentos escuros e encostas profundas.",
+		"how_to_find": "Siga o solo nas profundezas e procure placas segmentadas.",
 		"story": "Uma armadura segmentada percorre o solo silencioso."
 	}
 ]
@@ -94,7 +102,7 @@ static func _oval(canvas: Node2D, c: Vector2, radii: Vector2, tint: Color) -> vo
 		vertices.append(c + Vector2(cos(a) * radii.x, sin(a) * radii.y))
 	canvas.draw_colored_polygon(vertices, tint)
 
-static func _poly(canvas: Node2D, vertices: Array[Vector2], tint: Color) -> void:
+static func _poly(canvas: Node2D, vertices: Array, tint: Color) -> void:
 	canvas.draw_colored_polygon(PackedVector2Array(vertices), tint)
 
 static func _line(canvas: Node2D, a: Vector2, b: Vector2, tint: Color, weight: float = 2.0) -> void:
