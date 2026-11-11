@@ -499,7 +499,9 @@ async function main(){
    assert.ok(fs.statSync(screenshot).size>20000,label+' visual gallery missing');
    console.log('[browser-smoke] '+label+' rendered '+actual+' scenes, '+fs.statSync(screenshot).size+' bytes');
   }
-  await realGameplaySmoke(browser,url);
+  // Full Fossa replay is retained as an isolated localhost regression for the
+  // frozen mode; public players still enter the classic Solo shooter only.
+  await realGameplaySmoke(browser,url+'?stage=deep');
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
 main().catch(err=>{console.error('[browser-smoke] '+err.stack);process.exitCode=1});
