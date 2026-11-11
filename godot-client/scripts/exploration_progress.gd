@@ -2,6 +2,7 @@ extends RefCounted
 ## Native OFFLINE expedition persistence. Never submit these values as online rewards.
 ## Item IDs and selected research recipes mirror public/abyssal-exploration-config.js.
 const SAVE_FILE := "user://abyssal_native_exploration_v1.json"
+const Appearance = preload("res://scripts/diver_appearance.gd")
 const MAX_STACK := 1000000
 const RESOURCE_NAMES := {
 	"abyssPickaxe": "Picareta abissal",
@@ -71,6 +72,7 @@ func _reset_defaults() -> void:
 		"observed": {},
 		"visited": {},
 		"selected_tool": "abyssPickaxe",
+		"appearance": Appearance.defaults(),
 		"last_position": [4150.0, 720.0],
 		"day_seconds": 0.0
 	}
@@ -140,6 +142,8 @@ func load_from_path(path: String) -> bool:
 			profile["visited"][key] = true
 	var selected := str(input_data.get("selected_tool", "abyssPickaxe"))
 	profile["selected_tool"] = selected if TOOL_IDS.has(selected) else "abyssPickaxe"
+	# Backward-compatible with all existing v1 saved games; never trust raw IDs.
+	profile["appearance"] = Appearance.normalize(input_data.get("appearance", {}))
 	var pos: Variant = input_data.get("last_position", [])
 	if pos is Array and pos.size() >= 2:
 		profile["last_position"] = [clampf(float(pos[0]), 70.0, 23900.0), clampf(float(pos[1]), 75.0, 20900.0)]
@@ -150,6 +154,21 @@ func load_from_path(path: String) -> bool:
 func _save() -> void:
 	if _auto_save:
 		save_to_path(SAVE_FILE)
+
+## Cosmetic data never grants stat upgrades, loot or online rewards.
+func appearance_snapshot() -> Dictionary:
+	return Appearance.normalize(profile.get("appearance", {}))
+
+func set_appearance(candidate: Dictionary) -> void:
+	profile["appearance"] = Appearance.normalize(candidate)
+	_save()
+
+func cycle_appearance(slot: String, offset: int = 1) -> bool:
+	if not Appearance.OPTIONS.has(slot):
+		return false
+	profile["appearance"] = Appearance.next_choice(appearance_snapshot(), slot, offset)
+	_save()
+	return true
 
 func get_count(item_id: String) -> int:
 	var inventory: Dictionary = profile["inventory"]
