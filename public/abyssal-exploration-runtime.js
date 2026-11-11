@@ -218,6 +218,32 @@
  window.addEventListener('abyssal-open-main-cockpit',openWorkshop);
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
+ // The command bridge is now the primary menu presentation. Existing hatch
+ // navigation remains available after a player explicitly closes the bridge.
+ let openedPrimaryCockpit=false;
+ function showPrimaryCockpit(){
+  if(openedPrimaryCockpit||!workshop)return;
+  const menu=document.getElementById('menuScreen');
+  if(!menu||menu.hidden||document.body.classList.contains('game-active'))return;
+  for(const id of ['ageTermsScreen','loginScreen']){
+   const modal=document.getElementById(id);
+   if(modal&&!modal.hidden)return;
+  }
+  openedPrimaryCockpit=true;openWorkshop();
+ }
+ window.addEventListener('load',()=>setTimeout(showPrimaryCockpit,180),{once:true});
+ for(const id of ['ageTermsScreen','menuScreen']){
+  const modal=document.getElementById(id);
+  if(modal&&typeof MutationObserver==='function'){
+   const observer=new MutationObserver(()=>setTimeout(showPrimaryCockpit,70));
+   observer.observe(modal,{attributes:true,attributeFilter:['hidden','style']});
+  }
+ }
+ window.addEventListener('abyssal-open-main-cockpit',()=>{
+  if(document.body.classList.contains('game-active'))return;
+  openedPrimaryCockpit=true;openWorkshop();
+ });
+
  workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeWorkshop();}});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
 
