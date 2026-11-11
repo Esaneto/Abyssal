@@ -17,7 +17,7 @@
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
  shell.appendChild(hud);
- hud.querySelector('.exploration-collect').hidden=true; // Mar Aberto only.
+ hud.querySelector('.exploration-collect').hidden=true; // Legacy extraction panel removed from visible gameplay; G and clicks still extract.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
@@ -744,7 +744,7 @@
  function tick(time){
   requestAnimationFrame(tick);
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p?.mode==='open-sea';document.body.classList.toggle('open-sea-exploration',active);hud.hidden=!active;inventoryUI()?.setActive(active);hud.querySelector('.exploration-collect').hidden=!active;
+  const p=cfg(),active=p?.mode==='open-sea';document.body.classList.toggle('open-sea-exploration',active);hud.hidden=!active;inventoryUI()?.setActive(active);hud.querySelector('.exploration-collect').hidden=true;
   if(!active){markers.hidden=true;runKey='';window.AbyssalGathering?.reset?.();return;}
   const expectedRun=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
   if(runKey!==expectedRun)startRun(p);

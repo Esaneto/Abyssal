@@ -1,0 +1,140 @@
+/* Abyssal cinematic color system, November 2026.
+ * Physical bevels and live sonar; no raster UI baked into the gameplay. */
+#submarineWorkshop.abyss-cockpit-screen{
+ --abyss-neon:#31e7ff;--abyss-amber:#ffb94f;
+ background:#081734!important;
+}
+#submarineWorkshop .abyss-cockpit-canvas{
+ filter:saturate(1.28) contrast(1.08) brightness(1.08);
+}
+#submarineWorkshop .abyss-cockpit-console{
+ background:linear-gradient(146deg,#52648e 0%,#253b66 11%,#17254b 28%,#0a1736 75%,#32476a 100%)!important;
+ border:5px solid #667eae!important;border-top:10px solid #91a9cf!important;
+ border-bottom:9px solid #162348!important;
+ box-shadow:
+  0 7px 0 #101d3a,0 23px 0 -9px #020918,
+  0 32px 56px #000c,0 0 36px #28e6ff38,
+  inset 0 3px 1px #c6d6ff94,inset 5px 0 12px #a9c9f522,
+  inset 0 -16px 16px #03091bbf!important;
+}
+#submarineWorkshop .abyss-cockpit-console:before{
+ height:6px;top:3px;background:linear-gradient(90deg,transparent 3%,#e8812c 19%,#fff1a2 50%,#ff9b31 81%,transparent 97%);
+ box-shadow:0 0 18px 4px #ff9d3970;
+}
+#submarineWorkshop .abyss-cockpit-visor{
+ border-color:#277eb4!important;border-top-color:#4eeaff!important;
+ background:radial-gradient(ellipse at 75% 0%,#125579 0%,#062a52 42%,#061128 90%)!important;
+ box-shadow:0 0 0 4px #071531,inset 0 0 30px #21eaff4d,0 9px 28px #000b!important;
+}
+#submarineWorkshop .abyss-visor-heading{
+ background:linear-gradient(90deg,#174c74,#0b244a 65%,#103659);
+ border-bottom:1px solid #30c9eb88;
+}
+#submarineWorkshop .abyss-visor-heading strong{color:#f1f9ff;text-shadow:0 0 12px #52c5ee6a}
+#submarineWorkshop .abyss-visor-heading small{color:#91edff}
+#submarineWorkshop .abyss-control-key{
+ border:2px solid #347fb8!important;border-top-color:#5bd9f5!important;border-bottom:5px solid #041228!important;
+ border-radius:8px!important;color:#edfbff!important;
+ background:linear-gradient(160deg,#245f85 0%,#133c69 35%,#091c42 100%)!important;
+ box-shadow:inset 0 1px 0 #b0f3ff6f,0 4px 0 #050e25,0 7px 12px #0008!important;
+}
+#submarineWorkshop .abyss-control-key .abyss-control-icon{color:#6defff!important;filter:drop-shadow(0 0 5px #00baff88)}
+#submarineWorkshop .abyss-control-key.is-active{
+ background:linear-gradient(155deg,#79602d,#584018 40%,#252a3c 100%)!important;
+ border-color:#ffd15d!important;border-top-color:#fff4b8!important;
+ box-shadow:inset 0 2px 0 #fff9ae8a,0 4px 0 #6b4114,0 0 19px #ffaf3cba!important;
+}
+#submarineWorkshop .abyss-control-key.is-active .abyss-control-icon{color:#ffda75!important}
+#submarineWorkshop .abyss-cockpit-exit{
+ border-color:#42cee9!important;background:linear-gradient(#1c4267,#0b2449)!important;
+ color:#e8fbff!important;box-shadow:inset 0 1px 0 #b1e5ff6e,0 4px 0 #061127!important;
+}
+#abyssalSonarShell[hidden]{display:none!important}
+#abyssalSonarShell{
+ position:fixed;z-index:140;
+ top:max(13px,env(safe-area-inset-top));
+ right:max(14px,env(safe-area-inset-right));
+ display:flex;flex-direction:column;align-items:flex-end;gap:7px;
+ width:min(248px,42vw);pointer-events:none;
+ font-family:Inter,'Manrope',system-ui,sans-serif;
+}
+#abyssalMiniMap{
+ box-sizing:border-box;width:100%;overflow:hidden;
+ border:3px solid #3eb4dd;border-top-color:#a5efff;border-bottom-color:#173a72;
+ border-radius:13px;background:#061a3d;
+ box-shadow:0 7px 0 #09142e,0 11px 25px #0009,inset 0 1px 0 #c9f9ff81,0 0 15px #19d9ff4d;
+ pointer-events:auto;
+}
+.abyss-sonar-head,.abyss-sonar-footer{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.abyss-sonar-head{
+ background:linear-gradient(180deg,#173c68,#081b3e);
+ padding:7px 9px 6px;color:#b8f3ff;font-size:10px;font-weight:800;letter-spacing:.09em
+}
+.abyss-sonar-head .abyss-sonar-status{color:#55ffc9;font-size:9px;letter-spacing:.02em}
+#abyssalMiniMap canvas{display:block;width:100%;height:auto;aspect-ratio:240/152;image-rendering:auto}
+.abyss-sonar-footer{padding:6px 7px;background:#081831;color:#b5deed;font-size:8px;font-weight:700}
+.abyss-sonar-footer span:nth-child(1)::before,.abyss-sonar-footer span:nth-child(2)::before{
+ content:'';display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:3px;
+}
+.abyss-sonar-footer span:nth-child(1)::before{background:#126c94}
+.abyss-sonar-footer span:nth-child(2)::before{background:#65577e}
+#abyssalHudToggle{
+ display:grid;place-items:center;width:42px;height:34px;border-radius:10px;
+ color:#e6fbff;border:2px solid #71dfff;border-bottom:4px solid #215a90;
+ background:linear-gradient(180deg,#194872,#081f49);font:900 26px/1 Inter,system-ui,sans-serif;
+ box-shadow:0 5px 12px #000a,0 0 12px #1bc4fa55;cursor:pointer;pointer-events:auto;
+}
+#abyssalHudToggle:hover,#abyssalHudToggle:focus-visible{outline:2px solid #ffc869;outline-offset:2px}
+body.abyss-hud-folded.open-sea-exploration #abyssalMiniMap{display:none!important}
+body.abyss-hud-folded.open-sea-exploration #gameShell > :not(#game):not(#abyssalSonarShell){
+ visibility:hidden!important;opacity:0!important;pointer-events:none!important
+}
+body.abyss-hud-folded.open-sea-exploration #app>.topbar,
+body.abyss-hud-folded.open-sea-exploration .topbar,
+body.abyss-hud-folded.open-sea-exploration #hud,
+body.abyss-hud-folded.open-sea-exploration .inventory-hotbar,
+body.abyss-hud-folded.open-sea-exploration .exploration-inventory{
+ visibility:hidden!important;opacity:0!important;pointer-events:none!important
+}
+@media(max-width:700px){
+ #abyssalSonarShell{top:max(9px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));width:min(168px,45vw)}
+ .abyss-sonar-head{padding:5px;font-size:8px;letter-spacing:0}
+ .abyss-sonar-head .abyss-sonar-status{font-size:7px}
+ .abyss-sonar-footer{font-size:7px;padding:5px 3px}
+ #abyssalHudToggle{width:39px;height:32px}
+ #submarineWorkshop .abyss-cockpit-console{border-width:3px!important;border-top-width:7px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #abyssalHudToggle,#submarineWorkshop .abyss-control-key{transition:none!important}
+}
+
+/* QA pass against the supplied 4:3 bridge concept: the active command
+ * monitor belongs in the middle of the bridge, not at the very bottom. */
+@media(min-width:701px){
+ #submarineWorkshop .abyss-cockpit-console{
+  left:55%!important;
+  bottom:clamp(150px,29dvh,315px)!important;
+  width:min(880px,64vw)!important;
+  height:clamp(325px,46dvh,500px)!important;
+  border-radius:31px 31px 23px 23px!important;
+  padding:14px 17px 13px!important;
+ }
+ #submarineWorkshop .abyss-cockpit-visor{
+  border-radius:17px!important;
+  box-shadow:0 0 0 6px #08172f,inset 0 0 29px #20e9ff33,0 13px 27px #010b1cae!important;
+ }
+ #submarineWorkshop .abyss-control-key{
+  min-height:69px!important;
+  box-shadow:inset 0 1px 0 #b8f7ff63,0 5px 0 #04112e,0 8px 12px #0008!important;
+ }
+}
+@media(min-width:701px) and (max-height:650px){
+ #submarineWorkshop .abyss-cockpit-console{
+  bottom:clamp(24px,15dvh,92px)!important;
+  height:clamp(240px,53dvh,360px)!important;
+ }
+ #submarineWorkshop .abyss-control-key{min-height:52px!important}
+}
+
+/* An open cockpit must not show the live exploration backpack behind its deck. */
+body:has(#submarineWorkshop:not([hidden])) #abyssInventoryRoot{display:none!important}

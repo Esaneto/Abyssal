@@ -24,8 +24,10 @@
    /^#[0-9a-fA-F]{6}$/.test(legacy)?legacy:LEGACY_COLORS[id]||'#688395';
   const cached=paletteCache.get(id);
   if(cached?.primary.toLowerCase()===hex.toLowerCase())return cached;
-  const p=Object.freeze({primary:hex,mid:mix(hex,-.12),dark:mix(hex,-.42),deep:mix(hex,-.68),
-   light:mix(hex,.36),highlight:mix(hex,.65),soft:alpha(hex,.72),veil:alpha(hex,.4)});
+  // Preserve each real Specimens catalog color, but lift midtones for the
+  // vivid biological silhouettes seen through shallow blue water.
+  const p=Object.freeze({primary:hex,mid:mix(hex,.06),dark:mix(hex,-.36),deep:mix(hex,-.62),
+   light:mix(hex,.49),highlight:mix(hex,.78),soft:alpha(hex,.79),veil:alpha(hex,.48)});
   paletteCache.set(id,p);return p;
  }
  function path(c,points,color){c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}
@@ -47,6 +49,19 @@
   path(c,[[-34,-19],[-7,-62], [8,-18]],p.mid);
   path(c,[[9,18],[-13,40],[-28,21]],p.dark);
   path(c,[[58,11],[74,13],[59,19]],p.deep);eye(c,60,-12);
+  // The gills, curved lateral line and translucent pectoral fins belong to a
+  // recognizable fish anatomy rather than a generic polygon monster.
+  path(c,[[-2,10],[22,29],[18,9]],alpha(p.light,.58));
+  c.strokeStyle=alpha(p.highlight,.60);c.lineWidth=1.5;c.beginPath();
+  c.moveTo(-69,-6);c.bezierCurveTo(-33,-16,12,-16,48,-10);c.stroke();
+  for(let j=0;j<4;j++){
+   c.strokeStyle=alpha(p.deep,.54);c.lineWidth=1.7;
+   c.beginPath();c.moveTo(28+j*5,-11);c.quadraticCurveTo(19+j*5,0,28+j*5,10);c.stroke();
+  }
+  c.strokeStyle=alpha(p.highlight,.40);c.lineWidth=1;c.beginPath();
+  c.moveTo(-49,13);c.bezierCurveTo(-16,23,24,21,52,11);c.stroke();
+  c.strokeStyle=p.deep;c.lineWidth=1.4;c.beginPath();
+  c.moveTo(68,5);c.quadraticCurveTo(80,8,85,2);c.stroke();
   if(species==='goblin'){path(c,[[77,-10],[116,-18],[83,-4]],p.highlight);}
   if(species==='frilled'){for(let j=0;j<5;j++)curve(c,[44-j*5,-17,43-j*5,-5,45-j*5,0,43-j*5,10],'#9f7777',1.2);}
   if(species==='blackdragon'||species==='viperfish'){for(let j=0;j<9;j++){c.fillStyle='#80d7d1';c.beginPath();c.arc(-58+j*14,14+Math.sin(j)*3,1.5,0,TAU);c.fill();}}
@@ -155,6 +170,11 @@
   }else{
    c.fillStyle=p.veil;c.beginPath();c.moveTo(-45,0);c.bezierCurveTo(-45,-68,55,-74,59,1);c.quadraticCurveTo(7,23,-45,0);c.fill();
    c.strokeStyle=alpha(p.highlight,.8);c.lineWidth=2;c.stroke();
+   // Bell thickness and internal radial chambers create a luminous volume.
+   c.strokeStyle=alpha(p.light,.45);c.lineWidth=2;c.beginPath();
+   c.ellipse(7,-5,42,27,0,Math.PI*1.05,Math.PI*1.94);c.stroke();
+   c.fillStyle=alpha(p.highlight,.23);
+   for(let i=0;i<5;i++){c.beginPath();c.ellipse(-21+i*13,-9,4,15,i*.05,0,TAU);c.fill();}
    for(let j=0;j<11;j++)curve(c,[-36+j*9,8,-44+j*9,32,-38+j*9,55+Math.sin(t*.002+j)*9,-30+j*9,88],alpha(p.mid,.43),1.4);
   }
  }
