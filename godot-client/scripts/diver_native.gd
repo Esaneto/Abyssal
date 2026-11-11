@@ -147,6 +147,14 @@ func _draw() -> void:
 		Vector2(-14, -13), Vector2(6, -13), Vector2(14, 2),
 		Vector2(-7, 7)
 	]), cloth.lightened(0.22))
+	# Three shaped armor plates are tinted by the equipped suit, not baked in.
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-21,-13),Vector2(-13,-16),Vector2(-5,3),Vector2(-13,11)
+	]),Color(accent.r,accent.g,accent.b,0.47))
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-7,-16),Vector2(5,-13),Vector2(16,-2),Vector2(9,7)
+	]),Color(0.56,0.81,0.91,0.22))
+	draw_line(Vector2(-23,-17),Vector2(15,-16),accent,1.5,true)
 	draw_line(Vector2(-25, -16), Vector2(-14, 13), seam, 1.8, true)
 	draw_line(Vector2(-8, -19), Vector2(5, 16), Color("#102735"), 4.0, true)
 	draw_line(Vector2(-12, 15), Vector2(13, 14), Color("#63838b"), 2.0, true)

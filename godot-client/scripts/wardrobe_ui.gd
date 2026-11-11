@@ -38,6 +38,17 @@ static func paint(c: CanvasItem, candidate: Dictionary, selected_row: int) -> vo
 		UI.panel(c,row,active,false)
 		UI.caption(c,str(Look.LABELS[slot]),Vector2(row.position.x+17,row.position.y+28),15,
 			Color("#f5e9ce") if active else Color("#b6e4eb"))
+		# Small dye chip makes the visual layer's current tint immediately obvious.
+		var palette: Dictionary = Look.palette(look)
+		var chip := Color("#2c8797")
+		match slot:
+			"hair", "hair_color": chip = palette["hair"]
+			"suit": chip = palette["cloth"]
+			"mask": chip = palette["visor"]
+			"handheld": chip = palette["accent"]
+			"body": chip = Color("#7fe6e7") if value=="female" else Color("#f1b774")
+		c.draw_circle(Vector2(793,row.position.y+23),9.0,Color(chip.r,chip.g,chip.b,0.18))
+		c.draw_circle(Vector2(793,row.position.y+23),5.3,chip)
 		UI.caption(c,Look.display_value(slot,value),Vector2(811,row.position.y+28),15,
 			Color("#ffdc90") if active else Color("#d7f9fd"))
 		UI.caption(c,"<",Vector2(1035,row.position.y+29),21,Color("#8dd6eb"))
