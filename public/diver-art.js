@@ -81,6 +81,12 @@
   c.beginPath();c.moveTo(-19,-7);c.bezierCurveTo(-7,-13,12,-13,20,-7);
   c.quadraticCurveTo(27,-1,20,9);c.bezierCurveTo(5,15,-9,12,-19,7);
   c.quadraticCurveTo(-23,-1,-19,-7);c.closePath();c.fill();c.stroke();
+  // Multi-plane satin armour reflection gives the tiny swimmer physical volume.
+  const plateShine=c.createLinearGradient(-17,-13,19,13);
+  plateShine.addColorStop(0,'rgba(190,249,247,.39)');
+  plateShine.addColorStop(.37,'rgba(86,186,206,.15)');
+  plateShine.addColorStop(1,'rgba(10,31,56,0)');
+  c.fillStyle=plateShine;c.beginPath();c.ellipse(1,-5,16,4.2,-.07,0,TAU);c.fill();
   // Anatomical shoulder guards frame the torso without changing its hitbox.
   for(const side of [-1,1]){
    c.fillStyle=side<0?'#1e4054':'#112a3c';c.strokeStyle='rgba(112,188,197,.49)';c.lineWidth=.9;
@@ -113,6 +119,9 @@
   c.fillStyle='rgba(220,251,247,.76)';c.beginPath();c.ellipse(6,-4.2,3.5,1.2,-.5,0,TAU);c.fill();
   c.fillStyle='#789eaa';c.beginPath();c.arc(12.6,-2.1,1.7,0,TAU);c.fill();
   c.strokeStyle='rgba(232,252,255,.92)';c.beginPath();c.arc(7,-.8,8,-.85,.95);c.stroke();
+  // Thin curving glass glint. It follows the existing visor, never changes anatomy.
+  c.strokeStyle='rgba(211,255,248,.75)';c.lineWidth=.85;c.beginPath();
+  c.ellipse(7,-.9,6,5.2,-.14,Math.PI*1.13,Math.PI*1.75);c.stroke();
   // A narrow pressure collar ends below the hairline, keeping the human face readable.
   c.fillStyle='#04080c';c.beginPath();c.moveTo(-10,-7);c.quadraticCurveTo(-3,-16,7,-13);
   c.quadraticCurveTo(10,-10,11,-9);c.quadraticCurveTo(3,-11,-3,-7);

@@ -352,3 +352,29 @@
  color:#bfdedb;font:800 9px/17px Inter,system-ui,sans-serif;letter-spacing:.055em
 }
 #submarineWorkshop .abyss-visor-scroll-hint[hidden]{display:none!important}
+
+
+/* Cinematic console finish: dark metal, restrained amber and cyan practicals. */
+#submarineWorkshop.abyss-cockpit-screen{background:#03101c!important}
+#submarineWorkshop .abyss-cockpit-console{
+ background:linear-gradient(135deg,#1a3145 0%,#0b2234 27%,#091d2e 67%,#254054 100%);
+ border-color:#45677b;border-top-color:#86adbc;
+ box-shadow:0 23px 50px #000c,0 0 34px #0bb9d01d,
+ inset 0 2px 0 #b8e2ed40,inset 0 -7px 16px #020913;
+}
+#submarineWorkshop .abyss-cockpit-visor{
+ border-color:#64899c;border-top-color:#a0c8d1;
+ background:radial-gradient(ellipse at 50% 0%,#14526b,#071e30 65%,#041420);
+ box-shadow:0 0 0 4px #051724,inset 0 0 24px #2ae0ed1a,0 9px 24px #000b;
+}
+#submarineWorkshop .abyss-control-key{
+ background:linear-gradient(158deg,#25536a 0%,#15384d 35%,#0a2032 100%);
+ border-color:#527f96;border-top-color:#7f9fae;
+}
+#submarineWorkshop .abyss-control-key:hover{filter:brightness(1.12)}
+#submarineWorkshop .abyss-cockpit-chrome{
+ background:linear-gradient(180deg,rgba(1,12,22,.9),rgba(1,12,22,0));
+}
+@media(prefers-reduced-motion:reduce){
+ #submarineWorkshop .abyss-control-key{transition:none!important}
+}

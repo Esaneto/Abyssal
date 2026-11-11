@@ -161,6 +161,8 @@
   light.addColorStop(.48,'rgba(41,169,206,.10)');
   light.addColorStop(1,'rgba(5,34,62,0)');
   c.fillStyle=light;c.fillRect(0,100,1440,480);
+  // Consistent cinema-grade color depth and distant cave arches from the approved visual direction.
+  window.AbyssalCinematicArt?.cabinBackdrop?.(c,t);
   // Underwater sun shafts terminate in gradually darkening water.
   for(let i=0;i<9;i++){
    const x=110+i*155+Math.sin(t*.00014+i)*6;
@@ -232,6 +234,7 @@
    c.globalAlpha=.15+(i%4)*.07;c.strokeStyle='#cbfaff';c.lineWidth=1;
    c.beginPath();c.arc(x,y,1+(i%3)*1.3,0,TAU);c.stroke();
   }c.globalAlpha=1;
+  window.AbyssalCinematicArt?.cabinForeground?.(c,t);
   const reflection=grad(0,95,0,570,[[0,'#c8f8ff28'],[.4,'#9ae8f808'],[1,'#04152840']]);
   c.fillStyle=reflection;c.fillRect(0,105,1440,465);c.restore();
  }
@@ -242,7 +245,8 @@
   c.moveTo(61,107);c.lineTo(1373,107);c.lineTo(1384,522);
   c.lineTo(1314,567);c.lineTo(122,567);c.lineTo(58,519);c.closePath();c.stroke();
   c.strokeStyle='#7a8b9d';c.lineWidth=11;c.stroke();
-  for(const x of [310,718,1124]){
+  // One uninterrupted central panoramic vista, supported by two structural side ribs.
+  for(const x of [310,1130]){
    poly([[x-12,107],[x+21,107],[x+32,557],[x-22,562]],'#293b50','#90a6b2',4);
    line(x-4,119,x+5,535,'#a9c3ca69',2);
   }
@@ -415,6 +419,7 @@
   c.save();c.translate(width/2-center*scale,(height-900*scale)/2);c.scale(scale,scale);
   c.fillStyle=grad(0,0,1440,900,[[0,'#182d42'],[.55,'#0c2237'],[1,'#040e1d']]);c.fillRect(0,0,1440,900);
   ceiling(t);windows(t);consoleBase(t);
+  window.AbyssalCinematicArt?.cabinInterior?.(c,t);
   // The chair & diver are part of the cockpit, not a pasted profile image.
   diver(t,compact);
   // The right co-pilot seat remains empty, as in a real command bridge.
