@@ -7,6 +7,29 @@ const WATER := Color("#0a5668")
 const ICE := Color("#7bc3c2")
 const STEEL := Color("#152c39")
 const GOLD := Color("#dd9b59")
+static var _stone_texture: Texture2D = null
+
+static func stone_texture() -> Texture2D:
+	if _stone_texture != null:
+		return _stone_texture
+	# CPU-generated once, then sampled by the renderer. No external art assets.
+	var coarse := FastNoiseLite.new()
+	coarse.seed = 184321
+	coarse.frequency = 0.039
+	var fine := FastNoiseLite.new()
+	fine.seed = 31781
+	fine.frequency = 0.21
+	var img := Image.create(192, 192, false, Image.FORMAT_RGBA8)
+	for y in range(192):
+		for x in range(192):
+			var low := coarse.get_noise_2d(float(x), float(y))
+			var high := fine.get_noise_2d(float(x), float(y))
+			var veins := sin(float(y) * 0.24 + low * 8.0) * 0.045
+			var v := clampf(0.62 + low * 0.23 + high * 0.15 + veins, 0.22, 0.95)
+			img.set_pixel(x, y, Color(v * 0.75, v * 0.86, v * 0.93, 1.0))
+	img.generate_mipmaps()
+	_stone_texture = ImageTexture.create_from_image(img)
+	return _stone_texture
 
 static func poly(canvas: CanvasItem, vertices: PackedVector2Array, tint: Color) -> void:
 	canvas.draw_colored_polygon(vertices, tint)
@@ -212,30 +235,33 @@ static func seafloor_material(canvas: CanvasItem, world: Node2D, area: Rect2, ti
 			canvas.draw_circle(Vector2(x + 5.0, floor_y + 14.0), 2.1, Color(0.19, 0.56, 0.51, 0.20))
 
 static func rock_material(canvas: CanvasItem, contour: PackedVector2Array, center: Vector2, radius: float, light: float, time_s: float) -> void:
-	# Radial triangular samples stay INSIDE the collision contour.
-	var base := Color("#122b39").lerp(Color("#375866"), clampf(light * 0.78 + 0.20, 0.0, 0.9))
-	poly(canvas, contour, base)
-	for i in range(contour.size()):
-		var a: Vector2 = contour[i]
-		var b: Vector2 = contour[(i + 1) % contour.size()]
-		var shade := clampf(0.50 + 0.25 * sin(float(i) * 2.13 + center.x * 0.004), 0.0, 1.0)
-		var tint := Color("#0a1c2c").lerp(Color("#58737c"), shade * (0.46 + light * 0.45))
-		poly(canvas, PackedVector2Array([
-			center + Vector2(radius * 0.07, radius * 0.05), a, b
-		]), tint)
-		if i % 3 == 0:
-			var p := center.lerp(a, 0.37)
-			var q := center.lerp(b, 0.77)
-			canvas.draw_line(p, q, Color(0.03, 0.12, 0.17, 0.55), 2.0, true)
-		if i % 5 == 0:
-			var p := center.lerp(a, 0.76)
-			var q := center.lerp(b, 0.80)
-			canvas.draw_line(p, q, Color(0.52, 0.76, 0.75, 0.09 + light * 0.20), 1.7, true)
-	# Quiet biological highlights are deliberately sparse.
-	if light < 0.18:
-		for k in range(3):
-			var p := center.lerp(contour[(k * 7 + 2) % contour.size()], 0.86)
-			canvas.draw_circle(p, 2.0 + sin(time_s * 0.5 + k) * 0.4, Color(0.22, 0.72, 0.74, 0.22))
+	# Organic noise-mapped stone, no repeated radial fan triangles.
+	var colors := PackedColorArray()
+	var uv := PackedVector2Array()
+	for vertex in contour:
+		var light_side := clampf(0.70 - (vertex.x - center.x) / (radius * 3.4) - (vertex.y - center.y) / (radius * 4.2), 0.26, 1.0)
+		var tint := Color("#4b6872").lerp(Color("#879b98"), clampf(light * 0.68, 0.0, 1.0))
+		colors.append(tint * (0.38 + light_side * 0.53))
+		uv.append((vertex - center) / (radius * 2.0) + Vector2(0.5, 0.5))
+	canvas.draw_polygon(contour, colors, uv, stone_texture(), true)
+	# Scattered irregular lamination: short, oblique and never all from one center.
+	for k in range(9):
+		var a := float(k) * 1.73 + center.x * 0.0007
+		var local := Vector2(cos(a) * radius * 0.38, sin(a * 1.13) * radius * 0.30)
+		var start := center + local
+		var bend := Vector2(radius * 0.13, radius * (0.03 + float(k % 3) * 0.019))
+		canvas.draw_line(start, start + bend,
+			Color(0.08, 0.18, 0.21, 0.24), 1.5 + float(k % 2), true)
+	# Attached sessile growth uses low energy at depth rather than scattered neon.
+	for k in range(4):
+		var p := center + Vector2(
+			sin(center.x * 0.01 + float(k) * 2.3) * radius * 0.57,
+			cos(center.y * 0.01 + float(k) * 1.8) * radius * 0.47)
+		if light > 0.22:
+			oval(canvas, p, Vector2(4.0 + float(k % 2) * 2, 2.8),
+				Color(0.25, 0.51, 0.37, 0.15 + light * 0.21), 12)
+		elif k % 2 == 0:
+			canvas.draw_circle(p, 1.7, Color(0.23, 0.72, 0.70, 0.14 + 0.08 * sin(time_s + k)))
 
 static func kelp_frond(canvas: CanvasItem, x: float, base: float, length: float, time_s: float, seed: float) -> void:
 	# One flexible stalk with translucent leaves, instead of a geometric fence.
