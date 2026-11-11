@@ -1,33 +1,42 @@
 # Abyssal | Exploracao Oceanica em Godot 4
 
-> Cliente nativo em desenvolvimento, independente da versao JavaScript. O jogo original e o backend Node.js/PostgreSQL continuam preservados.
+Cliente nativo de testes, em desenvolvimento junto da versao JavaScript. O jogo HTML/JS e o servidor Node.js + PostgreSQL continuam intactos.
 
 ## Abrir no Godot 4.7.2 (Windows)
-1. Baixe o repositorio na branch `feat/godot-client-foundation-20261111`.
-2. No Gerenciador de Projetos do Godot, escolha **Importar** e selecione `godot-client/project.godot`.
+1. Baixe o repositorio atualizado da branch `feat/godot-functional-exploration-parity-20261111` (ou da `main`, depois do merge).
+2. Importe `godot-client/project.godot` no Gerenciador de Projetos.
 3. Pressione **F5**.
 
-## Controles
-- **Enter:** deixar a cabine e iniciar a expedicao oceanica.
-- **WASD / setas:** nadar; soltar o controle permite sentir inercia e flutuabilidade.
-- **F:** registrar a criatura real mais proxima no diario de campo.
-- **Tab:** abrir/fechar o diario de campo e consultar a ultima descoberta.
-- **Esc:** retornar a cabine.
-- **Oxigenio:** retorna ao subir ate a superficie; esgota gradualmente quando submerso.
+## Controles da Cabine
+- **Enter**: entrar/retomar a expedicao
+- **L**: abrir/fechar o laboratorio de pesquisas
+- **1-6** (com laboratorio aberto): selecionar a tecnologia
+- **R**: pesquisar a tecnologia selecionada, se tiver os recursos
+- **Esc**: fechar o laboratorio
 
-## O que esta implementado
-- **Cabine** animada com instrumentos de sonar, iluminacao e ciclo de dia/noite de aproximadamente 7 minutos.
-- **Mar Aberto:** mundo de 24.000 x 14.000 *unidades de jogo*, geografia continental, plataformas e rochas colidiveis, carregamento visual por regiao ao redor da camera.
-- **Mergulhador:** `CharacterBody2D` com hitbox, `move_and_slide`, aceleracao, resistencia da agua, flutuabilidade, correntes leves, animacao corporal, oxigenio e dano por falta de oxigenio.
-- **Fauna:** 8 especies derivadas de animais reais, paletas e silhuetas proprias, animacao individual, localizacao influenciada pela profundidade e distancia ao fundo.
-- **Escala:** nenhuma criatura desenhada tem comprimento visual principal menor que 40% do mergulhador.
-- **Ambiente:** iluminacao dependente da profundidade, superficie ondulada, algas rasas, sedimento suspenso, penumbra e iluminacao da roupa de mergulho.
-- **Descobertas:** registros de fauna pelo jogador e metadados biologicos no diario, atualmente salvos apenas durante a sessao.
+## Controles do Mar Aberto
+- **WASD/setas**: nadar, com arrasto, inercia, corrente e flutuabilidade
+- **1**: equipar picareta | **2**: equipar cilindro de amostra reutilizavel
+- **Segurar G**: minerar/coletar em depositos proximos (1,9s para minerios, 2,6s para amostras)
+- **I**: inventario de exploracao
+- **M**: carta de navegacao e setores explorados
+- **F**: registrar a fauna mais proxima
+- **Tab**: diario de campo
+- **Esc**: voltar ao submarino e salvar ponto atual
 
-## O que esta fora desta etapa
-Shooter, Fossas, loja, servidores multiplayer, integracao com banco, inventario persistente, exportacoes Android e assets de acabamento artistico ainda nao foram migrados. A arte procedural nao e a referencia final de realismo.
+## Paridade implementada nesta etapa
+- Fundo e rochas colidiveis em um Mar Aberto de 24.000 x 21.000 unidades
+- Sete arcos de pedra navegaveis com geometria visual/colisao/sonar coincidente
+- Ciclo de dia/noite, luz dependente de profundidade, sedimentos e algas animadas
+- Fauna inspirada em animais reais com escala minima de 40% do mergulhador
+- Inventario de minerios, amostras, picareta e cilindro, com coleta validada localmente
+- Pesquisas nativas para oxigenio, traje de pressao, lampada, salvamento, amostrador e sonar
+- Persistencia **offline do Godot** em `user://abyssal_native_exploration_v1.json` para itens, tecnologias, fauna, mapa, posicao e hora do dia
+- Sonar e carta com terreno e exploracao de setores
 
-## Desenvolvimento/qualidade
-O workflow `.github/workflows/godot-native-smoke.yml` baixa Godot 4.7.2 e valida importacao de scripts, inicializacao e nado. Tambem tenta gravar capturas reais da cabine e de zonas do oceano com Xvfb. `scripts/ci_smoke.gd` exige a escala minima de toda a fauna catalogada.
+**Nao e uma migracao de contas nem do multiplayer.** Os dados do Godot sao locais e NAO sao creditados ao servidor Render. Shooter, Fossas, lojas antigas e PvP permanecem fora deste cliente por decisao de escopo.
 
-Diretrizes de arte e biologia em [docs/DIRECAO_ARTISTICA.md](docs/DIRECAO_ARTISTICA.md).
+## Validacao
+O workflow `.github/workflows/godot-native-smoke.yml` usa Godot 4.7.2. Ele valida cena, fisica, ferramentas, extracao temporizada, projetos do laboratorio, dados salvos, carta e colisoes dos arcos. Imagens reais sao capturadas sob Xvfb e salvas como artefatos do GitHub Actions.
+
+Veja [paridade funcional e itens pendentes](docs/PARIDADE_FUNCIONAL.md) e [direcao artistica](docs/DIRECAO_ARTISTICA.md).

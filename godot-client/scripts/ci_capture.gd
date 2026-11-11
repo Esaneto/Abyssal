@@ -10,11 +10,25 @@ func _capture() -> void:
 	for i in range(15):
 		await process_frame
 	_save_screen("cabine-dia.png")
+	main.call("_unhandled_input", _key_event(KEY_L))
+	for i in range(8):
+		await process_frame
+	_save_screen("cabine-laboratorio.png")
+	main.call("_unhandled_input", _key_event(KEY_L))
 	main.call("_start_sea")
 	for i in range(18):
 		await process_frame
 	_save_screen("mar-aberto-superficie.png")
 	var world := main.get_node("ExpedicaoOceanica")
+	world.call("_unhandled_input", _key_event(KEY_I))
+	for i in range(6):
+		await process_frame
+	_save_screen("mar-aberto-inventario.png")
+	world.call("_unhandled_input", _key_event(KEY_M))
+	for i in range(6):
+		await process_frame
+	_save_screen("mar-aberto-carta.png")
+	world.call("_unhandled_input", _key_event(KEY_M))
 	var diver := world.get_node("Mergulhador")
 	var camera := diver.get_node("CameraExploracao")
 	camera.position_smoothing_enabled = false
@@ -34,9 +48,12 @@ func _capture() -> void:
 	quit(0)
 
 func _escape_event() -> InputEventKey:
+	return _key_event(KEY_ESCAPE)
+
+func _key_event(code: Key) -> InputEventKey:
 	var event := InputEventKey.new()
 	event.pressed = true
-	event.keycode = KEY_ESCAPE
+	event.keycode = code
 	return event
 
 func _save_screen(filename: String) -> void:

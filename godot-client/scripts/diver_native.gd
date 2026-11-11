@@ -3,7 +3,7 @@ extends CharacterBody2D
 ## Colisoes Godot, nado com aceleracao/arrasto, flutuabilidade e correntes.
 signal diver_died
 
-const MAX_OXYGEN := 120.0
+const MAX_OXYGEN := 300.0
 const MAX_HEALTH := 100.0
 const MAX_SPEED := 245.0
 const SWIM_ACCELERATION := 620.0
@@ -11,7 +11,10 @@ const WATER_DRAG := 2.5
 const BUOYANCY := 28.0
 const SURFACE_Y := 75.0
 
+var oxygen_capacity := MAX_OXYGEN
+var safe_depth := 300.0
 var oxygen := MAX_OXYGEN
+var time_without_air := 0.0
 var health := MAX_HEALTH
 var swim_force := Vector2.ZERO
 var current_force := Vector2.ZERO
@@ -41,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	is_moving = steering.length_squared() > 0.02
 	if absf(steering.x) > 0.1:
 		is_facing_right = steering.x > 0.0
-	depth_m = maxf(0.0, (global_position.y - SURFACE_Y) / 10.0)
+	depth_m = clampf((global_position.y - SURFACE_Y) / (21000.0 - SURFACE_Y), 0.0, 1.0) * 2200.0
 	# Slow depth-dependent currents. The character does not move by teleport.
 	current_force = Vector2(
 		21.0 * sin(global_position.y * 0.0025 + time_s * 0.18),
@@ -56,22 +59,36 @@ func _physics_process(delta: float) -> void:
 	if global_position.y <= SURFACE_Y:
 		global_position.y = SURFACE_Y
 		velocity.y = maxf(velocity.y, 0.0)
-	if global_position.y >= 13940.0:
-		global_position.y = 13940.0
+	if global_position.y >= 20940.0:
+		global_position.y = 20940.0
 		velocity.y = minf(velocity.y, 0.0)
 	if global_position.y <= SURFACE_Y + 7.0:
-		oxygen = minf(MAX_OXYGEN, oxygen + 17.0 * delta)
+		oxygen = minf(oxygen_capacity, oxygen + oxygen_capacity * 0.65 * delta)
 	else:
-		oxygen = maxf(0.0, oxygen - (1.0 + depth_m / 1600.0) * delta)
+		oxygen = maxf(0.0, oxygen - delta)
 	if oxygen <= 0.0:
-		health = maxf(0.0, health - 11.0 * delta)
+		time_without_air += delta
+		health = maxf(0.0, health - minf(160.0, 9.0 + time_without_air * 3.0) * delta)
+	else:
+		time_without_air = 0.0
+	# Mirrors JS pressureSafety formula; these are game rules, not dive medicine.
+	if depth_m > safe_depth:
+		var excess := depth_m - safe_depth
+		var pressure_hazard := minf(160.0, 3.0 * pow(excess / 10.0, 1.55))
+		health = maxf(0.0, health - pressure_hazard * delta)
 	if health <= 0.0:
 		diver_died.emit()
 	queue_redraw()
 
+func configure_equipment(oxygen_level: int, suit_level: int) -> void:
+	oxygen_capacity = MAX_OXYGEN * (1.0 + float(clampi(oxygen_level, 0, 5)))
+	safe_depth = 300.0 + float(clampi(suit_level, 0, 5)) * 180.0
+	oxygen = minf(oxygen, oxygen_capacity)
+
 func recover() -> void:
-	oxygen = MAX_OXYGEN
+	oxygen = oxygen_capacity
 	health = MAX_HEALTH
+	time_without_air = 0.0
 	velocity = Vector2.ZERO
 
 func _draw() -> void:
