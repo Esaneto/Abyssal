@@ -31,6 +31,8 @@ jobs:
         run: ./godot --headless --path godot-client --editor --import
       - name: Verify cabin, ocean, diver and fauna
         run: ./godot --headless --path godot-client --script res://scripts/ci_smoke.gd
+      - name: Verify functional exploration parity and saved progress
+        run: ./godot --headless --path godot-client --script res://scripts/ci_functional_smoke.gd
       - name: Capture real Godot frames with virtual display
         continue-on-error: true
         shell: bash
