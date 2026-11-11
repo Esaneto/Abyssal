@@ -19,6 +19,21 @@
  const hasPhoto=()=>!!(photo?.complete&&photo.naturalWidth>0);
  const hasDeck=()=>!!(deckPhoto?.complete&&deckPhoto.naturalWidth>0);
  let active=false,frame=0,lastPaint=0,width=0,height=0,dpr=1,accountGender='male';
+ // Redraw when photographic layers become available. Without these handlers,
+ // the bridge can briefly keep the vector fallback after a slow image decode.
+ if(photo)photo.onload=()=>{if(active)scene(lastPaint||0);};
+ if(deckPhoto)deckPhoto.onload=()=>{if(active)scene(lastPaint||0);};
+ function ensureDeckPhoto(){
+  if(deckPhoto&&!deckRequested&&width>=700){
+   deckRequested=true;deckPhoto.decoding='async';
+   deckPhoto.src='abyssal-cabin-deck.webp';
+  }
+ }
+ function visualStatus(){
+  return {panorama:hasPhoto(),deck:hasDeck(),
+   mode:width<700?'compact':'desktop',
+   width:Math.round(width),height:Math.round(height)};
+ }
  function gender(){
   const direct=window.AbyssalDiverGender;
   if(direct==='male'||direct==='female')return direct;
@@ -139,6 +154,22 @@
     grad(x,113,x+130,555,[[0,'rgba(178,244,248,.14)'],[.55,'rgba(84,210,231,.033)'],[1,'rgba(70,197,214,0)']]));
   }c.restore();
  }
+ // Refracted surface light travels over the actual painted ocean instead of
+ // remaining baked into its texture. All shafts are confined to the glass.
+ function photographicWaterCaustics(t){
+  c.save();c.globalCompositeOperation='screen';
+  for(let i=0;i<5;i++){
+   const motion=Math.sin(t*.00031+i*1.63)*23;
+   const x=125+i*258+motion;
+   const light=grad(x,105,x+95,560,[
+    [0,'rgba(190,252,243,.115)'],
+    [.42,'rgba(91,222,238,.048)'],
+    [1,'rgba(30,144,181,0)']
+   ]);
+   poly([[x,105],[x+13,105],[x+143,551],[x+49,551]],light);
+  }
+  c.restore();
+ }
  function panoramicDetails(t){
   // Gentle reflections across the glazing, not a fullscreen translucent UI card.
   c.save();c.globalAlpha=.14;
@@ -235,6 +266,7 @@
    c.save();c.globalAlpha=1;c.imageSmoothingEnabled=true;
    c.imageSmoothingQuality='high';
    c.drawImage(photo,52,104,1336,456);c.restore();
+   photographicWaterCaustics(t);
    // Preserve independent moving sea-life without outlining the fauna already
    // present inside the painted scene or drawing a second stationary diver.
    c.save();c.globalAlpha=.32;
@@ -476,14 +508,11 @@
  function open(){
   if(screen.hidden)return;
   active=true;lastPaint=0;cancelAnimationFrame(frame);
-  if(deckPhoto&&!deckRequested&&screen.getBoundingClientRect().width>=700){
-   deckRequested=true;deckPhoto.decoding='async';
-   deckPhoto.src='abyssal-cabin-deck.webp';
-  }
+  size();ensureDeckPhoto();
   scene(0);frame=requestAnimationFrame(tick);
  }
  function close(){active=false;cancelAnimationFrame(frame);frame=0;}
  window.addEventListener('abyssal-account-data',e=>{accountGender=e.detail?.diverGender==='female'?'female':'male';});
- window.addEventListener('resize',()=>{if(active)size();});
- window.AbyssalSubmarineCockpit=Object.freeze({open,close});
+ window.addEventListener('resize',()=>{if(active){size();ensureDeckPhoto();scene(lastPaint||0);}});
+ window.AbyssalSubmarineCockpit=Object.freeze({open,close,visualStatus});
 })();
