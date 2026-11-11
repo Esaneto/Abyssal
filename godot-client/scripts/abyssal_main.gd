@@ -4,6 +4,8 @@ const ExpeditionScript = preload("res://scripts/ocean_expedition.gd")
 const ProgressScript = preload("res://scripts/exploration_progress.gd")
 const CabinArt = preload("res://scripts/native_cabin_art.gd")
 const UIArt = preload("res://scripts/ui_art_primitives.gd")
+const Wardrobe = preload("res://scripts/wardrobe_ui.gd")
+const Look = preload("res://scripts/diver_appearance.gd")
 var expedition: Node2D
 var progress: RefCounted
 var lab_open := false
@@ -11,6 +13,8 @@ var lab_selected := 0
 var lab_feedback := ""
 var menu_selected := 5
 var menu_feedback := ""
+var wardrobe_open := false
+var wardrobe_row := 0
 
 ## Native 2.5D presentation prototype. No production gameplay has been migrated yet.
 ## Kept independent from the existing Node.js/WebSocket server.
@@ -52,6 +56,19 @@ func _unhandled_input(event: InputEvent) -> void:
 				in_open_sea = false
 				expedition.call("end_expedition")
 			return
+		if wardrobe_open:
+			if event.keycode in [KEY_ESCAPE, KEY_C]:
+				wardrobe_open = false
+			elif event.keycode == KEY_UP:
+				wardrobe_row = posmod(wardrobe_row - 1, Look.SLOT_ORDER.size())
+			elif event.keycode == KEY_DOWN:
+				wardrobe_row = posmod(wardrobe_row + 1, Look.SLOT_ORDER.size())
+			elif event.keycode in [KEY_LEFT, KEY_RIGHT]:
+				_cycle_wardrobe(-1 if event.keycode==KEY_LEFT else 1)
+			elif event.keycode >= KEY_1 and event.keycode <= KEY_6:
+				wardrobe_row = clampi(int(event.keycode-KEY_1),0,Look.SLOT_ORDER.size()-1)
+			queue_redraw()
+			return
 		if lab_open:
 			if event.keycode in [KEY_ESCAPE, KEY_L]:
 				lab_open = false
@@ -59,6 +76,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				lab_selected = clampi(int(event.keycode - KEY_1),0,ProgressScript.SHOP_ORDER.size()-1)
 			elif event.keycode == KEY_R:
 				_study_selected()
+			return
+		if event.keycode == KEY_C:
+			wardrobe_open = true
+			queue_redraw()
 			return
 		if event.keycode == KEY_L:
 			_choose_menu(1)
@@ -74,6 +95,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and not in_open_sea:
 		var pointer := get_global_mouse_position()
+		if wardrobe_open:
+			var hit: Dictionary = Wardrobe.hit(pointer)
+			if hit.get("close", false):
+				wardrobe_open = false
+			elif hit.has("row"):
+				wardrobe_row = int(hit["row"])
+				if int(hit.get("delta",0))!=0:
+					_cycle_wardrobe(int(hit["delta"]))
+			queue_redraw()
+			return
 		if lab_open:
 			for k in range(ProgressScript.SHOP_ORDER.size()):
 				var px := 170.0 + float(k % 2) * 475.0
@@ -84,11 +115,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			if Rect2(918,469,226,50).has_point(pointer):
 				_study_selected()
 			return
+		if Rect2(1074,68,176,44).has_point(pointer):
+			wardrobe_open = true
+			queue_redraw()
+			return
 		var chosen: int = CabinArt.click_menu(pointer)
 		if chosen >= 0:
 			_choose_menu(chosen)
 		elif menu_selected == 2 and Rect2(592,406,485,57).has_point(Vector2((pointer.x-55.0)/0.95,pointer.y)):
 			_start_sea()
+
+func _cycle_wardrobe(direction: int) -> void:
+	if progress==null:
+		return
+	var slot: String = str(Look.SLOT_ORDER[wardrobe_row])
+	if progress.cycle_appearance(slot,direction):
+		if expedition != null and expedition.diver != null:
+			expedition.diver.set_appearance(progress.appearance_snapshot())
+		queue_redraw()
 
 func _choose_menu(index: int) -> void:
 	menu_selected = clampi(index,0,CabinArt.MENU.size()-1)
@@ -115,6 +159,7 @@ func _study_selected() -> void:
 func _start_sea() -> void:
 	in_open_sea = true
 	lab_open = false
+	wardrobe_open = false
 	expedition.set("sky_time", time_s)
 	expedition.call("begin_expedition")
 
@@ -122,6 +167,8 @@ func _draw() -> void:
 	if in_open_sea:
 		return
 	CabinArt.paint(self,time_s,menu_selected,progress,menu_feedback)
+	if wardrobe_open:
+		Wardrobe.paint(self,progress.appearance_snapshot(),wardrobe_row)
 	if lab_open:
 		_draw_laboratory()
 
