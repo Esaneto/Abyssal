@@ -119,6 +119,7 @@
  // Six actual console keys share one built-in display. They never create
  // duplicate floating menus on top of the submarine dashboard.
  const CONSOLE_BUTTONS=Object.freeze([
+  {id:'solo',name:'SHOOTER SOLO',symbol:'▶',title:'MERGULHO SOLO'},
   {id:'laboratory',name:'LABORATÓRIO',symbol:'⌬',title:'LABORATÓRIO ABISSAL'},
   {id:'minerals',name:'MINÉRIOS',symbol:'◆',title:'AMOSTRAS GEOLÓGICAS'},
   {id:'shop',name:'LOJA',symbol:'▣',title:'LOJA DE ESPÉCIMES'},
@@ -149,11 +150,15 @@
    key.className='abyss-control-key'+(option.id===activeConsoleSection?' is-active':'');
    key.setAttribute('aria-label',option.name);
    key.setAttribute('aria-pressed',String(option.id===activeConsoleSection));
+   if(option.id==='sea'||option.id==='rift')key.dataset.abyssLocked='true';
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';
    symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.textContent=option.name;
    key.append(symbol,name);
-   key.addEventListener('click',()=>{if(activeConsoleSection!==option.id){activeConsoleSection=option.id;renderWorkshop();}});
+   key.addEventListener('click',()=>{
+    if(option.id==='sea'||option.id==='rift'){window.AbyssalLaunchFocus?.notify?.();return;}
+    if(activeConsoleSection!==option.id){activeConsoleSection=option.id;renderWorkshop();}
+   });
    keys.append(key);
   }
   // Show scrolling guidance only when the actual monitor contains hidden rows.
@@ -187,6 +192,7 @@
    utility.append(note);
   }else{
    const pages={
+    solo:['SHOOTER SOLO','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR SHOOTER SOLO','playBtn'],
     shop:['LOJA DE ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ACESSAR LOJA','shopBtn'],
     specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABISSÁRIO','catalogBtn'],
     sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
@@ -207,8 +213,9 @@
   mountCockpitConsole(utility);
  }
 
- const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='laboratory';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
+ const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
+ window.addEventListener('abyssal-open-main-cockpit',openWorkshop);
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
  workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeWorkshop();}});

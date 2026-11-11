@@ -104,6 +104,7 @@
   }
   function playEntrance(s){
    if(!interactive()||!s||s.button.disabled||s.button.hidden)return;
+   if(window.AbyssalLaunchFocus?.isLocked?.(s.kind)){window.AbyssalLaunchFocus.notify();return;}
    held.clear();moveTarget=null;followPointer=null;joystickX=0;joystickY=0;
    transition={station:s,x:px,y:py,t:0,duration:s.kind==='lab'?1.28:s.kind==='rift'?1.04:.87};
    nearElapsed=0;nearStationId=null;
