@@ -234,6 +234,7 @@
    c.globalAlpha=.15+(i%4)*.07;c.strokeStyle='#cbfaff';c.lineWidth=1;
    c.beginPath();c.arc(x,y,1+(i%3)*1.3,0,TAU);c.stroke();
   }c.globalAlpha=1;
+  window.AbyssalCinematicArt?.cabinLiveWorld?.(c,t,window.AbyssalDiverArt,gender());
   window.AbyssalCinematicArt?.cabinForeground?.(c,t);
   const reflection=grad(0,95,0,570,[[0,'#c8f8ff28'],[.4,'#9ae8f808'],[1,'#04152840']]);
   c.fillStyle=reflection;c.fillRect(0,105,1440,465);c.restore();
@@ -338,8 +339,8 @@
  }
  function diver(t,compact=false){
   // Rear-facing seated pilot in the playable diver's dark blue and cyan suit.
-  const female=gender()==='female',x=compact?720:258,y=compact?200:453;
-  c.save();c.translate(x,y);c.scale(compact?.49:.81,compact?.49:.81);
+  const female=gender()==='female',x=compact?720:178,y=compact?200:413;
+  c.save();c.translate(x,y);c.scale(compact?.49:.59,compact?.49:.59);
   c.lineJoin='round';c.lineCap='round';chair(0,104,.95);
   poly([[-72,260],[-95,315],[-48,370],[22,382],[40,356],[-14,326]],'#142d48','#66869e',4);
   poly([[15,264],[64,301],[132,338],[158,318],[99,278],[70,251]],'#172e49','#65869f',4);

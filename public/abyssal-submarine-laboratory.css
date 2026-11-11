@@ -378,3 +378,21 @@
 @media(prefers-reduced-motion:reduce){
  #submarineWorkshop .abyss-control-key{transition:none!important}
 }
+
+
+/* Wide-screen 2.5D composition: preserve the panoramic sea instead of
+ * covering it with a huge floating tablet. Mobile keeps the large controls. */
+@media(min-width:701px){
+ #submarineWorkshop .abyss-cockpit-console{
+  left:50%!important;bottom:clamp(10px,1.4dvh,18px)!important;
+  width:min(1010px,82vw)!important;
+  height:clamp(226px,31dvh,304px)!important;
+  padding:11px 14px 10px!important;
+  border-width:4px!important;border-top-width:6px!important;
+  border-radius:24px 24px 18px 18px!important;
+ }
+ #submarineWorkshop .submarine-workshop-grid{
+  gap:7px!important;
+ }
+ #submarineWorkshop .abyss-control-key{min-height:54px!important}
+}
