@@ -11,6 +11,17 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(geo){
  'use strict';
  const TAU=Math.PI*2,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ // Small painterly atlas from the approved visual direction. It is loaded
+ // only for high-quality rendering, never on the map generation path.
+ let basaltTexture=null,basaltTextureRequested=false;
+ function rockMaterialFor(lowPower){
+  if(lowPower||typeof Image!=='function')return null;
+  if(!basaltTextureRequested){
+   basaltTextureRequested=true;basaltTexture=new Image();
+   basaltTexture.decoding='async';basaltTexture.src='abyssal-basalt-material.webp';
+  }
+  return basaltTexture?.complete&&basaltTexture.naturalWidth>=960?basaltTexture:null;
+ }
  function seeded(a,b){const n=Math.sin(a*127.1+b*311.7)*43758.5453123;return n-Math.floor(n);}
  // ─── Cinematic Color Palettes ────────────────────────────────────────
  const ROCK_PALETTE={
@@ -520,6 +531,7 @@
  }
  // ─── ROCKS — Angular geometric faces with rim highlights ───────────
  function drawRocks(ctx,left,top,right,bottom,lowPower=false){
+  const material=rockMaterialFor(lowPower);
   for(const rock of geo.ROCKS){
    if(rock.x+rock.rx+95<left||rock.x-rock.rx-95>right||rock.y+rock.ry+95<top||rock.y-rock.ry-95>bottom)continue;
    const lit=geo.lightAt(rock.y-rock.ry),seed=rock.x*.00031+rock.y*.00017;
@@ -572,6 +584,16 @@
    ctx.strokeStyle=pal.edge;ctx.lineWidth=2.4;ctx.stroke();
 
    ctx.save();ctx.clip();
+   // Collision-backed rock polygons are the mask. The material adds a
+   // painterly mineral/strata surface without placing fake solid obstacles.
+   if(material){
+    const texTile=Math.abs(Math.floor(seed*1709))%2;
+    ctx.save();ctx.globalAlpha=province==='coastal'?.52:.38;
+    ctx.globalCompositeOperation='soft-light';
+    ctx.drawImage(material,texTile*480,0,480,320,
+      rock.x-rock.rx,rock.y-rock.ry,rock.rx*2,rock.ry*2);
+    ctx.restore();
+   }
    // Localized natural rock illumination: highlights follow the actual
    // collision silhouette, while the core and bottom stay in shadow.
    const radial=ctx.createRadialGradient(

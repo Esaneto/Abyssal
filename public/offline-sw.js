@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-10-cockpit-mobile-clean-v115';
+const VERSION = '2026-11-10-painterly-basalt-v116';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -41,6 +41,7 @@ const GAME_FILES = [
   'abyssal-cinematic-art.js',
   'abyssal-cabin-ocean-hq.webp',
   'abyssal-cabin-deck.webp',
+  'abyssal-basalt-material.webp',
   'abyssal-open-sea-render.js',
   'abyssal-open-sea-lighting.js',
   'abyssal-exploration-config.js',
