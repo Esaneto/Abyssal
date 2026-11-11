@@ -107,11 +107,15 @@ static func coral(c: CanvasItem, foot: Vector2, sz: float, tint: Color, time_s: 
 		var end := foot + Vector2(spread+wind,-sz*(0.65+0.08*float(arm%3)))
 		var mid := foot + Vector2(spread*0.35,-sz*0.35)
 		c.draw_line(foot,mid,tint.darkened(0.35),maxf(1.5,sz*0.09),true)
+		c.draw_line(mid,end,Color(tint.r,tint.g,tint.b,0.10),maxf(3.0,sz*0.22),true)
 		c.draw_line(mid,end,tint,maxf(1.3,sz*0.052),true)
+		c.draw_line(mid+Vector2(1,-2),end+Vector2(1,-2),
+			Color(0.92,1.0,0.92,0.14),maxf(0.7,sz*0.017),true)
 		for j in range(2):
 			var dir := -1.0 if j==0 else 1.0
 			var a := mid.lerp(end,0.35+float(j)*0.24)
 			c.draw_line(a,a+Vector2(dir*sz*0.14,-sz*0.24),tint,1.7,true)
+		c.draw_circle(end,sz*0.077,Color(tint.r,tint.g,tint.b,0.13))
 		c.draw_circle(end,sz*0.033,tint.lightened(0.42))
 
 static func crystal(c: CanvasItem, center: Vector2, scale: float, color: Color) -> void:

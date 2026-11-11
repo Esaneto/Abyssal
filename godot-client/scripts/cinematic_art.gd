@@ -26,7 +26,7 @@ static func stone_texture() -> Texture2D:
 			var high := fine.get_noise_2d(float(x), float(y))
 			var veins := sin(float(y) * 0.24 + low * 8.0) * 0.045
 			var v := clampf(0.77 + low * 0.19 + high * 0.14 + veins, 0.39, 1.0)
-			img.set_pixel(x, y, Color(v * 0.89, v * 0.94, v * 1.0, 1.0))
+			img.set_pixel(x, y, Color(v * 0.48, v * 0.74, v * 0.94, 1.0))
 	img.generate_mipmaps()
 	_stone_texture = ImageTexture.create_from_image(img)
 	return _stone_texture

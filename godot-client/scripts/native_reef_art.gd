@@ -33,6 +33,18 @@ static func atmosphere(c: Node2D, area: Rect2, t: float, solar: float, depth_m: 
 		coords.append(Vector2(start+2028.0,22000.0))
 		coords.append(Vector2(start,22000.0))
 		c.draw_colored_polygon(coords,Color(0.06+float(layer)*0.016,0.23,0.37,0.20*surface))
+	# Faint interlocking arches create true background depth without adding fake
+	# physical passages. Collision remains entirely in ocean_expedition.gd.
+	var first_arch := int(floor(area.position.x / 1600.0)) - 1
+	for k in range(5):
+		var cell := first_arch + k
+		var px := float(cell) * 1600.0 + 760.0
+		var floor_y: float = float(c.call("_seafloor_y",clampf(px,0.0,23980.0)))
+		var arch_y := floor_y - 860.0 + 65.0 * sin(float(cell) * 1.7)
+		if arch_y < area.position.y - 340.0 or arch_y > area.end.y + 300.0:
+			continue
+		_distant_arch(c, Vector2(px,arch_y), 0.72 + 0.10 * float(posmod(cell,3)),
+			Color(0.025,0.19,0.31,0.18*surface))
 	# Remote drifting shoals; little silhouettes never compete with the foreground.
 	var start_cell := int(floor(area.position.x/640.0))
 	var first_row := int(floor(area.position.y/510.0))
@@ -58,6 +70,21 @@ static func atmosphere(c: Node2D, area: Rect2, t: float, solar: float, depth_m: 
 			c.draw_arc(Vector2(x+wave,y),38.0+float(k%3)*17.0,0.1,2.4,20,
 				Color(0.57,1.0,0.97,0.08*intensity),2.0,true)
 
+static func _distant_arch(c: CanvasItem, center: Vector2, scale: float, tint: Color) -> void:
+	# Five irregular stone masses; central opening remains visually clear.
+	c.draw_set_transform(center,0.0,Vector2(scale,scale))
+	UI.poly(c,[Vector2(-360,150),Vector2(-350,-90),Vector2(-285,-189),
+		Vector2(-206,-173),Vector2(-158,-65),Vector2(-178,34),Vector2(-161,150)],tint)
+	UI.poly(c,[Vector2(160,150),Vector2(182,-35),Vector2(151,-81),
+		Vector2(200,-178),Vector2(288,-193),Vector2(345,-77),Vector2(362,150)],tint)
+	UI.poly(c,[Vector2(-258,-186),Vector2(-173,-252),Vector2(-81,-235),
+		Vector2(5,-258),Vector2(122,-236),Vector2(216,-182),
+		Vector2(176,-93),Vector2(86,-112),Vector2(-6,-108),
+		Vector2(-121,-111),Vector2(-172,-97)],tint)
+	c.draw_line(Vector2(-153,-96),Vector2(159,-102),
+		Color(0.16,0.55,0.67,0.09),2.5,true)
+	c.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+
 static func _fish(c: CanvasItem, p: Vector2, size: float, tint: Color) -> void:
 	UI.poly(c,[p+Vector2(-size,0),p+Vector2(-size*1.8,-size*0.8),
 		p+Vector2(-size*1.8,size*0.8)],tint)
@@ -76,6 +103,17 @@ static func reef_stone(c: CanvasItem, points: PackedVector2Array, light: float) 
 	for vertex in points:
 		uvs.append((vertex-bounds.position)/Vector2(maxf(1,bounds.size.x),maxf(1,bounds.size.y)))
 	c.draw_polygon(points,palette,uvs,OriginalArt.stone_texture())
+	# Thin fractured strata in front of the textured mineral; local geometry only.
+	# All endpoints interpolate between points on the physical polygon, so this
+	# cannot introduce a perceived wall detached from the collider.
+	for j in range(mini(points.size(),14)):
+		if j%3 != 0:
+			continue
+		var base: Vector2 = points[j]
+		var inward := (bounds.get_center()-base)*0.17
+		var tangent: Vector2 = points[(j+1)%points.size()]-base
+		c.draw_line(base+inward,base+inward+tangent*0.35,
+			Color(0.025,0.12,0.21,0.31),2.2,true)
 	# Fine blue rim light follows upper edges; reflected cyan is localized.
 	for i in range(points.size()-1):
 		var a: Vector2 = points[i]

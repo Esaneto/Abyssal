@@ -212,7 +212,8 @@ static func paint(canvas: Node2D, species_id: String, pos: Vector2, direction: f
 					Vector2(x+7,y),Vector2(x+4,y+5),Vector2(x-3,y+5)],
 					Color("#346d72") if k%2==0 else Color("#508d80"))
 				canvas.draw_arc(Vector2(x,y),5.7,0,TAU,6,Color(0.78,0.94,0.63,0.62),1.2,true)
-			canvas.draw_arc(Vector2(-4,0),28,0,TAU,34,Color(0.73,0.99,0.78,0.60),1.9,true)
+			canvas.draw_arc(Vector2(-4,0),28,0,TAU,34,Color(0.16,0.93,0.86,0.10),6.5,true)
+			canvas.draw_arc(Vector2(-4,0),28,0,TAU,34,Color(0.73,0.99,0.78,0.70),1.9,true)
 			# Near forelimbs rhythmically lift through the water.
 			_poly(canvas,[Vector2(8,-9),Vector2(20,-25-flap),
 				Vector2(34,-32-flap),Vector2(31,-18-flap),
@@ -224,6 +225,8 @@ static func paint(canvas: Node2D, species_id: String, pos: Vector2, direction: f
 			# Tapered neck, observable eye and living head profile.
 			_oval(canvas,Vector2(24,0),Vector2(18,11),Color("#6dac98"))
 			_oval(canvas,Vector2(34,0),Vector2(12,9),Color("#9dc8a6"))
+			canvas.draw_arc(Vector2(34,0),11,PI*0.20,PI*1.72,17,
+				Color(0.78,0.99,0.85,0.45),1.5,true)
 			canvas.draw_circle(Vector2(38,-3),2.5,Color("#122b39"))
 			canvas.draw_circle(Vector2(38.6,-3.5),0.9,Color("#d5fff0"))
 			_line(canvas,Vector2(43,4),Vector2(48,3),Color("#386c70"),1.3)
