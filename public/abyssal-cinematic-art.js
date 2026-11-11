@@ -132,8 +132,9 @@
 
  // Camera-facing reef ledges, cinematic ocean fauna and a real animated
  // playable-diver renderer. All effects stay behind the command deck.
- function cabinLiveWorld(c,t,diverRenderer,gender){
+ function cabinLiveWorld(c,t,diverRenderer,gender,photographic=false){
   c.save();
+  if(!photographic){
   // Sculpted multi-plane rock platforms with separate top, side and shadow.
   const ledges=[
    {x:44,y:460,w:292,h:120,flip:1},
@@ -202,6 +203,7 @@
    if(y<114)continue;
    c.strokeStyle='rgba(181,243,247,'+(.15+.43*(1-drift/180)).toFixed(3)+')';
    c.lineWidth=1.25;c.beginPath();c.arc(x,y,1.1+i%3*1.1,0,TAU);c.stroke();
+  }
   }
   // Subtle animated optical glitter in the water and glass.
   for(let i=0;i<18;i++){

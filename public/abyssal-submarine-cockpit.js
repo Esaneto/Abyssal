@@ -8,6 +8,10 @@
  if(!screen||!canvas)return;
  const c=canvas.getContext('2d');if(!c)return;
  const TAU=Math.PI*2;
+ // The approved ABYSSAL cinematic panorama is an optimized local artwork.
+ // Keep the realtime Canvas scenery as the offline/slow-load fallback.
+ const photo=typeof Image==='function'?new Image():null;
+ if(photo){photo.decoding='async';photo.src='abyssal-cabin-ocean.webp';}
  let active=false,frame=0,lastPaint=0,width=0,height=0,dpr=1,accountGender='male';
  function gender(){
   const direct=window.AbyssalDiverGender;
@@ -219,6 +223,12 @@
    poly([[-108,-3],[-180,-54],[-170,39]],'#092d55');
    poly([[-18,-21],[35,-92],[56,-18]],'#092d55');c.restore();
   }
+  // Photo-art and original environmental simulation are layered,
+  // never baked over the HTML command controls.
+  if(photo?.complete&&photo.naturalWidth>0){
+   c.save();c.globalAlpha=.97;
+   c.drawImage(photo,52,104,1336,456);c.restore();
+  }
   for(let i=0;i<9;i++){
    const x=((i*271+t*.012*(1+i%3*.25))%1640)-90;
    fish(x,181+(i*79)%244,.34+(i%3)*.11,t,i);
@@ -234,7 +244,7 @@
    c.globalAlpha=.15+(i%4)*.07;c.strokeStyle='#cbfaff';c.lineWidth=1;
    c.beginPath();c.arc(x,y,1+(i%3)*1.3,0,TAU);c.stroke();
   }c.globalAlpha=1;
-  window.AbyssalCinematicArt?.cabinLiveWorld?.(c,t,window.AbyssalDiverArt,gender());
+  window.AbyssalCinematicArt?.cabinLiveWorld?.(c,t,window.AbyssalDiverArt,gender(),!!(photo?.complete&&photo.naturalWidth>0));
   window.AbyssalCinematicArt?.cabinForeground?.(c,t);
   const reflection=grad(0,95,0,570,[[0,'#c8f8ff28'],[.4,'#9ae8f808'],[1,'#04152840']]);
   c.fillStyle=reflection;c.fillRect(0,105,1440,465);c.restore();

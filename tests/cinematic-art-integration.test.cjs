@@ -21,6 +21,7 @@ test('cinematic lighting has viewport-bounded scenes and does not mutate gamepla
  assert.doesNotThrow(()=>art.cabinForeground(c,1200));
  assert.doesNotThrow(()=>art.cabinInterior(c,1500));
  assert.doesNotThrow(()=>art.cabinLiveWorld(c,1700,{draw(){}},'female'));
+ assert.doesNotThrow(()=>art.cabinLiveWorld(c,1700,{draw(){}},'female',true));
  assert.doesNotThrow(()=>art.seaAtmosphere(c,{left:0,top:0,width:1280,height:720},1800,false,geo));
  assert.doesNotThrow(()=>art.seaHighlights(c,{left:0,top:0,width:1280,height:720},1800,false,geo));
  assert.doesNotThrow(()=>art.seaAtmosphere(c,{left:23000,top:17000,width:400,height:500},1800,true,geo));
@@ -34,6 +35,8 @@ test('paint passes are connected to the live cockpit, Open Sea and asset cache v
  assert.match(cabin,/AbyssalCinematicArt\?\.cabinForeground/);
  assert.match(cabin,/AbyssalCinematicArt\?\.cabinInterior/);
  assert.match(cabin,/AbyssalCinematicArt\?\.cabinLiveWorld/);
+ assert.match(cabin,/photo\.naturalWidth/);
+ assert.match(read('public/offline-sw.js'),/abyssal-cabin-ocean\.webp/);
  assert.match(ocean,/AbyssalCinematicArt\?\.seaAtmosphere/);
  assert.match(ocean,/AbyssalCinematicArt\?\.seaHighlights/);
  assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-open-sea-render.js'));
