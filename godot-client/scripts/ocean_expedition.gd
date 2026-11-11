@@ -286,6 +286,9 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 				if pool.is_empty():
 					continue
 				var species: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
+				# Solitary oceanic giants should not cluster in schools.
+				if species["id"] == "manta" and (cx + cy * 3 + j) % 5 != 0:
+					species = pool[(rng.randi_range(0, pool.size() - 1) + 1) % pool.size()]
 				if species["id"] == "isopod":
 					base.y = _seafloor_y(base.x) - 35.0
 				var phase := time_s + float(seed_value + j) * 0.7
@@ -375,7 +378,7 @@ func _draw_deep_visibility(area: Rect2) -> void:
 
 func _draw_hud() -> void:
 	# Draw at the visible camera center so labels stay attached to the screen.
-	var p := diver.position
+	var p := camera.get_screen_center_position()
 	var x := p.x - 680.0
 	var y := p.y - 376.0
 	draw_rect(Rect2(x + 18, y + 14, 431, 119), Color(0.018, 0.069, 0.10, 0.88))
