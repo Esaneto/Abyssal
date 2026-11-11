@@ -71,7 +71,7 @@ static func reef_stone(c: CanvasItem, points: PackedVector2Array, light: float) 
 	var palette := PackedColorArray()
 	for vertex in points:
 		var t := clampf((bounds.end.y-vertex.y)/maxf(1.0,bounds.size.y),0.0,1.0)
-		palette.append(Color("#527b9b").lerp(Color("#aed0d4"),clampf(0.18+t*0.51+light*0.25,0.0,0.88)))
+		palette.append(Color("#294f70").lerp(Color("#5b91a7"),clampf(0.18+t*0.46+light*0.19,0.0,0.78)))
 	var uvs := PackedVector2Array()
 	for vertex in points:
 		uvs.append((vertex-bounds.position)/Vector2(maxf(1,bounds.size.x),maxf(1,bounds.size.y)))
