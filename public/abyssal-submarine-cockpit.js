@@ -99,6 +99,36 @@
   }
   c.restore();
  }
+ // Volumetric cliff faces and living gardens outside the real glass.
+ function exteriorReef(x,base,w,h,mirror){
+  c.save();c.translate(x,base);c.scale(mirror,1);
+  const outline=[[0,0],[-w*.98,-h*.12],[-w*.87,-h*.44],[-w*.68,-h*.58],
+   [-w*.53,-h*.84],[-w*.34,-h*.73],[-w*.17,-h*.78],[0,-h*.46]];
+  poly(outline,grad(-w,-h,0,0,[[0,'#236b83'],[.32,'#174d66'],[.8,'#0b2c44'],[1,'#071b30']]),'rgba(107,206,216,.35)',3);
+  poly([outline[2],outline[3],outline[4],[-w*.60,-h*.38]],'#24657b');
+  poly([outline[4],outline[5],outline[6],[-w*.37,-h*.42]],'#17475e');
+  poly([outline[6],outline[7],[0,0],[-w*.2,-h*.26]],'#102d43');
+  for(let k=0;k<5;k++){
+   const px=-w*(.82-k*.15),py=-h*(.18+(k%3)*.10);
+   c.strokeStyle='rgba(129,211,217,.19)';c.lineWidth=2;
+   c.beginPath();c.moveTo(px-39,py+17);c.lineTo(px+5,py-9);c.lineTo(px+49,py+5);c.stroke();
+  }
+  for(const [px,py,color] of [[-.72,-.58,'#a77da8'],[-.48,-.76,'#5da58b'],[-.25,-.70,'#cb9e6a']]){
+   c.save();c.translate(px*w,py*h);c.strokeStyle=color;c.lineWidth=3;c.lineCap='round';
+   for(let i=0;i<5;i++){const dx=(i-2)*12,hh=22+i%3*10;
+    c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(dx*.4,-hh*.65,dx,-hh);c.stroke();
+    c.fillStyle=color;c.beginPath();c.arc(dx,-hh,2.7,0,TAU);c.fill();}
+   c.restore();
+  }c.restore();
+ }
+ function reflectedWater(t){
+  c.save();c.globalCompositeOperation='screen';
+  for(let i=0;i<7;i++){
+   const x=160+i*177+Math.sin(t*.00026+i)*17;
+   poly([[x,111],[x+22,111],[x+175,555],[x+81,555]],
+    grad(x,113,x+130,555,[[0,'rgba(178,244,248,.14)'],[.55,'rgba(84,210,231,.033)'],[1,'rgba(70,197,214,0)']]));
+  }c.restore();
+ }
  function panoramicDetails(t){
   // Gentle reflections across the glazing, not a fullscreen translucent UI card.
   c.save();c.globalAlpha=.14;
@@ -162,6 +192,10 @@
   c.strokeStyle='rgba(74,157,164,.12)';c.lineWidth=7;
   c.beginPath();c.moveTo(796,557);c.bezierCurveTo(839,372,961,365,1087,553);c.stroke();
 
+  // Rock formations occupy near, middle and far planes outside the bridge.
+  exteriorReef(500,570,600,290,1);
+  exteriorReef(1020,560,580,330,-1);
+  reflectedWater(t);
   // Bottom foreground rock terraces and reef, seen through the window.
   poly([[0,445],[100,405],[230,476],[325,461],[485,548],[600,550],[0,580]],'#0d4a6e');
   poly([[880,555],[1010,497],[1110,463],[1258,489],[1440,404],[1440,585]],'#0f4365');
@@ -218,6 +252,9 @@
    rr(x-8,112,15,405,6,'#344b60','#8ba2b0',2);
   }
   panoramicDetails(t);
+  // Physically reflective outer glass follows the panorama's large curved pane.
+  c.save();c.strokeStyle='rgba(187,230,235,.15)';c.lineWidth=2;
+  c.beginPath();c.moveTo(110,142);c.bezierCurveTo(457,122,1041,130,1360,144);c.stroke();c.restore();
   // Bottom sill physically extends into the control dashboard.
   poly([[36,550],[705,574],[1403,548],[1440,585],[1440,622],[0,622],[0,585]],'#273a51','#7895a6',4);
   line(110,558,1310,560,'#edb96c',5);
@@ -272,6 +309,11 @@
    c.beginPath();c.arc(x,662,3.2,0,TAU);c.fill();
   }c.globalAlpha=1;
   line(215,888,1210,888,'#5c7d91',5);
+  // Faceted steel dash and specular trim beneath the physical controls.
+  poly([[245,707],[1180,707],[1281,782],[172,782]],
+   grad(300,700,900,815,[[0,'rgba(94,148,168,.29)'],[.5,'rgba(33,67,91,.49)'],[1,'rgba(5,21,37,.6)']]),
+   'rgba(146,187,192,.34)',2);
+  line(280,724,1120,724,'rgba(175,225,229,.21)',2);
   // Instrument panel plinth and live submarine operating indicators.
   rr(312,649,823,26,8,'#0c1e2c','#627b87',2);
   c.font='700 11px sans-serif';c.textAlign='left';
