@@ -164,6 +164,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			field_guide_open = true
 			inventory_open = false
 			chart_open = false
+		else:
+			# ESC must reach the submarine scene instead of being swallowed.
+			return
 		get_viewport().set_input_as_handled()
 
 func _build_terrain_collision() -> void:
