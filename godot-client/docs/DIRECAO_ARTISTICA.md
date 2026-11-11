@@ -53,3 +53,8 @@ O prototipo permite ate ~1.400 m simulados em 14.000 unidades de mapa (10 unidad
 - NOAA isopodes: https://oceanexplorer.noaa.gov/ocean-fact/isopod/
 - MBARI lula-vampira: https://www.mbari.org/animal/vampire-squid/
 - Smithsonian Ocean: https://ocean.si.edu/
+
+## Revisao visual implementada (2026-11-11)
+A referencia ambiental e da cabine foi traduzida para cenas dinamicas Godot, nao capturas de tela fixas. Recifes, texturas, causticas, interface, corpo e luzes sao renderizados e animados separadamente.
+Loja e Fossas continuam na versao web. A progressao solo e as funcoes de laboratorio e exploracao mantem-se operacionais sem alterar multiplayer ou servidor.
+Auditoria: native_cabin_art.gd, native_reef_art.gd, native_ocean_hud.gd, ui_art_primitives.gd, assets/art/cabin_navigator.svg e as capturas reais do workflow Godot Native Client Smoke.
