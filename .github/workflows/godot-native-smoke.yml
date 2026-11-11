@@ -31,3 +31,22 @@ jobs:
         run: ./godot --headless --path godot-client --editor --import
       - name: Verify cabin, ocean, diver and fauna
         run: ./godot --headless --path godot-client --script res://scripts/ci_smoke.gd
+      - name: Capture real Godot frames with virtual display
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+          mkdir -p captures
+          GODOT_CAPTURE_DIR="$PWD/captures" xvfb-run -a -s "-screen 0 1280x720x24" \
+            ./godot --path godot-client --rendering-driver opengl3 \
+            --script res://scripts/ci_capture.gd
+          ls -lh captures
+      - name: Store Godot visual comparison captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abyssal-godot-captures
+          path: captures/*.png
+          if-no-files-found: ignore
