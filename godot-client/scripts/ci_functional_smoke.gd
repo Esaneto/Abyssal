@@ -94,6 +94,16 @@ func _run_tests() -> void:
 	if not world.active:
 		_fail("Mar Aberto nao entrou", 25)
 		return
+	for arch in world.PASSAGE_ARCHES:
+		if not world.is_navigable(arch + Vector2(0.0, 20.0), 23.0):
+			_fail("Uma passagem rochosa esta bloqueada no meio", 33)
+			return
+		if world.is_navigable(arch + Vector2(265.0, 15.0), 8.0):
+			_fail("Suporte rochoso atravesavel indevidamente", 34)
+			return
+		if world.is_navigable(arch + Vector2(0.0, -157.0), 8.0):
+			_fail("Teto rochoso sem colisao", 35)
+			return
 	var event := InputEventKey.new()
 	event.keycode = KEY_I
 	event.pressed = true
