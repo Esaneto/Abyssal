@@ -135,8 +135,9 @@ func _run_tests() -> void:
 	restored.select_tool(tool)
 	var node_id := str(world.nearest_deposit["id"])
 	Input.action_press("extract")
-	for i in range(180):
-		await process_frame
+	# Engine headless can render faster than 60 FPS; use actual elapsed game time,
+	# not a fixed frame count, to validate the two-second extraction duration.
+	await create_timer(3.2).timeout
 	Input.action_release("extract")
 	if not restored.was_collected(node_id):
 		_fail("Segurar G nao concluiu a extracao nativa", 32)
