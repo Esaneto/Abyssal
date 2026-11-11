@@ -544,36 +544,157 @@ func _draw_deep_visibility(area: Rect2) -> void:
 		]), Color(0.12, 0.67, 0.69, 0.026))
 
 func _draw_hud() -> void:
-	# Draw at the visible camera center so labels stay attached to the screen.
-	var p := camera.get_screen_center_position()
-	var x := p.x - 680.0
-	var y := p.y - 376.0
-	draw_rect(Rect2(x + 18, y + 14, 431, 119), Color(0.018, 0.069, 0.10, 0.88))
-	_text("ABYSSAL  |  EXPEDICAO OCEANICA", Vector2(x + 31, y + 38), 18, Color("#c9f7f4"))
-	_bar(Vector2(x + 32, y + 54), 285.0, diver.oxygen / diver.MAX_OXYGEN, Color("#52cddb"))
-	_text("O2", Vector2(x + 329, y + 66), 15, Color("#b8ece9"))
-	_bar(Vector2(x + 32, y + 81), 285.0, diver.health / diver.MAX_HEALTH, Color("#e9ac8b"))
-	_text("VIDA", Vector2(x + 329, y + 93), 15, Color("#b8ece9"))
-	_text("PROFUNDIDADE: %.0f m   |   LUZ: %d%%" % [diver.depth_m, int(_sunlight() * 100.0)],
-		Vector2(x + 31, y + 119), 14, Color("#c9f7f4"))
+	# HUD uses Camera2D center but is drawn after darkness and world scenery.
+	var center := camera.get_screen_center_position()
+	var x := center.x - 680.0
+	var y := center.y - 376.0
+	draw_rect(Rect2(x + 18, y + 14, 472, 141), Color(0.018, 0.069, 0.10, 0.91))
+	_text("ABYSSAL  |  EXPLORACAO NATIVA", Vector2(x + 31, y + 38), 18, Color("#c9f7f4"))
+	_bar(Vector2(x + 32, y + 54), 290.0, diver.oxygen / diver.oxygen_capacity, Color("#52cddb"))
+	_text("O2 %ds" % int(diver.oxygen), Vector2(x + 336, y + 66), 15, Color("#b8ece9"))
+	_bar(Vector2(x + 32, y + 81), 290.0, diver.health / diver.MAX_HEALTH, Color("#e9ac8b"))
+	_text("VIDA", Vector2(x + 336, y + 93), 15, Color("#b8ece9"))
+	_text("PROF. %.0f m  |  LIMITE %d m  |  PRESSAO %.1f atm" % [
+		diver.depth_m, int(diver.safe_depth), 1.0 + diver.depth_m / 10.0
+	], Vector2(x + 31, y + 121), 15, Color("#c9f7f4"))
+	_text("SOL %d%%  |  DESCOBERTAS %d" % [int(_sunlight() * 100.0), discovered.size()],
+		Vector2(x + 31, y + 146), 14, Color("#85d9dc"))
+	if diver.depth_m > diver.safe_depth:
+		_text("PRESSAO CRITICA! SUBA OU APRIMORE O TRAJE", Vector2(x + 390, y + 170), 18, Color("#f5b26a"))
+	if not nearest_deposit.is_empty():
+		var kind := str(nearest_deposit["type"])
+		var required: String = Deposits.tool_for(kind)
+		var name: String = str(progress.RESOURCE_NAMES.get(kind, kind)) if progress != null else kind
+		_text("G  EXTRAIR: %s  [%s]" % [name, "2" if required == "emptyCylinder" else "1"],
+			Vector2(x + 350, y + 312), 18, Color("#f9d99b"))
+		if extraction_time > 0.0:
+			_bar(Vector2(x + 353, y + 324), 270.0, extraction_time / Deposits.duration_for(kind), Color("#e9b574"))
 	if not nearest.is_empty():
-		_text("F  OBSERVAR: %s" % nearest["name"], Vector2(x + 360, y + 345), 20, Color("#f9d99b"))
-	_text("WASD: NADAR   |   SUPERFICIE: OXIGENIO   |   TAB: DIARIO   |   ESC: CABINE",
-		Vector2(x + 32, y + 740), 17, Color("#cff7ec"))
-	if field_guide_open:
-		draw_rect(Rect2(x + 735, y + 22, 620, 231), Color(0.013, 0.048, 0.076, 0.94))
-		_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 757, y + 52), 22, Color("#f9d99b"))
-		var chosen: Dictionary = Ecology.get_species(last_observed_id)
-		if chosen.is_empty():
-			_text("Aproxime-se de um animal e pressione F.", Vector2(x + 757, y + 91), 17, Color("#c9f7f4"))
-		else:
-			_text(chosen["name"], Vector2(x + 757, y + 89), 20, Color("#c9f7f4"))
-			_text(chosen["scientific"], Vector2(x + 757, y + 118), 16, Color("#84c4cc"))
-			_text(chosen["habitat"], Vector2(x + 757, y + 149), 14, Color("#c9f7f4"))
-			_text(chosen["how_to_find"], Vector2(x + 757, y + 174), 14, Color("#a7e6d0"))
-			_text(chosen["story"], Vector2(x + 757, y + 198), 14, Color("#c9f7f4"))
-		_text("ESPECIES REGISTRADAS: %d / %d" % [discovered.size(), Ecology.SPECIES.size()],
-			Vector2(x + 757, y + 225), 16, Color("#f9d99b"))
+		_text("F  OBSERVAR: %s" % nearest["name"], Vector2(x + 350, y + 356), 18, Color("#b4eeeb"))
+	if time_s < status_until:
+		_text(status_message, Vector2(x + 350, y + 405), 18, Color("#e9c491"))
+	_draw_sonar(x, y)
+	_draw_quick_tools(x, y)
+	_text("WASD NADAR   G EXTRAIR   F OBSERVAR   I INVENTARIO   M MAPA   TAB DIARIO   ESC CABINE",
+		Vector2(x + 24, y + 740), 15, Color("#cff7ec"))
+	if inventory_open:
+		_draw_inventory_panel(x, y)
+	elif chart_open:
+		_draw_navigation_chart(x, y)
+	elif field_guide_open:
+		_draw_field_guide(x, y)
+
+func _draw_quick_tools(x: float, y: float) -> void:
+	if progress == null:
+		return
+	var selected := progress.selected_tool()
+	for i in range(2):
+		var id := "abyssPickaxe" if i == 0 else "emptyCylinder"
+		var p := Vector2(x + 565.0 + float(i) * 140.0, y + 661.0)
+		var chosen := id == selected
+		draw_rect(Rect2(p, Vector2(133, 56)), Color("#0e4657") if chosen else Color("#092b3a"))
+		draw_rect(Rect2(p + Vector2(3, 3), Vector2(127, 50)),
+			Color("#194e5b") if chosen else Color("#113846"))
+		_text(str(i + 1) + " | " + ("PICARETA" if i == 0 else "CILINDRO"),
+			p + Vector2(8, 24), 14, Color("#f6d5a1") if chosen else Color("#a5d7dc"))
+		_text("REUTILIZAVEL", p + Vector2(8, 44), 11, Color("#8bbfc7"))
+
+func _draw_sonar(x: float, y: float) -> void:
+	var w := 234.0
+	var h := 135.0
+	var p := Vector2(x + 1106.0, y + 20.0)
+	draw_rect(Rect2(p, Vector2(w, h)), Color(0.015, 0.074, 0.103, 0.96))
+	_text("SONAR  /  RELEVO", p + Vector2(12, 21), 15, Color("#b8eef0"))
+	for yi in range(9):
+		for xi in range(19):
+			var sx := (float(xi) + 0.5) / 19.0
+			var sy := (float(yi) + 0.5) / 9.0
+			var sample := diver.position + Vector2((sx - 0.5) * (1840.0 + 260.0 * _sonar_level()),
+				(sy - 0.5) * (1080.0 + 170.0 * _sonar_level()))
+			var solid := not is_navigable(sample, 0.0)
+			draw_rect(Rect2(p.x + 10 + float(xi) * 11.2, p.y + 31 + float(yi) * 10.2, 11.5, 10.5),
+				Color("#546072") if solid else Color("#15556a"))
+	draw_circle(p + Vector2(w * 0.5, 78.0), 5.0, Color("#ffcb77"))
+	_text("M: MAPA COMPLETO", p + Vector2(27, 128), 13, Color("#a8dadd"))
+
+func _sonar_level() -> int:
+	return progress.research_level("sonar") if progress != null else 0
+
+func _draw_inventory_panel(x: float, y: float) -> void:
+	var p := Vector2(x + 315, y + 175)
+	draw_rect(Rect2(p, Vector2(740, 408)), Color(0.013, 0.058, 0.082, 0.96))
+	draw_rect(Rect2(p + Vector2(8, 8), Vector2(724, 391)), Color("#0d3443"))
+	_text("INVENTARIO DE EXPLORACAO  [I FECHA]", p + Vector2(25, 41), 24, Color("#f1d29e"))
+	_text("1 PICARETA   |   2 CILINDRO   |   G SEGURAR PARA EXTRAIR",
+		p + Vector2(25, 69), 15, Color("#aedede"))
+	var order := ["abyssPickaxe", "emptyCylinder", "seaMineral", "phosphorite",
+		"ferromanganeseCrust", "polymetallicNodule", "hydrothermalSulfide",
+		"oilCylinder", "gasCylinder", "salvageMetal", "deepCrystal"]
+	if progress == null:
+		return
+	for i in range(order.size()):
+		var id: String = order[i]
+		var col := i % 2
+		var row := int(i / 2)
+		var pos := p + Vector2(24.0 + float(col) * 350.0, 105.0 + float(row) * 43.0)
+		draw_rect(Rect2(pos, Vector2(333, 37)), Color("#123d4b"))
+		draw_rect(Rect2(pos + Vector2(5, 6), Vector2(23, 23)), Deposits.color_for(id))
+		_text(str(progress.RESOURCE_NAMES.get(id, id)), pos + Vector2(37, 25), 14, Color("#cde9e8"))
+		_text("x%d" % progress.get_count(id), pos + Vector2(280, 25), 14, Color("#f5d2a6"))
+	_text("FERRAMENTA EQUIPADA: %s" % str(progress.RESOURCE_NAMES.get(progress.selected_tool(), "")),
+		p + Vector2(26, 382), 15, Color("#f5d2a6"))
+
+func _draw_navigation_chart(x: float, y: float) -> void:
+	if progress == null:
+		return
+	var p := Vector2(x + 310.0, y + 129.0)
+	var chart := Rect2(p, Vector2(750, 485))
+	draw_rect(chart, Color(0.012, 0.059, 0.084, 0.97))
+	draw_rect(Rect2(p + Vector2(17, 57), Vector2(716, 388)), Color("#0a384c"))
+	_text("CARTA DE NAVEGACAO  |  SETORES EXPLORADOS  [M FECHA]",
+		p + Vector2(20, 36), 19, Color("#f5d2a6"))
+	var plot := Rect2(p + Vector2(38, 77), Vector2(670, 335))
+	for cy in range(18):
+		for cx in range(20):
+			if not progress.has_visited(cx, cy):
+				continue
+			var q := plot.position + Vector2(float(cx) / 20.0 * plot.size.x, float(cy) / 18.0 * plot.size.y)
+			draw_rect(Rect2(q, Vector2(plot.size.x / 20.0 - 1, plot.size.y / 18.0 - 1)),
+				Color("#186d7b"))
+	var bottom_points := PackedVector2Array()
+	for i in range(101):
+		var sx := float(i) / 100.0 * MAP_W
+		var ground := _seafloor_y(sx)
+		bottom_points.append(plot.position + Vector2(float(i) / 100.0 * plot.size.x,
+			clampf(ground / MAP_H, 0.0, 1.0) * plot.size.y))
+	for i in range(bottom_points.size() - 1):
+		draw_line(bottom_points[i], bottom_points[i + 1], Color("#a2adb0"), 2.2)
+	for rock in ROCKS:
+		var rp: Vector2 = rock["pos"]
+		draw_circle(plot.position + Vector2(rp.x / MAP_W * plot.size.x, rp.y / MAP_H * plot.size.y),
+			maxf(2.0, float(rock["radius"]) / MAP_W * plot.size.x), Color("#8b8190"))
+	var marker := plot.position + Vector2(diver.position.x / MAP_W * plot.size.x,
+		diver.position.y / MAP_H * plot.size.y)
+	draw_circle(marker, 5.5, Color("#ffd78e"))
+	draw_arc(marker, 12, 0, TAU, 28, Color("#d1f3e9"), 1.6)
+	_text("POSICAO: %.0f / %.0f   |   %.0f m  |  +%d REGISTROS" %
+		[diver.position.x, diver.position.y, diver.depth_m, discovered.size()],
+		p + Vector2(31, 460), 15, Color("#cde9e8"))
+
+func _draw_field_guide(x: float, y: float) -> void:
+	draw_rect(Rect2(x + 735, y + 22, 610, 243), Color(0.013, 0.048, 0.076, 0.95))
+	_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 756, y + 53), 20, Color("#f9d99b"))
+	var chosen: Dictionary = Ecology.get_species(last_observed_id)
+	if chosen.is_empty():
+		_text("Aproxime-se de uma especie e pressione F.", Vector2(x + 756, y + 91), 16, Color("#c9f7f4"))
+	else:
+		_text(chosen["name"], Vector2(x + 756, y + 86), 20, Color("#c9f7f4"))
+		_text(chosen["scientific"], Vector2(x + 756, y + 112), 16, Color("#84c4cc"))
+		_text(chosen["habitat"], Vector2(x + 756, y + 146), 14, Color("#c9f7f4"))
+		_text(chosen["how_to_find"], Vector2(x + 756, y + 172), 14, Color("#a7e6d0"))
+		_text(chosen["story"], Vector2(x + 756, y + 196), 14, Color("#c9f7f4"))
+	_text("ESPECIES REGISTRADAS: %d / %d" % [discovered.size(), Ecology.SPECIES.size()],
+		Vector2(x + 756, y + 234), 16, Color("#f9d99b"))
 
 func _bar(pos: Vector2, width: float, ratio: float, tint: Color) -> void:
 	draw_rect(Rect2(pos.x, pos.y, width, 14), Color("#173843"))
