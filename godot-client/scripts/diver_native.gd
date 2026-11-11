@@ -112,6 +112,7 @@ func _draw() -> void:
 		var direction := 1.0 if is_facing_right else -1.0
 		draw_set_transform(Vector2.ZERO,0.0,Vector2(direction,1.0))
 		Anime.draw_swimmer(self,appearance)
+		Anime.draw_bubbles(self,appearance,time_s)
 		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 		return
 	elif _anime_material != null:
