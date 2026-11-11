@@ -55,11 +55,15 @@ jobs:
         run: npm ci
       - name: Validate game, server and specimen syntax
         run: |
+          node --check public/abyssal-pet-tactics.js
+          node --check public/abyssal-solo-cavern.js
           node --check public/specimen-system.js
           node --check public/rift-wildlife.js
           node --check public/game.js
           node --check server.js
           node --check scripts/browser-smoke.cjs
+      - name: Validate Solo pet tactics and physical cave geometry
+        run: node --test tests/pet-tactics-solo.test.cjs tests/solo-cavern-collisions.test.cjs
       - name: Validate biological data and independent visual themes
         run: node --test tests/specimen-journal-biology.test.cjs tests/creature-biological-scale.test.cjs tests/rift-wildlife-controls.test.cjs
       - name: Run focused Chromium journal, laboratory and specimen visual smoke

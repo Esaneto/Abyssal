@@ -167,6 +167,7 @@ function ensureSoloMap(){
  return activeMapLayout;
 }
 function mapResolveMove(fromX,fromY,toX,toY,padding=0){
+ if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&arenaRocks.length)return SOLO_CAVERN.resolve(arenaRocks,fromX,fromY,toX,toY,padding);
  if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY)return OCEAN_GEOGRAPHY.resolveMove(fromX,fromY,toX,toY,padding);
  if(!activeMapLayout||onlineRoomMode==='pvp'||!ABYSSAL_MAP)return {x:toX,y:toY,blocked:false};
  return ABYSSAL_MAP.resolveMove(activeMapLayout,fromX,fromY,toX,toY,padding);
@@ -365,6 +366,7 @@ const skinData=[
 const SkinAbilities=window.AbyssalSkinAbilities;
 const SKIN_STANDARD=window.AbyssalSkinStandard;
 const SPECIMEN_EVASION=window.AbyssalSpecimenEvasion;
+const SOLO_CAVERN=window.AbyssalSoloCavern;
 const PET_TACTICS=window.AbyssalPetTactics;
 const PET_HABIT_KEY='abyssalPetHabit';
 let petHabit=PET_TACTICS?.normalize?.(localStorage.getItem(PET_HABIT_KEY))||'passive';
@@ -773,6 +775,7 @@ function createArenaRocks(){
  for(let x=offset;x<W;x+=spacing){addBoundary(x,24/worldZoom,'top',index++);addBoundary(x,H-24/worldZoom,'bottom',index++);}
  for(let y=offset;y<H;y+=spacing){addBoundary(24/worldZoom,y,'left',index++);addBoundary(W-24/worldZoom,y,'right',index++);}
  for(const [x,y] of [[offset,offset],[W-offset,offset],[offset,H-offset],[W-offset,H-offset]])addBoundary(x,y,'corner',index++);
+ if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN)arenaRocks.push(...SOLO_CAVERN.buildRocks(W,H));
 }
 
 // Controle Interativo de Volume
@@ -2584,7 +2587,7 @@ function updateSpecimenRuntime(dt){
  const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.biologicalStats(equippedSkin).speed/GAME_WORLD_ZOOM)*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
-  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)})});
+  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,radius+3/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
  if(move){
   s.x=move.x;s.y=move.y;
   if(Math.hypot(move.x-pos.x,move.y-pos.y)>.01){
@@ -2647,7 +2650,7 @@ function update(dt){
    }
    if(isPcMouseAimMode())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);player.weaponAngle=player.angle;updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
+   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}if(!((!isMobileDevice()&&controlSettings.pc==='wasd-aim')||(isMobileDevice()&&controlSettings.mobile==='dual-stick')))player.angle=Math.atan2(my,mx);player.weaponAngle=player.angle;updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
    // Tiny cosmetic bubbles disperse quickly. They do not deal damage or use networking.
    diverBubbleClock+=dt;
    if(diverBubbleClock>=.075){
@@ -3041,6 +3044,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }else{
    if(enemyParalyzedNow(e)){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
   }
+  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const moved=SOLO_CAVERN.resolve(arenaRocks,beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(5,e.r*.62));e.x=moved.x;e.y=moved.y;}
   if(false&&!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
    const corrected=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));
    e.x=corrected.x;e.y=corrected.y;
@@ -3065,7 +3069,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // Uniform-grid broad phase: build once after movement; each projectile checks only its cell and neighbors.
  rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
- if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}if(onlineRoomMode!=='pvp'&&((activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&!OCEAN_GEOGRAPHY.segmentClear(prevX,prevY,p.x,p.y,Math.max(2,p.r||0))))){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}
+ if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}if(onlineRoomMode!=='pvp'&&((activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&!OCEAN_GEOGRAPHY.segmentClear(prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?.segmentBlocked(arenaRocks,prevX,prevY,p.x,p.y,p.r||0)))){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}
  projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playWorldSound('enemy-hit',e,520,.34);
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom){if(hit||reachedRange)spawnProjectileDissolve(p.x,p.y,p.color,p.special,false);projectiles.splice(i,1)}}
  for(const beam of effects){
@@ -3352,6 +3356,7 @@ function drawBackground(t){
  if(!backgroundGradientCache){backgroundGradientCache=ctx.createRadialGradient(W*.5,H*.45,10,W*.5,H*.45,Math.max(W,H)*.82);backgroundGradientCache.addColorStop(0,'#0d2a39');backgroundGradientCache.addColorStop(.34,'#071a2b');backgroundGradientCache.addColorStop(.68,'#03111f');backgroundGradientCache.addColorStop(1,'#01040a');}
  if(!backgroundBloomCache){backgroundBloomCache=ctx.createRadialGradient(W*.79,H*.62,2,W*.79,H*.62,560);backgroundBloomCache.addColorStop(0,'rgba(145,25,70,.12)');backgroundBloomCache.addColorStop(.42,'rgba(91,29,95,.06)');backgroundBloomCache.addColorStop(1,'rgba(1,5,12,0)');}
  ctx.fillStyle=backgroundGradientCache;ctx.fillRect(0,0,W,H);
+ if(!onlineMode&&isClassicShooterRun())SOLO_CAVERN?.paint?.(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},t,lowPowerRendering);
  // Faint pools of alien bioluminescence and a distant warning-red bloom.
  ctx.save();
  ctx.fillStyle=backgroundBloomCache;ctx.fillRect(W*.45,H*.2,W*.55,H*.8);
@@ -3361,8 +3366,10 @@ function drawBackground(t){
  ctx.save();ctx.strokeStyle='rgba(93,175,190,.028)';ctx.lineWidth=1;const grid=70,ox=(t*.003)%grid,oy=(t*.002)%grid;
  const left=Math.floor(cameraX/grid)*grid-grid+ox,right=cameraX+viewW/worldZoom+grid;
  const top=Math.floor(cameraY/grid)*grid-grid+oy,bottom=cameraY+viewH/worldZoom+grid;
+ if(onlineMode||!isClassicShooterRun()){
  for(let x=left;x<right;x+=grid){ctx.beginPath();ctx.moveTo(x,Math.max(0,top));ctx.lineTo(x,Math.min(H,bottom));ctx.stroke()}
  for(let y=top;y<bottom;y+=grid){ctx.beginPath();ctx.moveTo(Math.max(0,left),y);ctx.lineTo(Math.min(W,right),y);ctx.stroke()}
+ }
  ctx.restore();
  // Keep the whole drift field alive, but only paint particles that can appear in the current view.
  const visibleLeft=cameraX-30/worldZoom,visibleRight=cameraX+viewW/worldZoom+30/worldZoom;
