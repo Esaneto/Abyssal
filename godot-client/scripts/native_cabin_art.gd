@@ -34,7 +34,7 @@ static func _paint_ocean(c: CanvasItem, t: float) -> void:
 	var solar := 0.55 + 0.45 * cos(t * TAU / 420.0)
 	for i in range(54):
 		var ratio := float(i)/53.0
-		var col := Color("#0b274f").lerp(Color("#075f86"), (1.0-ratio)*solar)
+		var col := Color("#073b61").lerp(Color("#16add5"), (1.0-ratio)*solar*0.92)
 		col = col.lerp(Color("#082747"), pow(ratio,1.8)*0.55)
 		c.draw_rect(Rect2(0,float(i)*11.0,1280,12),col)
 	# Ocean surface and slowly swinging rays.
@@ -56,6 +56,32 @@ static func _paint_ocean(c: CanvasItem, t: float) -> void:
 		rock.append(Vector2(1330,590))
 		rock.append(Vector2(0,590))
 		c.draw_colored_polygon(rock,Color("#0a3557").lerp(Color("#06203c"),float(layer)*0.24))
+	# Convex geological window walls add believable foreground layers.
+	# They are window scenery, entirely separate from explorable terrain.
+	UI.poly(c,[Vector2(0,190),Vector2(64,222),Vector2(126,283),
+		Vector2(175,343),Vector2(142,405),Vector2(226,487),Vector2(0,520)],Color("#0a365e"))
+	UI.poly(c,[Vector2(0,224),Vector2(66,248),Vector2(120,303),Vector2(44,330)],
+		Color("#1d6484"))
+	UI.poly(c,[Vector2(0,380),Vector2(84,346),Vector2(153,405),Vector2(225,487),Vector2(0,487)],
+		Color("#123c62"))
+	UI.poly(c,[Vector2(1280,196),Vector2(1230,224),Vector2(1193,291),
+		Vector2(1153,341),Vector2(1201,410),Vector2(1112,491),Vector2(1280,520)],Color("#0a355b"))
+	UI.poly(c,[Vector2(1280,223),Vector2(1224,244),Vector2(1181,315),Vector2(1260,331)],
+		Color("#236e86"))
+	for i in range(10):
+		var yy := 225.0+float(i)*27.0
+		if i%2==0:
+			UI.coral(c,Vector2(45.0+float(i%3)*21.0,yy),23.0+float(i%4)*8.0,
+				Color("#ec69b3") if i%3==0 else Color("#ffb45e"),t,float(i))
+		else:
+			UI.coral(c,Vector2(1240.0-float(i%3)*18.0,yy),24.0+float(i%4)*9.0,
+				Color("#e174c8") if i%3==0 else Color("#77df9a"),t,float(i)*0.8)
+	UI.crystal(c,Vector2(75,429),0.95,Color("#54edff"))
+	UI.crystal(c,Vector2(1209,431),1.1,Color("#4ff3ef"))
+	# Shimmering sea turtles pass outside the central panoramic glass.
+	for i in range(3):
+		_turtle(c,Vector2(592.0+float(i)*106.0+sin(t*0.11+i)*17.0,
+			154.0+float(i%2)*37.0),0.8+float(i%3)*0.17,t+float(i))
 	# Brilliant decorative reef at both window edges.
 	for side in [0,1]:
 		var origin := 80.0 if side==0 else 1120.0
@@ -96,6 +122,20 @@ static func _whale(c: CanvasItem, p: Vector2, scale: float) -> void:
 	c.draw_line(Vector2(-67,4),Vector2(31,19),Color(0.40,0.76,0.85,0.34),1.5,true)
 	c.draw_circle(Vector2(-65,-3),2.0,Color("#86cdd6"))
 	c.draw_set_transform(Vector2.ZERO,0,Vector2.ONE)
+
+static func _turtle(c: CanvasItem, p: Vector2, scale: float, t: float) -> void:
+	c.draw_set_transform(p,0.0,Vector2(scale,scale))
+	var flap := sin(t*1.7)*7.0
+	UI.poly(c,[Vector2(-16,-5),Vector2(-38,-23-flap),Vector2(-31,-30-flap),
+		Vector2(3,-9),Vector2(16,-10),Vector2(33,-26+flap),Vector2(39,-19+flap),
+		Vector2(15,5),Vector2(-14,16)],Color("#5dae9c"))
+	UI.oval(c,Vector2(-1,0),Vector2(27,19),Color("#4a8a78"))
+	UI.oval(c,Vector2(-2,-2),Vector2(23,16),Color("#8ab394"))
+	for j in range(4):
+		c.draw_arc(Vector2(-15+float(j)*9,-1),8,PI*0.7,PI*1.61,13,Color("#c8e8a4"),1.2,true)
+	UI.oval(c,Vector2(29,0),Vector2(12,9),Color("#9ed3ae"))
+	c.draw_circle(Vector2(35,-2),1.5,Color("#183b47"))
+	c.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 
 static func _jelly(c: CanvasItem, p: Vector2, t: float) -> void:
 	for i in range(5):
