@@ -120,16 +120,29 @@ static func paint(canvas: Node2D, species_id: String, pos: Vector2, direction: f
 	var glow := Color("#57dce8")
 	match species_id:
 		"manta":
-			var wing := 12.0 * sin(time_s * 1.3 + pos.x * 0.01)
-			_poly(canvas, [Vector2(-42, 0), Vector2(-8, -9), Vector2(39, -6),
-				Vector2(52, 0), Vector2(29, 16), Vector2(-13, 14)], Color("#102938"))
-			_poly(canvas, [Vector2(-14, -4), Vector2(-43, -30 - wing), Vector2(-34, 6),
-				Vector2(-5, 12), Vector2(12, 9), Vector2(42, -30 + wing),
-				Vector2(37, -1), Vector2(9, -10)], Color("#263e4c").lerp(Color("#536f79"), light * 0.7))
-			_oval(canvas, Vector2(1, 0), Vector2(22, 11), silver)
-			_line(canvas, Vector2(-27, 8), Vector2(-4, 2), Color("#8fb5ba"), 2.0)
-			_line(canvas, Vector2(-23, 7), Vector2(-68, 20 + breathe * 3.0), dark, 3.0)
-			canvas.draw_circle(Vector2(21, 1), 2.0, dark)
+			# Softly shaded wings and a clear diamond-like giant silhouette.
+			var wing := 9.0 * sin(time_s * 1.3 + pos.x * 0.01)
+			_line(canvas, Vector2(-36, 5), Vector2(-73, 15 + breathe * 3.0), Color("#355969"), 2.5)
+			var contour := PackedVector2Array([
+				Vector2(-48, 2), Vector2(-25, -9),
+				Vector2(-26, -38 - wing), Vector2(1, -22),
+				Vector2(31, -11), Vector2(49, -1),
+				Vector2(31, 11), Vector2(5, 20),
+				Vector2(-27, 36 + wing), Vector2(-23, 7)
+			])
+			var shades := PackedColorArray([
+				Color("#254755"), Color("#496778"), Color("#243c4b"),
+				Color("#5a7e8c"), Color("#728e9c"), Color("#8ba9b0"),
+				Color("#557787"), Color("#4a6874"), Color("#172f3c"),
+				Color("#2b4b59")
+			])
+			canvas.draw_polygon(contour, shades)
+			_oval(canvas, Vector2(13, -1), Vector2(23, 8), Color("#7097a0").lerp(Color("#345d6d"), 1.0 - light * 0.55))
+			_line(canvas, Vector2(-10, -17), Vector2(22, -8), Color(0.65, 0.88, 0.89, 0.45), 1.7)
+			_line(canvas, Vector2(-10, 17), Vector2(22, 8), Color(0.17, 0.35, 0.43, 0.73), 2.0)
+			canvas.draw_circle(Vector2(34, -3), 2.0, dark)
+			_line(canvas, Vector2(45, 3), Vector2(49, 8), Color("#9dc0ba"), 1.0)
+
 		"turtle":
 			_poly(canvas, [Vector2(-22, -3), Vector2(-40, -27 - breathe * 5), Vector2(-28, -30),
 				Vector2(-6, -13), Vector2(21, -7), Vector2(37, -22 + breathe * 4),
