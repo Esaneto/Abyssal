@@ -115,12 +115,20 @@ func _build_rock_collider(info: Dictionary) -> void:
 	body.collision_mask = 0
 	body.name = "Rochedo"
 	body.position = info["pos"]
-	var shape_node := CollisionShape2D.new()
-	var circle := CircleShape2D.new()
-	circle.radius = float(info["radius"])
-	shape_node.shape = circle
-	body.add_child(shape_node)
+	var polygon := CollisionPolygon2D.new()
+	var center: Vector2 = info["pos"]
+	polygon.polygon = _rock_contour(Vector2.ZERO, float(info["radius"]), center.x * 0.0031 + center.y * 0.0042)
+	body.add_child(polygon)
 	add_child(body)
+
+func _rock_contour(center: Vector2, radius: float, seed: float) -> PackedVector2Array:
+	# Identical polygon is used for drawing AND physics: no invisible rock walls.
+	var points := PackedVector2Array()
+	for i in range(28):
+		var a := TAU * float(i) / 28.0
+		var roughness := 0.88 + 0.064 * sin(a * 5.0 + seed) + 0.044 * cos(a * 3.0 + seed * 0.49)
+		points.append(center + Vector2(cos(a), sin(a)) * radius * roughness)
+	return points
 
 func _seafloor_y(x: float) -> float:
 	# Continental shelf descends to an enormous abyss to the far right.
@@ -226,19 +234,49 @@ func _draw_landmark_rocks(area: Rect2) -> void:
 		var r: float = info["radius"]
 		if not area.grow(r).has_point(pos):
 			continue
-		_ellipse(pos + Vector2(r * 0.1, r * 0.12), Vector2(r * 1.08, r * 1.04), Color("#061827"))
-		_ellipse(pos, Vector2(r, r), Color("#274251"))
-		_ellipse(pos + Vector2(-r * 0.15, -r * 0.19), Vector2(r * 0.75, r * 0.7), Color("#395969"))
+		var seed := pos.x * 0.0031 + pos.y * 0.0042
+		var outline := _rock_contour(pos, r, seed)
+		var shadow := _rock_contour(pos + Vector2(r * 0.09, r * 0.12), r, seed)
+		draw_colored_polygon(shadow, Color("#061725"))
+		draw_colored_polygon(outline, Color("#294858"))
+		# Lit facets simulate sedimentary strata instead of flat cartoon circles.
+		var face := PackedVector2Array([
+			pos + Vector2(-r * 0.68, -r * 0.37),
+			pos + Vector2(-r * 0.16, -r * 0.77),
+			pos + Vector2(r * 0.44, -r * 0.6),
+			pos + Vector2(r * 0.26, -r * 0.06),
+			pos + Vector2(-r * 0.35, r * 0.1)
+		])
+		draw_colored_polygon(face, Color("#3a6270"))
+		draw_colored_polygon(PackedVector2Array([
+			pos + Vector2(-r * 0.4, r * 0.13),
+			pos + Vector2(r * 0.26, -r * 0.06),
+			pos + Vector2(r * 0.56, r * 0.59),
+			pos + Vector2(-r * 0.19, r * 0.66)
+		]), Color("#193747"))
+		draw_colored_polygon(PackedVector2Array([
+			pos + Vector2(r * 0.26, -r * 0.06),
+			pos + Vector2(r * 0.44, -r * 0.6),
+			pos + Vector2(r * 0.71, -r * 0.24),
+			pos + Vector2(r * 0.56, r * 0.59)
+		]), Color("#254555"))
 		for k in range(6):
-			var a := -2.6 + float(k) * 0.7
-			var end_a := a + 0.5
-			draw_line(pos + Vector2(cos(a), sin(a)) * r * 0.27,
-				pos + Vector2(cos(end_a), sin(end_a)) * r * 0.86, Color("#13313e"), 3, true)
-		if (pos.y - SURFACE_Y) / PIXELS_PER_METER > 220.0:
-			for k in range(8):
-				var a := float(k) * 2.33
-				draw_circle(pos + Vector2(cos(a), sin(a)) * r * 0.63,
-					3.0, Color(0.18, 0.9, 0.85, 0.45 + 0.25 * sin(time_s + k)))
+			var a := -2.4 + float(k) * 0.64
+			var bend := a + 0.3 + 0.04 * sin(seed + k)
+			draw_line(pos + Vector2(cos(a), sin(a)) * r * 0.21,
+				pos + Vector2(cos(bend), sin(bend)) * r * 0.73,
+				Color(0.036, 0.13, 0.18, 0.58), 2.1, true)
+		var depth := maxf(0.0, (pos.y - SURFACE_Y) / PIXELS_PER_METER)
+		if depth < 200.0:
+			# Shallow encrusting life catches daylight.
+			for k in range(5):
+				var q := pos + Vector2(cos(float(k) * 2.37), sin(float(k) * 2.37)) * r * 0.5
+				draw_circle(q, 3.5 + float(k % 3) * 1.3, Color(0.28, 0.65, 0.53, _water_light(depth) * 0.7))
+		else:
+			for k in range(7):
+				var angle := float(k) * 2.33
+				draw_circle(pos + Vector2(cos(angle), sin(angle)) * r * 0.52,
+					2.7, Color(0.18, 0.9, 0.85, 0.42 + 0.19 * sin(time_s + float(k))))
 
 func _draw_kelps(area: Rect2) -> void:
 	# Photosynthetic kelp only in the shallow, illuminated shelf biome.
