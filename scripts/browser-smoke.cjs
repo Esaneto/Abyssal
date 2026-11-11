@@ -228,7 +228,17 @@ function handler(req,res){
  fs.readFile(filepath,(err,data)=>{
   if(err){res.writeHead(404);res.end('Not found');return;}
   const ext=(smoke||journal)?'.html':path.extname(filepath);
-  if(smoke)data=Buffer.from(data.toString('utf8').replace('</body>',injected+'</body>'));
+  if(smoke){
+   let html=data.toString('utf8');
+   if(legacyModes){
+    const gateScript='<script src="abyssal-feature-gates.js';
+    assert.ok(html.includes(gateScript),'Local QA could not locate the feature gate');
+    // The fixture opts into legacy modes BEFORE the live feature gate loads.
+    // Regular localhost players never receive this explicit QA marker.
+    html=html.replace(gateScript,'<script>window.__ABYSSAL_CI_SMOKE__=true;</script>\\n'+gateScript);
+   }
+   data=Buffer.from(html.replace('</body>',injected+'</body>'));
+  }
   if(journal)data=Buffer.from(data.toString('utf8').replace('</body>',journalProbe+'</body>'));
   if(pathname==='/game.js'){
    // Test-only introspection executes real boss death/portal game logic across every tier,
