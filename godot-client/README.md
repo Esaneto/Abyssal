@@ -9,11 +9,13 @@ Esta pasta inicia uma **nova versão nativa** do Abyssal e não altera o cliente
 
 ## Controles do protótipo
 - Enter ou clique em **MERGULHAR**: alterna da cabine para a cena de Mar Aberto.
-- WASD ou setas: movimenta o mergulhador na cena de Mar Aberto.
+- WASD ou setas: nadar com aceleração, inércia e resistência da água. Soltar o controle ativa a flutuabilidade positiva.
+- Descer: segure S/seta para baixo; subir: W/seta para cima. O personagem pode emergir para recuperar oxigênio.
+- Há colisão com o fundo ondulado. Oxigênio esgota na água e se recupera na superfície; ausência de oxigênio causa perda gradual de vida.
 - Esc: retorna à cabine.
 
 ## Estado atual
-Este é um **protótipo de fundação**, com renderização procedural inicial e movimentação local. Não substitui a implementação em Canvas, não reutiliza ainda os sprites finais e não está conectado ao multiplayer. A arte ainda não reproduz a imagem de referência.
+Este é um **protótipo de fundação**, com renderização procedural, física simplificada de mergulho com passo fixo, flutuabilidade, arrasto, colisão com fundo e sobrevivência local. A profundidade exibida é simulada, não corresponde a uma escala física real. Não substitui a implementação em Canvas, não reutiliza ainda os sprites finais e não está conectado ao multiplayer. A arte ainda não reproduz a imagem de referência.
 
 ## Plano de migração
 1. Validar importação, execução e capturas Windows/Android.
