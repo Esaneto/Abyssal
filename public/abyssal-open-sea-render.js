@@ -15,10 +15,10 @@
  // ─── Cinematic Color Palettes ────────────────────────────────────────
  const ROCK_PALETTE={
   coastal:{
-   faces:['#4a7773','#2e5c5a','#1a3c42','#0e252e'],
-   rim:'rgba(110,195,190,.52)',edge:'rgba(85,175,168,.38)',
-   strata:'rgba(96,155,155,.18)',joint:'rgba(4,15,24,.25)',
-   highlight:'rgba(140,218,210,.45)',vein:'rgba(90,170,160,.22)'
+   faces:['#2e6982','#194b66','#0d314c','#061b30'],
+   rim:'rgba(115,224,238,.58)',edge:'rgba(69,182,212,.38)',
+   strata:'rgba(69,160,185,.20)',joint:'rgba(3,15,30,.29)',
+   highlight:'rgba(135,228,242,.49)',vein:'rgba(68,178,213,.24)'
   },
   cinematic:{
    faces:['#3e7a8a','#275468','#122e41','#071a2d'],
@@ -254,14 +254,14 @@
      ctx.beginPath();ctx.moveTo(fx-3.5,fy);ctx.lineTo(fx-6.5,fy-2.2);ctx.lineTo(fx-6.5,fy+2.2);ctx.closePath();ctx.fill();
     }
    }else if(!lowPower&&biome==='coastal'&&seed>.48){
-    ctx.globalAlpha=.28;ctx.fillStyle='#135a6e';ctx.beginPath();
+    ctx.globalAlpha=.47;ctx.fillStyle='#0c3755';ctx.beginPath();
     ctx.moveTo(x-w*1.15,y+h*.45);ctx.lineTo(x-w*.95,y-h*.10);
     ctx.bezierCurveTo(x-w*.75,y-h*.95,x+w*.55,y-h*.95,x+w*1.05,y-h*.08);
     ctx.lineTo(x+w*1.20,y+h*.45);ctx.lineTo(x+w*.78,y+h*.45);
     ctx.lineTo(x+w*.62,y-h*.06);
     ctx.bezierCurveTo(x+w*.20,y-h*.58,x-w*.38,y-h*.58,x-w*.58,y-h*.08);
     ctx.lineTo(x-w*.75,y+h*.45);ctx.closePath();ctx.fill();
-    ctx.strokeStyle='rgba(105,215,220,.26)';ctx.lineWidth=2.2;ctx.beginPath();
+    ctx.strokeStyle='rgba(110,229,237,.32)';ctx.lineWidth=2.2;ctx.beginPath();
     ctx.moveTo(x-w*.95,y-h*.10);
     ctx.bezierCurveTo(x-w*.75,y-h*.95,x+w*.55,y-h*.95,x+w*1.05,y-h*.08);ctx.stroke();
     // School of silhouette fish swimming through arch
@@ -468,8 +468,8 @@
   const coastal=floorDepth<245;
   const gradient=ctx.createLinearGradient(0,Math.min(geo.floorAt(start),geo.floorAt(stop))-220,0,bottom+600);
   if(coastal){
-   gradient.addColorStop(0,'#427e89');gradient.addColorStop(.15,'#2b616c');
-   gradient.addColorStop(.35,'#18424f');gradient.addColorStop(.65,'#0b2938');
+   gradient.addColorStop(0,'#276d82');gradient.addColorStop(.15,'#194e69');
+   gradient.addColorStop(.35,'#10374f');gradient.addColorStop(.65,'#092338');
    gradient.addColorStop(1,'#04101f');
   }else{
    gradient.addColorStop(0,'#345666');gradient.addColorStop(.15,'#23414f');
@@ -578,7 +578,7 @@
     rock.x-rock.rx*.35,rock.y-rock.ry*.65,rock.rx*.10,
     rock.x+rock.rx*.12,rock.y+rock.ry*.26,Math.max(rock.rx,rock.ry)*1.05);
    radial.addColorStop(0,province==='geological'?'rgba(111,167,166,.30)':
-    province==='cinematic'?'rgba(80,197,217,.33)':'rgba(125,190,179,.29)');
+    province==='cinematic'?'rgba(80,197,217,.33)':'rgba(98,198,220,.31)');
    radial.addColorStop(.44,'rgba(62,126,139,.09)');
    radial.addColorStop(1,'rgba(2,10,23,.25)');
    ctx.fillStyle=radial;ctx.fillRect(rock.x-rock.rx-5,rock.y-rock.ry-5,
