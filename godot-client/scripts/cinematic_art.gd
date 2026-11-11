@@ -50,11 +50,19 @@ static func cabin_view(canvas: CanvasItem, time_s: float) -> void:
 		var x := 165.0 + float((i * 257) % 1040) + sin(time_s * (0.09 + float(i % 4) * 0.04) + float(i)) * 24.0
 		var y := 206.0 + float((i * 107) % 230)
 		var size := 3.5 + float(i % 4) * 1.5
+		# Two convex silhouettes. The former combined polygon self-intersected.
 		poly(canvas, PackedVector2Array([
-			Vector2(x - size * 2.0, y), Vector2(x - size * 3.0, y - size),
-			Vector2(x - size * 3.0, y + size), Vector2(x - size * 2.0, y + size * 0.1),
-			Vector2(x + size, y - size * 0.5), Vector2(x + size * 2.0, y),
-			Vector2(x + size, y + size * 0.5)
+			Vector2(x - size * 1.7, y),
+			Vector2(x - size * 3.0, y - size * 0.9),
+			Vector2(x - size * 3.0, y + size * 0.9)
+		]), Color(0.10, 0.33, 0.39, 0.30))
+		poly(canvas, PackedVector2Array([
+			Vector2(x - size * 2.0, y),
+			Vector2(x - size, y - size * 0.67),
+			Vector2(x + size, y - size * 0.55),
+			Vector2(x + size * 2.0, y),
+			Vector2(x + size, y + size * 0.55),
+			Vector2(x - size, y + size * 0.67)
 		]), Color(0.10, 0.33, 0.39, 0.30))
 	# Atmospheric particulates imply scale between the glass and the distance.
 	for i in range(84):
