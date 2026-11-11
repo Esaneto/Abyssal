@@ -132,6 +132,23 @@ func _run_tests() -> void:
 	diver.configure_equipment(restored.research_level("oxygenTank"),
 		restored.research_level("pressureSuit"))
 	diver.set_appearance(restored.appearance_snapshot())
+	# Native scene graph, not a draw_mesh call in CharacterBody2D._draw().
+	if diver.anime_rig == null:
+		_fail("Nativo MeshInstance2D nao foi conectado ao mergulhador", 61)
+		return
+	var rig = diver.anime_rig
+	if not (rig.character_mesh is MeshInstance2D) or rig.character_mesh.mesh == null:
+		_fail("Rig nativo nao montou malha editavel de personagem", 62)
+		return
+	if rig.animation_player == null or not rig.animation_player.has_animation("float") or not rig.animation_player.has_animation("swim"):
+		_fail("Clipes nativos de flutuacao/nado ausentes", 63)
+		return
+	if not (rig.bubble_emitter is CPUParticles2D):
+		_fail("Bolhas nao usam o sistema nativo de particulas", 64)
+		return
+	if rig.has_visible_character() and rig.get_animation_name().is_empty():
+		_fail("Animacao do sprite anime nao inicializou", 65)
+		return
 	if diver.appearance["body"]!="male" or diver.appearance["handheld"]!="cutter":
 		_fail("Mergulhador nao consumiu o mesmo perfil visual salvo", 52)
 		return
