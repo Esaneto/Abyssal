@@ -11,6 +11,17 @@ const FOAM := Color("#c8f8f5")
 
 var in_open_sea := false
 var pilot_position := Vector2(640.0, 340.0)
+# Screen-space swimming prototype. Fixed-tick physics, not full world simulation.
+const SURFACE_Y := 78.0
+const DIVER_RADIUS := 23.0
+const THRUST := 560.0
+const MAX_SWIM_SPEED := 240.0
+const WATER_RESISTANCE := 2.8
+const POSITIVE_BUOYANCY := 35.0
+const MAX_OXYGEN := 90.0
+var velocity := Vector2.ZERO
+var oxygen := MAX_OXYGEN
+var health := 100.0
 var time_s := 0.0
 var bubbles: Array[Vector2] = []
 
@@ -21,15 +32,44 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	time_s += delta
-	if in_open_sea:
-		var movement := Vector2(
-			Input.get_axis("move_left", "move_right"),
-			Input.get_axis("move_up", "move_down")
-		)
-		pilot_position += movement.normalized() * 250.0 * delta
-		pilot_position.x = clampf(pilot_position.x, 25.0, W - 25.0)
-		pilot_position.y = clampf(pilot_position.y, 44.0, H - 28.0)
 	queue_redraw()
+
+func _physics_process(delta: float) -> void:
+	if not in_open_sea:
+		return
+	var input_direction := Vector2(
+		Input.get_axis("move_left", "move_right"),
+		Input.get_axis("move_up", "move_down")
+	).normalized()
+	velocity += (input_direction * THRUST + Vector2.UP * POSITIVE_BUOYANCY) * delta
+	velocity *= exp(-WATER_RESISTANCE * delta)
+	velocity = velocity.limit_length(MAX_SWIM_SPEED)
+	var target := pilot_position + velocity * delta
+	if target.x < DIVER_RADIUS or target.x > W - DIVER_RADIUS:
+		velocity.x = 0.0
+	target.x = clampf(target.x, DIVER_RADIUS, W - DIVER_RADIUS)
+	if target.y < SURFACE_Y:
+		target.y = SURFACE_Y
+		velocity.y = maxf(0.0, velocity.y)
+	var floor_y := _floor_y(target.x) - DIVER_RADIUS
+	if target.y > floor_y:
+		target.y = floor_y
+		velocity.y = minf(0.0, velocity.y)
+	pilot_position = target
+	if pilot_position.y <= SURFACE_Y + 6.0:
+		oxygen = minf(MAX_OXYGEN, oxygen + 14.0 * delta)
+	else:
+		oxygen = maxf(0.0, oxygen - 1.0 * delta)
+	if oxygen <= 0.0:
+		health = maxf(0.0, health - 12.0 * delta)
+	if health <= 0.0:
+		pilot_position = Vector2(W * 0.5, SURFACE_Y)
+		velocity = Vector2.ZERO
+		health = 100.0
+		oxygen = MAX_OXYGEN
+
+func _floor_y(x: float) -> float:
+	return 616.0 + 24.0 * sin(x / 117.0) + 12.0 * sin(x / 53.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -43,7 +83,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _start_sea() -> void:
 	in_open_sea = true
-	pilot_position = Vector2(640.0, 340.0)
+	pilot_position = Vector2(640.0, SURFACE_Y)
+	velocity = Vector2.ZERO
+	oxygen = MAX_OXYGEN
+	health = 100.0
 
 func _draw() -> void:
 	_draw_ocean()
@@ -178,18 +221,19 @@ func _draw_console() -> void:
 		draw_circle(Vector2(990 + i * 27, 660), 6, GOLD if i == 0 else AQUA.darkened(0.6))
 
 func _draw_seabed() -> void:
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(0, 634), Vector2(137, 607), Vector2(250, 647),
-		Vector2(443, 603), Vector2(630, 673), Vector2(841, 623),
-		Vector2(1020, 667), Vector2(1152, 606), Vector2(W, 622),
-		Vector2(W, H), Vector2(0, H)
-	]), Color("#082738"))
+	var terrain := PackedVector2Array()
+	for x in range(0, 1281, 16):
+		terrain.append(Vector2(float(x), _floor_y(float(x))))
+	terrain.append(Vector2(W, H))
+	terrain.append(Vector2(0, H))
+	draw_colored_polygon(terrain, Color("#082738"))
 	for i in range(17):
 		var x := float((i * 191) % 1270)
-		var y := 654.0 + float(i % 3) * 9
-		_draw_filled_ellipse(Vector2(x, y), Vector2(31 + i % 5 * 9, 15), Color("#235164"))
+		var y := _floor_y(x) + 8.0
+		_draw_filled_ellipse(Vector2(x, y), Vector2(31.0 + float(i % 5) * 9.0, 15.0), Color("#235164"))
 		for j in range(3):
-			draw_line(Vector2(x + j * 6, y), Vector2(x + j * 6 + sin(time_s + i) * 9, y - 20 - (j * 8)), Color("#3e8580"), 2)
+			draw_line(Vector2(x + j * 6, y), Vector2(x + j * 6 + sin(time_s + float(i)) * 9.0, y - 20.0 - float(j * 8)), Color("#3e8580"), 2.0)
+	draw_line(Vector2(0, SURFACE_Y - 22.0), Vector2(W, SURFACE_Y - 22.0), Color("#8fe6e9"), 3.0)
 
 func _draw_diver(pos: Vector2, scale_factor: float) -> void:
 	draw_set_transform_matrix(Transform2D(0.0, pos).scaled(Vector2(scale_factor, scale_factor)))
@@ -208,9 +252,19 @@ func _draw_diver(pos: Vector2, scale_factor: float) -> void:
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func _draw_hud() -> void:
-	draw_rect(Rect2(20, 17, 344, 52), Color(0.02, 0.09, 0.16, 0.82))
-	_draw_label("MAR ABERTO | PROTOTIPO GODOT", Vector2(34, 49), 18, FOAM)
-	_draw_label("WASD / SETAS: NADAR    ESC: CABINE", Vector2(25, 691), 17, FOAM)
+	draw_rect(Rect2(20, 17, 395, 117), Color(0.02, 0.09, 0.16, 0.88))
+	_draw_label("MAR ABERTO | FISICA DE MERGULHO", Vector2(33, 40), 18, FOAM)
+	_draw_label("OXIGENIO", Vector2(33, 65), 14, FOAM)
+	draw_rect(Rect2(132, 51, 262, 15), Color("#123744"))
+	draw_rect(Rect2(134, 53, 258.0 * oxygen / MAX_OXYGEN, 11), AQUA if oxygen > 20.0 else GOLD)
+	_draw_label("VIDA", Vector2(33, 91), 14, FOAM)
+	draw_rect(Rect2(132, 77, 262, 15), Color("#123744"))
+	draw_rect(Rect2(134, 79, 258.0 * health / 100.0, 11), Color("#71d6a9"))
+	var depth := maxf(0.0, (pilot_position.y - SURFACE_Y) / 10.0)
+	_draw_label("PROFUNDIDADE: %.1f m (SIMULADA)" % depth, Vector2(33, 120), 13, FOAM)
+	if oxygen <= 0.0:
+		_draw_label("SEM OXIGENIO! SUBA PARA RESPIRAR", Vector2(470, 120), 19, GOLD)
+	_draw_label("WASD: NADAR  |  SOLTE: INERCIA/FLUTUACAO  |  ESC: CABINE", Vector2(25, 691), 16, FOAM)
 
 func _draw_label(value: String, pos: Vector2, size: int, color: Color) -> void:
 	draw_string(ThemeDB.fallback_font, pos, value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
