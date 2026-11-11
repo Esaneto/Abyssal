@@ -460,7 +460,9 @@
    // Existing original-vector fallback also serves compact/mobile layouts.
    consoleBase(t);
    window.AbyssalCinematicArt?.cabinInterior?.(c,t);
-   diver(t,compact);
+   // On mobile the photographic diver and sea should not be obscured by a
+   // duplicated flat seated silhouette. The vector pilot stays as fallback.
+   if(!hasPhoto())diver(t,compact);
    if(!compact)chair(1389,670,.62);
   }
   c.restore();

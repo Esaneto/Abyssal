@@ -396,3 +396,15 @@
  }
  #submarineWorkshop .abyss-control-key{min-height:54px!important}
 }
+
+/* Mobile cockpit header is concise and does not overlap its escape hatch. */
+@media(max-width:700px){
+ #submarineWorkshop .abyss-cockpit-chrome>span:first-child{
+  max-width:calc(100vw - 170px);
+  min-width:0;font-size:0!important;overflow:hidden;white-space:nowrap;
+ }
+ #submarineWorkshop .abyss-cockpit-chrome>span:first-child::before{
+  content:"ABYSSAL / CABINE";font:800 11px Inter,system-ui,sans-serif;
+  letter-spacing:.10em;color:#dffaff;
+ }
+}
