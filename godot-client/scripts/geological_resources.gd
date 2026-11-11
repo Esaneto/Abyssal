@@ -32,7 +32,7 @@ func _cell(cx: int, cy: int, world: Node2D) -> Array:
 		for attempt in range(14):
 			near_rock = false
 			if attempt < 7:
-				for rock in world.ROCKS:
+				for rock in world.call("get_rocks"):
 					var rock_pos: Vector2 = rock["pos"]
 					var radius: float = float(rock["radius"])
 					if int(floor(rock_pos.x / CHUNK)) != cx or int(floor(rock_pos.y / CHUNK)) != cy:
