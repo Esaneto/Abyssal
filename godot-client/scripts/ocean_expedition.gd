@@ -3,11 +3,12 @@ extends Node2D
 ## ecological life distribution, biological discoveries, and native diving.
 const DiverScript = preload("res://scripts/diver_native.gd")
 const Ecology = preload("res://scripts/marine_ecology.gd")
+const Deposits = preload("res://scripts/geological_resources.gd")
 
 const MAP_W := 24000.0
-const MAP_H := 14000.0
+const MAP_H := 21000.0
 const SURFACE_Y := 75.0
-const PIXELS_PER_METER := 10.0
+const OCEAN_MAX_DEPTH_METERS := 2200.0
 const DAY_DURATION_SECONDS := 420.0
 const CHUNK_W := 570.0
 const CHUNK_H := 450.0
@@ -33,8 +34,21 @@ var active := false
 var nearest: Dictionary = {}
 var nearby_distance := INF
 var last_observed_id := ""
+var progress: RefCounted
+var deposits: RefCounted
+var visible_deposits: Array[Dictionary] = []
+var nearest_deposit: Dictionary = {}
+var extraction_time := 0.0
+var resource_refresh := 0.0
+var chart_open := false
+var inventory_open := false
+var status_message := ""
+var status_until := 0.0
+var visited_cell := ""
+
 
 func _ready() -> void:
+	deposits = Deposits.new()
 	_build_terrain_collision()
 	for rock in ROCKS:
 		_build_rock_collider(rock)
@@ -56,17 +70,47 @@ func _ready() -> void:
 	diver.add_child(camera)
 	set_process(true)
 
+func set_progress(profile_state: RefCounted) -> void:
+	progress = profile_state
+	sky_time = progress.sun_time()
+	discovered = (progress.profile["observed"] as Dictionary).duplicate(true)
+
+func depth_at_y(y: float) -> float:
+	return clampf((y - SURFACE_Y) / (MAP_H - SURFACE_Y), 0.0, 1.0) * OCEAN_MAX_DEPTH_METERS
+
+func is_navigable(point: Vector2, clearance: float = 22.0) -> bool:
+	if point.x < clearance or point.x > MAP_W - clearance:
+		return false
+	if point.y < SURFACE_Y or point.y > MAP_H - clearance:
+		return false
+	if point.y + clearance >= _seafloor_y(point.x):
+		return false
+	for rock in ROCKS:
+		var origin: Vector2 = rock["pos"]
+		if point.distance_to(origin) <= float(rock["radius"]) * 1.02 + clearance:
+			return false
+	return true
+
 func begin_expedition() -> void:
 	active = true
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
 	camera.enabled = true
-	diver.global_position = SPAWN
+	var checkpoint := progress.get_checkpoint() if progress != null else SPAWN
+	diver.global_position = checkpoint if is_navigable(checkpoint, 67.0) else SPAWN
+	if progress != null:
+		diver.call("configure_equipment", progress.research_level("oxygenTank"),
+			progress.research_level("pressureSuit"))
 	diver.recover()
 	field_guide_open = false
+	inventory_open = false
+	chart_open = false
+	_refresh_deposits()
 	queue_redraw()
 
 func end_expedition() -> void:
+	if progress != null:
+		progress.set_checkpoint(diver.global_position, sky_time)
 	active = false
 	camera.enabled = false
 	visible = false
@@ -78,6 +122,16 @@ func _process(delta: float) -> void:
 	time_s += delta
 	sky_time += delta
 	_update_nearest()
+	resource_refresh -= delta
+	if resource_refresh <= 0.0:
+		resource_refresh = 0.33
+		_refresh_deposits()
+	_update_extraction(delta)
+	if progress != null:
+		var cell := str(int(floor(diver.position.x / 1200.0))) + ":" + str(int(floor(diver.position.y / 1200.0)))
+		if cell != visited_cell:
+			visited_cell = cell
+			progress.visit(int(floor(diver.position.x / 1200.0)), int(floor(diver.position.y / 1200.0)))
 	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -86,12 +140,30 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_TAB:
 			field_guide_open = not field_guide_open
-			get_viewport().set_input_as_handled()
+			inventory_open = false
+			chart_open = false
+		elif event.keycode == KEY_I:
+			inventory_open = not inventory_open
+			field_guide_open = false
+			chart_open = false
+		elif event.keycode == KEY_M:
+			chart_open = not chart_open
+			field_guide_open = false
+			inventory_open = false
+		elif event.keycode == KEY_1 and progress != null:
+			progress.select_tool("abyssPickaxe")
+		elif event.keycode == KEY_2 and progress != null:
+			progress.select_tool("emptyCylinder")
 		elif event.keycode == KEY_F and not nearest.is_empty():
 			discovered[nearest["id"]] = true
 			last_observed_id = nearest["id"]
+			if progress != null:
+				var is_new: bool = progress.observe(str(nearest["id"]))
+				_set_status("NOVA ESPECIE OBSERVADA" if is_new else "ESPECIE JA REGISTRADA")
 			field_guide_open = true
-			get_viewport().set_input_as_handled()
+			inventory_open = false
+			chart_open = false
+		get_viewport().set_input_as_handled()
 
 func _build_terrain_collision() -> void:
 	var body := StaticBody2D.new()
@@ -100,8 +172,8 @@ func _build_terrain_collision() -> void:
 	body.collision_mask = 0
 	var polygon := CollisionPolygon2D.new()
 	var vertices := PackedVector2Array()
-	for ix in range(0, 241):
-		var x := float(ix) * 100.0
+	for ix in range(0, 751):
+		var x := float(ix) * 32.0
 		vertices.append(Vector2(x, _seafloor_y(x)))
 	vertices.append(Vector2(MAP_W, MAP_H + 1000.0))
 	vertices.append(Vector2(0, MAP_H + 1000.0))
@@ -133,7 +205,7 @@ func _rock_contour(center: Vector2, radius: float, seed: float) -> PackedVector2
 func _seafloor_y(x: float) -> float:
 	# Continental shelf descends to an enormous abyss to the far right.
 	var continental := clampf((x - 2600.0) / 17200.0, 0.0, 1.0)
-	var base := lerpf(1350.0, 13360.0, pow(continental, 1.32))
+	var base := lerpf(1350.0, 20200.0, pow(continental, 1.32))
 	return base + 76.0 * sin(x / 390.0) + 39.0 * sin(x / 109.0)
 
 func _sunlight() -> float:
@@ -146,7 +218,7 @@ func _water_light(depth_m: float) -> float:
 
 func _visible_bounds() -> Rect2:
 	# Extra margin covers camera smoothing and 0.91 zoom.
-	return Rect2(diver.position - Vector2(910, 590), Vector2(1820, 1180))
+	return Rect2(camera.get_screen_center_position() - Vector2(910, 590), Vector2(1820, 1180))
 
 func _draw() -> void:
 	if not active:
@@ -158,6 +230,7 @@ func _draw() -> void:
 	_draw_seafloor(area)
 	_draw_landmark_rocks(area)
 	_draw_kelps(area)
+	_draw_resources()
 	_draw_fauna(area)
 	_draw_deep_visibility(area)
 	_draw_hud()
@@ -169,7 +242,7 @@ func _draw_water(area: Rect2) -> void:
 	var solar := _sunlight()
 	for i in range(bands):
 		var y := area.position.y + float(i) * band_h
-		var d := maxf(0.0, (y - SURFACE_Y) / PIXELS_PER_METER)
+		var d := depth_at_y(y)
 		var fade := exp(-d / 260.0)
 		var tint := Color("#03101e").lerp(Color("#0e6d88"), clampf(fade * solar, 0.0, 0.95))
 		draw_rect(Rect2(area.position.x, y, area.size.x, band_h + 1.5), tint)
@@ -266,7 +339,7 @@ func _draw_landmark_rocks(area: Rect2) -> void:
 			draw_line(pos + Vector2(cos(a), sin(a)) * r * 0.21,
 				pos + Vector2(cos(bend), sin(bend)) * r * 0.73,
 				Color(0.036, 0.13, 0.18, 0.58), 2.1, true)
-		var depth := maxf(0.0, (pos.y - SURFACE_Y) / PIXELS_PER_METER)
+		var depth := depth_at_y(pos.y)
 		if depth < 200.0:
 			# Shallow encrusting life catches daylight.
 			for k in range(5):
@@ -284,7 +357,7 @@ func _draw_kelps(area: Rect2) -> void:
 	for i in range(24):
 		var x := float(start + i) * 115.0
 		var base := _seafloor_y(x)
-		var depth := (base - SURFACE_Y) / PIXELS_PER_METER
+		var depth := depth_at_y(base)
 		if base < area.position.y - 150.0 or base > area.end.y + 300.0 or depth > 200.0:
 			continue
 		var stalk_height := 90.0 + 115.0 * absf(sin(float(i + start) * 1.2))
@@ -305,7 +378,7 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 	var min_x := maxi(0, int(floor(area.position.x / CHUNK_W)) - 1)
 	var max_x := mini(43, int(ceil(area.end.x / CHUNK_W)) + 1)
 	var min_y := maxi(0, int(floor(area.position.y / CHUNK_H)) - 1)
-	var max_y := mini(31, int(ceil(area.end.y / CHUNK_H)) + 1)
+	var max_y := mini(47, int(ceil(area.end.y / CHUNK_H)) + 1)
 	for cy in range(min_y, max_y + 1):
 		for cx in range(min_x, max_x + 1):
 			# Deterministic sector sampling, with population decreasing with depth.
@@ -319,7 +392,7 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 				var bottom_distance := _seafloor_y(base.x) - base.y
 				if bottom_distance < 75.0:
 					continue
-				var depth := maxf(0.0, (base.y - SURFACE_Y) / PIXELS_PER_METER)
+				var depth := depth_at_y(base.y)
 				var pool := Ecology.candidates_at(depth, bottom_distance)
 				if pool.is_empty():
 					continue
@@ -364,7 +437,7 @@ func _draw_fauna(area: Rect2) -> void:
 	for creature in _creatures_in_view(area):
 		var pos: Vector2 = creature["pos"]
 		var info: Dictionary = creature["info"]
-		var d := maxf(0.0, (pos.y - SURFACE_Y) / PIXELS_PER_METER)
+		var d := depth_at_y(pos.y)
 		var light := _water_light(d)
 		Ecology.paint(self, info["id"], pos, creature["dir"], time_s,
 			float(info["length_px"]), light)
@@ -385,7 +458,7 @@ func _update_nearest() -> void:
 func _draw_deep_visibility(area: Rect2) -> void:
 	# Fading peripheral vision and an underwater lamp reinforce unease at depth.
 	# The darkness never conceals the HUD, which is drawn afterward.
-	var depth := maxf(0.0, (diver.position.y - SURFACE_Y) / PIXELS_PER_METER)
+	var depth := depth_at_y(diver.position.y)
 	var dark := clampf((depth - 165.0) / 880.0 * 0.72 + (1.0 - _sunlight()) * 0.19, 0.0, 0.76)
 	if dark < 0.045:
 		return
