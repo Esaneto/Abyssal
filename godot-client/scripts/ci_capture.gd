@@ -42,11 +42,24 @@ func _capture() -> void:
 		await process_frame
 	_save_screen("mar-aberto-superficie.png")
 	_save_screen("mar-aberto-mergulhador.png")
+	var visual_diver := main.get_node("ExpedicaoOceanica/Mergulhador")
+	var close_camera := visual_diver.get_node("CameraExploracao")
+	close_camera.zoom = Vector2(2.6,2.6)
+	close_camera.position_smoothing_enabled = false
+	for i in range(7):
+		await process_frame
+	_save_screen("mar-aberto-mergulhador-detalhe.png")
+	close_camera.zoom = Vector2(0.91,0.91)
 	main.progress.set_appearance(female)
 	main.get_node("ExpedicaoOceanica").diver.set_appearance(female)
 	for i in range(8):
 		await process_frame
 	_save_screen("mar-aberto-mergulhadora.png")
+	close_camera.zoom = Vector2(2.6,2.6)
+	for i in range(7):
+		await process_frame
+	_save_screen("mar-aberto-mergulhadora-detalhe.png")
+	close_camera.zoom = Vector2(0.91,0.91)
 	# Restore the selected male preview before the existing expedition tests.
 	main.progress.set_appearance(male)
 	main.get_node("ExpedicaoOceanica").diver.set_appearance(male)
