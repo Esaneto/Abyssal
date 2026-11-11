@@ -135,3 +135,6 @@ body.abyss-hud-folded.open-sea-exploration .exploration-inventory{
  }
  #submarineWorkshop .abyss-control-key{min-height:52px!important}
 }
+
+/* An open cockpit must not show the live exploration backpack behind its deck. */
+body:has(#submarineWorkshop:not([hidden])) #abyssInventoryRoot{display:none!important}
