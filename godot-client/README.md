@@ -44,3 +44,17 @@ Cliente nativo de testes, em desenvolvimento junto da versao JavaScript. O jogo 
 O workflow `.github/workflows/godot-native-smoke.yml` usa Godot 4.7.2. Ele valida cena, fisica, ferramentas, extracao temporizada, projetos do laboratorio, dados salvos, carta e colisoes dos arcos. Imagens reais sao capturadas sob Xvfb e salvas como artefatos do GitHub Actions.
 
 Veja [paridade funcional e itens pendentes](docs/PARIDADE_FUNCIONAL.md) e [direcao artistica](docs/DIRECAO_ARTISTICA.md).
+
+## Nova direcao visual em codigo nativo
+A referencia de Mar Aberto foi convertida em elementos autonomos, nao uma imagem colada sobre o jogo:
+- Agua e relevo distante em camadas dinamicas, com cor e luz dependentes da profundidade e do horario.
+- Recifes de plataforma continental com poligonos fisicos iguais aos contornos desenhados, corais e cristais.
+- Vegetacao, peixes, tartarugas e raias com movimento independente; luz direcional acompanha o mergulhador.
+- HUD com estado real do jogador e nove itens do inventario local; somente 1 (picareta) e 2 (cilindro) sao equipaveis.
+- Ponte de comando com janelas panoramicas, navegadora em sprite SVG original, tela central e seis areas clicaveis.
+- Loja e Fossas aparecem como destinos da versao web, sem funcoes falsas no Godot. Mar Aberto e Laboratorio operam.
+- Os screenshots do teste automatizado sao capturas do proprio Godot, nao mockups estaticos.
+
+Arquivos centrais: scripts/native_cabin_art.gd, scripts/native_reef_art.gd, scripts/native_ocean_hud.gd, scripts/ui_art_primitives.gd e assets/art/cabin_navigator.svg.
+
+O estilo e 2D ilustrado/2.5D. O acabamento permanece inferior ao conceito promocional e precisa de avaliacao artistica e FPS nos dispositivos finais.
