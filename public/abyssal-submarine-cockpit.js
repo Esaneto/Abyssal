@@ -455,6 +455,32 @@
   }
   c.fillStyle='#ddc58b';c.beginPath();c.arc(0,-46,4.6,0,Math.PI*2);c.fill();
   c.strokeStyle='#64deea';c.lineWidth=4;c.beginPath();c.arc(0,11,64,Math.PI*.19,Math.PI*.81);c.stroke();
+  // A visible three-quarter human face turns the once featureless rear helmet
+  // into a recognizable diver. Gender is inherited from the actual profile.
+  c.save();c.translate(29,-7);c.rotate(-.075);
+  const skin=c.createLinearGradient(-27,-36,31,37);
+  skin.addColorStop(0,'#ffe2bc');skin.addColorStop(.56,'#e8a67e');skin.addColorStop(1,'#ab6958');
+  c.fillStyle=skin;c.strokeStyle='#613c43';c.lineWidth=2;
+  c.beginPath();c.moveTo(-29,-31);c.bezierCurveTo(4,-49,30,-31,34,-2);
+  c.quadraticCurveTo(38,27,8,42);c.quadraticCurveTo(-18,33,-28,9);
+  c.closePath();c.fill();c.stroke();
+  // Cheekbone, nose, brows and eyes are separate shaded anatomical forms.
+  c.strokeStyle='rgba(120,65,58,.35)';c.lineWidth=2;c.beginPath();
+  c.moveTo(20,-7);c.quadraticCurveTo(34,6,19,10);c.stroke();
+  c.fillStyle='#fff9e8';c.beginPath();c.ellipse(-6,-8,11,5.7,-.12,0,TAU);c.fill();
+  c.fillStyle='#283840';c.beginPath();c.arc(-4,-8,3.8,0,TAU);c.fill();
+  c.fillStyle='#fff';c.beginPath();c.arc(-2,-10,1.25,0,TAU);c.fill();
+  c.strokeStyle='#42363c';c.lineWidth=female?4:5;c.beginPath();
+  c.moveTo(-19,-21);c.quadraticCurveTo(-6,-27,5,-20);c.stroke();
+  c.strokeStyle='#9b4b58';c.lineWidth=2.5;c.beginPath();
+  c.moveTo(4,22);c.quadraticCurveTo(13,26,21,20);c.stroke();
+  c.fillStyle='rgba(241,116,110,.18)';c.beginPath();c.ellipse(-14,15,12,6,-.2,0,TAU);c.fill();
+  // A clear glossy lens over the face, with the facial details still legible.
+  c.strokeStyle='#73eaff';c.lineWidth=4;c.beginPath();
+  c.ellipse(1,0,43,53,-.12,-2.2,1.05);c.stroke();
+  c.strokeStyle='rgba(220,254,255,.65)';c.lineWidth=2;c.beginPath();
+  c.moveTo(-28,-31);c.quadraticCurveTo(-6,-46,13,-43);c.stroke();
+  c.restore();
   const sway=Math.sin(t*.0012)*5,locks=female?9:10;
   for(let j=0;j<locks;j++){
    const hx=-51+j*(female?12.6:11.3),hy=59+j%3*4;
@@ -492,11 +518,11 @@
    // Existing original-vector fallback also serves compact/mobile layouts.
    consoleBase(t);
    window.AbyssalCinematicArt?.cabinInterior?.(c,t);
-   // On mobile the photographic diver and sea should not be obscured by a
-   // duplicated flat seated silhouette. The vector pilot stays as fallback.
-   if(!hasPhoto())diver(t,compact);
    if(!compact)chair(1389,670,.62);
   }
+  // Keep the seated pilot alive in photographic and vector cabin modes.
+  // The central HTML console remains in front; only the character is Canvas.
+  diver(t,compact);
   c.restore();
  }
  function tick(t){
