@@ -457,7 +457,7 @@ func _refresh_deposits() -> void:
 		return
 	var collected: Dictionary = progress.profile["collected"]
 	visible_deposits = deposits.stream_near(self, diver.global_position, 1300.0, collected)
-	nearest_deposit.clear()
+	nearest_deposit = {}
 	var best_distance := 125.0
 	for node in visible_deposits:
 		var pos: Vector2 = node["pos"]
@@ -506,7 +506,7 @@ func _set_status(message: String) -> void:
 	status_until = time_s + 3.8
 
 func _update_nearest() -> void:
-	nearest.clear()
+	nearest = {}
 	nearby_distance = INF
 	var view := Rect2(diver.position - Vector2(240, 240), Vector2(480, 480))
 	for creature in _creatures_in_view(view):
