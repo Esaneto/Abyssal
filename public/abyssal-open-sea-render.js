@@ -540,6 +540,35 @@
    ctx.strokeStyle=pal.edge;ctx.lineWidth=2.4;ctx.stroke();
 
    ctx.save();ctx.clip();
+   // Localized natural rock illumination: highlights follow the actual
+   // collision silhouette, while the core and bottom stay in shadow.
+   const radial=ctx.createRadialGradient(
+    rock.x-rock.rx*.35,rock.y-rock.ry*.65,rock.rx*.10,
+    rock.x+rock.rx*.12,rock.y+rock.ry*.26,Math.max(rock.rx,rock.ry)*1.05);
+   radial.addColorStop(0,province==='geological'?'rgba(111,167,166,.30)':
+    province==='cinematic'?'rgba(80,197,217,.33)':'rgba(125,190,179,.29)');
+   radial.addColorStop(.44,'rgba(62,126,139,.09)');
+   radial.addColorStop(1,'rgba(2,10,23,.25)');
+   ctx.fillStyle=radial;ctx.fillRect(rock.x-rock.rx-5,rock.y-rock.ry-5,
+    rock.rx*2+10,rock.ry*2+10);
+   const strataLines=lowPower?3:6;
+   for(let plate=0;plate<strataLines;plate++){
+    const q=(plate+.35)/(strataLines+.2);
+    const y=rock.y-rock.ry+rock.ry*2*q;
+    const noise=seeded(plate+11,rock.x*.027);
+    const leftX=rock.x-rock.rx*(.84-noise*.18);
+    const rightX=rock.x+rock.rx*(.39+noise*.30);
+    ctx.fillStyle=plate%2===0?'rgba(2,23,39,.13)':'rgba(56,119,132,.08)';
+    ctx.beginPath();ctx.moveTo(leftX,y+13);
+    ctx.lineTo(rock.x-rock.rx*.14,y-17);
+    ctx.lineTo(rightX,y+3);
+    ctx.lineTo(rightX-rock.rx*.17,y+18);
+    ctx.lineTo(leftX+rock.rx*.10,y+32);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=pal.strata;ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(leftX,y+13);
+    ctx.lineTo(rock.x-rock.rx*.14,y-17);
+    ctx.lineTo(rightX,y+3);ctx.stroke();
+   }
 
    // ── Geometric face planes — distinct shading per face ──
    const faces=Math.min(lowPower?12:30,Math.max(6,Math.ceil(rock.ry/100)));
@@ -571,6 +600,18 @@
    }
    ctx.globalAlpha=1;
 
+   // Grazing edge lighting gently follows the cliff curvature. No large blur
+   // or dynamic texture is created outside the camera viewport.
+   if(!lowPower){
+    ctx.save();ctx.globalCompositeOperation='screen';
+    ctx.strokeStyle=province==='geological'?'rgba(100,196,182,.14)':
+     province==='cinematic'?'rgba(101,214,232,.22)':'rgba(169,227,204,.18)';
+    ctx.lineWidth=8;ctx.beginPath();
+    for(let k=0;k<=24;k++){const q=-1+k/12;
+     const pt=geo.rockSurfaceAt(rock,-Math.acos(q));
+     if(!k)ctx.moveTo(pt.x,pt.y);else ctx.lineTo(pt.x,pt.y);
+    }ctx.stroke();ctx.restore();
+   }
    // ── Bright upper rim highlight ──
    ctx.strokeStyle=pal.rim;ctx.lineWidth=lowPower?2.8:4;ctx.beginPath();
    const rimSteps=lowPower?18:32;
