@@ -3,6 +3,7 @@ extends Node2D
 const ExpeditionScript = preload("res://scripts/ocean_expedition.gd")
 const ProgressScript = preload("res://scripts/exploration_progress.gd")
 const CabinArt = preload("res://scripts/native_cabin_art.gd")
+const UIArt = preload("res://scripts/ui_art_primitives.gd")
 var expedition: Node2D
 var progress: RefCounted
 var lab_open := false
@@ -125,37 +126,38 @@ func _draw() -> void:
 		_draw_laboratory()
 
 func _draw_laboratory() -> void:
-	draw_rect(Rect2(105, 131, 1070, 416), Color(0.012, 0.049, 0.076, 0.98))
-	draw_rect(Rect2(118, 142, 1044, 389), Color("#113644"))
-	_draw_label("LABORATORIO ABISSAL  |  EQUIPAMENTOS DE EXPLORACAO", Vector2(157, 179), 24, FOAM)
-	_draw_label("SELECIONE 1-6  |  R PESQUISAR  |  ESC FECHAR", Vector2(159, 201), 15, GOLD)
+	# Keep real research data, costs and click regions. Only the presentation changes.
+	draw_rect(Rect2(0,83,1280,565),Color(0.0,0.03,0.09,0.78))
+	UIArt.panel(self,Rect2(104,127,1070,420),true)
+	UIArt.caption(self,"LABORATORIO ABISSAL",Vector2(151,174),25,Color("#ebfaff"))
+	UIArt.caption(self,"PESQUISA  /  EQUIPAMENTO DE EXPEDICAO",Vector2(151,199),15,Color("#8de4f0"))
+	UIArt.caption(self,"1-6 SELECIONAR   |   R PESQUISAR   |   ESC FECHAR",Vector2(704,175),14,Color("#ffcb79"))
 	for i in range(ProgressScript.SHOP_ORDER.size()):
-		var id := str(ProgressScript.SHOP_ORDER[i])
-		var definition: Dictionary = ProgressScript.RESEARCH[id]
-		var col := i % 2
-		var row := int(i / 2)
-		var p := Vector2(170.0 + float(col) * 475.0, 212.0 + float(row) * 84.0)
-		var selected := i == lab_selected
-		draw_rect(Rect2(p, Vector2(451, 73)), Color("#276b77") if selected else Color("#183c4b"))
-		draw_rect(Rect2(p + Vector2(3, 3), Vector2(445, 67)), Color("#234859") if selected else Color("#0c2c3d"))
-		_draw_label(str(i + 1) + "  " + str(definition["label"]), p + Vector2(13, 25), 17, FOAM)
-		var level: int = int(progress.research_level(id))
+		var id: String = str(ProgressScript.SHOP_ORDER[i])
+		var def: Dictionary = ProgressScript.RESEARCH[id]
+		var col := i%2
+		var row := int(i/2)
+		var p := Vector2(170.0+float(col)*475.0,212.0+float(row)*84.0)
+		var chosen := i==lab_selected
+		UIArt.panel(self,Rect2(p,Vector2(450,73)),chosen)
+		var tech_icon := "emptyCylinder" if id=="oxygenTank" else "polymetallicNodule" if id=="pressureSuit" else "sonar" if id=="sonar" else "deepCrystal"
+		UIArt.item(self,tech_icon,p+Vector2(34,35),0.57)
+		UIArt.caption(self,str(i+1)+"  "+str(def["label"]),p+Vector2(67,24),16,Color("#e8faff"))
+		var level: int = progress.research_level(id)
 		var status: String = progress.study_status(id)
-		_draw_label("NIVEL %d / %d  |  %s" % [level, int(definition["max"]), status],
-			p + Vector2(14, 46), 13, GOLD if status == "DISPONIVEL" else Color("#a0c4c6"))
+		UIArt.caption(self,"NIVEL %d/%d  |  %s" % [level,int(def["max"]),status],
+			p+Vector2(67,45),13,Color("#ffcc7c") if status=="DISPONIVEL" else Color("#a1dae3"))
 		var costs: Dictionary = progress.research_cost(id)
-		var parts: Array[String] = []
-		for material in costs.keys():
-			parts.append("%s %d/%d" % [
-				str(material), progress.get_count(str(material)), int(costs[material])
-			])
-		_draw_label("  ".join(parts), p + Vector2(14, 63), 12, Color("#b1d4cc"))
-	var chosen_id := str(ProgressScript.SHOP_ORDER[lab_selected])
-	_draw_label(str(ProgressScript.RESEARCH[chosen_id]["detail"]), Vector2(163, 493), 15, FOAM)
-	draw_rect(Rect2(918, 469, 226, 50), Color("#1e7280"))
-	_draw_label("PESQUISAR [R]", Vector2(937, 499), 20, FOAM)
+		var info: Array[String] = []
+		for key in costs.keys():
+			info.append("%s %d/%d" % [str(key),progress.get_count(str(key)),int(costs[key])])
+		UIArt.caption(self,"  ".join(info),p+Vector2(67,64),11,Color("#8cbdc9"),366.0)
+	var selected_id: String = str(ProgressScript.SHOP_ORDER[lab_selected])
+	UIArt.caption(self,str(ProgressScript.RESEARCH[selected_id]["detail"]),Vector2(159,494),15,Color("#d7f6f5"),736.0)
+	UIArt.panel(self,Rect2(918,469,226,50),true)
+	UIArt.caption(self,"PESQUISAR  [R]",Vector2(943,501),18,Color("#fff2ca"))
 	if not lab_feedback.is_empty():
-		_draw_label(lab_feedback, Vector2(162, 523), 14, GOLD)
+		UIArt.caption(self,lab_feedback,Vector2(155,532),13,Color("#ffc77b"),738.0)
 
 func _draw_label(value: String, pos: Vector2, size: int, color: Color) -> void:
 	draw_string(ThemeDB.fallback_font, pos, value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
