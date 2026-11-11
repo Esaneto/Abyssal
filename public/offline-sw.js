@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-10-natural-stone-2p5d-v106';
+const VERSION = '2026-11-10-cinematic-cabin-ocean-v108';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -38,6 +38,7 @@ const GAME_FILES = [
   'abyssal-open-sea-ecology.js',
   'abyssal-ocean-respawn.js',
   'abyssal-ocean-stream.js',
+  'abyssal-cinematic-art.js',
   'abyssal-open-sea-render.js',
   'abyssal-open-sea-lighting.js',
   'abyssal-exploration-config.js',
