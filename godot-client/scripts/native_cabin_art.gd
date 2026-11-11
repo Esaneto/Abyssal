@@ -2,7 +2,7 @@ extends RefCounted
 ## Native responsive-looking 1280x720 command-bridge composition.
 ## No reference screenshot is displayed: every visual is separately drawn and animated.
 const UI = preload("res://scripts/ui_art_primitives.gd")
-const NAVIGATOR = preload("res://assets/art/cabin_navigator.svg")
+const Doll = preload("res://scripts/diver_paper_doll.gd")
 const MENU := ["Loja","Laboratório","Mar Aberto","Fossas","Espécimes","Minérios"]
 const KEYS := ["salvageMetal","sonar","fish","deepCrystal","turtle","polymetallicNodule"]
 const DESCRIPTIONS := [
@@ -28,7 +28,7 @@ static func paint(canvas: Node2D, t: float, selected: int, progress: RefCounted,
 	_paint_ocean(canvas, t)
 	_paint_bridge(canvas, t)
 	_paint_console(canvas, t)
-	_paint_pilot(canvas, t)
+	_paint_pilot(canvas, t, progress.appearance_snapshot())
 	# Screen shifts to starboard so the pilot remains visible, not hidden.
 	canvas.draw_set_transform(Vector2(55.0,0.0),0.0,Vector2(0.95,1.0))
 	_paint_monitor(canvas, t, selected, progress)
@@ -184,14 +184,9 @@ static func _paint_bridge(c: CanvasItem, t: float) -> void:
 		c.draw_rect(Rect2(x,y,14,7),Color("#dc8648"))
 		c.draw_rect(Rect2(x+2,y+1,10,3),Color("#ffe2a1"))
 
-static func _paint_pilot(c: CanvasItem, t: float) -> void:
-	# Standalone illustrated and scalable character sprite, not a pasted menu screenshot.
-	# Its upper body subtly breathes while the underwater backdrop animates separately.
-	var breathe := sin(t*1.11)*1.6
-	c.draw_texture_rect(NAVIGATOR,Rect2(-62,169+breathe,449,579),false)
-	# A tiny independent specular highlight animates on the visor.
-	var shine := Vector2(239.0+sin(t*0.62)*7.0,365.0+breathe)
-	c.draw_line(shine,shine+Vector2(29,-5),Color(0.84,1,1,0.12+0.07*sin(t*0.85)),2.4,true)
+static func _paint_pilot(c: CanvasItem, t: float, appearance: Dictionary) -> void:
+	# Shared paper-doll: same validated look used by native swimmer.
+	Doll.draw_cabin(c,appearance,t)
 
 static func _paint_console(c: CanvasItem, t: float) -> void:
 	UI.poly(c,[Vector2(0,467),Vector2(1280,467),Vector2(1280,720),Vector2(0,720)],Color("#142642"))
@@ -291,6 +286,8 @@ static func _paint_status(c: CanvasItem, t: float, status: String) -> void:
 	c.draw_arc(Vector2(74,37),17,PI,TAU,20,Color("#56dbe9"),2,true)
 	UI.panel(c,Rect2(989,12,265,49))
 	UI.caption(c,"SOLO  |  PROGRESSO LOCAL",Vector2(1004,43),15,Color("#c6f7fb"))
+	UI.panel(c,Rect2(1074,68,176,44))
+	UI.caption(c,"PERSONAGEM [C]",Vector2(1088,96),15,Color("#ffe0a2"))
 	c.draw_circle(Vector2(1236,29),4.0,Color("#54e3b4"))
 	UI.panel(c,Rect2(207,663,875,37))
 	UI.caption(c,status if not status.is_empty() else
