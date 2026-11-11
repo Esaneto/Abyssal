@@ -100,7 +100,7 @@ static func gardens(c: Node2D, area: Rect2, t: float) -> void:
 			var angle := -PI*0.92 + float(i)*PI*0.115
 			var foot := center+Vector2(cos(angle),sin(angle))*radius*0.79
 			var color := PINK if i%3==0 else JADE if i%3==1 else AMBER
-			UI.coral(c,foot,24.0+float((i*17)%31),color,t,foot.x*0.01)
+			UI.coral(c,foot,36.0+float((i*17)%48),color,t,foot.x*0.01)
 		if depth<150.0:
 			UI.crystal(c,center+Vector2(-radius*0.15,-radius*0.91),0.69,Color("#38dcf0"))
 	for i in range(26):
@@ -114,7 +114,7 @@ static func gardens(c: Node2D, area: Rect2, t: float) -> void:
 				_glow_polyps(c,Vector2(x,ground),t)
 			continue
 		var tint := PINK if int(x/160.0)%3==0 else JADE if int(x/160.0)%3==1 else AMBER
-		UI.coral(c,Vector2(x,ground-2),29.0+float((int(x)%7))*8.0,tint,t,x*0.02)
+		UI.coral(c,Vector2(x,ground-2),42.0+float((int(x)%7))*9.0,tint,t,x*0.02)
 		if int(x/160.0)%4==0:
 			UI.crystal(c,Vector2(x+28,ground-1),0.78,Color("#28d2f1"))
 		elif int(x/160.0)%4==2:
@@ -136,7 +136,7 @@ static func structures_gardens(c: Node2D, structures: Array[PackedVector2Array],
 			var v: Vector2 = polygon[(i*2+1)%polygon.size()]
 			if v.y>bounds.position.y+bounds.size.y*0.55:
 				continue
-			UI.coral(c,v+Vector2(0,-3),23.0+float(i%3)*12.0,
+			UI.coral(c,v+Vector2(0,-3),34.0+float(i%3)*15.0,
 				PINK if i%2==0 else JADE,t,v.x*0.01)
 		var top := polygon[1]
 		UI.crystal(c,top+Vector2(0,-4),0.85,Color("#31d9f4"))
@@ -155,6 +155,31 @@ static func _glow_polyps(c: CanvasItem, base: Vector2, t: float) -> void:
 		c.draw_line(base+Vector2(dx*0.4,0),top,Color(0.15,0.59,0.61,0.5),2,true)
 		c.draw_circle(top,2.4,Color("#b3ffce"))
 		c.draw_circle(top,7.0,Color(0.23,0.98,0.79,0.07))
+
+static func foreground(c: CanvasItem, area: Rect2, t: float, depth: float) -> void:
+	# Camera-relative parallax edges. These are intentionally out of focus and NON-SOLID.
+	# Playable caves, reefs and rock arches continue to have true physics polygons.
+	if depth>340.0:
+		return
+	var x0 := area.position.x
+	var y0 := area.position.y
+	var x1 := area.end.x
+	var y1 := area.end.y
+	# Soft blue-black lower corners frame light and emphasize water depth.
+	UI.poly(c,[Vector2(x0-30,y1+55),Vector2(x0-30,y1-160),
+		Vector2(x0+48,y1-120),Vector2(x0+105,y1-58),Vector2(x0+175,y1+60)],
+		Color(0.012,0.08,0.19,0.44))
+	UI.poly(c,[Vector2(x1+30,y1+60),Vector2(x1+30,y1-175),
+		Vector2(x1-40,y1-125),Vector2(x1-118,y1-46),Vector2(x1-180,y1+60)],
+		Color(0.012,0.08,0.19,0.38))
+	# Suspended stems in extreme foreground sway independently from the reef plants.
+	for side in [0,1]:
+		var anchor := x0+55.0 if side==0 else x1-57.0
+		for j in range(5):
+			var start := Vector2(anchor+float(j-2)*25.0,y1+10.0)
+			var tip := start+Vector2(sin(t*0.41+float(j))*24.0,-110.0-float(j%3)*42.0)
+			c.draw_line(start,tip,Color(0.04,0.23,0.28,0.37),6.5,true)
+			c.draw_line(start+Vector2(1,0),tip,Color(0.19,0.53,0.50,0.17),2.2,true)
 
 static func flashlight(c: CanvasItem, pos: Vector2, facing_right: bool, t: float, depth: float) -> void:
 	# Always present but subtle in shallows, brighter and narrower beyond the twilight zone.
