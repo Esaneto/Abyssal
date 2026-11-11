@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="670" viewBox="0 0 520 670">
+<defs>
+<linearGradient id="hair" x1=".22" y1="0" x2=".83" y2="1"><stop stop-color="#ffbe7f"/><stop offset=".27" stop-color="#cf714f"/><stop offset=".65" stop-color="#92415b"/><stop offset="1" stop-color="#311f42"/></linearGradient>
+<linearGradient id="hairGloss" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffcd91"/><stop offset=".32" stop-color="#ee9769"/><stop offset=".8" stop-color="#9b3c4e"/><stop offset="1" stop-color="#5b2941"/></linearGradient>
+<linearGradient id="skin" x1=".15" y1=".2" x2=".9" y2=".85"><stop stop-color="#ffe0bd"/><stop offset=".48" stop-color="#e7a47f"/><stop offset=".83" stop-color="#c57868"/><stop offset="1" stop-color="#7e4a55"/></linearGradient>
+<radialGradient id="cheek" cx=".45" cy=".35" r=".75"><stop stop-color="#ffd2ad"/><stop offset=".6" stop-color="#e4a17e"/><stop offset="1" stop-color="#a96266"/></radialGradient>
+<linearGradient id="suit" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#4a6393"/><stop offset=".3" stop-color="#253b70"/><stop offset=".65" stop-color="#1a244d"/><stop offset="1" stop-color="#09142a"/></linearGradient>
+<linearGradient id="suitHi" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#6079ad"/><stop offset=".27" stop-color="#2e4579"/><stop offset=".7" stop-color="#162f55"/><stop offset="1" stop-color="#0b1631"/></linearGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#202b4b"/><stop offset=".23" stop-color="#596990"/><stop offset=".55" stop-color="#bac3d5"/><stop offset=".78" stop-color="#687498"/><stop offset="1" stop-color="#202745"/></linearGradient>
+<linearGradient id="tank" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#3b365a"/><stop offset=".13" stop-color="#d58b4c"/><stop offset=".45" stop-color="#ffe58b"/><stop offset=".75" stop-color="#c28a4c"/><stop offset="1" stop-color="#343652"/></linearGradient>
+<linearGradient id="visor" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#ceffff"/><stop offset=".18" stop-color="#70eafd"/><stop offset=".52" stop-color="#126ea8"/><stop offset=".83" stop-color="#14335c"/><stop offset="1" stop-color="#07182e"/></linearGradient>
+<linearGradient id="outline" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8ac7ef"/><stop offset=".46" stop-color="#24345d"/><stop offset="1" stop-color="#08132d"/></linearGradient>
+<filter id="halo" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<!-- Distant flowing hair behind the equipment and the shoulder. -->
+<path d="M338 145 C285 83 214 111 160 169 C124 210 73 229 42 301 C12 365 3 423 20 472 C38 427 62 402 96 393 C35 460 25 531 39 592 C72 528 111 503 150 488 C93 551 75 619 111 657 C138 598 172 550 222 540 C298 525 369 440 382 347 L401 190 Z" fill="url(#hair)" stroke="#352142" stroke-width="6"/>
+<path d="M289 150 C223 158 175 239 106 275 C62 299 37 343 30 381 C81 338 129 338 167 308 C109 368 69 423 61 472 C123 399 176 408 216 357 C165 439 111 484 102 548 C166 471 220 452 259 396" fill="none" stroke="#ffc18a" stroke-opacity=".61" stroke-width="7" stroke-linecap="round"/>
+<path d="M297 160 C227 199 223 280 168 330 C115 378 64 417 49 471 M314 175 C270 234 276 311 227 375 C192 431 115 497 109 570 M339 217 C329 318 303 382 229 455 C199 492 159 532 137 599" fill="none" stroke="#643353" stroke-width="8" stroke-linecap="round"/>
+<!-- Chair and lower-body silhouettes. -->
+<path d="M8 580 L13 514 Q21 480 52 479 L122 474 Q172 486 172 527 L183 665 L9 670 Z" fill="url(#metal)" stroke="#15203d" stroke-width="9"/>
+<path d="M27 536 L111 529 Q132 535 130 567 L144 653 L26 658 Z" fill="#253553" stroke="#6884a3" stroke-width="3"/>
+<path d="M49 549 L83 549 L90 564 L54 564Z" fill="#f4af55"/><path d="M57 552 L77 552 L81 557 L56 557Z" fill="#ffe9ad"/>
+<path d="M137 586 C182 542 261 543 337 568 Q392 595 422 649 L421 670 L118 670Z" fill="url(#suit)" stroke="#07192c" stroke-width="8"/>
+<path d="M172 606 Q242 580 315 600" fill="none" stroke="#efb355" stroke-width="7"/>
+<!-- Curved SCUBA cylinder with independent belts. -->
+<path d="M103 352 Q111 337 134 337 L170 344 Q187 355 186 376 L184 558 Q172 587 140 584 L100 570 Q88 551 88 529Z" fill="#0b1d36" stroke="#0d1435" stroke-width="10"/>
+<path d="M107 354 L160 347 Q175 350 175 375 L174 563 Q163 578 106 561Z" fill="url(#tank)" stroke="#d1a05e" stroke-width="3"/>
+<path d="M112 368 L120 369 L119 555 L109 550Z" fill="#fff3b2" opacity=".55"/>
+<path d="M96 405 Q135 413 180 404 L180 431 Q141 437 95 428Z M95 513 Q135 519 181 510 L181 532 Q143 540 93 534Z" fill="#192945" stroke="#8290ac" stroke-width="4"/>
+<path d="M135 331 L161 326 L168 346 L139 350 Z" fill="#8c9dbe"/>
+<!-- Technical wetsuit and structured armored shoulder pads. -->
+<path d="M177 448 Q224 394 303 405 L375 420 Q425 466 440 551 L495 666 L196 670 Q175 566 177 448 Z" fill="url(#suit)" stroke="#081735" stroke-width="10"/>
+<path d="M209 461 Q253 420 303 432 Q347 454 364 535 L395 666 L217 666 Q205 555 209 461 Z" fill="url(#suitHi)"/>
+<path d="M215 458 Q247 430 287 443" fill="none" stroke="#7d99c9" stroke-width="5" stroke-linecap="round"/>
+<path d="M292 429 Q345 400 374 441 Q392 478 409 528 L376 553 Q357 476 318 479 L280 466Z" fill="url(#metal)" stroke="#131b3a" stroke-width="7"/>
+<path d="M298 444 Q343 423 367 462" fill="none" stroke="#b2bbce" stroke-width="3"/>
+<path d="M317 450 L334 442 L355 464 L336 476Z" fill="#fbc15f"/>
+<path d="M242 483 Q262 530 264 580 M278 493 Q302 545 305 649" fill="none" stroke="#101b3b" stroke-width="12"/>
+<path d="M254 489 Q273 541 277 574 M290 510 Q316 578 317 638" fill="none" stroke="#81d8ed" stroke-width="3" opacity=".8"/>
+<path d="M222 462 L232 446 L256 458 L247 482Z" fill="#f3b451"/>
+<!-- Shoulder insignia, luminous mechanical bracelet. -->
+<path d="M347 474 L377 488 L358 508 L341 495Z" fill="#f5bd57"/>
+<path d="M348 489 L358 480 L368 495 L356 500Z" fill="#1b3764"/>
+<path d="M275 615 L293 620 L307 649 L283 652Z" fill="#ffbd55"/>
+<!-- Neck and ear, then face with expressive eyes, cheek and lip. -->
+<path d="M311 387 L350 378 L367 437 L333 463 L302 439Z" fill="url(#skin)" stroke="#663a50" stroke-width="4"/>
+<path d="M290 225 Q329 173 380 197 Q427 221 447 273 Q458 311 428 355 Q411 391 381 408 Q351 422 327 398 Q292 371 287 330 Q273 275 290 225Z" fill="url(#skin)" stroke="#663e4e" stroke-width="5"/>
+<path d="M336 273 Q370 244 415 261 Q424 313 402 348 Q376 372 343 344Z" fill="url(#cheek)" opacity=".65"/>
+<path d="M414 307 Q429 319 446 315 Q435 335 419 335" fill="#cf8676" stroke="#a26466" stroke-width="2"/>
+<path d="M379 331 Q400 336 410 332" fill="none" stroke="#9d6763" stroke-width="3"/>
+<path d="M378 361 Q401 370 418 353 Q402 377 379 368Z" fill="#af5a68"/>
+<path d="M382 362 Q400 363 416 354" fill="none" stroke="#ffd1bb" stroke-width="2"/>
+<path d="M372 286 Q393 274 412 288" fill="none" stroke="#53313d" stroke-width="6" stroke-linecap="round"/>
+<path d="M374 298 Q392 288 411 300 Q392 310 375 303Z" fill="#fff0de"/>
+<ellipse cx="397" cy="300" rx="7" ry="8" fill="#8a573c"/><ellipse cx="398" cy="301" rx="4" ry="5" fill="#1c2b3e"/><circle cx="400" cy="298" r="2.2" fill="#fff9d9"/>
+<path d="M373 297 Q391 287 414 298" fill="none" stroke="#261d32" stroke-width="4" stroke-linecap="round"/>
+<g fill="#ae6b61" opacity=".75"><circle cx="350" cy="334" r="1.8"/><circle cx="356" cy="338" r="1.6"/><circle cx="363" cy="340" r="1.5"/><circle cx="368" cy="335" r="1.4"/><circle cx="361" cy="348" r="1.2"/><circle cx="377" cy="343" r="1.2"/></g>
+<!-- More detailed hair strands framing the cheek. -->
+<path d="M281 230 Q271 176 307 142 Q350 114 400 152 Q441 189 440 235 Q411 214 396 205 Q372 250 313 252 Q294 299 306 336 Q270 305 270 272Z" fill="url(#hair)" stroke="#542d43" stroke-width="6"/>
+<path d="M276 232 Q302 174 357 164 Q387 166 415 192 Q379 193 347 220 Q323 244 302 244" fill="url(#hairGloss)"/>
+<path d="M280 214 Q330 153 386 164 M298 225 Q343 190 376 192 M294 242 Q332 205 360 202" fill="none" stroke="#ffbb82" stroke-opacity=".67" stroke-width="5" stroke-linecap="round"/>
+<path d="M297 255 C291 328 313 393 284 463" fill="none" stroke="#8b4253" stroke-width="12"/>
+<!-- She is wearing a helmet visor/goggles, not the screenshot graphic. -->
+<path d="M259 230 Q272 163 340 156 Q402 150 451 203 L445 249 Q401 218 366 233 Q312 223 259 250Z" fill="#0e2442" stroke="#070f2b" stroke-width="10"/>
+<path d="M263 230 Q290 185 336 185 Q369 182 382 198 L376 232 Q335 219 310 235Z" fill="url(#visor)" stroke="#e7aa61" stroke-width="6"/>
+<path d="M383 198 Q424 186 446 209 L442 238 Q411 216 378 232Z" fill="url(#visor)" stroke="#ffc16b" stroke-width="6"/>
+<path d="M272 215 Q309 184 340 193 M388 205 Q409 197 432 216" stroke="#f4ffff" stroke-opacity=".9" stroke-width="5" fill="none" stroke-linecap="round"/>
+<path d="M273 241 L381 239 M388 239 L440 248" stroke="#24dfff" stroke-width="3" fill="none"/>
+<circle cx="272" cy="252" r="16" fill="#1d3b61" stroke="#ffd27e" stroke-width="4"/>
+<circle cx="272" cy="252" r="9" fill="#32d2f0" opacity=".9"/><circle cx="272" cy="252" r="4" fill="#d9fffb"/>
+<!-- Bent glove near chin, a single connected arm. -->
+<path d="M389 559 Q432 501 443 444 Q452 415 415 391 L393 400 Q407 428 404 448 Q375 482 363 505Z" fill="url(#suitHi)" stroke="#101b36" stroke-width="12"/>
+<path d="M403 411 Q402 387 420 370 L436 373 Q449 397 436 417Z" fill="#1e3254" stroke="#7494b7" stroke-width="4"/>
+<path d="M413 389 L429 390" stroke="#f5b45c" stroke-width="4"/>
+<path d="M395 484 L411 477 M383 516 L404 507" stroke="#57d9ef" stroke-width="3"/>
+<path d="M367 521 Q379 536 391 541" stroke="#f2af4d" stroke-width="5" fill="none"/>
+<!-- Small armor rim and light-pipe details. -->
+<path d="M194 654 Q249 662 331 650" fill="none" stroke="#4dc0e9" stroke-width="3"/>
+<circle cx="313" cy="464" r="5" fill="#33e8ef" filter="url(#halo)"/><circle cx="313" cy="464" r="3" fill="#9dfffd"/>
+</svg>

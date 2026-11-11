@@ -36,6 +36,12 @@ func _capture() -> void:
 	for i in range(18):
 		await process_frame
 	_save_screen("mar-aberto-recife.png")
+	# Reproducible view of the authored cave formations and garden canopy.
+	diver.position = Vector2(4920.0, 700.0)
+	diver.call("recover")
+	for i in range(16):
+		await process_frame
+	_save_screen("mar-aberto-caverna.png")
 	# Distinct depths and times for before/after visual review.
 	diver.position = Vector2(11200.0, 5000.0)
 	diver.call("recover")

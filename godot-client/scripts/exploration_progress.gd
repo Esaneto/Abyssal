@@ -71,7 +71,7 @@ func _reset_defaults() -> void:
 		"observed": {},
 		"visited": {},
 		"selected_tool": "abyssPickaxe",
-		"last_position": [4150.0, 105.0],
+		"last_position": [4150.0, 720.0],
 		"day_seconds": 0.0
 	}
 

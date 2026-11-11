@@ -17,6 +17,15 @@ const SPECIES := [
 		"story": "Filtra plancton; suas asas desenham sombras enormes."
 	},
 	{
+		"id": "eagle_ray", "name": "Raia-pintada",
+		"scientific": "Aetobatus narinari",
+		"zone": "Talude tropical", "min_m": 0.0, "max_m": 185.0,
+		"length_px": 160.0, "temperament": "Pacifica e cautelosa",
+		"habitat": "Recifes costeiros e aguas abertas sobre o talude.",
+		"how_to_find": "Explore os recifes iluminados e bordas rochosas entre 0 e 185 m.",
+		"story": "Nadadeiras largas e manchas claras distinguem a raia-pintada."
+	},
+	{
 		"id": "turtle", "name": "Tartaruga-verde",
 		"scientific": "Chelonia mydas",
 		"zone": "Zona iluminada", "min_m": 0.0, "max_m": 180.0,
@@ -158,19 +167,69 @@ static func paint(canvas: Node2D, species_id: String, pos: Vector2, direction: f
 			_oval(canvas, Vector2(13, -1), Vector2(23, 8), Color("#7097a0").lerp(Color("#345d6d"), 1.0 - light * 0.55))
 			_line(canvas, Vector2(-10, -17), Vector2(22, -8), Color(0.65, 0.88, 0.89, 0.45), 1.7)
 			_line(canvas, Vector2(-10, 17), Vector2(22, 8), Color(0.17, 0.35, 0.43, 0.73), 2.0)
+			canvas.draw_arc(Vector2(0,0),46.0,PI*1.04,PI*1.41,16,Color(0.45,0.90,0.97,0.37),1.5,true)
+			canvas.draw_arc(Vector2(0,0),46.0,-PI*0.42,-PI*0.04,16,Color(0.45,0.90,0.97,0.37),1.5,true)
 			canvas.draw_circle(Vector2(34, -3), 2.0, dark)
 			_line(canvas, Vector2(45, 3), Vector2(49, 8), Color("#9dc0ba"), 1.0)
 
+		"eagle_ray":
+			var pulse := sin(time_s * 1.25+pos.x*0.003)*7.0
+			# Deliberately broad wings, spotted mantle and a whip-like tail.
+			var shape := PackedVector2Array([
+				Vector2(-39,-4),Vector2(-16,-19-pulse),Vector2(7,-34-pulse),
+				Vector2(27,-13),Vector2(50,1),Vector2(27,15),
+				Vector2(7,33+pulse),Vector2(-13,18+pulse),Vector2(-38,5)
+			])
+			canvas.draw_colored_polygon(shape,Color("#24657e").lerp(Color("#5aa7b2"),light*0.35))
+			canvas.draw_polyline(shape,Color(0.55,0.95,0.99,0.76),1.6,true)
+			_line(canvas,Vector2(-38,0),Vector2(-92,sin(time_s*1.1)*9.0),Color("#6db6bf"),2.2)
+			for j in range(13):
+				var a := float(j)*2.43
+				var x := -17.0+cos(a)*23.0
+				var y := sin(a)*11.0
+				canvas.draw_circle(Vector2(x,y),1.4,Color(0.80,1.0,0.98,0.80))
+			_oval(canvas,Vector2(34,0),Vector2(19,7),Color("#68a9a9"))
+			canvas.draw_circle(Vector2(40,-2),2.3,Color("#0a2b3a"))
 		"turtle":
-			_poly(canvas, [Vector2(-22, -3), Vector2(-40, -27 - breathe * 5), Vector2(-28, -30),
-				Vector2(-6, -13), Vector2(21, -7), Vector2(37, -22 + breathe * 4),
-				Vector2(44, -16), Vector2(20, 7), Vector2(-21, 13)], Color("#436f65"))
-			_oval(canvas, Vector2(-3, 0), Vector2(29, 22), Color("#294e48"))
-			_oval(canvas, Vector2(-3, -2), Vector2(25, 18), Color("#8a7954").lerp(Color("#4e625c"), 0.42))
-			for k in range(4):
-				_line(canvas, Vector2(-23 + k * 11, -16), Vector2(-20 + k * 11, 16), Color("#2c4b44"), 2.2)
-			_oval(canvas, Vector2(29, 0), Vector2(14, 11), Color("#729582"))
-			canvas.draw_circle(Vector2(34, -3), 2.1, dark)
+			# Anatomical swimming silhouette: separate flippers, scute polygons, head.
+			var flap := sin(time_s * 1.52 + pos.x * 0.004) * 9.0
+			# Far flippers under the shell.
+			_poly(canvas,[Vector2(-18,2),Vector2(-43,17+flap),
+				Vector2(-44,26+flap),Vector2(-7,17)],Color("#4e8c79"))
+			_poly(canvas,[Vector2(9,7),Vector2(27,22-flap),
+				Vector2(20,38-flap),Vector2(-4,17)],Color("#528b7d"))
+			# Pointed little tail behind an asymmetrical but solid oval shell.
+			_poly(canvas,[Vector2(-28,-2),Vector2(-47,-12),Vector2(-42,3)],Color("#6fa88f"))
+			_oval(canvas,Vector2(-4,0),Vector2(29,23),Color("#1c5458"))
+			_oval(canvas,Vector2(-4,-2),Vector2(26,20),Color("#70aa85"))
+			_oval(canvas,Vector2(-4,-2),Vector2(23,17),Color("#437879"))
+			# Five hexagonal shell plates with contrasting thin golden seams.
+			for k in range(5):
+				var theta := TAU*float(k)/5.0
+				var x := -4.0+cos(theta)*13.0
+				var y := -2.0+sin(theta)*9.0
+				_poly(canvas,[Vector2(x-6,y),Vector2(x-3,y-5),Vector2(x+4,y-5),
+					Vector2(x+7,y),Vector2(x+4,y+5),Vector2(x-3,y+5)],
+					Color("#346d72") if k%2==0 else Color("#508d80"))
+				canvas.draw_arc(Vector2(x,y),5.7,0,TAU,6,Color(0.78,0.94,0.63,0.62),1.2,true)
+			canvas.draw_arc(Vector2(-4,0),28,0,TAU,34,Color(0.16,0.93,0.86,0.10),6.5,true)
+			canvas.draw_arc(Vector2(-4,0),28,0,TAU,34,Color(0.73,0.99,0.78,0.70),1.9,true)
+			# Near forelimbs rhythmically lift through the water.
+			_poly(canvas,[Vector2(8,-9),Vector2(20,-25-flap),
+				Vector2(34,-32-flap),Vector2(31,-18-flap),
+				Vector2(18,2)],Color("#7db99a"))
+			_line(canvas,Vector2(12,-8),Vector2(31,-25-flap),
+				Color("#b8e7ad"),1.7)
+			_poly(canvas,[Vector2(-20,-9),Vector2(-39,-28+flap),
+				Vector2(-34,-34+flap),Vector2(-8,-19)],Color("#5b9f88"))
+			# Tapered neck, observable eye and living head profile.
+			_oval(canvas,Vector2(24,0),Vector2(18,11),Color("#6dac98"))
+			_oval(canvas,Vector2(34,0),Vector2(12,9),Color("#9dc8a6"))
+			canvas.draw_arc(Vector2(34,0),11,PI*0.20,PI*1.72,17,
+				Color(0.78,0.99,0.85,0.45),1.5,true)
+			canvas.draw_circle(Vector2(38,-3),2.5,Color("#122b39"))
+			canvas.draw_circle(Vector2(38.6,-3.5),0.9,Color("#d5fff0"))
+			_line(canvas,Vector2(43,4),Vector2(48,3),Color("#386c70"),1.3)
 		"jelly":
 			for j in range(8):
 				var ox := -25.0 + float(j) * 7.0
