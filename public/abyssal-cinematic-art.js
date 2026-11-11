@@ -35,7 +35,6 @@
   light.addColorStop(1,'rgba(20,95,147,0)');
   c.fillStyle=light;c.fillRect(120,105,1200,460);
   // Large overhead natural arch, fractured basalt facets and cool rim lighting.
-  const top=grad(0,0,0,0,130,[]);
   c.fillStyle='#081c2c';
   polygon(c,[[0,105],[1440,105],[1376,156],[1260,151],[1175,126],[1038,154],[926,148],
     [836,212],[769,187],[708,226],[623,181],[538,170],[450,210],[370,163],[258,184],

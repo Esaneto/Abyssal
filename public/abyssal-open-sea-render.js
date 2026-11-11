@@ -968,7 +968,7 @@
   if(bottom<=top)return;
   ctx.save();ctx.beginPath();ctx.rect(left,top,right-left,bottom-top);ctx.clip();
   drawWater(ctx,left,top,right,bottom,time,lowPower);
-  root.AbyssalCinematicArt?.seaAtmosphere?.(ctx,{left,top,width:right-left,height:bottom-top},time,lowPower,geo);
+  globalThis.AbyssalCinematicArt?.seaAtmosphere?.(ctx,{left,top,width:right-left,height:bottom-top},time,lowPower,geo);
   drawProvinceBackdrop(ctx,left,top,right,bottom,time,lowPower);
   drawBiomeVista(ctx,left,top,right,bottom,time,lowPower);
   drawProvinceLight(ctx,left,top,right,bottom,time,lowPower);
@@ -981,7 +981,7 @@
   drawSediment(ctx,left,top,right,bottom,time,lowPower);
   drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower);
   drawBiomes(ctx,left,top,right,bottom,time,lowPower);
-  root.AbyssalCinematicArt?.seaHighlights?.(ctx,{left,top,width:right-left,height:bottom-top},time,lowPower,geo);
+  globalThis.AbyssalCinematicArt?.seaHighlights?.(ctx,{left,top,width:right-left,height:bottom-top},time,lowPower,geo);
   drawDepthHaze(ctx,left,top,right,bottom);
   ctx.restore();
  }
