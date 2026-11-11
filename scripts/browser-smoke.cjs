@@ -8,6 +8,9 @@ const path=require('node:path');
 const os=require('node:os');
 const {spawn,spawnSync}=require('node:child_process');
 const assert=require('node:assert/strict');
+// Public release validation follows the currently playable Shooter Solo.
+// Frozen game modes can be inspected explicitly with --legacy-modes.
+const legacyModes=process.argv.includes('--legacy-modes');
 const zlib=require('node:zlib');
 
 
@@ -150,7 +153,7 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;if(!stage)document.getElementById('playBtn')?.click();else window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;if(!stage){const cockpit=document.getElementById('submarineWorkshop');const action=cockpit&&!cockpit.hidden?cockpit.querySelector('.abyss-visor-action'):null;if(action&&/INICIAR SHOOTER SOLO/.test(action.textContent))action.click();else document.getElementById('playBtn')?.click();}else window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
    let inventoryAttempts=0;
    const openSeaInventory=()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage!=='sea'||q.has('biome'))return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
@@ -419,8 +422,9 @@ async function main(){
    await run(browser,[...flags,'--screenshot='+screenshot,cockpitURL]);
    assert.ok(fs.statSync(screenshot).size>10000,label+' cockpit screenshot missing');
   }
-  // Real, unmasked screenshots from the running game for biome art acceptance.
-  for(const biome of ['coastal','cinematic','geological']){
+  // Retain legacy Mar Aberto visual QA, but do not require frozen biomes
+  // to pass the release check for Shooter Solo.
+  if(legacyModes)for(const biome of ['coastal','cinematic','geological']){
    const file=path.join(output,'open-sea-'+biome+'.png');
    await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
     '--disable-gpu','--hide-scrollbars','--no-first-run','--disable-background-networking',
@@ -433,13 +437,18 @@ async function main(){
    assert.ok(pixelStats.mean>11&&pixelStats.bright>pixelStats.total*.45,
     'Biome '+biome+' renders as a black scene: '+JSON.stringify(pixelStats));
   }
-  for(const [label,width,height,ua,stage] of [
-   ['desktop',1280,720,null,null],
-   ['mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null],
+  const soloScenarios=[
+   ['solo-desktop',1280,720,null,null],
+   ['solo-mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',null]
+  ];
+  // These modes remain intact but cannot block the focused Solo release.
+  if(legacyModes)soloScenarios.push(
    ['ocean-desktop',1280,720,null,'sea'],
    ['ocean-mobile',390,844,'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36','sea'],
    ['deep-desktop',1280,720,null,'deep'],
-   ['boss-desktop',1280,720,null,'boss']]){
+   ['boss-desktop',1280,720,null,'boss']
+  );
+  for(const [label,width,height,ua,stage] of soloScenarios){
    const common=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--autoplay-policy=no-user-gesture-required',
     '--window-size='+width+','+height,'--force-device-scale-factor=1','--virtual-time-budget=9000'];
@@ -501,7 +510,8 @@ async function main(){
   }
   // Full Fossa replay is retained as an isolated localhost regression for the
   // frozen mode; public players still enter the classic Solo shooter only.
-  await realGameplaySmoke(browser,url+'?stage=deep');
+  if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep');
+  else console.log('[browser-smoke] Active release: Shooter Solo, legacy expeditions excluded from gating');
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
 main().catch(err=>{console.error('[browser-smoke] '+err.stack);process.exitCode=1});
