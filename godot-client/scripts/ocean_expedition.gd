@@ -412,14 +412,14 @@ func _draw_navigable_arches(area: Rect2) -> void:
 				])
 				draw_colored_polygon(facet, Color("#426877"))
 		# Transparent tunnel rim highlights navigable opening instead of a fake portal.
-		var left := arch + Vector2(-160.0, -105.0)
-		var right := arch + Vector2(160.0, -105.0)
+		var left: Vector2 = arch + Vector2(-160.0, -105.0)
+		var right: Vector2 = arch + Vector2(160.0, -105.0)
 		draw_line(left, right, Color(0.43, 0.68, 0.71, 0.62), 3.0)
 		draw_line(left, arch + Vector2(-160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
 		draw_line(right, arch + Vector2(160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
 		# Low-energy sediment vents animate at the arch foot.
 		for i in range(4):
-			var x := arch.x + (-286.0 if i < 2 else 286.0)
+			var x: float = float(arch.x) + (-286.0 if i < 2 else 286.0)
 			var rise := fposmod(time_s * (9.0 + float(i)) + float(i) * 21.0, 76.0)
 			draw_circle(Vector2(x + sin(time_s + float(i)) * 7.0, arch.y + 183.0 - rise),
 				2.5, Color(0.47, 0.82, 0.78, 0.28))
