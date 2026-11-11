@@ -86,6 +86,22 @@ const injected=`<script>
   document.body.dataset.smokeInventorySelected=String(document.getElementById('abyssInventorySelected')?.textContent||'');
   document.body.dataset.smokeInventoryDiag=JSON.stringify({ui:Boolean(window.AbyssalInventoryUI),root:Boolean(inventoryRoot),rootHidden:inventoryRoot?.hidden??null,mode:window.AbyssalGameHooks?.explorationPosition?.()?.mode??null});
 
+  // Inspect actual browser Canvas pixels, not only JavaScript syntax or file size.
+  if(canvas&&canvas.width>300&&canvas.height>200&&new URLSearchParams(location.search).has('biome')){
+   try{
+    const context=canvas.getContext('2d');
+    let sum=0,bright=0,count=0;
+    for(let row=2;row<9;row++)for(let col=2;col<15;col++){
+     const px=Math.min(canvas.width-1,Math.round(canvas.width*col/16));
+     const py=Math.min(canvas.height-1,Math.round(canvas.height*row/12));
+     const v=context.getImageData(px,py,1,1).data;
+     const luminance=v[0]*.2126+v[1]*.7152+v[2]*.0722;
+     sum+=luminance;count++;if(luminance>12)bright++;
+    }
+    document.body.dataset.smokeOceanLuminance=(sum/Math.max(1,count)).toFixed(2);
+    document.body.dataset.smokeOceanBright=String(bright);
+   }catch(error){document.body.dataset.smokeOceanError=String(error).slice(0,100);}
+  }
   document.body.dataset.smokeError=errors.filter(e=>/Abyssal frame error|ReferenceError|TypeError|SyntaxError/i.test(e)).slice(0,2).join('|').slice(0,180);
  };
  setInterval(check,350);
@@ -372,6 +388,15 @@ async function main(){
     '--window-size=1280,720','--force-device-scale-factor=1',
     '--virtual-time-budget=8500','--screenshot='+file,url+'?stage=sea&biome='+biome]);
    assert.ok(fs.statSync(file).size>15000,'Open Sea screenshot missing: '+biome);
+   const dom=await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
+    '--disable-gpu','--hide-scrollbars','--no-first-run','--disable-background-networking',
+    '--window-size=1280,720','--force-device-scale-factor=1',
+    '--virtual-time-budget=8500','--dump-dom',url+'?stage=sea&biome='+biome]);
+   const mean=Number(dom.match(/data-smoke-ocean-luminance="([^"]+)"/)?.[1]);
+   const bright=Number(dom.match(/data-smoke-ocean-bright="([^"]+)"/)?.[1]);
+   console.log('[visual-acceptance] '+biome+' mean='+mean+' litPixels='+bright);
+   assert.ok(Number.isFinite(mean)&&mean>8&&bright>8,
+    'Biome '+biome+' black canvas or no scenery: '+mean+'/'+bright);
   }
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],

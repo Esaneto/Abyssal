@@ -14,6 +14,17 @@ test('cockpit grid forces monitor over a compact accessible physical deck',()=>{
  assert.match(read('public/abyssal-exploration-runtime.js'),/ROLE OU DESLIZE PARA VER MAIS/);
  assert.match(smoke,/Oversized vertically stretched console key/);
 });
+test('2.5D world and diver add genuine art geometry',()=>{
+ const ocean=read('public/abyssal-open-sea-render.js');
+ const cabin=read('public/abyssal-submarine-cockpit.js');
+ const diver=read('public/diver-art.js');
+ assert.match(ocean,/Localized natural rock illumination/);
+ assert.match(ocean,/strataLines=lowPower\?3:6/);
+ assert.match(cabin,/function exteriorReef\(/);
+ assert.match(cabin,/function reflectedWater\(/);
+ assert.match(diver,/const visorGlass=c\.createLinearGradient/);
+ assert.match(diver,/const tankVolume=c\.createLinearGradient/);
+});
 test('cockpit uses recognizable marine life and real gendered rear pilot equipment',()=>{
  const source=read('public/abyssal-submarine-cockpit.js');
  assert.match(source,/function manta\(/);
