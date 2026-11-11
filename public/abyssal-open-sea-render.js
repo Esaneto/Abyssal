@@ -298,13 +298,15 @@
     const geological=biome==='geological';
     const w=(310+seed*230)*(geological?.86:1);
     const h=(190+seeded(ix,iy+17)*180)*(geological?1.14:1);
-    const foot=Math.max(y+h,Math.min(geo.floorAt(x)+70,bottom+370));
-    ctx.save();ctx.globalAlpha=lowPower?.25:geological?.53:.55;
-    const shade=ctx.createLinearGradient(x,y-25,x,y+h);
+    // Limit atmospheric relief to a nearby distant ledge rather than
+    // stretching decorative columns through the entire camera height.
+    const foot=Math.max(y+h*.95,Math.min(geo.floorAt(x)+70,y+h*(1.65+seed*.32)));
+    ctx.save();ctx.globalAlpha=lowPower?.19:geological?.37:.43;
+    const shade=ctx.createLinearGradient(x,y-25,x,foot);
     if(geological){
-     shade.addColorStop(0,'#2e5560');shade.addColorStop(.35,'#153440');shade.addColorStop(1,'#071626');
+     shade.addColorStop(0,'rgba(66,119,137,.95)');shade.addColorStop(.4,'rgba(31,80,98,.72)');shade.addColorStop(1,'rgba(7,26,38,0)');
     }else{
-     shade.addColorStop(0,'#246882');shade.addColorStop(.35,'#154458');shade.addColorStop(1,'#071a30');
+     shade.addColorStop(0,'rgba(56,139,164,.88)');shade.addColorStop(.42,'rgba(25,93,120,.63)');shade.addColorStop(1,'rgba(8,39,67,0)');
     }
     ctx.fillStyle=shade;ctx.strokeStyle=geological?'rgba(110,190,178,.48)':'rgba(95,205,218,.52)';
     ctx.lineWidth=2.5;ctx.beginPath();
