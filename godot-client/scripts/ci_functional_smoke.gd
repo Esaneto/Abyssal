@@ -95,6 +95,24 @@ func _run_tests() -> void:
 	if not world.active:
 		_fail("Mar Aberto nao entrou", 25)
 		return
+	# Authored scenery is physical, and neither spawn nor arch passages are blocked.
+	if world.reef_polygons.size() < 3:
+		_fail("Recife nativo sem geometria de colisao", 40)
+		return
+	if not world.is_navigable(world.SPAWN, 35.0):
+		_fail("Recife bloqueou o ponto inicial da exploracao", 41)
+		return
+	if not world.is_navigable(Vector2(4800, 720), 22.0):
+		_fail("Formacoes de recife fecharam corredor de mergulho", 42)
+		return
+	var CabinUI = load("res://scripts/native_cabin_art.gd")
+	if CabinUI == null or CabinUI.MENU.size() != 6:
+		_fail("Ponte de comando perdeu navegacao visual", 43)
+		return
+	for idx in range(6):
+		if CabinUI.click_menu(CabinUI.vertical_nav(idx).get_center()) != idx:
+			_fail("Area clicavel do menu desalinhada da arte", 44)
+			return
 	if world.last_observed_id != "manta":
 		_fail("Diario nao recuperou especie registrada no save", 36)
 		return
