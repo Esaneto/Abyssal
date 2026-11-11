@@ -77,3 +77,19 @@ separado em `assets/art/characters/`. Se não estiverem instalados, o cliente
 continua exibindo a arte procedural antiga, por compatibilidade.
 
 Veja [instalação dos PNGs e limites de cosméticos](docs/ANIME_REALISTA_ASSETS.md).
+
+### Renderizacao nativa de personagens (Godot)
+O mergulhador/a com o pacote PNG anime-realista instalado agora usa uma arvore de nos:
+`CharacterBody2D > AnimeCharacterRig > CharacterMesh (MeshInstance2D)`,
+`CharacterAnimations (AnimationPlayer)` e `RegulatorBubbles (CPUParticles2D)`.
+A animacao `float` controla a flutuacao e `swim` controla o impulso
+enquanto o shader de malha aplica deformacoes localizadas; colisao, inventario
+e progressao continuam independentes do renderizador. Sem os PNGs locais,
+o jogo mostra a arte vetorial anterior, de forma intencional.
+
+Para ativar, instale `anime_diver_female.png` e `anime_diver_male.png`
+em `res://assets/art/characters/`. Essas imagens de alta resolucao **nao
+estao no repositorio GitHub**. O pacote separado continua sendo necessario.
+A textura de cada personagem ainda contem corpo e roupas ja compostos: a
+personalizacao livre de partes exigira recortes independentes, nao filtros
+de cor sobre o sprite inteiro.
