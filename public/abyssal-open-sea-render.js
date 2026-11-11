@@ -464,10 +464,18 @@
  function drawFloor(ctx,left,right,bottom){
   const start=Math.max(0,left-140),stop=Math.min(geo.WIDTH,right+140);
   const step=58;
+  const floorDepth=geo.metersAt(geo.floorAt((start+stop)*.5));
+  const coastal=floorDepth<245;
   const gradient=ctx.createLinearGradient(0,Math.min(geo.floorAt(start),geo.floorAt(stop))-220,0,bottom+600);
-  gradient.addColorStop(0,'#2a4852');gradient.addColorStop(.15,'#1e3840');
-  gradient.addColorStop(.35,'#142832');gradient.addColorStop(.65,'#0a1822');
-  gradient.addColorStop(1,'#030a14');
+  if(coastal){
+   gradient.addColorStop(0,'#427e89');gradient.addColorStop(.15,'#2b616c');
+   gradient.addColorStop(.35,'#18424f');gradient.addColorStop(.65,'#0b2938');
+   gradient.addColorStop(1,'#04101f');
+  }else{
+   gradient.addColorStop(0,'#345666');gradient.addColorStop(.15,'#23414f');
+   gradient.addColorStop(.35,'#142d3a');gradient.addColorStop(.65,'#0a1e2c');
+   gradient.addColorStop(1,'#030d18');
+  }
   ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(start,bottom+250);
   for(let x=start;x<=stop;x+=step)ctx.lineTo(x,geo.floorAt(x));
   ctx.lineTo(stop,geo.floorAt(stop));ctx.lineTo(stop,bottom+250);ctx.closePath();ctx.fill();
@@ -490,6 +498,16 @@
    ctx.lineTo(x-w*.42,y-5-r*5);ctx.lineTo(x-w*.08,y-8-r*4);
    ctx.lineTo(x+w*.38,y-3+r*6);ctx.lineTo(x+w,y+13);
    ctx.lineTo(x+w*.24,y+26);ctx.closePath();ctx.fill();
+   // Shallow-water caustics reflect across real, collision-backed sediment.
+   if(!lowPower&&depth<245&&r>.35){
+    const wave=ctx.createLinearGradient(x-w,y-11,x+w,y+23);
+    wave.addColorStop(0,'rgba(95,210,211,0)');
+    wave.addColorStop(.45,'rgba(122,234,220,.22)');
+    wave.addColorStop(1,'rgba(97,207,217,0)');
+    ctx.strokeStyle=wave;ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(x-w*.6,y+13);
+    ctx.quadraticCurveTo(x-w*.10,y-6,x+w*.55,y+13);ctx.stroke();
+   }
    // Highlight on top edge
    ctx.strokeStyle='rgba(90,150,155,.18)';ctx.lineWidth=1.5;
    ctx.beginPath();ctx.moveTo(x-w*.42,y-5);ctx.lineTo(x-w*.08,y-8-r*4);
