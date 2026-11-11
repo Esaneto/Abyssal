@@ -25,6 +25,14 @@ const ROCKS := [
 	{"pos": Vector2(14890.0, 9800.0), "radius": 390.0}
 ]
 
+# Seven geological arches; physical openings are passable water corridors.
+const PASSAGE_ARCHES := [
+	Vector2(4800.0, 1350.0), Vector2(6800.0, 2350.0),
+	Vector2(10200.0, 3280.0), Vector2(13050.0, 3970.0),
+	Vector2(16500.0, 4850.0), Vector2(18900.0, 5200.0),
+	Vector2(21700.0, 6100.0)
+]
+
 var diver: CharacterBody2D
 var camera: Camera2D
 var discovered: Dictionary = {}
@@ -54,6 +62,8 @@ func _ready() -> void:
 	_build_terrain_collision()
 	for rock in ROCKS:
 		_build_rock_collider(rock)
+	for arch in PASSAGE_ARCHES:
+		_build_arch_collision(arch)
 	diver = DiverScript.new()
 	diver.name = "Mergulhador"
 	diver.position = SPAWN
@@ -91,6 +101,10 @@ func is_navigable(point: Vector2, clearance: float = 22.0) -> bool:
 		var origin: Vector2 = rock["pos"]
 		if point.distance_to(origin) <= float(rock["radius"]) * 1.02 + clearance:
 			return false
+	for arch in PASSAGE_ARCHES:
+		for solid in _arch_solids(arch):
+			if solid.grow(clearance).has_point(point):
+				return false
 	return true
 
 func begin_expedition() -> void:
@@ -198,6 +212,28 @@ func _build_rock_collider(info: Dictionary) -> void:
 	body.add_child(polygon)
 	add_child(body)
 
+func _arch_solids(center: Vector2) -> Array[Rect2]:
+	# Roof + left and right buttresses. The central tunnel is explicitly EMPTY.
+	return [
+		Rect2(center + Vector2(-380.0, -220.0), Vector2(220.0, 415.0)),
+		Rect2(center + Vector2(160.0, -220.0), Vector2(220.0, 415.0)),
+		Rect2(center + Vector2(-160.0, -220.0), Vector2(320.0, 116.0))
+	]
+
+func _build_arch_collision(center: Vector2) -> void:
+	var body := StaticBody2D.new()
+	body.name = "ArcoNavegavel"
+	body.collision_layer = 2
+	body.collision_mask = 0
+	for solid in _arch_solids(center):
+		var collider := CollisionShape2D.new()
+		var rectangle := RectangleShape2D.new()
+		rectangle.size = solid.size
+		collider.shape = rectangle
+		collider.position = solid.get_center()
+		body.add_child(collider)
+	add_child(body)
+
 func _rock_contour(center: Vector2, radius: float, seed: float) -> PackedVector2Array:
 	# Identical polygon is used for drawing AND physics: no invisible rock walls.
 	var points := PackedVector2Array()
@@ -234,6 +270,7 @@ func _draw() -> void:
 	_draw_marine_snow(area)
 	_draw_seafloor(area)
 	_draw_landmark_rocks(area)
+	_draw_navigable_arches(area)
 	_draw_kelps(area)
 	_draw_resources()
 	_draw_fauna(area)
@@ -355,6 +392,37 @@ func _draw_landmark_rocks(area: Rect2) -> void:
 				var angle := float(k) * 2.33
 				draw_circle(pos + Vector2(cos(angle), sin(angle)) * r * 0.52,
 					2.7, Color(0.18, 0.9, 0.85, 0.42 + 0.19 * sin(time_s + float(k))))
+
+func _draw_navigable_arches(area: Rect2) -> void:
+	for arch in PASSAGE_ARCHES:
+		if not area.grow(480.0).has_point(arch):
+			continue
+		# The drawn roof/buttresses use the EXACT collision rectangles.
+		var solids := _arch_solids(arch)
+		for solid in solids:
+			draw_rect(solid, Color("#061e30"))
+			var interior := solid.grow(-12.0)
+			if interior.size.x > 0.0 and interior.size.y > 0.0:
+				draw_rect(interior, Color("#2a4c5c"))
+				var facet := PackedVector2Array([
+					interior.position,
+					interior.position + Vector2(interior.size.x, 0),
+					interior.position + Vector2(interior.size.x * 0.54, interior.size.y * 0.46),
+					interior.position + Vector2(0, interior.size.y * 0.84)
+				])
+				draw_colored_polygon(facet, Color("#426877"))
+		# Transparent tunnel rim highlights navigable opening instead of a fake portal.
+		var left := arch + Vector2(-160.0, -105.0)
+		var right := arch + Vector2(160.0, -105.0)
+		draw_line(left, right, Color(0.43, 0.68, 0.71, 0.62), 3.0)
+		draw_line(left, arch + Vector2(-160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
+		draw_line(right, arch + Vector2(160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
+		# Low-energy sediment vents animate at the arch foot.
+		for i in range(4):
+			var x := arch.x + (-286.0 if i < 2 else 286.0)
+			var rise := fposmod(time_s * (9.0 + float(i)) + float(i) * 21.0, 76.0)
+			draw_circle(Vector2(x + sin(time_s + float(i)) * 7.0, arch.y + 183.0 - rise),
+				2.5, Color(0.47, 0.82, 0.78, 0.28))
 
 func _draw_kelps(area: Rect2) -> void:
 	# Photosynthetic kelp only in the shallow, illuminated shelf biome.
