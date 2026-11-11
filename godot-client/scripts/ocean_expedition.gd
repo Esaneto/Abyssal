@@ -4,6 +4,7 @@ extends Node2D
 const DiverScript = preload("res://scripts/diver_native.gd")
 const Ecology = preload("res://scripts/marine_ecology.gd")
 const Deposits = preload("res://scripts/geological_resources.gd")
+const ProgressScript = preload("res://scripts/exploration_progress.gd")
 
 const MAP_W := 24000.0
 const MAP_H := 21000.0
@@ -96,7 +97,7 @@ func begin_expedition() -> void:
 	visible = true
 	process_mode = Node.PROCESS_MODE_INHERIT
 	camera.enabled = true
-	var checkpoint := progress.get_checkpoint() if progress != null else SPAWN
+	var checkpoint: Vector2 = progress.get_checkpoint() if progress != null else SPAWN
 	diver.global_position = checkpoint if is_navigable(checkpoint, 67.0) else SPAWN
 	if progress != null:
 		diver.call("configure_equipment", progress.research_level("oxygenTank"),
@@ -484,7 +485,7 @@ func _update_extraction(delta: float) -> void:
 	var result: Dictionary = progress.collect(nearest_deposit, diver.global_position, progress.selected_tool())
 	extraction_time = 0.0
 	if result.get("ok", false):
-		_set_status("COLETADO: +%d %s" % [int(result["amount"]), str(progress.RESOURCE_NAMES[result["item"]])])
+		_set_status("COLETADO: +%d %s" % [int(result["amount"]), str(ProgressScript.RESOURCE_NAMES.get(result["item"], result["item"]))])
 	else:
 		_set_status(str(result.get("reason", "Coleta indisponivel")))
 	_refresh_deposits()
@@ -564,7 +565,7 @@ func _draw_hud() -> void:
 	if not nearest_deposit.is_empty():
 		var kind := str(nearest_deposit["type"])
 		var required: String = Deposits.tool_for(kind)
-		var name: String = str(progress.RESOURCE_NAMES.get(kind, kind)) if progress != null else kind
+		var name: String = str(ProgressScript.RESOURCE_NAMES.get(kind, kind)) if progress != null else kind
 		_text("G  EXTRAIR: %s  [%s]" % [name, "2" if required == "emptyCylinder" else "1"],
 			Vector2(x + 350, y + 312), 18, Color("#f9d99b"))
 		if extraction_time > 0.0:
@@ -587,11 +588,11 @@ func _draw_hud() -> void:
 func _draw_quick_tools(x: float, y: float) -> void:
 	if progress == null:
 		return
-	var selected := progress.selected_tool()
+	var selected: String = str(progress.selected_tool())
 	for i in range(2):
 		var id := "abyssPickaxe" if i == 0 else "emptyCylinder"
 		var p := Vector2(x + 565.0 + float(i) * 140.0, y + 661.0)
-		var chosen := id == selected
+		var chosen: bool = id == selected
 		draw_rect(Rect2(p, Vector2(133, 56)), Color("#0e4657") if chosen else Color("#092b3a"))
 		draw_rect(Rect2(p + Vector2(3, 3), Vector2(127, 50)),
 			Color("#194e5b") if chosen else Color("#113846"))
@@ -639,9 +640,9 @@ func _draw_inventory_panel(x: float, y: float) -> void:
 		var pos := p + Vector2(24.0 + float(col) * 350.0, 105.0 + float(row) * 43.0)
 		draw_rect(Rect2(pos, Vector2(333, 37)), Color("#123d4b"))
 		draw_rect(Rect2(pos + Vector2(5, 6), Vector2(23, 23)), Deposits.color_for(id))
-		_text(str(progress.RESOURCE_NAMES.get(id, id)), pos + Vector2(37, 25), 14, Color("#cde9e8"))
+		_text(str(ProgressScript.RESOURCE_NAMES.get(id, id)), pos + Vector2(37, 25), 14, Color("#cde9e8"))
 		_text("x%d" % progress.get_count(id), pos + Vector2(280, 25), 14, Color("#f5d2a6"))
-	_text("FERRAMENTA EQUIPADA: %s" % str(progress.RESOURCE_NAMES.get(progress.selected_tool(), "")),
+	_text("FERRAMENTA EQUIPADA: %s" % str(ProgressScript.RESOURCE_NAMES.get(progress.selected_tool(), "")),
 		p + Vector2(26, 382), 15, Color("#f5d2a6"))
 
 func _draw_navigation_chart(x: float, y: float) -> void:
