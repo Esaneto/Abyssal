@@ -26,7 +26,7 @@
   if(cached?.primary.toLowerCase()===hex.toLowerCase())return cached;
   // Preserve each real Specimens catalog color, but lift midtones for the
   // vivid biological silhouettes seen through shallow blue water.
-  const p=Object.freeze({primary:mix(hex,.14),mid:mix(hex,.06),dark:mix(hex,-.36),deep:mix(hex,-.62),
+  const p=Object.freeze({primary:hex,mid:mix(hex,.06),dark:mix(hex,-.36),deep:mix(hex,-.62),
    light:mix(hex,.49),highlight:mix(hex,.78),soft:alpha(hex,.79),veil:alpha(hex,.48)});
   paletteCache.set(id,p);return p;
  }
