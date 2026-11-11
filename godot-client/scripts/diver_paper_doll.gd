@@ -85,38 +85,41 @@ static func _draw_cabin_handheld(c: CanvasItem, look: Dictionary, tones: Diction
 static func draw_swimmer_hair(c: CanvasItem, candidate: Dictionary, t: float, moving: bool, breathe: float) -> void:
 	var look := Look.normalize(candidate)
 	var tone: Color = SWIM_HAIR[str(look["hair_color"])]
-	var highlight := tone.lightened(0.35)
-	var phase := t * (2.1 if moving else 0.65)
-	var hair := str(look["hair"])
-	# Hair originates at the helmet seal and flows ABOVE the back-mounted tank.
-	# This keeps male/female silhouettes legible at native 0.91 camera zoom.
-	if hair=="short":
+	var phase := t*(1.75 if moving else 0.54)
+	var style := str(look["hair"])
+	if style=="short":
 		c.draw_arc(Vector2(18,-29+breathe),11.0,PI*0.92,PI*1.58,14,
 			tone.darkened(0.22),6.5,true)
 		c.draw_arc(Vector2(17,-29+breathe),10.0,PI*0.99,PI*1.58,12,
-			highlight,1.8,true)
+			tone.lightened(0.34),1.8,true)
 		return
-	var count := 5 if hair=="long" else 3
-	var length := 67.0 if hair=="long" else 37.0
+	# Ribbon-based hair with a tapered outer edge and curved swim motion.
+	# Monotonic x positions prevent self-intersection and keep the stream soft.
+	var count := 3 if style=="long" else 2
+	var length := 83.0 if style=="long" else 44.0
 	for k in range(count):
-		var by := -34.0+float(k)*3.8+breathe
-		var wind := sin(phase+float(k)*0.51)*6.0
-		var p0 := Vector2(18.0,by)
-		var p1 := Vector2(0.0-length*0.40,by-13.0+wind*0.40)
-		var p2 := Vector2(10.0-length,by-17.0+wind)
-		var thickness := 3.6 if hair=="long" else 2.5
-		c.draw_colored_polygon(PackedVector2Array([
-			p0+Vector2(0,-thickness),p1+Vector2(0,-thickness),
-			p2+Vector2(0,-1.4),p2+Vector2(0,1.2),
-			p1+Vector2(0,thickness),p0+Vector2(0,thickness)
-		]),tone.darkened(0.18+0.045*float(k%3)))
-		c.draw_line(p0+Vector2(0,-thickness*0.4),p1+Vector2(0,-thickness*0.4),
-			highlight,1.0,true)
-		c.draw_line(p1+Vector2(0,-thickness*0.4),p2,highlight,0.75,true)
-	if hair=="tied":
-		# Fastened ponytail uses the very same hair anchors and animation.
-		c.draw_circle(Vector2(11,-31+breathe),5.0,Color("#f1bd70"))
-		c.draw_circle(Vector2(11,-31+breathe),2.3,Color("#344556"))
+		var upper := PackedVector2Array()
+		var lower := PackedVector2Array()
+		var highlight := PackedVector2Array()
+		var base_y := -33.0+float(k)*3.5+breathe
+		for j in range(11):
+			var fraction := float(j)/10.0
+			var x := 17.0-length*fraction-float(k)*7.0*fraction
+			var motion := sin(phase+fraction*3.1+float(k)*0.65)*5.5*fraction*fraction
+			var y := base_y-20.0*sin(fraction*PI*0.80)+motion+float(k)*4.5*fraction
+			var width := (5.5-fraction*3.6)*(1.0-fraction*0.63)
+			upper.append(Vector2(x,y-width))
+			lower.append(Vector2(x,y+width))
+			highlight.append(Vector2(x,y-width*0.48))
+		var contour := PackedVector2Array()
+		contour.append_array(upper)
+		for j in range(lower.size()-1,-1,-1):
+			contour.append(lower[j])
+		c.draw_colored_polygon(contour,tone.darkened(float(k%2)*0.09))
+		c.draw_polyline(highlight,Color(tone.lightened(0.45),0.72),0.85,true)
+	if style=="tied":
+		c.draw_circle(Vector2(11,-32+breathe),5.4,Color("#e5ad59"))
+		c.draw_circle(Vector2(11,-32+breathe),2.4,Color("#344556"))
 
 static func draw_swimmer_handheld(c: CanvasItem, candidate: Dictionary, breathe: float) -> void:
 	var look := Look.normalize(candidate)
