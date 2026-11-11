@@ -20,7 +20,7 @@ static func paint(c: Node2D, rect: Rect2, diver: CharacterBody2D, progress: RefC
 	UI.caption(c,"EXPLORACAO  /  MAR ABERTO",Vector2(side+15,top+91),14,Color("#9cedf6"))
 	UI.caption(c,"PROF.  %.0f m" % diver.depth_m,Vector2(side+18,top+123),23,Color("#f1fcff"))
 	UI.caption(c,"PRESSAO  %.1f atm" % (1.0+diver.depth_m/10.0),Vector2(side+18,top+150),16,Color("#b1e8ed"))
-	var ratio := diver.oxygen/maxf(1.0,diver.oxygen_capacity)
+	var ratio: float = float(diver.oxygen)/maxf(1.0,float(diver.oxygen_capacity))
 	UI.caption(c,"OXIGENIO  %d%%" % int(ratio*100.0),Vector2(side+18,top+179),17,
 		Color("#ffb08d") if ratio<0.3 else Color("#83f5e4"))
 	c.draw_rect(Rect2(side+18,top+187,286,8),Color("#1d4b60"))
@@ -64,8 +64,8 @@ static func paint(c: Node2D, rect: Rect2, diver: CharacterBody2D, progress: RefC
 	UI.panel(c,Rect2(bar_x,bar_y,full,84))
 	for i in range(slots):
 		var left := bar_x+13.0+float(i)*(slot_w+gap)
-		var tool := ITEMS[i]
-		var active := i<2 and progress.selected_tool()==tool
+		var tool: String = str(ITEMS[i])
+		var active: bool = i<2 and progress.selected_tool()==tool
 		UI.panel(c,Rect2(left,bar_y+10,slot_w,64),active,active)
 		UI.item(c,tool,Vector2(left+30,bar_y+37),0.74)
 		UI.caption(c,str(i+1),Vector2(left+5,bar_y+21),11,Color("#ebfaff"))
