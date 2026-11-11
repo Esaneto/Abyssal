@@ -269,22 +269,31 @@
    photographicWaterCaustics(t);
    // Preserve independent moving sea-life without outlining the fauna already
    // present inside the painted scene or drawing a second stationary diver.
-   c.save();c.globalAlpha=.32;
-   for(let i=0;i<7;i++){
-    const x=((i*233+t*.008*(1+i%3*.2))%1410)+45;
-    fish(x,210+(i*61)%205,.22+(i%3)*.055,t,i);
+   // Independent moving shoals remain visible on top of the authored scenery.
+   // The reference image is NOT used as a texture or static menu screenshot.
+   c.save();c.globalAlpha=.57;
+   for(let i=0;i<13;i++){
+    const x=((i*181+t*.020*(1+i%3*.21))%1550)-70;
+    fish(x,157+(i*53)%274,.23+(i%4)*.055,t,i);
    }
    c.restore();
   }else{
-   for(let i=0;i<9;i++){
-    const x=((i*271+t*.012*(1+i%3*.25))%1640)-90;
-    fish(x,181+(i*79)%244,.34+(i%3)*.11,t,i);
+   for(let i=0;i<16;i++){
+    const x=((i*179+t*.025*(1+i%3*.25))%1600)-90;
+    fish(x,160+(i*59)%276,.28+(i%4)*.09,t,i);
    }
    manta(((t*.029+850)%1810)-170,280,.57,t,2);
    manta(((t*.029+690)%1810)-170,316,.37,t,3);
    turtle(1050+Math.sin(t*.00032)*52,243,.66,t,5);
    jelly(509+Math.sin(t*.00021)*28,324,.62,t,1);
   }
+  // Near-window shoal: three-dimensional depth from distinct motion speeds.
+  c.save();c.globalAlpha=.29;
+  for(let i=0;i<4;i++){
+   const x=1540-((t*.011+i*235)%1770),y=265+i*39+Math.sin(t*.00066+i)*9;
+   fish(x,y,.55+i*.085,t,i+38);
+  }
+  c.restore();
   // Tiny bubble trails and depth haze.
   for(let i=0;i<39;i++){
    const x=70+(i*127)%1310,y=130+(i*79+(t*.017*(1+i%3)))%407;
@@ -521,8 +530,8 @@
    window.AbyssalCinematicArt?.cabinInterior?.(c,t);
    if(!compact)chair(1389,670,.62);
   }
-  // Keep the seated pilot alive in photographic and vector cabin modes.
-  // The central HTML console remains in front; only the character is Canvas.
+  // Animated panoramic scenery and separate physical console never replace
+  // gameplay sprites. The seated pilot uses the selected diver gender.
   diver(t,compact);
   c.restore();
  }
