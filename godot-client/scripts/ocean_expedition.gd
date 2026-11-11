@@ -285,7 +285,7 @@ func _draw_marine_snow(area: Rect2) -> void:
 			var x := float(gx + ix) * 90.0 + 22.0 * sin(seed * 0.37)
 			var y := float(gy + iy) * 90.0 + 21.0 * cos(seed * 0.23)
 			var drift := fposmod(time_s * (2.0 + float((ix + iy) % 4)), 44.0)
-			var alpha := 0.07 + _water_light(maxf(0.0, y / PIXELS_PER_METER)) * 0.23
+			var alpha := 0.07 + _water_light(depth_at_y(y)) * 0.23
 			draw_circle(Vector2(x + 5.0 * sin(time_s * 0.31 + seed), y - drift),
 				0.9 + float(ix % 3) * 0.25, Color(0.72, 0.95, 0.95, alpha))
 
