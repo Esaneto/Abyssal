@@ -243,7 +243,7 @@ static func rock_material(canvas: CanvasItem, contour: PackedVector2Array, cente
 		var tint := Color("#4b6872").lerp(Color("#879b98"), clampf(light * 0.68, 0.0, 1.0))
 		colors.append(tint * (0.38 + light_side * 0.53))
 		uv.append((vertex - center) / (radius * 2.0) + Vector2(0.5, 0.5))
-	canvas.draw_polygon(contour, colors, uv, stone_texture(), true)
+	canvas.draw_polygon(contour, colors, uv, stone_texture())
 	# Scattered irregular lamination: short, oblique and never all from one center.
 	for k in range(9):
 		var a := float(k) * 1.73 + center.x * 0.0007
@@ -277,7 +277,7 @@ static func arch_material(canvas: CanvasItem, solid: Rect2, light: float) -> voi
 	])
 	canvas.draw_polygon(corners, verts, PackedVector2Array([
 		Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)
-	]), stone_texture(), true)
+	]), stone_texture())
 	canvas.draw_line(Vector2(p.x + 5, p.y + 5), Vector2(q.x - 4, p.y + 5),
 		Color(0.54, 0.75, 0.71, 0.10 + light * 0.22), 3.0, true)
 	# Thin layer seams are inside solid material, never across the opening.
