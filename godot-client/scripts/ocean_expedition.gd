@@ -424,7 +424,7 @@ func _draw_light_beams(area: Rect2) -> void:
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(x0 + sway, top), Vector2(x0 + 35.0 + sway, top),
 			Vector2(x0 + 240.0 + sway, bottom), Vector2(x0 + 97.0 + sway, bottom)
-		]), Color(0.3, 0.97, 0.9, 0.055 * solar))
+		]), Color(0.3, 0.97, 0.9, 0.09 * solar))
 
 func _draw_marine_snow(area: Rect2) -> void:
 	# Deterministic, camera-local particle grid. No per-frame random allocations.
