@@ -8,7 +8,7 @@
  if(root)root.AbyssalOceanGeography=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const WIDTH=24000,HEIGHT=21000,VERSION=5,DEPTH_SCALE=HEIGHT/9000;
+ const WIDTH=24000,HEIGHT=21000,VERSION=6,DEPTH_SCALE=HEIGHT/9000;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  // Distinct continental shelves, escarpments and broad abyssal basins.
  const SHOALS=Object.freeze([[6250,850,.40],[14200,1080,.43],[18600,980,.46],[22400,760,.44]]);
@@ -82,6 +82,23 @@
    const ry=(bed-apex)/2;
    EXTRA_ROCKS.push([x,apex+ry,rx,ry,'spire']);
   }
+  // Navigable geological arches across the entire ocean, not just near spawn.
+  // Their centers are genuine hollow collision tunnels (ARCH_TUNNELS below),
+  // while the approach cliffs and buttresses are solid for both client/server.
+  // A wide water bypass always remains above each arch.
+  const PASSAGE_ARCHES=Object.freeze([
+   [4800,1350],[6800,2350],[10200,3280],[13050,3970],
+   [16500,4850],[18900,5200],[21700,6100]
+  ].map(([x,target],i)=>{
+   const y=Math.max(1250,Math.min(target,floorAt(x)-1250));
+   const rx=370+(i%3)*28,ry=235+(i%2)*26;
+   EXTRA_ROCKS.push([x,y,rx,ry,'arch']);
+   const shift=i%2?-1:1;
+   // Offset side boulders sculpt alternate narrow and broad swim-throughs.
+   EXTRA_ROCKS.push([x+shift*595,y+325,185,285,'spire']);
+   EXTRA_ROCKS.push([x-shift*655,y+460,150,218,'boulder']);
+   return Object.freeze({x,y,rx,ry});
+  }));
   const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
   id:'rock-'+i,x:r[0],y:Math.min(HEIGHT-260,floorAt(r[0])-r[1]),
   rx:r[2],ry:r[3],type:r[4]
@@ -262,5 +279,5 @@
   if(depth<1000)return Math.exp(-200/33)*Math.pow((1000-depth)/800,1.65);
   return 0;
  }
- return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,VISUAL_BIOMES,visualBiomeAt,KNOTS,ROCKS,CAVES,ARCH_TUNNELS,BRANCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
+ return Object.freeze({WIDTH,HEIGHT,VERSION,DEPTH_SCALE,VISUAL_BIOMES,visualBiomeAt,KNOTS,ROCKS,PASSAGE_ARCHES,CAVES,ARCH_TUNNELS,BRANCH_TUNNELS,caveRadiusAt,rockRelief,rockSurfaceAt,rockContains,floorAt,isSolid,isCaveWater,segmentClear,nearestWater,resolveMove,steer,classify,lightAt,metersAt});
 });
