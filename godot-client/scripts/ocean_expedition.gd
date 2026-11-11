@@ -445,6 +445,62 @@ func _draw_fauna(area: Rect2) -> void:
 		if d > 240.0 and info["id"] in ["angler", "viper", "jelly"]:
 			draw_arc(pos, 44.0, 0.0, TAU, 32, Color(0.1, 0.7, 0.8, 0.035), 2.0)
 
+func get_rocks() -> Array:
+	return ROCKS
+
+func _refresh_deposits() -> void:
+	if progress == null or diver == null or deposits == null:
+		return
+	var collected: Dictionary = progress.profile["collected"]
+	visible_deposits = deposits.stream_near(self, diver.global_position, 1300.0, collected)
+	nearest_deposit.clear()
+	var best_distance := 125.0
+	for node in visible_deposits:
+		var pos: Vector2 = node["pos"]
+		var dist := diver.global_position.distance_to(pos)
+		if dist < best_distance:
+			nearest_deposit = node
+			best_distance = dist
+
+func _update_extraction(delta: float) -> void:
+	if progress == null or inventory_open or field_guide_open or chart_open:
+		extraction_time = 0.0
+		return
+	if not Input.is_key_pressed(KEY_G) or nearest_deposit.is_empty():
+		extraction_time = 0.0
+		return
+	var required: String = deposits.tool_for(str(nearest_deposit["type"]))
+	if progress.selected_tool() != required:
+		extraction_time = 0.0
+		if time_s > status_until:
+			_set_status("EQUIPE A FERRAMENTA CORRETA [1 / 2]")
+		return
+	if progress.get_count(required) < 1:
+		extraction_time = 0.0
+		return
+	extraction_time += delta
+	if extraction_time < deposits.duration_for(str(nearest_deposit["type"])):
+		return
+	var result: Dictionary = progress.collect(nearest_deposit, diver.global_position, progress.selected_tool())
+	extraction_time = 0.0
+	if result.get("ok", false):
+		_set_status("COLETADO: +%d %s" % [int(result["amount"]), str(progress.RESOURCE_NAMES[result["item"]])])
+	else:
+		_set_status(str(result.get("reason", "Coleta indisponivel")))
+	_refresh_deposits()
+
+func _draw_resources() -> void:
+	for node in visible_deposits:
+		var pos: Vector2 = node["pos"]
+		if camera.get_screen_center_position().distance_squared_to(pos) > 1950.0 * 1950.0:
+			continue
+		var highlighted := not nearest_deposit.is_empty() and str(node["id"]) == str(nearest_deposit["id"])
+		Deposits.paint(self, node, time_s, highlighted)
+
+func _set_status(message: String) -> void:
+	status_message = message
+	status_until = time_s + 3.8
+
 func _update_nearest() -> void:
 	nearest.clear()
 	nearby_distance = INF
