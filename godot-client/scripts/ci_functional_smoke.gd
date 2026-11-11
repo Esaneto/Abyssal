@@ -131,7 +131,7 @@ func _run_tests() -> void:
 	if world.nearest_deposit.is_empty():
 		_fail("Campo proximo nao detecta deposito do jogador", 31)
 		return
-	var tool := Deposits.tool_for(str(world.nearest_deposit["type"]))
+	var tool: String = str(Deposits.tool_for(str(world.nearest_deposit["type"])))
 	restored.select_tool(tool)
 	var node_id := str(world.nearest_deposit["id"])
 	Input.action_press("extract")
