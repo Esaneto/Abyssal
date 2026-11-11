@@ -48,3 +48,19 @@ test('paint passes are connected to the live cockpit, Open Sea and asset cache v
  assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-open-sea-render.js'));
  assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-submarine-cockpit.js'));
 });
+
+test('cinematic bridge animates real-image caustics and loads the photographic deck after resize',()=>{
+ const source=read('public/abyssal-submarine-cockpit.js');
+ assert.match(source,/function photographicWaterCaustics\(t\)/);
+ assert.match(source,/photographicWaterCaustics\(t\);/);
+ assert.match(source,/if\(photo\)photo\.onload=/);
+ assert.match(source,/if\(deckPhoto\)deckPhoto\.onload=/);
+ assert.match(source,/function ensureDeckPhoto\(\)/);
+ assert.match(source,/function visualStatus\(\)/);
+ assert.match(source,/size\(\);ensureDeckPhoto\(\);scene\(lastPaint\|\|0\)/);
+ const smoke=read('scripts/browser-smoke.cjs');
+ assert.match(smoke,/Cinematic ocean photo failed to decode/);
+ assert.match(smoke,/Photographic instrument deck failed to decode/);
+ assert.match(smoke,/cockpit-tablet/);
+ assert.match(smoke,/cockpit-wide/);
+});
