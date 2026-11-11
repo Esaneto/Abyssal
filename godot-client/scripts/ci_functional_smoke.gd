@@ -20,7 +20,7 @@ func _run_tests() -> void:
 	if saved.appearance_snapshot()["body"]!="female":
 		_fail("Perfil antigo nao preservou aparencia feminina padrao", 45)
 		return
-	var male := saved.appearance_snapshot()
+	var male: Dictionary = saved.appearance_snapshot()
 	male["body"]="male"
 	male["hair"]="short"
 	male["hair_color"]="black"
@@ -31,7 +31,7 @@ func _run_tests() -> void:
 	if saved.appearance_snapshot()!=male:
 		_fail("Seis slots de aparencia nao foram aplicados", 46)
 		return
-	var impossible := male.duplicate()
+	var impossible: Dictionary = male.duplicate()
 	impossible["suit"]="untrusted-skin-ID"
 	saved.set_appearance(impossible)
 	if saved.appearance_snapshot()["suit"]!="abyss":
@@ -91,7 +91,7 @@ func _run_tests() -> void:
 		_fail("O novo loadout visual foi perdido no save v1", 49)
 		return
 	# Older saves lack appearance entirely. This must not prevent loading.
-	var old_data := saved.profile.duplicate(true)
+	var old_data: Dictionary = saved.profile.duplicate(true)
 	old_data.erase("appearance")
 	var legacy_path := "user://godot_cosmetic_legacy.json"
 	var legacy_file := FileAccess.open(legacy_path,FileAccess.WRITE)

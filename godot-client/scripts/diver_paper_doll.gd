@@ -41,12 +41,12 @@ static func draw_cabin(c: CanvasItem, candidate: Dictionary, time_s: float) -> v
 	var mask_tint: Color = Color.WHITE if look["mask"]=="aqua" else Color("#ffe0b4")
 	# Hair starts behind the seat and suit, while the fringe is in front of the face.
 	var sway := sin(time_s*0.74)*2.1 if look["hair"]!="short" else 0.4*sin(time_s)
-	_paint_layer(c,_back_hair(str(look["hair"])),rect.translated(Vector2(sway,0)),hair_tint)
+	_paint_layer(c,_back_hair(str(look["hair"])),Rect2(rect.position + Vector2(sway,0),rect.size),hair_tint)
 	_paint_layer(c,CHAIR,rect)
 	_paint_layer(c,TANK,rect)
 	_paint_layer(c,SUIT,rect,suit_tint)
 	_paint_layer(c,FACE_F if look["body"]=="female" else FACE_M,rect)
-	_paint_layer(c,_front_hair(str(look["hair"])),rect.translated(Vector2(sway*0.28,0)),hair_tint)
+	_paint_layer(c,_front_hair(str(look["hair"])),Rect2(rect.position + Vector2(sway*0.28,0),rect.size),hair_tint)
 	_paint_layer(c,MASK,rect,mask_tint)
 	_paint_layer(c,ARM,rect,suit_tint)
 	# Luminescent mask rim in the chosen visor palette.
