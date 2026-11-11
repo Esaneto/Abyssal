@@ -39,7 +39,7 @@ void vertex() {
 }
 
 void fragment() {
-    vec4 px = texture(TEXTURE, UV) * COLOR;
+    vec4 px = texture(TEXTURE, UV);
     if (px.a <= 0.001) {
         COLOR = px;
     } else {

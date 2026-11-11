@@ -8,7 +8,7 @@ const EFFECT := preload("res://shaders/anime_diver_swim.gdshader")
 
 const IMAGE_WIDTH := 1448.0
 const IMAGE_HEIGHT := 1086.0
-const SWIM_WIDTH := 274.0
+const SWIM_WIDTH := 218.0
 const SWIM_HEIGHT := SWIM_WIDTH * IMAGE_HEIGHT / IMAGE_WIDTH
 const COLS := 36
 const ROWS := 28
