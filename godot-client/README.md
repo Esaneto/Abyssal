@@ -63,3 +63,17 @@ A referencia de Mar Aberto foi convertida em elementos autonomos, nao uma imagem
 Arquivos centrais: scripts/native_cabin_art.gd, scripts/native_reef_art.gd, scripts/native_ocean_hud.gd, scripts/ui_art_primitives.gd, scripts/diver_appearance.gd, scripts/diver_paper_doll.gd, scripts/wardrobe_ui.gd e assets/art/character/*.svg. Veja [pipeline de cosmeticos](docs/CUSTOMIZACAO_PERSONAGEM.md).
 
 O estilo e 2D ilustrado/2.5D. O acabamento permanece inferior ao conceito promocional e precisa de avaliacao artistica e FPS nos dispositivos finais.
+
+## Personagens anime-realistas com animação em malha
+
+A cabine e o Mar Aberto agora suportam os **PNGs originais gerados e aprovados**
+para o mergulhador e a mergulhadora. A aparência masculina/feminina é lida do
+mesmo perfil local. No mar, a arte é renderizada sobre uma malha deformável,
+com animação sutil de nadadeiras, cabelo e respiração, mantendo todas as
+regras físicas anteriores.
+
+**Importante:** os binários de alta resolução devem ser instalados por pacote
+separado em `assets/art/characters/`. Se não estiverem instalados, o cliente
+continua exibindo a arte procedural antiga, por compatibilidade.
+
+Veja [instalação dos PNGs e limites de cosméticos](docs/ANIME_REALISTA_ASSETS.md).

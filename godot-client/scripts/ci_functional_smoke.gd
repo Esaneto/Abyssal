@@ -13,6 +13,18 @@ func _run_tests() -> void:
 	var Progress = load("res://scripts/exploration_progress.gd")
 	var Deposits = load("res://scripts/geological_resources.gd")
 	var saved = Progress.new(false)
+	var Anime = load("res://scripts/anime_diver_art.gd")
+	if Anime == null or Anime.mesh().get_surface_count() != 1:
+		_fail("Malha da arte anime-realista nao foi montada", 58)
+		return
+	if Anime.mesh().surface_get_array_index_len(0) <= 100:
+		_fail("Malha nao possui subdivisoes para animar cabelo e nadadeiras", 59)
+		return
+	var active_material: ShaderMaterial = Anime.make_material()
+	if active_material == null or active_material.shader == null:
+		_fail("Shader de animacao anime-realista ausente", 60)
+		return
+	Anime.update_material(active_material,{"body":"female","hair":"long","hair_color":"copper","suit":"abyss"},3.0,true)
 	if saved.get_count("abyssPickaxe") != 1 or saved.get_count("emptyCylinder") != 1:
 		_fail("O kit inicial nao possui picareta e cilindro", 10)
 		return

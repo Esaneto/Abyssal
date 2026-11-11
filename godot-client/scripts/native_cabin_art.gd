@@ -3,6 +3,7 @@ extends RefCounted
 ## No reference screenshot is displayed: every visual is separately drawn and animated.
 const UI = preload("res://scripts/ui_art_primitives.gd")
 const Doll = preload("res://scripts/diver_paper_doll.gd")
+const Anime = preload("res://scripts/anime_diver_art.gd")
 const MENU := ["Loja","Laboratório","Mar Aberto","Fossas","Espécimes","Minérios"]
 const KEYS := ["salvageMetal","sonar","fish","deepCrystal","turtle","polymetallicNodule"]
 const DESCRIPTIONS := [
@@ -186,7 +187,8 @@ static func _paint_bridge(c: CanvasItem, t: float) -> void:
 
 static func _paint_pilot(c: CanvasItem, t: float, appearance: Dictionary) -> void:
 	# Shared paper-doll: same validated look used by native swimmer.
-	Doll.draw_cabin(c,appearance,t)
+	if not Anime.draw_cabin(c,appearance,t):
+		Doll.draw_cabin(c,appearance,t)
 
 static func _paint_console(c: CanvasItem, t: float) -> void:
 	UI.poly(c,[Vector2(0,467),Vector2(1280,467),Vector2(1280,720),Vector2(0,720)],Color("#142642"))
