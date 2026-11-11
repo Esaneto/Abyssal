@@ -265,30 +265,29 @@ static func rock_material(canvas: CanvasItem, contour: PackedVector2Array, cente
 		elif k % 2 == 0:
 			canvas.draw_circle(p, 1.7, Color(0.23, 0.72, 0.70, 0.14 + 0.08 * sin(time_s + k)))
 
-static func arch_material(canvas: CanvasItem, solid: Rect2, light: float) -> void:
-	# The entire textured surface is the SAME rectangle as its collider.
-	var p := solid.position
-	var q := solid.end
-	var corners := PackedVector2Array([
-		Vector2(p.x, p.y), Vector2(q.x, p.y),
-		Vector2(q.x, q.y), Vector2(p.x, q.y)
-	])
-	var tone := Color("#374d5b").lerp(Color("#768986"), clampf(light, 0.0, 0.80))
-	var verts := PackedColorArray([
-		tone.lightened(0.15), tone, tone.darkened(0.51), tone.darkened(0.34)
-	])
-	canvas.draw_polygon(corners, verts, PackedVector2Array([
-		Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)
-	]), stone_texture())
-	canvas.draw_line(Vector2(p.x + 5, p.y + 5), Vector2(q.x - 4, p.y + 5),
-		Color(0.54, 0.75, 0.71, 0.10 + light * 0.22), 3.0, true)
-	# Thin layer seams are inside solid material, never across the opening.
+static func arch_material(canvas: CanvasItem, outline: PackedVector2Array, light: float) -> void:
+	# Draws exactly the polygon installed as a CollisionPolygon2D.
+	var bounds := Rect2(outline[0], Vector2.ZERO)
+	for vertex in outline:
+		bounds = bounds.expand(vertex)
+	var size := Vector2(maxf(1.0, bounds.size.x), maxf(1.0, bounds.size.y))
+	var colors := PackedColorArray()
+	var uv := PackedVector2Array()
+	for vertex in outline:
+		var height_light := clampf(1.0 - (vertex.y - bounds.position.y) / size.y, 0.0, 1.0)
+		var tint := Color("#52616d").lerp(Color("#869792"), clampf(light, 0.0, 0.85))
+		colors.append(tint * (0.38 + height_light * 0.33))
+		uv.append((vertex - bounds.position) / size)
+	canvas.draw_polygon(outline, colors, uv, stone_texture())
+	# Geological seams remain contained inside the volume of the stone.
 	for k in range(5):
-		var y := p.y + solid.size.y * (float(k) + 0.8) / 6.0
-		var x1 := p.x + 9.0
-		var x2 := minf(q.x - 9.0, x1 + solid.size.x * (0.35 + 0.10 * float(k % 3)))
-		canvas.draw_line(Vector2(x1, y), Vector2(x2, y + 4.0),
-			Color(0.04, 0.12, 0.15, 0.28), 1.7, true)
+		var y := bounds.position.y + bounds.size.y * (float(k) + 0.7) / 6.0
+		var x := bounds.position.x + 18.0
+		var candidate := Vector2(x, y)
+		if Geometry2D.is_point_in_polygon(candidate, outline):
+			canvas.draw_line(candidate, candidate + Vector2(24.0, 5.0),
+				Color(0.04, 0.12, 0.15, 0.24), 1.4, true)
+
 
 static func kelp_frond(canvas: CanvasItem, x: float, base: float, length: float, time_s: float, seed: float) -> void:
 	# One flexible stalk with translucent leaves, instead of a geometric fence.
