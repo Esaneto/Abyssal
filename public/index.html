@@ -50,6 +50,7 @@
 <link rel="stylesheet" href="abyssal-exploration-hud.css?v=2026.11.10.66">
 <link rel="stylesheet" href="abyssal-cinematic-refresh.css?v=2026.11.11.1">
 <link rel="stylesheet" href="abyssal-solo-focus.css?v=2026.11.11.1">
+<link rel="stylesheet" href="abyssal-pet-habits.css?v=2026.11.11.1">
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
@@ -175,6 +176,14 @@
       <aside id="selectedSkillsPanel" class="selected-skills-panel" aria-live="polite" aria-label="Ressonância, habilidades adquiridas"><strong class="selected-skills-title">RESSONÂNCIA</strong><div id="selectedSkillsList" class="selected-skills-list"><p class="selected-skills-empty">Nenhuma habilidade adquirida</p></div></aside>
       <div id="skillDescriptionTooltip" class="skill-description-tooltip" role="tooltip" hidden></div>
       <aside id="runEnergyRanking" class="run-energy-ranking" aria-live="polite"><strong>DANO · TOP 6</strong><div id="runEnergyRankingList"><span>1. Você — 0</span></div></aside>
+      <aside id="petHabitBar" class="pet-habit-bar" aria-label="Comportamento do espécime">
+ <strong>COMPORTAMENTO DO ESPÉCIME</strong>
+ <div class="pet-habit-actions">
+  <button type="button" data-pet-habit="passive" aria-pressed="true" title="4 · Evita monstros e coleta orbs pela rota mais segura"><span aria-hidden="true">⚒</span><small>4 · PASSIVO</small></button>
+  <button type="button" data-pet-habit="aggressive" aria-pressed="false" title="5 · Ataca os monstros mais próximos e coleta XP"><span aria-hidden="true">⚔</span><small>5 · AGRESSIVO</small></button>
+  <button type="button" data-pet-habit="guardian" aria-pressed="false" title="6 · Protege o jogador dos monstros próximos e coleta XP"><span aria-hidden="true">⬡</span><small>6 · PROTETOR</small></button>
+ </div>
+</aside>
       <div class="active-abilities" id="activeAbilities">
         <button id="skillPulseBtn" class="active-ability pulse-ability" hidden>Q · PULSO DE MARÉ</button>
         <button id="skillDashBtn" class="active-ability dash-ability" hidden>E · PASSO FANTASMA</button>
@@ -621,6 +630,7 @@
 <script src="diver-hitbox.js?v=2026.11.7.3"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.8.1"></script>
+<script src="abyssal-pet-tactics.js?v=2026.11.11.1"></script>
  <script src="specimen-rarity.js?v=2026.11.8.1"></script>
  <script src="abyssal-feature-gates.js?v=2026.11.11.1"></script>
  <script src="game.js?v=2026.11.10.61"></script>

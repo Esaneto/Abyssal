@@ -1,0 +1,28 @@
+/* Live Solo pet habits. No gameplay-area pointer interception. */
+#petHabitBar[hidden]{display:none!important}
+#petHabitBar{position:absolute;z-index:11;left:16px;bottom:78px;max-width:min(335px,46vw);
+ padding:8px 10px 9px;border:1px solid #3d8292;border-radius:12px;
+ background:linear-gradient(150deg,rgba(12,36,57,.95),rgba(3,15,29,.96));
+ color:#cfe7ed;box-shadow:0 9px 22px #0009;pointer-events:auto}
+#petHabitBar>strong{display:block;margin:0 0 7px;font:800 9px/1.15 Inter,sans-serif;letter-spacing:.13em;color:#90ced8}
+#petHabitBar .pet-habit-actions{display:flex;gap:6px}
+#petHabitBar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+ min-width:0;flex:1;padding:5px 6px;background:#0c2b42;color:#b8dbe3;
+ border:1px solid #2e6075;border-radius:8px;cursor:pointer;touch-action:manipulation}
+#petHabitBar button>span{font-size:22px;line-height:1}
+#petHabitBar button small{font:800 9px/1.2 Inter,sans-serif;white-space:nowrap}
+#petHabitBar button:hover,#petHabitBar button:focus-visible{border-color:#8eddec;filter:brightness(1.12)}
+#petHabitBar button.is-selected{border-color:#f6c76f;background:#214154;color:#fff1c5;box-shadow:inset 0 0 12px #ffd27c22}
+@media(max-width:700px){
+ #petHabitBar{left:max(7px,env(safe-area-inset-left));bottom:max(110px,calc(env(safe-area-inset-bottom) + 101px));
+  width:min(252px,70vw);max-width:none;padding:5px 6px;border-radius:9px}
+ #petHabitBar>strong{font-size:7px;margin-bottom:4px}
+ #petHabitBar button{padding:4px 2px;gap:2px}
+ #petHabitBar button>span{font-size:17px}
+ #petHabitBar button small{font-size:7px}
+}
+@media(max-height:530px) and (orientation:landscape){
+ #petHabitBar{bottom:42px;left:6px;max-width:212px;padding:4px}
+ #petHabitBar>strong{display:none}
+ #petHabitBar button small{font-size:7px}
+}

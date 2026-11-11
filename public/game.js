@@ -365,6 +365,24 @@ const skinData=[
 const SkinAbilities=window.AbyssalSkinAbilities;
 const SKIN_STANDARD=window.AbyssalSkinStandard;
 const SPECIMEN_EVASION=window.AbyssalSpecimenEvasion;
+const PET_TACTICS=window.AbyssalPetTactics;
+const PET_HABIT_KEY='abyssalPetHabit';
+let petHabit=PET_TACTICS?.normalize?.(localStorage.getItem(PET_HABIT_KEY))||'passive';
+function setPetHabit(mode,announce=false){
+ petHabit=PET_TACTICS?.normalize?.(mode)||'passive';
+ try{localStorage.setItem(PET_HABIT_KEY,petHabit);}catch(_){}
+ document.querySelectorAll('[data-pet-habit]').forEach(button=>{
+  const selected=button.dataset.petHabit===petHabit;
+  button.classList.toggle('is-selected',selected);button.setAttribute('aria-pressed',String(selected));
+ });
+ if(announce)showToast('ESPÉCIME: '+({passive:'PASSIVO · COLETOR',aggressive:'AGRESSIVO · COLETOR',guardian:'PROTETOR · COLETOR'}[petHabit]));
+}
+document.querySelectorAll('[data-pet-habit]').forEach(button=>button.addEventListener('click',()=>setPetHabit(button.dataset.petHabit,true)));
+window.addEventListener('keydown',event=>{
+ if(event.repeat||!document.body.classList.contains('game-active')||event.target?.matches?.('input,textarea,select'))return;
+ const habit={'Digit4':'passive','Digit5':'aggressive','Digit6':'guardian'}[event.code];
+ if(habit&&!onlineMode){event.preventDefault();setPetHabit(habit,true);}
+});
 const SPECIMEN_RARITY=window.AbyssalSpecimenRarity;
 skinData.push(...(window.AbyssalCuratedSkins?.items||[]));
 for(const skin of skinData){
@@ -1294,6 +1312,7 @@ function startGame(){
  
  elapsed=0;alertedBossIds.clear();clearTimeout(bossAlertTimer);const oldBossAlert=$('bossAlert');if(oldBossAlert){oldBossAlert.hidden=true;oldBossAlert.classList.remove('boss-alert-enter');}lastOnlineVitalsAt=0;authoritativeElapsed=onlineMode?0:null;lastSnapshotAt=0;lastSnapshotTick=0;lastAuthoritativeWorldId=null;lastAuthoritativeSnapshotSeq=0;lastAuthoritativeServerTime=0;pendingOnlineHitVitals=[];authoritativeSnapshotHistory=new Map();onlineMovementStalledSnapshots=0;onlineMovementConfirmedSnapshots=0;onlineMotionWatchdog?.reset?.();onlineClientMovementFallback=false;lastServerEnemyPositions.clear();score=0;level=1;xp=0;xpNeed=10;bossKillsThisRun=0;runProgressTimer=0;maxHp=100+Math.max(0,Number(metaUpgrades.bulkhead)||0)*8;hp=maxHp;spawnTimer=0;enemyId=0;shake=0;damageFlash=0;chosen=[];nextBossAt=60;bossIndex=0;lastBossKind=null;lastBossMaxHp=0;lastBossDamage=0;lastBossSpeed=0;lastRemoteBossId=null;alertedBossIds.clear();joystickVector={x:0,y:0,active:false,pointerId:null};
  setMobileGameActive(true);setHudCollapsed(false);$('toggleHudBtn').hidden=false;initBossProgression();
+ const petBar=document.getElementById('petHabitBar');if(petBar)petBar.hidden=onlineMode;setPetHabit(petHabit);
  if(!onlineMode&&requestedRunMode==='rift')publishSoloDepthState();
   riftBossMarks=[];riftSoloHazardCooldowns.clear();soloRiftCheckpointRoomId='start';
 if(isOpenSeaRun()){
@@ -2528,14 +2547,34 @@ function updateSpecimenRuntime(dt){
   if(progress>=1)s.dash=null;
   return;
  }
- // Avoid hostile hitboxes while collecting: safety outranks XP.
+ // A behaviour mode controls target selection. The Solo companion can flee,
+ // hunt nearby threats or guard the diver while collecting purple XP orbs.
  const pos={x:s.x,y:s.y},radius=Number(s.r)||11/GAME_WORLD_ZOOM;
- const threatRadiusSq=(280/GAME_WORLD_ZOOM)**2;
-  const threats=enemies.filter(e=>e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq)
-   .map(e=>({x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
+ const threatRadiusSq=(360/GAME_WORLD_ZOOM)**2;
+ const nearbyEnemies=enemies.filter(e=>e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq);
+ const threats=nearbyEnemies.map(e=>({id:e.id,x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
- const orb=SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
- let target=orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
+ const tactics=!onlineMode&&isClassicShooterRun()?PET_TACTICS?.choose?.({
+  mode:petHabit,pet:pos,player,enemies,orbs,collectionRange,
+  attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM
+ }):null;
+ const combatTarget=tactics?.type==='enemy'?tactics.enemy:null;
+ const orb=tactics?(tactics.type==='orb'?tactics.orb:null):
+  SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
+ let target=combatTarget?{x:combatTarget.x,y:combatTarget.y}:orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
+ // When hunting, the selected enemy is no longer a navigation obstacle.
+ // Other enemies remain obstacles to avoid accidental pet deaths.
+ const navigationThreats=combatTarget?threats.filter(e=>e.id!==combatTarget.id):threats;
+ if(combatTarget){
+  const attackDistance=Math.max(57/GAME_WORLD_ZOOM,radius+(Number(combatTarget.r)||0)+9/GAME_WORLD_ZOOM);
+  if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)<=attackDistance&&performance.now()>=(s.nextTacticalAttack||0)){
+   const biological=SPECIMEN_SYSTEM?.biologicalStats?.(equippedSkin);
+   const bite=Math.max(5,Math.min(22,(Number(biological?.hp)||70)*.12))*specimenPassiveMultiplier('damage');
+   s.nextTacticalAttack=performance.now()+1020;
+   dealEnemyDamage(combatTarget,bite,null,{silentSound:true,secondary:true});
+   burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
+  }
+ }
  if(activeMapLayout&&ABYSSAL_MAP?.navigationTarget){
   const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});
   if(route&&!route.blocked)target={x:route.x,y:route.y};
@@ -2543,7 +2582,7 @@ function updateSpecimenRuntime(dt){
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
  const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.biologicalStats(equippedSkin).speed/GAME_WORLD_ZOOM)*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
- const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:threats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
+ const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
   resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)})});
  if(move){
