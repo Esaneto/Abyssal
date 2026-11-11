@@ -150,7 +150,7 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
+   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;if(!stage)document.getElementById('playBtn')?.click();else window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
    setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
    let inventoryAttempts=0;
    const openSeaInventory=()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage!=='sea'||q.has('biome'))return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};

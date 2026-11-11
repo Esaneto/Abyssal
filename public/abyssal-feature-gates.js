@@ -4,6 +4,9 @@
 (function(){
  'use strict';
  const LOCKED=new Set(['sea','rift','online']);
+ // Legacy game modes remain regression-testable ONLY on local CI servers.
+ const acceptanceLegacy=location.hostname==='127.0.0.1'&&
+  ['sea','deep','boss'].includes(new URLSearchParams(location.search).get('stage'));
  let timer=0;
  function notify(){
   let toast=document.getElementById('abyssalDevelopmentNotice');
@@ -21,7 +24,7 @@
   event.preventDefault();event.stopImmediatePropagation();notify();
  },true);
  for(const type of ['abyssal-start-open-sea','abyssal-start-rift-solo']){
-  window.addEventListener(type,event=>{event.stopImmediatePropagation();notify();},true);
+  window.addEventListener(type,event=>{if(acceptanceLegacy)return;event.stopImmediatePropagation();notify();},true);
  }
  function mark(){
   for(const id of ['openSeaPortalBtn','riftPortalBtn']){
