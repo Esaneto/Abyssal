@@ -454,7 +454,7 @@
    // Real physical dashboard, leather chairs, radar and glass highlights.
    // Interactive laboratory buttons remain in the DOM above this foreground.
    c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
-   c.drawImage(deckPhoto,0,540,1440,360);
+   c.drawImage(deckPhoto,0,40,1440,305,0,575,1440,325);
    c.restore();
   }else{
    // Existing original-vector fallback also serves compact/mobile layouts.
