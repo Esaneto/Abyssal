@@ -235,7 +235,7 @@ function handler(req,res){
     assert.ok(html.includes(gateScript),'Local QA could not locate the feature gate');
     // The fixture opts into legacy modes BEFORE the live feature gate loads.
     // Regular localhost players never receive this explicit QA marker.
-    html=html.replace(gateScript,'<script>window.__ABYSSAL_CI_SMOKE__=true;</script>\\n'+gateScript);
+    html=html.replace(gateScript,'<script>window.__ABYSSAL_CI_SMOKE__=true;</script>'+String.fromCharCode(10)+gateScript);
    }
    data=Buffer.from(html.replace('</body>',injected+'</body>'));
   }
