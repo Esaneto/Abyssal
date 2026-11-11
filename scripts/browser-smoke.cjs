@@ -8,6 +8,57 @@ const path=require('node:path');
 const os=require('node:os');
 const {spawn,spawnSync}=require('node:child_process');
 const assert=require('node:assert/strict');
+const zlib=require('node:zlib');
+
+
+/* Decode the actual headless Chrome PNG, not #game (which may be a transparent
+ * compositing layer). Fails if the central ocean viewport is almost black.
+ * Supports un-interlaced 8-bit RGB/RGBA PNG without third-party dependencies. */
+function pngImageLuminance(filename){
+ const data=fs.readFileSync(filename);
+ assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a','Invalid Chromium screenshot PNG');
+ let pos=8,width=0,height=0,depth=0,color=0,interlace=0;
+ const compressed=[];
+ while(pos+12<=data.length){
+  const len=data.readUInt32BE(pos),tag=data.toString('ascii',pos+4,pos+8),begin=pos+8;
+  if(tag==='IHDR'){
+   width=data.readUInt32BE(begin);height=data.readUInt32BE(begin+4);
+   depth=data[begin+8];color=data[begin+9];interlace=data[begin+12];
+  }
+  if(tag==='IDAT')compressed.push(data.subarray(begin,begin+len));
+  pos=begin+len+4;
+  if(tag==='IEND')break;
+ }
+ assert.ok(width>250&&height>250&&depth===8&&(color===2||color===6)&&interlace===0,
+  'Unsupported Chrome screenshot encoding '+JSON.stringify({width,height,depth,color,interlace}));
+ const bpp=color===6?4:3,stride=width*bpp;
+ const raw=zlib.inflateSync(Buffer.concat(compressed));
+ let prev=Buffer.alloc(stride),cursor=0,sum=0,bright=0,total=0;
+ const sampleRows=new Set(Array.from({length:8},(_,i)=>Math.round(height*(i+2)/12)));
+ const sampleCols=Array.from({length:13},(_,i)=>Math.round(width*(i+3)/18));
+ for(let y=0;y<height;y++){
+  const filter=raw[cursor++],row=Buffer.allocUnsafe(stride);
+  for(let x=0;x<stride;x++){
+   const left=x>=bpp?row[x-bpp]:0,up=prev[x],upLeft=x>=bpp?prev[x-bpp]:0;
+   let prediction=0;
+   if(filter===1)prediction=left;
+   else if(filter===2)prediction=up;
+   else if(filter===3)prediction=(left+up)>>1;
+   else if(filter===4){
+    const p=left+up-upLeft,da=Math.abs(p-left),db=Math.abs(p-up),dc=Math.abs(p-upLeft);
+    prediction=da<=db&&da<=dc?left:db<=dc?up:upLeft;
+   }else if(filter!==0)throw Error('Unsupported PNG filter '+filter);
+   row[x]=(raw[cursor++]+prediction)&255;
+  }
+  if(sampleRows.has(y))for(const col of sampleCols){
+   const x=Math.min(width-1,col)*bpp;
+   const lum=row[x]*.2126+row[x+1]*.7152+row[x+2]*.0722;
+   sum+=lum;total++;if(lum>14)bright++;
+  }
+  prev=row;
+ }
+ return {mean:sum/Math.max(1,total),bright,total};
+}
 
 const root=path.resolve(__dirname,'../public');
 const output=path.resolve(__dirname,'../test-artifacts/browser-smoke');
@@ -86,22 +137,6 @@ const injected=`<script>
   document.body.dataset.smokeInventorySelected=String(document.getElementById('abyssInventorySelected')?.textContent||'');
   document.body.dataset.smokeInventoryDiag=JSON.stringify({ui:Boolean(window.AbyssalInventoryUI),root:Boolean(inventoryRoot),rootHidden:inventoryRoot?.hidden??null,mode:window.AbyssalGameHooks?.explorationPosition?.()?.mode??null});
 
-  // Inspect actual browser Canvas pixels, not only JavaScript syntax or file size.
-  if(canvas&&canvas.width>300&&canvas.height>200&&new URLSearchParams(location.search).has('biome')){
-   try{
-    const context=canvas.getContext('2d');
-    let sum=0,bright=0,count=0;
-    for(let row=2;row<9;row++)for(let col=2;col<15;col++){
-     const px=Math.min(canvas.width-1,Math.round(canvas.width*col/16));
-     const py=Math.min(canvas.height-1,Math.round(canvas.height*row/12));
-     const v=context.getImageData(px,py,1,1).data;
-     const luminance=v[0]*.2126+v[1]*.7152+v[2]*.0722;
-     sum+=luminance;count++;if(luminance>12)bright++;
-    }
-    document.body.dataset.smokeOceanLuminance=(sum/Math.max(1,count)).toFixed(2);
-    document.body.dataset.smokeOceanBright=String(bright);
-   }catch(error){document.body.dataset.smokeOceanError=String(error).slice(0,100);}
-  }
   document.body.dataset.smokeError=errors.filter(e=>/Abyssal frame error|ReferenceError|TypeError|SyntaxError/i.test(e)).slice(0,2).join('|').slice(0,180);
  };
  setInterval(check,350);
@@ -388,15 +423,11 @@ async function main(){
     '--window-size=1280,720','--force-device-scale-factor=1',
     '--virtual-time-budget=8500','--screenshot='+file,url+'?stage=sea&biome='+biome]);
    assert.ok(fs.statSync(file).size>15000,'Open Sea screenshot missing: '+biome);
-   const dom=await run(browser,['--headless=new','--no-sandbox','--disable-dev-shm-usage',
-    '--disable-gpu','--hide-scrollbars','--no-first-run','--disable-background-networking',
-    '--window-size=1280,720','--force-device-scale-factor=1',
-    '--virtual-time-budget=8500','--dump-dom',url+'?stage=sea&biome='+biome]);
-   const mean=Number(dom.match(/data-smoke-ocean-luminance="([^"]+)"/)?.[1]);
-   const bright=Number(dom.match(/data-smoke-ocean-bright="([^"]+)"/)?.[1]);
-   console.log('[visual-acceptance] '+biome+' mean='+mean+' litPixels='+bright);
-   assert.ok(Number.isFinite(mean)&&mean>8&&bright>8,
-    'Biome '+biome+' black canvas or no scenery: '+mean+'/'+bright);
+   const pixelStats=pngImageLuminance(file);
+   console.log('[visual-acceptance] '+biome+' mean='+pixelStats.mean.toFixed(1)+
+    ' bright='+pixelStats.bright+'/'+pixelStats.total);
+   assert.ok(pixelStats.mean>11&&pixelStats.bright>pixelStats.total*.45,
+    'Biome '+biome+' renders as a black scene: '+JSON.stringify(pixelStats));
   }
   for(const [label,width,height,ua,stage] of [
    ['desktop',1280,720,null,null],
