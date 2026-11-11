@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-11-cinematic-distant-rock-v111';
+const VERSION = '2026-11-11-sonar-cockpit-v112';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -15,6 +15,7 @@ const GAME_FILES = [
   'abyssal-lab-menu.css',
   'abyssal-submarine-laboratory.css',
   'abyssal-exploration-hud.css',
+  'abyssal-cinematic-refresh.css',
   'abyssal-specimen-themes.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',
@@ -51,6 +52,7 @@ const GAME_FILES = [
   'abyssal-resource-icons.js',
   'abyssal-inventory-ui.js',
   'abyssal-exploration-runtime.js',
+  'abyssal-sonar-minimap.js',
   'abyssal-research-system.js',
   'abyssal-resource-fields.js',
   'abyssal-navigation-chart.js',
