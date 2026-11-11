@@ -2,6 +2,7 @@ extends RefCounted
 ## Camera-local ecological illustration: marine atmosphere, reef gardens, glowing life.
 ## Solid scenery is provided by ocean_expedition.gd; this layer never changes hitboxes.
 const UI = preload("res://scripts/ui_art_primitives.gd")
+const OriginalArt = preload("res://scripts/cinematic_art.gd")
 const SHALE := Color("#143655")
 const TEAL := Color("#1bd4e5")
 const JADE := Color("#54d2a2")
@@ -74,7 +75,7 @@ static func reef_stone(c: CanvasItem, points: PackedVector2Array, light: float) 
 	var uvs := PackedVector2Array()
 	for vertex in points:
 		uvs.append((vertex-bounds.position)/Vector2(maxf(1,bounds.size.x),maxf(1,bounds.size.y)))
-	c.draw_polygon(points,palette,uvs,load("res://scripts/cinematic_art.gd").stone_texture())
+	c.draw_polygon(points,palette,uvs,OriginalArt.stone_texture())
 	# Fine blue rim light follows upper edges; reflected cyan is localized.
 	for i in range(points.size()-1):
 		var a: Vector2 = points[i]

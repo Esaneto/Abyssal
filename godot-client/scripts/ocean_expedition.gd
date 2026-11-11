@@ -537,6 +537,8 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 				match species["id"]:
 					"manta":
 						wander = Vector2(100.0 * sin(phase * 0.10), 28.0 * cos(phase * 0.17))
+					"eagle_ray":
+						wander = Vector2(84.0 * sin(phase * 0.16), 23.0 * cos(phase * 0.23))
 					"turtle":
 						wander = Vector2(55.0 * sin(phase * 0.18), 16.0 * cos(phase * 0.28))
 					"jelly":
