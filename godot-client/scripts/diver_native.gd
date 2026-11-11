@@ -2,6 +2,8 @@ extends CharacterBody2D
 ## Explorador nativo: movimento submarino continuo, sem combate.
 ## Colisoes Godot, nado com aceleracao/arrasto, flutuabilidade e correntes.
 signal diver_died
+const Look = preload("res://scripts/diver_appearance.gd")
+const Doll = preload("res://scripts/diver_paper_doll.gd")
 
 const MAX_OXYGEN := 300.0
 const MAX_HEALTH := 100.0
@@ -22,6 +24,7 @@ var time_s := 0.0
 var depth_m := 0.0
 var is_moving := false
 var is_facing_right := true
+var appearance: Dictionary = Look.defaults()
 
 func _ready() -> void:
 	collision_layer = 1
@@ -80,6 +83,10 @@ func _physics_process(delta: float) -> void:
 		diver_died.emit()
 	queue_redraw()
 
+func set_appearance(candidate: Dictionary) -> void:
+	appearance = Look.normalize(candidate)
+	queue_redraw()
+
 func configure_equipment(oxygen_level: int, suit_level: int) -> void:
 	oxygen_capacity = MAX_OXYGEN * (1.0 + float(clampi(oxygen_level, 0, 5)))
 	safe_depth = 300.0 + float(clampi(suit_level, 0, 5)) * 180.0
@@ -100,8 +107,12 @@ func _draw() -> void:
 	var kick := sin(phase) * (9.5 if is_moving else 2.2)
 	var breathe := sin(time_s * 1.55) * 1.2
 	var deep := clampf(depth_m / 900.0, 0.0, 1.0)
-	var suit := Color("#203e4e").lerp(Color("#102432"), deep * 0.55)
-	var seam := Color("#6f9a9d").lerp(Color("#315565"), deep * 0.6)
+	var tones := Look.palette(appearance)
+	var cloth: Color = tones["cloth"]
+	var accent: Color = tones["accent"]
+	var visor: Color = tones["visor"]
+	var suit := cloth.lerp(Color("#102432"), deep * 0.55)
+	var seam := accent.lerp(Color("#315565"), deep * 0.40)
 	# Rear leg and articulated boot, then its flexible blade.
 	draw_line(Vector2(-18, 9), Vector2(-40, 21 - kick), Color("#0e2938"), 15.0, true)
 	draw_line(Vector2(-40, 21 - kick), Vector2(-55, 21 - kick * 1.2), Color("#284b5e"), 12.0, true)
@@ -109,15 +120,15 @@ func _draw() -> void:
 		Vector2(-53, 14 - kick * 1.2), Vector2(-71, 7 - kick * 1.4),
 		Vector2(-75, 12 - kick * 1.4), Vector2(-70, 31 - kick * 1.2),
 		Vector2(-53, 28 - kick * 1.2)
-	]), Color("#173a4d"))
+	]), cloth.darkened(0.23))
 	draw_line(Vector2(-68, 12 - kick), Vector2(-62, 26 - kick), Color("#42687c"), 1.3, true)
 	# Diving tank: rounded metal vessel with edge reflection and regulator mount.
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-31, -29), Vector2(-17, -35), Vector2(7, -34),
 		Vector2(12, -21), Vector2(6, -7), Vector2(-29, -6)
 	]), Color("#0b1c2c"))
-	draw_rect(Rect2(-28, -29, 34, 22), Color("#597884"))
-	draw_rect(Rect2(-22, -28, 5, 20), Color("#a4c0c2"))
+	draw_rect(Rect2(-28, -29, 34, 22), cloth.lightened(0.47))
+	draw_rect(Rect2(-22, -28, 5, 20), accent.lightened(0.35))
 	draw_line(Vector2(-30, -23), Vector2(9, -23), Color("#152b38"), 4.0, true)
 	draw_line(Vector2(-29, -12), Vector2(9, -12), Color("#172a38"), 4.0, true)
 	draw_circle(Vector2(-13, -34), 5.0, Color("#142c3a"))
@@ -135,7 +146,15 @@ func _draw() -> void:
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(-14, -13), Vector2(6, -13), Vector2(14, 2),
 		Vector2(-7, 7)
-	]), Color("#356175"))
+	]), cloth.lightened(0.22))
+	# Three shaped armor plates are tinted by the equipped suit, not baked in.
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-21,-13),Vector2(-13,-16),Vector2(-5,3),Vector2(-13,11)
+	]),Color(accent.r,accent.g,accent.b,0.47))
+	draw_colored_polygon(PackedVector2Array([
+		Vector2(-7,-16),Vector2(5,-13),Vector2(16,-2),Vector2(9,7)
+	]),Color(0.56,0.81,0.91,0.22))
+	draw_line(Vector2(-23,-17),Vector2(15,-16),accent,1.5,true)
 	draw_line(Vector2(-25, -16), Vector2(-14, 13), seam, 1.8, true)
 	draw_line(Vector2(-8, -19), Vector2(5, 16), Color("#102735"), 4.0, true)
 	draw_line(Vector2(-12, 15), Vector2(13, 14), Color("#63838b"), 2.0, true)
@@ -151,32 +170,40 @@ func _draw() -> void:
 		Vector2(-53, 21 + kick * 1.1), Vector2(-68, 15 + kick * 1.2),
 		Vector2(-76, 17 + kick * 1.2), Vector2(-72, 38 + kick * 1.1),
 		Vector2(-55, 36 + kick * 1.1)
-	]), Color("#1b3f51"))
+	]), cloth.darkened(0.11))
 	draw_line(Vector2(-70, 20 + kick), Vector2(-65, 33 + kick), Color("#5b8495"), 1.5, true)
 	# One far forearm underneath the torso and one near forearm ahead.
 	draw_line(Vector2(7, 11), Vector2(20, 17 + breathe), Color("#0c2533"), 10.0, true)
-	draw_line(Vector2(20, 17 + breathe), Vector2(28, 12 + breathe), Color("#2b4c5d"), 8.0, true)
-	draw_line(Vector2(11, -8), Vector2(27, 4 + breathe), Color("#193d50"), 12.0, true)
-	draw_line(Vector2(27, 4 + breathe), Vector2(40, 7 + breathe), Color("#3b6274"), 10.0, true)
-	draw_circle(Vector2(40, 7 + breathe), 5.0, Color("#345365"))
+	draw_line(Vector2(20, 17 + breathe), Vector2(28, 12 + breathe), cloth.lightened(0.24), 8.0, true)
+	draw_line(Vector2(11, -8), Vector2(27, 4 + breathe), cloth, 12.0, true)
+	draw_line(Vector2(27, 4 + breathe), Vector2(40, 7 + breathe), cloth.lightened(0.28), 10.0, true)
+	draw_circle(Vector2(40, 7 + breathe), 5.0, cloth.lightened(0.36))
 	# Regulator hose curls from the cylinder to the lower mask.
 	draw_arc(Vector2(15, -14), 24.0, PI * 1.11, PI * 1.95, 16, Color("#0b2531"), 4.5, true)
+	# The selected hair asset is drawn behind the helmet before the visor.
+	Doll.draw_swimmer_hair(self,appearance,time_s,is_moving,breathe)
+	# Both body variants use the same rig and physics, with suit details as skins.
+	if str(appearance.get("body","female")) == "male":
+		draw_line(Vector2(-24,-15),Vector2(12,-17),cloth.lightened(0.18),3.6,true)
+	else:
+		draw_line(Vector2(-19,-14),Vector2(6,-17),cloth.lightened(0.18),2.3,true)
 	# Helmet, mask, shadowed skin and rim lighting.
 	draw_circle(Vector2(33, -17 + breathe), 19.5, Color("#0b2331"))
-	draw_circle(Vector2(34, -18 + breathe), 16.0, Color("#476c78"))
+	draw_circle(Vector2(34, -18 + breathe), 16.0, cloth.lightened(0.42))
 	draw_circle(Vector2(35, -19 + breathe), 12.8, Color("#ae9782"))
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(28, -31 + breathe), Vector2(46, -29 + breathe),
 		Vector2(51, -20 + breathe), Vector2(47, -15 + breathe),
 		Vector2(28, -17 + breathe)
-	]), Color("#072b3b"))
+	]), visor.darkened(0.64))
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(30, -29 + breathe), Vector2(43, -28 + breathe),
 		Vector2(46, -24 + breathe), Vector2(33, -24 + breathe)
-	]), Color(0.58, 0.91, 0.89, 0.58))
-	draw_arc(Vector2(33, -17 + breathe), 18.0, PI * 0.95, PI * 1.85, 18, Color("#88b9bb"), 2.6, true)
+	]), Color(visor.r, visor.g, visor.b, 0.58))
+	draw_arc(Vector2(33, -17 + breathe), 18.0, PI * 0.95, PI * 1.85, 18, visor, 2.6, true)
 	draw_circle(Vector2(46, -12 + breathe), 5.0, Color("#122a35"))
 	draw_line(Vector2(47, -12 + breathe), Vector2(56, -7 + breathe), Color("#4d7d85"), 3.4, true)
+	Doll.draw_swimmer_handheld(self,appearance,breathe)
 	# Tiny respirator bubbles rise only near the actual regulator.
 	for k in range(3):
 		var rise := fposmod(time_s * (12.0 + float(k) * 3.0) + float(k) * 25.0, 67.0)

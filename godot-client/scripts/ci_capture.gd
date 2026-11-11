@@ -10,6 +10,28 @@ func _capture() -> void:
 	for i in range(15):
 		await process_frame
 	_save_screen("cabine-dia.png")
+	# Independent visual snapshots of both bodies with one shared animation rig.
+	var female := {
+		"body":"female","hair":"long","hair_color":"copper",
+		"suit":"abyss","mask":"aqua","handheld":"scanner"
+	}
+	var male := {
+		"body":"male","hair":"short","hair_color":"black",
+		"suit":"tide","mask":"amber","handheld":"cutter"
+	}
+	main.progress.set_appearance(female)
+	for i in range(7):
+		await process_frame
+	_save_screen("cabine-mergulhadora.png")
+	main.call("_unhandled_input",_key_event(KEY_C))
+	for i in range(7):
+		await process_frame
+	_save_screen("cabine-personalizacao.png")
+	main.call("_unhandled_input",_key_event(KEY_C))
+	main.progress.set_appearance(male)
+	for i in range(7):
+		await process_frame
+	_save_screen("cabine-mergulhador.png")
 	main.call("_unhandled_input", _key_event(KEY_L))
 	for i in range(8):
 		await process_frame
@@ -19,6 +41,28 @@ func _capture() -> void:
 	for i in range(18):
 		await process_frame
 	_save_screen("mar-aberto-superficie.png")
+	_save_screen("mar-aberto-mergulhador.png")
+	var visual_diver := main.get_node("ExpedicaoOceanica/Mergulhador")
+	var close_camera := visual_diver.get_node("CameraExploracao")
+	close_camera.zoom = Vector2(2.6,2.6)
+	close_camera.position_smoothing_enabled = false
+	for i in range(7):
+		await process_frame
+	_save_screen("mar-aberto-mergulhador-detalhe.png")
+	close_camera.zoom = Vector2(0.91,0.91)
+	main.progress.set_appearance(female)
+	main.get_node("ExpedicaoOceanica").diver.set_appearance(female)
+	for i in range(8):
+		await process_frame
+	_save_screen("mar-aberto-mergulhadora.png")
+	close_camera.zoom = Vector2(2.6,2.6)
+	for i in range(7):
+		await process_frame
+	_save_screen("mar-aberto-mergulhadora-detalhe.png")
+	close_camera.zoom = Vector2(0.91,0.91)
+	# Restore the selected male preview before the existing expedition tests.
+	main.progress.set_appearance(male)
+	main.get_node("ExpedicaoOceanica").diver.set_appearance(male)
 	var world := main.get_node("ExpedicaoOceanica")
 	world.call("_unhandled_input", _key_event(KEY_I))
 	for i in range(6):

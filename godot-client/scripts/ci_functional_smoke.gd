@@ -16,6 +16,32 @@ func _run_tests() -> void:
 	if saved.get_count("abyssPickaxe") != 1 or saved.get_count("emptyCylinder") != 1:
 		_fail("O kit inicial nao possui picareta e cilindro", 10)
 		return
+	var Look = load("res://scripts/diver_appearance.gd")
+	if saved.appearance_snapshot()["body"]!="female":
+		_fail("Perfil antigo nao preservou aparencia feminina padrao", 45)
+		return
+	var male: Dictionary = saved.appearance_snapshot()
+	male["body"]="male"
+	male["hair"]="short"
+	male["hair_color"]="black"
+	male["suit"]="tide"
+	male["mask"]="amber"
+	male["handheld"]="cutter"
+	saved.set_appearance(male)
+	if saved.appearance_snapshot()!=male:
+		_fail("Seis slots de aparencia nao foram aplicados", 46)
+		return
+	var impossible: Dictionary = male.duplicate()
+	impossible["suit"]="untrusted-skin-ID"
+	saved.set_appearance(impossible)
+	if saved.appearance_snapshot()["suit"]!="abyss":
+		_fail("Aparencia nao sanitizou cosmetico desconhecido", 47)
+		return
+	saved.set_appearance(male)
+	if not saved.cycle_appearance("body",1) or saved.appearance_snapshot()["body"]!="female":
+		_fail("Troca ciclica de corpo falhou", 48)
+		return
+	saved.set_appearance(male)
 	var origin := Vector2(850.0, 500.0)
 	var ore := {"id": "geo:fixture:0", "type": "seaMineral", "pos": origin, "amount": 3}
 	if bool(saved.collect(ore, origin, "emptyCylinder").get("ok", false)):
@@ -61,6 +87,24 @@ func _run_tests() -> void:
 	if not restored.load_from_path(temporary):
 		_fail("Nao carregou progresso local", 19)
 		return
+	if restored.appearance_snapshot()!=male:
+		_fail("O novo loadout visual foi perdido no save v1", 49)
+		return
+	# Older saves lack appearance entirely. This must not prevent loading.
+	var old_data: Dictionary = saved.profile.duplicate(true)
+	old_data.erase("appearance")
+	var legacy_path := "user://godot_cosmetic_legacy.json"
+	var legacy_file := FileAccess.open(legacy_path,FileAccess.WRITE)
+	if legacy_file==null:
+		_fail("Nao abriu fixture de save antigo", 50)
+		return
+	legacy_file.store_string(JSON.stringify(old_data))
+	legacy_file.close()
+	var legacy = Progress.new(false)
+	if not legacy.load_from_path(legacy_path) or legacy.appearance_snapshot()!=Look.defaults():
+		_fail("Save antigo nao migrou para o visual padrao", 51)
+		return
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(legacy_path))
 	if restored.get_count("oilCylinder") != 1 or restored.research_level("pressureSuit") != 1:
 		_fail("Inventario/pesquisa alterados no carregamento", 20)
 		return
@@ -75,6 +119,10 @@ func _run_tests() -> void:
 	root.add_child(diver)
 	diver.configure_equipment(restored.research_level("oxygenTank"),
 		restored.research_level("pressureSuit"))
+	diver.set_appearance(restored.appearance_snapshot())
+	if diver.appearance["body"]!="male" or diver.appearance["handheld"]!="cutter":
+		_fail("Mergulhador nao consumiu o mesmo perfil visual salvo", 52)
+		return
 	diver.recover()
 	if diver.oxygen_capacity != 600.0 or diver.safe_depth != 480.0:
 		_fail("Melhorias de oxigenio/traje nao mudaram propriedades do mergulhador", 23)
@@ -87,6 +135,28 @@ func _run_tests() -> void:
 	main.progress = restored
 	var world = main.get_node("ExpedicaoOceanica")
 	world.set_progress(restored)
+	if world.diver.appearance["body"]!="male":
+		_fail("Cena mar aberto nao sincronizou corpo salvo", 53)
+		return
+	var wardrobe_event := InputEventKey.new()
+	wardrobe_event.pressed = true
+	wardrobe_event.keycode = KEY_C
+	main.call("_unhandled_input",wardrobe_event)
+	if not main.wardrobe_open:
+		_fail("Guarda-roupa [C] nao abriu na cabine", 54)
+		return
+	wardrobe_event.keycode = KEY_RIGHT
+	main.call("_unhandled_input",wardrobe_event)
+	if restored.appearance_snapshot()["body"]!="female" or world.diver.appearance["body"]!="female":
+		_fail("Alteracao da cabine nao chegou a cena de exploracao", 55)
+		return
+	wardrobe_event.keycode = KEY_LEFT
+	main.call("_unhandled_input",wardrobe_event)
+	wardrobe_event.keycode = KEY_ESCAPE
+	main.call("_unhandled_input",wardrobe_event)
+	if main.wardrobe_open or restored.appearance_snapshot()["body"]!="male":
+		_fail("Guarda-roupa nao fechou/restaurou aparencia", 56)
+		return
 	main.call("_start_sea")
 	await physics_frame
 	if absf(world.depth_at_y(21000.0) - 2200.0) > 1.0:
@@ -94,6 +164,9 @@ func _run_tests() -> void:
 		return
 	if not world.active:
 		_fail("Mar Aberto nao entrou", 25)
+		return
+	if world.diver.appearance["body"]!="male" or world.diver.appearance["suit"]!="tide":
+		_fail("Ao mergulhar, o traje nao corresponde a cabine", 57)
 		return
 	# Authored scenery is physical, and neither spawn nor arch passages are blocked.
 	if world.reef_polygons.size() < 3:

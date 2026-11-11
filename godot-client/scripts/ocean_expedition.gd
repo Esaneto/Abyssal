@@ -90,6 +90,8 @@ func _ready() -> void:
 
 func set_progress(profile_state: RefCounted) -> void:
 	progress = profile_state
+	if diver != null:
+		diver.set_appearance(progress.appearance_snapshot())
 	sky_time = progress.sun_time()
 	discovered = (progress.profile["observed"] as Dictionary).duplicate(true)
 	# A reopened save must have a readable field-guide entry, not only its count.
@@ -149,6 +151,8 @@ func begin_expedition() -> void:
 	if progress != null:
 		diver.call("configure_equipment", progress.research_level("oxygenTank"),
 			progress.research_level("pressureSuit"))
+		# Appearance is a shared local paper-doll, separate from equipment bonuses.
+		diver.set_appearance(progress.appearance_snapshot())
 	diver.recover()
 	field_guide_open = false
 	inventory_open = false
