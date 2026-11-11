@@ -35,6 +35,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
 			if in_open_sea:
+				# Keep the same sun/moon phase when the pilot returns to the submarine.
+				time_s = float(expedition.get("sky_time"))
 				in_open_sea = false
 				expedition.call("end_expedition")
 		elif event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE] and not in_open_sea:
@@ -45,6 +47,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _start_sea() -> void:
 	in_open_sea = true
+	expedition.set("sky_time", time_s)
 	expedition.call("begin_expedition")
 
 func _draw() -> void:
