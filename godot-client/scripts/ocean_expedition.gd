@@ -404,7 +404,7 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 				# Solitary oceanic giants should not cluster in schools.
 				if species["id"] == "manta" and (cx + cy * 3 + j) % 5 != 0:
 					species = pool[(rng.randi_range(0, pool.size() - 1) + 1) % pool.size()]
-				if species["id"] == "isopod":
+				if species["id"] in ["isopod", "seapig"]:
 					base.y = _seafloor_y(base.x) - 35.0
 				var phase := time_s + float(seed_value + j) * 0.7
 				var wander := Vector2.ZERO
@@ -425,10 +425,14 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 						wander = Vector2(28.0 * sin(phase * 0.11), 19.0 * cos(phase * 0.15))
 					"isopod":
 						wander = Vector2(24.0 * sin(phase * 0.10), 0.0)
+					"gulper":
+						wander = Vector2(46.0 * sin(phase * 0.18), 12.0 * cos(phase * 0.22))
+					"seapig":
+						wander = Vector2(12.0 * sin(phase * 0.09), 0.0)
 				var pos := base + wander
-				if species["id"] == "isopod":
+				if species["id"] in ["isopod", "seapig"]:
 					pos.y = _seafloor_y(pos.x) - 36.0
-				if _seafloor_y(pos.x) - pos.y < 40.0 and species["id"] != "isopod":
+				if _seafloor_y(pos.x) - pos.y < 40.0 and species["id"] not in ["isopod", "seapig"]:
 					continue
 				creatures.append({
 					"id": species["id"], "info": species, "pos": pos,
