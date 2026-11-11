@@ -5,6 +5,7 @@ const DiverScript = preload("res://scripts/diver_native.gd")
 const Ecology = preload("res://scripts/marine_ecology.gd")
 const Deposits = preload("res://scripts/geological_resources.gd")
 const ProgressScript = preload("res://scripts/exploration_progress.gd")
+const Art = preload("res://scripts/cinematic_art.gd")
 
 const MAP_W := 24000.0
 const MAP_H := 21000.0
@@ -293,6 +294,7 @@ func _draw() -> void:
 		return
 	var area := _visible_bounds()
 	_draw_water(area)
+	Art.ocean_distance(self, self, area, time_s, _sunlight())
 	_draw_light_beams(area)
 	_draw_marine_snow(area)
 	_draw_seafloor(area)
@@ -369,56 +371,20 @@ func _draw_seafloor(area: Rect2) -> void:
 		if y > area.position.y - 70.0 and y < area.end.y + 60.0:
 			_ellipse(Vector2(x, y + 12), Vector2(31.0 + float(i % 6) * 6.0, 17), Color("#244858"))
 			draw_line(Vector2(x - 13, y + 8), Vector2(x + 11, y), Color("#4b777f"), 1.4, true)
+	Art.seafloor_material(self, self, area, time_s)
 
 func _draw_landmark_rocks(area: Rect2) -> void:
 	for info in ROCKS:
 		var pos: Vector2 = info["pos"]
-		var r: float = info["radius"]
-		if not area.grow(r).has_point(pos):
+		var radius: float = float(info["radius"])
+		if not area.grow(radius).has_point(pos):
 			continue
 		var seed := pos.x * 0.0031 + pos.y * 0.0042
-		var outline := _rock_contour(pos, r, seed)
-		var shadow := _rock_contour(pos + Vector2(r * 0.09, r * 0.12), r, seed)
-		draw_colored_polygon(shadow, Color("#061725"))
-		draw_colored_polygon(outline, Color("#294858"))
-		# Lit facets simulate sedimentary strata instead of flat cartoon circles.
-		var face := PackedVector2Array([
-			pos + Vector2(-r * 0.68, -r * 0.37),
-			pos + Vector2(-r * 0.16, -r * 0.77),
-			pos + Vector2(r * 0.44, -r * 0.6),
-			pos + Vector2(r * 0.26, -r * 0.06),
-			pos + Vector2(-r * 0.35, r * 0.1)
-		])
-		draw_colored_polygon(face, Color("#3a6270"))
-		draw_colored_polygon(PackedVector2Array([
-			pos + Vector2(-r * 0.4, r * 0.13),
-			pos + Vector2(r * 0.26, -r * 0.06),
-			pos + Vector2(r * 0.56, r * 0.59),
-			pos + Vector2(-r * 0.19, r * 0.66)
-		]), Color("#193747"))
-		draw_colored_polygon(PackedVector2Array([
-			pos + Vector2(r * 0.26, -r * 0.06),
-			pos + Vector2(r * 0.44, -r * 0.6),
-			pos + Vector2(r * 0.71, -r * 0.24),
-			pos + Vector2(r * 0.56, r * 0.59)
-		]), Color("#254555"))
-		for k in range(6):
-			var a := -2.4 + float(k) * 0.64
-			var bend := a + 0.3 + 0.04 * sin(seed + k)
-			draw_line(pos + Vector2(cos(a), sin(a)) * r * 0.21,
-				pos + Vector2(cos(bend), sin(bend)) * r * 0.73,
-				Color(0.036, 0.13, 0.18, 0.58), 2.1, true)
-		var depth := depth_at_y(pos.y)
-		if depth < 200.0:
-			# Shallow encrusting life catches daylight.
-			for k in range(5):
-				var q := pos + Vector2(cos(float(k) * 2.37), sin(float(k) * 2.37)) * r * 0.5
-				draw_circle(q, 3.5 + float(k % 3) * 1.3, Color(0.28, 0.65, 0.53, _water_light(depth) * 0.7))
-		else:
-			for k in range(7):
-				var angle := float(k) * 2.33
-				draw_circle(pos + Vector2(cos(angle), sin(angle)) * r * 0.52,
-					2.7, Color(0.18, 0.9, 0.85, 0.42 + 0.19 * sin(time_s + float(k))))
+		# Exact same contour is drawn and used for physics.
+		var outline := _rock_contour(pos, radius, seed)
+		var shadow := _rock_contour(pos + Vector2(radius * 0.055, radius * 0.095), radius, seed)
+		draw_colored_polygon(shadow, Color("#061522"))
+		Art.rock_material(self, outline, pos, radius, _water_light(depth_at_y(pos.y)), time_s)
 
 func _draw_navigable_arches(area: Rect2) -> void:
 	for arch in PASSAGE_ARCHES:
@@ -452,26 +418,17 @@ func _draw_navigable_arches(area: Rect2) -> void:
 				2.5, Color(0.47, 0.82, 0.78, 0.28))
 
 func _draw_kelps(area: Rect2) -> void:
-	# Photosynthetic kelp only in the shallow, illuminated shelf biome.
+	# The current biome permits kelp only where sunlight can reach the seabed.
 	var start := int(floor(area.position.x / 115.0))
 	for i in range(24):
 		var x := float(start + i) * 115.0
-		var base := _seafloor_y(x)
-		var depth := depth_at_y(base)
-		if base < area.position.y - 150.0 or base > area.end.y + 300.0 or depth > 200.0:
+		var seabed := _seafloor_y(x)
+		if seabed < area.position.y - 150.0 or seabed > area.end.y + 300.0:
 			continue
-		var stalk_height := 90.0 + 115.0 * absf(sin(float(i + start) * 1.2))
-		var bend := 17.0 * sin(time_s * 0.6 + x * 0.013)
-		for k in range(6):
-			var amount := float(k) / 6.0
-			var a := Vector2(x + bend * amount * amount, base - stalk_height * amount)
-			var b := Vector2(x + bend * (amount + 0.15) * (amount + 0.15), base - stalk_height * (amount + 0.15))
-			draw_line(a, b, Color("#356963"), 5.0 - amount * 2.0, true)
-			if k > 1:
-				var side := -1.0 if k % 2 == 0 else 1.0
-				draw_colored_polygon(PackedVector2Array([
-					a, a + Vector2(side * 31, -12), b + Vector2(side * 19, -6), b
-				]), Color(0.18, 0.50, 0.44, 0.64))
+		if depth_at_y(seabed) > 200.0:
+			continue
+		var height := 90.0 + 115.0 * absf(sin(float(i + start) * 1.2))
+		Art.kelp_frond(self, x, seabed, height, time_s, x * 0.013)
 
 func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 	var creatures: Array[Dictionary] = []
@@ -657,8 +614,8 @@ func _draw_deep_visibility(area: Rect2) -> void:
 func _draw_hud() -> void:
 	# HUD uses Camera2D center but is drawn after darkness and world scenery.
 	var center := camera.get_screen_center_position()
-	var x := center.x - 680.0
-	var y := center.y - 376.0
+	var x := center.x - 650.0
+	var y := center.y - 370.0
 	draw_rect(Rect2(x + 18, y + 14, 472, 141), Color(0.018, 0.069, 0.10, 0.91))
 	_text("ABYSSAL  |  EXPLORACAO NATIVA", Vector2(x + 31, y + 38), 18, Color("#c9f7f4"))
 	_bar(Vector2(x + 32, y + 54), 290.0, diver.oxygen / diver.oxygen_capacity, Color("#52cddb"))
@@ -687,7 +644,7 @@ func _draw_hud() -> void:
 	_draw_sonar(x, y)
 	_draw_quick_tools(x, y)
 	_text("WASD NADAR   G EXTRAIR   F OBSERVAR   I INVENTARIO   M MAPA   TAB DIARIO   ESC CABINE",
-		Vector2(x + 24, y + 740), 15, Color("#cff7ec"))
+		Vector2(x + 36, y + 712), 14, Color("#cff7ec"))
 	if inventory_open:
 		_draw_inventory_panel(x, y)
 	elif chart_open:
@@ -713,7 +670,7 @@ func _draw_quick_tools(x: float, y: float) -> void:
 func _draw_sonar(x: float, y: float) -> void:
 	var w := 234.0
 	var h := 135.0
-	var p := Vector2(x + 1106.0, y + 20.0)
+	var p := Vector2(x + 1020.0, y + 20.0)
 	draw_rect(Rect2(p, Vector2(w, h)), Color(0.015, 0.074, 0.103, 0.96))
 	_text("SONAR  /  RELEVO", p + Vector2(12, 21), 15, Color("#b8eef0"))
 	for yi in range(9):
@@ -793,21 +750,21 @@ func _draw_navigation_chart(x: float, y: float) -> void:
 		p + Vector2(31, 460), 15, Color("#cde9e8"))
 
 func _draw_field_guide(x: float, y: float) -> void:
-	draw_rect(Rect2(x + 735, y + 22, 610, 243), Color(0.013, 0.048, 0.076, 0.95))
-	_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 756, y + 53), 20, Color("#f9d99b"))
+	draw_rect(Rect2(x + 640, y + 22, 610, 243), Color(0.013, 0.048, 0.076, 0.95))
+	_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 661, y + 53), 20, Color("#f9d99b"))
 	var entries := _registered_species()
 	var chosen: Dictionary = Ecology.get_species(last_observed_id)
 	if entries.is_empty() or chosen.is_empty() or not entries.has(last_observed_id):
-		_text("Nenhuma especie registrada ate agora.", Vector2(x + 756, y + 91), 16, Color("#c9f7f4"))
-		_text("Aproxime-se de um animal e pressione F.", Vector2(x + 756, y + 126), 15, Color("#a7e6d0"))
+		_text("Nenhuma especie registrada ate agora.", Vector2(x + 661, y + 91), 16, Color("#c9f7f4"))
+		_text("Aproxime-se de um animal e pressione F.", Vector2(x + 661, y + 126), 15, Color("#a7e6d0"))
 	else:
-		_text(chosen["name"], Vector2(x + 756, y + 86), 20, Color("#c9f7f4"))
-		_text(chosen["scientific"], Vector2(x + 756, y + 112), 16, Color("#84c4cc"))
-		_text(chosen["habitat"], Vector2(x + 756, y + 146), 14, Color("#c9f7f4"))
-		_text(chosen["how_to_find"], Vector2(x + 756, y + 172), 14, Color("#a7e6d0"))
-		_text(chosen["story"], Vector2(x + 756, y + 196), 14, Color("#c9f7f4"))
+		_text(chosen["name"], Vector2(x + 661, y + 86), 20, Color("#c9f7f4"))
+		_text(chosen["scientific"], Vector2(x + 661, y + 112), 16, Color("#84c4cc"))
+		_text(chosen["habitat"], Vector2(x + 661, y + 146), 14, Color("#c9f7f4"))
+		_text(chosen["how_to_find"], Vector2(x + 661, y + 172), 14, Color("#a7e6d0"))
+		_text(chosen["story"], Vector2(x + 661, y + 196), 14, Color("#c9f7f4"))
 	_text("J / K NAVEGAR  |  REGISTROS %d / %d" % [entries.size(), Ecology.SPECIES.size()],
-		Vector2(x + 756, y + 234), 15, Color("#f9d99b"))
+		Vector2(x + 661, y + 234), 15, Color("#f9d99b"))
 
 func _bar(pos: Vector2, width: float, ratio: float, tint: Color) -> void:
 	draw_rect(Rect2(pos.x, pos.y, width, 14), Color("#173843"))
