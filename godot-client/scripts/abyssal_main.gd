@@ -207,7 +207,7 @@ func _draw_cabin_instruments(daylight: float) -> void:
 		draw_rect(Rect2(x, 674, 11, 5), panel_light if k < int(daylight * 11.0) else Color("#1c404c"))
 	# Reflections and the soft amber practical lights above the pilot.
 	for side in [-1.0, 1.0]:
-		var x := 640.0 + side * 300.0
+		var x: float = 640.0 + float(side) * 300.0
 		draw_circle(Vector2(x, 114), 15.0, Color(1.0, 0.64, 0.24, 0.11))
 		draw_circle(Vector2(x, 114), 5.0, GOLD)
 		draw_line(Vector2(x, 118), Vector2(x - side * 34.0, 164.0), Color(1.0, 0.72, 0.43, 0.07), 22)
