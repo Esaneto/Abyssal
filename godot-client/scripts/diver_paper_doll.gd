@@ -116,7 +116,9 @@ static func draw_swimmer_hair(c: CanvasItem, candidate: Dictionary, t: float, mo
 		for j in range(lower.size()-1,-1,-1):
 			contour.append(lower[j])
 		c.draw_colored_polygon(contour,tone.darkened(float(k%2)*0.09))
-		c.draw_polyline(highlight,Color(tone.lightened(0.45),0.72),0.85,true)
+		var shine: Color = tone.lightened(0.45)
+		shine.a = 0.72
+		c.draw_polyline(highlight,shine,0.85,true)
 	if style=="tied":
 		c.draw_circle(Vector2(11,-32+breathe),5.4,Color("#e5ad59"))
 		c.draw_circle(Vector2(11,-32+breathe),2.4,Color("#344556"))
