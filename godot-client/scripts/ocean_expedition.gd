@@ -470,7 +470,7 @@ func _update_extraction(delta: float) -> void:
 	if progress == null or inventory_open or field_guide_open or chart_open:
 		extraction_time = 0.0
 		return
-	if not Input.is_key_pressed(KEY_G) or nearest_deposit.is_empty():
+	if not Input.is_action_pressed("extract") or nearest_deposit.is_empty():
 		extraction_time = 0.0
 		return
 	var required: String = deposits.tool_for(str(nearest_deposit["type"]))
