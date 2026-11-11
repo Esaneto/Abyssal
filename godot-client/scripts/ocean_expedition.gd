@@ -393,17 +393,7 @@ func _draw_navigable_arches(area: Rect2) -> void:
 		# The drawn roof/buttresses use the EXACT collision rectangles.
 		var solids := _arch_solids(arch)
 		for solid in solids:
-			draw_rect(solid, Color("#061e30"))
-			var interior := solid.grow(-12.0)
-			if interior.size.x > 0.0 and interior.size.y > 0.0:
-				draw_rect(interior, Color("#2a4c5c"))
-				var facet := PackedVector2Array([
-					interior.position,
-					interior.position + Vector2(interior.size.x, 0),
-					interior.position + Vector2(interior.size.x * 0.54, interior.size.y * 0.46),
-					interior.position + Vector2(0, interior.size.y * 0.84)
-				])
-				draw_colored_polygon(facet, Color("#426877"))
+			Art.arch_material(self, solid, _water_light(depth_at_y(arch.y)))
 		# Transparent tunnel rim highlights navigable opening instead of a fake portal.
 		var left: Vector2 = arch + Vector2(-160.0, -105.0)
 		var right: Vector2 = arch + Vector2(160.0, -105.0)
@@ -643,6 +633,7 @@ func _draw_hud() -> void:
 		_text(status_message, Vector2(x + 350, y + 405), 18, Color("#e9c491"))
 	_draw_sonar(x, y)
 	_draw_quick_tools(x, y)
+	draw_rect(Rect2(x + 24.0, y + 679.0, 900.0, 34.0), Color(0.016, 0.044, 0.068, 0.78))
 	_text("WASD NADAR   G EXTRAIR   F OBSERVAR   I INVENTARIO   M MAPA   TAB DIARIO   ESC CABINE",
 		Vector2(x + 36, y + 712), 14, Color("#cff7ec"))
 	if inventory_open:
@@ -658,7 +649,7 @@ func _draw_quick_tools(x: float, y: float) -> void:
 	var selected: String = str(progress.selected_tool())
 	for i in range(2):
 		var id := "abyssPickaxe" if i == 0 else "emptyCylinder"
-		var p := Vector2(x + 565.0 + float(i) * 140.0, y + 661.0)
+		var p := Vector2(x + 565.0 + float(i) * 140.0, y + 604.0)
 		var chosen: bool = id == selected
 		draw_rect(Rect2(p, Vector2(133, 56)), Color("#0e4657") if chosen else Color("#092b3a"))
 		draw_rect(Rect2(p + Vector2(3, 3), Vector2(127, 50)),
