@@ -64,7 +64,7 @@ const SPECIES := [
 	{
 		"id": "angler", "name": "Tamboril-abissal",
 		"scientific": "Melanocetus johnsonii",
-		"zone": "Escuridao", "min_m": 750.0, "max_m": 1400.0,
+		"zone": "Escuridao", "min_m": 750.0, "max_m": 2000.0,
 		"length_px": 97.0, "temperament": "Predador solitario",
 		"habitat": "Aguas profundas, onde a luz solar ja desapareceu.",
 		"how_to_find": "Alem de 750 m; pequenas iscas luminosas denunciam sua presenca.",
@@ -73,11 +73,29 @@ const SPECIES := [
 	{
 		"id": "isopod", "name": "Isopode-gigante",
 		"scientific": "Bathynomus giganteus",
-		"zone": "Fundo profundo", "min_m": 220.0, "max_m": 1400.0,
+		"zone": "Fundo profundo", "min_m": 220.0, "max_m": 2200.0,
 		"length_px": 95.0, "temperament": "Necrófago de fundo",
 		"habitat": "Sedimentos escuros e encostas profundas.",
 		"how_to_find": "Siga o solo nas profundezas e procure placas segmentadas.",
 		"story": "Uma armadura segmentada percorre o solo silencioso."
+	},
+	{
+		"id": "gulper", "name": "Enguia-pelicano",
+		"scientific": "Eurypharynx pelecanoides",
+		"zone": "Abismo", "min_m": 600.0, "max_m": 2200.0,
+		"length_px": 185.0, "temperament": "Cacadora discreta",
+		"habitat": "Coluna de agua profunda, longe das superficies iluminadas.",
+		"how_to_find": "Siga os lampejos solitarios e observe mandibulas desproporcionais.",
+		"story": "Uma boca enorme e uma cauda finissima definem seu perfil."
+	},
+	{
+		"id": "seapig", "name": "Porco-do-mar",
+		"scientific": "Scotoplanes globosa",
+		"zone": "Planicie abissal", "min_m": 1000.0, "max_m": 2200.0,
+		"length_px": 89.0, "temperament": "Detritivoro pacifico",
+		"habitat": "Sedimentos ricos em materia organica no fundo abissal.",
+		"how_to_find": "Inspecione o solo frio, alem de mil metros simulados.",
+		"story": "Apêndices quase transparentes vasculham o sedimento lentamente."
 	}
 ]
 
@@ -91,7 +109,7 @@ static func candidates_at(depth_m: float, seabed_distance_px: float) -> Array[Di
 	var pool: Array[Dictionary] = []
 	for entry in SPECIES:
 		if depth_m >= float(entry["min_m"]) and depth_m <= float(entry["max_m"]):
-			if entry["id"] != "isopod" or seabed_distance_px < 220.0:
+			if not (entry["id"] in ["isopod", "seapig"]) or seabed_distance_px < 220.0:
 				pool.append(entry)
 	return pool
 
@@ -209,7 +227,35 @@ static func paint(canvas: Node2D, species_id: String, pos: Vector2, direction: f
 			canvas.draw_circle(Vector2(34, -58 + breathe * 3.0), 6.0, Color(0.25, 0.92, 0.94, 0.14))
 			canvas.draw_circle(Vector2(34, -58 + breathe * 3.0), 2.8, Color("#c8ffef"))
 			canvas.draw_circle(Vector2(25, -10), 5.2, Color("#bd956a"))
-			canvas.draw_circle(Vector2(27, -10), 1.8, dark)
+			canvas.draw_circle(Vector2(27, -10), 1.8, dark) 
+		"gulper":
+			# Extremely elongated silhouette, disproportionately large hinged jaw.
+			var wave := sin(time_s * 1.25 + pos.x * 0.002) * 8.0
+			_line(canvas, Vector2(-25, -2), Vector2(-66, wave), Color("#27374c"), 4.0)
+			_line(canvas, Vector2(-66, wave), Vector2(-84, wave + sin(time_s * 2.4) * 8.0), Color("#36536b"), 2.2)
+			canvas.draw_circle(Vector2(-84, wave + sin(time_s * 2.4) * 8.0), 3.0, Color("#f29f83"))
+			_oval(canvas, Vector2(1, -6), Vector2(31, 16), Color("#293548"))
+			_poly(canvas, [Vector2(1, -11), Vector2(40, -24), Vector2(49, -7),
+				Vector2(27, 19), Vector2(7, 32), Vector2(-12, 16)], Color("#1a2535"))
+			_poly(canvas, [Vector2(6, 2), Vector2(44, -1), Vector2(15, 30)],
+				Color("#060f1d"))
+			_line(canvas, Vector2(13, 27), Vector2(42, 0), Color("#5b6680"), 2.5)
+			canvas.draw_circle(Vector2(27, -17), 3.8, Color("#d0bbab"))
+			canvas.draw_circle(Vector2(28, -17), 1.8, dark)
+		"seapig":
+			var feet := sin(time_s * 0.8 + pos.x * 0.003) * 4.0
+			for j in range(5):
+				var fx := -25.0 + float(j) * 13.0
+				_line(canvas, Vector2(fx, 4), Vector2(fx + feet, 29.0 + float(j % 2) * 6.0),
+					Color("#928c9b"), 6.0)
+			_oval(canvas, Vector2(0, -6), Vector2(41, 19), Color("#91828f"))
+			_oval(canvas, Vector2(-10, -11), Vector2(24, 12), Color("#bbacb2"))
+			for j in range(4):
+				_line(canvas, Vector2(-29.0 + float(j) * 18.0, -13),
+					Vector2(-30.0 + float(j) * 20.0 + sin(time_s * 0.9 + j) * 3.0, -34),
+					Color("#bcb4b5"), 4.0)
+			canvas.draw_circle(Vector2(34, -6), 2.2, Color("#566474"))
+
 		"isopod":
 			for j in range(7):
 				var sx := -31.0 + float(j) * 10.0
