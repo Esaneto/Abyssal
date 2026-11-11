@@ -192,8 +192,10 @@ static func ocean_distance(canvas: CanvasItem, world: Node2D, area: Rect2, time_
 			var seabed: float = float(world.call("_seafloor_y", clampf(x, 0.0, 23990.0)))
 			var slow_wave := sin(x / (180.0 + float(layer) * 70.0) + float(layer) * 1.6) * 42.0
 			ridge.append(Vector2(x, seabed - margin + slow_wave))
-		ridge.append(Vector2(x0 + 34.0 * 64.0, area.end.y + 1000.0))
-		ridge.append(Vector2(x0, area.end.y + 1000.0))
+		# Close below every possible seabed sample, avoiding folded polygons
+		# when the camera is thousands of pixels above the sloping shelf.
+		ridge.append(Vector2(x0 + 34.0 * 64.0, 23000.0))
+		ridge.append(Vector2(x0, 23000.0))
 		var fog := clampf(0.16 - float(layer) * 0.033 + solar * 0.032, 0.055, 0.21)
 		poly(canvas, ridge, Color(0.10, 0.39, 0.47, fog * clampf(1.4 - camera_depth / 2300.0, 0.35, 1.0)))
 	# Large-scale alternating haze subtly breaks up the uniform gradient.
