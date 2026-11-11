@@ -78,3 +78,17 @@ O arquivo antigo `assets/art/cabin_navigator.svg` permanece apenas como arte de 
 - Nao informar um cosmetico como recurso pago sem implementacao real; enquanto a integracao com a loja nao existir, as opcoes sao locais e disponiveis sem compra.
 - Um SVG individual pode ser substituido por uma imagem raster, spritesheet ou node de animacao preservando seu slot e os mesmos pontos de encaixe.
 - Antes de lancamento, medir custo das camadas, verificar FPS no Android, tratar interface mobile/toque e animacoes detalhadas com sprites externos quando necessario.
+
+## Rig nativo (sem desenho de personagens pelo CanvasItem)
+`native_diver_rig.gd` cria `MeshInstance2D` com a malha subdividida,
+`AnimationPlayer` com clipes `float` e `swim`, e
+`CPUParticles2D` para bolhas fisicamente independentes do deslocamento.
+Os PNGs aprovados sao texturas do `MeshInstance2D`, e nao fundos.
+`diver_native.gd` e responsavel pela colisao/locomocao e injeta o
+`appearance_snapshot()` no rig. `anime_diver_art.gd` continua
+centralizando as texturas e parametros de shader.
+
+A camada de apresentacao pode ser substituida futuramente por
+`Skeleton2D`, `Bone2D`, recortes de rosto/cabelo/traje e `AnimationTree`
+sem reescrever a fisica nem o salvamento. O rig atual nao consegue articular
+pernas e bracos perfeitamente enquanto a fonte for um PNG inteiro.

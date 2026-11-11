@@ -4,7 +4,7 @@ extends CharacterBody2D
 signal diver_died
 const Look = preload("res://scripts/diver_appearance.gd")
 const Doll = preload("res://scripts/diver_paper_doll.gd")
-const Anime = preload("res://scripts/anime_diver_art.gd")
+const NativeRig = preload("res://scripts/native_diver_rig.gd")
 
 const MAX_OXYGEN := 300.0
 const MAX_HEALTH := 100.0
@@ -26,7 +26,7 @@ var depth_m := 0.0
 var is_moving := false
 var is_facing_right := true
 var appearance: Dictionary = Look.defaults()
-var _anime_material: ShaderMaterial = null
+var anime_rig: Node2D = null
 
 func _ready() -> void:
 	collision_layer = 1
@@ -38,6 +38,9 @@ func _ready() -> void:
 	collision.shape = shape
 	collision.rotation = PI / 2.0
 	add_child(collision)
+	anime_rig = NativeRig.new()
+	add_child(anime_rig)
+	anime_rig.update_look(appearance, time_s, false, is_facing_right)
 	queue_redraw()
 
 func _physics_process(delta: float) -> void:
@@ -83,10 +86,14 @@ func _physics_process(delta: float) -> void:
 		health = maxf(0.0, health - pressure_hazard * delta)
 	if health <= 0.0:
 		diver_died.emit()
+	if anime_rig != null:
+		anime_rig.update_look(appearance, time_s, is_moving, is_facing_right)
 	queue_redraw()
 
 func set_appearance(candidate: Dictionary) -> void:
 	appearance = Look.normalize(candidate)
+	if anime_rig != null:
+		anime_rig.update_look(appearance, time_s, is_moving, is_facing_right)
 	queue_redraw()
 
 func configure_equipment(oxygen_level: int, suit_level: int) -> void:
@@ -101,23 +108,10 @@ func recover() -> void:
 	velocity = Vector2.ZERO
 
 func _draw() -> void:
-	# Use exact generated character artwork (and native mesh animation) when
-	# the optional high-resolution PNG pack is installed in this Godot project.
-	# The original GDScript fallback remains intact for unpatched checkouts.
-	if Anime.has_art(appearance):
-		if _anime_material == null:
-			_anime_material = Anime.make_material()
-			material = _anime_material
-		Anime.update_material(_anime_material, appearance, time_s, is_moving)
-		var direction := 1.0 if is_facing_right else -1.0
-		draw_set_transform(Vector2.ZERO,0.0,Vector2(direction,1.0))
-		Anime.draw_swimmer(self,appearance)
-		Anime.draw_bubbles(self,appearance,time_s)
-		draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
+	# PNGs installed: the MeshInstance2D child animates natively with
+	# AnimationPlayer and particles. Keep this renderer only as a fallback.
+	if anime_rig != null and anime_rig.has_visible_character():
 		return
-	elif _anime_material != null:
-		material = null
-		_anime_material = null
 	# Side-view expedition diver: anatomy, layered neoprene, steel tanks and flexible fins.
 	# Every part is anchored to this CharacterBody2D; physics and hitbox remain unchanged.
 	var flip := 1.0 if is_facing_right else -1.0
