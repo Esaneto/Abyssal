@@ -275,7 +275,7 @@
      const path=()=>{currents.beginPath();currents.moveTo(a.x,a.y);currents.bezierCurveTo(b.x,b.y,c.x,c.y,d.x,d.y);};
      currents.strokeStyle=s.tone;currents.globalAlpha=(.035+(1-Math.abs(offset))*.043);
      currents.lineWidth=8+(1-Math.abs(offset))*12;path();currents.stroke();
-     currents.strokeStyle=lane%2?'#9beefa':s.tone;
+     currents.strokeStyle=lane%2?'#8be6f5':s.tone;
      currents.globalAlpha=.11+(1-Math.abs(offset))*.085;
      currents.lineWidth=.9+(1-Math.abs(offset))*.9;
      currents.setLineDash([9+Math.abs(lane)*2,18+Math.abs(lane)*3]);
@@ -287,7 +287,7 @@
       const px=inv*inv*inv*a.x+3*inv*inv*t*b.x+3*inv*t*t*c.x+t*t*t*d.x;
       const py=inv*inv*inv*a.y+3*inv*inv*t*b.y+3*inv*t*t*c.y+t*t*t*d.y;
       currents.globalAlpha=(.13+.27*(1-Math.abs(offset)))*Math.pow(Math.sin(Math.PI*t),1.6);
-      currents.fillStyle='#d9ffff';
+      currents.fillStyle='#cef8fc';
       currents.beginPath();currents.ellipse(px,py,2.8+1.6*t,.7,0,0,Math.PI*2);currents.fill();
      }
     }
@@ -363,7 +363,7 @@
       const b=bubbles[i];b.life-=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
       if(b.life<=0){bubbles.splice(i,1);continue;}
       bubbleCtx.globalAlpha=.7*clamp(b.life/(b.max||.7),0,1);
-      bubbleCtx.strokeStyle='#c8faff';bubbleCtx.lineWidth=.8;
+      bubbleCtx.strokeStyle='#b8f4fc';bubbleCtx.lineWidth=.8;
       bubbleCtx.beginPath();bubbleCtx.arc(b.x,b.y,b.radius,0,2*Math.PI);bubbleCtx.stroke();
      }
      bubbleCtx.globalAlpha=1;

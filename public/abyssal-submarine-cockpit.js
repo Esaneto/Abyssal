@@ -38,7 +38,7 @@
  }
  function fish(x,y,scale,t,seed){
   c.save();c.translate(x,y+Math.sin(t*.0015+seed)*3);c.scale(scale,scale);
-  c.fillStyle=seed%3===0?'#17445d':seed%2?'#1b6686':'#255c76';
+  c.fillStyle=seed%3===0?'#133d55':seed%2?'#1a5878':'#225970';
   c.beginPath();c.moveTo(-20,0);c.bezierCurveTo(-8,-12,16,-11,25,0);
   c.bezierCurveTo(12,10,-9,12,-20,0);c.fill();
   const tail=Math.sin(t*.005+seed)*4;
@@ -48,7 +48,7 @@
  }
  function coral(x,y,h,seed,t){
   c.save();c.translate(x,y);const tall=h;
-  const colors=['#af589f','#e7834d','#3b9a92','#9c69a7'];
+  const colors=['#c76d9b','#d97a45','#3b9a92','#a87db5'];
   c.strokeStyle=colors[seed%colors.length];c.lineCap='round';c.lineWidth=5;
   for(let j=0;j<5;j++){
    const side=(j-2)*10,dy=tall*(.65+(j%3)*.13);
@@ -123,18 +123,18 @@
   c.save();c.beginPath();c.moveTo(70,105);c.lineTo(1370,105);c.lineTo(1390,493);
   c.quadraticCurveTo(1370,555,1310,562);c.lineTo(124,562);
   c.quadraticCurveTo(53,555,50,490);c.closePath();c.clip();
-  c.fillStyle=grad(0,100,0,575,[[0,'#2788a8'],[.18,'#15729e'],[.62,'#0e4c72'],[1,'#081e3c']]);
+  c.fillStyle=grad(0,100,0,575,[[0,'#1e7a9e'],[.18,'#146a98'],[.62,'#0c4268'],[1,'#071e3a']]);
   c.fillRect(0,100,1440,480);
   // Soft focal illumination deepens the panoramic scene without an image texture.
   const light=c.createRadialGradient(960,130,36,850,270,710);
-  light.addColorStop(0,'rgba(113,234,239,.25)');
+  light.addColorStop(0,'rgba(95,220,235,.28)');
   light.addColorStop(.48,'rgba(41,169,206,.10)');
   light.addColorStop(1,'rgba(5,34,62,0)');
   c.fillStyle=light;c.fillRect(0,100,1440,480);
   // Underwater sun shafts terminate in gradually darkening water.
   for(let i=0;i<9;i++){
    const x=110+i*155+Math.sin(t*.00014+i)*6;
-   poly([[x,105],[x+27,105],[x+220,575],[x+92,575]],'rgba(176,244,255,.042)');
+   poly([[x,105],[x+27,105],[x+220,575],[x+92,575]],'rgba(160,235,250,.055)');
   }
   for(let i=0;i<6;i++){
    const x=-80+i*315;
@@ -148,7 +148,7 @@
   for(let layer=0;layer<3;layer++){
    const offset=layer*37,wave=Math.sin(t*.00006+layer)*9;
    c.save();c.globalAlpha=.40-layer*.08;
-   c.fillStyle=['#123953','#15465b','#0e3149'][layer];
+   c.fillStyle=['#0e2d42','#123a52','#0a2539'][layer];
    for(let i=-1;i<7;i++){
     const x=i*295+offset+wave,y=545-layer*28;
     c.beginPath();c.moveTo(x-95,565);c.lineTo(x-72,y-34);
@@ -163,12 +163,12 @@
   c.beginPath();c.moveTo(796,557);c.bezierCurveTo(839,372,961,365,1087,553);c.stroke();
 
   // Bottom foreground rock terraces and reef, seen through the window.
-  poly([[0,445],[100,405],[230,476],[325,461],[485,548],[600,550],[0,580]],'#10577b');
-  poly([[880,555],[1010,497],[1110,463],[1258,489],[1440,404],[1440,585]],'#134e72');
+  poly([[0,445],[100,405],[230,476],[325,461],[485,548],[600,550],[0,580]],'#0d4a6e');
+  poly([[880,555],[1010,497],[1110,463],[1258,489],[1440,404],[1440,585]],'#0f4365');
   for(let i=0;i<18;i++){
    const x=i*82+(i%3)*14;
    const y=523+(i%4)*11;
-   c.strokeStyle=i%2?'#286e70':'#246b8b';c.lineWidth=3;c.beginPath();
+   c.strokeStyle=i%2?'#267272':'#237090';c.lineWidth=3;c.beginPath();
    c.moveTo(x,y+25);c.quadraticCurveTo(x-18,y-42,x+Math.sin(t*.0005+i)*16,y-79-(i%5)*13);c.stroke();
   }
   for(const [x,y,h,k] of [[45,470,82,0],[98,510,75,1],[195,527,64,2],[1000,536,70,0],[1165,523,95,1],[1360,477,85,3],[1274,541,61,2]])coral(x,y,h,k,t);
@@ -198,7 +198,7 @@
    c.globalAlpha=.15+(i%4)*.07;c.strokeStyle='#cbfaff';c.lineWidth=1;
    c.beginPath();c.arc(x,y,1+(i%3)*1.3,0,TAU);c.stroke();
   }c.globalAlpha=1;
-  const reflection=grad(0,95,0,570,[[0,'#d1ffff25'],[.4,'#aef1ff05'],[1,'#03112439']]);
+  const reflection=grad(0,95,0,570,[[0,'#c8f8ff28'],[.4,'#9ae8f808'],[1,'#04152840']]);
   c.fillStyle=reflection;c.fillRect(0,105,1440,465);c.restore();
  }
  function windows(t){
@@ -371,7 +371,7 @@
   const compact=width<700,scale=Math.max(width/1440,height/900);
   const center=compact?705:720;
   c.save();c.translate(width/2-center*scale,(height-900*scale)/2);c.scale(scale,scale);
-  c.fillStyle=grad(0,0,1440,900,[[0,'#1a3045'],[.55,'#0e2439'],[1,'#040e1d']]);c.fillRect(0,0,1440,900);
+  c.fillStyle=grad(0,0,1440,900,[[0,'#182d42'],[.55,'#0c2237'],[1,'#040e1d']]);c.fillRect(0,0,1440,900);
   ceiling(t);windows(t);consoleBase(t);
   // The chair & diver are part of the cockpit, not a pasted profile image.
   diver(t,compact);

@@ -19,7 +19,9 @@
   emptyCylinder:`<rect x="26" y="14" width="29" height="57" rx="7" fill="#213c50" stroke="#afcbcf" stroke-width="4"/><path d="M29 49h23v14H29Z" fill="#63899b"/><path d="M36 8h10v7H36Z" fill="#a4c4d3"/><path d="M41 8V4" stroke="#cadbe2" stroke-width="4"/>`,
   oilCylinder:`<rect x="26" y="14" width="29" height="57" rx="7" fill="#213c50" stroke="#b8cbd2" stroke-width="4"/><path d="M29 33h23v30H29Z" fill="#121a25"/><path d="M36 8h10v7H36Z" fill="#a4c4d3"/><path d="M41 8V4" stroke="#cadbe2" stroke-width="4"/><path d="M32 40v15" stroke="#879ba3" stroke-width="3"/>`,
   gasCylinder:`<rect x="26" y="14" width="29" height="57" rx="7" fill="#213c50" stroke="#b8cbd2" stroke-width="4"/><path d="M29 33h23v30H29Z" fill="#26866f"/><path d="M36 8h10v7H36Z" fill="#a4c4d3"/><g fill="#baffd8"><circle cx="37" cy="49" r="3"/><circle cx="46" cy="39" r="2.4"/><circle cx="43" cy="59" r="2"/></g>`,
-  seaMineral:`<path d="m12 56 12-28 23-16 23 22-8 28-30 12Z" fill="#274a5b" stroke="#9be4ef" stroke-width="3"/><path d="m24 28 23-16 4 35-19 27Z" fill="#65cbd9"/><path d="m47 12 23 22-19 13Z" fill="#a3f5f6"/>`
+  seaMineral:`<path d="m12 56 12-28 23-16 23 22-8 28-30 12Z" fill="#274a5b" stroke="#9be4ef" stroke-width="3"/><path d="m24 28 23-16 4 35-19 27Z" fill="#65cbd9"/><path d="m47 12 23 22-19 13Z" fill="#a3f5f6"/>`,
+  abyssWeapon:`<path d="M12 42L44 26 56 31 46 39 28 44 21 54 13 52 18 42Z" fill="#1b2a38" stroke="#8ae9f5" stroke-width="2.5"/><path d="M22 36L52 23" stroke="#7cf5ff" stroke-width="3.5"/><path d="M48 27L68 22" stroke="#e0fcff" stroke-width="4.5"/><path d="M28 43L22 55" stroke="#d6a56b" stroke-width="4"/><circle cx="68" cy="22" r="3" fill="#7bf3f0"/>`,
+  medkitCanister:`<rect x="25" y="16" width="30" height="52" rx="8" fill="#143428" stroke="#48d698" stroke-width="3.5"/><rect x="29" y="30" width="22" height="30" rx="4" fill="#1f543e"/><path d="M40 37V53M32 45H48" stroke="#8effc3" stroke-width="4.5" stroke-linecap="round"/><rect x="33" y="10" width="14" height="6" rx="2" fill="#88cfaf"/>`
  });
  const aliases=Object.freeze({oil:'oilSeep',gas:'gasSeep'});
  function svg(input){

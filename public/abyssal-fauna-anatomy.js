@@ -80,11 +80,17 @@
  }
  function ray(c,t,p){
   const wing=Math.sin(t*.0043)*13;
-  path(c,[[-105,-4],[-155,-12],[-140,-2]],p.dark);
+  path(c,[[-105,-4],[-155,-12],[-180,-14],[-155,-7],[-105,2]],p.dark);
   c.fillStyle=p.primary;c.beginPath();c.moveTo(75,1);c.bezierCurveTo(19,-38,-24,-86-wing,-75,-56-wing);
   c.quadraticCurveTo(-7,-1,-75,56+wing);c.bezierCurveTo(-18,70+wing,40,17,75,1);c.fill();
+  c.strokeStyle=p.highlight;c.lineWidth=2.2;c.stroke();
   curve(c,[66,1,15,0,-42,0,-150,3],p.light,2.5);eye(c,51,-7);
-  c.strokeStyle=alpha(p.highlight,.23);c.lineWidth=2;c.beginPath();c.moveTo(60,1);c.lineTo(-75,-54-wing);c.moveTo(60,1);c.lineTo(-75,54+wing);c.stroke();
+  for(let k=0;k<14;k++){
+   const q=k/13,rx=-52+q*92,ry=Math.sin(q*Math.PI)*28;
+   c.fillStyle='rgba(195,245,255,.75)';c.beginPath();
+   c.arc(rx,ry*.75,1.5,0,TAU);c.arc(rx,-ry*.75,1.5,0,TAU);
+   c.arc(rx*.8,ry*.4,1.2,0,TAU);c.arc(rx*.8,-ry*.4,1.2,0,TAU);c.fill();
+  }
  }
  function turtle(c,t,p){
   const flap=Math.sin(t*.0036)*20;
@@ -93,9 +99,22 @@
   path(c,[[20,-18],[45,-64+flap],[65,-50+flap],[47,8]],p.mid);
   path(c,[[13,22],[47,50-flap],[66,44-flap],[28,10]],p.mid);
   c.fillStyle=p.primary;c.beginPath();c.ellipse(0,0,58,36,0,0,TAU);c.fill();
-  c.strokeStyle=p.light;c.lineWidth=3;c.stroke();
-  for(let i=0;i<5;i++)curve(c,[Math.cos(i*TAU/5)*29,Math.sin(i*TAU/5)*18,5,-4,16,9,0,0],alpha(p.highlight,.3),2);
-  c.fillStyle=p.mid;c.beginPath();c.ellipse(62,-2,20,14,0,0,TAU);c.fill();eye(c,70,-7);
+  c.strokeStyle=p.highlight;c.lineWidth=2.5;c.stroke();
+  c.save();c.strokeStyle=alpha(p.highlight,.45);c.lineWidth=1.8;
+  for(let i=0;i<3;i++){
+   const cx=-24+i*24;
+   c.beginPath();
+   c.moveTo(cx-11,0);c.lineTo(cx-6,-13);c.lineTo(cx+6,-13);
+   c.lineTo(cx+11,0);c.lineTo(cx+6,13);c.lineTo(cx-6,13);c.closePath();c.stroke();
+   c.beginPath();c.moveTo(cx-6,-13);c.lineTo(cx-14,-28);
+   c.moveTo(cx+6,-13);c.lineTo(cx+14,-28);
+   c.moveTo(cx-6,13);c.lineTo(cx-14,28);
+   c.moveTo(cx+6,13);c.lineTo(cx+14,28);c.stroke();
+  }
+  c.restore();
+  c.fillStyle=p.mid;c.beginPath();c.ellipse(62,-2,20,14,0,0,TAU);c.fill();
+  c.strokeStyle=alpha(p.highlight,.6);c.lineWidth=1.5;c.stroke();
+  eye(c,70,-7);
  }
  function crab(c,t,spider=false,p){
   const step=Math.sin(t*.0028)*8;

@@ -25,12 +25,12 @@ function pigment(color,target,amount){
  return '#'+a.map((v,i)=>Math.round(v*(1-p)+b[i]*p).toString(16).padStart(2,'0')).join('');
 }
 const BIO_ACCENTS=Object.freeze({
- jewelsquid:'#f2a9f7',atolla:'#ff5679',
- phantomjelly:'#c2c6ff',dumbo:'#a9baf8',blanket:'#b47bfa',
- ribbonmoray:'#a2a7ff',gharial:'#a0d68f',nautilus:'#f3d6a0',
- leatherback:'#a7e5d9',hawksbill:'#e6d29c',hatchetfish:'#d8ecf2',
- viperfish:'#b3f3da',blackdragon:'#b0ffdb',combjelly:'#a4ffec',
- bluedragon:'#64dfff',yeticrab:'#d6eee3'
+ jewelsquid:'#f7a2ff',atolla:'#ff4d73',
+ phantomjelly:'#b8c5ff',dumbo:'#9eb6ff',blanket:'#bd78ff',
+ ribbonmoray:'#99b0ff',gharial:'#9fe092',nautilus:'#f7d899',
+ leatherback:'#b8f0ca',hawksbill:'#f5dc8e',hatchetfish:'#d2f4fc',
+ viperfish:'#9ff8d2',blackdragon:'#9bffd2',combjelly:'#7dfadc',
+ bluedragon:'#5ceaff',yeticrab:'#b8f5dc',eagleray:'#ffda73',manta:'#7ce8f5'
 });
 function draw(c,x,y,r,angle,s,t,hit,motionOverride=null,followAim=false){
  if(!s||!Number.isFinite(r)||r<=0||typeof document==='undefined')return drawDetails(c,x,y,r,angle,s,t,hit);

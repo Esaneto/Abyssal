@@ -1,0 +1,13 @@
+{
+  "appId": "com.esaneto.abyssal",
+  "appName": "Abyssal",
+  "webDir": "www",
+  "server": {
+    "url": "https://abyssal-ej5j.onrender.com",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

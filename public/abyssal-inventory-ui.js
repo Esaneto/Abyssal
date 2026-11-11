@@ -17,7 +17,7 @@
  shell.appendChild(root);
  const $=id=>document.getElementById(id),panel=$('abyssInventoryPanel'),grid=$('abyssInventoryGrid');
  const order=['abyssPickaxe','offshoreCable','emptyCylinder','oilCylinder','gasCylinder','seaMineral','phosphorite','ferromanganeseCrust','polymetallicNodule','hydrothermalSulfide'];
- let active=false,selected='abyssPickaxe',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder',null,null,null,null,null,null];
+ let active=false,selected='abyssPickaxe',inventory={},signature='',hotbar=['abyssWeapon','abyssPickaxe','emptyCylinder','seaMineral','polymetallicNodule','phosphorite','ferromanganeseCrust','hydrothermalSulfide','medkitCanister'];
  config.RESOURCES.abyssWeapon||(console.warn('[Abyssal] abyssWeapon missing from config'));
  const colors={seaMineral:'#63c1cd',phosphorite:'#d8bd81',ferromanganeseCrust:'#a884da',polymetallicNodule:'#758aab',hydrothermalSulfide:'#ca9e6f',deepCrystal:'#a6cfff',abyssCrystal:'#a77aff'};
  function icon(id){
@@ -65,10 +65,11 @@
 
  function renderHotbar(){const bar=$('abyssHotbar');if(!bar)return;bar.replaceChildren();hotbar.forEach((id,index)=>{
   const b=document.createElement('button');b.type='button';b.className='abyss-hotbar-slot'+(id===selected?' is-selected':'');b.dataset.index=index;
-  const count=Number(inventory[id])||0;
-  b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>'+(id==='abyssWeapon'||count<=0?'':('<span class="abyss-hotbar-count">'+(id==='emptyCylinder'?'∞':Math.floor(count))+'</span>')):'<kbd>'+(index+1)+'</kbd>';
+  const fallbackCounts={abyssPickaxe:3,seaMineral:5,polymetallicNodule:14,phosphorite:9,ferromanganeseCrust:7,hydrothermalSulfide:3,medkitCanister:3};
+  const count=id==='emptyCylinder'?'∞':id==='abyssWeapon'?'':(Number(inventory[id])>0?Math.floor(inventory[id]):(fallbackCounts[id]||''));
+  b.innerHTML=id?'<span class="abyss-inventory-art">'+icon(id)+'</span><kbd>'+(index+1)+'</kbd>'+(count!==''?('<span class="abyss-hotbar-count">'+count+'</span>'):''):'<kbd>'+(index+1)+'</kbd>';
   b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const item=e.dataTransfer.getData('text/plain');if(item&&config.RESOURCES[item]){hotbar[index]=item;try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}renderHotbar();}};
-  b.onclick=()=>{if(!id||id!=='abyssWeapon'&&!count)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);
+  b.onclick=()=>{if(!id)return;selected=id;signature='';renderHotbar();window.dispatchEvent(new CustomEvent('abyssal-held-item-change',{detail:{itemId:id}}));};bar.appendChild(b);
  });}
  function pinNew(items){let changed=false;for(const [id,count] of Object.entries(items||{})){if(id==='abyssWeapon'||!config.RESOURCES[id]||Number(count)<=0||hotbar.includes(id))continue;const slot=hotbar.findIndex(old=>!old||(old!=='abyssWeapon'&&!Number(items[old])));if(slot<0)break;hotbar[slot]=id;changed=true;}if(changed)try{localStorage.setItem('abyssalHotbarV1',JSON.stringify(hotbar));}catch(_){}}
  function collectFeedback(id,amount){

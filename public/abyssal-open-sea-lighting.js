@@ -18,7 +18,7 @@
  function draw(c,viewport={},player={},level=0,time=0,lowPower=false){
   if(!c||!geo||!Number.isFinite(player.x)||!Number.isFinite(player.y))return;
   const depth=geo.metersAt(player.y),lamp=parameters(depth,level);
-  if(depth<60)return;
+  if(depth<15)return;
   const left=Number(viewport.left)||0,top=Number(viewport.top)||0;
   const w=Math.max(10,Number(viewport.width)||900),h=Math.max(10,Number(viewport.height)||600);
   const heading=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0;
@@ -29,8 +29,10 @@
   const hy=player.y+Math.sin(heading)*42*scale+Math.cos(heading)*(-9*scale);
   c.save();
   // Ambient attenuation, lifted near the diver so silhouettes remain readable.
-  c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.14).toFixed(3)+')';
-  c.fillRect(left,top,w,h);
+  if(depth>=60){
+   c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.14).toFixed(3)+')';
+   c.fillRect(left,top,w,h);
+  }
   const len=lamp.range,arc=lamp.halfAngle;
   if(depth>=110){
    const dark=.19*clamp((depth-110)/540,0,1);
@@ -47,18 +49,37 @@
     c.fillStyle='rgba(0,2,9,'+dark.toFixed(3)+')';c.fillRect(left,top,w,h);
     c.restore();
    }
-   // Concentrated warm-white LED reflection and subtle plankton scattering.
-   c.save();c.beginPath();c.moveTo(hx,hy);
-   for(let i=0;i<=16;i++){const a=aim-arc+i/16*arc*2;c.lineTo(hx+Math.cos(a)*len,hy+Math.sin(a)*len);}
-   c.closePath();c.clip();
-   const beam=c.createRadialGradient(hx,hy,4,hx,hy,len);
-   beam.addColorStop(0,'rgba(205,243,232,'+(.13+.045*lamp.level).toFixed(3)+')');
-   beam.addColorStop(.57,'rgba(140,198,203,.045)');beam.addColorStop(1,'rgba(100,152,186,0)');
-   c.fillStyle=beam;c.fillRect(hx-len,hy-len,len*2,len*2);c.restore();
   }
-  // Small visible lamp lens on the helmet. Stable in the helmet/body reference frame.
-  c.fillStyle='#dafaf0';c.shadowColor='#9cffee';c.shadowBlur=lowPower?0:7;
-  c.beginPath();c.arc(hx,hy,Math.max(1.5,r*.1),0,Math.PI*2);c.fill();
+  // Concentrated crisp volumetric conical beam and subtle scattering
+  c.save();c.beginPath();c.moveTo(hx,hy);
+  const beamSegments=lowPower?16:32;
+  for(let i=0;i<=beamSegments;i++){const a=aim-arc+i/beamSegments*arc*2;c.lineTo(hx+Math.cos(a)*len,hy+Math.sin(a)*len);}
+  c.closePath();c.clip();
+  const beam=c.createRadialGradient(hx,hy,3,hx,hy,len);
+  const beamIntensity=depth<110?.24:(.30+.05*lamp.level);
+  beam.addColorStop(0,'rgba(225,252,255,'+beamIntensity.toFixed(3)+')');
+  beam.addColorStop(.32,'rgba(140,230,245,'+(beamIntensity*.62).toFixed(3)+')');
+  beam.addColorStop(.68,'rgba(75,185,225,'+(beamIntensity*.22).toFixed(3)+')');
+  beam.addColorStop(1,'rgba(30,120,180,0)');
+  c.fillStyle=beam;c.fillRect(hx-len,hy-len,len*2,len*2);
+  // Floating luminous motes caught in the beam
+  if(!lowPower){
+   for(let k=0;k<14;k++){
+    const dist=30+((time*.014+k*37)%(len*.85));
+    const spread=(Math.sin(k*1.9+time*.0012)*.72)*arc*(dist/len);
+    const px=hx+Math.cos(aim+spread)*dist;
+    const py=hy+Math.sin(aim+spread)*dist;
+    const moteAlpha=(1-dist/len)*.55;
+    c.fillStyle='rgba(215,252,255,'+moteAlpha.toFixed(2)+')';
+    c.beginPath();c.arc(px,py,1+((k%3)*.4),0,Math.PI*2);c.fill();
+   }
+  }
+  c.restore();
+
+  // Glowing lamp lens on the helmet
+  c.save();c.fillStyle='#ffffff';c.shadowColor='#7df9ff';c.shadowBlur=lowPower?3:12;
+  c.beginPath();c.arc(hx,hy,Math.max(2,r*.13),0,Math.PI*2);c.fill();
+  c.restore();
   c.restore();
  }
  return Object.freeze({parameters,draw});
