@@ -408,6 +408,40 @@
   }
  }
 
+ // Deep geological water is nearly sunlight-free, but local bioluminescent
+ // colonies reveal distant layers. Lights are camera-culled decorations only:
+ // never introduce invisible geometry or change collision/navmesh.
+ function drawGeologicalBacklight(ctx,left,top,right,bottom,time,lowPower){
+  const tile=660;
+  for(let tx=Math.floor(left/tile)-1;tx<=Math.ceil(right/tile)+1;tx++)
+   for(let ty=Math.floor(top/tile)-1;ty<=Math.ceil(bottom/tile)+1;ty++){
+    if(tx<0||ty<0)continue;
+    const seed=seeded(tx*13+31,ty*17+5);
+    if(seed<.40)continue;
+    const x=tx*tile+seeded(tx+9,ty+4)*tile;
+    const y=ty*tile+seeded(tx+5,ty+21)*tile;
+    if(x<0||x>geo.WIDTH||y>geo.HEIGHT||
+       geo.visualBiomeAt?.(x,y)?.id!=='geological')continue;
+    const radius=lowPower?135:210+seed*110;
+    const pulse=.80+.20*Math.sin(time*.00058+seed*TAU);
+    const light=ctx.createRadialGradient(x,y,5,x,y,radius);
+    light.addColorStop(0,'rgba(93,213,201,'+(.115*pulse).toFixed(3)+')');
+    light.addColorStop(.29,'rgba(35,144,169,'+(.075*pulse).toFixed(3)+')');
+    light.addColorStop(1,'rgba(9,63,100,0)');
+    ctx.fillStyle=light;ctx.fillRect(x-radius,y-radius,radius*2,radius*2);
+    if(lowPower)continue;
+    // Tiny living colonies, deliberately not ore or collectible markers.
+    ctx.save();ctx.globalCompositeOperation='screen';
+    for(let i=0;i<9;i++){
+     const a=seeded(tx+i+7,ty+11)*TAU;
+     const r=19+seeded(tx+19,ty+i)*radius*.46;
+     const xx=x+Math.cos(a)*r,yy=y+Math.sin(a)*r*.57;
+     ctx.fillStyle='rgba(145,229,213,'+(.13+.21*pulse).toFixed(3)+')';
+     ctx.beginPath();ctx.arc(xx,yy,.7+seeded(tx+i,ty)*1.3,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+   }
+ }
  // ─── Depth haze — blue-tinted atmospheric fog ──────────────────────
  function drawDepthHaze(ctx,left,top,right,bottom){
   const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
@@ -1021,6 +1055,7 @@
   drawProvinceBackdrop(ctx,left,top,right,bottom,time,lowPower);
   drawBiomeVista(ctx,left,top,right,bottom,time,lowPower);
   drawProvinceLight(ctx,left,top,right,bottom,time,lowPower);
+  drawGeologicalBacklight(ctx,left,top,right,bottom,time,lowPower);
   drawSurfaceVegetation(ctx,left,top,right,bottom,time,lowPower);
   if(top<130){ctx.save();ctx.strokeStyle='rgba(155,235,252,.68)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(185,242,252,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);

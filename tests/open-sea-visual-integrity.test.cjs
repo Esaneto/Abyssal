@@ -71,3 +71,14 @@ test('new wildlife silhouettes use exact specimen-store palette without replacin
  art.draw(ctx,animal,40,2016);
  assert.ok(Math.abs(angles[1]-angles[0])<1,'a new AI heading must turn smoothly, not snap 180 degrees');
 });
+
+test('deep geological waters contain camera-culled living light without altering rock collision',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../public/abyssal-open-sea-render.js'),'utf8');
+ assert.match(source,/function drawGeologicalBacklight\(/);
+ assert.match(source,/drawGeologicalBacklight\(ctx,left,top,right,bottom,time,lowPower\);/);
+ assert.match(source,/geo\.visualBiomeAt\?\.\(x,y\)\?\.id!=='geological'/);
+ assert.match(source,/const tile=660/);
+ assert.match(source,/if\(lowPower\)continue;/);
+ assert.ok(geo.ROCKS.length>0);
+});
