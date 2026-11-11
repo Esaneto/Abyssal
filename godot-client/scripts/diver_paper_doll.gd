@@ -15,6 +15,15 @@ const HAIR_TIED_BACK = preload("res://assets/art/character/cabin_layer_hair_back
 const HAIR_TIED_FRONT = preload("res://assets/art/character/cabin_layer_hair_front_tied.svg")
 const MASK = preload("res://assets/art/character/cabin_layer_mask.svg")
 const ARM = preload("res://assets/art/character/cabin_layer_arm.svg")
+# Swim hair is more saturated than cabin hair: cabin layers contain copper
+# pigment already, while the tiny in-game silhouette needs readable colors.
+const SWIM_HAIR := {
+	"copper": Color("#db845d"),
+	"black": Color("#24334a"),
+	"brown": Color("#977050"),
+	"silver": Color("#c1dce3")
+}
+
 
 static func _paint_layer(c: CanvasItem, layer: Texture2D, rect: Rect2, tint: Color = Color.WHITE) -> void:
 	c.draw_texture_rect(layer,rect,false,tint)
@@ -75,26 +84,39 @@ static func _draw_cabin_handheld(c: CanvasItem, look: Dictionary, tones: Diction
 
 static func draw_swimmer_hair(c: CanvasItem, candidate: Dictionary, t: float, moving: bool, breathe: float) -> void:
 	var look := Look.normalize(candidate)
-	var tone: Color = Look.palette(look)["hair"]
-	var phase := t*(2.2 if moving else 0.8)
+	var tone: Color = SWIM_HAIR[str(look["hair_color"])]
+	var highlight := tone.lightened(0.35)
+	var phase := t * (2.1 if moving else 0.65)
 	var hair := str(look["hair"])
+	# Hair originates at the helmet seal and flows ABOVE the back-mounted tank.
+	# This keeps male/female silhouettes legible at native 0.91 camera zoom.
 	if hair=="short":
-		# Cropped hairstyle follows a curved hairline behind the helmet.
-		c.draw_arc(Vector2(18,-24+breathe),11,PI*0.78,PI*1.57,11,tone,4.0,true)
-		c.draw_line(Vector2(11,-28+breathe),Vector2(6,-19+breathe),tone.darkened(0.30),3.0,true)
+		c.draw_arc(Vector2(18,-29+breathe),11.0,PI*0.92,PI*1.58,14,
+			tone.darkened(0.22),6.5,true)
+		c.draw_arc(Vector2(17,-29+breathe),10.0,PI*0.99,PI*1.58,12,
+			highlight,1.8,true)
 		return
 	var count := 5 if hair=="long" else 3
-	var length := 42.0 if hair=="long" else 23.0
+	var length := 67.0 if hair=="long" else 37.0
 	for k in range(count):
-		var by := -24.0+float(k)*3.2+breathe
-		var start := Vector2(14.0,by)
-		var end := Vector2(13.0-length,by-5.0+sin(phase+float(k)*0.65)*6.0)
-		var mid := Vector2(0.0-length*0.55,by-9.0+sin(phase*0.9+float(k))*3.5)
-		c.draw_line(start,mid,tone.darkened(0.34),4.0 if hair=="long" else 3.4,true)
-		c.draw_line(mid,end,tone,2.3,true)
-		c.draw_line(start+Vector2(1,-1),mid+Vector2(0,-1),tone.lightened(0.21),0.9,true)
+		var by := -34.0+float(k)*3.8+breathe
+		var wind := sin(phase+float(k)*0.51)*6.0
+		var p0 := Vector2(18.0,by)
+		var p1 := Vector2(0.0-length*0.40,by-13.0+wind*0.40)
+		var p2 := Vector2(10.0-length,by-17.0+wind)
+		var thickness := 3.6 if hair=="long" else 2.5
+		c.draw_colored_polygon(PackedVector2Array([
+			p0+Vector2(0,-thickness),p1+Vector2(0,-thickness),
+			p2+Vector2(0,-1.4),p2+Vector2(0,1.2),
+			p1+Vector2(0,thickness),p0+Vector2(0,thickness)
+		]),tone.darkened(0.18+0.045*float(k%3)))
+		c.draw_line(p0+Vector2(0,-thickness*0.4),p1+Vector2(0,-thickness*0.4),
+			highlight,1.0,true)
+		c.draw_line(p1+Vector2(0,-thickness*0.4),p2,highlight,0.75,true)
 	if hair=="tied":
-		c.draw_circle(Vector2(10,-24+breathe),4.4,Color("#e6b56f"))
+		# Fastened ponytail uses the very same hair anchors and animation.
+		c.draw_circle(Vector2(11,-31+breathe),5.0,Color("#f1bd70"))
+		c.draw_circle(Vector2(11,-31+breathe),2.3,Color("#344556"))
 
 static func draw_swimmer_handheld(c: CanvasItem, candidate: Dictionary, breathe: float) -> void:
 	var look := Look.normalize(candidate)
