@@ -56,6 +56,7 @@ var inventory_open := false
 var status_message := ""
 var status_until := 0.0
 var visited_cell := ""
+var arch_geometry: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -109,10 +110,20 @@ func is_navigable(point: Vector2, clearance: float = 22.0) -> bool:
 		var origin: Vector2 = rock["pos"]
 		if point.distance_to(origin) <= float(rock["radius"]) * 1.02 + clearance:
 			return false
-	for arch in PASSAGE_ARCHES:
-		for solid in _arch_solids(arch):
-			if solid.grow(clearance).has_point(point):
+	for item in arch_geometry:
+		var center: Vector2 = item["center"]
+		if absf(point.x - center.x) > 450.0 + clearance or absf(point.y - center.y) > 320.0 + clearance:
+			continue
+		for outline in item["parts"]:
+			if Geometry2D.is_point_in_polygon(point, outline):
 				return false
+			if clearance > 0.0:
+				# Only nearby arches enter this narrow-phase test.
+				for k in range(outline.size()):
+					var edge: Vector2 = Geometry2D.get_closest_point_to_segment(
+						point, outline[k], outline[(k + 1) % outline.size()])
+					if point.distance_squared_to(edge) <= clearance * clearance:
+						return false
 	return true
 
 func begin_expedition() -> void:
@@ -240,27 +251,48 @@ func _build_rock_collider(info: Dictionary) -> void:
 	body.add_child(polygon)
 	add_child(body)
 
-func _arch_solids(center: Vector2) -> Array[Rect2]:
-	# Roof + left and right buttresses. The central tunnel is explicitly EMPTY.
-	return [
-		Rect2(center + Vector2(-380.0, -220.0), Vector2(220.0, 415.0)),
-		Rect2(center + Vector2(160.0, -220.0), Vector2(220.0, 415.0)),
-		Rect2(center + Vector2(-160.0, -220.0), Vector2(320.0, 116.0))
-	]
+func _arch_polygons(center: Vector2) -> Array[PackedVector2Array]:
+	# Irregular physical stone: three simple polygons, a real open passage.
+	var left := PackedVector2Array([
+		Vector2(-420, -183), Vector2(-398, -235), Vector2(-340, -220),
+		Vector2(-285, -250), Vector2(-207, -225), Vector2(-167, -209),
+		Vector2(-166, -148), Vector2(-151, -64), Vector2(-164, 3),
+		Vector2(-155, 79), Vector2(-170, 194), Vector2(-240, 210),
+		Vector2(-298, 186), Vector2(-396, 219), Vector2(-425, 144),
+		Vector2(-414, 40), Vector2(-434, -85)
+	])
+	var right := PackedVector2Array()
+	for k in range(left.size() - 1, -1, -1):
+		var p: Vector2 = left[k]
+		right.append(Vector2(-p.x, p.y))
+	var roof := PackedVector2Array([
+		Vector2(-173, -220), Vector2(-118, -251), Vector2(-44, -240),
+		Vector2(28, -257), Vector2(108, -235), Vector2(179, -215),
+		Vector2(166, -164), Vector2(156, -116), Vector2(90, -106),
+		Vector2(30, -113), Vector2(-33, -107), Vector2(-92, -116),
+		Vector2(-160, -105), Vector2(-168, -165)
+	])
+	var result: Array[PackedVector2Array] = []
+	for shape in [left, right, roof]:
+		var absolute := PackedVector2Array()
+		for vertex in shape:
+			absolute.append(center + vertex)
+		result.append(absolute)
+	return result
 
 func _build_arch_collision(center: Vector2) -> void:
 	var body := StaticBody2D.new()
 	body.name = "ArcoNavegavel"
 	body.collision_layer = 2
 	body.collision_mask = 0
-	for solid in _arch_solids(center):
-		var collider := CollisionShape2D.new()
-		var rectangle := RectangleShape2D.new()
-		rectangle.size = solid.size
-		collider.shape = rectangle
-		collider.position = solid.get_center()
+	var outlines := _arch_polygons(center)
+	arch_geometry.append({"center": center, "parts": outlines})
+	for outline in outlines:
+		var collider := CollisionPolygon2D.new()
+		collider.polygon = outline
 		body.add_child(collider)
 	add_child(body)
+
 
 func _rock_contour(center: Vector2, radius: float, seed: float) -> PackedVector2Array:
 	# Identical polygon is used for drawing AND physics: no invisible rock walls.
@@ -387,25 +419,25 @@ func _draw_landmark_rocks(area: Rect2) -> void:
 		Art.rock_material(self, outline, pos, radius, _water_light(depth_at_y(pos.y)), time_s)
 
 func _draw_navigable_arches(area: Rect2) -> void:
-	for arch in PASSAGE_ARCHES:
-		if not area.grow(480.0).has_point(arch):
+	for item in arch_geometry:
+		var arch: Vector2 = item["center"]
+		if not area.grow(485.0).has_point(arch):
 			continue
-		# The drawn roof/buttresses use the EXACT collision rectangles.
-		var solids := _arch_solids(arch)
-		for solid in solids:
-			Art.arch_material(self, solid, _water_light(depth_at_y(arch.y)))
-		# Transparent tunnel rim highlights navigable opening instead of a fake portal.
-		var left: Vector2 = arch + Vector2(-160.0, -105.0)
-		var right: Vector2 = arch + Vector2(160.0, -105.0)
-		draw_line(left, right, Color(0.43, 0.68, 0.71, 0.62), 3.0)
-		draw_line(left, arch + Vector2(-160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
-		draw_line(right, arch + Vector2(160.0, 185.0), Color(0.14, 0.32, 0.43, 0.76), 3.0)
-		# Low-energy sediment vents animate at the arch foot.
+		for outline in item["parts"]:
+			Art.arch_material(self, outline, _water_light(depth_at_y(arch.y)))
+		# Mineral edges around the genuine opening; no portal-like rectangle.
+		for side in [-1.0, 1.0]:
+			var edge_x := arch.x + side * 155.0
+			draw_line(Vector2(edge_x, arch.y - 95.0),
+				Vector2(edge_x + side * 4.0, arch.y + 75.0),
+				Color(0.35, 0.61, 0.61, 0.18), 2.0, true)
+		# Subtle active sediment around the supports.
 		for i in range(4):
 			var x: float = float(arch.x) + (-286.0 if i < 2 else 286.0)
 			var rise := fposmod(time_s * (9.0 + float(i)) + float(i) * 21.0, 76.0)
 			draw_circle(Vector2(x + sin(time_s + float(i)) * 7.0, arch.y + 183.0 - rise),
 				2.5, Color(0.47, 0.82, 0.78, 0.28))
+
 
 func _draw_kelps(area: Rect2) -> void:
 	# The current biome permits kelp only where sunlight can reach the seabed.
