@@ -1,4 +1,7 @@
 extends Node2D
+## Cinematic submarine bridge. The world/physics live in ocean_expedition.gd.
+const ExpeditionScript = preload("res://scripts/ocean_expedition.gd")
+var expedition: Node2D
 ## Native 2.5D presentation prototype. No production gameplay has been migrated yet.
 ## Kept independent from the existing Node.js/WebSocket server.
 const W := 1280.0
@@ -11,70 +14,29 @@ const FOAM := Color("#c8f8f5")
 
 var in_open_sea := false
 var pilot_position := Vector2(640.0, 340.0)
-# Screen-space swimming prototype. Fixed-tick physics, not full world simulation.
-const SURFACE_Y := 78.0
-const DIVER_RADIUS := 23.0
-const THRUST := 560.0
-const MAX_SWIM_SPEED := 240.0
-const WATER_RESISTANCE := 2.8
-const POSITIVE_BUOYANCY := 35.0
-const MAX_OXYGEN := 90.0
-var velocity := Vector2.ZERO
-var oxygen := MAX_OXYGEN
-var health := 100.0
 var time_s := 0.0
 var bubbles: Array[Vector2] = []
 
 func _ready() -> void:
 	for i in range(75):
 		bubbles.append(Vector2(fposmod(float(i * 197 + 31), W), fposmod(float(i * 113 + 47), H)))
+	expedition = ExpeditionScript.new()
+	expedition.name = "ExpedicaoOceanica"
+	expedition.process_mode = Node.PROCESS_MODE_DISABLED
+	expedition.visible = false
+	add_child(expedition)
 	set_process(true)
 
 func _process(delta: float) -> void:
 	time_s += delta
 	queue_redraw()
 
-func _physics_process(delta: float) -> void:
-	if not in_open_sea:
-		return
-	var input_direction := Vector2(
-		Input.get_axis("move_left", "move_right"),
-		Input.get_axis("move_up", "move_down")
-	).normalized()
-	velocity += (input_direction * THRUST + Vector2.UP * POSITIVE_BUOYANCY) * delta
-	velocity *= exp(-WATER_RESISTANCE * delta)
-	velocity = velocity.limit_length(MAX_SWIM_SPEED)
-	var target := pilot_position + velocity * delta
-	if target.x < DIVER_RADIUS or target.x > W - DIVER_RADIUS:
-		velocity.x = 0.0
-	target.x = clampf(target.x, DIVER_RADIUS, W - DIVER_RADIUS)
-	if target.y < SURFACE_Y:
-		target.y = SURFACE_Y
-		velocity.y = maxf(0.0, velocity.y)
-	var floor_y := _floor_y(target.x) - DIVER_RADIUS
-	if target.y > floor_y:
-		target.y = floor_y
-		velocity.y = minf(0.0, velocity.y)
-	pilot_position = target
-	if pilot_position.y <= SURFACE_Y + 6.0:
-		oxygen = minf(MAX_OXYGEN, oxygen + 14.0 * delta)
-	else:
-		oxygen = maxf(0.0, oxygen - 1.0 * delta)
-	if oxygen <= 0.0:
-		health = maxf(0.0, health - 12.0 * delta)
-	if health <= 0.0:
-		pilot_position = Vector2(W * 0.5, SURFACE_Y)
-		velocity = Vector2.ZERO
-		health = 100.0
-		oxygen = MAX_OXYGEN
-
-func _floor_y(x: float) -> float:
-	return 616.0 + 24.0 * sin(x / 117.0) + 12.0 * sin(x / 53.0)
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_ESCAPE:
-			in_open_sea = false
+			if in_open_sea:
+				in_open_sea = false
+				expedition.call("end_expedition")
 		elif event.keycode in [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE] and not in_open_sea:
 			_start_sea()
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -83,24 +45,22 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _start_sea() -> void:
 	in_open_sea = true
-	pilot_position = Vector2(640.0, SURFACE_Y)
-	velocity = Vector2.ZERO
-	oxygen = MAX_OXYGEN
-	health = 100.0
+	expedition.call("begin_expedition")
 
 func _draw() -> void:
-	_draw_ocean()
 	if in_open_sea:
-		_draw_seabed()
-		_draw_diver(pilot_position, 1.0)
-		_draw_hud()
-	else:
-		_draw_cockpit()
-		_draw_pilot(Vector2(640, 490))
-		_draw_console()
-		_draw_label("ABYSSAL", Vector2(514, 77), 42, FOAM)
-		_draw_label("EXPEDICAO ABISSAL", Vector2(527, 111), 16, GOLD)
-		_draw_label("MERGULHAR  [ENTER]", Vector2(501, 651), 24, FOAM)
+		return
+	_draw_ocean()
+	# Slow day/night shift on the window; warm interior LEDs remain readable.
+	var daylight := 0.53 + 0.47 * cos(TAU * time_s / 420.0)
+	draw_rect(Rect2(0, 0, W, H), Color(0.008, 0.015, 0.055, (1.0 - daylight) * 0.68))
+	_draw_cockpit()
+	_draw_pilot(Vector2(640, 490))
+	_draw_console()
+	_draw_cabin_instruments(daylight)
+	_draw_label("ABYSSAL", Vector2(510, 77), 43, FOAM)
+	_draw_label("EXPEDICAO OCEANICA", Vector2(521, 111), 16, GOLD)
+	_draw_label("INICIAR EXPLORACAO [ENTER]", Vector2(483, 651), 21, FOAM)
 
 func _draw_ocean() -> void:
 	# Depth-graded seascape, with layered shafts and suspended particles.
@@ -220,51 +180,37 @@ func _draw_console() -> void:
 		draw_circle(Vector2(208 + i * 27, 660), 6, GOLD if i == 0 else AQUA.darkened(0.6))
 		draw_circle(Vector2(990 + i * 27, 660), 6, GOLD if i == 0 else AQUA.darkened(0.6))
 
-func _draw_seabed() -> void:
-	var terrain := PackedVector2Array()
-	for x in range(0, 1281, 16):
-		terrain.append(Vector2(float(x), _floor_y(float(x))))
-	terrain.append(Vector2(W, H))
-	terrain.append(Vector2(0, H))
-	draw_colored_polygon(terrain, Color("#082738"))
-	for i in range(17):
-		var x := float((i * 191) % 1270)
-		var y := _floor_y(x) + 8.0
-		_draw_filled_ellipse(Vector2(x, y), Vector2(31.0 + float(i % 5) * 9.0, 15.0), Color("#235164"))
-		for j in range(3):
-			draw_line(Vector2(x + j * 6, y), Vector2(x + j * 6 + sin(time_s + float(i)) * 9.0, y - 20.0 - float(j * 8)), Color("#3e8580"), 2.0)
-	draw_line(Vector2(0, SURFACE_Y - 22.0), Vector2(W, SURFACE_Y - 22.0), Color("#8fe6e9"), 3.0)
 
-func _draw_diver(pos: Vector2, scale_factor: float) -> void:
-	draw_set_transform_matrix(Transform2D(0.0, pos).scaled(Vector2(scale_factor, scale_factor)))
-	draw_line(Vector2(-11, 11), Vector2(-26, 37), Color("#1d364b"), 13)
-	draw_line(Vector2(12, 11), Vector2(24, 37 + sin(time_s * 5.0) * 5), Color("#1d364b"), 13)
-	draw_colored_polygon(PackedVector2Array([
-		Vector2(-23, -14), Vector2(18, -14),
-		Vector2(25, 17), Vector2(-20, 17)
-	]), Color("#244d67"))
-	_draw_filled_ellipse(Vector2(0, -28), Vector2(22, 23), Color("#23465e"))
-	draw_rect(Rect2(-16, -37, 32, 13), Color("#55bbce"))
-	draw_line(Vector2(13, 0), Vector2(54, -3), Color("#23475e"), 11)
-	draw_line(Vector2(38, -2), Vector2(81, -2), Color("#9adfea"), 7)
-	draw_rect(Rect2(69, -5, 16, 6), Color("#455d6d"))
-	draw_circle(Vector2(76, -2), 3, GOLD)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
-
-func _draw_hud() -> void:
-	draw_rect(Rect2(20, 17, 395, 117), Color(0.02, 0.09, 0.16, 0.88))
-	_draw_label("MAR ABERTO | FISICA DE MERGULHO", Vector2(33, 40), 18, FOAM)
-	_draw_label("OXIGENIO", Vector2(33, 65), 14, FOAM)
-	draw_rect(Rect2(132, 51, 262, 15), Color("#123744"))
-	draw_rect(Rect2(134, 53, 258.0 * oxygen / MAX_OXYGEN, 11), AQUA if oxygen > 20.0 else GOLD)
-	_draw_label("VIDA", Vector2(33, 91), 14, FOAM)
-	draw_rect(Rect2(132, 77, 262, 15), Color("#123744"))
-	draw_rect(Rect2(134, 79, 258.0 * health / 100.0, 11), Color("#71d6a9"))
-	var depth := maxf(0.0, (pilot_position.y - SURFACE_Y) / 10.0)
-	_draw_label("PROFUNDIDADE: %.1f m (SIMULADA)" % depth, Vector2(33, 120), 13, FOAM)
-	if oxygen <= 0.0:
-		_draw_label("SEM OXIGENIO! SUBA PARA RESPIRAR", Vector2(470, 120), 19, GOLD)
-	_draw_label("WASD: NADAR  |  SOLTE: INERCIA/FLUTUACAO  |  ESC: CABINE", Vector2(25, 691), 16, FOAM)
+func _draw_cabin_instruments(daylight: float) -> void:
+	# Architectural trim, brass highlights and emissive screen accents.
+	var panel_light := AQUA.lerp(GOLD, 0.16)
+	draw_line(Vector2(234, 124), Vector2(1046, 124), Color("#90dfe5"), 2.0)
+	draw_line(Vector2(247, 130), Vector2(1033, 130), Color(0.16, 0.64, 0.68, 0.42), 7.0)
+	draw_arc(Vector2(640, 330), 457.0, PI * 1.08, PI * 1.92, 56, Color("#89c9c5"), 3.0)
+	# Animated map: a physical screen, not a detached HTML overlay.
+	draw_rect(Rect2(118, 615, 233, 81), Color("#061a28"))
+	draw_rect(Rect2(126, 622, 218, 65), Color("#0b3b49"))
+	for k in range(6):
+		var shift := float(k) * 22.0
+		draw_arc(Vector2(235, 656), 13.0 + shift, -PI * 0.9, PI * 0.1,
+			32, Color(0.2, 0.85, 0.82, 0.3), 1.5)
+	draw_line(Vector2(235, 655), Vector2(235 + cos(time_s * 0.42) * 90.0,
+		655 + sin(time_s * 0.42) * 44.0), panel_light, 2.0)
+	_draw_label("SONAR  |  VIDA MARINHA", Vector2(137, 637), 12, FOAM)
+	# Depth and habitat readout on starboard console.
+	draw_rect(Rect2(927, 615, 236, 81), Color("#061a28"))
+	draw_rect(Rect2(935, 622, 220, 65), Color("#123e4b"))
+	_draw_label("OCEANO  /  EXPLORACAO", Vector2(943, 641), 13, FOAM)
+	_draw_label("LUZ SOLAR: %d%%" % int(daylight * 100), Vector2(946, 666), 16, GOLD)
+	for k in range(11):
+		var x := 956.0 + float(k) * 17.0
+		draw_rect(Rect2(x, 674, 11, 5), panel_light if k < int(daylight * 11.0) else Color("#1c404c"))
+	# Reflections and the soft amber practical lights above the pilot.
+	for side in [-1.0, 1.0]:
+		var x := 640.0 + side * 300.0
+		draw_circle(Vector2(x, 114), 15.0, Color(1.0, 0.64, 0.24, 0.11))
+		draw_circle(Vector2(x, 114), 5.0, GOLD)
+		draw_line(Vector2(x, 118), Vector2(x - side * 34.0, 164.0), Color(1.0, 0.72, 0.43, 0.07), 22)
 
 func _draw_label(value: String, pos: Vector2, size: int, color: Color) -> void:
 	draw_string(ThemeDB.fallback_font, pos, value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
