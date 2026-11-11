@@ -125,7 +125,7 @@ func _draw_cockpit() -> void:
 
 func _draw_pilot(pos: Vector2) -> void:
 	# Stylized bridge pilot assembled as separate shadow, suit, and face layers.
-	draw_ellipse(pos + Vector2(0, 90), Vector2(88, 20), Color(0, 0, 0, 0.35))
+	_draw_filled_ellipse(pos + Vector2(0, 90), Vector2(88, 20), Color(0, 0, 0, 0.35))
 	draw_colored_polygon(PackedVector2Array([
 		pos + Vector2(-41, 16), pos + Vector2(-70, 132),
 		pos + Vector2(70, 132), pos + Vector2(42, 16)
@@ -138,10 +138,10 @@ func _draw_pilot(pos: Vector2) -> void:
 		draw_line(pos + Vector2(side * 27, 39), pos + Vector2(side * 54, 102), Color("#33576b"), 24)
 		draw_line(pos + Vector2(side * 23, 43), pos + Vector2(side * 48, 91), AQUA.darkened(0.65), 3)
 	# Hair rendered behind the face with warm highlights.
-	draw_ellipse(pos + Vector2(0, -43), Vector2(49, 69), Color("#281c20"))
-	draw_ellipse(pos + Vector2(-6, -47), Vector2(39, 54), Color("#664038"))
-	draw_ellipse(pos + Vector2(0, -38), Vector2(31, 39), Color("#dcab90"))
-	draw_ellipse(pos + Vector2(-10, -12), Vector2(18, 10), Color("#ba7b68"))
+	_draw_filled_ellipse(pos + Vector2(0, -43), Vector2(49, 69), Color("#281c20"))
+	_draw_filled_ellipse(pos + Vector2(-6, -47), Vector2(39, 54), Color("#664038"))
+	_draw_filled_ellipse(pos + Vector2(0, -38), Vector2(31, 39), Color("#dcab90"))
+	_draw_filled_ellipse(pos + Vector2(-10, -12), Vector2(18, 10), Color("#ba7b68"))
 	draw_line(pos + Vector2(-18, -44), pos + Vector2(-5, -43), INK, 2.8)
 	draw_line(pos + Vector2(7, -43), pos + Vector2(20, -44), INK, 2.8)
 	draw_circle(pos + Vector2(-11, -43), 2.5, Color("#263d43"))
@@ -187,7 +187,7 @@ func _draw_seabed() -> void:
 	for i in range(17):
 		var x := float((i * 191) % 1270)
 		var y := 654.0 + float(i % 3) * 9
-		draw_ellipse(Vector2(x, y), Vector2(31 + i % 5 * 9, 15), Color("#235164"))
+		_draw_filled_ellipse(Vector2(x, y), Vector2(31 + i % 5 * 9, 15), Color("#235164"))
 		for j in range(3):
 			draw_line(Vector2(x + j * 6, y), Vector2(x + j * 6 + sin(time_s + i) * 9, y - 20 - (j * 8)), Color("#3e8580"), 2)
 
@@ -199,7 +199,7 @@ func _draw_diver(pos: Vector2, scale_factor: float) -> void:
 		Vector2(-23, -14), Vector2(18, -14),
 		Vector2(25, 17), Vector2(-20, 17)
 	]), Color("#244d67"))
-	draw_ellipse(Vector2(0, -28), Vector2(22, 23), Color("#23465e"))
+	_draw_filled_ellipse(Vector2(0, -28), Vector2(22, 23), Color("#23465e"))
 	draw_rect(Rect2(-16, -37, 32, 13), Color("#55bbce"))
 	draw_line(Vector2(13, 0), Vector2(54, -3), Color("#23475e"), 11)
 	draw_line(Vector2(38, -2), Vector2(81, -2), Color("#9adfea"), 7)
@@ -215,7 +215,7 @@ func _draw_hud() -> void:
 func _draw_label(value: String, pos: Vector2, size: int, color: Color) -> void:
 	draw_string(ThemeDB.fallback_font, pos, value, HORIZONTAL_ALIGNMENT_LEFT, -1, size, color)
 
-func draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+func _draw_filled_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
 	var points := PackedVector2Array()
 	for k in range(33):
 		var angle := TAU * float(k) / 32.0
