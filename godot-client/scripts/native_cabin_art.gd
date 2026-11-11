@@ -183,7 +183,7 @@ static func _paint_pilot(c: CanvasItem, t: float) -> void:
 	# Standalone illustrated and scalable character sprite, not a pasted menu screenshot.
 	# Its upper body subtly breathes while the underwater backdrop animates separately.
 	var breathe := sin(t*1.11)*1.6
-	c.draw_texture_rect(NAVIGATOR,Rect2(-6,181+breathe,449,579),false)
+	c.draw_texture_rect(NAVIGATOR,Rect2(-62,169+breathe,449,579),false)
 	# A tiny independent specular highlight animates on the visor.
 	var shine := Vector2(239.0+sin(t*0.62)*7.0,365.0+breathe)
 	c.draw_line(shine,shine+Vector2(29,-5),Color(0.84,1,1,0.12+0.07*sin(t*0.85)),2.4,true)
@@ -198,6 +198,21 @@ static func _paint_console(c: CanvasItem, t: float) -> void:
 		var xx := 28.0+float(k)*113.0
 		c.draw_line(Vector2(xx,636),Vector2(xx-37,715),Color("#485b80"),2,true)
 		c.draw_line(Vector2(xx+12,644),Vector2(xx+35,644),Color("#eea651"),4,true)
+	# Segmented control gaskets and luminous hardware make the deck dimensional.
+	for i in range(13):
+		var x := 341.0+float(i)*66.0
+		UI.poly(c,[Vector2(x,633),Vector2(x+49,633),Vector2(x+59,659),
+			Vector2(x-9,659)],Color("#273b62"))
+		c.draw_line(Vector2(x,634),Vector2(x+47,634),Color("#5e84a6"),1.8,true)
+		if i%3==0:
+			c.draw_rect(Rect2(x+12,644,26,6),Color("#e7a255"))
+			c.draw_rect(Rect2(x+18,644,14,2),Color("#fff1aa"))
+	# Three real console toggles are decorative local devices, not fake action buttons.
+	for i in range(3):
+		var x := 1089.0+float(i)*39.0
+		c.draw_rect(Rect2(x,651,24,11),Color("#0b172c"))
+		c.draw_line(Vector2(x+12,654),Vector2(x+9,631-float(i%2)*6),Color("#8d9ab1"),4.0,true)
+		c.draw_circle(Vector2(x+9,631-float(i%2)*6),3.2,Color("#efb560"))
 	# Sonar console at right, visible beside the central interface.
 	UI.panel(c,Rect2(1158,501,110,103))
 	for r in [18.0,32.0,44.0]:
