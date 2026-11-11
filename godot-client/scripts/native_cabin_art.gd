@@ -2,6 +2,7 @@ extends RefCounted
 ## Native responsive-looking 1280x720 command-bridge composition.
 ## No reference screenshot is displayed: every visual is separately drawn and animated.
 const UI = preload("res://scripts/ui_art_primitives.gd")
+const NAVIGATOR = preload("res://assets/art/cabin_navigator.svg")
 const MENU := ["Loja","Laboratório","Mar Aberto","Fossas","Espécimes","Minérios"]
 const KEYS := ["salvageMetal","sonar","fish","deepCrystal","turtle","polymetallicNodule"]
 const DESCRIPTIONS := [
@@ -139,70 +140,13 @@ static func _paint_bridge(c: CanvasItem, t: float) -> void:
 		c.draw_rect(Rect2(x+2,y+1,10,3),Color("#ffe2a1"))
 
 static func _paint_pilot(c: CanvasItem, t: float) -> void:
-	# Shoulder-up illustrated navigator assembled from animated vector pieces.
-	var sway := sin(t*0.58)*4.0
-	# The chair lives behind the pilot.
-	UI.poly(c,[Vector2(32,511),Vector2(58,463),Vector2(244,476),Vector2(254,687),
-		Vector2(8,713)],Color("#1d3154"))
-	UI.poly(c,[Vector2(45,513),Vector2(75,478),Vector2(214,483),Vector2(228,662),
-		Vector2(43,672)],Color("#394567"))
-	c.draw_line(Vector2(57,500),Vector2(215,499),Color("#7b87a5"),4.0,true)
-	# Wind swept copper hair behind her neck and shoulders.
-	for k in range(9):
-		var offset := float(k)*10.0
-		UI.poly(c,[Vector2(246,329+offset*0.23),Vector2(192,317+offset*0.1),
-			Vector2(122-offset*0.6,346+offset*0.9+sway),Vector2(70-offset*0.35,441+offset*1.4+sway),
-			Vector2(163,487+offset*0.9),Vector2(296,434)],Color("#5b2b32").lerp(Color("#d77a4c"),float(k%4)*0.16))
-	# Suit silhouette and layered armor.
-	UI.poly(c,[Vector2(198,459),Vector2(253,432),Vector2(316,444),
-		Vector2(386,607),Vector2(347,705),Vector2(156,704),Vector2(151,558)],Color("#0b1c37"))
-	UI.poly(c,[Vector2(215,476),Vector2(260,446),Vector2(305,466),
-		Vector2(356,622),Vector2(297,677),Vector2(183,636)],Color("#25375e"))
-	UI.poly(c,[Vector2(218,484),Vector2(260,459),Vector2(299,475),Vector2(325,585),
-		Vector2(229,552)],Color("#31517d"))
-	c.draw_line(Vector2(226,481),Vector2(286,625),Color("#ffb854"),5,true)
-	c.draw_line(Vector2(262,475),Vector2(307,596),Color("#35daf6"),3,true)
-	# Oxygen cylinder behind shoulder with two metallic clips.
-	c.draw_rect(Rect2(141,452,53,141),Color("#142941"))
-	c.draw_rect(Rect2(153,451,33,137),Color("#a88b49"))
-	c.draw_rect(Rect2(157,456,9,128),Color("#fde48c"))
-	for y in [469.0,561.0]:
-		c.draw_rect(Rect2(139,y,59,12),Color("#17233f"))
-		c.draw_line(Vector2(146,y+3),Vector2(195,y+3),Color("#95a9c2"),2,true)
-	# Jaw and warm shaded face: three-quarter profile facing the console.
-	UI.oval(c,Vector2(298,372),Vector2(51,59),Color("#54373b"),30)
-	UI.poly(c,[Vector2(265,337),Vector2(298,315),Vector2(338,334),Vector2(353,365),
-		Vector2(337,399),Vector2(310,430),Vector2(274,416),Vector2(264,382)],Color("#f0b18e"))
-	UI.oval(c,Vector2(308,373),Vector2(30,41),Color(1.0,0.75,0.60,0.27),30)
-	UI.poly(c,[Vector2(342,370),Vector2(361,383),Vector2(344,391)],Color("#e9a284"))
-	c.draw_line(Vector2(310,366),Vector2(330,362),Color("#50313a"),2.8,true)
-	UI.oval(c,Vector2(325,368),Vector2(4.6,3),Color("#1c3045"),16)
-	c.draw_line(Vector2(318,365),Vector2(333,362),Color("#2b283c"),1.8,true)
-	c.draw_line(Vector2(323,404),Vector2(339,401),Color("#ae6070"),2.1,true)
-	# A few freckles add readable human detail without a flat cartoon face.
-	for i in range(6):
-		c.draw_circle(Vector2(306+float(i%3)*6,386+float(i/3)*4),1.2,Color(0.60,0.32,0.28,0.45))
-	# Swept highlighted fringe and animated ponytail.
-	UI.poly(c,[Vector2(256,358),Vector2(251,334),Vector2(271,300),Vector2(316,296),
-		Vector2(345,323),Vector2(329,343),Vector2(285,333)],Color("#914538"))
-	UI.poly(c,[Vector2(253,351),Vector2(263,309),Vector2(295,298),
-		Vector2(321,308),Vector2(280,341)],Color("#dc8955"))
-	for i in range(6):
-		var a := 269.0+float(i)*9.0
-		c.draw_line(Vector2(a,311),Vector2(a-29,345+float(i%2)*5),Color(0.98,0.63,0.36,0.4),2.0,true)
-	# Aqua visor resting atop her head; three concentric material layers.
-	UI.oval(c,Vector2(296,326),Vector2(62,23),Color("#0b213d"),28)
-	UI.oval(c,Vector2(297,326),Vector2(53,16),Color("#60d2ef"),28)
-	UI.oval(c,Vector2(300,326),Vector2(47,10),Color("#16446a"),28)
-	c.draw_arc(Vector2(298,325),55,PI*0.96,PI*1.87,22,Color("#ffe0a0"),3,true)
-	c.draw_line(Vector2(274,317),Vector2(305,319),Color(0.82,1,1,0.58),3,true)
-	# Forearm on the console, with single gloved hand at the chin.
-	c.draw_line(Vector2(320,481),Vector2(369,470),Color("#172647"),31,true)
-	c.draw_line(Vector2(363,474),Vector2(347,414),Color("#1e3357"),23,true)
-	c.draw_line(Vector2(343,413),Vector2(329,411),Color("#415c7c"),17,true)
-	c.draw_circle(Vector2(330,410),10.0,Color("#182944"))
-	c.draw_rect(Rect2(348,436,17,26),Color("#286a88"))
-	c.draw_rect(Rect2(353,440,7,14),Color("#50ebef"))
+	# Standalone illustrated and scalable character sprite, not a pasted menu screenshot.
+	# Its upper body subtly breathes while the underwater backdrop animates separately.
+	var breathe := sin(t*1.11)*1.6
+	c.draw_texture_rect(NAVIGATOR,Rect2(-6,181+breathe,449,579),false)
+	# A tiny independent specular highlight animates on the visor.
+	var shine := Vector2(239.0+sin(t*0.62)*7.0,365.0+breathe)
+	c.draw_line(shine,shine+Vector2(29,-5),Color(0.84,1,1,0.12+0.07*sin(t*0.85)),2.4,true)
 
 static func _paint_console(c: CanvasItem, t: float) -> void:
 	UI.poly(c,[Vector2(0,467),Vector2(1280,467),Vector2(1280,720),Vector2(0,720)],Color("#142642"))
