@@ -278,7 +278,7 @@ func _draw_laboratory() -> void:
 		draw_rect(Rect2(p, Vector2(451, 73)), Color("#276b77") if selected else Color("#183c4b"))
 		draw_rect(Rect2(p + Vector2(3, 3), Vector2(445, 67)), Color("#234859") if selected else Color("#0c2c3d"))
 		_draw_label(str(i + 1) + "  " + str(definition["label"]), p + Vector2(13, 25), 17, FOAM)
-		var level := progress.research_level(id)
+		var level: int = int(progress.research_level(id))
 		var status: String = progress.study_status(id)
 		_draw_label("NIVEL %d / %d  |  %s" % [level, int(definition["max"]), status],
 			p + Vector2(14, 46), 13, GOLD if status == "DISPONIVEL" else Color("#a0c4c6"))
