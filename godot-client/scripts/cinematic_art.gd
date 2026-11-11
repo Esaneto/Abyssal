@@ -263,6 +263,31 @@ static func rock_material(canvas: CanvasItem, contour: PackedVector2Array, cente
 		elif k % 2 == 0:
 			canvas.draw_circle(p, 1.7, Color(0.23, 0.72, 0.70, 0.14 + 0.08 * sin(time_s + k)))
 
+static func arch_material(canvas: CanvasItem, solid: Rect2, light: float) -> void:
+	# The entire textured surface is the SAME rectangle as its collider.
+	var p := solid.position
+	var q := solid.end
+	var corners := PackedVector2Array([
+		Vector2(p.x, p.y), Vector2(q.x, p.y),
+		Vector2(q.x, q.y), Vector2(p.x, q.y)
+	])
+	var tone := Color("#374d5b").lerp(Color("#768986"), clampf(light, 0.0, 0.80))
+	var verts := PackedColorArray([
+		tone.lightened(0.15), tone, tone.darkened(0.51), tone.darkened(0.34)
+	])
+	canvas.draw_polygon(corners, verts, PackedVector2Array([
+		Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)
+	]), stone_texture(), true)
+	canvas.draw_line(Vector2(p.x + 5, p.y + 5), Vector2(q.x - 4, p.y + 5),
+		Color(0.54, 0.75, 0.71, 0.10 + light * 0.22), 3.0, true)
+	# Thin layer seams are inside solid material, never across the opening.
+	for k in range(5):
+		var y := p.y + solid.size.y * (float(k) + 0.8) / 6.0
+		var x1 := p.x + 9.0
+		var x2 := minf(q.x - 9.0, x1 + solid.size.x * (0.35 + 0.10 * float(k % 3)))
+		canvas.draw_line(Vector2(x1, y), Vector2(x2, y + 4.0),
+			Color(0.04, 0.12, 0.15, 0.28), 1.7, true)
+
 static func kelp_frond(canvas: CanvasItem, x: float, base: float, length: float, time_s: float, seed: float) -> void:
 	# One flexible stalk with translucent leaves, instead of a geometric fence.
 	var sway := sin(time_s * 0.58 + seed) * 21.0
