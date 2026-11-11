@@ -21,7 +21,8 @@ Cliente nativo de testes, em desenvolvimento junto da versao JavaScript. O jogo 
 - **I**: inventario de exploracao
 - **M**: carta de navegacao e setores explorados
 - **F**: registrar a fauna mais proxima
-- **Tab**: diario de campo
+- **Tab**: diario de campo, com todas as especies ja registradas recuperadas do save
+- **J / K** (diario aberto): consultar o registro anterior / seguinte e seus habitats
 - **Esc**: voltar ao submarino e salvar ponto atual
 
 ## Paridade implementada nesta etapa

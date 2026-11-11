@@ -86,6 +86,13 @@ func set_progress(profile_state: RefCounted) -> void:
 	progress = profile_state
 	sky_time = progress.sun_time()
 	discovered = (progress.profile["observed"] as Dictionary).duplicate(true)
+	# A reopened save must have a readable field-guide entry, not only its count.
+	last_observed_id = ""
+	for species in Ecology.SPECIES:
+		var species_id: String = str(species["id"])
+		if discovered.has(species_id):
+			last_observed_id = species_id
+			break
 
 func depth_at_y(y: float) -> float:
 	return clampf((y - SURFACE_Y) / (MAP_H - SURFACE_Y), 0.0, 1.0) * OCEAN_MAX_DEPTH_METERS
@@ -166,6 +173,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			chart_open = not chart_open
 			field_guide_open = false
 			inventory_open = false
+		elif event.keycode == KEY_J and field_guide_open:
+			_cycle_field_guide(-1)
+		elif event.keycode == KEY_K and field_guide_open:
+			_cycle_field_guide(1)
 		elif event.keycode == KEY_1 and progress != null:
 			progress.select_tool("abyssPickaxe")
 		elif event.keycode == KEY_2 and progress != null:
@@ -183,6 +194,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			# ESC must reach the submarine scene instead of being swallowed.
 			return
 		get_viewport().set_input_as_handled()
+
+func _registered_species() -> Array[String]:
+	var entries: Array[String] = []
+	for species in Ecology.SPECIES:
+		var species_id: String = str(species["id"])
+		if discovered.has(species_id):
+			entries.append(species_id)
+	return entries
+
+func _cycle_field_guide(direction: int) -> void:
+	var entries := _registered_species()
+	if entries.is_empty():
+		last_observed_id = ""
+		return
+	var current := entries.find(last_observed_id)
+	last_observed_id = entries[0] if current < 0 else entries[posmod(current + direction, entries.size())]
 
 func _build_terrain_collision() -> void:
 	var body := StaticBody2D.new()
@@ -768,17 +795,19 @@ func _draw_navigation_chart(x: float, y: float) -> void:
 func _draw_field_guide(x: float, y: float) -> void:
 	draw_rect(Rect2(x + 735, y + 22, 610, 243), Color(0.013, 0.048, 0.076, 0.95))
 	_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 756, y + 53), 20, Color("#f9d99b"))
+	var entries := _registered_species()
 	var chosen: Dictionary = Ecology.get_species(last_observed_id)
-	if chosen.is_empty():
-		_text("Aproxime-se de uma especie e pressione F.", Vector2(x + 756, y + 91), 16, Color("#c9f7f4"))
+	if entries.is_empty() or chosen.is_empty() or not entries.has(last_observed_id):
+		_text("Nenhuma especie registrada ate agora.", Vector2(x + 756, y + 91), 16, Color("#c9f7f4"))
+		_text("Aproxime-se de um animal e pressione F.", Vector2(x + 756, y + 126), 15, Color("#a7e6d0"))
 	else:
 		_text(chosen["name"], Vector2(x + 756, y + 86), 20, Color("#c9f7f4"))
 		_text(chosen["scientific"], Vector2(x + 756, y + 112), 16, Color("#84c4cc"))
 		_text(chosen["habitat"], Vector2(x + 756, y + 146), 14, Color("#c9f7f4"))
 		_text(chosen["how_to_find"], Vector2(x + 756, y + 172), 14, Color("#a7e6d0"))
 		_text(chosen["story"], Vector2(x + 756, y + 196), 14, Color("#c9f7f4"))
-	_text("ESPECIES REGISTRADAS: %d / %d" % [discovered.size(), Ecology.SPECIES.size()],
-		Vector2(x + 756, y + 234), 16, Color("#f9d99b"))
+	_text("J / K NAVEGAR  |  REGISTROS %d / %d" % [entries.size(), Ecology.SPECIES.size()],
+		Vector2(x + 756, y + 234), 15, Color("#f9d99b"))
 
 func _bar(pos: Vector2, width: float, ratio: float, tint: Color) -> void:
 	draw_rect(Rect2(pos.x, pos.y, width, 14), Color("#173843"))
