@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="670" viewBox="0 0 520 670">
+<defs>
+<linearGradient id="hair" x1=".22" y1="0" x2=".83" y2="1"><stop stop-color="#ffbe7f"/><stop offset=".27" stop-color="#cf714f"/><stop offset=".65" stop-color="#92415b"/><stop offset="1" stop-color="#311f42"/></linearGradient>
+<linearGradient id="hairGloss" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffcd91"/><stop offset=".32" stop-color="#ee9769"/><stop offset=".8" stop-color="#9b3c4e"/><stop offset="1" stop-color="#5b2941"/></linearGradient>
+<linearGradient id="skin" x1=".15" y1=".2" x2=".9" y2=".85"><stop stop-color="#ffe0bd"/><stop offset=".48" stop-color="#e7a47f"/><stop offset=".83" stop-color="#c57868"/><stop offset="1" stop-color="#7e4a55"/></linearGradient>
+<radialGradient id="cheek" cx=".45" cy=".35" r=".75"><stop stop-color="#ffd2ad"/><stop offset=".6" stop-color="#e4a17e"/><stop offset="1" stop-color="#a96266"/></radialGradient>
+<linearGradient id="suit" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#4a6393"/><stop offset=".3" stop-color="#253b70"/><stop offset=".65" stop-color="#1a244d"/><stop offset="1" stop-color="#09142a"/></linearGradient>
+<linearGradient id="suitHi" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#6079ad"/><stop offset=".27" stop-color="#2e4579"/><stop offset=".7" stop-color="#162f55"/><stop offset="1" stop-color="#0b1631"/></linearGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#202b4b"/><stop offset=".23" stop-color="#596990"/><stop offset=".55" stop-color="#bac3d5"/><stop offset=".78" stop-color="#687498"/><stop offset="1" stop-color="#202745"/></linearGradient>
+<linearGradient id="tank" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#3b365a"/><stop offset=".13" stop-color="#d58b4c"/><stop offset=".45" stop-color="#ffe58b"/><stop offset=".75" stop-color="#c28a4c"/><stop offset="1" stop-color="#343652"/></linearGradient>
+<linearGradient id="visor" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#ceffff"/><stop offset=".18" stop-color="#70eafd"/><stop offset=".52" stop-color="#126ea8"/><stop offset=".83" stop-color="#14335c"/><stop offset="1" stop-color="#07182e"/></linearGradient>
+<linearGradient id="outline" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8ac7ef"/><stop offset=".46" stop-color="#24345d"/><stop offset="1" stop-color="#08132d"/></linearGradient>
+<filter id="halo" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<!-- Technical wetsuit and structured armored shoulder pads. -->
+<path d="M177 448 Q224 394 303 405 L375 420 Q425 466 440 551 L495 666 L196 670 Q175 566 177 448 Z" fill="url(#suit)" stroke="#081735" stroke-width="10"/>
+<path d="M209 461 Q253 420 303 432 Q347 454 364 535 L395 666 L217 666 Q205 555 209 461 Z" fill="url(#suitHi)"/>
+<path d="M215 458 Q247 430 287 443" fill="none" stroke="#7d99c9" stroke-width="5" stroke-linecap="round"/>
+<path d="M292 429 Q345 400 374 441 Q392 478 409 528 L376 553 Q357 476 318 479 L280 466Z" fill="url(#metal)" stroke="#131b3a" stroke-width="7"/>
+<path d="M298 444 Q343 423 367 462" fill="none" stroke="#b2bbce" stroke-width="3"/>
+<path d="M317 450 L334 442 L355 464 L336 476Z" fill="#fbc15f"/>
+<path d="M242 483 Q262 530 264 580 M278 493 Q302 545 305 649" fill="none" stroke="#101b3b" stroke-width="12"/>
+<path d="M254 489 Q273 541 277 574 M290 510 Q316 578 317 638" fill="none" stroke="#81d8ed" stroke-width="3" opacity=".8"/>
+<path d="M222 462 L232 446 L256 458 L247 482Z" fill="#f3b451"/>
+<!-- Shoulder insignia, luminous mechanical bracelet. -->
+<path d="M347 474 L377 488 L358 508 L341 495Z" fill="#f5bd57"/>
+<path d="M348 489 L358 480 L368 495 L356 500Z" fill="#1b3764"/>
+<path d="M275 615 L293 620 L307 649 L283 652Z" fill="#ffbd55"/>
+
+</svg>

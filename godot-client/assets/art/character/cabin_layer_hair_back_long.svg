@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="670" viewBox="0 0 520 670">
+<defs>
+<linearGradient id="hair" x1=".22" y1="0" x2=".83" y2="1"><stop stop-color="#ffbe7f"/><stop offset=".27" stop-color="#cf714f"/><stop offset=".65" stop-color="#92415b"/><stop offset="1" stop-color="#311f42"/></linearGradient>
+<linearGradient id="hairGloss" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#ffcd91"/><stop offset=".32" stop-color="#ee9769"/><stop offset=".8" stop-color="#9b3c4e"/><stop offset="1" stop-color="#5b2941"/></linearGradient>
+<linearGradient id="skin" x1=".15" y1=".2" x2=".9" y2=".85"><stop stop-color="#ffe0bd"/><stop offset=".48" stop-color="#e7a47f"/><stop offset=".83" stop-color="#c57868"/><stop offset="1" stop-color="#7e4a55"/></linearGradient>
+<radialGradient id="cheek" cx=".45" cy=".35" r=".75"><stop stop-color="#ffd2ad"/><stop offset=".6" stop-color="#e4a17e"/><stop offset="1" stop-color="#a96266"/></radialGradient>
+<linearGradient id="suit" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#4a6393"/><stop offset=".3" stop-color="#253b70"/><stop offset=".65" stop-color="#1a244d"/><stop offset="1" stop-color="#09142a"/></linearGradient>
+<linearGradient id="suitHi" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#6079ad"/><stop offset=".27" stop-color="#2e4579"/><stop offset=".7" stop-color="#162f55"/><stop offset="1" stop-color="#0b1631"/></linearGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#202b4b"/><stop offset=".23" stop-color="#596990"/><stop offset=".55" stop-color="#bac3d5"/><stop offset=".78" stop-color="#687498"/><stop offset="1" stop-color="#202745"/></linearGradient>
+<linearGradient id="tank" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#3b365a"/><stop offset=".13" stop-color="#d58b4c"/><stop offset=".45" stop-color="#ffe58b"/><stop offset=".75" stop-color="#c28a4c"/><stop offset="1" stop-color="#343652"/></linearGradient>
+<linearGradient id="visor" x1=".1" y1="0" x2=".9" y2="1"><stop stop-color="#ceffff"/><stop offset=".18" stop-color="#70eafd"/><stop offset=".52" stop-color="#126ea8"/><stop offset=".83" stop-color="#14335c"/><stop offset="1" stop-color="#07182e"/></linearGradient>
+<linearGradient id="outline" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8ac7ef"/><stop offset=".46" stop-color="#24345d"/><stop offset="1" stop-color="#08132d"/></linearGradient>
+<filter id="halo" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<!-- Distant flowing hair behind the equipment and the shoulder. -->
+<path d="M338 145 C285 83 214 111 160 169 C124 210 73 229 42 301 C12 365 3 423 20 472 C38 427 62 402 96 393 C35 460 25 531 39 592 C72 528 111 503 150 488 C93 551 75 619 111 657 C138 598 172 550 222 540 C298 525 369 440 382 347 L401 190 Z" fill="url(#hair)" stroke="#352142" stroke-width="6"/>
+<path d="M289 150 C223 158 175 239 106 275 C62 299 37 343 30 381 C81 338 129 338 167 308 C109 368 69 423 61 472 C123 399 176 408 216 357 C165 439 111 484 102 548 C166 471 220 452 259 396" fill="none" stroke="#ffc18a" stroke-opacity=".61" stroke-width="7" stroke-linecap="round"/>
+<path d="M297 160 C227 199 223 280 168 330 C115 378 64 417 49 471 M314 175 C270 234 276 311 227 375 C192 431 115 497 109 570 M339 217 C329 318 303 382 229 455 C199 492 159 532 137 599" fill="none" stroke="#643353" stroke-width="8" stroke-linecap="round"/>
+
+</svg>
