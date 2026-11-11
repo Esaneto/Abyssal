@@ -605,6 +605,33 @@
    radial.addColorStop(1,'rgba(2,10,23,.25)');
    ctx.fillStyle=radial;ctx.fillRect(rock.x-rock.rx-5,rock.y-rock.ry-5,
     rock.rx*2+10,rock.ry*2+10);
+
+   // Collision-aligned faceted basalt relief. These strata live inside
+   // the existing rock silhouette and cannot obstruct navigable passages.
+   const reliefCount=lowPower?4:10;
+   for(let facet=0;facet<reliefCount;facet++){
+    const u=seeded(facet+rock.x*.019,rock.y*.011);
+    const v=seeded(facet+rock.y*.023,rock.x*.031);
+    const fx=rock.x+(u-.5)*rock.rx*1.68;
+    const fy=rock.y+(v-.5)*rock.ry*1.46;
+    const fw=rock.rx*(.08+seeded(facet,rock.x*.008)*.19);
+    const fh=rock.ry*(.07+seeded(rock.y*.009,facet)*.15);
+    const bright=fy<rock.y;
+    const shade=ctx.createLinearGradient(fx-fw,fy-fh,fx+fw,fy+fh);
+    shade.addColorStop(0,bright?'rgba(96,183,194,.37)':'rgba(29,83,105,.27)');
+    shade.addColorStop(.47,bright?'rgba(40,115,143,.26)':'rgba(9,41,65,.29)');
+    shade.addColorStop(1,'rgba(1,12,28,.41)');
+    ctx.fillStyle=shade;ctx.beginPath();
+    ctx.moveTo(fx-fw,fy-fh*.12);ctx.lineTo(fx-fw*.38,fy-fh);
+    ctx.lineTo(fx+fw*.53,fy-fh*.65);ctx.lineTo(fx+fw,fy+fh*.21);
+    ctx.lineTo(fx+fw*.04,fy+fh);ctx.lineTo(fx-fw*.72,fy+fh*.51);
+    ctx.closePath();ctx.fill();
+    if(!lowPower&&facet%2===0){
+     ctx.strokeStyle=bright?'rgba(139,233,232,.34)':'rgba(92,165,190,.15)';
+     ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(fx-fw,fy-fh*.12);
+     ctx.lineTo(fx-fw*.38,fy-fh);ctx.lineTo(fx+fw*.53,fy-fh*.65);ctx.stroke();
+    }
+   }
    const strataLines=lowPower?3:6;
    for(let plate=0;plate<strataLines;plate++){
     const q=(plate+.35)/(strataLines+.2);
