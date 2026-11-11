@@ -321,9 +321,9 @@ func _build_reef_collision() -> void:
 			Vector2(5730,1325),Vector2(5450,1255)
 		]),
 		PackedVector2Array([
-			Vector2(4440,-100),Vector2(5500,-100),Vector2(5430,160),
-			Vector2(5190,225),Vector2(4950,330),Vector2(4700,292),
-			Vector2(4530,220),Vector2(4410,155)
+			Vector2(4440,220),Vector2(5500,220),Vector2(5430,480),
+			Vector2(5190,545),Vector2(4950,650),Vector2(4700,612),
+			Vector2(4530,540),Vector2(4410,475)
 		]),
 		PackedVector2Array([
 			Vector2(6700,2380),Vector2(6950,2250),Vector2(7180,2300),
