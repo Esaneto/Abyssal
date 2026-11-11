@@ -190,7 +190,7 @@ const injected=`<script>
       if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))
        throw Error('Oversized vertically stretched console key');
       if(monitorRect.width<210||monitorRect.height<95)
-       throw Error('Central cockpit display is too small');
+       throw Error('Central cockpit display is too small: '+JSON.stringify({width:monitorRect.width,height:monitorRect.height,keys:deckRect.height}));
       document.body.dataset.cockpitLayout=JSON.stringify({
        visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],
        keys:[Math.round(deckRect.width),Math.round(deckRect.height)],
