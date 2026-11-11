@@ -44,12 +44,13 @@ test('Redundant extraction window remains hidden while keyboard extraction survi
  assert.match(ui,/e\.key==='g'/);
  assert.match(ui,/canvas\.addEventListener\('pointerdown'/);
 });
-test('Cinematic cockpit preserves human pilot in both Canvas render paths',()=>{
+test('Command bridge removes the separate cartoon pilot and preserves real marine anatomy',()=>{
  const cabin=read('public/abyssal-submarine-cockpit.js');
  const fauna=read('public/abyssal-fauna-anatomy.js');
- assert.match(cabin,/diver\(t,compact\);/);
- assert.match(cabin,/const skin=c\.createLinearGradient/);
- assert.match(cabin,/gender\(\)==='female'/);
+ assert.match(cabin,/function chair\(/);
+ assert.match(cabin,/function fish\(/);
+ assert.match(cabin,/function manta\(/);
+ assert.doesNotMatch(cabin,/function diver\(/);
  assert.match(fauna,/recognizable fish anatomy/);
  assert.match(fauna,/internal radial chambers/);
 });

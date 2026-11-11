@@ -52,7 +52,7 @@ test('research mineral requirements and inventory use the same original illustra
  assert.match(read('public/diver-art.js'),/voxel-inspired miner tool/);
 });
 
-test('the panoramic cockpit renders the profile selected diver and moving sea fauna',()=>{
+test('the command bridge paints structural geometry and moving sea fauna',()=>{
  const source=read('public/abyssal-submarine-cockpit.js');
  const calls={n:0};
  const ctx=new Proxy({},{
@@ -73,6 +73,7 @@ test('the panoramic cockpit renders the profile selected diver and moving sea fa
  const a=[...callbacks.entries()][0];callbacks.delete(a[0]);assert.doesNotThrow(()=>a[1](100));
  const femaleCalls=calls.n;
  assert.ok(femaleCalls>150,'scene should include structural and animated details');
+ const status=win.AbyssalSubmarineCockpit.visualStatus();assert.equal(status.original,true);assert.equal(status.bitmapBackdrop,false);assert.equal(status.liveOcean,true);assert.ok(status.frames>=2);
  win.AbyssalDiverGender='male';
  const b=[...callbacks.entries()][0];callbacks.delete(b[0]);assert.doesNotThrow(()=>b[1](200));
  assert.ok(calls.n>femaleCalls);

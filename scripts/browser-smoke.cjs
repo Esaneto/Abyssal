@@ -168,9 +168,8 @@ const injected=`<script>
       const canvas=document.getElementById('abyssCockpitCanvas');
       if(!canvas||canvas.width<300||canvas.height<250)throw Error('Cockpit canvas not painted');
       const art=window.AbyssalSubmarineCockpit?.visualStatus?.();
-      if(!art?.panorama)throw Error('Cinematic ocean photo failed to decode');
-      if(innerWidth>=700&&!art?.deck)throw Error('Photographic instrument deck failed to decode');
-      document.body.dataset.cockpitArt=art.panorama+','+art.deck+','+art.mode;
+      if(!art?.rendered||!art.original||!art.liveOcean||art.bitmapBackdrop)throw Error('Original animated bridge did not render');
+      document.body.dataset.cockpitArt=art.original+','+art.liveOcean+','+art.mode;
       const keys=[...box.querySelectorAll('.abyss-control-key')];
       if(keys.length!==7)throw Error('Physical control keys: '+keys.length);
       const mineral=keys.find(b=>b.textContent.includes('MINÉRIOS'));
@@ -189,20 +188,34 @@ const injected=`<script>
       const deck=box.querySelector('.abyss-control-deck');
       const monitorRect=monitor?.getBoundingClientRect();
       const deckRect=deck?.getBoundingClientRect();
-      const keyRects=keys.map(key=>key.getBoundingClientRect());
+      // The Lab click replaces the console DOM. Inspect CURRENT buttons.
+      const currentKeys=[...box.querySelectorAll('.abyss-control-key')];
+      const keyRects=currentKeys.map(key=>key.getBoundingClientRect());
+      if(currentKeys.length!==7||keyRects.some(r=>r.width<25||r.height<25))
+       throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
       if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)
        throw Error('Console keys are not aligned with the main monitor');
       if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))
        throw Error('Oversized vertically stretched console key');
-      if(monitorRect.width<210||monitorRect.height<95)
+      if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))
        throw Error('Central cockpit display is too small: '+JSON.stringify({width:monitorRect.width,height:monitorRect.height,keys:deckRect.height}));
+      if(monitorRect.height<deckRect.height*1.5)
+       throw Error('The central monitor must dominate the physical key deck');
       document.body.dataset.cockpitLayout=JSON.stringify({
        visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],
        keys:[Math.round(deckRect.width),Math.round(deckRect.height)],
        keyHeight:Math.round(keyRects[0].height)
       });
+      // Save the requested actual visor, not always the Lab scroll header.
+      const view=new URLSearchParams(location.search).get('view')||'solo';
+      if(view!=='lab'){
+       const wanted=view==='minerals'?'MINÉRIOS':'SHOOTER SOLO';
+       [...box.querySelectorAll('.abyss-control-key')].find(key=>key.textContent.includes(wanted))?.click();
+       if(view==='minerals'&&box.querySelectorAll('.abyss-mineral-tile').length!==6)throw Error('Mineral capture lost tiles');
+       if(view==='solo'&&!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR SHOOTER SOLO'))throw Error('Default cockpit launch action is missing');
+      }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
       document.body.dataset.cockpitIcons=icons;
@@ -451,16 +464,16 @@ async function main(){
   if(process.argv.includes('--journal-only'))return;
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h] of [['cockpit-desktop',1280,720],['cockpit-tablet',900,600],['cockpit-wide',1600,900],['cockpit-mobile',390,844]]){
+  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-minerals',1280,720,'minerals'],['cockpit-laboratory',1280,720,'lab']]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];
-   const cockpitURL=url+'?stage=cockpit';
+   const cockpitURL=url+'?stage=cockpit&view='+view;
    const dom=await run(browser,[...flags,'--dump-dom',cockpitURL]);
    const status=dom.match(/data-cockpit-status="([^"]*)"/)?.[1];
    const error=dom.match(/data-cockpit-error="([^"]*)"/)?.[1];
    assert.equal(status,'ok',label+' failed cockpit integration: '+error);
-   console.log('[cockpit-smoke] '+label+' cards='+dom.match(/data-cockpit-cards="([^"]*)"/)?.[1]+' photos='+dom.match(/data-cockpit-art="([^"]*)"/)?.[1]+' layout='+dom.match(/data-cockpit-layout="([^"]*)"/)?.[1]);
+   console.log('[cockpit-smoke] '+label+' cards='+dom.match(/data-cockpit-cards="([^"]*)"/)?.[1]+' original-art='+dom.match(/data-cockpit-art="([^"]*)"/)?.[1]+' layout='+dom.match(/data-cockpit-layout="([^"]*)"/)?.[1]);
    const screenshot=path.join(output,label+'.png');
    await run(browser,[...flags,'--screenshot='+screenshot,cockpitURL]);
    assert.ok(fs.statSync(screenshot).size>10000,label+' cockpit screenshot missing');

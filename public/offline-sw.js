@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-11-solo-focus-v113';
+const VERSION = '2026-11-11-command-bridge-r2-v114';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -45,8 +45,6 @@ const GAME_FILES = [
   'abyssal-ocean-respawn.js',
   'abyssal-ocean-stream.js',
   'abyssal-cinematic-art.js',
-  'abyssal-cabin-ocean-hq.webp',
-  'abyssal-cabin-deck.webp',
   'abyssal-basalt-material.webp',
   'abyssal-open-sea-render.js',
   'abyssal-open-sea-lighting.js',

@@ -116,7 +116,7 @@
   mountCockpitConsole();
  }
 
- // Six actual console keys share one built-in display. They never create
+ // Seven actual console keys share one built-in display. They never create
  // duplicate floating menus on top of the submarine dashboard.
  const CONSOLE_BUTTONS=Object.freeze([
   {id:'solo',name:'SHOOTER SOLO',symbol:'▶',title:'MERGULHO SOLO'},
@@ -150,7 +150,7 @@
    key.className='abyss-control-key'+(option.id===activeConsoleSection?' is-active':'');
    key.setAttribute('aria-label',option.name);
    key.setAttribute('aria-pressed',String(option.id===activeConsoleSection));
-   if(option.id==='sea'||option.id==='rift')key.dataset.abyssLocked='true';
+   if(option.id==='sea'||option.id==='rift'){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';
    symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.textContent=option.name;

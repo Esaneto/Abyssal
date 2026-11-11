@@ -88,7 +88,7 @@ test('authoritative server validates offshore mode, tools and real reservoir IDs
  assert.match(server,/id==='subseaUmbilical'/);
 });
 
-test('cockpit renders as scene, including gender-dependent seated diver',()=>{
+test('cockpit renders a coherent original structural scene and animated water',()=>{
  const src=fs.readFileSync(path.join(__dirname,'../public/abyssal-submarine-cockpit.js'),'utf8');
  const calls={count:0};
  const gradient={addColorStop(){}};
@@ -113,6 +113,7 @@ test('cockpit renders as scene, including gender-dependent seated diver',()=>{
  const item=[...queue.entries()][0];queue.delete(item[0]);item[1](110);
  assert.ok(calls.count>50,'cockpit should paint multiple layers');
  assert.ok(element.width>0&&element.height>0,'canvas should be sized');
+ assert.equal(win.AbyssalSubmarineCockpit.visualStatus().bitmapBackdrop,false);
  win.AbyssalDiverGender='male';
  const item2=[...queue.entries()][0];queue.delete(item2[0]);item2[1](220);
  assert.ok(calls.count>100);

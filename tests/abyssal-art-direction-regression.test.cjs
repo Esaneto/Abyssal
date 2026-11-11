@@ -25,12 +25,17 @@ test('2.5D world and diver add genuine art geometry',()=>{
  assert.match(diver,/const visorGlass=c\.createLinearGradient/);
  assert.match(diver,/const tankVolume=c\.createLinearGradient/);
 });
-test('cockpit uses recognizable marine life and real gendered rear pilot equipment',()=>{
+test('cockpit integrates real marine silhouettes and partial physical seats without a competing pilot overlay',()=>{
  const source=read('public/abyssal-submarine-cockpit.js');
+ assert.match(source,/function fish\(/);
  assert.match(source,/function manta\(/);
- assert.match(source,/function turtle\(/);
- assert.match(source,/function jelly\(/);
- assert.match(source,/Two distinct oxygen cylinders/);
+ assert.match(source,/function chair\(/);
+ assert.match(source,/function deck\(/);
+ assert.match(source,/function metal\(/);
+ assert.match(source,/function hardware\(/);
+ assert.match(source,/function windowFrame\(/);
+ assert.doesNotMatch(source,/function diver\(/);
+ assert.doesNotMatch(source,/new Image\(/);
 });
 test('diver keeps the server-matched rifle and readable animated hair',()=>{
  const art=require('../public/diver-art.js');

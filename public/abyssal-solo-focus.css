@@ -18,61 +18,146 @@
 }
 .abyss-development-notice.is-visible{opacity:1;transform:translate(-50%,0)}
 #submarineWorkshop .abyss-control-key[data-abyss-locked]{opacity:.64;filter:saturate(.38)}
-#submarineWorkshop .abyss-control-key[data-abyss-locked]::after{content:'EM BREVE';display:block;font:800 8px Inter,sans-serif;color:#ffd593}
+#submarineWorkshop .abyss-control-key[data-abyss-locked]::after{content:'EM DESENVOLVIMENTO';display:block;font:800 8px Inter,sans-serif;color:#ffd593}
 
-/* Original 4:3-inspired submarine command bridge. The image sent as a
- * reference is not displayed as a background image; moving fish remain Canvas.
- * Slight perspective comes from the steel deck and restrained console pitch.
- */
+
+/* BRIDGE R2: the monitor and its physical keys form one structural console.
+   The rear window remains a small animated view, not the main menu surface. */
+#submarineWorkshop.abyss-cockpit-screen{background:#07131e!important;font-family:Inter,system-ui,sans-serif}
 #submarineWorkshop .abyss-cockpit-chrome{
- padding:max(12px,env(safe-area-inset-top)) max(13px,3vw)!important;
- background:linear-gradient(180deg,#061126eb 0%,#091a32c9 65%,transparent)!important
+ padding:max(9px,env(safe-area-inset-top)) max(14px,2.8vw)!important;
+ background:linear-gradient(180deg,#030b15e6,#0919235e 88%,transparent)!important;
 }
 #submarineWorkshop .abyss-cockpit-brand{display:flex;align-items:center;gap:11px;line-height:1}
-#submarineWorkshop .abyss-cockpit-brand .brand-sub{
- font:800 30px/1 Cinzel,serif;color:#81dffa;text-shadow:0 0 12px #16c7ee9a
+#submarineWorkshop .abyss-cockpit-brand .brand-sub{font:800 24px/1 Inter,sans-serif;color:#91e7e6;text-shadow:0 0 12px #22c7d277}
+#submarineWorkshop .abyss-cockpit-brand strong{display:block;font:850 clamp(16px,1.8vw,25px)/1.05 Inter,system-ui,sans-serif;letter-spacing:.14em;color:#eaf3f6}
+#submarineWorkshop .abyss-cockpit-brand small{display:block;margin-top:4px;font:700 clamp(7px,.65vw,10px) Inter,sans-serif;letter-spacing:.18em;color:#9db8c2}
+#submarineWorkshop .abyss-cockpit-exit{
+ border:1px solid #6b7f88!important;border-bottom:3px solid #081017!important;
+ border-radius:5px!important;background:linear-gradient(#3d4e55,#172a35)!important;
+ color:#d6e1e3!important;font:700 10px Inter,sans-serif!important;box-shadow:0 4px 8px #0009!important
 }
-#submarineWorkshop .abyss-cockpit-brand strong{
- display:block;font:900 clamp(16px,2vw,28px)/1.05 Cinzel,Georgia,serif;
- letter-spacing:.12em;color:#edfaff;text-shadow:0 3px 14px #000
+#submarineWorkshop .abyss-cockpit-console{
+ left:50%!important;top:29%!important;bottom:6.2%!important;
+ width:min(1120px,76vw)!important;height:auto!important;
+ max-height:none!important;min-height:0!important;
+ padding:18px 18px 13px!important;
+ transform:translateX(-50%) perspective(1700px) rotateX(1.4deg)!important;
+ transform-origin:50% 90%!important;
+ border:4px solid #556b77!important;border-top:7px solid #83979e!important;border-bottom:9px solid #08151f!important;
+ border-radius:17px 17px 12px 12px!important;
+ background:linear-gradient(148deg,#435663 0%,#263a48 9%,#142633 40%,#1d303d 76%,#0d1c27 100%)!important;
+ box-shadow:0 3px 0 #07111b,0 9px 0 #0c1923,0 18px 25px #01060ab8,
+ inset 0 2px 0 #afc0c74d,inset 0 -8px 11px #050d16!important
 }
-#submarineWorkshop .abyss-cockpit-brand small{
- display:block;margin-top:5px;font:700 clamp(7px,.69vw,10px) Inter,sans-serif;
- letter-spacing:.22em;color:#a4d2e5
+#submarineWorkshop .abyss-cockpit-console::before{
+ top:4px!important;left:37%!important;right:37%!important;height:4px!important;
+ background:linear-gradient(90deg,#c78039,#ffd99c 30%,#ffe5bc 70%,#c78039)!important;
+ box-shadow:0 0 9px #ffb66a88!important
 }
-#submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(7,minmax(0,1fr))!important}
-#submarineWorkshop .abyss-control-key{min-height:55px!important;font-size:clamp(8px,.69vw,10px)!important}
-#submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:20px}
-#submarineWorkshop .abyss-control-key:first-child{
- border-color:#e7b45a!important;background:linear-gradient(155deg,#5d4427,#202f44 76%)!important;
- color:#ffe8ae!important
+#submarineWorkshop .abyss-cockpit-console::after{
+ bottom:3px!important;left:5%!important;right:5%!important;height:2px!important;
+ background:linear-gradient(90deg,#67aab122,#80b8ba7a,#67aab122)!important
 }
-#submarineWorkshop .abyss-control-key:first-child .abyss-control-icon{color:#ffd07a!important}
-@media(min-width:1101px){
- #submarineWorkshop .abyss-cockpit-console{
-  left:55%!important;bottom:clamp(150px,28dvh,315px)!important;
-  width:min(790px,57vw)!important;height:clamp(305px,41dvh,450px)!important;
-  transform:translateX(-50%) perspective(1350px) rotateX(2deg) rotateY(-2.2deg) rotateZ(-.4deg)!important;
- }
+#submarineWorkshop .submarine-workshop-grid{
+ grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) auto!important;
+ gap:9px!important;margin:0!important;padding:0!important
+}
+#submarineWorkshop .abyss-cockpit-visor{
+ border:2px solid #5b8f99!important;border-bottom-color:#244c59!important;
+ border-radius:9px!important;
+ background:radial-gradient(ellipse at 53% 0%,#10404f,#092431 57%,#06141f)!important;
+ box-shadow:0 0 0 4px #07141f,0 0 0 6px #41515e,inset 0 0 20px #0f7c8b1f!important
+}
+#submarineWorkshop .abyss-cockpit-visor::before{background:repeating-linear-gradient(0deg,transparent 0,transparent 5px,#77c4c907 6px)!important}
+#submarineWorkshop .abyss-visor-heading{
+ padding:9px 15px 8px!important;min-height:38px!important;
+ background:linear-gradient(100deg,#103849,#0b2635)!important;border-bottom:1px solid #487784!important
+}
+#submarineWorkshop .abyss-visor-heading small{font:800 9px Inter,sans-serif!important;letter-spacing:.16em;color:#8cc2ca}
+#submarineWorkshop .abyss-visor-heading strong{font:800 clamp(15px,1.4vw,21px)/1.2 Inter,system-ui,sans-serif!important;color:#e4f0f2!important;letter-spacing:.03em}
+#submarineWorkshop .abyss-visor-heading span{font:700 10px Inter,sans-serif!important;color:#9ac0c5!important}
+#submarineWorkshop .abyss-visor-body{padding:12px 16px!important;scrollbar-color:#497984 #10252e!important}
+#submarineWorkshop .abyss-control-deck{
+ grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:7px!important;padding:8px 0 2px!important;
+ background:linear-gradient(180deg,#0e1b25,#182a37 25%,#263947)!important;
+ border-top:1px solid #61758055;border-bottom:1px solid #060c12
+}
+#submarineWorkshop .abyss-control-key{
+ min-height:68px!important;height:auto!important;max-height:92px!important;
+ display:flex!important;flex-direction:column!important;gap:5px!important;
+ border:1px solid #647983!important;border-top:2px solid #91a2a6!important;border-bottom:5px solid #07121c!important;
+ border-radius:6px!important;padding:7px 3px 9px!important;
+ background:linear-gradient(161deg,#354d59,#162b37 44%,#0c1d2a 90%)!important;
+ color:#d3e5e6!important;font:800 clamp(9px,.8vw,12px)/1.2 Inter,system-ui,sans-serif!important;
+ box-shadow:inset 0 1px 0 #a1b3ba45,0 2px 0 #070e15,0 3px 6px #0009!important;
+ text-shadow:none!important;white-space:normal!important;letter-spacing:.02em!important
+}
+#submarineWorkshop .abyss-control-key::before{
+ content:'';position:absolute;left:27%;right:27%;bottom:3px;height:2px;border-radius:1px;background:#478d92;opacity:.6;pointer-events:none
+}
+#submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:clamp(17px,1.65vw,24px)!important;color:#79d3d3!important;filter:none!important}
+#submarineWorkshop .abyss-control-key.is-active{
+ border-color:#dfb36e!important;border-top-color:#ffe0a1!important;border-bottom-color:#79552f!important;
+ background:linear-gradient(155deg,#675841,#334047 47%,#202b31)!important;color:#fff1ce!important;
+ box-shadow:inset 0 1px 0 #ffe2af55,0 2px 0 #543b23,0 0 10px #e0b36336!important
+}
+#submarineWorkshop .abyss-control-key.is-active::before{background:#ffc46e;opacity:1;box-shadow:0 0 5px #ffbc6a}
+#submarineWorkshop .abyss-control-key.is-active .abyss-control-icon{color:#ffd491!important}
+#submarineWorkshop .abyss-control-key[data-abyss-locked]{opacity:.72!important;filter:saturate(.4)!important}
+#submarineWorkshop .abyss-control-key[data-abyss-locked]::after{
+ content:'EM DESENVOLVIMENTO'!important;font:800 clamp(6px,.56vw,8px)/1.05 Inter,sans-serif!important;letter-spacing:-.02em;color:#c8b18b!important
+}
+#submarineWorkshop .abyss-control-key:hover{filter:brightness(1.13)!important}
+#submarineWorkshop .abyss-control-key:active{transform:translateY(2px)!important}
+#submarineWorkshop .abyss-console-info{max-width:none!important;gap:13px}
+#submarineWorkshop .abyss-console-info>strong{font:800 clamp(15px,1.6vw,21px)/1.2 Inter,sans-serif!important;color:#dceff0!important}
+#submarineWorkshop .abyss-console-info>p{font:500 clamp(12px,1.1vw,15px)/1.55 Inter,sans-serif!important;color:#b7ced2!important;max-width:64ch}
+#submarineWorkshop .abyss-visor-action{font:800 12px Inter,sans-serif!important;min-height:40px!important;padding:10px 17px!important;background:linear-gradient(#1b6470,#123f4d)!important;border:1px solid #7ac5cc!important;color:#edfafa!important}
+#submarineWorkshop .abyss-mineral-gallery{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important}
+#submarineWorkshop .abyss-mineral-tile{min-height:74px!important;background:linear-gradient(155deg,#183944,#0a202d)!important;border-color:#3c6872!important;border-radius:5px!important}
+#submarineWorkshop .abyss-mineral-tile strong{font:700 clamp(11px,1vw,14px)/1.3 Inter,sans-serif!important;color:#deecea!important}
+#submarineWorkshop .submarine-console-card{background:linear-gradient(160deg,#18343e,#0c222d)!important;border-color:#3f6973!important;border-radius:6px!important}
+#submarineWorkshop .submarine-console-card strong{font:700 14px/1.25 Inter,sans-serif!important;color:#e5f0ef!important}
+#submarineWorkshop .submarine-console-card p{font:500 12px/1.4 Inter,sans-serif!important}
+#submarineWorkshop .abyss-cockpit-ticker{
+ bottom:max(7px,env(safe-area-inset-bottom))!important;width:min(1000px,76vw)!important;
+ background:#081c26!important;border:1px solid #4a737c!important;border-radius:4px!important;
+ color:#86c6c9!important;box-shadow:0 0 0 3px #0a151e!important;font:700 10px/20px Inter,sans-serif!important
 }
 @media(min-width:701px) and (max-width:1100px){
- #submarineWorkshop .abyss-cockpit-console{
-  left:53%!important;width:min(770px,78vw)!important;
-  height:clamp(278px,43dvh,400px)!important;bottom:clamp(54px,18dvh,160px)!important;
- }
- #submarineWorkshop .abyss-control-key{min-height:48px!important}
+ #submarineWorkshop .abyss-cockpit-console{width:82vw!important;top:30%!important;bottom:6.5%!important;padding:12px!important}
+ #submarineWorkshop .abyss-control-key{min-height:55px!important;font-size:9px!important}
+ #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:17px!important}
 }
 @media(max-width:700px){
- #submarineWorkshop .abyss-cockpit-console{left:50%!important;bottom:17px!important;width:97vw!important;
- height:clamp(340px,60dvh,525px)!important;transform:translateX(-50%)!important}
- #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important}
- #submarineWorkshop .abyss-control-key{min-height:36px!important;flex-direction:row!important;font-size:8px!important;padding:3px 2px!important}
- #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:12px!important}
- #submarineWorkshop .abyss-cockpit-brand strong{font-size:15px}
- #submarineWorkshop .abyss-cockpit-brand small{font-size:7px;letter-spacing:.06em}
+ #submarineWorkshop .abyss-cockpit-console{
+  top:25%!important;bottom:34px!important;width:calc(100vw - 22px)!important;
+  transform:translateX(-50%)!important;padding:12px 9px 8px!important;
+  border-width:3px!important;border-top-width:5px!important;border-bottom-width:6px!important;border-radius:11px!important
+ }
+ #submarineWorkshop .abyss-cockpit-chrome{padding:9px 10px!important;gap:5px!important}
+ #submarineWorkshop .abyss-cockpit-brand{gap:5px!important}
+ #submarineWorkshop .abyss-cockpit-brand strong{font-size:15px!important}
+ #submarineWorkshop .abyss-cockpit-brand small{font-size:7px!important;letter-spacing:.04em!important}
+ #submarineWorkshop .abyss-cockpit-brand .brand-sub{font-size:19px!important}
+ #submarineWorkshop .abyss-cockpit-exit{font-size:8px!important;min-height:33px!important;padding:5px 7px!important}
+ #submarineWorkshop .abyss-visor-heading{padding:7px 9px!important;min-height:30px!important}
+ #submarineWorkshop .abyss-visor-heading strong{font-size:14px!important}
+ #submarineWorkshop .abyss-visor-heading small{font-size:8px!important}
+ #submarineWorkshop .abyss-visor-heading span{font-size:8px!important}
+ #submarineWorkshop .abyss-visor-body{padding:9px!important}
+ #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;padding:4px 0 2px!important}
+ #submarineWorkshop .abyss-control-key{min-height:45px!important;max-height:61px!important;font-size:9px!important;gap:3px!important;padding:4px 2px 7px!important;border-bottom-width:3px!important}
+ #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:14px!important}
+ #submarineWorkshop .abyss-control-key[data-abyss-locked]::after{font-size:6px!important}
+ #submarineWorkshop .abyss-mineral-gallery{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #submarineWorkshop .abyss-cockpit-ticker{width:calc(100vw - 26px)!important;font-size:8px!important}
 }
 @media(max-height:540px) and (orientation:landscape){
- #submarineWorkshop .abyss-cockpit-console{left:58%!important;bottom:14px!important;
- height:76dvh!important;width:min(840px,78vw)!important}
- #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+ #submarineWorkshop .abyss-cockpit-console{top:20%!important;bottom:26px!important;width:82vw!important;padding:9px 12px 7px!important}
+ #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:4px!important;padding:4px 0 2px!important}
+ #submarineWorkshop .abyss-control-key{min-height:38px!important;max-height:49px!important;flex-direction:row!important;font-size:8px!important;padding:4px 2px!important}
+ #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:13px!important}
 }
+@media(prefers-reduced-motion:reduce){#submarineWorkshop .abyss-control-key{transition:none!important}}
