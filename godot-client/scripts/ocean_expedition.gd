@@ -32,6 +32,7 @@ var sky_time := 0.0
 var active := false
 var nearest: Dictionary = {}
 var nearby_distance := INF
+var last_observed_id := ""
 
 func _ready() -> void:
 	_build_terrain_collision()
@@ -88,6 +89,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_F and not nearest.is_empty():
 			discovered[nearest["id"]] = true
+			last_observed_id = nearest["id"]
 			field_guide_open = true
 			get_viewport().set_input_as_handled()
 
@@ -149,6 +151,7 @@ func _draw() -> void:
 	_draw_landmark_rocks(area)
 	_draw_kelps(area)
 	_draw_fauna(area)
+	_draw_deep_visibility(area)
 	_draw_hud()
 
 func _draw_water(area: Rect2) -> void:
@@ -285,11 +288,28 @@ func _creatures_in_view(area: Rect2) -> Array[Dictionary]:
 				var species: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
 				if species["id"] == "isopod":
 					base.y = _seafloor_y(base.x) - 35.0
-				var wander := Vector2(
-					sin(time_s * 0.21 + float(seed_value + j)) * 55.0,
-					cos(time_s * 0.33 + float(seed_value + j)) * 13.0
-				)
+				var phase := time_s + float(seed_value + j) * 0.7
+				var wander := Vector2.ZERO
+				match species["id"]:
+					"manta":
+						wander = Vector2(100.0 * sin(phase * 0.10), 28.0 * cos(phase * 0.17))
+					"turtle":
+						wander = Vector2(55.0 * sin(phase * 0.18), 16.0 * cos(phase * 0.28))
+					"jelly":
+						wander = Vector2(20.0 * sin(phase * 0.13), 42.0 * sin(phase * 0.35))
+					"oarfish":
+						wander = Vector2(58.0 * sin(phase * 0.12), 31.0 * sin(phase * 0.18))
+					"viper":
+						wander = Vector2(47.0 * sin(phase * 0.35), 9.0 * cos(phase * 0.21))
+					"angler":
+						wander = Vector2(17.0 * sin(phase * 0.12), 11.0 * sin(phase * 0.2))
+					"vampire":
+						wander = Vector2(28.0 * sin(phase * 0.11), 19.0 * cos(phase * 0.15))
+					"isopod":
+						wander = Vector2(24.0 * sin(phase * 0.10), 0.0)
 				var pos := base + wander
+				if species["id"] == "isopod":
+					pos.y = _seafloor_y(pos.x) - 36.0
 				if _seafloor_y(pos.x) - pos.y < 40.0 and species["id"] != "isopod":
 					continue
 				creatures.append({
@@ -321,6 +341,38 @@ func _update_nearest() -> void:
 			nearest = creature["info"]
 			nearby_distance = dist
 
+func _draw_deep_visibility(area: Rect2) -> void:
+	# Fading peripheral vision and an underwater lamp reinforce unease at depth.
+	# The darkness never conceals the HUD, which is drawn afterward.
+	var depth := maxf(0.0, (diver.position.y - SURFACE_Y) / PIXELS_PER_METER)
+	var dark := clampf((depth - 165.0) / 880.0 * 0.72 + (1.0 - _sunlight()) * 0.19, 0.0, 0.76)
+	if dark < 0.045:
+		return
+	var focus := diver.position
+	var visible_radius := lerpf(610.0, 305.0, clampf(depth / 1200.0, 0.0, 1.0))
+	var outside := Color(0.0, 0.008, 0.024, dark)
+	# Ring-shaped darkness, leaving the near-diver area visible.
+	var outer_r := 1760.0
+	for i in range(48):
+		var a := TAU * float(i) / 48.0
+		var b := TAU * float(i + 1) / 48.0
+		draw_colored_polygon(PackedVector2Array([
+			focus + Vector2(cos(a), sin(a)) * visible_radius,
+			focus + Vector2(cos(b), sin(b)) * visible_radius,
+			focus + Vector2(cos(b), sin(b)) * outer_r,
+			focus + Vector2(cos(a), sin(a)) * outer_r
+		]), outside)
+	# Narrow torch cone keeps the player oriented at night and below 200m.
+	if depth > 180.0:
+		var facing := 1.0 if diver.is_facing_right else -1.0
+		var end_pos := focus + Vector2(530.0 * facing, 14.0)
+		draw_colored_polygon(PackedVector2Array([
+			focus + Vector2(22.0 * facing, -13.0),
+			end_pos + Vector2(0.0, -84.0),
+			end_pos + Vector2(0.0, 84.0),
+			focus + Vector2(22.0 * facing, 13.0)
+		]), Color(0.12, 0.67, 0.69, 0.026))
+
 func _draw_hud() -> void:
 	# Draw at the visible camera center so labels stay attached to the screen.
 	var p := diver.position
@@ -341,13 +393,15 @@ func _draw_hud() -> void:
 	if field_guide_open:
 		draw_rect(Rect2(x + 735, y + 22, 620, 231), Color(0.013, 0.048, 0.076, 0.94))
 		_text("DIARIO DE CAMPO  |  DESCOBERTAS", Vector2(x + 757, y + 52), 22, Color("#f9d99b"))
-		if nearest.is_empty():
+		var chosen: Dictionary = Ecology.get_species(last_observed_id)
+		if chosen.is_empty():
 			_text("Aproxime-se de um animal e pressione F.", Vector2(x + 757, y + 91), 17, Color("#c9f7f4"))
 		else:
-			_text(nearest["name"], Vector2(x + 757, y + 89), 20, Color("#c9f7f4"))
-			_text(nearest["scientific"], Vector2(x + 757, y + 118), 16, Color("#84c4cc"))
-			_text(nearest["habitat"], Vector2(x + 757, y + 157), 14, Color("#c9f7f4"))
-			_text(nearest["story"], Vector2(x + 757, y + 184), 14, Color("#c9f7f4"))
+			_text(chosen["name"], Vector2(x + 757, y + 89), 20, Color("#c9f7f4"))
+			_text(chosen["scientific"], Vector2(x + 757, y + 118), 16, Color("#84c4cc"))
+			_text(chosen["habitat"], Vector2(x + 757, y + 149), 14, Color("#c9f7f4"))
+			_text(chosen["how_to_find"], Vector2(x + 757, y + 174), 14, Color("#a7e6d0"))
+			_text(chosen["story"], Vector2(x + 757, y + 198), 14, Color("#c9f7f4"))
 		_text("ESPECIES REGISTRADAS: %d / %d" % [discovered.size(), Ecology.SPECIES.size()],
 			Vector2(x + 757, y + 225), 16, Color("#f9d99b"))
 
