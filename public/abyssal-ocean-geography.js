@@ -84,19 +84,18 @@
   }
   // Navigable geological arches across the entire ocean, not just near spawn.
   // Their centers are genuine hollow collision tunnels (ARCH_TUNNELS below),
-  // while the approach cliffs and buttresses are solid for both client/server.
+  // while their rocky roofs and limited buttresses remain solid for both client/server.
   // A wide water bypass always remains above each arch.
   const PASSAGE_ARCHES=Object.freeze([
    [4800,1350],[6800,2350],[10200,3280],[13050,3970],
    [16500,4850],[18900,5200],[21700,6100]
   ].map(([x,target],i)=>{
    const y=Math.max(1250,Math.min(target,floorAt(x)-1250));
-   const rx=370+(i%3)*28,ry=235+(i%2)*26;
+   const rx=315+(i%3)*22,ry=205+(i%2)*22;
    EXTRA_ROCKS.push([x,y,rx,ry,'arch']);
    const shift=i%2?-1:1;
-   // Offset side boulders sculpt alternate narrow and broad swim-throughs.
-   EXTRA_ROCKS.push([x+shift*595,y+325,185,285,'spire']);
-   EXTRA_ROCKS.push([x-shift*655,y+460,150,218,'boulder']);
+   // A few modest buttresses guide passages without sealing the ocean.
+   if(i%3===1)EXTRA_ROCKS.push([x+shift*545,y+325,115,160,'spire']);
    return Object.freeze({x,y,rx,ry});
   }));
   const ROCKS=Object.freeze(ROCK_DATA.map((r,i)=>Object.freeze({
