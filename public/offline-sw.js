@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-11-sonar-cockpit-v112';
+const VERSION = '2026-11-11-solo-focus-v113';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -16,6 +16,11 @@ const GAME_FILES = [
   'abyssal-submarine-laboratory.css',
   'abyssal-exploration-hud.css',
   'abyssal-cinematic-refresh.css',
+  'abyssal-solo-focus.css',
+  'abyssal-pet-habits.css',
+  'abyssal-feature-gates.js',
+  'abyssal-pet-tactics.js',
+  'abyssal-solo-cavern.js',
   'abyssal-specimen-themes.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',

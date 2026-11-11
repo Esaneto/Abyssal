@@ -12,16 +12,17 @@ test('main-menu hatch is always named CABINE and opens the laboratory visor',()=
  const runtime=read('public/abyssal-exploration-runtime.js');
  assert.match(html,/id="submarineWorkshopBtn"[^>]*aria-label="Entrar na cabine do submarino"[^>]*><span class="abyss-hatch-label">CABINE<\/span>/);
  assert.doesNotMatch(html,/abyss-hatch-label">LABORATÓRIO/);
- assert.match(html,/ABYSSAL \/ SUBMARINO \/ CABINE DE COMANDO/);
+ assert.match(html,/class="abyss-cockpit-brand"/);
+ assert.match(html,/SUBMARINO DE EXPLORAÇÃO/);
  assert.match(menu,/id:'submarineWorkshopBtn'.*label:'CABINE'.*kind:'lab'/);
- assert.match(runtime,/activeConsoleSection='laboratory';workshop\.hidden=false;renderWorkshop\(\)/);
+ assert.match(runtime,/activeConsoleSection='solo';workshop\.hidden=false;renderWorkshop\(\)/);
 });
 
-test('six clickable hardware controls update a single integrated cockpit visor',()=>{
+test('seven clickable hardware controls update a single integrated cockpit visor',()=>{
  const source=read('public/abyssal-exploration-runtime.js');
  const style=read('public/abyssal-submarine-laboratory.css');
  const html=read('public/index.html');
- for(const id of ['laboratory','minerals','shop','specimens','sea','rift'])
+ for(const id of ['solo','laboratory','minerals','shop','specimens','sea','rift'])
   assert.match(source,new RegExp("id:'"+id+"'"),id+' must be present on the console');
  assert.match(source,/function mountCockpitConsole\(utility\)/);
  assert.match(source,/workshopGrid\.replaceChildren\(visor,keys\)/);

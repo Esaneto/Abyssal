@@ -169,7 +169,7 @@ const injected=`<script>
       if(innerWidth>=700&&!art?.deck)throw Error('Photographic instrument deck failed to decode');
       document.body.dataset.cockpitArt=art.panorama+','+art.deck+','+art.mode;
       const keys=[...box.querySelectorAll('.abyss-control-key')];
-      if(keys.length!==6)throw Error('Physical control keys: '+keys.length);
+      if(keys.length!==7)throw Error('Physical control keys: '+keys.length);
       const mineral=keys.find(b=>b.textContent.includes('MINÉRIOS'));
       mineral?.click();
       const tiles=box.querySelectorAll('.abyss-mineral-tile').length;
