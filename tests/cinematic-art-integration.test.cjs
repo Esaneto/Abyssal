@@ -36,7 +36,13 @@ test('paint passes are connected to the live cockpit, Open Sea and asset cache v
  assert.match(cabin,/AbyssalCinematicArt\?\.cabinInterior/);
  assert.match(cabin,/AbyssalCinematicArt\?\.cabinLiveWorld/);
  assert.match(cabin,/photo\.naturalWidth/);
- assert.match(read('public/offline-sw.js'),/abyssal-cabin-ocean\.webp/);
+ assert.match(read('public/offline-sw.js'),/abyssal-cabin-ocean-hq\.webp/);
+ assert.match(read('public/offline-sw.js'),/abyssal-cabin-deck\.webp/);
+ assert.match(cabin,/photo\.naturalWidth/);
+ assert.match(cabin,/deckPhoto\.naturalWidth/);
+ assert.match(cabin,/c\.drawImage\(deckPhoto/);
+ assert.ok(fs.statSync(path.join(root,'public/abyssal-cabin-ocean-hq.webp')).size>40000);
+ assert.ok(fs.statSync(path.join(root,'public/abyssal-cabin-deck.webp')).size>40000);
  assert.match(ocean,/AbyssalCinematicArt\?\.seaAtmosphere/);
  assert.match(ocean,/AbyssalCinematicArt\?\.seaHighlights/);
  assert.ok(html.indexOf('abyssal-cinematic-art.js')<html.indexOf('abyssal-open-sea-render.js'));

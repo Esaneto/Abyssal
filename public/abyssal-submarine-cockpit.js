@@ -11,7 +11,13 @@
  // The approved ABYSSAL cinematic panorama is an optimized local artwork.
  // Keep the realtime Canvas scenery as the offline/slow-load fallback.
  const photo=typeof Image==='function'?new Image():null;
- if(photo){photo.decoding='async';photo.src='abyssal-cabin-ocean.webp';}
+ if(photo){photo.decoding='async';photo.src='abyssal-cabin-ocean-hq.webp';}
+ // Photographic foreground provides real metallic instruments and both pilot
+ // chairs. Only decoded for desktop when the cockpit is entered.
+ const deckPhoto=typeof Image==='function'?new Image():null;
+ let deckRequested=false;
+ const hasPhoto=()=>!!(photo?.complete&&photo.naturalWidth>0);
+ const hasDeck=()=>!!(deckPhoto?.complete&&deckPhoto.naturalWidth>0);
  let active=false,frame=0,lastPaint=0,width=0,height=0,dpr=1,accountGender='male';
  function gender(){
   const direct=window.AbyssalDiverGender;
@@ -225,27 +231,40 @@
   }
   // Photo-art and original environmental simulation are layered,
   // never baked over the HTML command controls.
-  if(photo?.complete&&photo.naturalWidth>0){
-   c.save();c.globalAlpha=.97;
+  if(hasPhoto()){
+   c.save();c.globalAlpha=1;c.imageSmoothingEnabled=true;
+   c.imageSmoothingQuality='high';
    c.drawImage(photo,52,104,1336,456);c.restore();
+   // Preserve independent moving sea-life without outlining the fauna already
+   // present inside the painted scene or drawing a second stationary diver.
+   c.save();c.globalAlpha=.32;
+   for(let i=0;i<7;i++){
+    const x=((i*233+t*.008*(1+i%3*.2))%1410)+45;
+    fish(x,210+(i*61)%205,.22+(i%3)*.055,t,i);
+   }
+   c.restore();
+  }else{
+   for(let i=0;i<9;i++){
+    const x=((i*271+t*.012*(1+i%3*.25))%1640)-90;
+    fish(x,181+(i*79)%244,.34+(i%3)*.11,t,i);
+   }
+   manta(((t*.029+850)%1810)-170,280,.57,t,2);
+   manta(((t*.029+690)%1810)-170,316,.37,t,3);
+   turtle(1050+Math.sin(t*.00032)*52,243,.66,t,5);
+   jelly(509+Math.sin(t*.00021)*28,324,.62,t,1);
   }
-  for(let i=0;i<9;i++){
-   const x=((i*271+t*.012*(1+i%3*.25))%1640)-90;
-   fish(x,181+(i*79)%244,.34+(i%3)*.11,t,i);
-  }
-  // Larger recognizable species swim singly or in small, spaced groups.
-  manta(((t*.029+850)%1810)-170,280,.57,t,2);
-  manta(((t*.029+690)%1810)-170,316,.37,t,3);
-  turtle(1050+Math.sin(t*.00032)*52,243,.66,t,5);
-  jelly(509+Math.sin(t*.00021)*28,324,.62,t,1);
   // Tiny bubble trails and depth haze.
   for(let i=0;i<39;i++){
    const x=70+(i*127)%1310,y=130+(i*79+(t*.017*(1+i%3)))%407;
    c.globalAlpha=.15+(i%4)*.07;c.strokeStyle='#cbfaff';c.lineWidth=1;
    c.beginPath();c.arc(x,y,1+(i%3)*1.3,0,TAU);c.stroke();
   }c.globalAlpha=1;
-  window.AbyssalCinematicArt?.cabinLiveWorld?.(c,t,window.AbyssalDiverArt,gender(),!!(photo?.complete&&photo.naturalWidth>0));
-  window.AbyssalCinematicArt?.cabinForeground?.(c,t);
+  window.AbyssalCinematicArt?.cabinLiveWorld?.(c,t,window.AbyssalDiverArt,gender(),hasPhoto());
+  if(hasPhoto()){
+   c.save();c.globalAlpha=.16;
+   window.AbyssalCinematicArt?.cabinForeground?.(c,t);
+   c.restore();
+  }else window.AbyssalCinematicArt?.cabinForeground?.(c,t);
   const reflection=grad(0,95,0,570,[[0,'#c8f8ff28'],[.4,'#9ae8f808'],[1,'#04152840']]);
   c.fillStyle=reflection;c.fillRect(0,105,1440,465);c.restore();
  }
@@ -256,8 +275,9 @@
   c.moveTo(61,107);c.lineTo(1373,107);c.lineTo(1384,522);
   c.lineTo(1314,567);c.lineTo(122,567);c.lineTo(58,519);c.closePath();c.stroke();
   c.strokeStyle='#7a8b9d';c.lineWidth=11;c.stroke();
-  // One uninterrupted central panoramic vista, supported by two structural side ribs.
-  for(const x of [310,1130]){
+  // The approved painted panorama has its own load-bearing ribs. Do not draw
+  // an extra flat pair on top of the detailed metal/glass framing.
+  if(!hasPhoto())for(const x of [310,1130]){
    poly([[x-12,107],[x+21,107],[x+32,557],[x-22,562]],'#293b50','#90a6b2',4);
    line(x-4,119,x+5,535,'#a9c3ca69',2);
   }
@@ -429,12 +449,20 @@
   const center=compact?705:720;
   c.save();c.translate(width/2-center*scale,(height-900*scale)/2);c.scale(scale,scale);
   c.fillStyle=grad(0,0,1440,900,[[0,'#182d42'],[.55,'#0c2237'],[1,'#040e1d']]);c.fillRect(0,0,1440,900);
-  ceiling(t);windows(t);consoleBase(t);
-  window.AbyssalCinematicArt?.cabinInterior?.(c,t);
-  // The chair & diver are part of the cockpit, not a pasted profile image.
-  diver(t,compact);
-  // The right co-pilot seat remains empty, as in a real command bridge.
-  if(!compact)chair(1389,670,.62);
+  ceiling(t);windows(t);
+  if(!compact&&hasDeck()){
+   // Real physical dashboard, leather chairs, radar and glass highlights.
+   // Interactive laboratory buttons remain in the DOM above this foreground.
+   c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+   c.drawImage(deckPhoto,0,540,1440,360);
+   c.restore();
+  }else{
+   // Existing original-vector fallback also serves compact/mobile layouts.
+   consoleBase(t);
+   window.AbyssalCinematicArt?.cabinInterior?.(c,t);
+   diver(t,compact);
+   if(!compact)chair(1389,670,.62);
+  }
   c.restore();
  }
  function tick(t){
@@ -443,7 +471,15 @@
   if(t-lastPaint<34)return;lastPaint=t;
   scene(t);
  }
- function open(){if(screen.hidden)return;active=true;lastPaint=0;cancelAnimationFrame(frame);scene(0);frame=requestAnimationFrame(tick);}
+ function open(){
+  if(screen.hidden)return;
+  active=true;lastPaint=0;cancelAnimationFrame(frame);
+  if(deckPhoto&&!deckRequested&&screen.getBoundingClientRect().width>=700){
+   deckRequested=true;deckPhoto.decoding='async';
+   deckPhoto.src='abyssal-cabin-deck.webp';
+  }
+  scene(0);frame=requestAnimationFrame(tick);
+ }
  function close(){active=false;cancelAnimationFrame(frame);frame=0;}
  window.addEventListener('abyssal-account-data',e=>{accountGender=e.detail?.diverGender==='female'?'female':'male';});
  window.addEventListener('resize',()=>{if(active)size();});
