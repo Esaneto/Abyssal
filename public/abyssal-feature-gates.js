@@ -4,8 +4,10 @@
 (function(){
  'use strict';
  const LOCKED=new Set(['sea','rift','online']);
- // Legacy game modes remain regression-testable ONLY on local CI servers.
- const acceptanceLegacy=location.hostname==='127.0.0.1'&&
+ // Frozen modes may run only inside the explicit Chromium CI harness.
+ // A normal local browser or packaged application is NOT a test exception.
+ const acceptanceLegacy=window.__ABYSSAL_CI_SMOKE__===true&&
+  location.hostname==='127.0.0.1'&&
   ['sea','deep','boss'].includes(new URLSearchParams(location.search).get('stage'));
  let timer=0;
  function notify(){
