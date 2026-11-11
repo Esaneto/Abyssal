@@ -116,6 +116,21 @@ static func draw_swimmer(canvas: CanvasItem, candidate: Dictionary) -> bool:
 	canvas.draw_mesh(mesh(), texture)
 	return true
 
+static func draw_bubbles(canvas: CanvasItem, candidate: Dictionary, t: float) -> void:
+	# Independent animated particles leave the regulator, not the top of a flat sprite.
+	var body := str(candidate.get("body", "female"))
+	var emitter := Vector2(72.0,-33.0) if body == "female" else Vector2(72.0,-30.0)
+	for i in range(7):
+		var speed := 14.0 + float(i%3)*5.0
+		var progress := fposmod(t*speed+float(i)*11.0,94.0)
+		var x := emitter.x + sin(t*1.3+float(i)*1.79)*6.0 - progress*0.12
+		var y := emitter.y-progress
+		var opacity := clampf(1.0-progress/105.0,0.0,1.0)*0.35
+		canvas.draw_arc(Vector2(x,y),1.8+float(i%3)*0.70,
+			0.0, TAU, 12, Color(0.77,0.95,1.0,opacity), 1.1, true)
+		if i%3==0:
+			canvas.draw_circle(Vector2(x-0.5,y-0.5),0.55,Color(1,1,1,opacity*0.8))
+
 static func draw_cabin(canvas: CanvasItem, candidate: Dictionary,
 	time_s: float) -> bool:
 	var texture := texture_for(str(candidate.get("body", "female")))
