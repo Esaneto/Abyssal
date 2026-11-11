@@ -45,6 +45,7 @@ test('open sea implements actual visual facets, rock roots and 3 depth provinces
  assert.match(source,/const faces=Math\.min\(lowPower\?12:30/);
  assert.match(source,/geo\.rockSurfaceAt\(rock,-Math\.acos\(q\)/);
  assert.match(source,/Fractured cliff edge instead of an uninterrupted vertical column/);
+ assert.match(source,/Limit atmospheric relief to a nearby distant ledge/);
  assert.match(source,/Separate sandstone\/basalt plates show up at gameplay camera scales/);
  assert.equal(geo.visualBiomeAt(800,400).id,'coastal');
  assert.equal(geo.visualBiomeAt(8500,2900).id,'cinematic');
