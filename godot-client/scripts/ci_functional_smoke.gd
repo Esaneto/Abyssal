@@ -49,6 +49,7 @@ func _run_tests() -> void:
 		_fail("Cilindro reutilizavel foi consumido", 17)
 		return
 	saved.observe("manta")
+	saved.observe("turtle")
 	saved.visit(5, 3)
 	saved.select_tool("emptyCylinder")
 	saved.set_checkpoint(Vector2(4280, 120), 212.0)
@@ -63,7 +64,7 @@ func _run_tests() -> void:
 	if restored.get_count("oilCylinder") != 1 or restored.research_level("pressureSuit") != 1:
 		_fail("Inventario/pesquisa alterados no carregamento", 20)
 		return
-	if not restored.was_observed("manta") or not restored.has_visited(5, 3):
+	if not restored.was_observed("manta") or not restored.was_observed("turtle") or not restored.has_visited(5, 3):
 		_fail("Descobertas/setores perdidos", 21)
 		return
 	if restored.selected_tool() != "emptyCylinder" or absf(restored.get_checkpoint().x - 4280.0) > 1.0:
@@ -94,6 +95,28 @@ func _run_tests() -> void:
 	if not world.active:
 		_fail("Mar Aberto nao entrou", 25)
 		return
+	if world.last_observed_id != "manta":
+		_fail("Diario nao recuperou especie registrada no save", 36)
+		return
+	var journal_event := InputEventKey.new()
+	journal_event.pressed = true
+	journal_event.keycode = KEY_TAB
+	world.call("_unhandled_input", journal_event)
+	if not world.field_guide_open:
+		_fail("Diario nao abriu", 37)
+		return
+	journal_event.keycode = KEY_K
+	world.call("_unhandled_input", journal_event)
+	if world.last_observed_id != "turtle":
+		_fail("Diario nao navegou para proxima especie registrada", 38)
+		return
+	journal_event.keycode = KEY_J
+	world.call("_unhandled_input", journal_event)
+	if world.last_observed_id != "manta":
+		_fail("Diario nao navegou para especie anterior", 39)
+		return
+	journal_event.keycode = KEY_TAB
+	world.call("_unhandled_input", journal_event)
 	for arch in world.PASSAGE_ARCHES:
 		if not world.is_navigable(arch + Vector2(0.0, 20.0), 23.0):
 			_fail("Uma passagem rochosa esta bloqueada no meio", 33)
