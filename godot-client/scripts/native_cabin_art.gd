@@ -17,17 +17,22 @@ static func bottom_nav(i: int) -> Rect2:
 	return Rect2(360.0 + float(i) * 139.0, 563.0, 131.0, 62.0)
 
 static func click_menu(point: Vector2) -> int:
+	# Menu canvas is visually shifted/rescaled to reserve a real seat for the pilot.
+	var local := Vector2((point.x-55.0)/0.95,point.y)
 	for i in range(MENU.size()):
-		if vertical_nav(i).has_point(point) or bottom_nav(i).has_point(point):
+		if vertical_nav(i).has_point(local) or bottom_nav(i).has_point(local):
 			return i
 	return -1
 
 static func paint(canvas: Node2D, t: float, selected: int, progress: RefCounted, status: String) -> void:
 	_paint_ocean(canvas, t)
 	_paint_bridge(canvas, t)
-	_paint_pilot(canvas, t)
 	_paint_console(canvas, t)
+	_paint_pilot(canvas, t)
+	# Screen shifts to starboard so the pilot remains visible, not hidden.
+	canvas.draw_set_transform(Vector2(55.0,0.0),0.0,Vector2(0.95,1.0))
 	_paint_monitor(canvas, t, selected, progress)
+	canvas.draw_set_transform(Vector2.ZERO,0.0,Vector2.ONE)
 	_paint_status(canvas, t, status)
 
 static func _paint_ocean(c: CanvasItem, t: float) -> void:
