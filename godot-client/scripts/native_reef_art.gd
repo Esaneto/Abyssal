@@ -44,7 +44,7 @@ static func atmosphere(c: Node2D, area: Rect2, t: float, solar: float, depth_m: 
 		if arch_y < area.position.y - 340.0 or arch_y > area.end.y + 300.0:
 			continue
 		_distant_arch(c, Vector2(px,arch_y), 0.72 + 0.10 * float(posmod(cell,3)),
-			Color(0.025,0.19,0.31,0.18*surface))
+			Color(0.06,0.32,0.45,0.085*surface))
 	# Remote drifting shoals; little silhouettes never compete with the foreground.
 	var start_cell := int(floor(area.position.x/640.0))
 	var first_row := int(floor(area.position.y/510.0))
@@ -103,6 +103,20 @@ static func reef_stone(c: CanvasItem, points: PackedVector2Array, light: float) 
 	for vertex in points:
 		uvs.append((vertex-bounds.position)/Vector2(maxf(1,bounds.size.x),maxf(1,bounds.size.y)))
 	c.draw_polygon(points,palette,uvs,OriginalArt.stone_texture())
+	# Triangulation derives from the SAME collidable outline. Facets add
+	# layered slate rather than generic gray blobs, without fake obstacles.
+	var mesh := Geometry2D.triangulate_polygon(points)
+	for tri in range(0,mesh.size()-2,3):
+		var i := int(tri/3)
+		var a: Vector2 = points[mesh[tri]]
+		var b: Vector2 = points[mesh[tri+1]]
+		var d: Vector2 = points[mesh[tri+2]]
+		var highlight := 0.055 + float((i*7)%4)*0.018
+		UI.poly(c,[a,b,d], Color(0.09,0.53,0.71,highlight))
+		if i%2==0:
+			var from_edge := a.lerp(b,0.12)
+			var to_edge := b.lerp(d,0.18)
+			c.draw_line(from_edge,to_edge,Color(0.49,0.82,0.88,0.045),1.3,true)
 	# Thin fractured strata in front of the textured mineral; local geometry only.
 	# All endpoints interpolate between points on the physical polygon, so this
 	# cannot introduce a perceived wall detached from the collider.

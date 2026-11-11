@@ -279,6 +279,16 @@ static func arch_material(canvas: CanvasItem, outline: PackedVector2Array, light
 		colors.append(tint * (0.38 + height_light * 0.33))
 		uv.append((vertex - bounds.position) / size)
 	canvas.draw_polygon(outline, colors, uv, stone_texture())
+	# Weathered rock shelves have alternating broad flat facets. Each facet
+	# comes from physics' very same polygon, never independent decorative walls.
+	var facets := Geometry2D.triangulate_polygon(outline)
+	for tri in range(0,facets.size()-2,3):
+		var k := int(tri/3)
+		var a: Vector2 = outline[facets[tri]]
+		var b: Vector2 = outline[facets[tri+1]]
+		var d: Vector2 = outline[facets[tri+2]]
+		poly(canvas,PackedVector2Array([a,b,d]),
+			Color(0.09,0.36,0.54,0.065+float(k%3)*0.015))
 	# Geological seams remain contained inside the volume of the stone.
 	for k in range(5):
 		var y := bounds.position.y + bounds.size.y * (float(k) + 0.7) / 6.0
