@@ -296,6 +296,9 @@
  // Fractured cliff edge instead of an uninterrupted vertical column
  function drawBiomeVista(ctx,left,top,right,bottom,time,lowPower){
   const tileX=730,tileY=670;
+  // Painterly strata for distant rock, reusing the already-cached atlas.
+  // Clipped to the painted vista and disabled on low-power devices.
+  const distantMaterial=rockMaterialFor(lowPower);
   for(let ix=Math.floor(left/tileX)-1;ix<=Math.ceil(right/tileX)+1;ix++){
    for(let iy=Math.floor(top/tileY)-1;iy<=Math.ceil(bottom/tileY)+1;iy++){
     if(ix<0||iy<0)continue;
@@ -332,6 +335,17 @@
     ctx.lineTo(x-w*.41,y+h*1.16);ctx.lineTo(x-w*.39,y+h*.67);
     ctx.lineTo(x-w*.54,y+h*.46);ctx.lineTo(x-w*.53,y+15);
     ctx.closePath();ctx.fill();ctx.stroke();
+    if(distantMaterial){
+     // The silhouette path remains active: no rectangular texture seams
+     // and no additional solid world geometry or collision information.
+     ctx.save();ctx.clip();
+     ctx.globalAlpha=geological?.28:.36;
+     ctx.globalCompositeOperation='soft-light';
+     const tile=(ix+iy*7)&1;
+     ctx.drawImage(distantMaterial,tile*480,0,480,320,
+      x-w*.59,y-40,w*1.18,foot-y+76);
+     ctx.restore();
+    }
     // Interior face planes
     ctx.save();ctx.globalAlpha=.44;
     ctx.fillStyle=geological?'#133748':'#154a62';ctx.beginPath();
@@ -340,6 +354,19 @@
     ctx.lineTo(x+w*.13,foot);ctx.lineTo(x-w*.11,foot);
     ctx.lineTo(x-w*.25,y+h*.52);ctx.closePath();ctx.fill();
     ctx.restore();
+    // A narrow sunlit bevel makes each cliff face read as a layered
+    // rock plane instead of a flat vertical rectangle.
+    if(!lowPower){
+     ctx.save();ctx.globalAlpha=geological?.22:.29;
+     const facet=ctx.createLinearGradient(x-w*.41,y,x+w*.32,foot);
+     facet.addColorStop(0,'rgba(138,225,226,.31)');
+     facet.addColorStop(.46,'rgba(53,128,161,.12)');
+     facet.addColorStop(1,'rgba(4,25,46,0)');
+     ctx.fillStyle=facet;ctx.beginPath();
+     ctx.moveTo(x-w*.45,y+3);ctx.lineTo(x-w*.07,y-34);
+     ctx.lineTo(x+w*.05,y+h*.33);ctx.lineTo(x-w*.24,y+h*.6);
+     ctx.lineTo(x-w*.35,foot);ctx.closePath();ctx.fill();ctx.restore();
+    }
     // Separate sandstone/basalt plates show up at gameplay camera scales
     ctx.save();ctx.globalAlpha=geological?.17:.22;
     for(let plate=0;plate<(lowPower?1:3);plate++){
