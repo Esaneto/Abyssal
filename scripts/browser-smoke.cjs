@@ -269,7 +269,7 @@ async function run(browser,args){
   proc.once('close',code=>{finished=true;clearTimeout(timeout);if(code!==0)reject(new Error('Chromium exit '+code+': '+err.slice(-2500)));else resolve(out)});
  });
 }
-async function realGameplaySmoke(browser,url){
+async function realGameplaySmoke(browser,url,mode='legacy'){
  // Unlike Chrome's virtual-time screenshot mode, CDP runs requestAnimationFrame
  // at real time and confirms simulation tick progress before taking captures.
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'abyss-live-cdp-'));
@@ -333,6 +333,39 @@ async function realGameplaySmoke(browser,url){
   console.log('[live-browser] navigating to actual game');
   await command('Page.navigate',{url});
   await sleep(6500);
+  if(mode==='solo'){
+   // Verify that the actual Solo frame loop advances in wall-clock time.
+   // DOM existence and virtual-time screenshots cannot prove this.
+   const soloStateExpr='(()=>{const g=window.AbyssalGameHooks,p=g?.explorationPosition?.();return {active:document.body.classList.contains("game-active"),mode:p?.mode,paused:p?.paused,elapsed:g?.expeditionState?.()?.elapsed,worldHeight:g?.worldHeight?.(),x:p?.x,y:p?.y,errors:document.body.dataset.smokeError||""}})()';
+   let solo=await evaluate(soloStateExpr);
+   for(let attempt=0;attempt<4&&solo?.paused;attempt++){
+    const chosen=await evaluate('(()=>{const button=document.querySelector("#upgradeChoices .upgrade-card");if(!button)return false;button.click();return true})()');
+    if(!chosen)break;
+    await sleep(400);solo=await evaluate(soloStateExpr);
+   }
+   console.log('[live-solo] start '+JSON.stringify(solo));
+   assert.equal(solo?.active,true,'Shooter Solo must enter active gameplay');
+   assert.equal(solo?.mode,'classic','Frozen gameplay route leaked into Solo');
+   assert.equal(solo?.paused,false,'Shooter Solo should be simulating, not paused');
+   assert.equal(solo?.worldHeight,3000,'Shooter Solo must use its own arena');
+   assert.ok(solo?.elapsed>1,'Shooter Solo did not advance its real-time simulation');
+   assert.ok(!solo?.errors,'Shooter Solo runtime error: '+solo.errors);
+   await screenshot('live-solo-start');
+   // The movement is sent through Chromium's keyboard input, not by
+   // teleporting the player or modifying in-game state.
+   const key={key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68};
+   await command('Input.dispatchKeyEvent',{type:'keyDown',...key});
+   await sleep(850);
+   await command('Input.dispatchKeyEvent',{type:'keyUp',...key});
+   const moved=await evaluate(soloStateExpr);
+   console.log('[live-solo] after-movement '+JSON.stringify(moved));
+   assert.equal(moved?.active,true,'Shooter Solo ended unexpectedly during movement');
+   assert.ok(moved?.elapsed>solo.elapsed+.4,'Shooter Solo simulation stopped after input');
+   assert.ok(Number(moved?.x)>Number(solo.x)+2,'D key did not move the Solo diver to the right');
+   assert.ok(!moved?.errors,'Shooter Solo movement threw a runtime error: '+moved.errors);
+   await screenshot('live-solo-moving');
+   return;
+  }
   let state=await evaluate(stateExpr);
   console.log('[live-browser] start '+JSON.stringify(state));
   assert.equal(state?.active,true,'Fossas must be actively playing after the tutorial closes');
@@ -520,7 +553,8 @@ async function main(){
   }
   // Full Fossa replay is retained as an isolated localhost regression for the
   // frozen mode; public players still enter the classic Solo shooter only.
-  if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep');
+  await realGameplaySmoke(browser,url,'solo');
+  if(legacyModes)await realGameplaySmoke(browser,url+'?stage=deep','legacy');
   else console.log('[browser-smoke] Active release: Shooter Solo, legacy expeditions excluded from gating');
  }finally{await new Promise(resolve=>server.close(resolve));}
 }
