@@ -6,6 +6,8 @@ const Ecology = preload("res://scripts/marine_ecology.gd")
 const Deposits = preload("res://scripts/geological_resources.gd")
 const ProgressScript = preload("res://scripts/exploration_progress.gd")
 const Art = preload("res://scripts/cinematic_art.gd")
+const ReefArt = preload("res://scripts/native_reef_art.gd")
+const NativeHUD = preload("res://scripts/native_ocean_hud.gd")
 
 const MAP_W := 24000.0
 const MAP_H := 21000.0
@@ -14,7 +16,7 @@ const OCEAN_MAX_DEPTH_METERS := 2200.0
 const DAY_DURATION_SECONDS := 420.0
 const CHUNK_W := 570.0
 const CHUNK_H := 450.0
-const SPAWN := Vector2(4150.0, 105.0)
+const SPAWN := Vector2(4150.0, 720.0)
 const ROCKS := [
 	{"pos": Vector2(4700.0, 840.0), "radius": 125.0},
 	{"pos": Vector2(4915.0, 1120.0), "radius": 160.0},
@@ -57,6 +59,7 @@ var status_message := ""
 var status_until := 0.0
 var visited_cell := ""
 var arch_geometry: Array[Dictionary] = []
+var reef_polygons: Array[PackedVector2Array] = []
 
 
 func _ready() -> void:
@@ -66,6 +69,7 @@ func _ready() -> void:
 		_build_rock_collider(rock)
 	for arch in PASSAGE_ARCHES:
 		_build_arch_collision(arch)
+	_build_reef_collision()
 	diver = DiverScript.new()
 	diver.name = "Mergulhador"
 	diver.position = SPAWN
@@ -110,6 +114,15 @@ func is_navigable(point: Vector2, clearance: float = 22.0) -> bool:
 		var origin: Vector2 = rock["pos"]
 		if point.distance_to(origin) <= float(rock["radius"]) * 1.02 + clearance:
 			return false
+	for outline in reef_polygons:
+		if Geometry2D.is_point_in_polygon(point,outline):
+			return false
+		if clearance>0.0:
+			for k in range(outline.size()):
+				var nearest: Vector2 = Geometry2D.get_closest_point_to_segment(
+					point,outline[k],outline[(k+1)%outline.size()])
+				if point.distance_squared_to(nearest)<=clearance*clearance:
+					return false
 	for item in arch_geometry:
 		var center: Vector2 = item["center"]
 		if absf(point.x - center.x) > 450.0 + clearance or absf(point.y - center.y) > 320.0 + clearance:
@@ -294,6 +307,40 @@ func _build_arch_collision(center: Vector2) -> void:
 	add_child(body)
 
 
+func _build_reef_collision() -> void:
+	# Physical shelf and cave geometry is shared with the visual renderer.
+	reef_polygons = [
+		PackedVector2Array([
+			Vector2(3740,1210),Vector2(3840,1030),Vector2(4100,975),
+			Vector2(4290,1025),Vector2(4510,1115),Vector2(4530,1160),
+			Vector2(4290,1260),Vector2(4040,1295),Vector2(3810,1325)
+		]),
+		PackedVector2Array([
+			Vector2(5330,1005),Vector2(5550,880),Vector2(5780,915),
+			Vector2(6040,900),Vector2(6190,1050),Vector2(6180,1190),
+			Vector2(5730,1325),Vector2(5450,1255)
+		]),
+		PackedVector2Array([
+			Vector2(4440,-100),Vector2(5500,-100),Vector2(5430,160),
+			Vector2(5190,225),Vector2(4950,330),Vector2(4700,292),
+			Vector2(4530,220),Vector2(4410,155)
+		]),
+		PackedVector2Array([
+			Vector2(6700,2380),Vector2(6950,2250),Vector2(7180,2300),
+			Vector2(7450,2490),Vector2(7300,2590),Vector2(6990,2620),
+			Vector2(6760,2600)
+		])
+	]
+	for k in range(reef_polygons.size()):
+		var body := StaticBody2D.new()
+		body.name = "RecifeColidivel_%d" % k
+		body.collision_layer = 2
+		body.collision_mask = 0
+		var collider := CollisionPolygon2D.new()
+		collider.polygon = reef_polygons[k]
+		body.add_child(collider)
+		add_child(body)
+
 func _rock_contour(center: Vector2, radius: float, seed: float) -> PackedVector2Array:
 	# Identical polygon is used for drawing AND physics: no invisible rock walls.
 	var points := PackedVector2Array()
@@ -326,16 +373,20 @@ func _draw() -> void:
 		return
 	var area := _visible_bounds()
 	_draw_water(area)
+	ReefArt.atmosphere(self,area,time_s,_sunlight(),depth_at_y(diver.position.y))
 	Art.ocean_distance(self, self, area, time_s, _sunlight())
 	_draw_light_beams(area)
 	_draw_marine_snow(area)
 	_draw_seafloor(area)
 	_draw_landmark_rocks(area)
+	ReefArt.structures_gardens(self,reef_polygons,area,time_s)
 	_draw_navigable_arches(area)
 	_draw_kelps(area)
+	ReefArt.gardens(self,area,time_s)
 	_draw_resources()
 	_draw_fauna(area)
 	_draw_deep_visibility(area)
+	ReefArt.flashlight(self,diver.position,diver.is_facing_right,time_s,depth_at_y(diver.position.y))
 	_draw_hud()
 
 func _draw_water(area: Rect2) -> void:
@@ -347,7 +398,7 @@ func _draw_water(area: Rect2) -> void:
 		var y := area.position.y + float(i) * band_h
 		var d := depth_at_y(y)
 		var fade := exp(-d / 260.0)
-		var tint := Color("#03101e").lerp(Color("#0e6d88"), clampf(fade * solar, 0.0, 0.95))
+		var tint := Color("#041326").lerp(Color("#1085ae"), clampf(fade * solar * 1.12, 0.0, 0.96))
 		draw_rect(Rect2(area.position.x, y, area.size.x, band_h + 1.5), tint)
 	# Surface and sky are not a wall: the diver can ascend to breathe.
 	if area.position.y < SURFACE_Y:
@@ -372,7 +423,7 @@ func _draw_light_beams(area: Rect2) -> void:
 		draw_colored_polygon(PackedVector2Array([
 			Vector2(x0 + sway, top), Vector2(x0 + 35.0 + sway, top),
 			Vector2(x0 + 240.0 + sway, bottom), Vector2(x0 + 97.0 + sway, bottom)
-		]), Color(0.3, 0.97, 0.9, 0.025 * solar))
+		]), Color(0.3, 0.97, 0.9, 0.055 * solar))
 
 func _draw_marine_snow(area: Rect2) -> void:
 	# Deterministic, camera-local particle grid. No per-frame random allocations.
@@ -634,47 +685,20 @@ func _draw_deep_visibility(area: Rect2) -> void:
 		]), Color(0.12, 0.67, 0.69, 0.026))
 
 func _draw_hud() -> void:
-	# HUD uses Camera2D center but is drawn after darkness and world scenery.
 	var center := camera.get_screen_center_position()
-	var x := center.x - 650.0
-	var y := center.y - 370.0
-	draw_rect(Rect2(x + 18, y + 14, 472, 141), Color(0.018, 0.069, 0.10, 0.91))
-	_text("ABYSSAL  |  EXPLORACAO NATIVA", Vector2(x + 31, y + 38), 18, Color("#c9f7f4"))
-	_bar(Vector2(x + 32, y + 54), 290.0, diver.oxygen / diver.oxygen_capacity, Color("#52cddb"))
-	_text("O2 %ds" % int(diver.oxygen), Vector2(x + 336, y + 66), 15, Color("#b8ece9"))
-	_bar(Vector2(x + 32, y + 81), 290.0, diver.health / diver.MAX_HEALTH, Color("#e9ac8b"))
-	_text("VIDA", Vector2(x + 336, y + 93), 15, Color("#b8ece9"))
-	_text("PROF. %.0f m  |  LIMITE %d m  |  PRESSAO %.1f atm" % [
-		diver.depth_m, int(diver.safe_depth), 1.0 + diver.depth_m / 10.0
-	], Vector2(x + 31, y + 121), 15, Color("#c9f7f4"))
-	_text("SOL %d%%  |  DESCOBERTAS %d" % [int(_sunlight() * 100.0), discovered.size()],
-		Vector2(x + 31, y + 146), 14, Color("#85d9dc"))
-	if diver.depth_m > diver.safe_depth:
-		_text("PRESSAO CRITICA! SUBA OU APRIMORE O TRAJE", Vector2(x + 390, y + 170), 18, Color("#f5b26a"))
+	var origin := center-Vector2(703.0,396.0)
+	var viewport_rect := Rect2(origin,Vector2(1406.0,792.0))
+	var deposit_seconds := 2.0
 	if not nearest_deposit.is_empty():
-		var kind := str(nearest_deposit["type"])
-		var required: String = Deposits.tool_for(kind)
-		var name: String = str(ProgressScript.RESOURCE_NAMES.get(kind, kind)) if progress != null else kind
-		_text("G  EXTRAIR: %s  [%s]" % [name, "2" if required == "emptyCylinder" else "1"],
-			Vector2(x + 350, y + 312), 18, Color("#f9d99b"))
-		if extraction_time > 0.0:
-			_bar(Vector2(x + 353, y + 324), 270.0, extraction_time / Deposits.duration_for(kind), Color("#e9b574"))
-	if not nearest.is_empty():
-		_text("F  OBSERVAR: %s" % nearest["name"], Vector2(x + 350, y + 356), 18, Color("#b4eeeb"))
-	if time_s < status_until:
-		_text(status_message, Vector2(x + 350, y + 405), 18, Color("#e9c491"))
-	_draw_sonar(x, y)
-	_draw_quick_tools(x, y)
-	draw_rect(Rect2(x + 24.0, y + 679.0, 900.0, 34.0), Color(0.016, 0.044, 0.068, 0.78))
-	_text("WASD NADAR   G EXTRAIR   F OBSERVAR   I INVENTARIO   M MAPA   TAB DIARIO   ESC CABINE",
-		Vector2(x + 36, y + 712), 14, Color("#cff7ec"))
+		deposit_seconds = Deposits.duration_for(str(nearest_deposit["type"]))
+	NativeHUD.paint(self,viewport_rect,diver,progress,discovered.size(),nearest_deposit,
+		extraction_time,deposit_seconds,nearest,status_message,time_s<status_until,_sunlight())
 	if inventory_open:
-		_draw_inventory_panel(x, y)
+		_draw_inventory_panel(origin.x,origin.y)
 	elif chart_open:
-		_draw_navigation_chart(x, y)
+		_draw_navigation_chart(origin.x,origin.y)
 	elif field_guide_open:
-		_draw_field_guide(x, y)
-
+		_draw_field_guide(origin.x,origin.y)
 func _draw_quick_tools(x: float, y: float) -> void:
 	if progress == null:
 		return
