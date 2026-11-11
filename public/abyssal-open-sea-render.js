@@ -544,6 +544,18 @@
     });
    }
 
+   // Extruded rear geology gives an actual directional depth cue to the
+   // physical rock outline instead of painting a flat circle.
+   const extrudeX=Math.min(28,rock.rx*.085),extrudeY=Math.min(33,rock.ry*.075);
+   const sideShade=ctx.createLinearGradient(rock.x,rock.y,
+    rock.x+extrudeX,rock.y+extrudeY);
+   sideShade.addColorStop(0,'#0b2838');sideShade.addColorStop(1,'#041522');
+   ctx.fillStyle=sideShade;ctx.beginPath();
+   for(let k=0;k<verts.length;k++){
+    const v=verts[k];if(!k)ctx.moveTo(v.x+extrudeX,v.y+extrudeY);
+    else ctx.lineTo(v.x+extrudeX,v.y+extrudeY);
+   }ctx.closePath();ctx.fill();
+   ctx.strokeStyle='rgba(84,167,179,.18)';ctx.lineWidth=2;ctx.stroke();
    // ── Base fill with gradient ──
    const gradient=ctx.createLinearGradient(rock.x-rock.rx,rock.y-rock.ry,rock.x+rock.rx*.3,rock.y+rock.ry);
    gradient.addColorStop(0,lit>.12?pal.faces[0]:pal.faces[0]);
