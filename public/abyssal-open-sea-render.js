@@ -469,6 +469,53 @@
     ctx.restore();
    }
  }
+ // Sessile luminous colonies grow only on collision-backed basalt surfaces.
+ // The bright buds give geological corridors readable depth without creating
+ // fake platforms, occlusion, or interactive resource nodes.
+ function drawDeepRockColonies(ctx,left,top,right,bottom,time,lowPower){
+  if(lowPower)return;
+  let visible=0;
+  for(const rock of geo.ROCKS){
+   if(visible>=14)break;
+   if(rock.x+rock.rx<left-140||rock.x-rock.rx>right+140||
+      rock.y+rock.ry<top-140||rock.y-rock.ry>bottom+140)continue;
+   if(geo.visualBiomeAt?.(rock.x,rock.y)?.id!=='geological')continue;
+   const seed=seeded(rock.x*.011+13,rock.y*.013+29);
+   if(seed<.26)continue;
+   for(let slot=0;slot<3&&visible<14;slot++){
+    if(seeded(rock.x+slot*13,rock.y+7)<.37)continue;
+    const angle=-2.45+slot*.83;
+    const point=geo.rockSurfaceAt(rock,angle,3);
+    if(point.x<left-90||point.x>right+90||
+       point.y<top-90||point.y>bottom+90)continue;
+    visible++;
+    const cool=seeded(rock.y+slot*37,rock.x)<.72;
+    const rgb=cool?'82,234,224':'174,154,244';
+    const pulse=.86+.14*Math.sin(time*.001+seed*TAU+slot);
+    const radius=72+seed*52;
+    ctx.save();ctx.globalCompositeOperation='screen';
+    const glow=ctx.createRadialGradient(point.x,point.y-10,2,point.x,point.y-10,radius);
+    glow.addColorStop(0,'rgba('+rgb+','+(.29*pulse).toFixed(3)+')');
+    glow.addColorStop(.36,'rgba('+rgb+','+(.115*pulse).toFixed(3)+')');
+    glow.addColorStop(1,'rgba('+rgb+',0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(point.x-radius,point.y-radius-10,radius*2,radius*2);
+    ctx.translate(point.x,point.y);
+    for(let branch=0;branch<6;branch++){
+     const spread=(branch-2.5)*9,reach=16+seeded(branch+7,rock.x+slot)*27;
+     const tipX=spread+Math.sin(time*.00065+branch+seed*9)*4;
+     const tipY=-reach;
+     ctx.lineWidth=1.6+seeded(branch,rock.y)*1.1;
+     ctx.strokeStyle='rgba('+rgb+','+(.34+.24*pulse).toFixed(3)+')';
+     ctx.beginPath();ctx.moveTo(0,2);
+     ctx.quadraticCurveTo(spread*.36,-reach*.57,tipX,tipY);ctx.stroke();
+     ctx.fillStyle='rgba('+rgb+','+(.52+.40*pulse).toFixed(3)+')';
+     ctx.beginPath();ctx.arc(tipX,tipY,2.3+seeded(branch,slot)*1.6,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+   }
+  }
+ }
  // ─── Depth haze — blue-tinted atmospheric fog ──────────────────────
  function drawDepthHaze(ctx,left,top,right,bottom){
   const depthTop=geo.metersAt(top),depthBottom=geo.metersAt(bottom);
@@ -1088,6 +1135,7 @@
   drawFloor(ctx,left,right,bottom);
   drawFloorDetails(ctx,left,top,right,bottom,lowPower);
   drawRocks(ctx,left,top,right,bottom,lowPower);
+  drawDeepRockColonies(ctx,left,top,right,bottom,time,lowPower);
   drawCaves(ctx,left,top,right,bottom);
   drawSediment(ctx,left,top,right,bottom,time,lowPower);
   drawAmbientHabitat(ctx,left,top,right,bottom,time,lowPower);

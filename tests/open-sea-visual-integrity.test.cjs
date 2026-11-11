@@ -82,3 +82,13 @@ test('deep geological waters contain camera-culled living light without altering
  assert.match(source,/if\(lowPower\)continue;/);
  assert.ok(geo.ROCKS.length>0);
 });
+
+test('geological bioluminescent colonies are anchored to real rock surfaces and capped',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../public/abyssal-open-sea-render.js'),'utf8');
+ assert.match(source,/function drawDeepRockColonies\(/);
+ assert.match(source,/geo\.rockSurfaceAt\(rock,angle,3\)/);
+ assert.match(source,/if\(visible>=14\)break/);
+ assert.match(source,/if\(lowPower\)return/);
+ assert.match(source,/drawDeepRockColonies\(ctx,left,top,right,bottom,time,lowPower\)/);
+});
