@@ -31,7 +31,7 @@ test('multiplayer heartbeat exists only for a visible active room',()=>{
  assert.match(online,/currentRoom=data\.room\|\|null;startPositionHeartbeat\(\)/);
  assert.match(online,/socket\.on\('world-left'[\s\S]*?stopPositionHeartbeat\(\)/);
  assert.match(online,/socket\.on\('disconnect'[\s\S]*?stopPositionHeartbeat\(\)/);
- assert.match(online,/if\(hidden\)stopPositionHeartbeat\(\);else if\(currentRoom\)startPositionHeartbeat\(\)/);
+ assert.match(online,/if\(hidden\)\{[\s\S]*?stopPositionHeartbeat\(\)[\s\S]*?\}else\{[\s\S]*?if\(currentRoom\)startPositionHeartbeat\(\)/);
 });
 
 test('remote player render state is released when peers leave or the room closes',()=>{
