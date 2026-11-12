@@ -804,7 +804,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
     const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
     enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
-    if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;}
+    if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;enemy.sharkChargeRemaining=0;enemy.sharkCharging=false;enemy.sharkRecoveryRemaining=1.2;}
     movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
     movement.target=actualTarget;
     if (!movement.moved && actualTarget && dt > 0) {
@@ -883,7 +883,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // latest sample plus a small jitter buffer. It can never report a hit outside the
     // visible body-to-body collision envelope after compensation.
     const predictedDrift = Math.hypot(vx, vy) * predictionSeconds;
-    const contactSafetyMargin = target.clientHidden === true ? 0 : Math.min(28, 8 + predictedDrift);
+    const contactSafetyMargin = target.clientHidden === true ? 0 : Math.min(EnemyAI.isChargeAttack(enemy)?28:10/WORLD_ZOOM, 8 + predictedDrift);
     // Visible-player contact is deliberately stricter than the solo padding radius. The
     // client is locally predicting its own movement between position packets; this margin
     // compensates for the short sampling/network window so the sprite must actually be
