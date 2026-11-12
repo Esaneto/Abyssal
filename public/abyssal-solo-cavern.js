@@ -16,45 +16,89 @@
    [.115,.245,.140,.055,-.23],[.33,.31,.097,.044,.21],[.69,.255,.132,.051,-.14],[.91,.36,.089,.049,.55],
    [.14,.58,.127,.057,.16],[.39,.55,.050,.109,-.26],[.64,.56,.061,.105,.31],[.87,.64,.117,.044,-.21],
    [.25,.83,.143,.055,-.22],[.53,.83,.087,.047,.12],[.79,.87,.114,.042,-.18],
-   [.095,.82,.038,.092,.11],[.49,.16,.038,.033,.25],[.945,.12,.05,.032,-.17]
+   [.095,.82,.038,.092,.11],[.47,.202,.152,.052,-.10],[.535,.038,.131,.035,.04]
   ];
   return features.map(([fx,fy,a,b,angle],index)=>{
    const rx=s*a,ry=s*b,vertices=[];
-   for(let k=0;k<48;k++){const phi=TAU*k/48;vertices.push([Math.cos(phi)*rx,Math.sin(phi)*ry]);}
-   return {x:w*fx,y:h*fy,rx,ry,r:Math.max(rx,ry),angle,vertices,shade:.14+index%5*.115,seed:900+index,edge:'cavern',cavernSolid:true,visualOnly:false};
+   // Irregular eroded rock contour. Collision, shadows and art share this polygon.
+   for(let k=0;k<40;k++){
+    const phi=TAU*k/40,grain=.92+.052*Math.sin(phi*5+index*1.7)+.035*Math.sin(phi*11-index*2)+.022*Math.cos(phi*17+index);
+    vertices.push([Math.cos(phi)*rx*grain,Math.sin(phi)*ry*grain]);
+   }
+   const r=Math.max(...vertices.map(v=>Math.hypot(...v)));
+   return {x:w*fx,y:h*fy,rx,ry,r,angle,vertices,shade:.14+index%5*.115,seed:900+index,edge:'cavern',cavernSolid:true,visualOnly:false};
   });
+ }
+ function local(r,x,y){
+  const a=-(r.angle||0),ca=Math.cos(a),sa=Math.sin(a),dx=x-r.x,dy=y-r.y;
+  return [dx*ca-dy*sa,dx*sa+dy*ca];
+ }
+ const cross=(ax,ay,bx,by)=>ax*by-ay*bx;
+ function pointSegment2(x,y,a,b){
+  const dx=b[0]-a[0],dy=b[1]-a[1],q=clamp(((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy||1),0,1);
+  return (x-a[0]-dx*q)**2+(y-a[1]-dy*q)**2;
+ }
+ function contains(pts,x,y,pad=0){
+  let inside=false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+   const a=pts[j],b=pts[i];
+   if(pad>0&&pointSegment2(x,y,a,b)<pad*pad)return true;
+   if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+  }return inside;
+ }
+ function lineParameter(x,y,dx,dy,a,b){
+  const sx=b[0]-a[0],sy=b[1]-a[1],den=cross(dx,dy,sx,sy);
+  if(Math.abs(den)<1e-9)return Infinity;
+  const ax=a[0]-x,ay=a[1]-y,t=cross(ax,ay,sx,sy)/den,u=cross(ax,ay,dx,dy)/den;
+  return t>=0&&u>=0&&u<=1?t:Infinity;
+ }
+ function segmentRock(r,x1,y1,x2,y2,padding){
+  const a=local(r,x1,y1),b=local(r,x2,y2),rx=r.rx*1.06+padding,ry=r.ry*1.06+padding;
+  if(Math.min(a[0],b[0])>rx||Math.max(a[0],b[0])<-rx||Math.min(a[1],b[1])>ry||Math.max(a[1],b[1])<-ry)return false;
+  const pts=r.vertices,dx=b[0]-a[0],dy=b[1]-a[1];
+  if(contains(pts,a[0],a[1],padding)||contains(pts,b[0],b[1],padding))return true;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+   const p=pts[j],q=pts[i];
+   if(lineParameter(a[0],a[1],dx,dy,p,q)<=1)return true;
+   if(padding>0&&pointSegment2(p[0],p[1],a,b)<padding*padding)return true;
+  }return false;
  }
  function isBlocked(rocks,x,y,padding=0){
   for(const r of rocks||[]){
    if(!r.cavernSolid||r.visualOnly)continue;
-   const dx=x-r.x,dy=y-r.y,reach=r.r+padding;
-   if(Math.abs(dx)>reach||Math.abs(dy)>reach)continue;
-   const a=-(r.angle||0),ca=Math.cos(a),sa=Math.sin(a);
-   if(((dx*ca-dy*sa)/(r.rx+padding))**2+((dx*sa+dy*ca)/(r.ry+padding))**2<1)return true;
+   if(Math.abs(x-r.x)>r.r+padding||Math.abs(y-r.y)>r.r+padding)continue;
+   const p=local(r,x,y);
+   if(Math.abs(p[0])<=r.rx*1.06+padding&&Math.abs(p[1])<=r.ry*1.06+padding&&contains(r.vertices,p[0],p[1],padding))return true;
   }return false;
  }
  function resolve(rocks,fromX,fromY,toX,toY,padding=0){
   const d=Math.hypot(toX-fromX,toY-fromY),steps=clamp(Math.ceil(d/Math.max(3,padding*.6)),1,1000);
+  const dx=(toX-fromX)/steps,dy=(toY-fromY)/steps;
   let x=fromX,y=fromY,blocked=false;
-  for(let i=1;i<=steps;i++){
-   const tx=fromX+(toX-fromX)*i/steps,ty=fromY+(toY-fromY)*i/steps;
-   if(!isBlocked(rocks,tx,ty,padding)){x=tx;y=ty;continue;}
+  // Integrate from the last accepted point, never skip through a solid rock.
+  for(let i=0;i<steps;i++){
+   const tx=x+dx,ty=y+dy;
+   if(!segmentBlocked(rocks,x,y,tx,ty,padding)){x=tx;y=ty;continue;}
    blocked=true;
-   if(!isBlocked(rocks,tx,y,padding))x=tx;
-   else if(!isBlocked(rocks,x,ty,padding))y=ty;
+   if(!segmentBlocked(rocks,x,y,tx,y,padding))x=tx;
+   else if(!segmentBlocked(rocks,x,y,x,ty,padding))y=ty;
   }return {x,y,blocked};
  }
  function segmentBlocked(rocks,x1,y1,x2,y2,padding=0){
-  // Exact segment/expanded-ellipse intersection: no missed thin rock at speed.
   for(const r of rocks||[]){
    if(!r.cavernSolid||r.visualOnly)continue;
-   const a=-(r.angle||0),ca=Math.cos(a),sa=Math.sin(a),rx=r.rx+padding,ry=r.ry+padding;
-   const ox=x1-r.x,oy=y1-r.y,dx=x2-x1,dy=y2-y1;
-   const px=(ox*ca-oy*sa)/rx,py=(ox*sa+oy*ca)/ry;
-   const vx=(dx*ca-dy*sa)/rx,vy=(dx*sa+dy*ca)/ry;
-   const q=clamp(-(px*vx+py*vy)/(vx*vx+vy*vy||1),0,1);
-   if((px+vx*q)**2+(py+vy*q)**2<1)return true;
+   if(Math.min(x1,x2)>r.x+r.r+padding||Math.max(x1,x2)<r.x-r.r-padding||Math.min(y1,y2)>r.y+r.r+padding||Math.max(y1,y2)<r.y-r.r-padding)continue;
+   if(segmentRock(r,x1,y1,x2,y2,padding))return true;
   }return false;
+ }
+ function rayDistance(rocks,x,y,dx,dy,range){
+  let limit=range;
+  for(const r of rocks||[]){
+   if(!r.cavernSolid||r.visualOnly)continue;
+   if(Math.min(x,x+dx*limit)>r.x+r.r||Math.max(x,x+dx*limit)<r.x-r.r||Math.min(y,y+dy*limit)>r.y+r.r||Math.max(y,y+dy*limit)<r.y-r.r)continue;
+   const a=local(r,x,y),b=local(r,x+dx,y+dy),vx=b[0]-a[0],vy=b[1]-a[1],pts=r.vertices;
+   for(let i=0,j=pts.length-1;i<pts.length;j=i++){const t=lineParameter(a[0],a[1],vx,vy,pts[j],pts[i]);if(t<limit)limit=t;}
+  }return limit;
  }
  const CELL=64,DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
  function gridFor(rocks,w,h,padding){
@@ -111,39 +155,83 @@
   return {...best,direct:false,blocked:false};
  }
  function path(c,pts){c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();}
+ function organicPath(c,pts){
+  const n=pts.length,last=pts[n-1],first=pts[0];c.beginPath();c.moveTo((last[0]+first[0])/2,(last[1]+first[1])/2);
+  for(let i=0;i<n;i++){const a=pts[i],b=pts[(i+1)%n];c.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2);}c.closePath();
+ }
  function linear(c,x1,y1,x2,y2,stops){const g=c.createLinearGradient(x1,y1,x2,y2);for(const [p,col]of stops)g.addColorStop(p,col);return g;}
  function radial(c,x,y,r,stops){const g=c.createRadialGradient(x,y,0,x,y,r);for(const [p,col]of stops)g.addColorStop(p,col);return g;}
  let worldCache=null;
  function worldArt(w,h){
-  const rnd=rng(1729),mass=[],beams=[],particles=[];
-  // Fixed world silhouettes, distributed in both axes, never camera-relative.
+  const rnd=rng(1729),mass=[],beams=[],particles=[],arches=[],ridges=[],growth=[];
+  // Depth planes have distinct color and scale, like geological relief in a
+  // submerged cavern. All coordinates are fixed in the 4800 x 3000 world.
   for(let layer=0;layer<3;layer++){
-   for(let i=0;i<28;i++){
-    const x=rnd()*w,y=rnd()*h,rx=190+rnd()*560,ry=95+rnd()*280,ang=(rnd()-.5)*1.5,pts=[];
-    for(let j=0;j<38;j++){const a=j/38*TAU,r=.88+.09*Math.sin(a*5+i)+.04*Math.cos(a*13+layer);const xx=Math.cos(a)*rx*r,yy=Math.sin(a)*ry*r;pts.push([x+xx*Math.cos(ang)-yy*Math.sin(ang),y+xx*Math.sin(ang)+yy*Math.cos(ang)]);}
+   for(let i=0;i<15;i++){
+    const x=rnd()*w,y=rnd()*h,rx=300+rnd()*760,ry=150+rnd()*340,ang=(rnd()-.5)*1.3,pts=[];
+    for(let j=0;j<48;j++){const a=j/48*TAU,r=.83+.09*Math.sin(a*5+i)+.05*Math.cos(a*9+layer)+.025*Math.sin(a*21+i);const xx=Math.cos(a)*rx*r,yy=Math.sin(a)*ry*r;pts.push([x+xx*Math.cos(ang)-yy*Math.sin(ang),y+xx*Math.sin(ang)+yy*Math.cos(ang)]);}
     mass.push({x,y,rx,ry,layer,pts});
    }
+   for(let i=0;i<7;i++){
+    const x=220+i*(w/6.8)+(layer-1)*185,y=h*(.14+.30*(i%3))+rnd()*170;
+    arches.push({x,y,rx:390+rnd()*300,ry:250+rnd()*280,layer,seed:71+i+layer*23});
+   }
+   for(let i=0;i<4;i++){
+    const x=-300+i*(w/3.2)+(layer-1)*180,y=h*(.22+((i+layer)%3)*.28),rw=1500+rnd()*1000,pts=[];
+    for(let j=0;j<=52;j++){const xx=x+rw*j/52,yy=y+noise(xx,layer*9+i*4)*160+Math.sin(j*.17+i)*65;pts.push([xx,yy]);}
+    for(let j=52;j>=0;j--){const xx=x+rw*j/52,yy=y+noise(xx,layer*9+i*4)*160+Math.sin(j*.17+i)*65+90+layer*60+noise(xx,i+31)*40;pts.push([xx,yy]);}
+    ridges.push({x,y,rw,layer,pts});
+   }
   }
-  for(let i=0;i<20;i++)beams.push({x:rnd()*w,y:rnd()*h,r:280+rnd()*650,a:.07+rnd()*.12});
-  for(let i=0;i<240;i++)particles.push({x:rnd()*w,y:rnd()*h,r:.5+rnd()*2,phase:rnd()*TAU});
-  return {w,h,mass,beams,particles};
+  // Irregular ledges and hanging details in the starting vista; the same
+  // structures continue naturally in every direction, not around the camera.
+  for(let i=0;i<16;i++)beams.push({x:rnd()*w,y:rnd()*h,r:330+rnd()*700,a:.10+rnd()*.18});
+  beams.push({x:w*.56,y:h*.105,r:1050,a:.32});
+  for(let i=0;i<380;i++)particles.push({x:rnd()*w,y:rnd()*h,r:.45+rnd()*1.8,phase:rnd()*TAU});
+  for(let i=0;i<95;i++)growth.push({x:rnd()*w,y:rnd()*h,len:12+rnd()*39,seed:i*17+71});
+  return {w,h,mass,beams,particles,arches,ridges,growth};
+ }
+ function drawFarArch(c,o){
+  const {x,y,rx,ry,layer,seed}=o;
+  c.save();c.translate(x,y);c.scale(rx,ry);
+  const a=.06*Math.sin(seed);
+  // Asymmetric arch, not an ellipse: weathered arms enclose an open passage.
+  c.beginPath();c.moveTo(-1,.72);c.bezierCurveTo(-1.2,-.2,-.62,-1.1,.12+a,-.88);
+  c.bezierCurveTo(.65,-.96,1.13,-.33,1,.67);c.lineTo(.63,.72);
+  c.bezierCurveTo(.83,.12,.49,-.45,.06,-.49);c.bezierCurveTo(-.46,-.63,-.79,.02,-.65,.72);c.closePath();
+  c.fillStyle=['rgba(40,115,125,.41)','rgba(18,68,82,.60)','rgba(8,40,53,.75)'][layer];c.fill();
+  c.strokeStyle=['rgba(83,165,172,.15)','rgba(58,120,129,.14)','rgba(34,84,91,.15)'][layer];c.lineWidth=.012;c.stroke();
+  c.restore();
  }
  function paint(c,view,t,w=4800,h=3000){
   if(!worldCache||worldCache.w!==w||worldCache.h!==h)worldCache=worldArt(w,h);
   const {left,top,width,height}=view,right=left+width,bottom=top+height;
-  c.save();c.fillStyle=linear(c,0,0,w,h,[[0,'#0d4851'],[.35,'#155d65'],[.73,'#08323e'],[1,'#051c29']]);c.fillRect(left,top,width,height);
+  c.save();
+  c.fillStyle=linear(c,0,0,w,h,[[0,'#205964'],[.26,'#277b85'],[.56,'#175566'],[.8,'#0b3445'],[1,'#071e30']]);c.fillRect(left,top,width,height);
+  // Diffuse caustic pools are placed in the map. No screen-centred spotlight.
   for(const b of worldCache.beams){if(b.x+b.r<left||b.x-b.r>right||b.y+b.r<top||b.y-b.r>bottom)continue;
-   c.fillStyle=radial(c,b.x,b.y,b.r,[[0,'rgba(69,183,184,'+b.a+')'],[.5,'rgba(31,118,127,.09)'],[1,'rgba(4,26,39,0)']]);c.fillRect(b.x-b.r,b.y-b.r,b.r*2,b.r*2);}
-  for(const m of worldCache.mass){const r=Math.max(m.rx,m.ry);if(m.x+r<left||m.x-r>right||m.y+r<top||m.y-r>bottom)continue;
-   path(c,m.pts);c.fillStyle=['#1c6570','#103e4a','#092a36'][m.layer];c.globalAlpha=[.35,.48,.57][m.layer];c.fill();
-   c.strokeStyle=['#38818a','#25616d','#17434c'][m.layer];c.lineWidth=4;c.stroke();
+   c.fillStyle=radial(c,b.x,b.y,b.r,[[0,'rgba(101,223,216,'+b.a+')'],[.45,'rgba(54,153,163,.14)'],[1,'rgba(4,26,39,0)']]);c.fillRect(b.x-b.r,b.y-b.r,b.r*2,b.r*2);}
+  for(let layer=0;layer<3;layer++){
+   for(const m of worldCache.mass){if(m.layer!==layer)continue;const r=Math.max(m.rx,m.ry)*1.1;if(m.x+r<left||m.x-r>right||m.y+r<top||m.y-r>bottom)continue;
+    organicPath(c,m.pts);c.fillStyle=linear(c,m.x,m.y-m.ry,m.x,m.y+m.ry,
+     layer===0?[[0,'#37838a'],[.55,'#286f79'],[1,'#174e60']]:layer===1?[[0,'#25606a'],[.6,'#194953'],[1,'#0d3544']]:[[0,'#153f4a'],[.55,'#10313d'],[1,'#09222f']]);
+    c.globalAlpha=[.46,.58,.70][layer];c.fill();c.globalAlpha=1;
+    c.strokeStyle=['rgba(110,186,187,.13)','rgba(71,137,142,.17)','rgba(55,99,105,.17)'][layer];c.lineWidth=2.4;c.stroke();
+   }
+   for(const a of worldCache.arches){if(a.layer!==layer||a.x+a.rx<left||a.x-a.rx>right||a.y+a.ry<top||a.y-a.ry>bottom)continue;drawFarArch(c,a);}
+   for(const r of worldCache.ridges){if(r.layer!==layer||r.x+r.rw<left||r.x>right||r.y+500<top||r.y-250>bottom)continue;
+    organicPath(c,r.pts);c.fillStyle=linear(c,0,r.y-130,0,r.y+270,
+     [[0,['#397c80','#28616a','#143c47'][layer]],[.45,['#2b6870','#194953','#102f3d'][layer]],[1,['#1c5360','#123d49','#0b2631'][layer]]]);c.globalAlpha=.7;c.fill();c.globalAlpha=1;
+    c.strokeStyle='rgba(106,182,175,.14)';c.lineWidth=2;c.stroke();
+   }
   }
-  c.globalAlpha=1;
-  // Long, eroded distant strata are anchored to the world, not screen edges.
-  for(let j=0;j<5;j++){const base=h*(.13+j*.19);c.beginPath();c.moveTo(0,base);for(let x=0;x<=w+25;x+=25)c.lineTo(x,base+noise(x,j*9)*80);
-   c.strokeStyle='rgba(46,121,130,.15)';c.lineWidth=15;c.stroke();}
+  // Thin silt, light-shaft noise and distant attached vegetation.
+  for(const g of worldCache.growth){if(g.x<left-45||g.x>right+45||g.y<top-60||g.y>bottom+50)continue;
+   const a=.08+(g.seed%7)*.017;c.strokeStyle='rgba(8,47,48,'+a+')';c.lineWidth=2;c.beginPath();c.moveTo(g.x,g.y);
+   c.quadraticCurveTo(g.x+8,g.y-g.len*.5,g.x+Math.sin(t*.0009+g.seed)*6,g.y-g.len);c.stroke();
+  }
   for(const p of worldCache.particles){const y=((p.y-t*.006)%h+h)%h,x=p.x+Math.sin(t*.0005+p.phase)*8;if(x<left||x>right||y<top||y>bottom)continue;
-   c.fillStyle='rgba(147,213,210,'+(.12+.10*Math.sin(t*.001+p.phase)).toFixed(3)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
+   c.fillStyle='rgba(175,228,220,'+(.14+.12*Math.sin(t*.001+p.phase)).toFixed(3)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   c.restore();
  }
  function drawRocks(c,rocks,view,t){
@@ -151,17 +239,19 @@
   for(const r of rocks){if(!r.cavernSolid||r.x+r.r+100<left||r.x-r.r-100>right||r.y+r.r+100<top||r.y-r.r-100>bottom)continue;
    c.save();c.translate(r.x,r.y);c.rotate(r.angle||0);
    // Physical ellipse silhouette and layered fractured basalt, without neon rims.
-   path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#17373b'],[.19,'#0a2329'],[.54,'#06151d'],[1,'#020b12']]);c.fill();
+   path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#204d4e'],[.20,'#122e35'],[.47,'#071b23'],[1,'#02090f']]);c.fill();
    c.save();c.clip();const rnd=rng(r.seed);
-   for(let j=0;j<14;j++){const x=(rnd()*2-1)*r.rx,y=(rnd()*2-1)*r.ry,l=30+rnd()*r.rx*.6;
+   for(let j=0;j<25;j++){const x=(rnd()*2-1)*r.rx,y=(rnd()*2-1)*r.ry,l=30+rnd()*r.rx*.6;
     path(c,[[x,y],[x+l*.32,y-18],[x+l,y+10],[x+l*.71,y+36],[x-12,y+24]]);
-    c.fillStyle=j%3===0?'rgba(44,85,82,.14)':'rgba(1,9,15,.30)';c.fill();}
+    c.fillStyle=j%3===0?'rgba(65,112,108,.20)':'rgba(1,9,15,.30)';c.fill();
+    if(j%3===0){c.strokeStyle='rgba(82,137,130,.14)';c.lineWidth=1.5;c.stroke();}}
    c.restore();
    // Sparse kelp and branching growth follow real rock surfaces.
-   for(let j=0;j<8;j++){const a=-Math.PI+.15+j/7*(Math.PI-.3),x=Math.cos(a)*r.rx,y=Math.sin(a)*r.ry,ln=15+((r.seed+j*17)%37);
+   for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),[x,y]=r.vertices[k],ln=16+((r.seed+j*17)%49);
     const sway=Math.sin(t*.0014+j+r.seed)*5;
-    c.strokeStyle='#112d2d';c.lineWidth=3+(j%3);c.lineCap='round';c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+sway,y-ln*.5,x+sway*.7,y-ln);c.stroke();
-    for(let k=1;k<4;k++){const yy=y-ln*k/4,xx=x+sway*k/4,side=k%2?1:-1;c.beginPath();c.moveTo(xx,yy);c.quadraticCurveTo(xx+side*12,yy-4,xx+side*15,yy-13);c.lineWidth=2;c.stroke();}
+    c.strokeStyle='#132e2f';c.lineWidth=2.8+(j%3);c.lineCap='round';c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+sway,y-ln*.5,x+sway*.7,y-ln);c.stroke();
+    for(let k=1;k<4;k++){const yy=y-ln*k/4,xx=x+sway*k/4,side=k%2?1:-1;c.beginPath();c.moveTo(xx,yy);c.quadraticCurveTo(xx+side*12,yy-4,xx+side*15,yy-13);c.lineWidth=2;c.stroke();
+     c.beginPath();c.moveTo(xx+side*6,yy-3);c.quadraticCurveTo(xx+side*22,yy-14,xx+side*13,yy-19);c.quadraticCurveTo(xx+side*10,yy-12,xx+side*6,yy-3);c.fillStyle='#153638';c.fill();}
    }
    c.restore();
   }
@@ -171,27 +261,30 @@
  function lighting(c,view,player,level,rocks,t){
   if(!player||!Number.isFinite(player.x))return;
   const {left,top,width:w,height:h}=view,p=lampParameters(level),a=Number.isFinite(player.weaponAngle)?player.weaponAngle:Number(player.angle)||0;
-  const x=player.x,y=player.y;
+  const heading=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0,bodyScale=(Number(player.r)||17)*.60/14;
+  const x=player.x+Math.cos(heading)*42*bodyScale+Math.sin(heading)*9*bodyScale,y=player.y+Math.sin(heading)*42*bodyScale-Math.cos(heading)*9*bodyScale;
   // Render a separate darkness mask so destination-out never erases world pixels.
   if(typeof document==='undefined')return;
   const scale=Math.min(1,1600/Math.max(w,h)),cw=Math.max(1,Math.ceil(w*scale)),ch=Math.max(1,Math.ceil(h*scale));
   if(!lightLayer){lightLayer=document.createElement('canvas');}
   if(lightLayer.width!==cw||lightLayer.height!==ch){lightLayer.width=cw;lightLayer.height=ch;}
   const m=lightLayer.getContext('2d');m.setTransform(cw/w,0,0,ch/h,-left*cw/w,-top*ch/h);
-  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,6,10,.74)';m.fillRect(left,top,w,h);
+  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,6,10,.62)';m.fillRect(left,top,w,h);
   m.globalCompositeOperation='destination-out';
   const reveal=(r,stops)=>{m.fillStyle=radial(m,x,y,r,stops);m.fillRect(x-r,y-r,r*2,r*2);};
   reveal(p.halo,[[0,'rgba(0,0,0,.99)'],[.48,'rgba(0,0,0,.78)'],[1,'rgba(0,0,0,0)']]);
-  // Raycast the beam against the same physical solids used by shots and AI.
-  m.save();m.beginPath();m.moveTo(x,y);
-  for(let i=0;i<=72;i++){const angle=a-p.halfAngle+i/72*p.halfAngle*2,dx=Math.cos(angle),dy=Math.sin(angle);
-   let lo=0,hi=p.range;
-   if(segmentBlocked(rocks,x,y,x+dx*hi,y+dy*hi,0)){for(let k=0;k<10;k++){const mid=(lo+hi)/2;if(segmentBlocked(rocks,x,y,x+dx*mid,y+dy*mid,0))hi=mid;else lo=mid;}}else lo=hi;
-   m.lineTo(x+dx*lo,y+dy*lo);
-  }m.closePath();m.clip();
-  reveal(p.range,[[0,'rgba(0,0,0,1)'],[.40,'rgba(0,0,0,.94)'],[.76,'rgba(0,0,0,.55)'],[1,'rgba(0,0,0,0)']]);
-  m.restore();m.globalCompositeOperation='source-over';
+  // Three feathered cone passes: the soft edge retains volumetric water
+  // scattering; the actual ray hits are shared with projectile collision.
+  for(const [fraction,intensity] of [[1,.34],[.88,.43],[.72,.67],[.56,.54]]){
+   const arc=p.halfAngle*fraction;m.save();m.beginPath();m.moveTo(x,y);
+   for(let i=0;i<=40;i++){
+    const angle=a-arc+i/40*arc*2,dx=Math.cos(angle),dy=Math.sin(angle),length=rayDistance(rocks,x,y,dx,dy,p.range);
+    m.lineTo(x+dx*length,y+dy*length);
+   }m.closePath();m.clip();
+   reveal(p.range,[[0,'rgba(0,0,0,'+intensity+')'],[.37,'rgba(0,0,0,'+(intensity*.94)+')'],[.72,'rgba(0,0,0,'+(intensity*.53)+')'],[1,'rgba(0,0,0,0)']]);m.restore();
+  }
+  m.globalCompositeOperation='source-over';
   c.save();c.drawImage(lightLayer,left,top,w,h);c.restore();
  }
- return Object.freeze({buildRocks,isBlocked,resolve,segmentBlocked,nearestWater,navigationTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,isBlocked,resolve,segmentBlocked,rayDistance,nearestWater,navigationTarget,paint,drawRocks,lampParameters,lighting});
 });

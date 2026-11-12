@@ -217,11 +217,15 @@ const injected=`<script>
        if(view==='minerals'&&box.querySelectorAll('.abyss-mineral-tile').length!==6)throw Error('Mineral capture lost tiles');
        if(view==='solo'&&!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR SHOOTER SOLO'))throw Error('Default cockpit launch action is missing');
       }
-      if(view==='solo'){
+      if(view==='solo'||view==='upgrades'||view==='resonance'){
        const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent==='MELHORIAS SOLO');if(!upgrade)throw Error('Solo improvements missing');upgrade.click();
        if(box.querySelectorAll('.solo-lamp-row').length!==3)throw Error('Three lamp levels missing');
-       [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
-       if(![...box.querySelectorAll('button')].some(b=>b.textContent==='RESSONÂNCIA'))throw Error('Resonance access missing');
+       if(view!=='upgrades'){
+        [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
+        const resonance=[...box.querySelectorAll('button')].find(b=>b.textContent==='RESSONÂNCIA');if(!resonance)throw Error('Resonance access missing');
+        resonance.click();const panel=document.getElementById('resonanceScreen');if(!panel||panel.hidden)throw Error('Resonance action did not open its actual screen');
+        if(view!=='resonance')panel.querySelector('[data-close-screen="resonanceScreen"]')?.click();
+       }
       }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
@@ -473,7 +477,7 @@ async function main(){
   if(process.argv.includes('--journal-only'))return;
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-minerals',1280,720,'minerals'],['cockpit-laboratory',1280,720,'lab']]){
+  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-minerals',1280,720,'minerals'],['cockpit-laboratory',1280,720,'lab'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];

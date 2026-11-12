@@ -48,3 +48,16 @@ test('Energy persists, upgrades consume collected currency and cannot overspend'
  p.credit(180);p=create(store);assert.equal(p.upgradeLamp().ok,true);
  assert.deepEqual(create(store).get(),{energy:0,lamp:3});assert.equal(p.upgradeLamp().ok,false);
 });
+
+test('The real polygon blocks the flashlight and prevents large-step tunnelling',()=>{
+ const r=rocks[0],start={x:r.x-r.r-50,y:r.y},end={x:r.x+r.r+50,y:r.y};
+ const distance=cave.rayDistance(rocks,start.x,start.y,1,0,end.x-start.x);
+ assert.ok(distance>0&&distance<end.x-start.x);
+ assert.equal(cave.segmentBlocked(rocks,start.x,start.y,end.x,end.y,0),true);
+ const pos=cave.resolve(rocks,start.x,start.y,end.x,end.y,12);
+ assert.equal(pos.blocked,true);assert.ok(pos.x<r.x);
+ assert.equal(cave.isBlocked(rocks,pos.x,pos.y,12),false);
+});
+test('Starting corridor allows real Solo horizontal movement between upper and lower shelves',()=>{
+ assert.equal(cave.segmentBlocked(rocks,2400,330,2750,330,24),false);
+});
