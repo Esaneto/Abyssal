@@ -100,7 +100,7 @@ const ANNOUNCEMENTS_FILE=path.join(DATA_DIR,'announcements.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
 const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, monthly: {}, settled: { day: '', week: '', month: '' } };
-let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));
+let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));for(const u of Object.values(users))migrateEnergy(u);
 let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
 let cardumes = readJson(CARDUMES_FILE, {});
 let announcements=readJson(ANNOUNCEMENTS_FILE,[]);if(!Array.isArray(announcements))announcements=[];
@@ -208,7 +208,7 @@ async function initializePersistence() {
  const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes','announcements')");
  const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
  if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
-  users = Object.assign(Object.create(null), stored.users);
+  users = Object.assign(Object.create(null), stored.users);for(const u of Object.values(users))migrateEnergy(u);
  } else {
   // First run: migrate whatever the old local JSON files still contain into durable storage.
   await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('users',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(users)]);
@@ -279,7 +279,8 @@ const TITLE_DEFINITIONS=[
  function titleProgress(u,kind){if(kind==='conqueror')return (u.ownedSkins||[]).includes('greensnake')||(u.titleStats||{}).conqueror?1:0;if(kind==='storeSupporter'||kind==='bossAbyssal')return u.purchaseTitles?.[kind==='storeSupporter'?'storeSupporter':'bossAbyssal']?1:0;if(kind==='likesReceived')return Array.isArray(u.likedBy)?u.likedBy.length:0;if(kind==='likesGiven')return Array.isArray(u.likedProfiles)?u.likedProfiles.length:0;return Number((u.titleStats||{})[kind==='kills'?'monstersDefeated':kind==='bosses'?'bossesDefeated':kind])||0}
  function unlockedTitleIds(u){return TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id)}
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
- function publicUser(u) { ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], coins: u.coins || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
+ function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
+ function publicUser(u) { migrateEnergy(u); ensureAccountId(u);u.matchHistory=Array.isArray(u.matchHistory)?u.matchHistory.slice(0,10):[];u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];u.equippedTitle ||= 'abyss-drifter';return { nickname: u.nickname, discoveredSpecimens:Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[], energy: u.energy || 0, ownedSkins: u.ownedSkins || ['default'], equippedSkin: u.equippedSkin || 'default', diverGender:u.diverGender==='female'?'female':'male', metaUpgrades: u.metaUpgrades || {}, researchLevels:ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels, resourceInventory:ResearchSystem.sanitizeInventory(u.resourceInventory||{}), offshoreProduction:OffshoreSystem.accrue(u.offshoreProduction||{},ResearchSystem.sanitizeLevels(u.researchLevels||{})), resonancePresets:u.resonancePresets||null, specimenProficiency:u.specimenProficiency, cardumeId:u.cardumeId||null, equippedTitle:u.equippedTitle, unlockedTitles:unlockedTitleIds(u), titleStats:u.titleStats, likesReceived:u.likedBy.length, likesGiven:u.likedProfiles.length, blockedUsers:u.blockedUsers.map(key=>users[key]?.nickname||key), matchHistory:u.matchHistory,firstProgressionRewardClaimed:Boolean(u.firstProgressionRewardClaimed),tutorialDismissedModes:Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[] }; }
  function publicTitleProgress(u){return {titleStats:{...(u?.titleStats||{})},unlockedTitles:unlockedTitleIds(u)};}
  function publicProfile(key,viewerKey){const u=users[key];if(!u)return null;ensureAccountId(u);u.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};u.likedBy ||= [];u.likedProfiles ||= [];u.blockedUsers ||= [];const viewer=viewerKey?users[viewerKey]:null;if(viewer)viewer.blockedUsers ||= [];const c=cardumes[u.cardumeId];return {nickname:u.nickname,equippedTitle:u.equippedTitle||'abyss-drifter',equippedSkin:u.equippedSkin||'default',diverGender:u.diverGender==='female'?'female':'male',specimenProficiency:SpecimenSystem.normalizeMap(u.specimenProficiency),unlockedTitles:unlockedTitleIds(u),titleStats:{...u.titleStats},likesReceived:u.likedBy.length,likesGiven:u.likedProfiles.length,likedByMe:Boolean(viewerKey&&u.likedBy.includes(viewerKey)),blockedByMe:Boolean(viewer&&viewer.blockedUsers.includes(key)),hasBlockedMe:Boolean(viewerKey&&u.blockedUsers.includes(viewerKey)),isSelf:viewerKey===key,cardume:c?{id:c.id,name:c.name}:null};}
  function onlineAccountKeys(){const keys=new Set();for(const client of (io.sockets?.sockets?.values?.() || []))if(client.connected&&client.data.userKey)keys.add(client.data.userKey);return keys;}
@@ -287,13 +288,13 @@ const TITLE_DEFINITIONS=[
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
-function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.coins = (user.coins || 0) + amount; } }
+function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
 function settlePeriods() {
  const d = dayKey(), w = weekKey(), m = monthKey();
  rankings.monthly ||= {};
- if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], 100, 'diário');
- if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], 1000, 'semanal');
- if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], 5000, 'mensal');
+ if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], 10, 'diário');
+ if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], 100, 'semanal');
+ if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], 500, 'mensal');
  rankings.daily[d] ||= {}; rankings.weekly[w] ||= {}; rankings.monthly[m] ||= {};
  rankings.settled = { day: d, week: w, month: m }; saveUsers(); saveRanks();
 }
@@ -531,7 +532,7 @@ function tickSpecimenOrbs(room,players){
    if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
    const amount=Math.max(1,Math.round(orb.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,true)));
    orbs.splice(i,1);
-   if(member.runStats){creditRunXp(member.runStats,amount);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}
+   if(member.runStats){creditRunXp(member.runStats,amount);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}const owner=users[member.userKey];if(owner){migrateEnergy(owner);owner.energy+=amount;scheduleTitleStatsSave();}
    io.to(member.id).emit('shared-xp-award',{value:amount,source:'specimen-orb',orbId:orb.id});
    io.to(channelFor(room)).emit('world-orb-collected',{id:orb.id,playerId:member.id});
   }
@@ -833,11 +834,11 @@ function scheduleUnjoinedRoomExpiry(room,delay=30000){
  },delay);
  room.emptyRoomTimer.unref?.();
 }
-const FIRST_PROGRESSION_REWARD_COINS=50000;
+const FIRST_PROGRESSION_REWARD_COINS=5000;
 function grantFirstProgressionReward(user){
  if(!user||user.firstProgressionRewardClaimed===true)return false;
  user.firstProgressionRewardClaimed=true;
- user.coins=(Number(user.coins)||0)+FIRST_PROGRESSION_REWARD_COINS;
+ user.energy=(Number(user.energy)||0)+FIRST_PROGRESSION_REWARD_COINS;
  user.titleStats ||= {};
  user.titleStats.firstProgressionClear=1;
  return true;
@@ -870,7 +871,7 @@ function awardWorldBossCoins(room){
   if(['coop','open-sea'].includes(room.mode)&&p.alive!==false&&Number(p.runStats?.bossesKilled)>=42&&grantFinalConquest(u)){
    io.to(p.id).emit('abyssal-final-victory',{ok:true,skinId:'greensnake',titleId:'abyssal-conqueror'});
   }
-  u.coins=(Number(u.coins)||0)+100;changed=true;io.to(p.id).emit('account-data',publicUser(u));
+  u.energy=(Number(u.energy)||0)+10;changed=true;io.to(p.id).emit('account-data',publicUser(u));
  }
  if(changed)saveUsers();
 }
@@ -1075,7 +1076,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 async function finishRunForSocket(socket,payload={}){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
  const room=socketRoom(socket),member=room?.players.get(socket.id),run=member?.runStats||socket.data.runStats||makeRunStats();
- if(run.settled)return {ok:true,duplicate:true,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*100,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
+ if(run.settled)return {ok:true,duplicate:true,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
@@ -1090,9 +1091,9 @@ async function finishRunForSocket(socket,payload={}){
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
- const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.floor(Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)))/10);const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} energia de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} energia por boss e +${earned} energia de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 
@@ -1530,14 +1531,14 @@ io.on('connection', socket => {
    const passwordHash=await hashPassword(password,salt);
    if(!passwordHash)return socket.emit('auth-result',{ok:false,message:'Não foi possível proteger sua senha agora. Tente novamente.'});
    if(Object.hasOwn(users,key)||Object.values(users).some(existing=>String(existing?.email||'').toLowerCase()===email))return socket.emit('auth-result',{ok:false,message:'Nickname ou email acabou de ser registrado. Tente outro.'});
-   user = users[key] = { accountId:crypto.randomUUID(),nickname,email,salt,passwordHash, createdAt: new Date().toISOString(), coins: 0, ownedSkins: ['default'], equippedSkin: 'default', metaUpgrades:{}, lastWheelAt:0 };
+   user = users[key] = { accountId:crypto.randomUUID(),nickname,email,salt,passwordHash, createdAt: new Date().toISOString(), energy: 0, ownedSkins: ['default'], equippedSkin: 'default', metaUpgrades:{}, lastWheelAt:0 };
    saveUsers();
   } else {
    if (!user) return socket.emit('auth-result', { ok: false, message: 'Conta não encontrada. Clique em Criar conta primeiro.' });
    const candidate = await hashPassword(password, user.salt);
    if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
-  ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.coins ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
+  ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
  });
@@ -1569,7 +1570,7 @@ io.on('connection', socket => {
   if(!match)return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});
   const [key,user]=match;
   user.sessionTokens=user.sessionTokens.filter(item=>item&&Number(item.expiresAt)>now);
-  ensureAccountId(user);user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.redeemedCodes ||= [];user.coins ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};user.likedBy ||= [];user.likedProfiles ||= [];user.equippedTitle ||= 'abyss-drifter';
+  ensureAccountId(user);user.metaUpgrades ||= {};user.ownedSkins ||= ['default'];user.redeemedCodes ||= [];user.energy ||= 0;user.lastWheelAt ||= 0;user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0};user.likedBy ||= [];user.likedProfiles ||= [];user.equippedTitle ||= 'abyss-drifter';
   socket.data.nickname=user.nickname;socket.data.userKey=key;
   // Do not rewrite the entire users snapshot here. The reconnecting client joins the
   // preserved room next; writing stale process memory at this point can erase another
@@ -1992,6 +1993,18 @@ io.on('connection', socket => {
   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
  });
  // Solo is client-simulated; accept cumulative kill reports, not arbitrary adaptation balances.
+ socket.on('sync-energy-operations',async(payload={},ack)=>{
+  if(typeof ack!=='function')return;const u=users[socket.data.userKey];if(!u)return ack({ok:false});migrateEnergy(u);
+  const rows=Array.isArray(payload.operations)?payload.operations.slice(0,100):[],accepted=[];u.energyOperationReceipts ||= {};
+  for(const op of rows){const id=String(op?.id||''),delta=Number(op?.delta),at=Number(op?.at);if(!/^[a-zA-Z0-9-]{16,80}$/.test(id)||!Number.isSafeInteger(delta)||!delta||Math.abs(delta)>100000||!Number.isFinite(at)||at>Date.now()+60000)continue;
+   if(u.energyOperationReceipts[id]){accepted.push(id);continue;}
+   if(delta>0&&op.source!=='solo-orb')continue;
+   if(delta<0&&u.energy< -delta)break;
+   u.energy+=delta;u.energyOperationReceipts[id]=Date.now();accepted.push(id);
+  }
+  if(accepted.length){saveUsers();try{await flushPersistence();}catch{return ack({ok:false});}}
+  ack({ok:true,accepted,energy:u.energy});
+ });
  socket.on('sync-specimen-adaptation',async(payload={},ack)=>{
   if(typeof ack!=='function')return;
   const u=users[socket.data.userKey];if(!u)return ack({ok:false});
@@ -2049,8 +2062,8 @@ io.on('connection', socket => {
   const member=socketRoom(socket)?.players.get(socket.id),run=member?.runStats;
   if(!socket.data.userKey||!run)return ack({ok:false});
   const survival=Math.max(0,Math.min(86400,Math.floor((Date.now()-(Number(run.startedAt)||Date.now()))/1000)));
-  const bosses=Math.max(0,Number(run.bossesKilled)||0),earned=Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2));
-  ack({ok:true,survival,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,totalRunCoins:earned+bosses*100});
+  const bosses=Math.max(0,Number(run.bossesKilled)||0),earned=Math.floor(Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2))/10);
+  ack({ok:true,survival,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,totalRunCoins:earned+bosses*10});
  });
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
@@ -2595,12 +2608,12 @@ io.on('connection', socket => {
   if(!allowedSkinIds.has(id)||id==='default')return socket.emit('purchase-result',{ok:false,message:'Espécime indisponível para compra.'});
   const profile=SkinStandard.profile(id);
   if(/^brl/.test(profile.tier))return socket.emit('purchase-result',{ok:false,message:'Este Espécime exige checkout em BRL e confirmação de pagamento.'});
-  if(profile.tier!=='coins')return socket.emit('purchase-result',{ok:false,message:'Este Espécime não pode ser comprado com moedas abissais.'});
+  if(profile.tier!=='coins')return socket.emit('purchase-result',{ok:false,message:'Este Espécime não pode ser comprado com energia.'});
   const rarity=SpecimenRarity.rarityFor(id),price=ShopEconomy.priceForRarity(rarity);
-  if (!price) return socket.emit('purchase-result', { ok:false, message:'Espécime indisponível para compra com moedas.' });
+  if (!price) return socket.emit('purchase-result', { ok:false, message:'Espécime indisponível para compra com energia.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui este Espécime.', account:publicUser(u) });
-  if ((u.coins || 0) < price) return socket.emit('purchase-result', { ok:false, message:'Moedas abissais insuficientes.', account:publicUser(u) });
-  u.coins -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Espécime desbloqueado e salvo na conta!', account:publicUser(u) });
+  if ((u.energy || 0) < price) return socket.emit('purchase-result', { ok:false, message:'energia insuficientes.', account:publicUser(u) });
+  u.energy -= price; u.ownedSkins = [...(u.ownedSkins || ['default']), id]; u.equippedSkin = id; saveUsers(); socket.emit('purchase-result', { ok:true, message:'Espécime desbloqueado e salvo na conta!', account:publicUser(u) });
  });
  socket.on('redeem-code', payload => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
@@ -2627,11 +2640,11 @@ io.on('connection', socket => {
    return;
   }
   let id='',coinsAwarded=0,skinId=null,message='';
-  if(welcome&&code===welcome){id='welcome-10k';coinsAwarded=10000;message='Código resgatado! +10.000 essências.';}
-  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=60000;skinId='electriceel';message='Código histórico validado! +60.000 moedas e Espécime lendário Raia-Elétrica Abissal desbloqueado permanentemente!';}
+  if(welcome&&code===welcome){id='welcome-10k';coinsAwarded=1000;message='Código resgatado! +1.000 energia.';}
+  else if(founder&&code===founder){id='founder-electric-eel';coinsAwarded=6000;skinId='electriceel';message='Código histórico validado! +6.000 energia e Espécime lendário Raia-Elétrica Abissal desbloqueado permanentemente!';}
   else return socket.emit('code-redeem-result',{ok:false,message:'Código inválido. Confira e tente novamente.'});
   if(u.redeemedPromoIds.includes(id))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi resgatado nesta conta.'});
-  u.coins=(Number(u.coins)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
+  u.energy=(Number(u.energy)||0)+coinsAwarded;u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];if(skinId&&!u.ownedSkins.includes(skinId))u.ownedSkins.push(skinId);u.redeemedPromoIds.push(id);saveUsers();
   socket.emit('code-redeem-result',{ok:true,message,skinId,coinsAwarded,account:publicUser(u)});
  });
  // Mar Aberto exploration geology is separate from the Solo/Online shooter.
@@ -2768,8 +2781,8 @@ io.on('connection', socket => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('wheel-result',{ok:false,message:'Entre na sua conta para guardar a recompensa.'});
   const now=Date.now(),cooldown=20*60*60*1000;if(now-(Number(u.lastWheelAt)||0)<cooldown)return socket.emit('wheel-result',{ok:false,message:'Você já usou seu giro premiado recentemente. Volte mais tarde.',account:publicUser(u)});
   // Chamado somente após o callback adViewed da API oficial de anúncio recompensado.
-  const roll=Math.random()*100;let reward=roll<40?20:roll<70?50:roll<88?100:roll<96?300:roll<99.9?600:1000;
-  u.coins=(u.coins||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,coins:u.coins,account:publicUser(u),nextSpinAt:now+cooldown});
+  const roll=Math.random()*100;let reward=roll<40?2:roll<70?5:roll<88?10:roll<96?30:roll<99.9?60:100;
+  u.energy=(u.energy||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,energy:u.energy,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
  socket.on('disconnect', () => { if(!shutdownStarted&&socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
