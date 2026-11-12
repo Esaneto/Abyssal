@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,lastSentPositionPayload=null,lastSentRoomKey='',hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
+let socket=null,authenticated=false,connected=false,localPlayerId=null,players=new Map(),playersByNetId=new Map(),lastPositionAt=0,hostId=null,currentRoom=null,pendingRoomPassword='',roomPollTimer=null,socketRoomsCache=null,httpRoomsCache=null,socketRoomsAt=0,httpRoomsAt=0;
 let positionHeartbeatTimer=null,latestPositionPayload=null,positionPacketInFlight=false,positionSequence=0,positionAckAt=0,positionAckErrors=0,positionPacketsSent=0,lastNetMetaAt=0,lastReconcileSeq=0,pendingMotion=new Map(),motionRttMs=null,motionJitterMs=null,motionAckCount=0;
 let account=JSON.parse(localStorage.getItem('abyssalAccount')||'null'),serverAccount=null;
 const networkDebugEnabled=(()=>{try{return new URLSearchParams(location.search).get('abyssalDebug')==='1';}catch(_){return false;}})();
@@ -527,12 +527,13 @@ function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?
 // One sender for frame updates, heartbeat recovery and shot ordering.
 function flushPosition(force=false){
  if(!socket?.connected||!authenticated||!currentRoom||!latestPositionPayload)return false;
- const now=performance.now(),roomKey=String(currentRoom?.id||currentRoom||'');
- if(roomKey!==lastSentRoomKey){lastSentRoomKey=roomKey;lastSentPositionPayload=null;lastPositionAt=0;}
+ const now=performance.now(),roomKey=String(currentRoom?.id||currentRoom||''),lastSent=flushPosition.lastPayload||null;
+ if(roomKey!==flushPosition.lastRoomKey){flushPosition.lastRoomKey=roomKey;flushPosition.lastPayload=null;lastPositionAt=0;}
  if(!force&&now-lastPositionAt<1000/30)return false;
- if(!force&&lastSentPositionPayload){
-  const dx=latestPositionPayload.x-lastSentPositionPayload.x,dy=latestPositionPayload.y-lastSentPositionPayload.y;
-  const da=Math.atan2(Math.sin(latestPositionPayload.angle-lastSentPositionPayload.angle),Math.cos(latestPositionPayload.angle-lastSentPositionPayload.angle));
+ const previous=flushPosition.lastPayload||lastSent;
+ if(!force&&previous){
+  const dx=latestPositionPayload.x-previous.x,dy=latestPositionPayload.y-previous.y;
+  const da=Math.atan2(Math.sin(latestPositionPayload.angle-previous.angle),Math.cos(latestPositionPayload.angle-previous.angle));
   if(dx*dx+dy*dy<.04&&Math.abs(da)<.004&&now-lastPositionAt<250)return false;
  }
  // Never queue stale transforms when the transport is congested.
@@ -540,7 +541,7 @@ function flushPosition(force=false){
  const seq=++positionSequence;
  pendingMotion.set(seq,{x:latestPositionPayload.x,y:latestPositionPayload.y,sentAt:now});if(pendingMotion.size>32)pendingMotion.delete(pendingMotion.keys().next().value);
  socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
- lastSentPositionPayload={x:latestPositionPayload.x,y:latestPositionPayload.y,angle:latestPositionPayload.angle};
+ flushPosition.lastPayload={x:latestPositionPayload.x,y:latestPositionPayload.y,angle:latestPositionPayload.angle};
  lastPositionAt=now;positionPacketsSent++;
  if(now-lastNetMetaAt>=1000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
  return true;
