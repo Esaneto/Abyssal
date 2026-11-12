@@ -39,7 +39,8 @@ test('Full HUD can fold without hiding the game canvas or losing the toggle',()=
 test('Redundant extraction window remains hidden while keyboard extraction survives',()=>{
  const runtime=read('public/abyssal-exploration-runtime.js');
  const ui=read('public/abyssal-extraction-ui.js');
- assert.match(runtime,/hud\.querySelector\('\.exploration-collect'\)\.hidden=true;/);
+ assert.match(runtime,/const collectPanel=hud\.querySelector\('\.exploration-collect'\)/);
+ assert.match(runtime,/if\(collectPanel\)collectPanel\.hidden=true;/);
  assert.doesNotMatch(runtime,/hud\.querySelector\('\.exploration-collect'\)\.hidden=!active/);
  assert.match(ui,/e\.key==='g'/);
  assert.match(ui,/canvas\.addEventListener\('pointerdown'/);

@@ -3515,7 +3515,15 @@ function updateHud(force=true){
  setTextIfChanged('timeText',fmtTime(elapsed));const levelDisplay = areAllUpgradesMaxed() || level === 'MAX' ? 'Nível MAX' : String(level).padStart(2,'0');
  setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun()){setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));setTextIfChanged('soloSubmarineStatus',soloSubmarine.powerSeconds>0?(Math.ceil(soloSubmarine.powerSeconds/60)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' ARMA(S)'):'SEM ENERGIA');}
 }
-window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
+let lastRunEnergyRankingSignature='';
+window.addEventListener('abyssal-run-energy-ranking',ev=>{
+ const root=$('runEnergyRankingList');if(!root)return;
+ const ranking=Array.isArray(ev.detail)?ev.detail:[];
+ const signature=ranking.map((item,index)=>[(Number(item.rank)||index+1),String(item.nickname||''),Math.floor(Number(item.energy)||0)].join(':')).join('|');
+ if(signature===lastRunEnergyRankingSignature)return;
+ lastRunEnergyRankingSignature=signature;
+ root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';
+});
 function renderRunEndPresentation(){
  const extracted=Boolean(expeditionMode&&expeditionExtracted),voluntary=diveEndReason==='voluntary',eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
  if(extracted||voluntary){
@@ -4256,14 +4264,23 @@ const specimenPortraits=new Map();
 function registerSpecimenPortrait(canvas,skinId){
  if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));scheduleSpecimenPortraits();
 }
-function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
+function hasVisibleSpecimenPortrait(){
+ for(const canvas of [...specimenPortraits.keys()]){
+  if(!canvas?.isConnected){specimenPortraits.delete(canvas);continue;}
+  if(canvas.getClientRects().length&&canvas.offsetWidth&&canvas.offsetHeight)return true;
+ }
+ return false;
+}
+function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')&&hasVisibleSpecimenPortrait()){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
 new MutationObserver(scheduleSpecimenPortraits).observe(document.body,{attributes:true,attributeFilter:['class']});
 document.addEventListener('visibilitychange',scheduleSpecimenPortraits);
 function renderSpecimenPortraits(t){
  if(document.hidden||document.body.classList.contains('game-active')){registerSpecimenPortrait.running=false;return;}
+ let visiblePortraits=0;
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
+  visiblePortraits++;
   const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
@@ -4271,9 +4288,8 @@ function renderSpecimenPortraits(t){
   DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
-
  }
- if(specimenPortraits.size)requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
+ if(visiblePortraits>0&&hasVisibleSpecimenPortrait())requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
 }
 window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
@@ -4281,6 +4297,25 @@ const remoteDiverMotion=new Map();
 const remoteWeaponInfusions=new Map();
 const remoteWeaponParalysis=new Map();
 const remoteSpecimenDashes=new Map();
+function clearRemoteVisualState(id=null){
+ const key=id==null?'':String(id);
+ if(key){
+  remoteDiverMotion.delete(key);
+  remoteWeaponInfusions.delete(key);
+  remoteWeaponParalysis.delete(key);
+  remoteSpecimenDashes.delete(key);
+  remoteCreatureAttackUntil.delete(key);
+  return;
+ }
+ remoteDiverMotion.clear();
+ remoteWeaponInfusions.clear();
+ remoteWeaponParalysis.clear();
+ remoteSpecimenDashes.clear();
+ remoteCreatureAttackUntil.clear();
+}
+window.addEventListener('abyssal-player-left',event=>clearRemoteVisualState(event.detail?.id));
+window.addEventListener('abyssal-room-left',()=>clearRemoteVisualState());
+window.addEventListener('abyssal-online-disconnected',()=>clearRemoteVisualState());
 // Shared sprite atlas for enemy specimens summoned from the shop in Fossas.
 // A refresh budget avoids redrawing complex skin anatomy for every hostile each frame.
 const OCEAN_SHARK_HEIGHTS=Object.freeze({reefshark:2.8,hammerhead:3,goblin:2.6,frilled:2.1,greenland:3,abysscroc:2.9});

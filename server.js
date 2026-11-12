@@ -396,6 +396,15 @@ app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
+let lastAuthAttemptsPruneAt=0;
+function pruneAuthAttempts(now=Date.now()){
+ if(now-lastAuthAttemptsPruneAt<60000&&authAttempts.size<2048)return;
+ lastAuthAttemptsPruneAt=now;
+ for(const [ip,times] of authAttempts){
+  const recent=Array.isArray(times)?times.filter(t=>now-Number(t)<60000):[];
+  if(recent.length)authAttempts.set(ip,recent);else authAttempts.delete(ip);
+ }
+}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
@@ -1557,6 +1566,7 @@ io.on('connection', socket => {
  socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', async (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
+  pruneAuthAttempts(now);
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
   if (attempts.length >= 12) return socket.emit('auth-result', { ok: false, message: 'Muitas tentativas. Aguarde um minuto.' });
   const nickname = String(payload.nickname || '').trim(), password = String(payload.password || '');
@@ -1579,6 +1589,7 @@ io.on('connection', socket => {
    const candidate = await hashPassword(password, user.salt);
    if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
+  authAttempts.delete(ip);
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
@@ -2096,7 +2107,26 @@ io.on('connection', socket => {
    refreshWorldTicker();
   } else socket.data.runStats={...makeRunStats(),energySkinId:users[socket.data.userKey]?.equippedSkin||'default',mode:payload.mode==='rift'?'rift':'solo'};
  });
- socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
+ socket.on('run-progress',payload=>{
+ if(!socket.data.userKey||!payload||typeof payload!=='object')return;
+ const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;
+ if(!run||run.settled)return;
+ run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));
+ const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));
+ run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));
+ if(p){
+  const now=Date.now(),account=users[socket.data.userKey];
+  if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:now}));}
+  p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;
+  // A full room can submit several progress packets inside the same second.
+  // Ranking is presentation data, so sort+broadcast at most once per second per room.
+  if(now-(Number(room.lastRunRankingBroadcastAt)||0)>=1000){
+   room.lastRunRankingBroadcastAt=now;
+   const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));
+   io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);
+  }
+ }else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));
+});
  socket.on('get-match-history',()=>{const u=users[socket.data.userKey];socket.emit('match-history-result',{ok:Boolean(u),matches:Array.isArray(u?.matchHistory)?u.matchHistory.slice(0,10):[]});});
  socket.on('preview-run-report',(_payload={},ack)=>{
   if(typeof ack!=='function')return;

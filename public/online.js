@@ -229,7 +229,7 @@ function resetSignedOutClient(message=''){
 try{const notice=sessionStorage.getItem('abyssalSignOutNotice');if(notice){sessionStorage.removeItem('abyssalSignOutNotice');setTimeout(()=>{const toast=$('toast');if(toast){toast.textContent=notice;toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500);}},0);}}catch(_){}
 function logoutAccount(){
  const token=sessionToken;const activeSocket=socket;let finished=false; if(!authenticated&&!token)return;
- const finish=(message='')=>{if(finished)return;finished=true;reconnectPending=false;reconnectTarget=null;clearReconnectWatchdog();currentRoom=null;players.clear();playersByNetId.clear();hostId=null;stopRoomPolling();authenticated=false;account=null;serverAccount=null;sessionToken='';viewedPublicProfile=null;localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');if(activeSocket?.connected)activeSocket.disconnect();socket=null;connected=false;updateAccount();renderProfile({});if($('accountDeletePanel'))$('accountDeletePanel').hidden=true;if($('publicProfileActions'))$('publicProfileActions').hidden=true;$('profileMessage').textContent='Você saiu da conta. Entre novamente para sincronizar suas conquistas.';window.dispatchEvent(new CustomEvent('abyssal-account-signed-out'));resetSignedOutClient(message);};
+ const finish=(message='')=>{if(finished)return;finished=true;reconnectPending=false;reconnectTarget=null;clearReconnectWatchdog();currentRoom=null;stopPositionHeartbeat();players.clear();playersByNetId.clear();hostId=null;stopRoomPolling();authenticated=false;account=null;serverAccount=null;sessionToken='';viewedPublicProfile=null;localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');if(activeSocket?.connected)activeSocket.disconnect();socket=null;connected=false;updateAccount();renderProfile({});if($('accountDeletePanel'))$('accountDeletePanel').hidden=true;if($('publicProfileActions'))$('publicProfileActions').hidden=true;$('profileMessage').textContent='Você saiu da conta. Entre novamente para sincronizar suas conquistas.';window.dispatchEvent(new CustomEvent('abyssal-account-signed-out'));resetSignedOutClient(message);};
  const button=$('profileSessionBtn');if(button)button.disabled=true;
  if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
@@ -244,7 +244,6 @@ function connect(){
  socket=window.io(SERVER_URL,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:Infinity,reconnectionDelay:700,reconnectionDelayMax:3500,randomizationFactor:.35,timeout:8000});
  attachNetworkDiagnostics(socket);
  socket.on('ugc-report-result',result=>{const status=$('ugcReportStatus');if(status)status.textContent=result?.message||'Não foi possível enviar a denúncia.';const btn=$('ugcReportSendBtn');if(btn)btn.disabled=false;if(result?.ok)setTimeout(closeUgcReport,2200)});
- startPositionHeartbeat();
  socket.on('connect',()=>{connected=true;everConnected=true;hideMaintenanceOverlay();if(reconnectPending&&reconnectTarget&&sessionToken)showMaintenanceOverlay('Servidor encontrado. Restaurando sessão e expedição…');else if(reconnectPending&&reconnectTarget&&!sessionToken)failReconnect('Servidor reconectado. Entre novamente para continuar a expedição.');localPlayerId=socket.id;positionSequence=0;latestPositionPayload=null;positionPacketInFlight=false;pendingMotion.clear();lastReconcileSeq=0;motionRttMs=null;motionJitterMs=null;motionAckCount=0;if(sessionToken&&!authenticated){setMessage('Reconectando sua sessão segura…');if(reconnectPending&&reconnectTarget){armReconnectWatchdog();resumeSessionForReconnect();}else socket.emit('resume-session',{token:sessionToken});}else if(account?.nickname&&!authenticated){setMessage(`Conectado. Entre novamente como ${account.nickname} para validar esta sessão.`);}else setMessage(authenticated?`Servidor conectado como ${account?.nickname||'mergulhador'}.`:'Servidor conectado. Entre ou crie uma conta para jogar online.');socket.emit('list-rooms');if(!$('cardumesScreen')?.hidden)requestCardumes();refreshRoomsHttp();if($('roomsScreen')&&!$('roomsScreen').hidden)startRoomPolling();});
  socket.on('online-count',n=>{const el=$('onlineCount');if(el)el.textContent=String(n)});
   socket.on('match-history-result',result=>{const msg=$('matchHistoryMessage');if(!result?.ok){if(msg)msg.textContent='Não foi possível carregar o histórico.';return;}renderMatchHistory(result.matches||[]);if(msg)msg.textContent=(result.matches||[]).length+' partida(s) armazenada(s), máximo de 10.';});socket.on('cardumes-list',renderCardumesList);socket.on('cardume-details',showCardumeDetail);socket.on('public-profile-result',result=>{if(result?.ok)showPublicProfile(result.profile);else{const msg=$('cardumeMessage');if(msg)msg.textContent=result?.message||'Perfil indisponível.'}});socket.on('user-block-result',result=>{if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}if(result?.profile)showPublicProfile(result.profile);else if(result?.message){const msg=$('profileMessage');if(msg)msg.textContent=result.message;}});socket.on('profile-like-result',result=>{if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}if(result?.profile)showPublicProfile(result.profile);else if(result?.message){const msg=$('profileMessage');if(msg)msg.textContent=result.message;}});socket.on('profile-likes-updated',data=>{if(serverAccount&&String($('profileNickname')?.textContent||'').toLowerCase()===String(serverAccount.nickname||'').toLowerCase()){$('profileLikesCount').textContent=profileNumber(data?.likesReceived)+' curtidas';if(serverAccount)serverAccount.likesReceived=profileNumber(data?.likesReceived);}});socket.on('cardume-action-result',result=>{const msg=$('cardumeMessage');if(msg)msg.textContent=result?.message||'Operação concluída.';if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}if(result?.ok){socket.emit('list-cardumes');if(result.account?.cardumeId)socket.emit('get-cardume-details');else showCardumeDirectory();}});
@@ -252,11 +251,11 @@ function connect(){
  socket.on('boss-warning',data=>window.dispatchEvent(new CustomEvent('abyssal-boss-warning',{detail:data||{}})));
  socket.on('room-created',result=>{window.dispatchEvent(new CustomEvent('abyssal-room-created',{detail:result||{ok:false,message:'Falha ao criar a sala.'}}));if(result?.ok){const pw=pendingRoomPassword;pendingRoomPassword='';joinRoom(result.room?.id,pw)}});
  socket.on('room-join-result',result=>{if(!result||result.ok)return;if(reconnectPending&&reconnectTarget&&!reconnectFallbackUsed){reconnectFallbackUsed=true;const fallback=reconnectTarget.mode==='pvp'?'MAR-VERMELHO':'MAR-ABERTO';reconnectTarget={...reconnectTarget,id:fallback,password:''};setMessage('A sala anterior foi reiniciada no deploy. Retomando na arena padrão…');joinRoom(fallback,'',{reconnect:true});return;}failReconnect(result?.message||'A expedição não pôde ser retomada automaticamente.');window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:result}));});
- function handleRoomJoined(data){if(!data?.ok)return false;const roomId=String(data.room?.id||'').toUpperCase();if(!reconnectPending&&currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}const entryDetail={...data,reconnected:wasReconnect};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);// The room-joined packet already carries the complete world state.
+ function handleRoomJoined(data){if(!data?.ok)return false;const roomId=String(data.room?.id||'').toUpperCase();if(!reconnectPending&&currentRoom&&String(currentRoom.id||'').toUpperCase()===roomId&&localPlayerId===socket?.id&&document.body.classList.contains('game-active'))return true;clearReconnectWatchdog();const wasReconnect=Boolean(reconnectPending&&reconnectTarget&&roomId===String(reconnectTarget.id||'').toUpperCase());currentRoom=data.room||null;startPositionHeartbeat();if(wasReconnect){activeRoomPassword=reconnectTarget.password||'';showMaintenanceOverlay('Expedição restaurada. Sincronizando o mundo…');}reconnectPending=false;reconnectTarget=null;reconnectFallbackUsed=false;localPlayerId=socket.id;latestPositionPayload=null;positionPacketInFlight=false;stopRoomPolling();const roomsScreen=$('roomsScreen');if(roomsScreen)roomsScreen.hidden=true;try{applyPlayerList(data.players||[])}catch(error){console.error('[online] Falha ao preparar lista de jogadores:',error)}const entryDetail={...data,reconnected:wasReconnect};window.dispatchEvent(new CustomEvent('abyssal-room-joined',{detail:entryDetail}));queueMicrotask(()=>{if(!document.body.classList.contains('game-active'))window.dispatchEvent(new CustomEvent('abyssal-room-entry-retry',{detail:entryDetail}));});hideMaintenanceOverlay();setTimeout(()=>hideMaintenanceOverlay(),120);// The room-joined packet already carries the complete world state.
  // Avoid requesting a second full world snapshot immediately on every join.
  return true;}
  socket.on('room-joined',handleRoomJoined);
- socket.on('world-left',()=>{currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
+ socket.on('world-left',()=>{stopPositionHeartbeat();currentRoom=null;latestPositionPayload=null;positionPacketInFlight=false;players.clear();playersByNetId.clear();window.dispatchEvent(new CustomEvent('abyssal-room-left'))});
  socket.on('legacy-join-world',data=>joinRoom(data?.roomId||'MAR-ABERTO',''));
  socket.on('rift-chest-ready',data=>window.dispatchEvent(new CustomEvent('abyssal-rift-chest',{detail:data})));
  socket.on('first-progression-reward',data=>window.dispatchEvent(new CustomEvent('abyssal-first-progression-reward',{detail:data||{}})));
@@ -302,7 +301,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
  socket.on('connect_error',()=>{connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
- socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
+ socket.on('disconnect',(reason)=>{stopPositionHeartbeat();rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -358,7 +357,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
  socket.on('player-joined',p=>{if(p.id!==socket.id){storePlayer(p);window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:{kind:'join',title:String(p.nickname||'Mergulhador').toUpperCase(),text:`${p.nickname||'Um mergulhador'} entrou nas profundezas.`}}));}});
- socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);});
+ socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);window.dispatchEvent(new CustomEvent('abyssal-player-left',{detail:{id:String(id||'')}}));});
  socket.on('gameplay-notice',data=>window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:data||{}})));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
  socket.on('shared-shot',data=>{if(data&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
@@ -458,7 +457,7 @@ function createRoom(data={}){
  const isPrivate=Boolean(data.isPrivate),password=String(data.password||'');if(isPrivate&&(password.length<4||password.length>64)){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'}}));return false;}
  pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:['pvp','rift','open-sea'].includes(data.mode)?data.mode:'coop'});return true;
 }
-function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
+function leaveWorld(){if(socket?.connected&&authenticated)socket.emit('leave-world');stopPositionHeartbeat();players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}
 $('loginSubmitBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'login'));
 $('registerBtn').addEventListener('click',()=>authenticate($('nicknameInput').value,$('passwordInput').value,'register'));
@@ -543,13 +542,16 @@ function sendPosition(player){
  if(Number.isFinite(payload.x)&&Number.isFinite(payload.y)){latestPositionPayload=payload;flushPosition();}
 }
 function startPositionHeartbeat(){
- if(positionHeartbeatTimer)return;
+ if(positionHeartbeatTimer||document.hidden||!currentRoom)return;
  positionHeartbeatTimer=setInterval(()=>{
-  if(!socket?.connected||!authenticated||!currentRoom)return;
+  if(document.hidden||!socket?.connected||!authenticated||!currentRoom)return;
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
   if(live&&Number.isFinite(Number(live.x))&&Number.isFinite(Number(live.y)))latestPositionPayload=buildPositionPayload(live);
   flushPosition();
  },1000/20);
+}
+function stopPositionHeartbeat(){
+ if(positionHeartbeatTimer){clearInterval(positionHeartbeatTimer);positionHeartbeatTimer=null;}
 }
 function getPositionDiagnostics(){updateNetworkDiagnosticWindow();return {lastAckAt:positionAckAt,ackAgeMs:positionAckAt?Date.now()-positionAckAt:null,ackErrors:positionAckErrors,inFlight:positionPacketInFlight,sequence:positionSequence,packetsSent:positionPacketsSent,motionRttMs:motionRttMs==null?null:Number(motionRttMs.toFixed(1)),motionJitterMs:motionJitterMs==null?null:Number(motionJitterMs.toFixed(1)),motionAckCount,...(networkDebugEnabled?netDiagRates:{})};}
 function sendHit(x,y,damage){if(socket?.connected&&authenticated)socket.emit('player-hit',{x,y,damage})}
@@ -609,7 +611,9 @@ function claimFirstProgressionBonus(progress,onResult){
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
 function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
 function requestWorldSnapshot(reason='manual'){if(socket?.connected&&authenticated&&currentRoom)socket.emit('request-world-snapshot',{reason:String(reason||'manual')})}
-function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state')}}
+function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state');return true;}return false;}
+let lastResumeStateRequestAt=0;
+function requestResumePlayerState(){const now=performance.now();if(now-lastResumeStateRequestAt<750)return false;lastResumeStateRequestAt=now;return requestPlayerState('resume-resync');}
 function sendRunProgress(data){if(socket?.connected&&authenticated)socket.volatile.emit('run-progress',data)}
 function previewRunReport(onComplete){if(!socket?.connected||!authenticated)return false;socket.timeout(5000).emit('preview-run-report',{},(error,result)=>{if(!error&&result?.ok)onComplete?.(result);});return true;}
 function finishRun(data,options={}){
@@ -697,7 +701,12 @@ function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JS
  const root=$('rankingContent');if(!root||!data)return;
  const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000},sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho. Os títulos Top 1 a Top 10 exigem a posição exata e são removidos ao perdê-la.'],['monthly','RANKING MENSAL','Top 10 recebe '+Number(rewards.monthly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['weekly','RANKING SEMANAL','Top 10 recebe '+Number(rewards.weekly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['daily','RANKING DIÁRIO','Top 10 recebe '+Number(rewards.daily).toLocaleString('pt-BR')+' de energia quando o período fechar.']];
  root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[],timer=key==='eternal'?'PERMANENTE':`RECOMPENSA EM <strong class="ranking-countdown" data-reset="${Number(resets[key])||0}">${rankingCountdown(resets[key])}</strong>`;return `<section class="ranking-section ranking-${key}"><header class="ranking-section-head"><h3>${title}</h3><span class="ranking-reset">${timer}</span></header>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'} · ${Math.round(Number(p.score??p.damage)||0).toLocaleString('pt-BR')} DANO</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">·</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: maior dano e depois maior tempo de mergulho.</p></section>`}).join('');
- clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=setInterval(()=>{document.querySelectorAll('.ranking-countdown[data-reset]').forEach(el=>el.textContent=rankingCountdown(el.dataset.reset));},1000);
+ clearInterval(window.__abyssalRankingTimer);
+ const updateRankingCountdown=()=>{
+  if(!root.isConnected||!root.getClientRects().length){clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=null;return;}
+  root.querySelectorAll('.ranking-countdown[data-reset]').forEach(el=>el.textContent=rankingCountdown(el.dataset.reset));
+ };
+ if(root.getClientRects().length){updateRankingCountdown();window.__abyssalRankingTimer=setInterval(updateRankingCountdown,1000);}
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
@@ -786,6 +795,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
  });
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
+ if(hidden)stopPositionHeartbeat();else if(currentRoom)startPositionHeartbeat();
  if(socket?.connected&&authenticated&&currentRoom){
   socket.emit('client-visibility',{hidden});
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
@@ -794,9 +804,9 @@ document.addEventListener('visibilitychange',()=>{
    socket.emit('player-position',{...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()});
   }
  }
- if(!hidden){if(socket&&!socket.connected)socket.connect();requestPlayerState('resume-resync');}
+ if(!hidden){if(socket&&!socket.connected)socket.connect();requestResumePlayerState();}
 });
-window.addEventListener('focus',()=>requestPlayerState());
+window.addEventListener('focus',requestResumePlayerState);
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
  window.addEventListener('abyssal-specimen-discovery-request',event=>{
   if(socket?.connected&&authenticated)socket.emit('specimen-discovered',{id:String(event.detail?.id||'')});
