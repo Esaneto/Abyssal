@@ -655,7 +655,7 @@ function drawSoloSubmarine(t){
  const installed=window.AbyssalSoloBase?.installedWeapons?.()||[];
  // Empty mechanical sockets are visible but cannot fire until a tower is researched.
  for(const id of Object.keys(SOLO_WEAPON_MOUNTS)){if(installed.includes(id))continue;const m=submarineMount(id);ctx.save();ctx.translate(m.x-x,m.y-y);ctx.rotate(m.a);ctx.scale(1/GAME_WORLD_ZOOM,1/GAME_WORLD_ZOOM);ctx.fillStyle='#26383d';ctx.strokeStyle='#9aaca6';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-6,-15,12,30,3);ctx.fill();ctx.stroke();ctx.fillStyle='#111d24';ctx.fillRect(0,-8,5,16);ctx.restore();}
- for(const id of installed){const m=submarineMount(id),angle=soloSubmarine.weaponAngles?.[id]??m.a,s=1/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'},color=colors[id]||'#9ff';
+ for(const id of installed){const m=submarineMount(id),angle=soloSubmarine.weaponAngles?.[id]??m.a,s=1/GAME_WORLD_ZOOM,color=id==='photonRay'?PHOTON_RAY_VISUAL.color:id==='nova'?'#72f5ff':baseShotProfile(id,1).color;
   ctx.save();ctx.translate(m.x-x,m.y-y);ctx.scale(s,s);ctx.rotate(m.a);ctx.fillStyle='#17252b';ctx.strokeStyle='#788c91';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(-8,-19,17,38,4);ctx.fill();ctx.stroke();
   ctx.strokeStyle='#293940';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(18,-5);ctx.lineTo(33,0);ctx.stroke();
