@@ -160,6 +160,8 @@ test('both online simulation and solo exploration enforce wildlife spacing after
  const fs=require('node:fs'),path=require('node:path');
  const server=fs.readFileSync(path.join(__dirname,'../world-simulation.js'),'utf8');
  const solo=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
- assert.match(server,/OpenSeaEcology\.separateContact\(enemy,world\.enemies,dt\)/);
- assert.match(solo,/OPEN_SEA_ECOLOGY\.separateContact\(e,enemies,dt\)/);
+ assert.match(server,/OpenSeaEcology\.separateContact\(enemy,ecologyNeighbors\(ecologySpatial,enemy,180\),dt\)/);
+ assert.match(solo,/OPEN_SEA_ECOLOGY\.separateContact\(e,wildlifeNeighborCandidates,dt\)/);
+ assert.match(server,/rebuildEcologySpatial\(world\)/);
+ assert.match(solo,/collectEnemyCandidatesNear\(e\.x,e\.y,180\/GAME_WORLD_ZOOM,wildlifeNeighborCandidates\)/);
 });
