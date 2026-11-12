@@ -61,3 +61,9 @@ test('The real polygon blocks the flashlight and prevents large-step tunnelling'
 test('Starting corridor allows real Solo horizontal movement between upper and lower shelves',()=>{
  assert.equal(cave.segmentBlocked(rocks,2400,330,2750,330,24),false);
 });
+
+test('pursuit rounds a wall when diver hugs the opposite side',()=>{
+ const wall={x:500,y:400,rx:25,ry:180,r:183,angle:0,vertices:[[-25,-180],[25,-180],[25,180],[-25,180]],cavernSolid:true};const rocks=[wall],actor={x:400,y:400,angle:0},goal={x:534,y:400};let reached=false;
+ for(let i=0;i<700;i++){const nav=cave.pursuitTarget(rocks,1000,800,actor,goal,24,i*16),d=Math.hypot(nav.x-actor.x,nav.y-actor.y);if(d>.01){const step=Math.min(4,d),p=cave.resolve(rocks,actor.x,actor.y,actor.x+(nav.x-actor.x)/d*step,actor.y+(nav.y-actor.y)/d*step,24);actor.x=p.x;actor.y=p.y;}assert.equal(cave.isBlocked(rocks,actor.x,actor.y,24),false);if(actor.x>550&&Math.hypot(actor.x-goal.x,actor.y-goal.y)<80){reached=true;break;}}
+ assert.ok(reached,'must round the shelf to reach the diver side');
+});

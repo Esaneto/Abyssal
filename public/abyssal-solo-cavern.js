@@ -296,18 +296,26 @@
    c.fillStyle='rgba(175,228,220,'+(.14+.12*Math.sin(t*.001+p.phase)).toFixed(3)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   c.restore();
  }
+ const rockArtCache=new WeakMap();
+ function paintRockSurface(c,r){
+  path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#204d4e'],[.20,'#122e35'],[.47,'#071b23'],[1,'#02090f']]);c.fill();
+  c.save();c.clip();const rnd=rng(r.seed);
+  for(let j=0;j<25;j++){const x=(rnd()*2-1)*r.rx,y=(rnd()*2-1)*r.ry,l=30+rnd()*r.rx*.6;
+   path(c,[[x,y],[x+l*.32,y-18],[x+l,y+10],[x+l*.71,y+36],[x-12,y+24]]);c.fillStyle=j%3===0?'rgba(65,112,108,.20)':'rgba(1,9,15,.30)';c.fill();if(j%3===0){c.strokeStyle='rgba(82,137,130,.14)';c.lineWidth=1.5;c.stroke();}}
+  c.restore();
+ }
+ function drawRockSurface(c,r){
+  const transform=c.getTransform?.(),scale=transform?Math.hypot(transform.a,transform.b):1,density=Math.max(1,Math.ceil(scale)),w=Math.ceil(r.rx*2+8),h=Math.ceil(r.ry*2+8);
+  // Cache static basalt at native display density. Large rocks remain vectors.
+  if(w*density>4096||h*density>4096||typeof document==='undefined'){paintRockSurface(c,r);return;}
+  let art=rockArtCache.get(r);if(!art||art.density!==density){const canvas=document.createElement('canvas');canvas.width=w*density;canvas.height=h*density;const off=canvas.getContext('2d');off.setTransform(density,0,0,density,w*density/2,h*density/2);paintRockSurface(off,r);art={canvas,density};rockArtCache.set(r,art);}
+  c.drawImage(art.canvas,-w/2,-h/2,w,h);
+ }
  function drawRocks(c,rocks,view,t){
   const {left,top,width,height}=view,right=left+width,bottom=top+height;
   for(const r of rocks){if(!r.cavernSolid||r.submarineHull||r.x+r.r+100<left||r.x-r.r-100>right||r.y+r.r+100<top||r.y-r.r-100>bottom)continue;
    c.save();c.translate(r.x,r.y);c.rotate(r.angle||0);
-   // Physical ellipse silhouette and layered fractured basalt, without neon rims.
-   path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#204d4e'],[.20,'#122e35'],[.47,'#071b23'],[1,'#02090f']]);c.fill();
-   c.save();c.clip();const rnd=rng(r.seed);
-   for(let j=0;j<25;j++){const x=(rnd()*2-1)*r.rx,y=(rnd()*2-1)*r.ry,l=30+rnd()*r.rx*.6;
-    path(c,[[x,y],[x+l*.32,y-18],[x+l,y+10],[x+l*.71,y+36],[x-12,y+24]]);
-    c.fillStyle=j%3===0?'rgba(65,112,108,.20)':'rgba(1,9,15,.30)';c.fill();
-    if(j%3===0){c.strokeStyle='rgba(82,137,130,.14)';c.lineWidth=1.5;c.stroke();}}
-   c.restore();
+   drawRockSurface(c,r);
    // Sparse kelp and branching growth follow real rock surfaces.
    for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),[x,y]=r.vertices[k],ln=16+((r.seed+j*17)%49);
     const sway=Math.sin(t*.0014+j+r.seed)*5;
