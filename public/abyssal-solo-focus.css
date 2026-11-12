@@ -209,3 +209,10 @@
 #resonanceScreen .resonance-skill-option:has(input:checked){background:linear-gradient(150deg,#174d35,#102e26)!important;border-color:#66df98!important;box-shadow:inset 0 0 0 1px rgba(102,223,152,.22)!important}
 #resonanceScreen .resonance-skill-option input:checked{background:#7af5aa!important;border-color:#15482e!important}
 #submarineWorkshop .abyss-visor-body,#resonanceScreen .resonance-modal{overflow-anchor:none!important;scroll-behavior:auto!important}
+
+/* Research is a section heading, with three equally readable destinations. */
+#submarineWorkshop .solo-research-navigation{width:100%;min-width:0;margin:12px 0 4px}
+#submarineWorkshop .solo-research-navigation .solo-research-heading{margin:0 0 10px;font:800 14px/1.4 Inter,system-ui,sans-serif!important;letter-spacing:.1em;color:#d5eaff!important}
+#submarineWorkshop .solo-research-tabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;width:100%!important;margin:0!important}
+#submarineWorkshop .solo-research-tabs .abyss-visor-action{width:100%!important;min-width:0!important;max-width:none!important;min-height:46px!important;height:auto!important;padding:11px 6px!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;font-size:clamp(10px,1.4vw,13px)!important;letter-spacing:0!important;line-height:1.35!important;display:flex!important;justify-content:center!important;align-items:center!important;text-align:center!important}
+@media(max-width:380px){#submarineWorkshop .solo-research-tabs{grid-template-columns:1fr!important}}

@@ -179,7 +179,7 @@
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
-  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='upgrades'?'PESQUISA':chosen.title;column.append(small,title);
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
@@ -218,12 +218,24 @@
   workshopGrid.replaceChildren(visor,keys);
   if(activeConsoleSection==='shop'||activeConsoleSection==='specimens')embedCatalog(body,activeConsoleSection==='shop'?'shopScreen':'catalogScreen');
  }
+ function createSoloResearchNav(){
+  const group=document.createElement('section');group.className='solo-research-navigation';
+  const title=document.createElement('h3');title.className='solo-research-heading';title.textContent='PESQUISA';group.append(title);
+  const nav=document.createElement('nav');nav.className='solo-upgrade-nav solo-research-tabs';nav.setAttribute('aria-label','Áreas de pesquisa');
+  for(const item of [{id:'diver',label:'MERGULHADOR'},{id:'submarine',label:'SUBMARINO'},{id:'resonance',label:'RESSONÂNCIA'}]){
+   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.textContent=item.label;button.setAttribute('aria-pressed',String(soloConsolePage===item.id));
+   button.addEventListener('click',()=>{if(item.id==='resonance'){button.setAttribute('aria-pressed','true');document.getElementById('resonanceBtn')?.click();return;}if(soloConsolePage!==item.id){soloConsolePage=item.id;renderWorkshop();}});nav.append(button);
+  }
+  group.append(nav);return group;
+ }
+ window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
   if(activeConsoleSection==='shop'||activeConsoleSection==='specimens'){mountCockpitConsole(document.createElement('div'));return;}
   const utility=document.createElement('div');utility.className='abyss-console-info';
-  if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
+  if(activeConsoleSection==='solo'&&['diver','submarine'].includes(soloConsolePage)){
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
+   utility.append(createSoloResearchNav());
    const balance=document.createElement('strong');balance.className='solo-stored-energy';balance.textContent='ENERGIA ARMAZENADA: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
    const note=document.createElement('p');note.textContent='Pesquisas de equipamentos e armamentos da base usam energia coletada pelo espécime nas orbes roxas. As habilidades do mergulhador são pesquisadas exclusivamente na Ressonância.';utility.append(note);
    const section=(title,copy)=>{const h=document.createElement('h3');h.className='solo-research-heading';h.textContent=title;utility.append(h);if(copy){const p=document.createElement('p');p.className='solo-research-copy';p.textContent=copy;utility.append(p);}};
@@ -234,12 +246,14 @@
     buy.addEventListener('click',()=>{const result=onBuy?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));renderWorkshop();}});
     row.append(data,buy);utility.append(row);
    };
+   if(soloConsolePage==='diver'){
    section('ILUMINAÇÃO PESSOAL','A lanterna continua independente dos sistemas do submarino.');
    for(let lv=1;lv<=3;lv++){
     const row=document.createElement('div');row.className='solo-lamp-row';
     const data=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');name.textContent='LANTERNA · NV. '+lv;const lamp=window.AbyssalSoloCavern?.lampParameters(lv);desc.textContent='Cone de luz · alcance '+Math.round(lamp?.range||570)+' · '+(lv===1?'equipamento inicial':Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance adicional');data.append(name,desc);
     const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.setAttribute('aria-pressed',String(lv<=state.lamp));buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
    }
+   }else{
    section('SISTEMAS DO SUBMARINO','A luz da base consome 20 Energia por 5 minutos. Cada arma automática instalada acrescenta 10 Energia ao mesmo ciclo. Recargas parciais custam apenas a proporção que falta.');
    researchRow('submarineShield','ESCUDO DO SUBMARINO','Campo defensivo pesquisável que repele criaturas enquanto a base estiver energizada. Não aumenta o consumo do ciclo.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
    const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
@@ -258,6 +272,7 @@
    }
 
    const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.installedWeapons?.().length||0)+' ARMA(S) INSTALADA(S)';utility.append(power);
+   }
    const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO MERGULHO';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
   }else if(activeConsoleSection==='minerals'){
    const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';
@@ -297,8 +312,7 @@
     });
     utility.append(heading,body,action);
     if(activeConsoleSection==='solo'){
-     const nav=document.createElement('nav');nav.className='solo-upgrade-nav';
-     for(const item of [{label:'PESQUISA',action:()=>{soloConsolePage='upgrades';renderWorkshop();}},{label:'RESSONÂNCIA',resonance:true,action:()=>document.getElementById('resonanceBtn')?.click()}]){const b=document.createElement('button');b.type='button';b.className='abyss-visor-action'+(item.resonance?' abyss-resonance-action':'');if(item.resonance)b.innerHTML='<span class="abyss-resonance-icon" aria-hidden="true">✦</span> RESSONÂNCIA';else b.textContent=item.label;b.addEventListener('click',item.action);nav.append(b);}utility.append(nav);
+     utility.append(createSoloResearchNav());
     }
    }
   }
