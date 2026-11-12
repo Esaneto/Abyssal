@@ -530,7 +530,7 @@ function tickSpecimenOrbs(room,players){
    const range=294/WORLD_ZOOM*clamp(Number(member.rangeStrength)||1,1,2.5)*
     SkinAbilities.targetRangeMultiplier(member.skinId,member.specimenPoints,true);
    if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
-   const amount=Math.max(1,Math.round(orb.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,true)));
+   const amount=Math.max(1,Math.round(orb.value));
    orbs.splice(i,1);
    if(member.runStats){creditRunXp(member.runStats,amount);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}const owner=users[member.userKey];if(owner){migrateEnergy(owner);owner.energy+=amount;scheduleTitleStatsSave();}
    io.to(member.id).emit('shared-xp-award',{value:amount,source:'specimen-orb',orbId:orb.id});
@@ -547,7 +547,7 @@ function awardPvpKillXp(room,target,attackerId){
  target.lastPvpXpDeathAt=stamp;
  const attacker=room.players.get(String(attackerId));
  if(!attacker||attacker.id===target.id||attacker.alive===false||attacker.runStats?.settled)return;
- const value=Math.round(25*SkinAbilities.orbExperienceMultiplier(attacker.skinId,attacker.specimenPoints,attacker.specimenAlive!==false)*clamp(Number(attacker.magnetStrength)||1,1,1.26)*1000)/1000;
+ const value=Math.round(25*clamp(Number(attacker.magnetStrength)||1,1,1.26)*1000)/1000;
  if(attacker.runStats)creditRunXp(attacker.runStats,value);
  io.to(attacker.id).emit('shared-xp-award',{value,source:'pvp-elimination',enemyId:target.id});
 }
@@ -1007,7 +1007,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
    const completedCycles=Math.floor(Math.max(0,Number(w.bossesDefeated)||0)/BOSS_KINDS.size);
    enemy.value=Math.round(Math.max(1,Number(enemy.value)||1)*(1+completedCycles*0.02));
    w.bossesDefeated=(Number(w.bossesDefeated)||0)+1;
-   if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + ESPÉCIME ALEATÓRIO + 100.000 MOEDAS',accent:'#c887ff',tier:w.mapTier});}
+   if(room.mode==='rift'&&Number(w.mapTier)===RiftHardcore.FINAL_TIER&&enemy.kind===RiftHardcore.FINAL_KIND){w.riftCompleted=true;io.to(channelFor(room)).emit('world-cave-signal',{id:'rift_complete',type:'reward',name:'FOSSAS CONCLUÍDAS',subtitle:'O Pesadelo Roxo caiu. Resgate o baú final para receber suas recompensas.',risk:'CONCLUÍDO',reward:'PESADELO ROXO + ESPÉCIME ALEATÓRIO + 10.000 ENERGIA',accent:'#c887ff',tier:w.mapTier});}
    // Fossas waits for the next tier; Mar Aberto schedules the next
    // boss after another complete progression segment.
    w.nextBossAt=['coop','open-sea'].includes(room.mode)?(Number(w.elapsed)||0)+100/3.8:Infinity;
@@ -1076,7 +1076,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 async function finishRunForSocket(socket,payload={}){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
  const room=socketRoom(socket),member=room?.players.get(socket.id),run=member?.runStats||socket.data.runStats||makeRunStats();
- if(run.settled)return {ok:true,duplicate:true,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
+ if(run.settled)return {ok:true,duplicate:true,energyBonus:Number(run.energyBonus)||0,energyBonusPercent:Number(run.energyBonusPercent)||0,specimenEnergyBonusPercent:Number(run.specimenEnergyBonusPercent)||0,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
@@ -1091,9 +1091,9 @@ async function finishRunForSocket(socket,payload={}){
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
- const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.floor(Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)))/10);const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
+ const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionBonus=expedition?Math.min(.75,bossesKilled*.15):0;const specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||member?.skinId||user.equippedSkin||'default');const expeditionMultiplier=1+expeditionBonus+specimenBonus;const baseEnergy=Math.floor(Math.min(50000,Math.max(3,baseEarned))/10);const energyBonus=Math.floor((baseEnergy+Number(run.energyCollected||0))*(expeditionBonus+specimenBonus));const earned=baseEnergy+energyBonus;const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;run.energyBonus=energyBonus;run.energyBonusPercent=Math.round((expeditionBonus+specimenBonus)*100);run.specimenEnergyBonusPercent=Math.round(specimenBonus*100);
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} energia de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} energia por boss e +${earned} energia de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} energia de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} energia por boss e +${earned} energia de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 
@@ -2062,7 +2062,7 @@ io.on('connection', socket => {
   const member=socketRoom(socket)?.players.get(socket.id),run=member?.runStats;
   if(!socket.data.userKey||!run)return ack({ok:false});
   const survival=Math.max(0,Math.min(86400,Math.floor((Date.now()-(Number(run.startedAt)||Date.now()))/1000)));
-  const bosses=Math.max(0,Number(run.bossesKilled)||0),earned=Math.floor(Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2))/10);
+  const bosses=Math.max(0,Number(run.bossesKilled)||0),baseEnergy=Math.floor(Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2))/10),specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||p?.skinId||users[socket.data.userKey]?.equippedSkin||'default'),earned=baseEnergy+Math.floor((baseEnergy+Number(run.energyCollected||0))*specimenBonus);
   ack({ok:true,survival,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,totalRunCoins:earned+bosses*10});
  });
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
