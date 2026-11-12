@@ -33,8 +33,8 @@
  function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
-  const {screen,anchor,role,modal,modalRole,modalAria}=embeddedCatalog;embeddedCatalog=null;
-  screen.hidden=true;screen.classList.remove('abyss-cockpit-embedded');
+  const {screen,anchor,role,modal,modalRole,modalAria,legacyClasses}=embeddedCatalog;embeddedCatalog=null;
+  screen.hidden=true;screen.classList.remove('abyss-cockpit-embedded');if(legacyClasses){screen.classList.add(...legacyClasses.screen);if(modal)modal.classList.add(...legacyClasses.modal);}
   if(role===null)screen.removeAttribute('role');else screen.setAttribute('role',role);
   if(modal){if(modalAria===null)modal.removeAttribute('aria-modal');else modal.setAttribute('aria-modal',modalAria);if(modalRole===null)modal.removeAttribute('role');else modal.setAttribute('role',modalRole);}
   if(screen.id==='notifPanel')screen.setAttribute('aria-modal','true');anchor.replaceWith(screen);
@@ -44,7 +44,9 @@
   const anchor=document.createComment('original '+id+' location');
   screen.before(anchor);
   const modal=screen.querySelector('.modal-card,#notifPanelInner'),role=screen.getAttribute('role'),modalRole=modal?.getAttribute('role'),modalAria=modal?.getAttribute('aria-modal');
-  embeddedCatalog={screen,anchor,role,modal,modalRole,modalAria};
+  const legacyClasses=id==='resonanceScreen'?{screen:['screen','modal-screen'].filter(c=>screen.classList.contains(c)),modal:['modal-card','codex-modal'].filter(c=>modal?.classList.contains(c))}:null;
+  if(legacyClasses){screen.classList.remove(...legacyClasses.screen);modal?.classList.remove(...legacyClasses.modal);}
+  embeddedCatalog={screen,anchor,role,modal,modalRole,modalAria,legacyClasses};
   screen.classList.add('abyss-cockpit-embedded');screen.setAttribute('role','region');if(id==='notifPanel')screen.removeAttribute('aria-modal');
   if(modal){modal.removeAttribute('aria-modal');modal.setAttribute('role','region');}
   body.append(screen);screen.hidden=false;
@@ -189,7 +191,7 @@
   small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
-  const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
+  const body=document.createElement('div');body.className='abyss-visor-body';if(activeConsoleSection==='resonance')body.classList.add('abyss-visor-resonance');body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
   for(const node of old){
    if(node.classList.contains('submarine-console-overview'))continue;
    if(node.classList.contains('submarine-console-tabs'))node.classList.add('abyss-lab-subnav');
