@@ -81,10 +81,10 @@ function submarineHarness(){
  vm.runInContext(helpers+mounts+';resetSoloSubmarine();',context);
  return {run:s=>vm.runInContext(s,context),advance:ms=>{now+=ms;},context};
 }
-test('Submarine has three independent 300 HP sections and every mount belongs to one section',()=>{
+test('Submarine has three independent 600 HP sections and every mount belongs to one section',()=>{
  const h=submarineHarness();
  assert.equal(h.run('soloSubmarine.sections.length'),3);
- assert.equal(h.run('soloSubmarine.sections.reduce((sum,s)=>sum+s.hp,0)'),900);
+ assert.equal(h.run('soloSubmarine.sections.reduce((sum,s)=>sum+s.hp,0)'),1800);
  assert.equal(h.run('arenaRocks.filter(r=>r.submarineHull).length'),3);
  assert.equal(h.run("soloWeaponSection('pierce').id"),0);
  assert.equal(h.run("soloWeaponSection('nova').id"),0);
@@ -96,20 +96,20 @@ test('Submarine has three independent 300 HP sections and every mount belongs to
 test('destroying one section opens physical passage and disables only its turrets; repair restores both',()=>{
  const h=submarineHarness();
  assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
- h.run('damageSoloHull(soloSubmarine.sections[1],300)');
+ h.run('damageSoloHull(soloSubmarine.sections[1],600)');
  assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
  assert.equal(h.run('soloSubmarine.debris.length'),12);
  assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),false);
  assert.equal(h.run("soloWeaponOperational('photon')"),false);
  assert.equal(h.run("soloWeaponOperational('pierce')"),true);
- assert.equal(h.run('soloSubmarine.sections[0].hp+soloSubmarine.sections[2].hp'),600);
+ assert.equal(h.run('soloSubmarine.sections[0].hp+soloSubmarine.sections[2].hp'),1200);
  h.run('soloSubmarine.spawnFx=0;player.x=2400;player.y=1170');
  assert.equal(h.run('repairSoloHull()'),true);
  assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
  assert.equal(h.run('updateSoloHullRepair(29.9)'),false);
  assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
  assert.equal(h.run('updateSoloHullRepair(.1)'),true);
- assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),600);
  assert.equal(h.run("soloWeaponOperational('photon')"),true);
  assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
  assert.equal(h.run('SOLO_CAVERN.isBlocked(arenaRocks,player.x,player.y,player.r+2)'),false);
@@ -130,11 +130,11 @@ test('unpowered hull takes contact damage, one hit per creature cooldown, with n
  const h=submarineHarness();
  h.run('var mob={id:1,x:2400,y:1063,r:30,damage:20};soloSubmarine.powerSeconds=0;');
  h.run('soloHullContact(mob,1000)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),580);
  h.run('soloHullContact(mob,1100)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),580);
  h.run('soloHullContact(mob,2100)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),260);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),560);
 });
 
 test('researched submarine shield absorbs exactly one positive hit per dive, with no recharge on power top-up',()=>{
@@ -144,10 +144,10 @@ test('researched submarine shield absorbs exactly one positive hit per dive, wit
  assert.equal(h.run('damageSoloHull(soloSubmarine.sections[1],0)'),false);
  assert.equal(h.run('soloHullShieldReady()'),true);
  h.run('soloHullContact(mob,1000)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),600);
  assert.equal(h.run('soloSubmarine.shieldSpent'),true);
  h.run('soloSubmarine.powerSeconds=300;soloHullContact(mob,2100)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),580);
  assert.equal(h.run('soloHullShieldReady()'),false);
  h.run('resetSoloSubmarine();soloSubmarine.powerSeconds=300');
  assert.equal(h.run('soloHullShieldReady()'),true);
@@ -158,12 +158,12 @@ test('powered hull attack station holds position and triggers one bite per coold
  assert.equal(h.run('holdSoloHullAttack(mob,.016,1000)'),true);
  assert.equal(h.run('mob.vx'),0);assert.equal(h.run('mob.vy'),0);
  assert.equal(h.run('mob.hostileBite.duration'),480);
- assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),580);
  for(let i=1;i<60;i++)assert.equal(h.run('holdSoloHullAttack(mob,.016,'+(1000+i*16)+')'),true);
  assert.equal(h.run('mob.x'),2400);assert.equal(h.run('mob.y'),1063);
  assert.equal(visualCount,1);
  h.run('holdSoloHullAttack(mob,.016,2100)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),260);assert.equal(visualCount,2);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),560);assert.equal(visualCount,2);
  h.run('soloSubmarine.powerSeconds=0');
  assert.equal(h.run('holdSoloHullAttack(mob,.016,2200)'),false);
 });
@@ -173,7 +173,7 @@ test('repair requires uninterrupted 30 seconds and retains damaged HP until comp
  assert.equal(h.run('repairSoloHull()'),true);
  assert.equal(h.run('soloSubmarine.repair.section.id'),1);
  assert.equal(h.run('updateSoloHullRepair(15)'),false);
- assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),500);
  assert.equal(h.run('repairSoloHull()'),false);
  assert.equal(h.run('soloSubmarine.repair'),null);
  assert.equal(h.run('repairSoloHull()'),true);
@@ -181,11 +181,11 @@ test('repair requires uninterrupted 30 seconds and retains damaged HP until comp
  h.run('player.x+=30');
  assert.equal(h.run('updateSoloHullRepair(30)'),false);
  assert.equal(h.run('soloSubmarine.repair'),null);
- assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),500);
  h.run('player.x=2400;repairSoloHull();updateSoloHullRepair(20)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),500);
  assert.equal(h.run('updateSoloHullRepair(10)'),true);
- assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),600);
 });
 test('welding restores only the selected section and keeps a real surface contact point',()=>{
  const h=submarineHarness();h.run('soloSubmarine.spawnFx=0;player.x=2400;player.y=1060;damageSoloHull(soloSubmarine.sections[1],200);damageSoloHull(soloSubmarine.sections[0],100)');
@@ -193,6 +193,17 @@ test('welding restores only the selected section and keeps a real surface contac
  assert.equal(h.run('soloSubmarine.repair.section.id'),1);
  assert.ok(h.run('Math.hypot(soloSubmarine.repair.point.x-player.x,soloSubmarine.repair.point.y-player.y)<100'));
  h.run('updateSoloHullRepair(30)');
- assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
- assert.equal(h.run('soloSubmarine.sections[0].hp'),200);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),600);
+ assert.equal(h.run('soloSubmarine.sections[0].hp'),500);
+});
+
+test('intact submarine blocks physical movement but not projectiles, while natural rocks block both',()=>{
+ const h=submarineHarness();
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2,true)'),false);
+ assert.equal(h.run('SOLO_CAVERN.resolve(arenaRocks,2400,950,2400,1400,12).blocked'),true);
+ const r=rocks[0];assert.equal(cave.segmentBlocked([r],r.x-r.r-50,r.y,r.x+r.r+50,r.y,2,true),true);
+ h.run('damageSoloHull(soloSubmarine.sections[1],600)');
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),false);
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2,true)'),false);
 });
