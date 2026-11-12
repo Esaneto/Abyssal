@@ -67,3 +67,68 @@ test('pursuit rounds a wall when diver hugs the opposite side',()=>{
  for(let i=0;i<700;i++){const nav=cave.pursuitTarget(rocks,1000,800,actor,goal,24,i*16),d=Math.hypot(nav.x-actor.x,nav.y-actor.y);if(d>.01){const step=Math.min(4,d),p=cave.resolve(rocks,actor.x,actor.y,actor.x+(nav.x-actor.x)/d*step,actor.y+(nav.y-actor.y)/d*step,24);actor.x=p.x;actor.y=p.y;}assert.equal(cave.isBlocked(rocks,actor.x,actor.y,24),false);if(actor.x>550&&Math.hypot(actor.x-goal.x,actor.y-goal.y)<80){reached=true;break;}}
  assert.ok(reached,'must round the shelf to reach the diver side');
 });
+
+
+// Exercise the production hull state against the actual polygon/terrain resolver.
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+function submarineHarness(){
+ const src=fs.readFileSync(path.resolve(__dirname,'../public/game.js'),'utf8');
+ const helpers=src.slice(src.indexOf('let soloSubmarine='),src.indexOf('function soloSubmarineTopUp()'));
+ const mounts=src.slice(src.indexOf('const SOLO_WEAPON_MOUNTS='),src.indexOf('function submarineMount('));
+ let now=1000;
+ const context={SOLO_CAVERN:cave,GAME_WORLD_ZOOM:1,W:4800,H:3000,arenaRocks:[],onlineMode:false,gameState:'playing',isClassicShooterRun:()=>true,player:{x:2400,y:900,r:18,moveSpeed:180,specimen:{x:2400,y:850,r:20,alive:true}},equippedSkin:'default',window:{addEventListener(){}},performance:{now:()=>now},clearSoloSubmarinePhotonRay(){},enemyParalyzedNow:()=>false};
+ vm.createContext(context);
+ vm.runInContext(helpers+mounts+';resetSoloSubmarine();',context);
+ return {run:s=>vm.runInContext(s,context),advance:ms=>{now+=ms;},context};
+}
+test('Submarine has three independent 300 HP sections and every mount belongs to one section',()=>{
+ const h=submarineHarness();
+ assert.equal(h.run('soloSubmarine.sections.length'),3);
+ assert.equal(h.run('soloSubmarine.sections.reduce((sum,s)=>sum+s.hp,0)'),900);
+ assert.equal(h.run('arenaRocks.filter(r=>r.submarineHull).length'),3);
+ assert.equal(h.run("soloWeaponSection('pierce').id"),0);
+ assert.equal(h.run("soloWeaponSection('nova').id"),0);
+ assert.equal(h.run("soloWeaponSection('photon').id"),1);
+ assert.equal(h.run("soloWeaponSection('electric').id"),1);
+ assert.equal(h.run("soloWeaponSection('photonRay').id"),2);
+ assert.equal(h.run("soloWeaponSection('echoShot').id"),2);
+});
+test('destroying one section opens physical passage and disables only its turrets; repair restores both',()=>{
+ const h=submarineHarness();
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
+ h.run('damageSoloHull(soloSubmarine.sections[1],300)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
+ assert.equal(h.run('soloSubmarine.debris.length'),12);
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),false);
+ assert.equal(h.run("soloWeaponOperational('photon')"),false);
+ assert.equal(h.run("soloWeaponOperational('pierce')"),true);
+ assert.equal(h.run('soloSubmarine.sections[0].hp+soloSubmarine.sections[2].hp'),600);
+ h.run('player.x=2400;player.y=1170');
+ assert.equal(h.run('repairSoloHull()'),true);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run("soloWeaponOperational('photon')"),true);
+ assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
+ assert.equal(h.run('SOLO_CAVERN.isBlocked(arenaRocks,player.x,player.y,player.r+2)'),false);
+});
+test('powered hull always takes priority; unpowered creatures choose the nearest diver or specimen',()=>{
+ const h=submarineHarness();
+ h.run('player.x=100;player.y=100;player.specimen.x=500;player.specimen.y=500;soloSubmarine.powerSeconds=300;var mob={id:1,x:510,y:500,r:20,damage:20};var diver={x:player.x,y:player.y,local:true}');
+ assert.equal(h.run('soloCreatureTarget(mob,diver).submarine'),true);
+ assert.equal(h.run('SOLO_CAVERN.isBlocked(arenaRocks,soloCreatureTarget(mob,diver).x,soloCreatureTarget(mob,diver).y,Math.max(5,mob.r*.62))'),false);
+ h.run('soloSubmarine.powerSeconds=0');
+ assert.equal(h.run('soloCreatureTarget(mob,diver).specimen'),true);
+ h.run('mob.x=110;mob.y=100');
+ assert.equal(h.run('soloCreatureTarget(mob,diver).local'),true);
+ h.run('player.specimen.alive=false;mob.x=510;mob.y=500');
+ assert.equal(h.run('soloCreatureTarget(mob,diver).local'),true);
+});
+test('unpowered hull takes contact damage, one hit per creature cooldown, with no automatic attraction',()=>{
+ const h=submarineHarness();
+ h.run('var mob={id:1,x:2400,y:1063,r:30,damage:20};soloSubmarine.powerSeconds=0;');
+ h.run('soloHullContact(mob,1000)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ h.run('soloHullContact(mob,1100)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ h.run('soloHullContact(mob,2100)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),260);
+});
