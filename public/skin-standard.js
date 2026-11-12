@@ -137,7 +137,7 @@
  for(const id of all){
   const pair=PROFILE_ASSIGNMENTS[id];
   if(!pair)throw new Error('Missing locked specimen profile: '+id);
-  const [active,attribute]=pair,tier=tierFor(id),percent=TIER_PERCENT[tier];
+  const [active,attribute]=pair,tier=tierFor(id),percent=id==='electriceel'?TIER_PERCENT.brl999:TIER_PERCENT[tier];
   profiles[id]=Object.freeze({id,tier,percent,attribute,active,cooldown:ACTIVE[active].cooldown});
  }
  function profile(id){return profiles[String(id||'default')]||profiles.default;}
