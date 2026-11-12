@@ -122,4 +122,5 @@ test('shop rebuilds are skipped for hidden post-run and wheel updates',()=>{
  assert.match(game,/energyWallet\?\.credit\(earned,'offline-reward'\);saveCosmetics\(\);if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\)/);
  assert.match(game,/saveCosmeticsLocalOnly\(\);if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\);animateWheelToPrize/);
  assert.match(game,/const currencySelect=\$\('shopCurrency'\);if\(currencySelect\)currencySelect\.value='brl';if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\)/);
+ assert.match(game,/abyssal-rooms-list',ev=>\{const screen=\$\('roomsScreen'\);if\(screen&&!screen\.hidden\)renderRoomList/);
 });
