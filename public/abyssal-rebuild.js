@@ -237,11 +237,11 @@ function createExpeditionUI(){
       '<p id="abyssCheckpointLore">A pressão abaixo deste ponto está aumentando.</p>'+
       '<div class="abyss-checkpoint-stats">'+
         '<div><small>PROFUNDIDADE</small><strong id="abyssCheckpointDepth">1.000 m</strong></div>'+
-        '<div><small>BÔNUS SE EXTRAIR</small><strong id="abyssCheckpointBonus">+15%</strong></div>'+
-        '<div><small>SE O SINAL FOR PERDIDO</small><strong>65% DO SAQUE FINAL</strong></div>'+
+        '<div><small>BÔNUS DO ESPÉCIME</small><strong id="abyssCheckpointBonus">+0%</strong></div>'+
+        '<div><small>ENERGIA COLETADA</small><strong>100% GARANTIDA</strong></div>'+
       '</div>'+
       '<div class="abyss-checkpoint-actions">'+
-        '<button id="abyssContinueBtn" class="abyss-checkpoint-descend" type="button"><strong>CONTINUAR DESCENDO</strong><span id="abyssContinueHint">A próxima zona paga mais.</span></button>'+
+        '<button id="abyssContinueBtn" class="abyss-checkpoint-descend" type="button"><strong>CONTINUAR DESCENDO</strong><span id="abyssContinueHint">Explore a próxima zona.</span></button>'+
         '<button id="abyssExtractBtn" class="abyss-checkpoint-extract" type="button"><strong>VOLTAR À SUPERFÍCIE</strong><span>Garantir o saque e encerrar esta expedição.</span></button>'+
       '</div>'+
     '</div>';
@@ -346,8 +346,8 @@ function bindExpeditionCheckpoints(){
       var lore=$('abyssCheckpointLore');
 
       if(depth)depth.textContent=expeditionDepthForBosses(bosses).toLocaleString('pt-BR')+' M de Profundidade ☠';
-      if(bonus)bonus.textContent='+'+Math.round(Math.min(.75,bosses*.15)*100)+'%';
-      if(hint)hint.textContent='Desça até '+expeditionDepthForBosses(bosses+1).toLocaleString('pt-BR')+' m e aumente o bônus.';
+      if(bonus)bonus.textContent='+'+(Number(state.energyBonusPercent)||0)+'%';
+      if(hint)hint.textContent='Desça até '+expeditionDepthForBosses(bosses+1).toLocaleString('pt-BR')+' m e encontre novas criaturas.';
       if(lore)lore.textContent=bosses>=4?'Há algo se movendo abaixo da zona mapeada.':bosses>=2?'O sonar está registrando formas maiores abaixo de você.':'A pressão abaixo deste ponto está aumentando.';
 
       panel.hidden=false;

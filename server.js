@@ -1251,13 +1251,22 @@ function tickRoom(room, now) {
   }
   const lastAt=Number(peer.specimenLastAt)||now,dt=Math.min(.12,Math.max(0,(now-lastAt)/1000));peer.specimenLastAt=now;
   if(peer.specimenAlive===false)continue;
-  if(peer.specimenDash&&now<(Number(peer.specimenDashUntil)||0)){
-   const dash=peer.specimenDash,progress=clamp((now-dash.startedAt)/650,0,1);
-   peer.specimenX=dash.x1+(dash.x2-dash.x1)*progress;
-   peer.specimenY=dash.y1+(dash.y2-dash.y1)*progress;
+  if(peer.specimenDash){
+   const dash=peer.specimenDash,progress=clamp((now-dash.startedAt)/650,0,1),fromX=peer.specimenX,fromY=peer.specimenY;
+   peer.specimenX=dash.x1+(dash.x2-dash.x1)*progress;peer.specimenY=dash.y1+(dash.y2-dash.y1)*progress;
+   const dx=peer.specimenX-fromX,dy=peer.specimenY-fromY,owner=io.sockets.sockets.get(peer.id);dash.hitIds ||= new Set();
+   const targets=room.mode==='pvp'?activePlayers:[...(room.world?.enemies||[])];
+   for(const target of targets){if(!target||target.id===peer.id||target.alive===false||Number(target.hp)<=0||dash.hitIds.has(target.id))continue;
+    const q=clamp(((target.x-fromX)*dx+(target.y-fromY)*dy)/Math.max(1e-9,dx*dx+dy*dy),0,1),origin={x:fromX+dx*q,y:fromY+dy*q};
+    if(Math.hypot(target.x-origin.x,target.y-origin.y)>15/WORLD_ZOOM+(Number(target.r)||10/WORLD_ZOOM))continue;
+    const clear=room.mode==='pvp'?!pvpSegmentHitsRock(origin.x,origin.y,target.x,target.y,1/WORLD_ZOOM):specimenCaveLayout?AbyssalMap.segmentWalkable(specimenCaveLayout,origin.x,origin.y,target.x,target.y,2):room.mode==='open-sea'?OceanGeography.segmentClear(origin.x,origin.y,target.x,target.y,2):true;
+    if(!clear)continue;dash.hitIds.add(target.id);
+    if(room.mode==='pvp')applySkinActivePvpDamage(room,peer,target,dash.damage,'skin-active-dash',now);
+    else if(owner){peer.skinActiveServerResolving=true;peer.skinActiveDamageOrigin=origin;try{processWorldDamage(owner,Number(target.id),dash.damage,'skin-active-dash',null,'dash:'+dash.startedAt);}finally{peer.skinActiveServerResolving=false;peer.skinActiveDamageOrigin=null;}}
+   }
+   if(progress>=1){peer.specimenDash=null;emitSpecimenState(room,peer,'dash-landed');}
    continue;
   }
-  if(peer.specimenDash){peer.specimenX=peer.specimenDash.x2;peer.specimenY=peer.specimenDash.y2;peer.specimenDash=null;emitSpecimenState(room,peer,'dash-landed');}
   const pos={x:peer.specimenX,y:peer.specimenY},radius=11/WORLD_ZOOM;
   const acquisitionRange=294/WORLD_ZOOM*clamp(Number(peer.rangeStrength)||1,1,2.5)*SkinAbilities.targetRangeMultiplier(peer.skinId,peer.specimenPoints,true);
   const orb=room.mode==='pvp'?null:SpecimenEvasion.bestOrb(pos,room.world?.orbs||[],peer,acquisitionRange,hostile,radius,28/WORLD_ZOOM);
@@ -2350,7 +2359,7 @@ io.on('connection', socket => {
     travel*=.82;
    }
    const x2=originX+ux*travel,y2=originY+uy*travel;
-   player.specimenDash={x1:originX,y1:originY,x2,y2,startedAt:now};
+   player.specimenDash={x1:originX,y1:originY,x2,y2,startedAt:now,damage:spec.damage,hitIds:new Set()};
    player.specimenDashUntil=now+650;
    player.specimenInvulnerableUntil=Math.max(Number(player.specimenInvulnerableUntil)||0,player.specimenDashUntil);
    io.to(channelFor(room)).emit('specimen-dash',{fromId:player.id,x1:originX/roomWorldWidth(room),y1:originY/worldHeight,x2:x2/roomWorldWidth(room),y2:y2/worldHeight,durationMs:650,startedAt:now});
@@ -2436,7 +2445,7 @@ io.on('connection', socket => {
   }else if(room.mode==='pvp'){
    const targets=visiblePvpTargets();
    if(active==='dash'){
-    const ex=player.specimenDash.x2,ey=player.specimenDash.y2;for(const target of livingOpponents())if(lineDistance(target.x,target.y,originX,originY,ex,ey)<=34/WORLD_ZOOM&&!pvpSegmentHitsRock(originX,originY,target.x,target.y,2/WORLD_ZOOM))hitPvp(target,spec.damage,'skin-active-dash');
+    /* Swept impacts are resolved in tickRoom. */
    }else if(active==='shield'||active==='poison'||active==='paralysis'){}
    else for(const target of targets){
     const hit=hitPvp(target,spec.damage,'skin-active-'+active);if(!hit)continue;
@@ -2448,7 +2457,7 @@ io.on('connection', socket => {
     if(active==='cloud'){for(const delay of [500,1000,1500,2000])setTimeout(()=>{const live=room.players.get(target.id);if(live?.alive!==false)hitPvp(live,5,'skin-active-poison-dot');},delay);}
    }
   }else{
-   if(active==='dash'){const ex=player.specimenDash.x2,ey=player.specimenDash.y2;for(const e of enemies)if(canReachEnemy(e)&&lineDistance(e.x,e.y,originX,originY,ex,ey)<=34/WORLD_ZOOM)resolveEnemyDamage(e,spec.damage,'skin-active-dash');}
+   if(active==='dash'){/* Swept impacts are resolved in tickRoom. */}
    else if(active==='shield'){}
    else if(active==='poison'||active==='paralysis'){}
    else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*645;e.kbVy=dy/d*645;}if(active==='cloud')for(const delay of [500,1000,1500,2000])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,5,'skin-active-poison-dot');},delay);}

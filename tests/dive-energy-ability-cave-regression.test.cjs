@@ -11,7 +11,7 @@ test('100 percent collected energy plus only the equipped specimen bonus',()=>{
 });
 test('shark vision rays stop at solid rock, including narrow corners',()=>{
  const rock={x:300,y:200,rx:20,ry:30,r:37,angle:0,vertices:[[-20,-30],[20,-30],[20,30],[-20,30]],cavernSolid:true};
- assert.equal(cave.rayDistance([rock],100,200,1,0,700),180);
+ assert.ok(Math.abs(cave.rayDistance([rock],100,200,1,0,700)-180)<1e-8);
  assert.equal(cave.rayDistance([rock],300,200,1,0,700),0);
  const fan=cave.visionFan([rock],100,200,0,.275,700);
  assert.ok(fan.some(p=>p.x<280&&Math.abs(p.y-200)<1));
@@ -33,4 +33,27 @@ test('solo specimen dash uses swept movement, actual impact origin and one hit p
  now=100;vm.runInContext('updateSpecimenRuntime(.05)',context);
  assert.equal(hits.length,1);assert.equal(hits[0].id,1);assert.equal(hits[0].d,70);assert.equal(hits[0].skill,'skin-active-dash');
  assert.equal(player.specimen.dash,null);
+});
+
+test('offensive specimen abilities deal damage and respect solid obstacles',()=>{
+ const cut=(a,b)=>game.slice(game.indexOf(a),game.indexOf(b,game.indexOf(a)));
+ const code=cut('function marineAbilityLineDistance','function currentSkinActiveSpec')+
+ cut('const expandingSkinClouds','function spawnPoisonPlantCloudVisual')+
+ cut('function applySoloSkinActive','function activateSkinAbility');
+ const hits=[],near={id:1,x:30,y:0,r:10,hp:100},blocked={id:2,x:40,y:0,r:10,hp:100},player={specimen:{alive:true}};
+ const context={onlineMode:false,GAME_WORLD_ZOOM:1,clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),specimenOrigin:()=>({x:0,y:0}),enemies:[near,blocked],player,soloAdaptationRun:'test-run',gameState:'playing',effects:[],setTimeout:f=>f(),pveTerrainClear:(a,b,x)=>x!==40,dealEnemyDamage:(e,d,skill)=>hits.push({id:e.id,d,skill})};
+ vm.createContext(context);vm.runInContext(code,context);
+ for(const [id,damage,range] of [['cloud',50,300],['pulse',60,360],['push',60,330],['shot',80,360],['slowShot',7,320]]){
+  context.spec={id,damage,range,color:'#fff'};
+  vm.runInContext('applySoloSkinActive(spec,0);updateSkinCloudExpansions(1.55);updateSkinPulses(.72)',context);
+ }
+ assert.deepEqual(hits.map(x=>[x.id,x.d]),[[1,50],[1,60],[1,60],[1,80],[1,7]]);
+ assert.ok(near.poisonTimer>0);assert.ok(near.skinSlowedUntil>Date.now());assert.ok(near.kbVx>0);
+});
+test('venom and electric weapon infusions apply on real projectile hits',()=>{
+ const start=game.indexOf('const INFUSION_SHOT_TYPES'),end=game.indexOf('function triggerHitSynergies',start),source=game.slice(start,end);
+ const enemy={hp:100,x:10,y:10},player={skinWeaponBuffUntil:10000,skinWeaponBuffKind:'poison'};
+ const context={onlineMode:false,player,enemy,performance:{now:()=>1000},burst:()=>{}};
+ vm.createContext(context);vm.runInContext(source+";applySoloWeaponInfusionHit(enemy,'photon')",context);assert.equal(enemy.poisonTimer,2.4);
+ player.skinWeaponBuffKind='paralysis';enemy.weaponInfusionNextAt=0;vm.runInContext("applySoloWeaponInfusionHit(enemy,'electric')",context);assert.equal(enemy.paralyzedUntil,1100);
 });
