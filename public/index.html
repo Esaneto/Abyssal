@@ -98,7 +98,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 #gameOverScreen .dive-report-results>div{min-width:0;padding:12px 5px;background:#081923dd;border:1px solid #397c70;border-radius:9px;text-align:center}
 #gameOverScreen .dive-report-results small{display:block;font-size:clamp(8px,1.5vw,11px);color:#b5ded6;letter-spacing:.04em}
 #gameOverScreen .dive-report-results strong{display:block;color:#b5ffdf;font-size:clamp(16px,3vw,26px);overflow-wrap:anywhere;margin-top:7px}
-#gameOverScreen #finalCoins{color:#d9e7f5}#gameOverScreen #finalEnergy{color:#c99bff}#gameOverScreen #finalReportStatus{font-size:11px;color:#a6d4cc}
+#gameOverScreen #finalCoins{color:#d9e7f5}#gameOverScreen #finalEnergy,#gameOverScreen #finalEnergyBonusPercent,#gameOverScreen #finalEnergyBonus,#gameOverScreen #finalEnergyWithBonus{color:#c99bff}#gameOverScreen #finalReportStatus{font-size:11px;color:#a6d4cc}
 #gameOverScreen .dive-report-card button{background:linear-gradient(#1c4945,#10292c)!important;border-color:#59a995!important;color:#e4fff2!important}
 #submarineWorkshop [data-cockpit-proxy="notifBtn"]{position:relative}
 .cockpit-unread-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4057;border:1px solid #ffd0d3;border-radius:50%;box-shadow:0 0 7px #ff4057;pointer-events:none}
@@ -295,7 +295,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="dive-report-flora" aria-hidden="true"><svg viewBox="0 0 580 180" preserveAspectRatio="none"><g fill="none" stroke-linecap="round"><path d="M12 180Q30 126 24 58M24 124Q4 100 7 78M25 103Q55 76 60 48M72 180Q67 125 90 103M90 134Q115 113 118 83M568 180Q548 126 554 58M554 124Q574 100 571 78M553 103Q523 76 518 48M508 180Q513 125 490 103M490 134Q465 113 462 83" stroke="#64e6bf" stroke-width="3"/><path d="M39 180Q45 143 43 111M541 180Q535 143 537 111" stroke="#b985ff" stroke-width="2"/></g><g fill="#a3ffda"><circle cx="24" cy="58" r="4"/><circle cx="7" cy="78" r="3"/><circle cx="60" cy="48" r="4"/><circle cx="118" cy="83" r="3"/><circle cx="554" cy="58" r="4"/><circle cx="571" cy="78" r="3"/><circle cx="518" cy="48" r="4"/><circle cx="462" cy="83" r="3"/></g></svg></div><div class="results dive-report-results">
           <div><small>SOBREVIVÊNCIA</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
-          <div><small>ENERGIA DE CONCLUSÃO</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+          <div><small>ENERGIA DE CONCLUSÃO</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>BÔNUS ATIVO DO ESPÉCIME</small><strong id="finalEnergyBonusPercent">+0%</strong></div><div><small>ENERGIA EXTRA DO ESPÉCIME</small><strong id="finalEnergyBonus">0</strong></div><div><small>COLETADA + BÔNUS</small><strong id="finalEnergyWithBonus">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
         </div><p id="finalReportStatus" role="status" aria-live="polite">Relatório da expedição</p>
         <button id="reviveWithAdBtn" class="primary-btn">ASSISTIR ANÚNCIO PARA REVIVER <span>▶</span></button>
         <button id="againBtn" class="secondary-btn">ENCERRAR E MERGULHAR NOVAMENTE</button>
@@ -719,11 +719,11 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.39"></script>
+ <script src="game.js?v=2026.11.12.40"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.12.34"></script>
-<script src="abyssal-tutorial-art.js?v=2026.11.12.1"></script>
-<script src="abyssal-tutorials.js?v=2026.11.12.1"></script>
+<script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
+<script src="abyssal-tutorials.js?v=2026.11.12.2"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
 
 <script>

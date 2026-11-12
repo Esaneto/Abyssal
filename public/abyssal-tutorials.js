@@ -11,7 +11,7 @@
     'Na primeira barra completa de uma conta, você recebe 5.000 de energia. Depois, pode retornar à superfície ou enfrentar ciclos cada vez mais fortes.',
     'Concluir toda a progressão em 100% concede a recompensa final: a Serpente Esmeralda.'
     ,'O submarino oferece iluminação e armas de apoio. Recarregue sua energia no painel da base; a luz custa 20 de energia por 5 minutos.'
-    ,'Ao encerrar o mergulho, o bônus de energia do Espécime soma-se ao bônus aplicável da expedição: 60% + 10% = 70%. A experiência continua sendo usada para evoluir durante a partida.'
+    ,'Você mantém 100% da energia coletada. Sem bônus (0%), 1.000 de energia continuam 1.000; com um Espécime de +10%, passam a 1.100. O bônus é creditado ao encerrar o mergulho, sem alterar a experiência.'
    ],end:'Q e E ativam habilidades equipadas. Use o menu de Controles para personalizar a navegação.'
   },
   coop:{
@@ -23,7 +23,7 @@
     'Cada boss da sequência vencido aproxima o grupo da conclusão da barra. Sua primeira barra pessoal completa dá 5.000 de energia, uma única vez por conta.',
     'Após receber o bônus, você escolhe voltar à superfície ou continuar pelos ciclos de fortalecimento, rumo à Serpente Esmeralda.',
     'Use a identificação da sala para convidar amigos; os dados de energia e títulos pertencem à sua conta.',
-    'Os Espécimes com bônus de energia aumentam a recompensa no encerramento do mergulho, não a experiência durante a partida.',
+    'Você mantém 100% da energia coletada. O bônus do Espécime é aplicado no encerramento: 0% = 1.000 de energia; +10% = 1.100. A experiência não recebe esse bônus.',
     'No ranking por bosses derrotados, os 10 primeiros de cada período recebem energia: diário 100, semanal 1.000 e mensal 5.000.'
    ],end:'A partida continua acontecendo para os demais. Enquanto este manual estiver aberto, você fica protegido, mas não pode atacar.'
   },

@@ -1468,7 +1468,7 @@ function showVictoryModal() {
 }
 
 let diveEnergySkinId='default';
-function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),expeditionBonus=expeditionMode?Math.min(.75,bossKillsThisRun*.15):0,specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor((base+diveStats.energyCollected)*(expeditionBonus+specimenBonus));return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round((expeditionBonus+specimenBonus)*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
+function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor(diveStats.energyCollected*specimenBonus);return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round(specimenBonus*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(){
  diveEnergySkinId=equippedSkin;soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
@@ -2128,7 +2128,7 @@ function predatorDamageMultiplier(enemy){
  return 1+rank*(elite?.14:.03)+(finisher?rank*.06:0);
 }
 function dealEnemyDamage(enemy, damage, skillId=null, options={}){
-  if(!enemy||!Number.isFinite(damage)||damage<=0)return;
+  if(!enemy||enemy.hp<=0||!Number.isFinite(damage)||damage<=0)return;
  if(activeMapLayout&&enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)return;
  if(onlineRoomMode!=='pvp'&&player&&!String(skillId||'').startsWith('rift-hazard-')&&skillId!=='skin-active-poison-dot'){const origin=options.origin||player;if(!pveTerrainClear(origin.x,origin.y,enemy.x,enemy.y,2))return;}
  score += Math.round(damage);
@@ -2592,16 +2592,9 @@ function spawnPoisonPlantCloudVisual(x,y,radius,color='#7dff73'){
 function startSkinSpecimenDash(origin,angle,range,duration=.65){
  if(!player?.specimen||!player.specimen.alive)return;
  const s=player.specimen,ux=Math.cos(angle),uy=Math.sin(angle);
- let travel=range;
- for(let i=0;i<14;i++){
-  const x2=origin.x+ux*travel,y2=origin.y+uy*travel;
-  const out=x2<s.r||x2>W-s.r||y2<s.r||y2>H-s.r;
-  const blocked=onlineRoomMode==='pvp'?projectileHitsPvpWall(origin.x,origin.y,x2,y2,s.r):
-   !pveTerrainClear(origin.x,origin.y,x2,y2,s.r);
-  if(!out&&!blocked)break;
-  travel*=.82;
- }
- s.dash={x1:origin.x,y1:origin.y,x2:origin.x+ux*travel,y2:origin.y+uy*travel,startedAt:performance.now(),durationMs:duration*1000,angle};
+ const valid=travel=>{const x2=origin.x+ux*travel,y2=origin.y+uy*travel;return x2>=s.r&&x2<=W-s.r&&y2>=s.r&&y2<=H-s.r&&(onlineRoomMode==='pvp'?!projectileHitsPvpWall(origin.x,origin.y,x2,y2,s.r):pveTerrainClear(origin.x,origin.y,x2,y2,s.r));};
+ let lo=0,hi=range;if(valid(range))lo=range;else for(let i=0;i<16;i++){const mid=(lo+hi)*.5;if(valid(mid))lo=mid;else hi=mid;}
+ const travel=lo;s.dash={x1:origin.x,y1:origin.y,x2:origin.x+ux*travel,y2:origin.y+uy*travel,startedAt:performance.now(),durationMs:duration*1000,angle,hitIds:new Set(),damage:Number(currentSkinActiveSpec()?.damage)||70};
  s.invuln=Math.max(Number(s.invuln)||0,duration);
 }
 function drawSpecimenDashArc(x,y,r,angle,t,progress){
@@ -2654,7 +2647,7 @@ function spawnSkinActiveVisual(spec,angle){
  else if(spec.id==='push'){effects.push({type:'ring',x,y,r:0,max:r,life:.58,maxLife:.58,color});burst(x,y,color,18,150);}
  else if(spec.id==='poison'){burst(player.x,player.y,'#b46bfa',8,70);}
  else if(spec.id==='paralysis'){burst(player.x,player.y,'#62edff',9,75);}
- else if(spec.id==='shot'||spec.id==='slowShot'){effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*r,y2:y+Math.sin(angle)*r,life:.42,maxLife:.42,color,width:spec.id==='shot'?6/GAME_WORLD_ZOOM:4/GAME_WORLD_ZOOM});burst(x,y,color,12,100);}
+ else if(spec.id==='shot'||spec.id==='slowShot'){const reach=pveRayDistance(x,y,Math.cos(angle),Math.sin(angle),r,2);effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(angle)*reach,y2:y+Math.sin(angle)*reach,life:.42,maxLife:.42,color,width:spec.id==='shot'?6/GAME_WORLD_ZOOM:4/GAME_WORLD_ZOOM});burst(x,y,color,12,100);}
  else if(spec.id==='pulse'){effects.push({type:'specimen-pulse-wave',x,y,r:0,max:r,life:.72,maxLife:.72,color});burst(x,y,color,20,155);}
  else if(spec.id==='shield'){effects.push({type:'specimen-shield-bubble',x,y,max:74/GAME_WORLD_ZOOM,life:2,maxLife:2,color,local:true});}
 }
@@ -2662,8 +2655,8 @@ function applySoloSkinActive(spec,angle){
  const origin=specimenOrigin(),range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
  const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-origin.x,e.y-origin.y)<=range&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2));
  if(spec.id==='dash'){
-  const dash=player?.specimen?.dash,ex=dash?.x2??origin.x,ey=dash?.y2??origin.y;
-  for(const e of enemies){if(!e||e.hp<=0)continue;if(!pveTerrainClear(origin.x,origin.y,e.x,e.y,2))continue;if(marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(20/GAME_WORLD_ZOOM,e.r*.55))dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true,origin});}
+  // Damage is swept during actual movement, never at the speculative endpoint.
+  const dash=player?.specimen?.dash;if(dash){dash.damage=Number(spec.damage)||70;dash.hitIds ||= new Set();}
  }else if(spec.id==='cloud'){
   expandingSkinClouds.push({x:origin.x,y:origin.y,radius:range,damage:spec.damage,elapsed:0,hitIds:new Set()});
   if(expandingSkinClouds.length>3)expandingSkinClouds.shift();
@@ -2675,8 +2668,8 @@ function applySoloSkinActive(spec,angle){
   // The active ability now buffs the diver's weapon; damage/status occurs on actual hits.
  }else if(spec.id==='shot'||spec.id==='slowShot'){
   const ex=origin.x+Math.cos(angle)*range,ey=origin.y+Math.sin(angle)*range;
-  const target=enemies.filter(e=>e&&e.hp>0&&marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(18/GAME_WORLD_ZOOM,e.r*.45)).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y))[0];
-  if(target){effects.push({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0||!specimenAlive()||!pveTerrainClear(origin.x,origin.y,target.x,target.y,2))return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true,origin});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
+  const target=enemies.filter(e=>e&&e.hp>0&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2)&&marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=18/GAME_WORLD_ZOOM+(Number(e.r)||0)).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y))[0];
+  if(target){const castPlayer=player,castRun=soloAdaptationRun;effects.push({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||player!==castPlayer||soloAdaptationRun!==castRun||!enemies.includes(target)||target.hp<=0||!pveTerrainClear(origin.x,origin.y,target.x,target.y,2))return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true,origin});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
  }else if(spec.id==='pulse'){
   expandingSkinPulses.push({x:origin.x,y:origin.y,radius:range,damage:spec.damage,duration:.72,elapsed:0,edge:0,hitIds:new Set()});
   if(expandingSkinPulses.length>4)expandingSkinPulses.shift();
@@ -2764,9 +2757,11 @@ function updateSpecimenRuntime(dt){
  }
  if(s.dash){
   const progress=clamp((performance.now()-s.dash.startedAt)/s.dash.durationMs,0,1);
-  s.x=s.dash.x1+(s.dash.x2-s.dash.x1)*progress;
-  s.y=s.dash.y1+(s.dash.y2-s.dash.y1)*progress;
-  s.facingAngle=s.dash.angle;
+  const dash=s.dash,from={x:s.x,y:s.y};
+  s.x=dash.x1+(dash.x2-dash.x1)*progress;
+  s.y=dash.y1+(dash.y2-dash.y1)*progress;
+  s.facingAngle=dash.angle;
+  if(!onlineMode){dash.hitIds ||= new Set();for(const e of [...enemies]){if(!e||e.hp<=0||dash.hitIds.has(e.id))continue;const dx=s.x-from.x,dy=s.y-from.y,q=clamp(((e.x-from.x)*dx+(e.y-from.y)*dy)/Math.max(1e-9,dx*dx+dy*dy),0,1),contact={x:from.x+dx*q,y:from.y+dy*q};if(Math.hypot(e.x-contact.x,e.y-contact.y)>Math.max(s.r,15/GAME_WORLD_ZOOM)+(Number(e.r)||0)||!pveTerrainClear(contact.x,contact.y,e.x,e.y,1))continue;dash.hitIds.add(e.id);dealEnemyDamage(e,dash.damage,'skin-active-dash',{visual:true,origin:contact});}}
   if(progress>=1)s.dash=null;
   return;
  }
@@ -2790,11 +2785,11 @@ function updateSpecimenRuntime(dt){
  const navigationThreats=combatTarget?threats.filter(e=>e.id!==combatTarget.id):threats;
  if(combatTarget){
   const attackDistance=Math.max(57/GAME_WORLD_ZOOM,radius+(Number(combatTarget.r)||0)+9/GAME_WORLD_ZOOM);
-  if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)<=attackDistance&&performance.now()>=(s.nextTacticalAttack||0)){
+  if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)<=attackDistance&&pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2)&&performance.now()>=(s.nextTacticalAttack||0)){
    const biological=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints());
    const bite=biological.damage;
    s.nextTacticalAttack=performance.now()+1020;
-   dealEnemyDamage(combatTarget,bite,null,{silentSound:true,secondary:true});
+   dealEnemyDamage(combatTarget,bite,'specimen-bite',{silentSound:true,secondary:true,origin:s});
    burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
   }
  }
@@ -2918,7 +2913,7 @@ function update(dt){
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=500&&pveTerrainClear(bubble.x,bubble.y,e.x,e.y,2)) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt??-Infinity)>=500&&pveTerrainClear(bubble.x,bubble.y,e.x,e.y,2)) {
           e.wakeHitAt=performance.now();
           dealEnemyDamage(e,5,'skin-active-trail', { visual: showPeriodicSkinDamageNumber(e), silentSound: true, origin:bubble });
           burst(e.x, e.y, bubble.ink?'#768096':(bubble.color||'#7bf5ff'), 2, 30);
@@ -2931,8 +2926,8 @@ function update(dt){
   for(let i=inkTrails.length-1;i>=0;i--){const ink=inkTrails[i];ink.life-=dt;if(ink.life<=0)inkTrails.splice(i,1);}
 
   // Dano contínuo de veneno (verde) nos inimigos envenenados
-  for (const e of enemies) {
-    if (e.poisonTimer > 0) {
+  for (const e of [...enemies]) {
+    if (e.hp>0&&e.poisonTimer > 0) {
       e.poisonTimer -= dt;
       e.poisonTick = (e.poisonTick || 0) - dt;
       if (e.poisonTick <= 0) {
@@ -3381,7 +3376,7 @@ function activateAbility(id){
   player.pulseCooldown=14;const pulseCastId=(Number(player.pulseCastId)||0)+1;player.pulseCastId=pulseCastId;const pulseCaster=player;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
   if(onlineMode){const sent=window.AbyssalOnline?.sendActiveAbility?.('pulse',result=>{if(result?.ok!==false||player!==pulseCaster||pulseCaster.pulseCastId!==pulseCastId)return;pulseCaster.pulseCooldown=0;for(let i=effects.length-1;i>=0;i--)if(effects[i].pulseCastId===pulseCastId)effects.splice(i,1);updateAbilityButtons(true);});if(!sent){pulseCaster.pulseCooldown=0;updateAbilityButtons(true);return;}}
-  else for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:false});}
+  else for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<radius+e.r)dealEnemyDamage(e,28*upgrades.power,'pulse',{silentSound:true,visual:true});}
   if(onlineRoomMode==='pvp')effects.push({type:'occluded-ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   else effects.push({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');playWorldSound('ability-nova',player,880,.64);
@@ -3439,9 +3434,6 @@ function endGame(reason='death'){
  diveEndReason=expeditionExtracted?'extracted':reason;
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
- const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
- const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
- const earnedCoins=Math.floor(Math.min(50000,Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier)))/10);
  runResultPending=true;
  diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,...diveEnergyCalculation(),level};
  renderDiveReport(diveReport,true);
@@ -4704,7 +4696,7 @@ window.addEventListener('abyssal-revive-result',event=>{
 function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier,...diveStats};}
 function renderDiveReport(report,pending=false){
  if(!report)return;const n=v=>v==null?'—':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');
- setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':`Relatório da expedição · Bônus de energia +${Number(report.energyBonusPercent)||0}% (espécime +${Number(report.specimenEnergyBonusPercent)||0}%)`);
+ setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));const percent=Number(report.specimenEnergyBonusPercent)||0;setTextIfChanged('finalEnergyBonusPercent','+'+percent+'%');setTextIfChanged('finalEnergyBonus',report.energyCollected==null?'—':n(report.energyBonus));setTextIfChanged('finalEnergyWithBonus',report.energyCollected==null?'—':n(Number(report.energyCollected)+Number(report.energyBonus||0)));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':'Relatório do mergulho · 100% da energia coletada + bônus do Espécime');
 }
 function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · Energia de conclusão: '+n(report.totalRunCoins)+' · Energia coletada: '+n(report.energyCollected)+' · Bônus: +'+n(report.energyBonusPercent)+'%'+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
 function settleDiveReport(onComplete){
