@@ -64,3 +64,12 @@ test('focus and visibility resume share one deduplicated state request',()=>{
  assert.match(online,/now-lastResumeStateRequestAt<750/);
  assert.match(online,/window\.addEventListener\('focus',requestResumePlayerState\)/);
 });
+
+test('authentication rate-limit memory is pruned during long server uptime',()=>{
+ const server=read('server.js');
+ assert.match(server,/function pruneAuthAttempts\(now=Date\.now\(\)\)/);
+ assert.match(server,/authAttempts\.size<2048/);
+ assert.match(server,/if\(recent\.length\)authAttempts\.set\(ip,recent\);else authAttempts\.delete\(ip\)/);
+ assert.match(server,/pruneAuthAttempts\(now\)/);
+ assert.match(server,/authAttempts\.delete\(ip\);[\s\S]*?ensureAccountId\(user\)/);
+});
