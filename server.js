@@ -396,6 +396,15 @@ app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
 const rooms = new Map();
 const authAttempts = new Map();
+let lastAuthAttemptsPruneAt=0;
+function pruneAuthAttempts(now=Date.now()){
+ if(now-lastAuthAttemptsPruneAt<60000&&authAttempts.size<2048)return;
+ lastAuthAttemptsPruneAt=now;
+ for(const [ip,times] of authAttempts){
+  const recent=Array.isArray(times)?times.filter(t=>now-Number(t)<60000):[];
+  if(recent.length)authAttempts.set(ip,recent);else authAttempts.delete(ip);
+ }
+}
 function livingPlayers(room) { return [...(room?.players?.values?.() || [])].filter(player => player && player.alive !== false); }
 function hasLivingPlayers(room) { return livingPlayers(room).length > 0; }
 function playerVitalsPayload(player, extra = {}) {
@@ -1557,6 +1566,7 @@ io.on('connection', socket => {
  socket.emit('online-count', onlineCount()); roomListForClients().then(list=>{if(socket.connected)socket.emit('rooms-list',list)}).catch(err=>{console.error('[rooms] lista inicial falhou:',err.message);if(socket.connected)socket.emit('rooms-list',roomList())});
  socket.on('authenticate', async (payload = {}) => {
   const ip = socket.handshake.address || 'unknown', now = Date.now();
+  pruneAuthAttempts(now);
   const attempts = (authAttempts.get(ip) || []).filter(t => now - t < 60000);
   if (attempts.length >= 12) return socket.emit('auth-result', { ok: false, message: 'Muitas tentativas. Aguarde um minuto.' });
   const nickname = String(payload.nickname || '').trim(), password = String(payload.password || '');
@@ -1579,6 +1589,7 @@ io.on('connection', socket => {
    const candidate = await hashPassword(password, user.salt);
    if (!candidate || !safeEqual(candidate, user.passwordHash)) { attempts.push(now); authAttempts.set(ip, attempts); return socket.emit('auth-result', { ok: false, message: 'Senha incorreta para este nickname.' }); }
   }
+  authAttempts.delete(ip);
   ensureAccountId(user);user.metaUpgrades ||= {}; user.ownedSkins ||= ['default']; user.redeemedCodes ||= []; user.energy ||= 0; user.lastWheelAt ||= 0; user.titleStats ||= {monstersDefeated:0,bossesDefeated:0,cardumesCreated:0}; user.likedBy ||= [];user.likedProfiles ||= []; user.equippedTitle ||= 'abyss-drifter'; socket.data.nickname = user.nickname; socket.data.userKey = key;
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
