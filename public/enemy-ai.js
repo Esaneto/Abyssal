@@ -217,6 +217,30 @@
       const routeAngle=()=>{
         if(clear(x,y,target.x,target.y))return aim;
         const route=options.sharkNavigation?.(enemy,target,pad);
+        if(boss){
+          // Predict the next impact for a small set of straight rays, including
+          // the cave path tangent. A favorable bounce has a clear next leg
+          // to the prey. This search runs only on acquisition/impact.
+          const routeHeading=route&&Math.hypot(route.x-x,route.y-y)>1?Math.atan2(route.y-y,route.x-x):aim;
+          let best=null,cost=Infinity;
+          const angles=[routeHeading,aim,...Array.from({length:16},(_,i)=>aim+(i+1)*Math.PI/8)];
+          for(const a of angles){
+            const ux=Math.cos(a),uy=Math.sin(a);
+            const limit=Math.min(ux>1e-8?(maxX-x)/ux:ux<-1e-8?(minX-x)/ux:Infinity,uy>1e-8?(maxY-y)/uy:uy<-1e-8?(minY-y)/uy:Infinity);
+            if(!Number.isFinite(limit)||limit<Math.max(step,8))continue;
+            let lo=0,hi=Math.max(0,limit-.1);
+            if(clear(x,y,x+ux*hi,y+uy*hi))lo=hi;
+            else for(let i=0;i<11;i++){const mid=(lo+hi)*.5;if(clear(x,y,x+ux*mid,y+uy*mid))lo=mid;else hi=mid;}
+            if(lo<Math.max(step,8))continue;
+            // Retreat slightly from the impact surface so the outgoing ray
+            // is checked at a valid point outside the solid.
+            const len=Math.max(0,lo-2),bx=x+ux*len,by=y+uy*len;
+            if(!clear(bx,by,target.x,target.y))continue;
+            const score=len+Math.hypot(target.x-bx,target.y-by);
+            if(score<cost){cost=score;best=a;}
+          }
+          if(best!==null)return best;
+        }
         if(route&&Number.isFinite(route.x)&&Number.isFinite(route.y)&&Math.hypot(route.x-x,route.y-y)>1){
           const a=Math.atan2(route.y-y,route.x-x);
           const d=Math.min(Math.hypot(route.x-x,route.y-y),Math.max(step,12));
