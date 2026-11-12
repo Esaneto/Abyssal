@@ -544,7 +544,7 @@ function updateSoloSubmarineInteraction(){
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
  const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,minutes=Math.max(0,soloSubmarine.powerSeconds)/60;
- button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN';
+ button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' TORRE(S)';
 }
 window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
 const SOLO_WEAPON_MOUNTS=Object.freeze({photon:[-105,70,Math.PI/2],electric:[105,-80,-Math.PI/2],pierce:[-188,-48,-Math.PI*.75],photonRay:[257,-24,0],nova:[-230,25,Math.PI],echoShot:[168,78,Math.PI/2]});
@@ -556,10 +556,13 @@ function soloSubmarineTarget(id){
  return target;
 }
 function fireSoloSubmarineWeapon(id,target,a){
+ (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
  const muzzle=submarineMuzzle(id,a),ox=muzzle.x,oy=muzzle.y;
+ burst(ox,oy,'#ddfaff',5,55);playWorldSound('shot-'+id,{x:ox,y:oy},650,.55);
  const speed=(id==='photon'?650:id==='pierce'?390:id==='echoShot'?450:id==='electric'?440:520)/GAME_WORLD_ZOOM;
  const damage=getShotDamageAtLevel(1,id);
  const color=id==='electric'?'#eaffff':id==='pierce'?'#ffe7a1':id==='photon'?'#f0abfc':id==='photonRay'?'#79f9ff':id==='nova'?'#c89bff':'#5ef0d0';
+ if(id==='echoShot'){for(const offset of [-.075,.075])projectiles.push({x:ox,y:oy,vx:Math.cos(a+offset)*speed,vy:Math.sin(a+offset)*speed,r:4.2/GAME_WORLD_ZOOM,damage:damage*.65,color,life:2.2,maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,submarineShot:true});return;}
  if(id==='photonRay'){
   const clipped=clipPrismaticPhotonRay(ox,oy,target.x,target.y,3/GAME_WORLD_ZOOM);
   effects.push({type:'beam',x1:ox,y1:oy,x2:clipped.x2,y2:clipped.y2,life:.16,maxLife:.16,color,width:4/GAME_WORLD_ZOOM});
@@ -600,6 +603,8 @@ function drawSoloSubmarine(t){
  if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
  ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered||soloSubmarine.spawnFx>0);
  const installed=window.AbyssalSoloBase?.installedWeapons?.()||[];
+ // Empty mechanical sockets are visible but cannot fire until a tower is researched.
+ for(const id of Object.keys(SOLO_WEAPON_MOUNTS)){if(installed.includes(id))continue;const m=submarineMount(id);ctx.save();ctx.translate(m.x-x,m.y-y);ctx.rotate(m.a);ctx.scale(1/GAME_WORLD_ZOOM,1/GAME_WORLD_ZOOM);ctx.fillStyle='#26383d';ctx.strokeStyle='#9aaca6';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-6,-15,12,30,3);ctx.fill();ctx.stroke();ctx.fillStyle='#111d24';ctx.fillRect(0,-8,5,16);ctx.restore();}
  for(const id of installed){const m=submarineMount(id),angle=soloSubmarine.weaponAngles?.[id]??m.a,s=1/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'},color=colors[id]||'#9ff';
   ctx.save();ctx.translate(m.x-x,m.y-y);ctx.scale(s,s);ctx.rotate(m.a);ctx.fillStyle='#17252b';ctx.strokeStyle='#788c91';ctx.lineWidth=2;
   ctx.beginPath();ctx.roundRect(-8,-19,17,38,4);ctx.fill();ctx.stroke();
@@ -607,7 +612,7 @@ function drawSoloSubmarine(t){
   ctx.strokeStyle='#98a6a7';ctx.lineWidth=3;ctx.stroke();
   for(const px of [0,18,33]){ctx.fillStyle='#263a40';ctx.beginPath();ctx.arc(px,px===18?-5:0,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a7b7b3';ctx.lineWidth=2;ctx.stroke();}
   ctx.translate(33,0);ctx.rotate(angle-m.a);const metal=ctx.createLinearGradient(0,-12,0,12);metal.addColorStop(0,'#a0b2b5');metal.addColorStop(.4,'#43565e');metal.addColorStop(1,'#14232c');ctx.fillStyle=metal;ctx.strokeStyle='#0b151b';ctx.lineWidth=2;
-  ctx.beginPath();ctx.roundRect(-13,-12,31,24,4);ctx.fill();ctx.stroke();ctx.fillRect(14,-6,29,12);ctx.strokeRect(14,-6,29,12);ctx.fillStyle='#263b43';ctx.fillRect(39,-9,9,18);ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=powered?10:0;ctx.fillRect(3,-3,12,6);ctx.fillRect(46,-4,2,8);ctx.shadowBlur=0;if(powered&&(soloSubmarine.weaponTimers[id]||0)>.65){ctx.fillStyle=color;ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(48,-7);ctx.lineTo(68,0);ctx.lineTo(48,7);ctx.closePath();ctx.fill();}ctx.restore();
+  ctx.beginPath();ctx.roundRect(-13,-12,31,24,4);ctx.fill();ctx.stroke();ctx.fillRect(14,-6,29,12);ctx.strokeRect(14,-6,29,12);ctx.fillStyle='#263b43';ctx.fillRect(39,-9,9,18);ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=powered?10:0;ctx.fillRect(3,-3,12,6);ctx.fillRect(46,-4,2,8);ctx.shadowBlur=0;if(powered&&performance.now()<(soloSubmarine.weaponFlash?.[id]||0)){ctx.fillStyle=color;ctx.globalAlpha=.8;ctx.beginPath();ctx.moveTo(48,-7);ctx.lineTo(68,0);ctx.lineTo(48,7);ctx.closePath();ctx.fill();}ctx.restore();
  }
  // Shared hull.
  ctx.restore();
