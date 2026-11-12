@@ -58,7 +58,7 @@
 #menuScreen.ocean-menu-v2:not(.menu-ready){visibility:hidden!important}
 #classicDiveActionBridges,#classicDiveActionBridges *{display:none!important}
 
-/* Overhead command keys: align with the 518..922 / 8..57 mounting plate
+/* Overhead command keys: align with the 360..1080 / 8..57 mounting plate
    painted by the cockpit canvas (1440 x 900 logical coordinates). */
 #submarineWorkshop .abyss-cockpit-chrome{inset:0 0 auto!important;height:100%!important;padding:0!important;background:none!important;align-items:flex-start!important;pointer-events:none!important}
 #submarineWorkshop .abyss-cockpit-brand{position:absolute;top:max(9px,env(safe-area-inset-top));left:max(14px,2.8vw);pointer-events:none!important}
@@ -79,7 +79,7 @@
 #submarineWorkshop .cockpit-command-settings[hidden]{display:none!important}
 #submarineWorkshop .cockpit-command-settings label{display:grid;gap:5px;margin:8px 0}
 #submarineWorkshop .cockpit-command-settings select,#submarineWorkshop .cockpit-command-settings button{background:#101b23;color:#e5f8ff;border:1px solid #77909b;padding:7px;border-radius:4px}
-body.abyss-cockpit-open .top-actions{visibility:hidden!important}
+body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidden!important}
 @media(max-width:700px){#submarineWorkshop .abyss-cockpit-top-actions{width:68%!important;min-height:26px!important;gap:2px!important}#submarineWorkshop .cockpit-command span{display:none}#submarineWorkshop .cockpit-command{font-size:12px;padding:0}#submarineWorkshop .abyss-cockpit-brand{max-width:13vw}#submarineWorkshop .abyss-cockpit-exit{font-size:0!important;padding:4px!important;right:3px!important}#submarineWorkshop .abyss-cockpit-exit span{font-size:12px!important}}
 </style>
 <style>.resonance-skill-option.resonance-locked{opacity:1!important;filter:none!important;background:rgba(22,19,42,.70)!important}.resonance-locked .resonance-skill-copy{opacity:.85!important}.resonance-research-action{position:relative;z-index:2;pointer-events:auto;cursor:pointer;border:1px solid #a58b58;border-radius:5px;background:rgba(28,25,42,.84);color:#ffe0a1;font:700 10px system-ui;padding:7px;white-space:normal}.resonance-skill-option:has(.resonance-research-action){display:flex;flex-wrap:wrap}.resonance-mode-tabs button:disabled{opacity:.55;cursor:not-allowed}</style>
