@@ -2626,7 +2626,7 @@ function spawnSkinActiveVisual(spec,angle){
 }
 function applySoloSkinActive(spec,angle){
  const origin=specimenOrigin(),range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
- const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-origin.x,e.y-origin.y)<=range);
+ const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-origin.x,e.y-origin.y)<=range&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2));
  if(spec.id==='dash'){
   const dash=player?.specimen?.dash,ex=dash?.x2??origin.x,ey=dash?.y2??origin.y;
   for(const e of enemies){if(!e||e.hp<=0)continue;if(!pveTerrainClear(origin.x,origin.y,e.x,e.y,2))continue;if(marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(20/GAME_WORLD_ZOOM,e.r*.55))dealEnemyDamage(e,spec.damage,'skin-active-dash',{visual:true,origin});}
@@ -2636,13 +2636,13 @@ function applySoloSkinActive(spec,angle){
  }else if(spec.id==='trail'){
   // Stream nodes from the moving specimen, not five instant ones.
  }else if(spec.id==='push'){
-  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
+  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true,origin});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
  }else if(spec.id==='poison'||spec.id==='paralysis'){
   // The active ability now buffs the diver's weapon; damage/status occurs on actual hits.
  }else if(spec.id==='shot'||spec.id==='slowShot'){
   const ex=origin.x+Math.cos(angle)*range,ey=origin.y+Math.sin(angle)*range;
   const target=enemies.filter(e=>e&&e.hp>0&&marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=Math.max(18/GAME_WORLD_ZOOM,e.r*.45)).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y))[0];
-  if(target){effects.push({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0||!specimenAlive())return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
+  if(target){effects.push({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||!target||target.hp<=0||!specimenAlive()||!pveTerrainClear(origin.x,origin.y,target.x,target.y,2))return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true,origin});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+2200;},420);}
  }else if(spec.id==='pulse'){
   expandingSkinPulses.push({x:origin.x,y:origin.y,radius:range,damage:spec.damage,duration:.72,elapsed:0,edge:0,hitIds:new Set()});
   if(expandingSkinPulses.length>4)expandingSkinPulses.shift();
@@ -3146,7 +3146,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    e.leviTrail=(e.leviTrail||0)+dt;e.pressureWaveTimer=(e.pressureWaveTimer||0)+dt;
    if(e.leviTrail>0.2){e.leviTrail=0;effects.push({type:'ring',x:e.x,y:e.y,max:52/worldZoom,life:.36,maxLife:.36,color:'#4ce0d1'});}
    if(e.pressureWaveTimer>=4.8){
-    e.pressureWaveTimer=0;const reach=480/GAME_WORLD_ZOOM,ang=e.angle||0,x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
+    e.pressureWaveTimer=0;const ang=e.angle||0,reach=pveRayDistance(e.x,e.y,Math.cos(ang),Math.sin(ang),480/GAME_WORLD_ZOOM,2),x2=e.x+Math.cos(ang)*reach,y2=e.y+Math.sin(ang)*reach;
     renderBossAbilityVisual({abilityId:'pressure-lance',kind:e.kind,x:e.x,y:e.y,angle:ang,radius:reach,color:e.color||'#4ce0d1'});
     if(pveTerrainClear(e.x,e.y,player.x,player.y,2)&&DIVER_HITBOX?.segmentHit?.(player,e.x,e.y,x2,y2,72/GAME_WORLD_ZOOM,performance.now())&&player.invuln<=0){hurtPlayer(22);shake=12;}
     if(player.specimen?.alive&&marineAbilityLineDistance(player.specimen.x,player.specimen.y,e.x,e.y,x2,y2)<=72/GAME_WORLD_ZOOM+player.specimen.r)hurtSpecimenSolo(22*.72);
