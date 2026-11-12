@@ -268,11 +268,11 @@
    }
    }else{
    section('SISTEMAS DO SUBMARINO','A luz da base consome 20 Energia por 5 minutos. Cada arma automática instalada acrescenta 10 Energia ao mesmo ciclo. Recargas parciais custam apenas a proporção que falta.');
-   researchRow('submarineShield','ESCUDO DO SUBMARINO','Campo defensivo pesquisável que repele criaturas enquanto a base estiver energizada. Não aumenta o consumo do ciclo.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
+   researchRow('submarineShield','ESCUDO DO SUBMARINO','Proteção de uso único por mergulho: absorve o primeiro dano enquanto a base estiver energizada, sem repelir criaturas. Não aumenta o consumo do ciclo.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
    const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
    
-   const installed=base?.installedWeapons?.()||[],maxWeapons=base?.MAX_WEAPONS||3;
-   section('ARMAMENTO DO SUBMARINO · '+installed.length+'/'+maxWeapons,'Lança de Fótons é instalada de fábrica. Pesquise os demais disparos e escolha até três torres. Remova uma torre para liberar espaço; a pesquisa permanece salva.');
+   const installed=base?.installedWeapons?.()||[],maxWeapons=base?.MAX_WEAPONS||6;
+   section('ARMAMENTO DO SUBMARINO · '+installed.length+'/'+maxWeapons,'Lança de Fótons é instalada de fábrica. Pesquise os demais disparos e instale até seis torres simultaneamente, uma por tipo. Cada torre acrescenta 10 energia ao ciclo; a pesquisa permanece salva.');
    const slots=document.createElement('p');slots.className='solo-research-copy';slots.textContent=Array.from({length:maxWeapons},(_,i)=>(i+1)+'. '+(labels[installed[i]]||'ESPAÇO LIVRE')).join('  ·  ');utility.append(slots);
    for(const id of base?.SHOTS||[]){
     const key='weapon:'+id,owned=base.unlocked(key),mounted=installed.includes(id);
