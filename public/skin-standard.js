@@ -8,12 +8,12 @@
  const TIER_PERCENT=Object.freeze({coins:10,brl199:12,brl499:14,brl999:16,mission:16,promo:10});
  const ATTRIBUTE_LABELS=Object.freeze({
   damage:'dano',movement:'velocidade',fireRate:'cadência',range:'alcance',
-  defense:'resistência',experience:'experiência',bossDamage:'dano contra bosses',
+  defense:'resistência',energy:'energia ao encerrar o mergulho',bossDamage:'dano contra bosses',
   activeCooldown:'recarga da habilidade ativa'
  });
  const ATTRIBUTE_LABELS_EN=Object.freeze({
   damage:'damage',movement:'movement speed',fireRate:'fire rate',range:'range',
-  defense:'damage resistance',experience:'experience gain',bossDamage:'damage against bosses',
+  defense:'damage resistance',energy:'energy at dive completion',bossDamage:'damage against bosses',
   activeCooldown:'active ability cooldown'
  });
  const ACTIVE=Object.freeze({
@@ -31,7 +31,7 @@
  const INK_TRAIL_SKINS=new Set(['kraken','aberration','dumbo','blanket','mimic','glassoctopus','jewelsquid','bigfin','whiplash']);
  function isInkTrailSkin(id){return INK_TRAIL_SKINS.has(String(id||''));}
  function trailColor(id){return isInkTrailSkin(id)?'#05060b':ACTIVE.trail.color;}
- const ATTRIBUTES=Object.freeze(['damage','movement','fireRate','range','defense','experience','bossDamage','activeCooldown']);
+ const ATTRIBUTES=Object.freeze(['damage','movement','fireRate','range','defense','energy','bossDamage','activeCooldown']);
  const ACTIVE_KEYS=Object.freeze(Object.keys(ACTIVE));
 
  const legacy=[
@@ -71,10 +71,10 @@
   default:['dash','damage'],
   violet:['pulse','range'],
   solar:['dash','movement'],
-  toxic:['cloud','experience'],
+  toxic:['cloud','energy'],
   leviathan:['shot','bossDamage'],
   thorn:['dash','fireRate'],
-  abyssking:['dash','experience'],
+  abyssking:['dash','energy'],
   royal:['dash','bossDamage'],
   glacier:['slowShot','range'],
   coral:['dash','activeCooldown'],
@@ -91,7 +91,7 @@
   saltcroc:['push','damage'],
   blackcaiman:['shield','movement'],
   reefshark:['trail','movement'],
-  hammerhead:['pulse','experience'],
+  hammerhead:['pulse','energy'],
   abysscroc:['dash','defense'],
   armoredgator:['push','defense'],
   greensnake:['poison','damage'],
@@ -103,18 +103,18 @@
   blanket:['trail','fireRate'],
   atolla:['trail','range'],
   phantomjelly:['trail','defense'],
-  yeticrab:['trail','experience'],
+  yeticrab:['trail','energy'],
   nautilus:['trail','bossDamage'],
   gharial:['push','movement'],
   goblin:['push','fireRate'],
   frilled:['push','range'],
-  greenland:['push','experience'],
+  greenland:['push','energy'],
   butterflyray:['push','activeCooldown'],
   stingray:['poison','movement'],
   guitarfish:['poison','fireRate'],
   sawtootheel:['poison','range'],
   zebramoray:['poison','defense'],
-  dogtootheel:['poison','experience'],
+  dogtootheel:['poison','energy'],
   mimic:['poison','bossDamage'],
   glassoctopus:['poison','activeCooldown'],
   combjelly:['shot','damage'],
@@ -122,7 +122,7 @@
   siphonophore:['shot','fireRate'],
   spidercrab:['shot','range'],
   deeplobster:['shot','defense'],
-  pistolshrimp:['shot','experience'],
+  pistolshrimp:['shot','energy'],
   scalyfoot:['shot','activeCooldown'],
   bluedragon:['pulse','damage'],
   whelk:['pulse','movement'],
@@ -133,7 +133,7 @@
   bigfin:['slowShot','movement'],
   whiplash:['slowShot','fireRate'],
   viperfish:['slowShot','defense'],
-  blackdragon:['slowShot','experience'],
+  blackdragon:['slowShot','energy'],
   hatchetfish:['slowShot','bossDamage'],
   basketstar:['slowShot','activeCooldown'],
   crinoid:['shield','damage'],
