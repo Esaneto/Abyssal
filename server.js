@@ -1524,6 +1524,13 @@ io.on('connection', socket => {
   const sessionToken=issueSessionToken(user);saveUsers();await flushPersistence();
   socket.emit('auth-result', { ok: true, mode, ...publicUser(user), sessionToken });broadcastCardumeRosters();
  });
+ socket.on('logout-session',async(payload={},ack)=>{
+  const key=socket.data.userKey,user=users[key],token=String(payload?.token||'');
+  if(!user||!/^[a-f0-9]{64}$/i.test(token)){if(typeof ack==='function')ack({ok:false});return;}
+  const digest=hashSessionToken(token);user.sessionTokens=(Array.isArray(user.sessionTokens)?user.sessionTokens:[]).filter(item=>item&&!safeEqual(item.hash,digest));
+  if(socket.data.joined){try{await finishRunForSocket(socket,{})}catch(err){console.error('[logout]',err.message);}removeFromRoom(socket,{announce:true,emitResult:false});}
+  socket.data.userKey=null;socket.data.nickname=null;socket.data.runStats=null;saveUsers();try{await flushPersistence();if(typeof ack==='function')ack({ok:true});}catch(err){if(typeof ack==='function')ack({ok:false});}broadcastOnline();broadcastCardumeRosters();
+ });
  socket.on('resume-session',async(payload={})=>{
   const token=String(payload?.token||'');
   if(!/^[a-f0-9]{64}$/i.test(token))return socket.emit('session-resumed',{ok:false,message:'Sessão expirada. Entre novamente.'});

@@ -49,7 +49,7 @@
 <link rel="stylesheet" href="abyssal-submarine-laboratory.css?v=2026.11.12.5">
 <link rel="stylesheet" href="abyssal-exploration-hud.css?v=2026.11.10.66">
 <link rel="stylesheet" href="abyssal-cinematic-refresh.css?v=2026.11.11.1">
-<link rel="stylesheet" href="abyssal-solo-focus.css?v=2026.11.12.26">
+<link rel="stylesheet" href="abyssal-solo-focus.css?v=2026.11.12.27">
 <link rel="stylesheet" href="abyssal-solo-hud.css?v=2026.11.12.6">
 <link rel="stylesheet" href="abyssal-pet-habits.css?v=2026.11.11.1">
 <style>
@@ -458,7 +458,7 @@
     </section>
     <section id="profileScreen" class="screen modal-screen" hidden>
       <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
-        <div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div>
+        <div class="profile-account-toolbar"><div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div><button id="profileSessionBtn" type="button" class="secondary-btn profile-session-btn">ENTRAR / CRIAR CONTA</button></div>
         <div class="profile-hero">
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
           <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><button id="blockProfileBtn" class="profile-action-btn" type="button">⊘ BLOQUEAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
@@ -555,7 +555,7 @@
   </div>
 <section id="submarineWorkshop" class="screen modal-screen abyss-cockpit-screen" role="dialog" aria-modal="true" aria-label="Cabine de controle submarina" hidden>
  <canvas id="abyssCockpitCanvas" class="abyss-cockpit-canvas" aria-hidden="true"></canvas>
- <div class="abyss-cockpit-chrome"><div class="abyss-cockpit-brand"><span class="brand-sub" aria-hidden="true">⌁</span><span><strong>ABYSSAL</strong><small>SUBMARINO DE EXPLORAÇÃO</small></span></div><button id="submarineWorkshopClose" class="abyss-cockpit-exit" type="button">SAIR PELA ESCOTILHA <span aria-hidden="true">✕</span></button></div>
+ <div class="abyss-cockpit-chrome"><div class="abyss-cockpit-brand"><span class="brand-sub" aria-hidden="true">⌁</span><span><strong>ABYSSAL</strong><small>SUBMARINO DE EXPLORAÇÃO</small></span></div><div class="abyss-cockpit-top-actions"><label class="abyss-cockpit-language" for="cockpitLanguageSelect"><span>IDIOMA</span><select id="cockpitLanguageSelect" aria-label="Idioma do jogo"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></label><button id="submarineWorkshopClose" class="abyss-cockpit-exit" type="button">SAIR PELA ESCOTILHA <span aria-hidden="true">✕</span></button></div></div>
  <div class="abyss-cockpit-console" role="group" aria-label="Painel físico de controle do submarino">
   <div id="submarineWorkshopGrid" class="submarine-workshop-grid"></div>
  </div>
@@ -638,9 +638,9 @@
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.25"></script>
+ <script src="game.js?v=2026.11.12.27"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.25"></script>
+<script src="online.js?v=2026.11.12.27"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.6.3"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
@@ -690,7 +690,7 @@
 <script src="abyssal-submarine-cockpit.js?v=2026.11.12.26"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.12.25"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.12.27"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>

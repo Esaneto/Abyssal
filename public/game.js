@@ -442,7 +442,7 @@ window.addEventListener('abyssal-specimen-discovery-confirmed',event=>registerSp
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
-function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
+function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const cockpitLanguage=$('cockpitLanguageSelect');if(cockpitLanguage)cockpitLanguage.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
 // Keep the last server-synchronized ownership cache while session restoration is pending. The authoritative account-data event replaces it after authentication.
 function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
@@ -5013,6 +5013,7 @@ window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSp
 $('shopCurrency')?.addEventListener('change',event=>{event.target.value='brl';shopCurrency='brl';renderShop()});
 $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
+ $('cockpitLanguageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));if($('cockpitLanguageSelect'))$('cockpitLanguageSelect').value=gameLanguage;
 
 let pendingStripePurchase = null;
 function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {

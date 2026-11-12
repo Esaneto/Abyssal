@@ -28,7 +28,7 @@
  const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen'});
  const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO'});
  function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
- function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';if(page==='profile'&&!window.AbyssalOnline?.isAuthenticated?.()){activeConsoleSection='solo';soloConsolePage='home';renderWorkshop();return;}activeConsoleSection=page;renderWorkshop();}
+ function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
   const {screen,anchor,role,modal,modalRole,modalAria}=embeddedCatalog;embeddedCatalog=null;
