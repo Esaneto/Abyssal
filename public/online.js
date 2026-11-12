@@ -611,7 +611,9 @@ function claimFirstProgressionBonus(progress,onResult){
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
 function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
 function requestWorldSnapshot(reason='manual'){if(socket?.connected&&authenticated&&currentRoom)socket.emit('request-world-snapshot',{reason:String(reason||'manual')})}
-function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state')}}
+function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state');return true;}return false;}
+let lastResumeStateRequestAt=0;
+function requestResumePlayerState(){const now=performance.now();if(now-lastResumeStateRequestAt<750)return false;lastResumeStateRequestAt=now;return requestPlayerState('resume-resync');}
 function sendRunProgress(data){if(socket?.connected&&authenticated)socket.volatile.emit('run-progress',data)}
 function previewRunReport(onComplete){if(!socket?.connected||!authenticated)return false;socket.timeout(5000).emit('preview-run-report',{},(error,result)=>{if(!error&&result?.ok)onComplete?.(result);});return true;}
 function finishRun(data,options={}){
@@ -699,7 +701,12 @@ function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JS
  const root=$('rankingContent');if(!root||!data)return;
  const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000},sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho. Os títulos Top 1 a Top 10 exigem a posição exata e são removidos ao perdê-la.'],['monthly','RANKING MENSAL','Top 10 recebe '+Number(rewards.monthly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['weekly','RANKING SEMANAL','Top 10 recebe '+Number(rewards.weekly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['daily','RANKING DIÁRIO','Top 10 recebe '+Number(rewards.daily).toLocaleString('pt-BR')+' de energia quando o período fechar.']];
  root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[],timer=key==='eternal'?'PERMANENTE':`RECOMPENSA EM <strong class="ranking-countdown" data-reset="${Number(resets[key])||0}">${rankingCountdown(resets[key])}</strong>`;return `<section class="ranking-section ranking-${key}"><header class="ranking-section-head"><h3>${title}</h3><span class="ranking-reset">${timer}</span></header>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'} · ${Math.round(Number(p.score??p.damage)||0).toLocaleString('pt-BR')} DANO</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">·</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: maior dano e depois maior tempo de mergulho.</p></section>`}).join('');
- clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=setInterval(()=>{document.querySelectorAll('.ranking-countdown[data-reset]').forEach(el=>el.textContent=rankingCountdown(el.dataset.reset));},1000);
+ clearInterval(window.__abyssalRankingTimer);
+ const updateRankingCountdown=()=>{
+  if(!root.isConnected||!root.getClientRects().length){clearInterval(window.__abyssalRankingTimer);window.__abyssalRankingTimer=null;return;}
+  root.querySelectorAll('.ranking-countdown[data-reset]').forEach(el=>el.textContent=rankingCountdown(el.dataset.reset));
+ };
+ if(root.getClientRects().length){updateRankingCountdown();window.__abyssalRankingTimer=setInterval(updateRankingCountdown,1000);}
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
@@ -797,9 +804,9 @@ document.addEventListener('visibilitychange',()=>{
    socket.emit('player-position',{...latestPositionPayload,seq:++positionSequence,clientSentAt:Date.now()});
   }
  }
- if(!hidden){if(socket&&!socket.connected)socket.connect();requestPlayerState('resume-resync');}
+ if(!hidden){if(socket&&!socket.connected)socket.connect();requestResumePlayerState();}
 });
-window.addEventListener('focus',()=>requestPlayerState());
+window.addEventListener('focus',requestResumePlayerState);
 window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detail));
  window.addEventListener('abyssal-specimen-discovery-request',event=>{
   if(socket?.connected&&authenticated)socket.emit('specimen-discovered',{id:String(event.detail?.id||'')});
