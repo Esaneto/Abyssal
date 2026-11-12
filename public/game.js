@@ -2793,7 +2793,7 @@ function updateSpecimenRuntime(dt){
  const s=player.specimen;
  if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
  if(s.alive===false){
-  s.dash=null;
+  s.dash=null;s.pendingBite=null;s.biteAnimation=null;s.bodyAttackCooldowns?.clear();
   s.respawnTimer=Number(s.respawnAt)>0?Math.max(0,(s.respawnAt-Date.now())/1000):Math.max(0,(Number(s.respawnTimer)||0)-dt);
   if(!onlineMode&&s.respawnTimer<=0){s.respawnAt=0;s.alive=true;s.hp=s.maxHp;s.invuln=1.5;s.x=player.x;s.y=player.y-34/GAME_WORLD_ZOOM;showToast('ESPÉCIME RESSURGIU');burst(s.x,s.y,currentSkinColor(),18,110);}
   return;
@@ -2832,6 +2832,14 @@ function updateSpecimenRuntime(dt){
  // When hunting, the selected enemy is no longer a navigation obstacle.
  // Other enemies remain obstacles to avoid accidental pet deaths.
  const navigationThreats=combatTarget?threats.filter(e=>e.id!==combatTarget.id):threats;
+ // A bite connects when the jaws close, not when the animation begins.
+ if(s.pendingBite&&now>=s.pendingBite.hitAt){
+  const pending=s.pendingBite;s.pendingBite=null;const enemy=pending.enemy;
+  if(!onlineMode&&enemy.hp>0&&enemies.includes(enemy)&&pveTerrainClear(s.x,s.y,enemy.x,enemy.y,2)&&PET_TACTICS.attackContact(s,enemy,pending.profile,s.facingAngle||0,now*.0018)){
+   dealEnemyDamage(enemy,pending.damage,'specimen-bite',{silentSound:true,secondary:true,origin:s});
+   burst(enemy.x,enemy.y,currentSkinColor(),5,45);
+  }
+ }
  if(combatTarget){
   const angle=strikeGoal.angle,delta=Math.atan2(Math.sin(angle-(s.facingAngle||0)),Math.cos(angle-(s.facingAngle||0)));
   s.facingAngle=(s.facingAngle||0)+delta*(1-Math.exp(-dt*18));
@@ -2841,18 +2849,26 @@ function updateSpecimenRuntime(dt){
   if(contact){
    // Hold at the attack perimeter, never swim toward the enemy centre.
    if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)>=profile.core+(Number(combatTarget.r)||0))target=pos;
-   if(now>=(s.nextTacticalAttack||0)){
+   if(!profile.body&&now>=(s.nextTacticalAttack||0)){
     const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;
     s.nextTacticalAttack=now+1020;
-    if(!profile.body){
-     s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};
-    }else{
-     const dx=combatTarget.x-s.x,dy=combatTarget.y-s.y,d=Math.hypot(dx,dy)||1,er=Number(combatTarget.r)||0;
-     effects.push({type:'ring',x:combatTarget.x-dx/d*er,y:combatTarget.y-dy/d*er,max:Math.max(12,visualRadius*.65),life:.24,maxLife:.24,color:currentSkinColor()});
-    }
-    dealEnemyDamage(combatTarget,damage,'specimen-bite',{silentSound:true,secondary:true,origin:s});
-    burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
+    s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};
+    s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};
    }
+  }
+  if(profile.body&&now>=(s.nextBodyAttackCheck||0)){
+   s.nextBodyAttackCheck=now+90;
+   s.bodyAttackCooldowns ||= new Map();
+   const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;
+   for(const enemy of [...enemies]){
+    if(enemy.hp<=0||now<(s.bodyAttackCooldowns.get(enemy.id)||0)||!PET_TACTICS.attackContact(s,enemy,profile,facing,phase,window.AbyssalEnemyAI?.touchesKrakenTentacle)||!pveTerrainClear(s.x,s.y,enemy.x,enemy.y,2))continue;
+    s.bodyAttackCooldowns.set(enemy.id,now+1020);
+    const dx=enemy.x-s.x,dy=enemy.y-s.y,d=Math.hypot(dx,dy)||1,er=Number(enemy.r)||0;
+    effects.push({type:'ring',x:enemy.x-dx/d*er,y:enemy.y-dy/d*er,max:Math.max(12,visualRadius*.65),life:.24,maxLife:.24,color:currentSkinColor()});
+    dealEnemyDamage(enemy,damage,'specimen-body-contact',{silentSound:true,secondary:true,origin:s});
+    burst(enemy.x,enemy.y,currentSkinColor(),5,45);
+   }
+   for(const [id,until] of s.bodyAttackCooldowns)if(now>=until)s.bodyAttackCooldowns.delete(id);
   }
  }
 
