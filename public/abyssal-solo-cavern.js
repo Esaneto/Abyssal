@@ -271,7 +271,7 @@
  let lightLayer=null;
  function lighting(c,view,player,level,rocks,t,extraLights=[]){
   if(!player||!Number.isFinite(player.x))return;
-  const {left,top,width:w,height:h}=view,p=lampParameters(level),a=Number.isFinite(player.weaponAngle)?player.weaponAngle:Number(player.angle)||0;
+  const {left,top,width:w,height:h}=view,p=lampParameters(level),a=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0;
   const heading=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0,bodyScale=(Number(player.r)||17)*.60/14;
   const x=player.x+Math.cos(heading)*42*bodyScale+Math.sin(heading)*9*bodyScale,y=player.y+Math.sin(heading)*42*bodyScale-Math.cos(heading)*9*bodyScale;
   // Render a separate darkness mask so destination-out never erases world pixels.
