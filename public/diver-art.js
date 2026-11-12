@@ -8,7 +8,7 @@
  if(root)root.AbyssalDiverArt=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12;
+ const TAU=Math.PI*2,DRAW_SCALE=.60,BARREL_TIP_X=69,GUN_OFFSET_Y=12,WELDER_TIP_X=57;
  const genderOf=value=>value==='female'?'female':'male';
  function muzzle(x,y,r,aim){
   const distance=(Number(r)||13)*DRAW_SCALE*BARREL_TIP_X/14;
@@ -188,6 +188,16 @@
     c.lineTo(32,-7);c.lineTo(23,-9);c.lineTo(14,-6);c.lineTo(11,-12);c.closePath();c.fill();c.stroke();
     c.fillStyle='#69e6f5';c.fillRect(18,-14,9,4);c.fillRect(12,-11,5,5);
     c.fillStyle='#314755';c.fillRect(21,-6,9,8);
+   }else if(held==='abyssWelder'){
+    // Compact insulated underwater electric torch, with two-handed grip.
+    const pulse=.5+.5*Math.sin((Number(t)||0)*.035);
+    c.fillStyle='#152b3a';c.strokeStyle='#a9c5ce';c.lineWidth=1.4;
+    c.beginPath();c.roundRect(-5,-6,21,12,3);c.fill();c.stroke();
+    c.fillStyle='#d6a34c';c.fillRect(-2,-5,5,10);
+    c.fillStyle='#334d59';c.beginPath();c.roundRect(13,-4,12,8,2);c.fill();c.stroke();
+    c.strokeStyle='#c9dce2';c.lineWidth=3;c.beginPath();c.moveTo(23,0);c.lineTo(30,0);c.stroke();
+    c.fillStyle='#61efff';c.shadowColor='#4ceaff';c.shadowBlur=4+pulse*3;c.beginPath();c.arc(30,0,1.8+pulse*.5,0,TAU);c.fill();c.shadowBlur=0;
+    c.strokeStyle='#111c26';c.lineWidth=2.2;c.beginPath();c.moveTo(-3,5);c.quadraticCurveTo(-13,16,-24,9);c.stroke();
    }else if(['emptyCylinder','gasCylinder','oilCylinder'].includes(held)){
     const progress=Math.max(0,Math.min(1,Number(options.fillProgress)||0));
     const kind=String(options.fillType||'');
@@ -263,5 +273,5 @@
   c.beginPath();c.ellipse(24,8,3.1,2.5,.12,0,TAU);c.fill();c.stroke();
   c.restore();c.restore();
  }
- return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y});
+ return Object.freeze({draw,muzzle,genderOf,DRAW_SCALE,BARREL_TIP_X,GUN_OFFSET_Y,WELDER_TIP_X});
 });
