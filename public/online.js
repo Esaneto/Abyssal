@@ -596,8 +596,19 @@ function syncSoloRuns(){
   syncSoloRuns();
  });
 }
-window.addEventListener('abyssal-authenticated',syncSoloRuns);
-setInterval(()=>{if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();else if(sessionToken&&!socket?.connected&&navigator.onLine!==false)connect();},10000);
+let onlineMaintenanceTimer=0;
+function scheduleOnlineMaintenance(delay=30000){
+ if(onlineMaintenanceTimer){clearTimeout(onlineMaintenanceTimer);onlineMaintenanceTimer=0;}
+ if(document.hidden)return;
+ onlineMaintenanceTimer=setTimeout(()=>{
+  onlineMaintenanceTimer=0;
+  if(document.hidden)return;
+  if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();
+  else if(sessionToken&&!socket?.connected&&navigator.onLine!==false)connect();
+  scheduleOnlineMaintenance();
+ },Math.max(1000,Number(delay)||30000));
+}
+window.addEventListener('abyssal-authenticated',()=>{syncSoloRuns();scheduleOnlineMaintenance();});
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),speedStrength:Math.max(1,Math.min(4,Number(data.speedStrength)||1)),arcChainActive:data.arcChainActive===true,hadalBeamActive:data.hadalBeamActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),prismaticLevel:Math.max(0,Math.min(3,Math.floor(Number(data.prismaticLevel)||0))),predatorLevel:Math.max(0,Math.min(3,Math.floor(Number(data.predatorLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
 function setTutorialOpen(open){if(socket?.connected&&authenticated&&currentRoom)socket.emit('tutorial-state',{open:open===true});}
@@ -795,7 +806,13 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
  });
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
- if(hidden)stopPositionHeartbeat();else if(currentRoom)startPositionHeartbeat();
+ if(hidden){
+  stopPositionHeartbeat();
+  if(onlineMaintenanceTimer){clearTimeout(onlineMaintenanceTimer);onlineMaintenanceTimer=0;}
+ }else{
+  if(currentRoom)startPositionHeartbeat();
+  scheduleOnlineMaintenance(3000);
+ }
  if(socket?.connected&&authenticated&&currentRoom){
   socket.emit('client-visibility',{hidden});
   const live=window.AbyssalGameHooks?.getPlayerPosition?.();
@@ -889,7 +906,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
 
 
  if(navigator.onLine!==false&&!socket)connect();
- window.addEventListener('online',()=>{if(!socket?.connected)connect();else if(authenticated)syncSoloRuns();});
+ window.addEventListener('online',()=>{if(!socket?.connected)connect();else if(authenticated)syncSoloRuns();scheduleOnlineMaintenance(3000);});
  
  // Handle return from Stripe checkout
  const urlParams = new URLSearchParams(window.location.search);
