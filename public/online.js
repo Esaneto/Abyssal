@@ -621,7 +621,20 @@ function finishRun(data,options={}){
  });return true;
 }
 function submitRun(data){return finishRun(data||{},{});}
-function loadRankings(){if(socket?.connected)socket.emit('get-rankings');else if(navigator.onLine!==false)fetch(SERVER_URL+'/api/rankings').then(r=>r.json()).then(renderRankings).catch(()=>{});else try{const cached=JSON.parse(localStorage.getItem('abyssalRankingsCache')||'null');if(cached)renderRankings(cached);}catch{}}
+function showCachedRankings(){
+ const root=$('rankingContent');if(!root)return;
+ let cached=null;try{cached=JSON.parse(localStorage.getItem('abyssalRankingsCache')||'null');}catch{}
+ if(cached)renderRankings(cached);
+ else root.replaceChildren();
+ const notice=document.createElement('p');notice.className='ranking-note';notice.dataset.offlineRanking='true';
+ notice.textContent=cached?'Ranking salvo no dispositivo · atualizado na próxima conexão.':'Ranking indisponível offline · conecte-se para carregar a classificação.';
+ root.querySelector('[data-offline-ranking]')?.remove();root.prepend(notice);
+}
+function loadRankings(){
+ if(navigator.onLine===false){showCachedRankings();return;}
+ if(socket?.connected)socket.emit('get-rankings');
+ else fetch(SERVER_URL+'/api/rankings').then(r=>{if(!r.ok)throw Error('ranking unavailable');return r.json();}).then(renderRankings).catch(showCachedRankings);
+}
 function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purchase-skin',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para comprar skins e salvar a compra nela.'}}));}
 
 async function purchaseStripe(productId,currency,language='pt'){
