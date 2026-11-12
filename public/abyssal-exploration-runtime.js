@@ -331,7 +331,7 @@
   mountCockpitConsole(utility);
  }
 
- const openWorkshop=()=>{if(!workshop)return;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
+ const openWorkshop=()=>{if(!workshop)return;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
  window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
@@ -355,7 +355,7 @@
   openedPrimaryCockpit=true;openWorkshop();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showPrimaryCockpit,{once:true});else showPrimaryCockpit();
- for(const id of ['ageTermsScreen','menuScreen']){
+ for(const id of ['ageTermsScreen','loginScreen','menuScreen']){
   const modal=document.getElementById(id);
   if(modal&&typeof MutationObserver==='function'){
    const observer=new MutationObserver(()=>showPrimaryCockpit());

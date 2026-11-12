@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="abyssal-startup">
 <head>
 <meta charset="UTF-8">
+<!-- Critical first-paint rules: never expose the old lobby before the cockpit. -->
+<style>html.abyssal-startup,html.abyssal-startup body{background:#07131e!important}html.abyssal-startup #app{opacity:0!important;pointer-events:none!important}body:not(.abyss-hatch-navigation) #menuScreen.ocean-menu-v2{display:none!important}body:not(.game-active) #gameShell>canvas#game{visibility:hidden!important}</style>
+<script>window.AbyssalRevealStartup=function(){document.documentElement.classList.remove("abyssal-startup");};</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#06121d">
 <link rel="icon" href="/favicon.svg?v=5" type="image/svg+xml">
@@ -56,6 +59,8 @@
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
 #menuScreen.ocean-menu-v2:not(.menu-ready),body:not(.abyss-hatch-navigation) #menuScreen{visibility:hidden!important;pointer-events:none!important}
+body.abyss-hatch-navigation:not(.game-active) #menuScreen.ocean-menu-v2.menu-ready:not([hidden]){visibility:visible!important;pointer-events:auto!important}
+body:not(.game-active):not(.abyss-hatch-navigation) .page-footer{display:none!important}
 body:not(.abyss-hatch-navigation):not(.game-active) .topbar{visibility:hidden!important}
 body:not(.abyss-hatch-navigation):not(.game-active) #gameShell{background:#03101c!important}
 #classicDiveActionBridges,#classicDiveActionBridges *{display:none!important}
@@ -670,7 +675,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="offline-ui.js?v=2026.11.9.11"></script>
+<script src="offline-ui.js?v=2026.11.12.12"></script>
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=6"></script>
 <script src="abyssal-curated-skins.js?v=2026.11.7.34"></script>
@@ -716,7 +721,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
  <script src="game.js?v=2026.11.12.39"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.33"></script>
+<script src="online.js?v=2026.11.12.34"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.1"></script>
 <script src="abyssal-tutorials.js?v=2026.11.12.1"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
@@ -762,13 +767,17 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.17"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.12.7"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.12.8"></script>
 <script src="abyssal-submarine-cockpit.js?v=2026.11.12.29"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.12.30"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.12.31"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
+<script>
+// Recovery only if an essential script failed; never expose the legacy menu in normal boot.
+document.addEventListener("DOMContentLoaded",()=>{if(!document.documentElement.classList.contains("abyssal-startup"))return;const gate=document.getElementById("ageTermsScreen"),cockpit=document.getElementById("submarineWorkshop");if(gate&&!gate.hidden||cockpit&&!cockpit.hidden){window.AbyssalRevealStartup();return;}if(window.AbyssalCockpitNavigation){window.AbyssalCockpitNavigation.open();return;}document.body.classList.add("abyss-hatch-navigation");window.AbyssalRevealStartup();},{once:true});
+</script>
 </body>
 </html>

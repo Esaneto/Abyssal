@@ -38,8 +38,9 @@
   let moveTarget=null,followPointer=null,near=null,last=performance.now(),bubbleElapsed=0;
   let joystickX=0,joystickY=0,joystickId=null;
   const bubbles=[],held=new Set(),keyMap={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
+  const hatchVisible=()=>document.body.classList.contains('abyss-hatch-navigation')&&!menu.hidden&&!document.body.classList.contains('game-active');
   const interactive=()=>{
-   if(menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal)return false;
+   if(!hatchVisible()||menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal)return false;
    for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')){
     if(panel.hidden||!panel.isConnected)continue;
     if(panel.getClientRects().length&&getComputedStyle(panel).display!=='none'&&getComputedStyle(panel).visibility!=='hidden')return false;
@@ -297,7 +298,7 @@
   }
   function animate(now){
    const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
-   const visible=!menu.hidden&&!document.body.classList.contains('game-active');
+   const visible=hatchVisible();
    if(visible&&!wasVisible){sizeScene();resetToHatch();}
    wasVisible=visible;
    // No menu paint, currents or particles while gameplay/other screens own the UI.
@@ -377,11 +378,11 @@
    }
    requestAnimationFrame(animate);
   }
-  sizeScene();
+  if(hatchVisible())sizeScene();
   // Only expose the menu after the active swimmer/currents have their geometry.
   menu.classList.add('menu-ready');
   window.addEventListener('abyssal-menu-return',()=>{wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
-  window.addEventListener('resize',()=>{if(!menu.hidden)sizeScene();});
+  window.addEventListener('resize',()=>{if(hatchVisible())sizeScene();});
   if(typeof ResizeObserver==='function'){
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&Math.abs(stage.clientWidth-w)>2)sizeScene();});
    ro.observe(stage);

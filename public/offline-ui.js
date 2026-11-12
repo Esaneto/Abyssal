@@ -52,18 +52,7 @@
   // its installer. Do not install a second service worker on either native shell.
   if(!nativeAssets && (protocol==='https:'||window.location.hostname==='localhost') &&
      'serviceWorker' in navigator){
-    // A new release must replace a previously controlled page while in the
-    // menu, but never interrupt a live Solo/Online/Fossas expedition.
-    navigator.serviceWorker.addEventListener('controllerchange',function(){
-      var menu=document.getElementById('menuScreen');
-      if(!menu||menu.hidden||document.body.classList.contains('game-active'))return;
-      try{
-        var key='abyssal-sw-refresh-2026-11-09-v62';
-        if(sessionStorage.getItem(key)==='1')return;
-        sessionStorage.setItem(key,'1');
-      }catch(_){return;}
-      window.location.reload();
-    });
+    // A new worker takes effect on the next navigation; never reload an open menu.
     window.addEventListener('load',function(){
       navigator.serviceWorker.register('/offline-sw.js',{scope:'/'})
         .then(function(reg){return reg.update();})

@@ -480,7 +480,7 @@ function applyAgeTreatment(){
 }
 function openAgeTermsIfNeeded(){
  if(hasAgeTermsProfile()){applyAgeTreatment();return false}
- const screen=$('ageTermsScreen');if(screen)screen.hidden=false;
+ const screen=$('ageTermsScreen');if(screen){screen.hidden=false;window.AbyssalRevealStartup?.();}
  return true;
 }
 $('ageTermsContinue')?.addEventListener('click',()=>{
