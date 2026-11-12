@@ -185,7 +185,7 @@ window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const mes
   refreshAccount();
  }
 const SERVER_URL=window.ABYSSAL_SERVER_URL||window.location.origin;
-fetch(SERVER_URL+'/api/runtime-config').then(response=>response.ok?response.json():null).then(config=>{
+if(navigator.onLine!==false)fetch(SERVER_URL+'/api/runtime-config').then(response=>response.ok?response.json():null).then(config=>{
  if(!config?.previewMode)return;
  const notice=document.createElement('aside');notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');
  notice.style.cssText='position:fixed;z-index:1000;top:8px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 24px);padding:9px 14px;border:1px solid #e5b75d;border-radius:6px;background:#201b11;color:#fff0c6;font:700 11px/1.5 system-ui;text-align:center;box-shadow:0 4px 24px #0009';
@@ -200,7 +200,7 @@ function loadSocketClient(){
  if(socketClientLoading)return socketClientLoading;
  socketClientLoading=new Promise(resolve=>{
   const script=document.createElement('script');
-  script.src='https://cdn.socket.io/4.8.1/socket.io.min.js';
+  script.src=SERVER_URL+'/socket.io/socket.io.js';
   script.async=true;script.crossOrigin='anonymous';
   script.onload=()=>resolve(typeof window.io==='function');
   script.onerror=()=>resolve(false);
@@ -299,7 +299,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('run-saved',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-run-saved',{detail:result}))});
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
- socket.on('connect_error',()=>{connected=false;if(reconnectPending||window.AbyssalGameHooks?.getPlayerPosition?.())showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
+ socket.on('connect_error',()=>{connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
  socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;if(reconnectPending||window.AbyssalGameHooks?.getPlayerPosition?.())showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
@@ -572,6 +572,28 @@ function sendSnapshot(data){if(socket?.connected&&authenticated&&hostId===socket
 function shareXp(value,source='enemy'){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('shared-xp-award',{value,source})}
 function syncEnergyOperations(operations,callback){if(!socket?.connected||!authenticated)return callback?.({ok:false});const token=sessionToken;socket.timeout(12000).emit('sync-energy-operations',{operations},(err,result)=>{if(err||token!==sessionToken||!authenticated)return callback?.({ok:false});if(result?.ok&&serverAccount)serverAccount.energy=result.energy;callback?.(result);});}
 function syncSpecimenAdaptation(rows,callback){if(!socket?.connected||!authenticated){callback?.({ok:false});return;}const token=sessionToken;socket.timeout(12000).emit('sync-specimen-adaptation',{rows},(err,result)=>{if(err||token!==sessionToken||!authenticated){callback?.({ok:false});return;}if(result?.account&&serverAccount){const map={...(serverAccount.specimenProficiency||{})};for(const [id,points] of Object.entries(result.account.specimenProficiency||{}))map[id]=Math.max(Number(map[id])||0,Number(points)||0);serverAccount={...serverAccount,specimenProficiency:map};result.account=serverAccount;renderProfile(serverAccount);}callback?.(result);});}
+// Durable account-scoped outbox. A run ID is stable across retries/restarts.
+const soloQueueKey=key=>'abyssalSoloRuns:'+key;
+let soloSyncBusy=false;
+function soloAccountKey(){return String(account?.nickname||'').trim().toLowerCase();}
+function readSoloQueue(key){try{const rows=JSON.parse(localStorage.getItem(soloQueueKey(key))||'[]');return Array.isArray(rows)?rows:[];}catch{return [];}}
+function writeSoloQueue(key,rows){try{localStorage.setItem(soloQueueKey(key),JSON.stringify(rows));return true;}catch{return false;}}
+function queueSoloRun(key,data){key=String(key||'').trim().toLowerCase();if(!key||!data?.id)return false;const rows=readSoloQueue(key);if(!rows.some(row=>row.id===data.id)){if(!writeSoloQueue(key,[...rows,data]))return false;}syncSoloRuns();return true;}
+function syncSoloRuns(){
+ const key=soloAccountKey();if(soloSyncBusy||!key||!authenticated||!socket?.connected)return;
+ const row=readSoloQueue(key)[0];if(!row){loadRankings();return;}
+ soloSyncBusy=true;const session=sessionToken;
+ socket.timeout(15000).emit('sync-solo-run',row,(error,result)=>{
+  soloSyncBusy=false;
+  if(error||!result?.ok||session!==sessionToken||key!==soloAccountKey())return;
+  writeSoloQueue(key,readSoloQueue(key).filter(item=>item.id!==row.id));
+  if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}
+  if(result.rankings)renderRankings(result.rankings);
+  syncSoloRuns();
+ });
+}
+window.addEventListener('abyssal-authenticated',syncSoloRuns);
+setInterval(()=>{if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();},10000);
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),speedStrength:Math.max(1,Math.min(4,Number(data.speedStrength)||1)),arcChainActive:data.arcChainActive===true,hadalBeamActive:data.hadalBeamActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),prismaticLevel:Math.max(0,Math.min(3,Math.floor(Number(data.prismaticLevel)||0))),predatorLevel:Math.max(0,Math.min(3,Math.floor(Number(data.predatorLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
 function setTutorialOpen(open){if(socket?.connected&&authenticated&&currentRoom)socket.emit('tutorial-state',{open:open===true});}
@@ -597,7 +619,7 @@ function finishRun(data,options={}){
  });return true;
 }
 function submitRun(data){return finishRun(data||{},{});}
-function loadRankings(){if(socket?.connected)socket.emit('get-rankings');else fetch(SERVER_URL+'/api/rankings').then(r=>r.json()).then(renderRankings).catch(()=>{});}
+function loadRankings(){if(socket?.connected)socket.emit('get-rankings');else if(navigator.onLine!==false)fetch(SERVER_URL+'/api/rankings').then(r=>r.json()).then(renderRankings).catch(()=>{});else try{const cached=JSON.parse(localStorage.getItem('abyssalRankingsCache')||'null');if(cached)renderRankings(cached);}catch{}}
 function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purchase-skin',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para comprar skins e salvar a compra nela.'}}));}
 
 async function purchaseStripe(productId,currency,language='pt'){
@@ -656,7 +678,7 @@ function saveCosmetics(data){if(socket?.connected&&authenticated)socket.emit('sa
  function equipTitle(id){if(socket?.connected&&authenticated)socket.emit('equip-title',{id});else{const m=$('profileMessage');if(m)m.textContent='Entre na sua conta para equipar e salvar títulos.'}}
  function refreshAccount(){if(socket?.connected&&authenticated)socket.emit('get-account')}
 function rankingCountdown(target){const ms=Math.max(0,Number(target)-Date.now()),s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),sec=s%60;return d>0?`${d}d ${h}h ${m}m`:`${h}h ${m}m ${sec}s`;}
-function renderRankings(data){
+function renderRankings(data){try{localStorage.setItem('abyssalRankingsCache',JSON.stringify(data));}catch{}
  const root=$('rankingContent');if(!root||!data)return;
  const resets=data.resets||{},rewards=data.rewards||{daily:100,weekly:1000,monthly:5000},sections=[['eternal','HALL ETERNO','Marca histórica: quantidade de bosses derrotados por mergulho. Os títulos Top 1 a Top 10 exigem a posição exata e são removidos ao perdê-la.'],['monthly','RANKING MENSAL','Top 10 recebe '+Number(rewards.monthly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['weekly','RANKING SEMANAL','Top 10 recebe '+Number(rewards.weekly).toLocaleString('pt-BR')+' de energia quando o período fechar.'],['daily','RANKING DIÁRIO','Top 10 recebe '+Number(rewards.daily).toLocaleString('pt-BR')+' de energia quando o período fechar.']];
  root.innerHTML=sections.map(([key,title,note])=>{const list=data[key]||[],timer=key==='eternal'?'PERMANENTE':`RECOMPENSA EM <strong class="ranking-countdown" data-reset="${Number(resets[key])||0}">${rankingCountdown(resets[key])}</strong>`;return `<section class="ranking-section ranking-${key}"><header class="ranking-section-head"><h3>${title}</h3><span class="ranking-reset">${timer}</span></header>${list.length?list.map((p,i)=>`<div class="ranking-row"><span class="rank-place">#${i+1}</span><span class="rank-name">${escapeHtml(p.nickname||'Mergulhador')}</span><span class="rank-time">${Number(p.bossesKilled)||0} BOSS${Number(p.bossesKilled)===1?'':'ES'} · ${Math.round(Number(p.score??p.damage)||0).toLocaleString('pt-BR')} DANO</span></div>`).join(''):'<div class="ranking-row"><span class="rank-place">·</span><span class="rank-name">Nenhum mergulho registrado</span><span class="rank-time">0 BOSSES</span></div>'}<p class="ranking-note">${note} Desempate: maior dano e depois maior tempo de mergulho.</p></section>`}).join('');
@@ -736,7 +758,7 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
   if(payload.progress)socket.emit('run-progress',payload.progress);
   socket.timeout(12000).emit('open-rift-chest',payload,(err,result)=>onResult(err?{ok:false,message:'Sem confirmação. Tente abrir novamente.'}:result));
  }
- window.AbyssalOnline={explorationScan,explorationCollect,explorationExtractBegin,explorationExtractComplete,explorationStudy,explorationOffshoreAction,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,syncEnergyOperations,syncSpecimenAdaptation,previewRunReport,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,openCardumes,logoutAccount,getAccount:()=>serverAccount};
+ window.AbyssalOnline={queueSoloRun,syncSoloRuns,explorationScan,explorationCollect,explorationExtractBegin,explorationExtractComplete,explorationStudy,explorationOffshoreAction,openRiftChest,openLogin,showRooms,requestRooms,createRoom,joinRoom,connectAndJoin,connect,authenticate,joinWorld,leaveWorld,sendPosition,sendHit,getPlayers,getPlayerById,getSocketId:()=>socket?.id||localPlayerId,isAuthenticated:()=>authenticated,isConnected:()=>connected,isHost:()=>false,currentRoom:()=>currentRoom,positionDiagnostics:getPositionDiagnostics,sendDamage,sendDamageBatch,sendShot,sendPhotonRayStop,sendSkinAbility,sendFusion,requestMapTransition,sendSnapshot:()=>{},requestHostTransfer:()=>{},shareXp:()=>{},beginRun,revivePlayer,sendBuild,sendProtection,setTutorialOpen,setTutorialPreference,claimFirstProgressionBonus,sendActiveAbility,requestPlayerState,requestWorldSnapshot,sendRunProgress,syncEnergyOperations,syncSpecimenAdaptation,previewRunReport,finishRun,submitRun,loadRankings,renderRankings,purchaseSkin,purchaseStripe,purchaseMeta,redeemCode,spinWheel,saveCosmetics,equipTitle,refreshAccount,openProfile,openCardumes,logoutAccount,getAccount:()=>serverAccount};
  // Authentication and multiplayer navigation belong to the online module so gameplay startup errors cannot disable them.
  $('loginBtn')?.addEventListener('click',()=>openLogin());
  $('profileBtn')?.addEventListener('click',()=>openProfile());
