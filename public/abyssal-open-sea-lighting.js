@@ -22,7 +22,7 @@
   const left=Number(viewport.left)||0,top=Number(viewport.top)||0;
   const w=Math.max(10,Number(viewport.width)||900),h=Math.max(10,Number(viewport.height)||600);
   const heading=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0;
-  const aim=Number.isFinite(player.weaponAngle)?player.weaponAngle:Number(player.angle)||0;
+  const aim=Number.isFinite(player.bodyAngle)?player.bodyAngle:Number(player.angle)||0;
   const r=Number(player.r)||17,scale=r*.60/14;
   // Mounted beside the diver helmet, not attached to the rifle barrel.
   const hx=player.x+Math.cos(heading)*42*scale-Math.sin(heading)*(-9*scale);
