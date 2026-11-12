@@ -768,7 +768,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if(enemy.wildlifeMode){
         for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
         const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,ecologyNeighbors(ecologySpatial,enemy));
-        actualTarget=ecology.aggressive?ecology.target:null;
+        actualTarget=ecology.aggressive?ecology.target:(EnemyAI.isChargeAttack(enemy)&&enemy.sharkCharging?actualTarget:null);
         movementOptions.stopDistance=actualTarget?EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId)):5;
         movementOptions.freeSwim=world.mode==='open-sea'&&(!EnemyAI.isChargeAttack(enemy)||(!actualTarget&&!enemy.sharkCharging));
         movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
@@ -802,6 +802,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const ecology=RiftWildlife.decide(enemy,targetablePlayers,{map:AbyssalMap,layout:mapLayout,room:home,now,seconds:world.elapsed,family:SpecimenSystem.familyFor(enemy.specimenSkinId)});
     enemy.alerted=ecology.alert;
     if(ecology.mode==='attack')actualTarget=ecology.target;
+    else if(EnemyAI.isChargeAttack(enemy)&&enemy.sharkCharging&&actualTarget){enemy.alerted=true;}
     else {
       actualTarget=null;
       if(ecology.mode==='alert'&&ecology.alert)enemy.alerted=true;
