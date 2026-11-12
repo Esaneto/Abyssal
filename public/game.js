@@ -157,6 +157,7 @@ function recordSoloAdaptation(id,boss){
  const rows=readAdaptationQueue(key).filter(x=>x.id===soloAdaptationRun||JSON.stringify(x.counts)!==JSON.stringify(x.credited||{}));let row=rows.find(x=>x.id===soloAdaptationRun);
  if(!row){row={id:soloAdaptationRun,startedAt:Date.now(),counts:{}};rows.push(row);}
  const count=row.counts[id]||{common:0,boss:0};count[boss?'boss':'common']++;row.counts[id]=count;writeAdaptationQueue(key,rows);
+ scheduleAccountMaintenance(1500);
 }
 function syncSoloAdaptation(){
  const key=adaptationAccountKey();if(!key||soloAdaptationSyncBusy||!window.AbyssalOnline?.isAuthenticated?.())return;
@@ -5563,21 +5564,27 @@ window.addEventListener('abyssal-first-progression-reward',ev=>{
 });
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} ENERGIA NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
 let accountMaintenanceTimer=0;
+function hasPendingAccountWork(){
+ const key=adaptationAccountKey();
+ const pendingAdaptation=Boolean(key&&readAdaptationQueue(key).some(row=>JSON.stringify(row.counts)!==JSON.stringify(row.credited||{})));
+ return Boolean(energyWallet?.hasPending?.()||pendingAdaptation);
+}
 function scheduleAccountMaintenance(delay=30000){
  if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}
- if(document.hidden)return;
+ if(document.hidden||!hasPendingAccountWork())return;
  accountMaintenanceTimer=setTimeout(()=>{
   accountMaintenanceTimer=0;
-  if(document.hidden)return;
+  if(document.hidden||!hasPendingAccountWork())return;
   energyWallet?.sync();
   syncSoloAdaptation();
-  scheduleAccountMaintenance();
+  if(hasPendingAccountWork())scheduleAccountMaintenance();
  },Math.max(1000,Number(delay)||30000));
 }
-window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance();});
+window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance(3000);});
 window.addEventListener('abyssal-account-signed-out',()=>{if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}energyWallet?.setAccount('',0);});
+window.addEventListener('abyssal-energy-queue-change',event=>{if(Number(event.detail?.pending)>0)scheduleAccountMaintenance(3000);else if(!hasPendingAccountWork()&&accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}});
 window.addEventListener('online',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance(5000);});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}}else scheduleAccountMaintenance(3000);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}}else if(hasPendingAccountWork())scheduleAccountMaintenance(3000);});
 window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   energyWallet?.setAccount(a.nickname,a.energy);

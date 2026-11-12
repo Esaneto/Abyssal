@@ -301,7 +301,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
  socket.on('connect_error',()=>{connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
- socket.on('disconnect',(reason)=>{stopPositionHeartbeat();rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount&&$('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
+ socket.on('disconnect',(reason)=>{stopPositionHeartbeat();rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount&&$('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));scheduleOnlineMaintenance(reason==='io server disconnect'?1000:3000);if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -582,7 +582,7 @@ let soloSyncBusy=false;
 function soloAccountKey(){return String(account?.nickname||'').trim().toLowerCase();}
 function readSoloQueue(key){try{const rows=JSON.parse(localStorage.getItem(soloQueueKey(key))||'[]');return Array.isArray(rows)?rows:[];}catch{return [];}}
 function writeSoloQueue(key,rows){try{localStorage.setItem(soloQueueKey(key),JSON.stringify(rows));return true;}catch{return false;}}
-function queueSoloRun(key,data){key=String(key||'').trim().toLowerCase();if(!key||!data?.id)return false;const rows=readSoloQueue(key);if(!rows.some(row=>row.id===data.id)){if(!writeSoloQueue(key,[...rows,data]))return false;}syncSoloRuns();return true;}
+function queueSoloRun(key,data){key=String(key||'').trim().toLowerCase();if(!key||!data?.id)return false;const rows=readSoloQueue(key);if(!rows.some(row=>row.id===data.id)){if(!writeSoloQueue(key,[...rows,data]))return false;}syncSoloRuns();scheduleOnlineMaintenance(3000);return true;}
 function syncSoloRuns(){
  const key=soloAccountKey();if(soloSyncBusy||!key||!authenticated||!socket?.connected)return;
  const row=readSoloQueue(key)[0];if(!row)return;
@@ -597,18 +597,21 @@ function syncSoloRuns(){
  });
 }
 let onlineMaintenanceTimer=0;
+function onlineMaintenanceNeeded(){
+ return Boolean((authenticated&&readSoloQueue(soloAccountKey()).length)||(sessionToken&&!socket?.connected&&navigator.onLine!==false));
+}
 function scheduleOnlineMaintenance(delay=30000){
  if(onlineMaintenanceTimer){clearTimeout(onlineMaintenanceTimer);onlineMaintenanceTimer=0;}
- if(document.hidden)return;
+ if(document.hidden||!onlineMaintenanceNeeded())return;
  onlineMaintenanceTimer=setTimeout(()=>{
   onlineMaintenanceTimer=0;
-  if(document.hidden)return;
+  if(document.hidden||!onlineMaintenanceNeeded())return;
   if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();
   else if(sessionToken&&!socket?.connected&&navigator.onLine!==false)connect();
-  scheduleOnlineMaintenance();
+  if(onlineMaintenanceNeeded())scheduleOnlineMaintenance();
  },Math.max(1000,Number(delay)||30000));
 }
-window.addEventListener('abyssal-authenticated',()=>{syncSoloRuns();scheduleOnlineMaintenance();});
+window.addEventListener('abyssal-authenticated',()=>{syncSoloRuns();scheduleOnlineMaintenance(3000);});
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),speedStrength:Math.max(1,Math.min(4,Number(data.speedStrength)||1)),arcChainActive:data.arcChainActive===true,hadalBeamActive:data.hadalBeamActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),prismaticLevel:Math.max(0,Math.min(3,Math.floor(Number(data.prismaticLevel)||0))),predatorLevel:Math.max(0,Math.min(3,Math.floor(Number(data.predatorLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
 function setTutorialOpen(open){if(socket?.connected&&authenticated&&currentRoom)socket.emit('tutorial-state',{open:open===true});}
@@ -811,7 +814,7 @@ document.addEventListener('visibilitychange',()=>{
   if(onlineMaintenanceTimer){clearTimeout(onlineMaintenanceTimer);onlineMaintenanceTimer=0;}
  }else{
   if(currentRoom)startPositionHeartbeat();
-  scheduleOnlineMaintenance(3000);
+  if(onlineMaintenanceNeeded())scheduleOnlineMaintenance(3000);
  }
  if(socket?.connected&&authenticated&&currentRoom){
   socket.emit('client-visibility',{hidden});
