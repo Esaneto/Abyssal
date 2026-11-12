@@ -739,3 +739,18 @@
   min-height:23px!important;padding-top:1px!important;padding-bottom:2px!important;
  }
 }
+
+/* Mobile-only scene framing; no browser zoom or scaled hit-testing. */
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #menuOceanDiver{
+ transform:translate(-50%,-50%) scale(calc(var(--abyss-exit-scale,1)*.8))!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom .abyss-destination.abyss-current-entry{
+ width:clamp(88px,16vw,132px)!important;height:clamp(48px,14dvh,78px)!important;
+}
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #riftPortalBtn.abyss-fissure-entry{
+ width:clamp(96px,18vw,142px)!important;height:clamp(44px,12dvh,66px)!important;
+}
+
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #submarineWorkshopBtn.abyss-laboratory-hatch{
+ min-width:44px!important;min-height:44px!important;
+}

@@ -129,14 +129,18 @@
  const pulse=Math.sin((Number(time)||0)*.002);for(const px of [-162,159]){c.save();c.translate(px,62);c.fillStyle='#263a40';c.fillRect(-12,0,24,12);c.fillStyle='#98aca9';c.fillRect(-5,8,10,7+2*pulse);c.restore();}
  c.fillStyle='#202b2c';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText('ABYSSAL',85,47);c.restore();
  }
- function drawSubmarine(canvas,width,height){
+ function menuSubmarineScale(width,height,mobile=false){
+  const base=Math.min(1.2,Math.max(.59,width/800));
+  return mobile?Math.min(base*.75,Math.max(.26,height*.29/210)):base;
+ }
+ function drawSubmarine(canvas,width,height,scale=menuSubmarineScale(width,height)){
   if(!canvas?.getContext||width<100||height<100)return;
   const ratio=Math.min(2.25,Math.max(1,typeof devicePixelRatio==='number'?devicePixelRatio:1),Math.sqrt(3000000/(width*height)));
   canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
   canvas.style.width=width+'px';canvas.style.height=height+'px';
   const c=canvas.getContext('2d');c.setTransform(ratio,0,0,ratio,0,0);
   c.clearRect(0,0,width,height);
-  const cx=width/2,scale=Math.min(1.2,Math.max(.59,width/800));
+  const cx=width/2;
   c.save();c.translate(cx,0);c.scale(scale,scale);
   c.restore();
   drawSubmarineModel(c,cx,124*scale,scale,true);
@@ -200,5 +204,5 @@
   c.restore();
 
  }
- return Object.freeze({draw,drawSubmarine,drawSubmarineModel});
+ return Object.freeze({draw,drawSubmarine,drawSubmarineModel,menuSubmarineScale});
 });
