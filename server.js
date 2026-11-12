@@ -2460,7 +2460,7 @@ io.on('connection', socket => {
    if(active==='dash'){/* Swept impacts are resolved in tickRoom. */}
    else if(active==='shield'){}
    else if(active==='poison'||active==='paralysis'){}
-   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*645;e.kbVy=dy/d*645;}if(active==='cloud')for(const delay of [500,1000,1500,2000])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,5,'skin-active-poison-dot');},delay);}
+   else for(const e of areaEnemies()){resolveEnemyDamage(e,spec.damage,'skin-active-'+active);if(active==='push'){const dx=e.x-originX,dy=e.y-originY,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*2580;e.kbVy=dy/d*2580;}if(active==='cloud')for(const delay of [500,1000,1500,2000])setTimeout(()=>{if(Number(e.hp)>0)resolveEnemyDamage(e,5,'skin-active-poison-dot');},delay);}
   }
   ack(true,'accepted',{cooldownMs:Math.round(Number(spec.cooldown||10)*1000),active,activeDurationMs:activeDuration,readyAt:player.skinActiveReadyAt});
  });
