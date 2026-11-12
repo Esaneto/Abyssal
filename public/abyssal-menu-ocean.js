@@ -73,7 +73,7 @@
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
-   const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches||window.innerWidth<=700;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
+   const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
    for(const c of [routesCanvas,bubblesCanvas]){
     const ratio=Math.max(1,Math.min(mobileScene?1.5:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
