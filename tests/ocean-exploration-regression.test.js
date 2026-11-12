@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const eco=require('../public/abyssal-open-sea-ecology.js');
+const pet=require('../public/abyssal-pet-tactics.js');
 const resources=require('../public/abyssal-resource-fields.js');
 const config=require('../public/abyssal-exploration-config.js');
 const research=require('../public/abyssal-research-system.js');
@@ -45,4 +46,26 @@ test('online gameplay integrates authoritative pickup, study and survival',()=>{
  assert.match(server,/ExplorationConfig\.oxygenAfterTick\(diver\.oxygen,capacity,elapsed,depth,diver\.y,diver\.r\)/);
  assert.match(online,/function explorationCollect\(id,callback\)/);
  assert.match(game,/function resonanceAvailable\(id,mode='pve'\)/);
+});
+
+
+test('equipped specimen keeps a stable attack perimeter while facing a moving target',()=>{
+ const profile=pet.attackProfile('default','fish',20);
+ const companion={x:100,y:100,facingAngle:0};
+ const target={x:180,y:100,r:15,hp:100};
+ const first=pet.attackGoal(companion,target,profile,0);
+ target.y=108;
+ const stable=pet.attackGoal(companion,target,profile,first.approachAngle);
+ assert.equal(stable.approachAngle,0);
+ assert.ok(Math.abs(stable.y-target.y)<.001);
+ assert.ok(stable.angle>0);
+});
+
+test('open-sea separation keeps a smoothed correction vector',()=>{
+ const a={id:'a',x:100,y:100,r:15,hp:10,wildlifeMode:'passive',schoolId:'s',specimenSkinId:'default'};
+ const b={id:'b',x:104,y:100,r:15,hp:10,wildlifeMode:'passive',schoolId:'s',specimenSkinId:'default'};
+ const first=eco.separateContact(a,[a,b],.05);a.x=first.x;a.y=first.y;b.y=104;
+ const second=eco.separateContact(a,[a,b],.05);
+ assert.ok(Number.isFinite(second.x)&&Number.isFinite(second.y));
+ assert.ok(Number.isFinite(a.aiSeparationX)&&Number.isFinite(a.aiSeparationY));
 });
