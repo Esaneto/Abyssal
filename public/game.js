@@ -590,26 +590,37 @@ function soloSubmarineTarget(id){
  for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const pivot=submarineMuzzle(id,m.a),a=Math.atan2(e.y-pivot.py,e.x-pivot.px),delta=Math.atan2(Math.sin(a-m.a),Math.cos(a-m.a));if(Math.abs(delta)>Math.PI*.60)continue;const muzzle=submarineMuzzle(id,a),d=Math.hypot(e.x-muzzle.x,e.y-muzzle.y);if(d<=SOLO_SUB_RANGE&&d<best&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,muzzle.x,muzzle.y,e.x,e.y,4/GAME_WORLD_ZOOM)){best=d;target={enemy:e,angle:a};}}
  return target;
 }
-function fireSoloSubmarineWeapon(id,target,a){
- (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
+function clearSoloSubmarinePhotonRay(){for(let i=effects.length-1;i>=0;i--)if(effects[i].submarinePhotonBeam)effects.splice(i,1);}
+function fireSoloSubmarineWeapon(id,target,a,dt=0){
  const muzzle=submarineMuzzle(id,a),ox=muzzle.x,oy=muzzle.y;
- burst(ox,oy,'#ddfaff',5,55);playWorldSound('shot-'+id,{x:ox,y:oy},650,.55);
- const speed=(id==='photon'?650:id==='pierce'?390:id==='echoShot'?450:id==='electric'?440:520)/GAME_WORLD_ZOOM;
  const damage=getShotDamageAtLevel(1,id);
- const color=id==='electric'?'#eaffff':id==='pierce'?'#ffe7a1':id==='photon'?'#f0abfc':id==='photonRay'?'#79f9ff':id==='nova'?'#c89bff':'#5ef0d0';
- if(id==='echoShot'){for(const offset of [-.075,.075])projectiles.push({x:ox,y:oy,vx:Math.cos(a+offset)*speed,vy:Math.sin(a+offset)*speed,r:4.2/GAME_WORLD_ZOOM,damage:damage*.65,color,life:2.2,maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,submarineShot:true});return;}
  if(id==='photonRay'){
-  const clipped=clipPrismaticPhotonRay(ox,oy,target.x,target.y,3/GAME_WORLD_ZOOM);
-  effects.push({type:'beam',x1:ox,y1:oy,x2:clipped.x2,y2:clipped.y2,life:.16,maxLife:.16,color,width:4/GAME_WORLD_ZOOM});
-  if(Math.hypot(clipped.x2-target.x,clipped.y2-target.y)<target.r+10/GAME_WORLD_ZOOM)dealEnemyDamage(target,damage,'photonRay');
+  const width=PHOTON_RAY_VISUAL.widths[1]/GAME_WORLD_ZOOM,interval=PHOTON_RAY_VISUAL.pulseInterval;
+  const end=clipPrismaticPhotonRay(ox,oy,ox+Math.cos(a)*SOLO_SUB_RANGE,oy+Math.sin(a)*SOLO_SUB_RANGE,Math.max(1,width*.5));
+  refreshPhotonBeam('submarinePhotonBeam',true,ox,oy,end.x2,end.y2,width);
+  if(soloSubmarine.weaponTimers[id]>0)return;
+  soloSubmarine.weaponTimers[id]=interval;
+  (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
+  for(const e of [...enemies]){
+   if(!e||e.hp<=0||!PHOTON_RAY_VISUAL.segmentCircleHit(ox,oy,end.x2,end.y2,e.x,e.y,e.r+width*.5))continue;
+   dealEnemyDamage(e,damage/BASE_SHOT_INTERVAL*interval,'photonRay',{origin:muzzle});e.hit=.08;burst(e.x,e.y,'#bafaff',2,35);
+  }
   return;
  }
+ if(soloSubmarine.weaponTimers[id]>0)return;
+ soloSubmarine.weaponTimers[id]=id==='nova'?NOVA_SOLO_INTERVAL:BASE_SHOT_INTERVAL;
+ (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
  if(id==='nova'){
-  effects.push({type:'ring',x:target.x,y:target.y,r:0,max:82/GAME_WORLD_ZOOM,life:.48,maxLife:.48,color});
-  for(const e of enemies)if(e.hp>0&&Math.hypot(e.x-target.x,e.y-target.y)<=82/GAME_WORLD_ZOOM&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,ox,oy,e.x,e.y,3/GAME_WORLD_ZOOM))dealEnemyDamage(e,damage,'nova');
-  return;
+  const novaDamage=damage/BASE_SHOT_INTERVAL;
+  for(const e of [...enemies]){
+   if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(ox,oy,a,e.x,e.y,e.r,SOLO_SUB_RANGE)||!pveTerrainClear(ox,oy,e.x,e.y,2))continue;
+   dealEnemyDamage(e,novaDamage,'nova',{origin:muzzle});burst(e.x,e.y,'#72f5ff',3,70);
+  }
+  spawnNovaVisual(ox,oy,SOLO_SUB_RANGE,'#72f5ff',false,a,false);playSkillSound('nova','trigger');return;
  }
- projectiles.push({x:ox,y:oy,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:(id==='pierce'?5.4:id==='photon'?2.9:4.2)/GAME_WORLD_ZOOM,damage,color,life:2.2,maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,pierceRemaining:id==='pierce'?1:0,submarineShot:true});
+ const profile=baseShotProfile(id,1);
+ for(const offset of profile.offsets){const angle=a+offset;projectiles.push({x:ox,y:oy,vx:Math.cos(angle)*profile.speed,vy:Math.sin(angle)*profile.speed,r:profile.radius,damage,color:profile.color,life:Math.max(1.33,SOLO_SUB_RANGE/Math.max(1,profile.speed)+.12),maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,pierceRemaining:id==='pierce'?1:0,hitIds:[],submarineShot:true});}
+ emitBaseShotMuzzle(muzzle,a,id,profile.color,profile.offsets.length);playWorldSound('shot-'+id,muzzle,850,.82);
 }
 function updateSoloSubmarine(dt){
  if(!soloSubmarineActive())return;
@@ -618,8 +629,9 @@ function updateSoloSubmarine(dt){
   player.x=soloSubmarine.x;player.y=soloSubmarine.y+(-25+195*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);if(player.specimen){player.specimen.x=player.x;player.specimen.y=player.y+28/GAME_WORLD_ZOOM;}updateCamera();
  }
  soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
- if(soloSubmarine.powerSeconds<=0)return;
+ if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
  soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
+ if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
  if(window.AbyssalSoloBase?.get?.().submarineShield){
   const shieldRadius=305/GAME_WORLD_ZOOM;
   for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-soloSubmarine.x,dy=e.y-soloSubmarine.y,d=Math.hypot(dx,dy)||1;if(d>=shieldRadius)continue;
@@ -628,7 +640,8 @@ function updateSoloSubmarine(dt){
   }
  }
  const shots=window.AbyssalSoloBase?.installedWeapons?.()||[];
- shots.forEach((id,index)=>{soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id);if(!target)return;soloSubmarine.weaponAngles[id]=target.angle;if(soloSubmarine.weaponTimers[id]>0)return;soloSubmarine.weaponTimers[id]=id==='photonRay'?1.25:id==='nova'?1.7:.8+index*.05;fireSoloSubmarineWeapon(id,target.enemy,target.angle);});
+ if(!shots.includes('photonRay'))clearSoloSubmarinePhotonRay();
+ shots.forEach(id=>{soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id);if(!target){if(id==='photonRay')clearSoloSubmarinePhotonRay();return;}soloSubmarine.weaponAngles[id]=target.angle;fireSoloSubmarineWeapon(id,target.enemy,target.angle,dt);});
 }
 function drawSoloSubmarine(t){
  if(!soloSubmarineActive()&&gameState!=='paused')return;
@@ -2109,8 +2122,8 @@ function triggerHitSynergies(primaryTarget,baseDamage,sourceSkill,options={}){
  if(!primaryTarget||!Number.isFinite(baseDamage)||baseDamage<=0||options.secondary)return;
  const source=String(sourceSkill||'physical');
  // Hit modifiers are geometry-agnostic: projectiles, beams and radial attacks all participate.
- if(source==='electric'&&(upgrades.electric||0)>0&&!onlineMode){
-  let chains=0,from=primaryTarget;const level=Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=190/GAME_WORLD_ZOOM;
+ if(source==='electric'&&(options.submarineShot||(upgrades.electric||0)>0)&&!onlineMode){
+  let chains=0,from=primaryTarget;const level=options.submarineShot?1:Math.max(1,Math.min(3,Number(upgrades.electric)||1)),visited=new Set([primaryTarget.id]),range=190/GAME_WORLD_ZOOM;
   while(chains<level){let next=null,nd=Infinity;for(const other of enemies){const d=dist(from,other);if(other.hp>0&&!visited.has(other.id)&&d<range&&d<nd&&pveTerrainClear(from.x,from.y,other.x,other.y,2)){next=other;nd=d}}if(!next)break;effects.push({type:'electric-arc',x1:from.x,y1:from.y,x2:next.x,y2:next.y,seed:(Number(from.id)||chains)*17+(Number(next.id)||0),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});dealEnemyDamage(next,baseDamage*shotBalanceValue('electric','chainDamage',level,.34),'electric',{secondary:true,origin:from});visited.add(next.id);from=next;chains++;}
  }
 
@@ -2427,6 +2440,7 @@ function specimenPassiveMultiplier(attribute){
  return SPECIMEN_SYSTEM?.passiveMultiplier?.(profile,specimenPoints(),true)??SKIN_STANDARD.passiveMultiplier(equippedSkin,attribute);
 }
 function getFiringRange(){if(upgrades.abyssEye)return Math.min(Math.hypot(W,H),2000/GAME_WORLD_ZOOM);return 294*(upgrades.range||1)*specimenPassiveMultiplier('range')/GAME_WORLD_ZOOM;}
+const BASE_SHOT_INTERVAL=.52,NOVA_SOLO_INTERVAL=1.8;
 const SHOT_BALANCE=Object.freeze({
  electric:{damage:[0,11,13,15],speed:[0,1.02,1.06,1.10],radius:[0,4.2,4.5,4.8],chainDamage:[0,.38,.34,.30],chainRange:[0,125,140,155]},
  pierce:{damage:[0,13,16,19],speed:[0,.86,.90,.94],radius:[0,5.4,6.0,6.6]},
@@ -2437,6 +2451,9 @@ const SHOT_BALANCE=Object.freeze({
  echoShot:{damage:[0,8,10,12],speed:[0,1.05,1.08,1.12],radius:[0,3.7,4.0,4.3]}
 });
 function shotBalanceValue(id,key,level,fallback){const cfg=SHOT_BALANCE[id],rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1))),value=cfg?.[key]?.[rank];return Number.isFinite(value)?value:fallback;}
+function baseShotProfile(id,level=1){return {speed:430*shotBalanceValue(id,'speed',level,1)/GAME_WORLD_ZOOM,radius:shotBalanceValue(id,'radius',level,4.1+(level-1)*.55)/GAME_WORLD_ZOOM,color:id==='echoShot'?'#5ef0d0':id==='photon'?'#f0abfc':id==='electric'?'#eaffff':id==='pierce'?'#ffe7a1':'#83fff3',offsets:id==='echoShot'?[-.045,.045]:[0]};}
+function emitBaseShotMuzzle(muzzle,a,id,color,count){const {x,y}=muzzle;burst(x,y,color,count>1?9:5,count>1?90:45);if(id==='photon')effects.push({type:'photon-flash',x1:x,y1:y,x2:x+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:y+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});}
+function refreshPhotonBeam(key,value,x1,y1,x2,y2,width){let beam=effects.find(fx=>fx[key]===value);if(!beam){beam={type:'photon-ray',[key]:value,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color};effects.push(beam);}Object.assign(beam,{x1,y1,x2,y2,width,life:PHOTON_RAY_VISUAL.duration});return beam;}
 function getShotDamageAtLevel(level,shotId=null){const rank=Math.max(1,Math.min(3,Math.trunc(Number(level)||1)));return shotBalanceValue(shotId,'damage',rank,[0,12,15,18][rank]);}
 function isPcMouseAimMode(){return !isMobileDevice()&&(!isClassicShooterRun()||controlSettings.pc==='wasd-aim');}
 function isManualFiringMode(){return !isClassicShooterRun()||isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');}
@@ -2498,14 +2515,13 @@ function fire(){
  const activeShot=getActiveShotId()||'electric',shotLevel=Math.max(1,Number(upgradeLevels[activeShot])||1);
  const baseDamage=shotLevel?getShotDamageAtLevel(shotLevel,activeShot):12;
  const shotDamage=baseDamage*(upgrades.power||1);
- const shotSpeed=430*shotBalanceValue(activeShot,'speed',shotLevel,1)/GAME_WORLD_ZOOM;
- const shotColor=activeShot==='echoShot'?'#5ef0d0':activeShot==='photon'?'#f0abfc':activeShot==='electric'?'#eaffff':activeShot==='pierce'?'#ffe7a1':'#83fff3';
+ const profile=baseShotProfile(activeShot,shotLevel),shotSpeed=profile.speed,shotColor=profile.color;
  const prismLevel=Math.max(0,Math.min(3,Number(upgrades.spread)||0));
- const baseOffsets=activeShot==='echoShot'?(upgrades.tidalEcho?[-.065,0,.065]:[-.045,.045]):[0];
+ const baseOffsets=activeShot==='echoShot'&&upgrades.tidalEcho?[-.065,0,.065]:profile.offsets;
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
- for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=gunTip;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
+ for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);playWorldSound('shot-'+activeShot,null,850,.82);
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -2904,7 +2920,7 @@ function update(dt){
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
    if(player.fireTimer<=0&&(onlineMode||!isClassicShooterRun()||soloSubmarine.spawnFx<=1.25)&&(!isManualFiringMode()||manualFireDown())){
-    fire();player.fireTimer=Math.max(.12,.52/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
+    fire();player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
    }
  }
  // Companion sim runs even if diver is not moving.
@@ -3027,12 +3043,10 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     if(existing){existing.x1=beam.x1;existing.y1=beam.y1;existing.x2=beam.x2;existing.y2=beam.y2;existing.width=beam.width;existing.life=PHOTON_RAY_VISUAL.duration;}
     else effects.push({type:'photon-ray',localPrismBeamKey:i,x1:beam.x1,y1:beam.y1,x2:beam.x2,y2:beam.y2,width:beam.width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:'#c8a5ff'});
    }
-  const localBeam=effects.find(fx=>fx.localPhotonBeam);
-  if(localBeam){localBeam.x1=rayX;localBeam.y1=rayY;localBeam.x2=x2;localBeam.y2=y2;localBeam.width=width;localBeam.life=PHOTON_RAY_VISUAL.duration;}
-  else effects.push({type:'photon-ray',localPhotonBeam:true,x1:rayX,y1:rayY,x2,y2,width,life:PHOTON_RAY_VISUAL.duration,maxLife:PHOTON_RAY_VISUAL.duration,color:PHOTON_RAY_VISUAL.color});
+  refreshPhotonBeam('localPhotonBeam',true,rayX,rayY,x2,y2,width);
   if(player.photonRayTimer<=0){
    player.photonRayTimer=beamInterval;
-   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/.52)*(upgrades.power||1)*(upgrades.hadalBeam?1.2:1),pulseDamage=beamDps*beamInterval;
+   const beamDps=(getShotDamageAtLevel(beamLevel,'photonRay')/BASE_SHOT_INTERVAL)*(upgrades.power||1)*(upgrades.hadalBeam?1.2:1),pulseDamage=beamDps*beamInterval;
    // A single command describes the whole ray. Server determines every PvE/PvP hit.
    if(onlineMode&&window.AbyssalOnline?.sendShot){const actionId=nextShotVolleyId();window.AbyssalOnline.sendShot({x:rayX/W,y:rayY/H,vx:ux*900/GAME_WORLD_ZOOM/W,vy:uy*900/GAME_WORLD_ZOOM/H,damage:pulseDamage,color:PHOTON_RAY_VISUAL.color,beamLevel,special:'photonRay',beamTargetId:beamTargetId||null,beamEndX:x2/W,beamEndY:y2/H,manualAim:manualPhotonAim,volleyId:actionId,actionId});}
    if(!onlineMode){
@@ -3042,7 +3056,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      const coreHit=PHOTON_RAY_VISUAL.segmentCircleHit(rayX,rayY,x2,y2,target.x,target.y,target.r+width*.5);
      const prismHit=!coreHit&&prismBeams.some(beam=>PHOTON_RAY_VISUAL.segmentCircleHit(beam.x1,beam.y1,beam.x2,beam.y2,target.x,target.y,target.r+beam.width*.5));
      if(!coreHit&&!prismHit)continue;
-     dealEnemyDamage(target,pulseDamage*(coreHit?1:.42),'photonRay');target.hit=.08;burst(target.x,target.y,prismHit?'#c8a5ff':'#bafaff',beamLevel+1,35);
+     dealEnemyDamage(target,pulseDamage*(coreHit?1:.42),'photonRay',{origin:gunOrigin});target.hit=.08;burst(target.x,target.y,prismHit?'#c8a5ff':'#bafaff',beamLevel+1,35);
     }
    }
   }
@@ -3055,10 +3069,10 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if((Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0)&&(!isManualFiringMode()||manualFireDown())){
   player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;
   if(player.novaTimer<=0){
-   player.novaTimer=isPvpMode?2.4:1.8;
+   player.novaTimer=isPvpMode?2.4:NOVA_SOLO_INTERVAL;
    const novaRange=getFiringRange(),combined=Number(upgrades.gravitationalRupture)>0;
    const novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||Number(upgradeLevels.nova)||1));
-   const novaDamage=(getShotDamageAtLevel(novaLevel,'nova')/.52)*(upgrades.power||1);
+   const novaDamage=(getShotDamageAtLevel(novaLevel,'nova')/BASE_SHOT_INTERVAL)*(upgrades.power||1);
    let novaAngle=Number(player.weaponAngle??player.angle)||0;
    if(isPcMouseAimMode()){
     updateMouseAimFromCursor();novaAngle=Number(player.weaponAngle??player.angle)||0;
@@ -3324,7 +3338,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
  if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}if(onlineRoomMode!=='pvp'&&((activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&!OCEAN_GEOGRAPHY.segmentClear(prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?.segmentBlocked(arenaRocks,prevX,prevY,p.x,p.y,p.r||0)))){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}
- projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&(pointSegmentDistance(e.x,e.y,prevX,prevY,p.x,p.y)<p.r+e.r||(p.barrelOrigin&&p.travelled<=stepDistance+.001&&e.id===p.barrelOrigin.targetId&&pointSegmentDistance(e.x,e.y,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY)<p.r+e.r&&(!activeMapLayout||!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))&&(!usesNaturalOceanTerrain()||!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))&&(onlineMode||!isClassicShooterRun()||!SOLO_CAVERN?.segmentBlocked(arenaRocks,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))))){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null),{origin:{x:prevX,y:prevY}});e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playWorldSound('enemy-hit',e,520,.34);
+ projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&(pointSegmentDistance(e.x,e.y,prevX,prevY,p.x,p.y)<p.r+e.r||(p.barrelOrigin&&p.travelled<=stepDistance+.001&&e.id===p.barrelOrigin.targetId&&pointSegmentDistance(e.x,e.y,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY)<p.r+e.r&&(!activeMapLayout||!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))&&(!usesNaturalOceanTerrain()||!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))&&(onlineMode||!isClassicShooterRun()||!SOLO_CAVERN?.segmentBlocked(arenaRocks,p.barrelOrigin.x,p.barrelOrigin.y,prevX,prevY,p.r))))){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null),{origin:{x:prevX,y:prevY},submarineShot:Boolean(p.submarineShot)});e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playWorldSound('enemy-hit',e,520,.34);
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom){if(hit||reachedRange)spawnProjectileDissolve(p.x,p.y,p.color,p.special,false);projectiles.splice(i,1)}}
  for(const beam of effects){
   if(!beam.remoteBeamKey||!onlineMode)continue;

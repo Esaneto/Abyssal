@@ -74,3 +74,5 @@ test('three weapon slots, independent permanent research, persistence and free s
 test('legacy installation migrates to three slots and preserves all research',()=>{
  const store=memory();store.setItem(baseModule.KEY,JSON.stringify({weapons:['electric','pierce','nova','echoShot']}));const base=baseModule.create(store,energyWallet());assert.deepEqual(base.installedWeapons(),['photon','electric','pierce']);assert.equal(base.unlocked('weapon:echoShot'),true);
 });
+
+test('submarine uses diver shot profiles, continuous photon ray and nova cone',()=>{const game=fs.readFileSync(path.join(__dirname,'..','public/game.js'),'utf8');assert.match(game,/const profile=baseShotProfile\(id,1\)/);assert.match(game,/refreshPhotonBeam\('submarinePhotonBeam',true/);assert.match(game,/refreshPhotonBeam\('localPhotonBeam',true/);assert.match(game,/soloSubmarine\.weaponTimers\[id\]=interval/);assert.match(game,/const BASE_SHOT_INTERVAL=\.52,NOVA_SOLO_INTERVAL=1\.8/);assert.match(game,/spawnNovaVisual\(ox,oy,SOLO_SUB_RANGE/);assert.doesNotMatch(game,/id==='photonRay'\?1\.25/);});
