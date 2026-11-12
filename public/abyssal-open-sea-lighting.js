@@ -12,7 +12,7 @@
  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
  function parameters(depth=0,level=0){
   const safeDepth=clamp(Number(depth)||0,0,2200),lv=clamp(Math.floor(Number(level)||0),0,3);
-  const darkness=clamp((safeDepth-75)/630,0,.94);
+  const darkness=clamp((safeDepth-75)/630,0,.97);
   return Object.freeze({depth:safeDepth,level:lv,darkness,range:310+lv*170,halfAngle:.30+lv*.055});
  }
  function draw(c,viewport={},player={},level=0,time=0,lowPower=false){
@@ -30,12 +30,12 @@
   c.save();
   // Ambient attenuation, lifted near the diver so silhouettes remain readable.
   if(depth>=60){
-   c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.14).toFixed(3)+')';
+   c.fillStyle='rgba(0,5,14,'+(lamp.darkness*.20).toFixed(3)+')';
    c.fillRect(left,top,w,h);
   }
   const len=lamp.range,arc=lamp.halfAngle;
   if(depth>=110){
-   const dark=.19*clamp((depth-110)/540,0,1);
+   const dark=.28*clamp((depth-110)/540,0,1);
    // Even-odd clipping leaves a real illuminated sector in the darkness overlay.
    if(dark>.001){
     c.save();c.beginPath();c.rect(left,top,w,h);

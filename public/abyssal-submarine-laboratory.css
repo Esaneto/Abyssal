@@ -408,3 +408,29 @@
   letter-spacing:.10em;color:#dffaff;
  }
 }
+
+/* Cockpit is the only main-menu presentation for now. Prevent old ocean menu flashes
+   and disable the hatch/exit until that route is intentionally restored. */
+body:not(.game-active) #menuScreen{visibility:hidden!important;pointer-events:none!important}
+#menuScreen #submarineWorkshopBtn.abyss-laboratory-hatch{display:none!important;pointer-events:none!important}
+#submarineWorkshop #submarineWorkshopClose{display:none!important}
+
+/* Match the persistent menu themes inside the physical submarine console. */
+#submarineWorkshop .abyss-shop-action{
+ background:linear-gradient(110deg,#122329,#285747 49%,#132c2b)!important;
+ color:#e5fff2!important;border:1px solid #94c8ae!important;
+ box-shadow:inset 0 0 0 1px #a4dfba55,0 0 14px #69dba64f!important
+}
+#submarineWorkshop .abyss-shop-action:hover,#submarineWorkshop .abyss-shop-action:focus-visible{
+ background:linear-gradient(110deg,#173038,#34715b 49%,#193a37)!important;border-color:#c0ead3!important
+}
+#submarineWorkshop .abyss-codex-action{
+ position:relative!important;overflow:hidden!important;
+ background:linear-gradient(145deg,#a78051,#dfc38a 50%,#7e5938)!important;
+ color:#3e2817!important;border:2px solid #8c6540!important;
+ font-family:Georgia,'Times New Roman',serif!important;
+ box-shadow:inset 0 0 0 2px #f9e5b477,0 3px 9px #0008!important
+}
+#submarineWorkshop .abyss-codex-action:hover,#submarineWorkshop .abyss-codex-action:focus-visible{
+ background:linear-gradient(145deg,#b48c59,#ead19c 50%,#89613e)!important;border-color:#b38a60!important
+}

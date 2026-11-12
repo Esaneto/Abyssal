@@ -14,7 +14,7 @@
   // Bosses ordered from the lowest base HP to the highest.
   const CLASSIC_BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
   const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
-  const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.55, memoryMs: 900 });
+  const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.275, memoryMs: 1100 });
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
   function sharkVisionState(enemy,target,now=Date.now()){
     if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle};
@@ -27,15 +27,15 @@
   }
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
-    stinger: Object.freeze({ r: 7, hp: 13, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
+    stinger: Object.freeze({ r: 7, hp: 15, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
     brute: Object.freeze({ r: 16, hp: 65, speed: 30, damage: 15, color: '#bd88ff', value: 4 }),
-    lurker: Object.freeze({ r: 20, hp: 100, speed: 43, damage: 18, color: '#6e8dff', value: 6 }),
-    whiteShark: Object.freeze({ r: 24, hp: 2100, speed: 300, damage: 28, dashSpeed: 300, color: '#91c4ce', value: 24 }),
+    lurker: Object.freeze({ r: 20, hp: 115, speed: 45, damage: 19, color: '#6e8dff', value: 6 }),
+    whiteShark: Object.freeze({ r: 24, hp: 2400, speed: 300, damage: 30, dashSpeed: 300, color: '#91c4ce', value: 24 }),
     boss: Object.freeze({ r: 40, hp: 5640, speed: 52, damage: 25, color: '#338cff', value: 55 }),
     angler: Object.freeze({ r: 35, hp: 6520, speed: 66, damage: 28, color: '#ffb45e', value: 65 }),
     maw: Object.freeze({ r: 45, hp: 7500, speed: 58, damage: 31, color: '#c16cff', value: 75 }),
     leviathan: Object.freeze({ r: 54, hp: 9400, speed: 44, damage: 34, color: '#4ce0d1', value: 90 }),
-    whiteSharkBoss: Object.freeze({ r: 62, hp: 12000, speed: 400, damage: 45, dashSpeed: 400, color: '#68a8b8', value: 140 }),
+    whiteSharkBoss: Object.freeze({ r: 62, hp: 13200, speed: 400, damage: 47, dashSpeed: 400, color: '#68a8b8', value: 140 }),
     kraken: Object.freeze({ r: 80, hp: 18400, speed: 20, damage: 38, color: '#8b5cf6', value: 180 }),
     devourer: Object.freeze({ r: 78, hp: 30000, speed: 14, damage: 42, color: '#39d8c4', value: 260 }),
     riftSmile: Object.freeze({ r: 154, hp: 52000, speed: 0, damage: 0, color: '#b76cff', value: 700 })
@@ -208,7 +208,7 @@
       const hunting=vision.visible||currentTime<(Number(enemy.sharkAlertUntil)||0);
       if(!hunting){
         enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
-        const scanTurn=Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.20;
+        const scanTurn=Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42;
         const heading=(Number(enemy.angle)||0)+scanTurn*dt;
         enemy.angle=heading;
         const cruise=dashSpeed*.42;
@@ -217,7 +217,7 @@
         const aimAngle=vision.visible?vision.targetAngle:(Number(enemy.sharkLastTargetAngle)||Math.atan2(dy,dx));
         const needsDash=enemy.dashVx==null||enemy.dashVy==null||
           Math.hypot(Number(enemy.dashVx)||0,Number(enemy.dashVy)||0)<dashSpeed*.72;
-        if(needsDash){enemy.dashVx=Math.cos(aimAngle)*dashSpeed;enemy.dashVy=Math.sin(aimAngle)*dashSpeed;}
+        if(needsDash){enemy.dashVx=Math.cos(aimAngle)*dashSpeed;enemy.dashVy=Math.sin(aimAngle)*dashSpeed;}else{const current=Math.atan2(Number(enemy.dashVy)||0,Number(enemy.dashVx)||1),turn=angleDelta(aimAngle,current),steered=current+clamp(turn,-1.7*dt,1.7*dt);enemy.dashVx=Math.cos(steered)*dashSpeed;enemy.dashVy=Math.sin(steered)*dashSpeed;}
         enemy.angle=Math.atan2(Number(enemy.dashVy)||Math.sin(aimAngle),Number(enemy.dashVx)||Math.cos(aimAngle));
       }
       let nx=(Number(enemy.x)||0)+(Number(enemy.dashVx)||0)*dt;

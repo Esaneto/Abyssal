@@ -3084,7 +3084,17 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }else{
    if(enemyParalyzedNow(e)){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
   }
-  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const moved=SOLO_CAVERN.resolve(arenaRocks,beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(5,e.r*.62));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);e.dashVx=null;e.dashVy=null;}}
+  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const moved=SOLO_CAVERN.resolve(arenaRocks,beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(5,e.r*.62));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);
+   if(e.kind==='whiteShark'||e.kind==='whiteSharkBoss'){
+    const base=Number(e.angle)||0,probeRange=Math.max(180/GAME_WORLD_ZOOM,e.r*7),offsets=[-.95,.95,-1.45,1.45,Math.PI];
+    let best=base+Math.PI,bestClear=-1;
+    for(const off of offsets){const a=base+off,clear=SOLO_CAVERN.rayDistance(arenaRocks,e.x,e.y,Math.cos(a),Math.sin(a),probeRange);if(clear>bestClear){bestClear=clear;best=a;}}
+    const speed=Number(window.AbyssalEnemyAI?.ENEMY_STATS?.[e.kind]?.dashSpeed)||Number(e.speed)||300;
+    e.angle=best;e.dashVx=Math.cos(best)*speed;e.dashVy=Math.sin(best)*speed;e.sharkAlertUntil=0;
+   }else{
+    e.orbitDirection=-(Number(e.orbitDirection)||1);const tangent=(Number(e.angle)||0)+(e.orbitDirection>0?Math.PI/2:-Math.PI/2);e.vx=Math.cos(tangent)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(tangent)*Math.max(12,Number(e.speed)||20);
+   }
+  }}
   if(false&&!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
    const corrected=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));
    e.x=corrected.x;e.y=corrected.y;
@@ -4820,7 +4830,7 @@ function renderShop(){
  const visibleSkins=skinData.filter(skin=>{
   const owned=ownedSkins.includes(skin.id),categories=skinShopCategories(skin),known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id),haystack=(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')):'Não Registrado').toLocaleLowerCase('pt-BR');
   return (!query||haystack.includes(query))&&(familyFilter==='all'||categories.has(familyFilter))&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
- }).sort((a,b)=>String(a.name).localeCompare(String(b.name),'pt-BR'));
+ }).sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(skin.id==='default'||discoveredSpecimens.has(skin.id)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;const order={common:0,uncommon:1,rare:2,epic:3,legendary:4},ra=order[SPECIMEN_RARITY?.rarityFor(a.id)]??9,rb=order[SPECIMEN_RARITY?.rarityFor(b.id)]??9;if(ra!==rb)return ra-rb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES`;
  visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name;
     const isGreensnake = skin.id === 'greensnake';
@@ -5026,12 +5036,12 @@ function renderCatalog(){
   stinger:{name:'Ferrão de Fenda',color:'#ffbc78',hp:13,speed:125,damage:7,ability:'Ferrão Venenoso: contato causa 16% mais dano, aplica 1,1 s de neurotoxina e pode atacar a cada 0,64 s.',desc:'Peixe-ferrão veloz, construído para perfurar e recuar antes da reação da presa.'},
   brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Pinça Esmagadora: contato causa 28% mais dano; carapaça pesada mantém alta pressão de curto alcance.',desc:'Isópode titânico com placas sobrepostas e pinças capazes de esmagar a defesa frontal.'},
   lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Mordida Gular: contato causa 22% mais dano com uma mordida expansiva; recarga 0,84 s.',desc:'Enguia gulper predatória cuja boca se abre além do diâmetro do próprio corpo.'},
-  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:300,speed:300,damage:28,ability:'Investida Imparável: move-se SOMENTE por arrancadas em linha reta que só param ao atingir a parede, então vira na direção do jogador e investe novamente.',desc:'O ápice dos caçadores pelágicos. Não para, não recua. Cada investida é calculada e letal.'},
+  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:2400,speed:300,damage:30,ability:'Caçada por campo de visão: patrulha, detecta o mergulhador dentro do cone frontal e contorna obstáculos antes de retomar a investida.',desc:'Predador pelágico resistente, rápido e territorial. Perde o alvo fora do campo de visão e procura uma rota livre ao encontrar rochas.'},
   boss:{name:'Polvo-de-Anéis-Azuis Colossal',color:'#338cff',hp:5640,speed:52,damage:25,ability:'Tinta Abissal: deixa continuamente manchas de tinta negra no trajeto; atravessar o rastro causa dano.',desc:'Polvo colossal azul, coberto por anéis bioluminescentes, com oito braços pendentes e um rastro de tinta letal.'},
   angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Camuflagem Abissal: só a isca permanece visível durante 10 s invisível; transições de 3 s e 10 s de recarga.',desc:'Peixe-pescador colossal de boca permanentemente escancarada e isca intensamente bioluminescente.'},
   maw:{name:'Enguia-Pelícano Colossal',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Mordida Gular: a cada 4 s abre a bolsa em 205 px e causa 24 de dano ao redor.',desc:'Enguia-pelícano colossal com bolsa gular expansiva e dentes internos luminescentes.'},
   leviathan:{name:'Peixe-Remo Leviatã',color:'#4ce0d1',hp:9400,speed:44,damage:34,ability:'Lança de Pressão: a cada 4,8 s atravessa 480 px em linha, com faixa de 72 px e 22 de dano.',desc:'Peixe-remo colossal que comprime a água em corredores lineares antes de atravessar a fossa.'},
-  whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:12000,speed:350,damage:45,ability:'Frenesi Colossal Imparável: investidas em linha reta à velocidade de 350 · só para ao colidir com a parede · vira e investe novamente sem parar.',desc:'A lenda das trincheiras abissais. Mais rápido que qualquer outra criatura. Cada investida abala o oceano.'},
+  whiteSharkBoss:{name:'Tubarão-branco Colossal',color:'#68a8b8',hp:13200,speed:400,damage:47,ability:'Frenesi Predatório: usa visão frontal, corrige a trajetória durante a perseguição e procura espaço livre ao encontrar paredes.',desc:'A lenda das trincheiras abissais. Um predador colossal com leitura de rota e perseguição contínua.'},
   kraken:{name:'Lula-Kraken das Fossas',color:'#8b5cf6',hp:18400,speed:20,damage:38,ability:'Varredura Tentacular Óctupla: oito tentáculos afiados que cortam em espiral.',desc:'Lula gigantesca inspirada em cefalópodes de profundidade, com oito braços usados em varreduras circulares.'},
   riftSmile:{name:'Pesadelo Roxo',color:'#ba61e6',hp:52000,speed:0,damage:50,ability:'Oito tentáculos das paredes com trajetórias curvas que procuram jogadores e causam dano na ida e na volta; 50 de dano por contato com a cabeça.',desc:'Polvo colossal imóvel da última fossa: manto roxo musculoso, olhos negros pontudos com íris amarelas de gato e oito braços que emergem das paredes. Imune aos próprios tentáculos.'},
   devourer:{name:'Lula-Colossal do Vazio',color:'#39d8c4',hp:30000,speed:14,damage:42,ability:'Vórtice de Sucção Residual: suga tudo ao redor em um raio colossal a cada 20 segundos.',desc:'Lula-colossal fictícia cujo manto gera um pulso de sucção capaz de inverter correntes locais.'}
@@ -5062,8 +5072,9 @@ function renderCatalog(){
  const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
  const skillsHtml=upgradeList.map(u=>{const known=codex.skills.includes(u.id);return `<article class="codex-card ${known?'unlocked':'locked'}"><div class="codex-preview skill-preview" style="--preview:${known?'#9cecff':'#263747'}">${known?u.icon:'?'}</div><b>${known?u.name:'Ressonância desconhecida'}</b><p>${known?(skillCopy[u.id]||u.desc):'Descubra esta habilidade durante um mergulho para revelar seus efeitos.'}</p></article>`}).join('');
  const entries=Object.entries(monsterData),common=entries.filter(([k])=>!BOSS_KINDS.includes(k)),bosses=entries.filter(([k])=>BOSS_KINDS.includes(k));
- const specimenCards=skinData.map((skin,index)=>{
-  const known=skin.id==='default'||discoveredSpecimens.has(skin.id);
+ const journalSkins=[...skinData].sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(skin.id==='default'||discoveredSpecimens.has(skin.id)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
+ const specimenCards=journalSkins.map((skin,index)=>{
+  const known=skin.id==='default'||ownedSkins.includes(skin.id)||discoveredSpecimens.has(skin.id);
   const b=SPECIMEN_SYSTEM.biologicalStats(skin.id);
   const family=SPECIMEN_SYSTEM.FAMILY_LABELS[b.family]||b.family;
   const oceanHabitat=OPEN_SEA_ECOLOGY?.speciesHabitat?.(skin.id);

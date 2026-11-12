@@ -212,11 +212,15 @@
    const info=pages[activeConsoleSection];if(info){
     const heading=document.createElement('strong');heading.textContent=info[0];
     const body=document.createElement('p');body.textContent=info[1];
-    const action=document.createElement('button');action.className='abyss-visor-action';action.type='button';action.textContent=info[2];
+    const action=document.createElement('button');action.className='abyss-visor-action'+(activeConsoleSection==='shop'?' abyss-shop-action':activeConsoleSection==='specimens'?' abyss-codex-action':'');action.type='button';action.textContent=info[2];
     action.addEventListener('click',()=>{
-     // Reuse the existing portal animation / actual screen handler.
-     closeWorkshop();
-     const target=document.getElementById(info[3]);if(target&&!target.disabled)target.click();
+     // Utility screens open over the bridge; gameplay routes leave the bridge.
+     const target=document.getElementById(info[3]);
+     if(activeConsoleSection==='shop'||activeConsoleSection==='specimens'){
+      if(target&&!target.disabled)target.click();
+     }else{
+      closeWorkshop();if(target&&!target.disabled)target.click();
+     }
     });
     utility.append(heading,body,action);
     if(activeConsoleSection==='solo'){
@@ -246,7 +250,7 @@
   }
   openedPrimaryCockpit=true;openWorkshop();
  }
- window.addEventListener('load',()=>setTimeout(showPrimaryCockpit,180),{once:true});
+ window.addEventListener('load',()=>setTimeout(showPrimaryCockpit,0),{once:true});
  for(const id of ['ageTermsScreen','menuScreen']){
   const modal=document.getElementById(id);
   if(modal&&typeof MutationObserver==='function'){
@@ -259,7 +263,7 @@
   openedPrimaryCockpit=true;openWorkshop();
  });
 
- workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeWorkshop();}});
+ workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();}});
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
 
  let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[],installation:null},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;

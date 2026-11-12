@@ -269,7 +269,7 @@
   if(!lightLayer){lightLayer=document.createElement('canvas');}
   if(lightLayer.width!==cw||lightLayer.height!==ch){lightLayer.width=cw;lightLayer.height=ch;}
   const m=lightLayer.getContext('2d');m.setTransform(cw/w,0,0,ch/h,-left*cw/w,-top*ch/h);
-  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,6,10,.62)';m.fillRect(left,top,w,h);
+  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,5,9,.74)';m.fillRect(left,top,w,h);
   m.globalCompositeOperation='destination-out';
   const reveal=(r,stops)=>{m.fillStyle=radial(m,x,y,r,stops);m.fillRect(x-r,y-r,r*2,r*2);};
   reveal(p.halo,[[0,'rgba(0,0,0,.99)'],[.48,'rgba(0,0,0,.78)'],[1,'rgba(0,0,0,0)']]);
