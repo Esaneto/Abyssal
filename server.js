@@ -917,7 +917,7 @@ function removeFromRoom(socket,{announce=true,emitResult=true}={}){
  if(!room){socket.data.joined=false;socket.data.roomId=null;return;}
  const roomId=room.id;
  room.players.delete(socket.id);socket.leave(channelFor(room));socket.data.joined=false;socket.data.roomId=null;
- if(announce&&socket.data.nickname&&room.players.size>0)io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} deixou as profundezas.`);
+ if(announce&&socket.data.nickname&&room.players.size>0)io.to(channelFor(room)).emit('gameplay-notice',{kind:'leave',title:String(socket.data.nickname).toUpperCase(),text:`${socket.data.nickname} deixou as profundezas.`});
  socket.to(channelFor(room)).emit('player-left',socket.id);
  io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
  if(emitResult)socket.emit('world-left');
