@@ -331,12 +331,12 @@
   mountCockpitConsole(utility);
  }
 
- const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
+ const openWorkshop=()=>{if(!workshop)return;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
  window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
- document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
+ document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop();});
  // Use original account/community screens directly, bypassing hidden menu controls.
  $('cockpitProfileBtn')?.addEventListener('click',()=>{navigateEmbedded('profileScreen');});
  $('cockpitCardumesBtn')?.addEventListener('click',()=>{navigateEmbedded('cardumesScreen');});
@@ -354,11 +354,11 @@
   }
   openedPrimaryCockpit=true;openWorkshop();
  }
- window.addEventListener('load',()=>setTimeout(showPrimaryCockpit,0),{once:true});
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showPrimaryCockpit,{once:true});else showPrimaryCockpit();
  for(const id of ['ageTermsScreen','menuScreen']){
   const modal=document.getElementById(id);
   if(modal&&typeof MutationObserver==='function'){
-   const observer=new MutationObserver(()=>setTimeout(showPrimaryCockpit,70));
+   const observer=new MutationObserver(()=>showPrimaryCockpit());
    observer.observe(modal,{attributes:true,attributeFilter:['hidden','style']});
   }
  }
