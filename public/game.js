@@ -2501,7 +2501,7 @@ function currentSkinActiveSpec(){
 }
 function nearestSkinActiveTarget(range,origin=specimenOrigin()){
  let best=null,bd=Infinity;
- for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=Math.hypot(e.x-origin.x,e.y-origin.y);if(d<=range&&d<bd){best=e;bd=d;}}
+ for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=Math.hypot(e.x-origin.x,e.y-origin.y);if(d<=range&&d<bd&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2)){best=e;bd=d;}}
  return best;
 }
 function specimenAbilityAngle(range){
@@ -2884,9 +2884,9 @@ function update(dt){
       if(!areaGridReady){rebuildEnemyCollisionGrid();areaGridReady=true;}
       const candidates=collectEnemyCandidatesNear(bubble.x,bubble.y,bubble.r+40/GAME_WORLD_ZOOM);
       for (const e of candidates) {
-        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=500) {
+        if (Math.hypot(e.x - bubble.x, e.y - bubble.y) <= bubble.r + (e.r || 10)&&performance.now()-(e.wakeHitAt||0)>=500&&pveTerrainClear(bubble.x,bubble.y,e.x,e.y,2)) {
           e.wakeHitAt=performance.now();
-          dealEnemyDamage(e,5,'skin-active-trail', { visual: showPeriodicSkinDamageNumber(e), silentSound: true });
+          dealEnemyDamage(e,5,'skin-active-trail', { visual: showPeriodicSkinDamageNumber(e), silentSound: true, origin:bubble });
           burst(e.x, e.y, bubble.ink?'#768096':(bubble.color||'#7bf5ff'), 2, 30);
         }
       }
@@ -2941,7 +2941,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    for(const candidate of candidates){
     if(!candidate||candidate.alive===false||(Number.isFinite(Number(candidate.hp))&&Number(candidate.hp)<=0)||(!isPvpMode&&enemyHiddenFromAutoTarget(candidate)))continue;
     const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=dx*dx+dy*dy;
-    if(d<nearestDistance){nearest=candidate;nearestDistance=d;}
+    if(d<nearestDistance&&(isPvpMode||pveTerrainClear(player.x,player.y,candidate.x,candidate.y,2))){nearest=candidate;nearestDistance=d;}
    }
    if(nearest){aimAngle=aimAtEnemy(nearest);hasAim=true;}
   }
@@ -3027,7 +3027,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     let near=null,min=Infinity;
     for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;
      const d=Math.hypot(e.x-player.x,e.y-player.y);
-     if(d<novaRange&&d<min){min=d;near=e;}
+     if(d<novaRange&&d<min&&pveTerrainClear(player.x,player.y,e.x,e.y,2)){min=d;near=e;}
     }
     if(near)novaAngle=aimAtEnemy(near);
    }
@@ -3231,7 +3231,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     soloEnemyMovementOptions.freeSwim=!(e.kind==='whiteShark'||e.kind==='whiteSharkBoss');
    }
    if(window.AbyssalEnemyAI.isChargeAttack(e)){
-    soloEnemyMovementOptions.sharkLineOfSight=pveTerrainClear(e.x,e.y,player.x,player.y,2);
+    soloEnemyMovementOptions.sharkLineOfSight=pveTerrainClear(e.x,e.y,player.x,player.y,2)&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack));if(soloEnemyMovementOptions.sharkLineOfSight&&!soloEnemyMovementOptions.freeSwim)movementTargets=localTargets;
    }else delete soloEnemyMovementOptions.sharkLineOfSight;
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const sea=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));e.x=sea.x;e.y=sea.y;if(sea.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);}}
