@@ -517,7 +517,8 @@ let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(n
 const SOLO_SUB_RANGE=294/GAME_WORLD_ZOOM;
 function soloSubmarineActive(){return !onlineMode&&isClassicShooterRun()&&gameState==='playing';}
 function resetSoloSubmarine(){
- soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null)};
+ soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null),weaponAngles:Object.create(null)};
+ if(SOLO_CAVERN?.submarineHull)arenaRocks.push(SOLO_CAVERN.submarineHull(soloSubmarine.x,soloSubmarine.y,1/GAME_WORLD_ZOOM));
 }
 function soloSubmarinePowered(){return !onlineMode&&isClassicShooterRun()&&soloSubmarine.powerSeconds>0.01;}
 function soloSubmarineTopUp(){
@@ -542,14 +543,16 @@ function updateSoloSubmarineInteraction(){
  button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN';
 }
 window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=245/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
-function soloSubmarineTarget(){
- let target=null,best=Infinity;
- for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=Math.hypot(e.x-soloSubmarine.x,e.y-soloSubmarine.y);if(d<=SOLO_SUB_RANGE&&d<best&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,soloSubmarine.x,soloSubmarine.y,e.x,e.y,4/GAME_WORLD_ZOOM)){best=d;target=e;}}
+const SOLO_WEAPON_MOUNTS=Object.freeze({photon:[-95,-77,-Math.PI/2],electric:[105,-80,-Math.PI/2],pierce:[-188,-48,-Math.PI*.75],photonRay:[257,-24,0],nova:[-230,25,Math.PI],echoShot:[168,78,Math.PI/2]});
+function submarineMount(id){const [x,y,a]=SOLO_WEAPON_MOUNTS[id]||SOLO_WEAPON_MOUNTS.photon;return {x:soloSubmarine.x+x/GAME_WORLD_ZOOM,y:soloSubmarine.y+y/GAME_WORLD_ZOOM,a};}
+function submarineMuzzle(id,angle){const m=submarineMount(id),s=1/GAME_WORLD_ZOOM,px=m.x+Math.cos(m.a)*33*s,py=m.y+Math.sin(m.a)*33*s;return {x:px+Math.cos(angle)*48*s,y:py+Math.sin(angle)*48*s,px,py};}
+function soloSubmarineTarget(id){
+ const m=submarineMount(id);let target=null,best=Infinity;
+ for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const a=Math.atan2(e.y-m.y,e.x-m.x),delta=Math.atan2(Math.sin(a-m.a),Math.cos(a-m.a));if(Math.abs(delta)>Math.PI*.48)continue;const muzzle=submarineMuzzle(id,a),d=Math.hypot(e.x-muzzle.x,e.y-muzzle.y);if(d<=SOLO_SUB_RANGE&&d<best&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,muzzle.x,muzzle.y,e.x,e.y,4/GAME_WORLD_ZOOM)){best=d;target={enemy:e,angle:a};}}
  return target;
 }
-function fireSoloSubmarineWeapon(id,target,index,total=1){
- const a=Math.atan2(target.y-soloSubmarine.y,target.x-soloSubmarine.x),offset=(index-(total-1)/2)*30/GAME_WORLD_ZOOM;
- const ox=soloSubmarine.x+offset,oy=soloSubmarine.y-39/GAME_WORLD_ZOOM;
+function fireSoloSubmarineWeapon(id,target,a){
+ const muzzle=submarineMuzzle(id,a),ox=muzzle.x,oy=muzzle.y;
  const speed=(id==='photon'?650:id==='pierce'?390:id==='echoShot'?450:id==='electric'?440:520)/GAME_WORLD_ZOOM;
  const damage=getShotDamageAtLevel(1,id);
  const color=id==='electric'?'#eaffff':id==='pierce'?'#ffe7a1':id==='photon'?'#f0abfc':id==='photonRay'?'#79f9ff':id==='nova'?'#c89bff':'#5ef0d0';
@@ -570,31 +573,38 @@ function updateSoloSubmarine(dt){
  if(!soloSubmarineActive())return;
  if(soloSubmarine.spawnFx>1.25&&player){
   const q=clamp((2.2-soloSubmarine.spawnFx+dt)/.95,0,1),travel=q*q*(3-2*q);
-  player.x=soloSubmarine.x;player.y=soloSubmarine.y+(45+125*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);updateCamera();
+  player.x=soloSubmarine.x;player.y=soloSubmarine.y+(45+125*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);if(player.specimen){player.specimen.x=player.x;player.specimen.y=player.y+28/GAME_WORLD_ZOOM;}updateCamera();
  }
  soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
  if(soloSubmarine.powerSeconds<=0)return;
  soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
  if(window.AbyssalSoloBase?.get?.().submarineShield){
-  const shieldRadius=176/GAME_WORLD_ZOOM;
+  const shieldRadius=305/GAME_WORLD_ZOOM;
   for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-soloSubmarine.x,dy=e.y-soloSubmarine.y,d=Math.hypot(dx,dy)||1;if(d>=shieldRadius)continue;
    const tx=soloSubmarine.x+dx/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM),ty=soloSubmarine.y+dy/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM);
    const moved=SOLO_CAVERN?.resolve?.(arenaRocks,e.x,e.y,tx,ty,Math.max(5,e.r*.62))||{x:tx,y:ty};e.x=moved.x;e.y=moved.y;e.vx=dx/d*90;e.vy=dy/d*90;
   }
  }
- const shots=window.AbyssalSoloBase?.unlockedShots?.()||['photon'],target=soloSubmarineTarget();
- if(!target)return;
- shots.forEach((id,index)=>{soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);if(soloSubmarine.weaponTimers[id]>0)return;soloSubmarine.weaponTimers[id]=id==='photonRay'?1.25:id==='nova'?1.7:.8+index*.05;fireSoloSubmarineWeapon(id,target,index,shots.length);});
+ const shots=window.AbyssalSoloBase?.installedWeapons?.()||[];
+ shots.forEach((id,index)=>{soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id);if(!target)return;soloSubmarine.weaponAngles[id]=target.angle;if(soloSubmarine.weaponTimers[id]>0)return;soloSubmarine.weaponTimers[id]=id==='photonRay'?1.25:id==='nova'?1.7:.8+index*.05;fireSoloSubmarineWeapon(id,target.enemy,target.angle);});
 }
 function drawSoloSubmarine(t){
  if(!soloSubmarineActive()&&gameState!=='paused')return;
  const x=soloSubmarine.x,y=soloSubmarine.y,powered=soloSubmarine.powerSeconds>0,shield=powered&&window.AbyssalSoloBase?.get?.().submarineShield;
  ctx.save();ctx.translate(x,y);
  if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
- if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,178/GAME_WORLD_ZOOM,98/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
+ if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
  ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered||soloSubmarine.spawnFx>0);
- const installed=window.AbyssalSoloBase?.unlockedShots?.()||['photon'];
- installed.forEach((id,index)=>{const total=installed.length,tx=(index-(total-1)/2)*30/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'};ctx.save();ctx.translate(tx,-39/GAME_WORLD_ZOOM);ctx.fillStyle='#1a2327';ctx.fillRect(-8/GAME_WORLD_ZOOM,-5/GAME_WORLD_ZOOM,27/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM);ctx.fillStyle=colors[id]||'#9ff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=powered?8/GAME_WORLD_ZOOM:0;ctx.fillRect(16/GAME_WORLD_ZOOM,-3/GAME_WORLD_ZOOM,10/GAME_WORLD_ZOOM,4/GAME_WORLD_ZOOM);ctx.restore();});
+ const installed=window.AbyssalSoloBase?.installedWeapons?.()||[];
+ for(const id of installed){const m=submarineMount(id),angle=soloSubmarine.weaponAngles?.[id]??m.a,s=1/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'},color=colors[id]||'#9ff';
+  ctx.save();ctx.translate(m.x-x,m.y-y);ctx.scale(s,s);ctx.rotate(m.a);ctx.fillStyle='#17252b';ctx.strokeStyle='#788c91';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(-8,-19,17,38,4);ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#293940';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(18,-5);ctx.lineTo(33,0);ctx.stroke();
+  ctx.strokeStyle='#98a6a7';ctx.lineWidth=3;ctx.stroke();
+  for(const px of [0,18,33]){ctx.fillStyle='#263a40';ctx.beginPath();ctx.arc(px,px===18?-5:0,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#a7b7b3';ctx.lineWidth=2;ctx.stroke();}
+  ctx.translate(33,0);ctx.rotate(angle-m.a);const metal=ctx.createLinearGradient(0,-12,0,12);metal.addColorStop(0,'#a0b2b5');metal.addColorStop(.4,'#43565e');metal.addColorStop(1,'#14232c');ctx.fillStyle=metal;ctx.strokeStyle='#0b151b';ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(-13,-12,31,24,4);ctx.fill();ctx.stroke();ctx.fillRect(14,-6,29,12);ctx.strokeRect(14,-6,29,12);ctx.fillStyle='#263b43';ctx.fillRect(39,-9,9,18);ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=powered?10:0;ctx.fillRect(3,-3,12,6);ctx.fillRect(46,-4,2,8);ctx.restore();
+ }
  // Shared hull.
  ctx.restore();
  if(soloSubmarine.spawnFx>0&&player&&player.y>=soloSubmarine.y+80/GAME_WORLD_ZOOM){for(let i=0;i<42;i++){const phase=t*.002+i*1.7,life=soloSubmarine.spawnFx/2.2,q=i/41,px=soloSubmarine.x+(player.x-soloSubmarine.x)*q+Math.sin(phase)*(.4+q)*23/GAME_WORLD_ZOOM,py=soloSubmarine.y+86/GAME_WORLD_ZOOM+(player.y-soloSubmarine.y-86/GAME_WORLD_ZOOM)*q-(1-life)*q*32/GAME_WORLD_ZOOM;ctx.save();ctx.globalAlpha=Math.min(1,life);ctx.strokeStyle='#d7ffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(px,py,(2+i%3)/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.stroke();ctx.restore();}}
@@ -2656,6 +2666,7 @@ function equippedMotionFamily(){
  return soundMotionFamily;
 }
 function updateSpecimenRuntime(dt){
+ if(!onlineMode&&isClassicShooterRun()&&soloSubmarine.spawnFx>1.25)return;
  if(!player?.specimen)return;
  const s=player.specimen;
  if(s.invuln>0)s.invuln=Math.max(0,s.invuln-dt);
@@ -3318,7 +3329,7 @@ function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(nod
 function updateHud(force=true){
  const now=performance.now();if(!force&&now-lastHudUpdateAt<100)return;lastHudUpdateAt=now;
  setTextIfChanged('timeText',fmtTime(elapsed));const levelDisplay = areAllUpgradesMaxed() || level === 'MAX' ? 'Nível MAX' : String(level).padStart(2,'0');
- setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun()){setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));setTextIfChanged('soloSubmarineStatus',soloSubmarine.powerSeconds>0?(Math.ceil(soloSubmarine.powerSeconds/60)+' MIN · '+(window.AbyssalSoloBase?.unlockedShots?.().length||1)+' ARMA(S)'):'SEM ENERGIA');}
+ setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun()){setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));setTextIfChanged('soloSubmarineStatus',soloSubmarine.powerSeconds>0?(Math.ceil(soloSubmarine.powerSeconds/60)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' ARMA(S)'):'SEM ENERGIA');}
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
 function renderRunEndPresentation(){

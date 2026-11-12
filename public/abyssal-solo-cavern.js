@@ -31,6 +31,11 @@
    return {x,y,rx,ry,r,angle,vertices,shade:.14+index%5*.115,seed:900+index,edge:'cavern',cavernSolid:true,visualOnly:false};
   });
  }
+ function submarineHull(x,y,scale=1){
+  // Convex silhouette follows the shared hull, including stern and front viewport.
+  const vertices=[[-286,-35],[-270,-57],[-235,-57],[-175,-53],[-110,-72],[-38,-76],[-38,-99],[55,-99],[70,-76],[160,-76],[215,-66],[265,-45],[281,-12],[281,22],[255,55],[190,77],[48,80],[32,99],[-32,99],[-48,76],[-130,60],[-225,28],[-270,57],[-286,35]].map(([a,b])=>[a*scale,b*scale]);
+  return {x,y,rx:286*scale,ry:99*scale,r:300*scale,angle:0,vertices,cavernSolid:true,submarineHull:true,visualOnly:false};
+ }
  function local(r,x,y){
   const a=-(r.angle||0),ca=Math.cos(a),sa=Math.sin(a),dx=x-r.x,dy=y-r.y;
   return [dx*ca-dy*sa,dx*sa+dy*ca];
@@ -77,6 +82,8 @@
   const d=Math.hypot(toX-fromX,toY-fromY),steps=clamp(Math.ceil(d/Math.max(3,padding*.6)),1,1000);
   const dx=(toX-fromX)/steps,dy=(toY-fromY)/steps;
   let x=fromX,y=fromY,blocked=false;
+  // Recover entities already overlapping a solid (e.g. a launch or knockback).
+  if(isBlocked(rocks,x,y,padding)){const originX=x,originY=y;let found=false;for(let radius=Math.max(4,padding*.5);radius<=640&&!found;radius+=Math.max(4,padding*.5)){for(let i=0;i<32;i++){const a=i*TAU/32,xx=originX+Math.cos(a)*radius,yy=originY+Math.sin(a)*radius;if(!isBlocked(rocks,xx,yy,padding)){x=xx;y=yy;found=true;break;}}}if(!found)return {x,y,blocked:true};return {x,y,blocked:true};}
   // Integrate from the last accepted point, never skip through a solid rock.
   for(let i=0;i<steps;i++){
    const tx=x+dx,ty=y+dy;
@@ -99,7 +106,7 @@
    if(!r.cavernSolid||r.visualOnly)continue;
    if(Math.min(x,x+dx*limit)>r.x+r.r||Math.max(x,x+dx*limit)<r.x-r.r||Math.min(y,y+dy*limit)>r.y+r.r||Math.max(y,y+dy*limit)<r.y-r.r)continue;
    const a=local(r,x,y),b=local(r,x+dx,y+dy),vx=b[0]-a[0],vy=b[1]-a[1],pts=r.vertices;
-   for(let i=0,j=pts.length-1;i<pts.length;j=i++){const t=lineParameter(a[0],a[1],vx,vy,pts[j],pts[i]);if(t<limit)limit=t;}
+   for(let i=0,j=pts.length-1;i<pts.length;j=i++){const t=lineParameter(a[0],a[1],vx,vy,pts[j],pts[i]);if(t<=1)limit=Math.min(limit,t*Math.hypot(vx,vy));}
   }return limit;
  }
  const CELL=64,DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
@@ -238,7 +245,7 @@
  }
  function drawRocks(c,rocks,view,t){
   const {left,top,width,height}=view,right=left+width,bottom=top+height;
-  for(const r of rocks){if(!r.cavernSolid||r.x+r.r+100<left||r.x-r.r-100>right||r.y+r.r+100<top||r.y-r.r-100>bottom)continue;
+  for(const r of rocks){if(!r.cavernSolid||r.submarineHull||r.x+r.r+100<left||r.x-r.r-100>right||r.y+r.r+100<top||r.y-r.r-100>bottom)continue;
    c.save();c.translate(r.x,r.y);c.rotate(r.angle||0);
    // Physical ellipse silhouette and layered fractured basalt, without neon rims.
    path(c,r.vertices);c.fillStyle=linear(c,-r.rx,-r.ry,r.rx,r.ry,[[0,'#204d4e'],[.20,'#122e35'],[.47,'#071b23'],[1,'#02090f']]);c.fill();
@@ -303,16 +310,19 @@
   for(const source of extraLights||[]){if(!source?.active||!source.color||!Number.isFinite(source.x)||!Number.isFinite(source.y))continue;const radius=source.radius||85,glow=radial(c,source.x,source.y,radius,[[0,source.color],[1,'rgba(0,0,0,0)']]);c.globalAlpha=.25;c.fillStyle=glow;c.fillRect(source.x-radius,source.y-radius,radius*2,radius*2);c.globalAlpha=1;}
   // Suspended marine snow, world anchored and animated, visible in darkness.
   for(const p of worldCache?.particles||[]){const y=((p.y-t*.009)%worldCache.h+worldCache.h)%worldCache.h,x=p.x+Math.sin(t*.0007+p.phase)*18;if(x<left||x>left+w||y<top||y>top+h)continue;const lit=Math.hypot(x-player.x,y-player.y)<285;c.fillStyle='rgba(183,225,224,'+(lit?.42:.13)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
-  for(const r of rocks||[]){if(!r.cavernSolid||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
+  for(const r of rocks||[]){if(!r.cavernSolid||r.submarineHull||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
    const ca=Math.cos(r.angle||0),sa=Math.sin(r.angle||0);
-   // Broad soft neon-green pools; no point lights or luminous outlines.
-   for(let j=0;j<5;j++){const k=20+Math.floor(j/4*19),v=r.vertices[k];if(!v)continue;
-    const x=r.x+v[0]*ca-v[1]*sa,y=r.y+v[0]*sa+v[1]*ca-17,radius=105;
-    const glow=radial(c,x,y,radius,[[0,'rgba(28,255,95,.36)'],[.32,'rgba(20,226,77,.24)'],[.65,'rgba(12,175,57,.10)'],[1,'rgba(0,100,30,0)']]);
-    c.fillStyle=glow;c.fillRect(x-radius,y-radius,radius*2,radius*2);
-   }
+   // Emissive vegetation: light belongs to the stem and root, not a large green cloud.
+   c.save();c.translate(r.x,r.y);c.rotate(r.angle||0);c.globalCompositeOperation='source-over';
+   for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),[x,y]=r.vertices[k],ln=16+((r.seed+j*17)%49),sway=Math.sin(t*.0014+j+r.seed)*5;
+    const glow=radial(c,x,y-3,30,[[0,'rgba(40,255,109,.19)'],[.45,'rgba(26,235,90,.08)'],[1,'rgba(0,100,30,0)']]);c.fillStyle=glow;c.fillRect(x-30,y-33,60,60);
+    c.lineCap='round';c.shadowColor='#24ff78';c.shadowBlur=6;c.strokeStyle='#39ff8b';c.lineWidth=2.5;
+    c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+sway,y-ln*.5,x+sway*.7,y-ln);c.stroke();
+    c.lineWidth=1.5;c.strokeStyle='#23cb69';for(let i=1;i<4;i++){const yy=y-ln*i/4,xx=x+sway*i/4,side=i%2?1:-1;c.beginPath();c.moveTo(xx,yy);c.quadraticCurveTo(xx+side*12,yy-4,xx+side*15,yy-13);c.stroke();}
+    c.shadowBlur=4;c.strokeStyle='#74ffad';c.lineWidth=3;c.beginPath();c.moveTo(x,y);c.lineTo(x+sway*.2,y-5);c.stroke();c.shadowBlur=0;
+   }c.restore();
   }
   c.restore();
  }
- return Object.freeze({buildRocks,isBlocked,resolve,segmentBlocked,rayDistance,nearestWater,navigationTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,nearestWater,navigationTarget,paint,drawRocks,lampParameters,lighting});
 });
