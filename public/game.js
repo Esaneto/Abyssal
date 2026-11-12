@@ -575,7 +575,7 @@ const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
 const soloMapNavProxy={x:0,y:0,local:true,skinId:'default',moveSpeed:150/GAME_WORLD_ZOOM,alive:true};
 const soloMapNavTargets=[soloMapNavProxy];
 let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity;
-let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(null),sections:[],debris:[]};
+let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0};
 const SOLO_HULL_HP=300,SOLO_HULL_CUTS=[-300,-140,140,300],SOLO_HULL_NAMES=['POPA','CENTRO','PROA'];
 function clipSoloHull(points,edge,keepRight){const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],inside=p=>keepRight?p[0]>=edge:p[0]<=edge,ai=inside(a),bi=inside(b);if(ai)out.push(a);if(ai!==bi){const q=(edge-a[0])/(b[0]-a[0]);out.push([edge,a[1]+(b[1]-a[1])*q]);}}return out;}
 function makeSoloHullSections(){const scale=1/GAME_WORLD_ZOOM,hull=SOLO_CAVERN.submarineHull(soloSubmarine.x,soloSubmarine.y,scale);return SOLO_HULL_NAMES.map((name,i)=>{const min=SOLO_HULL_CUTS[i]*scale,max=SOLO_HULL_CUTS[i+1]*scale,vertices=clipSoloHull(clipSoloHull(hull.vertices,min,true),max,false),cx=(min+max)*.5,local=vertices.map(([x,y])=>[x-cx,y]),rx=Math.max(...local.map(v=>Math.abs(v[0]))),ry=Math.max(...local.map(v=>Math.abs(v[1])));const rock={x:soloSubmarine.x+cx,y:soloSubmarine.y,rx,ry,r:Math.hypot(rx,ry),angle:0,vertices:local,cavernSolid:true,submarineHull:true,visualOnly:false,sectionId:i};return {id:i,name,hp:SOLO_HULL_HP,min,max,x:soloSubmarine.x+cx,y:soloSubmarine.y,rock,collision:[rock]};});}
@@ -584,8 +584,47 @@ function soloHullDistance(s,x,y){return Math.hypot(x-s.x,y-s.y);}
 function nearestSoloHull(x,y,damagedOnly=false){let best=null,d=Infinity;for(const s of soloSubmarine.sections){if(damagedOnly?s.hp>=SOLO_HULL_HP:s.hp<=0)continue;const q=soloHullDistance(s,x,y);if(q<d){best=s;d=q;}}return best;}
 function soloHullAttackTarget(e){const s=nearestSoloHull(e.x,e.y);if(!s)return null;const now=performance.now(),cached=e.submarineTargetCache;if(cached&&cached.section===s&&cached.revision===soloSubmarine.hullRevision&&now<cached.until)return cached.target;const r=s.rock,pad=Math.max(5,e.r*.62),a=Math.atan2(e.y-s.y,e.x-s.x);let best=null,cost=Infinity;for(const off of [0,.55,-.55,1.1,-1.1,1.65,-1.65,Math.PI]){const dx=Math.cos(a+off),dy=Math.sin(a+off);let lo=0,hi=r.r+pad+20;for(let i=0;i<9;i++){const mid=(lo+hi)*.5;if(SOLO_CAVERN.isBlocked(s.collision,s.x+dx*mid,s.y+dy*mid,pad+3))lo=mid;else hi=mid;}const x=s.x+dx*hi,y=s.y+dy*hi;if(SOLO_CAVERN.isBlocked(arenaRocks,x,y,pad))continue;const q=Math.hypot(e.x-x,e.y-y);if(q<cost){best={x,y};cost=q;}if(off===0&&best)break;}const target={...(best||{x:s.x,y:s.y}),local:false,submarine:true,section:s,skinId:'default',r:0,moveSpeed:player?.moveSpeed};e.submarineTargetCache={section:s,revision:soloSubmarine.hullRevision,until:now+180+(Number(e.id)||0)%70,target};return target;}
 function soloCreatureTarget(e,diver){if(!isClassicShooterRun())return diver;if(soloSubmarinePowered()){const target=soloHullAttackTarget(e);if(target)return target;}const pet=player?.specimen;if(pet?.alive&&Math.hypot(e.x-pet.x,e.y-pet.y)<Math.hypot(e.x-diver.x,e.y-diver.y))return {x:pet.x,y:pet.y,r:pet.r,local:false,specimen:true,skinId:equippedSkin,moveSpeed:player.moveSpeed};return diver;}
-function damageSoloHull(s,amount){if(!s||s.hp<=0)return;s.hp=Math.max(0,s.hp-Math.max(0,amount));if(s.hp>0)return;syncSoloHull();if(soloWeaponSection('photonRay')===s)clearSoloSubmarinePhotonRay();const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:s.x+(Math.cos(a)*55)*scale,y:s.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});} }
-function soloHullContact(e,now){if(!soloSubmarineActive()||enemyParalyzedNow(e)||now<(Number(e.submarineAttackAt)||0))return;const pad=Math.max(5,e.r*.62)+8/GAME_WORLD_ZOOM;if(Math.abs(e.x-soloSubmarine.x)>300/GAME_WORLD_ZOOM+pad||Math.abs(e.y-soloSubmarine.y)>110/GAME_WORLD_ZOOM+pad)return;let hit=null;for(const s of soloSubmarine.sections){if(s.hp>0&&SOLO_CAVERN.isBlocked(s.collision,e.x,e.y,pad)){if(!hit||soloHullDistance(s,e.x,e.y)<soloHullDistance(hit,e.x,e.y))hit=s;}}if(hit){e.submarineAttackAt=now+1000;damageSoloHull(hit,Math.max(5,Number(e.damage)||8));}}
+function soloHullShieldReady(){return soloSubmarinePowered()&&!soloSubmarine.shieldSpent&&Boolean(window.AbyssalSoloBase?.get?.().submarineShield);}
+function damageSoloHull(s,amount){
+ if(!s||s.hp<=0||!(amount>0))return false;
+ if(soloHullShieldReady()){soloSubmarine.shieldSpent=true;soloSubmarine.shieldFlashUntil=performance.now()+420;return false;}
+ s.hp=Math.max(0,s.hp-amount);if(s.hp>0)return true;syncSoloHull();if(soloWeaponSection('photonRay')===s)clearSoloSubmarinePhotonRay();const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:s.x+(Math.cos(a)*55)*scale,y:s.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}return true;
+}
+function soloHullInReach(e,extra=0){
+ if(!soloSubmarineActive())return null;
+ const pad=Math.max(5,e.r*.62)+(8+extra)/GAME_WORLD_ZOOM;
+ if(Math.abs(e.x-soloSubmarine.x)>300/GAME_WORLD_ZOOM+pad||Math.abs(e.y-soloSubmarine.y)>110/GAME_WORLD_ZOOM+pad)return null;
+ const held=e.submarineHoldSection;
+ if(held&&held.hp>0&&SOLO_CAVERN.isBlocked(held.collision,e.x,e.y,pad))return held;
+ let hit=null;for(const s of soloSubmarine.sections){if(s.hp>0&&SOLO_CAVERN.isBlocked(s.collision,e.x,e.y,pad)){if(!hit||soloHullDistance(s,e.x,e.y)<soloHullDistance(hit,e.x,e.y))hit=s;}}return hit;
+}
+function soloHullImpactPoint(e,s){
+ const dx=e.x-s.x,dy=e.y-s.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d;let lo=0,hi=s.rock.r+2;
+ for(let i=0;i<10;i++){const mid=(lo+hi)*.5;if(SOLO_CAVERN.isBlocked(s.collision,s.x+ux*mid,s.y+uy*mid,0))lo=mid;else hi=mid;}
+ return {x:s.x+ux*lo,y:s.y+uy*lo};
+}
+function soloHullContact(e,now){
+ if(enemyParalyzedNow(e)||now<(Number(e.submarineAttackAt)||0))return false;
+ const hit=soloHullInReach(e,e.submarineHoldSection?4:0);if(!hit)return false;
+ e.submarineAttackAt=now+1000;
+ const impact=soloHullImpactPoint(e,hit),angle=Math.atan2(impact.y-e.y,impact.x-e.x);
+ e.hostileBite={startedAt:now,duration:480,angle};
+ if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
+ damageSoloHull(hit,Math.max(5,Number(e.damage)||8));return true;
+}
+function holdSoloHullAttack(e,dt,now){
+ // Hysteresis: a creature that has settled stays at its attack station
+ // until its section is destroyed, power ends, or knockback moves it away.
+ if(!soloSubmarinePowered()||!soloSubmarineActive()||enemyParalyzedNow(e)){e.submarineHoldSection=null;return false;}
+ const section=soloHullInReach(e,e.submarineHoldSection?4:0);
+ if(!section){e.submarineHoldSection=null;return false;}
+ e.submarineHoldSection=section;
+ e.vx=0;e.vy=0;e.dashVx=0;e.dashVy=0;
+ e.angle=Math.atan2(section.y-e.y,section.x-e.x);
+ e.phase=(Number(e.phase)||0)+dt*3;
+ e.attackCd=Math.max(0,(Number(e.attackCd)||0)-dt);
+ soloHullContact(e,now);return true;
+}
 function soloRepairCandidate(){if(!soloSubmarineActive()||!player)return null;let best=null,d=Infinity;for(const s of soloSubmarine.sections){if(s.hp>=SOLO_HULL_HP||!SOLO_CAVERN.isBlocked(s.collision,player.x,player.y,75/GAME_WORLD_ZOOM+(Number(player.r)||0)))continue;const q=soloHullDistance(s,player.x,player.y);if(q<d){best=s;d=q;}}return best;}
 function repairSoloHull(){const s=soloRepairCandidate();if(!s)return false;s.hp=SOLO_HULL_HP;syncSoloHull();if(SOLO_CAVERN.isBlocked(s.collision,player.x,player.y,player.r+2)){const p=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,player.x,player.y,player.r+2);player.x=p.x;player.y=p.y;}return true;}
 function ensureSoloRepairButton(){let b=$('soloSubmarineRepairBtn');if(b)return b;b=document.createElement('button');b.id='soloSubmarineRepairBtn';b.type='button';b.hidden=true;b.innerHTML='<span aria-hidden="true">🔧</span><small>REPARAR</small>';b.addEventListener('click',repairSoloHull);$('petHabitBar')?.prepend(b);return b;}
@@ -593,7 +632,7 @@ window.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&soloRepairC
 const SOLO_SUB_RANGE=650/GAME_WORLD_ZOOM;
 function soloSubmarineActive(){return !onlineMode&&isClassicShooterRun()&&gameState==='playing';}
 function resetSoloSubmarine(){
- soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null),weaponAngles:Object.create(null),sections:[],debris:[]};
+ soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null),weaponAngles:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0};
  ensureSoloHull();
 }
 function ensureSoloHull(){if(!SOLO_CAVERN?.submarineHull||!soloSubmarine.x)return;if(!soloSubmarine.sections.length)soloSubmarine.sections=makeSoloHullSections();syncSoloHull();}
@@ -681,26 +720,19 @@ function updateSoloSubmarine(dt){
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
  soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
- if(window.AbyssalSoloBase?.get?.().submarineShield){
-  const shieldRadius=305/GAME_WORLD_ZOOM;
-  for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-soloSubmarine.x,dy=e.y-soloSubmarine.y,d=Math.hypot(dx,dy)||1;if(d>=shieldRadius)continue;
-   const tx=soloSubmarine.x+dx/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM),ty=soloSubmarine.y+dy/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM);
-   const moved=SOLO_CAVERN?.resolve?.(arenaRocks,e.x,e.y,tx,ty,Math.max(5,e.r*.62))||{x:tx,y:ty};e.x=moved.x;e.y=moved.y;e.vx=dx/d*90;e.vy=dy/d*90;
-  }
- }
  const shots=window.AbyssalSoloBase?.installedWeapons?.()||[];
  if(!shots.includes('photonRay')||!soloWeaponOperational('photonRay'))clearSoloSubmarinePhotonRay();
  shots.forEach(id=>{if(!soloWeaponOperational(id))return;soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id);if(!target){if(id==='photonRay')clearSoloSubmarinePhotonRay();return;}soloSubmarine.weaponAngles[id]=target.angle;fireSoloSubmarineWeapon(id,target.enemy,target.angle,dt);});
 }
 function drawSoloSubmarine(t){
  if(!soloSubmarineActive()&&gameState!=='paused')return;
- const x=soloSubmarine.x,y=soloSubmarine.y,powered=soloSubmarine.powerSeconds>0,shield=powered&&window.AbyssalSoloBase?.get?.().submarineShield;
+ const x=soloSubmarine.x,y=soloSubmarine.y,powered=soloSubmarine.powerSeconds>0,shield=soloHullShieldReady(),shieldFlash=Math.max(0,(soloSubmarine.shieldFlashUntil-performance.now())/420);
  ctx.save();ctx.translate(x,y);
  if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
- if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
+ if(shield||shieldFlash>0){ctx.globalAlpha=shield?1:shieldFlash;ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
  ctx.shadowBlur=0;const ss=1/GAME_WORLD_ZOOM;
  ctx.save();if(soloSubmarine.sections.some(section=>section.hp<=0)){ctx.beginPath();for(const section of soloSubmarine.sections)if(section.hp>0)ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();}window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,ss,powered||soloSubmarine.spawnFx>0,t);ctx.restore();
- for(const section of soloSubmarine.sections){ctx.save();ctx.beginPath();ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();if(section.hp>0){if(section.hp<SOLO_HULL_HP){ctx.globalAlpha=(1-section.hp/SOLO_HULL_HP)*.45;ctx.fillStyle='#4c1917';ctx.beginPath();section.rock.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px+section.x-x,py):ctx.moveTo(px+section.x-x,py));ctx.closePath();ctx.fill();}}else{const r=section.rock;ctx.translate(r.x-x,r.y-y);ctx.strokeStyle='#64777c';ctx.lineWidth=3*ss;ctx.fillStyle='rgba(13,24,29,.55)';ctx.beginPath();r.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#a16d45';ctx.lineWidth=2*ss;for(let i=0;i<4;i++){const px=(i-1.5)*r.rx*.42;ctx.beginPath();ctx.moveTo(px,-r.ry*.72);ctx.lineTo(px+12*ss,-12*ss);ctx.lineTo(px-8*ss,r.ry*.65);ctx.stroke();}}ctx.restore();const bx=section.x-x-52*ss,by=-118*ss;ctx.fillStyle='#07131b';ctx.fillRect(bx,by,104*ss,10*ss);ctx.fillStyle=section.hp>150?'#72e5b5':section.hp>0?'#ff985c':'#6c4545';ctx.fillRect(bx,by,104*ss*section.hp/SOLO_HULL_HP,10*ss);ctx.strokeStyle='#9daeb1';ctx.lineWidth=ss;ctx.strokeRect(bx,by,104*ss,10*ss);ctx.fillStyle='#e2f5f5';ctx.font='bold '+10*ss+'px sans-serif';ctx.textAlign='center';ctx.fillText(section.name+' '+Math.ceil(section.hp)+'/300',section.x-x,by-5*ss);}
+ for(const section of soloSubmarine.sections){ctx.save();ctx.beginPath();ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();if(section.hp>0){if(section.hp<SOLO_HULL_HP){ctx.globalAlpha=(1-section.hp/SOLO_HULL_HP)*.45;ctx.fillStyle='#4c1917';ctx.beginPath();section.rock.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px+section.x-x,py):ctx.moveTo(px+section.x-x,py));ctx.closePath();ctx.fill();}}else{const r=section.rock;ctx.translate(r.x-x,r.y-y);ctx.strokeStyle='#64777c';ctx.lineWidth=3*ss;ctx.fillStyle='rgba(13,24,29,.55)';ctx.beginPath();r.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#a16d45';ctx.lineWidth=2*ss;for(let i=0;i<4;i++){const px=(i-1.5)*r.rx*.42;ctx.beginPath();ctx.moveTo(px,-r.ry*.72);ctx.lineTo(px+12*ss,-12*ss);ctx.lineTo(px-8*ss,r.ry*.65);ctx.stroke();}}ctx.restore();const bx=section.x-x-52*ss,by=-118*ss;ctx.save();ctx.globalAlpha=.4;ctx.fillStyle='#07131b';ctx.fillRect(bx,by,104*ss,10*ss);ctx.fillStyle='#39ff14';ctx.shadowColor='#39ff14';ctx.shadowBlur=lowPowerRendering?0:12*ss;ctx.fillRect(bx,by,104*ss*section.hp/SOLO_HULL_HP,10*ss);ctx.shadowBlur=0;ctx.strokeStyle='#83ff72';ctx.lineWidth=ss;ctx.strokeRect(bx,by,104*ss,10*ss);ctx.restore();ctx.fillStyle='#e2f5f5';ctx.font='bold '+10*ss+'px sans-serif';ctx.textAlign='center';ctx.fillText(section.name+' '+Math.ceil(section.hp)+'/300',section.x-x,by-5*ss);}
  for(const d of soloSubmarine.debris){ctx.save();ctx.translate(d.x-x,d.y-y);ctx.rotate(d.angle);ctx.globalAlpha=Math.min(1,d.life);ctx.fillStyle='#a17c39';ctx.strokeStyle='#253238';ctx.lineWidth=2*ss;ctx.beginPath();ctx.moveTo(-d.size,-d.size*.35);ctx.lineTo(d.size*.8,-d.size*.6);ctx.lineTo(d.size,d.size*.4);ctx.lineTo(-d.size*.45,d.size*.7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}
  // Ballast vents release small rising bubbles even with weapons offline.
  ctx.save();const bs=1/GAME_WORLD_ZOOM;for(let i=0;i<24;i++){const life=((t*.00042+i*.173)%1+1)%1,side=i%2?-1:1,px=(side*(185+(i%4)*12)+Math.sin(t*.0015+i*2.4)*9*life)*bs,py=(-17-life*104+(i%3)*5)*bs;ctx.globalAlpha=(1-life)*.65;ctx.strokeStyle='#bdeef3';ctx.lineWidth=.8*bs;ctx.beginPath();ctx.arc(px,py,(1.3+(i%4)*.65)*bs,0,Math.PI*2);ctx.stroke();}ctx.restore();
@@ -1222,8 +1254,11 @@ function renderHostileContactAbility(data){
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
  playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
- if(skill!=='tentacle-strike'&&!window.AbyssalEnemyAI?.isChargeAttack({kind})&&player){
-  queueEffect({type:'bite-jaws',x:px,y:py,angle:Math.atan2(py-y,px-x),max:Math.max(21/GAME_WORLD_ZOOM,player.r*1.65),life:.42,maxLife:.42,color:'#ffddd4'});
+ if(skill!=='tentacle-strike'){
+  const enemy=enemies.find(e=>e.id!=null&&d.enemyId!=null&&String(e.id)===String(d.enemyId));
+  const angle=Math.atan2(py-y,px-x);
+  if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:480,angle};
+  queueEffect({type:'bite-jaws',x:px,y:py,angle,max:Math.max(21/GAME_WORLD_ZOOM,Math.min(48/GAME_WORLD_ZOOM,(Number(d.enemyRadius)||player?.r||20)*.85)),life:.48,maxLife:.48,color:'#ffddd4'});
  }
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
  if(skill==='tentacle-strike'){
@@ -3305,6 +3340,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    e.kbVx*=decay;e.kbVy*=decay;
    if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
   }
+  if(isClassicShooterRun()&&holdSoloHullAttack(e,dt,enemyFrameNow))continue;
   if(enemyParalyzedNow(e)){e.vx=0;e.vy=0;}
   else if(window.AbyssalEnemyAI?.moveTowardTarget){
    soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=(target.submarine||target.specimen)?0:window.AbyssalEnemyAI.tentacleStopDistance(e,e.r,target.r||player.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));soloEnemyMovementOptions.holdPosition=false;
@@ -3394,6 +3430,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    const corrected=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));
    e.x=corrected.x;e.y=corrected.y;
   }
+  if(isClassicShooterRun()&&holdSoloHullAttack(e,dt,enemyFrameNow))continue;
   if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&!window.AbyssalEnemyAI.isChargeAttack(e)&&!enemyParalyzedNow(e)){let sx=0,sy=0,count=0;for(const other of collectEnemyCandidatesNear(e.x,e.y,e.r+270)){if(other===e||other.hp<=0)continue;const dx=e.x-other.x,dy=e.y-other.y,space=(e.r+other.r)*.85,d=Math.hypot(dx,dy);if(d>=space)continue;const a=d>.01?Math.atan2(dy,dx):(Number(e.id)||1)*2.399,force=(space-d)/Math.max(1,space);sx+=Math.cos(a)*force;sy+=Math.sin(a)*force;if(++count>=6)break;}if(count){const step=Math.min(55,Number(e.speed)||55)*dt,moved=SOLO_CAVERN.resolve(arenaRocks,e.x,e.y,clamp(e.x+sx*step,0,W),clamp(e.y+sy*step,0,H),Math.max(5,e.r*.62));e.x=moved.x;e.y=moved.y;}}
   if(isClassicShooterRun())soloHullContact(e,enemyFrameNow);
   const td=Math.hypot(e.x-player.x,e.y-player.y);
@@ -3401,7 +3438,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
   const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
   const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
-  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,enemyId:e.id,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predation decisions are sampled at 10 Hz; locomotion and visuals remain per-frame.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
@@ -4527,7 +4564,7 @@ function draw(t){
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
    if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
-  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);
+  }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);if(!anglerConcealed&&e.hostileBite){const bite=e.hostileBite,q=(performance.now()-bite.startedAt)/bite.duration;if(q>=1)e.hostileBite=null;else if(q>=0)drawSpecimenBite(e,bite.angle,{reach:Math.max(e.r,renderRadius*.65)},q);}
   if(!anglerConcealed&&!activeMapLayout&&e.wildlifeMode){
    const intent=e.aiIndicator;
    if(intent==='attack'){
