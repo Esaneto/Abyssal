@@ -59,7 +59,13 @@
   if(paid199.has(id))return 'brl199';
   if(mission.has(id))return 'mission';
   if(promo.has(id))return 'promo';
-  return 'coins';
+  const rarity=coinRarityFor(id);
+  return rarity==='rare'?'brl199':rarity==='epic'?'brl499':rarity==='legendary'?'brl999':'coins';
+ }
+ function coinRarityFor(id){
+  if(id==='default')return 'common';
+  let h=2166136261;for(const ch of String(id||'')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+  const n=(h>>>0)%100;return n<40?'common':n<70?'uncommon':n<85?'rare':n<95?'epic':'legendary';
  }
  const PROFILE_ASSIGNMENTS=Object.freeze({
   default:['dash','damage'],
@@ -174,5 +180,5 @@
   return true;
  }
  validate();
- return Object.freeze({TIER_PERCENT,ATTRIBUTE_LABELS,ATTRIBUTE_LABELS_EN,ACTIVE,ATTRIBUTES,ACTIVE_KEYS,PROFILE_ASSIGNMENTS,profiles,profile,passiveMultiplier,activeSpec,describe,validate,isInkTrailSkin,trailColor,bossPaid,paid199,paid499,mission,promo});
+ return Object.freeze({TIER_PERCENT,ATTRIBUTE_LABELS,ATTRIBUTE_LABELS_EN,ACTIVE,ATTRIBUTES,ACTIVE_KEYS,PROFILE_ASSIGNMENTS,profiles,profile,coinRarityFor,passiveMultiplier,activeSpec,describe,validate,isInkTrailSkin,trailColor,bossPaid,paid199,paid499,mission,promo});
 });
