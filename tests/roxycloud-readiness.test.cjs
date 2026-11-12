@@ -72,7 +72,7 @@ test('Rajada Prismatica is passive end to end and cannot become a shot type agai
  assert.doesNotMatch(server,/shotSkills=new Set\(\[[^\]]*'spread'/);
  assert.doesNotMatch(server,/special:\[[^\]]*'spread'/);
  assert.doesNotMatch(server,/WEAPON_INFUSION_SHOTS=new Set\(\[[^\]]*'spread'/);
- assert.match(server,/prismaticLevel:Math\.max\(0,Math\.min\(3/);
+ assert.match(server,/p\.prismaticLevel = clamp\(Math\.floor\(Number\(payload\.prismaticLevel\)/);
 });
 
 test('rewarded wheel uses the original reward scale converted to energy',()=>{
