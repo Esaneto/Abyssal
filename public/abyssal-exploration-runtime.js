@@ -24,38 +24,43 @@
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
- let embeddedCatalog=null;
+ let embeddedCatalog=null,skipEmbeddedOpen=false,loginReturn='profile',publicProfileReturn='cardumes';
+ const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen'});
+ const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO'});
+ function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
+ function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';if(page==='profile'&&!window.AbyssalOnline?.isAuthenticated?.()){activeConsoleSection='solo';soloConsolePage='home';renderWorkshop();return;}activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
-  const {screen,anchor,role,modal}=embeddedCatalog;embeddedCatalog=null;
+  const {screen,anchor,role,modal,modalRole,modalAria}=embeddedCatalog;embeddedCatalog=null;
   screen.hidden=true;screen.classList.remove('abyss-cockpit-embedded');
   if(role===null)screen.removeAttribute('role');else screen.setAttribute('role',role);
-  if(modal){modal.setAttribute('aria-modal','true');modal.setAttribute('role','dialog');}
+  if(modal){if(modalAria===null)modal.removeAttribute('aria-modal');else modal.setAttribute('aria-modal',modalAria);if(modalRole===null)modal.removeAttribute('role');else modal.setAttribute('role',modalRole);}
   anchor.replaceWith(screen);
  }
  function embedCatalog(body,id){
   const screen=$(id);if(!screen)return;
   const anchor=document.createComment('original '+id+' location');
   screen.before(anchor);
-  const modal=screen.querySelector('[aria-modal="true"]'),role=screen.getAttribute('role');
-  embeddedCatalog={screen,anchor,role,modal};
+  const modal=screen.querySelector('.modal-card'),role=screen.getAttribute('role'),modalRole=modal?.getAttribute('role'),modalAria=modal?.getAttribute('aria-modal');
+  embeddedCatalog={screen,anchor,role,modal,modalRole,modalAria};
   screen.classList.add('abyss-cockpit-embedded');screen.setAttribute('role','region');
   if(modal){modal.removeAttribute('aria-modal');modal.setAttribute('role','region');}
   body.append(screen);screen.hidden=false;
   // Render directly, bypassing any external-menu click or feature gate.
-  window.AbyssalCockpitCatalog?.open(id);
+  const skip=skipEmbeddedOpen;skipEmbeddedOpen=false;if(skip)return;
+  if(id==='profileScreen')window.AbyssalOnline?.openProfile?.();else if(id==='cardumesScreen')window.AbyssalOnline?.openCardumes?.();else if(id==='loginScreen')window.AbyssalOnline?.openLogin?.();else if(id==='resonanceScreen')$('resonanceBtn')?.click();else if(id!=='passwordRecoveryScreen')window.AbyssalCockpitCatalog?.open(id);
  }
  function installEmbeddedClose(id){
   const screen=$(id);if(!screen)return;
   screen.addEventListener('click',event=>{
    if(embeddedCatalog?.screen!==screen)return;
-   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,[data-close-screen="catalogScreen"]');
+   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#loginCancelBtn,[data-close-screen]');
    if(!button)return;
    event.preventDefault();event.stopImmediatePropagation();
-   activeConsoleSection='solo';soloConsolePage='home';renderWorkshop();
+   backEmbedded();
   },true);
  }
- installEmbeddedClose('shopScreen');installEmbeddedClose('catalogScreen');
+ for(const id of Object.values(embeddedPages))installEmbeddedClose(id);
  const LAB_SECTIONS=Object.freeze([
   {id:'survival',label:'SOBREVIVÊNCIA',groups:['essential','equipment']},
   {id:'weapons',label:'ARMAMENTO · EM DESENVOLVIMENTO',groups:['starter']},
@@ -179,7 +184,7 @@
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
-  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):chosen.title;column.append(small,title);
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
@@ -216,22 +221,23 @@
   body.addEventListener('scroll',refreshHint,{passive:true});
   requestAnimationFrame(refreshHint);
   workshopGrid.replaceChildren(visor,keys);
-  if(activeConsoleSection==='shop'||activeConsoleSection==='specimens')embedCatalog(body,activeConsoleSection==='shop'?'shopScreen':'catalogScreen');
+  for(const [id,page] of [['cockpitProfileBtn','profile'],['cockpitCardumesBtn','cardumes']])$(id)?.setAttribute('aria-pressed',String(activeConsoleSection===page));
+  if(embeddedPages[activeConsoleSection])embedCatalog(body,embeddedPages[activeConsoleSection]);
  }
  function createSoloResearchNav(){
   const group=document.createElement('section');group.className='solo-research-navigation';
   const title=document.createElement('h3');title.className='solo-research-heading';title.textContent='PESQUISA';group.append(title);
   const nav=document.createElement('nav');nav.className='solo-upgrade-nav solo-research-tabs';nav.setAttribute('aria-label','Áreas de pesquisa');
   for(const item of [{id:'diver',label:'MERGULHADOR'},{id:'submarine',label:'SUBMARINO'},{id:'resonance',label:'RESSONÂNCIA'}]){
-   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.textContent=item.label;button.setAttribute('aria-pressed',String(soloConsolePage===item.id));
-   button.addEventListener('click',()=>{if(item.id==='resonance'){button.setAttribute('aria-pressed','true');document.getElementById('resonanceBtn')?.click();return;}if(soloConsolePage!==item.id){soloConsolePage=item.id;renderWorkshop();}});nav.append(button);
+   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';button.textContent=item.label;button.setAttribute('aria-pressed',String(activeConsoleSection==='resonance'?item.id==='resonance':soloConsolePage===item.id));
+   button.addEventListener('click',()=>{if(item.id==='resonance'){navigateEmbedded('resonanceScreen');return;}if(activeConsoleSection!=='solo'||soloConsolePage!==item.id){activeConsoleSection='solo';soloConsolePage=item.id;renderWorkshop();}});nav.append(button);
   }
   group.append(nav);return group;
  }
  window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
-  if(activeConsoleSection==='shop'||activeConsoleSection==='specimens'){mountCockpitConsole(document.createElement('div'));return;}
+  if(embeddedPages[activeConsoleSection]){const utility=document.createElement('div');if(activeConsoleSection==='resonance'){utility.className='abyss-console-info';utility.append(createSoloResearchNav());}mountCockpitConsole(utility);return;}
   const utility=document.createElement('div');utility.className='abyss-console-info';
   if(activeConsoleSection==='solo'&&['diver','submarine'].includes(soloConsolePage)){
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
@@ -321,12 +327,13 @@
 
  const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
- window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop});
+ window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
+ window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
  // Use original account/community screens directly, bypassing hidden menu controls.
- $('cockpitProfileBtn')?.addEventListener('click',()=>{window.AbyssalOnline?.openProfile?.();});
- $('cockpitCardumesBtn')?.addEventListener('click',()=>{window.AbyssalOnline?.openCardumes?.();});
+ $('cockpitProfileBtn')?.addEventListener('click',()=>{navigateEmbedded('profileScreen');});
+ $('cockpitCardumesBtn')?.addEventListener('click',()=>{navigateEmbedded('cardumesScreen');});
 
  // The command bridge is now the primary menu presentation. Existing hatch
  // navigation remains available after a player explicitly closes the bridge.

@@ -230,3 +230,11 @@
 @media(min-width:701px) and (max-height:540px) and (orientation:landscape){#submarineWorkshop .abyss-cockpit-console{width:76vw!important}}
 @media(max-width:700px){#submarineWorkshop .abyss-cockpit-utility{top:18%!important;width:25%!important;height:5.8%!important;min-height:28px!important;font-size:clamp(9px,2.5vw,12px)!important;gap:6px!important}#submarineWorkshop #cockpitProfileBtn{left:19.8%!important}#submarineWorkshop #cockpitCardumesBtn{left:80.2%!important}#submarineWorkshop .abyss-cockpit-utility svg{width:16px!important;height:16px!important}#submarineWorkshop .abyss-cockpit-console{top:26%!important;bottom:34px!important;width:calc(100vw - 22px)!important}}
 @media(max-width:700px) and (max-height:540px) and (orientation:landscape){#submarineWorkshop .abyss-cockpit-console{top:31%!important;bottom:26px!important}}
+
+/* Account, community and resonance are live pages of the central visor. */
+#submarineWorkshop .abyss-cockpit-embedded>.modal-card{background:transparent!important;border:0!important;border-radius:0!important;padding:6px 4px 12px!important;text-align:left!important;max-height:none!important;overflow:visible!important;box-shadow:none!important}
+#submarineWorkshop .abyss-cockpit-embedded .profile-modal,#submarineWorkshop .abyss-cockpit-embedded .cardumes-modal,#submarineWorkshop .abyss-cockpit-embedded .resonance-modal{width:100%!important;max-width:100%!important;min-width:0!important}
+#submarineWorkshop .abyss-cockpit-embedded .profile-modal h2,#submarineWorkshop .abyss-cockpit-embedded .cardumes-modal h2,#submarineWorkshop .abyss-cockpit-embedded .resonance-modal h2{font-size:clamp(16px,2vw,24px)!important}
+#submarineWorkshop .abyss-cockpit-embedded .profile-modal button,#submarineWorkshop .abyss-cockpit-embedded .cardumes-modal button,#submarineWorkshop .abyss-cockpit-embedded .compact-card button{max-width:100%!important;white-space:normal!important;height:auto!important;overflow-wrap:break-word!important}
+#submarineWorkshop .abyss-cockpit-utility[aria-pressed="true"]{background:linear-gradient(#267a51,#12482f)!important;border-color:#73e6a7!important;color:#eafff1!important}
+#submarineWorkshop .abyss-cockpit-embedded#profileScreen .profile-modal,#submarineWorkshop .abyss-cockpit-embedded#cardumesScreen .cardumes-modal{overflow-x:hidden!important;overflow-y:visible!important}
