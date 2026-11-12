@@ -124,3 +124,14 @@ test('shop rebuilds are skipped for hidden post-run and wheel updates',()=>{
  assert.match(game,/const currencySelect=\$\('shopCurrency'\);if\(currencySelect\)currencySelect\.value='brl';if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\)/);
  assert.match(game,/abyssal-rooms-list',ev=>\{const screen=\$\('roomsScreen'\);if\(screen&&!screen\.hidden\)renderRoomList/);
 });
+
+test('main menu does not poll the gameplay loop and gameplay entries explicitly wake it',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/if\(gameState==='menu'&&!onlineMode\)\{last=t;return;\}/);
+ assert.doesNotMatch(game,/scheduleGameLoop\(125\)/);
+ const start=game.slice(game.indexOf('function startGame\(\)'),game.indexOf('const upgradeList='));
+ assert.match(start,/AbyssalTutorials\?\.enter[\s\S]*?scheduleGameLoop\(\);/);
+ const online=game.slice(game.indexOf('function enterOnlineGameplay'),game.indexOf("window.addEventListener('abyssal-room-joined'"));
+ assert.match(online,/scheduleGameLoop\(\);showToast/);
+ assert.match(online,/last=performance\.now\(\);scheduleGameLoop\(\);return true/);
+});
