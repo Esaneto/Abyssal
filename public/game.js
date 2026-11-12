@@ -961,9 +961,10 @@ function renderNotifPanel() {
 function openNotifPanel() {
   var panel = document.getElementById('notifPanel');
   if (!panel) return;
+  if(window.AbyssalCockpitNavigation?.routeScreen?.('notifPanel'))return;
   renderNotifPanel();
   panel.hidden = false;
-  document.body.style.overflow = 'hidden';
+  if(!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel'))document.body.style.overflow = 'hidden';
   // Marcar como lidas apenas ao abrir a caixa, removendo o ponto vermelho do sino.
   try { localStorage.setItem('abyssalNotificationsLastSeen', String(Date.now())); } catch(e) {}
   updateNotifBadge();
@@ -972,6 +973,7 @@ function openNotifPanel() {
 function closeNotifPanel() {
   var panel = document.getElementById('notifPanel');
   if (!panel) return;
+  if(window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel')){window.AbyssalCockpitNavigation.back();return;}
   panel.hidden = true;
   document.body.style.overflow = '';
 }
@@ -997,7 +999,7 @@ function initNotifSystem() {
   var panel = document.getElementById('notifPanel');
   if (panel) {
     panel.addEventListener('click', function(e) {
-      if (e.target === panel) closeNotifPanel();
+      if (e.target === panel&&!window.AbyssalCockpitNavigation?.isEmbedded?.('notifPanel')) closeNotifPanel();
     });
   }
   // ESC fecha
