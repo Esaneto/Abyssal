@@ -3515,7 +3515,15 @@ function updateHud(force=true){
  setTextIfChanged('timeText',fmtTime(elapsed));const levelDisplay = areAllUpgradesMaxed() || level === 'MAX' ? 'Nível MAX' : String(level).padStart(2,'0');
  setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun()){setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));setTextIfChanged('soloSubmarineStatus',soloSubmarine.powerSeconds>0?(Math.ceil(soloSubmarine.powerSeconds/60)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' ARMA(S)'):'SEM ENERGIA');}
 }
-window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
+let lastRunEnergyRankingSignature='';
+window.addEventListener('abyssal-run-energy-ranking',ev=>{
+ const root=$('runEnergyRankingList');if(!root)return;
+ const ranking=Array.isArray(ev.detail)?ev.detail:[];
+ const signature=ranking.map((item,index)=>[(Number(item.rank)||index+1),String(item.nickname||''),Math.floor(Number(item.energy)||0)].join(':')).join('|');
+ if(signature===lastRunEnergyRankingSignature)return;
+ lastRunEnergyRankingSignature=signature;
+ root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';
+});
 function renderRunEndPresentation(){
  const extracted=Boolean(expeditionMode&&expeditionExtracted),voluntary=diveEndReason==='voluntary',eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
  if(extracted||voluntary){
