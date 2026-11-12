@@ -12,25 +12,55 @@ xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{let a=attrs;if(/android:usesC
 fs.writeFileSync(manifest,xml);
 const java=path.join('android','app','src','main','java','com','esaneto','abyssal','MainActivity.java');
 if(fs.existsSync(java)){
- let src=fs.readFileSync(java,'utf8');
- src=src.replace('import com.getcapacitor.BridgeActivity;','import com.getcapacitor.BridgeActivity;\nimport android.os.Bundle;\nimport android.view.View;');
- src=src.replace('public class MainActivity extends BridgeActivity {}',`public class MainActivity extends BridgeActivity {
+ // Keep system navigation visible and reserve its real touch area, including
+ // landscape back gestures, navigation bar and display cutouts on API 24–36.
+ // API 35+ enforces edge-to-edge; explicit insets keep the entire WebView safe.
+ const src=`package com.esaneto.abyssal;
+
+import android.os.Bundle;
+import android.graphics.Color;
+import android.view.View;
+import android.view.Window;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    enterImmersiveMode();
+    Window window = getWindow();
+    WindowCompat.setDecorFitsSystemWindows(window, false);
+    View content = findViewById(android.R.id.content);
+    content.setBackgroundColor(Color.rgb(6, 21, 34));
+    ViewCompat.setOnApplyWindowInsetsListener(content, (view, insets) -> {
+      Insets safe = insets.getInsets(WindowInsetsCompat.Type.systemBars()
+          | WindowInsetsCompat.Type.displayCutout()
+          | WindowInsetsCompat.Type.systemGestures());
+      Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+      view.setPadding(safe.left, safe.top, safe.right, Math.max(safe.bottom, ime.bottom));
+      return WindowInsetsCompat.CONSUMED;
+    });
+    WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, content);
+    controller.show(WindowInsetsCompat.Type.systemBars());
+    controller.setAppearanceLightStatusBars(false);
+    controller.setAppearanceLightNavigationBars(false);
+    ViewCompat.requestApplyInsets(content);
   }
-  private void enterImmersiveMode() {
-    getWindow().getDecorView().setSystemUiVisibility(
-      View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
-      View.SYSTEM_UI_FLAG_FULLSCREEN |
-      View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-      View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-      View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-      View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-    );
+  @Override
+  public void onWindowFocusChanged(boolean hasFocus) {
+    super.onWindowFocusChanged(hasFocus);
+    if (hasFocus) {
+      View content = findViewById(android.R.id.content);
+      WindowCompat.getInsetsController(getWindow(), content).show(WindowInsetsCompat.Type.systemBars());
+      ViewCompat.requestApplyInsets(content);
+    }
   }
-}`);
+}
+`;
  fs.writeFileSync(java,src);
 }
 
