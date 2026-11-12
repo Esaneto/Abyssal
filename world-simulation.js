@@ -27,6 +27,27 @@ const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
 const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
+function rebuildEcologySpatial(world){
+ let cache=ecologySpatialCaches.get(world);
+ if(!cache){cache={grid:new Map(),buckets:[],bucketCount:0,scratch:[]};ecologySpatialCaches.set(world,cache);}
+ cache.grid.clear();cache.bucketCount=0;
+ for(const entity of world.enemies){
+  if(!entity?.wildlifeMode||entity.hp<=0)continue;
+  const gx=Math.floor(entity.x/ECOLOGY_CELL_SIZE),gy=Math.floor(entity.y/ECOLOGY_CELL_SIZE),key=gy*65536+gx;
+  let bucket=cache.grid.get(key);
+  if(!bucket){bucket=cache.buckets[cache.bucketCount]||(cache.buckets[cache.bucketCount]=[]);bucket.length=0;cache.bucketCount++;cache.grid.set(key,bucket);}
+  bucket.push(entity);
+ }
+ return cache;
+}
+function ecologyNeighbors(cache,entity,range=460){
+ const out=cache?.scratch||[];out.length=0;if(!cache||!entity)return out;
+ const minX=Math.floor((entity.x-range)/ECOLOGY_CELL_SIZE),maxX=Math.floor((entity.x+range)/ECOLOGY_CELL_SIZE);
+ const minY=Math.floor((entity.y-range)/ECOLOGY_CELL_SIZE),maxY=Math.floor((entity.y+range)/ECOLOGY_CELL_SIZE),rr=range*range;
+ for(let gy=minY;gy<=maxY;gy++)for(let gx=minX;gx<=maxX;gx++){const bucket=cache.grid.get(gy*65536+gx);if(!bucket)continue;for(const other of bucket){const dx=other.x-entity.x,dy=other.y-entity.y;if(dx*dx+dy*dy<=rr)out.push(other);}}
+ return out;
+}
 
 function createWorldState(now = Date.now(), mode = 'classic') {
   return {
@@ -605,6 +626,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // enemies continue pursuing the remaining active players in the room.
   const targetablePlayers = [];
   for (const p of validPlayers) if ((Number(p.skillSelectingUntil) || 0) <= now) targetablePlayers.push(p);
+  const ecologySpatial=world.mode==='open-sea'?rebuildEcologySpatial(world):null;
   for (const enemy of world.enemies) {
     if(riftMode&&enemy.spawnedAt&&now-enemy.spawnedAt<3000)continue;
     enemy.hit = Math.max(0, (enemy.hit || 0) - dt);
@@ -741,7 +763,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (!riftMode) {
       if(enemy.wildlifeMode){
         for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
-        const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,world.enemies);
+        const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,ecologyNeighbors(ecologySpatial,enemy));
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId)):5;
         movementOptions.freeSwim=world.mode==='open-sea'&&(!actualTarget||!EnemyAI.isChargeAttack(enemy));
@@ -757,7 +779,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           const resolved=OceanGeography.resolveMove(seaBeforeX,seaBeforeY,enemy.x,enemy.y,radius);
           enemy.x=resolved.x;enemy.y=resolved.y;
           if(resolved.blocked){enemy.vx=(enemy.x-seaBeforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-seaBeforeY)/Math.max(dt,.001);}
-          const spaced=OpenSeaEcology.separateContact(enemy,world.enemies,dt);
+          const spaced=OpenSeaEcology.separateContact(enemy,ecologyNeighbors(ecologySpatial,enemy,180),dt);
           enemy.x=spaced.x;enemy.y=spaced.y;
         }
         movement.target=actualTarget;
