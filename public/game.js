@@ -587,8 +587,15 @@ function updateSoloSubmarineInteraction(){
  if(!soloSubmarineActive()||!player){button.hidden=true;return;}
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
- const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,minutes=Math.max(0,soloSubmarine.powerSeconds)/60;
- button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' TORRE(S) / 3';
+ const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,seconds=Math.max(0,soloSubmarine.powerSeconds),minutes=seconds/60;
+ const missing=Math.max(0,300-seconds),needed=missing<=.01?0:Math.max(1,Math.ceil(full*missing/300)),wallet=Math.max(0,Number(energyWallet?.get().energy)||0),cost=wallet>0?Math.min(needed,wallet):needed;
+ const parent=mobileViewport?$('petHabitBar'):$('gameShell');if(parent&&button.parentElement!==parent)parent.prepend(button);
+ button.classList.toggle('compact-submarine-power',mobileViewport);
+ button.disabled=needed===0||wallet<=0;
+ button.setAttribute('aria-label','Energizar submarino: '+cost+' energia');
+ if(mobileViewport){
+  if(button.dataset.displayCost!==String(cost)||!button.querySelector('.sub-power-cost')){button.replaceChildren();const icon=document.createElement('span'),label=document.createElement('small');icon.textContent='⚡';icon.setAttribute('aria-hidden','true');label.className='sub-power-cost';label.textContent=String(cost);button.append(icon,label);button.dataset.displayCost=String(cost);}
+ }else{delete button.dataset.displayCost;const text='F · ENERGIZAR SUBMARINO · '+cost+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' TORRE(S) / 3';if(button.textContent!==text)button.textContent=text;}
 }
 window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
 const SOLO_WEAPON_MOUNTS=Object.freeze({photon:[-105,70,Math.PI/2],electric:[105,-80,-Math.PI/2],pierce:[-188,-48,-Math.PI*.75],photonRay:[257,-24,0],nova:[-230,25,Math.PI],echoShot:[168,78,Math.PI/2]});
@@ -1092,7 +1099,7 @@ function gameplayNoticeKey(kind,title,text){
  return [kind,String(title||'').trim().toLowerCase(),String(text||'').trim().toLowerCase()].join('|');
 }
 function enqueueGameplayNotice(kind,title,text='',priority=0){
- const allowed=new Set(['boss','fusion','join','death','cave']);if(!allowed.has(kind))return;
+ const allowed=new Set(['boss','join','leave']);if(!allowed.has(kind))return;
  const now=Date.now(),key=gameplayNoticeKey(kind,title,text),last=gameplayNoticeRecent.get(key)||0;
  // Network relays and local prediction can report the same semantic event twice.
  // Suppress identical notices across the active 5s display plus a short relay margin.
@@ -1107,12 +1114,12 @@ function pumpGameplayNotice(){
  const item=gameplayNoticeQueue.shift(),el=$('bossAlert');if(!el)return;
  gameplayNoticeActive=true;el.dataset.noticeKind=item.kind;
  const kicker=$('bossAlertKicker'),title=$('bossAlertTitle'),copy=$('bossAlertText');
- if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='fusion'?'RESSONÂNCIA · FUSÃO CONCLUÍDA':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':item.kind==='cave'?'ECO DA CAVERNA · ESCOLHA DE RISCO':'SINAL PERDIDO · ECO INTERROMPIDO';
+ if(kicker)kicker.textContent=item.kind==='boss'?'SINAL DE PRESSÃO · CONTATO DESCONHECIDO':item.kind==='join'?'SINAL DE MERGULHADOR · CONEXÃO ESTABELECIDA':'SINAL DE MERGULHADOR · CONEXÃO ENCERRADA';
  if(title)title.textContent=item.title;if(copy)copy.textContent=item.text;
  el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
  clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
-function showToast(t){if(gameState==='playing'&&onlineMode)return;if(/^(ENERGIA INSUFICIENTE|NOT ENOUGH|BLOQUEADA|DESBLOQUEIE|EQUIPE PULSO|EQUIPE PASSO|NÃO FOI POSSÍVEL|VOCÊ JÁ EQUIPOU)/i.test(String(t)))playWorldSound('ui-error',null,800,.58);$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+function showToast(_message){/* Ordinary feedback stays in the relevant panel or notification inbox, never a floating toast. */}
 window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function renderBossAbilityVisual(data){
  const d=data||{};
@@ -5410,7 +5417,7 @@ $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
 $('shopTopCloseBtn')?.addEventListener('click',()=>{$('shopScreen').hidden=true});
 
 window.addEventListener('abyssal-authenticated',ev=>{if(window.AbyssalOnlinePendingStart&&!ev.detail?.restoringRoom){window.AbyssalOnlinePendingStart=false;$('loginScreen').hidden=true;window.AbyssalOnline?.showRooms()}});
-window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))spawnBloodPool(Number(d.x)*W,Number(d.y)*H,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);if(['fusion','join','death'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',d.kind==='fusion'?60:30);});
+window.addEventListener('abyssal-gameplay-notice',ev=>{const d=ev.detail||{};if(d.kind==='death'&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))spawnBloodPool(Number(d.x)*W,Number(d.y)*H,28/GAME_WORLD_ZOOM,Number(d.angle)||Math.random()*Math.PI*2);if(['join','leave'].includes(d.kind))enqueueGameplayNotice(d.kind,d.title||'ECO ABISSAL',d.text||'',30);});
 window.addEventListener('abyssal-peer-skin-ability',ev=>{
  const d=ev.detail||{},fromId=String(d.fromId||'');
  if(fromId&&fromId===String(window.AbyssalOnline?.getSocketId?.()||''))return;
