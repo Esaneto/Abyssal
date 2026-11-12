@@ -219,7 +219,7 @@ const injected=`<script>
       }
       if(view==='solo'||view==='upgrades'||view==='resonance'){
        const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent.trim()==='PESQUISA');if(!upgrade)throw Error('Solo research missing');upgrade.click();
-       if(box.querySelectorAll('.solo-lamp-row').length!==3)throw Error('Three lamp levels missing');
+       if(box.querySelectorAll('.solo-lamp-row:not(.solo-research-row)').length!==3)throw Error('Three lamp levels missing');if(box.querySelectorAll('.solo-research-row').length<10)throw Error('Solo research tree missing');
        if(view!=='upgrades'){
         [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
         const resonance=[...box.querySelectorAll('button')].find(b=>b.textContent.includes('RESSONÂNCIA'));if(!resonance)throw Error('Resonance access missing');const rc=getComputedStyle(resonance);if(!resonance.classList.contains('abyss-resonance-action')||!rc.backgroundImage.includes('linear-gradient'))throw Error('Resonance purple action theme missing');
