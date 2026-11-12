@@ -2817,7 +2817,7 @@ function updateSpecimenRuntime(dt){
  const nearbyEnemies=enemies.filter(e=>e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq);
  const threats=nearbyEnemies.map(e=>({id:e.id,x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
- const now=performance.now();if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&s.tacticalChoice.enemy.hp<=0){
+ const now=performance.now();if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&(s.tacticalChoice.enemy.hp<=0||!enemies.includes(s.tacticalChoice.enemy))){
   const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
   s.tacticalChoice=!onlineMode?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,o.x,o.y,pad);return nav.blocked?Infinity:Math.hypot(o.x-pos.x,o.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
  }
@@ -2826,7 +2826,7 @@ function updateSpecimenRuntime(dt){
  const orb=tactics?(tactics.type==='orb'?tactics.orb:null):
   SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
  const visualRadius=CREATURE_SCALE?.visualRadius?.(equippedSkin,radius)||radius;
- const profile=combatTarget?PET_TACTICS.attackProfile(equippedSkin,equippedMotionFamily(),visualRadius):null;
+ const profile=combatTarget?PET_TACTICS.attackProfile(equippedSkin,SPECIMEN_SYSTEM.familyFor(equippedSkin),visualRadius):null;
  const strikeGoal=combatTarget?PET_TACTICS.attackGoal(s,combatTarget,profile):null;
  let target=strikeGoal?{x:strikeGoal.x,y:strikeGoal.y}:orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
  // When hunting, the selected enemy is no longer a navigation obstacle.
