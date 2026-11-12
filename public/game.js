@@ -435,7 +435,7 @@ function registerSpecimenDiscovery(id,notify=true){
 window.addEventListener('abyssal-account-data',event=>{
  const serverList=event.detail?.discoveredSpecimens;
  if(!Array.isArray(serverList))return;
- for(const id of serverList)registerSpecimenDiscovery(id,false);
+ discoveredSpecimens=new Set(['default',...serverList.map(String)]);persistSpecimenDiscovery();if(!$('catalogScreen')?.hidden)renderCatalog();if(!$('shopScreen')?.hidden)renderShop();
 });
 window.addEventListener('abyssal-specimen-discovery-confirmed',event=>registerSpecimenDiscovery(event.detail?.id,false));
 
@@ -5349,9 +5349,9 @@ window.addEventListener('abyssal-account-data',e=>{
   ownedSkins=[...new Set(serverSkins)];
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
-  metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:metaUpgrades;
+  metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:{};
   if(a.diverGender==='female'||a.diverGender==='male')setDiverGender(a.diverGender,false);
-  if(a.specimenProficiency&&typeof a.specimenProficiency==='object'){specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.(a.specimenProficiency)||a.specimenProficiency;saveSpecimenProficiencyLocal();}
+  const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.(serverProficiency)||serverProficiency;saveSpecimenProficiencyLocal();
   saveCosmeticsLocalOnly();
   const shopScreen=$('shopScreen');if(shopScreen&&!shopScreen.hidden)renderShop();
   updateAbilityButtons();
