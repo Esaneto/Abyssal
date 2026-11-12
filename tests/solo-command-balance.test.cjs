@@ -12,7 +12,7 @@ test('10-minute Solo economy buys one common specimen and rarities scale predict
  assert.ok(estimate.totalOffline<economy.PRICE_BY_RARITY.uncommon,'baseline should not skip uncommon progression');
  assert.deepEqual(economy.PRICE_BY_RARITY,{common:300,uncommon:600,rare:1200,epic:2400,legendary:4800});
  assert.equal(rarity.rarityFor('solar'),'common');
- assert.equal(rarity.rarityFor('toxic'),'uncommon');
+ assert.equal(rarity.rarityFor('thorn'),'uncommon');
  assert.equal(rarity.rarityFor('voidwing'),'rare');
  assert.equal(rarity.rarityFor('atolla'),'epic');
  assert.equal(rarity.rarityFor('gharial'),'legendary');

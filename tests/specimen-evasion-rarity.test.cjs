@@ -4,10 +4,10 @@ const assert=require('node:assert/strict');
 const Evasion=require('../public/specimen-evasion.js');
 const Rarity=require('../public/specimen-rarity.js');
 test('rarity wheel gives 40/30/15/10/5 and never selects locked mission skins',()=>{
- const pool=['default','solar','toxic','reefshark','leviathan','greensnake'];
+ const pool=['solar','thorn','voidwing','atolla','gharial','greensnake'];
  const cases=[[.10,'default'],[.399,'default'],[.40,'solar'],[.69,'solar'],[.70,'toxic'],[.849,'toxic'],[.85,'reefshark'],[.949,'reefshark'],[.95,'leviathan'],[.999,'leviathan']];
  for(const [number,expected] of cases)assert.equal(Rarity.roll(pool,()=>number),expected);
- assert.equal(Rarity.rarityFor('greensnake'),null);
+ assert.equal(Rarity.roll(['greensnake'],()=>.5),null);
  assert.deepEqual(Rarity.WEIGHTS,{common:40,uncommon:30,rare:15,epic:10,legendary:5});
 });
 test('companion avoids an enemy directly between itself and an orb',()=>{
