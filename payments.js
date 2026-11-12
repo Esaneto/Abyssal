@@ -27,6 +27,16 @@ const PAID_SKINS = {
  maw:{name:'Fragmento da Enguia-Pelícano',nameEn:'Pelican Eel Fragment',brl:999},
  devourer:{name:'Núcleo da Lula-Colossal',nameEn:'Colossal Squid Core',brl:999}
 }
+// The shared specimen profile defines the commercial tier for every skin.
+const SkinStandard=require('./public/skin-standard.js');
+const CuratedSkins=require('./public/abyssal-curated-skins.js');
+const BRL_BY_TIER={brl199:199,brl499:499,brl999:999};
+const legacyPaidNames={voidwing:'Manta do Nada'};
+for(const profile of Object.values(SkinStandard.profiles)){
+ const brl=BRL_BY_TIER[profile.tier];if(!brl||PAID_SKINS[profile.id])continue;
+ const name=CuratedSkins.byId[profile.id]?.name||legacyPaidNames[profile.id]||profile.id;
+ PAID_SKINS[profile.id]={name,nameEn:name,brl};
+}
 function calculateOrder(productId, ownedSkins, currency='brl') {
  if (String(currency).toLowerCase() !== 'brl') throw new Error('Unsupported currency');
  const code='brl';
