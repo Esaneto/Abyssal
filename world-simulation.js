@@ -63,7 +63,7 @@ function contactGeometry(enemy, target) {
   const enemyRadiusWorld = Math.max(1, Number(enemy?.r) || 10) / WORLD_ZOOM;
   // Player radius is stored in WORLD UNITS already (13 / WORLD_ZOOM).
   const playerRadiusWorld = Math.max(1, Number(target?.r) || (13 / WORLD_ZOOM));
-  const paddingWorld = 8 / WORLD_ZOOM; // exactly the solo collision padding
+  const paddingWorld = EnemyAI.isChargeAttack(enemy)?0:34 / WORLD_ZOOM; // exactly the solo collision padding
   const dx = Number(target?.x) - Number(enemy?.x);
   const dy = Number(target?.y) - Number(enemy?.y);
   const geometry = {
@@ -93,7 +93,7 @@ function forceAdvanceEnemy(enemy, players, dt, worldWidth=WORLD_WIDTH, worldHeig
   const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
   const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
   const speed = (BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed) * 0.85;
-  const stopDistance = Math.max(24, ((Number(enemy.r) || 10) + 13) / WORLD_ZOOM * 0.9);
+  const stopDistance = EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(target.r)||13/WORLD_ZOOM);
   let x = oldX, y = oldY;
   if (nearest > stopDistance + 1) {
     const dx = Number(target.x) - oldX, dy = Number(target.y) - oldY;
@@ -102,7 +102,7 @@ function forceAdvanceEnemy(enemy, players, dt, worldWidth=WORLD_WIDTH, worldHeig
   } else {
     const id = Math.abs(Math.floor(Number(enemy.id) || 1));
     const lane = id % 6;
-    const radius = stopDistance * (0.78 + lane * 0.12);
+    const radius = stopDistance * (1 + lane * 0.025);
     let angle = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
     if (!Number.isFinite(angle) || nearest < 0.001) angle = Number(enemy.orbitAngle) || ((id % 2) ? Math.PI : 0);
     const direction = Number(enemy.orbitDirection) || ((id % 2) ? 1 : -1);
@@ -724,7 +724,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (enemy.paralyzedUntil && now < enemy.paralyzedUntil) {
       continue;
     }
-    movementOptions.stopDistance = Math.max(1, ((Number(enemy.r) || 10) + 13 + 8) / WORLD_ZOOM * 0.96);
+    movementOptions.stopDistance = EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,13/WORLD_ZOOM);
     let actualTarget=null,nearestTargetDistance=Infinity;
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
@@ -735,8 +735,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
         const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,world.enemies);
         actualTarget=ecology.aggressive?ecology.target:null;
-        movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):5;
-        movementOptions.freeSwim=world.mode==='open-sea';
+        movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):5;
+        movementOptions.freeSwim=world.mode==='open-sea'&&(!actualTarget||!EnemyAI.isChargeAttack(enemy));
         const swimTarget=ecology.target;
         const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
@@ -782,7 +782,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
       }
     }
-    movementOptions.stopDistance=actualTarget?Math.max(1,((Number(enemy.r)||10)+13+8)/WORLD_ZOOM*.96):4;
+    movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):4;
     let movementTargets=actualTarget?[actualTarget]:[{
       x:ecology.target.x,y:ecology.target.y,alive:true,
       moveSpeed:150/WORLD_ZOOM
@@ -852,7 +852,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
     if (riftMode && !actualTarget) continue;
-    if (!target || target.alive === false || enemy.attackCd > 0) continue;
+    if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||enemy.sharkChargeHit))) continue;
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
@@ -893,8 +893,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Anatomical capsules, instead of the old single round player hitbox:
     // enemy contact against arms and legs is as valid as a torso strike.
     const enemyBodyRadius=Math.max(2,contact.enemyRadiusWorld-contactSafetyMargin);
+    const charge=EnemyAI.isChargeAttack(enemy);
     const contactZone=DiverHitbox.circleHit(resolvedContactTarget,enemy.x,enemy.y,enemyBodyRadius,now);
-    if(!contactZone && !(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius))continue;
+    const biteClear=riftMode?AbyssalMap.segmentWalkable(mapLayout,enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):world.mode==='open-sea'?OceanGeography.segmentClear(enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):true;
+    const biteHit=!charge&&biteClear&&contactDistance<=contactRadius;
+    if(!biteHit&&!(charge&&contactZone)&&!(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
     const contactProfile={
@@ -906,6 +909,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const attackInterval = BOSS_KINDS.includes(enemy.kind) ? 1.15 : (contactProfile?.cooldown ?? .92);
     enemy.attackCd = attackInterval;
     if ((Number(target.invulnerableUntil) || 0) > now) continue;
+    if(charge)enemy.sharkChargeHit=true;
 
     let appliedDamage = 0, blocked = false, neurotoxinMs = 0;
     const shieldCharges = clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3);
@@ -939,7 +943,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, neurotoxinMs, hitZone:contactZone||'tentacle',skillId:contactProfile?.skillId||'contact-bite', hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, neurotoxinMs, hitZone:biteHit?'bite':contactZone||'tentacle',skillId:contactProfile?.skillId||(charge?'charge':'contact-bite'), hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
