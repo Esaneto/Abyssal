@@ -1,10 +1,10 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-12-hall-ranking-v137';
+const VERSION = '2026-11-12-offline-sync-v138';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
-  'index.html',
+  'index.html','terms.html','privacy.html','community.html','store-policy.html',
   'manifest.webmanifest',
   'favicon.svg',
   'abyssal-icon.svg',
@@ -111,8 +111,12 @@ self.addEventListener('install', event => {
       const name = asset.pathname.slice(scope.pathname.length);
       if (GAME_FILES.includes(name)) versioned.set(name, asset.href);
     }
-    await cache.addAll(GAME_FILES.filter(p => p !== 'index.html')
-      .map(p => versioned.get(p) || new URL(p, scope).href));
+    await cache.addAll(GAME_FILES.filter(p => p !== 'index.html').map(p => versioned.get(p) || new URL(p, scope).href));
+    // Cache canonical aliases from the exact installed release, including assets
+    // referenced by CSS or dynamically without a version query.
+    for (const [name,href] of versioned) {
+      const asset=await cache.match(href);if(asset)await cache.put(new URL(name,scope).href,asset);
+    }
     await cache.put(new Request(indexURL.href), indexResponse);
     await self.skipWaiting();
   })());
@@ -139,39 +143,23 @@ self.addEventListener('fetch', event => {
   if (!isNavigation && !inShell) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Exact versioned requests prevent a stale controller from reviving another
-    // menu implementation. No silent fallback from v=NEW to unversioned v=OLD.
-    const versionedAsset = inShell && !isNavigation && url.searchParams.has('v');
-    const cachePath = isNavigation ? 'index.html' : shellPath.slice(1);
-    const cacheRequest = new Request(new URL(cachePath + (versionedAsset ? url.search : ''), self.registration.scope));
+    const cachePath = isNavigation && (url.pathname==='/'||url.pathname.endsWith('/index.html')) ? 'index.html' : shellPath.slice(1);
+    const cacheRequest = new Request(new URL(cachePath + (!isNavigation && url.searchParams.has('v') ? url.search : ''), self.registration.scope));
     const cached = await cache.match(cacheRequest);
-    // HTML still prefers the network to receive new releases. Cached static
-    // JS/CSS/SVG must not wait 3.5 seconds EACH when a connection is weak:
-    // sequential parser-blocking scripts previously delayed Fossas startup.
-    if (inShell && !isNavigation && cached) {
-      const refresh = fetch(request).then(async response => {
-        if (response.ok && response.type === 'basic') {
-          await cache.put(cacheRequest, response.clone());
-        }
-      }).catch(() => {});
-      event.waitUntil?.(refresh);
-      return cached;
+    // A controlled installation always uses one coherent release. New releases
+    // are installed atomically by the next worker, never mixed into old HTML.
+    if (cached) return cached;
+    if(inShell && !isNavigation){
+      const canonical=await cache.match(new URL(cachePath,self.registration.scope).href);
+      if(canonical)return canonical;
     }
-    // For online launches prefer current HTML; serve the offline shell only if
-    // that navigation actually fails. No premature timeout that revives old UI.
-    const controller = new AbortController();
-    const deadline = setTimeout(() => controller.abort(), isNavigation ? 10000 : 3500);
     try {
-      const response = await fetch(request, { signal: controller.signal });
-      if (response.ok && response.type === 'basic') {
-        await cache.put(cacheRequest, response.clone());
-      }
+      const response=await fetch(request);
+      if(!response.ok&&isNavigation){const index=await cache.match(new URL('index.html',self.registration.scope).href);if(index)return index;}
       return response;
-    } catch (error) {
-      if (cached) return cached;
-      throw error;
-    } finally {
-      clearTimeout(deadline);
+    } catch(error) {
+      if(isNavigation){const index=await cache.match(new URL('index.html',self.registration.scope).href);if(index)return index;}
+      return new Response('Offline asset unavailable',{status:503,headers:{'Content-Type':'text/plain'}});
     }
   })());
 });
