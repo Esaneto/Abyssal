@@ -150,20 +150,20 @@ function readAdaptationQueue(key){try{return JSON.parse(localStorage.getItem('ab
 function writeAdaptationQueue(key,rows){try{localStorage.setItem('abyssalAdaptationQueue:'+key,JSON.stringify(rows));}catch(_){}}
 function recordSoloAdaptation(id,boss){
  const key=adaptationAccountKey();if(!key||!soloAdaptationRun)return;
- const rows=readAdaptationQueue(key);let row=rows.find(x=>x.id===soloAdaptationRun);
+ const rows=readAdaptationQueue(key).filter(x=>x.id===soloAdaptationRun||JSON.stringify(x.counts)!==JSON.stringify(x.credited||{}));let row=rows.find(x=>x.id===soloAdaptationRun);
  if(!row){row={id:soloAdaptationRun,startedAt:Date.now(),counts:{}};rows.push(row);}
  const count=row.counts[id]||{common:0,boss:0};count[boss?'boss':'common']++;row.counts[id]=count;writeAdaptationQueue(key,rows);
 }
 function syncSoloAdaptation(){
  const key=adaptationAccountKey();if(!key||soloAdaptationSyncBusy||!window.AbyssalOnline?.isAuthenticated?.())return;
- const rows=readAdaptationQueue(key);if(!rows.length)return;
+ const rows=readAdaptationQueue(key).filter(x=>JSON.stringify(x.counts)!==JSON.stringify(x.credited||{}));if(!rows.length)return;
  soloAdaptationSyncBusy=true;
  window.AbyssalOnline.syncSpecimenAdaptation(rows.slice(0,20),result=>{
   soloAdaptationSyncBusy=false;if(!result?.ok||adaptationAccountKey()!==key)return;
   const latest=readAdaptationQueue(key),sent=new Map(rows.slice(0,20).map(x=>[x.id,x]));
   const acknowledged=new Set(result.accepted||[]);
-  writeAdaptationQueue(key,latest.filter(x=>!acknowledged.has(x.id)||JSON.stringify(x.counts)!==JSON.stringify(sent.get(x.id)?.counts)));
-  if(result.account)window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));
+  writeAdaptationQueue(key,latest.flatMap(x=>{if(!acknowledged.has(x.id))return [x];const credited=sent.get(x.id)?.counts||{};if(x.id!==soloAdaptationRun&&JSON.stringify(x.counts)===JSON.stringify(credited))return [];return [{...x,credited}];}));
+  if(result.account)window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));syncSoloAdaptation();
  });
 }
 function pendingAdaptationMap(key,serverMap){
