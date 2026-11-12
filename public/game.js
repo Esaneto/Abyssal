@@ -1467,9 +1467,11 @@ function showVictoryModal() {
   }
 }
 
+let diveEnergySkinId='default';
+function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),expeditionBonus=expeditionMode?Math.min(.75,bossKillsThisRun*.15):0,specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor((base+diveStats.energyCollected)*(expeditionBonus+specimenBonus));return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round((expeditionBonus+specimenBonus)*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(){
- soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
+ diveEnergySkinId=equippedSkin;soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
  // A previous PvP session cannot leak its arena rules into a new Solo dive.
  if(!onlineMode)onlineRoomMode='coop';
  if(isRiftRun()||isOpenSeaRun()){controlSettings.pc='wasd-aim';controlSettings.mobile='dual-stick';}
@@ -2022,7 +2024,7 @@ function applyOnlinePlayerVitals(data){
 let lastOnlineVitalsAt=0;
 function gainXp(value, source='shared'){
  if(!Number.isFinite(value)||value<=0||!player)return;
- const skinMultiplier=source!=='shared'&&!onlineMode?specimenPassiveMultiplier('experience')*Math.min(1.26,Math.max(1,Number(upgrades.magnet)||1)):1;
+ const skinMultiplier=source!=='shared'&&!onlineMode?Math.min(1.26,Math.max(1,Number(upgrades.magnet)||1)):1;
  if(!onlineMode&&source==='kill'){diveStats.energyCollected+=value;energyWallet?.credit(value);}
  xp+=value*skinMultiplier;
  if(xp>=xpNeed && gameState!=='upgrade'){
@@ -3441,7 +3443,7 @@ function endGame(reason='death'){
  const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
  const earnedCoins=Math.floor(Math.min(50000,Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier)))/10);
  runResultPending=true;
- diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,totalRunCoins:earnedCoins+bossKillsThisRun*10,level};
+ diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,...diveEnergyCalculation(),level};
  renderDiveReport(diveReport,true);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
@@ -4702,9 +4704,9 @@ window.addEventListener('abyssal-revive-result',event=>{
 function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier,...diveStats};}
 function renderDiveReport(report,pending=false){
  if(!report)return;const n=v=>v==null?'—':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');
- setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':'Relatório da expedição');
+ setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':`Relatório da expedição · Bônus de energia +${Number(report.energyBonusPercent)||0}% (espécime +${Number(report.specimenEnergyBonusPercent)||0}%)`);
 }
-function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · energia: '+n(report.totalRunCoins)+' · Energia: '+n(report.energyCollected)+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
+function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · Energia de conclusão: '+n(report.totalRunCoins)+' · Energia coletada: '+n(report.energyCollected)+' · Bônus: +'+n(report.energyBonusPercent)+'%'+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
 function settleDiveReport(onComplete){
  syncSoloAdaptation();
  if(diveSettled){onComplete?.();return;}if(diveSettling||!diveReport)return;
@@ -4715,8 +4717,8 @@ function settleDiveReport(onComplete){
  };
  if(authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:wasOnline,onComplete:finish});return;}
  if(wasOnline){finish({ok:false,message:'Reconecte a conta para confirmar o resultado online.'});return;}
- const earned=Math.floor(Math.min(50000,Math.max(3,Math.round(Math.max(5,Math.floor(score/35)+(Number(level)||0)*2)*(expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1))))/10);
- energyWallet?.credit(earned,'offline-reward');saveCosmetics();renderShop();finish({ok:true,totalRunCoins:earned+bossKillsThisRun*100});
+ const calculation=diveEnergyCalculation(),earned=calculation.earned;
+ energyWallet?.credit(earned,'offline-reward');saveCosmetics();renderShop();finish({ok:true,...diveEnergyCalculation()});
 }
 function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.open?.();}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
@@ -4910,7 +4912,7 @@ function startShopMotion(){
 function drawWheel(){
  const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[2,5,10,30,60,100],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('ENERGIA',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
 function animateWheelToPrize(reward,grant=true){
- const vals=[2,5,10,30,60,100];const index=Math.max(0,vals.indexOf(Number(reward)));const canvas=$('wheelCanvas');wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;const segment=Math.PI*2/vals.length;const desired=-(index+.5)*segment;const start=wheelAngle;const target=start+Math.PI*2*5+((desired-start%(Math.PI*2)+Math.PI*2)%(Math.PI*2));const begin=performance.now(),duration=3700;const spin=now=>{const p=clamp((now-begin)/duration,0,1),ease=1-Math.pow(1-p,4);wheelAngle=start+(target-start)*ease;drawWheel();if(p<1)requestAnimationFrame(spin);else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=grant?`VOCÊ GANHOU ${reward} energia!`:`Prévia do giro: ${reward} de energia. Nenhuma energia foi adicionada.`;if(grant){playWorldSound('ui-roulette',null,900,1);showToast(`ROLETA ABISSAL · +${reward} MOEDAS`);}else audio(480,.12,'sine',.02);}};requestAnimationFrame(spin);
+ const vals=[2,5,10,30,60,100];const index=Math.max(0,vals.indexOf(Number(reward)));const canvas=$('wheelCanvas');wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;const segment=Math.PI*2/vals.length;const desired=-(index+.5)*segment;const start=wheelAngle;const target=start+Math.PI*2*5+((desired-start%(Math.PI*2)+Math.PI*2)%(Math.PI*2));const begin=performance.now(),duration=3700;const spin=now=>{const p=clamp((now-begin)/duration,0,1),ease=1-Math.pow(1-p,4);wheelAngle=start+(target-start)*ease;drawWheel();if(p<1)requestAnimationFrame(spin);else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=grant?`VOCÊ GANHOU ${reward} energia!`:`Prévia do giro: ${reward} de energia. Nenhuma energia foi adicionada.`;if(grant){playWorldSound('ui-roulette',null,900,1);showToast(`ROLETA ABISSAL · +${reward} ENERGIA`);}else audio(480,.12,'sine',.02);}};requestAnimationFrame(spin);
 }
 function requestWheelSpin(){
  if(wheelBusy)return;
@@ -4919,7 +4921,7 @@ function requestWheelSpin(){
  let requested=false;wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;
  try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{resumeAfterH5Ad();if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
-function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
+function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 2;if(n<70)return 5;if(n<88)return 10;if(n<96)return 30;if(n<99.9)return 60;return 100;}
  $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar energia!';});
 $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
@@ -4962,7 +4964,7 @@ window.addEventListener('abyssal-boss-warning',ev=>{
  if(warningAlreadyShown){pendingProgressionBossWarningKind=null;pendingProgressionBossWarningAt=0;return;}
  showBossAlert(d.kind,d.id,d.threat,true);
 });
-window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));aquaticMotionTracker?.forget?.(e.id);const deadId=String(e.id);const deadIndex=enemies.findIndex(enemy=>String(enemy.id)===deadId);if(deadIndex>=0)enemies.splice(deadIndex,1);const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();if(!(onlineMode&&onlineRoomMode==='rift'))showToast('ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);playWorldSound(bosses?'boss-death-'+e.kind:'enemy-death',{x,y},bosses?1200:700,bosses?1:.7);if(bosses)updateHud(true);});
+window.addEventListener('abyssal-world-defeated',ev=>{const e=ev.detail;if(!e)return;onlineEnemyById.delete(String(e.id));aquaticMotionTracker?.forget?.(e.id);const deadId=String(e.id);const deadIndex=enemies.findIndex(enemy=>String(enemy.id)===deadId);if(deadIndex>=0)enemies.splice(deadIndex,1);const bosses=BOSS_KINDS.includes(e.kind)||e.boss===true;if(bosses){bossKillsThisRun++;if(onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}if(onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated(e);}updateHud();if(!(onlineMode&&onlineRoomMode==='rift'))showToast('ENTIDADE ABISSAL ELIMINADA · +10 ENERGIA');}const x=Number(e.x)||W*.5,y=Number(e.y)||H*.5;burst(x,y,e.color||'#8ffff4',bosses?(e.kind==='kraken'?38:30):10,bosses?225:85);playWorldSound(bosses?'boss-death-'+e.kind:'enemy-death',{x,y},bosses?1200:700,bosses?1:.7);if(bosses)updateHud(true);});
 window.addEventListener('abyssal-world-defeated-batch',ev=>{
  const defeated=Array.isArray(ev.detail)?ev.detail:[];if(!defeated.length)return;
  let bossCount=0,bossSoundKind=null;const defeatedIds=new Set();
@@ -4976,7 +4978,7 @@ window.addEventListener('abyssal-world-defeated-batch',ev=>{
  }
  if(defeatedIds.size)enemies=enemies.filter(item=>!defeatedIds.has(String(item.id)));
  if(bossCount&&onlineMode&&progressionPausedForBoss){activeBossEntities=[];onProgressionBossDefeated();}
- if(bossCount&&onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}else if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +100 MOEDAS':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
+ if(bossCount&&onlineMode&&onlineRoomMode==='rift'){onlineBossesDefeated=Math.max(onlineBossesDefeated,activeMapTier+1);updateMapInteraction(true);showToast('VÓRTICES LIBERADOS · À ESQUERDA SUPERFÍCIE · À DIREITA DESCIDA');}else if(bossCount)showToast(bossCount===1?'ENTIDADE ABISSAL ELIMINADA · +10 ENERGIA':`${bossCount} ENTIDADES ABISSAIS ELIMINADAS`);
  playWorldSound(bossCount?'boss-death-'+bossSoundKind:'enemy-death',player,1200,bossCount?1:.7);updateHud(bossCount>0);
 });
 let shopPreviewObserver=null;
