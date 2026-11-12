@@ -168,6 +168,9 @@ jobs:
           test -s android/app/src/main/assets/public/game.js
           test -s android/app/src/main/assets/public/offline-ui.js
           test -s android/app/src/main/assets/public/abyssal-map.js
+          cmp public/game.js android/app/src/main/assets/public/game.js
+          grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           if grep -q '"url"[[:space:]]*:[[:space:]]*"https://abyssal' capacitor.config.json; then
             echo "Android cannot use a remote-only server.url for offline solo" >&2
             exit 1
@@ -248,7 +251,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
-          gh release upload downloads-2 Abyssal-Android.apk --clobber
+          APK_SHA=$(sha256sum Abyssal-Android.apk | cut -d ' ' -f1)
+          printf '{"commit":"%s","sha256":"%s","platform":"android"}\n' "$GITHUB_SHA" "$APK_SHA" > Abyssal-Android-build.json
+          gh release upload downloads-2 Abyssal-Android.apk Abyssal-Android-build.json --clobber
 
 
   roxycloud-node26:

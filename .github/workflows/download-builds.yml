@@ -63,6 +63,7 @@ jobs:
             $file = Join-Path $root $asset
             if (-not (Test-Path $file)) { throw "Missing offline Windows asset: $file" }
           }
+          if ((Get-FileHash public/game.js -Algorithm SHA256).Hash -ne (Get-FileHash (Join-Path $root 'game.js') -Algorithm SHA256).Hash) { throw 'Bundled Windows gameplay differs from the checked-out commit' }
           Write-Host "Offline single-player game is packaged with Windows installer."
       - name: Verify embedded Abyssal icon on EXE and installer
         shell: pwsh
@@ -107,4 +108,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload downloads-2 desktop/dist/Abyssal-Setup.exe --clobber
+        run: |
+          $hash = (Get-FileHash desktop/dist/Abyssal-Setup.exe -Algorithm SHA256).Hash.ToLower()
+          @{commit=$env:GITHUB_SHA; sha256=$hash; platform='windows'} | ConvertTo-Json -Compress | Set-Content -Encoding utf8 desktop/dist/Abyssal-Windows-build.json
+          gh release upload downloads-2 desktop/dist/Abyssal-Setup.exe desktop/dist/Abyssal-Windows-build.json --clobber
