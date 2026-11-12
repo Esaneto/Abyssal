@@ -43,17 +43,19 @@ test('offensive specimen abilities deal damage and respect solid obstacles',()=>
  const hits=[],near={id:1,x:30,y:0,r:10,hp:100},blocked={id:2,x:40,y:0,r:10,hp:100},player={specimen:{alive:true}};
  const context={onlineMode:false,GAME_WORLD_ZOOM:1,clamp:(v,a,b)=>Math.max(a,Math.min(v,b)),specimenOrigin:()=>({x:0,y:0}),enemies:[near,blocked],player,soloAdaptationRun:'test-run',gameState:'playing',effects:[],setTimeout:f=>f(),pveTerrainClear:(a,b,x)=>x!==40,dealEnemyDamage:(e,d,skill)=>hits.push({id:e.id,d,skill})};
  vm.createContext(context);vm.runInContext(code,context);
- for(const [id,damage,range] of [['cloud',50,300],['pulse',60,360],['push',60,330],['shot',80,360],['slowShot',7,320]]){
+ for(const [id,damage,range] of [['cloud',50,300],['pulse',60,360],['push',60,330],['shot',80,360],['slowShot',60,320]]){
   context.spec={id,damage,range,color:'#fff'};
   vm.runInContext('applySoloSkinActive(spec,0);updateSkinCloudExpansions(1.55);updateSkinPulses(.72)',context);
  }
- assert.deepEqual(hits.map(x=>[x.id,x.d]),[[1,50],[1,60],[1,60],[1,80],[1,7]]);
+ assert.deepEqual(hits.map(x=>[x.id,x.d]),[[1,50],[1,60],[1,60],[1,80],[1,60]]);
  assert.ok(near.poisonTimer>0);assert.ok(near.skinSlowedUntil>Date.now());assert.ok(near.kbVx>0);
 });
 test('venom and electric weapon infusions apply on real projectile hits',()=>{
  const start=game.indexOf('const INFUSION_SHOT_TYPES'),end=game.indexOf('function triggerHitSynergies',start),source=game.slice(start,end);
  const enemy={hp:100,x:10,y:10},player={skinWeaponBuffUntil:10000,skinWeaponBuffKind:'poison'};
  const context={onlineMode:false,player,enemy,performance:{now:()=>1000},burst:()=>{}};
- vm.createContext(context);vm.runInContext(source+";applySoloWeaponInfusionHit(enemy,'photon')",context);assert.equal(enemy.poisonTimer,2.4);
+ vm.createContext(context);vm.runInContext(source+";applySoloWeaponInfusionHit(enemy,'photon')",context);assert.equal(enemy.poisonTimer,2.5);assert.equal(enemy.poisonTick,.5);
  player.skinWeaponBuffKind='paralysis';enemy.weaponInfusionNextAt=0;vm.runInContext("applySoloWeaponInfusionHit(enemy,'electric')",context);assert.equal(enemy.paralyzedUntil,1100);
 });
+
+test('hypothermic projectile and venom use the configured balance',()=>{const A=require('../public/skin-standard.js').ACTIVE;assert.equal(A.slowShot.damage,60);assert.equal(A.slowShot.slowDurationMs,2000);assert.equal(A.poison.damage,5);assert.equal(A.poison.tickMs,500);});

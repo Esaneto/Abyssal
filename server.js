@@ -462,7 +462,7 @@ function applyWeaponInfusionToEnemy(socket,room,player,enemy,skillId,now){
  enemy.weaponInfusionLastAt=now;
  if(kind==='paralysis')enemy.paralyzedUntil=Math.max(Number(enemy.paralyzedUntil)||0,now+100);
  else if(kind==='poison'&&now>=(Number(enemy.weaponPoisonProcUntil)||0)){
-  enemy.weaponPoisonProcUntil=now+2400;
+  enemy.weaponPoisonProcUntil=now+2500;
   for(const delay of [500,1000,1500,2000,2500])setTimeout(()=>{
    if(!room.players.has(player.id)||!room.world?.enemies?.includes(enemy)||Number(enemy.hp)<=0||player.alive===false||socketRoom(socket)!==room)return;
    player.skinActiveServerResolving=true;
@@ -483,7 +483,7 @@ function applyWeaponInfusionToPvp(room,attacker,target,skillId,now){
   target.skinParalyzedUntil=Math.max(Number(target.skinParalyzedUntil)||0,now+100);
   io.to(target.id).emit('player-skin-status',{type:'paralysis',until:target.skinParalyzedUntil});
  }else if(kind==='poison'&&now>=(Number(target.weaponPoisonProcUntil)||0)){
-  target.weaponPoisonProcUntil=now+2400;
+  target.weaponPoisonProcUntil=now+2500;
   for(const delay of [500,1000,1500,2000,2500])setTimeout(()=>{
    const live=room.players.get(target.id);if(!room.players.has(attacker.id)||!live||live.alive===false)return;
    applySkinActivePvpDamage(room,attacker,live,5,'skin-active-poison-dot',Date.now());
@@ -2381,10 +2381,10 @@ io.on('connection', socket => {
     const liveRoom=socketRoom(socket),livePlayer=liveRoom?.players.get(socket.id);if(liveRoom!==room||!livePlayer||livePlayer.alive===false)return;
     if(room.mode==='pvp'){
      const target=livingOpponents().filter(p=>lineDistance(Number(p.x),Number(p.y),originX,originY,ex,ey)<=30/WORLD_ZOOM&&!pvpSegmentHitsRock(originX,originY,Number(p.x),Number(p.y),Math.max(2,Number(p.r)||13/WORLD_ZOOM))).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
-     if(target){hitPvp(target,spec.damage,'skin-active-'+active);if(active==='slowShot'){target.skinSlowedUntil=Date.now()+2200;io.to(target.id).emit('player-skin-status',{type:'slow',until:target.skinSlowedUntil,multiplier:.62});}}
+     if(target){hitPvp(target,spec.damage,'skin-active-'+active);if(active==='slowShot'){target.skinSlowedUntil=Date.now()+(spec.slowDurationMs||2000);io.to(target.id).emit('player-skin-status',{type:'slow',until:target.skinSlowedUntil,multiplier:.62});}}
     }else{
      const target=[...(room.world?.enemies||[])].filter(e=>Number(e.hp)>0&&lineDistance(Number(e.x),Number(e.y),originX,originY,ex,ey)<=24/WORLD_ZOOM).sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0];
-     if(target){resolveEnemyDamage(target,spec.damage,'skin-active-'+active);if(active==='slowShot')target.skinSlowedUntil=Date.now()+2200;}
+     if(target){resolveEnemyDamage(target,spec.damage,'skin-active-'+active);if(active==='slowShot')target.skinSlowedUntil=Date.now()+(spec.slowDurationMs||2000);}
     }
    },450);
   }else if(active==='cloud'){

@@ -206,7 +206,7 @@
       const minY = Number.isFinite(options.minY) ? options.minY : 0;
       const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
       const stats = ENEMY_STATS[enemy.kind] || ENEMY_STATS.whiteShark;
-      const dashSpeed = stats.dashSpeed || 290;
+      const dashSpeed = (stats.dashSpeed || 290)*((Number(enemy.skinSlowedUntil)||0)>Date.now()?.62:1);
       const vision=sharkVisionState(enemy,target,currentTime);
       if(options.sharkLineOfSight===false){vision.visible=false;enemy.sharkAlertUntil=0;}
       // Commit to a single straight pass beyond the prey; never home in during the strike.
@@ -218,7 +218,7 @@
       }
       if(hunting){
         enemy.sharkChargeRemaining=Math.max(0,enemy.sharkChargeRemaining-dashSpeed*dt);
-        enemy.angle=Math.atan2(enemy.dashVy,enemy.dashVx);
+        enemy.angle=Math.atan2(enemy.dashVy,enemy.dashVx);enemy.dashVx=Math.cos(enemy.angle)*dashSpeed;enemy.dashVy=Math.sin(enemy.angle)*dashSpeed;
         if(enemy.sharkChargeRemaining<=0)enemy.sharkRecoveryRemaining=1.5;
       }else{
         enemy.sharkRecoveryRemaining=Math.max(0,(Number(enemy.sharkRecoveryRemaining)||0)-dt);
