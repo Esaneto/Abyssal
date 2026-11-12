@@ -300,7 +300,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('rankings-data',renderRankings);socket.on('rankings-updated',renderRankings);
  socket.on('server-maintenance',data=>{rememberReconnectTarget();if(reconnectPending)showMaintenanceOverlay(data?.message||'Atualização detectada. Reconectando automaticamente…');setMessage('Servidor entrando em manutenção. Sua expedição será restaurada automaticamente…',true);});
  socket.on('connect_error',()=>{connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Servidor temporariamente indisponível. Tentando reconectar…');else hideMaintenanceOverlay();setMessage('Servidor temporariamente indisponível. Solo disponível offline.',true)});
- socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;if(reconnectPending||window.AbyssalGameHooks?.getPlayerPosition?.())showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
+ socket.on('disconnect',(reason)=>{rememberReconnectTarget();connected=false;if(reconnectPending||currentRoom)showMaintenanceOverlay('Conexão interrompida. Reconectando ao servidor…');else hideMaintenanceOverlay();authenticated=false;players.clear();latestPositionPayload=null;positionSequence=0;positionPacketInFlight=false;hostId=null;stopRoomPolling();updateAccount();if(serverAccount)renderProfile(serverAccount);setMessage(sessionToken?(reconnectPending?'Conexão interrompida. Sua expedição será retomada automaticamente…':'Sem conexão. O mergulho solo continua e será sincronizado ao conectar.'):'Conexão perdida. Entre novamente para validar a conta.',true);window.dispatchEvent(new CustomEvent('abyssal-online-disconnected',{detail:{reason,reconnectPending}}));if(reason==='io server disconnect')setTimeout(()=>{if(socket&&!socket.connected)socket.connect();},700);});
  socket.on('auth-result',result=>{
   if(!result.ok){authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');$('profileScreen').hidden=true;updateAccount();renderProfile({});if(reconnectPending)failReconnect('Servidor reconectado, mas sua sessão precisa ser validada novamente.');else hideMaintenanceOverlay();setMessage(result.message||'Falha na autenticação.',true);return}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
@@ -864,7 +864,7 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
 
 
  if(navigator.onLine!==false&&!socket)connect();
- window.addEventListener('online',()=>{if(!socket?.connected)connect();});
+ window.addEventListener('online',()=>{if(!socket?.connected)connect();else if(authenticated)syncSoloRuns();});
  
  // Handle return from Stripe checkout
  const urlParams = new URLSearchParams(window.location.search);
