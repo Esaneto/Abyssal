@@ -14,7 +14,7 @@
  const BUFFS=Object.freeze(['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure']);
  const COSTS=Object.freeze({shot:100,passive:80,buff:60,submarineShield:100});
  const POWER=Object.freeze({duration:300,light:20,weapon:10});
- const MAX_WEAPONS=3;
+ const MAX_WEAPONS=SHOTS.length;
  function sanitize(raw){
   const unlocked=new Set(STARTERS);
   for(const id of raw?.unlocked||[])if(SHOTS.includes(id)||PASSIVES.includes(id)||BUFFS.includes(id))unlocked.add(id);

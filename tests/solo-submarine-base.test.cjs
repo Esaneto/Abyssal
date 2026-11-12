@@ -61,18 +61,29 @@ test('cavern plants emit green light and submarine contributes a separate world 
  assert.match(cave,/extraLights=\[\]/);
 });
 
-test('three weapon slots, independent permanent research, persistence and free swaps',()=>{
+test('six weapon slots, independent permanent research, persistence and free swaps',()=>{
  const store=memory(),wallet=energyWallet(1000),base=baseModule.create(store,wallet);
- assert.deepEqual(base.installedWeapons(),['photon']);
- for(const id of ['electric','pierce','nova'])assert.equal(base.research('weapon:'+id).ok,true);
- assert.equal(base.installWeapon('electric').ok,true);assert.equal(base.installWeapon('pierce').ok,true);
- assert.equal(base.installWeapon('nova').reason,'full');assert.equal(base.fullPowerCost(),50);
+ assert.equal(base.MAX_WEAPONS,6);assert.deepEqual(base.installedWeapons(),['photon']);
+ assert.equal(base.installWeapon('nova').reason,'research');
+ for(const id of ['electric','pierce','nova','echoShot','photonRay']){
+  assert.equal(base.research('weapon:'+id).ok,true);
+  assert.equal(base.installWeapon(id).ok,true);
+ }
+ assert.equal(base.installedWeapons().length,6);assert.equal(base.fullPowerCost(),80);
+ assert.equal(base.installWeapon('nova').reason,'installed');
+ assert.deepEqual(baseModule.create(store,wallet).installedWeapons(),['photon','electric','pierce','nova','echoShot','photonRay']);
  assert.equal(base.uninstallWeapon('photon').ok,true);assert.equal(base.unlocked('weapon:photon'),true);
- assert.equal(base.installWeapon('nova').ok,true);assert.deepEqual(baseModule.create(store,wallet).installedWeapons(),['electric','pierce','nova']);
- assert.equal(wallet.get().energy,700);
+ assert.equal(base.fullPowerCost(),70);assert.equal(base.installWeapon('photon').ok,true);
+ assert.equal(wallet.get().energy,500);
 });
-test('legacy installation migrates to three slots and preserves all research',()=>{
- const store=memory();store.setItem(baseModule.KEY,JSON.stringify({weapons:['electric','pierce','nova','echoShot']}));const base=baseModule.create(store,energyWallet());assert.deepEqual(base.installedWeapons(),['photon','electric','pierce']);assert.equal(base.unlocked('weapon:echoShot'),true);
+test('legacy installation migrates to six slots and preserves all research',()=>{
+ const store=memory();store.setItem(baseModule.KEY,JSON.stringify({weapons:['electric','pierce','nova','echoShot','photonRay']}));const base=baseModule.create(store,energyWallet());assert.deepEqual(base.installedWeapons(),['photon','electric','pierce','nova','echoShot','photonRay']);assert.equal(base.unlocked('weapon:echoShot'),true);
+});
+test('existing version-one installations retain choices and can equip remaining researched guns',()=>{
+ const store=memory();store.setItem(baseModule.KEY,JSON.stringify({weaponSlotsVersion:1,weapons:['photon','electric','pierce'],researchedWeapons:['photon','electric','pierce','nova','echoShot','photonRay']}));const base=baseModule.create(store,energyWallet());
+ assert.equal(base.installedWeapons().length,3);
+ for(const id of ['nova','echoShot','photonRay'])assert.equal(base.installWeapon(id).ok,true);
+ assert.equal(base.installedWeapons().length,6);assert.equal(base.fullPowerCost(),80);
 });
 
 test('submarine uses diver shot profiles, continuous photon ray and nova cone',()=>{const game=fs.readFileSync(path.join(__dirname,'..','public/game.js'),'utf8');assert.match(game,/const profile=baseShotProfile\(id,1\)/);assert.match(game,/refreshPhotonBeam\('submarinePhotonBeam',true/);assert.match(game,/refreshPhotonBeam\('localPhotonBeam',true/);assert.match(game,/soloSubmarine\.weaponTimers\[id\]=interval/);assert.match(game,/const BASE_SHOT_INTERVAL=\.52,NOVA_SOLO_INTERVAL=1\.8/);assert.match(game,/spawnNovaVisual\(ox,oy,SOLO_SUB_RANGE/);assert.doesNotMatch(game,/id==='photonRay'\?1\.25/);});
