@@ -25,9 +25,11 @@
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
  let embeddedCatalog=null,skipEmbeddedOpen=false,loginReturn='profile',publicProfileReturn='cardumes';
- const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen'});
- const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO'});
+ const embeddedPages=Object.freeze({shop:'shopScreen',specimens:'catalogScreen',profile:'profileScreen',cardumes:'cardumesScreen',resonance:'resonanceScreen',login:'loginScreen',recovery:'passwordRecoveryScreen',notices:'notifPanel',download:'downloadScreen'});
+ const embeddedTitles=Object.freeze({profile:'PERFIL',cardumes:'CARDUMES',resonance:'RESSONÂNCIA',login:'IDENTIFICAÇÃO DO MERGULHADOR',recovery:'RECUPERAR ACESSO',notices:'CENTRAL DE AVISOS',download:'BAIXAR ABYSSAL',language:'IDIOMA',controls:'CONTROLES',zoom:'ZOOM DA CÂMERA',volume:'VOLUME',filter:'FILTRO VISUAL',fullscreen:'TELA CHEIA'});
  function navigateEmbedded(id,skip=false){if(!workshop||workshop.hidden)return false;const page=Object.keys(embeddedPages).find(key=>embeddedPages[key]===id);if(!page)return false;if(embeddedCatalog?.screen.id===id)return false;if(page==='login'&&activeConsoleSection!=='login'&&activeConsoleSection!=='recovery')loginReturn=activeConsoleSection;if(page==='profile'&&skip&&activeConsoleSection==='cardumes')publicProfileReturn='cardumes';else if(page==='profile'&&!skip)publicProfileReturn='solo';activeConsoleSection=page;skipEmbeddedOpen=skip;renderWorkshop();return true;}
+ const commandPages=new Set(['language','controls','zoom','volume','filter','fullscreen']);
+ function navigateCommand(page){if(!workshop||workshop.hidden)return false;if(page==='notices'||page==='download')return navigateEmbedded(embeddedPages[page]);if(!commandPages.has(page))return false;activeConsoleSection=page;renderWorkshop();return true;}
  function backEmbedded(){const page=activeConsoleSection==='login'?loginReturn:activeConsoleSection==='recovery'?'login':activeConsoleSection==='profile'?publicProfileReturn:'solo';activeConsoleSection=page;renderWorkshop();}
  function restoreEmbeddedCatalog(){
   if(!embeddedCatalog)return;
@@ -35,26 +37,26 @@
   screen.hidden=true;screen.classList.remove('abyss-cockpit-embedded');
   if(role===null)screen.removeAttribute('role');else screen.setAttribute('role',role);
   if(modal){if(modalAria===null)modal.removeAttribute('aria-modal');else modal.setAttribute('aria-modal',modalAria);if(modalRole===null)modal.removeAttribute('role');else modal.setAttribute('role',modalRole);}
-  anchor.replaceWith(screen);
+  if(screen.id==='notifPanel')screen.setAttribute('aria-modal','true');anchor.replaceWith(screen);
  }
  function embedCatalog(body,id){
   const screen=$(id);if(!screen)return;
   const anchor=document.createComment('original '+id+' location');
   screen.before(anchor);
-  const modal=screen.querySelector('.modal-card'),role=screen.getAttribute('role'),modalRole=modal?.getAttribute('role'),modalAria=modal?.getAttribute('aria-modal');
+  const modal=screen.querySelector('.modal-card,#notifPanelInner'),role=screen.getAttribute('role'),modalRole=modal?.getAttribute('role'),modalAria=modal?.getAttribute('aria-modal');
   embeddedCatalog={screen,anchor,role,modal,modalRole,modalAria};
-  screen.classList.add('abyss-cockpit-embedded');screen.setAttribute('role','region');
+  screen.classList.add('abyss-cockpit-embedded');screen.setAttribute('role','region');if(id==='notifPanel')screen.removeAttribute('aria-modal');
   if(modal){modal.removeAttribute('aria-modal');modal.setAttribute('role','region');}
   body.append(screen);screen.hidden=false;
   // Render directly, bypassing any external-menu click or feature gate.
   const skip=skipEmbeddedOpen;skipEmbeddedOpen=false;if(skip)return;
-  if(id==='profileScreen')window.AbyssalOnline?.openProfile?.();else if(id==='cardumesScreen')window.AbyssalOnline?.openCardumes?.();else if(id==='loginScreen')window.AbyssalOnline?.openLogin?.();else if(id==='resonanceScreen')$('resonanceBtn')?.click();else if(id!=='passwordRecoveryScreen')window.AbyssalCockpitCatalog?.open(id);
+  if(id==='profileScreen')window.AbyssalOnline?.openProfile?.();else if(id==='cardumesScreen')window.AbyssalOnline?.openCardumes?.();else if(id==='loginScreen')window.AbyssalOnline?.openLogin?.();else if(id==='resonanceScreen')$('resonanceBtn')?.click();else if(id==='notifPanel')window.openAbyssalNotifications?.();else if(id==='downloadScreen')$('downloadBtn')?.click();else if(id!=='passwordRecoveryScreen')window.AbyssalCockpitCatalog?.open(id);
  }
  function installEmbeddedClose(id){
   const screen=$(id);if(!screen)return;
   screen.addEventListener('click',event=>{
    if(embeddedCatalog?.screen!==screen)return;
-   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#loginCancelBtn,[data-close-screen]');
+   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,#profileCloseBtn,#cardumesCloseBtn,#loginCancelBtn,#notifPanelClose,#downloadCloseBtn,[data-close-screen]');
    if(!button)return;
    event.preventDefault();event.stopImmediatePropagation();
    backEmbedded();
@@ -222,6 +224,7 @@
   requestAnimationFrame(refreshHint);
   workshopGrid.replaceChildren(visor,keys);
   for(const [id,page] of [['cockpitProfileBtn','profile'],['cockpitCardumesBtn','cardumes']])$(id)?.setAttribute('aria-pressed',String(activeConsoleSection===page));
+  workshop.querySelectorAll('[data-cockpit-setting],[data-cockpit-proxy]').forEach(button=>{const page=button.dataset.cockpitSetting||({notifBtn:'notices',mobileDownloadTopBtn:'download',fullscreenBtn:'fullscreen'})[button.dataset.cockpitProxy];button.setAttribute('aria-pressed',String(page===activeConsoleSection));});
   if(embeddedPages[activeConsoleSection])embedCatalog(body,embeddedPages[activeConsoleSection]);
  }
  function createSoloResearchNav(){
@@ -237,6 +240,7 @@
  window.addEventListener('abyssal-modal-closed',event=>{if(event.detail?.screenId==='resonanceScreen')for(const nav of workshop?.querySelectorAll('.solo-research-tabs')||[]){const buttons=nav.querySelectorAll('button');buttons[2]?.setAttribute('aria-pressed','false');}});
  function renderConsoleUtility(){
   if(!workshopGrid)return;
+  if(commandPages.has(activeConsoleSection)){const utility=window.AbyssalCockpitSettings?.createPage?.(activeConsoleSection);if(utility){mountCockpitConsole(utility);return;}}
   if(embeddedPages[activeConsoleSection]){const utility=document.createElement('div');if(activeConsoleSection==='resonance'){utility.className='abyss-console-info';utility.append(createSoloResearchNav());}mountCockpitConsole(utility);return;}
   const utility=document.createElement('div');utility.className='abyss-console-info';
   if(activeConsoleSection==='solo'&&['diver','submarine'].includes(soloConsolePage)){
@@ -327,7 +331,7 @@
 
  const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
- window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
+ window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
