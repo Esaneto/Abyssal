@@ -123,7 +123,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 #shopScreen .boss-bundle-banner button:focus-visible{outline:2px solid #e6bbff;outline-offset:2px}
 @media(max-width:700px){#shopScreen .shop-catalog-intro{grid-template-columns:minmax(0,1fr);gap:7px}#shopScreen .boss-bundle-banner{grid-template-columns:68px minmax(0,1fr);padding:6px 8px;gap:8px}#shopScreen .boss-bundle-banner .boss-bundle-art{height:48px}#shopScreen .boss-bundle-banner button{min-height:36px!important}}
 #submarineWorkshop #shopScreen .shop-catalog-intro{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-</style></head>
+</style><style>body > #skinPurchaseConfirmModal:not([hidden]){position:fixed!important;inset:0!important;z-index:2147483000!important;display:flex!important;align-items:center;justify-content:center;overflow:auto!important;padding:12px!important}body > #skinPurchaseConfirmModal .modal-card{max-height:calc(100dvh - 24px);overflow:auto!important;width:min(460px,100%)!important}</style></head>
 <body>
 <div id="app">
   <header class="topbar">
@@ -427,7 +427,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           </label>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="skinPurchaseConfirmBtn" class="primary-btn" type="button" disabled>CONFIRMAR COMPRA ↗</button>
+          <p id="skinPurchaseStatus" role="status" aria-live="polite" style="color:#f6c5a6;white-space:normal;overflow-wrap:anywhere;margin:8px 0"></p><button id="skinPurchaseConfirmBtn" class="primary-btn" type="button" disabled>CONFIRMAR COMPRA ↗</button>
           <button id="skinPurchaseCancelBtn" class="secondary-btn" type="button">CANCELAR</button>
         </div>
       </div>
@@ -712,9 +712,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.35"></script>
+ <script src="game.js?v=2026.11.12.36"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.30"></script>
+<script src="online.js?v=2026.11.12.31"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.6.3"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
