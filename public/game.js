@@ -4297,6 +4297,25 @@ const remoteDiverMotion=new Map();
 const remoteWeaponInfusions=new Map();
 const remoteWeaponParalysis=new Map();
 const remoteSpecimenDashes=new Map();
+function clearRemoteVisualState(id=null){
+ const key=id==null?'':String(id);
+ if(key){
+  remoteDiverMotion.delete(key);
+  remoteWeaponInfusions.delete(key);
+  remoteWeaponParalysis.delete(key);
+  remoteSpecimenDashes.delete(key);
+  remoteCreatureAttackUntil.delete(key);
+  return;
+ }
+ remoteDiverMotion.clear();
+ remoteWeaponInfusions.clear();
+ remoteWeaponParalysis.clear();
+ remoteSpecimenDashes.clear();
+ remoteCreatureAttackUntil.clear();
+}
+window.addEventListener('abyssal-player-left',event=>clearRemoteVisualState(event.detail?.id));
+window.addEventListener('abyssal-room-left',()=>clearRemoteVisualState());
+window.addEventListener('abyssal-online-disconnected',()=>clearRemoteVisualState());
 // Shared sprite atlas for enemy specimens summoned from the shop in Fossas.
 // A refresh budget avoids redrawing complex skin anatomy for every hostile each frame.
 const OCEAN_SHARK_HEIGHTS=Object.freeze({reefshark:2.8,hammerhead:3,goblin:2.6,frilled:2.1,greenland:3,abysscroc:2.9});
