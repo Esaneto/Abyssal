@@ -48,7 +48,9 @@
    return true;
   };
   // The hatch position matches the scaling used by drawSubmarine().
-  const hatch=()=>({x:w*.5,y:210*Math.min(1.2,Math.max(.59,w/800))});
+  const mobileQuery=window.matchMedia('(pointer: coarse)');
+  let mobileScene=false,subScale=1;
+  const hatch=()=>({x:w*.5,y:210*subScale});
   const bubble=(x,y,burst=false)=>{
    const count=burst?5:1;
    for(let i=0;i<count;i++)bubbles.push({
@@ -71,9 +73,9 @@
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
-   const oldW=w,oldH=h;w=r.width;h=r.height;
+   const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches||window.innerWidth<=700;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
    for(const c of [routesCanvas,bubblesCanvas]){
-    const ratio=Math.max(1,Math.min(2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
+    const ratio=Math.max(1,Math.min(mobileScene?1.5:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
     c.style.width=w+'px';c.style.height=h+'px';
     c.getContext('2d').setTransform(ratio,0,0,ratio,0,0);
@@ -84,9 +86,9 @@
    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
    layer.style.width=w+'px';layer.style.height=h+'px';layer.style.transform='none';
    window.AbyssalMenuScenery?.draw?.(scenery,w,h);
-   window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h);
+   window.AbyssalMenuScenery?.drawSubmarine?.(submarine,w,h,subScale);
    stage.style.setProperty('--abyss-hatch-y',hatch().y+'px');
-   stage.style.setProperty('--abyss-hatch-scale',Math.min(1.2,Math.max(.59,w/800)));
+   stage.style.setProperty('--abyss-hatch-scale',subScale);
    for(const s of stations){
     s.wx=w*s.x;s.wy=s.kind==='lab'?hatch().y:h*s.y;
     s.button.dataset.portalTone=s.kind==='rift'?'blood':s.kind==='dive'?'cyan':'teal';
@@ -328,7 +330,7 @@
      if(emergence<1){
       const step=dt/1.05;emergence=Math.min(1,emergence+step);
       const starting=hatch();px=starting.x;
-      py=lerp(starting.y,Math.min(h*.40,starting.y+94),ease(emergence));
+      py=lerp(starting.y,Math.min(h*.40,starting.y+(mobileScene?70:94)),ease(emergence));
       heading=Math.PI/2;vx=0;vy=85*(1-emergence);
       bubbleElapsed+=dt;
       if(bubbleElapsed>.028){bubbleElapsed=0;for(let n=0;n<4;n++)bubble(px,py+17,true);}
@@ -388,7 +390,7 @@
   window.addEventListener('abyssal-menu-return',()=>{wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
   window.addEventListener('resize',()=>{if(hatchVisible())sizeScene();});
   if(typeof ResizeObserver==='function'){
-   const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&Math.abs(stage.clientWidth-w)>2)sizeScene();});
+   const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&(Math.abs(stage.clientWidth-w)>2||Math.abs(stage.clientHeight-h)>2))sizeScene();});
    ro.observe(stage);
   }
   const lifecycle=new MutationObserver(syncMenu);lifecycle.observe(menu,{attributes:true,attributeFilter:['hidden']});lifecycle.observe(document.body,{attributes:true,attributeFilter:['class']});
