@@ -71,8 +71,10 @@ function contactGeometry(enemy, target) {
     radius: enemyRadiusWorld + playerRadiusWorld + paddingWorld,
     enemyRadiusWorld, playerRadiusWorld, paddingWorld
   };
-  if (enemy?.kind === 'kraken' && enemy.krakenSweepActive === true && EnemyAI.touchesKrakenTentacle?.(enemy, target, 1 / WORLD_ZOOM)) {
-    return { ...geometry, distance: 0, tentacleContact: true };
+  const family=SpecimenSystem.familyFor(enemy?.specimenSkinId);
+  if(EnemyAI.tentacleAttacker(enemy,family)){
+    const tentacleContact=EnemyAI.tentacleContact(enemy,target,enemyRadiusWorld,family);
+    return {...geometry,tentacleAttacker:true,tentacleContact,distance:tentacleContact?0:geometry.distance};
   }
   return geometry;
 }
@@ -93,7 +95,7 @@ function forceAdvanceEnemy(enemy, players, dt, worldWidth=WORLD_WIDTH, worldHeig
   const playerSpeed = Math.max(1, Number(target.moveSpeed) || 150 / WORLD_ZOOM);
   const ramp = clamp((1 - healthRatio) / 0.8, 0, 1);
   const speed = (BOSS_KINDS.includes(enemy.kind) ? Math.max(1, playerSpeed - 5) : baseSpeed) * 0.85;
-  const stopDistance = EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(target.r)||13/WORLD_ZOOM);
+  const stopDistance = EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(target.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
   let x = oldX, y = oldY;
   if (nearest > stopDistance + 1) {
     const dx = Number(target.x) - oldX, dy = Number(target.y) - oldY;
@@ -726,7 +728,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     if (enemy.paralyzedUntil && now < enemy.paralyzedUntil) {
       continue;
     }
-    movementOptions.stopDistance = EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,13/WORLD_ZOOM);
+    movementOptions.stopDistance = EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
     let actualTarget=null,nearestTargetDistance=Infinity;
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
@@ -738,7 +740,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         for(const p of targetablePlayers)if(Math.hypot(enemy.x-p.x,enemy.y-p.y)<=(Number(enemy.r)||10)/WORLD_ZOOM+(Number(p.r)||13/WORLD_ZOOM)+8){enemy.provokedUntil=now+4000;break;}
         const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,world.enemies);
         actualTarget=ecology.aggressive?ecology.target:null;
-        movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):5;
+        movementOptions.stopDistance=actualTarget?EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId)):5;
         movementOptions.freeSwim=world.mode==='open-sea'&&(!actualTarget||!EnemyAI.isChargeAttack(enemy));
         movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
         const swimTarget=ecology.target;
@@ -786,7 +788,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
       }
     }
-    movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):4;
+    movementOptions.stopDistance=actualTarget?EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId)):4;
     movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
     let movementTargets=actualTarget?[actualTarget]:[{
       x:ecology.target.x,y:ecology.target.y,alive:true,
@@ -901,11 +903,12 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const charge=EnemyAI.isChargeAttack(enemy);
     const contactZone=DiverHitbox.circleHit(resolvedContactTarget,enemy.x,enemy.y,enemyBodyRadius,now);
     const biteClear=riftMode?AbyssalMap.segmentWalkable(mapLayout,enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):world.mode==='open-sea'?OceanGeography.segmentClear(enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):true;
-    const biteHit=!charge&&biteClear&&contactDistance<=contactRadius;
-    if(!biteClear||(!biteHit&&!(charge&&contactZone)&&!(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius)))continue;
+    const tentacleHit=contact.tentacleAttacker===true&&contact.tentacleContact===true;
+    const biteHit=!contact.tentacleAttacker&&!charge&&biteClear&&contactDistance<=contactRadius;
+    if(!biteClear||(contact.tentacleAttacker?!tentacleHit:(!biteHit&&!(charge&&contactZone))))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
-    const contactProfile={
+    const contactProfile=tentacleHit?{skillId:'tentacle-strike',power:enemy.kind==='kraken'&&enemy.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{
       drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},
       stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},
       brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},
@@ -948,7 +951,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       contactDistance, contactRadius,
       positionAgeMs: Number.isFinite(positionAge) ? positionAge : null,
       rawContactRadius, contactSafetyMargin, targetWasHidden: target.clientHidden === true,
-      damage: appliedDamage, blocked, neurotoxinMs, hitZone:biteHit?'bite':contactZone||'tentacle',skillId:contactProfile?.skillId||(charge?'charge':'contact-bite'), hp: Math.max(0, Number(target.hp) || 0),
+      damage: appliedDamage, blocked, neurotoxinMs, hitZone:tentacleHit?'tentacle':biteHit?'bite':contactZone||'contact',skillId:contactProfile?.skillId||(charge?'charge':'contact-bite'), hp: Math.max(0, Number(target.hp) || 0),
       maxHp: Math.max(1, Number(target.maxHp) || 100),
       shieldCharges: clamp(Math.floor(Number(target.shieldCharges) || 0), 0, 3),
       alive: target.alive !== false,
