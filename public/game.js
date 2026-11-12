@@ -4812,7 +4812,7 @@ function settleDiveReport(onComplete){
   diveSettled=true;runResultPending=false;diveReport={...diveReport,...result,reason:diveEndReason,survival:diveReport.survival};renderDiveReport(diveReport,false);if(result.queued)setTextIfChanged('finalReportStatus','Mergulho salvo neste dispositivo · sincronização automática ao conectar');publishDiveReport(diveReport);onComplete?.();
  };
  if(!wasOnline&&soloRunIdentity?.key){
-  const data={...pendingRunPayload(),id:soloRunIdentity.id,energySkinId:diveEnergySkinId};
+  const data={...pendingRunPayload(),id:soloRunIdentity.id,energySkinId:diveEnergySkinId,classicFirstCycle:requestedRunMode==='classic'&&bossKillsThisRun>=7};
   if(!window.AbyssalOnline?.queueSoloRun?.(soloRunIdentity.key,data)){finish({ok:false,message:'Não foi possível salvar o mergulho neste dispositivo. Tente novamente.'});return;}
   finish({ok:true,...diveEnergyCalculation(),queued:true});
   return;
