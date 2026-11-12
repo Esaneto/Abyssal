@@ -13,9 +13,6 @@
  const commands=screen.querySelector('.abyss-cockpit-top-actions');
  const store=(key,value)=>{try{localStorage.setItem(key,String(value));}catch(_){}};
  const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch(_){return fallback;}};
- const filters={normal:'none',soft:'saturate(.75)',mono:'grayscale(1)',warm:'sepia(.25)'};
- function applyFilter(value){const filter=filters[value]||'none';for(const id of ['game','abyssCockpitCanvas']){const element=document.getElementById(id);if(element)element.style.filter=filter;}}
- applyFilter(read('abyssalVisualFilter','normal'));
  function field(label,options,value,change){const wrap=document.createElement('label'),select=document.createElement('select'),caption=document.createElement('span');wrap.className='cockpit-setting-field';caption.textContent=label;wrap.append(caption,select);for(const [id,name] of options){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}select.value=value;select.addEventListener('change',()=>change(select.value));return wrap;}
  function slider(label,key,initial){const wrap=document.createElement('label'),caption=document.createElement('span'),input=document.createElement('input');wrap.className='cockpit-setting-field';input.type='range';input.min=0;input.max=100;input.value=read(key,initial);caption.textContent=label+' · '+input.value+'%';input.setAttribute('aria-label',label);input.addEventListener('input',()=>{store(key,input.value);caption.textContent=label+' · '+input.value+'%';window.dispatchEvent(new CustomEvent('abyssal-volume-change',{detail:{channel:key,value:Number(input.value)/100}}));});wrap.append(caption,input);return wrap;}
  function note(parent,text){const p=document.createElement('p');p.className='cockpit-setting-note';p.textContent=text;parent.append(p);}
@@ -36,7 +33,9 @@
    page.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
    note(page,'O áudio do jogo está desativado nesta versão; os ajustes ficam salvos.');
   }else if(name==='filter'){
-   page.append(field('Filtro visual',[['normal','Original'],['soft','Suave'],['mono','Monocromático'],['warm','Quente']],read('abyssalVisualFilter','normal'),value=>{store('abyssalVisualFilter',value);applyFilter(value);}));
+   const quality=window.AbyssalAdaptivePerformance;
+   page.append(field('Qualidade gráfica',[['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().level??2),value=>quality?.setPreference(Number(value))));
+   note(page,'Leve: menos partículas, brilhos e resolução. Médio: resolução normal e efeitos moderados. Ultra: resolução nativa e efeitos completos. A escolha é salva neste dispositivo e não altera a jogabilidade.');
   }else if(name==='fullscreen'){
    const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';const refresh=()=>{button.textContent=document.fullscreenElement?'SAIR DA TELA CHEIA':'ATIVAR TELA CHEIA';};refresh();
    button.addEventListener('click',()=>{document.getElementById('fullscreenBtn')?.click();setTimeout(refresh,300);});page.append(button);note(page,'A disponibilidade depende do navegador e do dispositivo.');
