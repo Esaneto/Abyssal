@@ -750,3 +750,7 @@
 #menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #riftPortalBtn.abyss-fissure-entry{
  width:clamp(96px,18vw,142px)!important;height:clamp(44px,12dvh,66px)!important;
 }
+
+#menuScreen.ocean-menu-v2.submarine-menu #menuOceanStage.abyss-mobile-zoom #submarineWorkshopBtn.abyss-laboratory-hatch{
+ min-width:44px!important;min-height:44px!important;
+}
