@@ -64,7 +64,7 @@ function hasPurchaseResponsibilityAcceptance(user) {
  return Boolean(user&&user.purchaseResponsibilityAcceptedVersion===TERMS_VERSION&&user.purchaseResponsibilityAcceptedAt);
 }
 function liveSalesReady() {
- return Boolean(process.env.STRIPE_SECRET_KEY && /^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(process.env.STRIPE_SECRET_KEY));
+ return /^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(String(process.env.STRIPE_SECRET_KEY||'').trim());
 }
 function registerPaymentRoutes(options) {
  const app=options.app,getUsers=options.getUsers,getPool=options.getPool,saveUsers=options.saveUsers;
@@ -125,7 +125,7 @@ function registerPaymentRoutes(options) {
  app.get('/api/payments/catalog',(_req,res)=>{res.json({currency:{brl:'BRL'},rates:{brl:1},testOnly:[],predatorySkins:['saltcroc','blackcaiman','reefshark','hammerhead','abysscroc','armoredgator'],bossBundle:{skins:BOSS_SKINS,brl:BOSS_BUNDLE_BRL},liveEnabled:liveSalesReady()});});
  app.post('/api/payments/checkout',jsonParser,async(req,res)=>{
   try{
-   const secret=process.env.STRIPE_SECRET_KEY;
+   const secret=String(process.env.STRIPE_SECRET_KEY||'').trim();
    if(!/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(secret||''))return res.status(503).json({ok:false,message:'Pagamentos ainda não configurados.'});
    const auth=String(req.headers.authorization||''),token=auth.startsWith('Bearer ')?auth.slice(7):'';
    const account=tokenUser(getUsers(),token);
@@ -133,7 +133,8 @@ function registerPaymentRoutes(options) {
    const currency='brl';
    const reqProductId = String(req.body&&req.body.productId||'');
    if (!reqProductId) return res.status(400).json({ok:false,message:'Produto não informado.'});
-   const order=calculateOrder(reqProductId,account.user.ownedSkins||['default']);
+   if(reqProductId!=='boss_bundle'&&!Object.hasOwn(PAID_SKINS,reqProductId))return res.status(400).json({ok:false,message:'Produto indisponível para compra.'});
+   const order=calculateOrder(reqProductId,account.user.ownedSkins||['default'],'brl');
    if(!order.skinIds.length||!order.amount)return res.status(409).json({ok:false,message:'Você já possui este conteúdo.'});
    await ensureSchema();
    const pool=getPool(),orderId=crypto.randomUUID();
@@ -193,7 +194,7 @@ function registerPaymentRoutes(options) {
    const english=String(req.body?.language||'pt').toLowerCase()==='en',product=PAID_SKINS[order.productId];
    const productName=order.productId==='boss_bundle'?(english?'Abyss Boss Collection':'Coleção dos Bosses'):(english?product.nameEn:product.name);
    const form=new URLSearchParams();
-   form.set('ui_mode','hosted_page');
+   // Hosted Checkout is the default across Stripe API versions; omit renamed ui_mode enum.
    form.set('mode','payment');
    form.set('billing_address_collection','auto');
    form.set('phone_number_collection[enabled]','false');
@@ -211,8 +212,9 @@ function registerPaymentRoutes(options) {
    form.set('line_items[0][price_data][product_data][description]',order.productId==='boss_bundle'?String(order.skinIds.length)+' '+(english?'remaining boss skins with gameplay abilities':'skins de boss restantes com habilidades de jogo'):(english?'Premium skin with gameplay abilities':'Skin premium com habilidades de jogo'));
    form.set('metadata[order_id]',orderId);form.set('metadata[user_key]',account.key);form.set('metadata[product_id]',order.productId);form.set('metadata[skin_ids]',order.skinIds.join(','));
    form.set('payment_intent_data[metadata][order_id]',orderId);form.set('payment_intent_data[metadata][user_key]',account.key);
-   const response=await fetch('https://api.stripe.com/v1/checkout/sessions',{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':orderId},body:form});
-   const session=await response.json();
+   let response,session;
+   try{response=await fetch('https://api.stripe.com/v1/checkout/sessions',{method:'POST',headers:{Authorization:'Bearer '+secret,'Content-Type':'application/x-www-form-urlencoded','Idempotency-Key':orderId},body:form,signal:AbortSignal.timeout(20000)});session=await response.json();}
+   catch(error){console.error('[payments] Stripe connection error:',error.message);return res.status(503).json({ok:false,message:'Não foi possível confirmar a criação do checkout. Tente novamente em instantes.'});}
    if(!response.ok||!session.url){
     if(pool)await pool.query("UPDATE abyssal_payment_orders SET status='failed',updated_at=NOW() WHERE order_id=$1",[orderId]);
     else if(localOrders[orderId]){localOrders[orderId].status='failed';writeLocalStore(localOrdersFile,localOrders);}
