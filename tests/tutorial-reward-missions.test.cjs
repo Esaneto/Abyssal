@@ -23,8 +23,8 @@ test('marine skin neon uses original color and alpha silhouette with bounded spr
  assert.match(marine,/String\(s\.color\)/);
  assert.doesNotThrow(()=>new vm.Script(marine));
 });
-test('the 50000 first bar bonus is claimed only once on the server after qualifying progress',()=>{
- assert.match(server,/FIRST_PROGRESSION_REWARD_COINS=50000/);
+test('the 5000 first bar bonus is claimed only once on the server after qualifying progress',()=>{
+ assert.match(server,/FIRST_PROGRESSION_REWARD_COINS=5000/);
  assert.match(server,/user\.firstProgressionRewardClaimed===true/);
  assert.match(server,/if\(!grantFirstProgressionReward\(user\)\)/);
  assert.match(server,/run\.mode!=='solo'/);
@@ -52,4 +52,16 @@ test('missions and titles match exactly across profile and server',()=>{
  assert.equal(new Set(defs.map(t=>t.id)).size,defs.length);
  assert.match(server,/riftBossesDefeated/);
  assert.match(server,/runsCompleted/);
+});
+
+test('ranking rewards and tutorial energy figures match the server',()=>{
+ assert.match(server,/RANKING_ENERGY_REWARDS=Object.freeze\(\{daily:100,weekly:1000,monthly:5000\}\)/);
+ assert.match(online,/rewards=data\.rewards/);
+ assert.match(guide,/5\.000 DE ENERGIA/);
+ assert.match(guide,/10\.000 de energia/);
+ assert.match(guide,/'open-sea':\{/);
+ assert.match(game,/AbyssalTutorials\?\.enter\(isOpenSeaRun\(\)\?'open-sea'/);
+ const art=read('public/abyssal-tutorial-art.js'); const context={};vm.createContext(context);vm.runInContext(art,context);
+ for(const topic of ['energy','bonus','ranking','submarine','oxygen','inventory'])assert.match(context.AbyssalTutorialArt.render(topic),/<svg/);
+ assert.doesNotThrow(()=>new vm.Script(guide));
 });

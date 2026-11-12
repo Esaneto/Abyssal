@@ -288,13 +288,14 @@ const TITLE_DEFINITIONS=[
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
+const RANKING_ENERGY_REWARDS=Object.freeze({daily:100,weekly:1000,monthly:5000});
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
 function settlePeriods() {
  const d = dayKey(), w = weekKey(), m = monthKey();
  rankings.monthly ||= {};
- if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], 10, 'diário');
- if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], 100, 'semanal');
- if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], 500, 'mensal');
+ if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], RANKING_ENERGY_REWARDS.daily, 'diário');
+ if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], RANKING_ENERGY_REWARDS.weekly, 'semanal');
+ if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], RANKING_ENERGY_REWARDS.monthly, 'mensal');
  rankings.daily[d] ||= {}; rankings.weekly[w] ||= {}; rankings.monthly[m] ||= {};
  rankings.settled = { day: d, week: w, month: m }; saveUsers(); saveRanks();
 }
@@ -306,7 +307,7 @@ function rankingResetTimes(now=new Date()){
  const nextMonth=Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1);
  return {daily:nextDay,weekly:nextWeek,monthly:nextMonth};
 }
-function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]), resets:rankingResetTimes(), metric:'bossesKilled',tieBreakers:['score','survival'] }; }
+function rankingPayload() { return { eternal: rankedEntries(rankings.eternal), daily: rankedEntries(rankings.daily[dayKey()]), weekly: rankedEntries(rankings.weekly[weekKey()]), monthly: rankedEntries(rankings.monthly?.[monthKey()]), resets:rankingResetTimes(), rewards:RANKING_ENERGY_REWARDS, metric:'bossesKilled',tieBreakers:['score','survival'] }; }
 app.use((req, res, next) => {
  res.set('X-Content-Type-Options','nosniff');
  res.set('X-Frame-Options','DENY');
@@ -1887,7 +1888,7 @@ io.on('connection', socket => {
  });
  socket.on('tutorial-preference',payload=>{
   const u=users[socket.data.userKey],mode=String(payload?.mode||'');
-  if(!u||!['solo','coop','pvp','rift','rift-solo'].includes(mode)||payload?.dismissed!==true)return;
+  if(!u||!['solo','coop','pvp','rift','rift-solo','open-sea'].includes(mode)||payload?.dismissed!==true)return;
   u.tutorialDismissedModes=Array.isArray(u.tutorialDismissedModes)?u.tutorialDismissedModes:[];
   if(!u.tutorialDismissedModes.includes(mode)){u.tutorialDismissedModes.push(mode);saveUsers();}
   socket.emit('account-data',publicUser(u));
