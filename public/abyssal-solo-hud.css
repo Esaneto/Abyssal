@@ -45,7 +45,7 @@ body.abyss-solo-run.game-active.hud-collapsed #toggleHudBtn{
 #submarineWorkshop .solo-lamp-row strong{font:800 13px Inter,sans-serif!important}
 #submarineWorkshop .solo-lamp-row small{display:block;color:#a6c7cb;font-size:11px;margin-top:4px}
 #submarineWorkshop .solo-lamp-row button:disabled{opacity:.55;cursor:default}
-body:has(#submarineWorkshop:not([hidden])) #resonanceScreen:not([hidden]){z-index:31000!important;position:fixed!important;inset:0!important}
+/* Resonance is mounted inside the cockpit visor. Never promote it to a fixed overlay. */
 @media(max-width:700px){body.abyss-solo-run.game-active #petHabitBar{left:6px!important;bottom:116px!important;width:76px!important;max-width:76px!important}}
 
 @media(min-width:701px){
