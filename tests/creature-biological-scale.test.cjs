@@ -49,7 +49,9 @@ test('solo and server use the same collision species table and multiplayer recei
  assert.match(game,/CREATURE_SCALE\?\.visualRadius\?\.\(equippedSkin,player\.specimen\.r\)/);
  assert.match(game,/CREATURE_SCALE\?\.visualRadius\?\.\(peer\.skinId,10\/GAME_WORLD_ZOOM\)/);
  assert.match(game,/CREATURE_SCALE\?\.monsterVisualRadius\?\.\(enemy\.kind,Number\(enemy\.r\)/);
- assert.match(game,/Math\.min\(80,Math\.round\(radius\*2\)\/2\)/);
+ assert.match(game,/Math\.max\(4,Math\.round\(radius\*2\)\/2\)/);
+ assert.match(game,/density=Math\.max\(1,Math\.ceil\(dpr\*worldZoom\*renderScale\*1\.25\)\)/);
+ assert.match(game,/MAX_SINGLE_SPRITE_PIXELS/);
  assert.match(html,/creature-scale\.js\?v=/);
  assert.match(offline,/'creature-scale\.js'/);
 });

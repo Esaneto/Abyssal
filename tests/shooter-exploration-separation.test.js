@@ -49,7 +49,8 @@ test('control 1 is selectable only in classic shooter and control 2 obeys cadenc
  assert.match(game,/b\.disabled=restricted&&b\.dataset\.controlPc==='classic'/);
  assert.match(game,/b\.disabled=restricted&&b\.dataset\.controlMobile==='classic'/);
  assert.match(game,/player\.fireTimer=Math\.max\(0,\(Number\(player\.fireTimer\)\|\|0\)-dt\)/);
- assert.match(game,/player\.fireTimer=Math\.max\(\.12,\.52\/\(\(upgrades\.rate\|\|1\)\*specimenPassiveMultiplier\('fireRate'\)\)\)/);
+ assert.match(game,/const BASE_SHOT_INTERVAL=\.52/);
+ assert.match(game,/player\.fireTimer=Math\.max\(\.12,BASE_SHOT_INTERVAL\/\(\(upgrades\.rate\|\|1\)\*specimenPassiveMultiplier\('fireRate'\)\)\)/);
  const pointer=game.slice(game.indexOf("canvas.addEventListener('pointerdown'"),game.indexOf("canvas.addEventListener('pointermove'"));
  const mobile=game.slice(game.indexOf("mobileFireBtn.addEventListener('pointerdown'"),game.indexOf("['pointerup','pointercancel','lostpointercapture']"));
  assert.doesNotMatch(pointer,/fireTimer\s*=\s*0/);

@@ -504,6 +504,12 @@ const PROFILE_TITLE_NAMES=Object.freeze({'sonar-novice':'Eco do Primeiro Sonar',
 const PROFILE_TITLE_COLORS=Object.freeze({'sonar-novice':'#88dfe2','lantern-hunter':'#abf8e8','hadal-executioner':'#ff86ca','first-predator':'#ffe59e','abyss-stalker':'#dbb7ff','titan-bane':'#ffc37d','cycle-pioneer':'#a1ff9d','rift-cartographer':'#83e3fb','hadal-navigator':'#9fcaff','veteran-diver':'#e6d7ff','eternal-explorer':'#ffb8df','abyss-drifter':'#79f3f0','abyss-spark':'#8cf8ff','current-hunter':'#b39cff','pelagic-executioner':'#ff829b','leviathan-hunter':'#ffd27a','sovereign-abyss':'#e0b7ff','shoal-founder':'#73e7c3','supporter-of-the-depths':'#ff9fca','abyssal-famous':'#ffb0d9','abyssal-icon':'#f2a8ff','living-legend':'#ffe29b','abyssal-patron':'#ffd27a','boss-abyssal':'#ff6b9d'});
 const particlePool=[];
 const hostileSpriteCache=new Map();
+// Bound texture memory, not image detail. Evict old cached surfaces rather than downsample.
+const MAX_SPRITE_PIXELS=12*1024*1024,MAX_SINGLE_SPRITE_PIXELS=4*1024*1024;
+function getCachedSprite(cache,key){const sprite=cache.get(key);if(sprite){cache.delete(key);cache.set(key,sprite);}return sprite;}
+function rememberCachedSprite(cache,key,sprite,maxEntries){cache.set(key,sprite);let pixels=0;for(const entry of cache.values())pixels+=entry.canvas.width*entry.canvas.height;while(cache.size>1&&(cache.size>maxEntries||pixels>MAX_SPRITE_PIXELS)){const oldest=cache.keys().next().value,entry=cache.get(oldest);pixels-=entry.canvas.width*entry.canvas.height;cache.delete(oldest);entry.canvas.width=1;entry.canvas.height=1;}}
+const previewCanvasSizes=new WeakMap();
+function preparePreviewCanvas(canvas){const c=canvas.getContext('2d');if(!c)return null;let size=previewCanvasSizes.get(canvas);if(!size){size={w:canvas.width,h:canvas.height};previewCanvasSizes.set(canvas,size);}const w=canvas.clientWidth||size.w,h=canvas.clientHeight||size.h,density=Math.max(1,window.devicePixelRatio||1),pw=Math.ceil(w*density),ph=Math.ceil(h*density);if(canvas.width!==pw||canvas.height!==ph){canvas.style.width=w+'px';canvas.style.height=h+'px';canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';return {c,w,h};}
 const aquaticMotionTracker=window.AbyssalSkinMotion?.createTracker?.({maxEntries:640})||null;
 const aquaticMotionSource={};
 const remoteCreatureAttackUntil=new Map();
@@ -857,10 +863,8 @@ function resize(){
  const oldW=W,oldH=H;
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
- const cores=Number(navigator.hardwareConcurrency)||4,memory=Number(navigator.deviceMemory)||0;
  lowPowerRendering=false;adaptiveQualityLevel=2;adaptiveDprScale=1;
- // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
- // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
+ // Preserve the native pixel density on desktop and mobile.
  const nativeDpr=Math.max(1,window.devicePixelRatio||1);
  // Native framebuffer resolution: never reduce below CSS pixels or silently downscale Retina.
  dpr=Math.max(1,Math.min(nativeDpr,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));
@@ -3650,14 +3654,15 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   finalBossVisualState.r=r;RIFT_HARDCORE.drawFinalBoss(c,finalBossVisualState,animationTime);c.restore();return;
  }
  // Cache elaborate hostile drawings off-screen and refresh them infrequently; a horde can share one sprite.
- if(renderContext===ctx&&!playerCreature){
+ if(renderContext===ctx&&!playerCreature&&!enemyState?.__directVector){
   const spread=kind==='kraken'?2.8:kind==='boss'?2.75:kind==='maw'?3.65:kind==='leviathan'?3.45:kind==='lurker'?2.55:BOSS_KINDS.includes(kind)?2.15:1.85;
   // One anatomical surface per species/size/color. Per-creature motion stays on
   // the cheap outer transform; phase variants multiplied the cache and caused
   // canvas creation/eviction loops in crowded online rooms.
   const side=Math.max(18,Math.ceil(r*spread*2)),density=Math.max(1,Math.ceil(dpr*worldZoom*1.25)),pixels=Math.ceil(side*density),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side+'|'+density;
-  let sprite=hostileSpriteCache.get(key);
-  if(!sprite){const surface=document.createElement('canvas');surface.width=pixels;surface.height=pixels;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};sprite.context.setTransform(density,0,0,density,0,0);hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
+  if(pixels*pixels>MAX_SINGLE_SPRITE_PIXELS||pixels>4096){drawCreature(x,y,r,angle,color,kind,t,false,hit,c,skinOverride,{...enemyState,__directVector:true,__visualMotion:visualMotion});return;}
+  let sprite=getCachedSprite(hostileSpriteCache,key);
+  if(!sprite){const surface=document.createElement('canvas');surface.width=pixels;surface.height=pixels;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};sprite.context.setTransform(density,0,0,density,0,0);rememberCachedSprite(hostileSpriteCache,key,sprite,48);}
   const refreshInterval=BOSS_KINDS.includes(kind)?50:83;const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
   c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center,side,side);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
@@ -4184,7 +4189,7 @@ function renderSpecimenPortraits(t){
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
-  const c=canvas.getContext('2d'),w=canvas.offsetWidth,h=canvas.offsetHeight,density=Math.max(1,window.devicePixelRatio||1),pw=Math.ceil(w*density),ph=Math.ceil(h*density),skin=skinData.find(s=>s.id===skinId)||skinData[0];if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.clearRect(0,0,w,h);
+  const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
   const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
@@ -4212,18 +4217,17 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const normalRadius=CREATURE_SCALE?.riftVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||Math.max(4,Number(enemy.r)||8);
  // Preserve shop skin identity and a species-specific 3 m maximum visual body envelope.
  const radius=oceanFauna?(sharkHeight?16+sharkHeight*9:Math.min(79,CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||normalRadius)):normalRadius;
- // Render very large real-life silhouettes from a capped sprite and scale the
- // composited image. Never allocate a multi-megapixel canvas per giant specimen.
+ // Render at the actual display density; oversized creatures use the vector fallback.
  const bucket=Math.max(4,Math.round(radius*2)/2);
  const renderScale=radius/bucket;
  const side=Math.ceil(bucket*8),density=Math.max(1,Math.ceil(dpr*worldZoom*renderScale*1.25)),pixels=Math.ceil(side*density);
  const key=skin.id+'|'+bucket+'|'+density;
- let sprite=riftSpecimenSpriteCache.get(key);
+ if(pixels*pixels>MAX_SINGLE_SPRITE_PIXELS||pixels>4096){drawCreature(enemy.x,enemy.y,radius,Number(enemy.angle)||0,skin.color,'player',time,true,enemy.hit||0,ctx,skin,enemy);return;}
+ let sprite=getCachedSprite(riftSpecimenSpriteCache,key);
  if(!sprite){
   const canvas=document.createElement('canvas');canvas.width=pixels;canvas.height=pixels;
   sprite={canvas,c:canvas.getContext('2d'),side,lastPaint:-Infinity};sprite.c.setTransform(density,0,0,density,0,0);
-  riftSpecimenSpriteCache.set(key,sprite);
-  if(riftSpecimenSpriteCache.size>96)riftSpecimenSpriteCache.delete(riftSpecimenSpriteCache.keys().next().value);
+  rememberCachedSprite(riftSpecimenSpriteCache,key,sprite,96);
  }
  const stale=time-sprite.lastPaint>=83;
  if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
@@ -4622,7 +4626,7 @@ function loop(t){
  const dt=Math.min(.10,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
-  if(active){const updateStarted=performance.now();const steps=Math.max(1,Math.ceil(dt/(1/60))),step=dt/steps;for(let i=0;i<steps;i++){if(abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade')))break;update(step);}updateMs=performance.now()-updateStarted;}
+  if(active){const updateStarted=performance.now();const steps=Math.max(1,Math.ceil(dt/.020)),step=dt/steps;for(let i=0;i<steps;i++){if(abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade')))break;update(step);}updateMs=performance.now()-updateStarted;}
   const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);updateAdaptivePerformance(frameEnded);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  requestAnimationFrame(loop);
@@ -4855,8 +4859,8 @@ window.AbyssalGameHooks={
 };
 function renderCreaturePreview(canvas,kind,color,skin=null){
  if(!canvas)return;
- const c=canvas.getContext('2d');if(!c)return;
- const w=canvas.width,h=canvas.height;c.clearRect(0,0,w,h);
+ const surface=preparePreviewCanvas(canvas);if(!surface)return;
+ const {c,w,h}=surface;c.clearRect(0,0,w,h);
  const isSpecimenVessel=Boolean(canvas.closest?.('#shopScreen'));
  const bg=c.createRadialGradient(w*.48,h*.42,2,w*.5,h*.5,Math.max(w,h)*.7);
  bg.addColorStop(0,'#0d2637');bg.addColorStop(.62,'#06121d');bg.addColorStop(1,'#020812');
