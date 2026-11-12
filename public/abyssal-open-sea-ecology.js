@@ -306,10 +306,19 @@
    nearest=Math.min(nearest,limit-distance);
   }
   const strength=Math.hypot(fx,fy);
-  if(strength<.001)return {x,y};
+  if(strength<.001){
+   const decay=Math.exp(-Math.min(.1,dt)*10);
+   entity.aiSeparationX=(Number(entity.aiSeparationX)||0)*decay;
+   entity.aiSeparationY=(Number(entity.aiSeparationY)||0)*decay;
+   return {x,y};
+  }
+  const desiredX=fx/strength,desiredY=fy/strength,blend=1-Math.exp(-Math.min(.1,dt)*13);
+  entity.aiSeparationX=(Number.isFinite(entity.aiSeparationX)?entity.aiSeparationX:desiredX)+(desiredX-(Number.isFinite(entity.aiSeparationX)?entity.aiSeparationX:desiredX))*blend;
+  entity.aiSeparationY=(Number.isFinite(entity.aiSeparationY)?entity.aiSeparationY:desiredY)+(desiredY-(Number.isFinite(entity.aiSeparationY)?entity.aiSeparationY:desiredY))*blend;
+  const smoothLength=Math.hypot(entity.aiSeparationX,entity.aiSeparationY)||1;
   const step=Math.min(95*Math.min(.1,dt),Math.max(0,nearest)*.45);
   if(step<=0)return {x,y};
-  const nx=x+fx/strength*step,ny=y+fy/strength*step;
+  const nx=x+entity.aiSeparationX/smoothLength*step,ny=y+entity.aiSeparationY/smoothLength*step;
   // The same solid-collision geometry used for navigation guards the push.
   const radius=clamp(Number(entity.r)*.55||18,10,45);
   const moved=geo?.resolveMove?.(x,y,nx,ny,radius);
@@ -334,11 +343,13 @@
    neurotoxinMs:skill.id==='paralysis'?100:skill.id==='poison'?2500:skill.id==='slowShot'?1400:0};
  }
  // Separate wildlife-versus-wildlife combat from player kill/reward accounting.
- // Every active is sourced from the already configured Specimens ability registry.
+ // Hot-path containers are reused instead of rebuilding filter/map chains.
+ const predationIndex=new Map(),predationHits=[];
  function simulatePredation(entities,delta=0,now=Date.now()){
-  if(!Array.isArray(entities)||!entities.length||delta<=0)return [];
-  const index=new Map(entities.filter(e=>e?.wildlifeMode&&e.hp>0).map(e=>[creatureId(e),e]));
-  const hits=[];
+  predationIndex.clear();predationHits.length=0;
+  if(!Array.isArray(entities)||!entities.length||delta<=0)return predationHits;
+  for(const entity of entities)if(entity?.wildlifeMode&&entity.hp>0)predationIndex.set(creatureId(entity),entity);
+  const index=predationIndex,hits=predationHits;
   for(const attacker of index.values()){
    if(attacker.aiMode!=='forage'||!attacker.aiPreyId||attacker.hp<=0)continue;
    const prey=index.get(attacker.aiPreyId);if(!prey||!comparePredators(attacker,prey)||prey.hp<=0)continue;
