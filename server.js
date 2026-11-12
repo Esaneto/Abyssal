@@ -1991,6 +1991,40 @@ io.on('connection', socket => {
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'revive',serverTime:now}));
   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
  });
+ // Solo is client-simulated; accept cumulative kill reports, not arbitrary adaptation balances.
+ socket.on('sync-specimen-adaptation',async(payload={},ack)=>{
+  if(typeof ack!=='function')return;
+  const u=users[socket.data.userKey];if(!u)return ack({ok:false});
+  const rows=Array.isArray(payload.rows)?payload.rows.slice(0,20):[],accepted=[];
+  u.soloAdaptationReceipts ||= {};
+  u.specimenProficiency=SpecimenSystem.normalizeMap(u.specimenProficiency);
+  const now=Date.now(),owned=new Set(['default',...(u.ownedSkins||[])]);
+  for(const row of rows){
+   const id=String(row?.id||''),started=Number(row?.startedAt);
+   if(!/^[a-zA-Z0-9-]{16,80}$/.test(id)||!Number.isFinite(started)||started>now+60000||now-started>30*86400000||!row.counts||typeof row.counts!=='object')continue;
+   const receipt=u.soloAdaptationReceipts[id]||{startedAt:started,counts:{}};
+   if(receipt.startedAt!==started)continue;
+   const seconds=Math.max(1,(now-started)/1000),maxCommon=Math.min(5000,Math.ceil(seconds*30+30)),maxBoss=Math.min(500,Math.ceil(seconds/10+1));
+   let commonTotal=0,bossTotal=0;const clean={};let valid=true;
+   for(const [skin,c] of Object.entries(row.counts)){
+    const common=Number(c?.common),boss=Number(c?.boss);
+    if(!owned.has(skin)||!allowedSkinIds.has(skin)||!Number.isSafeInteger(common)||!Number.isSafeInteger(boss)||common<0||boss<0){valid=false;break;}
+    commonTotal+=common;bossTotal+=boss;clean[skin]={common,boss};
+   }
+   if(!valid||commonTotal>maxCommon||bossTotal>maxBoss)continue;
+   for(const [skin,c] of Object.entries(clean)){
+    const prior=receipt.counts[skin]||{common:0,boss:0};
+    const common=Math.max(prior.common,c.common),boss=Math.max(prior.boss,c.boss);
+    const delta=common-prior.common+10*(boss-prior.boss);
+    u.specimenProficiency[skin]=Math.min(5000,SpecimenSystem.pointsFor(u.specimenProficiency,skin)+delta);
+    receipt.counts[skin]={common,boss};
+   }
+   u.soloAdaptationReceipts[id]=receipt;accepted.push(id);
+  }
+  for(const [id,receipt] of Object.entries(u.soloAdaptationReceipts))if(now-Number(receipt.startedAt)>30*86400000)delete u.soloAdaptationReceipts[id];
+  if(accepted.length){saveUsers();try{await flushPersistence();}catch(err){return ack({ok:false});}}
+  ack({ok:true,accepted,account:publicUser(u)});
+ });
  socket.on('begin-run',(payload={})=>{
   if(!socket.data.userKey)return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
