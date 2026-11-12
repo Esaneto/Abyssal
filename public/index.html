@@ -83,7 +83,25 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 @media(max-width:700px){#submarineWorkshop .abyss-cockpit-top-actions{width:68%!important;min-height:26px!important;gap:2px!important}#submarineWorkshop .cockpit-command span{display:none}#submarineWorkshop .cockpit-command{font-size:12px;padding:0}#submarineWorkshop .abyss-cockpit-brand{max-width:13vw}#submarineWorkshop .abyss-cockpit-exit{font-size:0!important;padding:4px!important;right:3px!important}#submarineWorkshop .abyss-cockpit-exit span{font-size:12px!important}}
 </style>
 <style>.resonance-skill-option.resonance-locked{opacity:1!important;filter:none!important;background:rgba(22,19,42,.70)!important}.resonance-locked .resonance-skill-copy{opacity:.85!important}.resonance-research-action{position:relative;z-index:2;pointer-events:auto;cursor:pointer;border:1px solid #a58b58;border-radius:5px;background:rgba(28,25,42,.84);color:#ffe0a1;font:700 10px system-ui;padding:7px;white-space:normal}.resonance-skill-option:has(.resonance-research-action){display:flex;flex-wrap:wrap}.resonance-mode-tabs button:disabled{opacity:.55;cursor:not-allowed}</style>
-</head>
+<style>
+#gameOverScreen{background:radial-gradient(ellipse at 50% 90%,#143e43d9,#040d18ef 65%)!important}
+#gameOverScreen .dive-report-card{position:relative;isolation:isolate;overflow:hidden;width:min(580px,94vw)!important;max-height:92dvh;overflow-y:auto;background:radial-gradient(ellipse at 50% 100%,#16423c,#0b202b 55%,#07121e)!important;border:1px solid #5dcbb4!important;box-shadow:0 0 35px #1bdcb52c,inset 0 0 45px #29baa614!important;border-radius:20px!important;padding:clamp(16px,3vw,30px)!important}
+.dive-report-card>*:not(.dive-report-flora){position:relative;z-index:1}
+.dive-report-flora{position:absolute;inset:auto 0 0;height:42%;z-index:-1;pointer-events:none;opacity:.7;filter:drop-shadow(0 0 8px #68ffc9)}
+.dive-report-flora svg{width:100%;height:100%}
+#gameOverScreen .dive-report-card h2{color:#e5fff5!important;text-shadow:0 0 22px #60e4c559}
+#gameOverScreen .dive-report-card h2 em{color:#86f5cc!important}
+#gameOverScreen .dive-report-results{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0!important}
+#gameOverScreen .dive-report-results>div{min-width:0;padding:12px 5px;background:#081923dd;border:1px solid #397c70;border-radius:9px;text-align:center}
+#gameOverScreen .dive-report-results small{display:block;font-size:clamp(8px,1.5vw,11px);color:#b5ded6;letter-spacing:.04em}
+#gameOverScreen .dive-report-results strong{display:block;color:#b5ffdf;font-size:clamp(16px,3vw,26px);overflow-wrap:anywhere;margin-top:7px}
+#gameOverScreen #finalCoins{color:#d9e7f5}#gameOverScreen #finalEnergy{color:#c99bff}#gameOverScreen #finalReportStatus{font-size:11px;color:#a6d4cc}
+#gameOverScreen .dive-report-card button{background:linear-gradient(#1c4945,#10292c)!important;border-color:#59a995!important;color:#e4fff2!important}
+#submarineWorkshop [data-cockpit-proxy="notifBtn"]{position:relative}
+.cockpit-unread-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4057;border:1px solid #ffd0d3;border-radius:50%;box-shadow:0 0 7px #ff4057;pointer-events:none}
+.cockpit-unread-dot[hidden]{display:none!important}
+@media(max-width:420px){#gameOverScreen .dive-report-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style></head>
 <body>
 <div id="app">
   <header class="topbar">
@@ -241,15 +259,15 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     </section>
 
     <section id="gameOverScreen" class="screen modal-screen" hidden>
-      <div class="modal-card compact-card">
+      <div class="modal-card compact-card dive-report-card">
         <div id="gameOverEyebrow" class="eyebrow danger-eyebrow"><span class="pulse-dot"></span> SINAL PERDIDO</div>
         <h2 id="gameOverTitle">O ABISMO<br><em>RECLAMA.</em></h2>
         <p id="gameOverCopy">Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.</p>
-        <div class="results">
-          <div><small>TEMPO</small><strong id="finalTime">00:00</strong></div>
+        <div class="dive-report-flora" aria-hidden="true"><svg viewBox="0 0 580 180" preserveAspectRatio="none"><g fill="none" stroke-linecap="round"><path d="M12 180Q30 126 24 58M24 124Q4 100 7 78M25 103Q55 76 60 48M72 180Q67 125 90 103M90 134Q115 113 118 83M568 180Q548 126 554 58M554 124Q574 100 571 78M553 103Q523 76 518 48M508 180Q513 125 490 103M490 134Q465 113 462 83" stroke="#64e6bf" stroke-width="3"/><path d="M39 180Q45 143 43 111M541 180Q535 143 537 111" stroke="#b985ff" stroke-width="2"/></g><g fill="#a3ffda"><circle cx="24" cy="58" r="4"/><circle cx="7" cy="78" r="3"/><circle cx="60" cy="48" r="4"/><circle cx="118" cy="83" r="3"/><circle cx="554" cy="58" r="4"/><circle cx="571" cy="78" r="3"/><circle cx="518" cy="48" r="4"/><circle cx="462" cy="83" r="3"/></g></svg></div><div class="results dive-report-results">
+          <div><small>SOBREVIVÊNCIA</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
-          <div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
-        </div>
+          <div><small>MOEDAS ABISSAIS</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+        </div><p id="finalReportStatus" role="status" aria-live="polite">Relatório da expedição</p>
         <button id="reviveWithAdBtn" class="primary-btn">ASSISTIR ANÚNCIO PARA REVIVER <span>▶</span></button>
         <button id="againBtn" class="secondary-btn">ENCERRAR E MERGULHAR NOVAMENTE</button>
         <p id="reviveAdMessage" class="redeem-code-message" role="status" aria-live="polite"></p>
@@ -585,7 +603,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <button type="button" class="cockpit-command" data-cockpit-setting="zoom" title="Zoom" aria-label="Zoom">⌕ <span>ZOOM</span></button>
 <button type="button" class="cockpit-command" data-cockpit-setting="volume" title="Volume" aria-label="Volume">♫ <span>VOLUME</span></button>
 <button type="button" class="cockpit-command" data-cockpit-setting="filter" title="Filtro visual" aria-label="Filtro visual">◐ <span>FILTRO</span></button>
-<button type="button" class="cockpit-command" data-cockpit-proxy="notifBtn" title="Notificações" aria-label="Notificações">♧ <span>AVISOS</span></button>
+<button type="button" class="cockpit-command" data-cockpit-proxy="notifBtn" title="Avisos" aria-label="Avisos">♧ <span>AVISOS</span><i class="cockpit-unread-dot" hidden aria-hidden="true"></i></button>
 <button type="button" class="cockpit-command" data-cockpit-proxy="mobileDownloadTopBtn" title="Baixar Abyssal" aria-label="Baixar Abyssal">⇩ <span>BAIXAR</span></button>
 <button type="button" class="cockpit-command" data-cockpit-proxy="fullscreenBtn" title="Tela cheia" aria-label="Tela cheia">⛶</button>
 <div id="cockpitCommandSettings" class="cockpit-command-settings" hidden></div>
@@ -672,7 +690,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.29"></script>
+ <script src="game.js?v=2026.11.12.30"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.12.28"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
