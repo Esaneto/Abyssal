@@ -202,8 +202,10 @@ function loadSocketClient(){
   const script=document.createElement('script');
   script.src=SERVER_URL+'/socket.io/socket.io.js';
   script.async=true;script.crossOrigin='anonymous';
-  script.onload=()=>resolve(typeof window.io==='function');
-  script.onerror=()=>resolve(false);
+  let finished=false;const done=ok=>{if(finished)return;finished=true;clearTimeout(timeout);if(!ok)script.remove();resolve(ok);};
+  const timeout=setTimeout(()=>done(false),10000);
+  script.onload=()=>done(typeof window.io==='function');
+  script.onerror=()=>done(false);
   document.head.appendChild(script);
  }).then(ready=>{
   socketClientLoading=null;
@@ -593,7 +595,7 @@ function syncSoloRuns(){
  });
 }
 window.addEventListener('abyssal-authenticated',syncSoloRuns);
-setInterval(()=>{if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();},10000);
+setInterval(()=>{if(authenticated&&readSoloQueue(soloAccountKey()).length)syncSoloRuns();else if(sessionToken&&!socket?.connected&&navigator.onLine!==false)connect();},10000);
 function beginRun(){if(socket?.connected&&authenticated)socket.emit('begin-run',{mode:window.AbyssalGameHooks?.expeditionState?.()?.active?'rift':'solo'})}
 function sendBuild(data={}){if(socket?.connected&&authenticated)socket.emit('player-build',{shieldCharges:Number(data.shieldCharges)||0,regenLevel:Number(data.regenLevel)||0,magnetStrength:Math.max(1,Math.min(4.5,Number(data.magnetStrength)||1)),rangeStrength:Math.max(1,Math.min(Math.pow(1.22,3),Number(data.rangeStrength)||1)),speedStrength:Math.max(1,Math.min(4,Number(data.speedStrength)||1)),arcChainActive:data.arcChainActive===true,hadalBeamActive:data.hadalBeamActive===true,ricochetLevel:Math.max(0,Math.min(3,Math.floor(Number(data.ricochetLevel)||0))),prismaticLevel:Math.max(0,Math.min(3,Math.floor(Number(data.prismaticLevel)||0))),predatorLevel:Math.max(0,Math.min(3,Math.floor(Number(data.predatorLevel)||0))),electricLevel:Math.max(0,Math.min(3,Math.floor(Number(data.electricLevel)||0))),shellLevel:Math.max(0,Math.min(3,Math.floor(Number(data.shellLevel)||0))),lastStandLevel:Math.max(0,Math.min(3,Math.floor(Number(data.lastStandLevel)||0)))})}
 function setTutorialOpen(open){if(socket?.connected&&authenticated&&currentRoom)socket.emit('tutorial-state',{open:open===true});}
