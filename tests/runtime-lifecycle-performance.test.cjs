@@ -84,22 +84,29 @@ test('gameplay loop fully suspends while the browser tab is hidden',()=>{
  assert.doesNotMatch(game,/gameState==='menu'&&!onlineMode\)\{last=t;setTimeout\(\(\)=>requestAnimationFrame\(loop\),125\)/);
 });
 
-test('account maintenance uses one visible fallback timer instead of permanent intervals',()=>{
+test('account maintenance sleeps completely when account outboxes are empty',()=>{
  const game=read('public/game.js');
- assert.match(game,/let accountMaintenanceTimer=0/);
- assert.match(game,/function scheduleAccountMaintenance\(delay=30000\)/);
- assert.match(game,/if\(document\.hidden\)return/);
+ const wallet=read('public/abyssal-solo-progress.js');
+ assert.match(wallet,/function pendingCount\(\)\{return pending\.length;\}/);
+ assert.match(wallet,/function hasPending\(\)\{return pending\.length>0;\}/);
+ assert.match(wallet,/abyssal-energy-queue-change/);
+ assert.match(game,/function hasPendingAccountWork\(\)/);
+ assert.match(game,/energyWallet\?\.hasPending\?\.\(\)\|\|pendingAdaptation/);
+ assert.match(game,/if\(document\.hidden\|\|!hasPendingAccountWork\(\)\)return/);
+ assert.match(game,/abyssal-energy-queue-change'[\s\S]*?scheduleAccountMaintenance\(3000\)/);
  assert.doesNotMatch(game,/setInterval\(\(\)=>energyWallet\?\.sync\(\),5000\)/);
  assert.doesNotMatch(game,/setInterval\(syncSoloAdaptation,15000\)/);
 });
 
-test('online retry maintenance pauses while hidden and remains event-driven',()=>{
+test('online retry maintenance exists only while reconnect or solo outbox work is pending',()=>{
  const online=read('public/online.js');
- assert.match(online,/let onlineMaintenanceTimer=0/);
- assert.match(online,/function scheduleOnlineMaintenance\(delay=30000\)/);
- assert.match(online,/if\(document\.hidden\)return/);
+ assert.match(online,/function onlineMaintenanceNeeded\(\)/);
+ assert.match(online,/authenticated&&readSoloQueue\(soloAccountKey\(\)\)\.length/);
+ assert.match(online,/sessionToken&&!socket\?\.connected&&navigator\.onLine!==false/);
+ assert.match(online,/if\(document\.hidden\|\|!onlineMaintenanceNeeded\(\)\)return/);
+ assert.match(online,/queueSoloRun[\s\S]*?scheduleOnlineMaintenance\(3000\)/);
+ assert.match(online,/socket\.on\('disconnect'[\s\S]*?scheduleOnlineMaintenance/);
  assert.doesNotMatch(online,/setInterval\(\(\)=>\{if\(authenticated&&readSoloQueue/);
- assert.match(online,/window\.addEventListener\('online',[\s\S]*?scheduleOnlineMaintenance\(3000\)/);
 });
 
 test('hidden account screens cache data without rebuilding their DOM',()=>{
