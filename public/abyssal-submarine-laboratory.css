@@ -411,9 +411,9 @@
 
 /* Cockpit is the only main-menu presentation for now. Prevent old ocean menu flashes
    and disable the hatch/exit until that route is intentionally restored. */
-body:not(.game-active) #menuScreen{visibility:hidden!important;pointer-events:none!important}
-#menuScreen #submarineWorkshopBtn.abyss-laboratory-hatch{display:none!important;pointer-events:none!important}
-#submarineWorkshop #submarineWorkshopClose{display:none!important}
+body:not(.game-active):not(.abyss-hatch-navigation) #menuScreen{visibility:hidden!important;pointer-events:none!important}
+body:not(.abyss-hatch-navigation) #menuScreen #submarineWorkshopBtn.abyss-laboratory-hatch{display:none!important;pointer-events:none!important}
+#submarineWorkshop #submarineWorkshopClose{display:block!important}
 
 /* Match the persistent menu themes inside the physical submarine console. */
 #submarineWorkshop .abyss-shop-action{

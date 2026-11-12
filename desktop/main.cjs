@@ -93,7 +93,10 @@ function createWindow() {
     }
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  // Wait until the document and its synchronous cockpit startup are complete.
+  mainWindow.webContents.once('did-finish-load', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show();
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isGameUrl(url)) {
