@@ -78,3 +78,19 @@ test('bottom utilities preserve clear identities while laboratory capsules repla
  assert.match(sw,/'abyssal-wood-tentacles\.svg'/);
  assert.match(css,/\.submarine-menu \.abyss-ocean-utilities/);
 });
+
+test('mobile menu scale fits short landscapes and preserves desktop geometry',()=>{
+ for(const [w,h] of [[340,240],[768,410],[850,220],[960,300],[1440,760]]){
+  const base=Math.min(1.2,Math.max(.59,w/800));
+  assert.equal(scenery.menuSubmarineScale(w,h,false),base);
+  const mobile=scenery.menuSubmarineScale(w,h,true);
+  assert.ok(mobile>0&&mobile<=base*.75);
+  assert.ok(mobile*210<h*.40);
+ }
+ const js=read('public/abyssal-menu-ocean.js');
+ assert.match(js,/y:210\*subScale/);
+ assert.match(js,/drawSubmarine\?\.\(submarine,w,h,subScale\)/);
+ assert.match(js,/mobileScene=mobileQuery\.matches/);
+ const css=read('public/abyssal-menu-v2.css');
+ assert.match(css,/abyss-mobile-zoom #submarineWorkshopBtn[\s\S]*?min-width:44px!important;min-height:44px!important/);
+});
