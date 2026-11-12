@@ -2725,6 +2725,7 @@ function spawnSkinActiveVisual(spec,angle){
 }
 function applySoloSkinActive(spec,angle){
  const origin=specimenOrigin(),range=(Number(spec.range)||160)/GAME_WORLD_ZOOM;
+ const emitEffect=typeof queueEffect==='function'?queueEffect:fx=>{effects.push(fx);return fx;};
  const inRange=()=>enemies.filter(e=>e&&e.hp>0&&Math.hypot(e.x-origin.x,e.y-origin.y)<=range&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2));
  if(spec.id==='dash'){
   // Damage is swept during actual movement, never at the speculative endpoint.
@@ -2741,7 +2742,7 @@ function applySoloSkinActive(spec,angle){
  }else if(spec.id==='shot'||spec.id==='slowShot'){
   const ex=origin.x+Math.cos(angle)*range,ey=origin.y+Math.sin(angle)*range;
   const target=enemies.filter(e=>e&&e.hp>0&&pveTerrainClear(origin.x,origin.y,e.x,e.y,2)&&marineAbilityLineDistance(e.x,e.y,origin.x,origin.y,ex,ey)<=18/GAME_WORLD_ZOOM+(Number(e.r)||0)).sort((a,b)=>Math.hypot(a.x-origin.x,a.y-origin.y)-Math.hypot(b.x-origin.x,b.y-origin.y))[0];
-  if(target){const castPlayer=player,castRun=soloAdaptationRun;queueEffect({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||player!==castPlayer||soloAdaptationRun!==castRun||!enemies.includes(target)||target.hp<=0||!pveTerrainClear(origin.x,origin.y,target.x,target.y,2))return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true,origin});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+(spec.slowDurationMs||2000);},420);}
+  if(target){const castPlayer=player,castRun=soloAdaptationRun;emitEffect({type:'skin-shot-telegraph',x1:origin.x,y1:origin.y,x2:target.x,y2:target.y,life:.42,maxLife:.42,color:spec.color,width:3/GAME_WORLD_ZOOM});setTimeout(()=>{if(gameState!=='playing'||player!==castPlayer||soloAdaptationRun!==castRun||!enemies.includes(target)||target.hp<=0||!pveTerrainClear(origin.x,origin.y,target.x,target.y,2))return;dealEnemyDamage(target,spec.damage,spec.id==='shot'?'skin-active-shot':'skin-active-slowShot',{visual:true,origin});if(spec.id==='slowShot')target.skinSlowedUntil=Date.now()+(spec.slowDurationMs||2000);},420);}
  }else if(spec.id==='pulse'){
   expandingSkinPulses.push({x:origin.x,y:origin.y,radius:range,damage:spec.damage,duration:.72,elapsed:0,edge:0,hitIds:new Set()});
   if(expandingSkinPulses.length>4)expandingSkinPulses.shift();
