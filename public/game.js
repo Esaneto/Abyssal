@@ -5249,6 +5249,7 @@ function renderCatalog(){
   },{root:el.closest('.abyss-visor-body')||el.querySelector('.codex-modal'),rootMargin:'140px 0px'});
   previewCanvases.forEach(canvas=>journalPreviewObserver.observe(canvas));
  }else previewCanvases.forEach(paintJournalCreature);
+ if(catalogScroll)catalogScroll.scrollTop=savedCatalogScroll;
 }
 
 $('shopCloseBtn').addEventListener('click',()=>{$('shopScreen').hidden=true});
@@ -5307,7 +5308,6 @@ window.addEventListener('abyssal-player-skin-status',ev=>{
  if(!player)return;const d=ev.detail||{},until=Number(d.until)||Date.now();
  if(d.type==='paralysis'){player.skinParalyzedUntil=Math.max(Number(player.skinParalyzedUntil)||0,until);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:55/GAME_WORLD_ZOOM,life:.52,maxLife:.52,color:'#62edff'});}
  if(d.type==='slow'){player.skinSlowedUntil=Math.max(Number(player.skinSlowedUntil)||0,until);effects.push({type:'ring',x:player.x,y:player.y,r:0,max:48/GAME_WORLD_ZOOM,life:.65,maxLife:.65,color:'#9bd9ff'});}
- if(catalogScroll)catalogScroll.scrollTop=savedCatalogScroll;
 });
 function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift','open-sea'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':onlineRoomMode==='open-sea'?'open-sea':'classic';onlineMode=true;
  // room-joined is authoritative. Commit the UI transition before any fallible arena/game setup.
