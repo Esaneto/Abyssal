@@ -2819,26 +2819,43 @@ function updateSpecimenRuntime(dt){
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
  const now=performance.now();if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&s.tacticalChoice.enemy.hp<=0){
   const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
-  s.tacticalChoice=soloCave?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,o.x,o.y,pad);return nav.blocked?Infinity:Math.hypot(o.x-pos.x,o.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
+  s.tacticalChoice=!onlineMode?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,o.x,o.y,pad);return nav.blocked?Infinity:Math.hypot(o.x-pos.x,o.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
  }
  const tactics=s.tacticalChoice;
- const combatTarget=tactics?.type==='enemy'?tactics.enemy:null;
+ const combatTarget=tactics?.type==='enemy'&&tactics.enemy?.hp>0&&enemies.includes(tactics.enemy)?tactics.enemy:null;
  const orb=tactics?(tactics.type==='orb'?tactics.orb:null):
   SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
- let target=combatTarget?{x:combatTarget.x,y:combatTarget.y}:orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
+ const visualRadius=CREATURE_SCALE?.visualRadius?.(equippedSkin,radius)||radius;
+ const profile=combatTarget?PET_TACTICS.attackProfile(equippedSkin,equippedMotionFamily(),visualRadius):null;
+ const strikeGoal=combatTarget?PET_TACTICS.attackGoal(s,combatTarget,profile):null;
+ let target=strikeGoal?{x:strikeGoal.x,y:strikeGoal.y}:orb?{x:orb.x,y:orb.y}:{x:player.x,y:player.y-34/GAME_WORLD_ZOOM};
  // When hunting, the selected enemy is no longer a navigation obstacle.
  // Other enemies remain obstacles to avoid accidental pet deaths.
  const navigationThreats=combatTarget?threats.filter(e=>e.id!==combatTarget.id):threats;
  if(combatTarget){
-  const attackDistance=Math.max(57/GAME_WORLD_ZOOM,radius+(Number(combatTarget.r)||0)+9/GAME_WORLD_ZOOM);
-  if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)<=attackDistance&&pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2)&&performance.now()>=(s.nextTacticalAttack||0)){
-   const biological=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints());
-   const bite=biological.damage;
-   s.nextTacticalAttack=performance.now()+1020;
-   dealEnemyDamage(combatTarget,bite,'specimen-bite',{silentSound:true,secondary:true,origin:s});
-   burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
+  const angle=strikeGoal.angle,delta=Math.atan2(Math.sin(angle-(s.facingAngle||0)),Math.cos(angle-(s.facingAngle||0)));
+  s.facingAngle=(s.facingAngle||0)+delta*(1-Math.exp(-dt*18));
+  const facing=s.facingAngle,phase=now*.0018;
+  const clear=pveTerrainClear(s.x,s.y,combatTarget.x,combatTarget.y,2);
+  const contact=clear&&PET_TACTICS.attackContact(s,combatTarget,profile,facing,phase,window.AbyssalEnemyAI?.touchesKrakenTentacle);
+  if(contact){
+   // Hold at the attack perimeter, never swim toward the enemy centre.
+   if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)>=profile.core+(Number(combatTarget.r)||0))target=pos;
+   if(now>=(s.nextTacticalAttack||0)){
+    const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;
+    s.nextTacticalAttack=now+1020;
+    if(!profile.body){
+     s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};
+    }else{
+     const dx=combatTarget.x-s.x,dy=combatTarget.y-s.y,d=Math.hypot(dx,dy)||1,er=Number(combatTarget.r)||0;
+     effects.push({type:'ring',x:combatTarget.x-dx/d*er,y:combatTarget.y-dy/d*er,max:Math.max(12,visualRadius*.65),life:.24,maxLife:.24,color:currentSkinColor()});
+    }
+    dealEnemyDamage(combatTarget,damage,'specimen-bite',{silentSound:true,secondary:true,origin:s});
+    burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
+   }
   }
  }
+
  if(activeMapLayout&&ABYSSAL_MAP?.navigationTarget){
   const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});
   if(route&&!route.blocked)target={x:route.x,y:route.y};
@@ -2857,9 +2874,13 @@ function updateSpecimenRuntime(dt){
   heading:Number(s.facingAngle)||0,
   resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,pad):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
  if(move){
+  if(combatTarget){
+   const min=profile.core+(Number(combatTarget.r)||0)+2,oldDistance=Math.hypot(pos.x-combatTarget.x,pos.y-combatTarget.y),newDistance=Math.hypot(move.x-combatTarget.x,move.y-combatTarget.y);
+   if(newDistance<min&&newDistance<oldDistance){move.x=pos.x;move.y=pos.y;}
+  }
   s.x=move.x;s.y=move.y;
   const travelled=Math.hypot(move.x-pos.x,move.y-pos.y);s.stuckSeconds=Math.hypot(target.x-pos.x,target.y-pos.y)>radius+4&&travelled<normalSpeed*dt*.2?(s.stuckSeconds||0)+dt:Math.max(0,(s.stuckSeconds||0)-dt*2);
-  if(travelled>.01){
+  if(travelled>.01&&!combatTarget){
    const heading=Math.atan2(move.y-pos.y,move.x-pos.x);
    const diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));
    s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*11));
@@ -3846,7 +3867,7 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   // Every skin has a readable, largely bilateral deep-sea silhouette.
   if(id==='kraken'){
     // Glass-octopus inspired Kraken: translucent mantle, visible core, red eyes and an unsettling grin.
-    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.42,sy:.18,c1x:Math.cos(arm*Math.PI/4)*1.0,c1y:Math.sin(arm*Math.PI/4)*1.0,c2x:Math.cos(arm*Math.PI/4)*2.2,c2y:Math.sin(arm*Math.PI/4)*2.2,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
+    for(let arm=0;arm<8;arm++){const pose=window.AbyssalEnemyAI?.krakenTentaclePose?.(arm,enemyState?.specimenCombatPhase??t*.0018)||{sx:Math.cos(arm*Math.PI/4)*.42,sy:.18,c1x:Math.cos(arm*Math.PI/4)*1.0,c1y:Math.sin(arm*Math.PI/4)*1.0,c2x:Math.cos(arm*Math.PI/4)*2.2,c2y:Math.sin(arm*Math.PI/4)*2.2,ex:Math.cos(arm*Math.PI/4)*3.4,ey:Math.sin(arm*Math.PI/4)*3.4};krakenArm(pose,arm,t);}
     const glass=c.createRadialGradient(-.24*r,-.62*r,.04*r,.02*r,-.34*r,1.25*r);glass.addColorStop(0,'rgba(226,250,255,.74)');glass.addColorStop(.2,'rgba(105,190,224,.42)');glass.addColorStop(.62,'rgba(24,88,137,.28)');glass.addColorStop(1,'rgba(3,25,51,.58)');
     fill(()=>{c.moveTo(-.72*r,-.08*r);c.bezierCurveTo(-.88*r,-.72*r,-.56*r,-1.58*r,0,-1.72*r);c.bezierCurveTo(.56*r,-1.58*r,.88*r,-.72*r,.72*r,-.08*r);c.quadraticCurveTo(.55*r,.24*r,0,.34*r);c.quadraticCurveTo(-.55*r,.24*r,-.72*r,-.08*r);c.closePath()},glass,'rgba(171,226,255,.82)',Math.max(1.3,r*.055),15);
     fill(()=>{c.ellipse(0,-.72*r,.27*r,.43*r,-.04,0,Math.PI*2)},'rgba(92,34,49,.72)','rgba(224,176,184,.42)',Math.max(.8,r*.024),4);
@@ -4274,6 +4295,16 @@ function drawRiftShopSpecimen(enemy,skin,time){
  if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,bucket*.65,0,Math.PI*2);ctx.fill();}
  ctx.restore();
 }
+function drawSpecimenBite(pet,angle,bite,q){
+ const size=Math.max(7,bite.reach*.38),open=q<.22?q/.22:Math.max(0,1-(q-.22)/.42),gap=size*(.12+.68*open);
+ ctx.save();ctx.translate(pet.x+Math.cos(angle)*bite.reach,pet.y+Math.sin(angle)*bite.reach);ctx.rotate(angle+Math.PI/2);
+ ctx.globalAlpha=q<.75?1:1-(q-.75)/.25;ctx.shadowBlur=lowPowerRendering?0:5;ctx.shadowColor='#ff8396';
+ for(const side of [-1,1]){
+  ctx.strokeStyle='#e5b0ad';ctx.lineWidth=Math.max(1.2,size*.12);ctx.beginPath();ctx.moveTo(-size*.85,side*gap);ctx.quadraticCurveTo(0,side*(gap+size*.22),size*.85,side*gap);ctx.stroke();
+  ctx.fillStyle='#fff2db';for(let i=0;i<5;i++){const x=(-.68+i*.34)*size;ctx.beginPath();ctx.moveTo(x-size*.12,side*(gap+size*.04));ctx.lineTo(x+size*.12,side*(gap+size*.04));ctx.lineTo(x,side*(gap-size*.31));ctx.closePath();ctx.fill();}
+ }
+ ctx.restore();
+}
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon'){
  if(DIVER_ART?.draw){
   DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:true,heldItem,helmetLamp:!remote&&isOpenSeaRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
@@ -4479,7 +4510,8 @@ function draw(t){
  const particleShadowBlur=0;let particleDrawIndex=0;for(const p of particles){if(adaptiveQualityLevel===0&&particleDrawIndex++%3!==0)continue;if(adaptiveQualityLevel===1&&particleDrawIndex++%3===2)continue;if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();const pr=p.r*(.4+.6*p.life/p.max);ctx.arc(p.x,p.y,pr,0,Math.PI*2);if(p.bubble){ctx.fillStyle='rgba(215,250,255,.16)';ctx.fill();ctx.strokeStyle=p.color;ctx.lineWidth=.75/worldZoom;ctx.stroke();if(pr>1.2/worldZoom){ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.arc(p.x-pr*.32,p.y-pr*.32,pr*.25,0,Math.PI*2);ctx.fill();}}else ctx.fill()}ctx.globalAlpha=1;
  if(player){if((onlineMode||!isClassicShooterRun()||soloSubmarine.spawnFx<=1.25||player.y>=soloSubmarine.y+86/GAME_WORLD_ZOOM)&&(damageFlash<=0||Math.floor(t/60)%2===0)){drawDiver(player.x,player.y,player.r,player.bodyAngle||0,t,false,player.weaponAngle??player.angle??0,diverGender,isOpenSeaRun()?explorationHeldItem:'abyssWeapon');
   if((!isOpenSeaRun()||explorationHeldItem==='abyssWeapon')&&performance.now()<Number(player.skinWeaponBuffUntil||0))drawWeaponInfusion(player.x,player.y,player.r,player.weaponAngle??player.angle??0,t,player.skinWeaponBuffKind);
-  if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed});
+  if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed,specimenCombatPhase:performance.now()*.0018});
+  const bite=player.specimen.biteAnimation;if(bite){const q=clamp((performance.now()-bite.startedAt)/bite.duration,0,1);if(q>=1)player.specimen.biteAnimation=null;else drawSpecimenBite(player.specimen,sa,bite,q);}
   if(player.specimen.dash){const progress=clamp((performance.now()-player.specimen.dash.startedAt)/player.specimen.dash.durationMs,0,1);drawSpecimenDashArc(player.specimen.x,player.specimen.y,player.specimen.r,sa,t,progress);}
   // If the companion crosses the diver, keep the diver in the foreground.
   // This is render order only; attacks and collisions retain true positions.
