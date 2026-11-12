@@ -16,6 +16,10 @@
   const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
   const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.275, memoryMs: 1100 });
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
+  const isChargeAttack=enemy=>enemy?.kind==='whiteShark'||enemy?.kind==='whiteSharkBoss';
+  function biteDistance(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+24/WORLD_ZOOM;}
+  function biteReach(enemyRadius,playerRadius){return biteDistance(enemyRadius,playerRadius)+10/WORLD_ZOOM;}
+
   function sharkVisionState(enemy,target,now=Date.now()){
     if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle};
     const dx=Number(target.x)-Number(enemy.x),dy=Number(target.y)-Number(enemy.y),distance=Math.hypot(dx,dy);
@@ -195,7 +199,7 @@
     // Movimentação especial de investida para tubarões (whiteShark e whiteSharkBoss):
     // Move-se APENAS por investidas em linha reta que só param ao colidir com o fim do mapa.
     // Ao bater na parede, vira imediatamente na direção do jogador mais próximo e investe novamente.
-    const isShark = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') && options.freeSwim !== true;
+    const isShark = isChargeAttack(enemy) && options.freeSwim !== true;
     if (isShark) {
       const minX = Number.isFinite(options.minX) ? options.minX : 0;
       const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
@@ -205,25 +209,30 @@
       const dashSpeed = stats.dashSpeed || 290;
       const vision=sharkVisionState(enemy,target,currentTime);
       if(options.sharkLineOfSight===false){vision.visible=false;enemy.sharkAlertUntil=0;}
-      const hunting=vision.visible||currentTime<(Number(enemy.sharkAlertUntil)||0);
-      if(!hunting){
-        enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
-        const scanTurn=Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42;
-        const heading=(Number(enemy.angle)||0)+scanTurn*dt;
-        enemy.angle=heading;
-        const cruise=dashSpeed*.42;
-        enemy.dashVx=Math.cos(heading)*cruise;enemy.dashVy=Math.sin(heading)*cruise;
-      }else{
-        const aimAngle=vision.visible?vision.targetAngle:(Number(enemy.sharkLastTargetAngle)||Math.atan2(dy,dx));
-        const needsDash=enemy.dashVx==null||enemy.dashVy==null||
-          Math.hypot(Number(enemy.dashVx)||0,Number(enemy.dashVy)||0)<dashSpeed*.72;
-        if(needsDash){enemy.dashVx=Math.cos(aimAngle)*dashSpeed;enemy.dashVy=Math.sin(aimAngle)*dashSpeed;}else{const current=Math.atan2(Number(enemy.dashVy)||0,Number(enemy.dashVx)||1),turn=angleDelta(aimAngle,current),steered=current+clamp(turn,-1.7*dt,1.7*dt);enemy.dashVx=Math.cos(steered)*dashSpeed;enemy.dashVy=Math.sin(steered)*dashSpeed;}
-        enemy.angle=Math.atan2(Number(enemy.dashVy)||Math.sin(aimAngle),Number(enemy.dashVx)||Math.cos(aimAngle));
+      // Commit to a single straight pass beyond the prey; never home in during the strike.
+      let hunting=Boolean(enemy.sharkChargeRemaining>0);
+      if(!hunting&&vision.visible&&!(enemy.sharkRecoveryRemaining>0)){
+        const aim=vision.targetAngle;
+        enemy.sharkChargeRemaining=Math.max(220/WORLD_ZOOM,distance+Math.max(140/WORLD_ZOOM,(Number(enemy.r)||24)*3));
+        enemy.dashVx=Math.cos(aim)*dashSpeed;enemy.dashVy=Math.sin(aim)*dashSpeed;enemy.sharkChargeHit=false;hunting=true;
       }
+      if(hunting){
+        enemy.sharkChargeRemaining=Math.max(0,enemy.sharkChargeRemaining-dashSpeed*dt);
+        enemy.angle=Math.atan2(enemy.dashVy,enemy.dashVx);
+        if(enemy.sharkChargeRemaining<=0)enemy.sharkRecoveryRemaining=1.5;
+      }else{
+        enemy.sharkRecoveryRemaining=Math.max(0,(Number(enemy.sharkRecoveryRemaining)||0)-dt);
+        enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
+        const heading=(Number(enemy.angle)||0)+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42*dt;
+        enemy.angle=heading;const cruise=dashSpeed*.42;
+        enemy.dashVx=Math.cos(heading)*cruise;enemy.dashVy=Math.sin(heading)*cruise;
+      }
+      enemy.sharkCharging=hunting;
       let nx=(Number(enemy.x)||0)+(Number(enemy.dashVx)||0)*dt;
       let ny=(Number(enemy.y)||0)+(Number(enemy.dashVy)||0)*dt;
       const hitWall=nx<=minX+2||nx>=maxX-2||ny<=minY+2||ny>=maxY-2;
       if(hitWall){
+        enemy.sharkChargeRemaining=0;enemy.sharkCharging=false;enemy.sharkRecoveryRemaining=1.2;hunting=false;
         const turn=(Number(enemy.angle)||0)+Math.PI*(.62+((Number(enemy.id)||1)%5)*.07);
         enemy.angle=turn;const speedNow=hunting?dashSpeed:dashSpeed*.42;
         enemy.dashVx=Math.cos(turn)*speedNow;enemy.dashVy=Math.sin(turn)*speedNow;
@@ -278,7 +287,7 @@
     } else if (speed > 0 && stopDistance > 0) {
       const id = Math.abs(Math.floor(Number(enemy.id) || 1));
       const lane = id % 6;
-      const orbitRadius = stopDistance * (0.78 + lane * 0.12);
+      const orbitRadius = stopDistance * (1 + lane * 0.025);
       let theta = Math.atan2(oldY - Number(target.y), oldX - Number(target.x));
       if (!Number.isFinite(theta) || distance < 0.001) theta = (Number(enemy.angle) || 0) + Math.PI;
       let direction = Number(enemy.orbitDirection);
@@ -336,5 +345,5 @@
     return { ...ENEMY_STATS.whiteSharkBoss };
   }
 
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, isChargeAttack, biteDistance, biteReach, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });
