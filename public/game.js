@@ -3,7 +3,7 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d', { alpha: false });
 let mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
-const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=mobileViewport||cores<=4,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
+const cores=navigator.hardwareConcurrency||8;let lowPowerRendering=false,backgroundGradientCache=null,backgroundBloomCache=null,lastPaintAt=0;
 let hostileSpritePaintFrame=-1,hostileSpritePaintsThisFrame=0;
 let adaptiveQualityLevel=2,adaptiveQualityLastCheck=0,adaptiveQualityBadWindows=0,adaptiveQualityGoodWindows=0,adaptiveDprScale=1;
 const ADAPTIVE_QUALITY=[{name:'ECONOMIA',dpr:.72},{name:'EQUILIBRADO',dpr:.86},{name:'ALTO',dpr:1}];
@@ -487,7 +487,7 @@ const SEA_PROGRESSION=window.AbyssalSeaProgression;
 const SOLO_CLASSIC_CAP=50;
 const soloEnemyCap=()=>requestedRunMode==='rift'?MAX_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP:(SEA_PROGRESSION?.MAX_SEA_ENEMIES||100);
 const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP-1:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||99);
-const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
+const particleBudget=()=>520, projectileBudget=()=>240, effectBudget=()=>240, orbBudget=()=>180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'];
 const BOSS_LABELS=Object.freeze({riftSmile:'PESADELO ROXO',boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
 function anglerVisibilityAlpha(nowMs=Date.now()){
@@ -858,12 +858,12 @@ function resize(){
  viewW=Math.max(320,r.width);viewH=Math.max(300,r.height);
  mobileViewport=window.matchMedia('(pointer: coarse)').matches||window.innerWidth<=700;
  const cores=Number(navigator.hardwareConcurrency)||4,memory=Number(navigator.deviceMemory)||0;
- lowPowerRendering=!(document.body.classList.contains('game-active')&&!onlineMode&&isClassicShooterRun())&&(cores<=2||(memory>0&&memory<=2));adaptiveQualityLevel=lowPowerRendering?0:2;adaptiveDprScale=ADAPTIVE_QUALITY[adaptiveQualityLevel].dpr;
+ lowPowerRendering=false;adaptiveQualityLevel=2;adaptiveDprScale=1;
  // Preserve mobile sharpness without blindly rendering a 3x/4x framebuffer.
  // Strong phones get up to 2x DPR; constrained devices retain a lighter adaptive buffer.
- const nativeDpr=Math.min(window.devicePixelRatio||1,lowPowerRendering?1.2:(mobileViewport?2:1.8));
- // A pixel budget keeps high-density outlines crisp without a runaway GPU buffer.
- dpr=Math.min(Math.max(1,nativeDpr*adaptiveDprScale),Math.sqrt(3500000/(viewW*viewH)));
+ const nativeDpr=Math.max(1,window.devicePixelRatio||1);
+ // Native framebuffer resolution: never reduce below CSS pixels or silently downscale Retina.
+ dpr=Math.max(1,Math.min(nativeDpr,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));
  worldZoom=desiredWorldZoom();mapFactor=desiredMapFactor();
  W=Number(activeMapLayout?.width)||defaultWidth();H=Number(activeMapLayout?.height)||defaultHeight();mapFactor=1.7;
  // World coordinates never scale when the viewport rotates or resizes.
@@ -877,7 +877,7 @@ function resize(){
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;
  ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);
- createDecor();createArenaRocks();updateCamera();
+ if(!decor.length||oldW!==W||oldH!==H){createDecor();createArenaRocks();}updateCamera();
 }
 function createDecor(){
  decor=[];const count=isMobileDevice()?64:110;
@@ -3279,8 +3279,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&!anglerHidden&&e.kind!=='whiteShark'&&e.kind!=='whiteSharkBoss'){
     const pad=Math.max(5,e.r*.62),goal=movementTargets[0];
-    if(goal){const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,e.x,e.y,goal.x,goal.y,pad);
-     if(!nav.direct){const waypoint=nav.blocked?SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,goal.x,goal.y,pad,e.angle)||nav:nav;soloMapNavProxy.x=waypoint.x;soloMapNavProxy.y=waypoint.y;soloMapNavProxy.moveSpeed=player.moveSpeed;soloMapNavProxy.skinId=equippedSkin;movementTargets=soloMapNavTargets;soloEnemyMovementOptions.stopDistance=0;}
+    if(goal){const nav=SOLO_CAVERN.pursuitTarget(arenaRocks,W,H,e,goal,pad,performance.now());
+     if(!nav.direct){const waypoint=nav.blocked?SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,goal.x,goal.y,pad,e.angle)||nav:nav;soloMapNavProxy.x=waypoint.x;soloMapNavProxy.y=waypoint.y;soloMapNavProxy.moveSpeed=player.moveSpeed;soloMapNavProxy.skinId=equippedSkin;movementTargets=soloMapNavTargets;soloEnemyMovementOptions.stopDistance=nav.hold?Math.max(1,pad*.2):0;}
     }
     // Non-shark cave fauna follows the path flow. Sharks keep their field-of-view locomotion.
     soloEnemyMovementOptions.freeSwim=!(e.kind==='whiteShark'||e.kind==='whiteSharkBoss');
@@ -3307,7 +3307,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const speed=Number(window.AbyssalEnemyAI?.ENEMY_STATS?.[e.kind]?.dashSpeed)||Number(e.speed)||300;
     e.sharkChargeRemaining=0;e.sharkCharging=false;e.sharkRecoveryRemaining=1.2;e.angle=best;e.dashVx=Math.cos(best)*speed;e.dashVy=Math.sin(best)*speed;e.sharkAlertUntil=0;
    }else{
-    const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,player.x,player.y,Math.max(5,e.r*.62),e.angle);if(escape){const a=Math.atan2(escape.y-e.y,escape.x-e.x);e.angle=a;e.vx=Math.cos(a)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(a)*Math.max(12,Number(e.speed)||20);}else{e.vx=0;e.vy=0;}
+    const pad=Math.max(5,e.r*.62),escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,player.x,player.y,pad,e.angle);if(escape){e.caveRoute={...escape,direct:false,targetX:player.x,targetY:player.y,until:performance.now()+700};const a=Math.atan2(escape.y-e.y,escape.x-e.x);e.angle=a;e.vx=Math.cos(a)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(a)*Math.max(12,Number(e.speed)||20);}else{e.caveRoute=null;e.vx=0;e.vy=0;}
    }
   }}
   if(false&&!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
@@ -3361,7 +3361,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  for(let i=effects.length-1;i>=0;i--){effects[i].life-=dt;if(effects[i].life<=0){effects[i]=effects[effects.length-1];effects.pop();}}
  for(let i=damageNumbers.length-1;i>=0;i--){damageNumbers[i].life-=dt;if(damageNumbers[i].life<=0)damageNumbers.splice(i,1);}for(let i=bloodPools.length-1;i>=0;i--){bloodPools[i].life-=dt;if(bloodPools[i].life<=0)bloodPools.splice(i,1);}
  for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.05,dt);p.vy*=Math.pow(.05,dt);p.life-=dt;if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();if(particlePool.length<700)particlePool.push(p)}}
- if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget())effects.splice(0,effects.length-effectBudget());
+ if(particles.length>particleBudget()){const excess=particles.length-particleBudget();for(let i=0;i<excess;i++){if(particlePool.length<700)particlePool.push(particles[i]);}particles.splice(0,excess);}if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());if(effects.length>effectBudget()){let excess=effects.length-effectBudget();for(let i=0;i<effects.length&&excess>0;){const fx=effects[i];if(fx.type==='photon-ray'||fx.type==='gravity-cone'){i++;continue;}effects.splice(i,1);excess--;}}
  if(onlineMode&&window.AbyssalOnline){flushOnlineDamageBatch();window.AbyssalOnline.sendPosition({x:player.x,y:player.y,angle:player.angle});sendWorldSnapshot(dt);runProgressTimer-=dt;if(runProgressTimer<=0){runProgressTimer=1;window.AbyssalOnline.sendRunProgress?.({score,level,survival:elapsed,bossesKilled:bossKillsThisRun});}}
  updateHud(false);
 }
@@ -3653,11 +3653,11 @@ function drawCreature(x,y,r,angle,color,kind,t,playerCreature=false,hit=0,render
   // One anatomical surface per species/size/color. Per-creature motion stays on
   // the cheap outer transform; phase variants multiplied the cache and caused
   // canvas creation/eviction loops in crowded online rooms.
-  const side=Math.max(18,Math.ceil(r*spread*2)),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side;
+  const side=Math.max(18,Math.ceil(r*spread*2)),density=Math.max(1,Math.ceil(dpr*worldZoom*1.25)),pixels=Math.ceil(side*density),key=kind+'|'+color+'|'+Math.round(r*100)+'|'+side+'|'+density;
   let sprite=hostileSpriteCache.get(key);
-  if(!sprite){const surface=document.createElement('canvas');surface.width=side;surface.height=side;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
-  const refreshInterval=lowPowerRendering?(BOSS_KINDS.includes(kind)?180:360):(BOSS_KINDS.includes(kind)?120:260);const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
-  c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
+  if(!sprite){const surface=document.createElement('canvas');surface.width=pixels;surface.height=pixels;sprite={canvas:surface,context:surface.getContext('2d'),center:side/2,lastPaint:-Infinity};sprite.context.setTransform(density,0,0,density,0,0);hostileSpriteCache.set(key,sprite);if(hostileSpriteCache.size>48)hostileSpriteCache.delete(hostileSpriteCache.keys().next().value);}
+  const refreshInterval=BOSS_KINDS.includes(kind)?50:83;const stale=t-sprite.lastPaint>=refreshInterval;const firstPaint=!Number.isFinite(sprite.lastPaint)||sprite.lastPaint<0;if(stale&&(firstPaint||hostileSpritePaintsThisFrame<2)){sprite.context.clearRect(0,0,side,side);hostileSpriteState.__visualMotion=visualMotion;hostileSpriteState.phase=Number(enemyState?.phase)||0;drawCreature(sprite.center,sprite.center,r,0,color,kind,animationTime,false,0,sprite.context,null,hostileSpriteState);sprite.lastPaint=t;hostileSpritePaintsThisFrame++;}
+  c.save();c.translate(x,y);applyCreatureVisualTransform(c,visualMotion,r,movingEnemyHeading);if(kind==='angler')c.globalAlpha=anglerVisibilityAlpha(Date.now());c.drawImage(sprite.canvas,-sprite.center,-sprite.center,side,side);if(kind==='angler'&&c.globalAlpha<.999){c.globalAlpha=1;const lx=.62*r,ly=-1.27*r,rr=.67*r,g=c.createRadialGradient(lx,ly,0,lx,ly,rr);g.addColorStop(0,'#fff');g.addColorStop(.2,'#fff7b3');g.addColorStop(.48,'#ffca57');g.addColorStop(1,'rgba(255,170,45,0)');c.fillStyle=g;c.shadowBlur=13;c.shadowColor='#ffdc70';c.beginPath();c.arc(lx,ly,rr,0,Math.PI*2);c.fill();}if(hit>0&&(kind!=='angler'||anglerVisibilityAlpha(Date.now())>.001)){c.globalAlpha=clamp(hit*2.6,0,.45)*(kind==='angler'?anglerVisibilityAlpha(Date.now()):1);c.fillStyle='#fff';c.beginPath();c.arc(0,0,r*.68,0,Math.PI*2);c.fill();}c.restore();return;
  }
  t=animationTime;
  const id=skin?.id||'default';
@@ -4181,7 +4181,8 @@ function registerSpecimenPortrait(canvas,skinId){
 function renderSpecimenPortraits(t){
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
-  const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
+  if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
+  const c=canvas.getContext('2d'),w=canvas.offsetWidth,h=canvas.offsetHeight,density=Math.max(1,window.devicePixelRatio||1),pw=Math.ceil(w*density),ph=Math.ceil(h*density),skin=skinData.find(s=>s.id===skinId)||skinData[0];if(canvas.width!==pw||canvas.height!==ph){canvas.width=pw;canvas.height=ph;}c.setTransform(density,0,0,density,0,0);c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
   const dx=w*.42,dy=h*.60,bob=Math.sin(t*.0022)*3;
@@ -4190,7 +4191,7 @@ function renderSpecimenPortraits(t){
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
 
  }
- requestAnimationFrame(renderSpecimenPortraits);
+ if(specimenPortraits.size)requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
 }
 window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
@@ -4211,18 +4212,18 @@ function drawRiftShopSpecimen(enemy,skin,time){
  const radius=oceanFauna?(sharkHeight?16+sharkHeight*9:Math.min(79,CREATURE_SCALE?.monsterVisualRadius?.(enemy.kind,Number(enemy.r)||8,skin.id)||normalRadius)):normalRadius;
  // Render very large real-life silhouettes from a capped sprite and scale the
  // composited image. Never allocate a multi-megapixel canvas per giant specimen.
- const bucket=Math.max(4,Math.min(80,Math.round(radius*2)/2));
+ const bucket=Math.max(4,Math.round(radius*2)/2);
  const renderScale=radius/bucket;
- const side=Math.min(640,Math.ceil(bucket*8));
- const key=skin.id+'|'+bucket;
+ const side=Math.ceil(bucket*8),density=Math.max(1,Math.ceil(dpr*worldZoom*renderScale*1.25)),pixels=Math.ceil(side*density);
+ const key=skin.id+'|'+bucket+'|'+density;
  let sprite=riftSpecimenSpriteCache.get(key);
  if(!sprite){
-  const canvas=document.createElement('canvas');canvas.width=side;canvas.height=side;
-  sprite={canvas,c:canvas.getContext('2d'),side,lastPaint:-Infinity};
+  const canvas=document.createElement('canvas');canvas.width=pixels;canvas.height=pixels;
+  sprite={canvas,c:canvas.getContext('2d'),side,lastPaint:-Infinity};sprite.c.setTransform(density,0,0,density,0,0);
   riftSpecimenSpriteCache.set(key,sprite);
   if(riftSpecimenSpriteCache.size>96)riftSpecimenSpriteCache.delete(riftSpecimenSpriteCache.keys().next().value);
  }
- const stale=time-sprite.lastPaint>=(lowPowerRendering?250:145);
+ const stale=time-sprite.lastPaint>=83;
  if(stale&&(sprite.lastPaint===-Infinity||riftSpecimenSpritePaints<3)){
   sprite.c.clearRect(0,0,sprite.side,sprite.side);
   drawCreature(sprite.side*.5,sprite.side*.5,bucket,0,skin.color,'player',time,true,0,sprite.c,skin,{__sprite:true,phase:Number(enemy.phase)||0});
@@ -4237,7 +4238,7 @@ function drawRiftShopSpecimen(enemy,skin,time){
    ctx.shadowColor=enemy.aiIndicator==='attack'?'#b72a34':'#273c52';
    ctx.shadowBlur=enemy.aiIndicator==='attack'?bucket*.48:bucket*.17;
   }
-  ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5);
+  ctx.drawImage(sprite.canvas,-sprite.side*.5,-sprite.side*.5,sprite.side,sprite.side);
   ctx.shadowBlur=0;
  if(enemy.hit>0){ctx.globalAlpha=Math.min(.38,Number(enemy.hit)*2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,bucket*.65,0,Math.PI*2);ctx.fill();}
  ctx.restore();
@@ -4576,28 +4577,19 @@ function recordGameFrame(startedAt,endedAt,updateMs,drawMs){
  if(endedAt-gameFrameWindowStart>=1000){gameFrameFps=Math.round(gameFrameWindowCount*1000/(endedAt-gameFrameWindowStart));gameFrameWindowStart=endedAt;gameFrameWindowCount=0;}
 }
 function applyAdaptiveQuality(level,reason='runtime'){
- const next=clamp(Math.round(level),0,2);if(next===adaptiveQualityLevel)return;
+ const next=2;if(next===adaptiveQualityLevel)return;
  adaptiveQualityLevel=next;adaptiveDprScale=ADAPTIVE_QUALITY[next].dpr;lowPowerRendering=next===0;
  // Rebuild only the framebuffer. World/gameplay coordinates are untouched.
- const nativeDpr=Math.max(1,window.devicePixelRatio||1),baseCap=mobileViewport?(next===0?1.2:next===1?1.6:2):(next===0?1.15:next===1?1.5:1.8);
+ const nativeDpr=Math.max(1,window.devicePixelRatio||1);
  // Never drop below native 1 CSS pixel per framebuffer pixel: sub-1 DPR
  // visibly pixelates rotating creatures even on otherwise fast machines.
- dpr=Math.min(Math.max(1,Math.min(nativeDpr*adaptiveDprScale,baseCap)),Math.sqrt(3500000/(viewW*viewH)));
+ dpr=Math.max(1,Math.min(nativeDpr,4096/viewW,4096/viewH,Math.sqrt(16777216/(viewW*viewH))));
  canvas.width=Math.max(1,Math.floor(viewW*dpr));canvas.height=Math.max(1,Math.floor(viewH*dpr));canvas.style.width=viewW+'px';canvas.style.height=viewH+'px';
  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
  backgroundGradientCache=null;backgroundBloomCache=null;
  window.dispatchEvent(new CustomEvent('abyssal-quality-change',{detail:{level:next,name:ADAPTIVE_QUALITY[next].name,reason,dpr}}));
 }
-function updateAdaptivePerformance(now){
- if(!onlineMode&&isClassicShooterRun()&&gameState==='playing'){if(adaptiveQualityLevel<2)applyAdaptiveQuality(2,'solo-visual-priority');return;}
- if(gameState!=='playing'||now-adaptiveQualityLastCheck<2500||gameFrameFps<=0)return;
- adaptiveQualityLastCheck=now;
- const fps=gameFrameFps,p95=(()=>{const a=[];for(let i=0;i<gameFrameSampleCount;i++)a.push(gameFrameSamples[i]);a.sort((x,y)=>x-y);return a.length?a[Math.min(a.length-1,Math.ceil(a.length*.95)-1)]:0})();
- const bad=fps<48||p95>23,good=fps>=57&&p95<18;
- if(bad){adaptiveQualityBadWindows++;adaptiveQualityGoodWindows=0}else if(good){adaptiveQualityGoodWindows++;adaptiveQualityBadWindows=0}else{adaptiveQualityBadWindows=Math.max(0,adaptiveQualityBadWindows-1);adaptiveQualityGoodWindows=0}
- if(adaptiveQualityBadWindows>=2&&adaptiveQualityLevel>0){adaptiveQualityBadWindows=0;applyAdaptiveQuality(adaptiveQualityLevel-1,'sustained-frame-pressure')}
- else if(adaptiveQualityGoodWindows>=8&&adaptiveQualityLevel<2){adaptiveQualityGoodWindows=0;applyAdaptiveQuality(adaptiveQualityLevel+1,'sustained-headroom')}
-}
+function updateAdaptivePerformance(now){if(adaptiveQualityLevel!==2)applyAdaptiveQuality(2,'native-visual-priority');}
 window.AbyssalAdaptivePerformance={snapshot:()=>({level:adaptiveQualityLevel,name:ADAPTIVE_QUALITY[adaptiveQualityLevel].name,dpr:Number(dpr.toFixed(2)),fps:gameFrameFps}),setLevel:level=>applyAdaptiveQuality(level,'manual-diagnostic')};
 function getAbyssalPerformanceSnapshot(){
  const samples=[];for(let i=0;i<gameFrameSampleCount;i++)samples.push(gameFrameSamples[i]);samples.sort((a,b)=>a-b);
@@ -4625,10 +4617,10 @@ function loop(t){
  // frames. The old 60-FPS divisor produced 37-55 FPS on 75/90/144/165 Hz displays.
  // Idle/menu rendering remains capped to ~30 FPS because motion there is non-critical.
  if(!active&&lastPaintAt&&t-lastPaintAt<1000/30-1){requestAnimationFrame(loop);return;}
- const dt=Math.min(.035,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
+ const dt=Math.min(.10,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
-  if(active){const updateStarted=performance.now();update(dt);updateMs=performance.now()-updateStarted;}
+  if(active){const updateStarted=performance.now();const steps=Math.max(1,Math.ceil(dt/(1/60))),step=dt/steps;for(let i=0;i<steps;i++){if(abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade')))break;update(step);}updateMs=performance.now()-updateStarted;}
   const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);updateAdaptivePerformance(frameEnded);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  requestAnimationFrame(loop);

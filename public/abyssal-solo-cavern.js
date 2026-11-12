@@ -151,9 +151,18 @@
  }
  function navigationTarget(rocks,w,h,fromX,fromY,toX,toY,padding=0){
   if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding))return {x:toX,y:toY,direct:true,blocked:false};
-  const g=gridFor(rocks,w,h,padding),start=nearestNode(g,rocks,fromX,fromY),goal=nearestNode(g,rocks,toX,toY,false);
-  if(start<0||goal<0)return {x:fromX,y:fromY,blocked:true,direct:false};
-  const d=flow(g,goal);if(d[start]<0)return {x:fromX,y:fromY,blocked:true,direct:false};
+  const g=gridFor(rocks,w,h,padding),start=nearestNode(g,rocks,fromX,fromY);
+  if(start<0)return {x:fromX,y:fromY,blocked:true,direct:false};
+  // Player may hug a wall more closely than a large animal can. Choose a reachable
+  // water point near the target, not a node on the wrong side of a thin shelf.
+  let goal=nearestNode(g,rocks,toX,toY,false);if(goal<0)return {x:fromX,y:fromY,blocked:true,direct:false};
+  let d=flow(g,goal);
+  if(d[start]<0||isBlocked(rocks,toX,toY,g.p)){
+   const reach=flow(g,start),at=g.idAt(toX,toY),cx=at%g.cols,cy=Math.floor(at/g.cols);let best=-1,bestScore=Infinity;
+   for(let yy=Math.max(0,cy-3);yy<=Math.min(g.rows-1,cy+3);yy++)for(let xx=Math.max(0,cx-3);xx<=Math.min(g.cols-1,cx+3);xx++){const i=yy*g.cols+xx;if(reach[i]<0)continue;const q=g.xy(i),dist=Math.hypot(q.x-toX,q.y-toY),visible=!segmentBlocked(rocks,q.x,q.y,toX,toY,0);const score=dist+(visible?0:CELL*4)+reach[i]*.05;if(score<bestScore){bestScore=score;best=i;}}
+   if(best>=0){goal=best;d=flow(g,goal);}
+  }
+  if(d[start]<0)return {x:fromX,y:fromY,blocked:true,direct:false};
   let node=start,best=g.xy(node);
   // Look ahead along the shared flow field. Stable waypoints avoid oscillation.
   for(let step=0;step<8;step++){
@@ -162,7 +171,7 @@
    if(segmentBlocked(rocks,fromX,fromY,p.x,p.y,padding))break;
    node=next;best=p;
   }
-  return {...best,direct:false,blocked:false};
+  return {...best,direct:false,blocked:false,goalX:g.xy(goal).x,goalY:g.xy(goal).y};
  }
  // Exact angular events at solid polygon corners prevent a fan from bridging
  // a thin rock between two uniformly spaced rays. The same geometry drives AI.
@@ -191,6 +200,21 @@
    const travel=Math.hypot(tx-x,ty-y),progress=oldDistance-Math.hypot(goalX-tx,goalY-ty),value=progress*.7+travel*.35+Math.cos(a-heading)*step*.2;
    if(value>score){score=value;best={x:tx,y:ty};}}
   return best;
+ }
+ function pursuitTarget(rocks,w,h,actor,goal,padding,now=0){
+  const x=actor.x,y=actor.y,previous=actor.caveRoute,close=Math.hypot(goal.x-x,goal.y-y),direct=!segmentBlocked(rocks,x,y,goal.x,goal.y,padding);
+  if(direct){actor.caveRoute=null;return {x:goal.x,y:goal.y,direct:true,blocked:false};}
+  // Hold a waypoint long enough to actually round a corner; don't pick a new
+  // tangent on every collision or when the diver moves a few pixels.
+  if(previous&&now<previous.until&&Math.hypot(previous.x-x,previous.y-y)>Math.max(5,padding*.25)&&Math.hypot(previous.targetX-goal.x,previous.targetY-goal.y)<CELL*1.4&&!segmentBlocked(rocks,x,y,previous.x,previous.y,padding))return previous;
+  const nav=navigationTarget(rocks,w,h,x,y,goal.x,goal.y,padding);let next=nav;
+  if(nav.blocked||Math.hypot(nav.x-x,nav.y-y)<Math.max(4,padding*.2)){
+   // A valid attack position can be adjacent to the player's wall. Hold here
+   // only if the actual target is visible, otherwise take a traversable detour.
+   if(close<Math.max(35,padding*2.5)&&!segmentBlocked(rocks,x,y,goal.x,goal.y,0))return {x,y,direct:false,blocked:false,hold:true};
+   next=escapeTarget(rocks,w,h,x,y,goal.x,goal.y,padding,actor.angle)||nav;
+  }
+  const route={...next,direct:false,targetX:goal.x,targetY:goal.y,until:now+550};actor.caveRoute=route;return route;
  }
  function path(c,pts){c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();}
  function organicPath(c,pts){
@@ -353,5 +377,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,navigationTarget,escapeTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
 });
