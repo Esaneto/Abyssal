@@ -36,7 +36,8 @@ test('submarine power costs 20 plus 10 for every installed weapon and partial to
  const energy=wallet(1000),base=baseModule.create(memory(),energy);
  assert.equal(base.unlockedShots().length,1);
  assert.equal(base.fullPowerCost(),30);
- assert.equal(base.research('electric').ok,true);
+ assert.equal(base.research('weapon:electric').ok,true);
+ assert.equal(base.installWeapon('electric').ok,true);
  assert.equal(base.fullPowerCost(),40);
  assert.equal(base.research('submarineShield').ok,true);
  assert.equal(base.fullPowerCost(),40,'shield research must not add recurring energy cost');
@@ -50,11 +51,11 @@ test('Solo submarine is a powered world object with automatic researched weapons
  const game=read('public/game.js'),cave=read('public/abyssal-solo-cavern.js');
  assert.match(game,/let soloSubmarine=\{/);
  assert.match(game,/function updateSoloSubmarine\(dt\)/);
- assert.match(game,/window\.AbyssalSoloBase\?\.unlockedShots/);
+ assert.match(game,/window\.AbyssalSoloBase\?\.installedWeapons/);
  assert.match(game,/fireSoloSubmarineWeapon/);
  assert.match(game,/spawnFx/);
  assert.match(game,/SOLO_CAVERN\?\.lighting\([^;]+soloSubmarinePowered/);
- assert.match(cave,/59ff9a/);
+ assert.match(cave,/24ff78/);
  assert.match(cave,/Every rock plant remains faintly self-luminous/);
 });
 

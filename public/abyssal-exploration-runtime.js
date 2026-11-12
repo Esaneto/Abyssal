@@ -236,8 +236,18 @@
    const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
    const renderGroup=(title,ids,cost,description)=>{section(title);for(const id of ids)researchRow(id,labels[id]||id.toUpperCase(),description,cost,Boolean(base?.unlocked?.(id)),()=>base?.research?.(id));};
    renderGroup('RESSONÂNCIA · DISPAROS',base?.SHOTS||[],100,'Libera este disparo para seleção no mergulhador. A arma do submarino é pesquisada separadamente.');
-   section('ARMAMENTO DO SUBMARINO','Cada pesquisa instala uma torre robótica física independente. Nenhuma arma vem instalada de fábrica.');
-   for(const id of base?.SHOTS||[])researchRow('weapon:'+id,'TORRE · '+(labels[id]||id.toUpperCase()),'Instala uma arma automática com mira própria. Consome mais 10 energia por ciclo de 5 minutos.',base.cost('weapon:'+id),base.unlocked('weapon:'+id),()=>base.research('weapon:'+id));
+   const installed=base?.installedWeapons?.()||[],maxWeapons=base?.MAX_WEAPONS||3;
+   section('ARMAMENTO DO SUBMARINO · '+installed.length+'/'+maxWeapons,'Lança de Fótons é instalada de fábrica. Pesquise os demais disparos e escolha até três torres. Remova uma torre para liberar espaço; a pesquisa permanece salva.');
+   const slots=document.createElement('p');slots.className='solo-research-copy';slots.textContent=Array.from({length:maxWeapons},(_,i)=>(i+1)+'. '+(labels[installed[i]]||'ESPAÇO LIVRE')).join('  ·  ');utility.append(slots);
+   for(const id of base?.SHOTS||[]){
+    const key='weapon:'+id,owned=base.unlocked(key),mounted=installed.includes(id);
+    if(!owned){researchRow(key,'TORRE · '+labels[id],'Pesquisa permanente. Após desbloquear, instale em um espaço livre.',base.cost(key),false,()=>base.research(key));continue;}
+    const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(mounted?' is-complete':'');
+    const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent='TORRE · '+labels[id];desc.textContent=mounted?'INSTALADA · +10 energia por ciclo':'PESQUISADA · '+(installed.length>=maxWeapons?'Remova uma torre para instalar.':'Pronta para instalação gratuita.');data.append(label,desc);
+    const btn=document.createElement('button');btn.type='button';btn.className='abyss-visor-action solo-research-buy';btn.textContent=mounted?'DESINSTALAR':'INSTALAR';btn.disabled=!mounted&&installed.length>=maxWeapons;
+    btn.addEventListener('click',()=>{const result=mounted?base.uninstallWeapon(id):base.installWeapon(id);if(result.ok){const body=workshop?.querySelector('.abyss-visor-body'),scroll=body?.scrollTop||0;renderWorkshop();const next=workshop?.querySelector('.abyss-visor-body');if(next)next.scrollTop=scroll;}});
+    row.append(data,btn);utility.append(row);
+   }
    renderGroup('RESSONÂNCIA · PASSIVAS',base?.PASSIVES||[],80,'Libera esta passiva na configuração de Ressonância.');
    renderGroup('RESSONÂNCIA · BUFFS',base?.BUFFS||[],60,'Libera este buff na configuração de Ressonância.');
    const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.installedWeapons?.().length||0)+' ARMA(S) INSTALADA(S)';utility.append(power);

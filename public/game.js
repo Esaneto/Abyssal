@@ -452,8 +452,9 @@ const controlSettings={pc:localStorage.getItem('abyssalControlsPc')||'classic',m
 let controlAimAngle=0;
 const MAX_ENEMIES=400,MAX_BOSSES=4,MAX_COMMON_ENEMIES=MAX_ENEMIES-MAX_BOSSES;
 const SEA_PROGRESSION=window.AbyssalSeaProgression;
-const soloEnemyCap=()=>requestedRunMode==='rift'?MAX_ENEMIES:(SEA_PROGRESSION?.MAX_SEA_ENEMIES||100);
-const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||99);
+const SOLO_CLASSIC_CAP=50;
+const soloEnemyCap=()=>requestedRunMode==='rift'?MAX_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP:(SEA_PROGRESSION?.MAX_SEA_ENEMIES||100);
+const soloCommonCap=()=>requestedRunMode==='rift'?MAX_COMMON_ENEMIES:requestedRunMode==='classic'?SOLO_CLASSIC_CAP-1:(SEA_PROGRESSION?.MAX_SEA_COMMON_ENEMIES||99);
 const particleBudget=()=>isMobileDevice()?240:520, projectileBudget=()=>isMobileDevice()?100:160, effectBudget=()=>isMobileDevice()?64:120, orbBudget=()=>isMobileDevice()?100:180;
 const BOSS_KINDS=['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer','riftSmile'];
 const BOSS_LABELS=Object.freeze({riftSmile:'PESADELO ROXO',boss:'POLVO-DE-ANÉIS-AZUIS COLOSSAL',leviathan:'PEIXE-REMO LEVIATÃ',maw:'ENGUIA-PELÍCANO COLOSSAL',angler:'PEIXE-PESCADOR ABISSAL',whiteSharkBoss:'TUBARÃO-BRANCO · O DEVORADOR PELÁGICO',kraken:'LULA-KRAKEN DAS FOSSAS',devourer:'LULA-COLOSSAL DO VAZIO'});
@@ -546,7 +547,7 @@ function updateSoloSubmarineInteraction(){
  const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM;
  button.hidden=!near;if(!near)return;
  const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,minutes=Math.max(0,soloSubmarine.powerSeconds)/60;
- button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' TORRE(S)';
+ button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN · '+(window.AbyssalSoloBase?.installedWeapons?.().length||0)+' TORRE(S) / 3';
 }
 window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=390/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
 const SOLO_WEAPON_MOUNTS=Object.freeze({photon:[-105,70,Math.PI/2],electric:[105,-80,-Math.PI/2],pierce:[-188,-48,-Math.PI*.75],photonRay:[257,-24,0],nova:[-230,25,Math.PI],echoShot:[168,78,Math.PI/2]});
@@ -603,7 +604,9 @@ function drawSoloSubmarine(t){
  ctx.save();ctx.translate(x,y);
  if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
  if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
- ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered||soloSubmarine.spawnFx>0);
+ ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered||soloSubmarine.spawnFx>0,t);
+ // Ballast vents release small rising bubbles even with weapons offline.
+ ctx.save();const bs=1/GAME_WORLD_ZOOM;for(let i=0;i<24;i++){const life=((t*.00042+i*.173)%1+1)%1,side=i%2?-1:1,px=(side*(185+(i%4)*12)+Math.sin(t*.0015+i*2.4)*9*life)*bs,py=(-17-life*104+(i%3)*5)*bs;ctx.globalAlpha=(1-life)*.65;ctx.strokeStyle='#bdeef3';ctx.lineWidth=.8*bs;ctx.beginPath();ctx.arc(px,py,(1.3+(i%4)*.65)*bs,0,Math.PI*2);ctx.stroke();}ctx.restore();
  const installed=window.AbyssalSoloBase?.installedWeapons?.()||[];
  // Empty mechanical sockets are visible but cannot fire until a tower is researched.
  for(const id of Object.keys(SOLO_WEAPON_MOUNTS)){if(installed.includes(id))continue;const m=submarineMount(id);ctx.save();ctx.translate(m.x-x,m.y-y);ctx.rotate(m.a);ctx.scale(1/GAME_WORLD_ZOOM,1/GAME_WORLD_ZOOM);ctx.fillStyle='#26383d';ctx.strokeStyle='#9aaca6';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(-6,-15,12,30,3);ctx.fill();ctx.stroke();ctx.fillStyle='#111d24';ctx.fillRect(0,-8,5,16);ctx.restore();}

@@ -24,13 +24,15 @@ test('research costs match the requested energy tiers',()=>{
  assert.equal(base.cost('submarineShield'),100);
 });
 
-test('researched shots become submarine weapons and raise five-minute power cost by ten',()=>{
+test('researched submarine weapons require installation and raise power cost by ten',()=>{
  const wallet=energyWallet(1000),base=baseModule.create(memory(),wallet);
  assert.deepEqual(base.unlockedShots(),['photon']);
  assert.equal(base.fullPowerCost(),30); // light 20 + one photon weapon 10
- assert.equal(base.research('electric').ok,true);
+ assert.equal(base.research('weapon:electric').ok,true);
+ assert.equal(base.fullPowerCost(),30);
+ assert.equal(base.installWeapon('electric').ok,true);
  assert.equal(base.fullPowerCost(),40);
- assert.ok(base.unlockedShots().includes('electric'));
+ assert.ok(base.installedWeapons().includes('electric'));
 });
 
 test('partial submarine recharge spends proportionally and supports partial wallets',()=>{
@@ -45,16 +47,30 @@ test('Solo game mounts a powered submarine with automatic researched guns and sh
  const game=fs.readFileSync(path.join(__dirname,'..','public/game.js'),'utf8');
  assert.match(game,/function drawSoloSubmarine/);
  assert.match(game,/function updateSoloSubmarine\(dt\)/);
- assert.match(game,/unlockedShots\?\.\(\)/);
+ assert.match(game,/installedWeapons\?\.\(\)/);
  assert.match(game,/fireSoloSubmarineWeapon/);
  assert.match(game,/submarineShield/);
- assert.match(game,/SOLO_SUB_RANGE=294\/GAME_WORLD_ZOOM/);
+ assert.match(game,/SOLO_SUB_RANGE=650\/GAME_WORLD_ZOOM/);
  assert.match(game,/ENERGIZAR SUBMARINO/);
 });
 
 test('cavern plants emit green light and submarine contributes a separate world light',()=>{
  const cave=fs.readFileSync(path.join(__dirname,'..','public/abyssal-solo-cavern.js'),'utf8');
- assert.match(cave,/shadowColor='#59ff9a'/);
+ assert.match(cave,/shadowColor='#24ff78'/);
  assert.match(cave,/globalCompositeOperation='screen'/);
  assert.match(cave,/extraLights=\[\]/);
+});
+
+test('three weapon slots, independent permanent research, persistence and free swaps',()=>{
+ const store=memory(),wallet=energyWallet(1000),base=baseModule.create(store,wallet);
+ assert.deepEqual(base.installedWeapons(),['photon']);
+ for(const id of ['electric','pierce','nova'])assert.equal(base.research('weapon:'+id).ok,true);
+ assert.equal(base.installWeapon('electric').ok,true);assert.equal(base.installWeapon('pierce').ok,true);
+ assert.equal(base.installWeapon('nova').reason,'full');assert.equal(base.fullPowerCost(),50);
+ assert.equal(base.uninstallWeapon('photon').ok,true);assert.equal(base.unlocked('weapon:photon'),true);
+ assert.equal(base.installWeapon('nova').ok,true);assert.deepEqual(baseModule.create(store,wallet).installedWeapons(),['electric','pierce','nova']);
+ assert.equal(wallet.get().energy,700);
+});
+test('legacy installation migrates to three slots and preserves all research',()=>{
+ const store=memory();store.setItem(baseModule.KEY,JSON.stringify({weapons:['electric','pierce','nova','echoShot']}));const base=baseModule.create(store,energyWallet());assert.deepEqual(base.installedWeapons(),['photon','electric','pierce']);assert.equal(base.unlocked('weapon:echoShot'),true);
 });

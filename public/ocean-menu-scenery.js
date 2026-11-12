@@ -106,12 +106,12 @@
  }
 
  // Preserves the existing underwater background, adding only the foreground floor.
- function drawSubmarineModel(c,x,y,scale=1,powered=true){
+ function drawSubmarineModel(c,x,y,scale=1,powered=true,time=0){
  c.save();c.translate(x,y);c.scale(scale,scale);
  const e=(x,y,rx,ry,fill,stroke,width=2)=>{c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
  const grad=(x1,y1,x2,y2,stops)=>{const g=c.createLinearGradient(x1,y1,x2,y2);stops.forEach(([p,v])=>g.addColorStop(p,v));return g;};
  e(-248,0,38,57,'#172a30','#a8863c',7);e(-248,0,27,44,'#061217','#49666b',3);
- for(let i=0;i<4;i++){c.save();c.translate(-248,0);c.rotate(i*Math.PI/2+.3);c.fillStyle='#64777a';c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(18,-12,10,-37);c.quadraticCurveTo(-9,-22,0,0);c.fill();c.restore();}
+ for(let i=0;i<4;i++){c.save();c.translate(-248,0);c.rotate(i*Math.PI/2+.3+(Number(time)||0)*.0035);c.fillStyle='#64777a';c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(18,-12,10,-37);c.quadraticCurveTo(-9,-22,0,0);c.fill();c.restore();}
  e(-248,0,9,9,'#c9a14d','#1b292c');
  c.beginPath();c.moveTo(-225,-25);c.bezierCurveTo(-174,-50,-124,-73,-48,-76);c.lineTo(158,-76);c.bezierCurveTo(292,-76,307,69,174,80);c.lineTo(-35,72);c.bezierCurveTo(-123,66,-186,34,-225,25);c.closePath();
  c.fillStyle=grad(0,-82,0,82,[[0,'#ffe28b'],[.19,'#d9a83b'],[.45,'#a66c19'],[.62,'#d7a532'],[.84,'#594221'],[1,'#182329']]);c.fill();c.strokeStyle='#101c21';c.lineWidth=6;c.stroke();
@@ -124,7 +124,9 @@
  c.fillStyle='#26383b';c.fillRect(-37,-91,104,19);c.fillStyle='#c19740';c.fillRect(-25,-99,80,9);c.strokeStyle='#76888a';c.lineWidth=4;c.beginPath();c.moveTo(16,-99);c.lineTo(16,-123);c.lineTo(37,-123);c.stroke();
  e(0,76,48,18,'#121e23','#d9b451',5);e(0,86,32,16,powered?'#13606b':'#173840','#92a9a2',3);e(0,87,21,10,'#081b24',powered?'#8dfaff':'#426b71',2);
  c.save();c.translate(42,61);c.rotate(-.65);e(0,0,36,14,'#a77a30','#1b292c',4);e(0,0,24,8,null,'#e4bd65',2);c.restore();
- if(powered){for(const px of [-116,105,227]){c.save();c.shadowColor='#8bfaff';c.shadowBlur=18;e(px,53,8,4,'#c5ffff');c.restore();}}
+ if(powered){for(const px of [-116,105,227]){c.save();c.shadowColor='#8bfaff';c.shadowBlur=12+6*Math.sin((Number(time)||0)*.002+px);e(px,53,8,4,'#c5ffff');c.restore();}}
+ // Animated ballast pistons, independent of the solid hull.
+ const pulse=Math.sin((Number(time)||0)*.002);for(const px of [-162,159]){c.save();c.translate(px,62);c.fillStyle='#263a40';c.fillRect(-12,0,24,12);c.fillStyle='#98aca9';c.fillRect(-5,8,10,7+2*pulse);c.restore();}
  c.fillStyle='#202b2c';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText('ABYSSAL',85,47);c.restore();
  }
  function drawSubmarine(canvas,width,height){
