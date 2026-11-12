@@ -177,13 +177,28 @@
     let target = null, dx = 0, dy = 0, distance = Infinity;
     for (const candidate of targets) {
       const x = Number(candidate?.x), y = Number(candidate?.y);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      if (candidate?.alive===false || !Number.isFinite(x) || !Number.isFinite(y)) continue;
       const cx = x - Number(enemy.x), cy = y - Number(enemy.y), d = Math.hypot(cx, cy);
       if (d < distance) { distance = d; dx = cx; dy = cy; target = candidate; }
     }
     if (!target || !Number.isFinite(distance)) {
       result.moved = false; result.target = null; result.distance = Infinity; result.dx = 0; result.dy = 0;
       return result;
+    }
+
+    // A nearer player behind the shark must not mask a visible player in
+    // its frontal cone. Once committed, the normal priority order applies.
+    if(isChargeAttack(enemy)&&options.freeSwim!==true&&!enemy.sharkCharging&&!(enemy.sharkChargeRemaining>0)&&targets.length>1){
+      let nearestVisible=null,visibleDistance=Infinity;
+      const heading=Number.isFinite(Number(enemy.angle))?Number(enemy.angle):Math.atan2(dy,dx);
+      for(const candidate of targets){
+        if(!candidate||candidate.alive===false)continue;
+        const cx=Number(candidate.x)-Number(enemy.x),cy=Number(candidate.y)-Number(enemy.y),d=Math.hypot(cx,cy);
+        if(!Number.isFinite(d)||d>=visibleDistance||d>SHARK_VISION.range||Math.abs(angleDelta(Math.atan2(cy,cx),heading))>SHARK_VISION.halfAngle)continue;
+        if(options.sharkTerrainClear&&!options.sharkTerrainClear(enemy.x,enemy.y,candidate.x,candidate.y,2))continue;
+        nearestVisible=candidate;visibleDistance=d;
+      }
+      if(nearestVisible){target=nearestVisible;distance=visibleDistance;dx=target.x-enemy.x;dy=target.y-enemy.y;}
     }
 
     // Paralisia de impacto (ex: Enguia Elétrica - 0.1s de interrupção motora)
@@ -209,7 +224,7 @@
       const clear=(ax,ay,bx,by)=>bx>=minX&&bx<=maxX&&by>=minY&&by<=maxY&&
         (!options.sharkTerrainClear||options.sharkTerrainClear(ax,ay,bx,by,pad));
       const vision=sharkVisionState(enemy,target,currentTime);
-      vision.visible=vision.visible&&options.sharkLineOfSight!==false;
+      vision.visible=vision.visible&&((targets.length>1&&options.sharkTerrainClear)?options.sharkTerrainClear(x,y,target.x,target.y,2):options.sharkLineOfSight!==false);
       const wasHunting=Boolean(enemy.sharkCharging||enemy.sharkChargeRemaining>0);
       const hunting=vision.visible||(wasHunting&&(boss||distance<=SHARK_VISION.range*2.5)&&target.alive!==false);
       const aim=vision.targetAngle, previous=Number(enemy.angle)||0;
