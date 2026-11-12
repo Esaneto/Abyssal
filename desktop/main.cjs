@@ -61,6 +61,12 @@ function registerOfflineAssets() {
         '.json': 'application/json',
         '.webmanifest': 'application/manifest+json',
         '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.woff2': 'font/woff2',
+        '.mp3': 'audio/mpeg',
+        '.ogg': 'audio/ogg',
         '.ico': 'image/x-icon'
       }[path.extname(filePath)] || 'application/octet-stream';
       return new Response(content, {
@@ -99,7 +105,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isGameUrl(url)) {
+    if (url.startsWith('abyssal://app/')) {
       mainWindow.loadURL(url);
     } else if (url.startsWith('https://')) {
       shell.openExternal(url);
@@ -108,7 +114,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!isGameUrl(url)) event.preventDefault();
+    if (!url.startsWith('abyssal://app/')) { event.preventDefault(); if(url.startsWith('https://'))shell.openExternal(url); }
   });
 
   // The installed desktop app always boots from bundled assets.
