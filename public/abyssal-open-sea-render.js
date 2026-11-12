@@ -638,6 +638,32 @@
   }
  }
  // ─── ROCKS — Angular geometric faces with rim highlights ───────────
+ // Geometry is deterministic; retain it independently of animated lighting.
+ const rockVertexCache=new WeakMap();
+ function rockVertices(rock,lowPower){
+  let cached=rockVertexCache.get(rock);
+  if(!cached){cached={};rockVertexCache.set(rock,cached);}
+  const key=lowPower?'low':'full';if(cached[key])return cached[key];
+  const seed=rock.x*.00031+rock.y*.00017;
+  const vertCount=lowPower?14:22,verts=[];
+  for(let k=0;k<vertCount;k++){
+   const baseAngle=k/vertCount*TAU;
+   const snapAngle=Math.floor(baseAngle/(TAU/vertCount))*(TAU/vertCount)+TAU/(vertCount*2);
+   const point=geo.rockSurfaceAt(rock,snapAngle);
+   const jitter=seeded(k+Math.floor(seed*100),rock.x*.01)*.04-.02;
+   verts.push({x:point.x+(point.x-rock.x)*jitter,y:point.y+(point.y-rock.y)*jitter,angle:snapAngle});
+  }
+  cached[key]=verts;return verts;
+ }
+ function prewarmRockGeometry(left,top,right,bottom,lowPower){
+  const margin=850;let budget=4;
+  for(const rock of geo.ROCKS){
+   if(rock.x+rock.rx+margin<left||rock.x-rock.rx-margin>right||rock.y+rock.ry+margin<top||rock.y-rock.ry-margin>bottom)continue;
+   const key=lowPower?'low':'full';
+   if(rockVertexCache.get(rock)?.[key])continue;
+   rockVertices(rock,lowPower);if(--budget<=0)break;
+  }
+ }
  function drawRocks(ctx,left,top,right,bottom,lowPower=false){
   const material=rockMaterialFor(lowPower);
   for(const rock of geo.ROCKS){
@@ -646,24 +672,7 @@
    const province=geo.visualBiomeAt?.(rock.x,rock.y-rock.ry*.42)?.id||'coastal';
    const pal=ROCK_PALETTE[province]||ROCK_PALETTE.coastal;
 
-   // ── Generate angular vertices ──
-   const vertCount=lowPower?14:22;
-   const verts=[];
-   for(let k=0;k<vertCount;k++){
-    // Quantize to create flat segments instead of smooth curves
-    const baseAngle=k/vertCount*TAU;
-    // Snap to create angular edges
-    const snapAngle=Math.floor(baseAngle/(TAU/vertCount))*(TAU/vertCount)+TAU/(vertCount*2);
-    const point=geo.rockSurfaceAt(rock,snapAngle);
-    // Add angular perturbation for geometric feel
-    const jitter=seeded(k+Math.floor(seed*100),rock.x*.01)*.04-.02;
-    verts.push({
-     x:point.x+(point.x-rock.x)*jitter,
-     y:point.y+(point.y-rock.y)*jitter,
-     angle:snapAngle
-    });
-   }
-
+   const verts=rockVertices(rock,lowPower);
    // Extruded rear geology gives an actual directional depth cue to the
    // physical rock outline instead of painting a flat circle.
    const extrudeX=Math.min(28,rock.rx*.085),extrudeY=Math.min(33,rock.ry*.075);
@@ -1134,6 +1143,7 @@
   if(top<130){ctx.save();ctx.strokeStyle='rgba(155,235,252,.68)';ctx.lineWidth=2.4;ctx.beginPath();for(let x=Math.floor(left/28)*28,j=0;x<=right+28;x+=28,j++){const yy=18+Math.sin(x*.006+time*.0007)*3.8+Math.sin(x*.017-time*.0011)*1.6;if(j===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);}ctx.stroke();ctx.fillStyle='rgba(185,242,252,.88)';ctx.font='700 15px sans-serif';ctx.fillText('SUPERFÍCIE · 0 m',left+24,48);ctx.restore();}
   drawFloor(ctx,left,right,bottom);
   drawFloorDetails(ctx,left,top,right,bottom,lowPower);
+  prewarmRockGeometry(left,top,right,bottom,lowPower);
   drawRocks(ctx,left,top,right,bottom,lowPower);
   drawDeepRockColonies(ctx,left,top,right,bottom,time,lowPower);
   drawCaves(ctx,left,top,right,bottom);
