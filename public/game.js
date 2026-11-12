@@ -713,7 +713,7 @@ function addNotification(message, title = 'NOTIFICAÇÃO ABISSAL', type = 'info'
   if (list.length > 30) list.pop();
   saveNotifications(list);
   updateNotifBadge();
-  showToast(`${title}: ${message.slice(0, 50)}...`);
+  // Inbox messages are silent; the unread indicator is the only alert.
 }
 
 function deleteNotification(id) {
@@ -739,6 +739,7 @@ function updateNotifBadge() {
   const dot = document.getElementById('notifUnreadDot');
   btn.classList.toggle('has-unread', hasUnread);
   if (dot) dot.hidden = !hasUnread;
+  const cockpit=document.querySelector('[data-cockpit-proxy="notifBtn"]');if(cockpit){cockpit.classList.toggle('has-unread',hasUnread);const indicator=cockpit.querySelector('.cockpit-unread-dot');if(indicator)indicator.hidden=!hasUnread;cockpit.setAttribute('aria-label',hasUnread?'Avisos: novos itens não lidos':'Avisos');}
   btn.setAttribute(
     'aria-label',
     hasUnread ? 'Abrir notificações — há itens não lidos' : 'Abrir notificações'
@@ -754,7 +755,7 @@ function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
   updateNotifBadge();
 }
 
-function showEndOfRun(coinsEarned) {
+function legacyShowEndOfRun(coinsEarned) {
   // Notificação de moedas enviada apenas uma vez ao fim da partida
   const amount = Number(coinsEarned) || 0;
   const msg = expeditionMode
@@ -1423,7 +1424,9 @@ function showVictoryModal() {
   }
 }
 
+let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(){
+ diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
  // A previous PvP session cannot leak its arena rules into a new Solo dive.
  if(!onlineMode)onlineRoomMode='coop';
  if(isRiftRun()||isOpenSeaRun()){controlSettings.pc='wasd-aim';controlSettings.mobile='dual-stick';}
@@ -1475,7 +1478,7 @@ if(isOpenSeaRun()){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
- gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
+ gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='block';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
  updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
@@ -1977,7 +1980,7 @@ let lastOnlineVitalsAt=0;
 function gainXp(value, source='shared'){
  if(!Number.isFinite(value)||value<=0||!player)return;
  const skinMultiplier=source!=='shared'&&!onlineMode?specimenPassiveMultiplier('experience')*Math.min(1.26,Math.max(1,Number(upgrades.magnet)||1)):1;
- if(!onlineMode&&isClassicShooterRun()&&source==='kill')window.AbyssalSoloProgress?.credit(value);
+ if(!onlineMode&&source==='kill'){diveStats.energyCollected+=value;if(isClassicShooterRun())window.AbyssalSoloProgress?.credit(value);}
  xp+=value*skinMultiplier;
  if(xp>=xpNeed && gameState!=='upgrade'){
    if(areAllUpgradesMaxed()){
@@ -2100,7 +2103,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=specimenPassiveMultiplier('damage')*(BOSS_KINDS.includes(enemy.kind)?specimenPassiveMultiplier('bossDamage'):1),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
- const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;enemy.hit=.14;if(activeMapLayout||enemy.wildlifeMode)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
+ const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;diveStats.damageDealt+=Math.min(appliedDamage,Math.max(0,Number(enemy.hp)||0));applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;enemy.hit=.14;if(activeMapLayout||enemy.wildlifeMode)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
  triggerHitSynergies(enemy,appliedDamage,skillId,options);
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
@@ -2339,6 +2342,7 @@ function drawExperienceOrbs(t){
 function sendWorldSnapshot(dt){ /* O snapshot pertence ao servidor, não aos clientes. */ }
 function killEnemy(i){
  const e=enemies[i];
+ if(!e)return;if(!onlineMode)diveStats.monstersKilled++;
  if(!onlineMode&&isOpenSeaRun()&&e?.streamId)soloOceanRespawn?.mark(e.streamId,Date.now());
  const proficiencyBoss=BOSS_KINDS.includes(e.kind);
  if(!onlineMode&&specimenAlive()){
@@ -3353,43 +3357,41 @@ function updateHud(force=true){
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
 function renderRunEndPresentation(){
- const extracted=Boolean(expeditionMode&&expeditionExtracted),eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
- if(extracted){
+ const extracted=Boolean(expeditionMode&&expeditionExtracted),voluntary=diveEndReason==='voluntary',eyebrow=$('gameOverEyebrow'),title=$('gameOverTitle'),copy=$('gameOverCopy'),revive=$('reviveWithAdBtn'),again=$('againBtn'),menu=$('menuBtn');
+ if(extracted||voluntary){
   if(eyebrow){eyebrow.classList.remove('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL RECUPERADO';}
-  if(title)title.innerHTML='VOCÊ VOLTOU.<br><em>POR ENQUANTO.</em>';
-  if(copy)copy.textContent='A cápsula alcançou a superfície com o saque desta descida. O sonar continua registrando atividade abaixo da sua última profundidade.';
+  if(title)title.innerHTML='MERGULHO<br><em>CONCLUÍDO.</em>';
+  if(copy)copy.textContent='Seu relatório de expedição está pronto. Confira o que você conquistou nas profundezas.';
   if(revive)revive.hidden=true;
   if(again)again.textContent='DESCER NOVAMENTE';
   if(menu)menu.textContent='VOLTAR À SUPERFÍCIE';
  }else{
   if(eyebrow){eyebrow.classList.add('danger-eyebrow');eyebrow.innerHTML='<span class="pulse-dot"></span> SINAL PERDIDO';}
-  if(title)title.innerHTML='O ABISMO<br><em>RECLAMA.</em>';
+  if(title)title.innerHTML='FIM DO<br><em>MERGULHO.</em>';
   if(copy)copy.textContent='Sua vida acabou nas profundezas. Se você optar por assistir ao anúncio premiado até a conclusão, receberá 1 reviver e continuará este mergulho com a vida restaurada. Você também pode recusar e encerrar o mergulho normalmente.';
   if(revive)revive.hidden=false;
   if(again)again.textContent='ENCERRAR E MERGULHAR NOVAMENTE';
   if(menu)menu.textContent='ENCERRAR MERGULHO E VOLTAR AO MENU';
  }
 }
-function endGame(){
+function endGame(reason='death'){
  if(gameState==='over'||gameState==='menu')return;
+ diveEndReason=expeditionExtracted?'extracted':reason;
  wasOnlineModeOnDeath=Boolean(onlineMode);
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
  const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
  const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
- if(authenticated&&window.AbyssalOnline?.finishRun)runResultPending=true;
- else if(onlineMode){coins+=earnedCoins;saveCosmetics();renderShop();}
- else{coins+=earnedCoins;saveCosmetics();renderShop();runResultPending=false;}
- showEndOfRun(earnedCoins);
- updateNotifBadge();
- if(onlineMode&&!authenticated)window.AbyssalOnline?.leaveWorld();
+ runResultPending=true;
+ diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,totalRunCoins:earnedCoins+bossKillsThisRun*100,level};
+ renderDiveReport(diveReport,authenticated);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
  gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
- $('finalTime').textContent=fmtTime(elapsed);$('finalScore').textContent=score.toLocaleString('pt-BR');$('finalLevel').textContent=level;
+ renderDiveReport(diveReport,authenticated);
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
- $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);
+ $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
@@ -4635,52 +4637,35 @@ window.addEventListener('abyssal-revive-result',event=>{
  if(!result.ok)return;
  hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
 });
-function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
+function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier,...diveStats};}
+function renderDiveReport(report,pending=false){
+ if(!report)return;const n=v=>v==null?'—':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');
+ setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':'Relatório da expedição');
+}
+function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · Moedas abissais: '+n(report.totalRunCoins)+' · Energia: '+n(report.energyCollected)+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
+function settleDiveReport(onComplete){
+ if(diveSettled){onComplete?.();return;}if(diveSettling||!diveReport)return;
+ diveSettling=true;const wasOnline=Boolean(onlineMode),authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
+ const finish=result=>{
+  diveSettling=false;if(!result?.ok){setTextIfChanged('finalReportStatus',result?.message||'Resultado não confirmado. Tente novamente.');return;}
+  diveSettled=true;runResultPending=false;diveReport={...diveReport,...result,reason:diveEndReason};renderDiveReport(diveReport,false);publishDiveReport(diveReport);onComplete?.();
+ };
+ if(authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:wasOnline,onComplete:finish});return;}
+ if(wasOnline){finish({ok:false,message:'Reconecte a conta para confirmar o resultado online.'});return;}
+ const earned=Math.max(3,Math.round(Math.max(5,Math.floor(score/35)+(Number(level)||0)*2)*(expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1)));
+ coins+=earned;saveCosmetics();renderShop();finish({ok:true,totalRunCoins:earned+bossKillsThisRun*100});
+}
 function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.open?.();}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
 window.addEventListener('abyssal-start-open-sea',()=>{requestedRunMode='open-sea';onlineMode=false;startGame()});
 window.addEventListener('abyssal-start-rift-solo',()=>{requestedRunMode='rift';onlineMode=false;startGame()});
-$('againBtn').addEventListener('click',()=>{
- const shouldRestartOnline = wasOnlineModeOnDeath;
- const proceedRestart = () => {
-   runResultPending = false;
-   if(shouldRestartOnline){
-     gameState = 'menu';
-     onlineMode = false;
-     enemies = []; orbs = []; particles = []; projectiles = []; effects = [];
-     player = null;
-     $('gameOverScreen').hidden = true;
-     $('hud').hidden = true;
-     document.body.classList.remove('game-active');
-     if(window.AbyssalOnline?.isAuthenticated?.()){
-       window.AbyssalOnline?.leaveWorld?.();
-       setTimeout(()=>window.AbyssalOnline?.showRooms?.(), 150);
-     }else{
-       window.AbyssalOnline?.connectAndJoin?.();
-     }
-   }else{
-     onlineMode = false;
-     startGame();
-   }
- };
- if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
-  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:false,onComplete:()=>proceedRestart()});
-  if(sent)return;
- }
- if(runResultPending&&!window.AbyssalOnline?.isAuthenticated?.()&&!onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
- proceedRestart();
-});
-$('menuBtn').addEventListener('click',()=>{
- if(runResultPending&&window.AbyssalOnline?.isAuthenticated?.()&&window.AbyssalOnline?.finishRun){
-  const sent=window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:onlineMode,onComplete:()=>returnToMainMenu()});
-  if(sent)return;
- }
- if(runResultPending&&!window.AbyssalOnline?.isAuthenticated?.()&&!onlineMode){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();}
- if(onlineMode)window.AbyssalOnline?.leaveWorld?.();
- returnToMainMenu();
-});
-$('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();returnToMainMenu();});
+$('againBtn').addEventListener('click',()=>settleDiveReport(()=>{
+ const restartOnline=wasOnlineModeOnDeath;returnToMainMenu();
+ if(restartOnline){window.AbyssalOnline?.showRooms?.();}else{window.AbyssalCockpitNavigation?.close?.();startGame();}
+}));
+$('menuBtn').addEventListener('click',()=>settleDiveReport(()=>returnToMainMenu()));
+$('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{$('pauseScreen').hidden=true;endGame('voluntary');});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
 window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;const remoteShooterId=String(d.fromId||d.from||'');if(remoteShooterId)remoteCreatureAttackUntil.set(remoteShooterId,performance.now()+140);
@@ -5402,11 +5387,6 @@ gameplayResizeObserver?.observe($('gameShell'));
 gameState='menu';requestAnimationFrame(loop);
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
-endDiveButton.addEventListener('click',()=>{
- const wasOnline=onlineMode,authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
- const returnToMenu=(result)=>{onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');setHudCollapsed(false);$('toggleHudBtn').hidden=true;gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('upgradeScreen').hidden=true;$('pauseScreen').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;window.dispatchEvent(new CustomEvent('abyssal-menu-return'));resize();window.AbyssalCockpitNavigation?.open?.();endDiveButton.style.display='none';endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO';const earned=Number(result?.earned)||0;const kills=Number(result?.bossesKilled??bossKillsThisRun)||0;const total=Number(result?.totalRunCoins??(earned+(Number(result?.bossCoins)||0)))||0;showToast(`MERGULHO ENCERRADO · ${kills} BOSS(ES) · +${total} MOEDAS NA EXPEDIÇÃO`);};
- if(authenticated&&window.AbyssalOnline?.finishRun){const sent=window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:wasOnline,onComplete:result=>returnToMenu(result)});if(sent){endDiveButton.disabled=true;endDiveButton.textContent='REGISTRANDO…';setTimeout(()=>{endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO'},12000);return;}}
- if(!authenticated){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();if(wasOnline)window.AbyssalOnline?.leaveWorld();returnToMenu({earned:Math.max(5,Math.floor(score/35)+level*2),bossesKilled:bossKillsThisRun});}else returnToMenu({earned:0,bossesKilled:bossKillsThisRun});
-});
+endDiveButton.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)){ $('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;endGame('voluntary');}});
 
 })();
