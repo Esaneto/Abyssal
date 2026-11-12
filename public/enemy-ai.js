@@ -196,53 +196,87 @@
       return result;
     }
 
-    // Movimentação especial de investida para tubarões (whiteShark e whiteSharkBoss):
-    // Move-se APENAS por investidas em linha reta que só param ao colidir com o fim do mapa.
-    // Ao bater na parede, vira imediatamente na direção do jogador mais próximo e investe novamente.
-    const isShark = isChargeAttack(enemy) && options.freeSwim !== true;
-    if (isShark) {
-      const minX = Number.isFinite(options.minX) ? options.minX : 0;
-      const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
-      const minY = Number.isFinite(options.minY) ? options.minY : 0;
-      const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
-      const stats = ENEMY_STATS[enemy.kind] || ENEMY_STATS.whiteShark;
-      const dashSpeed = (stats.dashSpeed || 290)*((Number(enemy.skinSlowedUntil)||0)>Date.now()?.62:1);
+    // Sharks acquire through frontal vision, then retain pursuit until the
+    // target is invalid or leaves the extended search radius. Boss passes are
+    // ballistic: a new heading is selected only when a solid surface is hit.
+    if (isChargeAttack(enemy) && options.freeSwim !== true) {
+      const boss=enemy.kind==='whiteSharkBoss', stats=ENEMY_STATS[enemy.kind];
+      const speed=stats.dashSpeed*((Number(enemy.skinSlowedUntil)||0)>Date.now()?.62:1);
+      const minX=Number.isFinite(options.minX)?options.minX:0,maxX=Number.isFinite(options.maxX)?options.maxX:WORLD_WIDTH;
+      const minY=Number.isFinite(options.minY)?options.minY:0,maxY=Number.isFinite(options.maxY)?options.maxY:WORLD_HEIGHT;
+      const x=Number(enemy.x)||0,y=Number(enemy.y)||0;
+      const pad=Math.max(5,Number(options.sharkPadding)||Math.min(38,(Number(enemy.r)||24)*.62));
+      const clear=(ax,ay,bx,by)=>bx>=minX&&bx<=maxX&&by>=minY&&by<=maxY&&
+        (!options.sharkTerrainClear||options.sharkTerrainClear(ax,ay,bx,by,pad));
       const vision=sharkVisionState(enemy,target,currentTime);
-      if(options.sharkLineOfSight===false){vision.visible=false;enemy.sharkAlertUntil=0;}
-      // Commit to a single straight pass beyond the prey; never home in during the strike.
-      let hunting=Boolean(enemy.sharkChargeRemaining>0);
-      if(!hunting&&vision.visible&&!(enemy.sharkRecoveryRemaining>0)){
-        const aim=vision.targetAngle;
-        enemy.sharkChargeRemaining=Math.max(220/WORLD_ZOOM,distance+Math.max(140/WORLD_ZOOM,(Number(enemy.r)||24)*3));
-        enemy.dashVx=Math.cos(aim)*dashSpeed;enemy.dashVy=Math.sin(aim)*dashSpeed;enemy.sharkChargeHit=false;hunting=true;
-      }
+      vision.visible=vision.visible&&options.sharkLineOfSight!==false;
+      const wasHunting=Boolean(enemy.sharkCharging||enemy.sharkChargeRemaining>0);
+      const hunting=vision.visible||(wasHunting&&distance<=SHARK_VISION.range*2.5&&target.alive!==false);
+      const aim=vision.targetAngle, previous=Number(enemy.angle)||0;
+      const step=speed*dt;
+      const routeAngle=()=>{
+        if(clear(x,y,target.x,target.y))return aim;
+        const route=options.sharkNavigation?.(enemy,target,pad);
+        if(route&&Number.isFinite(route.x)&&Number.isFinite(route.y)&&Math.hypot(route.x-x,route.y-y)>1){
+          const a=Math.atan2(route.y-y,route.x-x);
+          const d=Math.min(Math.hypot(route.x-x,route.y-y),Math.max(step,12));
+          if(clear(x,y,x+Math.cos(a)*d,y+Math.sin(a)*d))return a;
+        }
+        // Bounded local search: select the shortest reachable continuation.
+        // Prefer a segment with a clear second leg to the prey; otherwise
+        // use its remaining distance and clearance, rather than blind turns.
+        let best=null,bestCost=Infinity;
+        const look=Math.max(90,pad*4), offsets=[0,-.35,.35,-.7,.7,-1.05,1.05,-1.57,1.57,-2.2,2.2,Math.PI];
+        for(const off of offsets){
+          const a=aim+off,ux=Math.cos(a),uy=Math.sin(a);
+          for(const len of [look,look*.5,Math.max(step,8)]){
+            const bx=x+ux*len,by=y+uy*len;
+            if(!clear(x,y,bx,by))continue;
+            const remaining=Math.hypot(target.x-bx,target.y-by);
+            const direct=clear(bx,by,target.x,target.y);
+            const cost=len+remaining+(direct?0:look*2)+Math.abs(off)*2;
+            if(cost<bestCost){bestCost=cost;best=a;}
+            break;
+          }
+        }
+        return best;
+      };
+      let heading=previous;
       if(hunting){
-        enemy.sharkChargeRemaining=Math.max(0,enemy.sharkChargeRemaining-dashSpeed*dt);
-        enemy.angle=Math.atan2(enemy.dashVy,enemy.dashVx);enemy.dashVx=Math.cos(enemy.angle)*dashSpeed;enemy.dashVy=Math.sin(enemy.angle)*dashSpeed;
-        if(enemy.sharkChargeRemaining<=0)enemy.sharkRecoveryRemaining=1.5;
+        if(!boss||!wasHunting||enemy.sharkReplan){
+          const next=routeAngle();
+          heading=next??previous+Math.PI;
+          enemy.sharkReplan=false;
+          if(boss||!wasHunting)enemy.sharkChargeHit=false;
+        }
       }else{
-        enemy.sharkRecoveryRemaining=Math.max(0,(Number(enemy.sharkRecoveryRemaining)||0)-dt);
         enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
-        const previous=Number(enemy.angle)||0,steer=Number(options.sharkSteeringAngle),turn=Number.isFinite(steer)?Math.atan2(Math.sin(steer-previous),Math.cos(steer-previous)):0;
-        const heading=Number.isFinite(steer)?previous+clamp(turn,-2.9*dt,2.9*dt):previous+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42*dt;
-        enemy.angle=heading;const cruise=dashSpeed*.42;
-        enemy.dashVx=Math.cos(heading)*cruise;enemy.dashVy=Math.sin(heading)*cruise;
+        const steer=Number(options.sharkSteeringAngle);
+        heading=Number.isFinite(steer)?previous+clamp(angleDelta(steer,previous),-2.9*dt,2.9*dt):previous+(.18+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42)*dt;
+      }
+      const travel=(hunting?speed:speed*.42)*dt;
+      let nx=x+Math.cos(heading)*travel,ny=y+Math.sin(heading)*travel;
+      if(!clear(x,y,nx,ny)){
+        // Collision is the only opportunity for a hunting boss to change
+        // its trajectory. A fresh heading uses current prey position.
+        const next=hunting?routeAngle():null;
+        if(next!==null&&clear(x,y,x+Math.cos(next)*travel,y+Math.sin(next)*travel))heading=next;
+        else {
+          const offsets=[Math.PI/2,-Math.PI/2,Math.PI,.7,-.7,2.3,-2.3];
+          const open=offsets.find(off=>clear(x,y,x+Math.cos(heading+off)*travel,y+Math.sin(heading+off)*travel));
+          heading+=open??Math.PI;
+        }
+        if(boss&&hunting)enemy.sharkChargeHit=false;
+        nx=x+Math.cos(heading)*travel;ny=y+Math.sin(heading)*travel;
+        if(!clear(x,y,nx,ny)){nx=x;ny=y;enemy.sharkReplan=true;}
       }
       enemy.sharkCharging=hunting;
-      let nx=(Number(enemy.x)||0)+(Number(enemy.dashVx)||0)*dt;
-      let ny=(Number(enemy.y)||0)+(Number(enemy.dashVy)||0)*dt;
-      const hitWall=nx<=minX+2||nx>=maxX-2||ny<=minY+2||ny>=maxY-2;
-      if(hitWall){
-        enemy.sharkChargeRemaining=0;enemy.sharkCharging=false;enemy.sharkRecoveryRemaining=1.2;hunting=false;
-        const turn=(Number(enemy.angle)||0)+Math.PI*(.62+((Number(enemy.id)||1)%5)*.07);
-        enemy.angle=turn;const speedNow=hunting?dashSpeed:dashSpeed*.42;
-        enemy.dashVx=Math.cos(turn)*speedNow;enemy.dashVy=Math.sin(turn)*speedNow;
-        nx=(Number(enemy.x)||0)+enemy.dashVx*dt;ny=(Number(enemy.y)||0)+enemy.dashVy*dt;
-      }
-      nx=clamp(nx,minX,maxX);ny=clamp(ny,minY,maxY);
-      enemy.x=nx;enemy.y=ny;enemy.vx=enemy.dashVx;enemy.vy=enemy.dashVy;
+      enemy.sharkChargeRemaining=hunting?1:0;
+      enemy.sharkRecoveryRemaining=0;
+      enemy.angle=heading;enemy.x=clamp(nx,minX,maxX);enemy.y=clamp(ny,minY,maxY);
+      enemy.vx=enemy.dashVx=(enemy.x-x)/dt;enemy.vy=enemy.dashVy=(enemy.y-y)/dt;
       enemy.phase=(Number(enemy.phase)||0)+dt*6;enemy.sharkVisionVisible=vision.visible;
-      result.moved=true;result.target=target;result.distance=distance;result.dx=dx;result.dy=dy;return result;
+      result.moved=Math.hypot(enemy.x-x,enemy.y-y)>1e-8;result.target=target;result.distance=distance;result.dx=dx;result.dy=dy;return result;
     }
 
     enemy.angle = Math.atan2(dy, dx);
