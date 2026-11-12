@@ -17,7 +17,8 @@
  signal.innerHTML='<span>RADAR / SONAR DAS FOSSAS</span><strong id="explorationRiftSignalText">BUSCANDO ANOMALIAS</strong>';
  hud.appendChild(signal);
  shell.appendChild(hud);
- hud.querySelector('.exploration-collect').hidden=true; // Legacy extraction panel removed from visible gameplay; G and clicks still extract.
+ const collectPanel=hud.querySelector('.exploration-collect');
+ if(collectPanel)collectPanel.hidden=true; // Legacy extraction panel removed from visible gameplay; G and clicks still extract.
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
@@ -373,6 +374,7 @@
  window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden&&!embeddedCatalog)renderWorkshop();});
 
  let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[],installation:null},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
+ let explorationFrame=0,explorationActive=false;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));const saved=JSON.parse(localStorage.getItem('abyssalSoloOffshoreV1')||'null');if(saved&&typeof saved==='object')offshore={oil:Math.max(0,Number(saved.oil)||0),gas:Math.max(0,Number(saved.gas)||0),lastAt:Number(saved.lastAt)||Date.now(),connections:Array.isArray(saved.connections)?saved.connections.slice(0,24):[],installation:saved.installation&&['laying','return'].includes(saved.installation.phase)?saved.installation:null};}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}
  // Starter equipment is granted once per offline device, not on each run.
  try{
@@ -392,6 +394,7 @@
  window.addEventListener('abyssal-start-open-sea',()=>{
   inventoryUI()?.setActive(true);
   inventoryUI()?.setInventory(research.sanitizeInventory(stateInventory()));
+  lastTick=performance.now();scheduleExplorationFrame();
  });
  window.addEventListener('abyssal-start-rift-solo',()=>inventoryUI()?.setActive(false));
  function localResearchMode(){
@@ -899,11 +902,21 @@
    c.strokeStyle='#d8c99a';c.lineWidth=2;c.beginPath();c.arc(0,0,34+age*18,0,Math.PI*2);c.stroke();c.restore();
   }
  }
+ function scheduleExplorationFrame(){if(!explorationFrame&&!document.hidden)explorationFrame=requestAnimationFrame(tick);}
+ function setExplorationActive(active){
+  if(explorationActive===active)return;
+  explorationActive=active;
+  document.body.classList.toggle('open-sea-exploration',active);
+  hud.hidden=!active;
+  inventoryUI()?.setActive(active);
+  if(collectPanel)collectPanel.hidden=true;
+  if(!active){markers.hidden=true;runKey='';window.AbyssalGathering?.reset?.();}
+ }
  function tick(time){
-  requestAnimationFrame(tick);
+  explorationFrame=0;
   const delta=Math.min(.1,Math.max(0,(time-lastTick)/1000));lastTick=time;
-  const p=cfg(),active=p?.mode==='open-sea';document.body.classList.toggle('open-sea-exploration',active);hud.hidden=!active;inventoryUI()?.setActive(active);hud.querySelector('.exploration-collect').hidden=true;
-  if(!active){markers.hidden=true;runKey='';window.AbyssalGathering?.reset?.();return;}
+  const p=cfg(),active=p?.mode==='open-sea';setExplorationActive(active);
+  if(!active)return;
   const expectedRun=p.online?'abyssal:online:open-sea':'abyssal:solo:open-sea:v1';
   if(runKey!==expectedRun)startRun(p);
   if(!p.paused&&!p.online){
@@ -943,6 +956,11 @@
   window.AbyssalGathering?.refreshHUD?.(near,p);
   signal.hidden=true;
   markers.hidden=true; // Resources render inside the game world canvas, never as UI overlay.
+  scheduleExplorationFrame();
  }
- requestAnimationFrame(tick);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(explorationFrame)cancelAnimationFrame(explorationFrame);explorationFrame=0;return;}
+  if(cfg()?.mode==='open-sea'){lastTick=performance.now();scheduleExplorationFrame();}
+ });
+ if(cfg()?.mode==='open-sea')scheduleExplorationFrame();
 })();
