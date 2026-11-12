@@ -211,7 +211,7 @@
    key.append(symbol,name);
    key.addEventListener('click',()=>{
     if(option.locked){window.AbyssalLaunchFocus?.notify?.();return;}
-    if(activeConsoleSection!==option.id){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
+    if(activeConsoleSection!==option.id||option.id==='solo'&&soloConsolePage!=='home'){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
    });
    keys.append(key);
   }
@@ -303,7 +303,7 @@
    utility.append(note);
   }else{
    const pages={
-    solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHAR','playBtn'],
+    solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHO','playBtn'],
     shop:['ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ABRIR ESPÉCIMES','shopBtn'],
     specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABYSSÁRIO','catalogBtn'],
     sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
