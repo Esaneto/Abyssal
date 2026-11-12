@@ -19,13 +19,15 @@
   function operation(delta,source){if(accountKey){pending.push({id:globalThis.crypto?.randomUUID?.()||('energy-'+Date.now()+'-'+Math.random().toString(36).slice(2)),delta,source,at:Date.now()});persistQueue();recalc();sync();}else state.energy=Math.max(0,state.energy+delta);return save();}
   function save(){try{if(!accountKey)store?.setItem(KEY,JSON.stringify(state));else {store?.setItem('abyssalAccountEnergy',String(serverBalance));store?.setItem(KEY,JSON.stringify({...sanitize(JSON.parse(store?.getItem(KEY)||'null')),lamp:state.lamp}));}}catch(_){}return {...state};}
   function get(){return {...state};}
+  function pendingCount(){return pending.length;}
+  function hasPending(){return pending.length>0;}
   function credit(amount,source='solo-orb'){const n=Math.floor(Number(amount));if(!Number.isFinite(n)||n<=0)return get();return operation(n,source);}
   function debit(amount){const n=Math.max(0,Math.floor(Number(amount)||0));if(!n)return {ok:true,spent:0,...get()};const spent=Math.min(state.energy,n);operation(-spent,'research');return {ok:spent===n,spent,...get()};}
   function upgradeLamp(){const next=state.lamp+1,cost=COSTS[next];if(!cost)return {ok:false,reason:'max',...get()};
    if(state.energy<cost)return {ok:false,reason:'energy',...get()};
    debit(cost);state.lamp=next;return {ok:true,...save()};
   }
-  return Object.freeze({get,credit,debit,upgradeLamp,setAccount,sync,costFor:level=>COSTS[level]||0});
+  return Object.freeze({get,credit,debit,upgradeLamp,setAccount,sync,pendingCount,hasPending,costFor:level=>COSTS[level]||0});
  }
  return Object.freeze({...create(storage),create,KEY,COSTS});
 });
