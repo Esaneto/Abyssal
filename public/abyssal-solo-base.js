@@ -17,7 +17,7 @@
  function sanitize(raw){
   const unlocked=new Set(STARTERS);
   for(const id of raw?.unlocked||[])if(SHOTS.includes(id)||PASSIVES.includes(id)||BUFFS.includes(id))unlocked.add(id);
-  return {unlocked:[...unlocked],weapons:[...new Set((Array.isArray(raw?.weapons)?raw.weapons:[]).filter(id=>SHOTS.includes(id)))],submarineShield:Boolean(raw?.submarineShield)};
+  return {unlocked:[...unlocked],weapons:[...new Set((Array.isArray(raw?.weapons)?raw.weapons:(raw?.unlocked||[]).filter(id=>id!=='photon')).filter(id=>SHOTS.includes(id)))],submarineShield:Boolean(raw?.submarineShield)};
  }
  function create(store=storage,energy=progress){
   let state=sanitize(null);
