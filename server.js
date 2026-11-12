@@ -515,7 +515,7 @@ function tickSpecimenOrbs(room,players){
    if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
    const amount=Math.max(1,Math.round(orb.value*SkinAbilities.orbExperienceMultiplier(member.skinId,member.specimenPoints,true)));
    orbs.splice(i,1);
-   if(member.runStats)creditRunXp(member.runStats,amount);
+   if(member.runStats){creditRunXp(member.runStats,amount);member.runStats.energyCollected=(Number(member.runStats.energyCollected)||0)+amount;}
    io.to(member.id).emit('shared-xp-award',{value:amount,source:'specimen-orb',orbId:orb.id});
    io.to(channelFor(room)).emit('world-orb-collected',{id:orb.id,playerId:member.id});
   }
@@ -559,7 +559,7 @@ const allowedSkinIds = new Set(['default','violet','solar','toxic','leviathan','
 for(const skin of curatedSkins.items)allowedSkinIds.add(skin.id);
 allowedSkinIds.add(RiftRewards.FINAL_SKIN);
 function isBossKind(kind){ return BOSS_KINDS.has(kind); }
-function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
+function makeRunStats(){ return { id: crypto.randomUUID(), startedAt: Date.now(), bossesKilled: 0, personalBossesKilled:0, monstersKilled:0, energyCollected:0, damageDealt:0, score: 0, level: 1, authoritativeXp:0, authoritativeXpNeed:10, pendingUpgradeCredits:0, settled: false, historySaved:false }; }
 function stashDeployRun(socket){const room=socketRoom(socket),member=room?.players.get(socket.id),user=users[socket.data.userKey];const run=member?.runStats;if(!room||!member||!user||!run||run.settled)return false;const deployWorld=room.world?JSON.parse(JSON.stringify(room.world)):null;user.pendingRunResume={...run,settled:false,historySaved:Boolean(run.historySaved),roomId:room.id,roomMode:normalizeRoomMode(room.mode),roomResume:{id:room.id,name:room.name||room.id,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),passwordSalt:room.passwordSalt||null,passwordHash:room.passwordHash||null,capacity:room.capacity,world:deployWorld},resumeX:Number(member.x),resumeY:Number(member.y),resumeHp:Number(member.hp),resumeShieldCharges:Number(member.shieldCharges)||0,savedAt:Date.now(),expiresAt:Date.now()+5*60*1000};return true;}
 function takeDeployRun(user,room){const saved=user?.pendingRunResume;if(!saved)return null;const valid=Number(saved.expiresAt)>=Date.now()&&!saved.settled&&saved.roomId===room.id&&saved.roomMode===normalizeRoomMode(room.mode);if(!valid)return null;delete user.pendingRunResume;return {...makeRunStats(),...saved,settled:false,historySaved:Boolean(saved.historySaved)};}
 function restoreDeployRoom(user,requestedId){const saved=user?.pendingRunResume,meta=saved?.roomResume;if(!saved||!meta||String(saved.roomId)!==String(requestedId)||Number(saved.expiresAt)<Date.now()||saved.settled)return null;let room=rooms.get(requestedId);if(!room){room=makeRoom({id:String(meta.id||requestedId),name:String(meta.name||requestedId).slice(0,28),isPrivate:false,capacity:Number(meta.capacity)||6,mode:meta.mode});room.isPrivate=Boolean(meta.isPrivate);room.passwordSalt=meta.passwordSalt||null;room.passwordHash=meta.passwordHash||null;rooms.set(room.id,room);}if(room.players.size===0&&meta.world&&typeof meta.world==='object'){room.world=JSON.parse(JSON.stringify(meta.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}return room;}
@@ -955,7 +955,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  if(room?.mode!=='pvp'&&applied>0)enemy.provokedUntil=now+6500;
  // Overkill cannot count as extra damage for the proportional XP share.
  if(player){enemy.damageContributors ||= Object.create(null);const id=String(player.id);enemy.damageContributors[id]=(Number(enemy.damageContributors[id])||0)+Math.min(applied,hpBefore);}
- if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+applied;const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
+ if(player?.runStats&&!player.runStats.settled){player.runStats.damageDealt=(Number(player.runStats.damageDealt)||0)+Math.min(applied,hpBefore);const historyRow=ensureMatchParticipant(room,player);if(historyRow)historyRow.damage=(Number(historyRow.damage)||0)+applied;}enemy.hit=.16;enemy.damageRevision=(Number(enemy.damageRevision)||0)+1;
 
  if(player&&applied>0&&!String(skillId||'').startsWith('skin-active-'))applyWeaponInfusionToEnemy(socket,room,player,enemy,skillId,now);
  const damageEvent={ok:true,id:enemy.id,hp:enemy.hp,maxHp:enemy.maxHp,damageRevision:enemy.damageRevision,damage:applied,skillId,actionId:String(actionId||'').slice(0,72),kind:enemy.kind,enemyX:enemy.x,enemyY:enemy.y,enemyColor:enemy.color,killed:enemy.hp<=0};
@@ -966,6 +966,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   WorldSimulation.markOceanSpecimenDeath(w,enemy,now);
   const removeIdx=idx>=0?idx:w.enemies.indexOf(enemy);if(removeIdx>=0)w.enemies.splice(removeIdx,1);if(enemyLookup)enemyLookup.delete(normalizedId);combatDiagnostics.kills++;
   const boss=isBossKind(enemy.kind);
+  if(player?.runStats&&!player.runStats.settled)player.runStats.monstersKilled=(Number(player.runStats.monstersKilled)||0)+1;
   const killer=users[socket.data.userKey];
   if(killer){
    killer.titleStats ||= {monstersDefeated:0,bossesDefeated:0};
@@ -1058,13 +1059,13 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 async function finishRunForSocket(socket,payload={}){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
  const room=socketRoom(socket),member=room?.players.get(socket.id),run=member?.runStats||socket.data.runStats||makeRunStats();
- if(run.settled)return {ok:true,duplicate:true,earned:0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*100,totalRunCoins:0,account:publicUser(user),rankings:rankingPayload()};
+ if(run.settled)return {ok:true,duplicate:true,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*100,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
- run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
+ run.finalSurvival=member?survival:Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));if(!member){run.damageDealt=Math.max(0,Math.min(1e9,Number(payload.damageDealt)||0));run.monstersKilled=Math.max(0,Math.min(1e7,Math.floor(Number(payload.monstersKilled)||0)));run.energyCollected=Math.max(0,Math.min(1e9,Math.floor(Number(payload.energyCollected)||0)));}run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
  if(member)member.runStats=run;else socket.data.runStats=run;
  settlePeriods();
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
@@ -1075,7 +1076,7 @@ async function finishRunForSocket(socket,payload={}){
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);
  const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionMultiplier=expedition?(1+Math.min(.75,bossesKilled*.15)):1;const earned=Math.min(50000,Math.max(3,Math.round(baseEarned*expeditionMultiplier)));const bossCoins=bossesKilled*100;const unpaidBossCoins=member?0:bossCoins;user.coins=(Number(user.coins)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;
  saveRanks();saveUsers();await flushPersistence();
- const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,survival:Math.round(survival),score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
+ const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} moedas de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} moedas por boss e +${earned} moedas de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
 
