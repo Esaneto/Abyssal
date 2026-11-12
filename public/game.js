@@ -122,7 +122,8 @@ function discoverCodexSkill(skillId){
  codex.skills.push(id);scheduleCodexSave();
 }
 let onlineMovementStalledSnapshots=0,onlineMovementConfirmedSnapshots=0,onlineClientMovementFallback=false,lastServerEnemyPositions=new Map(),onlineVisualMovingEnemies=0,onlineVisualEnemyCount=0,onlineMotionWatchdog=window.AbyssalEnemyNetcode?.createMotionWatchdog({motionEpsilon:.35,healthyRatio:.18,resumeAfter:4,stallAfter:3})||null;
-let coins=Number(localStorage.getItem('abyssalCoins')||0),equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
+const energyWallet=window.AbyssalSoloProgress;
+let equippedSkin=localStorage.getItem('abyssalSkin')||'default',onlineMode=false,wasOnlineModeOnDeath=false,botBuddyTimer=0;
 const SPECIMEN_SYSTEM=window.AbyssalSpecimenSystem;
 const DIVER_ART=window.AbyssalDiverArt;
 const DIVER_HITBOX=window.AbyssalDiverHitbox;
@@ -475,7 +476,7 @@ let shopCurrency='brl';
 let shopRates={brl:1};
 function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const cockpitLanguage=$('cockpitLanguageSelect');if(cockpitLanguage)cockpitLanguage.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
 // Keep the last server-synchronized ownership cache while session restoration is pending. The authoritative account-data event replaces it after authentication.
-function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
+function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
 let mobileFireHeld=false;
 let pointer={x:0,y:0,down:false,active:false},keys={},joystickVector={x:0,y:0,active:false,pointerId:null},aimJoystickVector={x:0,y:0,active:false,pointerId:null};
@@ -947,7 +948,7 @@ function renderNotifPanel() {
   if (!panel || !list) return;
   var items = getStoredNotifications();
   if (!items.length) {
-    list.innerHTML = '<div class="notif-empty"><span class="notif-empty-icon">🔔</span>Nenhuma notificação no momento.<br>Recompensas, títulos e moedas aparecem aqui.</div>';
+    list.innerHTML = '<div class="notif-empty"><span class="notif-empty-icon">🔔</span>Nenhuma notificação no momento.<br>Recompensas, títulos e de energia aparecem aqui.</div>';
   } else {
     var html = '';
     for (var ii = 0; ii < items.length; ii++) {
@@ -1094,7 +1095,7 @@ function pumpGameplayNotice(){
  el.hidden=false;el.classList.remove('boss-alert-enter','gameplay-notice-5s');void el.offsetWidth;el.classList.add('gameplay-notice-5s');
  clearTimeout(bossAlertTimer);bossAlertTimer=setTimeout(()=>{el.hidden=true;el.classList.remove('gameplay-notice-5s');el.dataset.noticeKind='';gameplayNoticeActive=false;pumpGameplayNotice();},5000);
 }
-function showToast(t){if(gameState==='playing'&&onlineMode)return;if(/^(MOEDAS ABISSAIS INSUFICIENTES|NOT ENOUGH|BLOQUEADA|DESBLOQUEIE|EQUIPE PULSO|EQUIPE PASSO|NÃO FOI POSSÍVEL|VOCÊ JÁ EQUIPOU)/i.test(String(t)))playWorldSound('ui-error',null,800,.58);$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
+function showToast(t){if(gameState==='playing'&&onlineMode)return;if(/^(ENERGIA INSUFICIENTE|NOT ENOUGH|BLOQUEADA|DESBLOQUEIE|EQUIPE PULSO|EQUIPE PASSO|NÃO FOI POSSÍVEL|VOCÊ JÁ EQUIPOU)/i.test(String(t)))playWorldSound('ui-error',null,800,.58);$('toast').textContent=t;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,1700)}
 window.addEventListener('abyssal-cave-signal',event=>{const d=event.detail||{};enqueueGameplayNotice('cave',String(d.name||'ECO LATERAL'),String(d.subtitle||d.reward||'Uma anomalia respondeu à sua presença.'),72);});
 function renderBossAbilityVisual(data){
  const d=data||{};
@@ -1372,7 +1373,7 @@ function onProgressionCycleCompleted() {
         if(result?.awarded) window.dispatchEvent(new CustomEvent('abyssal-first-progression-reward',{detail:result}));
         else if(result?.ok===false) showToast(result.message||'Não foi possível confirmar a recompensa.');
       });
-    } else addNotification('Entre em sua conta para resgatar o bônus único de 50.000 moedas da primeira progressão completa.','CONQUISTA DE PROGRESSÃO','cycle');
+    } else addNotification('Entre em sua conta para resgatar o bônus único de 5.000 de energia da primeira progressão completa.','CONQUISTA DE PROGRESSÃO','cycle');
   }
   bossCycleIndex = 0;
   progressionDistance = 0;
@@ -2022,7 +2023,7 @@ let lastOnlineVitalsAt=0;
 function gainXp(value, source='shared'){
  if(!Number.isFinite(value)||value<=0||!player)return;
  const skinMultiplier=source!=='shared'&&!onlineMode?specimenPassiveMultiplier('experience')*Math.min(1.26,Math.max(1,Number(upgrades.magnet)||1)):1;
- if(!onlineMode&&source==='kill'){diveStats.energyCollected+=value;if(isClassicShooterRun())window.AbyssalSoloProgress?.credit(value);}
+ if(!onlineMode&&source==='kill'){diveStats.energyCollected+=value;energyWallet?.credit(value);}
  xp+=value*skinMultiplier;
  if(xp>=xpNeed && gameState!=='upgrade'){
    if(areAllUpgradesMaxed()){
@@ -2399,7 +2400,7 @@ function killEnemy(i){
   soloEliteRewardTier=activeMapTier;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round((EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18)*.22)));
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
-}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){coins+=100;addNotification('Você ganhou 100 moedas abissais por derrotar um boss.','RECOMPENSA DE BOSS · +100 MOEDAS','coins');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
+}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){if(!window.AbyssalOnline?.isAuthenticated?.())energyWallet?.credit(10,'offline-reward');addNotification('Você ganhou 10 de energia por derrotar um boss.','RECOMPENSA DE BOSS · +10 ENERGIA','energy');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
    enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){const finalClear=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&e.kind===RIFT_HARDCORE?.FINAL_KIND;if(finalClear){riftBossMarks=[];showToast('FOSSAS CONCLUÍDAS · RESGATE O BAÚ FINAL');}else showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
 }
 function getLocalSkinCursorAngle(){
@@ -3367,8 +3368,8 @@ function buyMetaUpgrade(id){showToast('HABILIDADES AGORA SÃO ESTUDADAS NO SUBMA
  if(window.AbyssalOnline?.isAuthenticated()){
   window.AbyssalOnline.purchaseMeta(id);return;
  }
- if(coins<item.price){showToast('MOEDAS ABISSAIS INSUFICIENTES');return;}
- coins-=item.price;metaUpgrades[id]=current+1;saveCosmetics();renderShop();showToast(`${item.name.toUpperCase()} DESBLOQUEADO`);playSkillSound(id,'learn');playWorldSound('ui-purchase');
+ if((energyWallet?.get().energy||0)<item.price){showToast('ENERGIA INSUFICIENTE');return;}
+ energyWallet?.debit(item.price);metaUpgrades[id]=current+1;saveCosmetics();renderShop();showToast(`${item.name.toUpperCase()} DESBLOQUEADO`);playSkillSound(id,'learn');playWorldSound('ui-purchase');
 }
 function activateAbility(id){
  if(!player||gameState!=='playing')return;
@@ -3438,9 +3439,9 @@ function endGame(reason='death'){
  const authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const baseEarnedCoins=Math.max(5,Math.floor(score/35)+(Number(level)||0)*2);
  const expeditionMultiplier=expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1;
- const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
+ const earnedCoins=Math.floor(Math.min(50000,Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier)))/10);
  runResultPending=true;
- diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,totalRunCoins:earnedCoins+bossKillsThisRun*100,level};
+ diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,totalRunCoins:earnedCoins+bossKillsThisRun*10,level};
  renderDiveReport(diveReport,true);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
@@ -4703,7 +4704,7 @@ function renderDiveReport(report,pending=false){
  if(!report)return;const n=v=>v==null?'—':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');
  setTextIfChanged('finalTime',fmtTime(report.survival));setTextIfChanged('finalScore',n(report.damageDealt));setTextIfChanged('finalLevel',n(report.level));setTextIfChanged('finalCoins',n(report.totalRunCoins));setTextIfChanged('finalEnergy',n(report.energyCollected));setTextIfChanged('finalKills',n(report.monstersKilled));setTextIfChanged('finalReportStatus',pending?'Resultado provisório · aguardando confirmação':'Relatório da expedição');
 }
-function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · Moedas abissais: '+n(report.totalRunCoins)+' · Energia: '+n(report.energyCollected)+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
+function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · energia: '+n(report.totalRunCoins)+' · Energia: '+n(report.energyCollected)+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
 function settleDiveReport(onComplete){
  syncSoloAdaptation();
  if(diveSettled){onComplete?.();return;}if(diveSettling||!diveReport)return;
@@ -4714,8 +4715,8 @@ function settleDiveReport(onComplete){
  };
  if(authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:wasOnline,onComplete:finish});return;}
  if(wasOnline){finish({ok:false,message:'Reconecte a conta para confirmar o resultado online.'});return;}
- const earned=Math.max(3,Math.round(Math.max(5,Math.floor(score/35)+(Number(level)||0)*2)*(expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1)));
- coins+=earned;saveCosmetics();renderShop();finish({ok:true,totalRunCoins:earned+bossKillsThisRun*100});
+ const earned=Math.floor(Math.min(50000,Math.max(3,Math.round(Math.max(5,Math.floor(score/35)+(Number(level)||0)*2)*(expeditionMode?(1+Math.min(.75,bossKillsThisRun*.15)):1))))/10);
+ energyWallet?.credit(earned,'offline-reward');saveCosmetics();renderShop();finish({ok:true,totalRunCoins:earned+bossKillsThisRun*100});
 }
 function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.open?.();}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
@@ -4907,24 +4908,24 @@ function startShopMotion(){
  if(!shopMotionFrame&&!$('shopScreen')?.hidden)shopMotionFrame=requestAnimationFrame(animateVisibleShopSkins);
 }
 function drawWheel(){
- const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[20,50,100,300,600,1000],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('MOEDAS',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
+ const canvas=$('wheelCanvas');if(!canvas)return;const c=canvas.getContext('2d'),w=canvas.width,h=canvas.height,cx=w/2,cy=h/2,r=Math.min(w,h)*.43;const prizes=[2,5,10,30,60,100],colors=['#1a7083','#513b9f','#1b8891','#a64b82','#b87335','#d3ac3d'];c.clearRect(0,0,w,h);c.save();c.translate(cx,cy);c.rotate(wheelAngle);for(let i=0;i<prizes.length;i++){const a=-Math.PI/2+i*Math.PI*2/prizes.length,b=a+Math.PI*2/prizes.length;c.beginPath();c.moveTo(0,0);c.arc(0,0,r,a,b);c.closePath();const grad=c.createRadialGradient(0,0,r*.05,0,0,r);grad.addColorStop(0,colors[i]);grad.addColorStop(1,i===5?'#f3d46b':'#071825');c.fillStyle=grad;c.fill();c.strokeStyle='rgba(231,255,255,.72)';c.lineWidth=2;c.stroke();c.save();c.rotate(a+Math.PI/prizes.length);c.textAlign='right';c.fillStyle='#f5ffff';c.shadowBlur=9;c.shadowColor=colors[i];c.font=`900 ${i===5?18:16}px Manrope, sans-serif`;c.fillText(`${prizes[i]}`,r*.83,6);c.font='700 9px Manrope,sans-serif';c.fillStyle='#c1f7f8';c.fillText('ENERGIA',r*.83,18);c.restore();}c.restore();c.save();c.translate(cx,cy);c.fillStyle='#e6fbff';c.shadowBlur=20;c.shadowColor='#69fff3';c.beginPath();c.arc(0,0,r*.22,0,Math.PI*2);c.fill();c.fillStyle='#081923';c.beginPath();c.arc(0,0,r*.145,0,Math.PI*2);c.fill();c.fillStyle='#9efff6';c.font='900 11px Manrope,sans-serif';c.textAlign='center';c.fillText('ABYSS',0,4);c.restore();c.save();c.translate(cx,cy-r+2);c.fillStyle='#fff1af';c.strokeStyle='#8b5c2a';c.lineWidth=2;c.shadowBlur=14;c.shadowColor='#ffc65e';c.beginPath();c.moveTo(-13,-17);c.lineTo(13,-17);c.lineTo(0,8);c.closePath();c.fill();c.stroke();c.restore();}
 function animateWheelToPrize(reward,grant=true){
- const vals=[20,50,100,300,600,1000];const index=Math.max(0,vals.indexOf(Number(reward)));const canvas=$('wheelCanvas');wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;const segment=Math.PI*2/vals.length;const desired=-(index+.5)*segment;const start=wheelAngle;const target=start+Math.PI*2*5+((desired-start%(Math.PI*2)+Math.PI*2)%(Math.PI*2));const begin=performance.now(),duration=3700;const spin=now=>{const p=clamp((now-begin)/duration,0,1),ease=1-Math.pow(1-p,4);wheelAngle=start+(target-start)*ease;drawWheel();if(p<1)requestAnimationFrame(spin);else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=grant?`VOCÊ GANHOU ${reward} MOEDAS ABISSAIS!`:`Prévia do giro: ${reward} moedas. Nenhuma moeda foi adicionada.`;if(grant){playWorldSound('ui-roulette',null,900,1);showToast(`ROLETA ABISSAL · +${reward} MOEDAS`);}else audio(480,.12,'sine',.02);}};requestAnimationFrame(spin);
+ const vals=[2,5,10,30,60,100];const index=Math.max(0,vals.indexOf(Number(reward)));const canvas=$('wheelCanvas');wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;const segment=Math.PI*2/vals.length;const desired=-(index+.5)*segment;const start=wheelAngle;const target=start+Math.PI*2*5+((desired-start%(Math.PI*2)+Math.PI*2)%(Math.PI*2));const begin=performance.now(),duration=3700;const spin=now=>{const p=clamp((now-begin)/duration,0,1),ease=1-Math.pow(1-p,4);wheelAngle=start+(target-start)*ease;drawWheel();if(p<1)requestAnimationFrame(spin);else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=grant?`VOCÊ GANHOU ${reward} energia!`:`Prévia do giro: ${reward} de energia. Nenhuma energia foi adicionada.`;if(grant){playWorldSound('ui-roulette',null,900,1);showToast(`ROLETA ABISSAL · +${reward} MOEDAS`);}else audio(480,.12,'sine',.02);}};requestAnimationFrame(spin);
 }
 function requestWheelSpin(){
  if(wheelBusy)return;
  if(!window.AbyssalOnline?.isAuthenticated()){$('wheelScreen').hidden=true;showToast('ENTRE NA CONTA PARA RECEBER RECOMPENSAS');window.AbyssalOnline?.openLogin();return;}
- if(typeof window.adBreak!=='function'){$('wheelMessage').textContent='Anúncios premiados ainda não estão ativos nesta versão. Use “Testar giro” para ver a animação sem ganhar moedas.';showToast('ANÚNCIO PREMIADO AINDA NÃO CONFIGURADO');return;}
+ if(typeof window.adBreak!=='function'){$('wheelMessage').textContent='Anúncios premiados ainda não estão ativos nesta versão. Use “Testar giro” para ver a animação sem ganhar energia.';showToast('ANÚNCIO PREMIADO AINDA NÃO CONFIGURADO');return;}
  let requested=false;wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;
  try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{resumeAfterH5Ad();if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
- $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar moedas abissais!';});
+ $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar energia!';});
 $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
 $('testWheelBtn')?.addEventListener('click',()=>{if(wheelBusy)return;animateWheelToPrize(weightedWheelPrize(),false);});
-window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){coins=Number(d.coins)||coins;saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||20,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
+window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){if(d.account)energyWallet?.setAccount(d.account.nickname,d.account.energy);saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||2,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
 function applyWorldEnemyDamageBatch(items){if(!Array.isArray(items))return;for(const item of items)applyWorldEnemyDamage(item);}
 function applyWorldEnemyDamage(data){
  if(!onlineMode||!data||data.id==null)return;
@@ -4997,7 +4998,7 @@ function renderShop(){
    }
   },{root:$('shopScreen')?.closest('.abyss-visor-body')||$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'150px 0px'});
  }
- $('coinBalance').textContent=coins.toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
+ $('coinBalance').textContent=(energyWallet?.get().energy||0).toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
  const english=gameLanguage==='en';
  const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'SPECIMEN<br><em>CATALOG</em>':'CATÁLOGO DE<br><em>ESPÉCIMES</em>';
@@ -5012,12 +5013,12 @@ function renderShop(){
   return (!query||haystack.includes(query))&&(familyFilter==='all'||rarityId===familyFilter)&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(specimenShopAvailable(skin)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;const order={common:0,uncommon:1,rare:2,epic:3,legendary:4},ra=order[SPECIMEN_RARITY?.rarityFor(a.id)]??9,rb=order[SPECIMEN_RARITY?.rarityFor(b.id)]??9;if(ra!==rb)return ra-rb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES`;
- visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name;
+ visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ⚡`,name=english?(englishNames[skin.id]||skin.name):skin.name;
     const isGreensnake = skin.id === 'greensnake';
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');const known=specimenShopAvailable(skin);card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=!known?'EM DESENVOLVIMENTO':equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const profile=SKIN_STANDARD?.profile(skin.id);
+const card=document.createElement('div');const known=specimenShopAvailable(skin);card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=!known?'EM DESENVOLVIMENTO':equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'TAME':'DOMAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ⚡`;const profile=SKIN_STANDARD?.profile(skin.id);
 const active=SKIN_STANDARD?.activeSpec(skin.id);
 const biological=SPECIMEN_SYSTEM.effectiveStats(skin.id,specimenPoints(skin.id));
 const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
@@ -5039,8 +5040,8 @@ card.innerHTML=`<div class="skin-preview specimen-vessel">
  </div>
  <button ${equipped||!known?'disabled':''}>${purchaseLabel}</button>`;
 const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
-const btn=card.querySelector('button');if(!equipped&&known)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if(coins>=skin.price){coins-=skin.price;ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' moedas abissais na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
-        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ABYSSAL COINS':'MOEDAS ABISSAIS INSUFICIENTES');});grid.appendChild(card);if(known)shopMotionObserver?.observe(preview)});
+const btn=card.querySelector('button');if(!equipped&&known)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if((energyWallet?.get().energy||0)>=skin.price){energyWallet?.debit(skin.price);ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' energia na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
+        updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ENERGY':'ENERGIA INSUFICIENTE');});grid.appendChild(card);if(known)shopMotionObserver?.observe(preview)});
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];
  const remainingIds=bundleIds.filter(id=>!ownedSkins.includes(id)),remaining=remainingIds.length;
  const bundleFullBrl=3999;
@@ -5142,7 +5143,7 @@ window.addEventListener('abyssal-code-redeem-result',event=>{const result=event.
     }catch(_){}
   }
   if(result.coinsAwarded){
-    coins += Number(result.coinsAwarded);
+    if(result.account)energyWallet?.setAccount(result.account.nickname,result.account.energy);
   }
   saveCosmetics();
   message.textContent=result.message||'CÓDIGO RESGATADO!';
@@ -5389,16 +5390,18 @@ window.addEventListener('abyssal-final-victory',ev=>{
 window.addEventListener('abyssal-first-progression-reward',ev=>{
  const result=ev.detail||{};
  if(result.awarded!==true)return;
- addNotification('Você concluiu a primeira barra de progressão e ganhou 50.000 moedas abissais, uma única vez por conta.','PRIMEIRO CICLO CONQUISTADO','cycle');
+ addNotification('Você concluiu a primeira barra de progressão e ganhou 5.000 de energia abissais, uma única vez por conta.','PRIMEIRO CICLO CONQUISTADO','cycle');
  window.AbyssalTutorials?.showProgressionChoice?.();
 });
-window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
-window.addEventListener('abyssal-authenticated',()=>syncSoloAdaptation());
+window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} ENERGIA NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
+window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();});
+window.addEventListener('abyssal-account-signed-out',()=>energyWallet?.setAccount('',0));
+setInterval(()=>energyWallet?.sync(),5000);
 window.addEventListener('online',()=>syncSoloAdaptation());
 setInterval(syncSoloAdaptation,15000);
 window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
-  coins=Number(a.coins)||0;
+  energyWallet?.setAccount(a.nickname,a.energy);
   const serverSkins=Array.isArray(a.ownedSkins)?a.ownedSkins:['default'];
   ownedSkins=[...new Set(serverSkins)];
   equippedSkin=a.equippedSkin||localStorage.getItem('abyssalSkin')||'default';
@@ -5446,7 +5449,7 @@ window.addEventListener('abyssal-purchase-result',e=>{
     playWorldSound('ui-purchase',null,900,1);
   }
 });
-function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalCoins',String(coins));localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
+function saveCosmeticsLocalOnly(){localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));}
 renderShop();
 
 initNotifSystem();resize();
