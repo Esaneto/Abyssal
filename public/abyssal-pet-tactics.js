@@ -57,5 +57,37 @@
   if(orb)return {type:'orb',target:orb,orb,mode};
   return {type:'follow',target:{x:player.x,y:player.y-35},mode};
  }
- return Object.freeze({MODES,normalize,choose,orbRisk});
+ // Attack geometry uses the same visual radius as the equipped specimen.
+ function attackProfile(id,family,r){
+  r=Math.max(1,Number(r)||1);
+  const body=['octopus','squid','jelly','ray','crustacean','benthic'].includes(family);
+  const kraken=id==='kraken';
+  const reach=kraken?3.1*r:body?(['octopus','squid','jelly'].includes(family)?1.8:1.25)*r:(family==='eel'?1.65:family==='reptile'?1.55:1.15)*r;
+  return {body,kraken,r,reach,core:Math.max(1,r*.65),slack:Math.max(3,r*.13)};
+ }
+ function attackGoal(pet,enemy,profile){
+  const dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
+  const a=d>1e-6?Math.atan2(dy,dx):Number(pet.facingAngle)||0;
+  const er=Math.max(1,Number(enemy.r)||1);
+  const stop=er+profile.reach+profile.slack*.35;
+  return {x:enemy.x-Math.cos(a)*stop,y:enemy.y-Math.sin(a)*stop,angle:a,stop};
+ }
+ function attackContact(pet,enemy,p,angle,phase,krakenTouch){
+  const er=Math.max(1,Number(enemy.r)||1),dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
+  if(p.kraken){
+   if(d>p.r*5.2+er)return false;
+   // Use actual animated arm paths, plus mantle/core.
+   const localX=dx*Math.cos(angle)+dy*Math.sin(angle),localY=-dx*Math.sin(angle)+dy*Math.cos(angle);
+   const mantle=(localX/(p.r*.82+er))**2+((localY+p.r*.55)/(p.r*1.18+er))**2<=1;
+   return mantle||Boolean(krakenTouch?.({kind:'kraken',x:pet.x,y:pet.y,r:p.r,angle,phase},enemy,1));
+  }
+  if(p.body){
+   const x=dx*Math.cos(angle)+dy*Math.sin(angle),y=-dx*Math.sin(angle)+dy*Math.cos(angle);
+   const rx=p.reach+er,ry=p.reach*.78+er;
+   return (x/rx)**2+(y/ry)**2<=1;
+  }
+  const mouthX=pet.x+Math.cos(angle)*p.reach,mouthY=pet.y+Math.sin(angle)*p.reach;
+  return Math.hypot(enemy.x-mouthX,enemy.y-mouthY)<=er+p.slack;
+ }
+ return Object.freeze({MODES,normalize,choose,orbRisk,attackProfile,attackGoal,attackContact});
 });
