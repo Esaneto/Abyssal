@@ -48,7 +48,7 @@ body.abyss-solo-run.game-active.hud-collapsed #toggleHudBtn{
 body:has(#submarineWorkshop:not([hidden])) #resonanceScreen:not([hidden]){z-index:31000!important;position:fixed!important;inset:0!important}
 @media(max-width:700px){body.abyss-solo-run.game-active #petHabitBar{left:6px!important;bottom:116px!important;width:76px!important;max-width:76px!important}}
 
-@media(min-width:701px) and (pointer:fine){
+@media(min-width:701px){
  body.abyss-solo-run.game-active #petHabitBar{
   position:fixed!important;left:14px!important;right:auto!important;top:auto!important;
   bottom:158px!important;width:80px!important;max-width:80px!important;z-index:36!important

@@ -5,7 +5,7 @@ const Evasion=require('../public/specimen-evasion.js');
 const Rarity=require('../public/specimen-rarity.js');
 test('rarity wheel gives 40/30/15/10/5 and never selects locked mission skins',()=>{
  const pool=['solar','thorn','voidwing','atolla','gharial','greensnake'];
- const cases=[[.10,'default'],[.399,'default'],[.40,'solar'],[.69,'solar'],[.70,'toxic'],[.849,'toxic'],[.85,'reefshark'],[.949,'reefshark'],[.95,'leviathan'],[.999,'leviathan']];
+ const cases=[[.10,'solar'],[.399,'solar'],[.40,'thorn'],[.69,'thorn'],[.70,'voidwing'],[.849,'voidwing'],[.85,'atolla'],[.949,'atolla'],[.95,'gharial'],[.999,'gharial']];
  for(const [number,expected] of cases)assert.equal(Rarity.roll(pool,()=>number),expected);
  assert.equal(Rarity.roll(['greensnake'],()=>.5),null);
  assert.deepEqual(Rarity.WEIGHTS,{common:40,uncommon:30,rare:15,epic:10,legendary:5});
