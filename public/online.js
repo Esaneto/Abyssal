@@ -214,11 +214,20 @@ function loadSocketClient(){
  return socketClientLoading;
 }
 function updateAccount(){const status=$('accountStatus');const btn=$('loginBtn');const profileBtn=$('profileSessionBtn');if(profileBtn){profileBtn.textContent=authenticated?'SAIR DA CONTA':sessionToken?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA';profileBtn.hidden=Boolean(viewedPublicProfile);profileBtn.disabled=false;}let guest=localStorage.getItem('abyssalGuestNumber');if(!guest){guest=String(1000+Math.floor(Math.random()*9000));localStorage.setItem('abyssalGuestNumber',guest)}if(status)status.textContent=authenticated&&account?`CONECTADO COMO ${account.nickname.toUpperCase()}`:sessionToken&&account?.nickname?(connected?'RESTAURANDO CONTA':'RECONEXÃO PENDENTE'):`VISITANTE #${guest}`;if(btn)btn.textContent=authenticated?'CONTA CONECTADA':sessionToken&&account?.nickname?'RESTAURAR CONTA':'ENTRAR / CRIAR CONTA'}
+// Account-scoped cache must never survive an explicit sign-out.
+const ACCOUNT_CACHE_KEYS=['abyssalAccount','abyssalSessionToken','abyssalCoins','abyssalSkin','abyssalOwnedSkins','abyssalMetaUpgrades','abyssalSpecimenProficiency','abyssalDiscoveredSpecimens','abyssalDiverGender','abyssalResonancePresets','abyssalEquippedActiveSkills','abyssalKnownOnlineTitles','abyssalTitles','abyssalRedeemedCodes','abyssalNotifications','abyssalNotificationsLastSeen','abyssalCodex','abyssalBestScore','abyssalBestTime'];
+function clearAccountCache(){for(const key of ACCOUNT_CACHE_KEYS)localStorage.removeItem(key);}
+function resetSignedOutClient(message=''){
+ clearAccountCache();
+ if(message)try{sessionStorage.setItem('abyssalSignOutNotice',message);}catch(_){}
+ window.location.reload();
+}
+try{const notice=sessionStorage.getItem('abyssalSignOutNotice');if(notice){sessionStorage.removeItem('abyssalSignOutNotice');setTimeout(()=>{const toast=$('toast');if(toast){toast.textContent=notice;toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500);}},0);}}catch(_){}
 function logoutAccount(){
- const token=sessionToken;const activeSocket=socket;
- const finish=()=>{reconnectPending=false;reconnectTarget=null;clearReconnectWatchdog();currentRoom=null;players.clear();playersByNetId.clear();hostId=null;stopRoomPolling();authenticated=false;account=null;serverAccount=null;sessionToken='';viewedPublicProfile=null;localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');if(activeSocket?.connected)activeSocket.disconnect();socket=null;connected=false;updateAccount();renderProfile({});if($('accountDeletePanel'))$('accountDeletePanel').hidden=true;if($('publicProfileActions'))$('publicProfileActions').hidden=true;$('profileMessage').textContent='Você saiu da conta. Entre novamente para sincronizar suas conquistas.';window.dispatchEvent(new CustomEvent('abyssal-account-signed-out'));};
+ const token=sessionToken;const activeSocket=socket;let finished=false; if(!authenticated&&!token)return;
+ const finish=(message='')=>{if(finished)return;finished=true;reconnectPending=false;reconnectTarget=null;clearReconnectWatchdog();currentRoom=null;players.clear();playersByNetId.clear();hostId=null;stopRoomPolling();authenticated=false;account=null;serverAccount=null;sessionToken='';viewedPublicProfile=null;localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');if(activeSocket?.connected)activeSocket.disconnect();socket=null;connected=false;updateAccount();renderProfile({});if($('accountDeletePanel'))$('accountDeletePanel').hidden=true;if($('publicProfileActions'))$('publicProfileActions').hidden=true;$('profileMessage').textContent='Você saiu da conta. Entre novamente para sincronizar suas conquistas.';window.dispatchEvent(new CustomEvent('abyssal-account-signed-out'));resetSignedOutClient(message);};
  const button=$('profileSessionBtn');if(button)button.disabled=true;
- if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>{finish();if(error||!result?.ok)$('profileMessage').textContent='Sessão local encerrada. Não foi possível confirmar a revogação no servidor.';});}else finish();
+ if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
 function openLogin(){if(window.AbyssalCockpitNavigation?.routeScreen?.('loginScreen'))return;$('loginScreen').hidden=false;setMessage(account?`Último nickname: ${account.nickname}. Digite sua senha para entrar.`:'Crie uma conta ou entre com seu nickname e senha.');if(account)$('nicknameInput').value=account.nickname}
 function connect(){
@@ -302,7 +311,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  });
  socket.on('session-resumed',result=>{
   if(reconnectSessionRetry){clearTimeout(reconnectSessionRetry);reconnectSessionRetry=null;}
-  if(!result?.ok){authenticated=false;serverAccount=null;const explicitlyExpired=/expir|inválid|invalid/i.test(String(result?.message||''));if(explicitlyExpired){sessionToken='';localStorage.removeItem('abyssalSessionToken');}$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage(explicitlyExpired?'Sua sessão expirou. Entre novamente para acessar o perfil.':'Não foi possível validar sua sessão agora. Tentaremos novamente na próxima conexão.',true);if(reconnectPending)failReconnect(explicitlyExpired?'Sua sessão expirou durante a atualização. Entre novamente para continuar.':'O servidor voltou, mas não conseguiu validar a sessão nesta tentativa.');else hideMaintenanceOverlay();return;}
+  if(!result?.ok){authenticated=false;serverAccount=null;const explicitlyExpired=/expir|inválid|invalid/i.test(String(result?.message||''));if(explicitlyExpired){sessionToken='';account=null;resetSignedOutClient('Sua sessão expirou. Entre novamente para acessar o perfil.');return;}$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage(explicitlyExpired?'Sua sessão expirou. Entre novamente para acessar o perfil.':'Não foi possível validar sua sessão agora. Tentaremos novamente na próxima conexão.',true);if(reconnectPending)failReconnect(explicitlyExpired?'Sua sessão expirou durante a atualização. Entre novamente para continuar.':'O servidor voltou, mas não conseguiu validar a sessão nesta tentativa.');else hideMaintenanceOverlay();return;}
   authenticated=true;account={nickname:result.nickname};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
   setMessage(`Sessão restaurada: ${result.nickname}.`);refreshKidGate();
@@ -364,11 +373,11 @@ socket.on('player-skin-status',data=>window.dispatchEvent(new CustomEvent('abyss
   authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
   $('profileScreen').hidden=true;$('loginScreen').hidden=true;$('downloadScreen').hidden=true;
   updateAccount();renderProfile({});
-  const toast=$('toast');if(toast){toast.textContent='Conta excluída permanentemente.';toast.hidden=false;setTimeout(()=>{toast.hidden=true},4500)}
+  resetSignedOutClient('Conta excluída permanentemente.');
  });
  socket.on('account-force-logout',()=>{
   authenticated=false;account=null;serverAccount=null;sessionToken='';localStorage.removeItem('abyssalSessionToken');localStorage.removeItem('abyssalAccount');
-  $('profileScreen').hidden=true;updateAccount();renderProfile({});
+  $('profileScreen').hidden=true;updateAccount();renderProfile({});resetSignedOutClient('Sua sessão foi encerrada pelo servidor.');
  });
  return socket;
 }
