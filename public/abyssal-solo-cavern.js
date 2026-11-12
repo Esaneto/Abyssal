@@ -93,9 +93,9 @@
    else if(!segmentBlocked(rocks,x,y,x,ty,padding))y=ty;
   }return {x,y,blocked};
  }
- function segmentBlocked(rocks,x1,y1,x2,y2,padding=0){
+ function segmentBlocked(rocks,x1,y1,x2,y2,padding=0,ignoreSubmarine=false){
   for(const r of rocks||[]){
-   if(!r.cavernSolid||r.visualOnly)continue;
+   if(!r.cavernSolid||r.visualOnly||(ignoreSubmarine&&r.submarineHull))continue;
    if(Math.min(x1,x2)>r.x+r.r+padding||Math.max(x1,x2)<r.x-r.r-padding||Math.min(y1,y2)>r.y+r.r+padding||Math.max(y1,y2)<r.y-r.r-padding)continue;
    if(segmentRock(r,x1,y1,x2,y2,padding))return true;
   }return false;
