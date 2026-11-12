@@ -7,7 +7,7 @@
   if(root)root.AbyssalRiftHardcore=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
-const FINAL_TIER=7,FINAL_KIND='riftSmile',FINAL_CHEST_COINS=100000;
+const FINAL_TIER=7,FINAL_KIND='riftSmile',FINAL_CHEST_COINS=10000;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const layoutCache=new Map();
 const hazardGeometry=new WeakMap();
