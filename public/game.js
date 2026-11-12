@@ -4902,7 +4902,7 @@ function renderShop(){
  if('IntersectionObserver' in window){
   shopMotionObserver=new IntersectionObserver(entries=>{
    for(const entry of entries){if(entry.isIntersecting)shopMotionVisible.add(entry.target);else shopMotionVisible.delete(entry.target);}
-  },{root:$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'0px'});
+  },{root:$('shopScreen')?.closest('.abyss-visor-body')||$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'0px'});
  }
  if('IntersectionObserver' in window){
   shopPreviewObserver=new IntersectionObserver(entries=>{
@@ -4911,7 +4911,7 @@ function renderShop(){
     if(skin)renderCreaturePreview(canvas,'player',skin.color,skin);
     shopPreviewObserver?.unobserve(canvas);
    }
-  },{root:$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'150px 0px'});
+  },{root:$('shopScreen')?.closest('.abyss-visor-body')||$('shopScreen')?.querySelector('.shop-modal')||null,rootMargin:'150px 0px'});
  }
  $('coinBalance').textContent=coins.toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
@@ -4970,7 +4970,9 @@ const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click'
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.textContent='Habilidades Q/E e passivas agora são estudadas no laboratório do submarino. Melhorias adquiridas anteriormente permanecem no perfil.';[].forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
  updateAbilityButtons();drawWheel();startShopMotion();
 }
-$('shopBtn').addEventListener('click',()=>{$('shopScreen').hidden=false;if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop()});
+function openSpecimenShop(){ $('shopScreen').hidden=false;if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop(); }
+$('shopBtn').addEventListener('click',openSpecimenShop);
+window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSpecimenShop();else if(id==='catalogScreen')renderCatalog();}});
 $('shopCurrency')?.addEventListener('change',event=>{event.target.value='brl';shopCurrency='brl';renderShop()});
 $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
@@ -5207,7 +5209,7 @@ function renderCatalog(){
    for(const entry of entries)if(entry.isIntersecting){
     paintJournalCreature(entry.target);journalPreviewObserver?.unobserve(entry.target);
    }
-  },{root:el.querySelector('.codex-modal'),rootMargin:'140px 0px'});
+  },{root:el.closest('.abyss-visor-body')||el.querySelector('.codex-modal'),rootMargin:'140px 0px'});
   previewCanvases.forEach(canvas=>journalPreviewObserver.observe(canvas));
  }else previewCanvases.forEach(paintJournalCreature);
 }

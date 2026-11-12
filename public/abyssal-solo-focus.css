@@ -169,3 +169,21 @@
 #submarineWorkshop .solo-stored-energy,.solo-energy-stock:not(.solo-base-stock){color:#c48cff!important;text-shadow:0 0 8px #9c50df55}
 .resonance-research-action{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:52px;padding:10px!important;font-size:12px!important;border-color:#b28be2!important;background:linear-gradient(145deg,#3b2459,#20162f)!important;color:#f3e7ff!important}
 .resonance-research-action span{font-size:11px;color:#d4a5ff}.resonance-research-action:disabled{opacity:.65;cursor:not-allowed}.solo-research-buy{min-height:48px!important;padding:10px!important;color:#e4b9ff!important}
+
+/* A single live catalog occupies the cockpit monitor, never an overlay. */
+#submarineWorkshop .abyss-visor-body > .abyss-cockpit-embedded:not([hidden]){
+ position:relative!important;inset:auto!important;display:block!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;max-width:100%!important;overflow:visible!important;padding:0!important;margin:0!important;z-index:auto!important;background:transparent!important;backdrop-filter:none!important;transform:none!important;
+}
+#submarineWorkshop .abyss-cockpit-embedded > .modal-card{
+ position:relative!important;inset:auto!important;width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:10px!important;transform:none!important;box-shadow:none!important;
+}
+#submarineWorkshop .abyss-cockpit-embedded .modal-top-close,
+#submarineWorkshop .abyss-cockpit-embedded #shopCloseBtn,
+#submarineWorkshop .abyss-cockpit-embedded #catalogCloseBtn{display:none!important}
+#submarineWorkshop .abyss-cockpit-embedded .skin-grid,
+#submarineWorkshop .abyss-cockpit-embedded .catalog-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))!important;min-width:0!important;width:100%!important}
+#submarineWorkshop .abyss-cockpit-embedded .shop-filter-bar{display:flex!important;flex-wrap:wrap!important;min-width:0!important}
+#submarineWorkshop .abyss-cockpit-embedded .shop-filter-bar>*{flex:1 1 135px;min-width:0!important;max-width:100%!important}
+#submarineWorkshop .abyss-cockpit-embedded .shop-heading{flex-wrap:wrap!important;min-width:0!important}
+#submarineWorkshop .abyss-cockpit-embedded .shop-heading h2,
+#submarineWorkshop .abyss-cockpit-embedded .codex-modal>h2{font-size:clamp(16px,2vw,25px)!important}

@@ -22,6 +22,40 @@
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
+ // Move the original live screens, not copies: purchases, filters, canvases,
+ // ownership and catalog discovery retain their existing IDs and listeners.
+ let embeddedCatalog=null;
+ function restoreEmbeddedCatalog(){
+  if(!embeddedCatalog)return;
+  const {screen,anchor,role,modal}=embeddedCatalog;embeddedCatalog=null;
+  screen.hidden=true;screen.classList.remove('abyss-cockpit-embedded');
+  if(role===null)screen.removeAttribute('role');else screen.setAttribute('role',role);
+  if(modal){modal.setAttribute('aria-modal','true');modal.setAttribute('role','dialog');}
+  anchor.replaceWith(screen);
+ }
+ function embedCatalog(body,id){
+  const screen=$(id);if(!screen)return;
+  const anchor=document.createComment('original '+id+' location');
+  screen.before(anchor);
+  const modal=screen.querySelector('[aria-modal="true"]'),role=screen.getAttribute('role');
+  embeddedCatalog={screen,anchor,role,modal};
+  screen.classList.add('abyss-cockpit-embedded');screen.setAttribute('role','region');
+  if(modal){modal.removeAttribute('aria-modal');modal.setAttribute('role','region');}
+  body.append(screen);screen.hidden=false;
+  // Render directly, bypassing any external-menu click or feature gate.
+  window.AbyssalCockpitCatalog?.open(id);
+ }
+ function installEmbeddedClose(id){
+  const screen=$(id);if(!screen)return;
+  screen.addEventListener('click',event=>{
+   if(embeddedCatalog?.screen!==screen)return;
+   const button=event.target.closest?.('#shopCloseBtn,#shopTopCloseBtn,#catalogCloseBtn,[data-close-screen="catalogScreen"]');
+   if(!button)return;
+   event.preventDefault();event.stopImmediatePropagation();
+   activeConsoleSection='solo';soloConsolePage='home';renderWorkshop();
+  },true);
+ }
+ installEmbeddedClose('shopScreen');installEmbeddedClose('catalogScreen');
  const LAB_SECTIONS=Object.freeze([
   {id:'survival',label:'SOBREVIVÊNCIA',groups:['essential','equipment']},
   {id:'weapons',label:'ARMAMENTO · EM DESENVOLVIMENTO',groups:['starter']},
@@ -29,6 +63,7 @@
  ]);
  function renderWorkshop(){
   if(!workshopGrid)return;
+  restoreEmbeddedCatalog();
   if(activeConsoleSection!=='laboratory'){renderConsoleUtility();return;}
   const levels=stateLevels(),inventory=research.sanitizeInventory(stateInventory()),offshore=currentOffshore();
   workshopGrid.replaceChildren();
@@ -172,9 +207,11 @@
   body.addEventListener('scroll',refreshHint,{passive:true});
   requestAnimationFrame(refreshHint);
   workshopGrid.replaceChildren(visor,keys);
+  if(activeConsoleSection==='shop'||activeConsoleSection==='specimens')embedCatalog(body,activeConsoleSection==='shop'?'shopScreen':'catalogScreen');
  }
  function renderConsoleUtility(){
   if(!workshopGrid)return;
+  if(activeConsoleSection==='shop'||activeConsoleSection==='specimens'){mountCockpitConsole(document.createElement('div'));return;}
   const utility=document.createElement('div');utility.className='abyss-console-info';
   if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
@@ -250,7 +287,7 @@
  }
 
  const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
- const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
+ const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
  window.addEventListener('abyssal-open-main-cockpit',openWorkshop);
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
