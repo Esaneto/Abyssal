@@ -2962,7 +2962,7 @@ function update(dt){
    updateAutomaticWeaponAim();
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
-   if(player.fireTimer<=0&&(onlineMode||!isClassicShooterRun()||soloSubmarine.spawnFx<=1.25)&&(!isManualFiringMode()||manualFireDown())){
+   if(player.fireTimer<=0&&(!isManualFiringMode()||manualFireDown())&&(onlineMode||!isClassicShooterRun()||soloSubmarine.spawnFx<=1.25)){
     fire();player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
    }
  }
@@ -3296,7 +3296,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       }
      }
      soloEnemyMovementOptions.stopDistance=ec.aggressive?window.AbyssalEnemyAI.tentacleStopDistance(e,e.r,player.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)):5;
-     soloEnemyMovementOptions.freeSwim=!ec.aggressive||!window.AbyssalEnemyAI.isChargeAttack(e);
+     soloEnemyMovementOptions.freeSwim=true;
      const swimRoute=OPEN_SEA_ECOLOGY.navigationTarget(e,ec.target,Math.max(10,Math.min(52,e.r*.56)),performance.now());
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
      soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
