@@ -296,13 +296,17 @@
     currents.restore();
    }
   }
+  let menuFrame=0;
+  function scheduleMenu(){if(!menuFrame&&hatchVisible()&&!document.hidden)menuFrame=requestAnimationFrame(animate);}
+  function syncMenu(){if(hatchVisible()&&!document.hidden){if(!menuFrame){last=performance.now();scheduleMenu();}}else{if(menuFrame)cancelAnimationFrame(menuFrame);menuFrame=0;wasVisible=false;vx=0;vy=0;held.clear();followPointer=null;}}
   function animate(now){
+   menuFrame=0;
    const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
    const visible=hatchVisible();
    if(visible&&!wasVisible){sizeScene();resetToHatch();}
    wasVisible=visible;
    // No menu paint, currents or particles while gameplay/other screens own the UI.
-   if(!visible){vx=0;vy=0;held.clear();followPointer=null;setTimeout(()=>requestAnimationFrame(animate),250);return;}
+   if(!visible||document.hidden){syncMenu();return;}
    if(visible){
     if(Math.abs(stage.clientWidth-w)>2||Math.abs(stage.clientHeight-h)>2)sizeScene();
     if(transition){
@@ -376,7 +380,7 @@
      moving:emergence<1||Boolean(transition)||Math.hypot(vx,vy)>6
     });
    }
-   requestAnimationFrame(animate);
+   scheduleMenu();
   }
   if(hatchVisible())sizeScene();
   // Only expose the menu after the active swimmer/currents have their geometry.
@@ -387,7 +391,9 @@
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&Math.abs(stage.clientWidth-w)>2)sizeScene();});
    ro.observe(stage);
   }
-  requestAnimationFrame(animate);
+  const lifecycle=new MutationObserver(syncMenu);lifecycle.observe(menu,{attributes:true,attributeFilter:['hidden']});lifecycle.observe(document.body,{attributes:true,attributeFilter:['class']});
+  document.addEventListener('visibilitychange',syncMenu);
+  syncMenu();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);
  else boot();
