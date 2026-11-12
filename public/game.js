@@ -4256,14 +4256,23 @@ const specimenPortraits=new Map();
 function registerSpecimenPortrait(canvas,skinId){
  if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));scheduleSpecimenPortraits();
 }
-function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
+function hasVisibleSpecimenPortrait(){
+ for(const canvas of [...specimenPortraits.keys()]){
+  if(!canvas?.isConnected){specimenPortraits.delete(canvas);continue;}
+  if(canvas.getClientRects().length&&canvas.offsetWidth&&canvas.offsetHeight)return true;
+ }
+ return false;
+}
+function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')&&hasVisibleSpecimenPortrait()){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
 new MutationObserver(scheduleSpecimenPortraits).observe(document.body,{attributes:true,attributeFilter:['class']});
 document.addEventListener('visibilitychange',scheduleSpecimenPortraits);
 function renderSpecimenPortraits(t){
  if(document.hidden||document.body.classList.contains('game-active')){registerSpecimenPortrait.running=false;return;}
+ let visiblePortraits=0;
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
+  visiblePortraits++;
   const surface=preparePreviewCanvas(canvas);if(!surface)continue;const {c,w,h}=surface,skin=skinData.find(s=>s.id===skinId)||skinData[0];c.clearRect(0,0,w,h);
   const bg=c.createRadialGradient(w*.5,h*.48,10,w*.5,h*.48,w*.55);bg.addColorStop(0,'rgba(55,150,177,.18)');bg.addColorStop(1,'rgba(2,12,23,0)');if(!canvas.closest?.('#shopScreen')){c.fillStyle=bg;c.fillRect(0,0,w,h);}
   // Restore the natural diagonal swimming portrait used before the upright pose.
@@ -4271,9 +4280,8 @@ function renderSpecimenPortraits(t){
   DIVER_ART?.draw?.(c,dx,dy+bob,27,-.10,-.10,t,{gender:diverGender,moving:true});
   const sx=w*.62,sy=h*.30+Math.cos(t*.002)*5;
   try{drawCreature(sx,sy,Math.max(13,w*.035),-.05,skin.color,'player',t,true,0,c,skin,{visualId:'portrait:'+skinId,moveSpeed:0});}catch(_){}
-
  }
- if(specimenPortraits.size)requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
+ if(visiblePortraits>0&&hasVisibleSpecimenPortrait())requestAnimationFrame(renderSpecimenPortraits);else registerSpecimenPortrait.running=false;
 }
 window.addEventListener('abyssal-profile-specimen-render',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,d.skinId);});
 window.addEventListener('abyssal-menu-specimen-canvas',event=>{const d=event.detail||{};registerSpecimenPortrait(d.canvas,equippedSkin);});
