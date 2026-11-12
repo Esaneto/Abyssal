@@ -268,7 +268,7 @@
   line(0,374,187,357,'#78949c77',2);line(W,374,1253,357,'#78949c77',2);
   line(0,600,210,560,'#070e16',5);line(W,600,1230,560,'#070e16',5);
   lamp(23,353,113,5,true);lamp(1304,353,113,5,true);
-  radar(29,398,136,115);radar(1275,398,136,115);
+  hardware(29,398,136,115,11);radar(1275,398,136,115);
   // Live HTML profile/community buttons occupy the two plates under the sonars.
   hardware(43,530,119,83,7);hardware(1278,530,119,83,7);
   for(const x of [48,1294]){
