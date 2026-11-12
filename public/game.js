@@ -5184,24 +5184,19 @@ function renderCatalog(){
  for(const [kind,entry] of Object.entries(monsterData)){const live=window.AbyssalEnemyAI?.ENEMY_STATS?.[kind];if(!live)continue;entry.hp=kind==='whiteShark'?600:SOLO_INITIAL_KINDS.includes(kind)?(Number(live.hp)||0)+50:Number(live.hp)||entry.hp;entry.damage=Number(live.damage)||entry.damage;entry.speed=Number(live.dashSpeed ?? live.speed ?? entry.speed);}
  const skillCopy={power:'Aumenta o dano de cada projétil.',rate:'Reduz o intervalo entre disparos automáticos.',speed:'Aumenta a velocidade de movimento.',range:'Afasta a câmera, amplia a visão e o alcance dos tiros e das ondas em 22% por nível.',abyssEye:'Olho do Abismo: alcance de disparo pelo mapa inteiro; o projétil para ao colidir.',vitalDrain:'Dreno Vital: recupera 2% do dano causado como vida.',magnet:'Aumenta a experiência recebida em 8% por nível.',regen:'Recupera vitalidade gradualmente.',shield:'Adiciona cargas que absorvem impactos.',burst:'Libera periodicamente uma onda de energia ao redor do jogador.',electric:'Faz os tiros encadearem arcos elétricos em inimigos próximos.',pierce:'Permite atravessar uma criatura adicional por nível, sem multiplicar o dano.',ricochet:'Faz arcos de energia saltarem para alvos próximos.',spread:'Passiva prismática que espalha dano entre alvos próximos sem alterar o disparo escolhido.',nova:'Libera periodicamente uma explosão circular de grande alcance.'};
 
- const renderMonster=([k,m])=>{
-  const known=codex.monsters.includes(k);
-  const hpBadge = `<span class="stat-badge stat-hp" title="Vitalidade Máxima"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> <b>${m.hp.toLocaleString('pt-BR')}</b> HP</span>`;
-  const dmgBadge = `<span class="stat-badge stat-dmg" title="Dano ao Jogador"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M14.5 2.5l7 7-14 14H3v-4.5l11.5-11.5zm3.5 3.5l-2-2-10 10V16h2l10-10z"/></svg> <b>${m.damage}</b> DANO</span>`;
-   const spdBadge = `<span class="stat-badge stat-spd" title="Velocidade de Deslocamento"><svg viewBox="0 0 24 24" class="stat-icon" fill="currentColor"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7"/></svg> <b>${m.speed}</b> VELOCIDADE</span>`;
-  const abilityBox = `<div class="codex-ability-box"><span class="codex-ability-tag">HABILIDADE</span> <span class="codex-ability-text">${escapeHtml(m.ability)}</span></div>`;
-
-  return `<article class="codex-card monster-codex-card ${known?'unlocked':'locked'}">
-   <div class="codex-preview monster-preview" style="--preview:${m.color}">
-     ${known?`<canvas width="180" height="112" data-monster-preview="${k}" aria-label="Ilustração de ${escapeHtml(m.name)}"></canvas>`:'<span class="journal-sealed">NÃO REGISTRADO</span>'}
-   </div>
-   <div class="codex-header-row">
-     <b>${known?m.name:'Forma não identificada'}</b>
-     ${known ? `<div class="monster-stats-row">${hpBadge}${dmgBadge}${spdBadge}</div>` : ''}
-   </div>
-   <p>${known?m.desc:'Registro incompleto. Observe esta criatura durante uma expedição para decifrar sua identidade e comportamento.'}</p>
-   ${known ? abilityBox : ''}
-  </article>`;
+ const renderMonster=([k,m],index)=>{
+  const known=codex.monsters.includes(k),boss=BOSS_KINDS.includes(k),ability=m.ability||'';
+  const split=ability.indexOf(': '),attack=split>=0?ability.slice(0,split):'Comportamento de combate',effect=split>=0?ability.slice(split+2):ability;
+  return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'" data-journal-monster="'+escapeHtml(k)+'">'
+   +'<small class="journal-page-no">FOLHA '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<div class="codex-preview journal-creature" style="--preview:'+escapeHtml(m.color)+'">'+(known?'<canvas width="200" height="126" data-monster-preview="'+escapeHtml(k)+'" aria-label="Ilustração de '+escapeHtml(m.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
+   +'<b class="journal-specimen-title">'+(known?escapeHtml(m.name):'Forma desconhecida')+'</b>'
+   +(known?'<small class="journal-classification">'+(boss?'ENTIDADE COLOSSAL':'FAUNA EXTERNA')+' · HABITAT: CAVERNAS ABISSAIS</small>'
+    +'<div class="journal-stat-row"><span><b>VIDA</b> '+m.hp.toLocaleString('pt-BR')+'</span><span><b>DANO</b> '+m.damage+'</span><span><b>VELOCIDADE</b> '+m.speed+'</span></div>'
+    +'<p class="journal-handwritten">Ataque: '+escapeHtml(attack)+'</p>'
+    +'<p><b>Efeito:</b> '+escapeHtml(effect)+'</p><p class="journal-description"><b>História:</b> '+escapeHtml(m.desc)+'</p>'
+    :'<p class="journal-handwritten">Registro incompleto. Observe esta criatura durante um mergulho para revelar sua identidade e comportamento.</p>')
+   +'</article>';
  };
 
  const comboHtml=Object.values(COMBO_SKILLS).map(combo=>{const recipe=combo.id==='gravitationalRupture'?'Nova gravitacional Nv. 3 + Pulso de Ruptura Nv. 3':combo.id==='arcChain'?'Tempestade Elétrica Nv. 3 + Ricochete Caótico Nv. 3':combo.id==='abyssEye'?'Lança do Abismo Nv. 3 + Olho Profundo Nv. 3':'Membrana Viva Nv. 3 + Pulso Intenso Nv. 3';return `<article class="codex-card combo-codex-card special unlocked"><div class="combo-rarity">✦ FUSÃO ESPECIAL</div><div class="codex-preview skill-preview combo-preview" style="--preview:${combo.id==='arcChain'?'#75f3ff':'#c5a0ff'}">${combo.icon}</div><b>${combo.name}</b><p>${combo.desc}</p><small class="combo-recipe">COMBINAÇÃO · ${recipe}</small></article>`}).join('');
@@ -5216,7 +5211,7 @@ function renderCatalog(){
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
   const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'">'
-   +'<small class="journal-page-no">FOLHA '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<small class="journal-page-no">FOLHA '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
    +(known?'<small class="journal-classification">'+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
@@ -5226,11 +5221,12 @@ function renderCatalog(){
     :'<p class="journal-handwritten">Avistamento pendente nas Fossas Abissais.</p>')
    +'</article>';
  }).join('');
- const found=skinData.filter(s=>s.id==='default'||discoveredSpecimens.has(s.id)).length;
- grid.innerHTML='<div class="journal-progress">CADERNO EM CONSTRUÇÃO · '+found+' DE '+skinData.length+' ESPÉCIMES REGISTRADOS</div>'
-  +'<h3 class="codex-heading">I · ESPÉCIMES</h3><div class="codex-grid journal-specimen-grid">'+specimenCards+'</div>'
-  +'<h3 class="codex-heading">II · FAUNA EXTERNA</h3><div class="codex-grid">'+common.map(renderMonster).join('')+'</div>'
-  +'<h3 class="codex-heading">III · ENTIDADES COLOSSAIS</h3><div class="codex-grid">'+bosses.map(renderMonster).join('')+'</div>';
+ const found=skinData.filter(s=>s.id==='default'||discoveredSpecimens.has(s.id)).length,foundMonsters=entries.filter(([kind])=>codex.monsters.includes(kind)).length;
+ const commonCards=common.map((entry,index)=>renderMonster(entry,index)).join('');
+ const bossCards=bosses.map((entry,index)=>renderMonster(entry,common.length+journalSkins.length+index)).join('');
+ grid.innerHTML='<div class="journal-progress">CADERNO EM CONSTRUÇÃO · '+(found+foundMonsters)+' DE '+(skinData.length+entries.length)+' REGISTROS BIOLÓGICOS</div>'
+  +'<h3 class="codex-heading">I · REGISTROS ABISSAIS</h3><div class="codex-grid journal-specimen-grid">'+commonCards+specimenCards+'</div>'
+  +'<h3 class="codex-heading">II · ENTIDADES COLOSSAIS</h3><div class="codex-grid journal-specimen-grid">'+bossCards+'</div>';
  const previewCanvases=[...grid.querySelectorAll('canvas[data-specimen-preview],canvas[data-monster-preview]')];
  const paintJournalCreature=canvas=>{
   if(canvas.dataset.specimenPreview){
