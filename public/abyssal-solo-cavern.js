@@ -96,7 +96,7 @@
   g.goal=goal;g.distance=d;return d;
  }
  function navigationTarget(rocks,w,h,fromX,fromY,toX,toY,padding=0){
-  if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding+5))return {x:toX,y:toY,direct:true};
+  if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding+5))return {x:toX,y:toY,direct:true,blocked:false};
   const g=gridFor(rocks,w,h,padding),start=nearestNode(g,rocks,fromX,fromY),goal=nearestNode(g,rocks,toX,toY,false);
   if(start<0||goal<0)return {x:fromX,y:fromY,blocked:true,direct:false};
   const d=flow(g,goal);if(d[start]<0)return {x:fromX,y:fromY,blocked:true,direct:false};
