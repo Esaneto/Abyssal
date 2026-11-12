@@ -211,7 +211,7 @@
       const vision=sharkVisionState(enemy,target,currentTime);
       vision.visible=vision.visible&&options.sharkLineOfSight!==false;
       const wasHunting=Boolean(enemy.sharkCharging||enemy.sharkChargeRemaining>0);
-      const hunting=vision.visible||(wasHunting&&distance<=SHARK_VISION.range*2.5&&target.alive!==false);
+      const hunting=vision.visible||(wasHunting&&(boss||distance<=SHARK_VISION.range*2.5)&&target.alive!==false);
       const aim=vision.targetAngle, previous=Number(enemy.angle)||0;
       const step=speed*dt;
       const routeAngle=()=>{
