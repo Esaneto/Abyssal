@@ -187,3 +187,14 @@
 #submarineWorkshop .abyss-cockpit-embedded .shop-heading{flex-wrap:wrap!important;min-width:0!important}
 #submarineWorkshop .abyss-cockpit-embedded .shop-heading h2,
 #submarineWorkshop .abyss-cockpit-embedded .codex-modal>h2{font-size:clamp(16px,2vw,25px)!important}
+
+/* Resonance research: full-width horizontal control, never squeezed into an icon column. */
+#resonanceScreen .resonance-skill-option:has(.resonance-research-action){display:grid!important;grid-template-columns:18px 42px minmax(0,1fr)!important;align-items:center!important;min-width:0!important;overflow:visible!important}
+#resonanceScreen .resonance-skill-option .resonance-research-action{grid-column:1/-1!important;display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;align-items:center!important;justify-content:center!important;gap:4px 12px!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;min-height:48px!important;padding:12px 14px!important;box-sizing:border-box!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;overflow:visible!important;text-overflow:clip!important;writing-mode:horizontal-tb!important;text-align:center!important;font:800 12px/1.4 Inter,system-ui,sans-serif!important;letter-spacing:0!important}
+#resonanceScreen .resonance-research-action strong,#resonanceScreen .resonance-research-action span{display:inline-block!important;flex:0 1 auto!important;min-width:0!important;max-width:100%!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;overflow:visible!important;text-overflow:clip!important;writing-mode:horizontal-tb!important;font-family:Inter,system-ui,sans-serif!important;line-height:1.4!important;letter-spacing:0!important}
+#resonanceScreen .resonance-research-action strong{font-size:12px!important;color:#f3e7ff!important}#resonanceScreen .resonance-research-action span{font-size:11px!important;color:#d4a5ff!important}
+/* Keep cockpit research actions readable too, including narrow mobile visors. */
+#submarineWorkshop .solo-research-row{display:flex!important;flex-wrap:wrap!important;gap:10px!important;align-items:center!important}
+#submarineWorkshop .solo-research-row>div{flex:1 1 180px!important;min-width:0!important}
+#submarineWorkshop .solo-research-row .solo-research-buy{flex:0 1 auto!important;min-width:min(100%,200px)!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:48px!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;writing-mode:horizontal-tb!important;overflow:visible!important;line-height:1.4!important;letter-spacing:0!important}
+@media(max-width:600px){#submarineWorkshop .solo-research-row .solo-research-buy{flex:1 1 100%!important;width:100%!important}#resonanceScreen .resonance-research-action{padding:11px 8px!important}}
