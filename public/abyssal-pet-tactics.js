@@ -65,12 +65,13 @@
   const reach=kraken?3.1*r:body?(['octopus','squid','jelly'].includes(family)?1.8:1.25)*r:(family==='eel'?1.65:family==='reptile'?1.55:1.15)*r;
   return {body,kraken,r,reach,core:Math.max(1,r*.65),slack:Math.max(3,r*.13)};
  }
- function attackGoal(pet,enemy,profile){
+ function attackGoal(pet,enemy,profile,approachAngle=null){
   const dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
-  const a=d>1e-6?Math.atan2(dy,dx):Number(pet.facingAngle)||0;
+  const directAngle=d>1e-6?Math.atan2(dy,dx):Number(pet.facingAngle)||0;
+  const travelAngle=Number.isFinite(approachAngle)?approachAngle:directAngle;
   const er=Math.max(1,Number(enemy.r)||1);
   const stop=er+profile.reach+profile.slack*.35;
-  return {x:enemy.x-Math.cos(a)*stop,y:enemy.y-Math.sin(a)*stop,angle:a,stop};
+  return {x:enemy.x-Math.cos(travelAngle)*stop,y:enemy.y-Math.sin(travelAngle)*stop,angle:directAngle,approachAngle:travelAngle,stop,distance:d};
  }
  function attackContact(pet,enemy,p,angle,phase,krakenTouch){
   const er=Math.max(1,Number(enemy.r)||1),dx=enemy.x-pet.x,dy=enemy.y-pet.y,d=Math.hypot(dx,dy);
