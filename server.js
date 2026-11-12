@@ -2096,7 +2096,26 @@ io.on('connection', socket => {
    refreshWorldTicker();
   } else socket.data.runStats={...makeRunStats(),energySkinId:users[socket.data.userKey]?.equippedSkin||'default',mode:payload.mode==='rift'?'rift':'solo'};
  });
- socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
+ socket.on('run-progress',payload=>{
+ if(!socket.data.userKey||!payload||typeof payload!=='object')return;
+ const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;
+ if(!run||run.settled)return;
+ run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));
+ const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));
+ run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));
+ if(p){
+  const now=Date.now(),account=users[socket.data.userKey];
+  if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:now}));}
+  p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;
+  // A full room can submit several progress packets inside the same second.
+  // Ranking is presentation data, so sort+broadcast at most once per second per room.
+  if(now-(Number(room.lastRunRankingBroadcastAt)||0)>=1000){
+   room.lastRunRankingBroadcastAt=now;
+   const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));
+   io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);
+  }
+ }else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));
+});
  socket.on('get-match-history',()=>{const u=users[socket.data.userKey];socket.emit('match-history-result',{ok:Boolean(u),matches:Array.isArray(u?.matchHistory)?u.matchHistory.slice(0,10):[]});});
  socket.on('preview-run-report',(_payload={},ack)=>{
   if(typeof ack!=='function')return;
