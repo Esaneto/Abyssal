@@ -1183,7 +1183,9 @@ function renderHostileContactAbility(data){
   effects.push({type:'bite-jaws',x:px,y:py,angle:Math.atan2(py-y,px-x),max:Math.max(21/GAME_WORLD_ZOOM,player.r*1.65),life:.42,maxLife:.42,color:'#ffddd4'});
  }
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
- if(skill==='bio-shock'||kind==='drifter'){
+ if(skill==='tentacle-strike'){
+  effects.push({type:'tentacle-strike',x1:x,y1:y,x2:px,y2:py,life:.32,maxLife:.32,color:data.color||'#ad89ed',width:Math.max(3,Number(data.enemyRadius)*.16||5)});
+ }else if(skill==='bio-shock'||kind==='drifter'){
   effects.push({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
   for(let i=0;i<6;i++){const a=i*Math.PI/3;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*1.65,y2:y+Math.sin(a)*radius*1.65,life:.3,maxLife:.3,color:i%2?'#ff7caf':'#74f7ff',width:2.6/GAME_WORLD_ZOOM});}
   burst(x,y,'#74f7ff',18,105);
@@ -3294,7 +3296,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(enemyParalyzedNow(e)){e.vx=0;e.vy=0;}
   else if(window.AbyssalEnemyAI?.moveTowardTarget){
-   soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=window.AbyssalEnemyAI.biteDistance(e.r,player.r);soloEnemyMovementOptions.holdPosition=false;
+   soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=window.AbyssalEnemyAI.tentacleStopDistance(e,e.r,player.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));soloEnemyMovementOptions.holdPosition=false;
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];soloEnemyMovementOptions.freeSwim=false;
    if(!activeMapLayout&&usesNaturalOceanTerrain()&&e.wildlifeMode&&OPEN_SEA_ECOLOGY){
      if(Math.hypot(e.x-player.x,e.y-player.y)<=e.r+player.r+8/GAME_WORLD_ZOOM)e.provokedUntil=performance.now()+4000;
@@ -3311,7 +3313,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
        }
       }
      }
-     soloEnemyMovementOptions.stopDistance=ec.aggressive?window.AbyssalEnemyAI.biteDistance(e.r,player.r):5;
+     soloEnemyMovementOptions.stopDistance=ec.aggressive?window.AbyssalEnemyAI.tentacleStopDistance(e,e.r,player.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)):5;
      soloEnemyMovementOptions.freeSwim=!ec.aggressive||!window.AbyssalEnemyAI.isChargeAttack(e);
      const swimRoute=OPEN_SEA_ECOLOGY.navigationTarget(e,ec.target,Math.max(10,Math.min(52,e.r*.56)),performance.now());
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
@@ -3328,7 +3330,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       e.provokedUntil=performance.now()+4800;
       e.riftWantsAttack=true;
     }
-    soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?window.AbyssalEnemyAI.biteDistance(e.r,player.r):4;
+    soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?window.AbyssalEnemyAI.tentacleStopDistance(e,e.r,player.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)):4;
     if(!e.riftWantsAttack){soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}
    }
    if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&RIFT_WILDLIFE){
@@ -3382,8 +3384,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
-  const attackReach=charge?(e.sharkCharging&&!e.sharkChargeHit&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
-  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&(attackReach||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
+  const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&!e.sharkChargeHit&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predators hunt prey even when the diver is not nearby; no XP is credited for natural predation.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
@@ -4456,6 +4459,9 @@ function draw(t){
  ctx.stroke();ctx.beginPath();
  }else if(fx.type==='skin-shot-telegraph'){
  ctx.strokeStyle=fx.color||'#ff3f59';ctx.globalAlpha*=.48+.35*Math.sin(performance.now()*.025);ctx.setLineDash([10/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM]);ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.setLineDash([]);
+ }else if(fx.type==='tentacle-strike'){
+ const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,d=Math.hypot(dx,dy)||1,nx=-dy/d,ny=dx/d,reach=Math.sin(Math.PI*Math.min(1,progress*1.25)),curve=d*.22*Math.sin(progress*Math.PI);
+ ctx.lineCap='round';ctx.lineWidth=fx.width||4;ctx.moveTo(fx.x1,fx.y1);ctx.bezierCurveTo(fx.x1+dx*.25+nx*curve,fx.y1+dy*.25+ny*curve,fx.x1+dx*.75-nx*curve,fx.y1+dy*.75-ny*curve,fx.x1+dx*reach,fx.y1+dy*reach);
  }else if(fx.type==='bite-jaws'){
  const size=fx.max,closing=Math.min(1,progress*2.8),gap=size*(.75-.62*closing);ctx.translate(fx.x,fx.y);ctx.rotate(fx.angle||0);ctx.globalAlpha=progress<.7?1:Math.max(0,(1-progress)/.3);ctx.shadowColor='#ff5a78';ctx.shadowBlur=lowPowerRendering?0:9;
  for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(-size*.8,side*gap);ctx.quadraticCurveTo(0,side*(gap+size*.30),size*.8,side*gap);ctx.strokeStyle='#ff7388';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.stroke();ctx.fillStyle='#fff0df';for(let n=0;n<5;n++){const xx=-size*.65+n*size*.325;ctx.beginPath();ctx.moveTo(xx-size*.13,side*(gap+size*.08));ctx.lineTo(xx+size*.13,side*(gap+size*.08));ctx.lineTo(xx,side*(gap-size*.30));ctx.closePath();ctx.fill();}}
