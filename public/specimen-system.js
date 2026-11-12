@@ -78,7 +78,7 @@
    respawnReduction:MAX_RESPAWN_REDUCTION*p
   });
  }
- function effectiveStats(id,points=0){const base=biologicalStats(id),factor=1+stats(points).attributeBonus;return {...base,hp:Math.round(base.hp*factor),damage:Math.round(base.damage*factor),speed:Math.round(base.speed*factor)};}
+ function effectiveStats(id,points=0){const base=biologicalStats(id),factor=1+stats(points).attributeBonus;return {...base,hp:Math.round(base.hp*factor*100)/100,damage:Math.round(base.damage*factor*100)/100,speed:Math.round(base.speed*factor*100)/100};}
  function normalizeMap(value){
   const out=Object.create(null);
   if(value&&typeof value==='object')for(const [id,raw] of Object.entries(value)){

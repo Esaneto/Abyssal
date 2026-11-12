@@ -4957,7 +4957,7 @@ card.innerHTML=`<div class="skin-preview specimen-vessel">
   <strong class="specimen-card-name">${publicName}</strong>
   <small class="specimen-rarity">${known?rarityLabel.toUpperCase():'???'}</small>
   ${known?`<div class="specimen-card-traits"><div><b>PASSIVA</b><span>${passive}</span></div><div><b>ATIVA</b><span>${activeName}</span></div></div>`:'<div class="specimen-card-unidentified">Registro biológico desconhecido. Avistel este espécime nas Fossas Abissais para identificá-lo.</div>'}
-  ${known?`<div class="journal-stat-row"><span>VIDA <b>${biological.hp}</b></span><span>ATAQUE <b>${biological.damage}</b></span><span>VELOCIDADE <b>${biological.speed}</b></span></div><p class="specimen-card-description">${shortDescription}</p>`:''}
+  ${known?`<div class="journal-stat-row"><span>VIDA <b>${Math.round(biological.hp)}</b></span><span>ATAQUE <b>${Math.round(biological.damage)}</b></span><span>VELOCIDADE <b>${Math.round(biological.speed)}</b></span></div><p class="specimen-card-description">${shortDescription}</p>`:''}
  </div>
  <button ${equipped?'disabled':''}>${purchaseLabel}</button>`;
 const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
@@ -5190,7 +5190,7 @@ function renderCatalog(){
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
    +(known?'<small class="journal-classification">'+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
-    +'<div class="journal-stat-row"><span><b>VIDA</b> '+b.hp+'</span><span><b>DANO</b> '+b.damage+'</span><span><b>VELOCIDADE</b> '+b.speed+'</span></div>'
+    +'<div class="journal-stat-row"><span><b>VIDA</b> '+Math.round(b.hp)+'</span><span><b>DANO</b> '+Math.round(b.damage)+'</span><span><b>VELOCIDADE</b> '+Math.round(b.speed)+'</span></div>'
     +'<p class="journal-handwritten">Ataque: '+escapeHtml(b.attack)+'</p>'
     +'<p><b>Efeito:</b> '+escapeHtml(b.effect)+'</p><p class="journal-description">'+escapeHtml(skin.desc)+'</p>'
     :'<p class="journal-handwritten">Avistamento pendente nas Fossas Abissais.</p>')
