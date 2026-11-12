@@ -5033,14 +5033,14 @@ $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.targ
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
  $('cockpitLanguageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));if($('cockpitLanguageSelect'))$('cockpitLanguageSelect').value=gameLanguage;
 
-let pendingStripePurchase = null;
+let pendingStripePurchase = null, stripeCheckoutBusy=false;
 function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
-  const modal = $('skinPurchaseConfirmModal');
-  if (!modal) {
-    window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);
-    return;
-  }
   const skinId = typeof skin === 'string' ? skin : skin?.id;
+  if(!skinId||stripeCheckoutBusy)return;
+  const modal = $('skinPurchaseConfirmModal');
+  if (!modal) { window.AbyssalOnline?.purchaseStripe(skinId,'brl',gameLanguage);return; }
+  // The cockpit is its own stacking context. Put the checkout dialog at the document root.
+  if(modal.parentElement!==document.body)document.body.append(modal);
   pendingStripePurchase = { skin: { id: skinId, name }, name, priceFormatted, isBundle };
   const desc = $('skinPurchaseConfirmDesc');
   if (desc) {
@@ -5049,16 +5049,18 @@ function openSkinPurchaseConfirm(skin, name, priceFormatted, isBundle = false) {
   const check1 = $('skinBuyCheck1'), confirmBtn = $('skinPurchaseConfirmBtn');
   if (check1) check1.checked = false;
   if (confirmBtn) confirmBtn.disabled = true;
+  const status=$('skinPurchaseStatus');if(status)status.textContent='';
   modal.hidden = false;
 }
 function closeSkinPurchaseConfirm() {
+  if(stripeCheckoutBusy)return;
   const modal = $('skinPurchaseConfirmModal');
   if (modal) modal.hidden = true;
   pendingStripePurchase = null;
 }
 function updateSkinPurchaseBtn() {
   const check1 = $('skinBuyCheck1'), confirmBtn = $('skinPurchaseConfirmBtn');
-  if (confirmBtn) confirmBtn.disabled = !check1?.checked;
+  if (confirmBtn) confirmBtn.disabled = stripeCheckoutBusy||!check1?.checked;
 }
 $('skinBuyCheck1')?.addEventListener('change', updateSkinPurchaseBtn);
 $('skinPurchaseTopCloseBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
@@ -5066,18 +5068,17 @@ $('skinPurchaseCancelBtn')?.addEventListener('click', closeSkinPurchaseConfirm);
 $('skinPurchaseConfirmBtn')?.addEventListener('click', () => {
   const check1 = $('skinBuyCheck1');
   if (!check1?.checked) return;
-  const target = pendingStripePurchase;
-  closeSkinPurchaseConfirm();
-  if (target?.skin) {
-    const skin = target.skin;
-    window.AbyssalOnline?.purchaseStripe(skin.id,shopCurrency,gameLanguage);
-  }
+  const target = pendingStripePurchase;if(!target?.skin||stripeCheckoutBusy)return;
+  stripeCheckoutBusy=true;updateSkinPurchaseBtn();
+  const status=$('skinPurchaseStatus');if(status)status.textContent='Preparando pagamento em reais…';
+  if(!window.AbyssalOnline?.purchaseStripe){stripeCheckoutBusy=false;updateSkinPurchaseBtn();if(status)status.textContent='Serviço de pagamento indisponível. Recarregue o jogo.';return;}
+  window.AbyssalOnline.purchaseStripe(target.skin.id,'brl',gameLanguage);
 });
 $('skinPurchaseConfirmModal')?.addEventListener('click', (e) => {
   if (e.target === $('skinPurchaseConfirmModal')) closeSkinPurchaseConfirm();
 });
 
-window.addEventListener('abyssal-payment-result',event=>{if(!event.detail?.ok)showToast(event.detail?.message||'PAGAMENTO INDISPONÍVEL');});
+window.addEventListener('abyssal-payment-result',event=>{stripeCheckoutBusy=false;updateSkinPurchaseBtn();const status=$('skinPurchaseStatus'),modal=$('skinPurchaseConfirmModal');if(!event.detail?.ok){const message=event.detail?.message||'Pagamento indisponível.';if(status&&modal&&!modal.hidden)status.textContent=message;else showToast(message);if(event.detail?.requiresLogin){closeSkinPurchaseConfirm();window.AbyssalOnline?.openLogin?.();}}});
 const redeemCodeBtn=$('redeemCodeBtn');
 function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice');if(input){input.disabled=false;input.value='';}if(choice)choice.hidden=true;if(redeemCodeBtn){redeemCodeBtn.disabled=false;redeemCodeBtn.textContent='RESGATAR CÓDIGO';}if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
 function closeRedeemCodeModal(){const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
