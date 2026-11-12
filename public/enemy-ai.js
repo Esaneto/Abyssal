@@ -14,6 +14,17 @@
   // Bosses ordered from the lowest base HP to the highest.
   const CLASSIC_BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
   const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
+  const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.55, memoryMs: 900 });
+  function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
+  function sharkVisionState(enemy,target,now=Date.now()){
+    if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle};
+    const dx=Number(target.x)-Number(enemy.x),dy=Number(target.y)-Number(enemy.y),distance=Math.hypot(dx,dy);
+    const targetAngle=Math.atan2(dy,dx),heading=Number.isFinite(Number(enemy.angle))?Number(enemy.angle):targetAngle;
+    const delta=Math.abs(angleDelta(targetAngle,heading));
+    const visible=distance<=SHARK_VISION.range&&delta<=SHARK_VISION.halfAngle;
+    if(visible){enemy.sharkAlertUntil=Number(now)+SHARK_VISION.memoryMs;enemy.sharkLastTargetAngle=targetAngle;}
+    return {visible,distance,delta,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle,targetAngle};
+  }
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
     stinger: Object.freeze({ r: 7, hp: 13, speed: 125, damage: 7, color: '#ffbc78', value: 2 }),
@@ -190,47 +201,38 @@
       const maxX = Number.isFinite(options.maxX) ? options.maxX : WORLD_WIDTH;
       const minY = Number.isFinite(options.minY) ? options.minY : 0;
       const maxY = Number.isFinite(options.maxY) ? options.maxY : WORLD_HEIGHT;
-      
       const stats = ENEMY_STATS[enemy.kind] || ENEMY_STATS.whiteShark;
-      const dashSpeed = (stats.dashSpeed || 290);
-      
-      // Se não tiver direção definida ou se atingiu uma parede:
-      let hitWall = false;
-      if (enemy.dashVx == null || enemy.dashVy == null) {
-        hitWall = true;
-      } else {
-        const nextX = (Number(enemy.x) || 0) + enemy.dashVx * dt;
-        const nextY = (Number(enemy.y) || 0) + enemy.dashVy * dt;
-        if (nextX <= minX + 2 || nextX >= maxX - 2 || nextY <= minY + 2 || nextY >= maxY - 2) {
-          hitWall = true;
-        }
+      const dashSpeed = stats.dashSpeed || 290;
+      const vision=sharkVisionState(enemy,target,currentTime);
+      if(options.sharkLineOfSight===false){vision.visible=false;enemy.sharkAlertUntil=0;}
+      const hunting=vision.visible||currentTime<(Number(enemy.sharkAlertUntil)||0);
+      if(!hunting){
+        enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
+        const scanTurn=Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.20;
+        const heading=(Number(enemy.angle)||0)+scanTurn*dt;
+        enemy.angle=heading;
+        const cruise=dashSpeed*.42;
+        enemy.dashVx=Math.cos(heading)*cruise;enemy.dashVy=Math.sin(heading)*cruise;
+      }else{
+        const aimAngle=vision.visible?vision.targetAngle:(Number(enemy.sharkLastTargetAngle)||Math.atan2(dy,dx));
+        const needsDash=enemy.dashVx==null||enemy.dashVy==null||
+          Math.hypot(Number(enemy.dashVx)||0,Number(enemy.dashVy)||0)<dashSpeed*.72;
+        if(needsDash){enemy.dashVx=Math.cos(aimAngle)*dashSpeed;enemy.dashVy=Math.sin(aimAngle)*dashSpeed;}
+        enemy.angle=Math.atan2(Number(enemy.dashVy)||Math.sin(aimAngle),Number(enemy.dashVx)||Math.cos(aimAngle));
       }
-
-      if (hitWall) {
-        // Redireciona na direção do jogador mais próximo
-        const aimAngle = Math.atan2(dy, dx);
-        enemy.dashVx = Math.cos(aimAngle) * dashSpeed;
-        enemy.dashVy = Math.sin(aimAngle) * dashSpeed;
-        enemy.angle = aimAngle;
+      let nx=(Number(enemy.x)||0)+(Number(enemy.dashVx)||0)*dt;
+      let ny=(Number(enemy.y)||0)+(Number(enemy.dashVy)||0)*dt;
+      const hitWall=nx<=minX+2||nx>=maxX-2||ny<=minY+2||ny>=maxY-2;
+      if(hitWall){
+        const turn=(Number(enemy.angle)||0)+Math.PI*(.62+((Number(enemy.id)||1)%5)*.07);
+        enemy.angle=turn;const speedNow=hunting?dashSpeed:dashSpeed*.42;
+        enemy.dashVx=Math.cos(turn)*speedNow;enemy.dashVy=Math.sin(turn)*speedNow;
+        nx=(Number(enemy.x)||0)+enemy.dashVx*dt;ny=(Number(enemy.y)||0)+enemy.dashVy*dt;
       }
-
-      let nx = (Number(enemy.x) || 0) + enemy.dashVx * dt;
-      let ny = (Number(enemy.y) || 0) + enemy.dashVy * dt;
-      nx = clamp(nx, minX, maxX);
-      ny = clamp(ny, minY, maxY);
-
-      enemy.x = nx;
-      enemy.y = ny;
-      enemy.vx = enemy.dashVx;
-      enemy.vy = enemy.dashVy;
-      enemy.phase = (Number(enemy.phase) || 0) + dt * 6;
-
-      result.moved = true;
-      result.target = target;
-      result.distance = distance;
-      result.dx = dx;
-      result.dy = dy;
-      return result;
+      nx=clamp(nx,minX,maxX);ny=clamp(ny,minY,maxY);
+      enemy.x=nx;enemy.y=ny;enemy.vx=enemy.dashVx;enemy.vy=enemy.dashVy;
+      enemy.phase=(Number(enemy.phase)||0)+dt*6;enemy.sharkVisionVisible=vision.visible;
+      result.moved=true;result.target=target;result.distance=distance;result.dx=dx;result.dy=dy;return result;
     }
 
     enemy.angle = Math.atan2(dy, dx);
@@ -334,5 +336,5 @@
     return { ...ENEMY_STATS.whiteSharkBoss };
   }
 
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });

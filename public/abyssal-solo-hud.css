@@ -47,3 +47,20 @@ body.abyss-solo-run.game-active.hud-collapsed #toggleHudBtn{
 #submarineWorkshop .solo-lamp-row button:disabled{opacity:.55;cursor:default}
 body:has(#submarineWorkshop:not([hidden])) #resonanceScreen:not([hidden]){z-index:31000!important;position:fixed!important;inset:0!important}
 @media(max-width:700px){body.abyss-solo-run.game-active #petHabitBar{left:6px!important;bottom:116px!important;width:76px!important;max-width:76px!important}}
+
+@media(min-width:701px) and (pointer:fine){
+ body.abyss-solo-run.game-active #petHabitBar{
+  position:fixed!important;left:14px!important;right:auto!important;top:auto!important;
+  bottom:158px!important;width:80px!important;max-width:80px!important;z-index:36!important
+ }
+}
+#submarineWorkshop .abyss-resonance-action{
+ border-color:#9b63ff!important;color:#eadcff!important;
+ background:linear-gradient(180deg,#3a2067,#21133f)!important;
+ box-shadow:inset 0 1px 0 #d8b9ff66,0 0 18px #8b46ff55!important
+}
+#submarineWorkshop .abyss-resonance-action:hover,
+#submarineWorkshop .abyss-resonance-action:focus-visible{
+ border-color:#c99cff!important;box-shadow:0 0 24px #a45cff88!important
+}
+#submarineWorkshop .abyss-resonance-icon{color:#c790ff!important;text-shadow:0 0 10px #ad63ff;font-size:1.15em;margin-right:5px}

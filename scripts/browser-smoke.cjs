@@ -218,11 +218,11 @@ const injected=`<script>
        if(view==='solo'&&!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR SHOOTER SOLO'))throw Error('Default cockpit launch action is missing');
       }
       if(view==='solo'||view==='upgrades'||view==='resonance'){
-       const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent==='MELHORIAS SOLO');if(!upgrade)throw Error('Solo improvements missing');upgrade.click();
+       const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent.trim()==='PESQUISA');if(!upgrade)throw Error('Solo research missing');upgrade.click();
        if(box.querySelectorAll('.solo-lamp-row').length!==3)throw Error('Three lamp levels missing');
        if(view!=='upgrades'){
         [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
-        const resonance=[...box.querySelectorAll('button')].find(b=>b.textContent==='RESSONÂNCIA');if(!resonance)throw Error('Resonance access missing');
+        const resonance=[...box.querySelectorAll('button')].find(b=>b.textContent.includes('RESSONÂNCIA'));if(!resonance)throw Error('Resonance access missing');const rc=getComputedStyle(resonance);if(!resonance.classList.contains('abyss-resonance-action')||!rc.backgroundImage.includes('linear-gradient'))throw Error('Resonance purple action theme missing');
         resonance.click();const panel=document.getElementById('resonanceScreen');if(!panel||panel.hidden)throw Error('Resonance action did not open its actual screen');
         if(view!=='resonance')panel.querySelector('[data-close-screen="resonanceScreen"]')?.click();
        }
@@ -375,8 +375,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    assert.ok(solo?.elapsed>1,'Shooter Solo did not advance its real-time simulation');
    assert.ok(!solo?.errors,'Shooter Solo runtime error: '+solo.errors);
    await screenshot('live-solo-start');
-   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions");const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection};b.click();before.hidden=getComputedStyle(h).visibility;before.restore=getComputedStyle(b).visibility;b.click();return before;})()');
-   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'hidden');assert.equal(hud.restore,'visible');
+   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions"),bar=document.getElementById("petHabitBar"),skills=document.getElementById("activeAbilities"),active=document.getElementById("skinActiveBtn");const br=bar.getBoundingClientRect(),sr=skills.getBoundingClientRect();const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection,petAbove:br.bottom<=sr.top+2,rLabel:active.textContent};b.click();before.hidden=getComputedStyle(h).visibility;before.restore=getComputedStyle(b).visibility;b.click();return before;})()');
+   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'hidden');assert.equal(hud.restore,'visible');if(width>700)assert.equal(hud.petAbove,true,'Specimen behavior must sit above ability buttons');assert.ok(!/SONAR/.test(hud.rLabel),'Solo R must show the equipped specimen ability, not Sonar: '+hud.rLabel);
    // The movement is sent through Chromium's keyboard input, not by
    // teleporting the player or modifying in-game state.
    const key={key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68};

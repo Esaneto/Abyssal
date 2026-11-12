@@ -2,19 +2,20 @@
  const node=typeof module==='object'&&module.exports;
  const curated=node?require('./abyssal-curated-skins.js'):root.AbyssalCuratedSkins;
  const standard=node?require('./skin-standard.js'):root.AbyssalSkinStandard;
- const api=factory(curated,standard);
+ const rarity=node?require('./specimen-rarity.js'):root.AbyssalSpecimenRarity;
+ const api=factory(curated,standard,rarity);
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.AbyssalSpecimenSystem=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(curated,standard){
+})(typeof globalThis!=='undefined'?globalThis:this,function(curated,standard,rarity){
  'use strict';
  // Shared family-level creature vitals. Shop prices and active skills stay unchanged.
  const FAMILY_BASE=Object.freeze({
-  signature:{hp:60,speed:172},fish:{hp:70,speed:177},
-  shark:{hp:96,speed:196},eel:{hp:68,speed:187},
-  ray:{hp:72,speed:174},octopus:{hp:80,speed:164},
-  squid:{hp:78,speed:172},jelly:{hp:46,speed:151},
-  crustacean:{hp:112,speed:138},mollusc:{hp:88,speed:151},
-  reptile:{hp:108,speed:166},benthic:{hp:90,speed:145}
+  signature:{hp:60,speed:172,damage:10},fish:{hp:70,speed:177,damage:9},
+  shark:{hp:96,speed:196,damage:15},eel:{hp:68,speed:187,damage:11},
+  ray:{hp:72,speed:174,damage:10},octopus:{hp:80,speed:164,damage:12},
+  squid:{hp:78,speed:172,damage:12},jelly:{hp:46,speed:151,damage:7},
+  crustacean:{hp:112,speed:138,damage:14},mollusc:{hp:88,speed:151,damage:13},
+  reptile:{hp:108,speed:166,damage:15},benthic:{hp:90,speed:145,damage:12}
  });
  const FAMILY_LABELS=Object.freeze({
   signature:'Organismo singular',fish:'Peixe',shark:'Tubarão',
@@ -37,16 +38,16 @@
   const key=String(id||'default'),family=curated?.byId?.[key]?.family||BUILTIN_FAMILIES[key]||'fish';
   return Object.hasOwn(FAMILY_BASE,family)?family:'fish';
  }
+ const RARITY_MULTIPLIER=Object.freeze({common:1,uncommon:1.08,rare:1.16,epic:1.25,legendary:1.35});
  const BIOLOGICAL_STATS_CACHE=Object.create(null);
  function biologicalStats(id){
   const key=String(id||'default');
   if(Object.hasOwn(BIOLOGICAL_STATS_CACHE,key))return BIOLOGICAL_STATS_CACHE[key];
-  const family=familyFor(key),base=FAMILY_BASE[family];
+  const family=familyFor(key),base=FAMILY_BASE[family],rarityId=rarity?.rarityFor?.(key)||'common',multiplier=RARITY_MULTIPLIER[rarityId]||1;
   const active=standard?.activeSpec?.(key);
   return BIOLOGICAL_STATS_CACHE[key]=Object.freeze({
-   family,hp:base.hp,speed:base.speed,
-   // Direct active damage, not a per-second DPS calculation.
-   damage:Math.max(0,Number(active?.damage)||0),
+   family,rarity:rarityId,hp:Math.round(base.hp*multiplier),speed:Math.round(base.speed*multiplier),damage:Math.round(base.damage*multiplier),
+   activeDamage:Math.max(0,Number(active?.damage)||0),
    attack:String(active?.name||'Sem ataque ativo'),
    effect:String(active?.effect||'Nenhum efeito ativo')
   });
@@ -98,5 +99,5 @@
  function abilityRange(baseRange,_points){return Math.max(0,Number(baseRange)||0);}
  function abilityCooldown(_points){return BASE_COOLDOWN;}
  function respawnSeconds(points){return stats(points).respawnSeconds;}
- return Object.freeze({FAMILY_BASE,FAMILY_LABELS,familyFor,biologicalStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
+ return Object.freeze({FAMILY_BASE,FAMILY_LABELS,RARITY_MULTIPLIER,familyFor,biologicalStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
 });

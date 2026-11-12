@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-12-solo-cavern-v116';
+const VERSION = '2026-11-12-command-balance-v117';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -38,6 +38,7 @@ const GAME_FILES = [
   'skin-standard.js','skin-abilities.js',
   'specimen-system.js',
   'specimen-evasion.js','specimen-rarity.js',
+  'abyssal-shop-economy.js',
   'gravity-cone.js',
   'abyssal-curated-skins.js',
   'abyssal-menu-ocean.js',

@@ -135,7 +135,7 @@
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
-  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='upgrades'?'MELHORIAS SOLO':chosen.title;column.append(small,title);
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='upgrades'?'PESQUISA':chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;
@@ -221,7 +221,7 @@
     utility.append(heading,body,action);
     if(activeConsoleSection==='solo'){
      const nav=document.createElement('nav');nav.className='solo-upgrade-nav';
-     for(const [label,fn] of [['MELHORIAS SOLO',()=>{soloConsolePage='upgrades';renderWorkshop();}],['RESSONÂNCIA',()=>document.getElementById('resonanceBtn')?.click()]]){const b=document.createElement('button');b.type='button';b.className='abyss-visor-action';b.textContent=label;b.addEventListener('click',fn);nav.append(b);}utility.append(nav);
+     for(const item of [{label:'PESQUISA',action:()=>{soloConsolePage='upgrades';renderWorkshop();}},{label:'RESSONÂNCIA',resonance:true,action:()=>document.getElementById('resonanceBtn')?.click()}]){const b=document.createElement('button');b.type='button';b.className='abyss-visor-action'+(item.resonance?' abyss-resonance-action':'');if(item.resonance)b.innerHTML='<span class="abyss-resonance-icon" aria-hidden="true">✦</span> RESSONÂNCIA';else b.textContent=item.label;b.addEventListener('click',item.action);nav.append(b);}utility.append(nav);
     }
    }
   }

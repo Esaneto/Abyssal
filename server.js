@@ -16,6 +16,7 @@ const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
 const SpecimenRarity = require('./public/specimen-rarity.js');
+const ShopEconomy = require('./public/abyssal-shop-economy.js');
 const SpecimenEvasion = require('./public/specimen-evasion.js');
 const GravityCone = require('./public/gravity-cone.js');
 const SpecimenSystem = require('./public/specimen-system.js');
@@ -2221,7 +2222,7 @@ io.on('connection', socket => {
   const room=socketRoom(socket),player=room?.players.get(socket.id);
   const ack=(ok,reason,extra={})=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now(),...extra});};
   if(!room||!socket.data.joined||!player||player.alive===false||player.tutorialActive||!payload||typeof payload!=='object')return ack(false,'not-in-room');
-  if(room.mode!=='rift'&&room.mode!=='pvp')return ack(false,'companion-is-scout');
+  if(room.mode==='open-sea')return ack(false,'companion-is-scout');
   if(payload.type!=='standard-active')return ack(false,'legacy-skin-ability-removed');
   const skin=String(payload.skin||'').slice(0,32),active=String(payload.active||'').slice(0,24),baseSpec=SkinStandard.activeSpec(skin);
   if(!baseSpec||player.skinId!==skin||baseSpec.id!==active)return ack(false,'skin-active-mismatch');
@@ -2326,6 +2327,28 @@ io.on('connection', socket => {
         finally{player.skinActiveServerResolving=false;player.weaponPoisonOrigin=null;}
        }
       },dotDelay);
+     }
+    }
+   },delay);
+  }else if(active==='pulse'){
+   // Damage follows the expanding ring, not an instant radius check.
+   const touched=new Set(),duration=720;
+   for(const delay of [90,180,270,360,450,540,630,720])setTimeout(()=>{
+    if(socketRoom(socket)!==room||!room.players.has(player.id)||player.alive===false)return;
+    const previous=radius*clamp((delay-90)/duration,0,1),edge=radius*clamp(delay/duration,0,1);
+    if(room.mode==='pvp'){
+     for(const target of livingOpponents()){
+      if(touched.has(target.id))continue;
+      const d=Math.hypot(target.x-originX,target.y-originY),margin=Math.max(6/WORLD_ZOOM,Number(target.r)||13/WORLD_ZOOM);
+      if(d+margin<previous||d-margin>edge||pvpSegmentHitsRock(originX,originY,target.x,target.y,2/WORLD_ZOOM))continue;
+      touched.add(target.id);hitPvp(target,spec.damage,'skin-active-pulse');
+     }
+    }else{
+     for(const e of room.world?.enemies||[]){
+      if(!e||Number(e.hp)<=0||touched.has(e.id)||!canReachEnemy(e))continue;
+      const d=Math.hypot(Number(e.x)-originX,Number(e.y)-originY),margin=Math.max(6/WORLD_ZOOM,Number(e.r)||0);
+      if(d+margin<previous||d-margin>edge)continue;
+      touched.add(e.id);resolveEnemyDamage(e,spec.damage,'skin-active-pulse');
      }
     }
    },delay);
@@ -2504,9 +2527,9 @@ io.on('connection', socket => {
   const stripeOnlySkins = new Set(['saltcroc','blackcaiman','violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
   const requestedId=String(payload.id||'');
   if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Este Espécime exige checkout hospedado e confirmação de pagamento.'});
-  const prices = { solar:2500, toxic:4000, thorn:8000, abyssking:10000, royal:12000, glacier:13000, coral:6000, bloodmoon:9000, voidwing:15000, abyssaleye:18000, deepwarden:14000 };
-  Object.assign(prices,Object.fromEntries(curatedSkins.items.map(s=>[s.id,s.price])));
-  const id = String(payload.id || ''), price = prices[id];
+  const id = String(payload.id || ''), profile=SkinStandard.profile(id);
+  if(profile?.tier!=='coins')return socket.emit('purchase-result',{ok:false,message:'Este Espécime não pode ser comprado com moedas abissais.'});
+  const rarity=SpecimenRarity.rarityFor(id),price=ShopEconomy.priceForRarity(rarity);
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Espécime indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui este Espécime.', account:publicUser(u) });
   if ((u.coins || 0) < price) return socket.emit('purchase-result', { ok:false, message:'Moedas abissais insuficientes.', account:publicUser(u) });
