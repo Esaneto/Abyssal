@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-11-command-bridge-r2-v114';
+const VERSION = '2026-11-12-solo-cavern-v115';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -21,6 +21,8 @@ const GAME_FILES = [
   'abyssal-feature-gates.js',
   'abyssal-pet-tactics.js',
   'abyssal-solo-cavern.js',
+  'abyssal-solo-progress.js',
+  'abyssal-solo-hud.css',
   'abyssal-specimen-themes.css',
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',

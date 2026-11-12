@@ -183,6 +183,7 @@ const injected=`<script>
       const req=box.querySelectorAll('.abyss-requirement svg').length;
       if(cards<1||req<1)throw Error('Laboratory lost real research costs: '+cards+'/'+req);
       if(!box.querySelector('.abyss-visor-scroll-hint'))throw Error('Cockpit missing scrolling guidance');
+      if([...box.querySelectorAll('.submarine-console-card button')].some(b=>!b.disabled))throw Error('Frozen research can still be purchased');
       // Real-browser layout contract: compact keys must remain beneath the monitor.
       const monitor=box.querySelector('.abyss-cockpit-visor');
       const deck=box.querySelector('.abyss-control-deck');
@@ -215,6 +216,12 @@ const injected=`<script>
        [...box.querySelectorAll('.abyss-control-key')].find(key=>key.textContent.includes(wanted))?.click();
        if(view==='minerals'&&box.querySelectorAll('.abyss-mineral-tile').length!==6)throw Error('Mineral capture lost tiles');
        if(view==='solo'&&!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR SHOOTER SOLO'))throw Error('Default cockpit launch action is missing');
+      }
+      if(view==='solo'){
+       const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent==='MELHORIAS SOLO');if(!upgrade)throw Error('Solo improvements missing');upgrade.click();
+       if(box.querySelectorAll('.solo-lamp-row').length!==3)throw Error('Three lamp levels missing');
+       [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
+       if(![...box.querySelectorAll('button')].some(b=>b.textContent==='RESSONÂNCIA'))throw Error('Resonance access missing');
       }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
@@ -364,6 +371,8 @@ async function realGameplaySmoke(browser,url,mode='legacy'){
    assert.ok(solo?.elapsed>1,'Shooter Solo did not advance its real-time simulation');
    assert.ok(!solo?.errors,'Shooter Solo runtime error: '+solo.errors);
    await screenshot('live-solo-start');
+   const hud=await evaluate('(()=>{const r=document.getElementById("runEnergyRanking"),h=document.getElementById("hud"),b=document.getElementById("toggleHudBtn"),pet=document.querySelector("#petHabitBar .pet-habit-actions");const before={ranking:getComputedStyle(r).display,opacity:getComputedStyle(h).opacity,pet:getComputedStyle(pet).flexDirection};b.click();before.hidden=getComputedStyle(h).visibility;before.restore=getComputedStyle(b).visibility;b.click();return before;})()');
+   assert.equal(hud.ranking,'none');assert.equal(hud.opacity,'0.6');assert.equal(hud.pet,'column');assert.equal(hud.hidden,'hidden');assert.equal(hud.restore,'visible');
    // The movement is sent through Chromium's keyboard input, not by
    // teleporting the player or modifying in-game state.
    const key={key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68};

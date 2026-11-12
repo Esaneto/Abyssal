@@ -15,7 +15,7 @@ test('main-menu hatch is always named CABINE and opens the laboratory visor',()=
  assert.match(html,/class="abyss-cockpit-brand"/);
  assert.match(html,/SUBMARINO DE EXPLORAÇÃO/);
  assert.match(menu,/id:'submarineWorkshopBtn'.*label:'CABINE'.*kind:'lab'/);
- assert.match(runtime,/activeConsoleSection='solo';workshop\.hidden=false;renderWorkshop\(\)/);
+ assert.match(runtime,/activeConsoleSection='solo';soloConsolePage='home';workshop\.hidden=false;renderWorkshop\(\)/);
 });
 
 test('seven clickable hardware controls update a single integrated cockpit visor',()=>{
@@ -27,7 +27,7 @@ test('seven clickable hardware controls update a single integrated cockpit visor
  assert.match(source,/function mountCockpitConsole\(utility\)/);
  assert.match(source,/workshopGrid\.replaceChildren\(visor,keys\)/);
  assert.match(source,/key\.setAttribute\('aria-pressed'/);
- assert.match(source,/activeConsoleSection=option\.id;renderWorkshop\(\)/);
+ assert.match(source,/activeConsoleSection=option\.id;soloConsolePage='home';renderWorkshop\(\)/);
  assert.match(style,/\.abyss-control-key\.is-active/);
  assert.match(style,/\.abyss-cockpit-visor/);
  assert.match(style,/\.abyss-visor-body/);

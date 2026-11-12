@@ -1,0 +1,49 @@
+/* SOLO HUD: one alpha per control group, no alpha stacking. */
+body.abyss-solo-run.game-active #runEnergyRanking{display:none!important}
+body.abyss-solo-run.game-active #hud,
+body.abyss-solo-run.game-active #gameplayOverlayRoot,
+body.abyss-solo-run.game-active #gameShell>#mobilePauseBtn,
+body.abyss-solo-run.game-active #gameShell>#mobileJoystick,
+body.abyss-solo-run.game-active #gameShell>.mobile-dual-stick,
+body.abyss-solo-run.game-active #gameShell>#mobileFireBtn,
+body.abyss-solo-run.game-active #gameShell>#bossAlert,
+body.abyss-solo-run.game-active #gameShell>#abyssalDangerAlert,
+body.abyss-solo-run.game-active #gameShell>#toggleHudBtn,
+body.abyss-solo-run.game-active #app>.topbar,
+body.abyss-solo-run.game-active #endDiveBtn,
+body.abyss-solo-run.game-active #toast{opacity:.6!important}
+body.abyss-solo-run.game-active #gameplayOverlayRoot #selectedSkillsPanel,
+body.abyss-solo-run.game-active #gameplayOverlayRoot #petHabitBar,
+body.abyss-solo-run.game-active #gameplayOverlayRoot #activeAbilities{opacity:1!important}
+body.abyss-solo-run.game-active #petHabitBar{
+ width:80px!important;max-width:80px!important;left:12px!important;bottom:84px!important;
+ padding:4px!important;border-radius:7px!important
+}
+body.abyss-solo-run.game-active #petHabitBar>strong{font-size:7px!important;letter-spacing:0!important;margin-bottom:4px!important;text-align:center}
+body.abyss-solo-run.game-active #petHabitBar .pet-habit-actions{display:flex!important;flex-direction:column!important;gap:3px!important}
+body.abyss-solo-run.game-active #petHabitBar button{flex-direction:row!important;gap:3px!important;padding:4px 2px!important;min-height:26px!important}
+body.abyss-solo-run.game-active #petHabitBar button>span{font-size:12px!important}
+body.abyss-solo-run.game-active #petHabitBar button small{font-size:7px!important}
+body.abyss-solo-run.game-active .solo-energy-stock{display:block;color:#d3aaff;font-size:10px;margin-top:3px;letter-spacing:.05em}
+body:not(.abyss-solo-run) .solo-energy-stock{display:none!important}
+/* All in-match HUD is hidden. Keep only the small restore control and mandatory
+   pause/level-up screens, so the player can recover the HUD or select skills. */
+body.abyss-solo-run.game-active.hud-collapsed #gameShell>:not(#game):not(#toggleHudBtn):not(.screen),
+body.abyss-solo-run.game-active.hud-collapsed #gameShell>#hud,
+body.abyss-solo-run.game-active.hud-collapsed #app>.topbar,
+body.abyss-solo-run.game-active.hud-collapsed #endDiveBtn,
+body.abyss-solo-run.game-active.hud-collapsed #toast{
+ visibility:hidden!important;opacity:0!important;pointer-events:none!important
+}
+body.abyss-solo-run.game-active.hud-collapsed #toggleHudBtn{
+ visibility:visible!important;display:grid!important;opacity:.6!important;pointer-events:auto!important;
+ position:absolute!important;top:10px!important;right:10px!important;left:auto!important;bottom:auto!important;z-index:22000!important
+}
+#submarineWorkshop .solo-upgrade-nav{display:flex;gap:8px;flex-wrap:wrap}
+#submarineWorkshop .solo-upgrade-nav button{min-height:36px}
+#submarineWorkshop .solo-lamp-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border:1px solid #416b78;border-radius:6px;background:#0b2734;padding:10px}
+#submarineWorkshop .solo-lamp-row strong{font:800 13px Inter,sans-serif!important}
+#submarineWorkshop .solo-lamp-row small{display:block;color:#a6c7cb;font-size:11px;margin-top:4px}
+#submarineWorkshop .solo-lamp-row button:disabled{opacity:.55;cursor:default}
+body:has(#submarineWorkshop:not([hidden])) #resonanceScreen:not([hidden]){z-index:31000!important;position:fixed!important;inset:0!important}
+@media(max-width:700px){body.abyss-solo-run.game-active #petHabitBar{left:6px!important;bottom:116px!important;width:76px!important;max-width:76px!important}}

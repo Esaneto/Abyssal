@@ -21,11 +21,10 @@
  const markers=document.createElement('canvas');markers.id='explorationMarkers';markers.setAttribute('aria-hidden','true');markers.style.pointerEvents='none';markers.hidden=true;shell.appendChild(markers);
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
- let activeLabSection='survival',activeConsoleSection='laboratory';
+ let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
  const LAB_SECTIONS=Object.freeze([
   {id:'survival',label:'SOBREVIVÊNCIA',groups:['essential','equipment']},
-  {id:'weapons',label:'ARMAMENTO',groups:['starter','shot','active']},
-  {id:'adaptation',label:'ADAPTAÇÕES',groups:['passive']},
+  {id:'weapons',label:'ARMAMENTO · EM DESENVOLVIMENTO',groups:['starter']},
   {id:'industry',label:'ENGENHARIA OFFSHORE',groups:['industry']}
  ]);
  function renderWorkshop(){
@@ -70,7 +69,7 @@
    const level=Number(levels[id])||0,cost=research.costFor(id,level)||{},offshoreCost=research.offshoreCostFor?.(id,level)||{};
    const available=research.study(id,levels,inventory,offshore);
    const card=document.createElement('article');card.className='submarine-console-card'+(level>=def.max?' is-complete':'');
-   const status=def.starter?'EQUIPAMENTO ESSENCIAL':level>=def.max?'PESQUISA CONCLUÍDA':available.ok?'DISPONÍVEL':available.reason==='prerequisite'?'BLOQUEADA':available.reason==='offshore-resources'?'AGUARDANDO PRODUÇÃO OFFSHORE':'MATERIAIS INSUFICIENTES';
+   const status=window.AbyssalLaunchFocus?.soloOnly?'EM DESENVOLVIMENTO':def.starter?'EQUIPAMENTO ESSENCIAL':level>=def.max?'PESQUISA CONCLUÍDA':available.ok?'DISPONÍVEL':available.reason==='prerequisite'?'BLOQUEADA':available.reason==='offshore-resources'?'AGUARDANDO PRODUÇÃO OFFSHORE':'MATERIAIS INSUFICIENTES';
    const header=document.createElement('small');header.textContent=status;const h=document.createElement('strong');h.textContent=def.name+'  '+level+'/'+def.max;
    const desc=document.createElement('p');desc.textContent=def.description||((def.group==='active'?'Habilidade '+(def.slot||''):def.group==='shot'?'Tecnologia de disparo':def.group==='passive'?'Tecnologia passiva':'Sistema do traje')+'.');
    const req=document.createElement('span');req.className='abyss-mineral-requirements';
@@ -91,8 +90,10 @@
    }
    const button=document.createElement('button');button.type='button';button.className='secondary-btn';
    button.textContent=def.starter?'ATIVO':level>=def.max?'CONCLUÍDO':available.reason==='prerequisite'?'REQUER PESQUISA':available.reason==='resources'?'FALTAM MINÉRIOS':available.reason==='offshore-resources'?'AGUARDANDO PETRÓLEO/GÁS':'PESQUISAR';
-   button.disabled=Boolean(def.starter)||!available.ok;
+   button.disabled=Boolean(window.AbyssalLaunchFocus?.soloOnly)||Boolean(def.starter)||!available.ok;
+   if(window.AbyssalLaunchFocus?.soloOnly)button.textContent='EM DESENVOLVIMENTO';
    button.addEventListener('click',()=>{
+    if(window.AbyssalLaunchFocus?.soloOnly)return;
     button.disabled=true;
     const done=result=>{
      if(result?.ok){
@@ -134,7 +135,7 @@
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
-  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=chosen.title;column.append(small,title);
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='upgrades'?'MELHORIAS SOLO':chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;
@@ -157,7 +158,7 @@
    key.append(symbol,name);
    key.addEventListener('click',()=>{
     if(option.id==='sea'||option.id==='rift'){window.AbyssalLaunchFocus?.notify?.();return;}
-    if(activeConsoleSection!==option.id){activeConsoleSection=option.id;renderWorkshop();}
+    if(activeConsoleSection!==option.id||option.id==='solo'){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
    });
    keys.append(key);
   }
@@ -175,7 +176,17 @@
  function renderConsoleUtility(){
   if(!workshopGrid)return;
   const utility=document.createElement('div');utility.className='abyss-console-info';
-  if(activeConsoleSection==='minerals'){
+  if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
+   const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1};
+   const balance=document.createElement('strong');balance.textContent='ENERGIA DISPONÍVEL: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
+   const note=document.createElement('p');note.textContent='Colete as orbs roxas no Shooter Solo. A energia permanece neste dispositivo entre mergulhos.';utility.append(note);
+   for(let lv=1;lv<=3;lv++){
+    const row=document.createElement('div');row.className='solo-lamp-row';
+    const data=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');name.textContent='LANTERNA · NV. '+lv;const lamp=window.AbyssalSoloCavern?.lampParameters(lv);desc.textContent='Cone de luz · alcance '+Math.round(lamp?.range||570)+' · '+(lv===1?'equipamento inicial':Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance adicional');data.append(name,desc);
+    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
+   }
+   const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO SHOOTER';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
+  }else if(activeConsoleSection==='minerals'){
    const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';
    const inventory=research.sanitizeInventory(stateInventory());
    for(const id of ['polymetallicNodule','ferromanganeseCrust','phosphorite','hydrothermalSulfide','oilSeep','gasSeep']){
@@ -208,12 +219,16 @@
      const target=document.getElementById(info[3]);if(target&&!target.disabled)target.click();
     });
     utility.append(heading,body,action);
+    if(activeConsoleSection==='solo'){
+     const nav=document.createElement('nav');nav.className='solo-upgrade-nav';
+     for(const [label,fn] of [['MELHORIAS SOLO',()=>{soloConsolePage='upgrades';renderWorkshop();}],['RESSONÂNCIA',()=>document.getElementById('resonanceBtn')?.click()]]){const b=document.createElement('button');b.type='button';b.className='abyss-visor-action';b.textContent=label;b.addEventListener('click',fn);nav.append(b);}utility.append(nav);
+    }
    }
   }
   mountCockpitConsole(utility);
  }
 
- const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
+ const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
  window.addEventListener('abyssal-open-main-cockpit',openWorkshop);
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
