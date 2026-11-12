@@ -96,12 +96,14 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RANKS_FILE = path.join(DATA_DIR, 'rankings.json');
 const CARDUMES_FILE = path.join(DATA_DIR, 'cardumes.json');
+const ANNOUNCEMENTS_FILE=path.join(DATA_DIR,'announcements.json');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 function readJson(file, fallback) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return fallback; } }
 const EMPTY_RANKINGS = { eternal: {}, daily: {}, weekly: {}, monthly: {}, settled: { day: '', week: '', month: '' } };
 let users = Object.assign(Object.create(null), readJson(USERS_FILE, {}));
 let rankings = readJson(RANKS_FILE, EMPTY_RANKINGS);
 let cardumes = readJson(CARDUMES_FILE, {});
+let announcements=readJson(ANNOUNCEMENTS_FILE,[]);if(!Array.isArray(announcements))announcements=[];
 let pgPool = null;
 let persistenceQueue = Promise.resolve();
 let persistenceWorker = null;
@@ -203,7 +205,7 @@ async function initializePersistence() {
  });
  pgPool.on('error', err => console.error('[persistence] Erro inesperado no pool PostgreSQL:', err.message));
  await pgPool.query('CREATE TABLE IF NOT EXISTS abyssal_state (state_key TEXT PRIMARY KEY, state_value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
- const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes')");
+ const result = await pgPool.query("SELECT state_key, state_value FROM abyssal_state WHERE state_key IN ('users','rankings','cardumes','announcements')");
  const stored = Object.fromEntries(result.rows.map(row => [row.state_key, row.state_value]));
  if (stored.users && typeof stored.users === 'object' && !Array.isArray(stored.users)) {
   users = Object.assign(Object.create(null), stored.users);
@@ -219,6 +221,7 @@ async function initializePersistence() {
  }
  if (stored.cardumes && typeof stored.cardumes === 'object' && !Array.isArray(stored.cardumes)) cardumes = stored.cardumes;
  else await pgPool.query("INSERT INTO abyssal_state (state_key,state_value) VALUES ('cardumes',$1::jsonb) ON CONFLICT (state_key) DO NOTHING", [JSON.stringify(cardumes)]);
+ if(Array.isArray(stored.announcements))announcements=stored.announcements;
  console.log(`[persistence] PostgreSQL ativo: ${Object.keys(users).length} contas carregadas.`);
 }
 async function flushPersistence() { await persistenceQueue; }
@@ -324,6 +327,19 @@ if (typeof app.post === 'function') {
 }
 if (typeof app.post === 'function') registerAccountRecoveryRoutes({app,getUsers:()=>users,saveUsers,io});
 if (typeof app.post === 'function') registerSupportRoutes({app});
+function currentAnnouncements(){return announcements.filter(item=>Date.now()-Number(item.timestamp)<7*86400000).slice(0,30);}
+app.get('/api/announcements',(_req,res)=>res.json(currentAnnouncements()));
+app.post('/api/admin/announcements',async(req,res)=>{
+ const secret=String(process.env.ABYSSAL_ANNOUNCEMENT_TOKEN||'');
+ if(secret.length<32)return res.status(503).json({ok:false,message:'Administração de avisos não configurada.'});
+ const provided=String(req.headers.authorization||'');
+ const digest=value=>crypto.createHash('sha256').update(value).digest();
+ if(!crypto.timingSafeEqual(digest(provided),digest('Bearer '+secret)))return res.status(403).json({ok:false});
+ const title=String(req.body?.title||'COMUNICADO DO ABYSSAL').trim().slice(0,100),message=String(req.body?.message||'').trim().slice(0,2000);
+ if(!message)return res.status(400).json({ok:false,message:'Mensagem obrigatória.'});
+ const item={id:crypto.randomUUID(),title,message,timestamp:Date.now()};
+ announcements=[item,...currentAnnouncements()].slice(0,30);persistState('announcements',announcements,ANNOUNCEMENTS_FILE,true,0o600);await flushPersistence();io.emit('abyssal-announcement',item);res.json({ok:true,id:item.id});
+});
 function resourceHealthPayload(){
  const memory=process.memoryUsage(),load=os.loadavg();
  return {
@@ -1994,6 +2010,14 @@ io.on('connection', socket => {
  });
  socket.on('run-progress',payload=>{if(!socket.data.userKey||!payload||typeof payload!=='object')return;const room=socketRoom(socket),p=room?.players.get(socket.id),run=p?.runStats||socket.data.runStats;if(!run||run.settled)return;run.score=Math.max(0,Math.min(1e9,Number(payload.score)||0));const previousLevel=Math.max(1,Math.floor(Number(p?.runLevel)||Number(run.level)||1));run.level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level)||1)));if(p){const account=users[socket.data.userKey];if(run.level>previousLevel&&p.alive!==false){p.hp=p.maxHp;socket.emit('player-vitals',playerVitalsPayload(p,{reason:'level-up',serverTime:Date.now()}));}p.energy=run.score;p.runLevel=run.level;p.runNickname=account?.nickname||p.nickname;const ranking=[...room.players.values()].filter(peer=>peer.alive!==false).map(peer=>({id:peer.id,nickname:peer.runNickname||peer.nickname||'Mergulhador',energy:Math.max(0,Number(peer.energy)||0)})).sort((a,b)=>b.energy-a.energy||a.nickname.localeCompare(b.nickname)).slice(0,6).map((peer,index)=>({...peer,rank:index+1}));io.to(channelFor(room)).volatile.emit('run-energy-ranking',ranking);}else run.bossesKilled=Math.max(0,Math.min(10000,Math.floor(Number(payload.bossesKilled)||0)));});
  socket.on('get-match-history',()=>{const u=users[socket.data.userKey];socket.emit('match-history-result',{ok:Boolean(u),matches:Array.isArray(u?.matchHistory)?u.matchHistory.slice(0,10):[]});});
+ socket.on('preview-run-report',(_payload={},ack)=>{
+  if(typeof ack!=='function')return;
+  const member=socketRoom(socket)?.players.get(socket.id),run=member?.runStats;
+  if(!socket.data.userKey||!run)return ack({ok:false});
+  const survival=Math.max(0,Math.min(86400,Math.floor((Date.now()-(Number(run.startedAt)||Date.now()))/1000)));
+  const bosses=Math.max(0,Number(run.bossesKilled)||0),earned=Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2));
+  ack({ok:true,survival,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,totalRunCoins:earned+bosses*100});
+ });
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
