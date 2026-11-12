@@ -314,3 +314,24 @@
 #submarineWorkshop .abyss-visor-resonance .solo-research-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 #submarineWorkshop .abyss-visor-resonance .solo-research-tabs button{min-height:32px!important;font-size:10px!important;padding:5px 3px!important}
 @container (max-width:300px){#submarineWorkshop .abyss-visor-resonance #resonanceScreen .resonance-mode-tabs button{min-height:36px!important;font-size:10px!important}}
+
+/* Compact the actual layout instead of scaling the DOM and its touch targets.
+   Includes landscape phones wider than 700 CSS px; desktop stays unchanged. */
+@media (pointer:coarse), (max-width:700px){
+ #submarineWorkshop .abyss-cockpit-console{
+  width:min(92%,980px)!important;top:26%!important;bottom:25px!important;
+  padding:7px 9px 6px!important;border-width:3px!important;
+  transform:translateX(-50%)!important;
+ }
+ #submarineWorkshop .submarine-workshop-grid{gap:5px!important}
+ #submarineWorkshop .abyss-visor-heading{padding:5px 8px!important;min-height:28px!important}
+ #submarineWorkshop .abyss-visor-body{padding:7px 9px!important;min-height:0!important;overflow:auto!important}
+ #submarineWorkshop .abyss-control-deck{gap:4px!important;padding:2px 0!important}
+ #submarineWorkshop .abyss-control-key{min-height:44px!important;padding:3px 2px!important;gap:3px!important;font-size:9px!important}
+ #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:14px!important}
+ #submarineWorkshop .abyss-visor-action{min-height:44px!important;padding:7px 10px!important}
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:540px){
+ #submarineWorkshop .abyss-cockpit-console{top:25%!important;bottom:22px!important;width:86%!important}
+ #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+}
