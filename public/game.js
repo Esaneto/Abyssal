@@ -1723,26 +1723,47 @@ function chooseSoloSpawnRoom(){
 }
 // A 15x sea must not have 15x active mobs: maintain only nearby cells.
 let soloOceanLastUpdate=0;
+const soloOceanCellCache=new Map();
+function cachedSoloOceanCell(cell){
+ let data=soloOceanCellCache.get(cell.key);
+ if(data){soloOceanCellCache.delete(cell.key);soloOceanCellCache.set(cell.key,data);return data;}
+ data=OCEAN_STREAM.generate('abyssal-persistent-solo-v1',cell.cx,cell.cy,OPEN_SEA_ECOLOGY);
+ soloOceanCellCache.set(cell.key,data);
+ while(soloOceanCellCache.size>96)soloOceanCellCache.delete(soloOceanCellCache.keys().next().value);
+ return data;
+}
 function updateSoloOceanChunks(force=false){
  if(!player||!isOpenSeaRun()||!OCEAN_STREAM||!OPEN_SEA_ECOLOGY)return;
- const now=performance.now();if(!force&&now-soloOceanLastUpdate<330)return;
+ const now=performance.now();if(!force&&now-soloOceanLastUpdate<180)return;
  soloOceanLastUpdate=now;
  const respawnNow=Date.now();
  if(respawnNow>=soloOceanRespawnCleanupAt){soloOceanRespawn?.prune(respawnNow);soloOceanRespawnCleanupAt=respawnNow+30000;}
- const radius=clamp(Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+1250,2200,4700);
+ const vw=viewW/worldZoom,vh=viewH/worldZoom;
+ const radius=Math.max(2600,Math.hypot(vw,vh)*.5+1800);
  const nearby=OCEAN_STREAM.active([player],90,radius),active=new Set(nearby.map(c=>c.key));
- enemies=enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':')));
+ const visible=(x,y,r=0,margin=240)=>x+r>=cameraX-margin&&x-r<=cameraX+vw+margin&&y+r>=cameraY-margin&&y-r<=cameraY+vh+margin;
+ // Retain visible/moving creatures even when their home cell leaves the active set.
+ const retainRadius=radius+OCEAN_STREAM.CHUNK;
+ enemies=enemies.filter(e=>!e.streamId||active.has(String(e.streamId).split(':').slice(0,2).join(':'))||visible(e.x,e.y,e.r,700)||Math.hypot(e.x-player.x,e.y-player.y)<retainRadius);
  const have=new Set(enemies.map(e=>e.streamId).filter(Boolean));
- let budget=Math.min(force?26:9,Math.max(0,90-enemies.length));
+ let budget=Math.min(force?90:12,Math.max(0,90-enemies.length));
+ const candidates=[];
  for(const cell of nearby){
-  if(budget<=0)break;
-  const fauna=OCEAN_STREAM.generate('abyssal-persistent-solo-v1',cell.cx,cell.cy,OPEN_SEA_ECOLOGY);
+  const fauna=cachedSoloOceanCell(cell);
   for(const specimen of fauna.animals){
-   if(budget<=0||have.has(specimen.id)||(soloOceanRespawn&&!soloOceanRespawn.ready(specimen.id,respawnNow)))continue;
+   if(have.has(specimen.id)||(soloOceanRespawn&&!soloOceanRespawn.ready(specimen.id,respawnNow)))continue;
    if(Math.hypot(specimen.x-player.x,specimen.y-player.y)<170)continue;
-   const mob=spawnEnemy(false,'common',{position:specimen,species:specimen.species,streamId:specimen.id,schoolId:specimen.schoolId});
-   if(mob){have.add(specimen.id);budget--;}
+   // Never introduce a fresh creature in the current camera during a dive.
+   if(!force&&visible(specimen.x,specimen.y,180,160))continue;
+   candidates.push(specimen);
   }
+ }
+ // Fill nearest future-visible cells first, not arbitrary chunk iteration order.
+ candidates.sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y));
+ for(const specimen of candidates){
+  if(budget<=0)break;
+  const mob=spawnEnemy(false,'common',{position:specimen,species:specimen.species,streamId:specimen.id,schoolId:specimen.schoolId});
+  if(mob){have.add(specimen.id);budget--;}
  }
 }
 function spawnEnemy(initial=false,type='common',options={}){
@@ -1826,7 +1847,7 @@ function activateSoloRiftRoomEncounter(){
  if(onlineMode||requestedRunMode!=='rift'||!activeMapLayout||!player)return;
  for(const room of activeMapLayout.rooms){
   if(room.id==='start'||soloRiftActivatedRooms.has(room.id))continue;
-  if(Math.hypot(player.x-room.x,player.y-room.y)>=Math.max(1700,room.ry+850))continue;
+  if(Math.hypot(player.x-room.x,player.y-room.y)>=Math.max(1700,room.ry+850,Math.hypot(viewW/worldZoom,viewH/worldZoom)*.5+Math.max(room.rx,room.ry)+500))continue;
   soloRiftActivatedRooms.add(room.id);
   const count=room.id==='boss'?1:SOLO_RIFT_ROOM_POPULATIONS[room.id]||0;
   if(count)soloRiftSpawnQueue.push({roomId:room.id,count,boss:room.id==='boss'});
@@ -2971,7 +2992,7 @@ function update(dt){
   }
 
 player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt);shake=Math.max(0,shake-dt*22);
- if(!onlineMode&&isOpenSeaRun()&&spawnTimer<=0){updateSoloOceanChunks();spawnTimer=.38;}if(!onlineMode&&isClassicShooterRun()&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<soloCommonCap()&&enemies.length<soloEnemyCap()){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
+ if(!onlineMode&&isOpenSeaRun()&&spawnTimer<=0){updateSoloOceanChunks();spawnTimer=.20;}if(!onlineMode&&isClassicShooterRun()&&spawnTimer<=0){const commonCount=enemies.filter(e=>!BOSS_KINDS.includes(e.kind)).length;if(commonCount<soloCommonCap()&&enemies.length<soloEnemyCap()){spawnEnemy(false,'common');const ramp=clamp(elapsed/300,0,1),eventSpawn=EXPEDITION_RULES?.eventSpawnIntervalMultiplier?.(soloDepthEventId)||1;spawnTimer=Math.max(.18,.55*(1-(2/3)*ramp)*eventSpawn);}else spawnTimer=.35;}
  // Spawn de boss solo gerenciado exclusivamente pelo sistema de progressão (updateBossProgressionStep).
  // O bloco antigo de nextBossAt foi removido para evitar spawns duplicados fora da progressão.
  if(!onlineMode&&upgrades.regen>0&&Math.random()<dt*upgrades.regen*.25){const beforeRegen=hp;hp=Math.min(maxHp,hp+1);if(hp>beforeRegen){playSkillSound('regen','trigger');effects.push({type:'regen-pulse',x:player.x,y:player.y,max:player.r*2.8,life:.55,maxLife:.55,color:'#67f5a0'});}}
@@ -4183,9 +4204,13 @@ function drawHostileSpeciesEffect(enemy,t){
 }
 const specimenPortraits=new Map();
 function registerSpecimenPortrait(canvas,skinId){
- if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));if(!registerSpecimenPortrait.running){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}
+ if(!canvas?.getContext)return;specimenPortraits.set(canvas,String(skinId||equippedSkin));scheduleSpecimenPortraits();
 }
+function scheduleSpecimenPortraits(){if(!registerSpecimenPortrait.running&&specimenPortraits.size&&!document.hidden&&!document.body.classList.contains('game-active')){registerSpecimenPortrait.running=true;requestAnimationFrame(renderSpecimenPortraits);}}
+new MutationObserver(scheduleSpecimenPortraits).observe(document.body,{attributes:true,attributeFilter:['class']});
+document.addEventListener('visibilitychange',scheduleSpecimenPortraits);
 function renderSpecimenPortraits(t){
+ if(document.hidden||document.body.classList.contains('game-active')){registerSpecimenPortrait.running=false;return;}
  for(const [canvas,skinId] of [...specimenPortraits]){
   if(!canvas.isConnected){specimenPortraits.delete(canvas);continue;}
   if(!canvas.getClientRects().length||!canvas.offsetWidth||!canvas.offsetHeight)continue;
