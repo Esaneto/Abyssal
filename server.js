@@ -1092,9 +1092,9 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
  }
  return damageEvent;
 }
-async function finishRunForSocket(socket,payload={}){
+async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
- const room=socketRoom(socket),member=room?.players.get(socket.id),run=member?.runStats||socket.data.runStats||makeRunStats();
+ const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id),run=isolatedRun||member?.runStats||socket.data.runStats||makeRunStats();
  if(run.settled)return {ok:true,duplicate:true,energyBonus:Number(run.energyBonus)||0,energyBonusPercent:Number(run.energyBonusPercent)||0,specimenEnergyBonusPercent:Number(run.specimenEnergyBonusPercent)||0,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
  const survival=Math.max(0,Math.min(86400,Math.floor((now-(Number(run.startedAt)||now))/1000)));
@@ -1102,15 +1102,16 @@ async function finishRunForSocket(socket,payload={}){
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
  run.finalSurvival=member?survival:Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));if(!member){run.damageDealt=Math.max(0,Math.min(1e9,Number(payload.damageDealt)||0));run.monstersKilled=Math.max(0,Math.min(1e7,Math.floor(Number(payload.monstersKilled)||0)));run.energyCollected=Math.max(0,Math.min(1e9,Math.floor(Number(payload.energyCollected)||0)));}run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
- if(member)member.runStats=run;else socket.data.runStats=run;
+ if(member)member.runStats=run;else if(!isolatedRun)socket.data.runStats=run;
  settlePeriods();
- const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(survival),updatedAt:new Date().toISOString()};
- const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&survival>(Number(old.survival)||0))));
+ const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(run.finalSurvival),updatedAt:new Date().toISOString()};
+ const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&run.finalSurvival>(Number(old.survival)||0))));
  const put=board=>{if(better(board[key]))board[key]=entry;};
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles();
  const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionBonus=0;const specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||member?.skinId||user.equippedSkin||'default');const expeditionMultiplier=1+expeditionBonus+specimenBonus;const baseEnergy=Math.floor(Math.min(50000,Math.max(3,baseEarned))/10);const energyBonus=Math.floor(Number(run.energyCollected||0)*specimenBonus);const earned=baseEnergy+energyBonus;const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;run.energyBonus=energyBonus;run.energyBonusPercent=Math.round((expeditionBonus+specimenBonus)*100);run.specimenEnergyBonusPercent=Math.round(specimenBonus*100);
+ if(isolatedRun){user.offlineRunReceipts ||= {};user.offlineRunReceipts[run.id]={earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,survival:run.finalSurvival,damageDealt:run.damageDealt,monstersKilled:run.monstersKilled,energyCollected:run.energyCollected,level,score};}
  saveRanks();saveUsers();await flushPersistence();
  const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} energia de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} energia por boss e +${earned} energia de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
@@ -2093,6 +2094,19 @@ io.on('connection', socket => {
   const bosses=Math.max(0,Number(run.bossesKilled)||0),baseEnergy=Math.floor(Math.min(50000,Math.max(5,Math.floor((Number(run.score)||0)/35)+(Number(run.level)||1)*2))/10),specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||p?.skinId||users[socket.data.userKey]?.equippedSkin||'default'),energyBonus=Math.floor(Number(run.energyCollected||0)*specimenBonus),earned=baseEnergy+energyBonus;
   ack({ok:true,survival,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,energyBonus,energyBonusPercent:Math.round(specimenBonus*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:earned+bosses*10});
  });
+ socket.on('sync-solo-run',async(payload={},ack)=>{
+  if(typeof ack!=='function')return;
+  const user=users[socket.data.userKey],id=String(payload.id||'');
+  if(!user||!/^solo-[a-zA-Z0-9-]{12,100}$/.test(id))return ack({ok:false,message:'Registro local inválido.'});
+  try{
+   user.offlineRunReceipts ||= {};
+   if(Object.hasOwn(user.offlineRunReceipts,id)){await flushPersistence();return ack({ok:true,duplicate:true,...user.offlineRunReceipts[id],account:publicUser(user),rankings:rankingPayload()});}
+   const survival=Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));
+   const skin=String(payload.energySkinId||'default'),energySkinId=(user.ownedSkins||['default']).includes(skin)?skin:'default';
+   const run={...makeRunStats(),id,startedAt:Date.now()-survival*1000,energySkinId,mode:payload.expedition===true?'rift':'solo'};
+   const result=await finishRunForSocket(socket,payload,run);ack(result);
+  }catch(error){console.error('[solo sync]',error.message);ack({ok:false,message:'Não foi possível sincronizar o mergulho.'});}
+ });
  socket.on('finish-run',async(payload={},ack)=>{try{const result=await finishRunForSocket(socket,payload);if(typeof ack==='function')ack(result);}catch(err){console.error('[run] Falha ao finalizar mergulho:',err.message);if(typeof ack==='function')ack({ok:false,message:'Não foi possível gravar o resultado do mergulho.'});}});
  socket.on('game-snapshot', () => {}); // Clientes nunca publicam o estado autoritativo.
  socket.on('request-host-state', () => {});
@@ -2813,7 +2827,7 @@ io.on('connection', socket => {
   u.energy=(u.energy||0)+reward;u.lastWheelAt=now;saveUsers();socket.emit('wheel-result',{ok:true,reward,energy:u.energy,account:publicUser(u),nextSpinAt:now+cooldown});
  });
  socket.on('submit-run', async payload => { try { const result=await finishRunForSocket(socket,payload||{}); socket.emit('run-saved',result); } catch(err) { console.error('[run] Falha no submit-run legado:',err.message); } });
- socket.on('disconnect', () => { if(!shutdownStarted&&socket.data.userKey&&(socket.data.joined||socket.data.runStats)){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
+ socket.on('disconnect', () => { if(!shutdownStarted&&socket.data.userKey&&socket.data.joined){finishRunForSocket(socket,{}).catch(err=>console.error('[run] Falha ao finalizar desconexão:',err.message));} removeFromRoom(socket,{announce:true,emitResult:false}); broadcastOnline(); setTimeout(broadcastCardumeRosters,0); });
 });
 setInterval(settlePeriods, 60 * 60 * 1000).unref();
 // Detecta a virada do dia em America/Sao_Paulo; o boot também corrige dias perdidos após spin-down.
