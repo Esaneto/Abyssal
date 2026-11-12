@@ -223,7 +223,8 @@
       }else{
         enemy.sharkRecoveryRemaining=Math.max(0,(Number(enemy.sharkRecoveryRemaining)||0)-dt);
         enemy.sharkScanPhase=(Number(enemy.sharkScanPhase)||0)+dt*.55;
-        const heading=(Number(enemy.angle)||0)+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42*dt;
+        const previous=Number(enemy.angle)||0,steer=Number(options.sharkSteeringAngle),turn=Number.isFinite(steer)?Math.atan2(Math.sin(steer-previous),Math.cos(steer-previous)):0;
+        const heading=Number.isFinite(steer)?previous+clamp(turn,-2.9*dt,2.9*dt):previous+Math.sin(enemy.sharkScanPhase+(Number(enemy.id)||0))*.42*dt;
         enemy.angle=heading;const cruise=dashSpeed*.42;
         enemy.dashVx=Math.cos(heading)*cruise;enemy.dashVy=Math.sin(heading)*cruise;
       }

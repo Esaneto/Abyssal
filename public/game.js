@@ -2362,6 +2362,7 @@ let soloOrbSequence=0;
 function spawnSoloOrb(x,y,value){
  if(onlineMode)return;
  if(orbs.length>=160)orbs.shift();
+ if(isClassicShooterRun()&&SOLO_CAVERN){const water=SOLO_CAVERN.nearestWater(arenaRocks,W,H,x,y,9/GAME_WORLD_ZOOM);if(water){x=water.x;y=water.y;}}
  orbs.push({id:'solo-'+(++soloOrbSequence),x,y,value:Math.max(1,Math.round(Number(value)||1))});
 }
 function tickSoloSpecimenOrbs(){
@@ -2370,7 +2371,7 @@ function tickSoloSpecimenOrbs(){
  for(let i=orbs.length-1;i>=0;i--){
   const o=orbs[i],distance=Math.hypot(player.x-o.x,player.y-o.y);
   // Only the living equipped specimen can collect an energy orb.
-  const petContact=s?.alive&&distance<=range&&Math.hypot(s.x-o.x,s.y-o.y)<=s.r+7/GAME_WORLD_ZOOM;
+  const petContact=s?.alive&&distance<=range&&Math.hypot(s.x-o.x,s.y-o.y)<=s.r+7/GAME_WORLD_ZOOM&&pveTerrainClear(s.x,s.y,o.x,o.y,0);
   if(!petContact)continue;
   orbs.splice(i,1);gainXp(o.value,'kill');
  }
@@ -2767,15 +2768,18 @@ function updateSpecimenRuntime(dt){
  }
  // A behaviour mode controls target selection. The Solo companion can flee,
  // hunt nearby threats or guard the diver while collecting purple XP orbs.
- const pos={x:s.x,y:s.y},radius=Number(s.r)||11/GAME_WORLD_ZOOM;
+ const radius=Number(s.r)||11/GAME_WORLD_ZOOM,soloCave=!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN,pad=radius+1/GAME_WORLD_ZOOM;
+ if(soloCave&&SOLO_CAVERN.isBlocked(arenaRocks,s.x,s.y,pad)){const water=SOLO_CAVERN.nearestWater(arenaRocks,W,H,s.x,s.y,pad);if(water){s.x=water.x;s.y=water.y;s.navGoal=null;}}
+ const pos={x:s.x,y:s.y};
  const threatRadiusSq=(360/GAME_WORLD_ZOOM)**2;
  const nearbyEnemies=enemies.filter(e=>e&&e.hp>0&&(e.x-pos.x)**2+(e.y-pos.y)**2<threatRadiusSq);
  const threats=nearbyEnemies.map(e=>({id:e.id,x:e.x,y:e.y,r:e.r||12/GAME_WORLD_ZOOM,hp:e.hp,vx:Number(e.vx)||0,vy:Number(e.vy)||0}));
  const collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range');
- const tactics=!onlineMode&&isClassicShooterRun()?PET_TACTICS?.choose?.({
-  mode:petHabit,pet:pos,player,enemies,orbs,collectionRange,
-  attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM
- }):null;
+ const now=performance.now();if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&s.tacticalChoice.enemy.hp<=0){
+  const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
+  s.tacticalChoice=soloCave?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,o.x,o.y,pad);return nav.blocked?Infinity:Math.hypot(o.x-pos.x,o.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
+ }
+ const tactics=s.tacticalChoice;
  const combatTarget=tactics?.type==='enemy'?tactics.enemy:null;
  const orb=tactics?(tactics.type==='orb'?tactics.orb:null):
   SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
@@ -2797,16 +2801,23 @@ function updateSpecimenRuntime(dt){
   const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});
   if(route&&!route.blocked)target={x:route.x,y:route.y};
  }
- if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,target.x,target.y,radius+3/GAME_WORLD_ZOOM);if(!nav.blocked)target={x:nav.x,y:nav.y};}
+ if(soloCave){
+  if(!orb&&!combatTarget&&SOLO_CAVERN.isBlocked(arenaRocks,target.x,target.y,pad))target={x:player.x,y:player.y};
+  const goal={...target};const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad);
+  if(!nav.blocked)target={x:nav.x,y:nav.y};else target=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle)||pos;
+  if((s.stuckSeconds||0)>.8&&Math.hypot(goal.x-pos.x,goal.y-pos.y)>radius+5){const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle);if(escape){s.escapeWaypoint=escape;s.escapeUntil=now+650;}if(orb){s.unreachableOrbId=orb.id;s.unreachableUntil=now+1800;s.nextTacticsAt=0;}s.stuckSeconds=0;}
+  if(s.escapeWaypoint&&now<s.escapeUntil&&Math.hypot(s.escapeWaypoint.x-pos.x,s.escapeWaypoint.y-pos.y)>5)target=s.escapeWaypoint;else s.escapeWaypoint=null;
+ }
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
  const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).speed/GAME_WORLD_ZOOM)*toxin*slowed);
  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
-  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,radius+3/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
+  resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,pad):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
  if(move){
   s.x=move.x;s.y=move.y;
-  if(Math.hypot(move.x-pos.x,move.y-pos.y)>.01){
+  const travelled=Math.hypot(move.x-pos.x,move.y-pos.y);s.stuckSeconds=Math.hypot(target.x-pos.x,target.y-pos.y)>radius+4&&travelled<normalSpeed*dt*.2?(s.stuckSeconds||0)+dt:Math.max(0,(s.stuckSeconds||0)-dt*2);
+  if(travelled>.01){
    const heading=Math.atan2(move.y-pos.y,move.x-pos.x);
    const diff=Math.atan2(Math.sin(heading-(s.facingAngle||0)),Math.cos(heading-(s.facingAngle||0)));
    s.facingAngle=(s.facingAngle||0)+diff*(1-Math.exp(-dt*11));
@@ -3254,14 +3265,15 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&!anglerHidden&&e.kind!=='whiteShark'&&e.kind!=='whiteSharkBoss'){
     const pad=Math.max(5,e.r*.62),goal=movementTargets[0];
     if(goal){const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,e.x,e.y,goal.x,goal.y,pad);
-     if(!nav.direct){soloMapNavProxy.x=nav.x;soloMapNavProxy.y=nav.y;soloMapNavProxy.moveSpeed=player.moveSpeed;soloMapNavProxy.skinId=equippedSkin;movementTargets=soloMapNavTargets;soloEnemyMovementOptions.stopDistance=0;}
+     if(!nav.direct){const waypoint=nav.blocked?SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,goal.x,goal.y,pad,e.angle)||nav:nav;soloMapNavProxy.x=waypoint.x;soloMapNavProxy.y=waypoint.y;soloMapNavProxy.moveSpeed=player.moveSpeed;soloMapNavProxy.skinId=equippedSkin;movementTargets=soloMapNavTargets;soloEnemyMovementOptions.stopDistance=0;}
     }
     // Non-shark cave fauna follows the path flow. Sharks keep their field-of-view locomotion.
     soloEnemyMovementOptions.freeSwim=!(e.kind==='whiteShark'||e.kind==='whiteSharkBoss');
    }
    if(window.AbyssalEnemyAI.isChargeAttack(e)){
     soloEnemyMovementOptions.sharkLineOfSight=pveTerrainClear(e.x,e.y,player.x,player.y,2)&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack));if(soloEnemyMovementOptions.sharkLineOfSight&&!soloEnemyMovementOptions.freeSwim)movementTargets=localTargets;
-   }else delete soloEnemyMovementOptions.sharkLineOfSight;
+    delete soloEnemyMovementOptions.sharkSteeringAngle;if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&!e.sharkCharging){const a=Number(e.angle)||0,pad=Math.max(5,e.r*.62),look=Math.max(120/GAME_WORLD_ZOOM,e.r*4);if(SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,e.x+Math.cos(a)*look,e.y+Math.sin(a)*look,pad)){let best=-Infinity;for(const off of [-.55,.55,-1.05,1.05,-1.57,1.57,Math.PI]){const q=a+off,tx=e.x+Math.cos(q)*look,ty=e.y+Math.sin(q)*look;if(tx<pad||ty<pad||tx>W-pad||ty>H-pad||SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,tx,ty,pad))continue;const rank=Math.cos(off)*.65+Math.cos(q-Math.atan2(player.y-e.y,player.x-e.x))*.15;if(rank>best){best=rank;soloEnemyMovementOptions.sharkSteeringAngle=q;}}if(!Number.isFinite(soloEnemyMovementOptions.sharkSteeringAngle))soloEnemyMovementOptions.sharkSteeringAngle=a+Math.PI;}}
+   }else {delete soloEnemyMovementOptions.sharkLineOfSight;delete soloEnemyMovementOptions.sharkSteeringAngle;}
    window.AbyssalEnemyAI.moveTowardTarget(e,movementTargets,dt,soloEnemyMovementOptions,soloEnemyMovementResult);
    if(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const sea=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));e.x=sea.x;e.y=sea.y;if(sea.blocked){e.vx=(e.x-beforeEnemyX)/Math.max(dt,.001);e.vy=(e.y-beforeEnemyY)/Math.max(dt,.001);}}
    if(!activeMapLayout&&e.wildlifeMode&&OPEN_SEA_ECOLOGY?.separateContact){
@@ -3280,13 +3292,14 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const speed=Number(window.AbyssalEnemyAI?.ENEMY_STATS?.[e.kind]?.dashSpeed)||Number(e.speed)||300;
     e.sharkChargeRemaining=0;e.sharkCharging=false;e.sharkRecoveryRemaining=1.2;e.angle=best;e.dashVx=Math.cos(best)*speed;e.dashVy=Math.sin(best)*speed;e.sharkAlertUntil=0;
    }else{
-    e.orbitDirection=-(Number(e.orbitDirection)||1);const tangent=(Number(e.angle)||0)+(e.orbitDirection>0?Math.PI/2:-Math.PI/2);e.vx=Math.cos(tangent)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(tangent)*Math.max(12,Number(e.speed)||20);
+    const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,e.x,e.y,player.x,player.y,Math.max(5,e.r*.62),e.angle);if(escape){const a=Math.atan2(escape.y-e.y,escape.x-e.x);e.angle=a;e.vx=Math.cos(a)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(a)*Math.max(12,Number(e.speed)||20);}else{e.vx=0;e.vy=0;}
    }
   }}
   if(false&&!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&OCEAN_GEOGRAPHY.isSolid(e.x,e.y,Math.max(8,Math.min(58,e.r*.55)))){
    const corrected=OCEAN_GEOGRAPHY.resolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(58,e.r*.55)));
    e.x=corrected.x;e.y=corrected.y;
   }
+  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN&&!window.AbyssalEnemyAI.isChargeAttack(e)&&!enemyParalyzedNow(e)){let sx=0,sy=0,count=0;for(const other of enemies){if(other===e||other.hp<=0)continue;const dx=e.x-other.x,dy=e.y-other.y,space=(e.r+other.r)*.85,d=Math.hypot(dx,dy);if(d>=space)continue;const a=d>.01?Math.atan2(dy,dx):(Number(e.id)||1)*2.399,force=(space-d)/Math.max(1,space);sx+=Math.cos(a)*force;sy+=Math.sin(a)*force;if(++count>=6)break;}if(count){const step=Math.min(55,Number(e.speed)||55)*dt,moved=SOLO_CAVERN.resolve(arenaRocks,e.x,e.y,clamp(e.x+sx*step,0,W),clamp(e.y+sy*step,0,H),Math.max(5,e.r*.62));e.x=moved.x;e.y=moved.y;}}
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
@@ -4507,11 +4520,10 @@ function drawSharkVisionCone(e,t){
  const vision=window.AbyssalEnemyAI?.SHARK_VISION;if(!vision)return;
  const range=Number(vision.range)||900/GAME_WORLD_ZOOM,half=Number(vision.halfAngle)||.55,a=Number(e.angle)||0;
  ctx.save();ctx.globalAlpha=.40;ctx.fillStyle='rgba(255,24,70,.26)';ctx.strokeStyle='#ff174d';
- ctx.shadowColor='#ff174d';ctx.shadowBlur=14/GAME_WORLD_ZOOM;ctx.lineWidth=2/GAME_WORLD_ZOOM;
+ ctx.shadowBlur=0;ctx.lineWidth=1/GAME_WORLD_ZOOM;
  ctx.beginPath();ctx.moveTo(e.x,e.y);
- const segments=28;for(let i=0;i<=segments;i++){const q=a-half+i/segments*half*2,dx=Math.cos(q),dy=Math.sin(q);
-  const reach=pveRayDistance(e.x,e.y,dx,dy,range);
-  ctx.lineTo(e.x+dx*reach,e.y+dy*reach);}
+ if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?.visionFan){for(const point of SOLO_CAVERN.visionFan(arenaRocks,e.x,e.y,a,half,range))ctx.lineTo(point.x,point.y);}
+ else {const segments=64;for(let i=0;i<=segments;i++){const q=a-half+i/segments*half*2,dx=Math.cos(q),dy=Math.sin(q),reach=Math.max(0,pveRayDistance(e.x,e.y,dx,dy,range,1)-1);ctx.lineTo(e.x+dx*reach,e.y+dy*reach);}}
  ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
 }
 function drawEnemyThreatAura(e,t){

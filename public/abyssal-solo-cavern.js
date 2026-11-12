@@ -101,6 +101,7 @@
   }return false;
  }
  function rayDistance(rocks,x,y,dx,dy,range){
+  if(isBlocked(rocks,x,y,0))return 0;
   let limit=range;
   for(const r of rocks||[]){
    if(!r.cavernSolid||r.visualOnly)continue;
@@ -112,7 +113,7 @@
  const CELL=64,DIRS=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
  function gridFor(rocks,w,h,padding){
   let cache=layouts.get(rocks);if(!cache){cache=new Map();layouts.set(rocks,cache);}
-  const p=Math.ceil(padding/8)*8+8,key=w+':'+h+':'+p;
+  const p=Math.ceil(padding/4)*4,key=w+':'+h+':'+p+':'+rocks.length;
   if(cache.has(key))return cache.get(key);
   const cols=Math.ceil(w/CELL),rows=Math.ceil(h/CELL),count=cols*rows;
   const xy=id=>({x:Math.min(w-p-1,(id%cols+.5)*CELL),y:Math.min(h-p-1,(Math.floor(id/cols)+.5)*CELL)});
@@ -124,15 +125,15 @@
    for(const [dx,dy]of DIRS){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=cols||yy>=rows)continue;
     const j=yy*cols+xx,b=xy(j);if(pass[j]&&!segmentBlocked(rocks,a.x,a.y,b.x,b.y,p))edges[i].push(j);}
   }
-  const g={w,h,p,cols,rows,count,xy,idAt,pass,edges,goal:-1,distance:null};cache.set(key,g);return g;
+  const g={w,h,p,cols,rows,count,xy,idAt,pass,edges,flows:new Map()};cache.set(key,g);return g;
  }
  function nearestNode(g,rocks,x,y,requireLine=true){
-  const at=g.idAt(x,y);if(g.pass[at]){const p=g.xy(at);if(!requireLine||!segmentBlocked(rocks,x,y,p.x,p.y,g.p-8))return at;}
+  const at=g.idAt(x,y);if(g.pass[at]){const p=g.xy(at);if(!requireLine||!segmentBlocked(rocks,x,y,p.x,p.y,g.p))return at;}
   let best=-1,dist=Infinity;const cx=at%g.cols,cy=Math.floor(at/g.cols);
   for(let r=1;r<=5;r++){
    for(let yy=Math.max(0,cy-r);yy<=Math.min(g.rows-1,cy+r);yy++)for(let xx=Math.max(0,cx-r);xx<=Math.min(g.cols-1,cx+r);xx++){
     const i=yy*g.cols+xx;if(!g.pass[i])continue;const p=g.xy(i),d=Math.hypot(p.x-x,p.y-y);
-    if(d<dist&&(!requireLine||!segmentBlocked(rocks,x,y,p.x,p.y,g.p-8))){best=i;dist=d;}
+    if(d<dist&&(!requireLine||!segmentBlocked(rocks,x,y,p.x,p.y,g.p))){best=i;dist=d;}
    }if(best>=0)return best;
   }return best;
  }
@@ -142,14 +143,14 @@
   const g=gridFor(rocks,w,h,padding),id=nearestNode(g,rocks,x,y,false);return id<0?null:g.xy(id);
  }
  function flow(g,goal){
-  if(g.goal===goal&&g.distance)return g.distance;
+  if(g.flows.has(goal)){const value=g.flows.get(goal);g.flows.delete(goal);g.flows.set(goal,value);return value;}
   const d=new Int32Array(g.count);d.fill(-1);const q=new Int32Array(g.count);let head=0,tail=0;
   d[goal]=0;q[tail++]=goal;
   while(head<tail){const i=q[head++];for(const j of g.edges[i])if(d[j]<0){d[j]=d[i]+1;q[tail++]=j;}}
-  g.goal=goal;g.distance=d;return d;
+  g.flows.set(goal,d);if(g.flows.size>8)g.flows.delete(g.flows.keys().next().value);return d;
  }
  function navigationTarget(rocks,w,h,fromX,fromY,toX,toY,padding=0){
-  if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding+5))return {x:toX,y:toY,direct:true,blocked:false};
+  if(!segmentBlocked(rocks,fromX,fromY,toX,toY,padding))return {x:toX,y:toY,direct:true,blocked:false};
   const g=gridFor(rocks,w,h,padding),start=nearestNode(g,rocks,fromX,fromY),goal=nearestNode(g,rocks,toX,toY,false);
   if(start<0||goal<0)return {x:fromX,y:fromY,blocked:true,direct:false};
   const d=flow(g,goal);if(d[start]<0)return {x:fromX,y:fromY,blocked:true,direct:false};
@@ -158,10 +159,34 @@
   for(let step=0;step<8;step++){
    let next=-1,rank=d[node];for(const j of g.edges[node])if(d[j]>=0&&d[j]<rank){next=j;rank=d[j];}
    if(next<0)break;const p=g.xy(next);
-   if(segmentBlocked(rocks,fromX,fromY,p.x,p.y,padding+4))break;
+   if(segmentBlocked(rocks,fromX,fromY,p.x,p.y,padding))break;
    node=next;best=p;
   }
   return {...best,direct:false,blocked:false};
+ }
+ // Exact angular events at solid polygon corners prevent a fan from bridging
+ // a thin rock between two uniformly spaced rays. The same geometry drives AI.
+ function visionFan(rocks,x,y,angle,half,range){
+  const relative=a=>Math.atan2(Math.sin(a-angle),Math.cos(a-angle)),angles=[];
+  for(let i=0;i<=32;i++)angles.push(-half+2*half*i/32);
+  for(const rock of rocks||[]){
+   if(!rock.cavernSolid||rock.visualOnly||Math.hypot(rock.x-x,rock.y-y)>range+rock.r)continue;
+   const ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);
+   for(const [vx,vy] of rock.vertices){const wx=rock.x+vx*ca-vy*sa,wy=rock.y+vx*sa+vy*ca,delta=relative(Math.atan2(wy-y,wx-x));
+    if(Math.abs(delta)<=half+.0001)for(const off of [-.00008,0,.00008])angles.push(clamp(delta+off,-half,half));}
+  }
+  angles.sort((a,b)=>a-b);
+  return angles.map(delta=>{const a=angle+delta,dx=Math.cos(a),dy=Math.sin(a),reach=Math.max(0,rayDistance(rocks,x,y,dx,dy,range)-.65);return {x:x+dx*reach,y:y+dy*reach};});
+ }
+ // Find a locally traversable escape direction rather than repeatedly sliding into a wall.
+ function escapeTarget(rocks,w,h,x,y,goalX,goalY,padding=0,heading=0){
+  const desired=Math.atan2(goalY-y,goalX-x),step=Math.max(36,padding*3),oldDistance=Math.hypot(goalX-x,goalY-y);
+  let best=null,score=-Infinity;
+  for(let i=0;i<16;i++){const a=desired+i*TAU/16,tx=clamp(x+Math.cos(a)*step,padding+1,w-padding-1),ty=clamp(y+Math.sin(a)*step,padding+1,h-padding-1);
+   if(segmentBlocked(rocks,x,y,tx,ty,padding))continue;
+   const travel=Math.hypot(tx-x,ty-y),progress=oldDistance-Math.hypot(goalX-tx,goalY-ty),value=progress*.7+travel*.35+Math.cos(a-heading)*step*.2;
+   if(value>score){score=value;best={x:tx,y:ty};}}
+  return best;
  }
  function path(c,pts){c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();}
  function organicPath(c,pts){
@@ -324,5 +349,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,nearestWater,navigationTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,navigationTarget,escapeTarget,paint,drawRocks,lampParameters,lighting});
 });

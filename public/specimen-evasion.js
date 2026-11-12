@@ -45,7 +45,7 @@
  }
  function steer({position,target,enemies=[],speed=100,dt=.05,radius=10,clearance=28,heading=0,resolve=null}){
   const x=Number(position?.x)||0,y=Number(position?.y)||0;
-  const gx=Number(target?.x)||x,gy=Number(target?.y)||y;
+  const gx=Number.isFinite(target?.x)?target.x:x,gy=Number.isFinite(target?.y)?target.y:y;
   const distance=Math.hypot(gx-x,gy-y);
   const maxStep=Math.max(0,speed*dt);
   if(maxStep<=0)return {x,y,angle:heading,evading:false};
@@ -55,7 +55,8 @@
    const a=Math.atan2(gy-y,gx-x);
    const nx=x+Math.cos(a)*Math.min(distance,step),ny=y+Math.sin(a)*Math.min(distance,step);
    const moved=resolve?resolve(nx,ny):{x:nx,y:ny};
-   return {x:moved.x,y:moved.y,angle:a,evading:false};
+   if(!resolve||Math.hypot(moved.x-x,moved.y-y)>=Math.min(distance,step)*.35||distance<.1)return {x:moved.x,y:moved.y,angle:a,evading:false};
+   let best=null,bestScore=-Infinity;for(const off of [-.45,.45,-.9,.9,-1.57,1.57,Math.PI]){const q=a+off,p=resolve(x+Math.cos(q)*step,y+Math.sin(q)*step),travel=Math.hypot(p.x-x,p.y-y);if(travel<step*.25)continue;const value=travel+distance-Math.hypot(gx-p.x,gy-p.y)+Math.cos(q-heading)*step*.3;if(value>bestScore){bestScore=value;best={x:p.x,y:p.y,angle:q,evading:true};}}return best||{x:moved.x,y:moved.y,angle:a,evading:true};
   }
   const direct=Math.atan2(gy-y,gx-x);
   const angles=[0,-.3,.3,-.65,.65,-1.05,1.05,-1.57,1.57,-2.25,2.25,Math.PI];
