@@ -13,7 +13,7 @@
  const PASSIVES=Object.freeze(['burst','ricochet','spread']);
  const BUFFS=Object.freeze(['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure']);
  const COSTS=Object.freeze({shot:100,passive:80,buff:60,submarineShield:100});
- const POWER=Object.freeze({duration:300,light:20,weapon:10,shield:10});
+ const POWER=Object.freeze({duration:300,light:20,weapon:10});
  function sanitize(raw){
   const unlocked=new Set(STARTERS);
   for(const id of raw?.unlocked||[])if(SHOTS.includes(id)||PASSIVES.includes(id)||BUFFS.includes(id))unlocked.add(id);
@@ -36,7 +36,7 @@
    save();return {ok:true,cost:price,energy:energy.get().energy,...get()};
   }
   const unlockedShots=()=>SHOTS.filter(unlocked);
-  const fullPowerCost=()=>POWER.light+unlockedShots().length*POWER.weapon+(state.submarineShield?POWER.shield:0);
+  const fullPowerCost=()=>POWER.light+unlockedShots().length*POWER.weapon;
   function topUp(secondsRemaining=0){
    const missing=Math.max(0,POWER.duration-Math.max(0,Number(secondsRemaining)||0));if(missing<=.01)return {ok:false,reason:'full',secondsAdded:0,cost:0,remaining:POWER.duration};
    const full=fullPowerCost(),needed=Math.max(1,Math.ceil(full*missing/POWER.duration)),wallet=Math.max(0,Number(energy?.get?.().energy)||0);
