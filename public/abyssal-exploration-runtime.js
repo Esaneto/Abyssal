@@ -61,7 +61,16 @@
   {id:'weapons',label:'ARMAMENTO · EM DESENVOLVIMENTO',groups:['starter']},
   {id:'industry',label:'ENGENHARIA OFFSHORE',groups:['industry']}
  ]);
+ const visorScrollByPage=new Map();
  function renderWorkshop(){
+  if(!workshopGrid)return;
+  const previous=workshopGrid.querySelector('.abyss-visor-body');
+  if(previous?.dataset.pageKey)visorScrollByPage.set(previous.dataset.pageKey,previous.scrollTop);
+  renderWorkshopContent();
+  const current=workshopGrid.querySelector('.abyss-visor-body');
+  if(current){const position=visorScrollByPage.get(current.dataset.pageKey)||0;current.scrollTop=position;}
+ }
+ function renderWorkshopContent(){
   if(!workshopGrid)return;
   restoreEmbeddedCatalog();
   if(activeConsoleSection!=='laboratory'){renderConsoleUtility();return;}
@@ -173,7 +182,7 @@
   small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='upgrades'?'PESQUISA':chosen.title;column.append(small,title);
   const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
-  const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;
+  const body=document.createElement('div');body.className='abyss-visor-body';body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
   for(const node of old){
    if(node.classList.contains('submarine-console-overview'))continue;
    if(node.classList.contains('submarine-console-tabs'))node.classList.add('abyss-lab-subnav');
@@ -193,7 +202,7 @@
    key.append(symbol,name);
    key.addEventListener('click',()=>{
     if(option.locked){window.AbyssalLaunchFocus?.notify?.();return;}
-    if(activeConsoleSection!==option.id||option.id==='solo'){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
+    if(activeConsoleSection!==option.id){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
    });
    keys.append(key);
   }
@@ -216,12 +225,12 @@
   if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
    const balance=document.createElement('strong');balance.className='solo-stored-energy';balance.textContent='ENERGIA ARMAZENADA: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
-   const note=document.createElement('p');note.textContent='Toda pesquisa usa energia coletada exclusivamente pelo espécime nas orbes roxas. Lança de Fótons, Olho Profundo e Membrana Viva são tecnologias padrão e já começam liberadas.';utility.append(note);
+   const note=document.createElement('p');note.textContent='Pesquisas de equipamentos e armamentos da base usam energia coletada pelo espécime nas orbes roxas. As habilidades do mergulhador são pesquisadas exclusivamente na Ressonância.';utility.append(note);
    const section=(title,copy)=>{const h=document.createElement('h3');h.className='solo-research-heading';h.textContent=title;utility.append(h);if(copy){const p=document.createElement('p');p.className='solo-research-copy';p.textContent=copy;utility.append(p);}};
    const researchRow=(id,name,description,cost,owned,onBuy)=>{
     const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(owned?' is-complete':'');
     const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent=name;desc.textContent=description;data.append(label,desc);
-    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':'DESBLOQUEAR · '+cost+' ENERGIA';buy.classList.add('solo-research-buy');buy.disabled=owned||state.energy<cost;
+    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':'DESBLOQUEAR · '+cost+' ENERGIA';buy.classList.add('solo-research-buy');buy.disabled=owned||state.energy<cost;buy.setAttribute('aria-pressed',String(owned));
     buy.addEventListener('click',()=>{const result=onBuy?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));renderWorkshop();}});
     row.append(data,buy);utility.append(row);
    };
@@ -229,13 +238,12 @@
    for(let lv=1;lv<=3;lv++){
     const row=document.createElement('div');row.className='solo-lamp-row';
     const data=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');name.textContent='LANTERNA · NV. '+lv;const lamp=window.AbyssalSoloCavern?.lampParameters(lv);desc.textContent='Cone de luz · alcance '+Math.round(lamp?.range||570)+' · '+(lv===1?'equipamento inicial':Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance adicional');data.append(name,desc);
-    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
+    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.setAttribute('aria-pressed',String(lv<=state.lamp));buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
    }
    section('SISTEMAS DO SUBMARINO','A luz da base consome 20 Energia por 5 minutos. Cada arma automática instalada acrescenta 10 Energia ao mesmo ciclo. Recargas parciais custam apenas a proporção que falta.');
    researchRow('submarineShield','ESCUDO DO SUBMARINO','Campo defensivo pesquisável que repele criaturas enquanto a base estiver energizada. Não aumenta o consumo do ciclo.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
    const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
-   const renderGroup=(title,ids,cost,description)=>{section(title);for(const id of ids)researchRow(id,labels[id]||id.toUpperCase(),description,cost,Boolean(base?.unlocked?.(id)),()=>base?.research?.(id));};
-   renderGroup('RESSONÂNCIA · DISPAROS',base?.SHOTS||[],100,'Libera este disparo para seleção no mergulhador. A arma do submarino é pesquisada separadamente.');
+   
    const installed=base?.installedWeapons?.()||[],maxWeapons=base?.MAX_WEAPONS||3;
    section('ARMAMENTO DO SUBMARINO · '+installed.length+'/'+maxWeapons,'Lança de Fótons é instalada de fábrica. Pesquise os demais disparos e escolha até três torres. Remova uma torre para liberar espaço; a pesquisa permanece salva.');
    const slots=document.createElement('p');slots.className='solo-research-copy';slots.textContent=Array.from({length:maxWeapons},(_,i)=>(i+1)+'. '+(labels[installed[i]]||'ESPAÇO LIVRE')).join('  ·  ');utility.append(slots);
@@ -244,12 +252,11 @@
     if(!owned){researchRow(key,'TORRE · '+labels[id],'Pesquisa permanente. Após desbloquear, instale em um espaço livre.',base.cost(key),false,()=>base.research(key));continue;}
     const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(mounted?' is-complete':'');
     const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent='TORRE · '+labels[id];desc.textContent=mounted?'INSTALADA · +10 energia por ciclo':'PESQUISADA · '+(installed.length>=maxWeapons?'Remova uma torre para instalar.':'Pronta para instalação gratuita.');data.append(label,desc);
-    const btn=document.createElement('button');btn.type='button';btn.className='abyss-visor-action solo-research-buy';btn.textContent=mounted?'DESINSTALAR':'INSTALAR';btn.disabled=!mounted&&installed.length>=maxWeapons;
-    btn.addEventListener('click',()=>{const result=mounted?base.uninstallWeapon(id):base.installWeapon(id);if(result.ok){const body=workshop?.querySelector('.abyss-visor-body'),scroll=body?.scrollTop||0;renderWorkshop();const next=workshop?.querySelector('.abyss-visor-body');if(next)next.scrollTop=scroll;}});
+    const btn=document.createElement('button');btn.type='button';btn.className='abyss-visor-action solo-research-buy';btn.textContent=mounted?'DESINSTALAR':'INSTALAR';btn.disabled=!mounted&&installed.length>=maxWeapons;btn.setAttribute('aria-pressed',String(mounted));
+    btn.addEventListener('click',()=>{const result=mounted?base.uninstallWeapon(id):base.installWeapon(id);if(result.ok)renderWorkshop();});
     row.append(data,btn);utility.append(row);
    }
-   renderGroup('RESSONÂNCIA · PASSIVAS',base?.PASSIVES||[],80,'Libera esta passiva na configuração de Ressonância.');
-   renderGroup('RESSONÂNCIA · BUFFS',base?.BUFFS||[],60,'Libera este buff na configuração de Ressonância.');
+
    const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.installedWeapons?.().length||0)+' ARMA(S) INSTALADA(S)';utility.append(power);
    const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO MERGULHO';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
   }else if(activeConsoleSection==='minerals'){

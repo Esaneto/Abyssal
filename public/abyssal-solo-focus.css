@@ -198,3 +198,14 @@
 #submarineWorkshop .solo-research-row>div{flex:1 1 180px!important;min-width:0!important}
 #submarineWorkshop .solo-research-row .solo-research-buy{flex:0 1 auto!important;min-width:min(100%,200px)!important;width:auto!important;max-width:100%!important;height:auto!important;min-height:48px!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;writing-mode:horizontal-tb!important;overflow:visible!important;line-height:1.4!important;letter-spacing:0!important}
 @media(max-width:600px){#submarineWorkshop .solo-research-row .solo-research-buy{flex:1 1 100%!important;width:100%!important}#resonanceScreen .resonance-research-action{padding:11px 8px!important}}
+
+/* Unified cockpit/Resonance navigation: blue idle, green selected. */
+#submarineWorkshop .abyss-control-key,#submarineWorkshop .abyss-visor-action,#submarineWorkshop .submarine-console-tab,#resonanceScreen .resonance-mode-tabs button,#resonanceScreen .resonance-research-action{background:linear-gradient(165deg,#235d93,#153555)!important;border-color:#6ba2d1!important;color:#e8f6ff!important;box-shadow:inset 0 1px 0 rgba(185,220,255,.16)!important}
+#submarineWorkshop .abyss-control-key .abyss-control-icon,#submarineWorkshop .abyss-resonance-icon{color:#a9d9ff!important}
+#submarineWorkshop .abyss-control-key.is-active,#submarineWorkshop .submarine-console-tab.is-active,#submarineWorkshop .abyss-visor-action[aria-pressed="true"],#resonanceScreen .resonance-mode-tabs button[aria-pressed="true"]{background:linear-gradient(165deg,#267a51,#12482f)!important;border-color:#73e6a7!important;color:#eafff1!important;box-shadow:inset 0 1px 0 rgba(176,255,204,.25),0 0 12px rgba(48,205,123,.18)!important}
+#submarineWorkshop .abyss-control-key.is-active::before{background:#75ffac!important;box-shadow:0 0 6px #75ffac!important}
+#submarineWorkshop .abyss-control-key.is-active .abyss-control-icon{color:#a4ffbf!important}
+#resonanceScreen .resonance-research-action strong,#resonanceScreen .resonance-research-action span{color:#e5f3ff!important}
+#resonanceScreen .resonance-skill-option:has(input:checked){background:linear-gradient(150deg,#174d35,#102e26)!important;border-color:#66df98!important;box-shadow:inset 0 0 0 1px rgba(102,223,152,.22)!important}
+#resonanceScreen .resonance-skill-option input:checked{background:#7af5aa!important;border-color:#15482e!important}
+#submarineWorkshop .abyss-visor-body,#resonanceScreen .resonance-modal{overflow-anchor:none!important;scroll-behavior:auto!important}
