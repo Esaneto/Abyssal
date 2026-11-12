@@ -411,7 +411,9 @@ function skinShopCategories(skin){const tax=skinShopTaxonomy(skin),set=new Set(t
 function skinShopFamily(skin){return skinShopTaxonomy(skin).family||skinShopTaxonomy(skin).collections[0]||'signature';}
 let ownedSkins=JSON.parse(localStorage.getItem('abyssalOwnedSkins')||'["default"]');
 const SPECIMEN_DISCOVERY_KEY='abyssalDiscoveredSpecimens';
-const SOLO_SPECIMEN_REFERENCES=Object.freeze({drifter:'violet',stinger:'abyssaleye',brute:'deepwarden',lurker:'maw',whiteShark:'reefshark',whiteSharkBoss:'reefshark',boss:'aberration',angler:'angler',maw:'maw',leviathan:'leviathan',kraken:'kraken',devourer:'devourer',riftSmile:'riftSmileRelic'});
+const SOLO_INITIAL_FAUNA=Object.freeze({drifter:'hawksbill',stinger:'leatherback',brute:'butterflyray',lurker:'eagleray'});
+const SOLO_INITIAL_KINDS=Object.freeze(Object.keys(SOLO_INITIAL_FAUNA));
+const SOLO_SPECIMEN_REFERENCES=Object.freeze({...SOLO_INITIAL_FAUNA,whiteShark:'reefshark',whiteSharkBoss:'reefshark',boss:'aberration',angler:'angler',maw:'maw',leviathan:'leviathan',kraken:'kraken',devourer:'devourer',riftSmile:'riftSmileRelic'});
 const CLASSIC_SHOP_IDS=new Set(['default','solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
 function specimenShopAvailable(skin){return Boolean(skin&&(skin.paid||CLASSIC_SHOP_IDS.has(skin.id)||ownedSkins.includes(skin.id)||discoveredSpecimens.has(skin.id)));}
 let discoveredSpecimens=new Set(['default']);
@@ -1470,7 +1472,7 @@ if(isOpenSeaRun()){
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
  gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
- updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else for(let i=0;i<7;i++)spawnEnemy(true,'common');}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
+ updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else {for(let i=0;i<SOLO_INITIAL_KINDS.length;i++){const angle=Math.PI/2+(i-1.5)*.47,radius=(340+i*23)/GAME_WORLD_ZOOM;spawnEnemy(true,'common',{kind:SOLO_INITIAL_KINDS[i],position:{x:soloSubmarine.x+Math.cos(angle)*radius,y:soloSubmarine.y+Math.sin(angle)*radius}});}for(let i=0;i<3;i++)spawnEnemy(true,'common');}}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
 const upgradeList=[
@@ -1688,7 +1690,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  let kind;
  if(BOSS_KINDS.includes(type))kind=type;
  else if(type==='boss')kind=ai?.chooseBossKind(activeKinds,Math.random,bossIndex++)||BOSS_KINDS.find(k=>!activeKinds.includes(k));
- else kind=EXPEDITION_RULES?.chooseCommonKindForRoom?.(Math.random,ecologyRoom,activeMapTier,soloDepthEventId)||EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
+ else kind=options.kind&&SOLO_INITIAL_KINDS.includes(options.kind)?options.kind:EXPEDITION_RULES?.chooseCommonKindForRoom?.(Math.random,ecologyRoom,activeMapTier,soloDepthEventId)||EXPEDITION_RULES?.chooseCommonKind?.(Math.random,bossKillsThisRun,soloDepthEventId)||ai?.chooseCommonKind()||(()=>{const t=Math.random();return t<.56?'drifter':t<.78?'stinger':t<.94?'brute':'lurker'})();
  if(kind==='whiteShark'){const whiteSharkCount=enemies.filter(e=>e.kind==='whiteShark').length;if(whiteSharkCount>=10)kind='lurker';}
  if(!kind)return null;
  const openSeaSkin=!map&&isOpenSeaRun()&&!isBossType?(options.species||OPEN_SEA_ECOLOGY?.speciesAt?.(point.x,point.y,Math.random)):null;
@@ -1707,8 +1709,12 @@ function spawnEnemy(initial=false,type='common',options={}){
   brute:{r:16,hp:65,speed:30,damage:15,color:'#bd88ff',value:4},
   lurker:{r:20,hp:100,speed:43,damage:18,color:'#6e8dff',value:6}
  })[kind];
+ const classicSolo=!onlineMode&&isClassicShooterRun();
+ const soloFaunaId=classicSolo&&!isBossType?SOLO_INITIAL_FAUNA[kind]:null;
+ if(soloFaunaId){const skin=skinData.find(s=>s.id===soloFaunaId);data={...data,hp:data.hp+50,color:skin?.color||data.color};}
+ if(classicSolo&&kind==='whiteShark')data={...data,hp:600};
  let eliteId=null;
- if(!isBossType&&!initial&&EXPEDITION_RULES){
+ if(!isBossType&&!initial&&EXPEDITION_RULES&&!(classicSolo&&kind==='whiteShark')){
   eliteId=map||options.streamId?null:EXPEDITION_RULES.chooseElite(Math.random,bossKillsThisRun,soloDepthEventId,kind);
   if(options.forceElite&&!eliteId){const eliteIds=['carapace','frenzy','spectral'];eliteId=eliteIds[Math.floor(Math.random()*eliteIds.length)]||'carapace';}
   if(eliteId)data=EXPEDITION_RULES.applyEliteStats(data,eliteId);
@@ -1716,7 +1722,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  if(!isBossType){
   const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
   data={...data,damage:Math.max(1,Math.round(Number(data.damage||1)*physicalScale)),speed:Number(data.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(data.hp||1)*hpScale))};
-  if(requestedRunMode!=='rift'&&!isOpenSeaRun())data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
+  if(requestedRunMode!=='rift'&&!isOpenSeaRun()&&!(classicSolo&&kind==='whiteShark'))data=SEA_PROGRESSION?.strengthenCommon?.(data,elapsed)||data;
    if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){data.hp=Math.max(300,Number(data.hp)*8);data.speed=Math.max(22,Number(data.speed)*.5);data.damage=0;data.value=Math.max(5,Number(data.value)*5);}
    else if(openSeaSkin)data.hp=SPECIMEN_SYSTEM?.biologicalStats?.(openSeaSkin)?.hp||data.hp;
  }
@@ -1731,7 +1737,7 @@ function spawnEnemy(initial=false,type='common',options={}){
  }
  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const safe=SOLO_CAVERN.nearestWater(arenaRocks,W,H,point.x,point.y,Math.max(8,Math.min(110,(data.r||10)/GAME_WORLD_ZOOM*.62)));if(!safe)return null;point={...point,...safe};}
  const x=clamp(point.x,70/GAME_WORLD_ZOOM,W-70/GAME_WORLD_ZOOM),y=clamp(point.y,70/GAME_WORLD_ZOOM,H-70/GAME_WORLD_ZOOM);
- const specimenSkinId=isBossType?null:requestedRunMode==='rift'?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):openSeaSkin;
+ const specimenSkinId=isBossType?null:requestedRunMode==='rift'?(SPECIMEN_RARITY?.roll(skinData.map(item=>item.id),Math.random)||'default'):soloFaunaId||openSeaSkin;
  if(requestedRunMode==='rift'&&!isBossType)data.hp=RIFT_WILDLIFE?.health?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId))||data.hp;
  const enemy={discoverySkinId:!onlineMode&&isClassicShooterRun()?SOLO_SPECIMEN_REFERENCES[kind]:null,specimenSkinId,streamId:options.streamId||null,schoolId:options.schoolId||null,id:++enemyId,x,y,...data,r:(CREATURE_SCALE?.creatureCollisionRadius?.(data.r,specimenSkinId)||data.r)/GAME_WORLD_ZOOM,speed:data.speed/GAME_WORLD_ZOOM,maxHp:data.hp,temperament:requestedRunMode==='rift'?RIFT_WILDLIFE?.disposition?.(kind,specimenSkinId,SPECIMEN_SYSTEM?.familyFor?.(specimenSkinId)):isOpenSeaRun()?OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId):'aggressive',wildlifeMode:isOpenSeaRun()&&!isBossType?OPEN_SEA_ECOLOGY?.temperament?.(specimenSkinId):null,homeX:x,homeY:y,habitatId:isOpenSeaRun()?OPEN_SEA_ECOLOGY?.habitatAt?.(x,y)?.id:null,angle:rand(0,6.28),phase:rand(0,6.28),hit:0,attackCd:rand(.3,1),kind,spawnRoomId:point.roomId||null,spawnedAt:Date.now(),eliteId,suctionActive:false,suctionTimer:0,suctionCooldown:kind==='devourer'?20:0,suctionPulse:0,krakenSweepTimer:kind==='kraken'?3.5:0,krakenSweepActive:false,krakenTelegraph:0,krakenSweepCycle:0};
  if(kind===RIFT_HARDCORE?.FINAL_KIND&&activeMapLayout){const chamber=activeMapLayout.rooms.find(room=>room.id==='boss');if(chamber){enemy.x=chamber.x;enemy.y=chamber.y;enemy.angle=0;}}
@@ -4302,7 +4308,7 @@ function draw(t){
   }
   if(!anglerConcealed){drawSharkVisionCone(e,t);drawEnemyThreatAura(e,t);}ctx.save();ctx.globalAlpha=activeMapLayout?clamp((Date.now()-(e.spawnedAt||0))/3000,0,1):isOpenSeaRun()&&e.wildlifeMode?(.12+.88*clamp((Date.now()-(Number(e.spawnedAt)||0))/2400,0,1)):1;if(e.specimenSkinId){ /* Shop specimen artwork is also the wild fauna of Mar Aberto. */
    const specimenSkin=skinData.find(s=>s.id===e.specimenSkinId);
-   if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
+   if(!onlineMode&&isClassicShooterRun()&&SOLO_INITIAL_FAUNA[e.kind]===e.specimenSkinId&&window.AbyssalFaunaAnatomy?.draw(ctx,e,CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r,e.specimenSkinId)||e.r,t)){}else if(specimenSkin)drawRiftShopSpecimen(e,specimenSkin,t);
    else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);
   }else drawCreature(e.x,e.y,(activeMapLayout?CREATURE_SCALE?.riftVisualRadius?.(e.kind,e.r):CREATURE_SCALE?.monsterVisualRadius?.(e.kind,e.r))||e.r,e.angle,e.color,e.kind,t,false,e.hit,ctx,null,e);ctx.restore();if(!anglerConcealed&&(!isOpenSeaRun()||!e.wildlifeMode||e.aiIndicator==='attack'))drawHostileSpeciesEffect(e,t);
   if(!anglerConcealed&&!activeMapLayout&&e.wildlifeMode){
@@ -5159,11 +5165,11 @@ function renderCatalog(){
  journalPreviewObserver?.disconnect();journalPreviewObserver=null;
  const codex=getAbyssalCodex();
  const monsterData={
-  drifter:{name:'Errante Luminescente',color:'#ff769d',hp:22,speed:51,damage:8,ability:'Choque Bio-Ondulatório: contato causa 8% mais dano e 0,65 s de neurochoque; recarga 0,95 s.',desc:'Ctenóforo translúcido que descarrega pulsos nervosos quando encosta na presa.'},
-  stinger:{name:'Ferrão de Fenda',color:'#ffbc78',hp:13,speed:125,damage:7,ability:'Ferrão Venenoso: contato causa 16% mais dano, aplica 1,1 s de neurotoxina e pode atacar a cada 0,64 s.',desc:'Peixe-ferrão veloz, construído para perfurar e recuar antes da reação da presa.'},
-  brute:{name:'Bruto de Placas',color:'#bd88ff',hp:65,speed:30,damage:15,ability:'Pinça Esmagadora: contato causa 28% mais dano; carapaça pesada mantém alta pressão de curto alcance.',desc:'Isópode titânico com placas sobrepostas e pinças capazes de esmagar a defesa frontal.'},
-  lurker:{name:'Predador Sombrio',color:'#6e8dff',hp:100,speed:43,damage:18,ability:'Mordida Gular: contato causa 22% mais dano com uma mordida expansiva; recarga 0,84 s.',desc:'Enguia gulper predatória cuja boca se abre além do diâmetro do próprio corpo.'},
-  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:2400,speed:300,damage:30,ability:'Caçada por campo de visão: patrulha, detecta o mergulhador dentro do cone frontal e contorna obstáculos antes de retomar a investida.',desc:'Predador pelágico resistente, rápido e territorial. Perde o alvo fora do campo de visão e procura uma rota livre ao encontrar rochas.'},
+  drifter:{name:'Tartaruga-de-Pente',color:'#ff769d',hp:72,speed:51,damage:8,ability:'Choque Bio-Ondulatório: contato causa 8% mais dano e 0,65 s de neurochoque; recarga 0,95 s.',desc:'Fauna costeira adaptada ao abismo; seu registro libera o espécime correspondente na loja.'},
+  stinger:{name:'Tartaruga-de-Couro',color:'#ffbc78',hp:65,speed:125,damage:7,ability:'Ferrão Venenoso: contato causa 16% mais dano, aplica 1,1 s de neurotoxina e pode atacar a cada 0,64 s.',desc:'Tartaruga oceânica adaptada ao ambiente hostil do Abyssal.'},
+  brute:{name:'Raia-Borboleta',color:'#bd88ff',hp:115,speed:30,damage:15,ability:'Impacto Esmagador: contato causa 28% mais dano.',desc:'Raia de nadadeiras largas adaptada às cavernas abissais.'},
+  lurker:{name:'Raia-Águia',color:'#6e8dff',hp:165,speed:45,damage:19,ability:'Ataque de contato: causa 22% mais dano; recarga 0,84 s.',desc:'Raia de asas largas e cauda longa que habita os corredores abissais.'},
+  whiteShark:{name:'Tubarão-branco',color:'#91c4ce',hp:600,speed:300,damage:30,ability:'Caçada por campo de visão: patrulha, detecta o mergulhador dentro do cone frontal e contorna obstáculos antes de retomar a investida.',desc:'Predador pelágico resistente, rápido e territorial. Perde o alvo fora do campo de visão e procura uma rota livre ao encontrar rochas.'},
   boss:{name:'Polvo-de-Anéis-Azuis Colossal',color:'#338cff',hp:5640,speed:52,damage:25,ability:'Tinta Abissal: deixa continuamente manchas de tinta negra no trajeto; atravessar o rastro causa dano.',desc:'Polvo colossal azul, coberto por anéis bioluminescentes, com oito braços pendentes e um rastro de tinta letal.'},
   angler:{name:'Peixe-Pescador Abissal',color:'#ffb45e',hp:6520,speed:66,damage:28,ability:'Camuflagem Abissal: só a isca permanece visível durante 10 s invisível; transições de 3 s e 10 s de recarga.',desc:'Peixe-pescador colossal de boca permanentemente escancarada e isca intensamente bioluminescente.'},
   maw:{name:'Enguia-Pelícano Colossal',color:'#c16cff',hp:7500,speed:58,damage:31,ability:'Mordida Gular: a cada 4 s abre a bolsa em 205 px e causa 24 de dano ao redor.',desc:'Enguia-pelícano colossal com bolsa gular expansiva e dentes internos luminescentes.'},
