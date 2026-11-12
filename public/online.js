@@ -357,7 +357,7 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
  socket.on('player-joined',p=>{if(p.id!==socket.id){storePlayer(p);window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:{kind:'join',title:String(p.nickname||'Mergulhador').toUpperCase(),text:`${p.nickname||'Um mergulhador'} entrou nas profundezas.`}}));}});
- socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);});
+ socket.on('player-left',id=>{const peer=players.get(id);if(peer?.netId)playersByNetId.delete(Number(peer.netId)>>>0);players.delete(id);window.dispatchEvent(new CustomEvent('abyssal-player-left',{detail:{id:String(id||'')}}));});
  socket.on('gameplay-notice',data=>window.dispatchEvent(new CustomEvent('abyssal-gameplay-notice',{detail:data||{}})));
  socket.on('remote-hit',data=>{if(window.AbyssalGameHooks?.remoteHit)window.AbyssalGameHooks.remoteHit(data)});
  socket.on('shared-shot',data=>{if(data&&data.fromId!==socket?.id)window.dispatchEvent(new CustomEvent('abyssal-remote-shot',{detail:data}))});
