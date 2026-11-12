@@ -47,7 +47,7 @@
    return true;
   };
   // The hatch position matches the scaling used by drawSubmarine().
-  const hatch=()=>({x:w*.5,y:86*Math.min(1.2,Math.max(.59,w/800))});
+  const hatch=()=>({x:w*.5,y:210*Math.min(1.2,Math.max(.59,w/800))});
   const bubble=(x,y,burst=false)=>{
    const count=burst?5:1;
    for(let i=0;i<count;i++)bubbles.push({
@@ -380,6 +380,7 @@
   sizeScene();
   // Only expose the menu after the active swimmer/currents have their geometry.
   menu.classList.add('menu-ready');
+  window.addEventListener('abyssal-menu-return',()=>{wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
   window.addEventListener('resize',()=>{if(!menu.hidden)sizeScene();});
   if(typeof ResizeObserver==='function'){
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&Math.abs(stage.clientWidth-w)>2)sizeScene();});

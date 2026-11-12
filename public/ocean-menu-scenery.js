@@ -106,6 +106,27 @@
  }
 
  // Preserves the existing underwater background, adding only the foreground floor.
+ function drawSubmarineModel(c,x,y,scale=1,powered=true){
+ c.save();c.translate(x,y);c.scale(scale,scale);
+ const e=(x,y,rx,ry,fill,stroke,width=2)=>{c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=width;c.stroke();}};
+ const grad=(x1,y1,x2,y2,stops)=>{const g=c.createLinearGradient(x1,y1,x2,y2);stops.forEach(([p,v])=>g.addColorStop(p,v));return g;};
+ e(-248,0,38,57,'#172a30','#a8863c',7);e(-248,0,27,44,'#061217','#49666b',3);
+ for(let i=0;i<4;i++){c.save();c.translate(-248,0);c.rotate(i*Math.PI/2+.3);c.fillStyle='#64777a';c.beginPath();c.moveTo(0,0);c.quadraticCurveTo(18,-12,10,-37);c.quadraticCurveTo(-9,-22,0,0);c.fill();c.restore();}
+ e(-248,0,9,9,'#c9a14d','#1b292c');
+ c.beginPath();c.moveTo(-225,-25);c.bezierCurveTo(-174,-50,-124,-73,-48,-76);c.lineTo(158,-76);c.bezierCurveTo(292,-76,307,69,174,80);c.lineTo(-35,72);c.bezierCurveTo(-123,66,-186,34,-225,25);c.closePath();
+ c.fillStyle=grad(0,-82,0,82,[[0,'#ffe28b'],[.19,'#d9a83b'],[.45,'#a66c19'],[.62,'#d7a532'],[.84,'#594221'],[1,'#182329']]);c.fill();c.strokeStyle='#101c21';c.lineWidth=6;c.stroke();
+ c.save();c.clip();c.fillStyle='#1c292b';c.fillRect(-220,20,510,15);c.strokeStyle='rgba(255,228,149,.45)';c.lineWidth=2;c.beginPath();c.moveTo(-180,-32);c.bezierCurveTo(-65,-64,120,-63,214,-49);c.stroke();
+ for(const px of [-155,-89,24,97,177]){c.strokeStyle='#463923';c.lineWidth=3;c.beginPath();c.moveTo(px,-80);c.quadraticCurveTo(px+15,0,px,82);c.stroke();for(let j=0;j<5;j++)e(px+5,-43+j*22,2,2,'#e9ce88');}
+ c.fillStyle='#172429';c.fillRect(-113,-30,149,48);for(let i=0;i<6;i++){c.fillStyle='#556469';c.fillRect(-104+i*22,-23,14,3);}c.restore();
+ e(205,0,72,65,'#17282e','#10191c',8);e(208,-1,55,50,grad(170,-50,244,49,[[0,'#76dce3'],[.27,'#1e6577'],[.67,'#0a303d'],[1,'#05161f']]),'#7a9795',4);
+ c.save();c.globalAlpha=.65;c.strokeStyle='#b5f5f2';c.lineWidth=4;c.beginPath();c.ellipse(208,-1,46,43,0,3.7,5.1);c.stroke();c.restore();
+ for(const px of [55,93,130]){e(px,-13,14,19,'#102931','#a58c4b',3);e(px,-13,9,13,powered?'#63d9df':'#28535a');}
+ c.fillStyle='#26383b';c.fillRect(-37,-91,104,19);c.fillStyle='#c19740';c.fillRect(-25,-99,80,9);c.strokeStyle='#76888a';c.lineWidth=4;c.beginPath();c.moveTo(16,-99);c.lineTo(16,-123);c.lineTo(37,-123);c.stroke();
+ e(0,76,48,18,'#121e23','#d9b451',5);e(0,86,32,16,powered?'#13606b':'#173840','#92a9a2',3);e(0,87,21,10,'#081b24',powered?'#8dfaff':'#426b71',2);
+ c.save();c.translate(42,61);c.rotate(-.65);e(0,0,36,14,'#a77a30','#1b292c',4);e(0,0,24,8,null,'#e4bd65',2);c.restore();
+ if(powered){for(const px of [-116,105,227]){c.save();c.shadowColor='#8bfaff';c.shadowBlur=18;e(px,53,8,4,'#c5ffff');c.restore();}}
+ c.fillStyle='#202b2c';c.font='bold 13px sans-serif';c.textAlign='center';c.fillText('ABYSSAL',85,47);c.restore();
+ }
  function drawSubmarine(canvas,width,height){
   if(!canvas?.getContext||width<100||height<100)return;
   const ratio=Math.min(2.25,Math.max(1,typeof devicePixelRatio==='number'?devicePixelRatio:1),Math.sqrt(3000000/(width*height)));
@@ -115,44 +136,8 @@
   c.clearRect(0,0,width,height);
   const cx=width/2,scale=Math.min(1.2,Math.max(.59,width/800));
   c.save();c.translate(cx,0);c.scale(scale,scale);
-  // Wide metallic yellow rescue submarine hangs just above the playable water.
-  const hull=c.createLinearGradient(0,-32,0,91);
-  hull.addColorStop(0,'#e9b943');hull.addColorStop(.18,'#f5d36f');
-  hull.addColorStop(.45,'#b37a1c');hull.addColorStop(.61,'#e8b638');
-  hull.addColorStop(.88,'#71501b');hull.addColorStop(1,'#2b281f');
-  c.fillStyle='rgba(0,0,0,.40)';c.beginPath();c.ellipse(0,60,291,60,0,0,Math.PI*2);c.fill();
-  c.fillStyle=hull;c.strokeStyle='#151b20';c.lineWidth=7;
-  c.beginPath();c.moveTo(-248,-24);c.quadraticCurveTo(-299,6,-291,39);
-  c.quadraticCurveTo(-286,84,-237,89);c.lineTo(237,89);
-  c.quadraticCurveTo(288,84,291,41);c.quadraticCurveTo(296,7,246,-24);
-  c.closePath();c.fill();c.stroke();
-  // Black protective rubber bumpers and broad striped armor.
-  c.fillStyle='#141a1b';c.fillRect(-265,24,530,9);
-  c.fillStyle='#24201b';for(const x of [-220,-176,171,215]){c.fillRect(x,-7,12,64);}
-  c.strokeStyle='rgba(255,224,121,.48)';c.lineWidth=2;
-  c.beginPath();c.moveTo(-237,68);c.lineTo(237,68);c.stroke();
-  for(const x of [-196,-132,132,196]){
-   c.fillStyle='#111b25';c.strokeStyle='#221f1a';c.lineWidth=8;
-   c.beginPath();c.arc(x,48,19,0,2*Math.PI);c.fill();c.stroke();
-   c.strokeStyle='#ffd76f';c.lineWidth=2;c.beginPath();c.arc(x,48,18,0,2*Math.PI);c.stroke();
-   c.fillStyle='rgba(95,221,240,.22)';c.beginPath();c.arc(x-4,43,8,0,2*Math.PI);c.fill();
-  }
-  // Open bottom hatch: dark void with an obviously pivoted steel cover.
-  c.fillStyle='#070c12';c.strokeStyle='#161819';c.lineWidth=9;
-  c.beginPath();c.ellipse(0,86,52,23,0,0,Math.PI*2);c.fill();c.stroke();
-  c.strokeStyle='#f7c550';c.lineWidth=6;c.beginPath();c.ellipse(0,86,53,23,0,0,Math.PI*2);c.stroke();
-  c.save();c.translate(48,61);c.rotate(-.78);
-  c.fillStyle='#edb943';c.strokeStyle='#101618';c.lineWidth=6;
-  c.beginPath();c.ellipse(0,0,48,20,0,0,Math.PI*2);c.fill();c.stroke();
-  c.strokeStyle='#9a6616';c.lineWidth=2;c.beginPath();c.ellipse(0,0,36,12,0,0,2*Math.PI);c.stroke();
   c.restore();
-  c.fillStyle='#0b1014';c.fillRect(-12,-41,24,16);
-  c.fillStyle='#f7d66e';c.fillRect(-6,-46,12,8);
-  // Rivets catch light while the metal still looks industrial.
-  for(const x of [-251,-228,-205,-182,-159,-136,136,159,182,205,228,251]){
-   c.fillStyle='#fff2bc';c.beginPath();c.arc(x,77,2,0,2*Math.PI);c.fill();
-  }
-  c.restore();
+  drawSubmarineModel(c,cx,124*scale,scale,true);
   // Terrain and the abyssal descent share ONE geometry. The two sides
   // fall into the opening, rather than painting a button over a flat floor.
   const mouthX=width*.5,mouthY=height*.835;
@@ -213,5 +198,5 @@
   c.restore();
 
  }
- return Object.freeze({draw,drawSubmarine});
+ return Object.freeze({draw,drawSubmarine,drawSubmarineModel});
 });

@@ -257,7 +257,7 @@
    c.restore();
   }
  }
- function lampParameters(level=1){const lv=clamp(Math.floor(Number(level)||1),1,3);return {level:lv,range:570*Math.pow(1.22,lv-1),halfAngle:.39,halo:94+lv*10};}
+ function lampParameters(level=1){const lv=clamp(Math.floor(Number(level)||1),1,3);return {level:lv,range:570*Math.pow(1.22,lv-1),halfAngle:.26,halo:38+lv*7};}
  let lightLayer=null;
  function lighting(c,view,player,level,rocks,t,extraLights=[]){
   if(!player||!Number.isFinite(player.x))return;
@@ -270,13 +270,13 @@
   if(!lightLayer){lightLayer=document.createElement('canvas');}
   if(lightLayer.width!==cw||lightLayer.height!==ch){lightLayer.width=cw;lightLayer.height=ch;}
   const m=lightLayer.getContext('2d');m.setTransform(cw/w,0,0,ch/h,-left*cw/w,-top*ch/h);
-  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,5,9,.74)';m.fillRect(left,top,w,h);
+  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,2,5,.94)';m.fillRect(left,top,w,h);
   m.globalCompositeOperation='destination-out';
   const reveal=(r,stops)=>{m.fillStyle=radial(m,x,y,r,stops);m.fillRect(x-r,y-r,r*2,r*2);};
-  reveal(p.halo,[[0,'rgba(0,0,0,.99)'],[.48,'rgba(0,0,0,.78)'],[1,'rgba(0,0,0,0)']]);
+  reveal(p.halo,[[0,'rgba(0,0,0,.99)'],[.48,'rgba(0,0,0,.40)'],[1,'rgba(0,0,0,0)']]);
   // Three feathered cone passes: the soft edge retains volumetric water
   // scattering; the actual ray hits are shared with projectile collision.
-  for(const [fraction,intensity] of [[1,.34],[.88,.43],[.72,.67],[.56,.54]]){
+  for(const [fraction,intensity] of [[1,.20],[.88,.40],[.72,.83],[.56,.85]]){
    const arc=p.halfAngle*fraction;m.save();m.beginPath();m.moveTo(x,y);
    for(let i=0;i<=40;i++){
     const angle=a-arc+i/40*arc*2,dx=Math.cos(angle),dy=Math.sin(angle),length=rayDistance(rocks,x,y,dx,dy,p.range);
@@ -298,8 +298,11 @@
   for(const r of rocks||[]){if(!r.cavernSolid||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
    const ca=Math.cos(r.angle||0),sa=Math.sin(r.angle||0);
    for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),v=r.vertices[k];if(!v)continue;const ln=16+((r.seed+j*17)%49),sway=Math.sin(t*.0014+j+r.seed)*5,lx=v[0]+sway*.7,ly=v[1]-ln;
-    const gx=r.x+lx*ca-ly*sa,gy=r.y+lx*sa+ly*ca,glow=radial(c,gx,gy,16,[[0,'rgba(86,255,143,.24)'],[.45,'rgba(53,214,113,.10)'],[1,'rgba(22,150,77,0)']]);
-    c.fillStyle=glow;c.fillRect(gx-16,gy-16,32,32);
+    const gx=r.x+lx*ca-ly*sa,gy=r.y+lx*sa+ly*ca,rootX=r.x+v[0]*ca-v[1]*sa,rootY=r.y+v[0]*sa+v[1]*ca;
+     const glow=radial(c,rootX,rootY,70,[[0,'rgba(55,255,126,.30)'],[.35,'rgba(35,230,105,.16)'],[1,'rgba(12,128,63,0)']]);c.fillStyle=glow;c.fillRect(rootX-70,rootY-70,140,140);
+     c.strokeStyle='rgba(85,255,153,.82)';c.lineWidth=1.9;c.beginPath();c.moveTo(rootX,rootY);c.quadraticCurveTo(rootX+sway,rootY+(gy-rootY)*.5,gx,gy);c.stroke();
+     for(const side of [-1,1]){c.beginPath();c.moveTo((gx+rootX)/2,(gy+rootY)/2);c.quadraticCurveTo(gx+side*13,gy+12,gx+side*15,gy+3);c.stroke();}
+     const tip=radial(c,gx,gy,15,[[0,'rgba(182,255,210,.95)'],[.25,'rgba(70,255,148,.64)'],[1,'rgba(22,150,77,0)']]);c.fillStyle=tip;c.fillRect(gx-15,gy-15,30,30);
    }
   }
   c.restore();
