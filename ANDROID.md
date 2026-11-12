@@ -13,6 +13,10 @@ A versão Android usa Capacitor para manter a mesma base de gameplay web, carreg
 
 A base web já está preparada para distinguir o shell Android, manter `public/` como bundle local e direcionar multiplayer/API ao backend remoto do Abyssal. Capacitor 8 já está declarado no `package.json`. Ao gerar o scaffold nativo, use `npm install`, `npm run android:add` e `npm run android:sync`. O projeto deve usar `minSdkVersion = 24`, `compileSdkVersion = 36` e `targetSdkVersion = 36`.
 
+## Navegação do sistema Android
+
+A atividade nativa mantém as barras de navegação e status disponíveis. O WebView inteiro é enquadrado pela união dos insets de barras do sistema, recortes da tela e gestos laterais; o teclado também é respeitado. O Android recalcula esses insets quando a navegação do sistema muda ou a atividade retorna ao primeiro plano. O jogo permanece em paisagem, sem exclusões de gestos nem ocultação forçada das barras. Valide em aparelho físico com navegação por gestos e por três botões, inclusive recortes e retorno do segundo plano.
+
 ## Performance
 
 O runtime web possui qualidade adaptativa independente da simulação. O controlador mede FPS e P95 de frame time em janelas de 2,5 segundos:
