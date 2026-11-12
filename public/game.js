@@ -1129,6 +1129,10 @@ function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
  playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
+ if(!window.AbyssalEnemyAI?.isChargeAttack({kind})&&player){
+  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):player.x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):player.y;
+  effects.push({type:'bite-jaws',x:px,y:py,angle:Math.atan2(py-y,px-x),max:Math.max(21/GAME_WORLD_ZOOM,player.r*1.65),life:.42,maxLife:.42,color:'#ffddd4'});
+ }
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
  if(skill==='bio-shock'||kind==='drifter'){
   effects.push({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
@@ -2418,7 +2422,16 @@ function clipPrismaticPhotonRay(sx,sy,ex,ey,radius){
  return {x2:sx+(ex-sx)*lo,y2:sy+(ey-sy)*lo};
 }
 function nextShotVolleyId(){if(!player)return '';player.shotSequence=(Number(player.shotSequence)||0)+1;return Date.now().toString(36)+'-'+player.shotSequence;}
-function updateAutomaticWeaponAim(){if(!player||isManualFiringMode()||(!onlineMode&&isClassicShooterRun()&&soloSubmarine.spawnFx>1.25))return;let target=null,best=getFiringRange();for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<best&&(!SOLO_CAVERN||onlineMode||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,player.x,player.y,e.x,e.y,2/GAME_WORLD_ZOOM))){target=e;best=d;}}if(!target)return;let a=Math.atan2(target.y-player.y,target.x-player.x);for(let i=0;i<3;i++){const m=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a);if(m)a=Math.atan2(target.y-m.y,target.x-m.x);}player.weaponAngle=a;player.angle=a;}
+function pointSegmentDistance(x,y,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,t=clamp(((x-ax)*dx+(y-ay)*dy)/Math.max(1e-9,dx*dx+dy*dy),0,1);return Math.hypot(x-ax-dx*t,y-ay-dy*t);}
+function aimAtEnemy(target){
+ const dx=target.x-player.x,dy=target.y-player.y,d=Math.hypot(dx,dy),heading=Math.atan2(dy,dx);
+ // Solve the lateral barrel offset analytically; iterative muzzle correction
+ // flips 180 degrees when an enemy is closer than the barrel length.
+ const offset=player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14;
+ return d>offset?heading-Math.asin(clamp(offset/d,-1,1)):heading;
+}
+function updateAutomaticWeaponAim(){if(!player||isManualFiringMode()||(!onlineMode&&isClassicShooterRun()&&soloSubmarine.spawnFx>1.25))return;let target=null,best=getFiringRange();for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<best&&(!SOLO_CAVERN||onlineMode||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,player.x,player.y,e.x,e.y,2/GAME_WORLD_ZOOM))){target=e;best=d;}}if(!target)return;player.weaponAngle=aimAtEnemy(target);player.angle=player.weaponAngle;}
+
 function fire(){
  if(isOpenSeaRun()&&explorationHeldItem!=='abyssWeapon')return;
  if(!player||Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0||Number(upgrades.photonRay)>0)return;let target=null,bd=Infinity;const maxRange=getFiringRange();
@@ -2431,10 +2444,7 @@ function fire(){
  if(mouseAimMode)updateMouseAimFromCursor();
  // Automatic targeting solves aim from the visible barrel, not from the torso.
  // All projectiles in a spread share the physical muzzle origin.
- let a=aimedMode?controlAimAngle:Math.atan2(target.y-player.y,target.x-player.x);
- if(target&&!aimedMode&&DIVER_ART?.muzzle){
-  for(let k=0;k<3;k++){const m=DIVER_ART.muzzle(player.x,player.y,player.r,a);a=Math.atan2(target.y-m.y,target.x-m.x);}
- }
+ let a=aimedMode?controlAimAngle:aimAtEnemy(target);
  player.weaponAngle=a;
  const gunTip=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};
  const activeShot=getActiveShotId()||'electric',shotLevel=Math.max(1,Number(upgradeLevels[activeShot])||1);
@@ -2447,7 +2457,7 @@ function fire(){
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
- for(const shotAngle of angles){const shotMuzzle=DIVER_ART?.muzzle?.(player.x,player.y,player.r,shotAngle)||gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=gunTip;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
+ for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=shotLevel?shotBalanceValue(activeShot,'radius',shotLevel,4.1+(shotLevel-1)*.55):4.1;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':activeShot==='spread'?'spread':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;const {x:muzzleX,y:muzzleY}=gunTip;burst(muzzleX,muzzleY,shotColor,angles.length>1?9:5,angles.length>1?90:45);if(activeShot==='photon')effects.push({type:'photon-flash',x1:muzzleX,y1:muzzleY,x2:muzzleX+Math.cos(a)*46/GAME_WORLD_ZOOM,y2:muzzleY+Math.sin(a)*46/GAME_WORLD_ZOOM,width:2.2/GAME_WORLD_ZOOM,life:.08,maxLife:.08,color:'#ff9cf6'});playWorldSound('shot-'+activeShot,null,850,.82);
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -3158,7 +3168,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(enemyParalyzedNow(e)){e.vx=0;e.vy=0;}
   else if(window.AbyssalEnemyAI?.moveTowardTarget){
-   soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96);
+   soloEnemyMovementOptions.minX=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxX=W-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.minY=8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.maxY=H-8/GAME_WORLD_ZOOM;soloEnemyMovementOptions.stopDistance=window.AbyssalEnemyAI.biteDistance(e.r,player.r);
    let movementTargets=localTargets;if(anglerHidden)movementTargets=[];soloEnemyMovementOptions.freeSwim=false;
    if(!activeMapLayout&&usesNaturalOceanTerrain()&&e.wildlifeMode&&OPEN_SEA_ECOLOGY){
      if(Math.hypot(e.x-player.x,e.y-player.y)<=e.r+player.r+8/GAME_WORLD_ZOOM)e.provokedUntil=performance.now()+4000;
@@ -3175,8 +3185,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
        }
       }
      }
-     soloEnemyMovementOptions.stopDistance=ec.aggressive?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):5;
-     soloEnemyMovementOptions.freeSwim=true;
+     soloEnemyMovementOptions.stopDistance=ec.aggressive?window.AbyssalEnemyAI.biteDistance(e.r,player.r):5;
+     soloEnemyMovementOptions.freeSwim=!ec.aggressive||!window.AbyssalEnemyAI.isChargeAttack(e);
      const swimRoute=OPEN_SEA_ECOLOGY.navigationTarget(e,ec.target,Math.max(10,Math.min(52,e.r*.56)),performance.now());
      soloMapNavProxy.x=swimRoute.x;soloMapNavProxy.y=swimRoute.y;
      soloMapNavProxy.moveSpeed=ec.target.moveSpeed||player.moveSpeed;
@@ -3192,7 +3202,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
       e.provokedUntil=performance.now()+4800;
       e.riftWantsAttack=true;
     }
-    soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?Math.max(1,(e.r+player.r+8/GAME_WORLD_ZOOM)*.96):4;
+    soloEnemyMovementOptions.stopDistance=e.riftWantsAttack?window.AbyssalEnemyAI.biteDistance(e.r,player.r):4;
     if(!e.riftWantsAttack){soloMapNavProxy.x=ec.target.x;soloMapNavProxy.y=ec.target.y;soloMapNavProxy.moveSpeed=player.moveSpeed;movementTargets=soloMapNavTargets;}
    }
    if(!anglerHidden&&activeMapLayout&&ABYSSAL_MAP&&RIFT_WILDLIFE){
@@ -3222,7 +3232,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const spaced=OPEN_SEA_ECOLOGY.separateContact(e,enemies,dt);
     e.x=spaced.x;e.y=spaced.y;
    }
-   if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;}}
+   if(activeMapLayout){const moved=mapResolveMove(beforeEnemyX,beforeEnemyY,e.x,e.y,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y;if(moved.blocked&&(e.kind==='whiteShark'||e.kind==='whiteSharkBoss')){e.dashVx=null;e.dashVy=null;e.sharkChargeRemaining=0;e.sharkCharging=false;e.sharkRecoveryRemaining=1.2;}}
   }else{
    if(enemyParalyzedNow(e)){ /* paralisado */ } else { const nav=activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.navigationTarget(activeMapLayout,e.x,e.y,target.x,target.y,{padding:Math.max(8,Math.min(38,e.r*.58))}):target;const dx=nav.x-e.x,dy=nav.y-e.y,d=Math.hypot(dx,dy)||1;e.phase+=dt*(e.kind==='stinger'?7:3);e.angle=Math.atan2(dy,dx);const moved=mapResolveMove(e.x,e.y,e.x+dx/d*e.speed*dt,e.y+dy/d*e.speed*dt,Math.max(8,Math.min(38,e.r*.58)));e.x=moved.x;e.y=moved.y; }
   }
@@ -3232,7 +3242,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     let best=base+Math.PI,bestClear=-1;
     for(const off of offsets){const a=base+off,clear=SOLO_CAVERN.rayDistance(arenaRocks,e.x,e.y,Math.cos(a),Math.sin(a),probeRange);if(clear>bestClear){bestClear=clear;best=a;}}
     const speed=Number(window.AbyssalEnemyAI?.ENEMY_STATS?.[e.kind]?.dashSpeed)||Number(e.speed)||300;
-    e.angle=best;e.dashVx=Math.cos(best)*speed;e.dashVy=Math.sin(best)*speed;e.sharkAlertUntil=0;
+    e.sharkChargeRemaining=0;e.sharkCharging=false;e.sharkRecoveryRemaining=1.2;e.angle=best;e.dashVx=Math.cos(best)*speed;e.dashVy=Math.sin(best)*speed;e.sharkAlertUntil=0;
    }else{
     e.orbitDirection=-(Number(e.orbitDirection)||1);const tangent=(Number(e.angle)||0)+(e.orbitDirection>0?Math.PI/2:-Math.PI/2);e.vx=Math.cos(tangent)*Math.max(12,Number(e.speed)||20);e.vy=Math.sin(tangent)*Math.max(12,Number(e.speed)||20);
    }
@@ -3243,7 +3253,9 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   const td=Math.hypot(e.x-player.x,e.y-player.y);
   if(Math.hypot(e.x-beforeEnemyX,e.y-beforeEnemyY)>.05)onlineVisualMovingEnemies++;
-  e.attackCd=(e.attackCd||0)-dt;if((activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&(DIVER_HITBOX?.circleHit?.(player,e.x,e.y,e.r+4/GAME_WORLD_ZOOM,performance.now())||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
+  const attackReach=charge?(e.sharkCharging&&!e.sharkChargeHit&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&(attackReach||(e.kind==='kraken'&&e.krakenSweepActive===true&&window.AbyssalEnemyAI?.touchesKrakenTentacle?.(e,player,1)))){if(e.attackCd<=0){const cp={drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predators hunt prey even when the diver is not nearby; no XP is credited for natural predation.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
@@ -3262,7 +3274,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  rebuildEnemyCollisionGrid();
  for(let i=projectiles.length-1;i>=0;i--){const p=projectiles[i],prevX=p.x,prevY=p.y,stepX=p.vx*dt,stepY=p.vy*dt,stepDistance=Math.hypot(stepX,stepY),remaining=Math.max(0,(Number(p.maxDistance)||Infinity)-(Number(p.travelled)||0)),travel=Math.min(stepDistance,remaining),travelRatio=stepDistance>0?travel/stepDistance:0;p.x+=stepX*travelRatio;p.y+=stepY*travelRatio;p.travelled=(Number(p.travelled)||0)+travel;p.life-=dt;let hit=false;const reachedRange=travel+0.001<stepDistance||(Number.isFinite(p.maxDistance)&&p.travelled>=p.maxDistance);
  if(onlineRoomMode==='pvp'&&projectileHitsPvpWall(prevX,prevY,p.x,p.y,p.r||0)){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}if(onlineRoomMode!=='pvp'&&((activeMapLayout&&ABYSSAL_MAP&&!ABYSSAL_MAP.segmentWalkable(activeMapLayout,prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!activeMapLayout&&usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY&&!OCEAN_GEOGRAPHY.segmentClear(prevX,prevY,p.x,p.y,Math.max(2,p.r||0)))||(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?.segmentBlocked(arenaRocks,prevX,prevY,p.x,p.y,p.r||0)))){spawnProjectileDissolve(p.x,p.y,p.color,p.special,true);playWorldSound('wall-hit',p,550,.52);projectiles.splice(i,1);continue;}
- projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&Math.hypot(p.x-e.x,p.y-e.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playWorldSound('enemy-hit',e,520,.34);
+ projectileCandidates.length=0;const cellX=Math.floor(p.x/enemyCollisionCellSize),cellY=Math.floor(p.y/enemyCollisionCellSize);for(let gx=cellX-1;gx<=cellX+1;gx++)for(let gy=cellY-1;gy<=cellY+1;gy++){const bucket=enemyCollisionGrid.get(gy*65536+gx);if(bucket)for(const enemy of bucket)projectileCandidates.push(enemy);}for(let j=projectileCandidates.length-1;j>=0;j--){const e=projectileCandidates[j];p.hitIds ||= [];if(e.hp>0&&!p.hitIds.includes(e.id)&&pointSegmentDistance(e.x,e.y,prevX,prevY,p.x,p.y)<p.r+e.r){p.hitIds.push(e.id);dealEnemyDamage(e,p.damage,p.special||(upgradeLevels.power>0?'power':null));e.hit=.12;burst(p.x,p.y,p.color,4,40);if(p.special)playWorldSound('enemy-hit',e,520,.34);
  if((p.pierceRemaining||0)>0){p.pierceRemaining--; }else{hit=true;break}}}if(hit||p.life<=0||reachedRange||p.x< -100/worldZoom||p.x>W+100/worldZoom||p.y< -100/worldZoom||p.y>H+100/worldZoom){if(hit||reachedRange)spawnProjectileDissolve(p.x,p.y,p.color,p.special,false);projectiles.splice(i,1)}}
  for(const beam of effects){
   if(!beam.remoteBeamKey||!onlineMode)continue;
@@ -4304,6 +4316,10 @@ function draw(t){
  ctx.stroke();ctx.beginPath();
  }else if(fx.type==='skin-shot-telegraph'){
  ctx.strokeStyle=fx.color||'#ff3f59';ctx.globalAlpha*=.48+.35*Math.sin(performance.now()*.025);ctx.setLineDash([10/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM]);ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);ctx.setLineDash([]);
+ }else if(fx.type==='bite-jaws'){
+ const size=fx.max,closing=Math.min(1,progress*2.8),gap=size*(.75-.62*closing);ctx.translate(fx.x,fx.y);ctx.rotate(fx.angle||0);ctx.globalAlpha=progress<.7?1:Math.max(0,(1-progress)/.3);ctx.shadowColor='#ff5a78';ctx.shadowBlur=lowPowerRendering?0:9;
+ for(const side of [-1,1]){ctx.beginPath();ctx.moveTo(-size*.8,side*gap);ctx.quadraticCurveTo(0,side*(gap+size*.30),size*.8,side*gap);ctx.strokeStyle='#ff7388';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.stroke();ctx.fillStyle='#fff0df';for(let n=0;n<5;n++){const xx=-size*.65+n*size*.325;ctx.beginPath();ctx.moveTo(xx-size*.13,side*(gap+size*.08));ctx.lineTo(xx+size*.13,side*(gap+size*.08));ctx.lineTo(xx,side*(gap-size*.30));ctx.closePath();ctx.fill();}}
+ ctx.beginPath();
  }else if(fx.type==='projectile-dissolve'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2);}else if(fx.type==='nova-core'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.fillStyle=fx.color||'#72f5ff';ctx.beginPath();ctx.arc(fx.x,fx.y,Math.max(4/GAME_WORLD_ZOOM,fx.max*progress),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ring'||fx.type==='regen-pulse'){ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ward-collapse'){ctx.arc(fx.x,fx.y,fx.max*(1-progress*.72),0,Math.PI*2)}else if(fx.type==='electric-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,segments=13;for(let s=0;s<=segments;s++){const q=s/segments,edge=q===0||q===1?0:1,wave=(Math.sin((Number(fx.seed)||0)*.23+s*3.7)+Math.sin((Number(fx.seed)||0)*.11+s*7.1)*.55)*Math.min(18/worldZoom,len*.095)*edge,xx=fx.x1+dx*q+nx*wave,yy=fx.y1+dy*q+ny*wave;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}}else if(fx.type==='ricochet-line'){ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.type==='photon-ray'?photonX2:fx.x2,fx.type==='photon-ray'?photonY2:fx.y2)}ctx.stroke();if(fx.type==='ricochet-line'){ctx.globalAlpha*=.88;ctx.strokeStyle='#fff86a';ctx.shadowBlur=lowPowerRendering?0:16/GAME_WORLD_ZOOM;ctx.shadowColor='#f7ff19';ctx.lineWidth=Math.max(1/GAME_WORLD_ZOOM,(Number(fx.width)||3.4)*.42);ctx.stroke();}if(fx.type==='electric-arc'){ctx.globalAlpha*=.9;ctx.strokeStyle='#eaffff';ctx.shadowBlur=lowPowerRendering?5/GAME_WORLD_ZOOM:20/GAME_WORLD_ZOOM;ctx.shadowColor='#31eaff';ctx.lineWidth=Math.max(1.2/GAME_WORLD_ZOOM,(Number(fx.width)||4.2)*.4);ctx.stroke();}if(fx.type==='photon-ray'){ctx.strokeStyle='#ffffff';ctx.shadowBlur=0;ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.beginPath();ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(photonX2,photonY2);ctx.stroke()}ctx.restore()}
  for(const pool of bloodPools){
   const q=clamp(pool.life/pool.maxLife,0,1),grow=1+(1-q)*.18;
