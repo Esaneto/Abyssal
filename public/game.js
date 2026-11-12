@@ -749,6 +749,24 @@ function updateNotifBadge() {
 window.addNotification = addNotification;
 window.updateNotifBadge = updateNotifBadge;
 window.openAbyssalNotifications = openNotifPanel;
+function receiveAnnouncement(item){
+ if(!item||typeof item.id!=='string'||typeof item.message!=='string')return;
+ try{
+  const key='abyssalAnnouncementReceipts',now=Date.now();
+  const stored=JSON.parse(localStorage.getItem(key)||'{}'),seen=stored&&typeof stored==='object'&&!Array.isArray(stored)?stored:{};
+  if(seen[item.id]||getStoredNotifications().some(n=>n.announcementId===item.id))return;
+  const timestamp=Number(item.timestamp)||now;if(now-timestamp>=NOTIF_EXPIRY_MS)return;
+  const list=getStoredNotifications();
+  list.unshift({id:'announcement-'+item.id,announcementId:item.id,title:String(item.title||'COMUNICADO DO ABYSSAL'),message:item.message,type:'announcement',timestamp:now});
+  saveNotifications(list.slice(0,30));
+  for(const id of Object.keys(seen))if(now-Number(seen[id])>=NOTIF_EXPIRY_MS)delete seen[id];
+  seen[item.id]=now;localStorage.setItem(key,JSON.stringify(seen));
+  if(document.getElementById('notifPanel')&&!document.getElementById('notifPanel').hidden)renderNotifPanel();
+ }catch(_){}
+}
+window.addEventListener('abyssal-announcement',event=>receiveAnnouncement(event.detail));
+function refreshAnnouncements(){fetch((window.ABYSSAL_SERVER_URL||location.origin)+'/api/announcements',{cache:'no-store'}).then(response=>response.ok?response.json():[]).then(items=>{if(Array.isArray(items))items.slice().reverse().forEach(receiveAnnouncement);}).catch(()=>{});}
+refreshAnnouncements();window.addEventListener('online',refreshAnnouncements);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAnnouncements();});
 
 function showNotification(message, title = 'NOTIFICAÇÃO ABISSAL') {
   addNotification(message, title);
@@ -3384,14 +3402,14 @@ function endGame(reason='death'){
  const earnedCoins=Math.max(3,Math.round(baseEarnedCoins*expeditionMultiplier));
  runResultPending=true;
  diveReport={reason:diveEndReason,survival:elapsed,damageDealt:onlineMode?null:diveStats.damageDealt,monstersKilled:onlineMode?null:diveStats.monstersKilled,energyCollected:onlineMode?null:diveStats.energyCollected,totalRunCoins:earnedCoins+bossKillsThisRun*100,level};
- renderDiveReport(diveReport,authenticated);
+ renderDiveReport(diveReport,true);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
  gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  renderDiveReport(diveReport,authenticated);
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
- $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();
+ $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();else if(onlineMode){const current=diveReport;window.AbyssalOnline?.previewRunReport?.(result=>{if(gameState!=='over'||diveReport!==current||diveSettling||diveSettled)return;diveReport={...diveReport,...result};renderDiveReport(diveReport,true);});}
 }
 function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
