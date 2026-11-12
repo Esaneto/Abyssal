@@ -229,7 +229,8 @@
   line(0,600,210,560,'#070e16',5);line(W,600,1230,560,'#070e16',5);
   lamp(23,353,113,5,true);lamp(1304,353,113,5,true);
   radar(29,398,136,115);radar(1275,398,136,115);
-  readout(43,530,119,83,36);readout(1278,530,119,83,62);
+  // Live HTML profile/community buttons occupy the two plates under the sonars.
+  hardware(43,530,119,83,7);hardware(1278,530,119,83,7);
   for(const x of [48,1294]){
    hardware(x,629,91,72,7);
    for(let i=0;i<3;i++){
@@ -264,7 +265,7 @@
   lamp(35,854,37,4,false);c.restore();
  }
  function foregroundArt(){
-  windowFrame();deck();if(width>=700){chair(0,1);chair(W,-1);}
+  windowFrame();deck();if(width>700){chair(0,1);chair(W,-1);}else{radar(105,90,360,65);radar(975,90,360,65);}
   // Edge vignette ties the glass and metal to the same lighting environment.
   c.fillStyle=radial(W*.5,H*.43,880,[[0,'#00000000'],[.65,'#00000000'],[1,'#02091270']]);c.fillRect(0,0,W,H);
  }

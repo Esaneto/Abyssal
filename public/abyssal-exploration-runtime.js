@@ -324,10 +324,9 @@
  window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
- // Reuse the original account profile and its existing authentication flow.
- $('cockpitProfileBtn')?.addEventListener('click',()=>{$('profileBtn')?.click();});
- // The existing shop owns purchases, prices and secure checkout; no duplicate store.
- $('cockpitCartBtn')?.addEventListener('click',()=>{if(activeConsoleSection!=='shop'){activeConsoleSection='shop';soloConsolePage='home';renderWorkshop();}});
+ // Use original account/community screens directly, bypassing hidden menu controls.
+ $('cockpitProfileBtn')?.addEventListener('click',()=>{window.AbyssalOnline?.openProfile?.();});
+ $('cockpitCardumesBtn')?.addEventListener('click',()=>{window.AbyssalOnline?.openCardumes?.();});
 
  // The command bridge is now the primary menu presentation. Existing hatch
  // navigation remains available after a player explicitly closes the bridge.
