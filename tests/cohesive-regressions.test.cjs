@@ -140,14 +140,16 @@ test('promotional redemption is authenticated and server-authoritative', () => {
   assert.doesNotMatch(server, /bemvindoabyssal/i);
 });
 
-test('new shooter upgrades and photon online shot type remain wired', () => {
+test('Rajada Prismática remains a passive volley modifier while photon stays an online shot', () => {
   const game = read('public/game.js');
   const server = read('server.js');
   assert.match(game, /id:'spread',name:'Rajada Prismática'/);
+  assert.match(game, /passive:\['burst','ricochet','spread'\]/);
   assert.match(game, /id:'photon',name:'Lança de Fótons'/);
   assert.match(game, /upgrades\.spread/);
   assert.match(game, /upgrades\.photon/);
-  assert.match(server, /'pierce','electric','spread','photon','photonRay','nova','echoShot'/);
+  assert.match(server, /'pierce','electric','photon','photonRay','nova','echoShot','prismShard'/);
+  assert.doesNotMatch(server, /'pierce','electric','spread','photon'/);
 });
 
 
