@@ -446,7 +446,7 @@ const SOLO_INITIAL_KINDS=Object.freeze(['drifter','stinger','brute','lurker']);
 const DEVELOPMENT_FAUNA=new Set(['hawksbill','leatherback','butterflyray','eagleray']);
 const SOLO_SPECIMEN_REFERENCES=Object.freeze({drifter:'violet',stinger:'abyssaleye',brute:'deepwarden',lurker:'maw',whiteShark:'reefshark',whiteSharkBoss:'reefshark',boss:'aberration',angler:'angler',maw:'maw',leviathan:'leviathan',kraken:'kraken',devourer:'devourer',riftSmile:'riftSmileRelic'});
 const CLASSIC_SHOP_IDS=new Set(['default','solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden']);
-function specimenShopAvailable(skin){return Boolean(skin&&(ownedSkins.includes(skin.id)||(!DEVELOPMENT_FAUNA.has(skin.id)&&(skin.paid||CLASSIC_SHOP_IDS.has(skin.id)||discoveredSpecimens.has(skin.id)))));}
+function specimenShopAvailable(skin){return Boolean(skin&&(ownedSkins.includes(skin.id)||(!DEVELOPMENT_FAUNA.has(skin.id)&&(SKIN_STANDARD.paid199.has(skin.id)||SKIN_STANDARD.paid499.has(skin.id)||SKIN_STANDARD.bossPaid.has(skin.id)||CLASSIC_SHOP_IDS.has(skin.id)||discoveredSpecimens.has(skin.id)))));}
 let discoveredSpecimens=new Set(['default']);
 try{const saved=JSON.parse(localStorage.getItem(SPECIMEN_DISCOVERY_KEY)||'[]');if(Array.isArray(saved))for(const id of saved)discoveredSpecimens.add(String(id));}catch(_){}
 function persistSpecimenDiscovery(){
