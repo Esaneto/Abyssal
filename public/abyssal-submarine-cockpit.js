@@ -9,36 +9,45 @@
  const canvas=document.getElementById('abyssCockpitCanvas');
  if(!screen||!canvas)return;
  const main=canvas.getContext('2d');if(!main)return;
- // Live overhead command panel. Keep gameplay settings on the device.
- const commands=screen.querySelector('.abyss-cockpit-top-actions'),settings=document.getElementById('cockpitCommandSettings');
+ // Each overhead key selects a page in the physical central visor.
+ const commands=screen.querySelector('.abyss-cockpit-top-actions');
  const store=(key,value)=>{try{localStorage.setItem(key,String(value));}catch(_){}};
  const read=(key,fallback)=>{try{return localStorage.getItem(key)??fallback;}catch(_){return fallback;}};
  const filters={normal:'none',soft:'saturate(.75)',mono:'grayscale(1)',warm:'sepia(.25)'};
  function applyFilter(value){const filter=filters[value]||'none';for(const id of ['game','abyssCockpitCanvas']){const element=document.getElementById(id);if(element)element.style.filter=filter;}}
  applyFilter(read('abyssalVisualFilter','normal'));
- let activeSetting='';
- function closeSettings(){activeSetting='';if(settings)settings.hidden=true;commands?.querySelectorAll('[data-cockpit-setting]').forEach(button=>button.setAttribute('aria-expanded','false'));}
- function field(label,options,value,change){const wrap=document.createElement('label'),select=document.createElement('select');wrap.append(document.createTextNode(label),select);for(const [id,name] of options){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}select.value=value;select.addEventListener('change',()=>change(select.value));return wrap;}
- function slider(label,key,initial){const wrap=document.createElement('label'),caption=document.createElement('span'),input=document.createElement('input');input.type='range';input.min=0;input.max=100;input.value=read(key,initial);caption.textContent=label+' · '+input.value+'%';input.setAttribute('aria-label',label);input.addEventListener('input',()=>{store(key,input.value);caption.textContent=label+' · '+input.value+'%';window.dispatchEvent(new CustomEvent('abyssal-volume-change',{detail:{channel:key,value:Number(input.value)/100}}));});wrap.append(caption,input);return wrap;}
- commands?.addEventListener('click',event=>{
-  const proxy=event.target.closest('[data-cockpit-proxy]');if(proxy){closeSettings();document.getElementById(proxy.dataset.cockpitProxy)?.click();return;}
-  const button=event.target.closest('[data-cockpit-setting]');if(!button||!settings)return;
-  const name=button.dataset.cockpitSetting;if(activeSetting===name){closeSettings();return;}closeSettings();activeSetting=name;button.setAttribute('aria-expanded','true');settings.replaceChildren();settings.hidden=false;
-  if(name==='controls'){
+ function field(label,options,value,change){const wrap=document.createElement('label'),select=document.createElement('select'),caption=document.createElement('span');wrap.className='cockpit-setting-field';caption.textContent=label;wrap.append(caption,select);for(const [id,name] of options){const option=document.createElement('option');option.value=id;option.textContent=name;select.append(option);}select.value=value;select.addEventListener('change',()=>change(select.value));return wrap;}
+ function slider(label,key,initial){const wrap=document.createElement('label'),caption=document.createElement('span'),input=document.createElement('input');wrap.className='cockpit-setting-field';input.type='range';input.min=0;input.max=100;input.value=read(key,initial);caption.textContent=label+' · '+input.value+'%';input.setAttribute('aria-label',label);input.addEventListener('input',()=>{store(key,input.value);caption.textContent=label+' · '+input.value+'%';window.dispatchEvent(new CustomEvent('abyssal-volume-change',{detail:{channel:key,value:Number(input.value)/100}}));});wrap.append(caption,input);return wrap;}
+ function note(parent,text){const p=document.createElement('p');p.className='cockpit-setting-note';p.textContent=text;parent.append(p);}
+ function createPage(name){
+  const page=document.createElement('section');page.className='abyss-console-info cockpit-settings-page';page.dataset.settingPage=name;
+  if(name==='language'){
+   page.append(field('Idioma do jogo',[['pt','Português'],['en','English'],['es','Español']],read('abyssalLanguage','pt'),value=>{const original=document.getElementById('cockpitLanguageSelect');if(original){original.value=value;original.dispatchEvent(new Event('change',{bubbles:true}));}}));
+   note(page,'Escolha o idioma da interface.');
+  }else if(name==='controls'){
    const optsPC=[['classic','Clique e segure para mover'],['wasd-aim','WASD + mouse']],optsMobile=[['classic','Toque e arraste'],['dual-stick','Joystick e disparo']];
-   settings.append(field('Controles PC',optsPC,read('abyssalControlsPc','classic'),value=>document.querySelector('#controlsScreen [data-control-pc="'+value+'"]')?.click()),field('Controles mobile',optsMobile,read('abyssalControlsMobile','classic'),value=>document.querySelector('#controlsScreen [data-control-mobile="'+value+'"]')?.click()));
+   page.append(field('Controles PC',optsPC,read('abyssalControlsPc','classic'),value=>document.querySelector('#controlsScreen [data-control-pc="'+value+'"]')?.click()),field('Controles mobile',optsMobile,read('abyssalControlsMobile','classic'),value=>document.querySelector('#controlsScreen [data-control-mobile="'+value+'"]')?.click()));
+   note(page,'As preferências são salvas neste dispositivo.');
   }else if(name==='zoom'){
-   settings.append(field('Zoom da câmera (solo)',[['1','Padrão'],['1.1','110%'],['1.25','125%']],read('abyssalCameraZoom','1'),value=>store('abyssalCameraZoom',value)));
-   const note=document.createElement('small');note.textContent='No online, a visão permanece equilibrada pelo jogo.';settings.append(note);
+   page.append(field('Zoom da câmera (Solo)',[['1','Padrão'],['1.1','110%'],['1.25','125%']],read('abyssalCameraZoom','1'),value=>store('abyssalCameraZoom',value)));
+   note(page,'No online, a visão permanece equilibrada pelo jogo.');
   }else if(name==='volume'){
-   settings.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
-   const note=document.createElement('small');note.textContent='O áudio do jogo está desativado nesta versão; os ajustes ficam salvos.';settings.append(note);
+   page.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
+   note(page,'O áudio do jogo está desativado nesta versão; os ajustes ficam salvos.');
   }else if(name==='filter'){
-   settings.append(field('Filtro visual',[['normal','Original'],['soft','Suave'],['mono','Monocromático'],['warm','Quente']],read('abyssalVisualFilter','normal'),value=>{store('abyssalVisualFilter',value);applyFilter(value);}));
+   page.append(field('Filtro visual',[['normal','Original'],['soft','Suave'],['mono','Monocromático'],['warm','Quente']],read('abyssalVisualFilter','normal'),value=>{store('abyssalVisualFilter',value);applyFilter(value);}));
+  }else if(name==='fullscreen'){
+   const button=document.createElement('button');button.type='button';button.className='abyss-visor-action';const refresh=()=>{button.textContent=document.fullscreenElement?'SAIR DA TELA CHEIA':'ATIVAR TELA CHEIA';};refresh();
+   button.addEventListener('click',()=>{document.getElementById('fullscreenBtn')?.click();setTimeout(refresh,300);});page.append(button);note(page,'A disponibilidade depende do navegador e do dispositivo.');
   }
+  return page;
+ }
+ window.AbyssalCockpitSettings=Object.freeze({createPage});
+ commands?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-cockpit-setting],[data-cockpit-proxy]');if(!button)return;
+  const name=button.dataset.cockpitSetting||({notifBtn:'notices',mobileDownloadTopBtn:'download',fullscreenBtn:'fullscreen'})[button.dataset.cockpitProxy];
+  if(name)window.AbyssalCockpitNavigation?.routeCommand?.(name);
  });
- document.addEventListener('pointerdown',event=>{if(activeSetting&&!commands?.contains(event.target))closeSettings();});
- document.addEventListener('keydown',event=>{if(event.key==='Escape'&&activeSetting)closeSettings();});
 
  let c=main,active=false,raf=0,lastPaint=0,width=0,height=0,dpr=1,frames=0;
  let background=null,foreground=null;
