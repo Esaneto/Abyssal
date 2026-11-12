@@ -2591,11 +2591,11 @@ io.on('connection', socket => {
  });
  socket.on('purchase-skin', payload => {
   const u = users[socket.data.userKey]; if (!u || !payload) return;
-  const stripeOnlySkins = new Set(['saltcroc','blackcaiman','violet','leviathan','kraken','aberration','angler','maw','devourer','reefshark','hammerhead','abysscroc','armoredgator']);
-  const requestedId=String(payload.id||'');
-  if(stripeOnlySkins.has(requestedId))return socket.emit('purchase-result',{ok:false,message:'Este Espécime exige checkout hospedado e confirmação de pagamento.'});
-  const id = String(payload.id || ''), profile=SkinStandard.profile(id);
-  if(profile?.tier!=='coins')return socket.emit('purchase-result',{ok:false,message:'Este Espécime não pode ser comprado com moedas abissais.'});
+  const id=String(payload.id||'');
+  if(!allowedSkinIds.has(id)||id==='default')return socket.emit('purchase-result',{ok:false,message:'Espécime indisponível para compra.'});
+  const profile=SkinStandard.profile(id);
+  if(/^brl/.test(profile.tier))return socket.emit('purchase-result',{ok:false,message:'Este Espécime exige checkout em BRL e confirmação de pagamento.'});
+  if(profile.tier!=='coins')return socket.emit('purchase-result',{ok:false,message:'Este Espécime não pode ser comprado com moedas abissais.'});
   const rarity=SpecimenRarity.rarityFor(id),price=ShopEconomy.priceForRarity(rarity);
   if (!price) return socket.emit('purchase-result', { ok:false, message:'Espécime indisponível para compra com moedas.' });
   if ((u.ownedSkins || ['default']).includes(id)) return socket.emit('purchase-result', { ok:true, message:'Você já possui este Espécime.', account:publicUser(u) });
