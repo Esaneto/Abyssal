@@ -187,7 +187,7 @@
   // structures continue naturally in every direction, not around the camera.
   for(let i=0;i<16;i++)beams.push({x:rnd()*w,y:rnd()*h,r:330+rnd()*700,a:.10+rnd()*.18});
   beams.push({x:w*.56,y:h*.105,r:1050,a:.32});
-  for(let i=0;i<380;i++)particles.push({x:rnd()*w,y:rnd()*h,r:.45+rnd()*1.8,phase:rnd()*TAU});
+  for(let i=0;i<950;i++)particles.push({x:rnd()*w,y:rnd()*h,r:.45+rnd()*1.8,phase:rnd()*TAU});
   for(let i=0;i<95;i++)growth.push({x:rnd()*w,y:rnd()*h,len:12+rnd()*39,seed:i*17+71});
   return {w,h,mass,beams,particles,arches,ridges,growth};
  }
@@ -270,9 +270,11 @@
   if(!lightLayer){lightLayer=document.createElement('canvas');}
   if(lightLayer.width!==cw||lightLayer.height!==ch){lightLayer.width=cw;lightLayer.height=ch;}
   const m=lightLayer.getContext('2d');m.setTransform(cw/w,0,0,ch/h,-left*cw/w,-top*ch/h);
-  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,2,5,.94)';m.fillRect(left,top,w,h);
+  m.globalCompositeOperation='source-over';m.clearRect(left,top,w,h);m.fillStyle='rgba(0,2,5,.78)';m.fillRect(left,top,w,h);
   m.globalCompositeOperation='destination-out';
   const reveal=(r,stops)=>{m.fillStyle=radial(m,x,y,r,stops);m.fillRect(x-r,y-r,r*2,r*2);};
+  // Fixed suit light: half the original 570-unit helmet range; upgrades only affect the cone.
+  const suitRadius=285,suitGlow=radial(m,player.x,player.y,suitRadius,[[0,'rgba(0,0,0,.84)'],[.25,'rgba(0,0,0,.64)'],[.62,'rgba(0,0,0,.26)'],[1,'rgba(0,0,0,0)']]);m.fillStyle=suitGlow;m.fillRect(player.x-suitRadius,player.y-suitRadius,suitRadius*2,suitRadius*2);
   reveal(p.halo,[[0,'rgba(0,0,0,.99)'],[.48,'rgba(0,0,0,.40)'],[1,'rgba(0,0,0,0)']]);
   // Three feathered cone passes: the soft edge retains volumetric water
   // scattering; the actual ray hits are shared with projectile collision.
@@ -288,13 +290,16 @@
    if(!source||!source.active||!Number.isFinite(source.x)||!Number.isFinite(source.y))continue;
    const radius=Math.max(30,Number(source.radius)||320),sx=source.x,sy=source.y;
    // Base light is radial and independent from the diver helmet cone.
-   const g=radial(m,sx,sy,radius,[[0,'rgba(0,0,0,.98)'],[.42,'rgba(0,0,0,.78)'],[.78,'rgba(0,0,0,.34)'],[1,'rgba(0,0,0,0)']]);
+   const strength=Number(source.strength)||1,g=radial(m,sx,sy,radius,[[0,'rgba(0,0,0,'+(.98*strength)+')'],[.42,'rgba(0,0,0,'+(.78*strength)+')'],[.78,'rgba(0,0,0,'+(.34*strength)+')'],[1,'rgba(0,0,0,0)']]);
    m.fillStyle=g;m.fillRect(sx-radius,sy-radius,radius*2,radius*2);
   }
   m.globalCompositeOperation='source-over';
   c.save();c.drawImage(lightLayer,left,top,w,h);c.restore();
   // Every rock plant remains faintly self-luminous after the darkness mask.
   c.save();c.globalCompositeOperation='screen';
+  for(const source of extraLights||[]){if(!source?.active||!source.color||!Number.isFinite(source.x)||!Number.isFinite(source.y))continue;const radius=source.radius||85,glow=radial(c,source.x,source.y,radius,[[0,source.color],[1,'rgba(0,0,0,0)']]);c.globalAlpha=.25;c.fillStyle=glow;c.fillRect(source.x-radius,source.y-radius,radius*2,radius*2);c.globalAlpha=1;}
+  // Suspended marine snow, world anchored and animated, visible in darkness.
+  for(const p of worldCache?.particles||[]){const y=((p.y-t*.009)%worldCache.h+worldCache.h)%worldCache.h,x=p.x+Math.sin(t*.0007+p.phase)*18;if(x<left||x>left+w||y<top||y>top+h)continue;const lit=Math.hypot(x-player.x,y-player.y)<285;c.fillStyle='rgba(183,225,224,'+(lit?.42:.13)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   for(const r of rocks||[]){if(!r.cavernSolid||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
    const ca=Math.cos(r.angle||0),sa=Math.sin(r.angle||0);
    for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),v=r.vertices[k];if(!v)continue;const ln=16+((r.seed+j*17)%49),sway=Math.sin(t*.0014+j+r.seed)*5,lx=v[0]+sway*.7,ly=v[1]-ln;

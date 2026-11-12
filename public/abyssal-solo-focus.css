@@ -161,3 +161,11 @@
  #submarineWorkshop .abyss-control-key .abyss-control-icon{font-size:13px!important}
 }
 @media(prefers-reduced-motion:reduce){#submarineWorkshop .abyss-control-key{transition:none!important}}
+
+/* Cabine: each active station uses its destination's visual material. */
+#submarineWorkshop .abyss-control-solo{background:radial-gradient(ellipse at 15% 90%,#3e765b 0,transparent 28%),linear-gradient(155deg,#374b47,#101c23 55%,#0b2421)!important;border-color:#638b72!important}
+#submarineWorkshop .abyss-control-shop{background:radial-gradient(ellipse at 50% 30%,#417c54,#183e34 35%,#102522 70%)!important;border-color:#78bb86!important}
+#submarineWorkshop .abyss-control-specimens{background:linear-gradient(155deg,#7a6346,#352d25 50%,#181b1b)!important;border-color:#b49a69!important}
+#submarineWorkshop .solo-stored-energy,.solo-energy-stock:not(.solo-base-stock){color:#c48cff!important;text-shadow:0 0 8px #9c50df55}
+.resonance-research-action{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:52px;padding:10px!important;font-size:12px!important;border-color:#b28be2!important;background:linear-gradient(145deg,#3b2459,#20162f)!important;color:#f3e7ff!important}
+.resonance-research-action span{font-size:11px;color:#d4a5ff}.resonance-research-action:disabled{opacity:.65;cursor:not-allowed}.solo-research-buy{min-height:48px!important;padding:10px!important;color:#e4b9ff!important}

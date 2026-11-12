@@ -120,13 +120,13 @@
  // Seven actual console keys share one built-in display. They never create
  // duplicate floating menus on top of the submarine dashboard.
  const CONSOLE_BUTTONS=Object.freeze([
-  {id:'solo',name:'SHOOTER SOLO',symbol:'▶',title:'MERGULHO SOLO'},
-  {id:'laboratory',name:'LABORATÓRIO',symbol:'⌬',title:'LABORATÓRIO ABISSAL'},
-  {id:'minerals',name:'MINÉRIOS',symbol:'◆',title:'AMOSTRAS GEOLÓGICAS'},
-  {id:'shop',name:'LOJA',symbol:'▣',title:'LOJA DE ESPÉCIMES'},
-  {id:'specimens',name:'ESPÉCIMES',symbol:'◈',title:'ABISSÁRIO'},
-  {id:'sea',name:'MAR ABERTO',symbol:'≈',title:'EXPLORAÇÃO OCEÂNICA'},
-  {id:'rift',name:'FOSSAS',symbol:'⌄',title:'FOSSAS ABISSAIS'}
+  {id:'solo',name:'MERGULHAR',symbol:'≈',title:'MERGULHAR'},
+  {id:'shop',name:'ESPÉCIMES',symbol:'▣',title:'ESPÉCIMES'},
+  {id:'specimens',name:'ABYSSÁRIO',symbol:'◈',title:'ABYSSÁRIO'},
+  {id:'laboratory',name:'LABORATÓRIO',symbol:'⌬',title:'LABORATÓRIO ABISSAL',locked:true},
+  {id:'minerals',name:'MINÉRIOS',symbol:'◆',title:'AMOSTRAS GEOLÓGICAS',locked:true},
+  {id:'sea',name:'MAR ABERTO',symbol:'≈',title:'EXPLORAÇÃO OCEÂNICA',locked:true},
+  {id:'rift',name:'FOSSAS',symbol:'⌄',title:'FOSSAS ABISSAIS',locked:true}
  ]);
  function mountCockpitConsole(utility){
   const old=utility?[utility]:Array.from(workshopGrid.children);
@@ -148,16 +148,16 @@
   const keys=document.createElement('nav');keys.className='abyss-control-deck';keys.setAttribute('aria-label','Controles físicos da cabine');
   for(const option of CONSOLE_BUTTONS){
    const key=document.createElement('button');key.type='button';
-   key.className='abyss-control-key'+(option.id===activeConsoleSection?' is-active':'');
+   key.className='abyss-control-key abyss-control-'+option.id+(option.id===activeConsoleSection?' is-active':'');
    key.setAttribute('aria-label',option.name);
    key.setAttribute('aria-pressed',String(option.id===activeConsoleSection));
-   if(option.id==='sea'||option.id==='rift'){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
+   if(option.locked){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';
    symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
    const name=document.createElement('span');name.textContent=option.name;
    key.append(symbol,name);
    key.addEventListener('click',()=>{
-    if(option.id==='sea'||option.id==='rift'){window.AbyssalLaunchFocus?.notify?.();return;}
+    if(option.locked){window.AbyssalLaunchFocus?.notify?.();return;}
     if(activeConsoleSection!==option.id||option.id==='solo'){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
    });
    keys.append(key);
@@ -178,13 +178,13 @@
   const utility=document.createElement('div');utility.className='abyss-console-info';
   if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
-   const balance=document.createElement('strong');balance.textContent='ENERGIA DISPONÍVEL: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
-   const note=document.createElement('p');note.textContent='Toda pesquisa do Shooter Solo usa Energia coletada nas orbs roxas. Lança de Fótons, Olho Profundo e Membrana Viva são tecnologias padrão e já começam liberadas.';utility.append(note);
+   const balance=document.createElement('strong');balance.className='solo-stored-energy';balance.textContent='ENERGIA ARMAZENADA: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
+   const note=document.createElement('p');note.textContent='Toda pesquisa usa energia coletada exclusivamente pelo espécime nas orbes roxas. Lança de Fótons, Olho Profundo e Membrana Viva são tecnologias padrão e já começam liberadas.';utility.append(note);
    const section=(title,copy)=>{const h=document.createElement('h3');h.className='solo-research-heading';h.textContent=title;utility.append(h);if(copy){const p=document.createElement('p');p.className='solo-research-copy';p.textContent=copy;utility.append(p);}};
    const researchRow=(id,name,description,cost,owned,onBuy)=>{
     const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(owned?' is-complete':'');
     const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent=name;desc.textContent=description;data.append(label,desc);
-    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':cost+' ENERGIA';buy.disabled=owned||state.energy<cost;
+    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':'DESBLOQUEAR · '+cost+' ENERGIA';buy.classList.add('solo-research-buy');buy.disabled=owned||state.energy<cost;
     buy.addEventListener('click',()=>{const result=onBuy?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));renderWorkshop();}});
     row.append(data,buy);utility.append(row);
    };
@@ -202,7 +202,7 @@
    renderGroup('RESSONÂNCIA · PASSIVAS',base?.PASSIVES||[],80,'Libera esta passiva na configuração de Ressonância.');
    renderGroup('RESSONÂNCIA · BUFFS',base?.BUFFS||[],60,'Libera este buff na configuração de Ressonância.');
    const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.unlockedShots?.().length||1)+' ARMA(S) INSTALADA(S)';utility.append(power);
-   const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO SHOOTER';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
+   const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO MERGULHO';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
   }else if(activeConsoleSection==='minerals'){
    const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';
    const inventory=research.sanitizeInventory(stateInventory());
@@ -220,9 +220,9 @@
    utility.append(note);
   }else{
    const pages={
-    solo:['SHOOTER SOLO','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR SHOOTER SOLO','playBtn'],
-    shop:['LOJA DE ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ACESSAR LOJA','shopBtn'],
-    specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABISSÁRIO','catalogBtn'],
+    solo:['MERGULHAR','A expedição ativa do Abyssal. Sobreviva, evolua seus disparos e comande o seu espécime durante a partida.','INICIAR MERGULHAR','playBtn'],
+    shop:['ESPÉCIMES','Veja aparências, cápsulas e ofertas. Compras e preços são controlados pela loja original do jogo.','ABRIR ESPÉCIMES','shopBtn'],
+    specimens:['REGISTRO DE ESPÉCIES','Explore o Abissário com raridades, criaturas descobertas e habilidades.','ABRIR ABYSSÁRIO','catalogBtn'],
     sea:['EXPEDIÇÃO OCEÂNICA','Nade pelo Mar Aberto, colete amostras e monte instalações de extração.','INICIAR EXPLORAÇÃO','openSeaPortalBtn'],
     rift:['DESCIDA ÀS FOSSAS','Enfrente as cavernas, armadilhas e os chefes das Fossas Abissais.','INICIAR DESCIDA','riftPortalBtn']
    };
