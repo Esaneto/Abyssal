@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-12-solo-refinement-v120';
+const VERSION = '2026-11-12-solo-submarine-v121';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -21,6 +21,7 @@ const GAME_FILES = [
   'abyssal-feature-gates.js',
   'abyssal-pet-tactics.js',
   'abyssal-solo-cavern.js',
+  'abyssal-solo-base.js',
   'abyssal-solo-progress.js',
   'abyssal-solo-hud.css',
   'abyssal-specimen-themes.css',

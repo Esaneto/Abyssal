@@ -177,14 +177,31 @@
   if(!workshopGrid)return;
   const utility=document.createElement('div');utility.className='abyss-console-info';
   if(activeConsoleSection==='solo'&&soloConsolePage==='upgrades'){
-   const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1};
+   const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
    const balance=document.createElement('strong');balance.textContent='ENERGIA DISPONÍVEL: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
-   const note=document.createElement('p');note.textContent='Colete as orbs roxas no Shooter Solo. A energia permanece neste dispositivo entre mergulhos.';utility.append(note);
+   const note=document.createElement('p');note.textContent='Toda pesquisa do Shooter Solo usa Energia coletada nas orbs roxas. Lança de Fótons, Olho Profundo e Membrana Viva são tecnologias padrão e já começam liberadas.';utility.append(note);
+   const section=(title,copy)=>{const h=document.createElement('h3');h.className='solo-research-heading';h.textContent=title;utility.append(h);if(copy){const p=document.createElement('p');p.className='solo-research-copy';p.textContent=copy;utility.append(p);}};
+   const researchRow=(id,name,description,cost,owned,onBuy)=>{
+    const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(owned?' is-complete':'');
+    const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent=name;desc.textContent=description;data.append(label,desc);
+    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':cost+' ENERGIA';buy.disabled=owned||state.energy<cost;
+    buy.addEventListener('click',()=>{const result=onBuy?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));renderWorkshop();}});
+    row.append(data,buy);utility.append(row);
+   };
+   section('ILUMINAÇÃO PESSOAL','A lanterna continua independente dos sistemas do submarino.');
    for(let lv=1;lv<=3;lv++){
     const row=document.createElement('div');row.className='solo-lamp-row';
     const data=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');name.textContent='LANTERNA · NV. '+lv;const lamp=window.AbyssalSoloCavern?.lampParameters(lv);desc.textContent='Cone de luz · alcance '+Math.round(lamp?.range||570)+' · '+(lv===1?'equipamento inicial':Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance adicional');data.append(name,desc);
     const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
    }
+   section('SISTEMAS DO SUBMARINO','A central consome 20 Energia por 5 minutos, +10 por arma ativa e +10 pelo escudo. Recargas parciais custam apenas a proporção que falta.');
+   researchRow('submarineShield','ESCUDO DO SUBMARINO','Campo defensivo que repele criaturas enquanto a base está energizada.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
+   const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
+   const renderGroup=(title,ids,cost,description)=>{section(title);for(const id of ids)researchRow(id,labels[id]||id.toUpperCase(),description,cost,Boolean(base?.unlocked?.(id)),()=>base?.research?.(id));};
+   renderGroup('RESSONÂNCIA · DISPAROS',base?.SHOTS||[],100,'Libera este disparo para seleção no mergulhador e instala sua arma automática no submarino.');
+   renderGroup('RESSONÂNCIA · PASSIVAS',base?.PASSIVES||[],80,'Libera esta passiva na configuração de Ressonância.');
+   renderGroup('RESSONÂNCIA · BUFFS',base?.BUFFS||[],60,'Libera este buff na configuração de Ressonância.');
+   const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.unlockedShots?.().length||1)+' ARMA(S) INSTALADA(S)';utility.append(power);
    const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO SHOOTER';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
   }else if(activeConsoleSection==='minerals'){
    const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';

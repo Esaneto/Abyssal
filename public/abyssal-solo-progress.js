@@ -13,11 +13,12 @@
   function save(){try{store?.setItem(KEY,JSON.stringify(state));}catch(_){}return {...state};}
   function get(){return {...state};}
   function credit(amount){const n=Math.floor(Number(amount));if(!Number.isFinite(n)||n<=0)return get();state.energy=Math.min(Number.MAX_SAFE_INTEGER,state.energy+n);return save();}
+  function debit(amount){const n=Math.max(0,Math.floor(Number(amount)||0));if(!n)return {ok:true,spent:0,...get()};const spent=Math.min(state.energy,n);state.energy-=spent;return {ok:spent===n,spent,...save()};}
   function upgradeLamp(){const next=state.lamp+1,cost=COSTS[next];if(!cost)return {ok:false,reason:'max',...get()};
    if(state.energy<cost)return {ok:false,reason:'energy',...get()};
    state.energy-=cost;state.lamp=next;return {ok:true,...save()};
   }
-  return Object.freeze({get,credit,upgradeLamp,costFor:level=>COSTS[level]||0});
+  return Object.freeze({get,credit,debit,upgradeLamp,costFor:level=>COSTS[level]||0});
  }
  return Object.freeze({...create(storage),create,KEY,COSTS});
 });

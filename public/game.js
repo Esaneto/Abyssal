@@ -51,17 +51,18 @@ const RESONANCE_CATEGORIES={
  buffs:['power','rate','speed','range','magnet','regen','shield','shell','ward','lastStand','pressureCocoon','vitality','predator','closePressure']
 };
 const BASIC_SKILL_IDS=[...RESONANCE_CATEGORIES.shots,...RESONANCE_CATEGORIES.passive,...RESONANCE_CATEGORIES.buffs];
-const RESONANCE_DEFAULTS={pve:['electric','shield','regen','shell','power','speed','magnet'],pvp:['electric','shield','regen','shell','power','speed','magnet']};
+const RESONANCE_DEFAULTS={pve:['photon','range','regen'],pvp:['electric','shield','regen','shell','power','speed','magnet']};
 // Exploration studies gate PvE resonance equipment. PvP retains an unrestricted
 // legacy loadout and never requires oxygen/resources/research progression.
 let explorationResearchLevels={};
 let explorationLegacyMeta={};
 try{explorationResearchLevels=JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}')||{};explorationLegacyMeta=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')||{};}catch(_){}
 function resonanceAvailable(id,mode='pve'){
- if(!isOpenSeaRun())return true;
- if(id==='photon'||id==='range'||id==='regen')return true;
- return Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels));
+ if(mode==='pvp')return true;
+ if(window.AbyssalSoloBase?.unlocked)return window.AbyssalSoloBase.unlocked(id);
+ return ['photon','range','regen'].includes(id);
 }
+window.addEventListener('abyssal-solo-research-change',()=>{if(document.getElementById('resonanceScreen')&&!document.getElementById('resonanceScreen').hidden)renderResonanceChoices();});
 window.addEventListener('abyssal-account-data',event=>{
  const data=event.detail||{};
  if(data.researchLevels&&typeof data.researchLevels==='object')explorationResearchLevels=data.researchLevels;
@@ -73,7 +74,7 @@ window.addEventListener('storage',event=>{
 });
 
 let resonancePresets=(()=>{try{return JSON.parse(localStorage.getItem(RESONANCE_STORAGE_KEY)||JSON.stringify(RESONANCE_DEFAULTS))}catch{return JSON.parse(JSON.stringify(RESONANCE_DEFAULTS))}})();let resonanceEditingMode='pve',resonanceEditedInSession=false,resonanceSyncedAfterLogin=false;
-function normalizeResonancePresets(value){const clean={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const source=Array.isArray(value?.[mode])?value[mode]:RESONANCE_DEFAULTS[mode];const unique=[...new Set(source.map(String).filter(id=>BASIC_SKILL_IDS.includes(id)))].slice(0,7);let foundShot=false;clean[mode]=unique.filter(id=>{if(!RESONANCE_CATEGORIES.shots.includes(id))return true;if(foundShot)return false;foundShot=true;return true;});if(!clean[mode].some(id=>RESONANCE_CATEGORIES.shots.includes(id))){if(clean[mode].length>=7)clean[mode].pop();clean[mode].unshift('electric');}}return clean;}
+function normalizeResonancePresets(value){const clean={pve:[],pvp:[]};for(const mode of ['pve','pvp']){const source=Array.isArray(value?.[mode])?value[mode]:RESONANCE_DEFAULTS[mode];const unique=[...new Set(source.map(String).filter(id=>BASIC_SKILL_IDS.includes(id)))].slice(0,7);let foundShot=false;clean[mode]=unique.filter(id=>{if(!RESONANCE_CATEGORIES.shots.includes(id))return true;if(foundShot)return false;foundShot=true;return true;});if(!clean[mode].some(id=>RESONANCE_CATEGORIES.shots.includes(id))){if(clean[mode].length>=7)clean[mode].pop();clean[mode].unshift(mode==='pvp'?'electric':'photon');}if(mode==='pve'){for(const starter of ['range','regen'])if(!clean.pve.includes(starter)){if(clean.pve.length>=7){let removable=-1;for(let ri=clean.pve.length-1;ri>=0;ri--){const candidate=clean.pve[ri];if(!RESONANCE_CATEGORIES.shots.includes(candidate)&&!['range','regen'].includes(candidate)){removable=ri;break;}}if(removable>=0)clean.pve.splice(removable,1);else clean.pve.pop();}clean.pve.push(starter);}}}return clean;}
 resonancePresets=normalizeResonancePresets(resonancePresets);
 function saveResonancePresets(){resonancePresets=normalizeResonancePresets(resonancePresets);try{localStorage.setItem(RESONANCE_STORAGE_KEY,JSON.stringify(resonancePresets));}catch(_){}if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.saveCosmetics?.({resonancePresets});}
 window.addEventListener('abyssal-account-data',event=>{const saved=event.detail?.resonancePresets;if(!saved)return;
@@ -512,6 +513,97 @@ const soloEnemyMovementOptions={minX:0,maxX:W,minY:0,maxY:H,stopDistance:0};
 const soloMapNavProxy={x:0,y:0,local:true,skinId:'default',moveSpeed:150/GAME_WORLD_ZOOM,alive:true};
 const soloMapNavTargets=[soloMapNavProxy];
 let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity;
+let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(null)};
+const SOLO_SUB_RANGE=294/GAME_WORLD_ZOOM;
+function soloSubmarineActive(){return !onlineMode&&isClassicShooterRun()&&gameState==='playing';}
+function resetSoloSubmarine(){
+ soloSubmarine={x:W*.5,y:Math.max(170,H*.09),powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null)};
+}
+function soloSubmarinePowered(){return !onlineMode&&isClassicShooterRun()&&soloSubmarine.powerSeconds>0.01;}
+function soloSubmarineTopUp(){
+ if(!window.AbyssalSoloBase)return {ok:false,reason:'unavailable'};
+ const result=window.AbyssalSoloBase.topUp(soloSubmarine.powerSeconds);
+ if(result.ok){soloSubmarine.powerSeconds=result.remaining;showToast('SUBMARINO ENERGIZADO · '+Math.ceil(result.remaining/60)+' MIN');playWorldSound('ui-purchase',player,750,.8);}
+ else if(result.reason==='energy')showToast('ENERGIA INSUFICIENTE');
+ else if(result.reason==='full')showToast('SUBMARINO JÁ ESTÁ COM CARGA MÁXIMA');
+ return result;
+}
+function ensureSoloSubmarineButton(){
+ let button=document.getElementById('soloSubmarinePowerBtn');if(button)return button;
+ button=document.createElement('button');button.id='soloSubmarinePowerBtn';button.type='button';button.className='abyss-map-interact';button.hidden=true;
+ button.addEventListener('click',soloSubmarineTopUp);document.getElementById('gameShell')?.append(button);return button;
+}
+function updateSoloSubmarineInteraction(){
+ const button=ensureSoloSubmarineButton();if(!button)return;
+ if(!soloSubmarineActive()||!player){button.hidden=true;return;}
+ const near=Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=245/GAME_WORLD_ZOOM;
+ button.hidden=!near;if(!near)return;
+ const full=window.AbyssalSoloBase?.fullPowerCost?.()||20,minutes=Math.max(0,soloSubmarine.powerSeconds)/60;
+ button.textContent=(mobileViewport?'':'F · ')+'ENERGIZAR SUBMARINO · '+full+'⚡ / 5 MIN · '+minutes.toFixed(1)+' MIN';
+}
+window.addEventListener('keydown',event=>{if(event.code==='KeyF'&&!event.repeat&&soloSubmarineActive()&&player&&Math.hypot(player.x-soloSubmarine.x,player.y-soloSubmarine.y)<=245/GAME_WORLD_ZOOM){event.preventDefault();soloSubmarineTopUp();}});
+function soloSubmarineTarget(){
+ let target=null,best=Infinity;
+ for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=Math.hypot(e.x-soloSubmarine.x,e.y-soloSubmarine.y);if(d<=SOLO_SUB_RANGE&&d<best&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,soloSubmarine.x,soloSubmarine.y,e.x,e.y,4/GAME_WORLD_ZOOM)){best=d;target=e;}}
+ return target;
+}
+function fireSoloSubmarineWeapon(id,target,index,total=1){
+ const a=Math.atan2(target.y-soloSubmarine.y,target.x-soloSubmarine.x),offset=(index-(total-1)/2)*30/GAME_WORLD_ZOOM;
+ const ox=soloSubmarine.x+offset,oy=soloSubmarine.y-39/GAME_WORLD_ZOOM;
+ const speed=(id==='photon'?650:id==='pierce'?390:id==='echoShot'?450:id==='electric'?440:520)/GAME_WORLD_ZOOM;
+ const damage=getShotDamageAtLevel(1,id);
+ const color=id==='electric'?'#eaffff':id==='pierce'?'#ffe7a1':id==='photon'?'#f0abfc':id==='photonRay'?'#79f9ff':id==='nova'?'#c89bff':'#5ef0d0';
+ if(id==='photonRay'){
+  const clipped=clipPrismaticPhotonRay(ox,oy,target.x,target.y,3/GAME_WORLD_ZOOM);
+  effects.push({type:'beam',x1:ox,y1:oy,x2:clipped.x2,y2:clipped.y2,life:.16,maxLife:.16,color,width:4/GAME_WORLD_ZOOM});
+  if(Math.hypot(clipped.x2-target.x,clipped.y2-target.y)<target.r+10/GAME_WORLD_ZOOM)dealEnemyDamage(target,damage,'photonRay');
+  return;
+ }
+ if(id==='nova'){
+  effects.push({type:'ring',x:target.x,y:target.y,r:0,max:82/GAME_WORLD_ZOOM,life:.48,maxLife:.48,color});
+  for(const e of enemies)if(e.hp>0&&Math.hypot(e.x-target.x,e.y-target.y)<=82/GAME_WORLD_ZOOM&&!SOLO_CAVERN?.segmentBlocked?.(arenaRocks,ox,oy,e.x,e.y,3/GAME_WORLD_ZOOM))dealEnemyDamage(e,damage,'nova');
+  return;
+ }
+ projectiles.push({x:ox,y:oy,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:(id==='pierce'?5.4:id==='photon'?2.9:4.2)/GAME_WORLD_ZOOM,damage,color,life:2.2,maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,pierceRemaining:id==='pierce'?1:0,submarineShot:true});
+}
+function updateSoloSubmarine(dt){
+ if(!soloSubmarineActive())return;
+ if(soloSubmarine.spawnFx>1.25&&player){
+  const targetY=soloSubmarine.y+78/GAME_WORLD_ZOOM,step=70/GAME_WORLD_ZOOM*dt;
+  if(player.y<targetY){player.y=Math.min(targetY,player.y+step);player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;updateCamera();}
+ }
+ soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
+ if(soloSubmarine.powerSeconds<=0)return;
+ soloSubmarine.powerSeconds=Math.max(0,soloSubmarine.powerSeconds-dt);
+ if(window.AbyssalSoloBase?.get?.().submarineShield){
+  const shieldRadius=176/GAME_WORLD_ZOOM;
+  for(const e of enemies){if(!e||e.hp<=0)continue;const dx=e.x-soloSubmarine.x,dy=e.y-soloSubmarine.y,d=Math.hypot(dx,dy)||1;if(d>=shieldRadius)continue;
+   const tx=soloSubmarine.x+dx/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM),ty=soloSubmarine.y+dy/d*(shieldRadius+e.r+5/GAME_WORLD_ZOOM);
+   const moved=SOLO_CAVERN?.resolve?.(arenaRocks,e.x,e.y,tx,ty,Math.max(5,e.r*.62))||{x:tx,y:ty};e.x=moved.x;e.y=moved.y;e.vx=dx/d*90;e.vy=dy/d*90;
+  }
+ }
+ const shots=window.AbyssalSoloBase?.unlockedShots?.()||['photon'],target=soloSubmarineTarget();
+ if(!target)return;
+ shots.forEach((id,index)=>{soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);if(soloSubmarine.weaponTimers[id]>0)return;soloSubmarine.weaponTimers[id]=id==='photonRay'?1.25:id==='nova'?1.7:.8+index*.05;fireSoloSubmarineWeapon(id,target,index,shots.length);});
+}
+function drawSoloSubmarine(t){
+ if(!soloSubmarineActive()&&gameState!=='paused')return;
+ const x=soloSubmarine.x,y=soloSubmarine.y,powered=soloSubmarine.powerSeconds>0,shield=powered&&window.AbyssalSoloBase?.get?.().submarineShield;
+ ctx.save();ctx.translate(x,y);
+ if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
+ if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,178/GAME_WORLD_ZOOM,98/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
+ ctx.shadowBlur=0;ctx.fillStyle='#d3a62e';ctx.strokeStyle='#49330b';ctx.lineWidth=4/GAME_WORLD_ZOOM;
+ ctx.beginPath();ctx.moveTo(-145/GAME_WORLD_ZOOM,0);ctx.quadraticCurveTo(-105/GAME_WORLD_ZOOM,-50/GAME_WORLD_ZOOM,35/GAME_WORLD_ZOOM,-44/GAME_WORLD_ZOOM);ctx.quadraticCurveTo(125/GAME_WORLD_ZOOM,-34/GAME_WORLD_ZOOM,154/GAME_WORLD_ZOOM,0);ctx.quadraticCurveTo(120/GAME_WORLD_ZOOM,40/GAME_WORLD_ZOOM,15/GAME_WORLD_ZOOM,46/GAME_WORLD_ZOOM);ctx.quadraticCurveTo(-105/GAME_WORLD_ZOOM,42/GAME_WORLD_ZOOM,-145/GAME_WORLD_ZOOM,0);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#121b1d';ctx.fillRect(-48/GAME_WORLD_ZOOM,-48/GAME_WORLD_ZOOM,82/GAME_WORLD_ZOOM,13/GAME_WORLD_ZOOM);
+ ctx.fillStyle='#67e8f9';ctx.shadowColor='#67e8f9';ctx.shadowBlur=10/GAME_WORLD_ZOOM;for(let i=0;i<4;i++){ctx.beginPath();ctx.arc((-58+i*33)/GAME_WORLD_ZOOM,-2/GAME_WORLD_ZOOM,5/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.fill();}
+ ctx.shadowBlur=0;
+ const installed=window.AbyssalSoloBase?.unlockedShots?.()||['photon'];
+ installed.forEach((id,index)=>{const total=installed.length,tx=(index-(total-1)/2)*30/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'};ctx.save();ctx.translate(tx,-39/GAME_WORLD_ZOOM);ctx.fillStyle='#1a2327';ctx.fillRect(-8/GAME_WORLD_ZOOM,-5/GAME_WORLD_ZOOM,27/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM);ctx.fillStyle=colors[id]||'#9ff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=powered?8/GAME_WORLD_ZOOM:0;ctx.fillRect(16/GAME_WORLD_ZOOM,-3/GAME_WORLD_ZOOM,10/GAME_WORLD_ZOOM,4/GAME_WORLD_ZOOM);ctx.restore();});
+ ctx.fillStyle='#1a2327';ctx.fillRect(52/GAME_WORLD_ZOOM,-35/GAME_WORLD_ZOOM,58/GAME_WORLD_ZOOM,9/GAME_WORLD_ZOOM);
+ ctx.restore();
+ if(soloSubmarine.spawnFx>0&&player){for(let i=0;i<6;i++){const phase=t*.002+i*1.7,life=soloSubmarine.spawnFx/2.2,px=player.x+Math.sin(phase)*18/GAME_WORLD_ZOOM,py=player.y+(1-life)*34/GAME_WORLD_ZOOM+i*5/GAME_WORLD_ZOOM;ctx.save();ctx.globalAlpha=Math.min(1,life);ctx.strokeStyle='#d7ffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(px,py,(2+i%3)/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.stroke();ctx.restore();}}
+}
+
 const BACKGROUND_BEAM_COLORS=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
 let arenaVortexLayoutKey='',arenaVortexLayoutCache=[],arenaVortexGradientKey='';
 let arenaVortexGlowGradients=new Map();
@@ -1327,12 +1419,15 @@ function startGame(){
 if(isOpenSeaRun()){
  const researched=[...(resonancePresets.pve||[])].filter(id=>resonanceAvailable(id,'pve')&&id!=='range'&&id!=='regen');
  runResonanceIds=['photon','range','regen',...researched.filter(id=>id!=='photon')];
-}else{
- runResonanceIds=[...(resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[])].filter(id=>resonanceAvailable(id,onlineRoomMode==='pvp'?'pvp':'pve'));
+}else if(onlineRoomMode==='pvp'){
+ runResonanceIds=[...(resonancePresets.pvp||[])];
  if(!runResonanceIds.some(id=>RESONANCE_CATEGORIES.shots.includes(id)))runResonanceIds.unshift('electric');
+}else{
+ runResonanceIds=[...(resonancePresets.pve||[])].filter(id=>resonanceAvailable(id,'pve'));
+ if(!runResonanceIds.some(id=>RESONANCE_CATEGORIES.shots.includes(id)))runResonanceIds.unshift('photon');
 }
  // Open Sea starts with a plain photon shot. Classic shooter keeps its own loadout.
- const selectedOpeningShot=isOpenSeaRun()?'photon':(runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric');
+ const selectedOpeningShot=isOpenSeaRun()?'photon':(runResonanceIds.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'photon');
  runShotId=selectedOpeningShot;
  upgrades={power:Math.pow(1.08,Math.max(0,Number(metaUpgrades.focuser)||0)),rate:1,range:1,speed:1+Math.max(0,Number(metaUpgrades.current)||0)*.05,magnet:1,regen:0,shield:Math.min(3,Math.max(0,Number(metaUpgrades.startShield)||0)),burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
  upgradeLevels={power:0,rate:0,range:0,speed:0,magnet:0,regen:0,shield:0,burst:0,electric:selectedOpeningShot==='electric'?1:0,pierce:selectedOpeningShot==='pierce'?1:0,ricochet:0,spread:0,photon:selectedOpeningShot==='photon'?1:0,photonRay:selectedOpeningShot==='photonRay'?1:0,nova:selectedOpeningShot==='nova'?1:0,echoShot:selectedOpeningShot==='echoShot'?1:0,shell:0,ward:0,lastStand:0,pressureCocoon:0,vitality:0,predator:0,closePressure:0,gravitationalRupture:0,arcChain:0,photonCascade:0,tidalEcho:0,hadalBeam:0};
@@ -1341,9 +1436,10 @@ if(isOpenSeaRun()){
  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();particles=[];particlePool.length=0;sharkWakeTrails=[];inkTrails=[];projectiles=[];effects=[];enemyCollisionGrid.clear();hostileSpriteCache.clear();aquaticMotionTracker?.clear?.();remoteCreatureAttackUntil.clear();
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
- const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:W*.5,y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:H*.11};
+ if(!onlineMode&&isClassicShooterRun())resetSoloSubmarine();
+ const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(!onlineMode&&isClassicShooterRun()?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(!onlineMode&&isClassicShooterRun()?soloSubmarine.y+26/GAME_WORLD_ZOOM:H*.11)};
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:0,bodyAngle:0,weaponAngle:0,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  if(isOpenSeaRun()){const rangeSkill=upgradeList.find(item=>item.id==='range'),regenSkill=upgradeList.find(item=>item.id==='regen');if(!upgradeLevels.range){rangeSkill?.apply();upgradeLevels.range=1;}if(!upgradeLevels.regen){regenSkill?.apply();upgradeLevels.regen=1;}}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
@@ -2268,7 +2364,7 @@ function isManualFiringMode(){return !isClassicShooterRun()||isPcMouseAimMode()|
 function manualFireDown(){return isMobileDevice()?mobileFireHeld:pointer.down;}
 function syncMobileFireButton(){const btn=$('mobileFireBtn');if(btn)btn.hidden=!(gameState==='playing'&&isMobileDevice()&&isManualFiringMode());}
 function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
-function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||'electric';}
+function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||(onlineRoomMode==='pvp'?'electric':'photon');}
 // A side-beam and its actual hit segment must stop at the same solid rock.
 function clipPrismaticPhotonRay(sx,sy,ex,ey,radius){
  const pvp=onlineRoomMode==='pvp';
@@ -2649,6 +2745,8 @@ function update(dt){
  const isPvpMode=onlineRoomMode==='pvp';
  if((gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))||!player)return;
  updateMapInteraction();
+ updateSoloSubmarine(dt);
+ updateSoloSubmarineInteraction();
  updateSkinCloudExpansions(dt);
  updateSkinPulses(dt);
  updateSmoothSkinPush(dt);
@@ -3218,7 +3316,7 @@ function setWidthIfChanged(id,value){const node=$(id),width=String(value);if(nod
 function updateHud(force=true){
  const now=performance.now();if(!force&&now-lastHudUpdateAt<100)return;lastHudUpdateAt=now;
  setTextIfChanged('timeText',fmtTime(elapsed));const levelDisplay = areAllUpgradesMaxed() || level === 'MAX' ? 'Nível MAX' : String(level).padStart(2,'0');
- setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun())setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));
+ setTextIfChanged('levelText', levelDisplay);setTextIfChanged('bossKillsText',String(bossKillsThisRun).padStart(2,'0'));setTextIfChanged('scoreText',score.toLocaleString('pt-BR'));setTextIfChanged('hpText',`${Math.ceil(Math.max(0,hp))} / ${maxHp}`);setWidthIfChanged('hpFill',`${clamp(hp/maxHp*100,0,100)}%`);setTextIfChanged('xpText',`${Math.floor(xp)} / ${xpNeed}`);setWidthIfChanged('xpFill',`${clamp(xp/xpNeed*100,0,100)}%`);renderSelectedSkills();if(!onlineMode&&isClassicShooterRun()){setTextIfChanged('soloEnergyBalance',String(window.AbyssalSoloProgress?.get().energy||0));setTextIfChanged('soloSubmarineStatus',soloSubmarine.powerSeconds>0?(Math.ceil(soloSubmarine.powerSeconds/60)+' MIN · '+(window.AbyssalSoloBase?.unlockedShots?.().length||1)+' ARMA(S)'):'SEM ENERGIA');}
 }
 window.addEventListener('abyssal-run-energy-ranking',ev=>{const root=$('runEnergyRankingList');if(!root)return;const ranking=Array.isArray(ev.detail)?ev.detail:[];root.innerHTML=ranking.length?ranking.map((item,index)=>'<div class="run-energy-row"><span class="energy-name">'+(Number(item.rank)||index+1)+'. '+escapeHtml(item.nickname||'Mergulhador')+'</span><span class="energy-value">'+Math.floor(Number(item.energy)||0).toLocaleString('pt-BR')+'</span></div>').join(''):'<span>Sem dados ainda</span>';});
 function renderRunEndPresentation(){
@@ -4043,6 +4141,7 @@ function draw(t){
  if(gameState==='menu')return;
  updateCamera();ctx.setTransform(dpr*worldZoom,0,0,dpr*worldZoom,0,0);ctx.save();if(shake>0)ctx.translate(rand(-shake,shake),rand(-shake,shake));ctx.translate(-cameraX,-cameraY);drawBackground(t);
  if(!activeMapLayout)drawArenaTerrain(t);
+ if(!onlineMode&&isClassicShooterRun())drawSoloSubmarine(t);
  drawExperienceOrbs(t);
  if(activeMapLayout&&RIFT_HARDCORE){const nightmareAliveForRender=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&enemies.some(enemy=>enemy.kind===RIFT_HARDCORE.FINAL_KIND&&enemy.hp>0);const visibleHazards=nightmareAliveForRender?activeRiftHazards:activeRiftHazards.filter(h=>h.type!=='tentacle');RIFT_HARDCORE.draw(ctx,visibleHazards,elapsed,{x:cameraX,y:cameraY,w:viewW/worldZoom,h:viewH/worldZoom});
   const now=performance.now();riftBossMarks=riftBossMarks.filter(m=>now<(m.impactUntil||m.hitAt+420));
@@ -4298,7 +4397,7 @@ function draw(t){
     ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font=`700 ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
- if(!onlineMode&&isClassicShooterRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t);}
+ if(!onlineMode&&isClassicShooterRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered(),radius:355/GAME_WORLD_ZOOM}]);}
  // Mar Aberto retains its independent helmet light.
  if(isOpenSeaRun()&&player&&gameState==='playing'){
   const levels=window.AbyssalExplorationBridge?.levels?.()||{};
@@ -4989,7 +5088,7 @@ const resonanceSkillLabels={power:['✦','Pulso Intenso'],rate:['≋','Ressonân
 const resonanceSkillDescriptions={power:'+50% de dano dos disparos por nível.',rate:'+28% de cadência por nível.',speed:'+18% de velocidade de movimento por nível.',range:'+22% de alcance dos disparos por nível.',magnet:'+8% de experiência recebida por nível.',regen:'Recupera vida gradualmente durante o mergulho.',shield:'Adiciona uma carga que bloqueia o próximo dano, até 3.',burst:'Explosão periódica de dano ao redor do jogador.',electric:'Corrente elétrica com até 3 saltos de dano reduzido.',pierce:'Arpão pesado que atravessa inimigos alinhados.',ricochet:'Projéteis saltam para outros alvos próximos.',spread:'Nv. 1/2/3: +2/+4/+6 disparos em leque, ou feixes laterais do Raio de Fótons (42% do dano, sem acúmulo no mesmo alvo), ou estilhaços radiais da Nova (28% do dano distribuído entre eles).',photon:'Dardo fotônico extremamente rápido e focado em alvo único.',photonRay:'Feixe automático contínuo no inimigo mais próximo.',nova:'Pulso gravitacional que atinge todos dentro do alcance.',echoShot:'Dois projéteis paralelos de maré com dano dividido e trajetória estreita.',shell:'Reduz o dano recebido em 8% por nível, até 24%.',ward:'Invulnerabilidade automática breve com recarga decrescente.',lastStand:'Com até 30% de vida, reduz dano recebido em 20%, 25% ou 30%, segundo o nível.',pressureCocoon:'Com escudo zerado, recompõe 1 carga após 24, 20 ou 16 segundos.',vitality:'+10% de vida máxima por nível e cura o valor acrescentado.',predator:'+14% de dano por nível em chefes e elites, +3% em comuns e +6% extra contra alvos com até 30% de vida.',closePressure:'+18% de dano por nível contra inimigos a menos de 175 unidades.'};
 function resonanceCategoryOf(id){for(const [category,ids] of Object.entries(RESONANCE_CATEGORIES))if(ids.includes(id))return category;return 'buffs';}
 function resonanceCounts(ids=resonancePresets[resonanceEditingMode]||[]){ids=ids.filter(id=>resonanceAvailable(id,resonanceEditingMode));return {shots:ids.filter(id=>RESONANCE_CATEGORIES.shots.includes(id)).length,passive:ids.filter(id=>RESONANCE_CATEGORIES.passive.includes(id)).length,buffs:ids.filter(id=>RESONANCE_CATEGORIES.buffs.includes(id)).length,total:ids.length};}
-function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const [category,heading] of [['shots','DISPAROS · ESCOLHA EXATAMENTE 1'],['passive','PASSIVAS'],['buffs','BUFFS']]){const section=document.createElement('section');section.className='resonance-category';const title=document.createElement('h3');title.className='resonance-category-title';title.textContent=heading;section.append(title);const list=document.createElement('div');list.className='resonance-category-list';for(const id of RESONANCE_CATEGORIES[category]){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option resonance-'+category;row.dataset.skill=id;row.title=resonanceSkillDescriptions[id]||'';const input=document.createElement('input');input.type='checkbox';input.value=id;const available=resonanceAvailable(id,resonanceEditingMode);input.checked=available&&resonancePresets[resonanceEditingMode].includes(id);input.disabled=!available;row.classList.toggle('resonance-locked',!available);input.setAttribute('aria-label',label+(available?'':' · PESQUISA BLOQUEADA'));input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(category==='shots'&&!input.checked&&current.includes(id)){input.checked=true;$('resonanceMessage').textContent='Você precisa manter exatamente 1 disparo selecionado.';return;}let next=current.filter(value=>value!==id);if(input.checked){if(category==='shots')next=next.filter(value=>!RESONANCE_CATEGORIES.shots.includes(value));if(next.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite total é de 7 habilidades.';return;}next.push(id);}resonancePresets[resonanceEditingMode]=normalizeResonancePresets({...resonancePresets,[resonanceEditingMode]:next})[resonanceEditingMode];resonanceEditedInSession=true;saveResonancePresets();$('resonanceMessage').textContent='';if(category==='shots')renderResonanceChoices();else updateResonanceCount();});const badge=document.createElement('span');badge.className='resonance-skill-icon';badge.textContent=icon;badge.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='resonance-skill-copy';const name=document.createElement('strong');name.textContent=label;const description=document.createElement('small');description.textContent=available?(resonanceSkillDescriptions[id]||'Habilidade de combate abissal.'):'PESQUISAR NO SUBMARINO PARA DESBLOQUEAR';copy.append(name,description);row.append(input,badge,copy);list.append(row);}section.append(list);root.append(section);}const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>{const active=b.dataset.resonanceMode===resonanceEditingMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}
+function renderResonanceChoices(){const root=$('resonanceSkillChoices');if(!root)return;root.replaceChildren();for(const [category,heading] of [['shots','DISPAROS · ESCOLHA EXATAMENTE 1'],['passive','PASSIVAS'],['buffs','BUFFS']]){const section=document.createElement('section');section.className='resonance-category';const title=document.createElement('h3');title.className='resonance-category-title';title.textContent=heading;section.append(title);const list=document.createElement('div');list.className='resonance-category-list';for(const id of RESONANCE_CATEGORIES[category]){const [icon,label]=resonanceSkillLabels[id],row=document.createElement('label');row.className='resonance-skill-option resonance-'+category;row.dataset.skill=id;row.title=resonanceSkillDescriptions[id]||'';const input=document.createElement('input');input.type='checkbox';input.value=id;const available=resonanceAvailable(id,resonanceEditingMode),fixedStarter=resonanceEditingMode==='pve'&&['range','regen'].includes(id);input.checked=fixedStarter||(available&&resonancePresets[resonanceEditingMode].includes(id));input.disabled=!available||fixedStarter;row.classList.toggle('resonance-locked',!available);row.classList.toggle('resonance-starter',fixedStarter);input.setAttribute('aria-label',label+(available?'':' · PESQUISA BLOQUEADA'));input.addEventListener('change',()=>{const current=resonancePresets[resonanceEditingMode];if(category==='shots'&&!input.checked&&current.includes(id)){input.checked=true;$('resonanceMessage').textContent='Você precisa manter exatamente 1 disparo selecionado.';return;}let next=current.filter(value=>value!==id);if(input.checked){if(category==='shots')next=next.filter(value=>!RESONANCE_CATEGORIES.shots.includes(value));if(next.length>=7){input.checked=false;$('resonanceMessage').textContent='O limite total é de 7 habilidades.';return;}next.push(id);}resonancePresets[resonanceEditingMode]=normalizeResonancePresets({...resonancePresets,[resonanceEditingMode]:next})[resonanceEditingMode];resonanceEditedInSession=true;saveResonancePresets();$('resonanceMessage').textContent='';if(category==='shots')renderResonanceChoices();else updateResonanceCount();});const badge=document.createElement('span');badge.className='resonance-skill-icon';badge.textContent=icon;badge.setAttribute('aria-hidden','true');const copy=document.createElement('span');copy.className='resonance-skill-copy';const name=document.createElement('strong');name.textContent=label;const description=document.createElement('small');description.textContent=available?(resonanceSkillDescriptions[id]||'Habilidade de combate abissal.'):'PESQUISAR NO SUBMARINO PARA DESBLOQUEAR';copy.append(name,description);row.append(input,badge,copy);list.append(row);}section.append(list);root.append(section);}const modal=document.querySelector('#resonanceScreen .resonance-modal');if(modal)modal.classList.toggle('resonance-pvp-theme',resonanceEditingMode==='pvp');updateResonanceCount();document.querySelectorAll('[data-resonance-mode]').forEach(b=>{const active=b.dataset.resonanceMode===resonanceEditingMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});}
 const RESONANCE_FUSION_RECIPES=Object.freeze([
  {id:'gravitationalRupture',name:'RUPTURA GRAVITACIONAL',items:[['nova','Nova Gravitacional'],['burst','Pulso de Ruptura']]},
  {id:'arcChain',name:'CADEIA DE ARCOS',items:[['electric','Tempestade Elétrica'],['ricochet','Ricochete Caótico']]},
