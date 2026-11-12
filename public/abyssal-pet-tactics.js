@@ -51,7 +51,7 @@
   if(enemy){
    // Aggressive pet makes a proximity choice between a threat and reachable XP.
    // Guardian treats the protected area as the highest priority.
-   if(!orb||(mode==='guardian'?enemyDistance<guardRange*.65:enemyDistance<=orbDistance*.75))
+   if(mode==='guardian'||!orb||enemyDistance<=orbDistance*1.15)
     return {type:'enemy',target:enemy,enemy,mode};
   }
   if(orb)return {type:'orb',target:orb,orb,mode};

@@ -22,8 +22,8 @@ test('solo and open sea unlit regions are darker',()=>{
 test('cockpit is the only visible main menu and utility buttons inherit shop/codex themes',()=>{
  const html=read('public/index.html'),runtime=read('public/abyssal-exploration-runtime.js'),css=read('public/abyssal-submarine-laboratory.css');
  assert.match(html,/id="menuScreen"[^>]*style="visibility:hidden"/);
- assert.match(css,/body:not\(\.game-active\) #menuScreen\{visibility:hidden!important/);
- assert.match(css,/#submarineWorkshop #submarineWorkshopClose\{display:none!important/);
+ assert.match(css,/body:not\(\.game-active\):not\(\.abyss-hatch-navigation\) #menuScreen\{visibility:hidden!important/);
+ assert.match(css,/#submarineWorkshop #submarineWorkshopClose\{display:block!important/);
  assert.match(runtime,/abyss-shop-action/);assert.match(runtime,/abyss-codex-action/);
  assert.match(css,/\.abyss-shop-action/);assert.match(css,/\.abyss-codex-action/);
 });
@@ -48,5 +48,5 @@ test('boss progression remains seven bosses per cycle with rewards at first and 
  assert.match(game,/PROGRESSION_MAX_CYCLES = 5/);
  assert.match(server,/bossesKilled\)>=7&&grantFirstProgressionReward/);
  assert.match(server,/bossesKilled\)>=42&&grantFinalConquest/);
- assert.match(server,/u\.coins=\(Number\(u\.coins\)\|\|0\)\+100/);
+ assert.match(server,/FIRST_PROGRESSION_REWARD_COINS=5000/);
 });

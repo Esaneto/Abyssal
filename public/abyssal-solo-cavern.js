@@ -106,7 +106,7 @@
   for(const r of rocks||[]){
    if(!r.cavernSolid||r.visualOnly)continue;
    if(Math.min(x,x+dx*limit)>r.x+r.r||Math.max(x,x+dx*limit)<r.x-r.r||Math.min(y,y+dy*limit)>r.y+r.r||Math.max(y,y+dy*limit)<r.y-r.r)continue;
-   const a=local(r,x,y),b=local(r,x+dx,y+dy),vx=b[0]-a[0],vy=b[1]-a[1],pts=r.vertices;
+   const a=local(r,x,y),b=local(r,x+dx*range,y+dy*range),vx=b[0]-a[0],vy=b[1]-a[1],pts=r.vertices;
    for(let i=0,j=pts.length-1;i<pts.length;j=i++){const t=lineParameter(a[0],a[1],vx,vy,pts[j],pts[i]);if(t<=1)limit=Math.min(limit,t*Math.hypot(vx,vy));}
   }return limit;
  }
