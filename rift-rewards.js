@@ -2,7 +2,7 @@
 const {randomInt,randomUUID}=require('node:crypto');
 const curated=require('./public/abyssal-curated-skins');
 const COIN_SKINS=Object.freeze(['solar','toxic','thorn','abyssking','royal','glacier','coral','bloodmoon','voidwing','abyssaleye','deepwarden',...curated.items.filter(s=>!s.paid&&s.price>0).map(s=>s.id)]);
-const COINS=Object.freeze([300,500,700,900,1000,1200]);
+const COINS=Object.freeze([30,50,70,90,100,120]);
 const SKIN_CHANCE=3; // 3%, versus 97% divided equally between six coin outcomes.
 const FINAL_SKIN='riftSmileRelic';
 function grant(account,key,options={}){
@@ -28,10 +28,10 @@ function open(account,id,rng=randomInt){
    const randomDuplicate=owned.has(randomSkinId);
    owned.add(randomSkinId);
    account.ownedSkins=[...owned];
-   account.coins=(Number(account.coins)||0)+100000;
-   reward={type:'final',amount:100000,skinId:FINAL_SKIN,nightmareSkinId:FINAL_SKIN,nightmareDuplicate,randomSkinId,randomDuplicate};
+   account.energy=(Number(account.energy)||0)+10000;
+   reward={type:'final',amount:10000,skinId:FINAL_SKIN,nightmareSkinId:FINAL_SKIN,nightmareDuplicate,randomSkinId,randomDuplicate};
  }else if(rng(100)<SKIN_CHANCE&&available.length){const skin=available[rng(available.length)];account.ownedSkins=[...(account.ownedSkins||['default']),skin];reward={type:'skin',id:skin};}
- else {const amount=COINS[rng(COINS.length)];account.coins=(account.coins||0)+amount;reward={type:'coins',amount};}
+ else {const amount=COINS[rng(COINS.length)];account.energy=(account.energy||0)+amount;reward={type:'energy',amount};}
  chest.reward=reward;chest.openedAt=Date.now();return {ok:true,reward};
 }
 module.exports={COIN_SKINS,COINS,SKIN_CHANCE,FINAL_SKIN,grant,open};
