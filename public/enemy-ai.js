@@ -346,5 +346,20 @@
     return { ...ENEMY_STATS.whiteSharkBoss };
   }
 
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, isChargeAttack, biteDistance, biteReach, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  // Tentacled monsters strike with their appendages before closing body-to-body.
+  function tentacleAttacker(enemy,family){
+    return Boolean(enemy&&(enemy.kind==='kraken'||enemy.kind==='devourer'||['octopus','squid','jelly'].includes(family)||['toxic','coral','riftSmileRelic'].includes(enemy.specimenSkinId)));
+  }
+  function tentacleStopDistance(enemy,radius,targetRadius,family){
+    return tentacleAttacker(enemy,family)?Math.max(1,radius)*(enemy.kind==='kraken'?3.1:enemy.kind==='devourer'?1.8:1.55)+Math.max(1,targetRadius):biteDistance(radius,targetRadius);
+  }
+  function tentacleContact(enemy,target,radius,family){
+    if(!tentacleAttacker(enemy,family)||!target)return false;
+    const r=Math.max(1,Number(radius)||1),tr=Math.max(1,Number(target.r)||1),d=Math.hypot(target.x-enemy.x,target.y-enemy.y);
+    if(enemy.kind==='kraken')return d<=r*5.2+tr&&touchesKrakenTentacle(enemy,target,r/Math.max(1,Number(enemy.r)||1));
+    // Non-Kraken appendages extend beyond the mantle; contact is a bounded
+    // envelope until each species has a dedicated anatomical curve.
+    return d<=r*(enemy.kind==='devourer'?2.05:1.8)+tr;
+  }
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, isChargeAttack, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });
