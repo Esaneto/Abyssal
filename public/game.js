@@ -430,7 +430,7 @@ for(const skin of skinData){
  else if(profile.tier==='brl499'){skin.paid=true;skin.price=499;}
  else if(profile.tier==='brl999'){skin.paid=true;skin.price=999;}
  else if(profile.tier==='mission'||profile.tier==='promo'){skin.paid=false;skin.price=0;}
- else if(profile.tier==='coins'&&!skin.paid){skin.rarity=SPECIMEN_RARITY?.rarityFor?.(skin.id)||'common';skin.price=SHOP_ECONOMY?.priceForRarity?.(skin.rarity)||skin.price;}
+ else if(profile.tier==='coins'){skin.paid=false;skin.rarity=SPECIMEN_RARITY?.rarityFor?.(skin.id)||'common';skin.price=skin.id==='default'?0:SHOP_ECONOMY.priceForRarity(skin.rarity);}
 }
 function skinShopTaxonomy(skin){
  const meta=SKIN_TAXONOMY[skin?.id]||{};
@@ -5003,7 +5003,7 @@ function renderShop(){
  const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'SPECIMEN<br><em>CATALOG</em>':'CATÁLOGO DE<br><em>ESPÉCIMES</em>';
  const englishNames={violet:'Violet Wraith',leviathan:'Leviathan Echo',kraken:'Kraken Echo',aberration:'Aberration Husk',angler:'Lantern Core',maw:'Rift Fragment',devourer:'Devourer Core',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Estuarine Bull Shark',armoredgator:'Armored Horseshoe Crab'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'A robust estuarine bull shark adapted to shallow channels, turbid water and sudden frontal bursts.',armoredgator:'A mineral-armored horseshoe crab with a broad carapace and a long defensive telson.'};
- const paidBrl=Object.freeze({violet:199,phantomjelly:199,bloodmoon:199,toxic:199,butterflyray:199,hawksbill:199,greenland:199,reefshark:499,hammerhead:499,saltcroc:499,blackcaiman:499,abysscroc:499,armoredgator:499,electriceellegacy:499,leviathan:999,kraken:999,aberration:999,angler:999,maw:999,devourer:999});
+ const paidBrl=Object.freeze(Object.fromEntries(skinData.filter(skin=>skin.paid).map(skin=>[skin.id,skin.price])));
  const searchEl=$('shopSearchInput'),familyEl=$('shopFamilyFilter'),ownershipEl=$('shopOwnershipFilter');
  for(const el of [searchEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
  const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
