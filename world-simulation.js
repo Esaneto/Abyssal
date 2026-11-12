@@ -793,7 +793,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
           if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
         }
-        movement.target = actualTarget;
+        movement.target = EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget;
       }
     } else {
     // Only sighted prey may trigger a pursuit. Passive fauna patrols until
