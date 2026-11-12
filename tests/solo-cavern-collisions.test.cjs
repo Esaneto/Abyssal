@@ -103,8 +103,12 @@ test('destroying one section opens physical passage and disables only its turret
  assert.equal(h.run("soloWeaponOperational('photon')"),false);
  assert.equal(h.run("soloWeaponOperational('pierce')"),true);
  assert.equal(h.run('soloSubmarine.sections[0].hp+soloSubmarine.sections[2].hp'),600);
- h.run('player.x=2400;player.y=1170');
+ h.run('soloSubmarine.spawnFx=0;player.x=2400;player.y=1170');
  assert.equal(h.run('repairSoloHull()'),true);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
+ assert.equal(h.run('updateSoloHullRepair(29.9)'),false);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),0);
+ assert.equal(h.run('updateSoloHullRepair(.1)'),true);
  assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
  assert.equal(h.run("soloWeaponOperational('photon')"),true);
  assert.equal(h.run('SOLO_CAVERN.segmentBlocked(arenaRocks,2400,950,2400,1400,2)'),true);
@@ -162,4 +166,33 @@ test('powered hull attack station holds position and triggers one bite per coold
  assert.equal(h.run('soloSubmarine.sections[1].hp'),260);assert.equal(visualCount,2);
  h.run('soloSubmarine.powerSeconds=0');
  assert.equal(h.run('holdSoloHullAttack(mob,.016,2200)'),false);
+});
+
+test('repair requires uninterrupted 30 seconds and retains damaged HP until completion',()=>{
+ const h=submarineHarness();h.run('soloSubmarine.spawnFx=0;player.x=2400;player.y=1060;damageSoloHull(soloSubmarine.sections[1],100)');
+ assert.equal(h.run('repairSoloHull()'),true);
+ assert.equal(h.run('soloSubmarine.repair.section.id'),1);
+ assert.equal(h.run('updateSoloHullRepair(15)'),false);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ assert.equal(h.run('repairSoloHull()'),false);
+ assert.equal(h.run('soloSubmarine.repair'),null);
+ assert.equal(h.run('repairSoloHull()'),true);
+ assert.equal(h.run('soloSubmarine.repair.elapsed'),0);
+ h.run('player.x+=30');
+ assert.equal(h.run('updateSoloHullRepair(30)'),false);
+ assert.equal(h.run('soloSubmarine.repair'),null);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ h.run('player.x=2400;repairSoloHull();updateSoloHullRepair(20)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),200);
+ assert.equal(h.run('updateSoloHullRepair(10)'),true);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+});
+test('welding restores only the selected section and keeps a real surface contact point',()=>{
+ const h=submarineHarness();h.run('soloSubmarine.spawnFx=0;player.x=2400;player.y=1060;damageSoloHull(soloSubmarine.sections[1],200);damageSoloHull(soloSubmarine.sections[0],100)');
+ assert.equal(h.run('repairSoloHull()'),true);
+ assert.equal(h.run('soloSubmarine.repair.section.id'),1);
+ assert.ok(h.run('Math.hypot(soloSubmarine.repair.point.x-player.x,soloSubmarine.repair.point.y-player.y)<100'));
+ h.run('updateSoloHullRepair(30)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run('soloSubmarine.sections[0].hp'),200);
 });
