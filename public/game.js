@@ -609,7 +609,7 @@ function soloHullContact(e,now){
  e.submarineAttackAt=now+1000;
  const impact=soloHullImpactPoint(e,hit),angle=Math.atan2(impact.y-e.y,impact.x-e.x);
  e.hostileBite={startedAt:now,duration:480,angle};
- if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
+ if(typeof renderHostileContactAbility==='function')renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,enemyX:e.x,enemyY:e.y,enemyRadius:e.r,angle,enemyColor:e.color,playerX:impact.x,playerY:impact.y,submarine:true});
  damageSoloHull(hit,Math.max(5,Number(e.damage)||8));return true;
 }
 function holdSoloHullAttack(e,dt,now){
@@ -1255,7 +1255,7 @@ function renderHostileContactAbility(data){
  playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
  if(skill!=='tentacle-strike'){
-  const enemy=enemies.find(e=>e.id!=null&&d.enemyId!=null&&String(e.id)===String(d.enemyId));
+  const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
   const angle=Math.atan2(py-y,px-x);
   if(enemy)enemy.hostileBite={startedAt:performance.now(),duration:480,angle};
   queueEffect({type:'bite-jaws',x:px,y:py,angle,max:Math.max(21/GAME_WORLD_ZOOM,Math.min(48/GAME_WORLD_ZOOM,(Number(d.enemyRadius)||player?.r||20)*.85)),life:.48,maxLife:.48,color:'#ffddd4'});
@@ -3438,7 +3438,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
   const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
   const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
-  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;renderHostileContactAbility({kind:e.kind,enemyId:e.id,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});}e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predation decisions are sampled at 10 Hz; locomotion and visuals remain per-frame.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
