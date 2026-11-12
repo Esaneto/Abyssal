@@ -4735,23 +4735,43 @@ if(performanceDebugEnabled){
  document.body.appendChild(panel);
  setInterval(()=>{const snap=getAbyssalPerformanceSnapshot();panel.textContent=JSON.stringify(snap,null,2);},500);
 }
+let gameLoopFrame=0,gameLoopTimer=0;
+function scheduleGameLoop(delay=0){
+ if(document.hidden||gameLoopFrame||gameLoopTimer)return;
+ if(delay>0){
+  gameLoopTimer=setTimeout(()=>{gameLoopTimer=0;if(!document.hidden)gameLoopFrame=requestAnimationFrame(loop);},delay);
+  return;
+ }
+ gameLoopFrame=requestAnimationFrame(loop);
+}
+function stopGameLoop(){
+ if(gameLoopFrame)cancelAnimationFrame(gameLoopFrame);
+ if(gameLoopTimer)clearTimeout(gameLoopTimer);
+ gameLoopFrame=0;gameLoopTimer=0;
+}
 function loop(t){
+ gameLoopFrame=0;
+ if(document.hidden)return;
  // The swimmer menu owns its own renderer; don't run the gameplay pipeline there.
  // A low-rate wake-up is sufficient to resume gameplay after a mode selection.
- if(gameState==='menu'&&!onlineMode){last=t;setTimeout(()=>requestAnimationFrame(loop),125);return;}
+ if(gameState==='menu'&&!onlineMode){last=t;scheduleGameLoop(125);return;}
  const active=!abyssalTutorialActive&&(gameState==='playing'||(onlineMode&&gameState==='upgrade'));
  // During active gameplay, trust requestAnimationFrame instead of manually skipping
  // frames. The old 60-FPS divisor produced 37-55 FPS on 75/90/144/165 Hz displays.
  // Idle/menu rendering remains capped to ~30 FPS because motion there is non-critical.
- if(!active&&lastPaintAt&&t-lastPaintAt<1000/30-1){requestAnimationFrame(loop);return;}
+ if(!active&&lastPaintAt&&t-lastPaintAt<1000/30-1){scheduleGameLoop();return;}
  const dt=Math.min(.10,Math.max(0,(t-last)/1000||0));last=t;lastPaintAt=t;
  const frameStarted=performance.now();let updateMs=0,drawMs=0;
  try{
   if(active){const updateStarted=performance.now();const steps=Math.max(1,Math.ceil(dt/.020)),step=dt/steps;for(let i=0;i<steps;i++){if(abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade')))break;update(step);}updateMs=performance.now()-updateStarted;}
   const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);updateAdaptivePerformance(frameEnded);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
- requestAnimationFrame(loop);
+ scheduleGameLoop();
 }
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){stopGameLoop();return;}
+ last=performance.now();scheduleGameLoop();
+});
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
 canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),clientX:e.clientX,clientY:e.clientY,down:true,active:true};canvas.setPointerCapture?.(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){pointer.clientX=e.clientX;pointer.clientY=e.clientY;Object.assign(pointer,coords(e));pointer.active=true;}});
@@ -5541,11 +5561,22 @@ window.addEventListener('abyssal-first-progression-reward',ev=>{
  window.AbyssalTutorials?.showProgressionChoice?.();
 });
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} ENERGIA NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
-window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();});
-window.addEventListener('abyssal-account-signed-out',()=>energyWallet?.setAccount('',0));
-setInterval(()=>energyWallet?.sync(),5000);
-window.addEventListener('online',()=>syncSoloAdaptation());
-setInterval(syncSoloAdaptation,15000);
+let accountMaintenanceTimer=0;
+function scheduleAccountMaintenance(delay=30000){
+ if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}
+ if(document.hidden)return;
+ accountMaintenanceTimer=setTimeout(()=>{
+  accountMaintenanceTimer=0;
+  if(document.hidden)return;
+  energyWallet?.sync();
+  syncSoloAdaptation();
+  scheduleAccountMaintenance();
+ },Math.max(1000,Number(delay)||30000));
+}
+window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance();});
+window.addEventListener('abyssal-account-signed-out',()=>{if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}energyWallet?.setAccount('',0);});
+window.addEventListener('online',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance(5000);});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}}else scheduleAccountMaintenance(3000);});
 window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   energyWallet?.setAccount(a.nickname,a.energy);
@@ -5602,7 +5633,7 @@ renderShop();
 initNotifSystem();resize();
 const gameplayResizeObserver=typeof ResizeObserver==='function'?new ResizeObserver(()=>{if(document.body.classList.contains('game-active'))resize();}):null;
 gameplayResizeObserver?.observe($('gameShell'));
-gameState='menu';requestAnimationFrame(loop);
+gameState='menu';scheduleGameLoop();
 
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{if(['playing','paused','upgrade'].includes(gameState)){ $('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;endGame('voluntary');}});
