@@ -132,3 +132,34 @@ test('unpowered hull takes contact damage, one hit per creature cooldown, with n
  h.run('soloHullContact(mob,2100)');
  assert.equal(h.run('soloSubmarine.sections[1].hp'),260);
 });
+
+test('researched submarine shield absorbs exactly one positive hit per dive, with no recharge on power top-up',()=>{
+ const h=submarineHarness();h.context.window.AbyssalSoloBase={get:()=>({submarineShield:true})};
+ h.run('soloSubmarine.powerSeconds=300;var mob={id:1,x:2400,y:1063,r:30,damage:20}');
+ assert.equal(h.run('soloHullShieldReady()'),true);
+ assert.equal(h.run('damageSoloHull(soloSubmarine.sections[1],0)'),false);
+ assert.equal(h.run('soloHullShieldReady()'),true);
+ h.run('soloHullContact(mob,1000)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),300);
+ assert.equal(h.run('soloSubmarine.shieldSpent'),true);
+ h.run('soloSubmarine.powerSeconds=300;soloHullContact(mob,2100)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ assert.equal(h.run('soloHullShieldReady()'),false);
+ h.run('resetSoloSubmarine();soloSubmarine.powerSeconds=300');
+ assert.equal(h.run('soloHullShieldReady()'),true);
+});
+test('powered hull attack station holds position and triggers one bite per cooldown',()=>{
+ const h=submarineHarness();let visualCount=0;h.context.renderHostileContactAbility=()=>visualCount++;
+ h.run('soloSubmarine.powerSeconds=300;var mob={id:1,x:2400,y:1063,r:30,damage:20,vx:90,vy:50}');
+ assert.equal(h.run('holdSoloHullAttack(mob,.016,1000)'),true);
+ assert.equal(h.run('mob.vx'),0);assert.equal(h.run('mob.vy'),0);
+ assert.equal(h.run('mob.hostileBite.duration'),480);
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),280);
+ for(let i=1;i<60;i++)assert.equal(h.run('holdSoloHullAttack(mob,.016,'+(1000+i*16)+')'),true);
+ assert.equal(h.run('mob.x'),2400);assert.equal(h.run('mob.y'),1063);
+ assert.equal(visualCount,1);
+ h.run('holdSoloHullAttack(mob,.016,2100)');
+ assert.equal(h.run('soloSubmarine.sections[1].hp'),260);assert.equal(visualCount,2);
+ h.run('soloSubmarine.powerSeconds=0');
+ assert.equal(h.run('holdSoloHullAttack(mob,.016,2200)'),false);
+});
