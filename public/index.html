@@ -55,7 +55,9 @@
 <style>
 #gameShell:has(> #menuScreen:not([hidden])) > #game { visibility:hidden !important; }
 /* The loading shell must not reveal leftover legacy menu DOM before the swimmer initializes. */
-#menuScreen.ocean-menu-v2:not(.menu-ready){visibility:hidden!important}
+#menuScreen.ocean-menu-v2:not(.menu-ready),body:not(.abyss-hatch-navigation) #menuScreen{visibility:hidden!important;pointer-events:none!important}
+body:not(.abyss-hatch-navigation):not(.game-active) .topbar{visibility:hidden!important}
+body:not(.abyss-hatch-navigation):not(.game-active) #gameShell{background:#03101c!important}
 #classicDiveActionBridges,#classicDiveActionBridges *{display:none!important}
 
 /* Overhead command keys: align with the 360..1080 / 8..57 mounting plate
@@ -288,7 +290,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="dive-report-flora" aria-hidden="true"><svg viewBox="0 0 580 180" preserveAspectRatio="none"><g fill="none" stroke-linecap="round"><path d="M12 180Q30 126 24 58M24 124Q4 100 7 78M25 103Q55 76 60 48M72 180Q67 125 90 103M90 134Q115 113 118 83M568 180Q548 126 554 58M554 124Q574 100 571 78M553 103Q523 76 518 48M508 180Q513 125 490 103M490 134Q465 113 462 83" stroke="#64e6bf" stroke-width="3"/><path d="M39 180Q45 143 43 111M541 180Q535 143 537 111" stroke="#b985ff" stroke-width="2"/></g><g fill="#a3ffda"><circle cx="24" cy="58" r="4"/><circle cx="7" cy="78" r="3"/><circle cx="60" cy="48" r="4"/><circle cx="118" cy="83" r="3"/><circle cx="554" cy="58" r="4"/><circle cx="571" cy="78" r="3"/><circle cx="518" cy="48" r="4"/><circle cx="462" cy="83" r="3"/></g></svg></div><div class="results dive-report-results">
           <div><small>SOBREVIVÊNCIA</small><strong id="finalTime">00:00</strong></div>
           <div><small>DANO TOTAL</small><strong id="finalScore">0</strong></div>
-          <div><small>MOEDAS ABISSAIS</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
+          <div><small>ENERGIA DE CONCLUSÃO</small><strong id="finalCoins">0</strong></div><div><small>ENERGIA COLETADA</small><strong id="finalEnergy">0</strong></div><div><small>CRIATURAS ABATIDAS</small><strong id="finalKills">0</strong></div><div><small>NÍVEL</small><strong id="finalLevel">1</strong></div>
         </div><p id="finalReportStatus" role="status" aria-live="polite">Relatório da expedição</p>
         <button id="reviveWithAdBtn" class="primary-btn">ASSISTIR ANÚNCIO PARA REVIVER <span>▶</span></button>
         <button id="againBtn" class="secondary-btn">ENCERRAR E MERGULHAR NOVAMENTE</button>
@@ -301,7 +303,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="modal-card compact-card">
         <div class="eyebrow"><span class="pulse-dot"></span> IDENTIFICAÇÃO DO MERGULHADOR</div>
         <h2>ENTRE NO<br><em>ABISMO</em></h2>
-        <p>Crie sua conta com nickname e senha para salvar sua identidade e moedas no servidor.</p>
+        <p>Crie sua conta com nickname e senha para salvar sua identidade e energia no servidor.</p>
         <label class="field-label" for="nicknameInput">NICKNAME</label>
         <input id="nicknameInput" class="text-field" maxlength="18" autocomplete="username" placeholder="Seu nickname">
         <label id="emailFieldLabel" class="field-label" for="emailInput">EMAIL PARA RECUPERAÇÃO (OBRIGATÓRIO AO CRIAR CONTA)</label>
@@ -392,7 +394,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <section id="shopScreen" class="screen modal-screen" hidden>
       <div class="modal-card shop-modal"><button id="shopTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar loja">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> MERCADO DAS PROFUNDEZAS</div>
-        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Os Espécimes concedem um atributo passivo e uma habilidade ativa fixa. A Proficiência melhora o atributo passivo e o ressurgimento, sem alterar a habilidade descrita na loja.</p></div><div class="wallet">◈ <strong id="coinBalance">0</strong><small>MOEDAS ABISSAIS</small></div></div>
+        <div class="shop-heading"><div><h2>VESTÍGIOS<br><em>DO ABISMO</em></h2><p>Os Espécimes concedem um atributo passivo e uma habilidade ativa fixa. A Proficiência melhora o atributo passivo e o ressurgimento, sem alterar a habilidade descrita na loja.</p></div><div class="wallet">⚡ <strong id="coinBalance">0</strong><small>ENERGIA ARMAZENADA</small></div></div>
         <div class="payment-settings"><label for="shopCurrency">Moeda de cobrança / Billing currency</label><div id="shopCurrency" class="text-field" aria-label="Moeda de cobrança">BRL · Real (R$)</div>
           
           
@@ -407,9 +409,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         </div>
         <div id="shopFilterSummary" class="shop-filter-summary" aria-live="polite"></div>
         <div id="skinGrid" class="skin-grid"></div>
-        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste moedas abissais para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
+        <div class="meta-shop-heading"><div><span class="eyebrow">LABORATÓRIO DE ADAPTAÇÃO</span><h3>HABILIDADES E MELHORIAS</h3><p>Gaste energia para fortalecer todos os próximos mergulhos.</p></div><span class="meta-shop-mark">✺</span></div>
         <div id="metaUpgradeGrid" class="meta-upgrade-grid"></div>
-        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber moedas abissais</small></span><strong>↗</strong></button>
+        <button id="openRedeemCodeBtn" class="redeem-open-btn" type="button"><span><b>✦ RESGATAR CÓDIGO</b><small>Use um código promocional para receber energia</small></span><strong>↗</strong></button>
         <button id="shopCloseBtn" class="secondary-btn" data-close-screen="shopScreen">VOLTAR AO MENU</button>
       </div>
     </section>
@@ -451,10 +453,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="modal-card wheel-modal"><button id="wheelTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar roleta">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
         <h2>ROLETA<br><em>ABISSAL</em></h2>
-        <p>Opcional: assista ao anúncio premiado até a conclusão para receber 1 giro. O prêmio do giro é aleatório e fica na sua conta do Abyssal.</p><details class="wheel-odds" open><summary>CHANCES DOS PRÊMIOS</summary><p>20 moedas: 40% · 50 moedas: 30% · 100 moedas: 18% · 300 moedas: 8% · 600 moedas: 3,9% · 1.000 moedas: 0,1%</p></details>
-        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de moedas abissais"></canvas>
+        <p>Opcional: assista ao anúncio premiado até a conclusão para receber 1 giro. O prêmio do giro é aleatório e fica na sua conta do Abyssal.</p><details class="wheel-odds" open><summary>CHANCES DOS PRÊMIOS</summary><p>2 energia: 40% · 5 energia: 30% · 10 energia: 18% · 30 energia: 8% · 60 energia: 3,9% · 100 energia: 0,1%</p></details>
+        <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de energia"></canvas>
     </div>
-        <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar moedas abissais!</div>
+        <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar energia!</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button></div>
         <button id="wheelCloseBtn" class="secondary-btn" data-close-screen="wheelScreen">VOLTAR AO MENU</button>
       </div>
@@ -554,7 +556,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <div class="profile-title-heading"><div><h3>TÍTULOS DO ABISMO</h3><p>Desbloqueie conquistas e escolha como será reconhecido.</p></div><span id="profileTitleProgress" class="profile-progress">1 título disponível</span></div>
         <div id="profileTitleGrid" class="profile-title-grid" aria-live="polite"></div>
         <section id="accountDeletePanel" class="account-delete-panel" aria-labelledby="deleteAccountHeading">
-          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, moedas, Espécimes, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
+          <div class="account-delete-heading"><span aria-hidden="true">⚠</span><div><h3 id="deleteAccountHeading">EXCLUIR CONTA</h3><p>Esta ação é permanente. Seu perfil, energia, Espécimes, melhorias, títulos e registros de ranking serão removidos.</p></div></div>
           <label class="field-label" for="deleteNicknameInput">DIGITE SEU NICKNAME PARA CONFIRMAR</label>
           <input id="deleteNicknameInput" class="text-field delete-nickname-field" maxlength="18" autocomplete="off" placeholder="Digite exatamente seu nickname">
           <button id="deleteAccountBtn" class="danger-delete-btn" type="button" disabled>EXCLUIR MINHA CONTA PERMANENTEMENTE</button>
@@ -613,7 +615,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <span id="notifPanelTitle">🔔 NOTIFICAÇÕES DO ABISMO</span>
         <button id="notifPanelClose" aria-label="Fechar notificações" title="Fechar">✕</button>
       </div>
-      <div id="notifPanelSub">Moedas, títulos, Espécimes e anúncios das profundezas. Expiram em 7 dias.</div>
+      <div id="notifPanelSub">Energia, títulos, Espécimes e anúncios das profundezas. Expiram em 7 dias.</div>
       <div id="notifPanelList" role="list"></div>
     </div>
   </div>
@@ -672,11 +674,11 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=6"></script>
 <script src="abyssal-curated-skins.js?v=2026.11.7.34"></script>
-<script src="skin-standard.js?v=2026.11.10.38"></script>
+<script src="skin-standard.js?v=2026.11.10.39"></script>
 <script src="specimen-rarity.js?v=2026.11.12.5"></script>
 <script src="specimen-system.js?v=2026.11.12.12"></script>
 <script src="abyssal-shop-economy.js?v=2026.11.12.2"></script>
-<script src="skin-abilities.js?v=2026.11.7.35"></script>
+<script src="skin-abilities.js?v=2026.11.7.36"></script>
 <script src="enemy-ai.js?v=2026.11.12.6"></script>
 <script src="creature-scale.js?v=2026.11.9.3"></script>
 <script src="rift-wildlife.js?v=2026.11.9.2"></script>
@@ -695,11 +697,11 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="sea-progression.js?v=2026.11.7.1"></script>
 <script src="abyssal-expedition-rules.js?v=2"></script>
 <script src="abyssal-map.js?v=2026.11.7.5"></script>
-<script src="abyssal-rift-hardcore.js?v=2026.11.7.9"></script>
+<script src="abyssal-rift-hardcore.js?v=2026.11.7.10"></script>
 <script src="enemy-netcode.js?v=3.6.0"></script>
 <script src="photon-ray-config.js?v=2"></script>
 <script src="ocean-terrain.js?v=3"></script>
-<script src="rift-treasure.js?v=2026.11.7.1"></script>
+<script src="rift-treasure.js?v=2026.11.7.2"></script>
 <script src="skin-motion.js?v=2026.11.7.6"></script>
 <script src="marine-art.js?v=2026.11.10.62"></script>
 <script src="diver-art.js?v=2026.11.10.101.cinematic1"></script>
@@ -708,13 +710,13 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="specimen-evasion.js?v=2026.11.8.1"></script>
 <script src="abyssal-pet-tactics.js?v=2026.11.11.1"></script>
 <script src="abyssal-solo-cavern.js?v=2026.11.12.13"></script>
-<script src="abyssal-solo-progress.js?v=2026.11.12.6"></script>
+<script src="abyssal-solo-progress.js?v=2026.11.12.7"></script>
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.38"></script>
+ <script src="game.js?v=2026.11.12.39"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.32"></script>
+<script src="online.js?v=2026.11.12.33"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.6.3"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
@@ -764,7 +766,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-submarine-cockpit.js?v=2026.11.12.29"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.12.29"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.12.30"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
