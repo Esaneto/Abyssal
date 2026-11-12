@@ -288,7 +288,7 @@
 
  const openWorkshop=()=>{if(!workshop)return;activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();};
  const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
- window.addEventListener('abyssal-open-main-cockpit',openWorkshop);
+ window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
  document.getElementById('submarineWorkshopClose')?.addEventListener('click',closeWorkshop);
  // The command bridge is now the primary menu presentation. Existing hatch
@@ -318,7 +318,7 @@
  });
 
  workshop?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();}});
- window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden)renderWorkshop();});
+ window.addEventListener('abyssal-account-data',()=>{if(workshop&&!workshop.hidden&&!embeddedCatalog)renderWorkshop();});
 
  let account=null,localInventory={},localLevels={},offshore={oil:0,gas:0,lastAt:Date.now(),connections:[],installation:null},nodes=[],collectionFx=[],taken=new Set(),near=null,runKey='',oxygen=0,capacity=0,noOxygenSeconds=0,serverVitals=null,lastTick=performance.now(),lastScan=0,lastRender=0,busy=false,lastLocalSave=0;
  try{localInventory=research.sanitizeInventory(JSON.parse(localStorage.getItem('abyssalSoloInventory')||'{}'));localLevels=research.sanitizeLevels(JSON.parse(localStorage.getItem('abyssalSoloResearch')||'{}'));const saved=JSON.parse(localStorage.getItem('abyssalSoloOffshoreV1')||'null');if(saved&&typeof saved==='object')offshore={oil:Math.max(0,Number(saved.oil)||0),gas:Math.max(0,Number(saved.gas)||0),lastAt:Number(saved.lastAt)||Date.now(),connections:Array.isArray(saved.connections)?saved.connections.slice(0,24):[],installation:saved.installation&&['laying','return'].includes(saved.installation.phase)?saved.installation:null};}catch(_){localInventory=research.sanitizeInventory();localLevels=research.sanitizeLevels();}

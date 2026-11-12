@@ -1439,7 +1439,7 @@ if(isOpenSeaRun()){
  if(!onlineMode&&isClassicShooterRun())resetSoloSubmarine();
  const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(!onlineMode&&isClassicShooterRun()?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(!onlineMode&&isClassicShooterRun()?soloSubmarine.y+45/GAME_WORLD_ZOOM:H*.11)};
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  if(isOpenSeaRun()){const rangeSkill=upgradeList.find(item=>item.id==='range'),regenSkill=upgradeList.find(item=>item.id==='regen');if(!upgradeLevels.range){rangeSkill?.apply();upgradeLevels.range=1;}if(!upgradeLevels.regen){regenSkill?.apply();upgradeLevels.regen=1;}}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
@@ -2315,6 +2315,7 @@ function killEnemy(i){
  const proficiencyBoss=BOSS_KINDS.includes(e.kind);
  if(!onlineMode&&specimenAlive()){
   specimenProficiency=SPECIMEN_SYSTEM?.addKill?.(specimenProficiency,equippedSkin,proficiencyBoss)||specimenProficiency;
+   const pet=player?.specimen;if(pet){const next=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp;pet.hp=Math.min(next,pet.hp+Math.max(0,next-pet.maxHp));pet.maxHp=next;}
   saveSpecimenProficiencyLocal();
  }
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
@@ -2693,8 +2694,8 @@ function updateSpecimenRuntime(dt){
  if(combatTarget){
   const attackDistance=Math.max(57/GAME_WORLD_ZOOM,radius+(Number(combatTarget.r)||0)+9/GAME_WORLD_ZOOM);
   if(Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y)<=attackDistance&&performance.now()>=(s.nextTacticalAttack||0)){
-   const biological=SPECIMEN_SYSTEM?.biologicalStats?.(equippedSkin);
-   const bite=Math.max(1,Number(biological?.damage)||8)*specimenPassiveMultiplier('damage');
+   const biological=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints());
+   const bite=biological.damage;
    s.nextTacticalAttack=performance.now()+1020;
    dealEnemyDamage(combatTarget,bite,null,{silentSound:true,secondary:true});
    burst(combatTarget.x,combatTarget.y,currentSkinColor(),5,45);
@@ -2707,7 +2708,7 @@ function updateSpecimenRuntime(dt){
  if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,target.x,target.y,radius+3/GAME_WORLD_ZOOM);if(!nav.blocked)target={x:nav.x,y:nav.y};}
  const toxin=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;
  const slowed=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;
- const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.biologicalStats(equippedSkin).speed/GAME_WORLD_ZOOM)*(Number(upgrades.speed)||1)*specimenPassiveMultiplier('movement')*toxin*slowed);
+ const normalSpeed=Math.max(0,(SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).speed/GAME_WORLD_ZOOM)*toxin*slowed);
  const move=SPECIMEN_EVASION?.steer({position:pos,target,enemies:navigationThreats,speed:normalSpeed,dt,radius,clearance:28/GAME_WORLD_ZOOM,
   heading:Number(s.facingAngle)||0,
   resolve:activeMapLayout&&ABYSSAL_MAP?.resolveMove?(x,y)=>ABYSSAL_MAP.resolveMove(activeMapLayout,pos.x,pos.y,x,y,5/GAME_WORLD_ZOOM):(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN?(x,y)=>SOLO_CAVERN.resolve(arenaRocks,pos.x,pos.y,x,y,radius+3/GAME_WORLD_ZOOM):(x,y)=>({x:clamp(x,18/GAME_WORLD_ZOOM,W-18/GAME_WORLD_ZOOM),y:clamp(y,18/GAME_WORLD_ZOOM,H-18/GAME_WORLD_ZOOM)}))});
@@ -4604,7 +4605,7 @@ window.addEventListener('abyssal-revive-result',event=>{
  hp=maxHp;if(player)player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);updateHud();last=performance.now();
 });
 function pendingRunPayload(){return {survival:elapsed,score,level,bossesKilled:bossKillsThisRun,expedition:expeditionMode&&!onlineMode,extracted:expeditionExtracted,riskTier:expeditionRiskTier};}
-function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;window.dispatchEvent(new CustomEvent('abyssal-open-main-cockpit'));}
+function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.open?.();}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
 window.addEventListener('abyssal-start-open-sea',()=>{requestedRunMode='open-sea';onlineMode=false;startGame()});
@@ -4648,7 +4649,7 @@ $('menuBtn').addEventListener('click',()=>{
  if(onlineMode)window.AbyssalOnline?.leaveWorld?.();
  returnToMainMenu();
 });
-$('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();onlineMode=false;setMobileGameActive(false);gameState='menu';$('pauseScreen').hidden=true;$('hud').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);document.body.classList.remove('game-active');$('menuScreen').hidden=false;$('pauseBtn').hidden=true});
+$('pauseBtn').addEventListener('click',pauseGame);$('resumeBtn').addEventListener('click',resumeGame);$('quitBtn').addEventListener('click',()=>{if(onlineMode)window.AbyssalOnline?.leaveWorld();returnToMainMenu();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState==='playing'&&!onlineMode)pauseGame();if(!document.hidden)last=performance.now();});
 window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;const remoteShooterId=String(d.fromId||d.from||'');if(remoteShooterId)remoteCreatureAttackUntil.set(remoteShooterId,performance.now()+140);
@@ -4901,6 +4902,7 @@ window.addEventListener('abyssal-world-defeated-batch',ev=>{
 });
 let shopPreviewObserver=null;
 function renderShop(){
+ const shopScroll=$('shopScreen')?.closest('.abyss-visor-body')||$('shopScreen')?.querySelector('.shop-modal'),savedScroll=shopScroll?.scrollTop||0;
  shopPreviewObserver?.disconnect();shopPreviewObserver=null;
  shopMotionObserver?.disconnect();shopMotionObserver=null;shopMotionVisible.clear();
  if('IntersectionObserver' in window){
@@ -4928,8 +4930,8 @@ function renderShop(){
  for(const el of [searchEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
  const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
  const visibleSkins=skinData.filter(skin=>{
-  const owned=ownedSkins.includes(skin.id),categories=skinShopCategories(skin),known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id),haystack=(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')):'Não Registrado').toLocaleLowerCase('pt-BR');
-  return (!query||haystack.includes(query))&&(familyFilter==='all'||categories.has(familyFilter))&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
+  const owned=ownedSkins.includes(skin.id),rarityId=SPECIMEN_RARITY?.rarityFor(skin.id)||'common',known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id),haystack=(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')):'Não Registrado').toLocaleLowerCase('pt-BR');
+  return (!query||haystack.includes(query))&&(familyFilter==='all'||rarityId===familyFilter)&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(skin.id==='default'||discoveredSpecimens.has(skin.id)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;const order={common:0,uncommon:1,rare:2,epic:3,legendary:4},ra=order[SPECIMEN_RARITY?.rarityFor(a.id)]??9,rb=order[SPECIMEN_RARITY?.rarityFor(b.id)]??9;if(ra!==rb)return ra-rb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
  const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES`;
  visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`,name=english?(englishNames[skin.id]||skin.name):skin.name;
@@ -4939,6 +4941,7 @@ function renderShop(){
     const conquerorCompleted = ownedSkins.includes('greensnake');
 const card=document.createElement('div');const known=owned||skin.id==='default'||!SPECIMEN_RARITY?.rarityFor(skin.id)||discoveredSpecimens.has(skin.id);card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'BUY':'COMPRAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ◈`;const profile=SKIN_STANDARD?.profile(skin.id);
 const active=SKIN_STANDARD?.activeSpec(skin.id);
+const biological=SPECIMEN_SYSTEM.effectiveStats(skin.id,specimenPoints(skin.id));
 const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
 const rarityLabel=rarity?(SPECIMEN_RARITY.LABELS[rarity]||rarity):'Especial';
 const attribute=profile?(SKIN_STANDARD.ATTRIBUTE_LABELS[profile.attribute]||profile.attribute):'';
@@ -4954,7 +4957,7 @@ card.innerHTML=`<div class="skin-preview specimen-vessel">
   <strong class="specimen-card-name">${publicName}</strong>
   <small class="specimen-rarity">${known?rarityLabel.toUpperCase():'???'}</small>
   ${known?`<div class="specimen-card-traits"><div><b>PASSIVA</b><span>${passive}</span></div><div><b>ATIVA</b><span>${activeName}</span></div></div>`:'<div class="specimen-card-unidentified">Registro biológico desconhecido. Avistel este espécime nas Fossas Abissais para identificá-lo.</div>'}
-  ${known?`<p class="specimen-card-description">${shortDescription}</p>`:''}
+  ${known?`<div class="journal-stat-row"><span>VIDA <b>${biological.hp}</b></span><span>ATAQUE <b>${biological.damage}</b></span><span>VELOCIDADE <b>${biological.speed}</b></span></div><p class="specimen-card-description">${shortDescription}</p>`:''}
  </div>
  <button ${equipped?'disabled':''}>${purchaseLabel}</button>`;
 const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
@@ -4970,13 +4973,13 @@ const btn=card.querySelector('button');if(!equipped)btn.addEventListener('click'
  const bundleNames={leviathan:'Eco do Peixe-Remo Leviatã',kraken:'Eco da Lula-Kraken',aberration:'Eco do Polvo-de-Anéis-Azuis',angler:'Núcleo do Peixe-Pescador',maw:'Fragmento da Enguia-Pelícano',devourer:'Núcleo da Lula-Colossal'};
  bundle.innerHTML=`<div class="boss-bundle-aura" aria-hidden="true">✦</div><strong>Coleção · Relíquias do Abismo</strong><p>Vestígios vivos dos seis grandes horrores. As entidades verdadeiras continuam reservadas às profundezas.</p><ul class="boss-bundle-list">${bundleIds.map(id=>`<li>${ownedSkins.includes(id)?'✓':'✧'} ${bundleNames[id]}${ownedSkins.includes(id)?' · ADQUIRIDA':''}</li>`).join('')}</ul><p class="boss-bundle-count">${remaining} de 6 relíquias restantes · ${remaining===6?'PACOTE COMPLETO · R$ 39,99':'DESCONTO PROPORCIONAL MANTIDO'}</p><button ${remaining===0?'disabled':''}>${remaining===0?'COLEÇÃO COMPLETA':`${english?'BUY RELICS':'ADQUIRIR RELÍQUIAS'} · ${bundlePrice}`}</button>`;
  bundle.querySelector('button').addEventListener('click',()=>{if(remaining)openSkinPurchaseConfirm('boss_bundle','Coleção · Relíquias do Abismo',bundlePrice,true);});
- grid.appendChild(bundle);
+ if(familyFilter==='all'||familyFilter==='legendary')grid.appendChild(bundle);
  const metaGrid=$('metaUpgradeGrid');if(metaGrid){metaGrid.textContent='Habilidades Q/E e passivas agora são estudadas no laboratório do submarino. Melhorias adquiridas anteriormente permanecem no perfil.';[].forEach(item=>{const levelNow=Number(metaUpgrades[item.id])||0,ownedMax=levelNow>=item.max,activeEquipped=loadEquippedActiveSkills().includes(item.id);const activeOwned=item.type==='active'&&levelNow>0;const card=document.createElement('article');card.className='meta-card'+(ownedMax?' meta-max':'');const buttonLabel=activeOwned?(activeEquipped?'DESEQUIPAR':'EQUIPAR'):ownedMax?'NÍVEL MÁXIMO':`ADQUIRIR · ${item.price.toLocaleString('pt-BR')} ◈`;card.innerHTML=`<div class="meta-card-icon">${item.icon}</div><div class="meta-card-copy"><div class="meta-kicker">${item.type==='active'?'HABILIDADE ATIVA':'MELHORIA PASSIVA'} · NV. ${levelNow}/${item.max}</div><strong>${item.name}</strong><p>${item.desc}</p></div><button ${ownedMax&&!activeOwned?'disabled':''}>${buttonLabel}</button>`;const button=card.querySelector('button');if(activeOwned){button.addEventListener('click',()=>toggleEquippedActiveSkill(item.id));}else if(!ownedMax){button.addEventListener('click',()=>buyMetaUpgrade(item.id));}metaGrid.appendChild(card);});}
- updateAbilityButtons();drawWheel();startShopMotion();
+ updateAbilityButtons();drawWheel();startShopMotion();if(shopScroll)shopScroll.scrollTop=savedScroll;
 }
-function openSpecimenShop(){ $('shopScreen').hidden=false;if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop(); }
+function openSpecimenShop({refresh=true}={}){ $('shopScreen').hidden=false;if(refresh&&window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop(); }
 $('shopBtn').addEventListener('click',openSpecimenShop);
-window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSpecimenShop();else if(id==='catalogScreen')renderCatalog();}});
+window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSpecimenShop({refresh:false});else if(id==='catalogScreen')renderCatalog();}});
 $('shopCurrency')?.addEventListener('change',event=>{event.target.value='brl';shopCurrency='brl';renderShop()});
 $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
@@ -5177,7 +5180,7 @@ function renderCatalog(){
  const journalSkins=[...skinData].sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(skin.id==='default'||discoveredSpecimens.has(skin.id)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
  const specimenCards=journalSkins.map((skin,index)=>{
   const known=skin.id==='default'||ownedSkins.includes(skin.id)||discoveredSpecimens.has(skin.id);
-  const b=SPECIMEN_SYSTEM.biologicalStats(skin.id);
+  const b=SPECIMEN_SYSTEM.effectiveStats(skin.id,specimenPoints(skin.id));
   const family=SPECIMEN_SYSTEM.FAMILY_LABELS[b.family]||b.family;
   const oceanHabitat=OPEN_SEA_ECOLOGY?.speciesHabitat?.(skin.id);
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
@@ -5372,7 +5375,7 @@ gameState='menu';requestAnimationFrame(loop);
 const endDiveButton=document.createElement('button');endDiveButton.id='endDiveBtn';endDiveButton.type='button';endDiveButton.textContent='ENCERRAR MERGULHO';endDiveButton.style.cssText='position:absolute;right:18px;top:72px;z-index:8;border:1px solid rgba(255,130,160,.55);border-radius:8px;padding:8px 10px;background:rgba(30,10,25,.78);color:#ffd6e0;font:600 10px Manrope,system-ui;letter-spacing:.08em;cursor:pointer;display:none';document.getElementById('gameShell').appendChild(endDiveButton);
 endDiveButton.addEventListener('click',()=>{
  const wasOnline=onlineMode,authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
- const returnToMenu=(result)=>{onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');setHudCollapsed(false);$('toggleHudBtn').hidden=true;gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('upgradeScreen').hidden=true;$('pauseScreen').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;window.dispatchEvent(new CustomEvent('abyssal-menu-return'));resize();window.dispatchEvent(new CustomEvent('abyssal-open-main-cockpit'));endDiveButton.style.display='none';endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO';const earned=Number(result?.earned)||0;const kills=Number(result?.bossesKilled??bossKillsThisRun)||0;const total=Number(result?.totalRunCoins??(earned+(Number(result?.bossCoins)||0)))||0;showToast(`MERGULHO ENCERRADO · ${kills} BOSS(ES) · +${total} MOEDAS NA EXPEDIÇÃO`);};
+ const returnToMenu=(result)=>{onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');setHudCollapsed(false);$('toggleHudBtn').hidden=true;gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('upgradeScreen').hidden=true;$('pauseScreen').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;window.dispatchEvent(new CustomEvent('abyssal-menu-return'));resize();window.AbyssalCockpitNavigation?.open?.();endDiveButton.style.display='none';endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO';const earned=Number(result?.earned)||0;const kills=Number(result?.bossesKilled??bossKillsThisRun)||0;const total=Number(result?.totalRunCoins??(earned+(Number(result?.bossCoins)||0)))||0;showToast(`MERGULHO ENCERRADO · ${kills} BOSS(ES) · +${total} MOEDAS NA EXPEDIÇÃO`);};
  if(authenticated&&window.AbyssalOnline?.finishRun){const sent=window.AbyssalOnline.finishRun({survival:elapsed,score,level,bossesKilled:bossKillsThisRun},{leaveAfter:wasOnline,onComplete:result=>returnToMenu(result)});if(sent){endDiveButton.disabled=true;endDiveButton.textContent='REGISTRANDO…';setTimeout(()=>{endDiveButton.disabled=false;endDiveButton.textContent='ENCERRAR MERGULHO'},12000);return;}}
  if(!authenticated){coins+=Math.max(5,Math.floor(score/35)+level*2);saveCosmetics();renderShop();if(wasOnline)window.AbyssalOnline?.leaveWorld();returnToMenu({earned:Math.max(5,Math.floor(score/35)+level*2),bossesKilled:bossKillsThisRun});}else returnToMenu({earned:0,bossesKilled:bossKillsThisRun});
 });

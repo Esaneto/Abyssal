@@ -39,14 +39,15 @@
   return Object.hasOwn(FAMILY_BASE,family)?family:'fish';
  }
  const RARITY_MULTIPLIER=Object.freeze({common:1,uncommon:1.08,rare:1.16,epic:1.25,legendary:1.35});
+ const RARITY_BASE=Object.freeze({common:{hp:300,damage:30,speed:190},uncommon:{hp:400,damage:35,speed:205},rare:{hp:500,damage:40,speed:220},epic:{hp:600,damage:45,speed:235},legendary:{hp:700,damage:50,speed:250}});
  const BIOLOGICAL_STATS_CACHE=Object.create(null);
  function biologicalStats(id){
   const key=String(id||'default');
   if(Object.hasOwn(BIOLOGICAL_STATS_CACHE,key))return BIOLOGICAL_STATS_CACHE[key];
-  const family=familyFor(key),base=FAMILY_BASE[family],rarityId=rarity?.rarityFor?.(key)||'common',multiplier=RARITY_MULTIPLIER[rarityId]||1;
+  const family=familyFor(key),rarityId=rarity?.rarityFor?.(key)||'common',base=RARITY_BASE[rarityId]||RARITY_BASE.common;
   const active=standard?.activeSpec?.(key);
   return BIOLOGICAL_STATS_CACHE[key]=Object.freeze({
-   family,rarity:rarityId,hp:Math.round(base.hp*multiplier),speed:Math.round(base.speed*multiplier),damage:Math.round(base.damage*multiplier),
+   family,rarity:rarityId,hp:base.hp,speed:base.speed,damage:base.damage,
    activeDamage:Math.max(0,Number(active?.damage)||0),
    attack:String(active?.name||'Sem ataque ativo'),
    effect:String(active?.effect||'Nenhum efeito ativo')
@@ -56,7 +57,7 @@
  const BASE_COOLDOWN=10;
  const BASE_RESPAWN=20;
  const MAX_COOLDOWN_REDUCTION=5;
- const MAX_ATTRIBUTE_BONUS=.05;
+ const MAX_ATTRIBUTE_BONUS=.10;
  const MAX_RANGE_BONUS=.20;
  const MAX_RESPAWN_REDUCTION=10; // Equipped companion: 20s base, reduced linearly by adaptation to 10s at maximum proficiency. Wild fauna uses the separate five-minute tracker.
  function clamp(v,min,max){return Math.max(min,Math.min(max,Number(v)||0));}
@@ -77,6 +78,7 @@
    respawnReduction:MAX_RESPAWN_REDUCTION*p
   });
  }
+ function effectiveStats(id,points=0){const base=biologicalStats(id),factor=1+stats(points).attributeBonus;return {...base,hp:Math.round(base.hp*factor),damage:Math.round(base.damage*factor),speed:Math.round(base.speed*factor)};}
  function normalizeMap(value){
   const out=Object.create(null);
   if(value&&typeof value==='object')for(const [id,raw] of Object.entries(value)){
@@ -92,12 +94,11 @@
  function pointsFor(map,id){return Math.round(clamp(map&&map[String(id||'default')],0,MAX_PROGRESS));}
  function passiveMultiplier(profile,points,alive=true){
   if(!alive||!profile)return 1;
-  const extra=stats(points).attributeBonus;
-  const amount=(Math.max(0,Number(profile.percent)||0)/100)+extra;
+  const amount=Math.max(0,Number(profile.percent)||0)/100;
   return profile.attribute==='defense'?Math.max(.1,1-amount):1+amount;
  }
  function abilityRange(baseRange,_points){return Math.max(0,Number(baseRange)||0);}
  function abilityCooldown(_points){return BASE_COOLDOWN;}
  function respawnSeconds(points){return stats(points).respawnSeconds;}
- return Object.freeze({FAMILY_BASE,FAMILY_LABELS,RARITY_MULTIPLIER,familyFor,biologicalStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
+ return Object.freeze({FAMILY_BASE,FAMILY_LABELS,RARITY_MULTIPLIER,RARITY_BASE,familyFor,biologicalStats,effectiveStats,MAX_PROGRESS,BASE_COOLDOWN,BASE_RESPAWN,MAX_COOLDOWN_REDUCTION,MAX_ATTRIBUTE_BONUS,MAX_RANGE_BONUS,MAX_RESPAWN_REDUCTION,progress,pointsForKill,stats,normalizeMap,addKill,pointsFor,passiveMultiplier,abilityRange,abilityCooldown,respawnSeconds});
 });
