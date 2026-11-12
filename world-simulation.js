@@ -714,8 +714,11 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // Giro do Nilo: mesmo passo de impulso do modo solo, antes da IA normal.
     // Não muda o ângulo nem interrompe o movimento normal de perseguição.
     if (enemy.kbVx || enemy.kbVy) {
-      const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(enemy.x),Number(enemy.y),Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72)):{x:clamp(Number(enemy.x)+(Number(enemy.kbVx)||0)*dt,0,(world.width||WORLD_WIDTH)),y:clamp(Number(enemy.y)+(Number(enemy.kbVy)||0)*dt,0,(world.height||WORLD_HEIGHT)),blocked:false};
-      enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;}
+      const dx=(Number(enemy.kbVx)||0)*dt,dy=(Number(enemy.kbVy)||0)*dt,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/12)),pad=Math.max(8,(Number(enemy.r)||10)/WORLD_ZOOM*.72);
+      for(let i=0;i<steps;i++){const x=Number(enemy.x),y=Number(enemy.y),nx=clamp(x+dx/steps,0,world.width||WORLD_WIDTH),ny=clamp(y+dy/steps,0,world.height||WORLD_HEIGHT);
+       const moved=riftMode?AbyssalMap.resolveMove(mapLayout,x,y,nx,ny,pad):world.mode==='open-sea'?OceanGeography.resolveMove(x,y,nx,ny,pad):{x:nx,y:ny,blocked:false};
+       enemy.x=moved.x;enemy.y=moved.y;if(moved.blocked){enemy.kbVx*=.25;enemy.kbVy*=.25;break;}
+      }
       const decay = Math.exp(-dt * 6.5);
       enemy.kbVx = (Number(enemy.kbVx) || 0) * decay;
       enemy.kbVy = (Number(enemy.kbVy) || 0) * decay;
