@@ -238,3 +238,17 @@
 #submarineWorkshop .abyss-cockpit-embedded .profile-modal button,#submarineWorkshop .abyss-cockpit-embedded .cardumes-modal button,#submarineWorkshop .abyss-cockpit-embedded .compact-card button{max-width:100%!important;white-space:normal!important;height:auto!important;overflow-wrap:break-word!important}
 #submarineWorkshop .abyss-cockpit-utility[aria-pressed="true"]{background:linear-gradient(#267a51,#12482f)!important;border-color:#73e6a7!important;color:#eafff1!important}
 #submarineWorkshop .abyss-cockpit-embedded#profileScreen .profile-modal,#submarineWorkshop .abyss-cockpit-embedded#cardumesScreen .cardumes-modal{overflow-x:hidden!important;overflow-y:visible!important}
+
+/* Match the physical console keys; each live control fills its entire drawn mounting plate. */
+#submarineWorkshop .abyss-cockpit-utility{top:58.888889%!important;width:8.263889%!important;height:9.222222%!important;min-height:0!important;max-height:none!important;flex-direction:column!important;gap:5px!important;padding:5px 2px 8px!important;border:1px solid #626c73!important;border-top:2px solid #929da3!important;border-bottom:5px solid #05080c!important;border-radius:6px!important;background:linear-gradient(161deg,#363c42,#171c21 44%,#090d11 90%)!important;box-shadow:inset 0 1px 0 #a1b3ba45,0 2px 0 #070e15,0 3px 6px #0009!important;font:800 clamp(8px,.8vw,12px)/1.2 Inter,system-ui,sans-serif!important;white-space:normal!important;letter-spacing:.02em!important;text-align:center!important;text-shadow:none!important;overflow:visible!important}
+#submarineWorkshop #cockpitProfileBtn{left:7.118056%!important}
+#submarineWorkshop #cockpitCardumesBtn{left:92.881944%!important}
+#submarineWorkshop .abyss-cockpit-utility svg{width:clamp(17px,1.65vw,24px)!important;height:clamp(17px,1.65vw,24px)!important;color:#d3e5e6!important}
+#submarineWorkshop .abyss-cockpit-utility::before{content:'';position:absolute;left:27%;right:27%;bottom:3px;height:2px;border-radius:1px;background:#78888f;opacity:.6;pointer-events:none}
+#submarineWorkshop .abyss-cockpit-utility:hover{filter:brightness(1.13)!important}
+#submarineWorkshop .abyss-cockpit-utility:active{transform:translate(-50%,2px)!important}
+#submarineWorkshop .abyss-cockpit-utility[aria-pressed="true"]{background:linear-gradient(165deg,#267a51,#12482f)!important;border-color:#73e6a7!important;border-top-color:#b1ffce!important;border-bottom-color:#103d29!important;color:#eafff1!important;box-shadow:inset 0 1px 0 #b0ffcc40,0 0 12px #30cd7b2e!important}
+#submarineWorkshop .abyss-cockpit-utility[aria-pressed="true"]::before{background:#75ffac;opacity:1;box-shadow:0 0 6px #75ffac}
+#submarineWorkshop .abyss-cockpit-utility[aria-pressed="true"] svg{color:#a4ffbf!important}
+@media(max-width:700px){#submarineWorkshop .abyss-cockpit-utility{top:18%!important;width:25%!important;height:7.222222%!important;min-height:0!important;gap:3px!important;padding:3px 2px 5px!important;border-bottom-width:3px!important;font-size:clamp(8px,2.5vw,11px)!important}#submarineWorkshop #cockpitProfileBtn{left:19.791667%!important}#submarineWorkshop #cockpitCardumesBtn{left:80.208333%!important}#submarineWorkshop .abyss-cockpit-utility svg{width:16px!important;height:16px!important}}
+@media(max-height:540px) and (orientation:landscape){#submarineWorkshop .abyss-cockpit-utility{flex-direction:row!important;gap:3px!important;padding:3px 2px 5px!important;font-size:clamp(7px,.8vw,10px)!important;border-bottom-width:3px!important}#submarineWorkshop .abyss-cockpit-utility svg{width:13px!important;height:13px!important}}

@@ -265,7 +265,7 @@
   lamp(35,854,37,4,false);c.restore();
  }
  function foregroundArt(){
-  windowFrame();deck();if(width>700){chair(0,1);chair(W,-1);}else{radar(105,90,360,65);radar(975,90,360,65);}
+  windowFrame();deck();if(width>700){chair(0,1);chair(W,-1);}else{radar(105,90,360,65);radar(975,90,360,65);hardware(105,162,360,65,7);hardware(975,162,360,65,7);}
   // Edge vignette ties the glass and metal to the same lighting environment.
   c.fillStyle=radial(W*.5,H*.43,880,[[0,'#00000000'],[.65,'#00000000'],[1,'#02091270']]);c.fillRect(0,0,W,H);
  }
