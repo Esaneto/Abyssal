@@ -3315,7 +3315,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
      let ec=e.openSeaDecision;
      if(!ec||ecologyNow>=(Number(e.openSeaNextThinkAt)||0)){if(!ec||consumeFaunaThinkBudget(priority)){collectEnemyCandidatesNear(e.x,e.y,470/GAME_WORLD_ZOOM,wildlifeNeighborCandidates);ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,ecologyNow,wildlifeNeighborCandidates);e.openSeaDecision=ec;e.openSeaNextThinkAt=ecologyNow+(priority?90:160+(Math.abs(Number(e.id)||0)%5)*18);}}
      if(!ec){collectEnemyCandidatesNear(e.x,e.y,470/GAME_WORLD_ZOOM,wildlifeNeighborCandidates);ec=OPEN_SEA_ECOLOGY.decide(e,[player],elapsed,ecologyNow,wildlifeNeighborCandidates);e.openSeaDecision=ec;}
-     e.openSeaWantsAttack=ec.aggressive;
+     e.openSeaWantsAttack=ec.aggressive||(window.AbyssalEnemyAI.isChargeAttack(e)&&e.sharkCharging);
      if(ec.aggressive&&player){
       const skill=OPEN_SEA_ECOLOGY?.activateAgainstPlayer?.(e,player,performance.now());
       if(skill){
@@ -3337,7 +3337,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     if(activeMapLayout&&RIFT_WILDLIFE){
     const home=activeMapLayout.rooms.find(room=>room.id===e.spawnRoomId)||ABYSSAL_MAP.roomAt(activeMapLayout,e.x,e.y);
     const ec=RIFT_WILDLIFE.decide(e,[player],{map:ABYSSAL_MAP,layout:activeMapLayout,room:home,now:performance.now(),seconds:elapsed,family:SPECIMEN_SYSTEM?.familyFor?.(e.specimenSkinId)});
-    e.riftWantsAttack=ec.mode==='attack';
+    e.riftWantsAttack=ec.mode==='attack'||(window.AbyssalEnemyAI.isChargeAttack(e)&&e.sharkCharging);
     e.alerted=ec.alert;
     if(!e.riftWantsAttack&&(ec.mode==='patrol'||ec.mode==='alert')&&
        Math.hypot(player.x-e.x,player.y-e.y)<=player.r+e.r+8/GAME_WORLD_ZOOM){
