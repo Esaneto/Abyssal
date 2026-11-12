@@ -176,7 +176,11 @@
     if(Math.abs(delta)<=half+.0001)for(const off of [-.00008,0,.00008])angles.push(clamp(delta+off,-half,half));}
   }
   angles.sort((a,b)=>a-b);
-  return angles.map(delta=>{const a=angle+delta,dx=Math.cos(a),dy=Math.sin(a),reach=Math.max(0,rayDistance(rocks,x,y,dx,dy,range)-.65);return {x:x+dx*reach,y:y+dy*reach};});
+  return angles.map(delta=>{const a=angle+delta,dx=Math.cos(a),dy=Math.sin(a);let reach=Math.max(0,rayDistance(rocks,x,y,dx,dy,range)-.65);
+   // Tangent/corner intersections can differ by floating-point rounding.
+   // Validate the final visual segment against the physical collision test.
+   if(reach>0&&segmentBlocked(rocks,x,y,x+dx*reach,y+dy*reach,0)){let lo=0,hi=reach;for(let k=0;k<20;k++){const mid=(lo+hi)*.5;if(segmentBlocked(rocks,x,y,x+dx*mid,y+dy*mid,0))hi=mid;else lo=mid;}reach=Math.max(0,lo-.65);}
+   return {x:x+dx*reach,y:y+dy*reach};});
  }
  // Find a locally traversable escape direction rather than repeatedly sliding into a wall.
  function escapeTarget(rocks,w,h,x,y,goalX,goalY,padding=0,heading=0){
