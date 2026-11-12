@@ -5016,7 +5016,8 @@ function requestWheelSpin(){
  try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{resumeAfterH5Ad();if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 2;if(n<70)return 5;if(n<88)return 10;if(n<96)return 30;if(n<99.9)return 60;return 100;}
- $('wheelBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=false;drawWheel();$('wheelMessage').textContent='Gire para ganhar energia!';});
+ function openOriginalWheel(){ $('wheelScreen').hidden=false;drawWheel();if(!wheelBusy)$('wheelMessage').textContent='Gire para ganhar energia!'; }
+ $('wheelBtn')?.addEventListener('click',()=>{if(window.AbyssalCockpitNavigation?.routeScreen?.('wheelScreen'))return;openOriginalWheel();});
 $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
@@ -5156,7 +5157,7 @@ const btn=card.querySelector('button');if(!equipped&&known)btn.addEventListener(
 }
 function openSpecimenShop({refresh=true}={}){ $('shopScreen').hidden=false;if(refresh&&window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.refreshAccount?.();renderShop(); }
 $('shopBtn').addEventListener('click',openSpecimenShop);
-window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSpecimenShop({refresh:false});else if(id==='catalogScreen')renderCatalog();}});
+window.AbyssalCockpitCatalog=Object.freeze({open(id){if(id==='shopScreen')openSpecimenShop({refresh:false});else if(id==='catalogScreen')renderCatalog();else if(id==='wheelScreen')openOriginalWheel();}});
 $('shopCurrency')?.addEventListener('change',event=>{event.target.value='brl';shopCurrency='brl';renderShop()});
 $('languageSelect')?.addEventListener('change',event=>setGameLanguage(event.target.value));
 if($('languageSelect'))$('languageSelect').value=gameLanguage;
