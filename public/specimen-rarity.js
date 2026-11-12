@@ -14,6 +14,7 @@
  }
  function rarityFor(id){
   const key=String(id||'default'),tier=standard?.profile?.(key)?.tier;
+  if(key==='electriceel')return 'legendary';
   return TIER_FIXED[tier]||coinRarityFor(key);
  }
  function roll(ids,rng=Math.random){
