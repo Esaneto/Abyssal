@@ -21,12 +21,13 @@ function enemySpeedMultiplier(){return 1;}
 function movementMultiplier(skinId,points=0,alive=true){return mul(skinId,'movement',points,alive);}
 function targetRangeMultiplier(skinId,points=0,alive=true){return mul(skinId,'range',points,alive);}
 function fireRateMultiplier(skinId,points=0,alive=true){return mul(skinId,'fireRate',points,alive);}
-function orbExperienceMultiplier(skinId,points=0,alive=true){return mul(skinId,'experience',points,alive);}
+function orbExperienceMultiplier(skinId,points=0,alive=true){return 1;}
+function endDiveEnergyBonus(skinId){const p=Standard?.profile?.(skinId);return p?.attribute==='energy'?Math.max(0,Number(p.percent)||0)/100:0;}
 function magnetRangeMultiplier(){return 1;}
 function activeCooldownMultiplier(skinId,points=0,alive=true){return mul(skinId,'activeCooldown',points,alive)===1?1:1/(mul(skinId,'activeCooldown',points,alive));}
 function activeSpec(skinId){return Standard?.activeSpec?.(skinId)||null;}
 function profile(skinId){return Standard?.profile?.(skinId)||null;}
 
-const api=Object.freeze({BOSS_KINDS,CLOSE_RANGE,LONG_RANGE,damageMultiplier,incomingDamageMultiplier,enemySpeedMultiplier,movementMultiplier,targetRangeMultiplier,fireRateMultiplier,orbExperienceMultiplier,magnetRangeMultiplier,activeCooldownMultiplier,activeSpec,profile});
+const api=Object.freeze({BOSS_KINDS,CLOSE_RANGE,LONG_RANGE,damageMultiplier,incomingDamageMultiplier,enemySpeedMultiplier,movementMultiplier,targetRangeMultiplier,fireRateMultiplier,orbExperienceMultiplier,endDiveEnergyBonus,magnetRangeMultiplier,activeCooldownMultiplier,activeSpec,profile});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(typeof window!=='undefined')window.AbyssalSkinAbilities=api;
