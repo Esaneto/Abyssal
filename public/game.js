@@ -2709,7 +2709,7 @@ function applySoloSkinActive(spec,angle){
  }else if(spec.id==='trail'){
   // Stream nodes from the moving specimen, not five instant ones.
  }else if(spec.id==='push'){
-  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true,origin});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*430;e.kbVy=dy/d*430;}
+  for(const e of inRange()){dealEnemyDamage(e,spec.damage,'skin-active-push',{visual:true,origin});const dx=e.x-origin.x,dy=e.y-origin.y,d=Math.hypot(dx,dy)||1;e.kbVx=dx/d*1720;e.kbVy=dy/d*1720;}
  }else if(spec.id==='poison'||spec.id==='paralysis'){
   // The active ability now buffs the diver's weapon; damage/status occurs on actual hits.
  }else if(spec.id==='shot'||spec.id==='slowShot'){
