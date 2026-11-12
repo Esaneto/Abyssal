@@ -62,3 +62,41 @@ test('RoxyCloud kernel profile limits swap pressure and preserves connection bac
  assert.match(sysctl,/net\.ipv4\.tcp_max_syn_backlog = 8192/);
  assert.match(sysctl,/vm\.swappiness = 10/);
 });
+
+
+test('Rajada Prismatica is passive end to end and cannot become a shot type again',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/passive:\['burst','ricochet','spread'\]/);
+ assert.doesNotMatch(game,/shots:\[[^\]]*'spread'/);
+ assert.doesNotMatch(game,/activeShot==='spread'/);
+ assert.doesNotMatch(server,/shotSkills=new Set\(\[[^\]]*'spread'/);
+ assert.doesNotMatch(server,/special:\[[^\]]*'spread'/);
+ assert.doesNotMatch(server,/WEAPON_INFUSION_SHOTS=new Set\(\[[^\]]*'spread'/);
+ assert.match(server,/prismaticLevel:Math\.max\(0,Math\.min\(3/);
+});
+
+test('rewarded wheel uses the original reward scale converted to energy',()=>{
+ assert.match(server,/let reward=roll<40\?20:roll<70\?50:roll<88\?100:roll<96\?300:roll<99\.9\?600:1000/);
+ assert.match(server,/u\.energy=\(u\.energy\|\|0\)\+reward/);
+});
+
+test('RoxyCloud deploy persists and restores the active run before maintenance disconnect',()=>{
+ const game=read('public/game.js');
+ const unit=read('deploy/roxycloud/abyssal.service');
+ const stashAt=server.indexOf('let deployRuns=0;');
+ const flushAt=server.indexOf('await flushPersistence();',stashAt);
+ const noticeAt=server.indexOf("io.emit('server-maintenance'",stashAt);
+ const disconnectAt=server.indexOf('io.disconnectSockets(true)',stashAt);
+ assert.ok(stashAt>=0&&flushAt>stashAt&&noticeAt>flushAt&&disconnectAt>noticeAt);
+ assert.match(server,/resumeBuild:\{regenLevel:/);
+ assert.match(server,/runResume:resumedRun\?deployRunResumePayload\(resumedRun\):null/);
+ assert.match(server,/expiresAt:Date\.now\(\)\+15\*60\*1000/);
+ assert.match(server,/message:'Manutenção para atualização\. Seu progresso foi salvo\. Reconectando automaticamente…'/);
+ assert.match(game,/function restoreDeployRunProgress\(run\)/);
+ assert.match(game,/if\(d\.resumedRun&&d\.runResume\)restoreDeployRunProgress\(d\.runResume\)/);
+ assert.match(game,/prismaticLevel:upgrades\.spread/);
+ assert.match(game,/predatorLevel:upgrades\.predator/);
+ assert.match(game,/hadalBeamActive:Boolean\(upgrades\.hadalBeam\)/);
+ assert.match(unit,/KillSignal=SIGTERM/);
+ assert.match(unit,/TimeoutStopSec=15/);
+});
