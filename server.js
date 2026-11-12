@@ -918,7 +918,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // Reject hits through solid cave walls on the authoritative server.
   const hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:
    skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:
-   skillId==='skin-active-poison-dot'&&player?.skinActiveServerResolving&&player.weaponPoisonOrigin?player.weaponPoisonOrigin:player;
+   skillId==='skin-active-poison-dot'&&player?.skinActiveServerResolving&&player.weaponPoisonOrigin?player.weaponPoisonOrigin:player?.skinActiveServerResolving&&player.skinActiveDamageOrigin?player.skinActiveDamageOrigin:player;
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
      !AbyssalMap.segmentWalkable(WorldSimulation.mapLayoutFor(w),Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
      return reject('cave-wall-blocked');
@@ -2272,13 +2272,13 @@ io.on('connection', socket => {
   const enemies=[...(room.world?.enemies||[])];
   const worldLayout=room.mode==='rift'?WorldSimulation.mapLayoutFor(room.world):null;
   const canReachEnemy=e=>e&&Number(e.hp)>0&&
-   (!worldLayout||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(worldLayout,originX,originY,Number(e.x),Number(e.y),Math.min(7,Number(e.r)||5)));
+   (!worldLayout||!AbyssalMap.segmentWalkable||AbyssalMap.segmentWalkable(worldLayout,originX,originY,Number(e.x),Number(e.y),2))&&(room.mode!=='open-sea'||OceanGeography.segmentClear(originX,originY,Number(e.x),Number(e.y),2));
   const lineDistance=(px,py,ax,ay,bx,by)=>{const dx=bx-ax,dy=by-ay,denom=dx*dx+dy*dy;if(denom<=1e-9)return Math.hypot(px-ax,py-ay);const q=clamp(((px-ax)*dx+(py-ay)*dy)/denom,0,1);return Math.hypot(px-(ax+dx*q),py-(ay+dy*q));};
   const resolveEnemyDamage=(enemy,amount,skillId)=>{
    if(!canReachEnemy(enemy))return;
-   player.skinActiveServerResolving=true;
+   player.skinActiveServerResolving=true;player.skinActiveDamageOrigin={x:originX,y:originY};
    try{processWorldDamage(socket,Number(enemy.id),amount,skillId,null,'skin:'+now);}
-   finally{player.skinActiveServerResolving=false;}
+   finally{player.skinActiveServerResolving=false;player.skinActiveDamageOrigin=null;}
   };
   const areaEnemies=()=>enemies.filter(e=>canReachEnemy(e)&&Math.hypot(Number(e.x)-originX,Number(e.y)-originY)<=radius+(Number(e.r)||0)).slice(0,24);
   const nearestEnemy=()=>areaEnemies().sort((a,b)=>Math.hypot(a.x-originX,a.y-originY)-Math.hypot(b.x-originX,b.y-originY))[0]||null;
@@ -2297,7 +2297,7 @@ io.on('connection', socket => {
    for(let step=0;step<14;step++){
     const tx=originX+ux*travel,ty=originY+uy*travel;
     const outside=tx<12/WORLD_ZOOM||tx>roomWorldWidth(room)-12/WORLD_ZOOM||ty<12/WORLD_ZOOM||ty>worldHeight-12/WORLD_ZOOM;
-    const blocked=outside||(room.mode==='pvp'?pvpSegmentHitsRock(originX,originY,tx,ty,11/WORLD_ZOOM):worldLayout&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(worldLayout,originX,originY,tx,ty,11/WORLD_ZOOM));
+    const blocked=outside||(room.mode==='pvp'?pvpSegmentHitsRock(originX,originY,tx,ty,11/WORLD_ZOOM):(worldLayout&&AbyssalMap.segmentWalkable&&!AbyssalMap.segmentWalkable(worldLayout,originX,originY,tx,ty,11/WORLD_ZOOM))||(room.mode==='open-sea'&&!OceanGeography.segmentClear(originX,originY,tx,ty,11/WORLD_ZOOM)));
     if(!blocked)break;
     travel*=.82;
    }
