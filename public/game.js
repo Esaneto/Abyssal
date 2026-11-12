@@ -145,7 +145,7 @@ function specimenPassiveActive(){return Boolean(player&&player.specimen&&player.
 function specimenOrigin(){if(player?.specimen)return {x:Number(player.specimen.x)||player.x,y:Number(player.specimen.y)||player.y};return {x:Number(player?.x)||0,y:Number(player?.y)||0};}
 // Solo kills are queued per account and per dive, never as an arbitrary total balance.
 let soloAdaptationRun=null,soloAdaptationSyncBusy=false;
-function adaptationAccountKey(){return String(window.AbyssalOnline?.getAccount?.()?.nickname||'').trim().toLowerCase();}
+function adaptationAccountKey(){const live=window.AbyssalOnline?.getAccount?.()?.nickname;if(live)return String(live).trim().toLowerCase();try{return localStorage.getItem('abyssalSessionToken')?String(JSON.parse(localStorage.getItem('abyssalAccount')||'{}').nickname||'').trim().toLowerCase():'';}catch{return '';}}
 function readAdaptationQueue(key){try{return JSON.parse(localStorage.getItem('abyssalAdaptationQueue:'+key)||'[]')}catch{return [];}}
 function writeAdaptationQueue(key,rows){try{localStorage.setItem('abyssalAdaptationQueue:'+key,JSON.stringify(rows));}catch(_){}}
 function recordSoloAdaptation(id,boss){
@@ -163,7 +163,7 @@ function syncSoloAdaptation(){
   const latest=readAdaptationQueue(key),sent=new Map(rows.slice(0,20).map(x=>[x.id,x]));
   const acknowledged=new Set(result.accepted||[]);
   writeAdaptationQueue(key,latest.flatMap(x=>{if(!acknowledged.has(x.id))return [x];const credited=sent.get(x.id)?.counts||{};if(x.id!==soloAdaptationRun&&JSON.stringify(x.counts)===JSON.stringify(credited))return [];return [{...x,credited}];}));
-  if(result.account)window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));syncSoloAdaptation();
+  if(result.account)window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));if(acknowledged.size)syncSoloAdaptation();
  });
 }
 function pendingAdaptationMap(key,serverMap){
@@ -5394,6 +5394,8 @@ window.addEventListener('abyssal-first-progression-reward',ev=>{
 });
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
 window.addEventListener('abyssal-authenticated',()=>syncSoloAdaptation());
+window.addEventListener('online',()=>syncSoloAdaptation());
+setInterval(syncSoloAdaptation,15000);
 window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   coins=Number(a.coins)||0;
@@ -5414,7 +5416,7 @@ window.addEventListener('abyssal-specimen-proficiency',event=>{
 });
 window.addEventListener('abyssal-specimen-state',event=>{
  const d=event.detail||{},selfId=window.AbyssalOnline?.getSocketId?.();
- if(selfId&&String(d.playerId)===String(selfId)&&player?.specimen){
+ if(selfId&&String(d.playerId)===String(selfId)&&player?.specimen&&(!d.skinId||String(d.skinId)===equippedSkin)){
   player.specimen.alive=d.alive!==false;player.specimen.hp=Math.max(0,Number(d.hp)||0);player.specimen.maxHp=Math.max(1,Number(d.maxHp)||55);
   player.specimen.respawnAt=d.alive===false?Number(d.respawnAt)||0:0;
   player.specimen.respawnTimer=d.alive===false?Math.max(0,(player.specimen.respawnAt-Date.now())/1000):0;
