@@ -477,7 +477,7 @@ window.addEventListener('abyssal-specimen-discovery-confirmed',event=>registerSp
 let gameLanguage=['en','es'].includes(localStorage.getItem('abyssalLanguage'))?localStorage.getItem('abyssalLanguage'):'pt';
 let shopCurrency='brl';
 let shopRates={brl:1};
-function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const cockpitLanguage=$('cockpitLanguageSelect');if(cockpitLanguage)cockpitLanguage.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
+function setGameLanguage(language){gameLanguage=['en','es'].includes(language)?language:'pt';localStorage.setItem('abyssalLanguage',gameLanguage);shopCurrency='brl';const languageSelect=$('languageSelect');if(languageSelect)languageSelect.value=gameLanguage;const cockpitLanguage=$('cockpitLanguageSelect');if(cockpitLanguage)cockpitLanguage.value=gameLanguage;const currencySelect=$('shopCurrency');if(currencySelect)currencySelect.value='brl';if(!$('shopScreen')?.hidden)renderShop();window.dispatchEvent(new CustomEvent('abyssal-language-change',{detail:{language:gameLanguage,currency:'brl'}}));}
 // Keep the last server-synchronized ownership cache while session restoration is pending. The authoritative account-data event replaces it after authentication.
 function saveCosmetics(){localStorage.setItem('abyssalDiverGender',diverGender);localStorage.setItem('abyssalSkin',equippedSkin);localStorage.setItem('abyssalOwnedSkins',JSON.stringify(ownedSkins));localStorage.setItem('abyssalMetaUpgrades',JSON.stringify(metaUpgrades));saveSpecimenProficiencyLocal();if(window.AbyssalOnline?.saveCosmetics)window.AbyssalOnline.saveCosmetics({ownedSkins,equippedSkin,metaUpgrades,diverGender,conqueror:ownedSkins.includes('greensnake')});}
 function currentSkinColor(){return (skinData.find(s=>s.id===equippedSkin)||skinData[0]).color;}
@@ -4882,7 +4882,7 @@ function settleDiveReport(onComplete){
  if(wasOnline&&authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:true,onComplete:finish});return;}
  if(wasOnline){finish({ok:false,message:'Reconecte a conta para confirmar o resultado online.'});return;}
  const calculation=diveEnergyCalculation(),earned=calculation.earned;
- energyWallet?.credit(earned,'offline-reward');saveCosmetics();renderShop();finish({ok:true,...diveEnergyCalculation()});
+ energyWallet?.credit(earned,'offline-reward');saveCosmetics();if(!$('shopScreen')?.hidden)renderShop();finish({ok:true,...diveEnergyCalculation()});
 }
 function returnToMainMenu(){mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.open?.();}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
@@ -5092,7 +5092,7 @@ $('wheelCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true})
 $('wheelTopCloseBtn')?.addEventListener('click',()=>{$('wheelScreen').hidden=true});
 $('spinWheelBtn')?.addEventListener('click',requestWheelSpin);
 $('testWheelBtn')?.addEventListener('click',()=>{if(wheelBusy)return;animateWheelToPrize(weightedWheelPrize(),false);});
-window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){if(d.account)energyWallet?.setAccount(d.account.nickname,d.account.energy);saveCosmeticsLocalOnly();renderShop();animateWheelToPrize(Number(d.reward)||2,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
+window.addEventListener('abyssal-wheel-result',ev=>{const d=ev.detail||{};if(d.ok){if(d.account)energyWallet?.setAccount(d.account.nickname,d.account.energy);saveCosmeticsLocalOnly();if(!$('shopScreen')?.hidden)renderShop();animateWheelToPrize(Number(d.reward)||2,true);}else{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=d.message||'Não foi possível girar agora.';}});
 function applyWorldEnemyDamageBatch(items){if(!Array.isArray(items))return;for(const item of items)applyWorldEnemyDamage(item);}
 function applyWorldEnemyDamage(data){
  if(!onlineMode||!data||data.id==null)return;
