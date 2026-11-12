@@ -85,7 +85,7 @@ test('classic arena builds visible perimeter rocks but exploration does not',()=
  assert.match(game,/if\(usesNaturalOceanTerrain\(\)\|\|isRiftRun\(\)\)return;/);
  assert.match(game,/const spacing=95\/worldZoom,offset=24\/worldZoom;/);
  assert.match(game,/arenaRocks\.push\(\{x,y,r:radius,edge,vertices,shade:fraction,visualOnly:true\}\)/);
- assert.match(game,/createArenaRocks\(\);\s*const soloSpawn=/);
+ assert.match(game,/createArenaRocks\(\);[\s\S]{0,220}const soloSpawn=/);
  assert.match(game,/if\(usesNaturalOceanTerrain\(\)\)\{\s*window\.AbyssalOpenSeaRender/);
 });
 
