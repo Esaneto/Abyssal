@@ -72,13 +72,9 @@
 #submarineWorkshop .abyss-cockpit-top-actions{width:50%!important;pointer-events:auto!important;gap:3px!important;overflow:visible!important}
 #submarineWorkshop .abyss-cockpit-language{flex:0 0 10%!important}
 #submarineWorkshop .cockpit-command{flex:1 1 0;min-width:0;height:100%;padding:1px 3px;border:1px solid #72858c;border-bottom:3px solid #05090e;border-radius:4px;background:linear-gradient(160deg,#35434b,#151e25 55%,#090e14);color:#e2eff1;box-shadow:inset 0 1px #ffffff30;font:700 clamp(8px,.72vw,12px)/1 system-ui;white-space:nowrap;cursor:pointer}
-#submarineWorkshop .cockpit-command:hover,#submarineWorkshop .cockpit-command[aria-expanded=true]{color:#b4ffff;border-color:#85dce0;background:#203d47}
+#submarineWorkshop .cockpit-command:hover,#submarineWorkshop .cockpit-command[aria-pressed=true]{color:#b4ffff;border-color:#85dce0;background:#203d47}
 #submarineWorkshop .cockpit-command:focus-visible{outline:2px solid #9ef3ff}
 #submarineWorkshop .abyss-cockpit-exit{position:absolute!important;right:max(10px,2vw);top:10px;pointer-events:auto!important}
-#submarineWorkshop .cockpit-command-settings{position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);width:min(340px,90vw);padding:12px;background:linear-gradient(#263942,#101a23);border:1px solid #6c8995;border-radius:7px;box-shadow:0 6px 20px #000a;color:#e2f5f7;z-index:50;font:600 12px system-ui}
-#submarineWorkshop .cockpit-command-settings[hidden]{display:none!important}
-#submarineWorkshop .cockpit-command-settings label{display:grid;gap:5px;margin:8px 0}
-#submarineWorkshop .cockpit-command-settings select,#submarineWorkshop .cockpit-command-settings button{background:#101b23;color:#e5f8ff;border:1px solid #77909b;padding:7px;border-radius:4px}
 body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidden!important}
 @media(max-width:700px){#submarineWorkshop .abyss-cockpit-top-actions{width:68%!important;min-height:26px!important;gap:2px!important}#submarineWorkshop .cockpit-command span{display:none}#submarineWorkshop .cockpit-command{font-size:12px;padding:0}#submarineWorkshop .abyss-cockpit-brand{max-width:13vw}#submarineWorkshop .abyss-cockpit-exit{font-size:0!important;padding:4px!important;right:3px!important}#submarineWorkshop .abyss-cockpit-exit span{font-size:12px!important}}
 </style>
@@ -101,6 +97,19 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 .cockpit-unread-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;background:#ff4057;border:1px solid #ffd0d3;border-radius:50%;box-shadow:0 0 7px #ff4057;pointer-events:none}
 .cockpit-unread-dot[hidden]{display:none!important}
 @media(max-width:420px){#gameOverScreen .dive-report-results{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style><style>
+#submarineWorkshop .cockpit-settings-page{display:grid!important;gap:12px!important;max-width:100%;min-width:0;padding:4px 0 12px}
+#submarineWorkshop .cockpit-setting-field{display:grid;gap:6px;min-width:0;padding:10px;border:1px solid #3b6877;border-radius:7px;background:#102630;color:#d5eaf1;font:700 13px/1.4 system-ui}
+#submarineWorkshop .cockpit-setting-field select{display:block;width:100%;max-width:100%;min-width:0;min-height:44px;padding:8px;background:#101b23;color:#e5f8ff;border:1px solid #77909b;border-radius:5px;font:500 14px system-ui}
+#submarineWorkshop .cockpit-setting-field input[type=range]{width:100%;min-height:32px;accent-color:#73d8d4;touch-action:pan-y}
+#submarineWorkshop .cockpit-setting-note{font:500 12px/1.45 system-ui;color:#a3c3ce;margin:0;overflow-wrap:anywhere}
+#submarineWorkshop #cockpitLanguageSelect[hidden]{display:none!important}
+#submarineWorkshop #notifPanel.abyss-cockpit-embedded #notifPanelInner{position:relative!important;inset:auto!important;width:100%!important;max-width:100%!important;min-width:0!important;max-height:none!important;height:auto!important;overflow:visible!important;padding:0!important;margin:0!important;transform:none!important;background:transparent!important;box-shadow:none!important;border:0!important}
+#submarineWorkshop #notifPanel.abyss-cockpit-embedded #notifPanelList{max-height:none!important;overflow:visible!important;padding:0!important}
+#submarineWorkshop #notifPanel.abyss-cockpit-embedded #notifPanelHeader{position:static!important}
+#submarineWorkshop #downloadScreen.abyss-cockpit-embedded .download-modal{width:100%!important;max-width:100%!important;min-width:0!important}
+#submarineWorkshop .abyss-visor-body{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+@media(max-width:700px){#submarineWorkshop .cockpit-setting-field select{font-size:16px}#submarineWorkshop .cockpit-settings-page{gap:8px!important}#submarineWorkshop .cockpit-setting-field{padding:7px;font-size:12px}}
 </style></head>
 <body>
 <div id="app">
@@ -598,7 +607,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <section id="submarineWorkshop" class="screen modal-screen abyss-cockpit-screen" role="dialog" aria-modal="true" aria-label="Cabine de controle submarina" hidden>
  <canvas id="abyssCockpitCanvas" class="abyss-cockpit-canvas" aria-hidden="true"></canvas>
  <div class="abyss-cockpit-chrome"><div class="abyss-cockpit-brand"><span class="brand-sub" aria-hidden="true">⌁</span><span><strong>ABYSSAL</strong><small>SUBMARINO DE EXPLORAÇÃO</small></span></div><div class="abyss-cockpit-top-actions" role="group" aria-label="Comandos superiores">
-<label class="abyss-cockpit-language" for="cockpitLanguageSelect"><select id="cockpitLanguageSelect" aria-label="Idioma do jogo" title="Idioma"><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select></label>
+<button type="button" class="cockpit-command" data-cockpit-setting="language" title="Idioma" aria-label="Idioma">◎ <span>IDIOMA</span></button><select id="cockpitLanguageSelect" aria-label="Idioma do jogo" hidden><option value="pt">PT</option><option value="en">EN</option><option value="es">ES</option></select>
 <button type="button" class="cockpit-command" data-cockpit-setting="controls" title="Controles" aria-label="Controles">⌘ <span>CONTROLE</span></button>
 <button type="button" class="cockpit-command" data-cockpit-setting="zoom" title="Zoom" aria-label="Zoom">⌕ <span>ZOOM</span></button>
 <button type="button" class="cockpit-command" data-cockpit-setting="volume" title="Volume" aria-label="Volume">♫ <span>VOLUME</span></button>
@@ -606,7 +615,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <button type="button" class="cockpit-command" data-cockpit-proxy="notifBtn" title="Avisos" aria-label="Avisos">♧ <span>AVISOS</span><i class="cockpit-unread-dot" hidden aria-hidden="true"></i></button>
 <button type="button" class="cockpit-command" data-cockpit-proxy="mobileDownloadTopBtn" title="Baixar Abyssal" aria-label="Baixar Abyssal">⇩ <span>BAIXAR</span></button>
 <button type="button" class="cockpit-command" data-cockpit-proxy="fullscreenBtn" title="Tela cheia" aria-label="Tela cheia">⛶</button>
-<div id="cockpitCommandSettings" class="cockpit-command-settings" hidden></div>
+
 </div><button id="submarineWorkshopClose" class="abyss-cockpit-exit" type="button">SAIR PELA ESCOTILHA <span aria-hidden="true">✕</span></button></div>
  <div class="abyss-cockpit-console" role="group" aria-label="Painel físico de controle do submarino">
   <div id="submarineWorkshopGrid" class="submarine-workshop-grid"></div>
@@ -690,9 +699,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.31"></script>
+ <script src="game.js?v=2026.11.12.32"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.29"></script>
+<script src="online.js?v=2026.11.12.30"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.6.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.6.3"></script>
 <script src="abyssal-rebuild.js?v=2026.11.9.9"></script>
@@ -739,10 +748,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.17"></script>
 <script src="abyssal-menu-ocean.js?v=2026.11.12.7"></script>
-<script src="abyssal-submarine-cockpit.js?v=2026.11.12.27"></script>
+<script src="abyssal-submarine-cockpit.js?v=2026.11.12.28"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.12.27"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.12.28"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
