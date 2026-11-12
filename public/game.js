@@ -143,6 +143,37 @@ function specimenProgressStats(id=equippedSkin){return SPECIMEN_SYSTEM?.stats?.(
 function specimenAlive(){return Boolean(player?.specimen?.alive!==false);}
 function specimenPassiveActive(){return Boolean(player&&player.specimen&&player.specimen.alive!==false);}
 function specimenOrigin(){if(player?.specimen)return {x:Number(player.specimen.x)||player.x,y:Number(player.specimen.y)||player.y};return {x:Number(player?.x)||0,y:Number(player?.y)||0};}
+// Solo kills are queued per account and per dive, never as an arbitrary total balance.
+let soloAdaptationRun=null,soloAdaptationSyncBusy=false;
+function adaptationAccountKey(){return String(window.AbyssalOnline?.getAccount?.()?.nickname||'').trim().toLowerCase();}
+function readAdaptationQueue(key){try{return JSON.parse(localStorage.getItem('abyssalAdaptationQueue:'+key)||'[]')}catch{return [];}}
+function writeAdaptationQueue(key,rows){try{localStorage.setItem('abyssalAdaptationQueue:'+key,JSON.stringify(rows));}catch(_){}}
+function recordSoloAdaptation(id,boss){
+ const key=adaptationAccountKey();if(!key||!soloAdaptationRun)return;
+ const rows=readAdaptationQueue(key);let row=rows.find(x=>x.id===soloAdaptationRun);
+ if(!row){row={id:soloAdaptationRun,startedAt:Date.now(),counts:{}};rows.push(row);}
+ const count=row.counts[id]||{common:0,boss:0};count[boss?'boss':'common']++;row.counts[id]=count;writeAdaptationQueue(key,rows);
+}
+function syncSoloAdaptation(){
+ const key=adaptationAccountKey();if(!key||soloAdaptationSyncBusy||!window.AbyssalOnline?.isAuthenticated?.())return;
+ const rows=readAdaptationQueue(key);if(!rows.length)return;
+ soloAdaptationSyncBusy=true;
+ window.AbyssalOnline.syncSpecimenAdaptation(rows.slice(0,20),result=>{
+  soloAdaptationSyncBusy=false;if(!result?.ok||adaptationAccountKey()!==key)return;
+  const latest=readAdaptationQueue(key),sent=new Map(rows.slice(0,20).map(x=>[x.id,x]));
+  const acknowledged=new Set(result.accepted||[]);
+  writeAdaptationQueue(key,latest.filter(x=>!acknowledged.has(x.id)||JSON.stringify(x.counts)!==JSON.stringify(sent.get(x.id)?.counts)));
+  if(result.account)window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));
+ });
+}
+function pendingAdaptationMap(key,serverMap){
+ const next=SPECIMEN_SYSTEM.normalizeMap(serverMap);
+ for(const row of readAdaptationQueue(key))for(const [id,c] of Object.entries(row.counts||{})){
+  const credited=row.credited?.[id]||{common:0,boss:0};
+  next[id]=Math.min(5000,(next[id]||0)+Math.max(0,(c.common||0)-(credited.common||0))+10*Math.max(0,(c.boss||0)-(credited.boss||0)));
+ }
+ return next;
+}
 function saveSpecimenProficiencyLocal(){try{localStorage.setItem('abyssalSpecimenProficiency',JSON.stringify(specimenProficiency));}catch(_){}}
 let expeditionMode=false,expeditionExtracted=false,expeditionRiskTier=0;
 let soloDepthEventId=null,soloDepthEventEndsAt=0,pendingSoloDepthEventId=null;
@@ -785,7 +816,7 @@ function desiredWorldZoom(){
  const base=mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
  // Fusing Olho do Abismo consumes range upgrades, but preserves full sight.
  const bonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:Number(upgrades?.range)||1;
- const zoomPreference=onlineMode?1:clamp(Number(localStorage.getItem('abyssalCameraZoom'))||1,1,1.25);
+ const mobile=Boolean(mobileViewport);const zoomPreference=onlineRoomMode==='pvp'&&onlineMode?1:clamp(Number(localStorage.getItem(mobile?'abyssalCameraZoomMobile':'abyssalCameraZoomPc'))||(mobile?1:1.25),.75,1.5);
  return base*zoomPreference/clamp(bonus,1,CAMERA_RANGE_MAX);
 }
 function desiredMapFactor(){return 1.7;}
@@ -1437,7 +1468,7 @@ function showVictoryModal() {
 
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(){
- diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
+ soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
  // A previous PvP session cannot leak its arena rules into a new Solo dive.
  if(!onlineMode)onlineRoomMode='coop';
  if(isRiftRun()||isOpenSeaRun()){controlSettings.pc='wasd-aim';controlSettings.mobile='dual-stick';}
@@ -2357,9 +2388,9 @@ function killEnemy(i){
  if(!onlineMode&&isOpenSeaRun()&&e?.streamId)soloOceanRespawn?.mark(e.streamId,Date.now());
  const proficiencyBoss=BOSS_KINDS.includes(e.kind);
  if(!onlineMode&&specimenAlive()){
-  specimenProficiency=SPECIMEN_SYSTEM?.addKill?.(specimenProficiency,equippedSkin,proficiencyBoss)||specimenProficiency;
+  specimenProficiency=SPECIMEN_SYSTEM?.addKill?.(specimenProficiency,equippedSkin,proficiencyBoss)||specimenProficiency;recordSoloAdaptation(equippedSkin,proficiencyBoss);
    const pet=player?.specimen;if(pet){const next=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp;pet.hp=Math.min(next,pet.hp+Math.max(0,next-pet.maxHp));pet.maxHp=next;}
-  saveSpecimenProficiencyLocal();
+  saveSpecimenProficiencyLocal();syncSoloAdaptation();
  }
  const killedBoss=BOSS_KINDS.includes(e.kind);if(killedBoss){bossKillsThisRun++;pendingSoloDepthEventId=EXPEDITION_RULES?.chooseEvent?.(Math.random,bossKillsThisRun)||null;updateHud();publishSoloDepthState();}
  discoverCodexMonsters([e.kind]);if(!onlineMode){
@@ -4674,6 +4705,7 @@ function renderDiveReport(report,pending=false){
 }
 function publishDiveReport(report){const n=v=>v==null?'Não disponível':Math.max(0,Math.round(Number(v)||0)).toLocaleString('pt-BR');const outcome=report.reason==='death'?'Mergulhador abatido':report.reason==='extracted'?'Extração concluída':'Encerramento voluntário';addNotification(outcome+' · Moedas abissais: '+n(report.totalRunCoins)+' · Energia: '+n(report.energyCollected)+' · Sobrevivência: '+fmtTime(report.survival)+' · Dano: '+n(report.damageDealt)+' · Criaturas abatidas: '+n(report.monstersKilled),'RELATÓRIO DE MERGULHO','dive');}
 function settleDiveReport(onComplete){
+ syncSoloAdaptation();
  if(diveSettled){onComplete?.();return;}if(diveSettling||!diveReport)return;
  diveSettling=true;const wasOnline=Boolean(onlineMode),authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const finish=result=>{
@@ -5361,6 +5393,7 @@ window.addEventListener('abyssal-first-progression-reward',ev=>{
  window.AbyssalTutorials?.showProgressionChoice?.();
 });
 window.addEventListener('abyssal-run-saved',ev=>{const r=ev.detail||{};if(!r.ok)return;const status=$('saveStatus');if(status)status.textContent=`MERGULHO REGISTRADO · ${Number(r.bossesKilled)||0} BOSSES · +${Number(r.totalRunCoins??((Number(r.earned)||0)+(Number(r.bossCoins)||0)))||0} MOEDAS NA EXPEDIÇÃO`;if(r.rankings)window.dispatchEvent(new CustomEvent('abyssal-rankings-refreshed',{detail:r.rankings}));});
+window.addEventListener('abyssal-authenticated',()=>syncSoloAdaptation());
 window.addEventListener('abyssal-account-data',e=>{
   const a=e.detail;if(!a)return;
   coins=Number(a.coins)||0;
@@ -5370,14 +5403,14 @@ window.addEventListener('abyssal-account-data',e=>{
   if(!ownedSkins.includes(equippedSkin))equippedSkin='default';
   metaUpgrades=typeof a.metaUpgrades==='object'&&a.metaUpgrades?a.metaUpgrades:{};
   if(a.diverGender==='female'||a.diverGender==='male')setDiverGender(a.diverGender,false);
-  const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=SPECIMEN_SYSTEM?.normalizeMap?.(serverProficiency)||serverProficiency;saveSpecimenProficiencyLocal();
+  const serverProficiency=a.specimenProficiency&&typeof a.specimenProficiency==='object'?a.specimenProficiency:{};specimenProficiency=pendingAdaptationMap(adaptationAccountKey(),serverProficiency);saveSpecimenProficiencyLocal();
   saveCosmeticsLocalOnly();
   const shopScreen=$('shopScreen');if(shopScreen&&!shopScreen.hidden)renderShop();
   updateAbilityButtons();
 });
 window.addEventListener('abyssal-specimen-proficiency',event=>{
  const d=event.detail||{};if(!d.skinId)return;
- specimenProficiency={...specimenProficiency,[String(d.skinId)]:Math.max(0,Number(d.points)||0)};saveSpecimenProficiencyLocal();updateAbilityButtons(true);
+ specimenProficiency={...specimenProficiency,[String(d.skinId)]:Math.max(specimenPoints(String(d.skinId)),Number(d.points)||0)};saveSpecimenProficiencyLocal();updateAbilityButtons(true);
 });
 window.addEventListener('abyssal-specimen-state',event=>{
  const d=event.detail||{},selfId=window.AbyssalOnline?.getSocketId?.();
@@ -5386,7 +5419,7 @@ window.addEventListener('abyssal-specimen-state',event=>{
   player.specimen.respawnAt=d.alive===false?Number(d.respawnAt)||0:0;
   player.specimen.respawnTimer=d.alive===false?Math.max(0,(player.specimen.respawnAt-Date.now())/1000):0;
   if(Number.isFinite(Number(d.x)))player.specimen.x=Number(d.x)*W;if(Number.isFinite(Number(d.y)))player.specimen.y=Number(d.y)*H;
-  if(Number.isFinite(Number(d.points)))specimenProficiency={...specimenProficiency,[equippedSkin]:Number(d.points)};
+  if(d.skinId&&Number.isFinite(Number(d.points))){const id=String(d.skinId);specimenProficiency={...specimenProficiency,[id]:Math.max(specimenPoints(id),Number(d.points))};saveSpecimenProficiencyLocal();}
   updateAbilityButtons(true);
   if(d.reason==='defeated')showToast('ESPÉCIME ABATIDO · BÔNUS E ATIVA INATIVOS');
   if(d.reason==='respawn')showToast('ESPÉCIME RESSURGIU');
