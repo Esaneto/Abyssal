@@ -3290,7 +3290,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   const anglerHidden=false,target=localTarget;
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
-   const moved=mapResolveMove(e.x,e.y,e.x+e.kbVx*dt,e.y+e.kbVy*dt,Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;}
+   const dx=e.kbVx*dt,dy=e.kbVy*dt,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/12));for(let i=0;i<steps;i++){const moved=mapResolveMove(e.x,e.y,clamp(e.x+dx/steps,0,W),clamp(e.y+dy/steps,0,H),Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;break;}}
    const decay=Math.exp(-dt*6.5);
    e.kbVx*=decay;e.kbVy*=decay;
    if(Math.hypot(e.kbVx,e.kbVy)<15){e.kbVx=0;e.kbVy=0;}
