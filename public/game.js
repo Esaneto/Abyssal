@@ -779,7 +779,8 @@ function desiredWorldZoom(){
  const base=mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
  // Fusing Olho do Abismo consumes range upgrades, but preserves full sight.
  const bonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:Number(upgrades?.range)||1;
- return base/clamp(bonus,1,CAMERA_RANGE_MAX);
+ const zoomPreference=onlineMode?1:clamp(Number(localStorage.getItem('abyssalCameraZoom'))||1,1,1.25);
+ return base*zoomPreference/clamp(bonus,1,CAMERA_RANGE_MAX);
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
