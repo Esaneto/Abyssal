@@ -128,7 +128,8 @@ test('open sea wildlife keeps ecological patrol while hunting sharks use shared 
  const ai=source('public/enemy-ai.js');
  const game=source('public/game.js');
  assert.match(ai,/options\.freeSwim !== true/);
- assert.match(game,/soloEnemyMovementOptions\.freeSwim=!window\.AbyssalEnemyAI\.isChargeAttack\(e\)\|\|\(!ec\.aggressive&&!e\.sharkCharging\)/);\n assert.match(game,/soloEnemyMovementOptions\.sharkNavigation=soloSharkNavigation/);
+ assert.match(game,/soloEnemyMovementOptions\.freeSwim=!window\.AbyssalEnemyAI\.isChargeAttack\(e\)\|\|\(!ec\.aggressive&&!e\.sharkCharging\)/ );
+ assert.match(game,/soloEnemyMovementOptions\.sharkNavigation=soloSharkNavigation/);
 });
 
 
