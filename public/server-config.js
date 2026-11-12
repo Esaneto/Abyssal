@@ -4,7 +4,7 @@
  */
 (function(root){
   'use strict';
-  const DEFAULT_NATIVE_SERVER_URL='https://abyssal-ej5j.onrender.com';
+  const DEFAULT_NATIVE_SERVER_URL='https://abyssalgame.duckdns.org';
   const normalize=value=>{
     const raw=String(value||'').trim().replace(/\/+$/,'');
     if(!raw)return '';
