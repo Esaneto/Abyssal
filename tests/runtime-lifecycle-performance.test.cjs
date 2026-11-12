@@ -31,7 +31,7 @@ test('multiplayer heartbeat exists only for a visible active room',()=>{
  assert.match(online,/currentRoom=data\.room\|\|null;startPositionHeartbeat\(\)/);
  assert.match(online,/socket\.on\('world-left'[\s\S]*?stopPositionHeartbeat\(\)/);
  assert.match(online,/socket\.on\('disconnect'[\s\S]*?stopPositionHeartbeat\(\)/);
- assert.match(online,/if\(hidden\)stopPositionHeartbeat\(\);else if\(currentRoom\)startPositionHeartbeat\(\)/);
+ assert.match(online,/if\(hidden\)\{[\s\S]*?stopPositionHeartbeat\(\)[\s\S]*?\}else\{[\s\S]*?if\(currentRoom\)startPositionHeartbeat\(\)/);
 });
 
 test('remote player render state is released when peers leave or the room closes',()=>{
@@ -72,4 +72,32 @@ test('authentication rate-limit memory is pruned during long server uptime',()=>
  assert.match(server,/if\(recent\.length\)authAttempts\.set\(ip,recent\);else authAttempts\.delete\(ip\)/);
  assert.match(server,/pruneAuthAttempts\(now\)/);
  assert.match(server,/authAttempts\.delete\(ip\);[\s\S]*?ensureAccountId\(user\)/);
+});
+
+test('gameplay loop fully suspends while the browser tab is hidden',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/let gameLoopFrame=0,gameLoopTimer=0/);
+ assert.match(game,/function scheduleGameLoop\(delay=0\)/);
+ assert.match(game,/if\(document\.hidden\|\|gameLoopFrame\|\|gameLoopTimer\)return/);
+ assert.match(game,/function stopGameLoop\(\)[\s\S]*?cancelAnimationFrame\(gameLoopFrame\)[\s\S]*?clearTimeout\(gameLoopTimer\)/);
+ assert.match(game,/document\.addEventListener\('visibilitychange',[\s\S]*?if\(document\.hidden\)\{stopGameLoop\(\);return;\}[\s\S]*?scheduleGameLoop\(\)/);
+ assert.doesNotMatch(game,/gameState==='menu'&&!onlineMode\)\{last=t;setTimeout\(\(\)=>requestAnimationFrame\(loop\),125\)/);
+});
+
+test('account maintenance uses one visible fallback timer instead of permanent intervals',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/let accountMaintenanceTimer=0/);
+ assert.match(game,/function scheduleAccountMaintenance\(delay=30000\)/);
+ assert.match(game,/if\(document\.hidden\)return/);
+ assert.doesNotMatch(game,/setInterval\(\(\)=>energyWallet\?\.sync\(\),5000\)/);
+ assert.doesNotMatch(game,/setInterval\(syncSoloAdaptation,15000\)/);
+});
+
+test('online retry maintenance pauses while hidden and remains event-driven',()=>{
+ const online=read('public/online.js');
+ assert.match(online,/let onlineMaintenanceTimer=0/);
+ assert.match(online,/function scheduleOnlineMaintenance\(delay=30000\)/);
+ assert.match(online,/if\(document\.hidden\)return/);
+ assert.doesNotMatch(online,/setInterval\(\(\)=>\{if\(authenticated&&readSoloQueue/);
+ assert.match(online,/window\.addEventListener\('online',[\s\S]*?scheduleOnlineMaintenance\(3000\)/);
 });
