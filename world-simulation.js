@@ -621,6 +621,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
   const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):true;
+  const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):target;
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
@@ -759,6 +760,9 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     let movement;
     movementOptions.freeSwim=false;
     movementOptions.sharkLineOfSight=actualTarget?terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y):false;
+    movementOptions.sharkTerrainClear=terrainClear;
+    movementOptions.sharkPadding=riftMode?Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)):Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
+    movementOptions.sharkNavigation=sharkNavigation;
     const seaBeforeX=Number(enemy.x),seaBeforeY=Number(enemy.y);
     if (!riftMode) {
       if(enemy.wildlifeMode){
@@ -766,19 +770,19 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         const ecology=OpenSeaEcology.decide(enemy,targetablePlayers,world.elapsed,now,ecologyNeighbors(ecologySpatial,enemy));
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId)):5;
-        movementOptions.freeSwim=world.mode==='open-sea'&&(!actualTarget||!EnemyAI.isChargeAttack(enemy));
+        movementOptions.freeSwim=world.mode==='open-sea'&&(!EnemyAI.isChargeAttack(enemy)||(!actualTarget&&!enemy.sharkCharging));
         movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
         const swimTarget=ecology.target;
         const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
         movementNavigationProxy.moveSpeed=Number(swimTarget.moveSpeed)||150/WORLD_ZOOM;
         movementNavigationProxy.alive=true;
-        movement=EnemyAI.moveTowardTarget(enemy,movementNavigationTargets,dt,movementOptions,movementResult);
+        movement=EnemyAI.moveTowardTarget(enemy,EnemyAI.isChargeAttack(enemy)&&actualTarget?[actualTarget]:movementNavigationTargets,dt,movementOptions,movementResult);
         if(world.mode==='open-sea'){
           const radius=Math.max(10,Math.min(65,(Number(enemy.r)||10)/WORLD_ZOOM*.62));
           const resolved=OceanGeography.resolveMove(seaBeforeX,seaBeforeY,enemy.x,enemy.y,radius);
           enemy.x=resolved.x;enemy.y=resolved.y;
-          if(resolved.blocked){enemy.vx=(enemy.x-seaBeforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-seaBeforeY)/Math.max(dt,.001);}
+          if(resolved.blocked){enemy.vx=(enemy.x-seaBeforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-seaBeforeY)/Math.max(dt,.001);if(EnemyAI.isChargeAttack(enemy))enemy.sharkReplan=true;}
           const spaced=OpenSeaEcology.separateContact(enemy,ecologyNeighbors(ecologySpatial,enemy,180),dt);
           enemy.x=spaced.x;enemy.y=spaced.y;
         }
@@ -833,10 +837,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
     const beforeMoveX=Number(enemy.x),beforeMoveY=Number(enemy.y);
-    movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
+    movement = EnemyAI.moveTowardTarget(enemy, EnemyAI.isChargeAttack(enemy)&&actualTarget?[actualTarget]:movementTargets, dt, movementOptions, movementResult);
     const resolvedMove=AbyssalMap.resolveMove(mapLayout,beforeMoveX,beforeMoveY,enemy.x,enemy.y,Math.max(8,Math.min(38,(Number(enemy.r)||10)*.58)));
     enemy.x=resolvedMove.x;enemy.y=resolvedMove.y;
-    if(resolvedMove.blocked&&enemy.kind==='whiteShark'||resolvedMove.blocked&&enemy.kind==='whiteSharkBoss'){enemy.dashVx=null;enemy.dashVy=null;enemy.sharkChargeRemaining=0;enemy.sharkCharging=false;enemy.sharkRecoveryRemaining=1.2;}
+    if(resolvedMove.blocked&&EnemyAI.isChargeAttack(enemy))enemy.sharkReplan=true;
     movement.moved=Math.hypot(enemy.x-beforeMoveX,enemy.y-beforeMoveY)>.04;
     movement.target=actualTarget;
     if (!movement.moved && actualTarget && dt > 0) {
@@ -884,7 +888,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
     if (riftMode && !actualTarget) continue;
-    if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||enemy.sharkChargeHit))) continue;
+    if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
