@@ -60,7 +60,7 @@ const cpuSampler=setInterval(()=>{
 cpuSampler.unref?.();
 const BUBBLE_TRAIL_HIT_MS=500;
 
-const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost']);
+const NATIVE_APP_ORIGINS=new Set(['https://localhost','capacitor://localhost','abyssal://app']);
 const allowedSocketOrigins = new Set(String(process.env.APP_ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean));
 for(const origin of NATIVE_APP_ORIGINS)allowedSocketOrigins.add(origin);
 function socketOriginAllowed(origin, request) {
@@ -170,6 +170,18 @@ function persistState(key,value,filePath,pretty=false,mode=0o600){
    [key,snapshot.serialized]
   );
  }).catch(err=>console.error(`[persistence] Falha ao salvar ${key}:`,err.message));
+}
+// Persist the receipt, balance and ranking together before acknowledging a solo run.
+// PostgreSQL performs both state-row upserts in one atomic statement. Failed
+// saves remain retryable; the in-memory receipt prevents awarding twice.
+function persistSoloSettlement(){
+ const snapshots=Promise.all([snapshotState('users',users,USERS_FILE,true,0o600),snapshotState('rankings',rankings,RANKS_FILE,true,0o600)]);
+ const task=persistenceQueue.then(async()=>{
+  const [u,r]=await snapshots;
+  if(pgPool)await pgPool.query('INSERT INTO abyssal_state (state_key,state_value,updated_at) VALUES ($1,$2::jsonb,NOW()),($3,$4::jsonb,NOW()) ON CONFLICT (state_key) DO UPDATE SET state_value=EXCLUDED.state_value,updated_at=NOW()',['users',u.serialized,'rankings',r.serialized]);
+ });
+ persistenceQueue=task.catch(err=>console.error('[persistence] Solo settlement:',err.message));
+ return task;
 }
 function saveUsers(){persistState('users',users,USERS_FILE,true,0o600);}
 let titleStatsSaveTimer=null;
@@ -282,7 +294,7 @@ const TITLE_DEFINITIONS=[
  function hallPosition(u){return hallPositions.get(String(u?.nickname||'').toLowerCase())||0;}
  function normalizeHallTitle(u){if(!u)return false;const equipped=String(u.equippedTitle||'');if(HALL_TITLE_PATTERN.test(equipped)&&equipped!=='hall-top-'+hallPosition(u)){u.equippedTitle='abyss-drifter';return true;}return false;}
  function unlockedTitleIds(u){const ids=TITLE_DEFINITIONS.filter(t=>t.kind==='starter'||titleProgress(u,t.kind)>=t.required).map(t=>t.id);const pos=hallPosition(u);if(pos)ids.push('hall-top-'+pos);return ids;}
- function reconcileHallTitles({startup=false}={}){
+ function reconcileHallTitles({startup=false,persist=true}={}){
   const previous=hallPositions;hallPositions=new Map(rankedEntries(rankings.eternal).map((entry,index)=>[String(entry.key),index+1]));
   const affected=new Set([...previous.keys(),...hallPositions.keys()]);
   if(startup)for(const [key,u] of Object.entries(users))if(HALL_TITLE_PATTERN.test(String(u.equippedTitle||'')))affected.add(key);
@@ -294,7 +306,7 @@ const TITLE_DEFINITIONS=[
   for(const client of io.sockets.sockets.values())if(changed.has(client.data.userKey)&&users[client.data.userKey])client.emit('account-data',publicUser(users[client.data.userKey]));
   for(const room of dirtyRooms)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...p})=>p));
   if(!startup)broadcastCardumeRosters();
-  saveUsers();
+  if(persist)saveUsers();
  }
  function ensureAccountId(u){if(!u)return null;if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(u.accountId||'')))u.accountId=crypto.randomUUID();return u.accountId;}
  function migrateEnergy(u){if(!u)return;if(!Number.isFinite(Number(u.energy)))u.energy=Math.max(0,Math.floor((Number(u.coins)||0)/10));else u.energy=Math.max(0,Math.floor(Number(u.energy)));delete u.coins;}
@@ -308,14 +320,14 @@ const TITLE_DEFINITIONS=[
 function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 const RANKING_ENERGY_REWARDS=Object.freeze({daily:100,weekly:1000,monthly:5000});
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
-function settlePeriods() {
+function settlePeriods(persist=true) {
  const d = dayKey(), w = weekKey(), m = monthKey();
  rankings.monthly ||= {};
  if (rankings.settled.day && rankings.settled.day !== d) awardBoard(rankings.daily[rankings.settled.day], RANKING_ENERGY_REWARDS.daily, 'diário');
  if (rankings.settled.week && rankings.settled.week !== w) awardBoard(rankings.weekly[rankings.settled.week], RANKING_ENERGY_REWARDS.weekly, 'semanal');
  if (rankings.settled.month && rankings.settled.month !== m) awardBoard(rankings.monthly[rankings.settled.month], RANKING_ENERGY_REWARDS.monthly, 'mensal');
  rankings.daily[d] ||= {}; rankings.weekly[w] ||= {}; rankings.monthly[m] ||= {};
- rankings.settled = { day: d, week: w, month: m }; saveUsers(); saveRanks();
+ rankings.settled = { day: d, week: w, month: m }; if(persist){saveUsers();saveRanks();}
 }
 function onlineCount() { return io.engine.clientsCount; }
 function broadcastOnline() { io.emit('online-count', onlineCount()); }
@@ -1101,18 +1113,18 @@ async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const score=Math.max(0,Math.min(1e9,Number(payload.score??run.score)||0));
  const level=Math.max(1,Math.min(9999,Math.floor(Number(payload.level??run.level)||1)));
  const bossesKilled=Math.max(0,Math.min(10000,Math.floor(member?(Number(run.bossesKilled)||0):(Number(payload.bossesKilled??run.bossesKilled)||0))));
- run.finalSurvival=member?survival:Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));if(!member){run.damageDealt=Math.max(0,Math.min(1e9,Number(payload.damageDealt)||0));run.monstersKilled=Math.max(0,Math.min(1e7,Math.floor(Number(payload.monstersKilled)||0)));run.energyCollected=Math.max(0,Math.min(1e9,Math.floor(Number(payload.energyCollected)||0)));}run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;saveMatchHistoryForUser(user,room,run);
+ run.finalSurvival=member?survival:Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));if(!member){run.damageDealt=Math.max(0,Math.min(1e9,Number(payload.damageDealt)||0));run.monstersKilled=Math.max(0,Math.min(1e7,Math.floor(Number(payload.monstersKilled)||0)));run.energyCollected=Math.max(0,Math.min(1e9,Math.floor(Number(payload.energyCollected)||0)));}run.settled=true;run.score=score;run.level=level;run.bossesKilled=bossesKilled;user.titleStats ||= {};user.titleStats.runsCompleted=(Number(user.titleStats.runsCompleted)||0)+1;if(isolatedRun){user.titleStats.monstersDefeated=(Number(user.titleStats.monstersDefeated)||0)+run.monstersKilled;user.titleStats.bossesDefeated=(Number(user.titleStats.bossesDefeated)||0)+bossesKilled;if(run.mode==='rift')user.titleStats.riftBossesDefeated=(Number(user.titleStats.riftBossesDefeated)||0)+bossesKilled;if(payload.classicFirstCycle===true&&run.mode==='solo'&&bossesKilled>=7&&run.finalSurvival>=120)grantFirstProgressionReward(user);}saveMatchHistoryForUser(user,room,run);
  if(member)member.runStats=run;else if(!isolatedRun)socket.data.runStats=run;
- settlePeriods();
+ settlePeriods(!isolatedRun);
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(run.finalSurvival),updatedAt:new Date().toISOString()};
  const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&run.finalSurvival>(Number(old.survival)||0))));
  const put=board=>{if(better(board[key]))board[key]=entry;};
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
- put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles();
+ put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles({persist:!isolatedRun});
  const expedition=Boolean(!member&&payload.expedition===true),extracted=Boolean(expedition&&payload.extracted===true);const baseEarned=Math.max(5,Math.floor(score/35)+level*2);const expeditionBonus=0;const specimenBonus=SkinAbilities.endDiveEnergyBonus(run.energySkinId||member?.skinId||user.equippedSkin||'default');const expeditionMultiplier=1+expeditionBonus+specimenBonus;const baseEnergy=Math.floor(Math.min(50000,Math.max(3,baseEarned))/10);const energyBonus=Math.floor(Number(run.energyCollected||0)*specimenBonus);const earned=baseEnergy+energyBonus;const bossCoins=bossesKilled*10;const unpaidBossCoins=member?0:bossCoins;user.energy=(Number(user.energy)||0)+earned+unpaidBossCoins;run.completionCoins=earned;run.totalRunCoins=earned+bossCoins;run.energyBonus=energyBonus;run.energyBonusPercent=Math.round((expeditionBonus+specimenBonus)*100);run.specimenEnergyBonusPercent=Math.round(specimenBonus*100);
  if(isolatedRun){user.offlineRunReceipts ||= {};user.offlineRunReceipts[run.id]={earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,survival:run.finalSurvival,damageDealt:run.damageDealt,monstersKilled:run.monstersKilled,energyCollected:run.energyCollected,level,score};}
- saveRanks();saveUsers();await flushPersistence();
+ if(isolatedRun)await persistSoloSettlement();else{saveRanks();saveUsers();await flushPersistence();}
  const result={ok:true,earned,bossesKilled,bossCoins,totalRunCoins:earned+bossCoins,energyBonus,energyBonusPercent:run.energyBonusPercent,specimenEnergyBonusPercent:run.specimenEnergyBonusPercent,runId:run.id,damageDealt:Math.round(Number(run.damageDealt)||0),monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,survival:run.finalSurvival,score:Math.round(score),level,expedition,extracted,expeditionMultiplier,account:publicUser(user),rankings:rankingPayload(),message:expedition?(extracted?`Extração registrada: ${bossesKilled} boss(es), bônus de ${Math.round((expeditionMultiplier-1)*100)}% e +${earned} energia de conclusão.`:`Expedição encerrada: ${bossesKilled} boss(es) abatido(s). Nenhuma penalidade de retirada foi aplicada (+${earned}).`):`Mergulho registrado: ${bossesKilled} boss(es) abatido(s), ${bossCoins} energia por boss e +${earned} energia de conclusão.`};
  socket.emit('run-saved',result);io.emit('rankings-updated',rankingPayload());return result;
 }
@@ -2100,7 +2112,7 @@ io.on('connection', socket => {
   if(!user||!/^solo-[a-zA-Z0-9-]{12,100}$/.test(id))return ack({ok:false,message:'Registro local inválido.'});
   try{
    user.offlineRunReceipts ||= {};
-   if(Object.hasOwn(user.offlineRunReceipts,id)){await flushPersistence();return ack({ok:true,duplicate:true,...user.offlineRunReceipts[id],account:publicUser(user),rankings:rankingPayload()});}
+   if(Object.hasOwn(user.offlineRunReceipts,id)){await persistSoloSettlement();return ack({ok:true,duplicate:true,...user.offlineRunReceipts[id],account:publicUser(user),rankings:rankingPayload()});}
    const survival=Math.max(0,Math.min(86400,Math.floor(Number(payload.survival)||0)));
    const skin=String(payload.energySkinId||'default'),energySkinId=(user.ownedSkins||['default']).includes(skin)?skin:'default';
    const run={...makeRunStats(),id,startedAt:Date.now()-survival*1000,energySkinId,mode:payload.expedition===true?'rift':'solo'};
