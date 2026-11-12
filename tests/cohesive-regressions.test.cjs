@@ -186,7 +186,7 @@ test('solo enemy movement uses the shared AI while online movement stays authori
 });
 
 
-test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes',cardumes,CARDUMES_FILE,true,0o600\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',renderCardumesList\)/)});
+test('Cardumes have authenticated create/join/leave events and durable state',()=>{const server=read('server.js');const html=read('public/index.html');const online=read('public/online.js');assert.match(server,/socket\.on\('create-cardume'/);assert.match(server,/socket\.on\('join-cardume'/);assert.match(server,/socket\.on\('leave-cardume'/);assert.match(server,/persistState\('cardumes',cardumes,CARDUMES_FILE,true,0o600\)/);assert.match(html,/id="cardumesScreen"/);assert.match(online,/socket\.on\('cardumes-list',items=>\{const screen=\$\('cardumesScreen'\);if\(screen&&!screen\.hidden\)renderCardumesList\(items\);\}\)/)});
 test('menu removes the old octopus artwork',()=>{const html=read('public/index.html');const css=read('public/style.css');assert.doesNotMatch(html,/class="menu-creature"/);assert.match(css,/#menuScreen \.menu-creature\{display:none!important\}/)});
 
 

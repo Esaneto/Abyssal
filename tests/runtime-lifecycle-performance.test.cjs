@@ -101,3 +101,26 @@ test('online retry maintenance pauses while hidden and remains event-driven',()=
  assert.doesNotMatch(online,/setInterval\(\(\)=>\{if\(authenticated&&readSoloQueue/);
  assert.match(online,/window\.addEventListener\('online',[\s\S]*?scheduleOnlineMaintenance\(3000\)/);
 });
+
+test('hidden account screens cache data without rebuilding their DOM',()=>{
+ const online=read('public/online.js');
+ assert.match(online,/function renderRankings\(data\)\{try\{localStorage\.setItem\('abyssalRankingsCache'/);
+ assert.match(online,/const root=\$\('rankingContent'\),screen=\$\('rankingsScreen'\);if\(!root\|\|!data\|\|screen\?\.hidden\)return/);
+ assert.match(online,/socket\.on\('cardumes-list',items=>\{const screen=\$\('cardumesScreen'\);if\(screen&&!screen\.hidden\)renderCardumesList\(items\);\}\)/);
+ assert.match(online,/if\(serverAccount&&\$\('profileScreen'\)&&!\$\('profileScreen'\)\.hidden\)renderProfile\(serverAccount\)/);
+});
+
+test('account outbox completion no longer triggers unrelated hidden ranking or profile renders',()=>{
+ const online=read('public/online.js');
+ assert.match(online,/const row=readSoloQueue\(key\)\[0\];if\(!row\)return;/);
+ const sync=online.slice(online.indexOf('function syncSpecimenAdaptation'),online.indexOf('// Durable account-scoped outbox'));
+ assert.doesNotMatch(sync,/renderProfile\(/);
+});
+
+test('shop rebuilds are skipped for hidden post-run and wheel updates',()=>{
+ const game=read('public/game.js');
+ assert.match(game,/energyWallet\?\.credit\(earned,'offline-reward'\);saveCosmetics\(\);if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\)/);
+ assert.match(game,/saveCosmeticsLocalOnly\(\);if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\);animateWheelToPrize/);
+ assert.match(game,/const currencySelect=\$\('shopCurrency'\);if\(currencySelect\)currencySelect\.value='brl';if\(!\$\('shopScreen'\)\?\.hidden\)renderShop\(\)/);
+ assert.match(game,/abyssal-rooms-list',ev=>\{const screen=\$\('roomsScreen'\);if\(screen&&!screen\.hidden\)renderRoomList/);
+});
