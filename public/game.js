@@ -2004,7 +2004,8 @@ function verifyAuthoritativeContact(data){
  const radiusWithEnemy=Math.max(2,Number(data.enemyRadius)-Number(data.contactSafetyMargin||0));
  const bodyZone=data.hitZone&&DIVER_HITBOX?.circleHit?.({x:px,y:py,r:Number(data.playerR)||player?.r||13/GAME_WORLD_ZOOM,bodyAngle:Number(data.bodyAngle)||0,weaponAngle:Number(data.weaponAngle??data.bodyAngle)||0},source.x,source.y,radiusWithEnemy,Number(data.serverTime)||0);
  const anatomicalValid=Boolean(data.hitZone&&data.hitZone!=='tentacle'&&bodyZone===data.hitZone);
- const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&(centerValid||anatomicalValid);
+ const tentacleValid=data.hitZone==='tentacle'&&window.AbyssalEnemyAI?.tentacleContact?.({kind:source.kind,specimenSkinId:data.enemySkinId,x:source.x,y:source.y,r:Number(data.enemyRadius),angle:Number(data.enemyAngle)||0,phase:Number(data.enemyPhase)||0},{x:px,y:py,r:Number(data.playerR)||13/GAME_WORLD_ZOOM},Number(data.enemyRadius),SPECIMEN_SYSTEM.familyFor(data.enemySkinId));
+ const geometryValid=sourceMismatch<=2&&Math.abs(measuredDistance-reportedDistance)<=3&&(centerValid||anatomicalValid||tentacleValid);
  return {ready:true,valid:geometryValid,reason:geometryValid?null:'contact-position-mismatch',frame,source};
 }
 function alignPlayerToAuthoritativeContact(data){
