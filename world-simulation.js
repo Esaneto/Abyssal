@@ -597,6 +597,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
+  const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):true;
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
@@ -660,7 +661,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         const ty=enemy.y-Math.sin(Number(enemy.angle)||0)*(Number(enemy.r)||40)*.72;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'ink-trail',x:tx,y:ty,angle:enemy.angle||0,radius,color:'#07101d'});
         for(const target of validPlayers){
-          if(!DiverHitbox.circleHit(target,tx,ty,radius,now))continue;
+          if(!terrainClear(tx,ty,target.x,target.y)||!DiverHitbox.circleHit(target,tx,ty,radius,now))continue;
           const hit=bossAbilityHit(enemy,target,2,now,'ink-trail');
           if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}
         }
@@ -671,7 +672,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if(enemy.mawAbilityTimer>=4.0){
         enemy.mawAbilityTimer=0;const radius=205/WORLD_ZOOM;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'gulper-chomp',x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius,color:enemy.color});
-        for(const target of validPlayers){if(!DiverHitbox.circleHit(target,enemy.x,enemy.y,radius,now))continue;const hit=bossAbilityHit(enemy,target,24,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(!terrainClear(enemy.x,enemy.y,target.x,target.y)||!DiverHitbox.circleHit(target,enemy.x,enemy.y,radius,now))continue;const hit=bossAbilityHit(enemy,target,24,now,'gulper-chomp');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if(enemy.kind==='leviathan'){
@@ -679,7 +680,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       if(enemy.pressureWaveTimer>=4.8){
         enemy.pressureWaveTimer=0;const length=480/WORLD_ZOOM,width=72/WORLD_ZOOM,ang=Number(enemy.angle)||0,x2=enemy.x+Math.cos(ang)*length,y2=enemy.y+Math.sin(ang)*length;
         bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'pressure-lance',x:enemy.x,y:enemy.y,angle:ang,radius:length,color:enemy.color});
-        for(const target of validPlayers){if(!DiverHitbox.segmentHit(target,enemy.x,enemy.y,x2,y2,width,now))continue;const hit=bossAbilityHit(enemy,target,22,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
+        for(const target of validPlayers){if(!terrainClear(enemy.x,enemy.y,target.x,target.y)||!DiverHitbox.segmentHit(target,enemy.x,enemy.y,x2,y2,width,now))continue;const hit=bossAbilityHit(enemy,target,22,now,'pressure-lance');if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(target);}}
       }
     }
     if (enemy.kind === 'devourer' && enemy.suctionActive) {
@@ -687,7 +688,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       // toward its mouth. Pull is authoritative online and mirrored by the solo client.
       enemy.vx = 0; enemy.vy = 0;
       for (const creature of world.enemies) {
-        if (creature === enemy) continue;
+        if (creature === enemy || !terrainClear(enemy.x,enemy.y,creature.x,creature.y)) continue;
         const pull = EnemyAI.suctionPullDelta(creature, enemy, dt);
         if (pull.dx || pull.dy) {
           const moved=riftMode?AbyssalMap.resolveMove(mapLayout,creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,(Number(creature.r)||10)/WORLD_ZOOM*.7)):{x:clamp(creature.x+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(creature.y+pull.dy,0,(world.height||WORLD_HEIGHT))};
@@ -697,6 +698,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
       }
       for (const player of validPlayers) {
+        if(!terrainClear(enemy.x,enemy.y,player.x,player.y))continue;
         const pull = EnemyAI.suctionPullDelta(player, enemy, dt);
         if (!pull.dx && !pull.dy) continue;
         const moved=riftMode?AbyssalMap.resolveMove(mapLayout,Number(player.x),Number(player.y),Number(player.x)+pull.dx,Number(player.y)+pull.dy,Math.max(10,Number(player.r)||13/WORLD_ZOOM)):{x:clamp(Number(player.x)+pull.dx,0,(world.width||WORLD_WIDTH)),y:clamp(Number(player.y)+pull.dy,0,(world.height||WORLD_HEIGHT))};
@@ -729,6 +731,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
     movementOptions.freeSwim=false;
+    movementOptions.sharkLineOfSight=actualTarget?terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y):false;
     const seaBeforeX=Number(enemy.x),seaBeforeY=Number(enemy.y);
     if (!riftMode) {
       if(enemy.wildlifeMode){
@@ -737,6 +740,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         actualTarget=ecology.aggressive?ecology.target:null;
         movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):5;
         movementOptions.freeSwim=world.mode==='open-sea'&&(!actualTarget||!EnemyAI.isChargeAttack(enemy));
+        movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
         const swimTarget=ecology.target;
         const swimRoute=world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,swimTarget,Math.max(12,Math.min(52,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),now):swimTarget;
         movementNavigationProxy.x=swimRoute.x;movementNavigationProxy.y=swimRoute.y;
@@ -783,6 +787,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
       }
     }
     movementOptions.stopDistance=actualTarget?EnemyAI.biteDistance((Number(enemy.r)||10)/WORLD_ZOOM,Number(actualTarget?.r)||13/WORLD_ZOOM):4;
+    movementOptions.sharkLineOfSight=Boolean(actualTarget&&terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y));
     let movementTargets=actualTarget?[actualTarget]:[{
       x:ecology.target.x,y:ecology.target.y,alive:true,
       moveSpeed:150/WORLD_ZOOM
@@ -897,7 +902,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const contactZone=DiverHitbox.circleHit(resolvedContactTarget,enemy.x,enemy.y,enemyBodyRadius,now);
     const biteClear=riftMode?AbyssalMap.segmentWalkable(mapLayout,enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):world.mode==='open-sea'?OceanGeography.segmentClear(enemy.x,enemy.y,resolvedContactTarget.x,resolvedContactTarget.y,2):true;
     const biteHit=!charge&&biteClear&&contactDistance<=contactRadius;
-    if(!biteHit&&!(charge&&contactZone)&&!(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius))continue;
+    if(!biteClear||(!biteHit&&!(charge&&contactZone)&&!(enemy.kind==='kraken'&&enemy.krakenSweepActive&&contactDistance<=contactRadius)))continue;
 
     // Contact attacks now expose a species identity without widening hitboxes.
     const contactProfile={
