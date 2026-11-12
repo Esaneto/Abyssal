@@ -586,7 +586,7 @@ function soloHullAttackTarget(e){const s=nearestSoloHull(e.x,e.y);if(!s)return n
 function soloCreatureTarget(e,diver){if(!isClassicShooterRun())return diver;if(soloSubmarinePowered()){const target=soloHullAttackTarget(e);if(target)return target;}const pet=player?.specimen;if(pet?.alive&&Math.hypot(e.x-pet.x,e.y-pet.y)<Math.hypot(e.x-diver.x,e.y-diver.y))return {x:pet.x,y:pet.y,r:pet.r,local:false,specimen:true,skinId:equippedSkin,moveSpeed:player.moveSpeed};return diver;}
 function damageSoloHull(s,amount){if(!s||s.hp<=0)return;s.hp=Math.max(0,s.hp-Math.max(0,amount));if(s.hp>0)return;syncSoloHull();if(soloWeaponSection('photonRay')===s)clearSoloSubmarinePhotonRay();const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:s.x+(Math.cos(a)*55)*scale,y:s.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});} }
 function soloHullContact(e,now){if(!soloSubmarineActive()||enemyParalyzedNow(e)||now<(Number(e.submarineAttackAt)||0))return;const pad=Math.max(5,e.r*.62)+8/GAME_WORLD_ZOOM;let hit=null;for(const s of soloSubmarine.sections){if(s.hp>0&&SOLO_CAVERN.isBlocked([s.rock],e.x,e.y,pad)){if(!hit||soloHullDistance(s,e.x,e.y)<soloHullDistance(hit,e.x,e.y))hit=s;}}if(hit){e.submarineAttackAt=now+1000;damageSoloHull(hit,Math.max(5,Number(e.damage)||8));}}
-function soloRepairCandidate(){if(!soloSubmarineActive()||!player)return null;let best=null,d=Infinity;for(const s of soloSubmarine.sections){if(s.hp>=SOLO_HULL_HP||!SOLO_CAVERN.isBlocked([s.rock],player.x,player.y,75/GAME_WORLD_ZOOM+player.r))continue;const q=soloHullDistance(s,player.x,player.y);if(q<d){best=s;d=q;}}return best;}
+function soloRepairCandidate(){if(!soloSubmarineActive()||!player)return null;let best=null,d=Infinity;for(const s of soloSubmarine.sections){if(s.hp>=SOLO_HULL_HP||!SOLO_CAVERN.isBlocked([s.rock],player.x,player.y,75/GAME_WORLD_ZOOM+(Number(player.r)||0)))continue;const q=soloHullDistance(s,player.x,player.y);if(q<d){best=s;d=q;}}return best;}
 function repairSoloHull(){const s=soloRepairCandidate();if(!s)return false;s.hp=SOLO_HULL_HP;syncSoloHull();if(SOLO_CAVERN.isBlocked([s.rock],player.x,player.y,player.r+2)){const p=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,player.x,player.y,player.r+2);player.x=p.x;player.y=p.y;}return true;}
 function ensureSoloRepairButton(){let b=$('soloSubmarineRepairBtn');if(b)return b;b=document.createElement('button');b.id='soloSubmarineRepairBtn';b.type='button';b.hidden=true;b.innerHTML='<span aria-hidden="true">🔧</span><small>REPARAR</small>';b.addEventListener('click',repairSoloHull);$('petHabitBar')?.prepend(b);return b;}
 window.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&soloRepairCandidate()){e.preventDefault();repairSoloHull();}});
@@ -699,7 +699,7 @@ function drawSoloSubmarine(t){
  if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
  if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,305/GAME_WORLD_ZOOM,180/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
  ctx.shadowBlur=0;const ss=1/GAME_WORLD_ZOOM;
- ctx.save();ctx.beginPath();for(const section of soloSubmarine.sections)if(section.hp>0)ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,ss,powered||soloSubmarine.spawnFx>0,t);ctx.restore();
+ ctx.save();if(soloSubmarine.sections.some(section=>section.hp<=0)){ctx.beginPath();for(const section of soloSubmarine.sections)if(section.hp>0)ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();}window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,ss,powered||soloSubmarine.spawnFx>0,t);ctx.restore();
  for(const section of soloSubmarine.sections){ctx.save();ctx.beginPath();ctx.rect(section.min,-150*ss,section.max-section.min,300*ss);ctx.clip();if(section.hp>0){if(section.hp<SOLO_HULL_HP){ctx.globalAlpha=(1-section.hp/SOLO_HULL_HP)*.45;ctx.fillStyle='#4c1917';ctx.beginPath();section.rock.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px+section.x-x,py):ctx.moveTo(px+section.x-x,py));ctx.closePath();ctx.fill();}}else{const r=section.rock;ctx.translate(r.x-x,r.y-y);ctx.strokeStyle='#64777c';ctx.lineWidth=3*ss;ctx.fillStyle='rgba(13,24,29,.55)';ctx.beginPath();r.vertices.forEach(([px,py],i)=>i?ctx.lineTo(px,py):ctx.moveTo(px,py));ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#a16d45';ctx.lineWidth=2*ss;for(let i=0;i<4;i++){const px=(i-1.5)*r.rx*.42;ctx.beginPath();ctx.moveTo(px,-r.ry*.72);ctx.lineTo(px+12*ss,-12*ss);ctx.lineTo(px-8*ss,r.ry*.65);ctx.stroke();}}ctx.restore();const bx=section.x-x-52*ss,by=-118*ss;ctx.fillStyle='#07131b';ctx.fillRect(bx,by,104*ss,10*ss);ctx.fillStyle=section.hp>150?'#72e5b5':section.hp>0?'#ff985c':'#6c4545';ctx.fillRect(bx,by,104*ss*section.hp/SOLO_HULL_HP,10*ss);ctx.strokeStyle='#9daeb1';ctx.lineWidth=ss;ctx.strokeRect(bx,by,104*ss,10*ss);ctx.fillStyle='#e2f5f5';ctx.font='bold '+10*ss+'px sans-serif';ctx.textAlign='center';ctx.fillText(section.name+' '+Math.ceil(section.hp)+'/300',section.x-x,by-5*ss);}
  for(const d of soloSubmarine.debris){ctx.save();ctx.translate(d.x-x,d.y-y);ctx.rotate(d.angle);ctx.globalAlpha=Math.min(1,d.life);ctx.fillStyle='#a17c39';ctx.strokeStyle='#253238';ctx.lineWidth=2*ss;ctx.beginPath();ctx.moveTo(-d.size,-d.size*.35);ctx.lineTo(d.size*.8,-d.size*.6);ctx.lineTo(d.size,d.size*.4);ctx.lineTo(-d.size*.45,d.size*.7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}
  // Ballast vents release small rising bubbles even with weapons offline.
@@ -3221,6 +3221,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   if(activeMapLayout&&Date.now()-(e.spawnedAt||0)<3000)continue;
   if(e.kind===RIFT_HARDCORE?.FINAL_KIND)continue;
+  const anglerHidden=false,target=soloCreatureTarget(e,localTarget),creatureTargets=target===localTarget?localTargets:[target];
   if(e.kind==='kraken'){
    e.krakenSweepTimer=Math.max(0,(Number(e.krakenSweepTimer)||0)-dt);
    if(e.krakenSweepTimer<=0){
@@ -3237,7 +3238,8 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    if(e.suctionActive){e.suctionTimer=Math.max(0,(Number(e.suctionTimer)||0)-dt);if(e.suctionTimer<=0)e.suctionActive=false;}
    else if(e.suctionCooldown<=0){e.suctionActive=true;e.suctionTimer=4;e.suctionCooldown=20;e.suctionPulse=(Number(e.suctionPulse)||0)+1;playDevourerSuction();showToast('SUCÇÃO DO DEVORADOR · AFASTE-SE DA BOCA');}
    if(e.suctionActive){
-    e.vx=0;e.vy=0;e.angle=Math.atan2(player.y-e.y,player.x-e.x);
+    e.vx=0;e.vy=0;e.angle=Math.atan2(target.y-e.y,target.x-e.x);
+    if(isClassicShooterRun())soloHullContact(e,enemyFrameNow);
     for(const creature of enemies){if(creature===e||!pveTerrainClear(e.x,e.y,creature.x,creature.y,2))continue;const pull=window.AbyssalEnemyAI?.suctionPullDelta?.(creature,e,dt);if(!pull||(!pull.dx&&!pull.dy))continue;const moved=mapResolveMove(creature.x,creature.y,creature.x+pull.dx,creature.y+pull.dy,Math.max(8,creature.r*.7));const adx=moved.x-creature.x,ady=moved.y-creature.y;creature.x=moved.x;creature.y=moved.y;creature.vx=adx/Math.max(dt,.001);creature.vy=ady/Math.max(dt,.001);}
     const pull=pveTerrainClear(e.x,e.y,player.x,player.y,2)?window.AbyssalEnemyAI?.suctionPullDelta?.(player,e,dt):null;if(pull&&(pull.dx||pull.dy)){const moved=mapResolveMove(player.x,player.y,clamp(player.x+pull.dx,player.r,W-player.r),clamp(player.y+pull.dy,player.r,H-player.r),player.r+8/GAME_WORLD_ZOOM);player.x=moved.x;player.y=moved.y;updateCamera();}
     continue;
@@ -3287,7 +3289,6 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     burst(e.x,e.y,'#bd88ff',2,30);
   }
 
-  const anglerHidden=false,target=soloCreatureTarget(e,localTarget),creatureTargets=target===localTarget?localTargets:[target];
   const beforeEnemyX=e.x,beforeEnemyY=e.y;
   if(e.kbVx||e.kbVy){
    const dx=e.kbVx*dt,dy=e.kbVy*dt,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/12));for(let i=0;i<steps;i++){const moved=mapResolveMove(e.x,e.y,clamp(e.x+dx/steps,0,W),clamp(e.y+dy/steps,0,H),Math.max(8,e.r*.68));e.x=moved.x;e.y=moved.y;if(moved.blocked){e.kbVx*=.25;e.kbVy*=.25;break;}}
