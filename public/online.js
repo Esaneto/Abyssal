@@ -599,12 +599,13 @@ function purchaseSkin(id){if(socket?.connected&&authenticated)socket.emit('purch
 async function purchaseStripe(productId,currency,language='pt'){
  const nativeAndroid=Boolean(window.Capacitor?.isNativePlatform?.()&&window.Capacitor?.getPlatform?.()==='android');
  if(nativeAndroid){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:language==='en'?'Purchases in the Google Play version use Google Play Billing and will be enabled when the store catalog is connected.':'As compras na versão Google Play usam o Google Play Billing e serão liberadas quando o catálogo da loja for conectado.'}}));return;}
- if(!authenticated||!sessionToken){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:'Entre na sua conta antes de comprar.'}}));openLogin();return;}
+ if(!sessionToken){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,requiresLogin:true,message:'Entre na sua conta antes de comprar.'}}));return;}
  try{
   const headers={'Content-Type':'application/json',Authorization:'Bearer '+sessionToken};
-  const response=await fetch(SERVER_URL+'/api/payments/checkout',{method:'POST',headers,body:JSON.stringify({productId,currency:'brl',language})});
-  const result=await response.json();if(!response.ok)throw new Error(result.message||'Checkout indisponível.');
-  window.location.assign(result.url);
+  const response=await fetch(SERVER_URL+'/api/payments/checkout',{method:'POST',headers,body:JSON.stringify({productId,currency:'brl',language}),signal:AbortSignal.timeout(35000)});
+  const result=await response.json().catch(()=>({message:'O servidor não retornou uma resposta de pagamento válida.'}));if(response.status===401){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,requiresLogin:true,message:result.message||'Entre novamente na sua conta.'}}));return;}if(!response.ok||!result.ok||!result.url)throw new Error(result.message||'Checkout indisponível.');
+  const checkoutUrl=new URL(result.url);if(checkoutUrl.protocol!=='https:'||checkoutUrl.hostname!=='checkout.stripe.com')throw new Error('Endereço de pagamento inválido.');
+  window.location.assign(checkoutUrl.href);
  }catch(error){window.dispatchEvent(new CustomEvent('abyssal-payment-result',{detail:{ok:false,message:error.message}}));}
 }
 function explorationScan(callback){
