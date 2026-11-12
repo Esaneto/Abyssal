@@ -1487,9 +1487,11 @@ function showVictoryModal() {
 }
 
 let diveEnergySkinId='default';
+let soloRunIdentity=null;
 function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor(diveStats.energyCollected*specimenBonus);return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round(specimenBonus*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(){
+ soloRunIdentity=onlineMode?null:{id:'solo-'+(globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2)),key:adaptationAccountKey()};
  diveEnergySkinId=equippedSkin;soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
  // A previous PvP session cannot leak its arena rules into a new Solo dive.
  if(!onlineMode)onlineRoomMode='coop';
@@ -2445,7 +2447,7 @@ function killEnemy(i){
   soloEliteRewardTier=activeMapTier;spawnSoloOrb(e.x,e.y,Math.max(1,Math.round((EXPEDITION_RULES?.eliteRoomBonusValue?.(activeMapTier)||18)*.22)));
   window.dispatchEvent(new CustomEvent('abyssal-cave-signal',{detail:{id:'elite_cache',type:'reward',name:'CACHE DE ELITE',subtitle:'A assinatura vermelha colapsou e liberou um núcleo de experiência.',risk:'VENCIDO',reward:'BÔNUS DE ELITE',accent:'#ff5577',tier:activeMapTier}}));
  }
-}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){if(!window.AbyssalOnline?.isAuthenticated?.())energyWallet?.credit(10,'offline-reward');addNotification('Você ganhou 10 de energia por derrotar um boss.','RECOMPENSA DE BOSS · +10 ENERGIA','energy');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
+}burst(e.x,e.y,e.color,killedBoss?(e.kind==='kraken'?56:48):e.kind==='brute'?22:12,killedBoss?250:e.kind==='brute'?145:95);if(killedBoss){if(!onlineMode&&!soloRunIdentity?.key)energyWallet?.credit(10,'offline-reward');addNotification('Você ganhou 10 de energia por derrotar um boss.','RECOMPENSA DE BOSS · +10 ENERGIA','energy');saveCosmetics();if(!onlineMode&&expeditionMode){expeditionRiskTier=bossKillsThisRun;}}
    enemies.splice(i,1);aquaticMotionTracker?.forget?.(e.id);if(killedBoss&&!onlineMode&&requestedRunMode==='rift'){const finalClear=activeMapTier===(RIFT_HARDCORE?.FINAL_TIER??7)&&e.kind===RIFT_HARDCORE?.FINAL_KIND;if(finalClear){riftBossMarks=[];showToast('FOSSAS CONCLUÍDAS · RESGATE O BAÚ FINAL');}else showToast('VÓRTICES LIBERADOS · ESQUERDA: SUPERFÍCIE · DIREITA: DESCIDA');updateMapInteraction(true);}playWorldSound(killedBoss?'boss-death-'+e.kind:'enemy-death',e,killedBoss?1200:620,killedBoss?1:.62);updateHud(killedBoss);
 }
 function getLocalSkinCursorAngle(){
@@ -4807,9 +4809,15 @@ function settleDiveReport(onComplete){
  diveSettling=true;const wasOnline=Boolean(onlineMode),authenticated=Boolean(window.AbyssalOnline?.isAuthenticated?.());
  const finish=result=>{
   diveSettling=false;if(!result?.ok){setTextIfChanged('finalReportStatus',result?.message||'Resultado não confirmado. Tente novamente.');return;}
-  diveSettled=true;runResultPending=false;diveReport={...diveReport,...result,reason:diveEndReason,survival:diveReport.survival};renderDiveReport(diveReport,false);publishDiveReport(diveReport);onComplete?.();
+  diveSettled=true;runResultPending=false;diveReport={...diveReport,...result,reason:diveEndReason,survival:diveReport.survival};renderDiveReport(diveReport,false);if(result.queued)setTextIfChanged('finalReportStatus','Mergulho salvo neste dispositivo · sincronização automática ao conectar');publishDiveReport(diveReport);onComplete?.();
  };
- if(authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:wasOnline,onComplete:finish});return;}
+ if(!wasOnline&&soloRunIdentity?.key){
+  const data={...pendingRunPayload(),id:soloRunIdentity.id,energySkinId:diveEnergySkinId};
+  if(!window.AbyssalOnline?.queueSoloRun?.(soloRunIdentity.key,data)){finish({ok:false,message:'Não foi possível salvar o mergulho neste dispositivo. Tente novamente.'});return;}
+  finish({ok:true,...diveEnergyCalculation(),queued:true});
+  return;
+ }
+ if(wasOnline&&authenticated&&window.AbyssalOnline?.finishRun){window.AbyssalOnline.finishRun(pendingRunPayload(),{leaveAfter:true,onComplete:finish});return;}
  if(wasOnline){finish({ok:false,message:'Reconecte a conta para confirmar o resultado online.'});return;}
  const calculation=diveEnergyCalculation(),earned=calculation.earned;
  energyWallet?.credit(earned,'offline-reward');saveCosmetics();renderShop();finish({ok:true,...diveEnergyCalculation()});
