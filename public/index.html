@@ -11,9 +11,6 @@
 <meta name="description" content="Abyssal — sobreviva às profundezas, evolua e descubra os segredos do abismo. Jogo arcade gratuito para navegador.">
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"> 
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> 
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"> 
 <link rel="stylesheet" href="style.css?v=4.3.15">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
@@ -24,20 +21,21 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <link rel="apple-touch-icon" href="/abyssal-icon.svg?v=5">
-<!-- Google AdSense / H5 Games: SDK carregado uma única vez para verificação do site e anúncios recompensados -->
-<script async data-ad-client="ca-pub-2314281138409028"
-  data-ad-frequency-hint="120s"
-  src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2314281138409028"
-  crossorigin="anonymous"></script>
+<!-- Optional fonts and rewarded ads must never block local game startup. -->
 <script>
 (function(){
-  var _ab=window.adsbygoogle=window.adsbygoogle||[];
-  window.adBreak=window.adBreak||function(o){_ab.push(o);};
-  window.adConfig=window.adConfig||function(o){_ab.push(o);};
-  // Configura o SDK: pré-carregar anúncios recompensados; nunca exibir intersticiais automáticos
-  window.adConfig({preloadAdBreaks:'on',sound:'off',adFormats:['reward'],onReady:function(){
-    console.log('[AdSense H5] SDK pronto.');
-  }});
+  var loading=false;
+  function loadOptionalOnlineAssets(){
+    if(navigator.onLine===false||loading)return;
+    loading=true;
+    var font=document.createElement('link');font.rel='stylesheet';font.href='https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap';document.head.appendChild(font);
+    var script=document.createElement('script');script.async=true;script.crossOrigin='anonymous';script.dataset.adClient='ca-pub-2314281138409028';script.dataset.adFrequencyHint='120s';script.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2314281138409028';
+    var queue=window.adsbygoogle=window.adsbygoogle||[];
+    window.adConfig=window.adConfig||function(o){queue.push(o);};
+    script.onload=function(){window.adBreak=window.adBreak||function(o){queue.push(o);};window.adConfig({preloadAdBreaks:'on',sound:'off',adFormats:['reward']});};
+    script.onerror=function(){loading=false;};document.head.appendChild(script);
+  }
+  window.addEventListener('load',loadOptionalOnlineAssets,{once:true});window.addEventListener('online',loadOptionalOnlineAssets);
 })();
 </script>
 <link rel="stylesheet" href="abyssal-shop-blood-theme.css?v=2">
@@ -741,9 +739,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.17"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.11.2"></script>
- <script src="game.js?v=2026.11.12.54"></script>
+ <script src="game.js?v=2026.11.12.55"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.12.35"></script>
+<script src="online.js?v=2026.11.12.36"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.12.2"></script>
 <script src="abyssal-rebuild.js?v=2026.11.12.10"></script>
