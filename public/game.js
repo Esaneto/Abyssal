@@ -5582,6 +5582,7 @@ function scheduleAccountMaintenance(delay=30000){
 }
 window.addEventListener('abyssal-authenticated',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance(3000);});
 window.addEventListener('abyssal-account-signed-out',()=>{if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}energyWallet?.setAccount('',0);});
+window.addEventListener('abyssal-energy-queue-change',event=>{if(Number(event.detail?.pending)>0)scheduleAccountMaintenance(3000);else if(!hasPendingAccountWork()&&accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}});
 window.addEventListener('online',()=>{syncSoloAdaptation();energyWallet?.sync();scheduleAccountMaintenance(5000);});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(accountMaintenanceTimer){clearTimeout(accountMaintenanceTimer);accountMaintenanceTimer=0;}}else if(hasPendingAccountWork())scheduleAccountMaintenance(3000);});
 window.addEventListener('abyssal-account-data',e=>{
