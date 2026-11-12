@@ -517,7 +517,7 @@ let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(n
 const SOLO_SUB_RANGE=294/GAME_WORLD_ZOOM;
 function soloSubmarineActive(){return !onlineMode&&isClassicShooterRun()&&gameState==='playing';}
 function resetSoloSubmarine(){
- soloSubmarine={x:W*.58,y:H*.117,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null)};
+ soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null)};
 }
 function soloSubmarinePowered(){return !onlineMode&&isClassicShooterRun()&&soloSubmarine.powerSeconds>0.01;}
 function soloSubmarineTopUp(){
@@ -570,7 +570,7 @@ function updateSoloSubmarine(dt){
  if(!soloSubmarineActive())return;
  if(soloSubmarine.spawnFx>1.25&&player){
   const q=clamp((2.2-soloSubmarine.spawnFx+dt)/.95,0,1),travel=q*q*(3-2*q);
-  player.x=soloSubmarine.x;player.y=soloSubmarine.y+(86+84*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);updateCamera();
+  player.x=soloSubmarine.x;player.y=soloSubmarine.y+(45+125*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);updateCamera();
  }
  soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
  if(soloSubmarine.powerSeconds<=0)return;
@@ -592,12 +592,12 @@ function drawSoloSubmarine(t){
  ctx.save();ctx.translate(x,y);
  if(powered){ctx.fillStyle='rgba(70,232,220,.08)';ctx.shadowColor='#65fff0';ctx.shadowBlur=26/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,150/GAME_WORLD_ZOOM,78/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.fill();}
  if(shield){ctx.strokeStyle='rgba(132,190,255,.72)';ctx.lineWidth=3/GAME_WORLD_ZOOM;ctx.shadowColor='#7ab7ff';ctx.shadowBlur=18/GAME_WORLD_ZOOM;ctx.beginPath();ctx.ellipse(0,0,178/GAME_WORLD_ZOOM,98/GAME_WORLD_ZOOM,0,0,Math.PI*2);ctx.stroke();}
- ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered);
+ ctx.shadowBlur=0;window.AbyssalMenuScenery?.drawSubmarineModel?.(ctx,0,0,1/GAME_WORLD_ZOOM,powered||soloSubmarine.spawnFx>0);
  const installed=window.AbyssalSoloBase?.unlockedShots?.()||['photon'];
  installed.forEach((id,index)=>{const total=installed.length,tx=(index-(total-1)/2)*30/GAME_WORLD_ZOOM,colors={electric:'#eaffff',pierce:'#ffe7a1',photon:'#f0abfc',photonRay:'#79f9ff',nova:'#c89bff',echoShot:'#5ef0d0'};ctx.save();ctx.translate(tx,-39/GAME_WORLD_ZOOM);ctx.fillStyle='#1a2327';ctx.fillRect(-8/GAME_WORLD_ZOOM,-5/GAME_WORLD_ZOOM,27/GAME_WORLD_ZOOM,8/GAME_WORLD_ZOOM);ctx.fillStyle=colors[id]||'#9ff';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=powered?8/GAME_WORLD_ZOOM:0;ctx.fillRect(16/GAME_WORLD_ZOOM,-3/GAME_WORLD_ZOOM,10/GAME_WORLD_ZOOM,4/GAME_WORLD_ZOOM);ctx.restore();});
  // Shared hull.
  ctx.restore();
- if(soloSubmarine.spawnFx>0&&player){for(let i=0;i<42;i++){const phase=t*.002+i*1.7,life=soloSubmarine.spawnFx/2.2,q=i/41,px=soloSubmarine.x+(player.x-soloSubmarine.x)*q+Math.sin(phase)*(.4+q)*23/GAME_WORLD_ZOOM,py=soloSubmarine.y+86/GAME_WORLD_ZOOM+(player.y-soloSubmarine.y-86/GAME_WORLD_ZOOM)*q-(1-life)*q*32/GAME_WORLD_ZOOM;ctx.save();ctx.globalAlpha=Math.min(1,life);ctx.strokeStyle='#d7ffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(px,py,(2+i%3)/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.stroke();ctx.restore();}}
+ if(soloSubmarine.spawnFx>0&&player&&player.y>=soloSubmarine.y+80/GAME_WORLD_ZOOM){for(let i=0;i<42;i++){const phase=t*.002+i*1.7,life=soloSubmarine.spawnFx/2.2,q=i/41,px=soloSubmarine.x+(player.x-soloSubmarine.x)*q+Math.sin(phase)*(.4+q)*23/GAME_WORLD_ZOOM,py=soloSubmarine.y+86/GAME_WORLD_ZOOM+(player.y-soloSubmarine.y-86/GAME_WORLD_ZOOM)*q-(1-life)*q*32/GAME_WORLD_ZOOM;ctx.save();ctx.globalAlpha=Math.min(1,life);ctx.strokeStyle='#d7ffff';ctx.lineWidth=1/GAME_WORLD_ZOOM;ctx.beginPath();ctx.arc(px,py,(2+i%3)/GAME_WORLD_ZOOM,0,Math.PI*2);ctx.stroke();ctx.restore();}}
 }
 
 const BACKGROUND_BEAM_COLORS=['#47e5dc','#5369ad','#ad3b69','#317b94','#714c9e'];
@@ -769,8 +769,12 @@ function updateCamera(){
  cameraZoomTickAt=now;
  if(!player){cameraX=0;cameraY=0;return;}
  const visibleWorldW=viewW/worldZoom,visibleWorldH=viewH/worldZoom;
- cameraX=clamp(player.x-visibleWorldW*.5,0,Math.max(0,W-visibleWorldW));
- cameraY=clamp(player.y-visibleWorldH*.5,isOpenSeaRun()?-Math.min(240,visibleWorldH*.32):0,Math.max(0,H-visibleWorldH));
+ const launching=!onlineMode&&isClassicShooterRun()&&soloSubmarine.spawnFx>0;
+ const follow=launching?clamp((1.25-soloSubmarine.spawnFx)/1.25,0,1):1;
+ const focusX=launching?soloSubmarine.x+(player.x-soloSubmarine.x)*follow:player.x;
+ const focusY=launching?soloSubmarine.y+(player.y-soloSubmarine.y)*follow:player.y;
+ cameraX=clamp(focusX-visibleWorldW*.5,0,Math.max(0,W-visibleWorldW));
+ cameraY=clamp(focusY-visibleWorldH*.5,isOpenSeaRun()?-Math.min(240,visibleWorldH*.32):0,Math.max(0,H-visibleWorldH));
 }
 function resize(){
  const r=$('gameShell').getBoundingClientRect();
@@ -1433,7 +1437,7 @@ if(isOpenSeaRun()){
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
  if(!onlineMode&&isClassicShooterRun())resetSoloSubmarine();
- const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(!onlineMode&&isClassicShooterRun()?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(!onlineMode&&isClassicShooterRun()?soloSubmarine.y+86/GAME_WORLD_ZOOM:H*.11)};
+ const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(!onlineMode&&isClassicShooterRun()?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(!onlineMode&&isClassicShooterRun()?soloSubmarine.y+45/GAME_WORLD_ZOOM:H*.11)};
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,maxHp:SPECIMEN_SYSTEM.biologicalStats(equippedSkin).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
@@ -1446,7 +1450,7 @@ if(isOpenSeaRun()){
  if(upgrades.shield>0)activePassiveSounds.push('startShield');
  activePassiveSounds.slice(0,4).forEach((id,i)=>setTimeout(()=>{if(gameState==='playing'||(onlineMode&&gameState==='upgrade'))playSkillSound(id,'trigger')},180+i*190));
  const cockpit=document.getElementById('submarineWorkshop');if(cockpit&&!cockpit.hidden){cockpit.hidden=true;window.AbyssalSubmarineCockpit?.close?.();}
- gameState='playing';syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
+ gameState='playing';worldZoom=desiredWorldZoom();updateCamera();syncMobileFireButton();screens.forEach(s=>$(s).hidden=true);$('hud').hidden=false;const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display=onlineMode?'block':'none';$('pauseBtn').hidden=false;botBuddyTimer=0;botBuddy=null;
  updateHud();last=performance.now();playWorldSound('ui-open',player,850,.9);if(!onlineMode){if(requestedRunMode==='rift')seedSoloRiftEncounters();else if(isOpenSeaRun())updateSoloOceanChunks(true);else for(let i=0;i<7;i++)spawnEnemy(true,'common');}if(onlineMode){window.AbyssalOnline?.beginRun?.();window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,predatorLevel:upgrades.predator,prismaticLevel:upgrades.spread,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand});window.AbyssalOnline?.requestPlayerState?.();}else if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline?.beginRun?.();snapshotClock=0;
  window.AbyssalTutorials?.enter(onlineMode?onlineRoomMode:(requestedRunMode==='rift'?'rift-solo':'solo'));
 }
@@ -4394,7 +4398,7 @@ function draw(t){
     ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font=`700 ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
- if(!onlineMode&&isClassicShooterRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered(),radius:355/GAME_WORLD_ZOOM},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65}]);}
+ if(!onlineMode&&isClassicShooterRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65}]);}
  // Mar Aberto retains its independent helmet light.
  if(isOpenSeaRun()&&player&&gameState==='playing'){
   const levels=window.AbyssalExplorationBridge?.levels?.()||{};

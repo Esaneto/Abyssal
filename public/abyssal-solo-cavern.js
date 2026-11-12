@@ -26,7 +26,9 @@
     vertices.push([Math.cos(phi)*rx*grain,Math.sin(phi)*ry*grain]);
    }
    const r=Math.max(...vertices.map(v=>Math.hypot(...v)));
-   return {x:w*fx,y:h*fy,rx,ry,r,angle,vertices,shade:.14+index%5*.115,seed:900+index,edge:'cavern',cavernSolid:true,visualOnly:false};
+   let x=w*fx,y=h*fy;const baseX=w*.5,baseY=h*.39;
+   if(Math.abs(x-baseX)<rx+390&&Math.abs(y-baseY)<ry+265)x=baseX+(x<baseX?-1:1)*(rx+415);
+   return {x,y,rx,ry,r,angle,vertices,shade:.14+index%5*.115,seed:900+index,edge:'cavern',cavernSolid:true,visualOnly:false};
   });
  }
  function local(r,x,y){
@@ -252,7 +254,8 @@
     c.strokeStyle='#132e2f';c.lineWidth=2.8+(j%3);c.lineCap='round';c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+sway,y-ln*.5,x+sway*.7,y-ln);c.stroke();
     for(let k=1;k<4;k++){const yy=y-ln*k/4,xx=x+sway*k/4,side=k%2?1:-1;c.beginPath();c.moveTo(xx,yy);c.quadraticCurveTo(xx+side*12,yy-4,xx+side*15,yy-13);c.lineWidth=2;c.stroke();
      c.beginPath();c.moveTo(xx+side*6,yy-3);c.quadraticCurveTo(xx+side*22,yy-14,xx+side*13,yy-19);c.quadraticCurveTo(xx+side*10,yy-12,xx+side*6,yy-3);c.fillStyle='#173d35';c.fill();
-     c.save();c.globalAlpha=.38+.12*Math.sin(t*.002+r.seed+j+k);c.shadowColor='#59ff9a';c.shadowBlur=12;c.fillStyle='#59ff9a';c.beginPath();c.arc(xx+side*13,yy-18,1.8,0,TAU);c.fill();c.restore();}
+     // No painted light dots; the diffuse light is composited separately.
+    }
    }
    c.restore();
   }
@@ -302,12 +305,11 @@
   for(const p of worldCache?.particles||[]){const y=((p.y-t*.009)%worldCache.h+worldCache.h)%worldCache.h,x=p.x+Math.sin(t*.0007+p.phase)*18;if(x<left||x>left+w||y<top||y>top+h)continue;const lit=Math.hypot(x-player.x,y-player.y)<285;c.fillStyle='rgba(183,225,224,'+(lit?.42:.13)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   for(const r of rocks||[]){if(!r.cavernSolid||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
    const ca=Math.cos(r.angle||0),sa=Math.sin(r.angle||0);
-   for(let j=0;j<15;j++){const k=20+Math.floor(j/14*19),v=r.vertices[k];if(!v)continue;const ln=16+((r.seed+j*17)%49),sway=Math.sin(t*.0014+j+r.seed)*5,lx=v[0]+sway*.7,ly=v[1]-ln;
-    const gx=r.x+lx*ca-ly*sa,gy=r.y+lx*sa+ly*ca,rootX=r.x+v[0]*ca-v[1]*sa,rootY=r.y+v[0]*sa+v[1]*ca;
-     const glow=radial(c,rootX,rootY,70,[[0,'rgba(55,255,126,.30)'],[.35,'rgba(35,230,105,.16)'],[1,'rgba(12,128,63,0)']]);c.fillStyle=glow;c.fillRect(rootX-70,rootY-70,140,140);
-     c.strokeStyle='rgba(85,255,153,.82)';c.lineWidth=1.9;c.beginPath();c.moveTo(rootX,rootY);c.quadraticCurveTo(rootX+sway,rootY+(gy-rootY)*.5,gx,gy);c.stroke();
-     for(const side of [-1,1]){c.beginPath();c.moveTo((gx+rootX)/2,(gy+rootY)/2);c.quadraticCurveTo(gx+side*13,gy+12,gx+side*15,gy+3);c.stroke();}
-     const tip=radial(c,gx,gy,15,[[0,'rgba(182,255,210,.95)'],[.25,'rgba(70,255,148,.64)'],[1,'rgba(22,150,77,0)']]);c.fillStyle=tip;c.fillRect(gx-15,gy-15,30,30);
+   // Broad soft neon-green pools; no point lights or luminous outlines.
+   for(let j=0;j<5;j++){const k=20+Math.floor(j/4*19),v=r.vertices[k];if(!v)continue;
+    const x=r.x+v[0]*ca-v[1]*sa,y=r.y+v[0]*sa+v[1]*ca-17,radius=105;
+    const glow=radial(c,x,y,radius,[[0,'rgba(28,255,95,.36)'],[.32,'rgba(20,226,77,.24)'],[.65,'rgba(12,175,57,.10)'],[1,'rgba(0,100,30,0)']]);
+    c.fillStyle=glow;c.fillRect(x-radius,y-radius,radius*2,radius*2);
    }
   }
   c.restore();
