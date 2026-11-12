@@ -1178,13 +1178,13 @@ function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
  playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
- if(!window.AbyssalEnemyAI?.isChargeAttack({kind})&&player){
-  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):player.x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):player.y;
+ const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
+ if(skill!=='tentacle-strike'&&!window.AbyssalEnemyAI?.isChargeAttack({kind})&&player){
   effects.push({type:'bite-jaws',x:px,y:py,angle:Math.atan2(py-y,px-x),max:Math.max(21/GAME_WORLD_ZOOM,player.r*1.65),life:.42,maxLife:.42,color:'#ffddd4'});
  }
  const radius=Math.max(34/GAME_WORLD_ZOOM,Number(d.enemyRadius)||42/GAME_WORLD_ZOOM);
  if(skill==='tentacle-strike'){
-  effects.push({type:'tentacle-strike',x1:x,y1:y,x2:px,y2:py,life:.32,maxLife:.32,color:data.color||'#ad89ed',width:Math.max(3,Number(data.enemyRadius)*.16||5)});
+  effects.push({type:'tentacle-strike',x1:x,y1:y,x2:px,y2:py,life:.32,maxLife:.32,color,width:Math.max(3,Number(d.enemyRadius)*.16||5)});
  }else if(skill==='bio-shock'||kind==='drifter'){
   effects.push({type:'ring',x,y,r:0,max:radius*2.1,life:.48,maxLife:.48,color:'#74f7ff'});
   for(let i=0;i<6;i++){const a=i*Math.PI/3;effects.push({type:'beam',x1:x,y1:y,x2:x+Math.cos(a)*radius*1.65,y2:y+Math.sin(a)*radius*1.65,life:.3,maxLife:.3,color:i%2?'#ff7caf':'#74f7ff',width:2.6/GAME_WORLD_ZOOM});}
