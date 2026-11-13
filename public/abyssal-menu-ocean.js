@@ -40,7 +40,7 @@
   const bubbles=[],held=new Set(),keyMap={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const hatchVisible=()=>document.body.classList.contains('abyss-hatch-navigation')&&!menu.hidden&&!document.body.classList.contains('game-active');
   const interactive=()=>{
-   if(!hatchVisible()||menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal)return false;
+   if(!hatchVisible()||menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal||emergence<1)return false;
    for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')){
     if(panel.hidden||!panel.isConnected)continue;
     if(panel.getClientRects().length&&getComputedStyle(panel).display!=='none'&&getComputedStyle(panel).visibility!=='hidden')return false;
@@ -65,6 +65,7 @@
    if(w<10||h<10)return;
    const pos=hatch();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
    emergence=0;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
+   stage.classList.add('abyss-menu-arrival');stage.classList.remove('abyss-cabin-ready');
    nearElapsed=0;nearStationId=null;
    held.clear();joystickX=0;joystickY=0;
    const thumb=stage.querySelector('.ocean-joystick-thumb');if(thumb)thumb.style.transform='translate(0,0)';
@@ -328,14 +329,16 @@
      diver.style.opacity=String(clamp((1-tx.t)*(s.kind==='lab'?2.1:3.3),0,1));
      if(tx.t===1)finishEntrance();
     }else if(!waitingForModal){
-     // Hatch ejects the diver with a short easing, showering bubbles.
+     // The initial menu shot is the diver descending from the submarine hatch.
+     // Keep this cinematic readable before enabling player input.
      if(emergence<1){
-      const step=dt/1.05;emergence=Math.min(1,emergence+step);
-      const starting=hatch();px=starting.x;
-      py=lerp(starting.y,Math.min(h*.40,starting.y+(mobileScene?70:94)),ease(emergence));
-      heading=Math.PI/2;vx=0;vy=85*(1-emergence);
+      const step=dt/(mobileScene?1.55:1.72),before=emergence;emergence=Math.min(1,emergence+step);
+      const starting=hatch(),drop=Math.min(h*.47,starting.y+(mobileScene?112:148));px=starting.x;
+      py=lerp(starting.y,drop,ease(emergence));
+      heading=Math.PI/2;vx=0;vy=(mobileScene?72:88)*(1-emergence);
       bubbleElapsed+=dt;
-      if(bubbleElapsed>.028){bubbleElapsed=0;for(let n=0;n<4;n++)bubble(px,py+17,true);}
+      if(bubbleElapsed>.035){bubbleElapsed=0;for(let n=0;n<3;n++)bubble(px+(Math.random()-.5)*8,py+18,true);}
+      if(before<1&&emergence===1){stage.classList.remove('abyss-menu-arrival');stage.classList.add('abyss-cabin-ready');for(let n=0;n<4;n++)bubble(px,py+13,true);}
      }else{
       let mx=(held.has('right')?1:0)-(held.has('left')?1:0);
       let my=(held.has('down')?1:0)-(held.has('up')?1:0);
