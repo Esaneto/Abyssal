@@ -162,10 +162,10 @@
   divePanel.hidden=true;
   divePanel.innerHTML='<div class="abyss-dive-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="abyssDiveChoiceTitle">'+
    '<button id="abyssDiveChoiceClose" class="abyss-dive-choice-close" type="button" aria-label="Fechar">×</button>'+
-   '<small>ESCOLHA SEU MERGULHO</small><h2 id="abyssDiveChoiceTitle">MERGULHAR</h2>'+
-   '<div class="abyss-dive-choice-actions">'+
-    '<button type="button" id="abyssDiveSoloChoice"><strong>MERGULHAR SOLO</strong><span>Jogar sozinho no modo clássico</span></button>'+
-    '<button type="button" id="abyssDiveOnlineChoice" class="online-test-ready"><strong>MERGULHAR ONLINE</strong><span>Mesmo mergulho Solo, com amigos</span></button>'+
+   '<small class="ds-mode-kicker">ABYSSAL / EXPEDIÇÕES</small><h2 id="abyssDiveChoiceTitle">Preparar expedição</h2>'+
+   '<div class="abyss-dive-choice-actions" role="group" aria-label="Modos de mergulho">'+
+    '<button type="button" id="abyssDiveSoloChoice"><small class="ds-mode-kicker">01 / INDIVIDUAL</small><strong class="ds-mode-title">Mergulho solo</strong><span class="ds-mode-copy">Sobreviva, evolua seus disparos e explore no seu ritmo.</span><span class="ds-mode-cta">Iniciar mergulho</span></button>'+
+    '<button type="button" id="abyssDiveOnlineChoice" class="online-test-ready"><small class="ds-mode-kicker">02 / COOPERATIVO</small><strong class="ds-mode-title">Mergulho online</strong><span class="ds-mode-copy">O mesmo mergulho, compartilhado com outros jogadores.</span><span class="ds-mode-cta">Explorar salas</span></button>'+
    '</div></div>';
   document.body.appendChild(divePanel);
   const closeDive=()=>{
