@@ -434,3 +434,9 @@ body:not(.abyss-hatch-navigation) #menuScreen #submarineWorkshopBtn.abyss-labora
 #submarineWorkshop .abyss-codex-action:hover,#submarineWorkshop .abyss-codex-action:focus-visible{
  background:linear-gradient(145deg,#b48c59,#ead19c 50%,#89613e)!important;border-color:#b38a60!important
 }
+
+/* Online rooms live in the same central visor, not a floating modal. */
+#submarineWorkshop #cockpitOnlineDiveBtn{background:#123d50;border-color:#76d5df;color:#d9faff;min-height:35px;justify-self:start}
+#submarineWorkshop #roomsScreen.abyss-cockpit-embedded .room-modal{width:100%;max-width:none;min-width:0;box-sizing:border-box;overflow:visible}
+#submarineWorkshop #roomsScreen.abyss-cockpit-embedded .room-form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(135px,100%),1fr));gap:8px}
+#submarineWorkshop #roomsScreen.abyss-cockpit-embedded .text-field{min-width:0;width:100%;box-sizing:border-box}

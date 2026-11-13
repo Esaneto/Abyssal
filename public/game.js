@@ -5831,6 +5831,7 @@ window.addEventListener('abyssal-player-skin-status',ev=>{
 function restoreDeployRunProgress(run){if(!run||typeof run!=='object')return;score=Math.max(0,Number(run.score)||0);level=Math.max(1,Math.floor(Number(run.level)||1));xp=Math.max(0,Number(run.xp)||0);xpNeed=Math.max(1,Math.floor(Number(run.xpNeed)||10));bossKillsThisRun=Math.max(0,Math.floor(Number(run.bossesKilled)||0));diveStats.damageDealt=Math.max(0,Number(run.damageDealt)||0);diveStats.monstersKilled=Math.max(0,Math.floor(Number(run.monstersKilled)||0));diveStats.energyCollected=Math.max(0,Math.floor(Number(run.energyCollected)||0));updateHud(true);}
 function enterOnlineGameplay(data){const d=data||{};if(d.room?.mode&&d.room.mode!=='coop'){window.AbyssalOnline?.leaveWorld?.();return;}const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift','open-sea'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':onlineRoomMode==='open-sea'?'open-sea':'classic';onlineMode=true;
  // room-joined is authoritative. Commit the UI transition before any fallible arena/game setup.
+ window.AbyssalCockpitNavigation?.close?.();
  for(const id of [...screens,'roomsScreen','loginScreen']){const node=$(id);if(node)node.hidden=true;}
  document.body.classList.add('game-active');
  try{createArenaRocks();}catch(error){console.error('[online-entry] Falha ao preparar arena; continuando entrada:',error);arenaRocks=[];}

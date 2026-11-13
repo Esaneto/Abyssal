@@ -445,6 +445,7 @@ function refreshRoomsHttp(){
 function startRoomPolling(){stopRoomPolling();roomPollTimer=setInterval(()=>{const screen=$('roomsScreen');if(!screen||screen.hidden){stopRoomPolling();return;}if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp()},3500)}
 function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPollTimer=null}}
 function showRooms(){
+ if(window.AbyssalCockpitNavigation?.routeScreen?.('roomsScreen'))return;
  const s=connect();if(!s)return;
  const screen=$('roomsScreen');if(screen)screen.hidden=false;
  const mode=$('roomModeInput');if(mode)mode.value='coop';
