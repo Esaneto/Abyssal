@@ -543,12 +543,12 @@ $('completePasswordResetBtn')?.addEventListener('click',async()=>{const token=ne
 $('passwordInput').addEventListener('keydown',e=>{if(e.key==='Enter')authenticate($('nicknameInput').value,$('passwordInput').value,'login')});
 $('nicknameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('passwordInput').focus()});
 function buildPositionPayload(player){return {x:Number(player.x),y:Number(player.y),angle:Number(player.angle)||0};}
-function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden),petHabit:window.AbyssalGameHooks?.petHabit?.()||'passive'};}
+function buildNetMeta(){const motion=window.AbyssalGameHooks?.motionDiagnostics?.()||{};return {viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||.78,combatRange:window.AbyssalGameHooks?.combatRange?.()||294/.78,color:window.AbyssalGameHooks?.skinColor?.()||'#bd91ff',skinId:window.AbyssalGameHooks?.skinId?.()||'default',clientEnemyCount:motion.enemyCount||0,clientMovingEnemies:motion.movingEnemies||0,clientPredicting:Boolean(motion.predictingLocally),clientGameState:String(motion.gameState||'unknown'),clientHidden:Boolean(document.hidden),petHabit:window.AbyssalGameHooks?.petHabit?.()||'passive'};}
 // One sender for frame updates, heartbeat recovery and shot ordering.
 function flushPosition(force=false){
  if(!socket?.connected||!authenticated||!currentRoom||!latestPositionPayload)return false;
  const now=performance.now(),roomKey=String(currentRoom?.id||currentRoom||''),lastSent=flushPosition.lastPayload||null;
- if(roomKey!==flushPosition.lastRoomKey){flushPosition.lastRoomKey=roomKey;flushPosition.lastPayload=null;lastPositionAt=0;}
+ if(roomKey!==flushPosition.lastRoomKey){flushPosition.lastRoomKey=roomKey;flushPosition.lastPayload=null;flushPosition.lastInterest=null;lastPositionAt=0;}
  if(!force&&now-lastPositionAt<1000/30)return false;
  const previous=flushPosition.lastPayload||lastSent;
  if(!force&&previous){
@@ -563,7 +563,13 @@ function flushPosition(force=false){
  socket.volatile.emit('player-motion-input',window.AbyssalNetCodec?.input?.(seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle)||[seq,latestPositionPayload.x,latestPositionPayload.y,latestPositionPayload.angle]);
  flushPosition.lastPayload={x:latestPositionPayload.x,y:latestPositionPayload.y,angle:latestPositionPayload.angle};
  lastPositionAt=now;positionPacketsSent++;
- if(now-lastNetMetaAt>=2000){lastNetMetaAt=now;socket.volatile.emit('player-net-meta',buildNetMeta());}
+ const interestZoom=Number(window.AbyssalGameHooks?.worldZoom?.())||.78,interestRange=Number(window.AbyssalGameHooks?.combatRange?.())||294/.78;
+ const interestW=Number(window.AbyssalGameHooks?.viewportWidth?.())||window.innerWidth||1200,interestH=Number(window.AbyssalGameHooks?.viewportHeight?.())||window.innerHeight||700;
+ const oldInterest=flushPosition.lastInterest;
+ const interestChanged=!oldInterest||Math.abs(interestZoom-oldInterest.zoom)>.035||Math.abs(interestRange-oldInterest.range)>25||interestW!==oldInterest.width||interestH!==oldInterest.height;
+ if(now-lastNetMetaAt>=2000||(interestChanged&&(!oldInterest||now-lastNetMetaAt>=200))){
+  lastNetMetaAt=now;flushPosition.lastInterest={zoom:interestZoom,range:interestRange,width:interestW,height:interestH};socket.volatile.emit('player-net-meta',buildNetMeta());
+ }
  return true;
 }
 function sendPosition(player){
