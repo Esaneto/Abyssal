@@ -96,13 +96,15 @@ app.get('/api/browser-version',(req,res)=>{res.setHeader('Cache-Control','no-sto
 io.engine.on('connection', rawSocket => { rawSocket.request = null; });
 // Profiles and Cardumes remain available independently from text communication.
 // Public text chat was removed from the product surface and server protocol.
+const AdMobSSV=require('./admob-ssv');
+const ADMOB_SSV_ENABLED=process.env.ABYSSAL_ADMOB_SSV_ENABLED==='true';
 const REWARDED_WHEEL_ENABLED = process.env.ABYSSAL_REWARDED_WHEEL_ENABLED === 'true';
 const WHEEL_DAILY_LIMIT=10;
 const WHEEL_DAY_MS=86400000,WHEEL_BRAZIL_OFFSET_MS=3*60*60*1000;
 function wheelDailyStatus(user,now=Date.now()){
  const day=Math.floor((now-WHEEL_BRAZIL_OFFSET_MS)/WHEEL_DAY_MS);
  const used=user?.wheelDay===day?Math.min(WHEEL_DAILY_LIMIT,Math.max(0,Math.floor(Number(user.wheelSpinsUsed)||0))):0;
- return {day,limit:WHEEL_DAILY_LIMIT,used,remaining:WHEEL_DAILY_LIMIT-used,resetAt:(day+1)*WHEEL_DAY_MS+WHEEL_BRAZIL_OFFSET_MS,enabled:REWARDED_WHEEL_ENABLED};
+ return {day,limit:WHEEL_DAILY_LIMIT,used,remaining:WHEEL_DAILY_LIMIT-used,resetAt:(day+1)*WHEEL_DAY_MS+WHEEL_BRAZIL_OFFSET_MS,enabled:REWARDED_WHEEL_ENABLED||ADMOB_SSV_ENABLED};
 }
 
 const SOCIAL_FEATURES_ENABLED = true;
@@ -384,6 +386,37 @@ app.use((req, res, next) => {
  res.set('Content-Security-Policy-Report-Only',"default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.socket.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://checkout.stripe.com");
  if (/\.(html|js|css)$/i.test(req.path)) res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
  next();
+});
+// AdMob callback: only a cryptographically verified ticket can authorize a native reward.
+const adTicketIndex=new Map();
+function adTickets(user){return user.admobTickets||(user.admobTickets={});}
+function cleanAdTickets(user,now=Date.now()){
+ const tickets=adTickets(user);for(const [id,t] of Object.entries(tickets))if(Number(t.expiresAt)<now){delete tickets[id];adTicketIndex.delete(id);}return tickets;
+}
+function findAdTicket(id){
+ const key=adTicketIndex.get(id);if(key&&users[key]?.admobTickets?.[id])return {user:users[key],ticket:users[key].admobTickets[id]};
+ for(const [userKey,user] of Object.entries(users)){const ticket=user.admobTickets?.[id];if(ticket){adTicketIndex.set(id,userKey);return {user,ticket};}}return null;
+}
+function consumeAdTicket(socket,id,placement){
+ const user=users[socket.data.userKey],ticket=user?.admobTickets?.[String(id||'')];
+ if(!ADMOB_SSV_ENABLED||!ticket||ticket.placement!==placement||!ticket.verified||ticket.consumed||ticket.expiresAt<Date.now())return false;
+ if(placement==='abyssal-revive'&&ticket.roomId){const room=socketRoom(socket),p=room?.players.get(socket.id);if(!p||room.id!==ticket.roomId||p.alive!==false)return false;}
+ ticket.consumed=true;saveUsers();return true;
+}
+app.get('/api/admob/ssv',async(req,res)=>{
+ if(!ADMOB_SSV_ENABLED)return res.status(503).send('SSV disabled');
+ try{
+  const raw=req.originalUrl.split('?').slice(1).join('?');
+  const params=await AdMobSSV.verifyCallback(raw);
+  const id=params.get('custom_data')||'',transaction=params.get('transaction_id')||'';
+  if(!/^[a-f0-9]{48}$/.test(id)||!/^[a-zA-Z0-9_-]{8,160}$/.test(transaction))return res.status(400).send('Invalid ticket');
+  const found=findAdTicket(id);if(!found)return res.status(404).send('Unknown ticket');
+  const {user,ticket}=found;
+  if(ticket.expiresAt<Date.now()||params.get('ad_unit')!==AdMobSSV.UNITS[ticket.placement]||Number(params.get('reward_amount'))!==1)return res.status(400).send('Reward mismatch');
+  if(ticket.verified)return ticket.transaction===transaction?res.sendStatus(200):res.status(409).send('Already verified');
+  if(Object.values(adTickets(user)).some(t=>t.transaction===transaction))return res.status(409).send('Duplicate transaction');
+  ticket.verified=true;ticket.transaction=transaction;ticket.verifiedAt=Date.now();saveUsers();await flushPersistence();return res.sendStatus(200);
+ }catch(error){console.warn('[admob-ssv]',error.message);return res.status(400).send('Invalid callback');}
 });
 app.get('/ads.txt', (_req, res) => {
  res.type('text/plain; charset=utf-8').set('Cache-Control','public, max-age=3600').send('google.com, pub-2314281138409028, DIRECT, f08c47fec0942fa0\n');
@@ -2187,9 +2220,10 @@ io.on('connection', socket => {
   const resumeResync=reason==='resume-resync';
   const snapshot=getRoomSnapshot(room,{criticalReason:resumeResync?'resume-resync':reason==='contact-resync'?'contact-resync':reason==='room-join'?'room-join':null,criticalEnemyIds:resumeResync?room.world.enemies.filter(e=>room.mode!=='coop'||OceanStream.within(e,p,roomAoiRadius(p))).map(e=>String(e.id)):[]},p);
   socket.emit('game-snapshot',snapshot);});
- socket.on('revive-player',()=>{
+ socket.on('revive-player',(payload={})=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(!socket.data.userKey||!p||p.alive!==false)return socket.emit('revive-result',{ok:false,message:'Este mergulho não pode ser retomado agora.'});
+  if(ADMOB_SSV_ENABLED||payload.ticket){if(!consumeAdTicket(socket,payload.ticket,'abyssal-revive'))return socket.emit('revive-result',{ok:false,message:'A confirmação do anúncio ainda não foi recebida.'});}
   const now=Date.now();p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=now+3000;p.skillSelectingUntil=0;p.upgradeProtectionUntil=0;p.regenAccumulator=0;
   if(!room.world.initialized||!room.world.enemies.length)ensureWorld(room);
   socket.emit('revive-result',{ok:true,message:'Ressurreição concluída! Seu nível e suas habilidades foram preservados.'});
@@ -3031,11 +3065,32 @@ io.on('connection', socket => {
   const u=users[socket.data.userKey];
   socket.emit('purchase-result',{ok:false,itemId:String(payload?.id||''),message:'Habilidades de combate agora são estudadas no submarino. Compras anteriores preservadas.',account:u?publicUser(u):null});
  });
- socket.on('spin-wheel', () => {
-  if(!REWARDED_WHEEL_ENABLED)return socket.emit('wheel-result',{ok:false,message:'As recompensas aleatórias estão desativadas enquanto a política de segurança é revisada.'});
+ socket.on('admob-ticket',async(payload={},ack)=>{
+  if(typeof ack!=='function')return;
+  const user=users[socket.data.userKey],placement=String(payload.placement||'');
+  if(!ADMOB_SSV_ENABLED||!user||!Object.hasOwn(AdMobSSV.UNITS,placement))return ack({ok:false,message:'Anúncio indisponível ou conta não conectada.'});
+  const now=Date.now(),tickets=cleanAdTickets(user,now);
+  if(placement==='abyssal-wheel'&&wheelDailyStatus(user,now).remaining<=0)return ack({ok:false,message:'Limite diário de giros atingido.'});
+  if(Object.values(tickets).some(t=>!t.consumed&&t.placement===placement&&t.expiresAt>now))return ack({ok:false,message:'Existe um anúncio pendente. Aguarde a confirmação.'});
+  if(Object.keys(tickets).length>=50)return ack({ok:false,message:'Limite temporário de anúncios.'});
+  const room=socketRoom(socket),p=room?.players.get(socket.id);
+  if(placement==='abyssal-revive'&&p&&p.alive!==false)return ack({ok:false,message:'O mergulho ainda está ativo.'});
+  const id=crypto.randomBytes(24).toString('hex');tickets[id]={placement,createdAt:now,expiresAt:now+10*60*1000,verified:false,consumed:false,roomId:placement==='abyssal-revive'&&p?room.id:null};
+  adTicketIndex.set(id,socket.data.userKey);saveUsers();try{await flushPersistence();ack({ok:true,ticket:id});}catch{ack({ok:false});}
+ });
+ socket.on('admob-status',(payload={},ack)=>{
+  if(typeof ack!=='function')return;const t=users[socket.data.userKey]?.admobTickets?.[String(payload.ticket||'')];ack({ok:Boolean(t&&t.expiresAt>Date.now()&&!t.consumed),verified:Boolean(t?.verified)});
+ });
+ socket.on('admob-cancel',(payload={})=>{
+  const user=users[socket.data.userKey],id=String(payload.ticket||''),t=user?.admobTickets?.[id];if(t&&!t.verified&&!t.consumed){delete user.admobTickets[id];adTicketIndex.delete(id);saveUsers();}
+ });
+ socket.on('admob-solo-revive',(payload={},ack)=>{if(typeof ack==='function')ack({ok:consumeAdTicket(socket,payload.ticket,'abyssal-revive')});});
+ socket.on('spin-wheel', (payload={}) => {
+  if(!REWARDED_WHEEL_ENABLED&&!ADMOB_SSV_ENABLED)return socket.emit('wheel-result',{ok:false,message:'As recompensas aleatórias estão desativadas enquanto a política de segurança é revisada.'});
   const u=users[socket.data.userKey];if(!u)return socket.emit('wheel-result',{ok:false,message:'Entre na sua conta para guardar a recompensa.'});
   const now=Date.now(),daily=wheelDailyStatus(u,now);if(daily.remaining<=0)return socket.emit('wheel-result',{ok:false,message:'Você já utilizou os 10 giros de hoje. Novos giros à meia-noite (horário de Brasília).',account:publicUser(u)});
-  // Chamado somente após o callback adViewed da API oficial de anúncio recompensado.
+  if(payload.ticket||ADMOB_SSV_ENABLED){if(!consumeAdTicket(socket,payload.ticket,'abyssal-wheel'))return socket.emit('wheel-result',{ok:false,message:'A confirmação do anúncio ainda não foi recebida.',account:publicUser(u)});}
+  // Browser rewards remain disabled unless explicitly enabled.
   const roll=Math.random()*100;let reward=roll<40?20:roll<70?50:roll<88?100:roll<96?300:roll<99.9?600:1000;
   u.energy=(u.energy||0)+reward;u.lastWheelAt=now;u.wheelDay=daily.day;u.wheelSpinsUsed=daily.used+1;saveUsers();socket.emit('wheel-result',{ok:true,reward,energy:u.energy,account:publicUser(u),nextSpinAt:u.wheelSpinsUsed>=WHEEL_DAILY_LIMIT?daily.resetAt:now});
  });
