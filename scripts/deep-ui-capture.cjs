@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),http
 const {spawn,spawnSync,execFileSync}=require('node:child_process');
 const assert=require('node:assert/strict');
 const OUT=path.resolve(__dirname,'../test-artifacts/browser-smoke');
-const BASE='78ab4bce47dfd9e589a4025aa1143b262fd7c9ad';
+const BASE='41c601f8f4666801e59009a81fbe1195f94dbcbd';
 const ROOT=path.resolve(__dirname,'..');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const types={'.html':'text/html; charset=utf-8','.js':'application/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.woff2':'font/woff2','.mp3':'audio/mpeg','.wav':'audio/wav','.b64':'text/plain'};
@@ -66,7 +66,13 @@ async function capture(root,label){
    await ev("window.AbyssalCockpitNavigation.showExterior();");
    await wait("!document.getElementById('menuScreen').hidden&&document.body.classList.contains('abyss-hatch-navigation')");
    await sleep(500);await snap(device+'-exterior');
-   if(label==='after'){await ev("document.getElementById('catalogBtn').click()");await wait("!document.getElementById('catalogScreen').hidden && !!document.getElementById('codexSearch')");await snap(device+'-abyssario');await ev("document.getElementById('codexSearch').value='zzzzzz';document.getElementById('codexSearch').dispatchEvent(new Event('input'))");assert.ok(await ev("document.getElementById('codexResultCount').textContent.includes('Nenhum')"),'Catalog search failed');await ev("document.getElementById('catalogCloseBtn').click()");}
+   if(label==='after'){
+    const hub=await ev(`(()=>{const ids=['divePortalBtn','submarineWorkshopBtn','catalogBtn','profileBtn'];return ids.map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect(),at=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {id,w:r.width,h:r.height,visible:r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<=innerHeight+1,hit:at===e||e.contains(at)};});})()`);
+    reports.push({device,screen:'hub',controls:hub});assert.ok(hub.every(x=>x.visible&&x.hit&&x.h>=44&&x.w>=44),'Hub controls must be visible, reachable and large enough');
+    await ev("document.querySelector('#hubMore summary').click()");await snap(device+'-mais-opcoes');await ev("document.querySelector('#hubMore summary').click()");
+   }
+   await ev("document.getElementById('catalogBtn').click()");await wait("!document.getElementById('catalogScreen').hidden");await snap(device+'-abyssario');
+   if(label==='after'){await ev("document.getElementById('catalogBtn').click()");await wait("!document.getElementById('catalogScreen').hidden && !!document.getElementById('codexSearch')");const contrast=await ev(`(()=>{const rgb=s=>s.match(/[\\d.]+/g).slice(0,3).map(Number),L=s=>rgb(s).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((v,n,i)=>v+n*[.2126,.7152,.0722][i],0);const card=document.querySelector('#catalogGrid .codex-card'),fg=getComputedStyle(card.querySelector('p')).color,bg=getComputedStyle(card).backgroundColor;const a=L(fg),b=L(bg);return {fg,bg,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};})()`);reports.push({device,screen:'abyssario',...contrast});assert.ok(contrast.ratio>=4.5,'Codex text contrast below WCAG AA');await ev("document.getElementById('codexSearch').value='zzzzzz';document.getElementById('codexSearch').dispatchEvent(new Event('input'))");assert.ok(await ev("document.getElementById('codexResultCount').textContent.includes('Nenhum')"),'Catalog search failed');}await ev("document.getElementById('catalogCloseBtn').click()");
    await ev("document.getElementById('divePortalBtn').click()");
    await wait("!document.getElementById('abyssalDiveChoicePanel').hidden");
    await snap(device+'-seletor');

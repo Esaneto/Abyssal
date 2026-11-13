@@ -452,3 +452,17 @@ body:not(.game-active) #catalogScreen .abyss-journal .journal-stat-row span{back
 body:not(.game-active) #catalogScreen .abyss-journal .journal-stat-row b{color:#8fece4!important;font-size:10px!important}
 body:not(.game-active) #catalogScreen .abyss-journal .journal-sealed{transform:none!important;border:1px dashed #547c8f!important;color:#b9cdd7!important;background:#0b1926!important;font-size:12px!important}
 body:not(.game-active) #catalogScreen .abyss-journal .modal-top-close,#catalogScreen .abyss-journal #catalogCloseBtn{background:#142a3a!important;color:#eaf5fa!important;border:1px solid #355366!important}
+
+/* Resolve legacy high-specificity button skins only inside the new hub. */
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub[hidden]{display:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub :is(#catalogBtn,#profileBtn,#submarineWorkshopBtn){background:#0b1926f5!important;color:#eaf5fa!important;border:1px solid #355366!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;opacity:1!important;position:relative!important;inset:auto!important;transform:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub :is(#catalogBtn,#profileBtn,#submarineWorkshopBtn):hover{border-color:#55dde0!important;background:#173b49!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub :is(#catalogBtn,#profileBtn,#submarineWorkshopBtn,#shopBtn,#wheelBtn,#rankingsBtn):before,body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub :is(#catalogBtn,#profileBtn,#submarineWorkshopBtn,#shopBtn,#wheelBtn,#rankingsBtn):after{display:none!important;content:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub .hub-more-group :is(#shopBtn,#wheelBtn,#rankingsBtn,#cardumesBtn,#matchHistoryBtn,#supportBtn,#downloadBtn,#controlsBtn){position:static!important;inset:auto!important;transform:none!important;background:#142a3a!important;color:#eaf5fa!important;border:1px solid #355366!important;box-shadow:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn strong{color:#050d16!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn small{color:#17363e!important}
+#menuScreen.expedition-hub details:not([open])>.hub-more-panel{display:none!important}
+#menuScreen.expedition-hub .hub-more-panel{box-sizing:border-box}
+@media(max-width:700px){body:not(.game-active) #menuScreen.expedition-hub .hub-nav .hub-destination{min-height:96px!important}#menuScreen.expedition-hub .hub-content{margin-bottom:auto}#menuScreen.expedition-hub .hub-footer{margin-top:0}}
+/* Preserve the original shared guide artwork, with a clear quick-start option. */
+#abyssalTutorialOverlay .guide-step-text p{font-size:15px;line-height:1.5}

@@ -78,6 +78,21 @@
    ],end:'O tempo do mundo solo fica suspenso enquanto este manual estiver na tela.'
   }
  };
+ // First-run guide is deliberately short; the exterior guide remains the full reference.
+ const QUICK_STEPS=Object.freeze({
+  solo:{tips:[
+   'Mova-se com WASD ou pelo mouse; no celular, use o joystick. Escolha seus controles no menu. O espécime coleta orbs e ajuda no combate.',
+   'Derrote criaturas, recolha orbs e escolha ressonâncias ao subir de nível. Vença os bosses para avançar na barra; o primeiro ciclo dá 5.000 de energia uma vez por conta.',
+   'Aproxime-se do submarino para energizá-lo. Luz: 20 de energia por 5 minutos, mais 10 por torre. Use Reparar (T no PC) nas seções danificadas; demora 6 segundos.',
+   'Ao encerrar, você mantém a energia coletada e recebe o bônus do espécime. Na cabine, pesquise Q/E, personalize ressonâncias e equipe espécimes. R ativa sua habilidade.'
+  ],topics:['move','progress','submarine','skills']},
+  coop:{tips:[
+   'Escolha ou crie uma sala para mergulhar com amigos. Use WASD ou mouse no PC, joystick no celular. O mundo e os bosses são compartilhados.',
+   'Derrote criaturas e recolha orbs com seu espécime para evoluir. Vença bosses para avançar na barra; o primeiro ciclo pessoal dá 5.000 de energia uma vez por conta.',
+   'Energize o submarino compartilhado: 20 de energia por 5 minutos, mais 10 por torre. Aproxime-se das seções danificadas e use Reparar (15 segundos).',
+   'No encerramento, a energia coletada recebe o bônus do espécime. Pesquise Q/E na cabine e use R para a habilidade do espécime. Consulte o guia completo no menu externo.'
+  ],topics:['team','progress','submarine','skills']}
+ });
  const STEP_TOPICS=Object.freeze({
   solo:['move','combat','progress','energy','crown','submarine','bonus','skills'],
   coop:['team','combat','progress','energy','submarine','bonus','ranking','skills'],
@@ -119,7 +134,7 @@
   $('abyssalGuideX').addEventListener('click',close);
   $('abyssalGuideStart').addEventListener('click',close);
   $('abyssalGuidePrev').addEventListener('click',()=>showStep(stepIndex-1));
-  $('abyssalGuideNext').addEventListener('click',()=>{if(stepIndex>=MODES[activeMode].tips.length-1)close();else showStep(stepIndex+1);});
+  $('abyssalGuideNext').addEventListener('click',()=>{if(stepIndex>=$('abyssalGuideSteps').children.length-1)close();else showStep(stepIndex+1);});
   $('abyssalGuideModes').addEventListener('click',e=>{const mode=e.target.closest('[data-guide-mode]')?.dataset.guideMode;if(mode&&mode!==activeMode)enter(mode,true);});
   guide.addEventListener('keydown',e=>{
    if(e.key!=='Tab')return;
@@ -153,7 +168,7 @@
   if(!manual&&isDismissed(mode))return false;
   if(activeMode)close();preview=manual;
   ensureGuide();
-  const def=MODES[mode];
+  const full=MODES[mode],quick=!manual?QUICK_STEPS[mode]:null,def=quick?{...full,tips:quick.tips}:full;
   activeMode=mode;returnFocus=document.activeElement;
   $('abyssalGuideKicker').textContent=def.kicker;
   $('abyssalGuideTitle').textContent=def.title;
@@ -174,7 +189,7 @@
    figure.append(art,label);return figure;
   }));
   $('abyssalGuideSteps').replaceChildren(...def.tips.map((content,index)=>{
-   const topic=STEP_TOPICS[mode]?.[index]||'map';
+   const topic=(quick?.topics||STEP_TOPICS[mode])?.[index]||'map';
    const li=document.createElement('li');li.className='abyssal-guide-step-card';
    const picture=document.createElement('div');picture.className='guide-picture';
    picture.innerHTML=root.AbyssalTutorialArt?.render(topic)||'';
