@@ -13,6 +13,7 @@ const RiftWildlife = require('./public/rift-wildlife.js');
 const OpenSeaEcology=require('./public/abyssal-open-sea-ecology.js');
 const SpecimenSystem = require('./public/specimen-system.js');
 const CreatureScale = require('./public/creature-scale.js');
+const SoloCavern = require('./public/abyssal-solo-cavern.js');
 const RIFT_SPECIMEN_SKINS=Object.freeze(Object.keys(SkinStandard.profiles).filter(id=>SpecimenRarity.rarityFor(id)));
 function riftSpecimenSkin(random=Math.random){
  return SpecimenRarity.roll(RIFT_SPECIMEN_SKINS,random)||'default';
@@ -31,6 +32,13 @@ const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.
 const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
+const classicCavernCache=new WeakMap();
+function classicCavernRocks(world){
+ if(!world||world.mode!=='classic')return [];
+ let rocks=classicCavernCache.get(world);
+ if(!rocks){rocks=SoloCavern.buildRocks(world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);classicCavernCache.set(world,rocks);}
+ return rocks;
+}
 function rebuildEcologySpatial(world){
  let cache=ecologySpatialCaches.get(world);
  if(!cache){cache={grid:new Map(),buckets:[],bucketCount:0,scratch:[]};ecologySpatialCaches.set(world,cache);}
@@ -625,8 +633,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Reuse one movement result and one options object through the entire 400-enemy pass.
   const movementResult = {};
   const movementOptions = { minX: 8 / WORLD_ZOOM, maxX: (world.width||WORLD_WIDTH) - 8 / WORLD_ZOOM, minY: 8 / WORLD_ZOOM, maxY: (mapLayout?.height||world.height||WORLD_HEIGHT) - 8 / WORLD_ZOOM, stopDistance: 0 };
-  const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):true;
-  const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):target;
+  const terrainClear=(ax,ay,bx,by,padding=2)=>riftMode&&mapLayout?AbyssalMap.segmentWalkable(mapLayout,ax,ay,bx,by,padding):world.mode==='open-sea'?OceanGeography.segmentClear(ax,ay,bx,by,padding):world.mode==='classic'?!SoloCavern.segmentBlocked(classicCavernRocks(world),ax,ay,bx,by,padding):true;
+  const sharkNavigation=(enemy,target,pad)=>riftMode&&mapLayout?AbyssalMap.navigationTarget(mapLayout,enemy.x,enemy.y,target.x,target.y,{padding:pad,includePortal:false}):world.mode==='open-sea'?OpenSeaEcology.navigationTarget(enemy,target,pad,now):world.mode==='classic'?SoloCavern.navigationTarget(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,enemy.x,enemy.y,target.x,target.y,pad):target;
   const contactTarget = { x: 0, y: 0, r: 13 / WORLD_ZOOM };
   // Players choosing a skill are protected and removed from enemy target selection;
   // enemies continue pursuing the remaining active players in the room.
@@ -811,6 +819,20 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
         }
         movement.target = actualTarget?.submarine?actualTarget:(EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget);
+        if(world.mode==='classic'){
+          const beforeX=seaBeforeX,beforeY=seaBeforeY,pad=Math.max(8,Math.min(45,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),rocks=classicCavernRocks(world);
+          const resolved=SoloCavern.resolve(rocks,beforeX,beforeY,enemy.x,enemy.y,pad);
+          enemy.x=resolved.x;enemy.y=resolved.y;
+          if(resolved.blocked&&actualTarget){
+            const nav=SoloCavern.navigationTarget(rocks,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,beforeX,beforeY,actualTarget.x,actualTarget.y,pad);
+            if(nav&&!nav.direct&&Number.isFinite(nav.x)&&Number.isFinite(nav.y)){
+              const dx=nav.x-beforeX,dy=nav.y-beforeY,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*dt,d);
+              const fallback=SoloCavern.resolve(rocks,beforeX,beforeY,beforeX+dx/d*step,beforeY+dy/d*step,pad);
+              enemy.x=fallback.x;enemy.y=fallback.y;
+            }
+          }
+          movement.moved=Math.hypot(enemy.x-beforeX,enemy.y-beforeY)>.04;
+        }
       }
     } else {
     // Only sighted prey may trigger a pursuit. Passive fauna patrols until
