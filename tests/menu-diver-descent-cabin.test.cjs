@@ -32,7 +32,7 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/authoritative-visual-v163/);
+ assert.match(sw,/white-shark-vision-v164/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 
