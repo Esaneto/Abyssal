@@ -3,6 +3,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const { URL } = require('node:url');
+const { Readable, Transform } = require('node:stream');
+const { pipeline } = require('node:stream/promises');
 
 function configuredGameUrl() {
   const explicit = String(process.env.ABYSSAL_NATIVE_SERVER_URL || '').trim();
@@ -77,10 +79,6 @@ function validateStableWindowsUpdate(value) {
   return url.toString();
 }
 
-function sha256(buffer) {
-  return crypto.createHash('sha256').update(buffer).digest('hex');
-}
-
 async function downloadAndLaunchWindowsUpdate(payload) {
   if (!app.isPackaged) throw new Error('updater-only-available-in-packaged-app');
   const updateUrl = validateStableWindowsUpdate(payload?.url);
@@ -92,15 +90,19 @@ async function downloadAndLaunchWindowsUpdate(payload) {
   const declaredSize = Number(response.headers.get('content-length') || 0);
   if (declaredSize > 750 * 1024 * 1024) throw new Error('update-too-large');
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (!bytes.length || bytes.length > 750 * 1024 * 1024) throw new Error('invalid-update-size');
-  if (sha256(bytes) !== expectedHash) throw new Error('update-sha256-mismatch');
-
   const version = String(payload?.version || 'latest').replace(/[^0-9A-Za-z._-]/g, '').slice(0, 40) || 'latest';
   const targetDir = path.join(app.getPath('temp'), 'Abyssal', 'updates');
   await fs.promises.mkdir(targetDir, { recursive: true });
   const target = path.join(targetDir, 'Abyssal-Setup-' + version + '.exe');
-  await fs.promises.writeFile(target, bytes);
+  const partial = target + '.part';
+  let total=0;const digest=crypto.createHash('sha256');
+  const validator=new Transform({transform(chunk,_encoding,callback){total+=chunk.length;if(total>750*1024*1024)return callback(new Error('update-too-large'));digest.update(chunk);callback(null,chunk);}});
+  try{
+    await pipeline(Readable.fromWeb(response.body),validator,fs.createWriteStream(partial));
+    if(!total||digest.digest('hex')!==expectedHash)throw new Error('update-sha256-mismatch');
+    await fs.promises.rm(target,{force:true});
+    await fs.promises.rename(partial,target);
+  }catch(error){await fs.promises.rm(partial,{force:true});throw error;}
 
   const openError = await shell.openPath(target);
   if (openError) throw new Error('installer-launch-failed: ' + openError);

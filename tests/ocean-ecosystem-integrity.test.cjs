@@ -77,20 +77,21 @@ test('suit pressure and empty tank injury progress rather than being overcome by
  assert.equal(survival.environmentDamage(safe-1,safe,0),0);
 });
 
-test('default Online Mar Aberto is an actual open-sea world, not a renamed classic shooter',()=>{
+test('Online defaults to classic coop while the Open Sea world remains distinct',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const server=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const online=fs.readFileSync(path.join(__dirname,'../public/online.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
  assert.match(server,/makeWorldState\(mode='coop'\)/);
- assert.match(server,/mode:'open-sea'/);
+ assert.match(server,/CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'/);
  assert.match(server,/mode==='open-sea'\?'open-sea':'classic'/);
  assert.match(server,/\['coop','open-sea'\]\.includes\(room\.mode\)/);
  assert.match(game,/onlineRoomMode=\['pvp','rift','open-sea'\]/);
  assert.match(game,/isOpenSeaRun=\(\)=>onlineMode\?onlineRoomMode==='open-sea'/);
- assert.match(online,/mode\.value=window\.AbyssalPreferredRoomMode==='rift'\?'rift':'open-sea'/);
- assert.match(html,/<option value="open-sea" selected>/);
+ assert.match(online,/AbyssalPreferredRoomMode='coop'/);
+ assert.match(online,/socket\.emit\('create-room',\{[^\n]+mode:'coop'/);
+ assert.match(html,/<option value="coop" selected>/);
  const runtime=fs.readFileSync(path.join(__dirname,'../public/abyssal-exploration-runtime.js'),'utf8');
  const chart=fs.readFileSync(path.join(__dirname,'../public/abyssal-navigation-chart.js'),'utf8');
  assert.match(runtime,/const p=cfg\(\),active=p\?\.mode==='open-sea'/);

@@ -24,7 +24,7 @@ test('server exposes stable Android and Windows update channels without forcing 
  assert.match(server,/app\.get\('\/api\/native-release\/:platform'/);
 });
 
-test('installed clients verify promoted artifact metadata and auto-start a validated update',()=>{
+test('installed clients verify promoted artifact metadata and ask before installing',()=>{
  const updater=read('public/update-manager.js');
  assert.match(updater,/AbyssalOffline\?\.nativeAssets/);
  assert.match(updater,/metadataUrl/);
@@ -34,8 +34,13 @@ test('installed clients verify promoted artifact metadata and auto-start a valid
  assert.match(updater,/sessionStorage\.setItem\('abyssalUpdateDeferred'/);
  assert.match(updater,/checkNativeUpdateBtn/);
  assert.match(updater,/navigator\.onLine===false/);
- assert.match(updater,/modal\(data,!force\)/);
- assert.match(updater,/setTimeout\(\(\)=>\{if\(now\.isConnected&&!now\.disabled\)now\.click\(\);\},260\)/);
+ assert.match(updater,/modal\(data\)/);
+ assert.match(updater,/now\.addEventListener\('click',\(\)=>installNative/);
+ assert.match(updater,/if\(installingNative\)/);
+ assert.match(updater,/checkPlayUpdate/);
+ assert.match(updater,/startPlayUpdate/);
+ assert.match(read('scripts/configure-android.cjs'),/com\.google\.android\.play:app-update:2\.1\.0/);
+ assert.match(read('desktop/main.cjs'),/pipeline\(Readable\.fromWeb/);
  assert.match(updater,/AbyssalLoadingScreen\?\.beginUpdate/);
 });
 

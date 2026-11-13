@@ -42,6 +42,7 @@ fs.mkdirSync(javaDir,{recursive:true});
 const updaterJava=path.join(javaDir,'AbyssalUpdaterPlugin.java');
 fs.writeFileSync(updaterJava,`package com.esaneto.abyssal;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -54,6 +55,11 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.PluginMethod;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.UpdateAvailability;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -78,6 +84,39 @@ public class AbyssalUpdaterPlugin extends Plugin {
     JSObject result = new JSObject();
     result.put("channel", channel);
     call.resolve(result);
+  }
+
+  @PluginMethod
+  public void checkPlayUpdate(PluginCall call) {
+    AppUpdateManager manager = AppUpdateManagerFactory.create(getContext());
+    manager.getAppUpdateInfo().addOnSuccessListener(info -> {
+      boolean available = (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE ||
+          info.updateAvailability() == UpdateAvailability.DEVELOPER_TRIGGERED_UPDATE_IN_PROGRESS)
+          && info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE);
+      JSObject result = new JSObject();
+      result.put("available", available);
+      result.put("versionCode", info.availableVersionCode());
+      call.resolve(result);
+    }).addOnFailureListener(error -> call.reject("play-update-check-failed", error));
+  }
+
+  @PluginMethod
+  public void startPlayUpdate(PluginCall call) {
+    AppUpdateManager manager = AppUpdateManagerFactory.create(getContext());
+    manager.getAppUpdateInfo().addOnSuccessListener(info -> {
+      if (!info.isUpdateTypeAllowed(AppUpdateType.IMMEDIATE)) {
+        call.reject("play-update-unavailable");
+        return;
+      }
+      getActivity().runOnUiThread(() -> {
+        manager.startUpdateFlow(info, getActivity(), AppUpdateOptions.newBuilder(AppUpdateType.IMMEDIATE).build())
+          .addOnSuccessListener(code -> {
+            JSObject result = new JSObject();
+            result.put("ok", code == Activity.RESULT_OK);
+            call.resolve(result);
+          }).addOnFailureListener(error -> call.reject("play-update-failed", error));
+      });
+    }).addOnFailureListener(error -> call.reject("play-update-check-failed", error));
   }
 
   @PluginMethod
@@ -278,6 +317,7 @@ public class MainActivity extends BridgeActivity {
 const gradle=path.join('android','app','build.gradle');
 if(fs.existsSync(gradle)){
  let build=fs.readFileSync(gradle,'utf8');
+ if(!build.includes('com.google.android.play:app-update:'))build += "\n dependencies { implementation 'com.google.android.play:app-update:2.1.0' }\n";
  const packageVersion=String(process.env.ABYSSAL_VERSION_NAME||require('../package.json').version||'1.0.0').replace(/[^0-9A-Za-z._-]/g,'');
  const runNumber=Math.max(1,Number.parseInt(process.env.ABYSSAL_VERSION_CODE||process.env.GITHUB_RUN_NUMBER||'1',10)||1);
  build=build.replace(/versionCode\s+\d+/, 'versionCode '+runNumber);

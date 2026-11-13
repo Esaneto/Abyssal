@@ -34,7 +34,8 @@ test('browser auto-update release bumps version and cache',()=>{
  const build=read('public/client-build.js');
  const sw=read('public/offline-sw.js');
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
- assert.match(sw,/sample-audio-v172/);
+ assert.match(sw,/const VERSION = '[^']+'/);
+ assert.match(sw,/abyssal-client-build/);
 });
 
 test('active gameplay is protected from unsolicited browser reloads',()=>{

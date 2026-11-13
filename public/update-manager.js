@@ -77,7 +77,10 @@
    return data;
   }catch(error){console.warn('[Abyssal] Falha ao verificar atualização web:',error?.message||error);return null;}
  }
+ let installingNative=false;
  async function installNative(data,status,button){
+  if(installingNative)return {ok:false,busy:true};
+  installingNative=true;
   const original=button?.textContent||'ATUALIZAR AGORA';
   root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
   root.AbyssalLoadingScreen?.updateDownload('Baixando e verificando o pacote oficial…',64);
@@ -85,14 +88,20 @@
   if(status)status.textContent='Baixando e verificando a atualização. Não feche o Abyssal.';
   try{
    let result;
+   if(data.platform==='play'){
+    result=await androidBridge().startPlayUpdate();
+    root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização da Google Play concluída ou adiada.');
+    if(status)status.textContent=result?.ok?'Atualização aceita pela Google Play.':'Atualização não concluída. Você pode tentar novamente.';
+    return result;
+   }
    if(data.platform==='android'&&androidBridge()?.installApk){
     result=await androidBridge().installApk({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
     if(result?.permissionRequired){
-     root.AbyssalLoadingScreen?.updateInstall('Autorize o Abyssal a instalar atualizações e volte ao jogo.',88);
+     root.AbyssalLoadingScreen?.releaseAfterUpdate('Autorize o Abyssal a instalar atualizações e volte ao jogo.');
      if(status)status.textContent='Autorize o Abyssal a instalar atualizações e volte ao jogo. Depois toque em ATUALIZAR AGORA novamente.';
      return result;
     }
-    root.AbyssalLoadingScreen?.updateInstall('Download concluído. Confirme a instalação na tela do Android.',96);
+    root.AbyssalLoadingScreen?.releaseAfterUpdate('Download concluído. Confirme a instalação na tela do Android.');
     if(status)status.textContent='Download concluído. Confirme a instalação na tela do Android.';
     return result;
    }
@@ -114,41 +123,41 @@
    if(status)status.textContent='Não foi possível concluir a atualização. Verifique a conexão e tente novamente.';
    return {ok:false,error:String(error?.message||error||'update-failed')};
   }finally{
-   if(button&&!button.isConnected)return;
-   if(button){button.disabled=false;button.textContent=original;}
+   installingNative=false;
+   if(button?.isConnected){button.disabled=false;button.textContent=original;}
   }
  }
- function modal(data,autoStart=false){
+ function modal(data){
   const existing=document.getElementById('abyssalUpdatePrompt');
   if(existing){existing.remove();}
   const el=document.createElement('section');el.id='abyssalUpdatePrompt';el.className='abyssal-update-prompt';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
   const card=document.createElement('div');card.className='abyssal-update-card';
   const kicker=document.createElement('small');kicker.textContent='ATUALIZAÇÃO DISPONÍVEL';
-  const title=document.createElement('h2');title.textContent='ABYSSAL '+String(data.latestVersion||'');
-  const version=document.createElement('p');version.className='abyssal-update-version';version.textContent='Versão instalada '+String(build.version||'')+' → '+String(data.latestVersion||'');
+  const title=document.createElement('h2');title.textContent=data.platform==='play'?'ABYSSAL · GOOGLE PLAY':'ABYSSAL '+String(data.latestVersion||'');
+  const version=document.createElement('p');version.className='abyssal-update-version';version.textContent=data.platform==='play'?'Versão instalada '+String(build.version||'')+' · nova versão na loja':'Versão instalada '+String(build.version||'')+' → '+String(data.latestVersion||'');
   const notes=document.createElement('p');notes.textContent=String(data.releaseNotes||'Nova versão disponível.');
   const actions=document.createElement('div');actions.className='abyssal-update-actions';
   const now=document.createElement('button');now.type='button';now.className='primary-btn';now.dataset.updateNow='';now.textContent='ATUALIZAR AGORA';actions.appendChild(now);
   if(!data.required){
    const later=document.createElement('button');later.type='button';later.className='secondary-btn';later.dataset.updateLater='';later.textContent='DEPOIS';actions.appendChild(later);
-   later.addEventListener('click',()=>{try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
+   later.addEventListener('click',()=>{if(installingNative)return;try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
   }
-  const help=document.createElement('p');help.className='abyssal-update-help';help.textContent=data.platform==='android'
+  const help=document.createElement('p');help.className='abyssal-update-help';help.textContent=data.platform==='play'?'A Google Play fará a atualização na instalação existente, sem baixar outro aplicativo.':data.platform==='android'
    ?'O Abyssal baixa o APK oficial dentro do aplicativo. O Android pedirá sua confirmação para instalar a atualização.'
    :'O Abyssal baixa e valida o instalador oficial dentro do aplicativo e o abre para concluir a atualização.';
   const status=document.createElement('p');status.className='abyssal-update-help';status.dataset.updateStatus='';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   card.append(kicker,title,version,notes,actions,help,status);el.appendChild(card);
   now.addEventListener('click',()=>installNative(data,status,now));
   document.body.appendChild(el);
-  if(autoStart)setTimeout(()=>{if(now.isConnected&&!now.disabled)now.click();},260);
  }
  let nativeCheckInFlight=null;
  let lastNativeCheckAt=0;
  async function check(force=false){
   if(!native())return checkInner(force);
   if(nativeCheckInFlight)return nativeCheckInFlight;
+  if(installingNative)return null;
   if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
-  if(!force&&document.body?.classList.contains('game-active'))return null;
+  if(root.AbyssalGameHooks?.browserUpdateBlocked?.()??document.body?.classList.contains('game-active'))return null;
   if(!force&&Date.now()-lastNativeCheckAt<15000)return null;
   lastNativeCheckAt=Date.now();nativeCheckInFlight=checkInner(force);
   try{return await nativeCheckInFlight;}finally{nativeCheckInFlight=null;}
@@ -164,7 +173,24 @@
    root.AbyssalLoadingScreen?.resolveUpdateGate();
    return null;
   }
-  const p=platform();if(p==='android'&&androidBridge()?.getUpdateChannel){try{const channel=await androidBridge().getUpdateChannel();if(channel?.channel==='play'){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}}catch(_){}}
+  const p=platform();
+  if(p==='android'&&androidBridge()?.getUpdateChannel){
+   try{
+    const bridge=androidBridge(),channel=await bridge.getUpdateChannel();
+    if(channel?.channel==='play'){
+     const play=bridge.checkPlayUpdate?await Promise.race([bridge.checkPlayUpdate(),delay(6500).then(()=>null)]):null;
+     if(play?.available){
+      const version='play-'+String(play.versionCode||'available');
+      let deferred='';try{deferred=sessionStorage.getItem('abyssalUpdateDeferred')||'';}catch(_){}
+      const data={ok:true,platform:'play',latestVersion:version,required:false,releaseNotes:'Uma nova versão oficial está disponível na Google Play.'};
+      if(force||deferred!==version){root.AbyssalLoadingScreen?.resolveUpdateGate();modal(data);}
+      else root.AbyssalLoadingScreen?.resolveUpdateGate();
+      return data;
+     }
+     root.AbyssalLoadingScreen?.resolveUpdateGate();return {ok:true,platform:'play',latestVersion:build.version};
+    }
+   }catch(_){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  }
   if(!p){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
   const base=server();if(!/^https:\/\//i.test(base)){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
   root.AbyssalLoadingScreen?.status('VERIFICANDO ATUALIZAÇÕES','Conexão disponível. Conferindo a versão mais recente…','boot',34);
@@ -181,7 +207,7 @@
     root.AbyssalLoadingScreen?.resolveUpdateGate();
     return data;
    }
-   if(data.platform==='android'&&data.updatable===false){root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);root.AbyssalLoadingScreen?.resolveUpdateGate();return data;}
+   if(data.updatable===false){root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);root.AbyssalLoadingScreen?.resolveUpdateGate();return data;}
    if(/^[a-f0-9]{64}$/i.test(String(data.sha256||''))){data.sha256=String(data.sha256).toLowerCase();}
    else if(data.metadataUrl){
     try{
@@ -213,8 +239,8 @@
    }
    let deferred='';try{deferred=sessionStorage.getItem('abyssalUpdateDeferred')||'';}catch(_){}
    if(force||data.required||deferred!==String(data.latestVersion||'')){
-    root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion);
-    modal(data,!force);
+    root.AbyssalLoadingScreen?.resolveUpdateGate();
+    modal(data);
    }else{
     root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada nesta sessão. Abrindo a versão instalada.');
    }
@@ -238,6 +264,7 @@
    const data=await check(true);
    if(message){
     if(!data)message.textContent=navigator.onLine===false?'Conecte-se à internet para verificar atualizações.':'Não foi possível verificar agora.';
+    else if(data.platform==='play'&&String(data.latestVersion).startsWith('play-'))message.textContent='Nova versão encontrada na Google Play. Confira a janela de atualização.';
     else if(cmp(data.latestVersion,build.version)<=0)message.textContent='Você já está usando a versão mais recente do Abyssal.';
     else if(!data.sha256)message.textContent='A nova versão ainda está sendo preparada. Tente novamente em instantes.';
     else message.textContent='Nova versão encontrada. Confira a janela de atualização.';

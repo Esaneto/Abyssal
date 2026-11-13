@@ -65,7 +65,12 @@ test('server, solo and UI explicitly share AOI streaming contract',()=>{
  assert.match(server,/paddingX=viewWidth\*\.42/);
  assert.match(server,/BOSS_KINDS\.has\(e\.kind\)/);
  assert.doesNotMatch(server,/criticalReason:'area-refresh'/);
- assert.doesNotMatch(server,/lastFarMotionAt|sendFar/);
+ // Far-frame throttling is intentionally limited to the bounded classic arena.
+ const motion=server.slice(server.indexOf('if(result.sendSnapshot){'),server.indexOf('let contactSnapshot=null;',server.indexOf('if(result.sendSnapshot){')));
+ assert.match(motion,/if\(room\.mode==='coop'\)\{[\s\S]*lastFarMotionAt/);
+ const openSea=motion.slice(motion.indexOf('}else for(const recipient of activePlayers)'));
+ assert.match(openSea,/getRoomMotionSnapshot\(room,\{player:recipient\}\)/);
+ assert.doesNotMatch(openSea,/lastFarMotionAt|sendFar/);
  assert.match(sim,/function updateOceanStreaming\(world,players,now\)/);
  assert.match(game,/function updateSoloOceanChunks\(force=false\)/);
  assert.match(html,/abyssal-ocean-stream\.js/);
