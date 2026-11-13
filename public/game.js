@@ -4544,6 +4544,22 @@ function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,h
  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.fillStyle='#1599de';ctx.beginPath();ctx.ellipse(0,0,r*1.7,r*.65,0,0,Math.PI*2);ctx.fill();ctx.restore();if(weld)drawSoloWelding(x,y,r,aim,weld,t);
 }
 
+// Cull only presentation work outside the view. Keep lifetime, damage and
+// simulation unchanged. Conservative bounds retain rays and large effects that
+// cross the screen even when their origin is off-screen.
+const BOUNDED_RADIAL_FX=new Set(['occluded-ring','specimen-pulse-wave','poison-plant-cloud','gravity-cone','bite-jaws','projectile-dissolve','nova-core','ring','regen-pulse','ward-collapse']);
+function visibleEffectBounds(fx,left,top,right,bottom,pad){
+ if(BOUNDED_RADIAL_FX.has(fx.type)&&Number.isFinite(fx.x)&&Number.isFinite(fx.y)&&Number.isFinite(fx.max)){
+  const radius=Math.abs(fx.max)*1.5+pad;return fx.x+radius>=left&&fx.x-radius<=right&&fx.y+radius>=top&&fx.y-radius<=bottom;
+ }
+ // Shields follow live entities rather than their original position.
+ if(fx.type==='specimen-shield-bubble')return true;
+ if(Number.isFinite(fx.x1)&&Number.isFinite(fx.y1)&&Number.isFinite(fx.x2)&&Number.isFinite(fx.y2)){
+  const margin=pad+Math.abs(Number(fx.width)||0)*2+(fx.type==='tentacle-strike'?Math.hypot(fx.x2-fx.x1,fx.y2-fx.y1)*.25:0);
+  return Math.max(fx.x1,fx.x2)+margin>=left&&Math.min(fx.x1,fx.x2)-margin<=right&&Math.max(fx.y1,fx.y2)+margin>=top&&Math.min(fx.y1,fx.y2)-margin<=bottom;
+ }
+ return true;
+}
 function draw(t){
  if(hostileSpritePaintFrame!==t){hostileSpritePaintFrame=t;hostileSpritePaintsThisFrame=0;}
  // Only the current ocean menu owns menu rendering; do not paint the old canvas background.
@@ -4598,7 +4614,8 @@ function draw(t){
   for(const b of sharkWakeTrails)renderWakeBubble(b,b.ink===true);
   for(const ink of inkTrails)renderWakeBubble(ink,true);
 
-  for(const fx of effects){ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=fx.type==='photon-ray'?clamp(fx.life/.065,0,1):clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);let photonX2=fx.x2,photonY2=fx.y2;if(fx.type==='photon-ray'&&onlineRoomMode==='pvp'&&projectileHitsPvpWall(fx.x1,fx.y1,photonX2,photonY2,Math.max(1,Number(fx.width)||3))){let lo=0,hi=1;for(let step=0;step<9;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(fx.x1,fx.y1,fx.x1+(fx.x2-fx.x1)*mid,fx.y1+(fx.y2-fx.y1)*mid,Math.max(1,Number(fx.width)||3)))hi=mid;else lo=mid;}photonX2=fx.x1+(fx.x2-fx.x1)*lo;photonY2=fx.y1+(fx.y2-fx.y1)*lo;}ctx.beginPath();if(fx.type==='occluded-ring'){
+  const effectViewRight=cameraX+viewW/worldZoom,effectViewBottom=cameraY+viewH/worldZoom,effectViewPad=(100+Math.abs(shake))/worldZoom;
+  for(const fx of effects){if(!visibleEffectBounds(fx,cameraX,cameraY,effectViewRight,effectViewBottom,effectViewPad))continue;ctx.save();const progress=1-fx.life/fx.maxLife;ctx.globalAlpha=fx.type==='photon-ray'?clamp(fx.life/.065,0,1):clamp(fx.life/fx.maxLife,0,1);ctx.strokeStyle=fx.color;ctx.shadowBlur=lowPowerRendering?0:10;ctx.shadowColor=fx.color;ctx.lineWidth=fx.type==='ring'?4:(Number(fx.width)||3);let photonX2=fx.x2,photonY2=fx.y2;if(fx.type==='photon-ray'&&onlineRoomMode==='pvp'&&projectileHitsPvpWall(fx.x1,fx.y1,photonX2,photonY2,Math.max(1,Number(fx.width)||3))){let lo=0,hi=1;for(let step=0;step<9;step++){const mid=(lo+hi)*.5;if(projectileHitsPvpWall(fx.x1,fx.y1,fx.x1+(fx.x2-fx.x1)*mid,fx.y1+(fx.y2-fx.y1)*mid,Math.max(1,Number(fx.width)||3)))hi=mid;else lo=mid;}photonX2=fx.x1+(fx.x2-fx.x1)*lo;photonY2=fx.y1+(fx.y2-fx.y1)*lo;}ctx.beginPath();if(fx.type==='occluded-ring'){
  const radius=fx.max*progress,segments=360;let previous=null;
  for(let s=0;s<=segments;s++){const a=s/segments*Math.PI*2,ex=fx.x+Math.cos(a)*radius,ey=fx.y+Math.sin(a)*radius,blocked=projectileHitsPvpWall(fx.x,fx.y,ex,ey,2/GAME_WORLD_ZOOM);if(blocked){previous=null;continue;}if(!previous){ctx.moveTo(ex,ey);previous={x:ex,y:ey};continue;}const edgeBlocked=projectileHitsPvpWall(previous.x,previous.y,ex,ey,2/GAME_WORLD_ZOOM);if(edgeBlocked){ctx.moveTo(ex,ey);}else ctx.lineTo(ex,ey);previous={x:ex,y:ey};}
 }else if(fx.type==='specimen-pulse-wave'){
@@ -4680,6 +4697,7 @@ function draw(t){
  ctx.beginPath();
  }else if(fx.type==='projectile-dissolve'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2);}else if(fx.type==='nova-core'){ctx.globalAlpha*=Math.max(0,1-progress);ctx.fillStyle=fx.color||'#72f5ff';ctx.beginPath();ctx.arc(fx.x,fx.y,Math.max(4/GAME_WORLD_ZOOM,fx.max*progress),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ring'||fx.type==='regen-pulse'){ctx.arc(fx.x,fx.y,fx.max*progress,0,Math.PI*2)}else if(fx.type==='ward-collapse'){ctx.arc(fx.x,fx.y,fx.max*(1-progress*.72),0,Math.PI*2)}else if(fx.type==='electric-arc'){const dx=fx.x2-fx.x1,dy=fx.y2-fx.y1,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len,segments=13;for(let s=0;s<=segments;s++){const q=s/segments,edge=q===0||q===1?0:1,wave=(Math.sin((Number(fx.seed)||0)*.23+s*3.7)+Math.sin((Number(fx.seed)||0)*.11+s*7.1)*.55)*Math.min(18/worldZoom,len*.095)*edge,xx=fx.x1+dx*q+nx*wave,yy=fx.y1+dy*q+ny*wave;if(s===0)ctx.moveTo(xx,yy);else ctx.lineTo(xx,yy);}}else if(fx.type==='ricochet-line'){ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.x2,fx.y2);}else{ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(fx.type==='photon-ray'?photonX2:fx.x2,fx.type==='photon-ray'?photonY2:fx.y2)}ctx.stroke();if(fx.type==='ricochet-line'){ctx.globalAlpha*=.88;ctx.strokeStyle='#fff86a';ctx.shadowBlur=lowPowerRendering?0:16/GAME_WORLD_ZOOM;ctx.shadowColor='#f7ff19';ctx.lineWidth=Math.max(1/GAME_WORLD_ZOOM,(Number(fx.width)||3.4)*.42);ctx.stroke();}if(fx.type==='electric-arc'){ctx.globalAlpha*=.9;ctx.strokeStyle='#eaffff';ctx.shadowBlur=lowPowerRendering?5/GAME_WORLD_ZOOM:20/GAME_WORLD_ZOOM;ctx.shadowColor='#31eaff';ctx.lineWidth=Math.max(1.2/GAME_WORLD_ZOOM,(Number(fx.width)||4.2)*.4);ctx.stroke();}if(fx.type==='photon-ray'){ctx.strokeStyle='#ffffff';ctx.shadowBlur=0;ctx.lineWidth=Math.max(.8,(Number(fx.width)||3)*.32);ctx.beginPath();ctx.moveTo(fx.x1,fx.y1);ctx.lineTo(photonX2,photonY2);ctx.stroke()}ctx.restore()}
  for(const pool of bloodPools){
+  const radius=5*Math.abs(Number(pool.r)||0)+effectViewPad;if(pool.x+radius<cameraX||pool.x-radius>effectViewRight||pool.y+radius<cameraY||pool.y-radius>effectViewBottom)continue;
   const q=clamp(pool.life/pool.maxLife,0,1),grow=1+(1-q)*.18;
   ctx.save();ctx.translate(pool.x,pool.y);ctx.rotate(pool.angle||0);ctx.globalAlpha=q*.56;ctx.fillStyle='#8f1028';ctx.shadowBlur=(lowPowerRendering?3:16)/worldZoom;ctx.shadowColor='rgba(151,8,39,.68)';
   ctx.beginPath();const lobes=pool.lobes||[];for(let i=0;i<lobes.length;i++){const l=lobes[i],px=Math.cos(l.a)*l.reach*grow,py=Math.sin(l.a)*l.reach*.68*grow;if(i===0)ctx.moveTo(px,py);else{const prev=lobes[i-1],cx=Math.cos((prev.a+l.a)/2)*pool.r*.55,cy=Math.sin((prev.a+l.a)/2)*pool.r*.38;ctx.quadraticCurveTo(cx,cy,px,py);}}ctx.closePath();ctx.fill();
