@@ -24,7 +24,7 @@
  function cueAsset(id){return CUES[id]||(/^boss-death-/.test(id)?'kill':/^enemy-attack-/.test(id)?'bite':null);}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function createMixer(env){
-  let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=false,started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
+  let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
   const buffers=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
   const metrics={played:0,overlapped:0,stolen:0,deduplicated:0,inaudible:0,notReady:0,errors:0};
   const clock=()=>env.performance?.now?.()??Date.now();
@@ -91,6 +91,8 @@
    if(!ctx||ctx.state!=='running'||muted||hidden||!buffer)return null;
    const cfg=ASSETS[id],space=spatial(options);if(!space||space.gain<.006){metrics.inaudible++;return null;}
    if(!allocate(id,options))return null;
+   // A large same-tick burst cannot accumulate hundreds of fading sources.
+   if(voices.size>=32){const oldest=[...voices].find(v=>v.stopping);if(oldest)cleanVoice(oldest);else{metrics.inaudible++;return null;}}
    const source=ctx.createBufferSource(),gain=ctx.createGain();let pan=null;
    source.buffer=buffer;source.loop=Boolean(loopKey);
    if(loopKey){source.loopStart=0;source.loopEnd=buffer.duration;}
@@ -98,13 +100,14 @@
    const now=ctx.currentTime,amplitude=cfg.gain*space.gain,voice={source,gain,pan,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
    source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+.008);
    voices.add(voice);
-   if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now+.004);}
+   try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now+.004);}
    else{
     const duration=Math.min(buffer.duration,cfg.max||buffer.duration);
     const release=Math.min(.12,Math.max(.025,duration*.18));
     gain.gain.setValueAtTime(amplitude,now+Math.max(.009,duration-release));gain.gain.linearRampToValueAtTime(0,now+duration);
     source.start(now+.004,0,duration);if([...voices].some(v=>v!==voice&&v.id===id&&!v.stopping))metrics.overlapped++;
    }
+   }catch(error){metrics.errors++;cleanVoice(voice);return null;}
    metrics.played++;
    if(cfg.group==='critical')duck(Math.min(3,buffer.duration));
    return voice;
@@ -123,8 +126,8 @@
   function play(id,options={}){
    const asset=ASSETS[id]?id:cueAsset(id);
    if(!asset||muted||hidden||sfxVolume<=0||!ctx||ctx.state!=='running')return false;
-   if(!rememberEvent(asset,options))return false;
    if(!spatial(options))return false;
+   if(!rememberEvent(asset,options))return false;
    const b=buffers.get(asset);
    if(b)return Boolean(createVoice(asset,b,options));
    // Do not accumulate a queue of obsolete shots during the initial download.
@@ -159,7 +162,7 @@
    if(!setup())return false;try{if(ctx.state!=='running')await ctx.resume();}catch{return false;}
    if(ctx.state!=='running')return false;started=true;prewarm();startMusic();return true;
   }
-  function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;smooth(musicBus?.gain,ctx&&ctx.currentTime<duckUntil?value*.35:value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value);if(!value)stopEffects();}}
+  function setVolume(channel,value){value=clamp(Number(value)||0,0,1);if(channel==='abyssalMusicVolume'){musicVolume=value;if(ctx&&ctx.currentTime<duckUntil)duck(duckUntil-ctx.currentTime);else smooth(musicBus?.gain,value);}else if(channel==='abyssalSfxVolume'){sfxVolume=value;smooth(sfx?.gain,value);if(!value)stopEffects();}}
   function setMuted(value){muted=Boolean(value);smooth(master?.gain,muted||hidden?0:1);if(muted)stopEffects();else if(started)startMusic();}
   function setHidden(value){hidden=Boolean(value);smooth(master?.gain,hidden||muted?0:1);if(hidden)stopEffects();else if(started){if(ctx?.state==='suspended')ctx.resume().catch(()=>{});startMusic();}}
   function inspect(){return {...metrics,active:voices.size,loops:loops.size,decoded:buffers.size,decodedBytes:[...buffers.values()].reduce((n,b)=>n+b.length*b.numberOfChannels*4,0),loading:loading.size,musicPlaying:Boolean(musicVoice),sfxVolume,musicVolume,state:ctx?.state||'locked'};}
