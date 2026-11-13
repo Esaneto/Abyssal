@@ -4,11 +4,28 @@
   'assets/branding/loading/0.b64','assets/branding/loading/1.b64','assets/branding/loading/2.b64',
   'assets/branding/loading/3.b64','assets/branding/loading/4.b64','assets/branding/loading/5.b64'
  ];
+ const ICON_CHUNKS=[
+  'assets/branding/icon/0.b64','assets/branding/icon/1.b64','assets/branding/icon/2.b64'
+ ];
  let overlay=null,live=null,bar=null,ready=false,updateGate=false,hold=false,removed=false;
+ function readChunks(paths){
+  return Promise.all(paths.map(path=>fetch(path,{cache:'force-cache'}).then(r=>r.ok?r.text():Promise.reject(new Error('asset '+path)))))
+    .then(parts=>parts.join('').trim());
+ }
  function setArt(){
-  Promise.all(LOADING_CHUNKS.map(path=>fetch(path,{cache:'force-cache'}).then(r=>r.ok?r.text():Promise.reject(new Error('asset '+path)))))
-   .then(parts=>document.documentElement.style.setProperty('--abyssal-loading-art','url("data:image/webp;base64,'+parts.join('').trim()+'")'))
+  readChunks(LOADING_CHUNKS)
+   .then(data=>document.documentElement.style.setProperty('--abyssal-loading-art','url("data:image/webp;base64,'+data+'")'))
    .catch(err=>console.warn('[Abyssal] Loading art unavailable:',err?.message||err));
+  readChunks(ICON_CHUNKS).then(data=>{
+    const uri='data:image/webp;base64,'+data;
+    root.ABYSSAL_BRAND_ICON_DATA_URI=uri;
+    let icon=document.querySelector('link[rel="icon"][data-abyssal-brand]');
+    if(!icon){icon=document.createElement('link');icon.rel='icon';icon.type='image/webp';icon.dataset.abyssalBrand='1';document.head.appendChild(icon);}
+    icon.href=uri;
+    let apple=document.querySelector('link[rel="apple-touch-icon"][data-abyssal-brand]');
+    if(!apple){apple=document.createElement('link');apple.rel='apple-touch-icon';apple.dataset.abyssalBrand='1';document.head.appendChild(apple);}
+    apple.href=uri;
+  }).catch(err=>console.warn('[Abyssal] App icon art unavailable:',err?.message||err));
  }
  function ensure(){
   if(overlay||removed)return overlay;
