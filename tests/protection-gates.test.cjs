@@ -36,7 +36,7 @@ test('retired ghost dash cannot grant invulnerability; propulsor needs owned res
  assert.match(handler,/reason === 'dash'\) return;/);
  assert.doesNotMatch(handler,/now \+ 1500/);
  assert.match(server,/id==='propulsor-on'\|\|id==='propulsor-off'/);
- assert.match(server,/if\(!\(Number\(u\?\.metaUpgrades\?\.dash\)>0\)\)return ack\(false,'invalid-ability'\)/);
+ assert.match(server,/ResearchSystem\.unlocked\('dash',u\?\.researchLevels\|\|\{\},u\?\.metaUpgrades\|\|\{\}\)/);
  assert.doesNotMatch(game,/ghostDashUntil/);
 });
 
