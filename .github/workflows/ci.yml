@@ -109,6 +109,8 @@ jobs:
         run: npm ci
       - name: Check Android configurator syntax
         run: |
+          node --check scripts/configure-android-admob.cjs
+          node --check public/abyssal-admob.js
           node --check scripts/configure-android.cjs
           node --check scripts/configure-android-direct-update.cjs
           node --check scripts/configure-android-signing.cjs
@@ -169,6 +171,13 @@ jobs:
           sed -i "s/targetSdkVersion = .*/targetSdkVersion = 36/" android/variables.gradle
       - name: Configure Android runtime
         run: node scripts/configure-android.cjs
+      - name: Configure native AdMob bridge
+        env:
+          ABYSSAL_ADMOB_APP_ID: ${{ vars.ABYSSAL_ADMOB_APP_ID }}
+          ABYSSAL_ADMOB_REVIVE_ID: ${{ vars.ABYSSAL_ADMOB_REVIVE_ID }}
+          ABYSSAL_ADMOB_WHEEL_ID: ${{ vars.ABYSSAL_ADMOB_WHEEL_ID }}
+          ABYSSAL_ADMOB_TEST_MODE: ${{ vars.ABYSSAL_ADMOB_TEST_MODE }}
+        run: node scripts/configure-android-admob.cjs
       - name: Configure optional release signing
         shell: bash
         run: |
@@ -200,6 +209,8 @@ jobs:
           grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          grep -q 'registerPlugin(AbyssalAdMobPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          test -s android/app/src/main/assets/public/abyssal-admob.js
           test -s android/app/src/main/java/com/esaneto/abyssal/AbyssalUpdaterPlugin.java
           test -s android/app/src/main/res/xml/abyssal_update_paths.xml
           if grep -q '"url"[[:space:]]*:[[:space:]]*"https://abyssal' capacitor.config.json; then
@@ -300,24 +311,25 @@ jobs:
         with:
           name: abyssal-android-build-metadata
           path: android-build.txt
-      - name: Promote validated APK to stable download release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Promote signed APK to stable download release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != '' && vars.ABYSSAL_ADMOB_TEST_MODE != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
+          CURRENT_MAIN=$(gh api repos/$GITHUB_REPOSITORY/git/ref/heads/main --jq .object.sha)
+          if [ "$CURRENT_MAIN" != "$GITHUB_SHA" ]; then echo "A newer commit is available; skipping stale stable promotion."; exit 0; fi
           CLIENT_VERSION=$(node -p "require('./package.json').version")
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -s android/app/build/outputs/apk/release/app-release.apk ]; then
-            cp android/app/build/outputs/apk/release/app-release.apk Abyssal-Android.apk
-            UPDATABLE=true
-            SIGNING=release
-          else
-            cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
-            UPDATABLE=false
-            SIGNING=debug
-          fi
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk Abyssal-Android.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify Abyssal-Android.apk
           APK_SHA=$(sha256sum Abyssal-Android.apk | cut -d ' ' -f1)
-          printf '{"version":"%s","commit":"%s","sha256":"%s","platform":"android","updatable":%s,"signing":"%s"}\n' "$CLIENT_VERSION" "$GITHUB_SHA" "$APK_SHA" "$UPDATABLE" "$SIGNING" > Abyssal-Android-build.json
+          printf '{"version":"%s","commit":"%s","sha256":"%s","platform":"android","updatable":true,"signing":"release"}\n' "$CLIENT_VERSION" "$GITHUB_SHA" "$APK_SHA" > Abyssal-Android-build.json
           gh release upload downloads-2 Abyssal-Android.apk Abyssal-Android-build.json --clobber
+      - name: Explain stable signing requirement
+        if: env.ANDROID_KEYSTORE_BASE64 == ''
+        run: echo "::warning::Production signing is missing. Debug APK is available as a workflow artifact; stable download is not overwritten."
+
 
 
   roxycloud-node26:
