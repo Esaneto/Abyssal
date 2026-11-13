@@ -12,7 +12,7 @@
     'Concluir toda a progressão em 100% concede a recompensa final: a Serpente Esmeralda.'
     ,'Energize o submarino próximo à base: 20 de energia por 5 minutos de luz, mais 10 por torre. Cada uma das três partes tem 1.000 de vida. Aproxime-se e use Reparar (T no PC) por 6 segundos.'
     ,'Você mantém 100% da energia coletada. Sem bônus (0%), 1.000 de energia continuam 1.000; com um Espécime de +10%, passam a 1.100. O bônus é creditado ao encerrar o mergulho, sem alterar a experiência.',
-    'Na cabine, abra Pesquisa > Mergulhador. Desbloqueie Pulso de Maré (Q) e Passo Fantasma (E) com energia. Use R para a habilidade do Espécime; no celular, toque nos botões.'
+    'Na cabine, abra Pesquisa > Mergulhador. Desbloqueie Pulso de Maré (Q) e Propulsor Abissal (E) com energia. E equipa ou guarda a turbina, que acelera o nado e recarrega ao parar. Use R para a habilidade do Espécime; no celular, toque nos botões.'
    ],end:'Dica: volte à cabine para pesquisar, trocar seu Espécime e preparar o próximo mergulho.'
   },
   coop:{
@@ -26,7 +26,7 @@
     'Escolha ou crie uma sala antes de entrar. Energize a base compartilhada: 20 de energia por ciclo de 5 minutos, mais 10 por torre. Cada seção tem 1.000 de vida; o reparo leva 15 segundos.',
     'Você mantém 100% da energia coletada. O bônus do Espécime é aplicado no encerramento: 0% = 1.000 de energia; +10% = 1.100. A experiência não recebe esse bônus.',
     'No ranking por bosses derrotados, os 10 primeiros de cada período recebem energia: diário 100, semanal 1.000 e mensal 5.000.',
-    'Pesquise Q (Pulso de Maré) e E (Passo Fantasma) na cabine. R ativa a habilidade do Espécime. Use os botões correspondentes no celular.'
+    'Pesquise Q (Pulso de Maré) e E (Propulsor Abissal) na cabine. E alterna entre arma e propulsor; a bateria se recupera ao parar. R ativa a habilidade do Espécime. Use os botões correspondentes no celular.'
    ],end:'A partida continua acontecendo para os demais. Enquanto este manual estiver aberto, você fica protegido, mas não pode atacar.'
   },
   pvp:{
