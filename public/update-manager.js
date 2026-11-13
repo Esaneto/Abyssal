@@ -15,11 +15,13 @@
  function cmp(a,b){const aa=parts(a),bb=parts(b);for(let i=0;i<3;i++){const d=(aa[i]||0)-(bb[i]||0);if(d)return d;}return 0;}
  function androidBridge(){return root.Capacitor?.Plugins?.AbyssalUpdater||null;}
  function windowsBridge(){return root.AbyssalNativeUpdater||null;}
- function browserMode(){return !native()&&(root.location.protocol==='https:'||root.location.hostname==='localhost');}
+ function browserMode(){return !native()&&['https:','http:'].includes(root.location.protocol);}
+ const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ function workerBuild(worker){return new Promise(resolve=>{if(!worker||typeof MessageChannel==='undefined')return resolve('');const channel=new MessageChannel();let done=false;const finish=value=>{if(done)return;done=true;clearTimeout(timer);channel.port1.close();resolve(String(value||''));};const timer=setTimeout(()=>finish(''),500);channel.port1.onmessage=ev=>finish(ev.data?.version);try{worker.postMessage({type:'abyssal-client-build'},[channel.port2]);}catch(_){finish('');}});}
  async function refreshBrowserTo(version){
   const target=String(version||'').trim();if(!target)return false;
   const key='abyssalBrowserReload:'+target;
-  try{if(sessionStorage.getItem(key)==='1')return false;sessionStorage.setItem(key,'1');}catch(_){}
+  try{if(sessionStorage.getItem(key)==='1')return false;}catch(_){}
   root.AbyssalLoadingScreen?.status('ATUALIZANDO ABYSSAL','Nova versão encontrada. Atualizando arquivos do navegador…','update',58);
   let reloaded=false;
   const reload=()=>{
@@ -32,27 +34,27 @@
   try{
    if('serviceWorker' in navigator){
     const reg=await navigator.serviceWorker.getRegistration('/');
-    if(reg){
-     const changed=new Promise(resolve=>{
-      let settled=false;const done=()=>{if(settled)return;settled=true;resolve(true);};
-      navigator.serviceWorker.addEventListener('controllerchange',done,{once:true});
-      reg.addEventListener('updatefound',()=>{
-       const worker=reg.installing;if(!worker)return;
-       worker.addEventListener('statechange',()=>{if(worker.state==='activated')done();});
-      },{once:true});
-      setTimeout(()=>resolve(false),4500);
-     });
-     await reg.update();
-     await changed;
+    if(reg&&navigator.serviceWorker.controller){
+     // Do not navigate while the old worker still owns the page: it serves its
+     // old HTML and assets even when the server is already on the new version.
+     const requestUpdate=async()=>{await reg.update();};
+     await Promise.race([requestUpdate(),delay(5000)]);
+     let ready=false;
+     for(let attempt=0;attempt<8;attempt++){
+      if(cmp(await workerBuild(navigator.serviceWorker.controller),target)>=0){ready=true;break;}
+      await delay(250);
+     }
+     if(!ready){root.AbyssalLoadingScreen?.releaseAfterUpdate?.('Nova versão ainda em preparação.');return false;}
     }
    }
-  }catch(error){console.warn('[Abyssal] Falha ao atualizar Service Worker:',error?.message||error);}
+  }catch(error){console.warn('[Abyssal] Falha ao atualizar Service Worker:',error?.message||error);root.AbyssalLoadingScreen?.releaseAfterUpdate?.('Atualização será tentada novamente.');return false;}
+  try{sessionStorage.setItem(key,'1');}catch(_){}
   setTimeout(reload,80);return true;
  }
  let browserCheckInFlight=null;
  let pendingNotice='';
  async function checkBrowser(force=false,allowActive=false){
-  if(browserCheckInFlight)return browserCheckInFlight;
+  if(browserCheckInFlight){const result=await browserCheckInFlight;if(!allowActive||result?.reloadStarted||!result?.version||cmp(result.version,build.version)<=0)return result;return checkBrowser(force,true);}
   browserCheckInFlight=checkBrowserInner(force,allowActive);
   try{return await browserCheckInFlight;}finally{browserCheckInFlight=null;}
  }

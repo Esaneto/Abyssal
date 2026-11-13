@@ -34,7 +34,7 @@ test('browser auto-update release bumps version and cache',()=>{
  const build=read('public/client-build.js');
  const sw=read('public/offline-sw.js');
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
- assert.match(sw,/outside-hull-v154/);
+ assert.match(sw,/verified-update-v155/);
 });
 
 test('active gameplay is protected from unsolicited browser reloads',()=>{
@@ -51,3 +51,14 @@ test('maintenance reload stores rejoin data before checking version and restores
  assert.match(game,/startGame\(Boolean\(d\.resumedRun\)\)/);
  assert.match(server,/room\.isPrivate&&!authorizedDeployResume/);
 });
+
+const vm=require('node:vm');
+test('browser updater defers gameplay but permits maintenance handoff without a service worker',async()=>{
+ const storage=new Map(),reloads=[],notices=[];let blocked=true,fetches=0;
+ const window={ABYSSAL_CLIENT_BUILD:{version:'3.6.12'},location:{protocol:'https:',hostname:'abyssal.example',origin:'https://abyssal.example',href:'https://abyssal.example/',replace:url=>reloads.push(url)},AbyssalGameHooks:{browserUpdateBlocked:()=>blocked,notifyBrowserUpdate:()=>notices.push(1)},addEventListener(){}};
+ const context={window,navigator:{onLine:true},document:{readyState:'loading',addEventListener(){},body:{classList:{contains:()=>blocked}}},sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},fetch:async()=>{fetches++;return {ok:true,json:async()=>({ok:true,version:'3.6.13'})};},URL,AbortSignal,console,setTimeout:(fn)=>{fn();return 1;},clearTimeout(){},setInterval(){}};
+ vm.runInNewContext(read('public/update-manager.js'),context);
+ const deferred=await window.AbyssalUpdater.checkBrowser();assert.equal(deferred.reloadStarted,false);assert.equal(reloads.length,0);assert.equal(notices.length,1);
+ const updated=await window.AbyssalUpdater.checkBrowser(false,true);assert.equal(updated.reloadStarted,true);assert.equal(reloads.length,1);assert.match(reloads[0],/abyssVersion=3.6.13/);assert.equal(fetches,2);
+});
+test('service worker proves the installed cache release before reload',()=>{const sw=read('public/offline-sw.js'),updater=read('public/update-manager.js');assert.match(sw,/abyssal-client-build/);assert.match(updater,/workerBuild\(navigator\.serviceWorker\.controller\)/);assert.match(updater,/if\(!ready\)/);});

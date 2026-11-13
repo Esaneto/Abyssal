@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-13-outside-hull-v154';
+const VERSION = '2026-11-13-verified-update-v155';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -138,6 +138,10 @@ self.addEventListener('activate', event => {
       .map(key => caches.delete(key)));
     await self.clients.claim();
   })());
+});
+self.addEventListener('message', event => {
+ if(event.data?.type!=='abyssal-client-build'||!event.ports?.[0])return;
+ event.waitUntil((async()=>{let version='';try{const cache=await caches.open(CACHE_NAME);const response=await cache.match(new URL('client-build.js',self.registration.scope).href);const source=await response?.text();version=source?.match(/version:\s*['\"]([^'\"]+)['\"]/)?.[1]||'';}catch(_){}event.ports[0].postMessage({version});})());
 });
 self.addEventListener('fetch', event => {
   const request = event.request;

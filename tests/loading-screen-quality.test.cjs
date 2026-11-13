@@ -25,6 +25,7 @@ test('low resolution chunked image is fallback only',()=>{
 test('high quality loading release refreshes browser cache',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/loading-hq-v151/);
- assert.match(build,/version:'3\.6\.11'/);
+ const revision=Number(sw.match(/const VERSION = '[^']*-v(\d+)'/)?.[1]);
+ assert.ok(revision>=151,'cache must be at least the high-quality loading release');
+ assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });

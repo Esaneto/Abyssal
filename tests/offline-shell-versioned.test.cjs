@@ -12,6 +12,7 @@ test('offline install precaches the exact versioned assets referenced by the cur
  const response={ok:true,type:'basic',text:async()=>html,clone(){return this;}};
  const cache={
   async addAll(urls){cachedURLs=Array.from(urls);},
+  async match(url){return cachedURLs.includes(String(url?.url||url))?response:null;},
   async put(url){if(String(url?.url||url)==='https://abyssal.example/index.html')cachedIndex=true;}
  };
  const self={
