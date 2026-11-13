@@ -245,7 +245,10 @@ function logoutAccount(){
  const button=$('profileSessionBtn');if(button)button.disabled=true;
  if(activeSocket?.connected&&token){activeSocket.timeout(5000).emit('logout-session',{token},(error,result)=>finish(error||!result?.ok?'Sessão local encerrada. Não foi possível confirmar a revogação no servidor.':''));}else finish(token?'Sessão local encerrada sem confirmação do servidor.':'');
 }
-function openLogin(){if(window.AbyssalCockpitNavigation?.routeScreen?.('loginScreen'))return;$('loginScreen').hidden=false;setMessage(account?`Último nickname: ${account.nickname}. Digite sua senha para entrar.`:'Crie uma conta ou entre com seu nickname e senha.');if(account)$('nicknameInput').value=account.nickname}
+function openLogin(){if(window.AbyssalCockpitNavigation?.routeScreen?.('loginScreen'))return;$('loginScreen').hidden=false;setMessage(account?`Último nickname: ${account.nickname}. Digite sua senha para entrar.`:'Crie uma conta ou entre com seu nickname e senha.');if(account)$('nicknameInput').value=account.nickname;
+ const profile=$('profileScreen'),cabin=$('submarineWorkshop');
+ if(profile&&!profile.hidden&&(!cabin||cabin.hidden))$('nicknameInput')?.focus();
+}
 function connect(){
  if(socket){if(!socket.connected)socket.connect();return socket;}
  if(typeof window.io!=='function'){

@@ -4740,3 +4740,65 @@ body.game-active #roomsScreen{display:none!important;pointer-events:none!importa
 .abyss-mobile-fire:active,.abyss-mobile-fire.is-firing{background:radial-gradient(circle,#ff8780,#be2335 70%,#68101c);transform:scale(.94)}
 @media(pointer:coarse){body.game-active .abyss-mobile-fire:not([hidden]){display:grid!important}}
 @media(max-width:700px){.abyss-mobile-fire{right:calc(12px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom))}}
+
+
+/* Exterior profile only: reserve an actual header column for the close button.
+   The submarine's embedded panels retain their own layout and routing. */
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen > .profile-modal {
+ display:grid !important;
+ grid-template-columns:minmax(0,1fr) 34px;
+ column-gap:12px;
+ align-content:start;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen > .profile-modal > * {
+ grid-column:1 / -1;
+ min-width:0;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen > .profile-modal > .profile-account-toolbar {
+ grid-column:1;
+ grid-row:1;
+ display:flex;
+ align-items:center;
+ flex-wrap:wrap;
+ justify-content:space-between;
+ gap:8px 12px;
+ min-width:0;
+ min-height:34px;
+ margin-bottom:10px;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen .profile-account-toolbar > .eyebrow {
+ flex:1 1 180px;
+ min-width:0;
+ overflow-wrap:anywhere;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen .profile-account-toolbar > .profile-session-btn:not([hidden]) {
+ position:static !important;
+ flex:0 1 auto;
+ max-width:100%;
+ min-width:0;
+ width:auto !important;
+ margin:0 !important;
+ white-space:normal;
+ overflow-wrap:anywhere;
+ text-align:center;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))) #profileScreen > .profile-modal > .modal-top-close {
+ grid-column:2;
+ grid-row:1;
+ position:relative !important;
+ top:auto !important;
+ right:auto !important;
+ float:none !important;
+ margin:0 !important;
+ align-self:start;
+ justify-self:end;
+}
+/* Both screens are siblings; their document order previously placed Profile
+   over Login. Raise Login only while the exterior Profile is underneath. */
+body:not(:has(#submarineWorkshop:not([hidden]))):has(#profileScreen:not([hidden])) #loginScreen:not([hidden]) {
+ z-index:110 !important;
+}
+body:not(:has(#submarineWorkshop:not([hidden]))):has(#loginScreen:not([hidden])) #profileScreen:not([hidden]) {
+ z-index:109 !important;
+ pointer-events:none !important;
+}
