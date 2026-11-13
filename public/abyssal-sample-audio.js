@@ -28,9 +28,40 @@
  function abilityCue(id){const key=String(id||'').replace(/^wildlife-/,'').toLowerCase();if(['push','pulse','bio-shock','gulper-chomp','pressure-impact','rupture-pulse','abyssal-pulse','pressure-pulse'].includes(key))return 'pulse';if(['shot','slowshot','pressure-lance','hypothermic-projectile','colossal-shot'].includes(key))return 'echo';if(['cloud','toxic-cloud','monster-toxic-cloud'].includes(key))return 'cloud';if(key==='dash')return 'dash';return null;}
  function cueAsset(id){return CUES[id]||(/^boss-death-/.test(id)?'kill':/^enemy-attack-/.test(id)?'bite':null);}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ // Separate sound identity from loudness. Measure the active part of each
+ // decoded sample once, not in the gameplay/audio hot path.
+ const WEAPONS=new Set(['electric','photon','pierce','echo','nova','beam']);
+ const MIX=Object.freeze({weaponRms:.25,effectRms:.13,peakCeiling:.94,maxBoost:8,weaponPriority:94});
+ function measureSample(buffer,maxDuration){
+  const frames=Math.min(buffer.length,Math.max(1,Math.floor((maxDuration||buffer.duration)*buffer.sampleRate)));
+  const step=Math.max(1,Math.floor(buffer.sampleRate/12000));
+  let peak=0,sum=0,count=0;
+  for(let ch=0;ch<buffer.numberOfChannels;ch++){
+   const pcm=buffer.getChannelData(ch);
+   for(let i=0;i<frames;i+=step)peak=Math.max(peak,Math.abs(pcm[i]));
+  }
+  const gate=Math.max(.0001,peak*.035);
+  for(let ch=0;ch<buffer.numberOfChannels;ch++){
+   const pcm=buffer.getChannelData(ch);
+   for(let i=0;i<frames;i+=step){const v=pcm[i];if(Math.abs(v)>=gate){sum+=v*v;count++;}}
+  }
+  return {peak,rms:count?Math.sqrt(sum/count):0};
+ }
+ function normalizedGain(id,buffer){
+  if(id==='music')return ASSETS.music.gain;
+  const {peak,rms}=measureSample(buffer,ASSETS[id]?.max);
+  if(!rms||!peak)return 0;
+  const target=WEAPONS.has(id)?MIX.weaponRms:MIX.effectRms;
+  return Math.min(target/rms,MIX.peakCeiling/peak,MIX.maxBoost);
+ }
+ function voiceGain(id,normalization,space){
+  // Per-call volume is an artistic trim, not a second independent mix.
+  // Preserve distance and stereo while narrowing arbitrary gain differences.
+  return normalization*space.attenuation*space.trim;
+ }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
-  const buffers=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
+  const buffers=new Map(),normalizations=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
   const metrics={played:0,overlapped:0,stolen:0,deduplicated:0,inaudible:0,notReady:0,errors:0};
   const clock=()=>env.performance?.now?.()??Date.now();
   const read=(key,def)=>{try{const raw=env.localStorage?.getItem(key);return raw===null||raw===undefined?def:clamp(Number(raw)||0,0,100)/100;}catch{return def;}};
@@ -55,7 +86,7 @@
     try{
      const url=new URL('audio/'+ASSETS[id].file,env.document?.baseURI||env.location?.href||'http://localhost/');
      const res=await env.fetch(url.href,{cache:'force-cache'});if(!res.ok)throw Error('audio HTTP '+res.status);
-     const decoded=await ctx.decodeAudioData(await res.arrayBuffer());buffers.set(id,decoded);return decoded;
+     const decoded=await ctx.decodeAudioData(await res.arrayBuffer());buffers.set(id,decoded);normalizations.set(id,normalizedGain(id,decoded));return decoded;
     }catch(error){metrics.errors++;failedUntil.set(id,clock()+15000);env.console?.warn?.('[AbyssalAudio]',id,error.message);return null;}
     finally{loading.delete(id);}
    })();
@@ -74,9 +105,10 @@
    const distance=Math.max(0,Number(options.distance)||0),range=Math.max(100,Number(options.range)||850);
    if(distance>range*1.5)return null;
    const attenuation=1/(1+(distance/(range*.65))**2);
-   return {gain:clamp(Number(options.volume??1),0,1)*attenuation,pan:clamp(Number(options.pan)||0,-.85,.85)};
+   const requested=clamp(Number(options.volume??1),0,1),trim=requested===0?0:.8+.2*requested;
+   return {gain:attenuation*trim,attenuation,trim,pan:clamp(Number(options.pan)||0,-.85,.85)};
   }
-  function priorityFor(id,options){return ASSETS[id].priority+(options.local?16:0);}
+  function priorityFor(id,options){return (WEAPONS.has(id)?MIX.weaponPriority:ASSETS[id].priority)+(options.local?12:0);}
   function allocate(id,options){
    const cfg=ASSETS[id],priority=priorityFor(id,options),active=[...voices].filter(v=>!v.stopping);
    const group=cfg.group,groupVoices=active.filter(v=>v.group===group);
@@ -102,7 +134,7 @@
    source.buffer=buffer;source.loop=Boolean(loopKey);
    if(loopKey){source.loopStart=0;source.loopEnd=buffer.duration;}
    if(typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;source.connect(gain);gain.connect(pan);pan.connect(sfx);}else{source.connect(gain);gain.connect(sfx);}
-   const now=ctx.currentTime,amplitude=cfg.gain*space.gain,voice={source,gain,pan,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
+   const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
    source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+.008);
    voices.add(voice);
    try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now+.004);}
@@ -148,7 +180,7 @@
    if(!space||space.gain<.006){if(old)stopVoice(old);return false;}
    if(old&&!old.stopping){
     old.expires=now+(Number(options.leaseMs)||450);
-    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,ASSETS[id].gain*space.gain);if(old.pan)smooth(old.pan.pan,space.pan);}
+    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,voiceGain(id,normalizations.get(id)||0,space));if(old.pan)smooth(old.pan.pan,space.pan);}
     return true;
    }
    const b=buffers.get(id);if(!b){load(id);return false;}
@@ -177,5 +209,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,cueAsset,abilityCue,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,createMixer};
 });
