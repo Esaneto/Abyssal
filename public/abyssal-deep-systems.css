@@ -496,3 +496,58 @@ body:not(.game-active) #catalogScreen .abyss-journal>.eyebrow{padding-right:52px
  #catalogScreen .codex-tools #codexFilter{grid-column:1;grid-row:4}
  body:not(.game-active) #catalogScreen .abyss-journal .journal-intro{font-size:13px!important}
 }
+
+/* Specimen catalog v196: clear archive, responsive grid, restrained rarity accents. */
+#shopScreen .shop-modal{width:min(1120px,calc(100vw - 28px))!important;max-width:1120px!important;padding:clamp(16px,3vw,32px)!important;box-sizing:border-box!important;background:linear-gradient(155deg,#112936,#071521 66%)!important;color:#eaf7fa!important}
+#shopScreen .shop-modal>.eyebrow{color:#77d8da!important;letter-spacing:.11em!important;font-size:11px!important;padding-right:48px!important}
+#shopScreen .shop-heading{display:flex!important;align-items:flex-end!important;gap:18px!important;flex-wrap:wrap!important;margin:14px 0 18px!important}
+#shopScreen .shop-heading-copy{flex:1 1 400px!important;min-width:0!important}
+#shopScreen .shop-title-actions{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:12px!important}
+#shopScreen .shop-heading h2{font-family:inherit!important;font-size:clamp(21px,3.2vw,32px)!important;line-height:1.16!important;letter-spacing:.015em!important;margin:0!important;color:#effaff!important}
+#shopScreen .shop-heading p{color:#acc4cf!important;max-width:52ch!important;font-size:14px!important;line-height:1.5!important;margin:8px 0 0!important}
+#shopScreen .wallet{flex:0 0 auto!important;background:#071924!important;border:1px solid #345766!important;border-radius:10px!important;padding:10px 14px!important;display:flex!important;align-items:center!important;gap:7px!important;white-space:normal!important}
+#shopScreen .wallet small{color:#b3c9d2!important;font-size:10px!important;letter-spacing:.04em!important}
+#shopScreen .payment-settings{display:flex!important;align-items:center!important;gap:10px!important;padding:0!important;margin:0 0 14px!important;background:none!important;border:0!important}
+#shopScreen .payment-settings label{font-size:12px!important;color:#acc4cf!important}
+#shopScreen #shopCurrency{width:auto!important;min-height:0!important;padding:5px 9px!important;font-size:12px!important;background:#0b1d29!important;border:1px solid #34505d!important;border-radius:5px!important}
+#shopScreen .shop-catalog-intro{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(220px,330px)!important;gap:14px!important;align-items:center!important;margin:12px 0!important}
+#shopScreen .shop-section-title{font-size:17px!important;line-height:1.25!important;color:#e4f4f7!important;letter-spacing:.035em!important;margin:0!important}
+#shopScreen .shop-filter-bar{display:grid!important;grid-template-columns:minmax(170px,2fr) repeat(3,minmax(0,1fr))!important;gap:8px!important;background:#0a1c29!important;border:1px solid #34505d!important;border-radius:10px!important;padding:10px!important;margin:0!important}
+#shopScreen .shop-filter-bar .text-field{width:100%!important;min-width:0!important;min-height:44px!important;box-sizing:border-box!important;padding:8px 10px!important;font-size:13px!important;letter-spacing:0!important;background:#06141f!important;color:#e9f5f8!important;border:1px solid #395c6b!important;border-radius:7px!important}
+#shopScreen .shop-filter-summary{color:#adcad4!important;font-size:12px!important;margin:12px 0!important;letter-spacing:.04em!important}
+#shopScreen #skinGrid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important}
+#shopScreen #skinGrid .skin-card{display:flex!important;flex-direction:column!important;gap:11px!important;min-width:0!important;position:relative!important;padding:12px!important;border:1px solid #315464!important;border-radius:12px!important;box-shadow:none!important;background:linear-gradient(155deg,#172e3b,#0b1a26 75%)!important;overflow:hidden!important}
+#shopScreen #skinGrid .skin-card::before,#shopScreen #skinGrid .skin-card::after{display:none!important}
+#shopScreen #skinGrid .skin-card.equipped{border-color:#65e7db!important;box-shadow:inset 0 0 0 1px #65e7db!important}
+#shopScreen #skinGrid .skin-card .skin-preview.specimen-vessel{height:142px!important;min-height:142px!important;max-height:142px!important;border:1px solid #294b58!important;border-radius:8px!important;background:radial-gradient(ellipse at 50% 54%,#205a62 0%,#10333e 47%,#071822 85%)!important;overflow:hidden!important;box-shadow:none!important}
+#shopScreen #skinGrid .skin-card .skin-preview.specimen-vessel::before{inset:8px 15%!important;border:1px solid #609899!important;border-radius:24px!important;background:linear-gradient(110deg,rgba(135,230,217,.08),transparent 42%)!important;box-shadow:inset 0 0 18px #65c8cb22!important;opacity:.6!important}
+#shopScreen #skinGrid .skin-card .skin-preview.specimen-vessel::after{display:none!important}
+#shopScreen #skinGrid .skin-card .skin-preview.specimen-vessel canvas{width:100%!important;height:100%!important;object-fit:contain!important;filter:none!important}
+#shopScreen #skinGrid .specimen-card-information{display:flex!important;flex-direction:column!important;gap:8px!important;flex:1 1 auto!important;min-width:0!important}
+#shopScreen #skinGrid .specimen-card-name{font-family:inherit!important;font-size:16px!important;line-height:1.25!important;color:#f0fbff!important;letter-spacing:0!important;overflow-wrap:anywhere!important}
+#shopScreen #skinGrid .specimen-rarity{align-self:flex-start!important;font-size:10px!important;letter-spacing:.05em!important;padding:3px 8px!important;border:1px solid currentColor!important;border-radius:4px!important;background:#142a38!important;color:#bed0dc!important}
+#shopScreen #skinGrid [data-rarity=uncommon] .specimen-rarity{color:#78ddb3!important}
+#shopScreen #skinGrid [data-rarity=rare] .specimen-rarity{color:#8ebcff!important}
+#shopScreen #skinGrid [data-rarity=epic] .specimen-rarity{color:#d2a7fa!important}
+#shopScreen #skinGrid [data-rarity=legendary] .specimen-rarity{color:#ffd28b!important}
+#shopScreen #skinGrid .specimen-card-traits{display:grid!important;gap:6px!important;padding:9px!important;background:#0b202c!important;border:1px solid #31505b!important;border-radius:7px!important;min-height:0!important}
+#shopScreen #skinGrid .specimen-card-traits>div{display:grid!important;grid-template-columns:64px minmax(0,1fr)!important;gap:5px!important;align-items:baseline!important;font-size:12px!important;color:#d9ebf1!important}
+#shopScreen #skinGrid .specimen-card-traits b{font-size:10px!important;letter-spacing:.025em!important;color:#8bd4d7!important}
+#shopScreen #skinGrid .journal-stat-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important;padding:0!important;margin:0!important}
+#shopScreen #skinGrid .journal-stat-row span{display:flex!important;flex-direction:column!important;align-items:center!important;gap:4px!important;padding:6px 1px!important;border:1px solid #2a4654!important;border-radius:5px!important;background:#0c1e2a!important;color:#a9c1cc!important;font-size:9px!important;letter-spacing:0!important;line-height:1.2!important}
+#shopScreen #skinGrid .journal-stat-row b{font-size:17px!important;line-height:1.15!important;color:#effaff!important;font-variant-numeric:tabular-nums!important}
+#shopScreen #skinGrid .specimen-card-description{font-family:inherit!important;font-size:12px!important;line-height:1.45!important;color:#b6cbd4!important;margin:0!important;min-height:0!important}
+#shopScreen #skinGrid .abyss-specimen-meta{display:flex!important;flex-wrap:wrap!important;gap:4px!important;margin:0!important}
+#shopScreen #skinGrid .abyss-specimen-badge{font-size:10px!important;letter-spacing:0!important;padding:4px 5px!important;color:#a9c9d3!important;border-color:#345663!important;background:#102530!important}
+#shopScreen #skinGrid .abyss-specimen-lore,#shopScreen #marineSearch,#shopScreen .abyss-skin-filters,#shopScreen .abyss-specimen-intro{display:none!important}
+#shopScreen #skinGrid .skin-card>button{margin-top:auto!important;width:100%!important;min-height:44px!important;font-size:12px!important;letter-spacing:.035em!important;border:1px solid #64b9b7!important;border-radius:7px!important;background:#18565d!important;color:#f0ffff!important;box-shadow:none!important}
+#shopScreen #skinGrid .skin-card>button:disabled{background:#1b303a!important;border-color:#39515c!important;color:#a8bcc7!important}
+#shopScreen #skinGrid .skin-card>button:not(:disabled):hover{background:#216c75!important}
+#shopScreen #skinGrid .skin-card.paid-skin-card>button:not(:disabled){background:#493b64!important;border-color:#a48ac6!important}
+#shopScreen #skinGrid .shop-empty{grid-column:1/-1!important;color:#c4dce3!important;text-align:center!important;padding:32px 12px!important}
+#shopScreen :is(button,input,select):focus-visible{outline:2px solid #a2fff0!important;outline-offset:3px!important}
+#shopScreen #shopTopCloseBtn{position:absolute!important;top:12px!important;right:12px!important;z-index:4!important;background:#152d3b!important;border-color:#446879!important;color:#f2fdff!important}
+#shopScreen .meta-shop-heading,#shopScreen #metaUpgradeGrid{display:none!important}
+#shopScreen .boss-bundle-banner{min-width:0!important}
+@media(max-width:950px){#shopScreen #skinGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#shopScreen .shop-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}#shopScreen .shop-filter-search{grid-column:1/-1!important}}
+@media(max-width:520px){#shopScreen .shop-modal{width:calc(100vw - 12px)!important;padding:13px!important}#shopScreen #skinGrid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}#shopScreen .shop-catalog-intro{grid-template-columns:1fr!important}#shopScreen .shop-heading{gap:8px!important}#shopScreen .shop-heading-copy{flex-basis:100%!important}#shopScreen .shop-title-actions{padding-right:34px!important}#shopScreen .shop-filter-bar{grid-template-columns:1fr 1fr!important}#shopScreen #shopHabitatFilter{grid-column:1/-1!important}}
