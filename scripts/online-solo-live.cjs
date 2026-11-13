@@ -40,9 +40,10 @@ async function browser(url,online){
   }
   const inspect=()=>evaluate("window.AbyssalGameHooks.classicParityInspect()");
   await until(async()=>{const d=await inspect();return d.classic&&d.online===online&&d.state==='playing'&&d.submarine.sections.length===3;},'real gameplay');
+  await evaluate("(()=>{const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden)document.getElementById('abyssalGuideStart').click();document.activeElement?.blur();})()");
   await sleep(3500);
   const initial=await inspect();await shot(online?'online':'solo');
-  const sample=await evaluate("(()=>{const source=document.getElementById('gameCanvas')||Array.from(document.querySelectorAll('canvas')).find(c=>c.width>500&&c.height>300&&c.getBoundingClientRect().width>500);if(!source)throw Error('game canvas missing');const c=document.createElement('canvas');c.width=96;c.height=54;const x=c.getContext('2d');x.drawImage(source,0,0,96,54);return Array.from(x.getImageData(0,0,96,54).data)})()");
+  const sample=await evaluate("(()=>{const source=document.getElementById('game')||Array.from(document.querySelectorAll('canvas')).find(c=>c.width>500&&c.height>300&&c.getBoundingClientRect().width>500);if(!source)throw Error('game canvas missing');const c=document.createElement('canvas');c.width=96;c.height=54;const x=c.getContext('2d');x.drawImage(source,0,0,96,54);return Array.from(x.getImageData(0,0,96,54).data)})()");
   await cdp('Input.dispatchKeyEvent',{type:'keyDown',key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68});
   await sleep(850);await cdp('Input.dispatchKeyEvent',{type:'keyUp',key:'d',code:'KeyD',windowsVirtualKeyCode:68,nativeVirtualKeyCode:68});
   await sleep(300);const moved=await inspect();await shot(online?'online-moving':'solo-moving');
