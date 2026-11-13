@@ -51,7 +51,24 @@
   }catch(error){console.warn('[Abyssal] Falha ao verificar atualização:',error?.message||error);return null;}
  }
  root.AbyssalUpdater={check,currentVersion:build.version,platform};
+ function bindManualCheck(){
+  const button=document.getElementById('checkNativeUpdateBtn'),message=document.getElementById('downloadInstallMessage');
+  if(!button)return;
+  button.hidden=!native()||!platform();
+  if(button.dataset.bound==='1')return;
+  button.dataset.bound='1';
+  button.addEventListener('click',async()=>{
+   button.disabled=true;if(message)message.textContent='Verificando atualização…';
+   const data=await check(true);
+   if(message){
+    if(!data)message.textContent=navigator.onLine===false?'Conecte-se à internet para verificar atualizações.':'Não foi possível verificar agora.';
+    else if(cmp(data.latestVersion,build.version)<=0)message.textContent='Você já está usando a versão mais recente do Abyssal.';
+    else message.textContent='Nova versão encontrada. Confira a janela de atualização.';
+   }
+   button.disabled=false;
+  });
+ }
  const schedule=()=>setTimeout(()=>check(false),3500);
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();},{once:true});else{bindManualCheck();schedule();}
  root.addEventListener('online',()=>setTimeout(()=>check(false),1200));
 })(window);
