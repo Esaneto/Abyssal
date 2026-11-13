@@ -286,7 +286,7 @@ body:not(.game-active) :is(.topbar,.page-footer) :is(button,span,strong,small){f
 
 /* Deliberate motion: only the newly opened mode cards and selected navigation.
    No continuous layout animations, no additional canvas loop. */
-@keyframes ds-expedition-reveal{from{opacity:.76;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ds-expedition-reveal{from{transform:translateY(5px)}to{transform:translateY(0)}}
 @media(prefers-reduced-motion:no-preference){
  body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-dive-card,
  body:not(.game-active) #abyssalDiveChoicePanel:not([hidden]) .abyss-dive-choice-actions>button{animation:ds-expedition-reveal .22s ease-out both}
