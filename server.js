@@ -2256,8 +2256,9 @@ io.on('connection', socket => {
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(!socket.data.userKey||!p||p.alive!==false)return socket.emit('revive-result',{ok:false,message:'Este mergulho não pode ser retomado agora.'});
   if(ADMOB_SSV_ENABLED||payload.ticket){if(!consumeAdTicket(socket,payload.ticket,'abyssal-revive'))return socket.emit('revive-result',{ok:false,message:'A confirmação do anúncio ainda não foi recebida.'});}
-  const now=Date.now();p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=now+3000;p.skillSelectingUntil=0;p.upgradeProtectionUntil=0;p.regenAccumulator=0;
+  const now=Date.now();p.alive=true;p.propulsorEquipped=false;p.propulsorMoving=false;p.propulsorEnergy=100;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;p.invulnerableUntil=now+3000;p.skillSelectingUntil=0;p.upgradeProtectionUntil=0;p.regenAccumulator=0;
   if(!room.world.initialized||!room.world.enemies.length)ensureWorld(room);
+  socket.emit('propulsor-state',{energy:100,equipped:false});
   socket.emit('revive-result',{ok:true,message:'Ressurreição concluída! Seu nível e suas habilidades foram preservados.'});
   socket.emit('player-vitals',playerVitalsPayload(p,{reason:'revive',serverTime:now}));
   io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));refreshWorldTicker();
@@ -2761,8 +2762,8 @@ io.on('connection', socket => {
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
   if(!room||!player||player.alive===false||player.tutorialActive)return ack(false,'invalid-ability');
-  if(id==='propulsor-on'||id==='propulsor-off'){if(!(Number(u?.metaUpgrades?.dash)>0))return ack(false,'invalid-ability');player.propulsorEquipped=id==='propulsor-on';player.propulsorMoving=false;player.propulsorEnergy=Propulsor.charge(player.propulsorEnergy);socket.emit('propulsor-state',{energy:player.propulsorEnergy,equipped:player.propulsorEquipped});if(typeof acknowledge==='function')acknowledge({ok:true,energy:player.propulsorEnergy,equipped:player.propulsorEquipped});io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));return;}
-  if(id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  if(id==='propulsor-on'||id==='propulsor-off'){if(!ResearchSystem.unlocked('dash',u?.researchLevels||{},u?.metaUpgrades||{}))return ack(false,'invalid-ability');player.propulsorEquipped=id==='propulsor-on';player.propulsorMoving=false;player.propulsorEnergy=Propulsor.charge(player.propulsorEnergy);socket.emit('propulsor-state',{energy:player.propulsorEnergy,equipped:player.propulsorEquipped});if(typeof acknowledge==='function')acknowledge({ok:true,energy:player.propulsorEnergy,equipped:player.propulsorEquipped});io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));return;}
+  if(id!=='pulse'||!ResearchSystem.unlocked('pulse',u?.researchLevels||{},u?.metaUpgrades||{}))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
