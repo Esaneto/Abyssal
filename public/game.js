@@ -4760,13 +4760,13 @@ function draw(t){
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
       ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';
       if(title){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[peer.titleId]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(title,px,py-34/worldZoom);}
-      ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font=`700 ${14/worldZoom}px Manrope`;ctx.fillText(peer.nickname||'Mergulhador',px,py-18/worldZoom);ctx.restore();
+      ctx.shadowBlur=peer.isDeveloper?14/worldZoom:0;ctx.shadowColor=peer.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=peer.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${peer.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(peer.nickname||'Mergulhador',px,py-18/worldZoom);ctx.restore();
     });
     const self=window.AbyssalOnline?.getAccount?.()||{};
     const selfTitle=PROFILE_TITLE_NAMES[self.equippedTitle]||'';
     ctx.save();ctx.textAlign='center';
     if(selfTitle){ctx.font=`800 ${12/worldZoom}px Manrope`;ctx.fillStyle=PROFILE_TITLE_COLORS[self.equippedTitle]||'#79f3f0';ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8/worldZoom;ctx.fillText(selfTitle,player.x,player.y-34/worldZoom);}
-    ctx.shadowBlur=0;ctx.fillStyle='#d8ffff';ctx.font=`700 ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
+    ctx.shadowBlur=self.isDeveloper?14/worldZoom:0;ctx.shadowColor=self.isDeveloper?'#ff1744':'transparent';ctx.fillStyle=self.isDeveloper?'#ff304f':'#d8ffff';ctx.font=`${self.isDeveloper?900:700} ${14/worldZoom}px Manrope`;ctx.fillText(self.nickname||'Mergulhador',player.x,player.y-18/worldZoom);ctx.restore();
  }
  // Solo light masks the entire world, and raycasts against actual physical rock.
  if(!onlineMode&&isClassicShooterRun()&&player){SOLO_CAVERN?.lighting(ctx,{left:cameraX,top:cameraY,width:viewW/worldZoom,height:viewH/worldZoom},player,window.AbyssalSoloProgress?.get().lamp||1,arenaRocks,t,[{x:soloSubmarine.x,y:soloSubmarine.y,active:soloSubmarinePowered()||soloSubmarine.spawnFx>0,radius:355/GAME_WORLD_ZOOM,strength:soloSubmarinePowered()?1:.78},{x:player.specimen?.x,y:player.specimen?.y,active:Boolean(player.specimen?.alive),radius:85/GAME_WORLD_ZOOM,color:currentSkinColor(),strength:.65}]);}
@@ -5094,6 +5094,16 @@ window.AbyssalGameHooks={
  worldHeight:()=>H,
  worldZoom:()=>worldZoom,
  cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
+ developerInspect:()=>({online:onlineMode,mode:onlineMode?onlineRoomMode:requestedRunMode,state:gameState,fps:Number(window.__abyssalFps||0),elapsed:Number(elapsed)||0,hp:Number(hp)||0,maxHp:Number(maxHp)||0,x:Number(player?.x)||0,y:Number(player?.y)||0,enemies:enemies.filter(e=>e&&e.hp>0).length,bosses:enemies.filter(e=>e&&e.hp>0&&BOSS_KINDS.includes(e.kind)).length,orbs:orbs.length,submarine:!onlineMode&&isClassicShooterRun()?{powered:soloSubmarinePowered(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))}:null}),
+ developerCommand:command=>{
+  if(window.AbyssalDeveloperActive!==true)return {ok:false,message:'Conta GameMaster não validada.'};
+  if(onlineMode)return {ok:false,message:'Comandos online são processados pelo servidor DEV.'};
+  if(command==='heal'){hp=maxHp;if(player)player.invuln=Math.max(player.invuln||0,1);return {ok:true,message:'Vida restaurada no modo local.'};}
+  if(command==='god-mode'){if(!player)return {ok:false,message:'Inicie uma partida.'};player.devGodMode=!player.devGodMode;player.invuln=player.devGodMode?360000:0;return {ok:true,message:player.devGodMode?'Invulnerabilidade local ativada.':'Invulnerabilidade local desativada.'};}
+  if(command==='clear-enemies'){enemies.length=0;orbs.length=0;return {ok:true,message:'Inimigos locais removidos.'};}
+  if(command==='boss-now'){nextBossAt=Math.min(nextBossAt,elapsed);return {ok:true,message:'Próximo boss local antecipado.'};}
+  return {ok:false,message:'Comando local indisponível.'};
+ },
  skinId:()=>equippedSkin,
  isFossasActive:()=>isRiftRun()&&gameState!=='menu'&&gameState!=='over',
  isRiftPlaying:()=>isRiftRun()&&gameState==='playing',
