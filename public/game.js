@@ -5765,11 +5765,11 @@ function renderCatalog(){
   const oceanHabitat=OPEN_SEA_ECOLOGY?.speciesHabitat?.(skin.id);
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
   const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
-  return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'">'
+  return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'"'+(known&&rarity?' data-rarity="'+escapeHtml(rarity)+'"':'')+'>'
    +'<small class="journal-page-no">REGISTRO '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
-   +(known?'<small class="journal-classification">'+escapeHtml(rarityLabel)+' · '+escapeHtml(family)+' · '+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
+   +(known?'<span class="journal-rarity">'+escapeHtml(rarityLabel)+'</span><small class="journal-classification">'+escapeHtml(family)+' · '+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
     +'<div class="journal-stat-row"><span><b>VIDA</b> '+Math.round(b.hp)+'</span><span><b>DANO</b> '+Math.round(b.damage)+'</span><span><b>VELOCIDADE</b> '+Math.round(b.speed)+'</span></div>'
     +'<p class="journal-handwritten">Ataque: '+escapeHtml(b.attack)+'</p>'
     +'<p><b>Efeito:</b> '+escapeHtml(b.effect)+'</p><p class="journal-description">'+escapeHtml(skin.desc)+'</p>'
@@ -5780,7 +5780,7 @@ function renderCatalog(){
  const commonCards=common.map((entry,index)=>renderMonster(entry,index)).join('');
  const bossCards=bosses.map((entry,index)=>renderMonster(entry,common.length+journalSkins.length+index)).join('');
  grid.innerHTML='<div class="journal-progress">REGISTROS IDENTIFICADOS · '+(found+foundMonsters)+' / '+(skinData.length+entries.length)+'</div>'
-  +'<div class="codex-tools"><label for="codexSearch">BUSCAR REGISTRO</label><input id="codexSearch" type="search" placeholder="Nome, habitat ou habilidade"><label for="codexFilter">ESTADO</label><select id="codexFilter"><option value="all">Todos</option><option value="known">Identificados</option><option value="locked">Não identificados</option></select></div><div id="codexResultCount" role="status" class="codex-result-count"></div>'
+  +'<div class="codex-tools"><label for="codexSearch">BUSCAR REGISTRO</label><input id="codexSearch" type="search" placeholder="Nome, habitat ou habilidade"><label for="codexFilter">ESTADO</label><select id="codexFilter"><option value="known">Identificados</option><option value="all">Todos</option><option value="locked">Não identificados</option></select></div><div id="codexResultCount" role="status" class="codex-result-count"></div>'
   +'<section class="codex-group"><h3 class="codex-heading">01 · FAUNA ABISSAL</h3><div class="codex-grid journal-specimen-grid">'+commonCards+'</div></section>'
   +'<section class="codex-group"><h3 class="codex-heading">02 · ESPÉCIMES</h3><div class="codex-grid journal-specimen-grid">'+specimenCards+'</div></section>'
   +'<section class="codex-group"><h3 class="codex-heading">03 · ENTIDADES COLOSSAIS</h3><div class="codex-grid journal-specimen-grid">'+bossCards+'</div></section>';

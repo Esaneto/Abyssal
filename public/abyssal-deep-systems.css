@@ -466,3 +466,21 @@ body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #
 @media(max-width:700px){body:not(.game-active) #menuScreen.expedition-hub .hub-nav .hub-destination{min-height:96px!important}#menuScreen.expedition-hub .hub-content{margin-bottom:auto}#menuScreen.expedition-hub .hub-footer{margin-top:0}}
 /* Preserve the original shared guide artwork, with a clear quick-start option. */
 #abyssalTutorialOverlay .guide-step-text p{font-size:15px;line-height:1.5}
+
+/* Chromium screenshot review: suppress obsolete hidden states, legacy joystick and duplicate masthead. */
+body.abyss-hatch-navigation:not(.game-active):has(#menuScreen.expedition-hub:not([hidden])) .topbar{display:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #catalogBtn{display:flex!important;visibility:visible!important;pointer-events:auto!important;min-width:0!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #shopBtn{display:block!important;visibility:visible!important;pointer-events:auto!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #menuOceanMobilePad{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch strong{font:800 clamp(21px,3vw,30px)/1.1 var(--ds-font)!important;color:#050d16!important;letter-spacing:.04em!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch small{display:block!important;font:600 13px/1.4 var(--ds-font)!important;color:#17363e!important}
+body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #exteriorGuideBtn{background:#0b1926!important;color:#eaf5fa!important;border:1px solid #355366!important;min-height:44px!important;font:700 13px/1.2 var(--ds-font)!important}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-card.locked{opacity:1!important;filter:none!important;background:#14232f!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-rarity{display:inline-block;width:max-content;max-width:100%;padding:4px 7px;margin:5px 0;border:1px solid #547c8f;border-radius:5px;color:#b9cdd7;font:700 11px/1.4 var(--ds-font)}
+body:not(.game-active) #catalogScreen .abyss-journal [data-rarity="uncommon"] .journal-rarity{color:#8fece4;border-color:#438f8b}
+body:not(.game-active) #catalogScreen .abyss-journal [data-rarity="rare"] .journal-rarity{color:#a3c8ff;border-color:#477cba}
+body:not(.game-active) #catalogScreen .abyss-journal [data-rarity="epic"] .journal-rarity{color:#d5bbff;border-color:#8e70c7}
+body:not(.game-active) #catalogScreen .abyss-journal [data-rarity="legendary"] .journal-rarity{color:#ffdfa1;border-color:#b88d44}
+body:not(.game-active) #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+body:not(.game-active) #submarineWorkshop .abyss-control-research .abyss-control-icon{color:#8fece4!important}
+@media(max-width:700px){body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch strong{font-size:23px!important}body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch small{font-size:12px!important}#menuScreen.expedition-hub .hub-shell{padding-top:clamp(16px,env(safe-area-inset-top),40px)}}

@@ -171,6 +171,8 @@
   document.body.appendChild(divePanel);
   document.getElementById('exteriorGuideBtn')?.addEventListener('click',()=>window.AbyssalTutorials?.openManual('solo'));
   const more=document.getElementById('hubMore');more?.addEventListener('click',e=>{if(e.target.closest('button'))more.open=false;});
+  document.getElementById('hubNoticesBtn')?.addEventListener('click',()=>document.getElementById('notifBtn')?.click());
+  document.getElementById('hubFullscreenBtn')?.addEventListener('click',()=>document.getElementById('fullscreenBtn')?.click());
   const closeDive=()=>{
    if(divePanel.hidden)return;
    divePanel.hidden=true;

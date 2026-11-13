@@ -177,16 +177,12 @@
   mountCockpitConsole();
  }
 
- // Seven actual console keys share one built-in display. They never create
- // duplicate floating menus on top of the submarine dashboard.
+ // Four frequent destinations; unavailable systems stay gated in their original code.
  const CONSOLE_BUTTONS=Object.freeze([
   {id:'solo',name:'MERGULHAR',symbol:'≈',title:'MERGULHAR'},
+  {id:'research',name:'PESQUISA',symbol:'⌬',title:'PESQUISA'},
   {id:'shop',name:'ESPÉCIMES',symbol:'▣',title:'ESPÉCIMES'},
-  {id:'specimens',name:'ABYSSÁRIO',symbol:'◈',title:'ABYSSÁRIO'},
-  {id:'laboratory',name:'LABORATÓRIO',symbol:'⌬',title:'LABORATÓRIO ABISSAL',locked:true},
-  {id:'minerals',name:'MINÉRIOS',symbol:'◆',title:'AMOSTRAS GEOLÓGICAS',locked:true},
-  {id:'sea',name:'MAR ABERTO',symbol:'≈',title:'EXPLORAÇÃO OCEÂNICA',locked:true},
-  {id:'rift',name:'FOSSAS',symbol:'⌄',title:'FOSSAS ABISSAIS',locked:true}
+  {id:'specimens',name:'ABYSSÁRIO',symbol:'◈',title:'ABYSSÁRIO'}
  ]);
  function mountCockpitConsole(utility){
   const old=utility?[utility]:Array.from(workshopGrid.children);
@@ -209,9 +205,10 @@
   const keys=document.createElement('nav');keys.className='abyss-control-deck';keys.setAttribute('aria-label','Controles físicos da cabine');
   for(const option of CONSOLE_BUTTONS){
    const key=document.createElement('button');key.type='button';
-   key.className='abyss-control-key abyss-control-'+option.id+(option.id===activeConsoleSection?' is-active':'');
+   const selected=option.id==='research'?activeConsoleSection==='solo'&&soloConsolePage!=='home'||activeConsoleSection==='resonance':option.id===activeConsoleSection&&(option.id!=='solo'||soloConsolePage==='home');
+   key.className='abyss-control-key abyss-control-'+option.id+(selected?' is-active':'');
    key.setAttribute('aria-label',option.name);
-   key.setAttribute('aria-pressed',String(option.id===activeConsoleSection));
+   key.setAttribute('aria-pressed',String(selected));
    if(option.locked){key.dataset.abyssLocked='true';key.setAttribute('aria-description','Em desenvolvimento. Disponível futuramente.');}
    const symbol=document.createElement('span');symbol.className='abyss-control-icon';
    symbol.textContent=option.symbol;symbol.setAttribute('aria-hidden','true');
@@ -219,6 +216,7 @@
    key.append(symbol,name);
    key.addEventListener('click',()=>{
     if(option.locked){window.AbyssalLaunchFocus?.notify?.();return;}
+    if(option.id==='research'){activeConsoleSection='solo';soloConsolePage='diver';renderWorkshop();return;}
     if(option.id==='solo'){activeConsoleSection='solo';soloConsolePage='home';visorScrollByPage.delete('solo:home');renderWorkshop();const body=workshopGrid.querySelector('.abyss-visor-body');if(body)body.scrollTop=0;return;}if(activeConsoleSection!==option.id){activeConsoleSection=option.id;soloConsolePage='home';renderWorkshop();}
    });
    keys.append(key);
