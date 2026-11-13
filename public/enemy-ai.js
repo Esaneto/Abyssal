@@ -15,19 +15,20 @@
   const CLASSIC_BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
   const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
   const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.275, memoryMs: 1100 });
+  const sharkVisionRange=enemy=>enemy?.kind==='whiteShark'?SHARK_VISION.range*.5:SHARK_VISION.range;
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
   const isChargeAttack=enemy=>enemy?.kind==='whiteShark'||enemy?.kind==='whiteSharkBoss';
   function biteDistance(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+24/WORLD_ZOOM;}
   function biteReach(enemyRadius,playerRadius){return biteDistance(enemyRadius,playerRadius)+10/WORLD_ZOOM;}
 
   function sharkVisionState(enemy,target,now=Date.now()){
-    if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle};
+    if(!enemy||!target)return {visible:false,distance:Infinity,delta:Math.PI,range:sharkVisionRange(enemy),halfAngle:SHARK_VISION.halfAngle};
     const dx=Number(target.x)-Number(enemy.x),dy=Number(target.y)-Number(enemy.y),distance=Math.hypot(dx,dy);
     const targetAngle=Math.atan2(dy,dx),heading=Number.isFinite(Number(enemy.angle))?Number(enemy.angle):targetAngle;
     const delta=Math.abs(angleDelta(targetAngle,heading));
-    const visible=distance<=SHARK_VISION.range&&delta<=SHARK_VISION.halfAngle;
+    const range=sharkVisionRange(enemy),visible=distance<=range&&delta<=SHARK_VISION.halfAngle;
     if(visible){enemy.sharkAlertUntil=Number(now)+SHARK_VISION.memoryMs;enemy.sharkLastTargetAngle=targetAngle;}
-    return {visible,distance,delta,range:SHARK_VISION.range,halfAngle:SHARK_VISION.halfAngle,targetAngle};
+    return {visible,distance,delta,range,halfAngle:SHARK_VISION.halfAngle,targetAngle};
   }
   const ENEMY_STATS = Object.freeze({
     drifter: Object.freeze({ r: 10, hp: 22, speed: 51, damage: 8, color: '#ff769d', value: 1 }),
@@ -194,7 +195,7 @@
       for(const candidate of targets){
         if(!candidate||candidate.alive===false)continue;
         const cx=Number(candidate.x)-Number(enemy.x),cy=Number(candidate.y)-Number(enemy.y),d=Math.hypot(cx,cy);
-        if(!Number.isFinite(d)||d>=visibleDistance||d>SHARK_VISION.range||Math.abs(angleDelta(Math.atan2(cy,cx),heading))>SHARK_VISION.halfAngle)continue;
+        if(!Number.isFinite(d)||d>=visibleDistance||d>sharkVisionRange(enemy)||Math.abs(angleDelta(Math.atan2(cy,cx),heading))>SHARK_VISION.halfAngle)continue;
         if(options.sharkTerrainClear&&!options.sharkTerrainClear(enemy.x,enemy.y,candidate.x,candidate.y,2))continue;
         nearestVisible=candidate;visibleDistance=d;
       }
@@ -226,7 +227,7 @@
       const vision=sharkVisionState(enemy,target,currentTime);
       vision.visible=vision.visible&&((targets.length>1&&options.sharkTerrainClear)?options.sharkTerrainClear(x,y,target.x,target.y,2):options.sharkLineOfSight!==false);
       const wasHunting=Boolean(enemy.sharkCharging||enemy.sharkChargeRemaining>0);
-      const hunting=vision.visible||(wasHunting&&(boss||distance<=SHARK_VISION.range*2.5)&&target.alive!==false);
+      const hunting=vision.visible||(wasHunting&&(boss||distance<=sharkVisionRange(enemy)*2.5)&&target.alive!==false);
       const aim=vision.targetAngle, previous=Number(enemy.angle)||0;
       const step=speed*dt;
       const routeAngle=()=>{
@@ -434,5 +435,5 @@
     // envelope until each species has a dedicated anatomical curve.
     return d<=r*(enemy.kind==='devourer'?2.05:1.8)+tr;
   }
-  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionState, isChargeAttack, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
+  return { WORLD_WIDTH, WORLD_HEIGHT, WORLD_ZOOM, BOSS_KINDS, ENEMY_STATS, SHARK_VISION, sharkVisionRange, sharkVisionState, isChargeAttack, biteDistance, biteReach, tentacleAttacker, tentacleStopDistance, tentacleContact, statsForKind, xpOrbRadius, chooseCommonKind, chooseBossKind, chooseBossesForSession, createWhiteShark, createWhiteSharkBoss, chooseSpawnPoint, krakenTentaclePose, touchesKrakenTentacle, suctionPullDelta, moveTowardTarget };
 });

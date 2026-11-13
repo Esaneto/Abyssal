@@ -576,7 +576,7 @@ const soloMapNavProxy={x:0,y:0,local:true,skinId:'default',moveSpeed:150/GAME_WO
 const soloMapNavTargets=[soloMapNavProxy];
 let selectedSkillsRenderedSignature=null,lastHudUpdateAt=0,lastAbilityUiAt=-Infinity;
 let soloSubmarine={x:0,y:0,powerSeconds:0,spawnFx:0,weaponTimers:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0,repair:null};
-const SOLO_HULL_HP=600,SOLO_HULL_CUTS=[-300,-140,140,300],SOLO_HULL_NAMES=['POPA','CENTRO','PROA'];
+const SOLO_HULL_HP=1000,SOLO_HULL_CUTS=[-300,-140,140,300],SOLO_HULL_NAMES=['POPA','CENTRO','PROA'];
 function clipSoloHull(points,edge,keepRight){const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],inside=p=>keepRight?p[0]>=edge:p[0]<=edge,ai=inside(a),bi=inside(b);if(ai)out.push(a);if(ai!==bi){const q=(edge-a[0])/(b[0]-a[0]);out.push([edge,a[1]+(b[1]-a[1])*q]);}}return out;}
 function makeSoloHullSections(){const scale=1/GAME_WORLD_ZOOM,hull=SOLO_CAVERN.submarineHull(soloSubmarine.x,soloSubmarine.y,scale);return SOLO_HULL_NAMES.map((name,i)=>{const min=SOLO_HULL_CUTS[i]*scale,max=SOLO_HULL_CUTS[i+1]*scale,vertices=clipSoloHull(clipSoloHull(hull.vertices,min,true),max,false),cx=(min+max)*.5,local=vertices.map(([x,y])=>[x-cx,y]),rx=Math.max(...local.map(v=>Math.abs(v[0]))),ry=Math.max(...local.map(v=>Math.abs(v[1])));const rock={x:soloSubmarine.x+cx,y:soloSubmarine.y,rx,ry,r:Math.hypot(rx,ry),angle:0,vertices:local,cavernSolid:true,submarineHull:true,visualOnly:false,sectionId:i};return {id:i,name,hp:SOLO_HULL_HP,min,max,x:soloSubmarine.x+cx,y:soloSubmarine.y,rock,collision:[rock]};});}
 function syncSoloHull(){arenaRocks=arenaRocks.filter(r=>!r.submarineHull).concat(soloSubmarine.sections.filter(s=>s.hp>0).map(s=>s.rock));soloSubmarine.hullRevision=(Number(soloSubmarine.hullRevision)||0)+1;}
@@ -2183,7 +2183,7 @@ function applyOnlinePlayerVitals(data){
  if(Number.isFinite(Number(data.hp)))hp=clamp(Number(data.hp),0,maxHp);
  if(Number.isFinite(Number(data.shieldCharges)))upgrades.shield=clamp(Math.floor(Number(data.shieldCharges)),0,3);
  if(Number.isFinite(Number(data.invulnerabilityMs)))player.invuln=clamp(Number(data.invulnerabilityMs)/1000,0,30);
- if(Number(data.neurotoxinMs)>0)player.neurotoxinUntil=performance.now()+Math.min(3000,Number(data.neurotoxinMs));
+ if(Number(data.neurotoxinMs)>0)player.neurotoxinUntil=performance.now()+Math.min(100,Number(data.neurotoxinMs));
  if((data.reason==='enemy-attack'||data.reason==='boss-ability'||data.reason==='pvp-hit'||data.reason==='pvp-defeat')&&Number(data.damage)>0){spawnDamageNumber(player.x,player.y,Number(data.damage),'received');
   if(contactSourceReady)revealOnlineContactSource(data);
   else if(!data.targetWasHidden){window.AbyssalOnline?.requestWorldSnapshot?.('contact-resync');}
@@ -3420,7 +3420,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
         angle:e.angle||0,radius:skill.range,color:skill.color});
        if(skill.damage>0&&pveTerrainClear(e.x,e.y,player.x,player.y,2)){
         hurtPlayer(skill.damage);
-        if(skill.neurotoxinMs>0)player.neurotoxinUntil=performance.now()+skill.neurotoxinMs;
+        if(skill.neurotoxinMs>0)player.neurotoxinUntil=performance.now()+Math.min(100,skill.neurotoxinMs);
        }
       }
      }
@@ -3499,7 +3499,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   e.attackCd=(e.attackCd||0)-dt;const charge=window.AbyssalEnemyAI.isChargeAttack(e),biteReach=window.AbyssalEnemyAI.biteReach(e.r,player.r),biteClear=activeMapLayout?(!ABYSSAL_MAP||ABYSSAL_MAP.segmentWalkable(activeMapLayout,e.x,e.y,player.x,player.y,2)):usesNaturalOceanTerrain()?(!OCEAN_GEOGRAPHY||OCEAN_GEOGRAPHY.segmentClear(e.x,e.y,player.x,player.y,2)):(!SOLO_CAVERN||!isClassicShooterRun()||!SOLO_CAVERN.segmentBlocked(arenaRocks,e.x,e.y,player.x,player.y,2));
   const tentacleAttack=window.AbyssalEnemyAI.tentacleAttacker(e,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId)),tentacleHit=tentacleAttack&&window.AbyssalEnemyAI.tentacleContact(e,player,e.r,SPECIMEN_SYSTEM.familyFor(e.specimenSkinId));
   const attackReach=tentacleAttack?tentacleHit:charge?(e.sharkCharging&&(e.kind==='whiteShark'||!e.sharkChargeHit)&&pointSegmentDistance(player.x,player.y,beforeEnemyX,beforeEnemyY,e.x,e.y)<=e.r+player.r):td<=biteReach;
-  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
+  if(!enemyParalyzedNow(e)&&biteClear&&(activeMapLayout?e.riftWantsAttack:(!e.wildlifeMode||e.openSeaWantsAttack))&&target.local&&attackReach){if(e.attackCd<=0){const cp=tentacleAttack?{skillId:'tentacle-strike',power:e.kind==='kraken'&&e.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:100},stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:100},brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}}[e.kind];if(player.invuln<=0){if(charge)e.sharkChargeHit=true;hurtPlayer(e.damage*(cp?.power||(e.kind==='kraken'&&e.krakenSweepActive?1.25:e.kind==='whiteSharkBoss'?1.15:e.kind==='devourer'&&e.suctionActive?1.2:1)));if(cp?.neuro)player.neurotoxinUntil=performance.now()+cp.neuro;}renderHostileContactAbility({kind:e.kind,enemyId:e.id,enemy:e,skillId:cp?.skillId,x:e.x,y:e.y,enemyRadius:e.r,angle:e.angle,color:e.color,playerX:player.x,playerY:player.y});e.attackCd=e.kind==='kraken'?.95:(cp?.cooldown||1.1);}}
  }
  // Predation decisions are sampled at 10 Hz; locomotion and visuals remain per-frame.
  if(!onlineMode&&isOpenSeaRun()&&OPEN_SEA_ECOLOGY?.simulatePredation){
