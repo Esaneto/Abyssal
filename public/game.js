@@ -36,7 +36,7 @@ const ABYSSAL_MAP=window.AbyssalMap;
 const RIFT_HARDCORE=window.AbyssalRiftHardcore;
 let activeRiftHazards=[],riftBossMarks=[],riftSoloHazardCooldowns=new Map(),soloRiftCheckpointRoomId='start';
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
-window.addEventListener('abyssal-propulsor-state',event=>{if(player&&onlineMode){const state=event.detail||{};if(Number.isFinite(state.energy))player.propulsorEnergy=state.energy;if(typeof state.equipped==='boolean')player.propulsorEquipped=state.equipped;updateAbilityButtons(true);}});
+window.addEventListener('abyssal-propulsor-state',event=>{if(player&&onlineMode){const state=event.detail||{};if(Number.isFinite(state.energy))player.propulsorEnergy=state.energy;if(typeof state.equipped==='boolean'){player.propulsorEquipped=state.equipped;if(!state.equipped)player.propulsorMoving=false;}updateAbilityButtons(true);}});
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
 let requestedRunMode='classic';
@@ -3636,10 +3636,11 @@ const metaShopItems=[
  {id:'pulse',name:'Pulso de Maré',type:'active',price:3500,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
  {id:'dash',name:'Propulsor Abissal',type:'active',price:4200,max:1,icon:'➤',desc:'E equipa ou guarda a turbina. Nado 2,35× enquanto houver bateria. A arma fica guardada; a bateria se recupera lentamente ao parar.'}
 ];
+const combatResearchUnlocked=id=>Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,metaUpgrades)||Number(metaUpgrades?.[id])>0);
 let equippedActiveSkillsCache=null;
 function loadEquippedActiveSkills(){
  // Q and E are fixed research slots, automatically equipped when studied.
- return ['pulse','dash'].filter(id=>Number(metaUpgrades?.[id])>0);
+ return ['pulse','dash'].filter(id=>combatResearchUnlocked(id));
 }
 window.addEventListener('storage',event=>{if(event.key==='abyssalEquippedActiveSkills'){equippedActiveSkillsCache=null;updateAbilityButtons(true);}});
 function toggleEquippedActiveSkill(id){
@@ -3663,7 +3664,7 @@ function activateAbility(id){
  if(soloSubmarine.repair)cancelSoloHullRepair();
  if(!player||gameState!=='playing')return;
  if(id==='pulse'){
-  if(!(Number(metaUpgrades.pulse)>0)){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
+  if(!(combatResearchUnlocked('pulse'))){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const pulseCastId=(Number(player.pulseCastId)||0)+1;player.pulseCastId=pulseCastId;const pulseCaster=player;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
@@ -3673,7 +3674,7 @@ function activateAbility(id){
   else queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');playWorldSound('ability-nova',player,880,.64);
  }else if(id==='dash'){
-  if(!(Number(metaUpgrades.dash)>0)){showToast('ESTUDE O PROPULSOR NO SUBMARINO');return;}
+  if(!(combatResearchUnlocked('dash'))){showToast('ESTUDE O PROPULSOR NO SUBMARINO');return;}
   if(player.propulsorPending)return;
   const diver=player,next=!diver.propulsorEquipped;
   const apply=result=>{if(player!==diver)return;diver.propulsorPending=false;if(result?.ok===false){updateAbilityButtons(true);return;}diver.propulsorEquipped=next;if(Number.isFinite(result?.energy))diver.propulsorEnergy=result.energy;if(!next)diver.propulsorMoving=false;updateAbilityButtons(true);};
@@ -3687,8 +3688,8 @@ function updateAbilityButtons(force=false){
  if(!force&&now-lastAbilityUiAt<100)return;
  lastAbilityUiAt=now;
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
- if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
- if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||Boolean(player.propulsorPending);if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=(mobileViewport?'':'E · ')+(player?.propulsorEquipped?'GUARDAR PROPULSOR':'PROPULSOR')+' · '+Math.round(window.AbyssalPropulsor.charge(player?.propulsorEnergy))+'%';if(dash.textContent!==label)dash.textContent=label;dash.setAttribute('aria-pressed',String(Boolean(player?.propulsorEquipped)));}
+ if(pulse){const hidden=!(combatResearchUnlocked('pulse')&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
+ if(dash){const hidden=!(combatResearchUnlocked('dash')&&equipped.includes('dash')),disabled=!player||Boolean(player.propulsorPending);if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=(mobileViewport?'':'E · ')+(player?.propulsorEquipped?'GUARDAR PROPULSOR':'PROPULSOR')+' · '+Math.round(window.AbyssalPropulsor.charge(player?.propulsorEnergy))+'%';if(dash.textContent!==label)dash.textContent=label;dash.setAttribute('aria-pressed',String(Boolean(player?.propulsorEquipped)));}
  if(skinBtn){const spec=currentSkinActiveSpec(),trailing=Boolean(player&&Number(player.skinTrailUntil)>performance.now()),infused=Boolean(player&&Number(player.skinWeaponBuffUntil)>performance.now()),disabled=!player||(isRiftRun()||onlineRoomMode==='pvp')&&!spec||!specimenAlive()||player.skinActiveCooldown>0||trailing||infused;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):infused?(mobileViewport?`ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`:`R · ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`):trailing?(mobileViewport?`RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`:`R · RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);const displayLabel=isOpenSeaRun()?(player?.skinActiveCooldown>0?'SONAR · '+player.skinActiveCooldown.toFixed(1)+'s':(mobileViewport?'R · SONAR':'R · SONAR DO ESPÉCIME')):label;if(skinBtn.textContent!==displayLabel)skinBtn.textContent=displayLabel;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
@@ -5099,7 +5100,7 @@ if(mobileFireBtn){
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
-window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target)||!$('pauseScreen').hidden)return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
+window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target)||!$('pauseScreen').hidden)return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&combatResearchUnlocked('pulse'))activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&combatResearchUnlocked('dash'))activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 function prepareForH5Ad(){window.AbyssalAudio?.setMuted(true);}
@@ -5236,7 +5237,7 @@ window.AbyssalGameHooks={
  worldZoom:()=>worldZoom,
  combatRange:()=>getFiringRange(),
  cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
- classicParityInspect:()=>({classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
+ classicParityInspect:()=>({propulsor:{equipped:Boolean(player?.propulsorEquipped),energy:window.AbyssalPropulsor.charge(player?.propulsorEnergy),moving:Boolean(player?.propulsorMoving)},classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
  developerInspect:()=>({online:onlineMode,mode:onlineMode?onlineRoomMode:requestedRunMode,state:gameState,fps:Number(window.__abyssalFps||0),elapsed:Number(elapsed)||0,hp:Number(hp)||0,maxHp:Number(maxHp)||0,x:Number(player?.x)||0,y:Number(player?.y)||0,enemies:enemies.filter(e=>e&&e.hp>0).length,bosses:enemies.filter(e=>e&&e.hp>0&&BOSS_KINDS.includes(e.kind)).length,orbs:orbs.length,submarine:isClassicCavernRun()?{powered:soloSubmarinePowered(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))}:null}),
  developerCommand:command=>{
   if(window.AbyssalDeveloperActive!==true)return {ok:false,message:'Conta GameMaster não validada.'};
