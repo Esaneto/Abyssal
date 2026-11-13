@@ -24,12 +24,14 @@ const OceanRespawn=require('./public/abyssal-ocean-respawn.js');
 const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
+const CLASSIC_ENEMY_CAP=50;
+const CLASSIC_COMMON_CAP=49;
 const ONLINE_SUBMARINE_SECTION_HP=1000;
 const ONLINE_SUBMARINE_REPAIR_SECONDS=15;
 const ONLINE_SUBMARINE_OFFSETS=[-220,0,220];
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
-const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
-const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
+const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:world?.mode==='classic'?CLASSIC_ENEMY_CAP:SeaProgression.MAX_SEA_ENEMIES;
+const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:world?.mode==='classic'?CLASSIC_COMMON_CAP:SeaProgression.MAX_SEA_COMMON_ENEMIES;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
 const classicCavernCache=new WeakMap();
@@ -205,7 +207,7 @@ function spawnEnemy(world, options = {}) {
   const { type = 'common', initial = false, random = Math.random } = options;
   if (!world || world.enemies.length >= enemyLimitForWorld(world)) return null;
   const bosses = countBosses(world);
-  if (type === 'boss' && bosses.length >= MAX_BOSSES) return null;
+  if (type === 'boss' && bosses.length >= (world.mode==='classic'?1:MAX_BOSSES)) return null;
   if (type !== 'boss' && countCommons(world) >= commonLimitForWorld(world)) return null;
 
   const layout = mapLayoutFor(world);
@@ -455,7 +457,14 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const validPlayers = Array.isArray(players)
     ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
     : [];
-  if(world.mode==='classic'&&world.submarine){world.submarine.powerSeconds=Math.max(0,(Number(world.submarine.powerSeconds)||0)-Math.max(0,(now-(Number(world.lastTick)||now))/1000));}
+  if(world.mode==='classic'&&world.submarine){
+    world.submarine.powerSeconds=Math.max(0,(Number(world.submarine.powerSeconds)||0)-Math.max(0,(now-(Number(world.lastTick)||now))/1000));
+    const repair=world.submarine.repair;
+    if(repair){
+      const diver=validPlayers.find(p=>p.id===repair.playerId),section=(world.submarine.sections||[]).find(s=>s.id===repair.sectionId);
+      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||Math.hypot(Number(diver.x)-Number(section.x),Number(diver.y)-Number(section.y))>150/WORLD_ZOOM)world.submarine.repair=null;
+    }
+  }
   if (validPlayers.length === 0) {
     // No living participants means no world time, spawning, movement, or attacks.
     // The server stops its ticker as well; state is cleared when the last participant leaves.
