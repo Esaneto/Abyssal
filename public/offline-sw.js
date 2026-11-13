@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-13-wheel-daily-limit-v169';
+const VERSION = '2026-11-13-native-admob-updater-v170';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -31,6 +31,7 @@ const GAME_FILES = [
   'loading-screen.js',
   'loading-screen.css',
   'update-manager.js',
+  'abyssal-admob.js',
   'client-build.js',
   'developer-tools.js',
   'developer-tools.css',
