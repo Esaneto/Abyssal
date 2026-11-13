@@ -2498,10 +2498,9 @@ function registerEnemyContactSnapshot(data){
   const id=String(raw.id),enemy=onlineEnemyById.get(id);if(!enemy)continue;
   const tx=clamp(Number(raw.x)||0,0,W),ty=clamp(Number(raw.y)||0,0,H),gap=Math.hypot(tx-(Number(enemy.x)||0),ty-(Number(enemy.y)||0));
   enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=contactNow;
-  enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;enemy.motionCorrection=null;
+  if(gap>90/GAME_WORLD_ZOOM){enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;enemy.motionCorrection=null;enemy.x=tx;enemy.y=ty;}
   window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:contactNow});
   enemy.interpFromX=Number(enemy.x)||tx;enemy.interpFromY=Number(enemy.y)||ty;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=contactNow;enemy.interpDuration=gap>90/GAME_WORLD_ZOOM?0:45;
-  if(gap>90/GAME_WORLD_ZOOM){enemy.x=tx;enemy.y=ty;}
  }
  authoritativeSnapshotHistory.set(`${worldId}:${sequence}`,frame);
  while(authoritativeSnapshotHistory.size>18)authoritativeSnapshotHistory.delete(authoritativeSnapshotHistory.keys().next().value);
@@ -2524,29 +2523,25 @@ function applySharedMotion(data){
   if(!Array.isArray(row)||row.length<7)continue;
   const enemy=onlineEnemyById.get(String(row[0]));if(!enemy)continue;
   const tx=clamp(Number(row[1])||0,0,W),ty=clamp(Number(row[2])||0,0,H);
-  const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):Number(enemy.x)||tx;
-  const previousServerY=Number.isFinite(Number(enemy.serverY))?Number(enemy.serverY):Number(enemy.y)||ty;
-  const current=window.AbyssalEnemyNetcode?.renderedPosition?.(enemy,now)||currentInterpolatedEnemyPosition(enemy,now);
-  const sampleMs=Number.isFinite(Number(enemy.snapshotReceivedAt))?clamp(now-Number(enemy.snapshotReceivedAt),30,250):serverInterval;
-  const maxV=(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss')?450:220;
-  const vx=clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV),vy=clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
-  const teleport=Math.hypot(tx-current.x,ty-current.y)>260;
-  // Lead one fraction of the server update and animate until its next 125ms packet.
-  const visualDuration=teleport?0:clamp(sampleMs,45,90);
-  enemy.x=teleport?tx:current.x;enemy.y=teleport?ty:current.y;
-  enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
-  if(teleport){enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;}
-  window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:now});
-  enemy.interpFromX=enemy.x;enemy.interpFromY=enemy.y;
-  enemy.interpTargetX=tx;enemy.interpTargetY=ty;
-  enemy.interpAt=now;enemy.interpDuration=visualDuration;
-  enemy.vx=vx;enemy.vy=vy;
+  const incomingTime=serverTime||Date.now(),lastSample=enemy.motionSamples?.[enemy.motionSamples.length-1];
+  if(!lastSample||incomingTime>Number(lastSample.serverTime)){
+   const previousServerX=Number.isFinite(Number(enemy.serverX))?Number(enemy.serverX):tx;
+   const previousServerY=Number.isFinite(Number(enemy.serverY))?Number(enemy.serverY):ty;
+   const sampleMs=lastSample?clamp(incomingTime-Number(lastSample.serverTime),10,250):serverInterval;
+   const maxV=(enemy.kind==='whiteShark'||enemy.kind==='whiteSharkBoss')?450:220;
+   const teleport=Math.hypot(tx-previousServerX,ty-previousServerY)>260;
+   if(teleport){enemy.x=tx;enemy.y=ty;enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;enemy.motionCorrection=null;}
+   enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
+   window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:incomingTime,receivedAt:now});
+   enemy.interpFromX=enemy.x;enemy.interpFromY=enemy.y;enemy.interpTargetX=tx;enemy.interpTargetY=ty;enemy.interpAt=now;enemy.interpDuration=teleport?0:serverInterval;
+   enemy.vx=teleport?0:clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV);enemy.vy=teleport?0:clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
+   if(Math.hypot(tx-previousServerX,ty-previousServerY)>.02)moved++;
+  }
   const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
   if(incomingRevision>=currentRevision){enemy.hp=Math.max(0,Number(row[3])||0);enemy.damageRevision=incomingRevision;}
   enemy.angle=Number(row[5])||0;enemy.phase=Number(row[6])||0;
   if(enemy.wildlifeMode&&row.length===10){enemy.aiIndicator=['','attack','evaluate','flee'][Number(row[7])||0]||null;enemy.wildlifeAbilityId=String(row[8]||'');enemy.wildlifeAbilityUntil=performance.now()+Math.max(0,Number(row[9])||0);}
   enemy.suctionActive=row[7]===true;enemy.suctionTimer=Math.max(0,Number(row[8])||0);enemy.suctionCooldown=Math.max(0,Number(row[9])||0);enemy.suctionPulse=Math.max(0,Number(row[10])||0);enemy.krakenSweepActive=row[11]===true;enemy.krakenTelegraph=clamp(Number(row[12])||0,0,1);enemy.krakenSweepCycle=Math.max(0,Number(row[13])||0);
-  if(Math.hypot(tx-current.x,ty-current.y)>.02)moved++;
  }
  onlineVisualEnemyCount=enemies.length;onlineVisualMovingEnemies=moved;
 }
@@ -3358,19 +3353,12 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   if(onlineMode){
    const bx=Number(e.x)||0,by=Number(e.y)||0;
    const rendered=window.AbyssalEnemyNetcode?.renderedPosition?.(e,enemyFrameNow);
-   const sx=Number.isFinite(Number(e.serverX))?Number(e.serverX):(rendered?.x??bx),sy=Number.isFinite(Number(e.serverY))?Number(e.serverY):(rendered?.y??by);
-   const sampleAge=Number.isFinite(Number(e.snapshotReceivedAt))?clamp((enemyFrameNow-Number(e.snapshotReceivedAt))/1000,0,.18):0;
-   const predictedX=sx+(Number(e.vx)||0)*sampleAge*.65,predictedY=sy+(Number(e.vy)||0)*sampleAge*.65;
-   const renderX=Number.isFinite(Number(rendered?.x))?Number(rendered.x):predictedX,renderY=Number.isFinite(Number(rendered?.y))?Number(rendered.y):predictedY;
-   const renderGap=Math.hypot(renderX-bx,renderY-by),serverGap=Math.hypot(sx-bx,sy-by);
-   // The motion buffer is preferred, but serverX/serverY are an invariant fallback.
-   // If interpolation stalls while authoritative coordinates keep advancing, converge
-   // directly to the latest server trajectory instead of leaving a frozen hitbox sprite.
-   const stalledVisual=renderGap<.015&&serverGap>.35;
-   const targetX=stalledVisual?predictedX:renderX,targetY=stalledVisual?predictedY:renderY;
-   const catchup=1-Math.exp(-dt*(stalledVisual?30:20));
-   if(serverGap>120/GAME_WORLD_ZOOM){e.x=sx;e.y=sy;}
-   else{e.x=bx+(targetX-bx)*catchup;e.y=by+(targetY-by)*catchup;}
+   const sx=Number.isFinite(Number(e.serverX))?Number(e.serverX):bx,sy=Number.isFinite(Number(e.serverY))?Number(e.serverY):by;
+   const age=Number.isFinite(Number(e.snapshotReceivedAt))?clamp((enemyFrameNow-Number(e.snapshotReceivedAt))/1000,0,.18):0;
+   // One presentation clock: the buffered authoritative trajectory owns every frame.
+   // Never blend it again or alternate between buffered and live coordinates.
+   e.x=clamp(Number.isFinite(rendered?.x)?rendered.x:sx+(Number(e.vx)||0)*age,0,W);
+   e.y=clamp(Number.isFinite(rendered?.y)?rendered.y:sy+(Number(e.vy)||0)*age,0,H);
    if(Math.hypot(e.x-bx,e.y-by)>.02)onlineVisualMovingEnemies++;
    continue;
   }
