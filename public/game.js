@@ -978,16 +978,16 @@ let cameraZoomTickAt=0;
 function desiredWorldZoom(){
  const mobile=Boolean(mobileViewport),pvp=onlineMode&&onlineRoomMode==='pvp';
  const base=mobile?.48:FAIR_VIEW_REFERENCE.zoom;
- const preference=pvp?1:clamp(Number(localStorage.getItem(mobile?'abyssalCameraZoomMobile':'abyssalCameraZoomPc'))||(mobile?1:1.25),.75,1.5);
+ // Release camera is authoritative to gameplay range, never a stored user preference.
  const bonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:Number(upgrades?.range)||1;
  // Keep PvP and exploration camera contracts unchanged. Classic solo/co-op use
  // the firing circle as the baseline; the upgrade never changes world geometry.
- if(!isClassicCavernRun())return base*preference/clamp(bonus,1,CAMERA_RANGE_MAX);
+ if(!isClassicCavernRun())return base/clamp(bonus,1,CAMERA_RANGE_MAX);
  const baseRange=294/GAME_WORLD_ZOOM;
  const fit=Math.min(viewW,viewH)/(2*baseRange*1.08);
  const defaultZoom=clamp(fit,.36,mobile?.70:1.2);
  const effectiveBonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:clamp(getFiringRange()/baseRange,1,CAMERA_RANGE_MAX);
- return clamp(defaultZoom*(preference/(mobile?1:1.25))/effectiveBonus,.18,1.5);
+ return clamp(defaultZoom/effectiveBonus,.18,1.5);
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){

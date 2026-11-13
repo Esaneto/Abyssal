@@ -1,6 +1,6 @@
 {
   "name": "abyssal-ecos-das-profundezas",
-  "version": "3.6.36",
+  "version": "3.6.37",
   "private": true,
   "description": "Abyssal: lobby compartilhado, combate online autoritativo, simulação e combate autoritativos no servidor, ressincronização de vida ao retornar da aba, correção de hits invisíveis e interpolação autoritativa",
   "main": "server.js",

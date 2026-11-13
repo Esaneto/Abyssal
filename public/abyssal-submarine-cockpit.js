@@ -25,10 +25,6 @@
    const optsPC=[['classic','Clique e segure para mover'],['wasd-aim','WASD + mouse']],optsMobile=[['classic','Toque e arraste'],['dual-stick','Joystick e disparo']];
    page.append(field('Controles PC',optsPC,read('abyssalControlsPc','classic'),value=>document.querySelector('#controlsScreen [data-control-pc="'+value+'"]')?.click()),field('Controles mobile',optsMobile,read('abyssalControlsMobile','classic'),value=>document.querySelector('#controlsScreen [data-control-mobile="'+value+'"]')?.click()));
    note(page,'As preferências são salvas neste dispositivo.');
-  }else if(name==='zoom'){
-   const options=[['0.75','75%'],['0.85','85%'],['1','100%'],['1.1','110%'],['1.25','125%'],['1.35','135%'],['1.5','150%']];
-   page.append(field('Zoom no computador',options,read('abyssalCameraZoomPc','1.25'),value=>store('abyssalCameraZoomPc',value)),field('Zoom no celular',options,read('abyssalCameraZoomMobile','1'),value=>store('abyssalCameraZoomMobile',value)));
-   note(page,'No online, a visão permanece equilibrada pelo jogo.');
   }else if(name==='volume'){
    page.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
    note(page,'O áudio do jogo está desativado nesta versão; os ajustes ficam salvos.');
