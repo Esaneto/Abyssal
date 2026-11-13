@@ -7,6 +7,10 @@
  'use strict';
  const ASSETS=Object.freeze({
   music:{file:'music/musica.mp3',gain:.72,group:'music'},
+  damage:{file:'effects/dano.wav',gain:.66,group:'combat',priority:68,max:.85},
+  pulse:{file:'effects/pulsos.wav',gain:.82,group:'shot',priority:84,max:1.6},
+  dash:{file:'effects/investida.ogg',gain:.76,group:'shot',priority:80,max:1.5},
+  cloud:{file:'effects/nuvem_toxica.wav',gain:.70,group:'shot',priority:77,max:1.8},
   bite:{file:'effects/bite.wav',gain:.70,group:'combat',priority:55,max:1.1},
   boss:{file:'effects/boss_entrance.wav',gain:.92,group:'critical',priority:100},
   orb:{file:'effects/collect_orb.wav',gain:.62,group:'reward',priority:64,max:1},
@@ -20,7 +24,8 @@
   destroyed:{file:'effects/submarino_destruido.ogg',gain:.90,group:'critical',priority:98},
   electric:{file:'effects/tempestade_eletrica.wav',gain:.79,group:'shot',priority:82,max:1.25}
  });
- const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair'});
+ const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair','player-hit':'damage','enemy-hit':'damage','specimen-hit':'damage','ability-nova':'pulse','ability-dash':'dash','ability-poison':'cloud'});
+ function abilityCue(id){const key=String(id||'').replace(/^wildlife-/,'').toLowerCase();if(['push','pulse','bio-shock','gulper-chomp','pressure-impact','rupture-pulse','abyssal-pulse','pressure-pulse'].includes(key))return 'pulse';if(['shot','slowshot','pressure-lance','hypothermic-projectile','colossal-shot'].includes(key))return 'echo';if(['cloud','toxic-cloud','monster-toxic-cloud'].includes(key))return 'cloud';if(key==='dash')return 'dash';return null;}
  function cueAsset(id){return CUES[id]||(/^boss-death-/.test(id)?'kill':/^enemy-attack-/.test(id)?'bite':null);}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function createMixer(env){
@@ -60,7 +65,7 @@
    if(warm)return;warm=true;
    // Short high-frequency samples and the selected music first; the large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['electric','music','bite','orb','kill','photon','pierce','echo','nova','boss','destroyed','repair','beam'];
+   const order=['electric','music','damage','pulse','bite','orb','kill','photon','pierce','echo','dash','cloud','nova','boss','destroyed','repair','beam'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan])try{n?.disconnect();}catch{}}
@@ -170,7 +175,7 @@
   env.addEventListener?.('abyssal-volume-change',e=>setVolume(e.detail?.channel,e.detail?.value));
   env.document?.addEventListener?.('visibilitychange',()=>setHidden(env.document.hidden));
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
-  return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect};
+  return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,cueAsset,createMixer};
+ return {ASSETS,CUES,cueAsset,abilityCue,createMixer};
 });

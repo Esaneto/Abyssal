@@ -1217,6 +1217,7 @@ function playWorldSound(cue,position=null,range=850,volume=1,extra={}){
  if(gameState==='menu'||gameState==='over'||gameState==='paused')return false;
  return window.AbyssalAudio?.play(cue,soundOptions(position,range,volume,extra))||false;
 }
+function playCombatAbilitySound(id,position,extra={}){const cue=window.AbyssalAudio?.abilityCue?.(id);if(cue)playWorldSound(cue,position,1100,.85,extra);return cue;}
 function playSkillSound(){}
 function playBossCry(){playWorldSound('boss-entrance',null,1200,1,{owner:'boss-warning',local:true});}
 function playDevourerSuction(){}
@@ -1283,6 +1284,7 @@ function renderBossAbilityVisual(data){
  }
  const x=Number(d.x),y=Number(d.y);if(!Number.isFinite(x)||!Number.isFinite(y))return;
  const color=d.color||'#79f3f0',angle=Number(d.angle)||0,radius=Math.max(40/GAME_WORLD_ZOOM,Number(d.radius)||180/GAME_WORLD_ZOOM),id=String(d.abilityId||'');
+ playCombatAbilitySound(id,{x,y},{owner:'enemy-ability:'+String(d.bossId||d.kind||id),eventId:d.eventId});
  if(id.startsWith('wildlife-')){
   const active=id.slice(9);
   ctx.save();
@@ -1334,7 +1336,7 @@ function renderBossAbilityVisual(data){
 function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
- playWorldSound('bite',{x,y},700,.85,{owner:'enemy:'+String(d.enemyId||kind)});
+ if(!playCombatAbilitySound(skill,{x,y},{owner:'enemy:'+String(d.enemyId||kind)}))playWorldSound('bite',{x,y},700,.85,{owner:'enemy:'+String(d.enemyId||kind)});
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
  if(skill!=='tentacle-strike'){
   const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
@@ -2342,7 +2344,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  if(onlineRoomMode!=='pvp'&&player&&!String(skillId||'').startsWith('rift-hazard-')&&skillId!=='skin-active-poison-dot'){const origin=options.origin||player;const ranged=options.projectile||options.submarineShot||['electric','pierce','photon','photonRay','nova','echoShot','prismShard','ricochet','skin-active-shot','skin-active-slowShot'].includes(skillId);if(!(ranged?pveProjectileTerrainClear:pveTerrainClear)(origin.x,origin.y,enemy.x,enemy.y,2))return;}
  if(onlineMode&&options.submarineShot&&window.AbyssalOnline?.getSocketId?.()!==onlineSubmarineControllerId){enemy.hit=.12;return;}
  score += Math.round(damage);
- if(options.silentSound!==true&&!options.secondary)playWorldSound('enemy-hit',enemy,620,.62);
+ // Online impact audio is emitted only after authoritative damage confirmation.
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
  if(upgrades.vitalDrain&&player&&Number.isFinite(damage)&&damage>0){const actualDamage=Math.min(damage,Math.max(0,Number(enemy?.hp)||damage))*predatorDamageMultiplier(enemy);hp=Math.min(maxHp,hp+actualDamage*.02);}
 
@@ -2358,7 +2360,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  }
  const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y);
  const multiplier=specimenPassiveMultiplier('damage')*(BOSS_KINDS.includes(enemy.kind)?specimenPassiveMultiplier('bossDamage'):1),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1;
- const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;diveStats.damageDealt+=Math.min(appliedDamage,Math.max(0,Number(enemy.hp)||0));applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;enemy.hit=.14;if(activeMapLayout||enemy.wildlifeMode)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
+ const appliedDamage=damage*predatorDamageMultiplier(enemy)*closeMultiplier*multiplier;diveStats.damageDealt+=Math.min(appliedDamage,Math.max(0,Number(enemy.hp)||0));applySoloWeaponInfusionHit(enemy,skillId);enemy.hp-=appliedDamage;playWorldSound('enemy-hit',enemy,850,.76,{owner:'enemy:'+String(enemy.id)});enemy.hit=.14;if(activeMapLayout||enemy.wildlifeMode)enemy.provokedUntil=performance.now()+6500;if(options.visual!==false)spawnDamageNumber(enemy.x,enemy.y,appliedDamage,damageTone(skillId));
  // O impacto gera modificadores antes de remover o alvo. Assim um golpe fatal ainda pode ricochetear.
  triggerHitSynergies(enemy,appliedDamage,skillId,options);
  if(enemy.hp<=0){const idx=enemies.indexOf(enemy);if(idx>=0)killEnemy(idx);}
@@ -2965,7 +2967,7 @@ function activateSkinAbility(inputEvent){
   });
   if(!sent){player.skinTrailUntil=0;player.skinWeaponBuffUntil=0;player.skinWeaponBuffKind=null;player.specimen.dash=null;player.skinActiveCooldown=0;updateAbilityButtons(true);return false;}
  }else applySoloSkinActive(spec,angle);
- playWorldSound(spec.id==='paralysis'?'ability-beam':spec.id==='dash'?'ability-dash':spec.id==='cloud'||spec.id==='poison'?'ability-poison':spec.id==='shield'?'shield-hit':'ability-nova',origin,850,.68);
+ if(!onlineMode)playCombatAbilitySound(spec.id,origin,{owner:'local-pet',local:true});
  updateAbilityButtons(true);return true;
 }
 function updateSkinTrailRuntime(){
@@ -3078,7 +3080,7 @@ function updateSpecimenRuntime(dt){
 
 function hurtSpecimenSolo(amount){
  const s=player?.specimen;if(!s||s.alive===false||s.invuln>0||!Number.isFinite(amount)||amount<=0)return false;
- s.hp=Math.max(0,s.hp-amount);s.invuln=.35;burst(s.x,s.y,'#ff6f8d',8,65);
+ s.hp=Math.max(0,s.hp-amount);playWorldSound('specimen-hit',s,850,.85,{owner:'local-pet',local:true});s.invuln=.35;burst(s.x,s.y,'#ff6f8d',8,65);
  if(s.hp<=0){s.alive=false;s.respawnAt=Date.now()+specimenProgressStats().respawnSeconds*1000;s.respawnTimer=specimenProgressStats().respawnSeconds;const trailing=Number(player.skinTrailUntil)>0;player.skinTrailUntil=0;player.skinActiveCooldown=trailing?(Number(player.skinTrailCooldownSeconds)||10):0;showToast(`ESPÉCIME ABATIDO · RETORNO EM ${fmtTime(s.respawnTimer)}`);updateAbilityButtons(true);}
  return true;
 }
@@ -5339,6 +5341,8 @@ function applyWorldEnemyDamageBatch(items){if(!Array.isArray(items))return;for(c
 function applyWorldEnemyDamage(data){
  if(!onlineMode||!data||data.id==null)return;
  const enemy=onlineEnemyById.get(String(data.id))||enemies.find(e=>String(e.id)===String(data.id));
+ const hitPosition={x:Number(data.enemyX??enemy?.x),y:Number(data.enemyY??enemy?.y)};
+ if(Number(data.damage)>0&&Number.isFinite(hitPosition.x)&&Number.isFinite(hitPosition.y))playWorldSound('enemy-hit',hitPosition,850,.76,{owner:'enemy:'+String(data.id),eventId:data.damageRevision!=null?String(data.damageRevision):data.actionId||undefined});
  if(!enemy)return;
  if(Number.isFinite(Number(data.hp)))enemy.hp=clamp(Number(data.hp),0,Number(enemy.maxHp)||Number(data.maxHp)||Infinity);
  if(Number.isFinite(Number(data.maxHp)))enemy.maxHp=Number(data.maxHp);
@@ -5347,7 +5351,7 @@ function applyWorldEnemyDamage(data){
  if(Number(data.damage)>0&&!consumePredictedCombatImpact(data)&&(!PERIODIC_SKIN_DAMAGE_SKILLS.has(String(data.skillId||''))||showPeriodicSkinDamageNumber(enemy)))spawnDamageNumber(Number(data.enemyX)||enemy.x,Number(data.enemyY)||enemy.y,Number(data.damage),damageTone(data.skillId));
 }
 window.addEventListener('abyssal-player-vitals',ev=>applyOnlinePlayerVitals(ev.detail));
-window.addEventListener('abyssal-player-damage-number',ev=>{const d=ev.detail||{};if(String(d.targetId)===String(window.AbyssalOnline?.getSocketId?.()))return;const x=Number(d.x)*W,y=Number(d.y)*H;if(Number.isFinite(x)&&Number.isFinite(y)&&Number(d.damage)>0)spawnDamageNumber(x,y,Number(d.damage),'received');});
+window.addEventListener('abyssal-player-damage-number',ev=>{const d=ev.detail||{};if(String(d.targetId)===String(window.AbyssalOnline?.getSocketId?.()))return;const x=Number(d.x)*W,y=Number(d.y)*H;if(Number.isFinite(x)&&Number.isFinite(y)&&Number(d.damage)>0){spawnDamageNumber(x,y,Number(d.damage),'received');playWorldSound('player-hit',{x,y},850,.85,{owner:'player:'+String(d.targetId)});}});
 window.addEventListener('abyssal-rift-checkpoint-respawn',ev=>{const d=ev.detail||{};if(!player||!isRiftRun())return;player.x=Number(d.x)||player.x;player.y=Number(d.y)||player.y;player.trail.length=0;hp=Number(d.hp)||maxHp;player.invuln=Math.max(player.invuln,3.2);damageFlash=.3;burst(player.x,player.y,'#a4e9ff',22,145);updateCamera();updateHud();enqueueGameplayNotice('cave','CHECKPOINT ATIVADO','Você renasceu no início da sala atual, mantendo a expedição.',84);});
 window.addEventListener('abyssal-pvp-hit',ev=>{const d=ev.detail||{};if(Number(d.damage)<=0)return;const selfId=window.AbyssalOnline?.getSocketId?.();if(selfId&&String(d.targetId)===String(selfId))return;const predictedKey='pvp:'+String(d.actionId||'')+':'+String(d.targetId||'');if(d.actionId&&predictedCombatHits.delete(predictedKey))return;const px=Number(d.x)*W,py=Number(d.y)*H;if(Number.isFinite(px)&&Number.isFinite(py))spawnDamageNumber(px,py,Number(d.damage),'received');});
 
@@ -5361,7 +5365,7 @@ window.addEventListener('abyssal-rift-tentacle-aim',ev=>{
 });
 window.addEventListener('abyssal-world-damage-result',ev=>{const d=ev.detail||{};if(d.ok){applyWorldEnemyDamage(d);return;}const reason=String(d.reason||'');if(['not-in-room','not-connected','enemy-not-found','ack-timeout'].includes(reason))return;const now=performance.now();if(onlineMode&&now-lastDamageWarningAt>15000){lastDamageWarningAt=now;console.warn('[Abyssal] Dano online rejeitado:',reason);}});
 window.addEventListener('abyssal-boss-ability-visual',ev=>{
- const d=ev.detail||{};renderBossAbilityVisual({abilityId:d.abilityId,kind:d.kind,x:Number(d.x)*W,y:Number(d.y)*H,angle:Number(d.angle)||0,radius:Number(d.radius)||0,color:d.color});
+ const d=ev.detail||{};renderBossAbilityVisual({abilityId:d.abilityId,kind:d.kind,bossId:d.bossId,eventId:d.attackId||undefined,x:Number(d.x)*W,y:Number(d.y)*H,angle:Number(d.angle)||0,radius:Number(d.radius)||0,color:d.color});
 });
 window.addEventListener('abyssal-boss-warning',ev=>{
  const d=ev.detail||{};if(!d.kind)return;
@@ -5720,6 +5724,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
  if(d.type!=='standard-active'||!fromId)return;
  const local=fromId===String(window.AbyssalOnline?.getSocketId?.()||'');
  const px=clamp(Number(d.x)*W,0,W),py=clamp(Number(d.y)*H,0,H),angle=Number(d.angle)||0,active=String(d.active||''),color=d.color||'#79f3f0',range=(Number(d.range)||160)/GAME_WORLD_ZOOM;
+ playCombatAbilitySound(active,{x:px,y:py},{owner:'pet:'+fromId,local});
  if(local){const spec=SKIN_STANDARD?.activeSpec?.(d.skin||equippedSkin);if(spec&&!['dash','shot','slowShot','shield'].includes(active))spawnSkinActiveVisual(spec,angle,{x:px,y:py});if(active==='shield'&&player){player.invuln=Math.max(player.invuln||0,2);if(player.specimen)player.specimen.invuln=Math.max(player.specimen.invuln||0,2);}return;}
  if(active==='cloud')spawnPoisonPlantCloudVisual(px,py,range,color);
  else if(active==='trail'){queueEffect({type:'ring',x:px,y:py,r:0,max:65/GAME_WORLD_ZOOM,life:.42,maxLife:.42,color});burst(px,py,color,10,90);}
@@ -5850,6 +5855,7 @@ window.addEventListener('abyssal-specimen-proficiency',event=>{
 });
 window.addEventListener('abyssal-specimen-state',event=>{
  const d=event.detail||{},selfId=window.AbyssalOnline?.getSocketId?.();
+ if(onlineMode&&['hit','defeated'].includes(d.reason)&&Number.isFinite(Number(d.x))&&Number.isFinite(Number(d.y)))playWorldSound('specimen-hit',{x:Number(d.x)*W,y:Number(d.y)*H},850,.85,{owner:'pet:'+String(d.playerId),local:String(d.playerId)===String(selfId)});
  if(selfId&&String(d.playerId)===String(selfId)&&player?.specimen&&(!d.skinId||String(d.skinId)===equippedSkin)){
   player.specimen.alive=d.alive!==false;player.specimen.hp=Math.max(0,Number(d.hp)||0);player.specimen.maxHp=Math.max(1,Number(d.maxHp)||55);
   player.specimen.respawnAt=d.alive===false?Number(d.respawnAt)||0:0;
