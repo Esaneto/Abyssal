@@ -29,6 +29,16 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/menu-cabin-v148/);
- assert.match(build,/version:'3\.6\.8'/);
+ assert.match(sw,/outside-hull-v154/);
+ assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+});
+
+test('menu and classic launch start outside submarine geometry',()=>{
+ const menu=read('public/abyssal-menu-ocean.js'),game=read('public/game.js');
+ assert.match(menu,/226\*subScale\+70/);
+ assert.match(menu,/const pos=hatchExit\(\)/);
+ assert.match(menu,/const starting=hatchExit\(\)/);
+ assert.match(game,/soloSubmarine\.y\+130\/GAME_WORLD_ZOOM/);
+ assert.match(game,/130\+40\*travel/);
+ assert.match(game,/130\+40\*launchQ/);
 });
