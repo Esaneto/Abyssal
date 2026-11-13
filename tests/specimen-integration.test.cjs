@@ -39,7 +39,7 @@ test('catalog previews show diver and specimen together',()=>{
  const game=read('public/game.js');
  assert.match(game,/if\(kind==='player'&&skin\)/);
  assert.match(game,/shop-specimen:/);
- assert.match(game,/CATÁLOGO DE<br><em>ESPÉCIMES<\/em>/);
+ assert.match(game,/CATÁLOGO DE ESPÉCIMES/);
 });
 
 test('profile exposes adaptation bar and ocean menu uses navigable portals',()=>{
