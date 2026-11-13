@@ -907,8 +907,8 @@ window.addEventListener('abyssal-rankings-refreshed',ev=>renderRankings(ev.detai
  document.querySelectorAll('[data-platform]').forEach(button=>button.addEventListener('click',()=>{
   if(button.tagName==='A')return;
   const platform=button.dataset.platform,message=$('downloadInstallMessage');if(!message)return;
-  if(platform==='windows'){message.textContent='Abrindo o instalador do Abyssal para Windows…';window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe';return;}
-  if(platform==='android'){message.textContent='Abrindo o pacote APK do Abyssal… No Android, talvez seja necessário autorizar a instalação de aplicativos baixados pelo navegador.';window.location.href='https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk';return;}
+  if(platform==='windows'){message.textContent='Abrindo o instalador do Abyssal para Windows…';window.location.href='https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Setup.exe';return;}
+  if(platform==='android'){message.textContent='Abrindo o pacote APK do Abyssal… No Android, talvez seja necessário autorizar a instalação de aplicativos baixados pelo navegador.';window.location.href='https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android.apk';return;}
   if(platform==='google-play'){message.textContent='O Abyssal ainda não está publicado na Google Play. A publicação exige gerar e assinar um pacote Android, configurar a ficha da loja e concluir a análise do Google.';return;}
   if(platform==='app-store'){message.textContent='O Abyssal ainda não está publicado na Apple App Store. A publicação exige um build iOS assinado, cadastro Apple Developer e aprovação da loja.';return;}
   if(platform==='ios'){message.textContent='No iPhone/iPad: abra esta página no Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Abra pelo novo ícone para uma experiência mais próxima de um aplicativo em tela cheia.';return;}
