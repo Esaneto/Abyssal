@@ -41,6 +41,7 @@ const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const { normalizeDatabasePoolConfig } = require('./database-config');
 const { ensureRunProgression, creditRunXp } = require('./run-progression');
 const { DEFAULT_CAPACITY, consumeMovementBudget } = require('./movement-envelope');
+const Propulsor=require('./public/abyssal-propulsor.js');
 const { registerPaymentRoutes, liveSalesReady } = require('./payments');
 const { registerAccountRecoveryRoutes } = require('./account-recovery');
 const { registerSupportRoutes } = require('./support');
@@ -1291,7 +1292,7 @@ function reviveAtRiftCheckpoint(room,p,now){
  const fallback=roomPoint?{x:roomPoint.x,y:roomPoint.y-Math.min(105,roomPoint.ry*.23)}:AbyssalMap.startSpawn(layout,0,1);
  const safe=AbyssalMap.isWalkable(layout,cp.x,cp.y,Number(p.r)||13/WORLD_ZOOM)?cp:fallback;
  p.x=safe.x;p.y=safe.y;p.riftCheckpointRoomId=cp.roomId;
- p.alive=true;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;
+ p.alive=true;p.propulsorEquipped=false;p.propulsorMoving=false;p.propulsorEnergy=100;p.hp=p.maxHp;p.shieldCharges=p.initialShieldCharges||0;
  p.oxygen=p.oxygenCapacity||ExplorationConfig.oxygenCapacity(0);p.explorationLastAt=now;
  p.invulnerableUntil=now+3200;p.regenAccumulator=0;p.velocityX=0;p.velocityY=0;
  p.positionResumeGraceUntil=now+1650;p.lastPositionAt=now;
@@ -2044,6 +2045,8 @@ io.on('connection', socket => {
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
   const acceptedDx=acceptedX-previousX,acceptedDy=acceptedY-previousY,acceptedDisplacement=Math.hypot(acceptedDx,acceptedDy);
+  const propDt=previousAt>0?Math.max(0,Math.min(.35,deltaSeconds)):0,propMoving=acceptedDisplacement>.05,wasPowered=Boolean(p.propulsorMoving);p.propulsorEnergy=Propulsor.step(p.propulsorEnergy,propDt,Boolean(p.propulsorEquipped),propMoving);p.propulsorMoving=Boolean(p.propulsorEquipped&&propMoving&&p.propulsorEnergy>0);
+  if(p.propulsorEquipped&&((wasPowered!==p.propulsorMoving)||receivedAt-(p.propulsorSyncedAt||0)>2000)){p.propulsorSyncedAt=receivedAt;socket.emit('propulsor-state',{energy:p.propulsorEnergy,equipped:true});if(wasPowered!==p.propulsorMoving)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));}
   if(acceptedDisplacement>.5){const nextAngle=Math.atan2(acceptedDy,acceptedDx),beforeAngle=Number(p.bodyAngle)||0;const diff=Math.atan2(Math.sin(nextAngle-beforeAngle),Math.cos(nextAngle-beforeAngle));p.bodyAngle=beforeAngle+diff*.55;}
   if(acceptedDisplacement<0.5){p.velocityX=0;p.velocityY=0;}
   else if(deltaSeconds>=0.015&&deltaSeconds<=0.3){let vx=acceptedDx/deltaSeconds,vy=acceptedDy/deltaSeconds,speed=Math.hypot(vx,vy);if(speed>900){vx=vx/speed*900;vy=vy/speed*900;}p.velocityX=vx;p.velocityY=vy;}
@@ -2230,12 +2233,7 @@ io.on('connection', socket => {
    p.invulnerableUntil = now + 3000;
    return;
   }
-  if (reason === 'dash') {
-   if (seconds !== 1.5 || !(Number(u?.metaUpgrades?.dash)>0) || now - (Number(p.lastDashProtectionAt) || 0) < 15000) return;
-   p.lastDashProtectionAt = now;
-   p.invulnerableUntil = Math.max(Number(p.invulnerableUntil) || 0, now + 1500);
-   return;
-  }
+  if (reason === 'dash') return; // Retired: propulsor never grants protection.
   // No generic protection channel: join/reconnect protection is created by the server
   // when the room member is instantiated, and unknown client reasons are ignored.
  });
@@ -2376,7 +2374,7 @@ io.on('connection', socket => {
  socket.on('request-host-transfer', () => {});
  socket.on('photon-ray-stop',()=>{const room=socketRoom(socket),player=room?.players.get(socket.id);if(room&&player&&player.alive!==false)socket.to(channelFor(room)).emit('photon-ray-stop',{fromId:socket.id});});
  socket.on('shared-shot', payload => {
-  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false||shooter.tutorialActive)return;
+  const room=socketRoom(socket),shooter=room?.players.get(socket.id);if(!room||!shooter||!payload||shooter.alive===false||shooter.tutorialActive||shooter.propulsorEquipped)return;
   const x=Number(payload.x),y=Number(payload.y),vx=Number(payload.vx),vy=Number(payload.vy);
   const shotWorldHeight=roomWorldHeight(room);
   if(![x,y,vx,vy].every(Number.isFinite)||x<0||x>1||y<0||y>1||Math.abs(vx)>1500||Math.abs(vy)>1500)return;
@@ -2762,7 +2760,9 @@ io.on('connection', socket => {
  socket.on('active-ability',(payload,acknowledge)=>{
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
-  if(!room||!player||player.alive===false||player.tutorialActive||id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
+  if(!room||!player||player.alive===false||player.tutorialActive)return ack(false,'invalid-ability');
+  if(id==='propulsor-on'||id==='propulsor-off'){if(!(Number(u?.metaUpgrades?.dash)>0))return ack(false,'invalid-ability');player.propulsorEquipped=id==='propulsor-on';player.propulsorMoving=false;player.propulsorEnergy=Propulsor.charge(player.propulsorEnergy);if(typeof acknowledge==='function')acknowledge({ok:true,energy:player.propulsorEnergy,equipped:player.propulsorEquipped});io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));return;}
+  if(id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
   if(room.mode==='pvp'){
