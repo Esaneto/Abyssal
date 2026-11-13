@@ -5743,7 +5743,7 @@ function renderCatalog(){
   const known=codex.monsters.includes(k),boss=BOSS_KINDS.includes(k),ability=m.ability||'';
   const split=ability.indexOf(': '),attack=split>=0?ability.slice(0,split):'Comportamento de combate',effect=split>=0?ability.slice(split+2):ability;
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'" data-journal-monster="'+escapeHtml(k)+'">'
-   +'<small class="journal-page-no">FOLHA '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<small class="journal-page-no">REGISTRO '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature" style="--preview:'+escapeHtml(m.color)+'">'+(known?'<canvas width="200" height="126" data-monster-preview="'+escapeHtml(k)+'" aria-label="Ilustração de '+escapeHtml(m.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(m.name):'Forma desconhecida')+'</b>'
    +(known?'<small class="journal-classification">'+(boss?'ENTIDADE COLOSSAL':'FAUNA EXTERNA')+' · HABITAT: CAVERNAS ABISSAIS</small>'
@@ -5766,22 +5766,28 @@ function renderCatalog(){
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
   const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'">'
-   +'<small class="journal-page-no">FOLHA '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<small class="journal-page-no">REGISTRO '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
-   +(known?'<small class="journal-classification">'+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
+   +(known?'<small class="journal-classification">'+escapeHtml(rarityLabel)+' · '+escapeHtml(family)+' · '+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'
     +'<div class="journal-stat-row"><span><b>VIDA</b> '+Math.round(b.hp)+'</span><span><b>DANO</b> '+Math.round(b.damage)+'</span><span><b>VELOCIDADE</b> '+Math.round(b.speed)+'</span></div>'
     +'<p class="journal-handwritten">Ataque: '+escapeHtml(b.attack)+'</p>'
     +'<p><b>Efeito:</b> '+escapeHtml(b.effect)+'</p><p class="journal-description">'+escapeHtml(skin.desc)+'</p>'
     :'<p class="journal-handwritten">Avistamento pendente nas Fossas Abissais.</p>')
    +'</article>';
  }).join('');
- const found=skinData.filter(s=>s.id==='default'||discoveredSpecimens.has(s.id)).length,foundMonsters=entries.filter(([kind])=>codex.monsters.includes(kind)).length;
+ const found=journalSkins.filter(s=>specimenShopAvailable(s)).length,foundMonsters=entries.filter(([kind])=>codex.monsters.includes(kind)).length;
  const commonCards=common.map((entry,index)=>renderMonster(entry,index)).join('');
  const bossCards=bosses.map((entry,index)=>renderMonster(entry,common.length+journalSkins.length+index)).join('');
- grid.innerHTML='<div class="journal-progress">CADERNO EM CONSTRUÇÃO · '+(found+foundMonsters)+' DE '+(skinData.length+entries.length)+' REGISTROS BIOLÓGICOS</div>'
-  +'<h3 class="codex-heading">I · REGISTROS ABISSAIS</h3><div class="codex-grid journal-specimen-grid">'+commonCards+specimenCards+'</div>'
-  +'<h3 class="codex-heading">II · ENTIDADES COLOSSAIS</h3><div class="codex-grid journal-specimen-grid">'+bossCards+'</div>';
+ grid.innerHTML='<div class="journal-progress">REGISTROS IDENTIFICADOS · '+(found+foundMonsters)+' / '+(skinData.length+entries.length)+'</div>'
+  +'<div class="codex-tools"><label for="codexSearch">BUSCAR REGISTRO</label><input id="codexSearch" type="search" placeholder="Nome, habitat ou habilidade"><label for="codexFilter">ESTADO</label><select id="codexFilter"><option value="all">Todos</option><option value="known">Identificados</option><option value="locked">Não identificados</option></select></div><div id="codexResultCount" role="status" class="codex-result-count"></div>'
+  +'<section class="codex-group"><h3 class="codex-heading">01 · FAUNA ABISSAL</h3><div class="codex-grid journal-specimen-grid">'+commonCards+'</div></section>'
+  +'<section class="codex-group"><h3 class="codex-heading">02 · ESPÉCIMES</h3><div class="codex-grid journal-specimen-grid">'+specimenCards+'</div></section>'
+  +'<section class="codex-group"><h3 class="codex-heading">03 · ENTIDADES COLOSSAIS</h3><div class="codex-grid journal-specimen-grid">'+bossCards+'</div></section>';
+ const search=grid.querySelector('#codexSearch'),filter=grid.querySelector('#codexFilter'),count=grid.querySelector('#codexResultCount');
+ const norm=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const applyFilter=()=>{let total=0;const q=norm(search.value.trim());for(const group of grid.querySelectorAll('.codex-group')){let n=0;for(const card of group.querySelectorAll('.codex-card')){const matches=(!q||norm(card.textContent).includes(q))&&(filter.value==='all'||card.classList.contains(filter.value==='known'?'unlocked':'locked'));card.hidden=!matches;if(matches)n++;}group.hidden=!n;total+=n;}count.textContent=total?total+' registro(s) encontrado(s)':'Nenhum registro corresponde à busca.';};
+ search.addEventListener('input',applyFilter);filter.addEventListener('change',applyFilter);applyFilter();
  const previewCanvases=[...grid.querySelectorAll('canvas[data-specimen-preview],canvas[data-monster-preview]')];
  const paintJournalCreature=canvas=>{
   if(canvas.dataset.specimenPreview){

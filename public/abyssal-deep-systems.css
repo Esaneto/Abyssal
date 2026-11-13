@@ -377,3 +377,78 @@ body:not(.game-active) #submarineWorkshop .abyss-control-key{min-height:62px!imp
 body:not(.game-active) #menuScreen #exteriorGuideBtn{font-family:var(--ds-font)!important;background:var(--ds-surface);color:var(--ds-text);border-color:var(--ds-border)}
 body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading #exteriorGuideBtn{flex:none}
 @media(max-width:700px) and (orientation:portrait){body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading{min-height:148px!important;padding-top:50px!important}}
+
+/* Expedition hub: direct native navigation, cinematic ocean background. */
+body:not(.game-active) #menuScreen.expedition-hub{display:block!important;position:fixed!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;padding:0!important;overflow:auto!important;isolation:isolate;background:#050d16!important;touch-action:pan-y!important}
+body:not(.game-active) #menuScreen.expedition-hub #menuOceanStage{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;z-index:0!important;pointer-events:none!important;opacity:.86;overflow:hidden!important}
+body:not(.game-active) #menuScreen.expedition-hub #menuOceanStage:after{content:"";position:absolute;inset:0;z-index:10;background:linear-gradient(90deg,#050d16f7 0%,#050d16d4 33%,#050d1640 70%),linear-gradient(0deg,#050d16e8 0%,transparent 35%);pointer-events:none}
+#menuScreen.expedition-hub :is(#openSeaPortalBtn,#riftPortalBtn,#menuOceanMobilePad,.abyss-ocean-routes){display:none!important}
+#menuScreen.expedition-hub .hub-shell{position:relative;z-index:12;min-height:100%;width:min(100%,1500px);margin:auto;padding:clamp(18px,4vw,60px);display:flex;flex-direction:column;gap:24px;box-sizing:border-box}
+#menuScreen.expedition-hub .hub-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+#menuScreen.expedition-hub .hub-brand span,#menuScreen.expedition-hub .hub-kicker{font:700 11px/1.4 var(--ds-font);color:#8fece4;letter-spacing:.13em}
+#menuScreen.expedition-hub .hub-brand h1{font:800 clamp(24px,3vw,40px)/1.1 var(--ds-font)!important;letter-spacing:.15em!important;color:#eaf5fa!important;margin:4px 0 0!important;text-shadow:none!important}
+#menuScreen.expedition-hub .hub-account{display:grid;justify-items:end;gap:6px;text-align:right;color:#a5bac9;font-size:11px}
+#menuScreen.expedition-hub .hub-account button{background:#142a3a!important;border:1px solid #355366!important;border-radius:7px!important;padding:8px 12px!important;min-height:44px;color:#eaf5fa!important;font:700 12px var(--ds-font)!important}
+#menuScreen.expedition-hub .hub-content{width:min(100%,600px);margin:auto 0;display:grid;gap:16px}
+#menuScreen.expedition-hub .hub-intro{display:grid;gap:9px}
+#menuScreen.expedition-hub .hub-kicker i{display:inline-block;width:8px;height:8px;background:#53d6a0;border-radius:50%;margin-right:7px;box-shadow:0 0 10px #53d6a077}
+#menuScreen.expedition-hub .hub-intro h2{font:800 clamp(40px,6vw,84px)/.98 var(--ds-font)!important;color:#eaf5fa!important;letter-spacing:-.025em!important;margin:0!important;text-shadow:none!important}
+#menuScreen.expedition-hub .hub-intro p{font:500 15px/1.55 var(--ds-font)!important;color:#c1d4df!important;max-width:420px;margin:0!important}
+body:not(.game-active) #menuScreen.expedition-hub #divePortalBtn.hub-launch{position:relative!important;inset:auto!important;transform:none!important;display:flex!important;align-items:center;gap:15px;width:100%!important;min-height:86px!important;height:auto!important;padding:16px 20px!important;border:1px solid #82f1ed!important;border-radius:12px!important;background:linear-gradient(115deg,#55dde0,#9ae9de)!important;color:#050d16!important;box-shadow:0 8px 30px #55dde02b!important;text-align:left!important;animation:none!important;opacity:1!important;filter:none!important;cursor:pointer}
+#menuScreen.expedition-hub #divePortalBtn.hub-launch:before,#menuScreen.expedition-hub #divePortalBtn.hub-launch:after,#menuScreen.expedition-hub .hub-destination:before,#menuScreen.expedition-hub .hub-destination:after{display:none!important;content:none!important}
+#menuScreen.expedition-hub .hub-launch strong{display:block;font:800 clamp(21px,3vw,30px)/1.1 var(--ds-font)!important;color:#050d16!important;text-shadow:none!important;letter-spacing:.04em!important}
+#menuScreen.expedition-hub .hub-launch small{display:block;font:600 13px/1.4 var(--ds-font)!important;color:#17363e!important;margin-top:5px}
+#menuScreen.expedition-hub .hub-launch-icon{font-size:40px;line-height:1}
+#menuScreen.expedition-hub .hub-arrow{margin-left:auto;font-size:34px}
+#menuScreen.expedition-hub .hub-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+body:not(.game-active) #menuScreen.expedition-hub .hub-nav .hub-destination{position:relative!important;inset:auto!important;transform:none!important;display:flex!important;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;width:100%!important;min-width:0!important;min-height:108px!important;height:auto!important;padding:12px!important;border:1px solid #355366!important;border-radius:10px!important;background:#0b1926f5!important;color:#eaf5fa!important;box-shadow:none!important;text-align:left!important;animation:none!important;filter:none!important;opacity:1!important;cursor:pointer;overflow:hidden!important}
+#menuScreen.expedition-hub .hub-nav-icon{font-size:24px;line-height:1;color:#55dde0!important}
+#menuScreen.expedition-hub .hub-destination strong{font:750 clamp(12px,1.4vw,16px)/1.3 var(--ds-font)!important;color:#eaf5fa!important;text-shadow:none!important}
+#menuScreen.expedition-hub .hub-destination small{font:500 11px/1.35 var(--ds-font)!important;color:#b9cdd7!important;white-space:normal}
+#menuScreen.expedition-hub .hub-secondary{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
+#menuScreen.expedition-hub .hub-secondary>button,#menuScreen.expedition-hub .hub-secondary summary{display:flex;align-items:center;justify-content:center;gap:12px;min-height:44px;padding:9px 14px;border:1px solid #355366;border-radius:8px;background:#0b1926;color:#eaf5fa;font:700 13px var(--ds-font)!important;cursor:pointer;list-style:none}
+#menuScreen.expedition-hub .hub-secondary summary::-webkit-details-marker{display:none}
+#menuScreen.expedition-hub #hubMore{position:relative}
+#menuScreen.expedition-hub .hub-more-panel{position:absolute;z-index:30;bottom:calc(100% + 8px);left:0;width:min(510px,80vw);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px;background:#0b1926;border:1px solid #355366;border-radius:12px;box-shadow:0 18px 40px #000a}
+#menuScreen.expedition-hub .hub-more-group{display:grid;align-content:start;gap:7px;min-width:0}
+#menuScreen.expedition-hub .hub-more-group h3{font:700 11px/1.3 var(--ds-font);color:#55dde0;margin:0 0 3px}
+body:not(.game-active) #menuScreen.expedition-hub .hub-more-group button{position:static!important;display:block!important;width:100%!important;height:auto!important;min-height:44px!important;max-width:none!important;padding:8px!important;background:#142a3a!important;color:#eaf5fa!important;border:1px solid #355366!important;border-radius:7px!important;box-shadow:none!important;transform:none!important;text-align:left!important;font:600 12px/1.3 var(--ds-font)!important;overflow-wrap:anywhere}
+#menuScreen.expedition-hub .hub-more-group button:before,#menuScreen.expedition-hub .hub-more-group button:after{display:none!important;content:none!important}
+#menuScreen.expedition-hub .hub-more-group label{font-size:11px;color:#b9cdd7}
+#menuScreen.expedition-hub .hub-more-group select{width:100%;min-height:44px;color:#eaf5fa;background:#050d16;border:1px solid #355366;border-radius:7px;font-size:14px}
+#menuScreen.expedition-hub .hub-footer{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;color:#b9cdd7;font:600 10px/1.4 var(--ds-font)}
+#menuScreen.expedition-hub .hub-footer .legal-footer{position:static!important;display:flex!important;flex-wrap:wrap;gap:12px;margin:0!important;padding:0!important;background:none!important}
+#menuScreen.expedition-hub .hub-footer a{color:#b9cdd7!important}
+#menuScreen.expedition-hub :is(button,summary,select):focus-visible{outline:3px solid #9cf8ee!important;outline-offset:3px!important}
+#menuScreen.expedition-hub .hub-destination:hover{border-color:#55dde0!important;background:#173b49!important}
+@media(max-width:700px){#menuScreen.expedition-hub .hub-shell{padding:16px;gap:18px;min-height:100dvh}#menuScreen.expedition-hub .hub-header{gap:8px}#menuScreen.expedition-hub .hub-brand span{font-size:9px}#menuScreen.expedition-hub .hub-brand h1{font-size:25px!important}#menuScreen.expedition-hub .hub-account{max-width:49%;font-size:9px}#menuScreen.expedition-hub .hub-account button{font-size:10px!important;padding:5px 8px!important}#menuScreen.expedition-hub .hub-content{gap:12px;margin-top:auto}#menuScreen.expedition-hub .hub-intro h2{font-size:clamp(40px,11vw,56px)!important}#menuScreen.expedition-hub .hub-intro p{font-size:13px!important}body:not(.game-active) #menuScreen.expedition-hub #divePortalBtn.hub-launch{min-height:75px!important;padding:12px!important}#menuScreen.expedition-hub .hub-nav{gap:6px}body:not(.game-active) #menuScreen.expedition-hub .hub-nav .hub-destination{min-height:99px!important;padding:8px!important}#menuScreen.expedition-hub .hub-destination small{font-size:10px!important}#menuScreen.expedition-hub .hub-more-panel{position:static;width:100%;grid-template-columns:1fr 1fr;margin-top:8px}#menuScreen.expedition-hub #hubMore[open]{width:100%}#menuScreen.expedition-hub .hub-more-group:last-child{grid-column:1/-1}#menuScreen.expedition-hub #menuOceanStage:after{background:linear-gradient(0deg,#050d16 3%,#050d16d9 48%,#050d1630 100%)}}
+@media(prefers-reduced-motion:reduce){#menuScreen.expedition-hub *{animation:none!important;transition:none!important}}
+
+/* Abyssário: opaque scientific terminal; explicit contrast and real creature colors. */
+body:not(.game-active) #catalogScreen .abyss-journal{width:min(1100px,96vw)!important;max-width:100%!important;background:#0b1926!important;color:#eaf5fa!important;border:1px solid #355366!important;border-radius:14px!important;box-shadow:0 24px 70px #000a!important;padding:clamp(16px,3vw,28px)!important;text-shadow:none!important}
+body:not(.game-active) #catalogScreen.abyss-cockpit-embedded .abyss-journal{width:100%!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+body:not(.game-active) #catalogScreen .abyss-journal :is(h2,.codex-heading,.eyebrow,.journal-intro,.journal-progress,.journal-page-no,.journal-specimen-title,.journal-classification,.journal-handwritten,.journal-description,.journal-sealed,.journal-stat-row span,.journal-stat-row b){font-family:var(--ds-font)!important;font-style:normal!important;text-shadow:none!important}
+body:not(.game-active) #catalogScreen .abyss-journal h2{color:#eaf5fa!important;letter-spacing:.1em!important;font-size:clamp(24px,4vw,36px)!important}
+body:not(.game-active) #catalogScreen .abyss-journal .eyebrow{color:#55dde0!important;font-size:11px!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-intro{color:#b9cdd7!important;font-size:14px!important;line-height:1.55!important}
+body:not(.game-active) #catalogScreen .journal-progress{background:#142a3a!important;border:1px solid #355366!important;border-radius:8px;color:#8fece4!important;padding:11px!important;margin:12px 0!important}
+body:not(.game-active) #catalogScreen .codex-tools{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.45fr);gap:6px 12px;padding:12px;background:#0b1926;border:1px solid #355366;border-radius:9px}
+#catalogScreen .codex-tools label{color:#b9cdd7;font:700 11px var(--ds-font)}
+#catalogScreen .codex-tools label[for=codexSearch]{grid-column:1;grid-row:1}#catalogScreen .codex-tools label[for=codexFilter]{grid-column:2;grid-row:1}
+#catalogScreen .codex-tools input,#catalogScreen .codex-tools select{min-width:0;width:100%;min-height:44px!important;box-sizing:border-box;background:#050d16!important;color:#eaf5fa!important;border:1px solid #355366!important;border-radius:7px!important;padding:9px!important;font:500 14px var(--ds-font)!important}
+#catalogScreen .codex-tools input::placeholder{color:#a5bac9}
+#catalogScreen .codex-result-count{color:#a5bac9;font-size:12px;margin:10px 0}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-heading{color:#8fece4!important;font-size:16px!important;margin:18px 0 10px!important;border-bottom:1px solid #355366;padding-bottom:8px}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr))!important;gap:12px!important}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-card{background:#142a3a!important;color:#eaf5fa!important;border:1px solid #355366!important;border-radius:10px!important;box-shadow:none!important;padding:13px!important;contain-intrinsic-size:auto 330px}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-card[hidden],#catalogScreen .codex-group[hidden]{display:none!important}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-card p{color:#c1d4df!important;font:500 13px/1.55 var(--ds-font)!important}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-card b,#catalogScreen .abyss-journal .journal-specimen-title{color:#eaf5fa!important;font-family:var(--ds-font)!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-specimen-title{font-size:18px!important;line-height:1.3!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-page-no,#catalogScreen .abyss-journal .journal-classification{color:#a5bac9!important;font-size:11px!important;line-height:1.5!important}
+body:not(.game-active) #catalogScreen .abyss-journal .codex-preview{background:radial-gradient(ellipse,#1d4856,#081725 72%)!important;border:1px solid #355366!important;border-radius:8px!important}
+body:not(.game-active) #catalogScreen .abyss-journal canvas{filter:none!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-stat-row span{background:#0b1926!important;border:1px solid #355366!important;border-radius:5px!important;color:#eaf5fa!important;font:600 12px var(--ds-font)!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-stat-row b{color:#8fece4!important;font-size:10px!important}
+body:not(.game-active) #catalogScreen .abyss-journal .journal-sealed{transform:none!important;border:1px dashed #547c8f!important;color:#b9cdd7!important;background:#0b1926!important;font-size:12px!important}
+body:not(.game-active) #catalogScreen .abyss-journal .modal-top-close,#catalogScreen .abyss-journal #catalogCloseBtn{background:#142a3a!important;color:#eaf5fa!important;border:1px solid #355366!important}

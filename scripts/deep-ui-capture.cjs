@@ -66,6 +66,7 @@ async function capture(root,label){
    await ev("window.AbyssalCockpitNavigation.showExterior();");
    await wait("!document.getElementById('menuScreen').hidden&&document.body.classList.contains('abyss-hatch-navigation')");
    await sleep(500);await snap(device+'-exterior');
+   if(label==='after'){await ev("document.getElementById('catalogBtn').click()");await wait("!document.getElementById('catalogScreen').hidden && !!document.getElementById('codexSearch')");await snap(device+'-abyssario');await ev("document.getElementById('codexSearch').value='zzzzzz';document.getElementById('codexSearch').dispatchEvent(new Event('input'))");assert.ok(await ev("document.getElementById('codexResultCount').textContent.includes('Nenhum')"),'Catalog search failed');await ev("document.getElementById('catalogCloseBtn').click()");}
    await ev("document.getElementById('divePortalBtn').click()");
    await wait("!document.getElementById('abyssalDiveChoicePanel').hidden");
    await snap(device+'-seletor');

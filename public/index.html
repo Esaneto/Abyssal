@@ -174,7 +174,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 @media(max-width:700px){#submarineWorkshop #cockpitRankingBtn{left:80.208333%!important;top:8%!important;width:25%!important;height:9%!important;border-radius:6px!important;border-bottom-width:3px!important;font-size:clamp(8px,2.5vw,12px)!important;gap:2px!important}#submarineWorkshop #cockpitRankingBtn svg{width:22px!important;max-height:45%!important}}
 </style>
 <link rel="stylesheet" href="abyssal-ocean-design.css?v=2026.11.13.guide-v186">
-<link rel="stylesheet" href="abyssal-deep-systems.css?v=2026.11.13.integrated-v187">
+<link rel="stylesheet" href="abyssal-deep-systems.css?v=2026.11.13.hub-v188">
 </head>
 <body>
 <div id="app">
@@ -215,41 +215,32 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
     <button id="toggleHudBtn" class="hud-toggle-btn" type="button" hidden aria-label="Ocultar habilidades e ranking" title="Ocultar habilidades e ranking">›</button>
 
-    <section id="menuScreen" class="screen ocean-menu-v2 submarine-menu" style="visibility:hidden" aria-label="Oceano de navegação do Abyssal">
+    <section id="menuScreen" class="screen ocean-menu-v2 submarine-menu expedition-hub" style="visibility:hidden" aria-label="Central de expedições do Abyssal">
       <div class="abyss-ocean-background" aria-hidden="true"><div class="abyss-ocean-light"></div><div class="abyss-ocean-particles"></div><div class="abyss-ocean-floor"></div></div>
-      <div class="abyss-menu-heading"><span class="abyss-menu-kicker">CENTRAL DE NAVEGAÇÃO</span><h1>ABYSSAL</h1><p>Escolha uma corrente ou retorne à cabine para se preparar.</p><button type="button" id="exteriorGuideBtn">GUIA DE MERGULHO</button></div>
-      <div id="menuOceanStage" class="abyss-ocean-stage" role="group" aria-label="Navegação pelos portais">
+      <div id="menuOceanStage" class="abyss-ocean-stage" aria-hidden="true">
         <div id="menuOceanPortalLayer" class="abyss-ocean-portal-layer">
-          <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
-          <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
-          <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO / ONLINE</small></button>
-          <button id="openSeaPortalBtn" class="abyss-destination" type="button" disabled aria-disabled="true" aria-label="Mar Aberto em desenvolvimento"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EM DESENVOLVIMENTO</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar na cabine do submarino"><span class="abyss-hatch-kicker">SUBMARINO</span><span class="abyss-hatch-label">CABINE</span><span class="abyss-hatch-action">ENTRAR</span></button>
-          <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" disabled aria-disabled="true" aria-label="Fossas em desenvolvimento"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>EM DESENVOLVIMENTO</small></button>
-        </div>
-        <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
-          <canvas id="menuOceanDiverCanvas" width="180" height="130" aria-label="Mergulhador em nado"></canvas>
-        </div>
-
-        <div id="menuOceanMobilePad" class="abyss-ocean-mobile-pad" aria-label="Joystick translúcido de movimentação" hidden></div>
+          <canvas id="menuOceanScenery" class="abyss-ocean-scenery"></canvas><canvas id="menuOceanSubmarine" class="abyss-ocean-submarine"></canvas>
+          <button id="openSeaPortalBtn" type="button" hidden disabled tabindex="-1">MAR ABERTO</button><button id="riftPortalBtn" type="button" hidden disabled tabindex="-1">FOSSAS</button>
+        </div><div id="menuOceanDiver" class="abyss-ocean-diver"><canvas id="menuOceanDiverCanvas" width="180" height="130"></canvas></div><div id="menuOceanMobilePad" hidden></div>
       </div>
-      <nav class="abyss-ocean-utilities" aria-label="Outros destinos e opções">
-          <button id="shopBtn" hidden aria-hidden="true" tabindex="-1" class="abyss-ocean-utility abyss-side-utility" type="button" aria-label="Abrir catálogo de Espécimes"><span class="abyss-destination-icon">✧</span><strong>ESPÉCIMES</strong><small>CATÁLOGO E LOJA</small></button>
-          <button id="profileBtn" class="abyss-ocean-utility abyss-side-utility" type="button" aria-label="Abrir perfil"><span class="abyss-destination-icon">♙</span><strong>PERFIL</strong><small>ADAPTAÇÃO</small></button>
-          <button id="rankingsBtn" class="abyss-ocean-utility abyss-side-utility" type="button" aria-label="Abrir rankings"><span class="abyss-destination-icon">♜</span><strong>RANKING</strong><small>HALL DOS SOBREVIVENTES</small></button>
-          <button id="wheelBtn" class="abyss-ocean-utility abyss-side-utility" type="button" aria-label="Abrir roleta abissal"><span class="abyss-destination-icon">✺</span><strong>ROLETA</strong><small>RECOMPENSAS</small></button>
-
-        <button id="catalogBtn" hidden aria-hidden="true" tabindex="-1" class="abyss-ocean-utility" type="button">ABYSSÁRIO</button>
-        <button id="cardumesBtn" class="abyss-ocean-utility" type="button">CARDUMES</button>
-        <button id="matchHistoryBtn" class="abyss-ocean-utility" type="button">HISTÓRICO</button>
-        <button id="supportBtn" class="abyss-ocean-utility" type="button">SUPORTE</button>
-      </nav>
-      <div class="abyss-ocean-account account-line"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn" type="button">ENTRAR / CRIAR CONTA</button></div>
-      <div class="abyss-ocean-preferences">
-        <div class="language-setting"><label for="languageSelect">IDIOMA</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select></div>
-        <button id="downloadBtn" class="abyss-ocean-utility" type="button">BAIXAR ABYSSAL</button>
-        <button id="controlsBtn" class="abyss-ocean-utility" type="button" hidden>CONTROLES</button>
+      <div class="hub-shell">
+        <header class="hub-header"><div class="hub-brand"><span>ESTAÇÃO ABISSAL / 01</span><h1>ABYSSAL</h1></div><div class="hub-account"><span id="accountStatus">JOGANDO COMO CONVIDADO</span><button id="loginBtn" type="button">ENTRAR / CRIAR CONTA</button></div></header>
+        <div class="hub-content">
+          <div class="hub-intro"><span class="hub-kicker"><i></i> EXPEDIÇÃO OPERACIONAL</span><h2>O abismo<br>te espera.</h2><p>Desça às cavernas, enfrente criaturas e evolua a sua expedição.</p></div>
+          <button id="divePortalBtn" class="hub-launch" type="button" aria-label="Escolher mergulho solo ou online"><span class="hub-launch-icon" aria-hidden="true">⌁</span><span><strong>MERGULHAR</strong><small>Solo ou cooperativo online</small></span><span class="hub-arrow" aria-hidden="true">›</span></button>
+          <nav class="hub-nav" aria-label="Destinos principais">
+            <button id="submarineWorkshopBtn" type="button" class="hub-destination"><span class="hub-nav-icon" aria-hidden="true">⌬</span><strong>CABINE</strong><small>Pesquisa e equipamento</small></button>
+            <button id="catalogBtn" type="button" class="hub-destination"><span class="hub-nav-icon" aria-hidden="true">▤</span><strong>ABYSSÁRIO</strong><small>Registro de espécies</small></button>
+            <button id="profileBtn" type="button" class="hub-destination"><span class="hub-nav-icon" aria-hidden="true">◎</span><strong>PERFIL</strong><small>Conta e conquistas</small></button>
+          </nav>
+          <div class="hub-secondary"><button id="exteriorGuideBtn" type="button">? Guia de mergulho</button><details id="hubMore"><summary>Mais opções <span aria-hidden="true">+</span></summary><div class="hub-more-panel">
+            <div class="hub-more-group"><h3>PROGRESSÃO</h3><button id="shopBtn" type="button">Espécimes e loja</button><button id="wheelBtn" type="button">Recompensas</button></div>
+            <div class="hub-more-group"><h3>COMUNIDADE</h3><button id="rankingsBtn" type="button">Ranking</button><button id="cardumesBtn" type="button">Cardumes</button><button id="matchHistoryBtn" type="button">Histórico de partidas</button></div>
+            <div class="hub-more-group"><h3>AJUSTES E SUPORTE</h3><button id="controlsBtn" type="button">Controles</button><label for="languageSelect">Idioma</label><select id="languageSelect" class="text-field"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select><button id="downloadBtn" type="button">Baixar Abyssal</button><button id="supportBtn" type="button">Suporte</button></div>
+          </div></details></div>
+        </div>
+        <footer class="hub-footer"><span>MAR ABERTO E FOSSAS · EM DESENVOLVIMENTO</span><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html" target="_blank" rel="noopener">Termos</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidade</a><a href="/community.html" target="_blank" rel="noopener">Comunidade</a><a href="/store-policy.html" target="_blank" rel="noopener">Loja e reembolsos</a></nav></footer>
       </div>
-      <div class="abyss-ocean-legal menu-footer"><nav class="legal-footer" aria-label="Informações legais"><a href="/terms.html" target="_blank" rel="noopener">Termos</a><a href="/privacy.html" target="_blank" rel="noopener">Privacidade</a><a href="/community.html" target="_blank" rel="noopener">Comunidade</a><a href="/store-policy.html" target="_blank" rel="noopener">Loja e reembolsos</a></nav></div>
     </section>
 
     <!-- Legacy event bridges, never menu elements. Existing Solo and Online handlers are retained. -->
@@ -576,7 +567,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     </section>
 <section id="resonanceScreen" class="screen modal-screen" hidden><div class="modal-card codex-modal resonance-modal" role="dialog" aria-modal="true" aria-labelledby="resonanceTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="resonanceScreen" aria-label="Fechar ressonância">×</button><div class="eyebrow"><span class="pulse-dot"></span> PREPARE SUA EVOLUÇÃO</div><h2 id="resonanceTitle">RESSONÂNCIA<br><em>ABISSAL</em></h2><p>Monte sua configuração de evolução: escolha até <strong>1 habilidade de Disparos</strong> e complete os 7 espaços com habilidades Defensivas e Passivas. Assim, vários modificadores de tiro não se acumulam na mesma configuração.</p><div class="resonance-mode-tabs"><button type="button" class="primary-btn" data-resonance-mode="pve" aria-label="Ressonância PvE">PVE</button><button type="button" class="secondary-btn" data-resonance-mode="pvp" disabled aria-disabled="true" aria-label="Ressonância PvP em desenvolvimento" title="Em desenvolvimento">PVP · EM BREVE</button></div><div id="resonanceSelectionCount" class="resonance-selection-count">7 de 7 selecionadas</div><div id="resonanceSkillChoices" class="resonance-skill-choices"></div><section id="resonanceFusionGuide" class="resonance-fusion-guide" aria-label="Fusões e combinações de habilidades"></section><p id="resonanceMessage" class="form-message" aria-live="polite"></p><button id="saveResonanceBtn" class="primary-btn" type="button">SALVAR COMBINAÇÃO</button></div></section>
     <section id="catalogScreen" class="screen modal-screen" hidden>
-      <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">CADERNO DE CAMPO · FOLHAS RECUPERADAS</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">O livro das profundezas é escrito a cada descoberta. As páginas desconhecidas permanecem lacradas até o primeiro avistamento nas Fossas.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
+      <div class="modal-card codex-modal abyss-journal" role="dialog" aria-modal="true" aria-labelledby="abyssJournalTitle"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="catalogScreen" aria-label="Fechar Abyssário">×</button><div class="eyebrow">BANCO DE DADOS BIOLÓGICOS · TERMINAL 07</div><h2 id="abyssJournalTitle">ABYSSÁRIO</h2><p class="journal-intro">Consulte criaturas, espécimes e seus atributos. Novos registros são identificados conforme suas descobertas durante os mergulhos.</p><div id="catalogGrid" class="catalog-grid"></div><button id="catalogCloseBtn" class="secondary-btn" data-close-screen="catalogScreen">VOLTAR AO MENU</button></div>
     </section>
     <section id="rankingsScreen" class="screen modal-screen" hidden>
       <div class="modal-card codex-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="rankingsScreen" aria-label="Fechar ranking">×</button><div class="eyebrow"><span class="pulse-dot"></span> HALL DOS SOBREVIVENTES</div><h2>RANKINGS<br><em>DO ABISMO</em></h2><p>Somente contas registradas entram nos rankings. A classificação é por bosses derrotados em um mergulho; energia e tempo servem como desempate. As recompensas diárias, semanais e mensais são entregues quando o período fecha.</p><div id="rankingContent" class="ranking-content"><p>Conecte-se à rede para carregar os rankings.</p></div><button id="rankingsCloseBtn" class="secondary-btn" data-close-screen="rankingsScreen">VOLTAR AO MENU</button></div>
@@ -731,7 +722,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=2026.11.13.integrated-v187"></script>
+<script src="client-build.js?v=2026.11.13.hub-v188"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -772,19 +763,19 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="rift-treasure.js?v=2026.11.7.2"></script>
 <script src="skin-motion.js?v=2026.11.7.6"></script>
 <script src="marine-art.js?v=2026.11.10.62"></script>
-<script src="diver-art.js?v=2026.11.12.102.welder"></script>
+<script src="diver-art.js?v=2026.11.13.hub-v188"></script>
 <script src="diver-hitbox.js?v=2026.11.7.3"></script>
 <script src="gravity-cone.js?v=2026.11.8.1"></script>
 <script src="specimen-evasion.js?v=2026.11.12.2"></script>
 <script src="abyssal-pet-tactics.js?v=2026.11.12.4"></script>
-<script src="abyssal-solo-cavern.js?v=2026.11.13.ocean-design-v184"></script>
+<script src="abyssal-solo-cavern.js?v=2026.11.13.hub-v188"></script>
 <script src="abyssal-solo-progress.js?v=2026.11.12.8"></script>
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
  <script src="abyssal-sample-audio.js?v=2026.11.13.ocean-design-v184"></script>
  <script src="abyssal-research-tree.js?v=1"></script>
- <script src="game.js?v=2026.11.13.ocean-design-v184"></script>
+ <script src="game.js?v=2026.11.13.hub-v188"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
@@ -832,7 +823,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.13.integrated-v187"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.13.hub-v188"></script>
 <script src="abyssal-submarine-cockpit.js?v=2026.11.13.ocean-design-v184"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>

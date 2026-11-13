@@ -40,6 +40,7 @@
   const bubbles=[],held=new Set(),keyMap={w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'};
   const hatchVisible=()=>document.body.classList.contains('abyss-hatch-navigation')&&!menu.hidden&&!document.body.classList.contains('game-active');
   const interactive=()=>{
+   if(menu.classList.contains('expedition-hub'))return false;
    if(!hatchVisible()||menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal||emergence<1)return false;
    for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel,#abyssalTutorialOverlay')){
     if(panel.hidden||!panel.isConnected)continue;
@@ -169,6 +170,7 @@
    '</div></div>';
   document.body.appendChild(divePanel);
   document.getElementById('exteriorGuideBtn')?.addEventListener('click',()=>window.AbyssalTutorials?.openManual('solo'));
+  const more=document.getElementById('hubMore');more?.addEventListener('click',e=>{if(e.target.closest('button'))more.open=false;});
   const closeDive=()=>{
    if(divePanel.hidden)return;
    divePanel.hidden=true;
@@ -253,7 +255,7 @@
   }
   const pad=document.getElementById('menuOceanMobilePad');
   if(pad){
-   pad.hidden=false;pad.replaceChildren();pad.classList.add('ocean-joystick');
+   pad.hidden=menu.classList.contains('expedition-hub');pad.replaceChildren();pad.classList.add('ocean-joystick');
    pad.setAttribute('aria-label','Joystick translúcido para nadar');
    const thumb=document.createElement('span');thumb.className='ocean-joystick-thumb';pad.appendChild(thumb);
    const drive=e=>{
@@ -368,7 +370,7 @@
        if(bubbleElapsed>.07){bubbleElapsed=0;bubble(px-Math.cos(heading)*15,py-Math.sin(heading)*15);}
       }
       // Free swimming only highlights a destination; entering requires a click or F.
-      const nearby=nearestStation();
+      const nearby=menu.classList.contains('expedition-hub')?null:nearestStation();
       if(nearby&&nearby.kind!=='lab'&&Math.hypot(px-nearby.wx,py-nearby.wy)<Math.max(23,Math.min(nearby.button.offsetWidth*.25,42))){
        nearElapsed=nearStationId===nearby.id?nearElapsed+dt:0;
        nearStationId=nearby.id;
@@ -380,7 +382,7 @@
     diver.style.setProperty('--diver-x',px+'px');
     diver.style.setProperty('--diver-y',py+'px');
     diver.classList.toggle('swimming',Boolean(transition)||emergence<1||Math.hypot(vx,vy)>5);
-    renderCurrents(now);
+    if(!menu.classList.contains('expedition-hub'))renderCurrents(now);
     if(bubbleCtx){
      bubbleCtx.clearRect(0,0,w,h);
      for(let i=bubbles.length-1;i>=0;i--){
