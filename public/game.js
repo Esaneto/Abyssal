@@ -2677,7 +2677,11 @@ function isPcMouseAimMode(){return !isMobileDevice()&&(!isClassicShooterRun()||c
 function isManualFiringMode(){return !isClassicShooterRun()||isPcMouseAimMode()||(isMobileDevice()&&controlSettings.mobile==='dual-stick');}
 function manualFireDown(){return isMobileDevice()?mobileFireHeld:pointer.down;}
 function syncMobileFireButton(){const btn=$('mobileFireBtn');if(btn)btn.hidden=!(gameState==='playing'&&isMobileDevice()&&isManualFiringMode());}
-function updateMouseAimFromCursor(){if(!isPcMouseAimMode()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
+function updateMouseAimFromCursor(){if(isMobileDevice()||!player||!Number.isFinite(pointer.clientX)||!Number.isFinite(pointer.clientY))return false;const rect=canvas.getBoundingClientRect();pointer.x=cameraX+(pointer.clientX-rect.left)/worldZoom;pointer.y=cameraY+(pointer.clientY-rect.top)/worldZoom;if(Math.hypot(pointer.x-player.x,pointer.y-player.y)>1)controlAimAngle=Math.atan2(pointer.y-player.y,pointer.x-player.x);return true;}
+function weaponAngleDelta(from,to){return Math.atan2(Math.sin(to-from),Math.cos(to-from));}
+function smoothWeaponAngle(from,to,dt,rate=24){const delta=weaponAngleDelta(from,to);return Math.abs(delta)<.012?to:from+delta*(1-Math.exp(-Math.max(0,dt)*rate));}
+function weaponAligned(angle,target){return Math.abs(weaponAngleDelta(angle,target))<=.065;}
+function setWeaponHeading(angle){player.weaponAngle=angle;player.angle=angle;}
 function getActiveShotId(){if(RESONANCE_CATEGORIES.shots.includes(runShotId))return runShotId;const preset=resonancePresets[onlineRoomMode==='pvp'?'pvp':'pve']||[];return preset.find(id=>RESONANCE_CATEGORIES.shots.includes(id))||(onlineRoomMode==='pvp'?'electric':'photon');}
 // A side-beam and its actual hit segment must stop at the same solid rock.
 // Single terrain visibility rule for PvE targeting, damage and visual rays.
@@ -2727,7 +2731,27 @@ function aimAtEnemy(target){
  const offset=player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14;
  return d>offset?heading-Math.asin(clamp(offset/d,-1,1)):heading;
 }
-function updateAutomaticWeaponAim(){if(!player||isManualFiringMode()||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;let target=null,best=getFiringRange();for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<best&&pveProjectileTerrainClear(player.x,player.y,e.x,e.y,2)){target=e;best=d;}}if(!target)return;player.weaponAngle=aimAtEnemy(target);player.angle=player.weaponAngle;}
+function automaticWeaponTarget(){
+ if(!player)return null;
+ const pvp=onlineRoomMode==='pvp',candidates=pvp?(window.AbyssalOnline?.getPlayers?.()||[]):enemies;
+ let target=null,best=getFiringRange();
+ for(const e of candidates){if(!e||e.alive===false||(!pvp&&(e.hp<=0||enemyHiddenFromAutoTarget(e))))continue;const d=dist(player,e);if(d<best&&(pvp||pveProjectileTerrainClear(player.x,player.y,e.x,e.y,2))){target=e;best=d;}}
+ return target;
+}
+function updateAutomaticWeaponAim(dt){
+ if(!player||soloSubmarine.repair||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;
+ const manual=isManualFiringMode(),cursorAvailable=updateMouseAimFromCursor();
+ if(manual){if(cursorAvailable)setWeaponHeading(controlAimAngle);return;}
+ const target=automaticWeaponTarget();
+ const beam=Number(upgrades.photonRay)>0,nova=Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0;
+ const timer=beam?0:nova?(Number(player.novaTimer)||0):(Number(player.fireTimer)||0);
+ // Start tracking shortly before a shot is due; return to the live mouse
+ // between attacks. A beam remains aimed while its target is present.
+ const tracking=Boolean(target&&(beam||timer<=.16||!cursorAvailable));
+ const aim=tracking?aimAtEnemy(target):cursorAvailable?controlAimAngle:Number(player.bodyAngle)||0;
+ const current=Number.isFinite(player.weaponAngle)?player.weaponAngle:aim;
+ setWeaponHeading(smoothWeaponAngle(current,aim,dt,tracking?32:18));
+}
 
 function fire(){
  if(soloSubmarine.repair)return;
@@ -2743,7 +2767,8 @@ function fire(){
  // Automatic targeting solves aim from the visible barrel, not from the torso.
  // All projectiles in a spread share the physical muzzle origin.
  let a=aimedMode?controlAimAngle:aimAtEnemy(target);
- player.weaponAngle=a;
+ if(!aimedMode&&!weaponAligned(Number(player.weaponAngle)||0,a))return false;
+ setWeaponHeading(a);
  const gunTip=DIVER_ART?.muzzle?.(player.x,player.y,player.r,a)||{x:player.x+Math.cos(a)*15,y:player.y+Math.sin(a)*15};
  const activeShot=getActiveShotId()||'electric',shotLevel=Math.max(1,Number(upgradeLevels[activeShot])||1);
  const baseDamage=shotLevel?getShotDamageAtLevel(shotLevel,activeShot):12;
@@ -2755,7 +2780,7 @@ function fire(){
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
  playWorldSound('shot-'+activeShot,null,850,1,{owner:'local-player',local:true,eventId:volleyId});
- for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);
+ for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);return true;
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -3128,10 +3153,10 @@ function update(dt){
     if(dd>12){mx=dx/dd;my=dy/dd}else{mx=0;my=0}
    }
    if(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25){mx=0;my=0;}
-   if(isPcMouseAimMode())updateMouseAimFromCursor();
+   if(!isMobileDevice())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
    if(soloSubmarine.repair){mx=0;my=0;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}if(!isManualFiringMode()){/* Body heading is independent of automatic weapon aim. */}else player.weaponAngle=player.angle;updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
+   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}/* Body and lamp heading are independent of weapon aim. */updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
    // Tiny cosmetic bubbles disperse quickly. They do not deal damage or use networking.
    diverBubbleClock+=dt;
    if(diverBubbleClock>=.075){
@@ -3148,11 +3173,11 @@ function update(dt){
      particles.push(p);
     }
    }}
-   if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim();
+   if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim(dt);
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
    if(!soloSubmarine.repair&&player.fireTimer<=0&&(!isManualFiringMode()||manualFireDown())&&(!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25)){
-    fire();player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
+    if(fire())player.fireTimer=Math.max(.12,BASE_SHOT_INTERVAL/((upgrades.rate||1)*specimenPassiveMultiplier('fireRate')));
    }
  }
  // Companion sim runs even if diver is not moving.
@@ -3232,7 +3257,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     const dx=(Number(candidate.x)||0)-player.x,dy=(Number(candidate.y)||0)-player.y,d=dx*dx+dy*dy;
     if(d<nearestDistance&&(isPvpMode||pveProjectileTerrainClear(player.x,player.y,candidate.x,candidate.y,2))){nearest=candidate;nearestDistance=d;}
    }
-   if(nearest){aimAngle=aimAtEnemy(nearest);hasAim=true;}
+   if(nearest){const targetAngle=aimAtEnemy(nearest);aimAngle=Number(player.weaponAngle)||0;hasAim=weaponAligned(aimAngle,targetAngle)||Boolean(player.photonRayActive);}
   }
   if(!hasAim){stopAudioLoop('beam','local-player');if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
@@ -3301,24 +3326,18 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  // Nova is still the primary shot when gravitationalRupture is fused.
  if((Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0)&&(!isManualFiringMode()||manualFireDown())){
   player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;
-  if(player.novaTimer<=0){
+  const novaTarget=isManualFiringMode()?null:automaticWeaponTarget();
+  if(player.novaTimer<=0&&(isManualFiringMode()||(novaTarget&&weaponAligned(Number(player.weaponAngle)||0,aimAtEnemy(novaTarget))))){
    player.novaTimer=isPvpMode?2.4:NOVA_SOLO_INTERVAL;
    const novaRange=getFiringRange(),combined=Number(upgrades.gravitationalRupture)>0;
    const novaLevel=Math.max(1,Math.min(3,Number(upgrades.nova)||Number(upgradeLevels.nova)||1));
    const novaDamage=(getShotDamageAtLevel(novaLevel,'nova')/BASE_SHOT_INTERVAL)*(upgrades.power||1);
    let novaAngle=Number(player.weaponAngle??player.angle)||0;
    if(isPcMouseAimMode()){
-    updateMouseAimFromCursor();novaAngle=Number(player.weaponAngle??player.angle)||0;
+    updateMouseAimFromCursor();novaAngle=Number(controlAimAngle)||0;
    }else if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){
     novaAngle=Number(controlAimAngle)||0;
-   }else{
-    let near=null,min=Infinity;
-    for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;
-     const d=Math.hypot(e.x-player.x,e.y-player.y);
-     if(d<novaRange&&d<min&&pveProjectileTerrainClear(player.x,player.y,e.x,e.y,2)){min=d;near=e;}
-    }
-    if(near)novaAngle=aimAtEnemy(near);
-   }
+   }else if(novaTarget){novaAngle=aimAtEnemy(novaTarget);}
    player.weaponAngle=novaAngle;player.angle=novaAngle;
    const volleyId=nextShotVolleyId(),speed=420/GAME_WORLD_ZOOM;
    const muzzle=DIVER_ART?.muzzle?.(player.x,player.y,player.r,novaAngle)||{x:player.x+Math.cos(novaAngle)*28/GAME_WORLD_ZOOM,y:player.y+Math.sin(novaAngle)*28/GAME_WORLD_ZOOM};
@@ -4989,7 +5008,7 @@ document.addEventListener('visibilitychange',()=>{
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
 canvas.addEventListener('pointerdown',e=>{if(gameState!=='playing'||isMobileDevice())return;pointer={...coords(e),clientX:e.clientX,clientY:e.clientY,down:true,active:true};canvas.setPointerCapture?.(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(!isMobileDevice()){pointer.clientX=e.clientX;pointer.clientY=e.clientY;Object.assign(pointer,coords(e));pointer.active=true;}});
-window.addEventListener('pointermove',e=>{if(isMobileDevice())return;pointer.clientX=e.clientX;pointer.clientY=e.clientY;if(isPcMouseAimMode()&&gameState==='playing')updateMouseAimFromCursor();},{passive:true});
+window.addEventListener('pointermove',e=>{if(isMobileDevice())return;pointer.clientX=e.clientX;pointer.clientY=e.clientY;if(gameState==='playing')updateMouseAimFromCursor();},{passive:true});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>canvas.addEventListener(ev,()=>{pointer.down=false;pointer.active=false}));
 const joystick=$('mobileJoystick'),joystickKnob=$('joystickKnob'),gameShell=$('gameShell');
 function setJoystickFromPointer(e){if(!joystick||!joystickKnob)return;const base=joystick.querySelector('.joystick-base');if(!base)return;const r=base.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,max=Math.max(18,r.width*.34);let dx=e.clientX-cx,dy=e.clientY-cy;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}joystickVector.x=dx/max;joystickVector.y=dy/max;joystickVector.active=Math.hypot(joystickVector.x,joystickVector.y)>.13;joystickKnob.style.transform=`translate(${dx}px, ${dy}px)`;}
