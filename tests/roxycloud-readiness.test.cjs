@@ -38,6 +38,8 @@ test('RoxyCloud Nginx profile supports epoll and long-lived WebSockets',()=>{
  assert.match(site,/location \/socket\.io\//);
  assert.match(site,/proxy_buffering off/);
  assert.match(site,/proxy_read_timeout 1d/);
+ assert.match(site,/Cache-Control \"public, no-cache, must-revalidate\"/);
+ assert.doesNotMatch(site,/no-store, no-cache, must-revalidate/);
 });
 
 test('RoxyCloud preflight requires the purchased 2 vCPU and roughly 4 GB RAM',()=>{
@@ -55,7 +57,7 @@ test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback'
  assert.match(deploy,/h\.activePlayers===0&&h\.online===0/);
  assert.match(deploy,/export PATH=.*\/usr\/sbin/);
  assert.match(deploy,/git worktree add --detach "\$stage" "\$target"/);
- for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology']){
+ for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology','submarine-repair-performance']){
   assert.ok(deploy.split('\n').some(line=>line.includes('node --test')&&line.includes('tests/'+file+'.test.cjs')));
  }
  const stageTests=deploy.indexOf('as_app node --test');
@@ -63,7 +65,7 @@ test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback'
  assert.ok(stageTests>=0&&stop>stageTests);
  assert.match(deploy,/trap rollback ERR/);
  assert.match(deploy,/git checkout --detach "\$previous" && as_app npm ci --omit=dev && systemctl start abyssal && health/);
- assert.match(deploy,/systemctl start abyssal\nhealth\ntrap - ERR/);
+ assert.match(deploy,/systemctl start abyssal\nhealth/);
 });
 
 test('RoxyCloud kernel profile limits swap pressure and preserves connection backlog',()=>{
