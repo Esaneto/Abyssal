@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 [[ $(id -u) == 0 ]] || { echo "Execute como root."; exit 1; }
-export PATH=/usr/local/bin:/usr/bin:/bin
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 exec 9>/run/lock/abyssal-deploy.lock
 flock -n 9 || exit 0
 cd /opt/abyssal
