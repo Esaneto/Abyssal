@@ -780,7 +780,7 @@ function getRoomSnapshot(room, metadata = {}, recipient=null){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,enemies:world.enemies.filter(e=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,name:s.name,x:s.x,y:s.y,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,enemies:world.enemies.filter(e=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -820,7 +820,7 @@ function getRoomMotionSnapshot(room, options = {}){
  const enemies=recipient?world.enemies.filter(e=>sendFar||(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)):world.enemies;
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
-  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,
+  snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,
   enemies:enemies.map(e=>{
    const x=Math.round((Number(e.x)||0)*100)/100,y=Math.round((Number(e.y)||0)*100)/100;
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
@@ -1822,6 +1822,29 @@ io.on('connection', socket => {
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
  socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
+ socket.on('submarine-power',async(_,ack)=>{
+  const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),u=users[socket.data.userKey],p=room?.players.get(socket.id);
+  if(!room||room.mode!=='coop'||!u||!p||p.alive===false||!room.world?.submarine)return reply({ok:false,message:'Submarino online indisponível.'});
+  const sub=room.world.submarine;if(Math.hypot(p.x-sub.x,p.y-sub.y)>390/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se do submarino.'});
+  const missing=Math.max(0,300-(Number(sub.powerSeconds)||0));if(missing<=.01)return reply({ok:false,message:'Submarino já está com carga máxima.'});
+  const needed=Math.max(1,Math.ceil(20*missing/300)),cost=Math.min(needed,Math.max(0,Number(u.energy)||0));if(cost<=0)return reply({ok:false,message:'Energia insuficiente.'});
+  u.energy=Math.max(0,(Number(u.energy)||0)-cost);sub.powerSeconds=Math.min(300,(Number(sub.powerSeconds)||0)+cost/20*300);saveUsers();await flushPersistence();socket.emit('account-data',publicUser(u));broadcastWorld(room,{submarine:true});reply({ok:true,cost,powerSeconds:sub.powerSeconds,account:publicUser(u)});
+ });
+ socket.on('submarine-repair',(payload={},ack)=>{
+  const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),p=room?.players.get(socket.id),sub=room?.world?.submarine,sectionId=Math.floor(Number(payload.sectionId));
+  if(!room||room.mode!=='coop'||!p||p.alive===false||!sub)return reply({ok:false,message:'Reparo online indisponível.'});
+  const section=(sub.sections||[]).find(s=>s.id===sectionId);if(!section||(Number(section.hp)||0)>=(Number(section.maxHp)||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP))return reply({ok:false,message:'Esta peça não precisa de reparo.'});
+  if(Math.hypot(p.x-section.x,p.y-section.y)>150/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se da peça danificada.'});
+  if(sub.repair&&Date.now()<Number(sub.repair.endsAt))return reply({ok:false,message:'Já existe um reparo em andamento.'});
+  const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
+  setTimeout(()=>{
+   const liveRoom=rooms.get(room.id),liveSub=liveRoom?.world?.submarine,livePlayer=liveRoom?.players.get(socket.id),job=liveSub?.repair;
+   if(!liveRoom||!liveSub||!livePlayer||!job||job.playerId!==socket.id||job.sectionId!==sectionId||job.endsAt!==endsAt)return;
+   const liveSection=(liveSub.sections||[]).find(s=>s.id===sectionId);
+   if(livePlayer.alive!==false&&liveSection&&Math.hypot(livePlayer.x-liveSection.x,livePlayer.y-liveSection.y)<=150/EnemyAI.WORLD_ZOOM){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
+   liveSub.repair=null;broadcastWorld(liveRoom,{submarine:true});
+  },WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000).unref?.();
+ });
  socket.on('leave-world', async () => { if(socket.data.userKey&&socket.data.joined) { try { await finishRunForSocket(socket,{}); } catch(err) { console.error('[run] Falha ao finalizar mergulho ao sair:',err.message); } } removeFromRoom(socket,{announce:true,emitResult:true}); });
  socket.on('client-visibility', payload => {
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!socket.data.joined)return;
