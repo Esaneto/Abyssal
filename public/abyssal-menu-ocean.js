@@ -63,17 +63,17 @@
    });
    if(bubbles.length>145)bubbles.splice(0,bubbles.length-145);
   };
-  function resetToHatch(){
+  function resetToHatch(fromCabin=false){
    if(w<10||h<10)return;
-   const pos=hatch();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
+   const pos=hatch();px=pos.x;py=fromCabin?pos.y:arrivalEnd();vx=0;vy=0;heading=Math.PI/2;
    diver.style.setProperty('--diver-x',px+'px');diver.style.setProperty('--diver-y',py+'px');
-   emergence=0;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
-   stage.classList.add('abyss-menu-arrival');stage.classList.remove('abyss-cabin-ready');
+   emergence=fromCabin?0:1;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
+   stage.classList.toggle('abyss-menu-arrival',fromCabin);stage.classList.toggle('abyss-cabin-ready',!fromCabin);
    nearElapsed=0;nearStationId=null;
    held.clear();joystickX=0;joystickY=0;
    const thumb=stage.querySelector('.ocean-joystick-thumb');if(thumb)thumb.style.transform='translate(0,0)';
    for(let i=0;i<12;i++)bubble(px,py+15,true);
-   diver.style.opacity='0';diver.style.setProperty('--abyss-exit-scale','.45');
+   diver.style.opacity=fromCabin?'0':'1';diver.style.setProperty('--abyss-exit-scale',fromCabin?'.45':'1');
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
@@ -199,7 +199,7 @@
    if(!menu.hidden&&!document.body.classList.contains('game-active')&&initialized)resetToHatch();
   }
   window.addEventListener('abyssal-modal-closed',event=>{
-   if(['roomsScreen','submarineWorkshop'].includes(event.detail?.screenId))closeReturn();
+   if(event.detail?.screenId==='submarineWorkshop'&&!menu.hidden&&initialized){resetToHatch(true);wasVisible=true;}else if(event.detail?.screenId==='roomsScreen')closeReturn();
   });
   window.addEventListener('abyssal-descent-closed',closeReturn);
   window.addEventListener('abyssal-menu-portal-cancelled',event=>{

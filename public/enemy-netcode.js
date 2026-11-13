@@ -72,7 +72,7 @@
       enemy.motionSampleMs = Number.isFinite(previous) ? previous * .82 + spacing * .18 : spacing;
       const jitter = Math.abs(arrivalSpacing - spacing);
       enemy.motionJitterMs = Number.isFinite(Number(enemy.motionJitterMs)) ? Number(enemy.motionJitterMs) * .82 + jitter * .18 : jitter;
-      enemy.motionBufferMs = clamp(MOTION_BUFFER_MS + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 125);
+      enemy.motionBufferMs = clamp(Math.max(MOTION_BUFFER_MS,spacing*1.35) + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 180);
     } else enemy.motionBufferMs = MOTION_BUFFER_MS;
     return true;
   }
@@ -89,8 +89,10 @@
     const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : null;
     if (samples && samples.length >= 2) {
       const latest = samples[samples.length - 1];
-      const serverNow = Number(latest.serverTime) + Math.max(0, now - Number(latest.receivedAt));
-      const desired = serverNow - clamp(Number(enemy.motionBufferMs) || MOTION_BUFFER_MS, 70, 125);
+      const offset=Number(latest.serverTime)-Number(latest.receivedAt);
+      // Estimate the clock from the least delayed recent packet, not the newest arrival.
+      const bestOffset=samples.reduce((best,s)=>Math.max(best,Number(s.serverTime)-Number(s.receivedAt)),offset);
+      const desired = now+bestOffset - clamp(Number(enemy.motionBufferMs) || MOTION_BUFFER_MS, 70, 180);
       const renderTime = monotonicRenderTime(enemy,desired,now,Number(latest.serverTime)+MAX_EXTRAPOLATION_MS);
       let a = samples[0], b = samples[1];
       for (let i = 1; i < samples.length; i++) {
@@ -107,8 +109,8 @@
       const previous = samples[samples.length - 2];
       const dt = Math.max(.001, (Number(latest.serverTime) - Number(previous.serverTime)) / 1000);
       const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 380 : 220;
-      const vx = clamp((Number(latest.x) - Number(previous.x)) / dt, -maxV, maxV);
-      const vy = clamp((Number(latest.y) - Number(previous.y)) / dt, -maxV, maxV);
+      let vx=(Number(latest.x)-Number(previous.x))/dt,vy=(Number(latest.y)-Number(previous.y))/dt;
+      const speed=Math.hypot(vx,vy);if(speed>maxV){vx*=maxV/speed;vy*=maxV/speed;}
       return { x: Number(latest.x) + vx * extraMs / 1000, y: Number(latest.y) + vy * extraMs / 1000 };
     }
     const x = Number(enemy.x), y = Number(enemy.y);
