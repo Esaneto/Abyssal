@@ -60,7 +60,7 @@
     },{once:true});
     navigator.serviceWorker.addEventListener('controllerchange',function(){
       try{
-        const key='abyssalSwReloadV147';
+        const key='abyssalSwReload:'+String(window.ABYSSAL_CLIENT_BUILD?.version||'unknown');
         if(sessionStorage.getItem(key)==='1')return;
         sessionStorage.setItem(key,'1');
         if(navigator.onLine!==false)window.location.reload();
