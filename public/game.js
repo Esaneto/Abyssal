@@ -625,7 +625,7 @@ function holdSoloHullAttack(e,dt,now){
  e.attackCd=Math.max(0,(Number(e.attackCd)||0)-dt);
  soloHullContact(e,now);return true;
 }
-const SOLO_HULL_REPAIR_SECONDS=30;
+const SOLO_HULL_REPAIR_SECONDS=6;
 function soloRepairCandidate(){
  if(!soloSubmarineActive()||!player||soloSubmarine.spawnFx>1.25)return null;
  let best=null,d=Infinity;
@@ -712,9 +712,20 @@ function soloWeaponSection(id){const x=(SOLO_WEAPON_MOUNTS[id]||SOLO_WEAPON_MOUN
 function soloWeaponOperational(id){return (soloWeaponSection(id)?.hp||0)>0;}
 function submarineMount(id){const [x,y,a]=SOLO_WEAPON_MOUNTS[id]||SOLO_WEAPON_MOUNTS.photon;return {x:soloSubmarine.x+x/GAME_WORLD_ZOOM,y:soloSubmarine.y+y/GAME_WORLD_ZOOM,a};}
 function submarineMuzzle(id,angle){const m=submarineMount(id),s=1/GAME_WORLD_ZOOM,px=m.x+Math.cos(m.a)*33*s,py=m.y+Math.sin(m.a)*33*s;return {x:px+Math.cos(angle)*48*s,y:py+Math.sin(angle)*48*s,px,py};}
-function soloSubmarineTarget(id){
- const m=submarineMount(id);let target=null,best=Infinity;
- for(const e of enemies){if(!e||e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const pivot=submarineMuzzle(id,m.a),a=Math.atan2(e.y-pivot.py,e.x-pivot.px),delta=Math.atan2(Math.sin(a-m.a),Math.cos(a-m.a));if(Math.abs(delta)>Math.PI*.60)continue;const muzzle=submarineMuzzle(id,a),d=Math.hypot(e.x-muzzle.x,e.y-muzzle.y);if(d<=SOLO_SUB_RANGE&&d<best&&pveProjectileTerrainClear(muzzle.x,muzzle.y,e.x,e.y,4/GAME_WORLD_ZOOM)){best=d;target={enemy:e,angle:a};}}
+const soloSubmarineTargetCandidates=[];
+function refreshSoloSubmarineTargetCandidates(){
+ soloSubmarineTargetCandidates.length=0;
+ for(const e of enemies)if(e&&e.hp>0&&!enemyHiddenFromAutoTarget(e))soloSubmarineTargetCandidates.push(e);
+ return soloSubmarineTargetCandidates;
+}
+function soloSubmarineTarget(id,candidates=soloSubmarineTargetCandidates){
+ const m=submarineMount(id),pivot=submarineMuzzle(id,m.a),rangeSq=SOLO_SUB_RANGE*SOLO_SUB_RANGE;let target=null,bestSq=rangeSq+1;
+ for(const e of candidates){
+  const a=Math.atan2(e.y-pivot.py,e.x-pivot.px),delta=Math.atan2(Math.sin(a-m.a),Math.cos(a-m.a));if(Math.abs(delta)>Math.PI*.60)continue;
+  const muzzle=submarineMuzzle(id,a),dx=e.x-muzzle.x,dy=e.y-muzzle.y,dSq=dx*dx+dy*dy;
+  if(dSq>=bestSq||dSq>rangeSq||!pveProjectileTerrainClear(muzzle.x,muzzle.y,e.x,e.y,4/GAME_WORLD_ZOOM))continue;
+  bestSq=dSq;target={enemy:e,angle:a};
+ }
  return target;
 }
 function clearSoloSubmarinePhotonRay(){for(let i=effects.length-1;i>=0;i--)if(effects[i].submarinePhotonBeam)effects.splice(i,1);}
@@ -728,7 +739,7 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
   if(soloSubmarine.weaponTimers[id]>0)return;
   soloSubmarine.weaponTimers[id]=interval;
   (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
-  for(const e of [...enemies]){
+  for(const e of enemies){
    if(!e||e.hp<=0||!PHOTON_RAY_VISUAL.segmentCircleHit(ox,oy,end.x2,end.y2,e.x,e.y,e.r+width*.5))continue;
    dealEnemyDamage(e,damage/BASE_SHOT_INTERVAL*interval,'photonRay',{origin:muzzle});e.hit=.08;burst(e.x,e.y,'#bafaff',2,35);
   }
@@ -739,7 +750,7 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
  (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
  if(id==='nova'){
   const novaDamage=damage/BASE_SHOT_INTERVAL;
-  for(const e of [...enemies]){
+  for(const e of enemies){
    if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(ox,oy,a,e.x,e.y,e.r,SOLO_SUB_RANGE)||!pveProjectileTerrainClear(ox,oy,e.x,e.y,2))continue;
    dealEnemyDamage(e,novaDamage,'nova',{origin:muzzle});burst(e.x,e.y,'#72f5ff',3,70);
   }
@@ -762,7 +773,8 @@ function updateSoloSubmarine(dt){
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
  const shots=window.AbyssalSoloBase?.installedWeapons?.()||[];
  if(!shots.includes('photonRay')||!soloWeaponOperational('photonRay'))clearSoloSubmarinePhotonRay();
- shots.forEach(id=>{if(!soloWeaponOperational(id))return;soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id);if(!target){if(id==='photonRay')clearSoloSubmarinePhotonRay();return;}soloSubmarine.weaponAngles[id]=target.angle;fireSoloSubmarineWeapon(id,target.enemy,target.angle,dt);});
+ const candidates=refreshSoloSubmarineTargetCandidates();
+ shots.forEach(id=>{if(!soloWeaponOperational(id))return;soloSubmarine.weaponTimers[id]=Math.max(0,(Number(soloSubmarine.weaponTimers[id])||0)-dt);const target=soloSubmarineTarget(id,candidates);if(!target){if(id==='photonRay')clearSoloSubmarinePhotonRay();return;}soloSubmarine.weaponAngles[id]=target.angle;fireSoloSubmarineWeapon(id,target.enemy,target.angle,dt);});
 }
 function drawSoloSubmarine(t){
  if(!soloSubmarineActive()&&gameState!=='paused')return;
