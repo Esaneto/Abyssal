@@ -160,7 +160,7 @@
    '<small>ESCOLHA SEU MERGULHO</small><h2 id="abyssDiveChoiceTitle">MERGULHAR</h2>'+
    '<div class="abyss-dive-choice-actions">'+
     '<button type="button" id="abyssDiveSoloChoice"><strong>MERGULHAR SOLO</strong><span>Jogar sozinho no modo clássico</span></button>'+
-    '<button type="button" id="abyssDiveOnlineChoice"><strong>MERGULHAR ONLINE</strong><span>Escolher uma sala online</span></button>'+
+    '<button type="button" id="abyssDiveOnlineChoice" class="online-test-ready"><strong>MERGULHAR ONLINE</strong><span>DISPONÍVEL PARA TESTE</span></button>'+
    '</div></div>';
   document.body.appendChild(divePanel);
   const closeDive=()=>{
@@ -183,10 +183,11 @@
   });
   divePanel.querySelector('#abyssDiveOnlineChoice')?.addEventListener('click',()=>{
    divePanel.hidden=true;
-   // Classic Online mirrors the Solo shooter; other room types remain accessible from the room browser.
+   // Classic Online is released for testing and joins the permanent Solo-equivalent room.
    window.AbyssalPreferredRoomMode='coop';
    var mode=document.getElementById('roomModeInput');if(mode)mode.value='coop';
-   document.getElementById('onlineBtn')?.click();
+   if(window.AbyssalOnline?.isAuthenticated?.())window.AbyssalOnline.joinRoom('MERGULHO-ONLINE');
+   else window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');
    if(!menu.hidden)closeReturn();
   });
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!divePanel.hidden){event.preventDefault();closeDive();}});

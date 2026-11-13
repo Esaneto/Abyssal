@@ -435,7 +435,7 @@ function showRooms(){
  const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
 }
 function requestRooms(){if(socket?.connected)socket.emit('list-rooms');refreshRoomsHttp();}
-function connectAndJoin(){
+function connectAndJoin(targetRoom='MERGULHO-ONLINE'){
  const s=connect();if(!s){if(navigator.onLine!==false){pendingJoinAfterClient=true;setMessage('Carregando o cliente online…');}else setMessage('Sem internet: entre em MERGULHAR para jogar solo.',true);return;}
  if(authenticated){window.AbyssalOnlinePendingStart=false;showRooms();return;}
  window.AbyssalOnlinePendingStart=true;
@@ -823,8 +823,8 @@ function revivePlayer(){if(socket?.connected&&authenticated)socket.emit('revive-
  $('matchHistoryBtn')?.addEventListener('click',()=>openMatchHistory());
  $('onlineBtn')?.addEventListener('click',()=>{
   window.AbyssalPreferredRoomMode='coop';
-  if(authenticated)showRooms();
-  else connectAndJoin();
+  if(authenticated)joinRoom('MERGULHO-ONLINE');
+  else connectAndJoin('MERGULHO-ONLINE');
  });
 document.addEventListener('visibilitychange',()=>{
  const hidden=Boolean(document.hidden);
