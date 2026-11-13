@@ -646,6 +646,7 @@ function queueRoomDirectory(work){const run=roomDirectoryQueue.then(work,work);r
 const deletingRoomIds = new Set();
 const pendingRoomDeletion = new Set();
 const DEFAULT_ROOM_ID = 'MAR-ABERTO';
+const CLASSIC_ROOM_ID = 'MERGULHO-ONLINE';
 const PVP_ROOM_ID = 'MAR-VERMELHO';
 const FOSSAS_ROOM_ID = 'MAR-ABYSSAL';
 const curatedSkins=require('./public/abyssal-curated-skins.js');
@@ -695,6 +696,7 @@ function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,c
  return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
 rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6,mode:'open-sea'}));
+rooms.set(CLASSIC_ROOM_ID,makeRoom({id:CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'}));
 rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
 rooms.set(FOSSAS_ROOM_ID,makeRoom({id:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',capacity:6,mode:'rift'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
@@ -737,7 +739,7 @@ function publicRoomInfo(room){
  const bossCount=room.world.enemies.filter(e=>isBossKind(e.kind)).length;
  return {id:room.id,code:room.id,name:room.name,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
 }
-function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===DEFAULT_ROOM_ID?0:id===PVP_ROOM_ID?1:id===FOSSAS_ROOM_ID?2:3;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
+function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===CLASSIC_ROOM_ID?0:id===DEFAULT_ROOM_ID?1:id===PVP_ROOM_ID?2:id===FOSSAS_ROOM_ID?3:4;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
 function roomList(){return sortRoomInfos([...rooms.values()].map(publicRoomInfo));}
 async function roomListForClients(){
  const merged=new Map();
@@ -749,7 +751,8 @@ async function roomListForClients(){
  }
  // Live in-process rooms contain the authoritative player count and are always joinable by this process.
  for(const room of rooms.values())if(!deletingRoomIds.has(room.id))merged.set(room.id,publicRoomInfo(room));
- if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(CLASSIC_ROOM_ID))merged.set(CLASSIC_ROOM_ID,{id:CLASSIC_ROOM_ID,code:CLASSIC_ROOM_ID,name:'Mergulho Online',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
+ if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'open-sea',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  if(!merged.has(PVP_ROOM_ID))merged.set(PVP_ROOM_ID,{id:PVP_ROOM_ID,code:PVP_ROOM_ID,name:'Mar Vermelho',mode:'pvp',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  if(!merged.has(FOSSAS_ROOM_ID))merged.set(FOSSAS_ROOM_ID,{id:FOSSAS_ROOM_ID,code:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
  return sortRoomInfos([...merged.values()]);
@@ -862,7 +865,7 @@ async function persistRoomRow(room){
  });
 }
 async function deleteRoomRow(roomId){
- if(roomId===DEFAULT_ROOM_ID){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
+ if(roomId===DEFAULT_ROOM_ID||roomId===CLASSIC_ROOM_ID){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
  deletingRoomIds.add(roomId);
  if(!pgPool||!roomRegistryReady){pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);return;}
  try{return await queueRoomDirectory(async()=>{await pgPool.query('DELETE FROM abyssal_rooms WHERE room_id=$1',[roomId]);pendingRoomDeletion.delete(roomId);deletingRoomIds.delete(roomId);});}
@@ -900,7 +903,7 @@ function clearRoomWorld(room){
  if(room.pvpProjectiles)room.pvpProjectiles.length=0;
 }
 function scheduleUnjoinedRoomExpiry(room,delay=30000){
- if(!room||room.id===DEFAULT_ROOM_ID||room.id===PVP_ROOM_ID||room.id===FOSSAS_ROOM_ID)return;
+ if(!room||room.id===DEFAULT_ROOM_ID||room.id===CLASSIC_ROOM_ID||room.id===PVP_ROOM_ID||room.id===FOSSAS_ROOM_ID)return;
  if(room.emptyRoomTimer)clearTimeout(room.emptyRoomTimer);
  room.emptyRoomTimer=setTimeout(()=>{
   room.emptyRoomTimer=null;
