@@ -841,7 +841,6 @@ function getRoomMotionSnapshot(room, options = {}){
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
   snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:motionNow,tickCount:world.tickCount||0,intervalMs:50,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,
-  enemyCatalog:room.mode==='coop'&&(Number(world.tickCount)||0)%20===0?enemies.map(({damageContributors,...enemy})=>enemy):undefined,
   enemies:enemies.map(e=>{
    const x=Math.round((Number(e.x)||0)*100)/100,y=Math.round((Number(e.y)||0)*100)/100;
     const base=[e.id,x,y,Number(e.hp)||0,Number(e.damageRevision)||0,Math.round((Number(e.angle)||0)*1000)/1000,Math.round((Number(e.phase)||0)*1000)/1000];
@@ -917,6 +916,7 @@ function ensureWorld(room){
 function clearRoomWorld(room){
  if(!room)return;
  room.world=makeWorldState(room.mode);
+ room.matchParticipants=new Map();
  // Persistent PvP room must never carry unfinished attacks into the next session.
  if(room.pvpProjectiles)room.pvpProjectiles.length=0;
 }
