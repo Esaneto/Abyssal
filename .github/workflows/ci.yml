@@ -177,6 +177,7 @@ jobs:
           ABYSSAL_ADMOB_REVIVE_ID: ${{ vars.ABYSSAL_ADMOB_REVIVE_ID }}
           ABYSSAL_ADMOB_WHEEL_ID: ${{ vars.ABYSSAL_ADMOB_WHEEL_ID }}
           ABYSSAL_ADMOB_TEST_MODE: ${{ vars.ABYSSAL_ADMOB_TEST_MODE }}
+          ABYSSAL_ADMOB_PRODUCTION_ENABLED: ${{ vars.ABYSSAL_ADMOB_PRODUCTION_ENABLED }}
         run: node scripts/configure-android-admob.cjs
       - name: Configure optional release signing
         shell: bash
