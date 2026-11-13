@@ -1047,7 +1047,7 @@ function createArenaRocks(){
  // Exploration uses natural geology. Classic Solo/Online and PvP use arena stones.
  if(usesNaturalOceanTerrain()||isRiftRun())return;
  // Solo no longer uses the old perimeter art; its solid shelves are the whole arena.
- if(!onlineMode&&isClassicShooterRun()&&SOLO_CAVERN){arenaRocks=SOLO_CAVERN.buildRocks(W,H);ensureSoloHull();return;}
+ if(isClassicShooterRun()&&onlineRoomMode!=='pvp'&&SOLO_CAVERN){arenaRocks=SOLO_CAVERN.buildRocks(W,H);ensureSoloHull();return;}
  if(onlineRoomMode==='pvp'){
   const minDim=Math.min(W,H),cx=W*.5,cy=H*.5;
   const rnd=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453123;return v-Math.floor(v);};
