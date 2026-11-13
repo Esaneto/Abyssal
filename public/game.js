@@ -684,7 +684,7 @@ window.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&(soloSubmar
 const SOLO_SUB_RANGE=650/GAME_WORLD_ZOOM;
 function soloSubmarineActive(){return isClassicShooterRun()&&gameState==='playing'&&(!onlineMode||onlineRoomMode==='coop');}
 function resetSoloSubmarine(){
- soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:2.2,weaponTimers:Object.create(null),weaponAngles:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0,repair:null};
+ soloSubmarine={x:W*.5,y:H*.39,powerSeconds:0,spawnFx:1.25,weaponTimers:Object.create(null),weaponAngles:Object.create(null),sections:[],debris:[],shieldSpent:false,shieldFlashUntil:0,repair:null};
  ensureSoloHull();
 }
 function ensureSoloHull(){if(!SOLO_CAVERN?.submarineHull||!soloSubmarine.x)return;if(!soloSubmarine.sections.length)soloSubmarine.sections=makeSoloHullSections();syncSoloHull();}
@@ -778,10 +778,6 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
 }
 function updateSoloSubmarine(dt){
  if(!soloSubmarineActive())return;
- if(!onlineMode&&soloSubmarine.spawnFx>1.25&&player){
-  const q=clamp((2.2-soloSubmarine.spawnFx+dt)/.95,0,1),travel=q*q*(3-2*q);
-  player.x=soloSubmarine.x;player.y=soloSubmarine.y+(130+40*travel)/GAME_WORLD_ZOOM;player.bodyAngle=Math.PI/2;player.angle=Math.PI/2;player.weaponAngle=Math.PI/2;player.invuln=Math.max(player.invuln||0,.25);if(player.specimen){player.specimen.x=player.x;player.specimen.y=player.y+28/GAME_WORLD_ZOOM;}updateCamera();
- }
  soloSubmarine.spawnFx=Math.max(0,soloSubmarine.spawnFx-dt);
  for(let i=soloSubmarine.debris.length-1;i>=0;i--){const d=soloSubmarine.debris[i];d.life-=dt;if(d.life<=0){soloSubmarine.debris.splice(i,1);continue;}d.x+=d.vx*dt;d.y+=d.vy*dt;d.vy+=28*dt/GAME_WORLD_ZOOM;d.angle+=d.spin*dt;}
  if(soloSubmarine.powerSeconds<=0){clearSoloSubmarinePhotonRay();return;}
@@ -997,10 +993,7 @@ function updateCamera(){
  cameraZoomTickAt=now;
  if(!player){cameraX=0;cameraY=0;return;}
  const visibleWorldW=viewW/worldZoom,visibleWorldH=viewH/worldZoom;
- const launching=isClassicCavernRun()&&soloSubmarine.spawnFx>0;
- const follow=launching?clamp((1.25-soloSubmarine.spawnFx)/1.25,0,1):1;
- const focusX=launching?soloSubmarine.x+(player.x-soloSubmarine.x)*follow:player.x;
- const focusY=launching?soloSubmarine.y+(player.y-soloSubmarine.y)*follow:player.y;
+ const focusX=player.x,focusY=player.y;
  cameraX=clamp(focusX-visibleWorldW*.5,0,Math.max(0,W-visibleWorldW));
  cameraY=clamp(focusY-visibleWorldH*.5,isOpenSeaRun()?-Math.min(240,visibleWorldH*.32):0,Math.max(0,H-visibleWorldH));
 }
@@ -1677,7 +1670,8 @@ if(isOpenSeaRun()){
  // Recreate bounds for the selected mode, not the menu's previous dimensions.
  createArenaRocks();
  if(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop'))resetSoloSubmarine();
- const soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.y+130/GAME_WORLD_ZOOM:H*.11)};
+ let soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.y+170/GAME_WORLD_ZOOM:H*.11)};
+ if(isClassicCavernRun())soloSpawn=SOLO_CAVERN?.submarineSpawn?.(arenaRocks,W,H,soloSubmarine,GAME_WORLD_ZOOM)||soloSpawn;
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
  player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
@@ -2426,7 +2420,7 @@ function applySharedSnapshot(data){
  }
  if(data.map)setActiveMapDescriptor(data.map);
  if(data.submarine&&onlineRoomMode==='coop'){
-  if(!soloSubmarine.sections.length||Math.abs(soloSubmarine.x-(Number(data.submarine.x)||W*.5))>1){soloSubmarine.x=Number(data.submarine.x)||W*.5;soloSubmarine.y=Number(data.submarine.y)||H*.39;soloSubmarine.sections=[];ensureSoloHull();}
+  if(!soloSubmarine.sections.length||Math.abs(soloSubmarine.x-(Number(data.submarine.x)||W*.5))>1||Math.abs(soloSubmarine.y-(Number(data.submarine.y)||H*.39))>1){soloSubmarine.x=Number(data.submarine.x)||W*.5;soloSubmarine.y=Number(data.submarine.y)||H*.39;soloSubmarine.sections=[];ensureSoloHull();}
   soloSubmarine.powerSeconds=Math.max(0,Number(data.submarine.powerSeconds)||0);onlineSubmarineControllerId=String(data.submarine.controllerId||'')||null;onlineSubmarineWeapons=Array.isArray(data.submarine.weapons)?[...data.submarine.weapons]:onlineSubmarineWeapons;
   let hullChanged=false;for(const remote of data.submarine.sections||[]){const local=soloSubmarine.sections.find(s=>s.id===Number(remote.id));if(!local)continue;const next=clamp(Number(remote.hp)||0,0,SOLO_HULL_HP);if(local.hp!==next){if(local.hp>0&&next===0){const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:local.x+Math.cos(a)*55*scale,y:local.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}}if((local.hp>0)!==(next>0))hullChanged=true;local.hp=next;}}
   if(hullChanged)syncSoloHull();
@@ -2465,11 +2459,9 @@ function applySharedSnapshot(data){
  observeOnlineServerMotion(data);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  const previousBossIds=new Set(enemies.filter(e=>BOSS_KINDS.includes(e.kind)).map(e=>e.id));
- // Snapshots reconcile authoritative gameplay fields, but positions belong to the shared
- // local movement step. Never assign finite interpolation targets here: draw() uses a
- // finite interpTargetX/Y as a hard set-position operation and would freeze first-spawned mobs.
+ // Full and compact snapshots share the same timestamped motion history.
  if(window.AbyssalEnemyNetcode?.reconcileSnapshot){
-  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/GAME_WORLD_ZOOM,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:72,criticalIds:authoritativeCriticalIds||data.criticalEnemyIds||[]});
+  enemies=window.AbyssalEnemyNetcode.reconcileSnapshot(enemies,data.enemies,{radiusScale:1/GAME_WORLD_ZOOM,maxX:W,maxY:H,minX:0,minY:0,now,interpolationMs:72,serverTime:incomingServerTime,criticalIds:authoritativeCriticalIds||data.criticalEnemyIds||[],resetMotion:forceResync});
  }else{
   // Fallback mirrors the authoritative interpolation module instead of running a
   // second enemy simulation in the browser.
@@ -2526,12 +2518,13 @@ function applySharedMotion(data){
   const vx=clamp((tx-previousServerX)/(sampleMs/1000),-maxV,maxV),vy=clamp((ty-previousServerY)/(sampleMs/1000),-maxV,maxV);
   const teleport=Math.hypot(tx-current.x,ty-current.y)>260;
   // Lead one fraction of the server update and animate until its next 125ms packet.
-  const lead=Math.min(34,sampleMs*.24)/1000,visualDuration=teleport?0:clamp(sampleMs*1.02,104,145);
+  const visualDuration=teleport?0:clamp(sampleMs,45,90);
   enemy.x=teleport?tx:current.x;enemy.y=teleport?ty:current.y;
   enemy.serverX=tx;enemy.serverY=ty;enemy.snapshotReceivedAt=now;
-   window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:now});
+  if(teleport){enemy.motionSamples=[];enemy.motionRenderTime=null;enemy.motionRenderAt=null;}
+  window.AbyssalEnemyNetcode?.pushMotionSample?.(enemy,{x:tx,y:ty,serverTime:serverTime||Date.now(),receivedAt:now});
   enemy.interpFromX=enemy.x;enemy.interpFromY=enemy.y;
-  enemy.interpTargetX=clamp(tx+vx*lead,0,W);enemy.interpTargetY=clamp(ty+vy*lead,0,H);
+  enemy.interpTargetX=tx;enemy.interpTargetY=ty;
   enemy.interpAt=now;enemy.interpDuration=visualDuration;
   enemy.vx=vx;enemy.vy=vy;
   const incomingRevision=Math.max(0,Number(row[4])||0),currentRevision=Math.max(0,Number(enemy.damageRevision)||0);
@@ -4723,7 +4716,7 @@ function draw(t){
 
  if(!(hudCollapsed&&isClassicCavernRun()))for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35)*(isClassicCavernRun()?.6:1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='received'?'#ff274a':number.tone==='skin'?'#52ff86':number.tone==='poison'?'#4bff7d':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
  const particleShadowBlur=0;let particleDrawIndex=0;for(const p of particles){if(adaptiveQualityLevel===0&&particleDrawIndex++%3!==0)continue;if(adaptiveQualityLevel===1&&particleDrawIndex++%3===2)continue;if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();const pr=p.r*(.4+.6*p.life/p.max);ctx.arc(p.x,p.y,pr,0,Math.PI*2);if(p.bubble){ctx.fillStyle='rgba(215,250,255,.16)';ctx.fill();ctx.strokeStyle=p.color;ctx.lineWidth=.75/worldZoom;ctx.stroke();if(pr>1.2/worldZoom){ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.arc(p.x-pr*.32,p.y-pr*.32,pr*.25,0,Math.PI*2);ctx.fill();}}else ctx.fill()}ctx.globalAlpha=1;
- if(player){if((!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25||player.y>=soloSubmarine.y+86/GAME_WORLD_ZOOM)&&(damageFlash<=0||Math.floor(t/60)%2===0)){const opening=onlineMode&&isClassicCavernRun()&&soloSubmarine.spawnFx>1.25,launchQ=opening?clamp((2.2-soloSubmarine.spawnFx)/.95,0,1):1,launchY=opening?soloSubmarine.y+(130+40*launchQ*launchQ*(3-2*launchQ))/GAME_WORLD_ZOOM:player.y;drawDiver(player.x,launchY,player.r,opening?Math.PI/2:player.bodyAngle||0,t,false,opening?Math.PI/2:player.weaponAngle??player.angle??0,diverGender,isOpenSeaRun()?explorationHeldItem:'abyssWeapon');
+ if(player){if((!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25||player.y>=soloSubmarine.y+86/GAME_WORLD_ZOOM)&&(damageFlash<=0||Math.floor(t/60)%2===0)){drawDiver(player.x,player.y,player.r,player.bodyAngle||0,t,false,player.weaponAngle??player.angle??0,diverGender,isOpenSeaRun()?explorationHeldItem:'abyssWeapon');
   if((!isOpenSeaRun()||explorationHeldItem==='abyssWeapon')&&performance.now()<Number(player.skinWeaponBuffUntil||0))drawWeaponInfusion(player.x,player.y,player.r,player.weaponAngle??player.angle??0,t,player.skinWeaponBuffKind);
   if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed,visualAttackUntil:Number(player.specimen.visualAttackUntil)||0,vx:Number(player.specimen.vx)||0,vy:Number(player.specimen.vy)||0,specimenCombatPhase:performance.now()*.0018});
   const bite=player.specimen.biteAnimation;if(bite){const q=clamp((performance.now()-bite.startedAt)/bite.duration,0,1);if(q>=1)player.specimen.biteAnimation=null;else drawSpecimenBite(player.specimen,sa,bite,q);}
@@ -5699,7 +5692,7 @@ function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.re
  for(const id of [...screens,'roomsScreen','loginScreen']){const node=$(id);if(node)node.hidden=true;}
  document.body.classList.add('game-active');
  try{createArenaRocks();}catch(error){console.error('[online-entry] Falha ao preparar arena; continuando entrada:',error);arenaRocks=[];}
- if(!canResume){startGame(Boolean(d.resumedRun));if(d.resumedRun&&d.updateClient){const c=d.updateClient;for(const k of Object.keys(upgrades))if(Number.isFinite(c.upgrades?.[k])||typeof c.upgrades?.[k]==='boolean')upgrades[k]=c.upgrades[k];for(const k of Object.keys(upgradeLevels))if(Number.isFinite(c.upgradeLevels?.[k]))upgradeLevels[k]=Math.max(0,Math.min(3,c.upgradeLevels[k]));if(Array.isArray(c.chosen))chosen=c.chosen;if(RESONANCE_CATEGORIES.shots.includes(c.runShotId))runShotId=c.runShotId;if(Array.isArray(c.runResonanceIds))runResonanceIds=c.runResonanceIds.filter(id=>BASIC_SKILL_IDS.includes(id));}}else{gameState='playing';last=performance.now();onlineDamageQueue.length=0;const hud=$('hud'),toggle=$('toggleHudBtn'),pause=$('pauseBtn');if(hud)hud.hidden=false;if(toggle)toggle.hidden=false;if(pause)pause.hidden=false;setMobileGameActive(true);window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});}if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);if(d.spawn)window.AbyssalGameHooks?.setPlayerPosition?.(d.spawn.x,d.spawn.y);if(d.resumedRun&&isClassicCavernRun())soloSubmarine.spawnFx=0;if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);if(d.resumedRun&&d.runResume)restoreDeployRunProgress(d.runResume);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}scheduleGameLoop();showToast(d.reconnected&&d.resumedRun?'CONEXÃO RESTAURADA · EXPEDIÇÃO RETOMADA':onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'));}
+ if(!canResume){startGame(Boolean(d.resumedRun));if(d.resumedRun&&d.updateClient){const c=d.updateClient;for(const k of Object.keys(upgrades))if(Number.isFinite(c.upgrades?.[k])||typeof c.upgrades?.[k]==='boolean')upgrades[k]=c.upgrades[k];for(const k of Object.keys(upgradeLevels))if(Number.isFinite(c.upgradeLevels?.[k]))upgradeLevels[k]=Math.max(0,Math.min(3,c.upgradeLevels[k]));if(Array.isArray(c.chosen))chosen=c.chosen;if(RESONANCE_CATEGORIES.shots.includes(c.runShotId))runShotId=c.runShotId;if(Array.isArray(c.runResonanceIds))runResonanceIds=c.runResonanceIds.filter(id=>BASIC_SKILL_IDS.includes(id));}}else{gameState='playing';last=performance.now();onlineDamageQueue.length=0;const hud=$('hud'),toggle=$('toggleHudBtn'),pause=$('pauseBtn');if(hud)hud.hidden=false;if(toggle)toggle.hidden=false;if(pause)pause.hidden=false;setMobileGameActive(true);window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),ricochetLevel:upgrades.ricochet,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});}if(onlineRoomMode==='pvp'){enemies.length=0;orbs.length=0;projectiles.length=0;}if(player)player.invuln=Math.max(player.invuln,5);if(d.snapshot)window.AbyssalGameHooks?.applySnapshot(d.snapshot);if(d.spawn){let point=d.spawn;if(isClassicCavernRun()&&SOLO_CAVERN?.isBlocked(arenaRocks,point.x,point.y,25/GAME_WORLD_ZOOM))point=SOLO_CAVERN.submarineSpawn(arenaRocks,W,H,soloSubmarine,GAME_WORLD_ZOOM);window.AbyssalGameHooks?.setPlayerPosition?.(point.x,point.y);if(player?.specimen){player.specimen.x=player.x;player.specimen.y=player.y+28/GAME_WORLD_ZOOM;}}if(d.resumedRun&&isClassicCavernRun())soloSubmarine.spawnFx=0;if(d.resumedRun&&d.runResume)restoreDeployRunProgress(d.runResume);const badge=$('roomBadge');if(badge){badge.textContent=`${onlineRoomMode==='pvp'?'⚠ ARENA PvP':'⌁'} ${d.room?.id||''}`;badge.dataset.roomCode=d.room?.id||'';badge.dataset.mode=onlineRoomMode;badge.classList.toggle('pvp-room-badge',onlineRoomMode==='pvp');badge.hidden=false;}scheduleGameLoop();showToast(d.reconnected&&d.resumedRun?'CONEXÃO RESTAURADA · EXPEDIÇÃO RETOMADA':onlineRoomMode==='pvp'?'⚠ ARENA PvP · PERIGO':'MERGULHAR ONLINE · '+(d.room?.name||'SALA ABISSAL'));}
 function activateOnlineEntry(detail){try{enterOnlineGameplay(detail||{});return document.body.classList.contains('game-active')&&gameState==='playing';}catch(error){console.error('[online-entry] Falha ao inicializar gameplay após confirmação da sala:',error);const menu=$('menuScreen'),rooms=$('roomsScreen'),login=$('loginScreen'),hud=$('hud'),pause=$('pauseBtn'),toggle=$('toggleHudBtn');if(menu)menu.hidden=true;if(rooms)rooms.hidden=true;if(login)login.hidden=true;document.body.classList.add('game-active');onlineMode=true;gameState='playing';setMobileGameActive(true);if(hud)hud.hidden=false;if(pause)pause.hidden=false;if(toggle)toggle.hidden=false;last=performance.now();scheduleGameLoop();return true;}}
 window.addEventListener('abyssal-room-joined',ev=>{if(!activateOnlineEntry(ev.detail))showToast('Falha ao iniciar a expedição online. Tentando recuperar…');});
 window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classList.contains('game-active')&&gameState==='playing')return;activateOnlineEntry(ev.detail||{});});

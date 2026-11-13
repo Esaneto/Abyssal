@@ -757,14 +757,14 @@ function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
   const jitter=Math.abs(arrivalSpacing-serverSpacing);
   peer.motionJitterMs=Number.isFinite(Number(peer.motionJitterMs))?Number(peer.motionJitterMs)*.82+jitter*.18:jitter;
   const isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
-  peer.motionBufferMs=Math.max(isPvp?50:65,Math.min(isPvp?90:125,(isPvp?58:72)+(Number(peer.motionJitterMs)||0)*1.45));
- }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?58:72;
+  peer.motionBufferMs=Math.max(isPvp?45:42,Math.min(isPvp?90:85,(isPvp?50:45)+(Number(peer.motionJitterMs)||0)*1.1));
+ }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?50:45;
  return true;
 }
 function getInterpolatedPeer(p,now=performance.now()){
  const samples=Array.isArray(p.motionSamples)?p.motionSamples:null;
  if(samples&&samples.length>=2){
-  const latest=samples[samples.length-1],serverNow=Number(latest.serverTime)+Math.max(0,now-Number(latest.receivedAt)),renderTime=serverNow-(Number(p.motionBufferMs)||72);
+  const latest=samples[samples.length-1],serverNow=Number(latest.serverTime)+Math.max(0,now-Number(latest.receivedAt)),desiredTime=serverNow-(Number(p.motionBufferMs)||45),renderTime=window.AbyssalEnemyNetcode?.monotonicRenderTime?.(p,desiredTime,now,latest.serverTime+90)??desiredTime;
   if(renderTime<=Number(samples[0].serverTime))return {...p,x:Number(samples[0].x),y:Number(samples[0].y)};
   let a=samples[0],b=samples[1];
   for(let i=1;i<samples.length;i++){b=samples[i];if(Number(b.serverTime)>=renderTime){a=samples[i-1];break;}a=b;}
@@ -785,13 +785,17 @@ function getInterpolatedPeer(p,now=performance.now()){
 }
 function storePlayer(incoming,frameServerTime=0){
  if(!incoming||!incoming.id||incoming.id===localPlayerId)return;
- const now=performance.now(),old=players.get(incoming.id),rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
+ const now=performance.now(),old=players.get(incoming.id),lastSample=old?.motionSamples?.at(-1);
+ // Reliable roster packets carry metadata, not a newer motion frame. Never rewind movement.
+ if(old&&lastSample&&!frameServerTime){players.set(incoming.id,{...old,...incoming,x:old.x,y:old.y,angle:old.angle,bodyAngle:incoming.bodyAngle??old.bodyAngle});return;}
+ if(lastSample&&frameServerTime&&Number(frameServerTime)<=lastSample.serverTime)return;
+ const rendered=old?getInterpolatedPeer(old,now):null,isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
  const x=Number.isFinite(Number(incoming.x))?Number(incoming.x):(window.AbyssalGameHooks?.worldWidth?.()||4800)*.5,y=Number.isFinite(Number(incoming.y))?Number(incoming.y):(window.AbyssalGameHooks?.worldHeight?.()||3000)*.5;
  const sampleMs=old?Math.max(20,Math.min(250,now-(Number(old.sampleAt)||now))):(1000/30),oldX=old?Number(old.targetX):x,oldY=old?Number(old.targetY):y,maxSpeed=420;
  let velocityX=old&&Number.isFinite(oldX)?(x-oldX)/(sampleMs/1000):0,velocityY=old&&Number.isFinite(oldY)?(y-oldY)/(sampleMs/1000):0;
  const speed=Math.hypot(velocityX,velocityY);if(speed>maxSpeed){velocityX=velocityX/speed*maxSpeed;velocityY=velocityY/speed*maxSpeed;}
  const next={...(old||{}),...incoming,fromX:rendered?rendered.x:x,fromY:rendered?rendered.y:y,targetX:x,targetY:y,interpAt:now,interpDuration:Math.max(24,Math.min(isPvp?45:55,sampleMs*1.05)),sampleAt:now,velocityX,velocityY,peerExtrapolationMs:isPvp?60:85,motionSamples:Array.isArray(old?.motionSamples)?old.motionSamples:[]};
- pushPeerMotionSample(next,x,y,Number(frameServerTime)||Date.now(),now);
+ pushPeerMotionSample(next,x,y,Number(frameServerTime)||Number(incoming.lastPositionAt)||Date.now(),now);
  players.set(incoming.id,next);if(Number(next.netId)>0)playersByNetId.set(Number(next.netId)>>>0,incoming.id);
 }
 function applyPlayerList(list){
@@ -800,6 +804,7 @@ function applyPlayerList(list){
 }
 function applyPlayerMotion(rows){
  if(!Array.isArray(rows))return;
+ const frameServerTime=Number(rows.serverTime)||Date.now();
  for(const row of rows){
   if(!Array.isArray(row)||row.length<4)continue;
   const netId=Number(row[0])>>>0,id=playersByNetId.get(netId),peer=id?players.get(id):null;if(!peer||peer.id===localPlayerId)continue;

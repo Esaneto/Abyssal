@@ -112,3 +112,15 @@ test('timestamped motion buffer renders between authoritative samples instead of
   assert.ok(buffered.x>108&&buffered.x<120,'render point stays inside buffered authoritative history');
   assert.ok(enemy.motionBufferMs>=70&&enemy.motionBufferMs<=125);
 });
+
+test('jitter never rewinds the presentation clock on steady vertical motion',()=>{
+ const enemy={id:1,x:100,y:100,motionSamples:[]};
+ pushMotionSample(enemy,{x:100,y:100,serverTime:1000,receivedAt:0});
+ pushMotionSample(enemy,{x:100,y:110,serverTime:1050,receivedAt:50});
+ pushMotionSample(enemy,{x:100,y:120,serverTime:1100,receivedAt:100});
+ const before=renderedPosition(enemy,160);
+ pushMotionSample(enemy,{x:100,y:130,serverTime:1150,receivedAt:161});
+ assert.ok(renderedPosition(enemy,161).y>=before.y);
+ const recovered=reconcileSnapshot([enemy],[{id:1,x:100,y:140,r:10,hp:10}],{now:220,serverTime:1200});
+ assert.equal(recovered[0].motionSamples.at(-1).serverTime,1200);
+});

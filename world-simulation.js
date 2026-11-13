@@ -852,9 +852,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
         movement.target=actualTarget;
       }else{
-        const movementTargets=actualTarget?.submarine?[actualTarget]:targetablePlayers;
-        movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
-        if (!movement.moved && actualTarget && dt > 0) {
+        let movementTargets=actualTarget?.submarine?[actualTarget]:targetablePlayers,hold=false;
+        if(world.mode==='classic'&&actualTarget&&!EnemyAI.isChargeAttack(enemy)){
+          const pad=Math.max(5,(Number(enemy.r)||10)/WORLD_ZOOM*.62),rocks=classicCavernRocks(world),nav=SoloCavern.pursuitTarget(rocks,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,enemy,actualTarget,pad,now);
+          movementOptions.freeSwim=true;hold=Boolean(nav.hold);
+          if(!nav.direct){movementNavigationProxy.x=nav.x;movementNavigationProxy.y=nav.y;movementNavigationProxy.moveSpeed=Number(actualTarget.moveSpeed)||150/WORLD_ZOOM;movementNavigationProxy.alive=true;movementTargets=movementNavigationTargets;movementOptions.stopDistance=0;}
+          else movementTargets=[actualTarget];
+        }
+        if(hold){enemy.vx=0;enemy.vy=0;movement={moved:false,target:actualTarget};}else movement=EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
+        if (world.mode!=='classic' && !movement.moved && actualTarget && dt > 0) {
           if(actualTarget.submarine){
             const dx=actualTarget.x-enemy.x,dy=actualTarget.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.85*dt,Math.max(0,d-movementOptions.stopDistance));
             enemy.x=clamp(enemy.x+dx/d*step,0,world.width||WORLD_WIDTH);enemy.y=clamp(enemy.y+dy/d*step,0,world.height||WORLD_HEIGHT);movement.moved=step>0;
@@ -863,16 +869,13 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
         movement.target = actualTarget?.submarine?actualTarget:(EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget);
         if(world.mode==='classic'){
-          const beforeX=seaBeforeX,beforeY=seaBeforeY,pad=Math.max(8,Math.min(45,(Number(enemy.r)||10)/WORLD_ZOOM*.56)),rocks=classicCavernRocks(world);
+          const beforeX=seaBeforeX,beforeY=seaBeforeY,pad=Math.max(5,(Number(enemy.r)||10)/WORLD_ZOOM*.62),rocks=classicCavernRocks(world);
           const resolved=SoloCavern.resolve(rocks,beforeX,beforeY,enemy.x,enemy.y,pad);
           enemy.x=resolved.x;enemy.y=resolved.y;
           if(resolved.blocked&&actualTarget){
-            const nav=SoloCavern.navigationTarget(rocks,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,beforeX,beforeY,actualTarget.x,actualTarget.y,pad);
-            if(nav&&!nav.direct&&Number.isFinite(nav.x)&&Number.isFinite(nav.y)){
-              const dx=nav.x-beforeX,dy=nav.y-beforeY,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*dt,d);
-              const fallback=SoloCavern.resolve(rocks,beforeX,beforeY,beforeX+dx/d*step,beforeY+dy/d*step,pad);
-              enemy.x=fallback.x;enemy.y=fallback.y;
-            }
+            enemy.vx=(enemy.x-beforeX)/Math.max(dt,.001);enemy.vy=(enemy.y-beforeY)/Math.max(dt,.001);
+            if(EnemyAI.isChargeAttack(enemy)){enemy.sharkReplan=true;if(enemy.kind==='whiteSharkBoss')enemy.sharkChargeHit=false;}
+            else if(!hold){const escape=SoloCavern.escapeTarget(rocks,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,enemy.x,enemy.y,actualTarget.x,actualTarget.y,pad,enemy.angle);if(escape)enemy.caveRoute={...escape,direct:false,targetX:actualTarget.x,targetY:actualTarget.y,until:now+700};else enemy.caveRoute=null;}
           }
           movement.moved=Math.hypot(enemy.x-beforeX,enemy.y-beforeY)>.04;
         }

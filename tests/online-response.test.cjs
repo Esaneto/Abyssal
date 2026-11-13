@@ -20,3 +20,10 @@ test('backpressure discards stale transforms and later sends the freshest positi
  time(150);box.socket.io.engine.transport.writable=true;box.sendPosition({x:99,y:99});assert.equal(packets[0].payload[1],99);
  box.socket.connected=false;box.sendShot({});assert.equal(packets.length,1);
 });
+
+test('decoded peer transforms forward server timestamps to the motion buffer',()=>{
+ const {readPlayerMotion,playerMotion}=require('../public/net-codec.js');const rows=readPlayerMotion(playerMotion([[7,100,200,1]],123456));
+ const received=[],peer={id:'peer',netId:7};const context={playersByNetId:new Map([[7,'peer']]),players:new Map([['peer',peer]]),localPlayerId:'self',storePlayer:(p,t)=>received.push([p,t])};vm.createContext(context);
+ vm.runInContext(source.slice(source.indexOf('function applyPlayerMotion('),source.indexOf('function getPlayers(')),context);context.applyPlayerMotion(rows);
+ assert.equal(received.length,1);assert.equal(received[0][1],123456);assert.equal(received[0][0].y,200);
+});

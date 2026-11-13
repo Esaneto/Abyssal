@@ -51,9 +51,8 @@
   const mobileQuery=window.matchMedia('(pointer: coarse)');
   let mobileScene=false,subScale=1;
   const hatch=()=>({x:w*.5,y:210*subScale});
-  // The hatch center is inside the model; spawn beyond its lower rim.
-  const hatchExit=()=>({x:w*.5,y:226*subScale+70});
-  const arrivalEnd=()=>Math.max(hatchExit().y,Math.min(h-38,hatchExit().y+(mobileScene?82:110)));
+  // Menu animation starts in the actual hatch. The playable dive has its own safe spawn.
+  const arrivalEnd=()=>Math.min(h-38,226*subScale+(mobileScene?38:52));
   const bubble=(x,y,burst=false)=>{
    const count=burst?5:1;
    for(let i=0;i<count;i++)bubbles.push({
@@ -66,7 +65,7 @@
   };
   function resetToHatch(){
    if(w<10||h<10)return;
-   const pos=hatchExit();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
+   const pos=hatch();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
    diver.style.setProperty('--diver-x',px+'px');diver.style.setProperty('--diver-y',py+'px');
    emergence=0;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
    stage.classList.add('abyss-menu-arrival');stage.classList.remove('abyss-cabin-ready');
@@ -74,13 +73,13 @@
    held.clear();joystickX=0;joystickY=0;
    const thumb=stage.querySelector('.ocean-joystick-thumb');if(thumb)thumb.style.transform='translate(0,0)';
    for(let i=0;i<12;i++)bubble(px,py+15,true);
-   diver.style.opacity='1';diver.style.setProperty('--abyss-exit-scale','1');
+   diver.style.opacity='0';diver.style.setProperty('--abyss-exit-scale','.45');
   }
   function sizeScene(){
    const r=stage.getBoundingClientRect();if(r.width<80||r.height<100)return;
    const oldW=w,oldH=h;w=r.width;h=r.height;mobileScene=mobileQuery.matches;stage.classList.toggle('abyss-mobile-zoom',mobileScene);subScale=window.AbyssalMenuScenery?.menuSubmarineScale(w,h,mobileScene)??Math.min(1.2,Math.max(.59,w/800));
    // Reserve enough room for the entire 130px diver canvas below the hatch.
-   subScale=Math.min(subScale,Math.max(.1,(h-108)/226));
+   subScale=Math.min(subScale,Math.max(.1,(h-90)/226));
    for(const c of [routesCanvas,bubblesCanvas]){
     const ratio=Math.max(1,Math.min(mobileScene?1.5:2.25,window.devicePixelRatio||1,Math.sqrt(3000000/(w*h))));
     c.width=Math.round(w*ratio);c.height=Math.round(h*ratio);
@@ -339,8 +338,9 @@
      // Keep this cinematic readable before enabling player input.
      if(emergence<1){
       const step=dt/(mobileScene?1.55:1.72),before=emergence;emergence=Math.min(1,emergence+step);
-      const starting=hatchExit(),drop=arrivalEnd();px=starting.x;
+      const starting=hatch(),drop=arrivalEnd();px=starting.x;
       py=lerp(starting.y,drop,ease(emergence));
+       diver.style.opacity=String(clamp(emergence*3,0,1));diver.style.setProperty('--abyss-exit-scale',String(.45+.55*ease(emergence)));
       heading=Math.PI/2;vx=0;vy=(mobileScene?72:88)*(1-emergence);
       bubbleElapsed+=dt;
       if(bubbleElapsed>.035){bubbleElapsed=0;for(let n=0;n<3;n++)bubble(px+(Math.random()-.5)*8,py+18,true);}
@@ -370,7 +370,7 @@
        if(nearElapsed>.38)playEntrance(nearby);
       }else{nearElapsed=0;nearStationId=null;}
      }
-     diver.style.opacity='1';
+     if(emergence>=1)diver.style.opacity='1';
     }
     diver.style.setProperty('--diver-x',px+'px');
     diver.style.setProperty('--diver-y',py+'px');

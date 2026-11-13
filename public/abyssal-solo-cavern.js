@@ -142,6 +142,13 @@
   if(!isBlocked(rocks,x,y,padding))return {x,y};
   const g=gridFor(rocks,w,h,padding),id=nearestNode(g,rocks,x,y,false);return id<0?null:g.xy(id);
  }
+ // Both client and authoritative server use the same collision-checked entry.
+ function submarineSpawn(rocks,w,h,sub,zoom=1,slot=0){
+  const z=Math.max(.1,Number(zoom)||1),index=Math.max(0,Math.floor(Number(slot)||0)),lane=index===0?0:(index%2?1:-1)*Math.ceil(index/2);
+  const x=Number(sub?.x)||w*.5,y=Number(sub?.y)||h*.39,pad=25/z;
+  const desired={x:x+lane*52/z,y:y+170/z};
+  return nearestWater(rocks,w,h,desired.x,desired.y,pad)||desired;
+ }
  function flow(g,goal){
   if(g.flows.has(goal)){const value=g.flows.get(goal);g.flows.delete(goal);g.flows.set(goal,value);return value;}
   const d=new Int32Array(g.count);d.fill(-1);const q=new Int32Array(g.count);let head=0,tail=0;
@@ -385,5 +392,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
 });

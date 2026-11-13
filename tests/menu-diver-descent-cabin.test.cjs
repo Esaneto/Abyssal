@@ -29,16 +29,16 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/room-browser-v156/);
+ assert.match(sw,/smooth-dive-v157/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 
-test('menu and classic launch start outside submarine geometry',()=>{
- const menu=read('public/abyssal-menu-ocean.js'),game=read('public/game.js');
- assert.match(menu,/226\*subScale\+70/);
- assert.match(menu,/const pos=hatchExit\(\)/);
- assert.match(menu,/const starting=hatchExit\(\)/);
- assert.match(game,/soloSubmarine\.y\+130\/GAME_WORLD_ZOOM/);
- assert.match(game,/130\+40\*travel/);
- assert.match(game,/130\+40\*launchQ/);
+test('menu exits through hatch but gameplay uses collision-checked external spawn',()=>{
+ const menu=read('public/abyssal-menu-ocean.js'),game=read('public/game.js'),server=read('server.js');
+ assert.match(menu,/const pos=hatch\(\)/);assert.match(menu,/const starting=hatch\(\)/);
+ assert.match(game,/SOLO_CAVERN\?\.submarineSpawn/);assert.match(server,/ClassicCavern\.submarineSpawn/);
+ const cave=require('../public/abyssal-solo-cavern.js'),sub={x:2400,y:1170},rocks=[...cave.buildRocks(4800,3000),cave.submarineHull(sub.x,sub.y,1/.78)];
+ const points=Array.from({length:6},(_,slot)=>cave.submarineSpawn(rocks,4800,3000,sub,.78,slot));
+ assert.equal(new Set(points.map(p=>p.x+':'+p.y)).size,6);
+ for(const p of points){assert.ok(p.y>sub.y+99/.78);assert.equal(cave.isBlocked(rocks,p.x,p.y,25/.78),false);}
 });

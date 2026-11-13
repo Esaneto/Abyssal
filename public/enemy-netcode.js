@@ -77,13 +77,21 @@
     return true;
   }
 
+  // Arrival jitter may shift the estimated server clock backwards. Keep a monotonic
+  // presentation cursor and gently catch up instead of replaying old positions.
+  function monotonicRenderTime(entity,desired,now,limit=Infinity){
+    const before=entity.motionRenderTime,at=entity.motionRenderAt;
+    const next=Number.isFinite(before)&&Number.isFinite(at)?Math.max(before,Math.min(desired,before+Math.max(0,now-at)*1.35)):desired;
+    entity.motionRenderAt=now;entity.motionRenderTime=Math.min(next,limit);return entity.motionRenderTime;
+  }
   function renderedPosition(enemy, now) {
     if (!enemy) return { x: 0, y: 0 };
     const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : null;
     if (samples && samples.length >= 2) {
       const latest = samples[samples.length - 1];
       const serverNow = Number(latest.serverTime) + Math.max(0, now - Number(latest.receivedAt));
-      const renderTime = serverNow - clamp(Number(enemy.motionBufferMs) || MOTION_BUFFER_MS, 70, 125);
+      const desired = serverNow - clamp(Number(enemy.motionBufferMs) || MOTION_BUFFER_MS, 70, 125);
+      const renderTime = monotonicRenderTime(enemy,desired,now,Number(latest.serverTime)+MAX_EXTRAPOLATION_MS);
       let a = samples[0], b = samples[1];
       for (let i = 1; i < samples.length; i++) {
         b = samples[i];
@@ -144,7 +152,7 @@
       const old = previous.get(String(raw.id));
       const serverX = clamp(Number(raw.x) || 0, minX, maxX);
       const serverY = clamp(Number(raw.y) || 0, minY, maxY);
-      const critical = criticalIds.has(String(raw.id));
+      const critical = criticalIds.has(String(raw.id)) && (!Number(options.serverTime)||options.resetMotion||!old);
       const current = old && !critical ? renderedPosition(old, now) : { x: serverX, y: serverY };
       const oldReceivedAt = Number(old?.snapshotReceivedAt);
       const sampleMs = old ? Math.max(50, Math.min(250, now - (Number.isFinite(oldReceivedAt) ? oldReceivedAt : now))) : interpolationMs;
@@ -158,7 +166,7 @@
       const incomingDamageRevision = Math.max(0, Number(raw.damageRevision) || 0);
       const preserveConfirmedHealth = Boolean(old && oldDamageRevision > incomingDamageRevision);
       const maxV = (raw.kind === 'whiteShark' || raw.kind === 'whiteSharkBoss' || old?.kind === 'whiteShark' || old?.kind === 'whiteSharkBoss') ? 380 : 220;
-      return {
+      const next = {
         ...(old || {}), ...raw,
         hp: preserveConfirmedHealth ? old.hp : raw.hp,
         damageRevision: Math.max(oldDamageRevision, incomingDamageRevision),
@@ -176,7 +184,13 @@
         snapshotReceivedAt: now,
         authoritativePosition: true
       };
+      if(Number(options.serverTime)>0){
+        if(critical||!old||Math.hypot(serverX-current.x,serverY-current.y)>260){next.motionSamples=[];next.motionRenderTime=null;next.motionRenderAt=null;next.x=serverX;next.y=serverY;next.interpFromX=serverX;next.interpFromY=serverY;next.interpDuration=0;}
+        else next.motionSamples=Array.isArray(old.motionSamples)?old.motionSamples.slice():[];
+        pushMotionSample(next,{x:serverX,y:serverY,serverTime:Number(options.serverTime),receivedAt:now});
+      }
+      return next;
     });
   }
-  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample, MAX_EXTRAPOLATION_MS, MOTION_BUFFER_MS };
+  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample, monotonicRenderTime, MAX_EXTRAPOLATION_MS, MOTION_BUFFER_MS };
 });
