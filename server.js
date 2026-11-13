@@ -271,12 +271,22 @@ function safeEqual(a, b) { const aa = Buffer.from(a, 'hex'), bb = Buffer.from(b,
 function isDeveloperUser(u){return Boolean(u&&u.role==='developer'&&u.developerAccess===true);}
 async function ensureGameMasterAccount(){
  const rawPassword=String(process.env.ABYSSAL_GAMEMASTER_PASSWORD||'');
- if(rawPassword.length<16){console.warn('[developer] GameMaster desativado: configure ABYSSAL_GAMEMASTER_PASSWORD com pelo menos 16 caracteres.');return false;}
- const key='gamemaster',existing=users[key]||null,salt=crypto.randomBytes(16).toString('hex'),passwordHash=await hashPassword(rawPassword,salt);
- if(!passwordHash)throw new Error('Falha ao gerar hash da senha GameMaster.');
+ const key='gamemaster',existing=users[key]||null;
+ // A persisted GameMaster must keep developer privileges across VPS migrations even
+ // when the bootstrap password environment variable is temporarily unavailable.
+ // The env password is required only to create the account or intentionally rotate it.
+ if(!existing&&rawPassword.length<16){console.warn('[developer] GameMaster ainda não existe: configure ABYSSAL_GAMEMASTER_PASSWORD com pelo menos 16 caracteres para o primeiro provisionamento.');return false;}
  const user=existing||{accountId:crypto.randomUUID(),nickname:'GameMaster',createdAt:new Date().toISOString(),energy:0,ownedSkins:['default'],equippedSkin:'default',metaUpgrades:{},lastWheelAt:0};
- user.nickname='GameMaster';user.email='gamemaster@internal.abyssal';user.salt=salt;user.passwordHash=passwordHash;user.role='developer';user.developerAccess=true;user.developerUpdatedAt=new Date().toISOString();
+ user.nickname='GameMaster';user.email='gamemaster@internal.abyssal';user.role='developer';user.developerAccess=true;user.developerUpdatedAt=new Date().toISOString();
  user.ownedSkins=Array.isArray(user.ownedSkins)&&user.ownedSkins.length?user.ownedSkins:['default'];
+ if(rawPassword.length>=16){
+  const salt=crypto.randomBytes(16).toString('hex'),passwordHash=await hashPassword(rawPassword,salt);
+  if(!passwordHash)throw new Error('Falha ao gerar hash da senha GameMaster.');
+  user.salt=salt;user.passwordHash=passwordHash;
+ }else if(!user.salt||!user.passwordHash){
+  console.warn('[developer] GameMaster encontrado sem credenciais válidas: configure ABYSSAL_GAMEMASTER_PASSWORD para reparar o login.');
+  return false;
+ }
  users[key]=user;saveUsers();await flushPersistence();console.log('[developer] Conta GameMaster pronta com privilégios server-side.');return true;
 }
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
