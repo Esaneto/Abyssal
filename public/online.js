@@ -425,12 +425,10 @@ function publishMergedRooms(){
  for(const room of (Array.isArray(list)?list:[])){
   if(!room||!room.id)continue;
   const id=String(room.id).toUpperCase();
+  if(['MAR-ABERTO','MAR-VERMELHO','MAR-ABYSSAL'].includes(id)||room.mode!=='coop')continue;
   clean.set(id,{...room,id,code:room.code||id,isPrivate:Boolean(room.isPrivate),playerCount:Math.max(0,Number(room.playerCount)||0),capacity:Math.max(1,Number(room.capacity)||6)});
  }
  if(!clean.has('MERGULHO-ONLINE'))clean.set('MERGULHO-ONLINE',{id:'MERGULHO-ONLINE',code:'MERGULHO-ONLINE',name:'Mergulho Online',mode:'coop',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
-  if(!clean.has('MAR-ABERTO'))clean.set('MAR-ABERTO',{id:'MAR-ABERTO',code:'MAR-ABERTO',name:'Mar Aberto',mode:'open-sea',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
- if(!clean.has('MAR-VERMELHO'))clean.set('MAR-VERMELHO',{id:'MAR-VERMELHO',code:'MAR-VERMELHO',name:'Mar Vermelho',mode:'pvp',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
- if(!clean.has('MAR-ABYSSAL'))clean.set('MAR-ABYSSAL',{id:'MAR-ABYSSAL',code:'MAR-ABYSSAL',name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',playerCount:0,capacity:6,isPrivate:false,available:true,fallback:true,joinable:true});
  list=[...clean.values()].sort((a,b)=>{const priority=id=>id==='MERGULHO-ONLINE'?0:id==='MAR-ABERTO'?1:id==='MAR-VERMELHO'?2:id==='MAR-ABYSSAL'?3:4;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0);});
  window.dispatchEvent(new CustomEvent('abyssal-rooms-list',{detail:list}));
 }
@@ -446,7 +444,7 @@ function stopRoomPolling(){if(roomPollTimer){clearInterval(roomPollTimer);roomPo
 function showRooms(){
  const s=connect();if(!s)return;
  const screen=$('roomsScreen');if(screen)screen.hidden=false;
- const mode=$('roomModeInput');if(mode)mode.value=window.AbyssalPreferredRoomMode==='rift'?'rift':window.AbyssalPreferredRoomMode==='open-sea'?'open-sea':'coop';
+ const mode=$('roomModeInput');if(mode)mode.value='coop';
  const message=$('roomsMessage');if(message)message.textContent='Sondando expedições ativas…';
  refreshRoomsHttp();
  const request=()=>{s.emit('list-rooms');refreshRoomsHttp();startRoomPolling()};if(s.connected)request();else s.once('connect',request);
@@ -467,13 +465,14 @@ function joinWorld(roomId='MERGULHO-ONLINE',password=''){return joinRoom(roomId,
 function joinRoom(roomId='MERGULHO-ONLINE',password='',options={}){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Conecte-se à sua conta antes de entrar em uma sala.'}}));return false;}
  const id=String(roomId||'MERGULHO-ONLINE').trim().toUpperCase();if(!id){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Informe o código da sala.'}}));return false;}
+ if(['MAR-ABERTO','MAR-VERMELHO','MAR-ABYSSAL'].includes(id))return false;
  if(!options.reconnect)activeRoomPassword=String(password||'');
  socket.emit('join-room',{roomId:id,password:String(password||''),reconnect:Boolean(options.reconnect),viewportWidth:window.AbyssalGameHooks?.viewportWidth?.()||window.innerWidth||1200,viewportHeight:window.AbyssalGameHooks?.viewportHeight?.()||window.innerHeight||700,worldWidth:window.AbyssalGameHooks?.worldWidth?.()||window.innerWidth||1200,worldHeight:window.AbyssalGameHooks?.worldHeight?.()||window.innerHeight||700,worldZoom:window.AbyssalGameHooks?.worldZoom?.()||1},result=>{if(result?.ok&&result.room&&result.snapshot)handleRoomJoined(result);});return true;
 }
 function createRoom(data={}){
  if(!socket?.connected||!authenticated){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'Entre na sua conta antes de criar uma sala.'}}));return false;}
  const isPrivate=Boolean(data.isPrivate),password=String(data.password||'');if(isPrivate&&(password.length<4||password.length>64)){window.dispatchEvent(new CustomEvent('abyssal-room-action-error',{detail:{message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'}}));return false;}
- pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:['pvp','rift','open-sea'].includes(data.mode)?data.mode:'coop'});return true;
+ pendingRoomPassword=isPrivate?password:'';socket.emit('create-room',{name:String(data.name||'Expedição Abissal'),capacity:Number(data.capacity)||6,isPrivate,password,mode:'coop'});return true;
 }
 function leaveWorld(){specimenMotion.clear();if(socket?.connected&&authenticated)socket.emit('leave-world');stopPositionHeartbeat();players.clear();hostId=null;currentRoom=null;stopRoomPolling();}
 function requestHostTransfer(){if(socket?.connected&&authenticated&&hostId===socket.id)socket.emit('request-host-transfer');}

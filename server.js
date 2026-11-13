@@ -787,10 +787,8 @@ function makeRoom({id,name,isPrivate=false,passwordSalt=null,passwordHash=null,c
  mode=normalizeRoomMode(mode);
  return {id,name,mode,isPrivate,passwordSalt,passwordHash,capacity:Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Number(capacity)||6)),players:new Map(),world:makeWorldState(mode),cleanupTimer:null,emptyRoomTimer:null,createdAt:Date.now(),lastPlayersBroadcastAt:0,matchParticipants:new Map()};
 }
-rooms.set(DEFAULT_ROOM_ID,makeRoom({id:DEFAULT_ROOM_ID,name:'Mar Aberto',capacity:6,mode:'open-sea'}));
+// Release: only classic cooperative rooms are available.
 rooms.set(CLASSIC_ROOM_ID,makeRoom({id:CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'}));
-rooms.set(PVP_ROOM_ID,makeRoom({id:PVP_ROOM_ID,name:'Mar Vermelho',capacity:6,mode:'pvp'}));
-rooms.set(FOSSAS_ROOM_ID,makeRoom({id:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',capacity:6,mode:'rift'}));
 function socketRoom(socket){return socket?.data?.roomId?rooms.get(socket.data.roomId)||null:null;}
 function channelFor(room){return `abyss-room:${room.id}`;}
 function specimenPositionFor(player){
@@ -832,7 +830,7 @@ function publicRoomInfo(room){
  return {id:room.id,code:room.id,name:room.name,mode:normalizeRoomMode(room.mode),isPrivate:Boolean(room.isPrivate),playerCount:room.players.size,capacity:room.capacity,available:room.players.size<room.capacity,joinable:true,local:true,state:room.players.size?'INICIADA':'AGUARDANDO',elapsed:Math.floor(room.world.elapsed||0),enemyCount:room.mode==='pvp'?0:room.world.enemies.length,bossCount:room.mode==='pvp'?0:bossCount};
 }
 function sortRoomInfos(list){return list.sort((a,b)=>{const priority=id=>id===CLASSIC_ROOM_ID?0:id===DEFAULT_ROOM_ID?1:id===PVP_ROOM_ID?2:id===FOSSAS_ROOM_ID?3:4;const pa=priority(a.id),pb=priority(b.id);if(pa!==pb)return pa-pb;return (Number(b.playerCount)||0)-(Number(a.playerCount)||0)||String(a.name||'').localeCompare(String(b.name||''));});}
-function roomList(){return sortRoomInfos([...rooms.values()].map(publicRoomInfo));}
+function roomList(){return sortRoomInfos([...rooms.values()].filter(room=>room.mode==='coop').map(publicRoomInfo));}
 async function roomListForClients(){
  const merged=new Map();
  if(pgPool&&roomRegistryReady){
@@ -844,10 +842,7 @@ async function roomListForClients(){
  // Live in-process rooms contain the authoritative player count and are always joinable by this process.
  for(const room of rooms.values())if(!deletingRoomIds.has(room.id))merged.set(room.id,publicRoomInfo(room));
  if(!merged.has(CLASSIC_ROOM_ID))merged.set(CLASSIC_ROOM_ID,{id:CLASSIC_ROOM_ID,code:CLASSIC_ROOM_ID,name:'Mergulho Online',mode:'coop',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
- if(!merged.has(DEFAULT_ROOM_ID))merged.set(DEFAULT_ROOM_ID,{id:DEFAULT_ROOM_ID,code:DEFAULT_ROOM_ID,name:'Mar Aberto',mode:'open-sea',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
- if(!merged.has(PVP_ROOM_ID))merged.set(PVP_ROOM_ID,{id:PVP_ROOM_ID,code:PVP_ROOM_ID,name:'Mar Vermelho',mode:'pvp',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
- if(!merged.has(FOSSAS_ROOM_ID))merged.set(FOSSAS_ROOM_ID,{id:FOSSAS_ROOM_ID,code:FOSSAS_ROOM_ID,name:'Mar Abyssal - Fossas Cooperativo',mode:'rift',isPrivate:false,playerCount:0,capacity:6,available:true,joinable:true,local:true,state:'AGUARDANDO',elapsed:0,enemyCount:0,bossCount:0,fallback:true});
- return sortRoomInfos([...merged.values()]);
+ return sortRoomInfos([...merged.values()].filter(room=>room.mode==='coop'));
 }
 function broadcastRooms(){roomListForClients().then(list=>io.emit('rooms-list',list)).catch(err=>console.error('[rooms] broadcast falhou:',err.message));}
 app.get('/api/rooms',async(_req,res)=>{try{const list=await roomListForClients();res.set('Cache-Control','no-store, no-cache, must-revalidate, proxy-revalidate').set('Pragma','no-cache').json({ok:true,rooms:list,serverStartedAt:SERVER_STARTED_AT,build:'3.5.9',generatedAt:new Date().toISOString()});}catch(err){console.error('[rooms] API falhou:',err.message);res.status(200).set('Cache-Control','no-store').json({ok:true,rooms:roomList(),serverStartedAt:SERVER_STARTED_AT,build:'3.5.9',directoryFallback:true});}});
@@ -1263,6 +1258,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
 }
 async function finishRunForSocket(socket,payload={},isolatedRun=null){
  const key=socket.data.userKey,user=users[key];if(!key||!user)return {ok:false,message:'Entre em uma conta para registrar este mergulho.'};
+ if(payload.expedition===true||['rift','rift-solo','open-sea','pvp'].includes(payload.mode))return {ok:false,message:'Modo em desenvolvimento.'};
  const room=isolatedRun?null:socketRoom(socket),member=room?.players.get(socket.id),run=isolatedRun||member?.runStats||socket.data.runStats||makeRunStats();
  if(run.settled)return {ok:true,duplicate:true,energyBonus:Number(run.energyBonus)||0,energyBonusPercent:Number(run.energyBonusPercent)||0,specimenEnergyBonusPercent:Number(run.specimenEnergyBonusPercent)||0,earned:Number(run.completionCoins)||0,bossesKilled:Number(run.bossesKilled)||0,bossCoins:Number(run.bossesKilled||0)*10,totalRunCoins:Number(run.totalRunCoins)||0,survival:Number(run.finalSurvival)||0,damageDealt:Number(run.damageDealt)||0,monstersKilled:Number(run.monstersKilled)||0,energyCollected:Number(run.energyCollected)||0,runId:run.id,account:publicUser(user),rankings:rankingPayload()};
  const now=Date.now();
@@ -1894,6 +1890,7 @@ io.on('connection', socket => {
   const name=String(payload.name||'Expedição Abissal').trim().replace(/[<>]/g,'').slice(0,28)||'Expedição Abissal';
   const capacity=Math.max(1,Math.min(MAX_PLAYERS_PER_ROOM,Math.floor(Number(payload.capacity)||6)));
   const isPrivate=Boolean(payload.isPrivate),password=String(payload.password||''),mode=normalizeRoomMode(payload.mode);
+  if(mode!=='coop')return socket.emit('room-created',{ok:false,message:'Modo em desenvolvimento.'});
   if(isPrivate&&(password.length<4||password.length>64))return socket.emit('room-created',{ok:false,message:'A senha da sala privada deve ter entre 4 e 64 caracteres.'});
   if(rooms.size>=60)return socket.emit('room-created',{ok:false,message:'O servidor atingiu o limite temporário de salas. Tente entrar em uma sala existente.'});
   const passwordSalt=isPrivate?crypto.randomBytes(16).toString('hex'):null;
@@ -1908,12 +1905,15 @@ io.on('connection', socket => {
   const ack=data=>{if(typeof acknowledge==='function')try{acknowledge(data)}catch{}};
   if(!socket.data.nickname||!socket.data.userKey)return socket.emit('room-join-result',{ok:false,message:'Entre na sua conta antes de entrar em uma sala.'});
   payload=payload&&typeof payload==='object'?payload:{};
-  const id=String(payload.roomId||DEFAULT_ROOM_ID).trim().toUpperCase();
+  const id=String(payload.roomId||CLASSIC_ROOM_ID).trim().toUpperCase();
+  if([DEFAULT_ROOM_ID,PVP_ROOM_ID,FOSSAS_ROOM_ID].includes(id)){const result={ok:false,message:'Modo em desenvolvimento.'};socket.emit('room-join-result',result);ack(result);return;}
   let u=users[socket.data.userKey];
   // A normal join must never load the entire persisted accounts JSONB.
   // Only a deploy reconnect needs to recover a pending session from storage.
   if(payload.reconnect===true&&!u?.pendingRunResume)u=await refreshDeployResumeFromPersistence(socket.data.userKey);
+  if(u?.pendingRunResume?.roomId===id&&u.pendingRunResume.roomMode!=='coop'){const result={ok:false,message:'Modo em desenvolvimento.'};socket.emit('room-join-result',result);ack(result);return;}
   let room=rooms.get(id)||restoreDeployRoom(u,id);
+  if(room&&room.mode!=='coop'){const result={ok:false,message:'Modo em desenvolvimento.'};socket.emit('room-join-result',result);ack(result);return;}
   if(!room&&id===CLASSIC_ROOM_ID){room=makeRoom({id:CLASSIC_ROOM_ID,name:'Mergulho Online',capacity:6,mode:'coop'});rooms.set(id,room);deletingRoomIds.delete(id);pendingRoomDeletion.delete(id);}
   if(!room){let remote=false;if(pgPool&&roomRegistryReady){try{const q=await pgPool.query('SELECT 1 FROM abyssal_rooms WHERE room_id=$1 AND lease_until>NOW() AND owner_instance<>$2 AND player_count>0',[id,SERVER_INSTANCE_ID]);remote=q.rowCount>0;}catch{}}return socket.emit('room-join-result',{ok:false,message:remote?'Esta sala pertence a outra instância do servidor e não pode ser acessada por este processo.':'Sala não encontrada ou expirada. Atualize a lista de expedições.'});}
   const savedResume=u?.pendingRunResume;const authorizedDeployResume=payload.reconnect===true&&savedResume&&!savedResume.settled&&Number(savedResume.expiresAt)>=Date.now()&&savedResume.roomId===room.id&&savedResume.roomMode===normalizeRoomMode(room.mode);
@@ -1971,7 +1971,7 @@ io.on('connection', socket => {
   io.to(channelFor(room)).emit('server-message',`${socket.data.nickname} entrou nas profundezas · ${room.name}.`);
   persistRoomRow(room).catch(err=>console.error('[rooms] atualizar contagem após entrada:',err.message));broadcastRooms();broadcastOnline();refreshWorldTicker();
  });
- socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:DEFAULT_ROOM_ID}));
+ socket.on('join-world', () => socket.emit('legacy-join-world', {roomId:CLASSIC_ROOM_ID}));
  socket.on('submarine-power',async(_,ack)=>{
   const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),u=users[socket.data.userKey],p=room?.players.get(socket.id);
   if(!room||room.mode!=='coop'||!u||!p||p.alive===false||!room.world?.submarine)return reply({ok:false,message:'Submarino online indisponível.'});
@@ -2309,7 +2309,7 @@ io.on('connection', socket => {
   ack({ok:true,accepted,account:publicUser(u)});
  });
  socket.on('begin-run',(payload={})=>{
-  if(!socket.data.userKey)return;
+  if(!socket.data.userKey||['rift','rift-solo','open-sea','pvp'].includes(payload.mode))return;
   const room=socketRoom(socket),p=room?.players.get(socket.id);
   if(p){
    if(!p.runStats||p.runStats.settled){p.runStats={...makeRunStats(),energySkinId:p.skinId};p.runLevel=1;p.energy=0;}
@@ -2357,6 +2357,7 @@ io.on('connection', socket => {
  socket.on('sync-solo-run',async(payload={},ack)=>{
   if(typeof ack!=='function')return;
   const user=users[socket.data.userKey],id=String(payload.id||'');
+  if(payload.expedition===true)return ack({ok:false,message:'Modo em desenvolvimento.'});
   if(!user||!/^solo-[a-zA-Z0-9-]{12,100}$/.test(id))return ack({ok:false,message:'Registro local inválido.'});
   try{
    user.offlineRunReceipts ||= {};

@@ -202,8 +202,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
           <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
-          <button id="openSeaPortalBtn" class="abyss-destination" type="button" aria-label="Explorar o Mar Aberto"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EXPLORAÇÃO OCEÂNICA</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar na cabine do submarino"><span class="abyss-hatch-kicker">SUBMARINO</span><span class="abyss-hatch-label">CABINE</span><span class="abyss-hatch-action">ENTRAR</span></button>
-          <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" aria-label="Abrir Fossas"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>ALÉM DA LUZ</small></button>
+          <button id="openSeaPortalBtn" class="abyss-destination" type="button" disabled aria-disabled="true" aria-label="Mar Aberto em desenvolvimento"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EM DESENVOLVIMENTO</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar na cabine do submarino"><span class="abyss-hatch-kicker">SUBMARINO</span><span class="abyss-hatch-label">CABINE</span><span class="abyss-hatch-action">ENTRAR</span></button>
+          <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" disabled aria-disabled="true" aria-label="Fossas em desenvolvimento"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>EM DESENVOLVIMENTO</small></button>
         </div>
         <div id="menuOceanDiver" class="abyss-ocean-diver" aria-hidden="true">
           <canvas id="menuOceanDiverCanvas" width="180" height="130" aria-label="Mergulhador em nado"></canvas>
@@ -505,7 +505,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
           <label class="field-label" for="roomNameInput">NOME DA EXPEDIÇÃO</label>
           <input id="roomNameInput" class="text-field" maxlength="28" placeholder="Ex.: A Fossa da Meia-Noite" value="Expedição Abissal">
           <div class="room-form-row">
-            <div><label class="field-label" for="roomModeInput">MODO DE JOGO</label><select id="roomModeInput" class="text-field"><option value="open-sea">Mar Aberto · exploração cooperativa</option><option value="coop" selected>Mergulho Online · LIBERADO PARA TESTE</option><option value="rift">Fossas cooperativo (sala personalizada)</option><option value="pvp">Arena PvP — PERIGO</option></select></div>
+            <div><label class="field-label" for="roomModeInput">MODO DE JOGO</label><select id="roomModeInput" class="text-field"><option value="coop" selected>Mergulho Online</option></select></div>
             <div><label class="field-label" for="roomCapacityInput">LIMITE DE JOGADORES</label><select id="roomCapacityInput" class="text-field"><option value="1">1 jogador</option><option value="2">2 jogadores</option><option value="3">3 jogadores</option><option value="4">4 jogadores</option><option value="5">5 jogadores</option><option value="6" selected>6 jogadores</option></select></div>
             <label class="room-private-toggle"><input id="roomPrivateCheck" type="checkbox"> <span>SALA PRIVADA<br><small>Somente com senha</small></span></label>
           </div>
@@ -674,7 +674,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
   <button id="cockpitRankingBtn" class="abyss-cockpit-utility" type="button" aria-label="Abrir rankings" aria-pressed="false"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M7 40V26h10v14M19 40V10h10v30M31 40V20h10v20M4 41h40"/><path d="m24 2 2 4 5 .5-3.5 3" stroke-width="1.5"/></svg><span>RANKING</span></button>
   <button id="cockpitCardumesBtn" class="abyss-cockpit-utility" type="button" aria-label="Abrir Cardumes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8c3-4 8-4 11 0-3 4-8 4-11 0zm0 0L1 5v6zM10 17c3-4 8-4 11 0-3 4-8 4-11 0zm0 0-2-3v6z"/><circle cx="11" cy="8" r=".5" fill="currentColor"/><circle cx="18" cy="17" r=".5" fill="currentColor"/></svg><span>CARDUMES</span></button>
  </nav>
- <div class="abyss-cockpit-ticker" aria-hidden="true"><span>SONAR OPERACIONAL  ·  MERGULHAR DISPONÍVEL  ·  ESPÉCIMES: CATÁLOGO E APARÊNCIAS  ·  ABYSSÁRIO: REGISTRO DE ESPÉCIES  ·  MODO ONLINE: LIBERADO PARA TESTE  ·  MAR ABERTO E FOSSAS: EM DESENVOLVIMENTO  ·  ABYSSAL  ·  </span></div>
+ <div class="abyss-cockpit-ticker" aria-hidden="true"><span>SONAR OPERACIONAL  ·  MERGULHAR DISPONÍVEL  ·  ESPÉCIMES: CATÁLOGO E APARÊNCIAS  ·  ABYSSÁRIO: REGISTRO DE ESPÉCIES  ·  MODO ONLINE: DISPONÍVEL  ·  MAR ABERTO E FOSSAS: EM DESENVOLVIMENTO  ·  ABYSSAL  ·  </span></div>
 </section>
 </main>
   <footer class="page-footer"><span>ABYSSAL © 2026</span><span id="saveStatus" class="sr-only">O ABISMO REGISTRA SUAS CONQUISTAS</span></footer>

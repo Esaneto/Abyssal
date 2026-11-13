@@ -10,6 +10,9 @@
 - Privacy policy: https://abyssal-ej5j.onrender.com/privacy.html
 - Account deletion: https://abyssal-ej5j.onrender.com/delete-account.html
 
+## Release scope
+Only Solo Dive and cooperative Online Dive are available. Open Ocean, Abyssal Rifts and standalone PvP are disabled for all players, including review accounts. Do not advertise them as playable in this release.
+
 ## Store listing draft
 Short description:
 Sobreviva às profundezas, evolua sua criatura e enfrente bosses no Abyssal.
@@ -33,7 +36,7 @@ O Abyssal contém violência fantástica e efeitos visuais de combate.
 
 ## Play Console declarations checklist
 - Ads: YES only if the Android release actually displays Google ads. Keep declaration synchronized with release behavior.
-- App access: authentication exists. Supply a permanent reviewer account that does not require OTP or access to a private email inbox.
+- App access: authentication exists. Supply GoogleReviewer01 and GoogleReviewer02 (passwords provisioned privately on the production server). Test Solo Dive and cooperative Online Dive only; use both accounts in the same room for multiplayer. No OTP or private inbox is required.
 - Content rating: disclose fantasy violence, blood/death effects, multiplayer/user interaction, digital purchases if enabled, and ads/rewarded mechanics if enabled.
 - Target audience: 16+ as implemented by the current age-band flow.
 - UGC: nicknames, public profiles and Cardume names/descriptions are user-generated. In-app reporting and moderation are implemented. Public chat is not present.

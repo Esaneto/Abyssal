@@ -1651,6 +1651,7 @@ let soloRunIdentity=null;
 function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor(diveStats.energyCollected*specimenBonus);return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round(specimenBonus*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(resumingDeploy=false){
+ if((onlineMode&&onlineRoomMode!=='coop')||(!onlineMode&&requestedRunMode!=='classic'))return;
  window.AbyssalAudio?.stopEffects();startAmbientMusic();
  soloRunIdentity=onlineMode?null:{id:'solo-'+(globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2)),key:adaptationAccountKey()};
  diveEnergySkinId=equippedSkin;soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
@@ -5098,8 +5099,8 @@ function settleDiveReport(onComplete){
 function returnToMainMenu(){window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
-window.addEventListener('abyssal-start-open-sea',()=>{requestedRunMode='open-sea';onlineMode=false;startGame()});
-window.addEventListener('abyssal-start-rift-solo',()=>{requestedRunMode='rift';onlineMode=false;startGame()});
+window.addEventListener('abyssal-start-open-sea',()=>{});
+window.addEventListener('abyssal-start-rift-solo',()=>{});
 $('againBtn').addEventListener('click',()=>settleDiveReport(()=>{
  const restartOnline=wasOnlineModeOnDeath;returnToMainMenu();
  if(restartOnline){window.AbyssalOnline?.showRooms?.();}else{window.AbyssalCockpitNavigation?.close?.();startGame();}
@@ -5771,7 +5772,7 @@ window.addEventListener('abyssal-player-skin-status',ev=>{
  if(d.type==='slow'){player.skinSlowedUntil=Math.max(Number(player.skinSlowedUntil)||0,until);queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:48/GAME_WORLD_ZOOM,life:.65,maxLife:.65,color:'#9bd9ff'});}
 });
 function restoreDeployRunProgress(run){if(!run||typeof run!=='object')return;score=Math.max(0,Number(run.score)||0);level=Math.max(1,Math.floor(Number(run.level)||1));xp=Math.max(0,Number(run.xp)||0);xpNeed=Math.max(1,Math.floor(Number(run.xpNeed)||10));bossKillsThisRun=Math.max(0,Math.floor(Number(run.bossesKilled)||0));diveStats.damageDealt=Math.max(0,Number(run.damageDealt)||0);diveStats.monstersKilled=Math.max(0,Math.floor(Number(run.monstersKilled)||0));diveStats.energyCollected=Math.max(0,Math.floor(Number(run.energyCollected)||0));updateHud(true);}
-function enterOnlineGameplay(data){const d=data||{};const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift','open-sea'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':onlineRoomMode==='open-sea'?'open-sea':'classic';onlineMode=true;
+function enterOnlineGameplay(data){const d=data||{};if(d.room?.mode&&d.room.mode!=='coop'){window.AbyssalOnline?.leaveWorld?.();return;}const canResume=Boolean(d.reconnected&&d.resumedRun&&player);onlineRoomMode=['pvp','rift','open-sea'].includes(d.room?.mode)?d.room.mode:'coop';requestedRunMode=onlineRoomMode==='rift'?'rift':onlineRoomMode==='open-sea'?'open-sea':'classic';onlineMode=true;
  // room-joined is authoritative. Commit the UI transition before any fallible arena/game setup.
  for(const id of [...screens,'roomsScreen','loginScreen']){const node=$(id);if(node)node.hidden=true;}
  document.body.classList.add('game-active');
