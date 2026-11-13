@@ -2577,7 +2577,8 @@ function applySharedXp(data){
  gainXp(Math.max(0,Number(data.value)||0),'shared');
 }
 function spawnOnlineOrb(data){
- if(!onlineMode||!data||data.id==null||onlineOrbById.has(String(data.id)))return;
+ if(!onlineMode||!data||data.id==null)return;
+ const existing=onlineOrbById.get(String(data.id));if(existing){if(data.relocated===true&&Number.isFinite(Number(data.x))&&Number.isFinite(Number(data.y))){existing.x=Number(data.x);existing.y=Number(data.y);}return;}
  const orb={id:data.id,x:Number(data.x)||0,y:Number(data.y)||0,value:Math.max(1,Number(data.value)||1)};
  onlineOrbById.set(String(orb.id),orb);orbs.push(orb);
  if(orbs.length>160){const removed=orbs.shift();onlineOrbById.delete(String(removed.id));}
@@ -3087,7 +3088,7 @@ function updateSpecimenRuntime(dt){
  if(!attackHolding&&activeMapLayout&&ABYSSAL_MAP?.navigationTarget){const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});if(route&&!route.blocked)target={x:route.x,y:route.y};}
  if(!attackHolding&&soloCave){
   if(!orb&&!combatTarget&&SOLO_CAVERN.isBlocked(arenaRocks,target.x,target.y,pad))target={x:player.x,y:player.y};
-  if(orb){const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,orb.x,orb.y,pad);if(safe)target=safe;}
+  if(orb){const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,orb.x,orb.y,pad);if(safe){if(SOLO_CAVERN.isBlocked(arenaRocks,orb.x,orb.y,0)){orb.x=safe.x;orb.y=safe.y;}target=safe;}}
   const goal={...target},nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad);if(!nav.blocked)target={x:nav.x,y:nav.y};else target=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle)||pos;
   if((s.stuckSeconds||0)>.8&&Math.hypot(goal.x-pos.x,goal.y-pos.y)>radius+5){const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle);if(escape){s.escapeWaypoint=escape;s.escapeUntil=now+650;}if(orb){s.unreachableOrbId=orb.id;s.unreachableUntil=now+1800;s.nextTacticsAt=0;}s.stuckSeconds=0;}
   if(s.escapeWaypoint&&now<s.escapeUntil&&Math.hypot(s.escapeWaypoint.x-pos.x,s.escapeWaypoint.y-pos.y)>5)target=s.escapeWaypoint;else s.escapeWaypoint=null;
@@ -5743,7 +5744,7 @@ function renderCatalog(){
   const known=codex.monsters.includes(k),boss=BOSS_KINDS.includes(k),ability=m.ability||'';
   const split=ability.indexOf(': '),attack=split>=0?ability.slice(0,split):'Comportamento de combate',effect=split>=0?ability.slice(split+2):ability;
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'" data-journal-monster="'+escapeHtml(k)+'">'
-   +'<small class="journal-page-no">REGISTRO '+String(index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<small class="journal-page-no">REGISTRO '+String(index+1).padStart(3,'0')+' · '+(known?'IDENTIFICADO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature" style="--preview:'+escapeHtml(m.color)+'">'+(known?'<canvas width="200" height="126" data-monster-preview="'+escapeHtml(k)+'" aria-label="Ilustração de '+escapeHtml(m.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(m.name):'Forma desconhecida')+'</b>'
    +(known?'<small class="journal-classification">'+(boss?'ENTIDADE COLOSSAL':'FAUNA EXTERNA')+' · HABITAT: CAVERNAS ABISSAIS</small>'
@@ -5766,7 +5767,7 @@ function renderCatalog(){
   const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
   const rarityLabel=rarity?SPECIMEN_RARITY.LABELS[rarity]||rarity:'Singular';
   return '<article class="codex-card specimen-journal-entry '+(known?'unlocked':'locked')+'"'+(known&&rarity?' data-rarity="'+escapeHtml(rarity)+'"':'')+'>'
-   +'<small class="journal-page-no">REGISTRO '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'REGISTRO':'LACRADO')+'</small>'
+   +'<small class="journal-page-no">REGISTRO '+String(common.length+index+1).padStart(3,'0')+' · '+(known?'IDENTIFICADO':'LACRADO')+'</small>'
    +'<div class="codex-preview journal-creature">'+(known?'<canvas width="200" height="126" data-specimen-preview="'+escapeHtml(skin.id)+'" aria-label="Ilustração de '+escapeHtml(skin.name)+'"></canvas>':'<span class="journal-sealed">NÃO REGISTRADO</span>')+'</div>'
    +'<b class="journal-specimen-title">'+(known?escapeHtml(skin.name):'Forma desconhecida')+'</b>'
    +(known?'<span class="journal-rarity">'+escapeHtml(rarityLabel)+'</span><small class="journal-classification">'+escapeHtml(family)+' · '+(oceanHabitat?'HABITAT: '+escapeHtml(oceanHabitat.name)+' · PROFUNDIDADE: '+oceanHabitat.minDepth+' a '+oceanHabitat.maxDepth+' m':'AVISTAMENTO: HABITAT NÃO REGISTRADO')+'</small>'

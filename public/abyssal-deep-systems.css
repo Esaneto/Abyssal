@@ -484,3 +484,15 @@ body:not(.game-active) #catalogScreen .abyss-journal [data-rarity="legendary"] .
 body:not(.game-active) #submarineWorkshop .abyss-control-deck{grid-template-columns:repeat(4,minmax(0,1fr))!important}
 body:not(.game-active) #submarineWorkshop .abyss-control-research .abyss-control-icon{color:#8fece4!important}
 @media(max-width:700px){body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch strong{font-size:23px!important}body:not(.game-active) #menuScreen.ocean-menu-v2.submarine-menu.expedition-hub #divePortalBtn.hub-launch small{font-size:12px!important}#menuScreen.expedition-hub .hub-shell{padding-top:clamp(16px,env(safe-area-inset-top),40px)}}
+
+/* Final screenshot polish: labels never truncate on narrow portrait screens. */
+body:not(.game-active) #catalogScreen .abyss-journal .journal-classification{display:block!important;margin:4px 0 0!important;line-height:1.5!important}
+body:not(.game-active) #catalogScreen .abyss-journal>.eyebrow{padding-right:52px!important}
+@media(max-width:540px){
+ body:not(.game-active) #catalogScreen .codex-tools{grid-template-columns:minmax(0,1fr)!important;gap:7px!important}
+ #catalogScreen .codex-tools label[for=codexSearch]{grid-column:1;grid-row:1}
+ #catalogScreen .codex-tools #codexSearch{grid-column:1;grid-row:2}
+ #catalogScreen .codex-tools label[for=codexFilter]{grid-column:1;grid-row:3;margin-top:3px}
+ #catalogScreen .codex-tools #codexFilter{grid-column:1;grid-row:4}
+ body:not(.game-active) #catalogScreen .abyss-journal .journal-intro{font-size:13px!important}
+}
