@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-12-mobile-menu-zoom-v146';
+const VERSION = '2026-11-13-online-submarine-1000hp-v147';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -28,6 +28,16 @@ const GAME_FILES = [
   'abyssal-shop-blood-theme.css',
   'abyssal-interface-harmony.css',
   'offline-ui.css',
+  'loading-screen.js',
+  'loading-screen.css',
+  'update-manager.js',
+  'client-build.js',
+  'developer-tools.js',
+  'developer-tools.css',
+  'age-slider.js',
+  'age-slider.css',
+  'mobile-portrait.js',
+  'mobile-portrait.css',
   'abyssal-ocean-cinema.svg',
   'ocean-entry.svg',
   'abyssal-tentacle-cursor.svg',
