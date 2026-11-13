@@ -54,9 +54,17 @@
      'serviceWorker' in navigator){
     // A new worker takes effect on the next navigation; never reload an open menu.
     window.addEventListener('load',function(){
-      navigator.serviceWorker.register('/offline-sw.js',{scope:'/'})
+      navigator.serviceWorker.register('/offline-sw.js',{scope:'/',updateViaCache:'none'})
         .then(function(reg){return reg.update();})
         .catch(function(error){console.warn('[Abyssal] Offline cache not installed:',error);});
     },{once:true});
+    navigator.serviceWorker.addEventListener('controllerchange',function(){
+      try{
+        const key='abyssalSwReloadV147';
+        if(sessionStorage.getItem(key)==='1')return;
+        sessionStorage.setItem(key,'1');
+        if(navigator.onLine!==false)window.location.reload();
+      }catch(_){}
+    });
   }
 })();
