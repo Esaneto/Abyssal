@@ -185,6 +185,8 @@ const injected=`<script>
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
       if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)throw Error('Console keys are not aligned with the main monitor');
+      if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))throw Error('Oversized vertically stretched console key');
+      if(monitorRect.height<deckRect.height*1.5)throw Error('The central monitor must dominate the physical key deck');
       if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))throw Error('Central cockpit display is too small');
       document.body.dataset.cockpitLayout=JSON.stringify({visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],keys:[Math.round(deckRect.width),Math.round(deckRect.height)],keyHeight:Math.round(keyRects[0].height)});
       const view=new URLSearchParams(location.search).get('view')||'solo';
@@ -210,7 +212,7 @@ const injected=`<script>
        if(!box.querySelector('.abyss-tree-map')?.textContent.includes('Escudo do submarino'))throw Error('Submarine research missing');
       }else{
        box.querySelector('.abyss-control-solo').click();
-       if(!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR MERGULHO'))throw Error('Default cockpit launch action is missing');
+       if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
       }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
