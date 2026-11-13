@@ -25,11 +25,12 @@ async function capture(root,label){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-ui-cdp-'));
  const chromeBin=['google-chrome','google-chrome-stable','chromium','chromium-browser'].map(n=>spawnSync('which',[n],{encoding:'utf8'})).find(r=>r.status===0)?.stdout.trim();
  assert.ok(chromeBin,'Chrome missing');
- const chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*','--user-data-dir='+dir,'about:blank'],{stdio:'ignore'});
+ const chrome=spawn(chromeBin,['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-first-run','--remote-debugging-port=0','--remote-allow-origins=*','--user-data-dir='+dir,'about:blank'],{stdio:['ignore','ignore','pipe']});
+ let chromeErrors='';chrome.stderr.on('data',chunk=>{chromeErrors=(chromeErrors+String(chunk)).slice(-4000);});
  let ws;
  try{
-  let port;for(let i=0;i<100;i++){const f=path.join(dir,'DevToolsActivePort');if(fs.existsSync(f)){port=Number(fs.readFileSync(f,'utf8').split('\n')[0]);if(port)break;}await sleep(100);}
-  assert.ok(port,'CDP port missing');
+  let port;for(let i=0;i<300;i++){const f=path.join(dir,'DevToolsActivePort');if(fs.existsSync(f)){port=Number(fs.readFileSync(f,'utf8').split('\n')[0]);if(port)break;}await sleep(100);}
+  assert.ok(port,'CDP port missing; Chrome exit='+chrome.exitCode+'; '+chromeErrors);
   const tabs=await (await fetch('http://127.0.0.1:'+port+'/json/list')).json();
   ws=new WebSocket(tabs.find(t=>t.type==='page').webSocketDebuggerUrl);
   await new Promise((r,j)=>{ws.addEventListener('open',r,{once:true});ws.addEventListener('error',j,{once:true})});
