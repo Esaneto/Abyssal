@@ -123,9 +123,12 @@
         return { x: Number(a.x) + (Number(b.x) - Number(a.x)) * t, y: Number(a.y) + (Number(b.y) - Number(a.y)) * t };
       }
       const extraMs = Math.min(MAX_EXTRAPOLATION_MS, Math.max(0, renderTime - Number(latest.serverTime)));
-      // A two-interval velocity estimate is less sensitive to one delayed packet than
-      // differentiating only the last pair, while still reacting quickly to turns.
-      const previous = samples[Math.max(0, samples.length - 3)];
+      // Smooth moving creatures across jitter, but obey an authoritative stop quickly.
+      // A repeated position means the server has actually stopped this creature, so do
+      // not carry an older velocity through the longer packet-loss bridge.
+      const immediate = samples[samples.length - 2];
+      const stopped = Math.hypot(Number(latest.x)-Number(immediate.x),Number(latest.y)-Number(immediate.y)) < .05;
+      const previous = stopped ? immediate : samples[Math.max(0, samples.length - 3)];
       const dt = Math.max(.001, (Number(latest.serverTime) - Number(previous.serverTime)) / 1000);
       const maxV = (enemy.kind === 'whiteShark' || enemy.kind === 'whiteSharkBoss') ? 380 : 220;
       let vx=(Number(latest.x)-Number(previous.x))/dt,vy=(Number(latest.y)-Number(previous.y))/dt;
