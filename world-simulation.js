@@ -23,6 +23,9 @@ const OceanRespawn=require('./public/abyssal-ocean-respawn.js');
 const OceanGeography=require('./public/abyssal-ocean-geography.js');
 const MAX_ENEMIES = 400;
 const MAX_BOSSES = 4;
+const ONLINE_SUBMARINE_SECTION_HP=1000;
+const ONLINE_SUBMARINE_REPAIR_SECONDS=15;
+const ONLINE_SUBMARINE_OFFSETS=[-220,0,220];
 const MAX_COMMON_ENEMIES = MAX_ENEMIES - MAX_BOSSES;
 const enemyLimitForWorld=world=>world?.mode==='rift'?MAX_ENEMIES:SeaProgression.MAX_SEA_ENEMIES;
 const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:SeaProgression.MAX_SEA_COMMON_ENEMIES;
@@ -60,7 +63,8 @@ function createWorldState(now = Date.now(), mode = 'classic') {
     movingEnemyCount: 0, movementRecoveryCount: 0, playerDamageCount: 0, playerDefeatCount: 0, stalePositionAttackSkips: 0,
     activeEventId: null, eventEndsAt: 0, eventSerial: 0,
     eliteRewardClaimedTier: -1, sideEncounterResolvedTier: -1, sideEncounterId: null, sideEncounterSerial: 0,
-    mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0
+    mapSeed: AbyssalMap.seedValue(`${now}-${Math.random()}`), mapTier: 0,
+    submarine:{x:WORLD_WIDTH*.5,y:WORLD_HEIGHT*.39,powerSeconds:0,shieldSpent:false,sections:ONLINE_SUBMARINE_OFFSETS.map((offset,index)=>({id:index,name:['POPA','CENTRO','PROA'][index],x:WORLD_WIDTH*.5+offset/WORLD_ZOOM,y:WORLD_HEIGHT*.39,hp:ONLINE_SUBMARINE_SECTION_HP,maxHp:ONLINE_SUBMARINE_SECTION_HP})),repair:null}
   };
 }
 
@@ -438,6 +442,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   const validPlayers = Array.isArray(players)
     ? players.filter(p => p && p.alive !== false && Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
     : [];
+  if(world.mode==='classic'&&world.submarine){world.submarine.powerSeconds=Math.max(0,(Number(world.submarine.powerSeconds)||0)-Math.max(0,(now-(Number(world.lastTick)||now))/1000));}
   if (validPlayers.length === 0) {
     // No living participants means no world time, spawning, movement, or attacks.
     // The server stops its ticker as well; state is cleared when the last participant leaves.
@@ -756,7 +761,15 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     movementOptions.stopDistance = EnemyAI.tentacleStopDistance(enemy,(Number(enemy.r)||10)/WORLD_ZOOM,13/WORLD_ZOOM,SpecimenSystem.familyFor(enemy.specimenSkinId));
     let actualTarget=null,nearestTargetDistance=Infinity;
-    for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
+    const poweredSubmarine=world.mode==='classic'&&world.submarine&&(Number(world.submarine.powerSeconds)||0)>0;
+    if(poweredSubmarine){
+      for(const section of world.submarine.sections||[]){
+        if((Number(section.hp)||0)<=0)continue;
+        const d=Math.hypot(Number(section.x)-Number(enemy.x),Number(section.y)-Number(enemy.y));
+        if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget={x:Number(section.x),y:Number(section.y),r:72/WORLD_ZOOM,alive:true,moveSpeed:150/WORLD_ZOOM,submarine:true,section};}
+      }
+    }
+    if(!actualTarget)for(const candidate of targetablePlayers){const d=Math.hypot(Number(candidate.x)-Number(enemy.x),Number(candidate.y)-Number(enemy.y));if(d<nearestTargetDistance){nearestTargetDistance=d;actualTarget=candidate;}}
     let movement;
     movementOptions.freeSwim=false;
     movementOptions.sharkLineOfSight=actualTarget?terrainClear(enemy.x,enemy.y,actualTarget.x,actualTarget.y):false;
@@ -788,12 +801,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
         }
         movement.target=actualTarget;
       }else{
-        movement = EnemyAI.moveTowardTarget(enemy, targetablePlayers, dt, movementOptions, movementResult);
+        const movementTargets=actualTarget?.submarine?[actualTarget]:targetablePlayers;
+        movement = EnemyAI.moveTowardTarget(enemy, movementTargets, dt, movementOptions, movementResult);
         if (!movement.moved && actualTarget && dt > 0) {
-          movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
+          if(actualTarget.submarine){
+            const dx=actualTarget.x-enemy.x,dy=actualTarget.y-enemy.y,d=Math.hypot(dx,dy)||1,step=Math.min(Math.max(8,Number(enemy.speed)||30)*.85*dt,Math.max(0,d-movementOptions.stopDistance));
+            enemy.x=clamp(enemy.x+dx/d*step,0,world.width||WORLD_WIDTH);enemy.y=clamp(enemy.y+dy/d*step,0,world.height||WORLD_HEIGHT);movement.moved=step>0;
+          }else movement.moved = forceAdvanceEnemy(enemy, targetablePlayers, dt,world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);
           if (movement.moved) world.movementRecoveryCount = (world.movementRecoveryCount || 0) + 1;
         }
-        movement.target = EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget;
+        movement.target = actualTarget?.submarine?actualTarget:(EnemyAI.isChargeAttack(enemy)?(movement.target||actualTarget):actualTarget);
       }
     } else {
     // Only sighted prey may trigger a pursuit. Passive fauna patrols until
@@ -890,6 +907,16 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const target = movement.target;
     if (riftMode && !actualTarget) continue;
     if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
+    if(target.submarine&&target.section){
+      const radius=Math.max(28/WORLD_ZOOM,(Number(enemy.r)||10)/WORLD_ZOOM+34/WORLD_ZOOM);
+      if(Math.hypot(Number(target.x)-Number(enemy.x),Number(target.y)-Number(enemy.y))<=radius+78/WORLD_ZOOM){
+        enemy.attackCd=BOSS_KINDS.includes(enemy.kind)?1.15:.92;
+        const damage=Math.max(5,Math.round(Number(enemy.damage)||8));
+        target.section.hp=Math.max(0,(Number(target.section.hp)||ONLINE_SUBMARINE_SECTION_HP)-damage);
+        world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
+      }
+      continue;
+    }
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
@@ -1058,4 +1085,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };
+module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };
