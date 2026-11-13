@@ -124,3 +124,12 @@ test('jitter never rewinds the presentation clock on steady vertical motion',()=
  const recovered=reconcileSnapshot([enemy],[{id:1,x:100,y:140,r:10,hp:10}],{now:220,serverTime:1200});
  assert.equal(recovered[0].motionSamples.at(-1).serverTime,1200);
 });
+
+
+test('irregular packet arrivals do not repeatedly reverse the creature presentation clock',()=>{
+ const e={id:88,x:100,y:100,motionSamples:[]};
+ const arrivals=[0,50,145,155,201,300,310,350,450,460,500,550,600];
+ let packet=0,previous=100;
+ for(let now=0;now<=620;now+=5){while(packet<arrivals.length&&arrivals[packet]<=now){pushMotionSample(e,{x:100,y:100+packet*8,serverTime:1000+packet*50,receivedAt:arrivals[packet]});packet++;}const p=renderedPosition(e,now);assert.ok(p.y>=previous-1e-6,`rewind at ${now}: ${p.y} < ${previous}`);previous=p.y;}
+ assert.ok(previous>150);
+});

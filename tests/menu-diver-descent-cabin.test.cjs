@@ -6,11 +6,14 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 
-test('main menu opens with diver descending from submarine before input',()=>{
+test('menu starts outside the hull; explicit cabin exits retain the hatch animation',()=>{
  const menu=read('public/abyssal-menu-ocean.js');
  assert.match(menu,/emergence<1/);
  assert.match(menu,/dt/\(mobileScene\?1\.55:1\.72\)/);
- assert.match(menu,/stage\.classList\.add\('abyss-menu-arrival'\)/);
+ assert.match(menu,/stage\.classList\.toggle\('abyss-menu-arrival',fromCabin\)/);
+ assert.match(menu,/function resetToHatch\(fromCabin=false\)/);
+ assert.match(menu,/py=fromCabin\?pos\.y:arrivalEnd\(\)/);
+ assert.match(menu,/emergence=fromCabin\?0:1/);
  assert.match(menu,/stage\.classList\.add\('abyss-cabin-ready'\)/);
  assert.match(menu,/\|\|emergence<1\)return false/);
 });
@@ -29,7 +32,7 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/smooth-dive-v157/);
+ assert.match(sw,/specimen-sync-v158/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 
