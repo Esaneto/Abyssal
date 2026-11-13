@@ -7,18 +7,18 @@ function harness(){
  return {box,packets,time:t=>time=t};
 }
 test('frame positions send immediately and remain capped at 30 Hz',()=>{
- const {box,packets,time}=harness();box.sendPosition({x:1,y:2});assert.equal(packets[0].event,'player-motion-input');
- for(let t=101;t<133;t++){time(t);box.sendPosition({x:t,y:2});}assert.equal(packets.length,1);
- time(134);box.sendPosition({x:134,y:2});assert.equal(packets.length,2);assert.equal(packets[1].payload[1],134);
+ const {box,packets,time}=harness();const motion=()=>packets.filter(p=>p.event==='player-motion-input');box.sendPosition({x:1,y:2});assert.equal(packets[0].event,'player-motion-input');
+ for(let t=101;t<133;t++){time(t);box.sendPosition({x:t,y:2});}assert.equal(motion().length,1);
+ time(134);box.sendPosition({x:134,y:2});assert.equal(motion().length,2);assert.equal(motion()[1].payload[1],134);
 });
 test('shot refreshes live origin before firing without waiting for an ack',()=>{
- const {box,packets}=harness();box.sendShot({volleyId:'v'});assert.deepEqual(packets.map(p=>p.event),['player-motion-input','shared-shot']);assert.equal(packets[0].payload[1],120);
+ const {box,packets}=harness();box.sendShot({volleyId:'v'});assert.deepEqual(packets.filter(p=>p.event!=='player-net-meta').map(p=>p.event),['player-motion-input','shared-shot']);assert.equal(packets[0].payload[1],120);
  box.sendShot({volleyId:'v'});assert.equal(packets.filter(p=>p.event==='player-motion-input').length,1);
 });
 test('backpressure discards stale transforms and later sends the freshest position',()=>{
  const {box,packets,time}=harness();box.socket.io.engine.transport.writable=false;box.sendPosition({x:1,y:1});assert.equal(packets.length,0);
  time(150);box.socket.io.engine.transport.writable=true;box.sendPosition({x:99,y:99});assert.equal(packets[0].payload[1],99);
- box.socket.connected=false;box.sendShot({});assert.equal(packets.length,1);
+ box.socket.connected=false;const before=packets.length;box.sendShot({});assert.equal(packets.length,before);
 });
 
 test('decoded peer transforms forward server timestamps to the motion buffer',()=>{
