@@ -975,11 +975,18 @@ const FAIR_VIEW_WORLD_AREA=(FAIR_VIEW_REFERENCE.width*FAIR_VIEW_REFERENCE.height
 const CAMERA_RANGE_MAX=Math.pow(1.22,3);
 let cameraZoomTickAt=0;
 function desiredWorldZoom(){
- const base=mobileViewport?.48:FAIR_VIEW_REFERENCE.zoom;
- // Fusing Olho do Abismo consumes range upgrades, but preserves full sight.
+ const mobile=Boolean(mobileViewport),pvp=onlineMode&&onlineRoomMode==='pvp';
+ const base=mobile?.48:FAIR_VIEW_REFERENCE.zoom;
+ const preference=pvp?1:clamp(Number(localStorage.getItem(mobile?'abyssalCameraZoomMobile':'abyssalCameraZoomPc'))||(mobile?1:1.25),.75,1.5);
  const bonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:Number(upgrades?.range)||1;
- const mobile=Boolean(mobileViewport);const zoomPreference=onlineRoomMode==='pvp'&&onlineMode?1:clamp(Number(localStorage.getItem(mobile?'abyssalCameraZoomMobile':'abyssalCameraZoomPc'))||(mobile?1:1.25),.75,1.5);
- return base*zoomPreference/clamp(bonus,1,CAMERA_RANGE_MAX);
+ // Keep PvP and exploration camera contracts unchanged. Classic solo/co-op use
+ // the firing circle as the baseline; the upgrade never changes world geometry.
+ if(!isClassicCavernRun())return base*preference/clamp(bonus,1,CAMERA_RANGE_MAX);
+ const baseRange=294/GAME_WORLD_ZOOM;
+ const fit=Math.min(viewW,viewH)/(2*baseRange*1.08);
+ const defaultZoom=clamp(fit,.36,mobile?.70:1.2);
+ const effectiveBonus=upgrades?.abyssEye?CAMERA_RANGE_MAX:clamp(getFiringRange()/baseRange,1,CAMERA_RANGE_MAX);
+ return clamp(defaultZoom*(preference/(mobile?1:1.25))/effectiveBonus,.18,1.5);
 }
 function desiredMapFactor(){return 1.7;}
 function updateCamera(){
@@ -2708,7 +2715,7 @@ function fire(){
  if(onlineRoomMode==='pvp'){
   const peers=window.AbyssalOnline?.getPlayers?.()||[];
   for(const peer of peers){if(!peer||peer.alive===false)continue;const d=Math.hypot((Number(peer.x)||0)-player.x,(Number(peer.y)||0)-player.y);if(d<maxRange&&d<bd){target=peer;bd=d;}}
- }else for(const e of enemies){if(e.hp<=0||enemyHiddenFromAutoTarget(e)||!pveProjectileTerrainClear(player.x,player.y,e.x,e.y,2))continue;const d=dist(player,e);if(d<maxRange&&d<bd){target=e;bd=d}}
+ }else for(const e of enemies){if(e.hp<=0||enemyHiddenFromAutoTarget(e))continue;const d=dist(player,e);if(d<maxRange&&d<bd&&pveProjectileTerrainClear(player.x,player.y,e.x,e.y,2)){target=e;bd=d}}
  const mouseAimMode=isPcMouseAimMode(),aimedMode=isManualFiringMode();
  if(!target&&!aimedMode)return;
  if(mouseAimMode)updateMouseAimFromCursor();
@@ -5136,6 +5143,7 @@ window.AbyssalGameHooks={
  worldWidth:()=>W,
  worldHeight:()=>H,
  worldZoom:()=>worldZoom,
+ combatRange:()=>getFiringRange(),
  cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
  classicParityInspect:()=>({classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
  developerInspect:()=>({online:onlineMode,mode:onlineMode?onlineRoomMode:requestedRunMode,state:gameState,fps:Number(window.__abyssalFps||0),elapsed:Number(elapsed)||0,hp:Number(hp)||0,maxHp:Number(maxHp)||0,x:Number(player?.x)||0,y:Number(player?.y)||0,enemies:enemies.filter(e=>e&&e.hp>0).length,bosses:enemies.filter(e=>e&&e.hp>0&&BOSS_KINDS.includes(e.kind)).length,orbs:orbs.length,submarine:isClassicCavernRun()?{powered:soloSubmarinePowered(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))}:null}),
