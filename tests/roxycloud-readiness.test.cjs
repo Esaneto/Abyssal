@@ -54,7 +54,7 @@ test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback'
  const deploy=read('deploy/roxycloud/deploy.sh');
  assert.match(deploy,/h\.resources\?\.profile==="roxycloud-ryzen4"/);
  assert.match(deploy,/h\.persistence==="postgres"/);
- assert.match(deploy,/h\.activePlayers===0&&h\.online===0/);
+ assert.doesNotMatch(deploy,/h\.activePlayers===0|h\.online===0/);
  assert.match(deploy,/export PATH=.*\/usr\/sbin/);
  assert.match(deploy,/git worktree add --detach "\$stage" "\$target"/);
  for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology','submarine-repair-performance','native-update']){

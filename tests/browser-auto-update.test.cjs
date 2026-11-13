@@ -33,6 +33,21 @@ test('service worker reload guard is version-aware',()=>{
 test('browser auto-update release bumps version and cache',()=>{
  const build=read('public/client-build.js');
  const sw=read('public/offline-sw.js');
- assert.match(build,/version:'3\.6\.10'/);
- assert.match(sw,/browser-auto-update-v150/);
+ assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
+ assert.match(sw,/deploy-resume-v153/);
+});
+
+test('active gameplay is protected from unsolicited browser reloads',()=>{
+ const updater=read('public/update-manager.js'),offline=read('public/offline-ui.js'),game=read('public/game.js');
+ assert.match(updater,/blocked&&!allowActive/);
+ assert.match(game,/browserUpdateBlocked:\(\)=>gameState!=='menu'/);
+ assert.doesNotMatch(offline,/window\.location\.reload\(/);
+});
+test('maintenance reload stores rejoin data before checking version and restores only a server-approved run',()=>{
+ const online=read('public/online.js'),game=read('public/game.js'),server=read('server.js');
+ assert.match(online,/sessionStorage\.setItem\(updateResumeKey/);
+ assert.match(online,/checkBrowser\(false,true\)/);
+ assert.match(online,/data\.resumedRun&&saved\?\.id===roomId/);
+ assert.match(game,/startGame\(Boolean\(d\.resumedRun\)\)/);
+ assert.match(server,/room\.isPrivate&&!authorizedDeployResume/);
 });

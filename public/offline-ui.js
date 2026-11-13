@@ -52,7 +52,7 @@
   // its installer. Do not install a second service worker on either native shell.
   if(!nativeAssets && (protocol==='https:'||window.location.hostname==='localhost') &&
      'serviceWorker' in navigator){
-    // A new worker takes effect on the next navigation; never reload an open menu.
+    // Activation must never bypass the updater's active-run protection.
     window.addEventListener('load',function(){
       navigator.serviceWorker.register('/offline-sw.js',{scope:'/',updateViaCache:'none'})
         .then(function(reg){return reg.update();})
@@ -63,7 +63,7 @@
         const key='abyssalSwReload:'+String(window.ABYSSAL_CLIENT_BUILD?.version||'unknown');
         if(sessionStorage.getItem(key)==='1')return;
         sessionStorage.setItem(key,'1');
-        if(navigator.onLine!==false)window.location.reload();
+        if(navigator.onLine!==false)window.AbyssalUpdater?.checkBrowser?.(false);
       }catch(_){}
     });
   }

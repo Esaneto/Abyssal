@@ -49,15 +49,25 @@
   }catch(error){console.warn('[Abyssal] Falha ao atualizar Service Worker:',error?.message||error);}
   setTimeout(reload,80);return true;
  }
- async function checkBrowser(force=false){
+ let browserCheckInFlight=null;
+ let pendingNotice='';
+ async function checkBrowser(force=false,allowActive=false){
+  if(browserCheckInFlight)return browserCheckInFlight;
+  browserCheckInFlight=checkBrowserInner(force,allowActive);
+  try{return await browserCheckInFlight;}finally{browserCheckInFlight=null;}
+ }
+ async function checkBrowserInner(force=false,allowActive=false){
   if(!browserMode()||navigator.onLine===false)return null;
   try{
    const response=await fetch('/api/browser-version?currentVersion='+encodeURIComponent(build.version||'')+'&t='+Date.now(),{cache:'no-store',headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(5000)});
    if(!response.ok)return null;
    const data=await response.json();if(!data?.ok||!data.version)return data;
    if(cmp(data.version,build.version)>0){
+    const blocked=root.AbyssalGameHooks?.browserUpdateBlocked?.()??document.body.classList.contains('game-active');
+    if(blocked&&!allowActive){if(pendingNotice!==data.version){pendingNotice=data.version;root.AbyssalGameHooks?.notifyBrowserUpdate?.();}return {...data,reloadStarted:false};}
     root.AbyssalLoadingScreen?.beginUpdate(data.version);
-    await refreshBrowserTo(data.version);
+    const reloadStarted=await refreshBrowserTo(data.version);
+    return {...data,reloadStarted};
    }else if(force){
     root.AbyssalLoadingScreen?.status('VERSÃO ATUAL','O navegador já está usando a versão mais recente.','boot',92);
     root.AbyssalLoadingScreen?.resolveUpdateGate();
