@@ -23,6 +23,7 @@
  const cfg=()=>window.AbyssalGameHooks?.explorationPosition?.();
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
+ const researchTreeSelection={diver:'lamp:1',submarine:'submarineShield'};
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
  let embeddedCatalog=null,skipEmbeddedOpen=false,loginReturn='profile',publicProfileReturn='cardumes';
@@ -190,6 +191,7 @@
   const old=utility?[utility]:Array.from(workshopGrid.children);
   const chosen=CONSOLE_BUTTONS.find(option=>option.id===activeConsoleSection)||CONSOLE_BUTTONS[0];
   const visor=document.createElement('section');visor.className='abyss-cockpit-visor';
+ workshop.classList.toggle('abyss-visor-expanded',activeConsoleSection!=='solo'||soloConsolePage!=='home');
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
@@ -254,42 +256,21 @@
    const progress=window.AbyssalSoloProgress,state=progress?.get()||{energy:0,lamp:1},base=window.AbyssalSoloBase;
    utility.append(createSoloResearchNav());
    const balance=document.createElement('strong');balance.className='solo-stored-energy';balance.textContent='ENERGIA ARMAZENADA: '+state.energy.toLocaleString('pt-BR');utility.append(balance);
-   const note=document.createElement('p');note.textContent='Pesquisas de equipamentos e armamentos da base usam energia coletada pelo espécime nas orbes roxas. As habilidades do mergulhador são pesquisadas exclusivamente na Ressonância.';utility.append(note);
-   const section=(title,copy)=>{const h=document.createElement('h3');h.className='solo-research-heading';h.textContent=title;utility.append(h);if(copy){const p=document.createElement('p');p.className='solo-research-copy';p.textContent=copy;utility.append(p);}};
-   const researchRow=(id,name,description,cost,owned,onBuy)=>{
-    const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(owned?' is-complete':'');
-    const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent=name;desc.textContent=description;data.append(label,desc);
-    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=owned?'PESQUISADA':'DESBLOQUEAR · '+cost+' ENERGIA';buy.classList.add('solo-research-buy');buy.disabled=owned||state.energy<cost;buy.setAttribute('aria-pressed',String(owned));
-    buy.addEventListener('click',()=>{const result=onBuy?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));renderWorkshop();}});
-    row.append(data,buy);utility.append(row);
-   };
+   const branches=[],redraw=id=>{researchTreeSelection[soloConsolePage]=id;renderWorkshop();};
+   const purchase=(id,fn)=>{const result=fn?.();if(result?.ok){window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));redraw(id);}};
    if(soloConsolePage==='diver'){
-   section('ILUMINAÇÃO PESSOAL','A lanterna continua independente dos sistemas do submarino.');
-   for(let lv=1;lv<=3;lv++){
-    const row=document.createElement('div');row.className='solo-lamp-row';
-    const data=document.createElement('div'),name=document.createElement('strong'),desc=document.createElement('small');name.textContent='LANTERNA · NV. '+lv;const lamp=window.AbyssalSoloCavern?.lampParameters(lv);desc.textContent='Cone de luz · alcance '+Math.round(lamp?.range||570)+' · '+(lv===1?'equipamento inicial':Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance adicional');data.append(name,desc);
-    const buy=document.createElement('button');buy.type='button';buy.className='abyss-visor-action';buy.textContent=lv<=state.lamp?'INSTALADA':(progress?.costFor(lv)||0)+' ENERGIA';buy.disabled=lv!==state.lamp+1||state.energy<(progress?.costFor(lv)||0);buy.setAttribute('aria-pressed',String(lv<=state.lamp));buy.addEventListener('click',()=>{if(progress?.upgradeLamp().ok)renderWorkshop();});row.append(data,buy);utility.append(row);
-   }
+    const items=[];for(let lv=1;lv<=3;lv++){const id='lamp:'+lv,owned=lv<=state.lamp,cost=progress?.costFor(lv)||0,locked=lv>state.lamp+1;
+     items.push({id,name:'Lanterna '+['','I','II','III'][lv],icon:'☼',owned,locked,state:owned?'Instalada':locked?'Requer nível anterior':'Disponível',description:'Cone de luz com alcance de '+Math.round(window.AbyssalSoloCavern?.lampParameters(lv)?.range||570)+' unidades. '+(lv===1?'Equipamento inicial.':'+'+Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance em relação ao nível I.'),costText:owned?'Equipamento disponível':cost+' energia',actions:owned?[]:[{label:locked?'Nível anterior necessário':'Pesquisar · '+cost+' energia',disabled:locked||state.energy<cost,run:()=>purchase(id,()=>progress?.upgradeLamp())}]});
+    }branches.push({name:'Iluminação pessoal',linear:true,items});
    }else{
-   section('SISTEMAS DO SUBMARINO','A luz da base consome 20 Energia por 5 minutos. Cada arma automática instalada acrescenta 10 Energia ao mesmo ciclo. Recargas parciais custam apenas a proporção que falta.');
-   researchRow('submarineShield','ESCUDO DO SUBMARINO','Proteção de uso único por mergulho: absorve o primeiro dano enquanto a base estiver energizada, sem repelir criaturas. Não aumenta o consumo do ciclo.',base?.cost?.('submarineShield')||100,Boolean(base?.get?.().submarineShield),()=>base?.research?.('submarineShield'));
-   const labels={electric:'TEMPESTADE ELÉTRICA',pierce:'LANÇA DO ABISMO',photon:'LANÇA DE FÓTONS',photonRay:'RAIO DE FÓTONS',nova:'NOVA GRAVITACIONAL',echoShot:'ECO DE MARÉ',burst:'PULSO DE RUPTURA',ricochet:'RICOCHETE CAÓTICO',spread:'RAJADA PRISMÁTICA',power:'PULSO INTENSO',rate:'RESSONÂNCIA VELOZ',speed:'PROPULSÃO ABISSAL',range:'OLHO PROFUNDO',magnet:'AFINIDADE ABISSAL',regen:'MEMBRANA VIVA',shield:'ESCUDO ESPECTRAL',shell:'CARAPAÇA ABISSAL',ward:'VÉU DE MARÉ',lastStand:'ÚLTIMO FÔLEGO',pressureCocoon:'CASULO DE PRESSÃO',vitality:'RESERVA VITAL',predator:'INSTINTO PREDATÓRIO',closePressure:'PRESSÃO DE CAÇA'};
-   
-   const installed=base?.installedWeapons?.()||[],maxWeapons=base?.MAX_WEAPONS||6;
-   section('ARMAMENTO DO SUBMARINO · '+installed.length+'/'+maxWeapons,'Lança de Fótons é instalada de fábrica. Pesquise os demais disparos e instale até seis torres simultaneamente, uma por tipo. Cada torre acrescenta 10 energia ao ciclo; a pesquisa permanece salva.');
-   const slots=document.createElement('p');slots.className='solo-research-copy';slots.textContent=Array.from({length:maxWeapons},(_,i)=>(i+1)+'. '+(labels[installed[i]]||'ESPAÇO LIVRE')).join('  ·  ');utility.append(slots);
-   for(const id of base?.SHOTS||[]){
-    const key='weapon:'+id,owned=base.unlocked(key),mounted=installed.includes(id);
-    if(!owned){researchRow(key,'TORRE · '+labels[id],'Pesquisa permanente. Após desbloquear, instale em um espaço livre.',base.cost(key),false,()=>base.research(key));continue;}
-    const row=document.createElement('div');row.className='solo-lamp-row solo-research-row'+(mounted?' is-complete':'');
-    const data=document.createElement('div'),label=document.createElement('strong'),desc=document.createElement('small');label.textContent='TORRE · '+labels[id];desc.textContent=mounted?'INSTALADA · +10 energia por ciclo':'PESQUISADA · '+(installed.length>=maxWeapons?'Remova uma torre para instalar.':'Pronta para instalação gratuita.');data.append(label,desc);
-    const btn=document.createElement('button');btn.type='button';btn.className='abyss-visor-action solo-research-buy';btn.textContent=mounted?'DESINSTALAR':'INSTALAR';btn.disabled=!mounted&&installed.length>=maxWeapons;btn.setAttribute('aria-pressed',String(mounted));
-    btn.addEventListener('click',()=>{const result=mounted?base.uninstallWeapon(id):base.installWeapon(id);if(result.ok)renderWorkshop();});
-    row.append(data,btn);utility.append(row);
+    const installed=base?.installedWeapons?.()||[],max=base?.MAX_WEAPONS||6,shield=Boolean(base?.get?.().submarineShield),shieldCost=base?.cost?.('submarineShield')||100;
+    branches.push({name:'Defesa',items:[{id:'submarineShield',name:'Escudo do submarino',icon:'⬡',owned:shield,state:shield?'Pesquisado':'Disponível',description:'Absorve o primeiro dano à base energizada, uma vez por mergulho. Não aumenta o consumo de energia.',costText:shield?'Pesquisa concluída':shieldCost+' energia',actions:shield?[]:[{label:'Pesquisar · '+shieldCost+' energia',disabled:state.energy<shieldCost,run:()=>purchase('submarineShield',()=>base?.research('submarineShield'))}]}]});
+    const labels={electric:'Tempestade Elétrica',pierce:'Lança do Abismo',photon:'Lança de Fótons',photonRay:'Raio de Fótons',nova:'Nova Gravitacional',echoShot:'Eco de Maré'},icons={electric:'ϟ',pierce:'➵',photon:'☄',photonRay:'⌁',nova:'⊛',echoShot:'⋔'};
+    const descriptions={electric:'Disparo elétrico em cadeia.',pierce:'Projétil perfurante.',photon:'Disparo fotônico rápido; torre inicial.',photonRay:'Feixe contínuo de fótons.',nova:'Pulso gravitacional de área.',echoShot:'Dois projéteis paralelos de maré.'};
+    branches.push({name:'Armamento · '+installed.length+'/'+max+' torres instaladas',items:(base?.SHOTS||[]).map(id=>{const key='weapon:'+id,owned=base.unlocked(key),mounted=installed.includes(id),cost=base.cost(key);return {id:key,name:labels[id]||id,icon:icons[id],owned,active:mounted,state:mounted?'Instalada':owned?'Pesquisada':'Disponível',description:descriptions[id]+' Cada torre instalada acrescenta 10 energia ao ciclo de 5 minutos.',costText:owned?'Instalação gratuita':cost+' energia',actions:[owned?{label:mounted?'Desinstalar':'Instalar',disabled:!mounted&&installed.length>=max,secondary:mounted,run:()=>purchase(key,()=>mounted?base.uninstallWeapon(id):base.installWeapon(id))}:{label:'Pesquisar · '+cost+' energia',disabled:state.energy<cost,run:()=>purchase(key,()=>base.research(key))}]};})});
+    const summary=document.createElement('p');summary.className='solo-research-copy';summary.textContent='Base: '+(base?.fullPowerCost?.()||20)+' energia / 5 minutos · '+installed.length+' de '+max+' torres. A luz custa 20 energia por ciclo.';utility.append(summary);
    }
-
-   const power=document.createElement('p');power.className='solo-research-copy';power.textContent='CUSTO ATUAL DA BASE: '+(base?.fullPowerCost?.()||20)+' ENERGIA / 5 MIN · '+(base?.installedWeapons?.().length||0)+' ARMA(S) INSTALADA(S)';utility.append(power);
-   }
+   window.AbyssalResearchTree?.mount(utility,branches,{title:'Mapa de pesquisa',selected:researchTreeSelection[soloConsolePage],onSelect:id=>{researchTreeSelection[soloConsolePage]=id;}});
    const back=document.createElement('button');back.type='button';back.className='abyss-visor-action';back.textContent='VOLTAR AO MERGULHO';back.addEventListener('click',()=>{soloConsolePage='home';renderWorkshop();});utility.append(back);
   }else if(activeConsoleSection==='minerals'){
    const gallery=document.createElement('div');gallery.className='abyss-mineral-gallery';

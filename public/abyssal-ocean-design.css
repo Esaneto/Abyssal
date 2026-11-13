@@ -1,0 +1,67 @@
+/* Ocean design tokens derived from the supplied cavern reference. */
+:root{--ab-bg:#010908;--ab-panel:#041f1f;--ab-surface:#092c2e;--ab-border:#37686a;--ab-secondary:#124247;--ab-action:#31a7b0;--ab-text:#e5f5f2;--ab-copy:#b9d5d3;--ab-muted:#8cafae;--ab-success:#77d7b2;--ab-danger:#ff3658}
+#submarineWorkshop.abyss-cockpit-screen{background:var(--ab-bg)!important;color:var(--ab-text)!important}
+#submarineWorkshop .abyss-cockpit-console{background:linear-gradient(145deg,#124247,#041f1f 55%,#092c2e)!important;border-color:#1f656c!important;border-top-color:#477d80!important;box-shadow:0 18px 42px #000c,inset 0 1px 0 #8cafae55!important}
+#submarineWorkshop .abyss-cockpit-console:before{background:linear-gradient(90deg,transparent,#31a7b0,transparent)!important;box-shadow:none!important}
+#submarineWorkshop .abyss-cockpit-visor{background:linear-gradient(150deg,#092c2e,#041f1f 70%,#010908)!important;border-color:#37686a!important;box-shadow:0 0 0 3px #010908!important}
+#submarineWorkshop .abyss-cockpit-visor:before{display:none}
+#submarineWorkshop .abyss-visor-heading{background:#092c2e!important;border-bottom:1px solid #37686a!important;padding:12px 16px!important}
+#submarineWorkshop .abyss-visor-heading strong{font:700 clamp(17px,1.55vw,23px)/1.2 Inter,system-ui,sans-serif!important;letter-spacing:0!important;color:var(--ab-text)!important}
+#submarineWorkshop .abyss-visor-heading small,#submarineWorkshop .abyss-visor-heading span{color:var(--ab-muted)!important;font-size:11px!important;letter-spacing:.04em!important}
+#submarineWorkshop .abyss-visor-body{padding:16px!important;scrollbar-color:#37686a #041f1f}
+#submarineWorkshop .abyss-console-info{max-width:none!important;gap:12px!important}
+#submarineWorkshop .abyss-console-info p,#submarineWorkshop .solo-research-copy{font:400 14px/1.55 Inter,system-ui,sans-serif!important;color:var(--ab-copy)!important}
+#submarineWorkshop .abyss-console-info>strong{font:700 19px/1.3 Inter,system-ui,sans-serif!important;color:var(--ab-text)!important}
+#submarineWorkshop .solo-research-heading{font:700 14px/1.4 Inter,system-ui,sans-serif!important;color:var(--ab-copy)!important;letter-spacing:.04em!important}
+#submarineWorkshop .abyss-control-key,#submarineWorkshop .abyss-cockpit-exit,#submarineWorkshop .cockpit-command{background:#124247!important;color:var(--ab-text)!important;border-color:#37686a!important;box-shadow:none!important;text-shadow:none!important;filter:none!important}
+#submarineWorkshop .abyss-control-key.is-active,#submarineWorkshop .abyss-control-key[aria-pressed="true"]{background:#1f656c!important;border-color:#65c5c7!important;color:#f2fffc!important}
+#submarineWorkshop .abyss-control-icon{color:#9cdddc!important;filter:none!important}
+#submarineWorkshop .abyss-control-key[data-abyss-locked]{background:#092c2e!important;color:#8cafae!important;border-color:#284d4d!important}
+#submarineWorkshop .abyss-visor-action,#submarineWorkshop .primary-btn,#submarineWorkshop .secondary-btn,#submarineWorkshop .small-action,#submarineWorkshop .shop-redeem-shortcut,#pauseScreen .primary-btn,#pauseScreen .secondary-btn{border:1px solid #477d80!important;background:#124247!important;color:var(--ab-text)!important;box-shadow:none!important;text-shadow:none!important;font-family:Inter,system-ui,sans-serif!important;min-height:40px;line-height:1.3!important;letter-spacing:.02em!important}
+#submarineWorkshop .primary-btn,#submarineWorkshop .abyss-console-info>button.abyss-visor-action:first-of-type:not(#cockpitOnlineDiveBtn),#pauseScreen .primary-btn{background:var(--ab-action)!important;color:#010908!important;border-color:#31a7b0!important;font-weight:800!important}
+#submarineWorkshop button:focus-visible,#submarineWorkshop input:focus-visible,#submarineWorkshop select:focus-visible{outline:2px solid #a7f0e7!important;outline-offset:3px!important}
+#submarineWorkshop button:disabled{opacity:.72!important;cursor:not-allowed!important}
+#submarineWorkshop .abyss-visor-scroll-hint{background:#092c2e!important;color:var(--ab-muted)!important;border-color:#37686a!important}
+#submarineWorkshop .abyss-cockpit-embedded .modal-card{color:var(--ab-text)!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#submarineWorkshop .abyss-cockpit-embedded h2,#submarineWorkshop .abyss-cockpit-embedded h2 em,#submarineWorkshop .abyss-cockpit-embedded h3{color:var(--ab-text)!important;font-family:Inter,system-ui,sans-serif!important;font-style:normal!important;text-shadow:none!important}
+#submarineWorkshop .abyss-cockpit-embedded p,#submarineWorkshop .abyss-cockpit-embedded .field-label,#submarineWorkshop .abyss-cockpit-embedded .eyebrow{color:var(--ab-copy)!important;line-height:1.5!important}
+#submarineWorkshop .abyss-cockpit-embedded .text-field,#submarineWorkshop .abyss-cockpit-embedded input:not([type=checkbox]):not([type=range]),#submarineWorkshop .abyss-cockpit-embedded select{background:#010908!important;color:var(--ab-text)!important;border-color:#37686a!important}
+#submarineWorkshop .abyss-cockpit-embedded .skin-card,#submarineWorkshop .abyss-cockpit-embedded .room-card,#submarineWorkshop .abyss-cockpit-embedded .resonance-fusion-recipe{background:#092c2e!important;border-color:#37686a!important}
+#submarineWorkshop .abyss-cockpit-embedded .redeem-open-btn{background:#124247!important;border-color:#477d80!important;color:var(--ab-text)!important}
+#submarineWorkshop .abyss-cockpit-embedded .redeem-open-btn small,#submarineWorkshop .abyss-cockpit-embedded .redeem-open-btn strong{color:var(--ab-copy)!important}
+#submarineWorkshop .solo-stored-energy{font:700 14px/1.4 Inter,system-ui,sans-serif!important;color:#a7f0e7!important;padding:8px 12px;background:#092c2e;border:1px solid #37686a;border-radius:6px}
+#submarineWorkshop .solo-research-tabs{gap:8px!important}
+#submarineWorkshop .solo-research-tabs button[aria-pressed=true]{background:#31a7b0!important;color:#010908!important}
+@media(min-width:701px){#submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{width:min(1120px,90vw)!important;height:min(75dvh,720px)!important;bottom:clamp(10px,2dvh,24px)!important}}
+@media(max-width:700px){#submarineWorkshop.abyss-visor-expanded .abyss-cockpit-console{height:min(82dvh,760px)!important;width:97vw!important;bottom:12px!important}#submarineWorkshop .abyss-visor-body{padding:12px!important}#submarineWorkshop .abyss-visor-heading{padding:9px 12px!important}#submarineWorkshop .abyss-control-key{min-height:44px!important}}
+.abyss-research-tree{font-family:Inter,system-ui,sans-serif;color:var(--ab-text);display:grid;gap:12px;min-width:0;width:100%;text-align:left}
+.abyss-research-tree .abyss-tree-label{font:700 18px/1.3 Inter,system-ui,sans-serif!important;margin:0!important;color:var(--ab-text)!important}
+.abyss-research-tree .abyss-tree-intro{font:400 13px/1.5 Inter,system-ui,sans-serif!important;margin:0!important;color:var(--ab-copy)!important}
+.abyss-tree-map{display:grid;gap:16px;min-width:0}
+.abyss-tree-branch{padding:12px 10px;background:#041f1f;border:1px solid #37686a;border-radius:9px;min-width:0}
+.abyss-tree-branch-title{font:700 14px/1.4 Inter,system-ui,sans-serif!important;color:var(--ab-text)!important;text-align:center;margin:0!important}
+.abyss-tree-trunk{height:17px;width:2px;background:#477d80;margin:auto}
+.abyss-tree-nodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(115px,100%),1fr));gap:10px;position:relative;padding-top:10px}
+.abyss-tree-nodes:before{content:'';position:absolute;left:10%;right:10%;top:0;border-top:1px solid #477d80}
+.abyss-tree-node{position:relative;min-width:0;min-height:105px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;padding:9px 6px;background:#092c2e;border:1px solid #477d80;border-radius:7px;color:var(--ab-text);font:600 12px/1.35 Inter,system-ui,sans-serif;cursor:pointer;text-align:center;overflow-wrap:anywhere}
+.abyss-tree-node:before{content:'';position:absolute;top:-11px;left:50%;height:10px;border-left:1px solid #477d80}
+.abyss-tree-node-icon{font-size:23px;line-height:1;color:#9cdddc}
+.abyss-tree-node-state{font-size:10px;color:var(--ab-muted);line-height:1.3}
+.abyss-tree-node.is-owned{border-color:#599f89}.abyss-tree-node.is-owned .abyss-tree-node-state{color:#77d7b2}
+.abyss-tree-node.is-equipped{background:#124247;border-color:#77d7b2}.abyss-tree-node.is-equipped .abyss-tree-node-state{color:#a7f0e7}
+.abyss-tree-node.is-locked{background:#061c1c;border-style:dashed}
+.abyss-tree-node[aria-pressed=true]{outline:2px solid #31a7b0;outline-offset:2px}
+.abyss-tree-nodes.is-linear{display:flex;align-items:stretch;gap:20px;padding-top:0}
+.abyss-tree-nodes.is-linear:before,.abyss-tree-nodes.is-linear .abyss-tree-node:before{display:none}
+.abyss-tree-nodes.is-linear .abyss-tree-node{flex:1}
+.abyss-tree-nodes.is-linear .abyss-tree-node:not(:last-child):after{content:'';position:absolute;right:-21px;top:50%;width:20px;border-top:2px solid #477d80}
+.abyss-tree-detail{border:1px solid #477d80;border-left:3px solid #31a7b0;border-radius:8px;background:#092c2e;padding:14px;display:grid;gap:8px;min-width:0}
+.abyss-tree-detail-title{font:700 17px/1.3 Inter,system-ui,sans-serif!important;margin:0!important;color:var(--ab-text)!important}
+.abyss-tree-state,.abyss-tree-cost{font:600 12px/1.4 Inter,system-ui,sans-serif!important;color:#a7f0e7!important;margin:0!important}
+.abyss-tree-description{font:400 14px/1.55 Inter,system-ui,sans-serif!important;color:var(--ab-copy)!important;margin:0!important}
+.abyss-tree-actions{display:flex;gap:8px;flex-wrap:wrap}.abyss-tree-action{min-height:44px;flex:1;padding:10px 14px;border-radius:6px;border:1px solid #31a7b0;background:#31a7b0;color:#010908;font:700 13px/1.4 Inter,system-ui,sans-serif;cursor:pointer}
+.abyss-tree-action.is-secondary{background:#124247;color:var(--ab-text);border-color:#477d80}
+.abyss-tree-action:disabled{background:#124247;color:#b9d5d3;border-color:#37686a;cursor:not-allowed}
+@media(min-width:900px){.abyss-research-tree{grid-template-columns:minmax(0,1fr) minmax(210px,.48fr);align-items:start}.abyss-tree-label,.abyss-tree-intro{grid-column:1/-1}.abyss-tree-detail{position:sticky;top:0;grid-column:2;grid-row:3}.abyss-tree-map{grid-column:1;grid-row:3}}
+@media(max-width:899px){.abyss-tree-detail{grid-row:3;position:sticky;top:0;z-index:4;box-shadow:0 4px 12px #0006}.abyss-tree-map{grid-row:4}.abyss-tree-nodes{grid-template-columns:repeat(2,minmax(0,1fr))}.abyss-tree-nodes.is-linear{gap:12px}.abyss-tree-nodes.is-linear .abyss-tree-node:not(:last-child):after{right:-13px;width:12px}}
+@media(prefers-reduced-motion:reduce){.abyss-research-tree *{transition:none!important;animation:none!important}}
