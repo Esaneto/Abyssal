@@ -27,7 +27,7 @@ test('installed clients verify promoted artifact metadata before showing an upda
  assert.match(updater,/AbyssalOffline\?\.nativeAssets/);
  assert.match(updater,/metadataUrl/);
  assert.match(updater,/published\.version/);
- assert.match(updater,/published\.sha256/);
+ assert.match(updater,/published\.sha256/);\n assert.match(updater,/published\.updatable!==true/);
  assert.match(updater,/sessionStorage\.setItem\('abyssalUpdateDeferred'/);
  assert.match(updater,/checkNativeUpdateBtn/);
  assert.match(updater,/navigator\.onLine===false/);
