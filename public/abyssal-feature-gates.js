@@ -1,4 +1,4 @@
-/* Abyssal launch focus: preserve unfinished modes, expose Solo and Online classic shooter.
+/* Abyssal launch focus: Mar Aberto e Fossas permanecem bloqueados; Solo e Mergulho Online estão liberados para teste.
  * This is a UI/routing gate, not deletion of game systems or saved data.
  */
 (function(){
@@ -13,7 +13,7 @@
  function notify(){
   let toast=document.getElementById('abyssalDevelopmentNotice');
   if(!toast){toast=document.createElement('div');toast.id='abyssalDevelopmentNotice';toast.className='abyss-development-notice';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');document.body.appendChild(toast);}
-  toast.textContent='EM DESENVOLVIMENTO · No momento, jogue Solo ou Mergulho Online.';
+  toast.textContent='EM DESENVOLVIMENTO · Apenas Mar Aberto e Fossas permanecem bloqueados. Mergulho Online está LIBERADO PARA TESTE.';
   toast.classList.add('is-visible');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('is-visible'),3200);
   return false;
  }
