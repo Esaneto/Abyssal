@@ -17,6 +17,8 @@
  function windowsBridge(){return root.AbyssalNativeUpdater||null;}
  async function installNative(data,status,button){
   const original=button?.textContent||'ATUALIZAR AGORA';
+  root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
+  root.AbyssalLoadingScreen?.updateDownload('Baixando e verificando o pacote oficial…',64);
   if(button){button.disabled=true;button.textContent='BAIXANDO ATUALIZAÇÃO…';}
   if(status)status.textContent='Baixando e verificando a atualização. Não feche o Abyssal.';
   try{
@@ -24,23 +26,29 @@
    if(data.platform==='android'&&androidBridge()?.installApk){
     result=await androidBridge().installApk({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
     if(result?.permissionRequired){
+     root.AbyssalLoadingScreen?.updateInstall('Autorize o Abyssal a instalar atualizações e volte ao jogo.',88);
      if(status)status.textContent='Autorize o Abyssal a instalar atualizações e volte ao jogo. Depois toque em ATUALIZAR AGORA novamente.';
      return result;
     }
+    root.AbyssalLoadingScreen?.updateInstall('Download concluído. Confirme a instalação na tela do Android.',96);
     if(status)status.textContent='Download concluído. Confirme a instalação na tela do Android.';
     return result;
    }
    if(data.platform==='windows'&&typeof windowsBridge()?.installUpdate==='function'){
+    root.AbyssalLoadingScreen?.updateDownload('Baixando, validando e preparando o instalador do Windows…',68);
     if(status)status.textContent='Baixando, validando e preparando o instalador do Windows…';
     result=await windowsBridge().installUpdate({url:data.url,sha256:data.sha256||'',version:data.latestVersion||''});
+    root.AbyssalLoadingScreen?.updateInstall('Instalador validado e aberto. O Abyssal será fechado.',96);
     if(status)status.textContent='Instalador aberto. O Abyssal será fechado para concluir a atualização.';
     return result;
    }
+   root.AbyssalLoadingScreen?.releaseAfterUpdate('Este build precisa abrir o pacote oficial uma única vez.');
    if(status)status.textContent='Este build ainda não possui o atualizador interno. Abrindo o pacote oficial uma única vez…';
    try{root.open(data.url,'_blank','noopener');}catch(_){root.location.href=data.url;}
    return {ok:false,fallback:true};
   }catch(error){
    console.error('[Abyssal] Falha ao instalar atualização:',error);
+   root.AbyssalLoadingScreen?.updateError('Não foi possível concluir a atualização. Abrindo a versão instalada.');
    if(status)status.textContent='Não foi possível concluir a atualização. Verifique a conexão e tente novamente.';
    return {ok:false,error:String(error?.message||error||'update-failed')};
   }finally{
@@ -48,7 +56,7 @@
    if(button){button.disabled=false;button.textContent=original;}
   }
  }
- function modal(data){
+ function modal(data,autoStart=false){
   const existing=document.getElementById('abyssalUpdatePrompt');
   if(existing){existing.remove();}
   const el=document.createElement('section');el.id='abyssalUpdatePrompt';el.className='abyssal-update-prompt';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
@@ -61,7 +69,7 @@
   const now=document.createElement('button');now.type='button';now.className='primary-btn';now.dataset.updateNow='';now.textContent='ATUALIZAR AGORA';actions.appendChild(now);
   if(!data.required){
    const later=document.createElement('button');later.type='button';later.className='secondary-btn';later.dataset.updateLater='';later.textContent='DEPOIS';actions.appendChild(later);
-   later.addEventListener('click',()=>{try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}el.remove();});
+   later.addEventListener('click',()=>{try{sessionStorage.setItem('abyssalUpdateDeferred',String(data.latestVersion||''));}catch(_){}root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada. Abrindo a versão instalada.');el.remove();});
   }
   const help=document.createElement('p');help.className='abyssal-update-help';help.textContent=data.platform==='android'
    ?'O Abyssal baixa o APK oficial dentro do aplicativo. O Android pedirá sua confirmação para instalar a atualização.'
@@ -70,30 +78,73 @@
   card.append(kicker,title,version,notes,actions,help,status);el.appendChild(card);
   now.addEventListener('click',()=>installNative(data,status,now));
   document.body.appendChild(el);
+  if(autoStart)setTimeout(()=>{if(now.isConnected&&!now.disabled)now.click();},260);
  }
  async function check(force=false){
-  if(!native()||navigator.onLine===false)return null;
-  const p=platform();if(!p)return null;
-  const base=server();if(!/^https:\/\//i.test(base))return null;
+  if(!native()){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  if(navigator.onLine===false){
+   root.AbyssalLoadingScreen?.status('MODO OFFLINE','Sem internet: usando os arquivos locais. Solo e modos offline continuam disponíveis.','offline',84);
+   root.AbyssalLoadingScreen?.resolveUpdateGate();
+   return null;
+  }
+  const p=platform();if(!p){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  const base=server();if(!/^https:\/\//i.test(base)){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  root.AbyssalLoadingScreen?.status('VERIFICANDO ATUALIZAÇÕES','Conexão disponível. Conferindo a versão mais recente…','boot',34);
   try{
    const response=await fetch(base+'/api/client-update?platform='+encodeURIComponent(p)+'&currentVersion='+encodeURIComponent(build.version||''),{cache:'no-store',signal:AbortSignal.timeout(6000)});
-   if(!response.ok)return null;
-   const data=await response.json();if(!data?.ok||cmp(data.latestVersion,build.version)<=0)return data;
+   if(!response.ok){
+    root.AbyssalLoadingScreen?.status('SERVIDOR INDISPONÍVEL','Abrindo a versão local instalada.','offline',86);
+    root.AbyssalLoadingScreen?.resolveUpdateGate();
+    return null;
+   }
+   const data=await response.json();
+   if(!data?.ok||cmp(data.latestVersion,build.version)<=0){
+    root.AbyssalLoadingScreen?.status('VERSÃO ATUAL','Nenhuma atualização necessária.','boot',88);
+    root.AbyssalLoadingScreen?.resolveUpdateGate();
+    return data;
+   }
    if(data.metadataUrl){
     try{
      const publishedResponse=await fetch(data.metadataUrl+'?v='+encodeURIComponent(data.latestVersion),{cache:'no-store',signal:AbortSignal.timeout(6000)});
-     if(!publishedResponse.ok)return data;
+     if(!publishedResponse.ok){
+      root.AbyssalLoadingScreen?.status('ATUALIZAÇÃO EM PUBLICAÇÃO','Abrindo a versão instalada enquanto o pacote termina de ser publicado.','boot',86);
+      root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+     }
      const published=await publishedResponse.json();
-     if(String(published.version||'')!==String(data.latestVersion||''))return data;
-     if(data.platform==='android'&&published.updatable!==true)return data;
-     if(!/^[a-f0-9]{64}$/i.test(String(published.sha256||'')))return data;
+     if(String(published.version||'')!==String(data.latestVersion||'')){
+      root.AbyssalLoadingScreen?.status('ATUALIZAÇÃO EM PUBLICAÇÃO','O novo pacote ainda está sendo finalizado. Abrindo a versão instalada.','boot',86);
+      root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+     }
+     if(data.platform==='android'&&published.updatable!==true){
+      root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);
+      root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+     }
+     if(!/^[a-f0-9]{64}$/i.test(String(published.sha256||''))){
+      root.AbyssalLoadingScreen?.status('ATUALIZAÇÃO EM VALIDAÇÃO','Abrindo a versão instalada.','boot',86);
+      root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+     }
      data.sha256=String(published.sha256).toLowerCase();
-    }catch(_){return data;}
-   }else{return data;}
+    }catch(_){
+     root.AbyssalLoadingScreen?.status('SEM ACESSO AO PACOTE','Abrindo a versão local instalada.','offline',86);
+     root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+    }
+   }else{
+    root.AbyssalLoadingScreen?.resolveUpdateGate();return data;
+   }
    let deferred='';try{deferred=sessionStorage.getItem('abyssalUpdateDeferred')||'';}catch(_){}
-   if(force||data.required||deferred!==String(data.latestVersion||''))modal(data);
+   if(force||data.required||deferred!==String(data.latestVersion||'')){
+    root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion);
+    modal(data,!force);
+   }else{
+    root.AbyssalLoadingScreen?.releaseAfterUpdate('Atualização adiada nesta sessão. Abrindo a versão instalada.');
+   }
    return data;
-  }catch(error){console.warn('[Abyssal] Falha ao verificar atualização:',error?.message||error);return null;}
+  }catch(error){
+   console.warn('[Abyssal] Falha ao verificar atualização:',error?.message||error);
+   root.AbyssalLoadingScreen?.status('SEM CONEXÃO COM O SERVIDOR','Abrindo a versão local instalada.','offline',86);
+   root.AbyssalLoadingScreen?.resolveUpdateGate();
+   return null;
+  }
  }
  root.AbyssalUpdater={check,currentVersion:build.version,platform,installNative};
  function bindManualCheck(){
@@ -114,7 +165,7 @@
    button.disabled=false;
   });
  }
- const schedule=()=>setTimeout(()=>check(false),3500);
+ const schedule=()=>setTimeout(()=>check(false),900);
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();},{once:true});else{bindManualCheck();schedule();}
  root.addEventListener('online',()=>setTimeout(()=>check(false),1200));
 })(window);
