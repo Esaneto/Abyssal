@@ -300,6 +300,33 @@ async function ensureGameMasterAccount(){
  }
  users[key]=user;saveUsers();await flushPersistence();console.log('[developer] Conta GameMaster pronta com privilégios server-side.');return true;
 }
+const REVIEW_ACCOUNTS=[['googlereviewer01','GoogleReviewer01','ABYSSAL_REVIEW_PASSWORD_01'],['googlereviewer02','GoogleReviewer02','ABYSSAL_REVIEW_PASSWORD_02']];
+async function ensureReviewAccounts(){
+ for(const [key,nickname,env] of REVIEW_ACCOUNTS){
+  const password=String(process.env[env]||'');
+  if(!password)continue;
+  if(password.length<16||password.length>128)throw new Error(env+' must contain 16–128 characters');
+  const existing=users[key];
+  if(existing&&!existing.reviewAccount)throw new Error('Reviewer nickname already occupied: '+nickname);
+  if(existing&&existing.salt&&existing.passwordHash){
+   const candidate=await hashPassword(password,existing.salt);
+   if(candidate&&safeEqual(candidate,existing.passwordHash))continue;
+  }
+  const salt=crypto.randomBytes(16).toString('hex'),passwordHash=await hashPassword(password,salt);
+  if(!passwordHash)throw new Error('Reviewer password hashing failed');
+  const user=existing||{
+   accountId:crypto.randomUUID(),nickname,email:key+'@review.abyssal.invalid',
+   createdAt:new Date().toISOString(),energy:100000,
+   ownedSkins:[...allowedSkinIds],discoveredSpecimens:[...allowedSkinIds],
+   equippedSkin:'default',metaUpgrades:{},lastWheelAt:0,
+   researchLevels:ResearchSystem.sanitizeLevels(Object.fromEntries(Object.keys(ResearchSystem.DEFINITIONS).map(id=>[id,1]))),
+   resourceInventory:ResearchSystem.sanitizeInventory(Object.fromEntries(Object.keys(ExplorationConfig.RESOURCES).map(id=>[id,1000])))
+  };
+  Object.assign(user,{reviewAccount:true,role:'player',developerAccess:false,salt,passwordHash,sessionTokens:[]});
+  users[key]=user;saveUsers();await flushPersistence();
+  console.log('[review] Provisioned '+nickname);
+ }
+}
 function hashSessionToken(token) { return crypto.createHash('sha256').update(String(token || '')).digest('hex'); }
 function issueSessionToken(user) {
  const now=Date.now(),expiresAt=now+30*24*60*60*1000;
@@ -355,7 +382,7 @@ const TITLE_DEFINITIONS=[
  function cardumeRoster(c){const online=onlineAccountKeys();return c.members.map(key=>({key,nickname:users[key]?.nickname||key,isDeveloper:isDeveloperUser(users[key]),online:online.has(key),equippedTitle:users[key]?.equippedTitle||'abyss-drifter',likesReceived:Array.isArray(users[key]?.likedBy)?users[key].likedBy.length:0,leader:c.leader===users[key]?.nickname})).filter(m=>users[m.key]).sort((a,b)=>Number(b.online)-Number(a.online)||Number(b.leader)-Number(a.leader)||a.nickname.localeCompare(b.nickname));}
  function emitCardumeRoster(c){if(!c)return;for(const client of (io.sockets?.sockets?.values?.() || []))if(client.data.userKey&&c.members.includes(client.data.userKey))client.emit('cardume-details',{cardume:{id:c.id,name:c.name,description:c.description,leader:c.leader,members:c.members.length,capacity:c.capacity},roster:cardumeRoster(c)});}
  function broadcastCardumeRosters(){for(const c of Object.values(cardumes))emitCardumeRoster(c);}
-function rankedEntries(board) { return Object.values(board || {}).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
+function rankedEntries(board) { return Object.values(board || {}).filter(entry=>!users[entry.key]?.reviewAccount).sort((a, b) => (Number(b.bossesKilled) || 0) - (Number(a.bossesKilled) || 0) || (Number(b.score ?? b.damage) || 0) - (Number(a.score ?? a.damage) || 0) || (Number(b.survival) || 0) - (Number(a.survival) || 0)).slice(0, 10); }
 const RANKING_ENERGY_REWARDS=Object.freeze({daily:100,weekly:1000,monthly:5000});
 function awardBoard(board, amount, periodName) { for (const entry of rankedEntries(board)) { const user = users[entry.key]; if (user) user.energy = (user.energy || 0) + amount; } }
 function settlePeriods(persist=true) {
@@ -1248,7 +1275,7 @@ async function finishRunForSocket(socket,payload={},isolatedRun=null){
  settlePeriods(!isolatedRun);
  const entry={key,nickname:user.nickname,bossesKilled,score:Math.round(score),damage:Math.round(score),level,survival:Math.round(run.finalSurvival),updatedAt:new Date().toISOString()};
  const better=(old)=>!old||bossesKilled>(Number(old.bossesKilled)||0)||(bossesKilled===(Number(old.bossesKilled)||0)&&(score>(Number(old.score??old.damage)||0)||(score===(Number(old.score??old.damage)||0)&&run.finalSurvival>(Number(old.survival)||0))));
- const put=board=>{if(better(board[key]))board[key]=entry;};
+ const put=board=>{if(!user.reviewAccount&&better(board[key]))board[key]=entry;};
  rankings.eternal ||= {};rankings.daily ||= {};rankings.weekly ||= {};rankings.monthly ||= {};
  rankings.daily[dayKey()] ||= {};rankings.weekly[weekKey()] ||= {};rankings.monthly[monthKey()] ||= {};
  put(rankings.eternal);put(rankings.daily[dayKey()]);put(rankings.weekly[weekKey()]);put(rankings.monthly[monthKey()]);reconcileHallTitles({persist:!isolatedRun});
@@ -1719,7 +1746,7 @@ io.on('connection', socket => {
   if (!/^[a-zA-Z0-9_]{3,18}$/.test(nickname) || password.length < 8 || password.length > 128) return socket.emit('auth-result', { ok: false, message: 'Nickname inválido ou senha fora do limite (8–128 caracteres).' });
   const key = nickname.toLowerCase(); let user = Object.hasOwn(users, key) ? users[key] : null;
   const mode = payload.mode === 'register' ? 'register' : 'login';
-  if(mode==='register'&&key==='gamemaster')return socket.emit('auth-result',{ok:false,message:'Este nickname é reservado ao ambiente de desenvolvimento.'});
+  if(mode==='register'&&(key==='gamemaster'||REVIEW_ACCOUNTS.some(([reserved])=>reserved===key)))return socket.emit('auth-result',{ok:false,message:'Este nickname é reservado ao ambiente de desenvolvimento.'});
   // GameMaster self-heals at login. This covers VPS migrations, restored persistence
   // and password rotation where the boot-time provision may have happened before
   // the latest persisted users state was loaded.
@@ -3108,6 +3135,7 @@ setInterval(()=>heartbeatRoomDirectory().catch(err=>console.error('[rooms] heart
 async function boot() {
  await initializePersistence();
  await ensureGameMasterAccount();
+ await ensureReviewAccounts();
  await initializeRoomRegistry();
  settlePeriods();
  await flushPersistence();
