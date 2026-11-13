@@ -42,6 +42,7 @@
      if(!publishedResponse.ok)return data;
      const published=await publishedResponse.json();
      if(String(published.version||'')!==String(data.latestVersion||''))return data;
+     if(data.platform==='android'&&published.updatable!==true)return data;
      if(published.sha256)data.sha256=String(published.sha256);
     }catch(_){return data;}
    }
