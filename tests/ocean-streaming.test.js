@@ -61,7 +61,7 @@ test('server, solo and UI explicitly share AOI streaming contract',()=>{
  const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
  const html=fs.readFileSync(path.join(__dirname,'../public/index.html'),'utf8');
  assert.match(server,/function roomWorldWidth\(room\)/);
- assert.match(server,/function getRoomMotionSnapshot\(room,context=null\)/);
+ assert.match(server,/function getRoomMotionSnapshot\(room, options = \{\}\)/);
  assert.match(server,/paddingX=viewWidth\*\.42/);
  assert.match(server,/BOSS_KINDS\.has\(e\.kind\)/);
  assert.doesNotMatch(server,/criticalReason:'area-refresh'/);
