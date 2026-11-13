@@ -288,7 +288,7 @@ function connect(){
   if($('profileScreen')&&!$('profileScreen').hidden)renderProfile(serverAccount);
  });
  socket.on('purchase-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:result}));});
-socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:result}));});
+socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeout=null;if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:result}));});
  socket.on('wheel-result',result=>{if(result.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}))}window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:result}));});
  socket.on('exploration-resource-collected',data=>window.dispatchEvent(new CustomEvent('abyssal-resource-collected',{detail:data||{}})));
  socket.on('world-depth-state',data=>{window.dispatchEvent(new CustomEvent('abyssal-depth-state',{detail:data||{}}));});
@@ -743,7 +743,8 @@ function explorationStudy(id,callback){
  });
 }
 function purchaseMeta(id){if(socket?.connected&&authenticated)socket.emit('purchase-meta',{id});else window.dispatchEvent(new CustomEvent('abyssal-purchase-result',{detail:{ok:false,message:'Entre na sua conta para salvar melhorias persistentes.'}}));}
-function redeemCode(code,skinId=null){if(socket?.connected&&authenticated)socket.emit('redeem-code',{code,skinId:skinId||undefined});else window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:{ok:false,message:'Entre na sua conta para resgatar o código.'}}));}
+let redeemTimeout=null;
+function redeemCode(code,skinId=null){clearTimeout(redeemTimeout);if(socket?.connected&&authenticated){redeemTimeout=setTimeout(()=>{redeemTimeout=null;window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:{ok:false,message:'O servidor não respondeu. Tente novamente; se o resgate foi concluído, ele já está salvo na conta.'}}));},8000);socket.emit('redeem-code',{code,skinId:skinId||undefined});}else window.dispatchEvent(new CustomEvent('abyssal-code-redeem-result',{detail:{ok:false,message:'Conecte-se à internet e entre na sua conta para resgatar o código.'}}));}
 function adMobRequest(event,payload={}){return new Promise(resolve=>{if(!socket?.connected||!authenticated)return resolve({ok:false,message:'Entre na conta para receber recompensas.'});socket.timeout(10000).emit(event,payload,(err,result)=>resolve(err?{ok:false,message:'Servidor indisponível.'}:result||{ok:false}));});}
 function cancelAdMobTicket(ticket){if(socket?.connected&&authenticated)socket.emit('admob-cancel',{ticket});}
 function spinWheel(ticket){if(socket?.connected&&authenticated)socket.emit('spin-wheel',{ticket});else window.dispatchEvent(new CustomEvent('abyssal-wheel-result',{detail:{ok:false,message:'Entre em uma conta para receber energia pela roleta.'}}));}

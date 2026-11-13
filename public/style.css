@@ -4810,3 +4810,7 @@ body:not(:has(#submarineWorkshop:not([hidden]))):has(#loginScreen:not([hidden]))
 #pauseScreen .dive-volume-settings output{font-variant-numeric:tabular-nums;color:#8de9ef}
 #pauseScreen .dive-volume-settings input[type=range]{width:100%;min-height:34px;margin:0;accent-color:#70dce7;cursor:pointer;touch-action:pan-y}
 #pauseScreen .dive-volume-settings input:focus-visible{outline:2px solid #79f3f0;outline-offset:2px}
+
+/* Exterior shortcuts are hidden; their existing click handlers remain available to the cockpit. */
+#menuScreen #shopBtn,#menuScreen #catalogBtn{display:none!important}
+#redeemCodeScreen:not([hidden]):not(.cockpit-embedded-screen){z-index:125!important}

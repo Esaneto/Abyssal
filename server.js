@@ -2941,20 +2941,21 @@ io.on('connection', socket => {
   const u=users[socket.data.userKey];if(!u)return socket.emit('code-redeem-result',{ok:false,message:'Entre na sua conta para resgatar este código.'});
   const code=String(payload?.code||'').trim().toLowerCase();
   const welcome=String(process.env.ABYSSAL_WELCOME_CODE||'').trim().toLowerCase();
-  const founder=String(process.env.ABYSSAL_FOUNDER_CODE||'').trim().toLowerCase();
+  const founder=String(process.env.ABYSSAL_FOUNDER_CODE||'vi-o-nascimento-abyssal').trim().toLowerCase();
   u.redeemedPromoIds=Array.isArray(u.redeemedPromoIds)?u.redeemedPromoIds:[];
   if(code==='exclusivoabyssal'){
    const promoId='exclusive-abyssal-skin-choice-v1';
    if(u.redeemedPromoIds.includes(promoId))return socket.emit('code-redeem-result',{ok:false,message:'Este código já foi utilizado nesta conta.'});
    // Only store skins qualify, including paid ones. Achievement and final-boss
    // rewards are not store merchandise and remain progression unlocks.
-   const choices=[...allowedSkinIds].filter(id=>id!=='default'&&id!=='greensnake'&&id!==RiftRewards.FINAL_SKIN);
+   const choices=[...allowedSkinIds].filter(id=>id!=='default'&&id!=='greensnake'&&id!=='electriceel'&&id!==RiftRewards.FINAL_SKIN);
    const selected=String(payload?.skinId||'').trim();
    if(!selected)return socket.emit('code-redeem-result',{ok:true,choiceRequired:true,eligibleSkinIds:choices,message:'Código validado! Escolha um Espécime da loja, inclusive os pagos. Um Espécime gratuito por conta.'});
    if(!choices.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Este Espécime não está disponível para o código. Escolha outro da loja.'});
    u.ownedSkins=Array.isArray(u.ownedSkins)?u.ownedSkins:['default'];
    if(u.ownedSkins.includes(selected))return socket.emit('code-redeem-result',{ok:false,message:'Você já possui este Espécime. Escolha outra da loja.',choiceRequired:true,eligibleSkinIds:choices});
    u.ownedSkins.push(selected);
+   u.discoveredSpecimens=Array.isArray(u.discoveredSpecimens)?u.discoveredSpecimens:[];if(!u.discoveredSpecimens.includes(selected))u.discoveredSpecimens.push(selected);
    u.equippedSkin=selected;
    u.redeemedPromoIds.push(promoId);
    saveUsers();

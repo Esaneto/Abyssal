@@ -370,12 +370,14 @@
    // Base light is radial and independent from the diver helmet cone.
    const strength=Number(source.strength)||1,g=radial(m,sx,sy,radius,[[0,'rgba(0,0,0,'+(.98*strength)+')'],[.42,'rgba(0,0,0,'+(.78*strength)+')'],[.78,'rgba(0,0,0,'+(.34*strength)+')'],[1,'rgba(0,0,0,0)']]);
    m.fillStyle=g;m.fillRect(sx-radius,sy-radius,radius*2,radius*2);
+   if(source.diver){const lamp=lampParameters(source.lampLevel),heading=Number(source.heading)||0,scale=(Number(source.r)||17)*.60/14,lx=sx+Math.cos(heading)*42*scale+Math.sin(heading)*9*scale,ly=sy+Math.sin(heading)*42*scale-Math.cos(heading)*9*scale;
+    m.save();m.beginPath();m.moveTo(lx,ly);for(let i=0;i<=24;i++){const a=heading-lamp.halfAngle+i/24*lamp.halfAngle*2,dx=Math.cos(a),dy=Math.sin(a),reach=rayDistance(rocks,lx,ly,dx,dy,lamp.range);m.lineTo(lx+dx*reach,ly+dy*reach);}m.closePath();m.clip();m.fillStyle=radial(m,lx,ly,lamp.range,[[0,'rgba(0,0,0,.97)'],[.35,'rgba(0,0,0,.90)'],[.75,'rgba(0,0,0,.40)'],[1,'rgba(0,0,0,0)']]);m.fillRect(lx-lamp.range,ly-lamp.range,lamp.range*2,lamp.range*2);m.restore();}
   }
   m.globalCompositeOperation='source-over';
   c.save();c.drawImage(lightLayer,left,top,w,h);c.restore();
   // Every rock plant remains faintly self-luminous after the darkness mask.
   c.save();c.globalCompositeOperation='screen';
-  for(const source of extraLights||[]){if(!source?.active||!source.color||!Number.isFinite(source.x)||!Number.isFinite(source.y))continue;const radius=source.radius||85,glow=radial(c,source.x,source.y,radius,[[0,source.color],[1,'rgba(0,0,0,0)']]);c.globalAlpha=.25;c.fillStyle=glow;c.fillRect(source.x-radius,source.y-radius,radius*2,radius*2);c.globalAlpha=1;}
+  for(const source of extraLights||[]){if(!source?.active||!source.color||!Number.isFinite(source.x)||!Number.isFinite(source.y))continue;const radius=source.diver?65:(source.radius||85),glow=radial(c,source.x,source.y,radius,[[0,source.color],[1,'rgba(0,0,0,0)']]);c.globalAlpha=.25;c.fillStyle=glow;c.fillRect(source.x-radius,source.y-radius,radius*2,radius*2);c.globalAlpha=1;}
   // Suspended marine snow, world anchored and animated, visible in darkness.
   for(const p of worldCache?.particles||[]){const y=((p.y-t*.009)%worldCache.h+worldCache.h)%worldCache.h,x=p.x+Math.sin(t*.0007+p.phase)*18;if(x<left||x>left+w||y<top||y>top+h)continue;const lit=Math.hypot(x-player.x,y-player.y)<285;c.fillStyle='rgba(183,225,224,'+(lit?.42:.13)+')';c.beginPath();c.arc(x,y,p.r,0,TAU);c.fill();}
   for(const r of rocks||[]){if(!r.cavernSolid||r.submarineHull||r.x+r.r+80<left||r.x-r.r-80>left+w||r.y+r.r+80<top||r.y-r.r-80>top+h)continue;
