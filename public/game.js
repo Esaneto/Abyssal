@@ -1211,7 +1211,7 @@ function audio(){}
 function soundOptions(position,range=850,volume=1,extra={}){
  const valid=position&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&player;
  const dx=valid?position.x-player.x:0,dy=valid?position.y-player.y:0;
- return {distance:Math.hypot(dx,dy),pan:Math.max(-.85,Math.min(.85,dx/Math.max(100,range*.72))),range,volume,owner:position?.id!=null?String(position.id):'world',...extra};
+ return {dx,dy,distance:Math.hypot(dx,dy),pan:Math.max(-.85,Math.min(.85,dx/Math.max(100,range*.72))),range,volume,owner:position?.id!=null?String(position.id):'world',...extra};
 }
 function playWorldSound(cue,position=null,range=850,volume=1,extra={}){
  if(gameState==='menu'||gameState==='over'||gameState==='paused')return false;

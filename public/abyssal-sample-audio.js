@@ -59,6 +59,25 @@
   // Preserve distance and stereo while narrowing arbitrary gain differences.
   return normalization*space.attenuation*space.trim;
  }
+ // Listener-relative world coordinates. The 2D ocean is mapped to the
+ // horizontal acoustic plane: above on screen = front; below = rear.
+ // No automatic distance attenuation in the HRTF node (we apply it once).
+ function spatialProfile(options={},weapon=false){
+  const distance=Math.max(0,Number(options.distance)||0),range=Math.max(100,Number(options.range)||850);
+  const far=range*1.5,near=range*.12;
+  if(distance>=far)return null;
+  const t=clamp((distance-near)/(far-near),0,1);
+  const attenuation=weapon?(1-t*t*(3-2*t))/(1+3.8*t*t):1/(1+(distance/(range*.65))**2);
+  const requested=clamp(Number(options.volume??1),0,1),trim=requested===0?0:weapon&&distance<=near?1:.8+.2*requested;
+  const dx=Number(options.dx),dy=Number(options.dy),directional=Number.isFinite(dx)&&Number.isFinite(dy)&&Math.hypot(dx,dy)>1;
+  const length=directional?Math.hypot(dx,dy):1;
+  const pan=directional?clamp(dx/length,-.95,.95):clamp(Number(options.pan)||0,-.85,.85);
+  // Unit sphere maintains direction independently of the gain curve.
+  // A centered/local weapon stays in front, not at the listener origin.
+  const direction=directional?{x:dx/length,y:0,z:dy/length}:{x:0,y:0,z:-1};
+  const cutoff=weapon?18000*Math.pow(1600/18000,t):18000;
+  return {gain:attenuation*trim,attenuation,trim,pan,direction,directional,cutoff};
+ }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
   const buffers=new Map(),normalizations=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
@@ -99,14 +118,15 @@
    const order=['electric','music','damage','pulse','bite','orb','kill','photon','pierce','echo','dash','cloud','nova','boss','destroyed','repair','beam'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
-  function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan])try{n?.disconnect();}catch{}}
+  function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
   function stopVoice(v,fade=.045){if(!v||v.done||v.stopping)return;v.stopping=true;const now=ctx.currentTime;try{v.gain.gain.cancelScheduledValues(now);v.gain.gain.setTargetAtTime(0,now,Math.max(.005,fade/3));v.source.stop(now+fade);}catch{cleanVoice(v);}}
-  function spatial(options){
-   const distance=Math.max(0,Number(options.distance)||0),range=Math.max(100,Number(options.range)||850);
-   if(distance>range*1.5)return null;
-   const attenuation=1/(1+(distance/(range*.65))**2);
-   const requested=clamp(Number(options.volume??1),0,1),trim=requested===0?0:.8+.2*requested;
-   return {gain:attenuation*trim,attenuation,trim,pan:clamp(Number(options.pan)||0,-.85,.85)};
+  function spatial(options,id){return spatialProfile(options,WEAPONS.has(id));}
+  function placePanner(node,direction,instant=false){
+   if(!node)return;
+   if(node.positionX&&node.positionY&&node.positionZ){
+    if(instant){node.positionX.value=direction.x;node.positionY.value=direction.y;node.positionZ.value=direction.z;}
+    else{smooth(node.positionX,direction.x);smooth(node.positionY,direction.y);smooth(node.positionZ,direction.z);}
+   }else node.setPosition?.(direction.x,direction.y,direction.z);
   }
   function priorityFor(id,options){return (WEAPONS.has(id)?MIX.weaponPriority:ASSETS[id].priority)+(options.local?12:0);}
   function allocate(id,options){
@@ -126,15 +146,27 @@
   }
   function createVoice(id,buffer,options,loopKey=null){
    if(!ctx||ctx.state!=='running'||muted||hidden||!buffer)return null;
-   const cfg=ASSETS[id],space=spatial(options);if(!space||space.gain<.006){metrics.inaudible++;return null;}
+   const cfg=ASSETS[id],space=spatial(options,id);if(!space||space.gain<.006){metrics.inaudible++;return null;}
    if(!allocate(id,options))return null;
    // A large same-tick burst cannot accumulate hundreds of fading sources.
    if(voices.size>=32){const oldest=[...voices].find(v=>v.stopping);if(oldest)cleanVoice(oldest);else{metrics.inaudible++;return null;}}
-   const source=ctx.createBufferSource(),gain=ctx.createGain();let pan=null;
+   const source=ctx.createBufferSource(),gain=ctx.createGain();let pan=null,filter=null,hrtf=false;
    source.buffer=buffer;source.loop=Boolean(loopKey);
    if(loopKey){source.loopStart=0;source.loopEnd=buffer.duration;}
-   if(typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;source.connect(gain);gain.connect(pan);pan.connect(sfx);}else{source.connect(gain);gain.connect(sfx);}
-   const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
+   source.connect(gain);
+   let tail=gain;
+   if(WEAPONS.has(id)&&typeof ctx.createBiquadFilter==='function'){
+    filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=space.cutoff;filter.Q.value=.5;tail.connect(filter);tail=filter;
+   }
+   // HRTF is binaural stereo, not discrete 7.1. Keep the local weapon centered
+   // and limit costly HRTF voices; stereo fallback retains all distance cues.
+   if(WEAPONS.has(id)&&typeof ctx.createPanner==='function'&&(space.directional||loopKey)&&[...voices].filter(v=>v.hrtf&&!v.stopping).length<6){
+    try{pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';pan.refDistance=1;pan.rolloffFactor=0;pan.maxDistance=10000;placePanner(pan,space.direction,true);hrtf=true;}
+    catch{try{pan?.disconnect();}catch{}pan=null;hrtf=false;}
+   }
+   if(!pan&&typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;}
+   if(pan){tail.connect(pan);tail=pan;}tail.connect(sfx);
+   const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,filter,hrtf,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
    source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+.008);
    voices.add(voice);
    try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now+.004);}
@@ -163,7 +195,7 @@
   function play(id,options={}){
    const asset=ASSETS[id]?id:cueAsset(id);
    if(!asset||muted||hidden||sfxVolume<=0||!ctx||ctx.state!=='running')return false;
-   if(!spatial(options))return false;
+   if(!spatial(options,asset))return false;
    if(!rememberEvent(asset,options))return false;
    const b=buffers.get(asset);
    if(b)return Boolean(createVoice(asset,b,options));
@@ -176,11 +208,11 @@
   }
   function loop(id,key,options={}){
    if(!ASSETS[id]||muted||hidden||sfxVolume<=0||!ctx||ctx.state!=='running')return false;
-   key=id+':'+String(key);const now=clock(),space=spatial(options),old=loops.get(key);
+   key=id+':'+String(key);const now=clock(),space=spatial(options,id),old=loops.get(key);
    if(!space||space.gain<.006){if(old)stopVoice(old);return false;}
    if(old&&!old.stopping){
     old.expires=now+(Number(options.leaseMs)||450);
-    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,voiceGain(id,normalizations.get(id)||0,space));if(old.pan)smooth(old.pan.pan,space.pan);}
+    if(now-old.updated>=80){old.updated=now;smooth(old.gain.gain,voiceGain(id,normalizations.get(id)||0,space));if(old.filter)smooth(old.filter.frequency,space.cutoff,.06);if(old.hrtf)placePanner(old.pan,space.direction);else if(old.pan)smooth(old.pan.pan,space.pan);}
     return true;
    }
    const b=buffers.get(id);if(!b){load(id);return false;}
@@ -209,5 +241,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,spatialProfile,createMixer};
 });
