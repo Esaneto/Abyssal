@@ -4814,3 +4814,11 @@ body:not(:has(#submarineWorkshop:not([hidden]))):has(#loginScreen:not([hidden]))
 /* Exterior shortcuts are hidden; their existing click handlers remain available to the cockpit. */
 #menuScreen #shopBtn,#menuScreen #catalogBtn{display:none!important}
 #redeemCodeScreen:not([hidden]):not(.cockpit-embedded-screen){z-index:125!important}
+
+/* Promo shortcut stays beside the catalog title and above the wallet on narrow screens. */
+#shopScreen .shop-heading-copy{flex:1 1 auto;min-width:0}
+#shopScreen .shop-title-actions{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;min-width:0}
+#shopScreen .shop-title-actions h2{margin:0;min-width:0}
+#shopScreen .shop-redeem-shortcut{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:32px;max-width:100%;padding:7px 11px;border:1px solid #9d86db;border-radius:6px;background:#231b42;color:#efe5ff;font:800 10px/1.3 Inter,sans-serif;letter-spacing:.035em;cursor:pointer;white-space:normal;text-align:center}
+#shopScreen .shop-redeem-shortcut:hover,#shopScreen .shop-redeem-shortcut:focus-visible{border-color:#e0c9ff;box-shadow:0 0 12px rgba(157,134,219,.4)}
+#shopScreen #openRedeemCodeBtn{scroll-margin-top:18px}

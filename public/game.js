@@ -5577,6 +5577,23 @@ $('skinPurchaseConfirmModal')?.addEventListener('click', (e) => {
 
 window.addEventListener('abyssal-payment-result',event=>{stripeCheckoutBusy=false;updateSkinPurchaseBtn();const status=$('skinPurchaseStatus'),modal=$('skinPurchaseConfirmModal');if(!event.detail?.ok){const message=event.detail?.message||'Pagamento indisponível.';if(status&&modal&&!modal.hidden)status.textContent=message;else showToast(message);if(event.detail?.requiresLogin){closeSkinPurchaseConfirm();window.AbyssalOnline?.openLogin?.();}}});
 const redeemCodeBtn=$('redeemCodeBtn');
+$('shopRedeemShortcut')?.addEventListener('click',()=>{
+ const target=$('openRedeemCodeBtn');if(!target||!target.getClientRects().length)return;
+ // The original shop lives either in its modal or in the cockpit visor.
+ // Scroll the nearest actual overflow container, not the page behind it.
+ let scroller=target.parentElement;
+ while(scroller&&scroller!==document.body){
+  const style=getComputedStyle(scroller);
+  if(/auto|scroll|overlay/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+2)break;
+  scroller=scroller.parentElement;
+ }
+ const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ if(scroller&&scroller!==document.body){
+  const top=target.getBoundingClientRect().top-scroller.getBoundingClientRect().top+scroller.scrollTop-18;
+  scroller.scrollTo({top:Math.max(0,top),behavior:reduced?'instant':'smooth'});
+ }else target.scrollIntoView({block:'center',behavior:reduced?'instant':'smooth'});
+ target.focus({preventScroll:true});
+});
 function openRedeemCodeModal(){const modal=$('redeemCodeScreen');if(!modal)return;modal.hidden=false;const input=$('redeemCodeInput'),message=$('redeemCodeMessage'),choice=$('redeemSkinChoice');if(input){input.disabled=false;input.value='';}if(choice)choice.hidden=true;if(redeemCodeBtn){redeemCodeBtn.disabled=false;redeemCodeBtn.textContent='RESGATAR CÓDIGO';}if(message)message.textContent='';requestAnimationFrame(()=>input?.focus());}
 function closeRedeemCodeModal(){const modal=$('redeemCodeScreen');if(modal)modal.hidden=true;}
 $('openRedeemCodeBtn')?.addEventListener('click',openRedeemCodeModal);
