@@ -427,29 +427,37 @@ function resourceHealthPayload(){
 app.get('/health', (_req,res)=>res.set('Cache-Control','no-store').json({ok:true,service:'abyssal-server',build:APP_VERSION,online:onlineCount(),persistence:pgPool?'postgres':'local-ephemeral',resources:resourceHealthPayload(),eventLoopLag:{meanMs:Number((eventLoopDelay.mean/1e6).toFixed(2)),p95Ms:Number((eventLoopDelay.percentile(95)/1e6).toFixed(2)),maxMs:Number((eventLoopDelay.max/1e6).toFixed(2))},rooms:rooms.size,activeRooms:[...rooms.values()].filter(r=>r.players.size>0).length,activePlayers:[...rooms.values()].reduce((n,r)=>n+r.players.size,0),livingPlayers:[...rooms.values()].reduce((n,r)=>n+livingPlayers(r).length,0),simulatingRooms:[...rooms.values()].filter(r=>hasLivingPlayers(r)).length,maxPlayersPerRoom:MAX_PLAYERS_PER_ROOM,maxEnemiesPerRoom:MAX_ENEMIES_PER_ROOM,rankingMetric:'bossesKilled',roomRegistry:pgPool?(roomRegistryReady?'postgres-ready':'postgres-initializing'):'local-only',roomListPolicy:'public-and-private-metadata',backgroundSimulation:'server-owned',emptyRoomPolicy:'pause-while-occupied-clear-when-empty',simulation:{ticks:worldTickCount,lastTickAt:lastWorldTickAt?new Date(lastWorldTickAt).toISOString():null,tickAgeMs:lastWorldTickAt?Date.now()-lastWorldTickAt:null,errors:worldTickErrors,tickProcessing:{lastMs:Number(worldTickLastMs.toFixed(3)),avgMs:Number(worldTickAvgMs.toFixed(3)),maxMs:Number(worldTickMaxMs.toFixed(3))},combat:{...combatDiagnostics},movingRooms:[...rooms.values()].filter(r=>r.players.size>0&&r.world.lastMovementAt>0).length,movingEnemies:[...rooms.values()].reduce((n,r)=>n+(r.world.movingEnemyCount||0),0),totalEnemies:[...rooms.values()].reduce((n,r)=>n+r.world.enemies.length,0),activeRoomDetails:[...rooms.values()].filter(r=>r.players.size>0).map(r=>({id:r.id,tickProcessing:{lastMs:Number((Number(r.tickProcessingLastMs)||0).toFixed(3)),avgMs:Number((Number(r.tickProcessingAvgMs)||0).toFixed(3)),maxMs:Number((Number(r.tickProcessingMaxMs)||0).toFixed(3))},players:r.players.size,enemies:r.world.enemies.length,movingEnemies:r.world.movingEnemyCount||0,movementRecoveries:r.world.movementRecoveryCount||0,tickCount:r.world.tickCount||0,elapsed:Math.floor(r.world.elapsed||0),positionUpdates:[...r.players.values()].reduce((n,p)=>n+(p.positionUpdates||0),0),latestPositionAgeMs:Math.max(...[...r.players.values()].map(p=>p.lastPositionAt?Date.now()-p.lastPositionAt:Infinity)),stalePositionPlayers:[...r.players.values()].filter(p=>!p.lastPositionAt||Date.now()-p.lastPositionAt>3000).length,stalePositionAttackSkips:r.world.stalePositionAttackSkips||0,hiddenPlayers:[...r.players.values()].filter(p=>p.clientHidden===true).length,clientReportedEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientEnemyCount||0),0),clientReportedMovingEnemies:[...r.players.values()].reduce((n,p)=>n+(p.clientMovingEnemies||0),0),clientPredictingPlayers:[...r.players.values()].filter(p=>p.clientPredicting).length,clientMotionAgeMs:Math.max(...[...r.players.values()].map(p=>p.clientMotionAt?Date.now()-p.clientMotionAt:Infinity)),worldId:r.world.worldId,snapshotSeq:r.world.snapshotSeq||0,bossCount:r.world.enemies.filter(e=>isBossKind(e.kind)).length,nextBossIn:Math.max(0,Math.ceil((Number(r.world.nextBossAt)||60)-(Number(r.world.elapsed)||0)))}))},world:{width:WORLD_WIDTH,height:WORLD_HEIGHT,coordinateSystem:'world-units',engine:'server-authoritative-shared-enemies-reliable-snapshots-contact-guard-v4'},worldTickerActive:Boolean(worldTicker),roomsPendingDeletion:pendingRoomDeletion.size,movementGuardRejects}));
 app.get('/api/rankings', (_req, res) => res.json(rankingPayload()));
 app.get('/api/runtime-config', (_req,res)=>res.set('Cache-Control','no-store').json({previewMode:process.env.ABYSSAL_PREVIEW_MODE==='true',realPaymentsEnabled:liveSalesReady(),socialFeaturesEnabled:SOCIAL_FEATURES_ENABLED,randomRewardsEnabled:REWARDED_WHEEL_ENABLED}));
-app.get('/api/client-update',(req,res)=>{
- const platform=String(req.query.platform||'').toLowerCase();
- const supported=new Set(['android','windows']);
- if(!supported.has(platform))return res.status(400).set('Cache-Control','no-store').json({ok:false,message:'Plataforma não suportada.'});
- const downloads={
-  android:{
-   url:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android.apk',
-   metadataUrl:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android-build.json'
-  },
-  windows:{
-   url:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Setup.exe',
-   metadataUrl:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Windows-build.json'
-  }
- };
- res.set('Cache-Control','no-store').json({
-  ok:true,
-  platform,
-  latestVersion:APP_VERSION,
-  minimumVersion:'3.6.0',
-  required:false,
-  releaseNotes:'Atualização do Abyssal disponível com melhorias de estabilidade, desempenho e compatibilidade.',
-  ...downloads[platform]
- });
+const NATIVE_DOWNLOADS={
+ android:{url:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android.apk',metadataUrl:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android-build.json'},
+ windows:{url:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Setup.exe',metadataUrl:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Windows-build.json'}
+};
+const nativeReleaseCache=new Map(),nativeReleasePending=new Map();
+async function publishedNativeRelease(platform){
+ const cached=nativeReleaseCache.get(platform);if(cached&&Date.now()-cached.at<30000)return cached.data;
+ if(nativeReleasePending.has(platform))return nativeReleasePending.get(platform);
+ const pending=(async()=>{try{
+  const response=await fetch(NATIVE_DOWNLOADS[platform].metadataUrl,{signal:AbortSignal.timeout(4500),headers:{'Cache-Control':'no-cache','Accept':'application/json'}});
+  if(!response.ok)throw new Error('metadata-http-'+response.status);
+  const data=await response.json();
+  if(data.platform!==platform||!/^\d+\.\d+\.\d+$/.test(String(data.version||''))||!/^[a-f0-9]{64}$/i.test(String(data.sha256||'')))throw new Error('invalid-release-metadata');
+  const verified={version:String(data.version),platform,sha256:String(data.sha256).toLowerCase(),updatable:data.updatable===true,signing:String(data.signing||'')};
+  nativeReleaseCache.set(platform,{at:Date.now(),data:verified});return verified;
+ }catch(error){console.warn('[native-update]',platform,error.message);return null;}finally{nativeReleasePending.delete(platform);}})();
+ nativeReleasePending.set(platform,pending);return pending;
+}
+app.get('/api/native-release/:platform',async(req,res)=>{
+ const platform=String(req.params.platform||'').toLowerCase();res.set('Cache-Control','no-store');
+ if(!Object.hasOwn(NATIVE_DOWNLOADS,platform))return res.status(400).json({ok:false});
+ const published=await publishedNativeRelease(platform);if(!published)return res.status(503).json({ok:false,message:'Pacote em publicação.'});
+ res.json(published);
+});
+app.get('/api/client-update',async(req,res)=>{
+ const platform=String(req.query.platform||'').toLowerCase();res.set('Cache-Control','no-store');
+ if(!Object.hasOwn(NATIVE_DOWNLOADS,platform))return res.status(400).json({ok:false,message:'Plataforma não suportada.'});
+ const published=await publishedNativeRelease(platform);
+ if(!published)return res.status(503).json({ok:false,message:'Pacote em publicação.'});
+ const origin=String(process.env.PUBLIC_BASE_URL||'https://abyssalgame.duckdns.org').replace(/\/+$/,'');
+ res.json({ok:true,platform,latestVersion:published.version,serverVersion:APP_VERSION,minimumVersion:'3.6.0',required:false,updatable:published.updatable,sha256:published.sha256,releaseNotes:'Atualização oficial do Abyssal.',url:NATIVE_DOWNLOADS[platform].url,metadataUrl:origin+'/api/native-release/'+platform});
 });
 app.get('/favicon.ico', (_req,res)=>res.status(204).end());
 
