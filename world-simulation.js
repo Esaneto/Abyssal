@@ -876,7 +876,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
           bossAbilityEvents.push({bossId:enemy.id,kind:enemy.kind,abilityId:'wildlife-'+skill.id,
             x:enemy.x,y:enemy.y,angle:enemy.angle||0,radius:skill.range,color:skill.color});
           if(skill.damage>0){
-            const hit=bossAbilityHit(enemy,actualTarget,skill.damage,now,'wildlife-'+skill.id,{neurotoxinMs:skill.neurotoxinMs});
+            const hit=bossAbilityHit(enemy,actualTarget,skill.damage,now,'wildlife-'+skill.id,{neurotoxinMs:Math.min(100,Math.max(0,Number(skill.neurotoxinMs)||0))});
             if(hit){bossAbilityHits.push(hit);if(hit.alive===false)defeatedPlayers.push(actualTarget);}
           }
         }
@@ -939,8 +939,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
 
     // Contact attacks now expose a species identity without widening hitboxes.
     const contactProfile=tentacleHit?{skillId:'tentacle-strike',power:enemy.kind==='kraken'&&enemy.krakenSweepActive?1.25:1,cooldown:.95,neuro:0}:{
-      drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:650},
-      stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:1100},
+      drifter:{skillId:'bio-shock',power:1.08,cooldown:.95,neuro:100},
+      stinger:{skillId:'venom-spine',power:1.16,cooldown:.64,neuro:100},
       brute:{skillId:'crusher-claw',power:1.28,cooldown:1.05,neuro:0},
       lurker:{skillId:'gulper-bite',power:1.22,cooldown:.84,neuro:0}
     }[enemy.kind]||null;
