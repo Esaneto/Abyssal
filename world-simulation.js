@@ -35,11 +35,36 @@ const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:world?.
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
 const classicCavernCache=new WeakMap();
+function clipClassicHull(points,edge,right){
+ const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],inside=p=>right?p[0]>=edge:p[0]<=edge,ai=inside(a),bi=inside(b);if(ai)out.push(a);if(ai!==bi){const q=(edge-a[0])/(b[0]-a[0]);out.push([edge,a[1]+(b[1]-a[1])*q]);}}return out;
+}
+function classicHullRock(world,id){
+ const sub=world?.submarine;if(!sub||!Number.isInteger(id)||id<0||id>2)return null;
+ const scale=1/WORLD_ZOOM,cuts=[-300,-140,140,300],min=cuts[id]*scale,max=cuts[id+1]*scale,cx=(min+max)/2;
+ const hull=SoloCavern.submarineHull(sub.x,sub.y,scale),vertices=clipClassicHull(clipClassicHull(hull.vertices,min,true),max,false).map(([x,y])=>[x-cx,y]);
+ const rx=Math.max(...vertices.map(v=>Math.abs(v[0]))),ry=Math.max(...vertices.map(v=>Math.abs(v[1])));
+ return {x:sub.x+cx,y:sub.y,rx,ry,r:Math.hypot(rx,ry),angle:0,vertices,cavernSolid:true,submarineHull:true,visualOnly:false,sectionId:id};
+}
 function classicCavernRocks(world){
  if(!world||world.mode!=='classic')return [];
- let rocks=classicCavernCache.get(world);
- if(!rocks){rocks=SoloCavern.buildRocks(world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);classicCavernCache.set(world,rocks);}
- return rocks;
+ const sub=world.submarine,w=world.width||WORLD_WIDTH,h=world.height||WORLD_HEIGHT,key=[w,h,sub?.x,sub?.y,...(sub?.sections||[]).map(s=>Number(s.hp)>0?1:0)].join(':');
+ let cached=classicCavernCache.get(world);
+ if(!cached||cached.key!==key){const rocks=SoloCavern.buildRocks(w,h);for(const section of sub?.sections||[]){if(Number(section.hp)>0){const rock=classicHullRock(world,section.id);if(rock)rocks.push(rock);}}cached={key,rocks};classicCavernCache.set(world,cached);}
+ return cached.rocks;
+}
+function classicRepairInReach(world,section,player){
+ const rock=classicHullRock(world,section.id);return Boolean(rock&&SoloCavern.isBlocked([rock],Number(player.x),Number(player.y),75/WORLD_ZOOM+(Number(player.r)||13/WORLD_ZOOM)));
+}
+function classicHullContact(world,enemy,now){
+ if(world.mode!=='classic'||!world.submarine)return false;
+ const sub=world.submarine,pad=(Number(enemy.r)||10)/WORLD_ZOOM+8/WORLD_ZOOM;
+ const touched=classicCavernRocks(world).filter(r=>r.submarineHull&&SoloCavern.isBlocked([r],enemy.x,enemy.y,pad)).sort((a,b)=>Math.hypot(a.x-enemy.x,a.y-enemy.y)-Math.hypot(b.x-enemy.x,b.y-enemy.y))[0];
+ if(!touched)return false;
+ if(now>=(Number(enemy.nextHullAttackAt)||0)){
+  const section=sub.sections.find(s=>s.id===touched.sectionId);
+  if(section&&Number(section.hp)>0){section.hp=Math.max(0,Number(section.hp)-Math.max(5,Math.round(Number(enemy.damage)||8)));enemy.nextHullAttackAt=now+1000;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;}
+ }
+ return true;
 }
 function rebuildEcologySpatial(world){
  let cache=ecologySpatialCaches.get(world);
@@ -221,17 +246,18 @@ function spawnEnemy(world, options = {}) {
    point={...point,x:water.x,y:water.y};
   }
   if(world.mode==='classic'&&!layout&&SoloCavern.isBlocked(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM)){
-   const water=SoloCavern.nearestWater(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM);
+   const water=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,35/WORLD_ZOOM);
    if(!water)return null;
    point={...point,x:water.x,y:water.y};
   }
+  if(world.mode==='classic'&&!options.position){const corners=[{x:138,y:138},{x:world.width-138,y:138},{x:138,y:world.height-138},{x:world.width-138,y:world.height-138}];point=corners[Math.floor(random()*corners.length)];}
   let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
   if (options.kindOverride) {
     kind = options.kindOverride;
   } else if (type === 'boss') {
-    kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
+    kind = world.mode==='classic'?['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'].sort((a,b)=>EnemyAI.ENEMY_STATS[a].hp-EnemyAI.ENEMY_STATS[b].hp)[world.bossesDefeated%7]:EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else {
     kind = layout && ExpeditionRules.chooseCommonKindForRoom
@@ -251,8 +277,9 @@ function spawnEnemy(world, options = {}) {
    kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
   }
   let stats = EnemyAI.statsForKind(kind);
+  if(world.mode==='classic'&&type!=='boss'){if(['drifter','stinger','brute','lurker'].includes(kind))stats={...stats,hp:stats.hp+50};if(kind==='whiteShark')stats={...stats,hp:600};}
   let eliteId = null;
-  if (type !== 'boss' && !initial) {
+  if (type !== 'boss' && !initial && !(world.mode==='classic'&&kind==='whiteShark')) {
     eliteId = layout ? null : ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
     if (options.forceElite && !eliteId) {
       const eliteIds = ['carapace','frenzy','spectral'];
@@ -263,12 +290,12 @@ function spawnEnemy(world, options = {}) {
   if(type!=='boss'){
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
-    if(world.mode!=='rift'&&world.mode!=='open-sea')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
+    if(world.mode!=='rift'&&world.mode!=='open-sea'&&!(world.mode==='classic'&&kind==='whiteShark'))stats=SeaProgression.strengthenCommon(stats,world.elapsed);
     if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){stats.hp=Math.max(300,Number(stats.hp)*8);stats.speed=Math.max(22,Number(stats.speed)*.5);stats.damage=0;stats.value=Math.max(5,Number(stats.value)*5);}
     else if(openSeaSkin)stats.hp=SpecimenSystem.biologicalStats(openSeaSkin).hp; // Preserve species biology instead of escalating generic enemy HP.
   }
   if (type === 'boss') {
-    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
+    const completedCycles = Math.min(5,Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7));
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
@@ -291,6 +318,7 @@ function spawnEnemy(world, options = {}) {
   const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):openSeaSkin;
   if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
   const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
+  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(8,Math.min(110,stats.r/WORLD_ZOOM*.62)));if(!safe)return null;point={...point,...safe};}
   const enemy = {
     id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
@@ -298,7 +326,7 @@ function spawnEnemy(world, options = {}) {
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
-    specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):world.mode==='open-sea'?OpenSeaEcology.temperament(specimenSkinId):'aggressive',wildlifeMode:world.mode==='open-sea'&&type!=='boss'?OpenSeaEcology.temperament(specimenSkinId):null,homeX:point.x,homeY:point.y,habitatId:world.mode==='open-sea'?OpenSeaEcology.habitatAt(point.x,point.y).id:null,
+    discoverySkinId:world.mode==='classic'?({drifter:'violet',stinger:'abyssaleye',brute:'deepwarden',lurker:'maw',whiteShark:'reefshark',whiteSharkBoss:'reefshark',boss:'aberration',angler:'angler',maw:'maw',leviathan:'leviathan',kraken:'kraken',devourer:'devourer'}[kind]||null):null,specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):world.mode==='open-sea'?OpenSeaEcology.temperament(specimenSkinId):'aggressive',wildlifeMode:world.mode==='open-sea'&&type!=='boss'?OpenSeaEcology.temperament(specimenSkinId):null,homeX:point.x,homeY:point.y,habitatId:world.mode==='open-sea'?OpenSeaEcology.habitatAt(point.x,point.y).id:null,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
@@ -328,6 +356,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0;
   if (world.mode === 'rift') return seedRiftEncounters(world, random);
+  if(world.mode==='classic'){world.commonSpawnTimer=0;const spawned=[];for(let i=0;i<3;i++){const e=spawnEnemy(world,{type:'common',initial:true,random});if(e)spawned.push(e);}return spawned;}
   return []; // Streaming spawns after players join; never spawn distant corners.
 }
 
@@ -462,7 +491,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const repair=world.submarine.repair;
     if(repair){
       const diver=validPlayers.find(p=>p.id===repair.playerId),section=(world.submarine.sections||[]).find(s=>s.id===repair.sectionId);
-      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||Math.hypot(Number(diver.x)-Number(section.x),Number(diver.y)-Number(section.y))>150/WORLD_ZOOM)world.submarine.repair=null;
+      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||!classicRepairInReach(world,section,diver))world.submarine.repair=null;
     }
   }
   if (validPlayers.length === 0) {
@@ -551,8 +580,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     commonCount = countCommons(world);
     const spawnRamp = clamp(world.elapsed / 300, 0, 1);
-    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
-    world.commonSpawnTimer = commonCount < commonLimitForWorld(world) ? Math.max(0.17, spawnInterval) : 0.35;
+    const spawnInterval = 0.55 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
+    world.commonSpawnTimer = commonCount < commonLimitForWorld(world) ? Math.max(0.18, spawnInterval) : 0.35;
   }
 
   const spawnedBosses = [];
@@ -564,8 +593,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
   if (world.mode==='classic' && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
     if (world.enemies.length < enemyLimitForWorld(world)) {
-      const anchorPlayer=validPlayers[Math.floor(random()*validPlayers.length)];const a=random()*Math.PI*2;
-       const boss = spawnEnemy(world, { type: 'boss', random, position:{x:clamp(anchorPlayer.x+Math.cos(a)*1050,100,world.width-100),y:clamp(anchorPlayer.y+Math.sin(a)*1050,100,world.height-100)} });
+      const anchorPlayer=validPlayers[0];const corners=[{x:138,y:138},{x:world.width-138,y:138},{x:138,y:world.height-138},{x:world.width-138,y:world.height-138}].sort((a,b)=>Math.hypot(b.x-anchorPlayer.x,b.y-anchorPlayer.y)-Math.hypot(a.x-anchorPlayer.x,a.y-anchorPlayer.y));
+       const boss = spawnEnemy(world, { type: 'boss', random, position:corners[0] });
       if (boss) {
         spawnedBosses.push(boss);
         spawnedEnemies.push(boss);
@@ -941,18 +970,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // have a fresh heartbeat and uses a short velocity prediction to compensate for transit
     // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
+    classicHullContact(world,enemy,now);
+    if(target?.submarine)continue;
     if (riftMode && !actualTarget) continue;
     if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
-    if(target.submarine&&target.section){
-      const radius=Math.max(28/WORLD_ZOOM,(Number(enemy.r)||10)/WORLD_ZOOM+34/WORLD_ZOOM);
-      if(Math.hypot(Number(target.x)-Number(enemy.x),Number(target.y)-Number(enemy.y))<=radius+78/WORLD_ZOOM){
-        enemy.attackCd=BOSS_KINDS.includes(enemy.kind)?1.15:.92;
-        const damage=Math.max(5,Math.round(Number(enemy.damage)||8));
-        target.section.hp=Math.max(0,(Number(target.section.hp)||ONLINE_SUBMARINE_SECTION_HP)-damage);
-        world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
-      }
-      continue;
-    }
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
@@ -1121,4 +1142,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };
+module.exports = { classicCavernRocks, classicHullRock, classicRepairInReach, MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };

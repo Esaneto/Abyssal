@@ -12,6 +12,7 @@ const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
 eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
+const ClassicCavern = require('./public/abyssal-solo-cavern.js');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
@@ -999,7 +1000,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // Enemies remain invulnerable for the entire emergence animation.
   if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
   // Reject hits through solid cave walls on the authoritative server.
-  const hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:
+  let hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:
    skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:
    skillId==='skin-active-poison-dot'&&player?.skinActiveServerResolving&&player.weaponPoisonOrigin?player.weaponPoisonOrigin:player?.skinActiveServerResolving&&player.skinActiveDamageOrigin?player.skinActiveDamageOrigin:player;
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
@@ -1008,6 +1009,17 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(room.mode==='open-sea'&&hitOrigin&&!OceanGeography.segmentClear(Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
    return reject('ocean-rock-blocked');
   let requestedDamage=damage;
+ const subShot=String(skillId||'').startsWith('submarine-');
+ if(subShot){
+  const weapon=String(skillId).slice(10),mounts={photon:[-105,70],electric:[105,-80],pierce:[-188,-48],photonRay:[257,-24],nova:[-230,25],echoShot:[168,78]},mount=mounts[weapon],sub=w.submarine,owner=room.players.values().next().value;
+  if(room.mode!=='coop'||!mount||!sub||Number(sub.powerSeconds)<=0||owner!==player||!(Array.isArray(owner.submarineWeapons)?owner.submarineWeapons:['photon']).includes(weapon))return reject('submarine-inactive');
+  const section=sub.sections.find(s=>s.id===(mount[0]<-140?0:mount[0]>140?2:1));
+  if(!section||Number(section.hp)<=0)return reject('submarine-section-destroyed');
+  hitOrigin={x:sub.x+mount[0]/WORLD_ZOOM,y:sub.y+mount[1]/WORLD_ZOOM};
+  if(Math.hypot(enemy.x-hitOrigin.x,enemy.y-hitOrigin.y)>850/WORLD_ZOOM)return reject('submarine-out-of-range');
+  requestedDamage=Math.min(requestedDamage,weapon==='photonRay'?45:250);
+ }
+ if(room.mode==='coop'&&hitOrigin&&ClassicCavern.segmentBlocked(WorldSimulation.classicCavernRocks(w),hitOrigin.x,hitOrigin.y,enemy.x,enemy.y,2,true))return reject('classic-wall-blocked');
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
@@ -1791,7 +1803,7 @@ io.on('connection', socket => {
   let spawnIndex=0;while(occupiedSpawnSlots.has(spawnIndex)&&spawnIndex<room.capacity)spawnIndex++;
   const spawnAngle=(Math.PI*2*spawnIndex)/Math.max(1,room.capacity),spawnRadius=95/WORLD_ZOOM;
   const expeditionSpawn=room.mode==='rift'?AbyssalMap.startSpawn(WorldSimulation.mapLayoutFor(room.world),spawnIndex,room.capacity):null;
-  const coopSub=room.mode==='coop'?room.world?.submarine:null;const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(room.mode==='open-sea'?1300:coopSub?coopSub.x+Math.cos(spawnAngle)*spawnRadius:roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(room.mode==='open-sea'?420:coopSub?coopSub.y-25/WORLD_ZOOM+Math.sin(spawnAngle)*spawnRadius*.35:roomWorldHeight(room)*.5+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
+  const coopSub=room.mode==='coop'?room.world?.submarine:null;const spawnX=expeditionSpawn?expeditionSpawn.x:clamp(room.mode==='open-sea'?1300:coopSub?coopSub.x+(spawnIndex===0?0:Math.cos(spawnAngle)*spawnRadius):roomWorldWidth(room)*.5+Math.cos(spawnAngle)*spawnRadius,80,roomWorldWidth(room)-80),spawnY=expeditionSpawn?expeditionSpawn.y:clamp(room.mode==='open-sea'?420:coopSub?coopSub.y+170/WORLD_ZOOM+Math.sin(spawnAngle)*spawnRadius*.15:roomWorldHeight(room)*.5+Math.sin(spawnAngle)*spawnRadius,80,roomWorldHeight(room)-80);
   const hadPendingRun=Boolean(u?.pendingRunResume),resumedRun=takeDeployRun(u,room);if(resumedRun?.roomResume?.world&&room.players.size===0){room.world=JSON.parse(JSON.stringify(resumedRun.roomResume.world));room.world.mode=room.mode==='rift'?'rift':room.mode==='open-sea'?'open-sea':'classic';room.world.lastTick=Date.now();room.world.snapshotTimer=0;room.world.reliableSnapshotTimer=0;room.world.playerSnapshotTimer=0;room.world.orbSnapshotTimer=0;}if(hadPendingRun)saveUsers();const restoredX=resumedRun&&Number.isFinite(Number(resumedRun.resumeX))?clamp(Number(resumedRun.resumeX),80,roomWorldWidth(room)-80):spawnX,restoredY=resumedRun&&Number.isFinite(Number(resumedRun.resumeY))?clamp(Number(resumedRun.resumeY),80,roomWorldHeight(room)-80):spawnY,restoredHp=resumedRun&&Number.isFinite(Number(resumedRun.resumeHp))?clamp(Number(resumedRun.resumeHp),1,maxHp):maxHp,restoredShield=resumedRun?Math.max(0,Math.min(3,Math.floor(Number(resumedRun.resumeShieldCharges)||0))):initialShieldCharges;
   const resumeBuild=resumedRun?.resumeBuild||{};const specimenPoints=SpecimenSystem.pointsFor(u?.specimenProficiency,equippedSkinId),p={id:socket.id,netId:(room.nextPlayerNetId=(Number(room.nextPlayerNetId)||0)+1)>>>0,nickname:socket.data.nickname,isDeveloper:isDeveloperUser(u),userKey:socket.data.userKey,spawnSlot:spawnIndex,x:restoredX,y:restoredY,r:13/WORLD_ZOOM,angle:0,hp:restoredHp,maxHp,alive:true,shieldCharges:restoredShield,initialShieldCharges,regenLevel:clamp(Math.floor(Number(resumeBuild.regenLevel)||0),0,3),magnetStrength:clamp(Number(resumeBuild.magnetStrength)||1,1,1.26),rangeStrength:clamp(Number(resumeBuild.rangeStrength)||1,1,Math.pow(1.22,3)),arcChainActive:resumeBuild.arcChainActive===true,hadalBeamActive:resumeBuild.hadalBeamActive===true,ricochetLevel:clamp(Math.floor(Number(resumeBuild.ricochetLevel)||0),0,3),prismaticLevel:clamp(Math.floor(Number(resumeBuild.prismaticLevel)||0),0,3),predatorLevel:clamp(Math.floor(Number(resumeBuild.predatorLevel)||0),0,3),electricLevel:clamp(Math.floor(Number(resumeBuild.electricLevel)||0),0,3),shellLevel:clamp(Math.floor(Number(resumeBuild.shellLevel)||0),0,3),lastStandLevel:clamp(Math.floor(Number(resumeBuild.lastStandLevel)||0),0,3),regenAccumulator:0,invulnerableUntil:now+5000,joinedAt:now,tutorialActive:false,tutorialOpenUsed:false,skillSelectingUntil:0,lastDamageAt:0,positionUpdates:0,lastPositionAt:now,velocityX:0,velocityY:0,clientHidden:Boolean(payload.clientHidden),positionResumeGraceUntil:0,viewportWidth:windowWidthSafe(payload.viewportWidth,1200),viewportHeight:windowWidthSafe(payload.viewportHeight,700),worldWidth:roomWorldWidth(room),worldHeight:roomWorldHeight(room),worldZoom:WORLD_ZOOM,color:'#bd91ff',skinId:equippedSkinId,bodyAngle:0,diverGender:u?.diverGender==='female'?'female':'male',speedStrength:clamp(Number(resumeBuild.speedStrength)||1,1,4),specimenX:restoredX,specimenY:restoredY-34/WORLD_ZOOM,specimenLastAt:now,specimenPoints,specimenHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenMaxHp:SpecimenSystem.effectiveStats(equippedSkinId,specimenPoints).hp,specimenAlive:true,specimenRespawnAt:0,devourerVacuumUntil:0,titleId:u?.equippedTitle||'abyss-drifter',runLevel:Math.max(1,Math.floor(Number(resumedRun?.level)||1)),energy:Math.max(0,Number(resumedRun?.score)||0),runStats:resumedRun||{...makeRunStats(),energySkinId:equippedSkinId}};ensureMatchParticipant(room,p);
    if(room.mode==='rift'||room.mode==='open-sea'){
@@ -1831,21 +1843,22 @@ io.on('connection', socket => {
   if(!room||room.mode!=='coop'||!u||!p||p.alive===false||!room.world?.submarine)return reply({ok:false,message:'Submarino online indisponível.'});
   const sub=room.world.submarine;if(Math.hypot(p.x-sub.x,p.y-sub.y)>390/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se do submarino.'});
   const missing=Math.max(0,300-(Number(sub.powerSeconds)||0));if(missing<=.01)return reply({ok:false,message:'Submarino já está com carga máxima.'});
-  const needed=Math.max(1,Math.ceil(20*missing/300)),cost=Math.min(needed,Math.max(0,Number(u.energy)||0));if(cost<=0)return reply({ok:false,message:'Energia insuficiente.'});
-  u.energy=Math.max(0,(Number(u.energy)||0)-cost);sub.powerSeconds=Math.min(300,(Number(sub.powerSeconds)||0)+cost/20*300);saveUsers();await flushPersistence();socket.emit('account-data',publicUser(u));broadcastWorld(room,{submarine:true});reply({ok:true,cost,powerSeconds:sub.powerSeconds,account:publicUser(u)});
+  const weapons=room.players.values().next().value?.submarineWeapons,fullCost=20+10*(Array.isArray(weapons)?weapons.length:1);const needed=Math.max(1,Math.ceil(fullCost*missing/300)),cost=Math.min(needed,Math.max(0,Number(u.energy)||0));if(cost<=0)return reply({ok:false,message:'Energia insuficiente.'});
+  u.energy=Math.max(0,(Number(u.energy)||0)-cost);sub.powerSeconds=Math.min(300,(Number(sub.powerSeconds)||0)+cost/fullCost*300);saveUsers();await flushPersistence();socket.emit('account-data',publicUser(u));broadcastWorld(room,{submarine:true});reply({ok:true,cost,powerSeconds:sub.powerSeconds,account:publicUser(u)});
  });
+ socket.on('submarine-repair-cancel',()=>{const room=socketRoom(socket),sub=room?.world?.submarine;if(room?.mode==='coop'&&sub?.repair?.playerId===socket.id){sub.repair=null;broadcastWorld(room,{submarine:true});}});
  socket.on('submarine-repair',(payload={},ack)=>{
   const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),p=room?.players.get(socket.id),sub=room?.world?.submarine,sectionId=Math.floor(Number(payload.sectionId));
   if(!room||room.mode!=='coop'||!p||p.alive===false||!sub)return reply({ok:false,message:'Reparo online indisponível.'});
   const section=(sub.sections||[]).find(s=>s.id===sectionId);if(!section||(Number(section.hp)||0)>=(Number(section.maxHp)||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP))return reply({ok:false,message:'Esta peça não precisa de reparo.'});
-  if(Math.hypot(p.x-section.x,p.y-section.y)>150/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se da peça danificada.'});
+  if(!WorldSimulation.classicRepairInReach(room.world,section,p))return reply({ok:false,message:'Aproxime-se da peça danificada.'});
   if(sub.repair&&Date.now()<Number(sub.repair.endsAt))return reply({ok:false,message:'Já existe um reparo em andamento.'});
   const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt,startX:Number(p.x),startY:Number(p.y)};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
   setTimeout(()=>{
    const liveRoom=rooms.get(room.id),liveSub=liveRoom?.world?.submarine,livePlayer=liveRoom?.players.get(socket.id),job=liveSub?.repair;
    if(!liveRoom||!liveSub||!livePlayer||!job||job.playerId!==socket.id||job.sectionId!==sectionId||job.endsAt!==endsAt)return;
    const liveSection=(liveSub.sections||[]).find(s=>s.id===sectionId);
-   if(livePlayer.alive!==false&&liveSection&&Math.hypot(livePlayer.x-liveSection.x,livePlayer.y-liveSection.y)<=150/EnemyAI.WORLD_ZOOM){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
+   if(livePlayer.alive!==false&&liveSection&&WorldSimulation.classicRepairInReach(liveRoom.world,liveSection,livePlayer)){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
    liveSub.repair=null;broadcastWorld(liveRoom,{submarine:true});
   },WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000).unref?.();
  });
@@ -1886,11 +1899,11 @@ io.on('connection', socket => {
   const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
-  if(room.mode==='rift'||room.mode==='open-sea'){
+  if(room.mode==='rift'||room.mode==='open-sea'||room.mode==='coop'){
    const padding=Math.max(10,Number(p.r)||13/WORLD_ZOOM);
    const resolved=room.mode==='rift'
     ?AbyssalMap.resolveMove(WorldSimulation.mapLayoutFor(room.world),previousX,previousY,x,y,padding)
-    :OceanGeography.resolveMove(previousX,previousY,x,y,padding);
+    :room.mode==='coop'?ClassicCavern.resolve(WorldSimulation.classicCavernRocks(room.world),previousX,previousY,x,y,padding+6/WORLD_ZOOM):OceanGeography.resolveMove(previousX,previousY,x,y,padding);
    acceptedX=resolved.x;acceptedY=resolved.y;
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
@@ -2003,8 +2016,8 @@ io.on('connection', socket => {
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
   const allowedSubmarineWeapons=new Set(['photon','electric','pierce','photonRay','nova','echoShot']);
-  p.submarineWeapons=[...new Set((Array.isArray(payload.submarineWeapons)?payload.submarineWeapons:[]).map(String).filter(id=>allowedSubmarineWeapons.has(id)))].slice(0,6);
-  if(!p.submarineWeapons.includes('photon'))p.submarineWeapons.unshift('photon');
+  if(Array.isArray(payload.submarineWeapons))p.submarineWeapons=[...new Set(payload.submarineWeapons.map(String).filter(id=>allowedSubmarineWeapons.has(id)))].slice(0,6);
+  else if(!Array.isArray(p.submarineWeapons))p.submarineWeapons=['photon'];
  });
  socket.on('tutorial-preference',payload=>{
   const u=users[socket.data.userKey],mode=String(payload?.mode||'');

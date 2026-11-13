@@ -1,30 +1,16 @@
 'use strict';
-const test=require('node:test');
-const assert=require('node:assert/strict');
-const fs=require('node:fs');
-const path=require('node:path');
-const root=path.resolve(__dirname,'..');
-const read=p=>fs.readFileSync(path.join(root,p),'utf8');
-
-test('Mergulho Online is not development-locked',()=>{
- const gates=read('public/abyssal-feature-gates.js');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const read=p=>fs.readFileSync(path.join(__dirname,'..',p),'utf8');
+test('Online is unlocked in both routing and presentation',()=>{
+ const gates=read('public/abyssal-feature-gates.js'),css=read('public/abyssal-solo-focus.css');
  assert.match(gates,/const LOCKED=new Set\(\['sea','rift'\]\)/);
- assert.doesNotMatch(gates,/LOCKED=.*online/);
- assert.match(gates,/Mergulho Online está LIBERADO PARA TESTE/);
+ assert.match(css,/#abyssDiveOnlineChoice::after\{content:none\}/);
+ assert.doesNotMatch(css,/#abyssDiveOnlineChoice::after\{[^}]*EM DESENVOLVIMENTO/);
 });
-
-test('Online choice joins permanent test room directly',()=>{
- const menu=read('public/abyssal-menu-ocean.js');
- const online=read('public/online.js');
- assert.match(menu,/DISPONÍVEL PARA TESTE/);
- assert.match(menu,/joinRoom\('MERGULHO-ONLINE'\)/);
+test('Online choice preserves target through login',()=>{
+ const menu=read('public/abyssal-menu-ocean.js'),online=read('public/online.js');
+ assert.match(menu,/connectAndJoin[^\n]*MERGULHO-ONLINE/);
  assert.match(online,/function connectAndJoin\(targetRoom='MERGULHO-ONLINE'\)/);
  assert.match(online,/joinRoom\('MERGULHO-ONLINE'\)/);
 });
-
-test('client cache and version are refreshed for Online release',()=>{
- const sw=read('public/offline-sw.js');
- const build=read('public/client-build.js');
- assert.match(sw,/online-test-release-v149/);
- assert.match(build,/version:'3\.6\.9'/);
-});
+test('release client version matches package',()=>assert.ok(read('public/client-build.js').includes("version:'"+JSON.parse(read('package.json')).version+"'")));
