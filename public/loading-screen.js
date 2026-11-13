@@ -13,9 +13,15 @@
     .then(parts=>parts.join('').trim());
  }
  function setArt(){
-  readChunks(LOADING_CHUNKS)
-   .then(data=>document.documentElement.style.setProperty('--abyssal-loading-art','url("data:image/webp;base64,'+data+'")'))
-   .catch(err=>console.warn('[Abyssal] Loading art unavailable:',err?.message||err));
+  const vectorArt='url("abyssal-ocean-cinema.svg?v=2026.11.13.loading-hq")';
+  document.documentElement.style.setProperty('--abyssal-loading-art',vectorArt);
+  const probe=new Image();
+  probe.onerror=()=>{
+   readChunks(LOADING_CHUNKS)
+    .then(data=>document.documentElement.style.setProperty('--abyssal-loading-art','url("data:image/webp;base64,'+data+'")'))
+    .catch(err=>console.warn('[Abyssal] Loading art unavailable:',err?.message||err));
+  };
+  probe.src='abyssal-ocean-cinema.svg?v=2026.11.13.loading-hq';
   readChunks(ICON_CHUNKS).then(data=>{
     const uri='data:image/webp;base64,'+data;
     root.ABYSSAL_BRAND_ICON_DATA_URI=uri;
@@ -30,6 +36,7 @@
  function ensure(){
   if(overlay||removed)return overlay;
   overlay=document.createElement('section');overlay.id='abyssalStartupLoading';overlay.setAttribute('aria-label','Carregando Abyssal');
+  const brand=document.createElement('div');brand.className='abyssal-loading-brand';brand.innerHTML='<strong>ABYSSAL</strong><span>ECOS DAS PROFUNDEZAS</span>';overlay.appendChild(brand);
   live=document.createElement('div');live.className='abyssal-startup-live';live.dataset.state=navigator.onLine===false?'offline':'boot';
   live.innerHTML='<strong>'+(navigator.onLine===false?'MODO OFFLINE':'INICIANDO ABYSSAL')+'</strong><small>'+(navigator.onLine===false?'Carregando os arquivos locais. Solo e modos offline continuam disponíveis.':'Preparando arquivos locais e verificando atualizações…')+'</small><span class="abyssal-startup-progress"><i></i></span>';
   overlay.appendChild(live);document.body.appendChild(overlay);bar=live.querySelector('i');setArt();return overlay;
