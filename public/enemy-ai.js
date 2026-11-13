@@ -15,7 +15,7 @@
   const CLASSIC_BOSS_KINDS = Object.freeze(['boss', 'angler', 'maw', 'leviathan', 'whiteSharkBoss', 'kraken', 'devourer']);
   const BOSS_KINDS = Object.freeze([...CLASSIC_BOSS_KINDS, 'riftSmile']);
   const SHARK_VISION = Object.freeze({ range: 900 / WORLD_ZOOM, halfAngle: 0.275, memoryMs: 1100 });
-  const sharkVisionRange=enemy=>enemy?.kind==='whiteShark'?SHARK_VISION.range*.5:SHARK_VISION.range;
+  const sharkVisionRange=enemy=>enemy?.kind==='whiteShark'?SHARK_VISION.range*.25:SHARK_VISION.range;
   function angleDelta(a,b){return Math.atan2(Math.sin(a-b),Math.cos(a-b));}
   const isChargeAttack=enemy=>enemy?.kind==='whiteShark'||enemy?.kind==='whiteSharkBoss';
   function biteDistance(enemyRadius,playerRadius){return Math.max(1,Number(enemyRadius)||1)+Math.max(1,Number(playerRadius)||1)+24/WORLD_ZOOM;}
