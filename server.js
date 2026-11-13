@@ -797,7 +797,7 @@ function getRoomSnapshot(room, metadata = {}, recipient=null){
  const elapsed=Math.max(0,Number(world.elapsed)||0);
  const nextBossInSeconds=progressionPausedForBoss?0:(Number.isFinite(nextBossAt)?Math.max(0,nextBossAt-elapsed):100/3.8);
  const progressionDistance=progressionPausedForBoss?100:clamp(100-nextBossInSeconds*3.8,0,100);
- return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,weapons:Array.isArray(room.players.values().next().value?.submarineWeapons)?room.players.values().next().value.submarineWeapons:['photon'],powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,name:s.name,x:s.x,y:s.y,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,enemies:world.enemies.filter(e=>room.mode!=='open-sea'||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
+ return {room:publicRoomInfo(room),worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,elapsed:world.elapsed,serverTime:Number(world.lastTick)||Date.now(),tickCount:world.tickCount||0,movingEnemyCount:world.movingEnemyCount||0,bossesDefeated,bossProgressionCycle:Math.floor(bossesDefeated/7),bossCycleIndex:bossesDefeated%BOSS_KINDS.size,progressionDistance,progressionPausedForBoss,nextBossInSeconds,map:room.mode==='rift'?{version:AbyssalMap.VERSION,seed:Number(world.mapSeed)||0,tier:Number(world.mapTier)||0}:null,depthState:room.mode==='rift'?worldDepthState(world):null,criticalEnemyIds:Array.isArray(metadata.criticalEnemyIds)?metadata.criticalEnemyIds.map(String):[],criticalReason:metadata.criticalReason||null,submarine:room.mode==='coop'&&world.submarine?{x:world.submarine.x,y:world.submarine.y,controllerId:[...room.players.keys()][0]||null,weapons:Array.isArray(room.players.values().next().value?.submarineWeapons)?room.players.values().next().value.submarineWeapons:['photon'],powerSeconds:world.submarine.powerSeconds,sections:(world.submarine.sections||[]).map(s=>({id:s.id,name:s.name,x:s.x,y:s.y,hp:s.hp,maxHp:s.maxHp})),repair:world.submarine.repair?{sectionId:world.submarine.repair.sectionId,playerId:world.submarine.repair.playerId,startedAt:world.submarine.repair.startedAt,endsAt:world.submarine.repair.endsAt}:null}:null,enemies:world.enemies.filter(e=>room.mode!=='open-sea'||!recipient||OceanStream.within(e,recipient,roomAoiRadius(recipient))).slice(0,MAX_ENEMIES_PER_ROOM).map(({damageContributors,...visibleEnemy})=>visibleEnemy),orbs:(world.orbs||[]).filter(o=>!['coop','open-sea'].includes(room.mode)||!recipient||OceanStream.within(o,recipient,roomAoiRadius(recipient))).map(o=>({id:o.id,x:o.x,y:o.y,value:o.value}))};
 }
 function getRoomContactSnapshot(room, hits = []){
  if(!room?.world?.initialized||!Array.isArray(hits)||!hits.length)return null;
@@ -809,7 +809,7 @@ function getRoomContactSnapshot(room, hits = []){
  }).filter(Boolean);
  if(!enemies.length)return null;
  world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
- return {worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,serverTime:Date.now(),criticalEnemyIds:enemies.map(enemy=>String(enemy.id)),enemies};
+ return {worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),snapshotSeq:world.snapshotSeq,serverTime:Number(world.lastTick)||Date.now(),criticalEnemyIds:enemies.map(enemy=>String(enemy.id)),enemies};
 }
 // Critical changes are reliable: joins, new entities, deaths and contact attacks must
 // never refer to an entity that the client has not received yet. Routine positions stay volatile.
@@ -832,7 +832,7 @@ function getRoomMotionSnapshot(room, options = {}){
  // Keep the 20 Hz hot path focused on what this recipient can actually use. Ordinary
  // off-screen creatures no longer create periodic bandwidth bursts. Bosses stay live for
  // direction indicators, and powered-submarine targets stay live inside turret reach.
- const motionNow=Date.now(),submarine=room.mode==='coop'?world.submarine:null,submarineRadius=760/WORLD_ZOOM;
+ const motionNow=Number(world.lastTick)||Date.now(),submarine=room.mode==='coop'?world.submarine:null,submarineRadius=760/WORLD_ZOOM;
  const enemies=recipient&&room.mode==='open-sea'?world.enemies.filter(e=>{
   if(BOSS_KINDS.has(e.kind))return true;
   if(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)return true;
@@ -857,7 +857,7 @@ function getRoomSpawnSnapshot(room, spawnedEnemies = []){
  const world=room.world;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
  return {
   worldId:String(world.worldId||`${room.id}-${room.createdAt||0}`),
-  snapshotSeq:world.snapshotSeq,serverTime:Date.now(),elapsed:world.elapsed,tickCount:world.tickCount||0,
+  snapshotSeq:world.snapshotSeq,serverTime:Number(world.lastTick)||Date.now(),elapsed:world.elapsed,tickCount:world.tickCount||0,
   criticalEnemyIds:spawnedEnemies.map(enemy=>String(enemy.id)),
   enemies:spawnedEnemies.map(enemy=>({...enemy}))
  };
@@ -1528,7 +1528,7 @@ function tickRoom(room, now) {
   const reason=playerHits.length?'enemy-contact':'periodic-baseline';
   criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:reason});
   if(criticalSnapshot){
-    if(['coop','open-sea'].includes(room.mode))for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
+    if(room.mode==='open-sea')for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
     else io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
    }
   // Keep the periodic full-state recovery aligned with world-simulation.js (30 s).
@@ -1538,7 +1538,12 @@ function tickRoom(room, now) {
   if(spawnFrame){if(room.mode==='open-sea')for(const recipient of room.players.values()){const local=spawnFrame.enemies.filter(e=>OceanStream.within(e,recipient,roomAoiRadius(recipient)));if(local.length)io.to(recipient.id).emit('world-enemies-spawned',{...spawnFrame,enemies:local,criticalEnemyIds:local.map(e=>String(e.id))});}else io.to(channelFor(room)).emit('world-enemies-spawned',spawnFrame);}
  }
  if(result.sendSnapshot){
-  for(const recipient of activePlayers){
+  if(room.mode==='coop'){
+   // The classic arena has a bounded enemy population. Serialize once, broadcast
+   // the same ordered motion frame to everyone, and do not drop frames under load.
+   const motion=getRoomMotionSnapshot(room);
+   if(motion)io.to(channelFor(room)).emit('enemy-motion',motion);
+  }else for(const recipient of activePlayers){
    const motion=getRoomMotionSnapshot(room,{player:recipient});
    if(motion)io.to(recipient.id).volatile.emit('enemy-motion',motion);
   }
@@ -1553,7 +1558,7 @@ function tickRoom(room, now) {
    // Fail safe: preserve strict collision verification if the attacker disappeared mid-tick.
    criticalSnapshot=getRoomSnapshot(room,{criticalEnemyIds,criticalReason:'enemy-contact'});
    if(criticalSnapshot){
-    if(['coop','open-sea'].includes(room.mode))for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
+    if(room.mode==='open-sea')for(const recipient of room.players.values())io.to(recipient.id).emit('game-snapshot',getRoomSnapshot(room,{criticalEnemyIds,criticalReason:criticalSnapshot.criticalReason},recipient));
     else io.to(channelFor(room)).emit('game-snapshot',criticalSnapshot);
    }
    w.reliableSnapshotTimer=1;
