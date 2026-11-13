@@ -11,6 +11,24 @@ permissions:
   contents: read
 
 jobs:
+  online-solo-live-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/online-solo-live.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: online-solo-live-captures
+          path: test-artifacts/online-solo-live/
+          retention-days: 7
+
   open-sea-regression:
     name: Open sea ecology, pressure and scenery contracts
     runs-on: ubuntu-latest

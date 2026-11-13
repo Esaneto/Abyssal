@@ -35,11 +35,36 @@ const commonLimitForWorld=world=>world?.mode==='rift'?MAX_COMMON_ENEMIES:world?.
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const ECOLOGY_CELL_SIZE=480,ecologySpatialCaches=new WeakMap();
 const classicCavernCache=new WeakMap();
+function clipClassicHull(points,edge,right){
+ const out=[];for(let i=0;i<points.length;i++){const a=points[i],b=points[(i+1)%points.length],inside=p=>right?p[0]>=edge:p[0]<=edge,ai=inside(a),bi=inside(b);if(ai)out.push(a);if(ai!==bi){const q=(edge-a[0])/(b[0]-a[0]);out.push([edge,a[1]+(b[1]-a[1])*q]);}}return out;
+}
+function classicHullRock(world,id){
+ const sub=world?.submarine;if(!sub||!Number.isInteger(id)||id<0||id>2)return null;
+ const scale=1/WORLD_ZOOM,cuts=[-300,-140,140,300],min=cuts[id]*scale,max=cuts[id+1]*scale,cx=(min+max)/2;
+ const hull=SoloCavern.submarineHull(sub.x,sub.y,scale),vertices=clipClassicHull(clipClassicHull(hull.vertices,min,true),max,false).map(([x,y])=>[x-cx,y]);
+ const rx=Math.max(...vertices.map(v=>Math.abs(v[0]))),ry=Math.max(...vertices.map(v=>Math.abs(v[1])));
+ return {x:sub.x+cx,y:sub.y,rx,ry,r:Math.hypot(rx,ry),angle:0,vertices,cavernSolid:true,submarineHull:true,visualOnly:false,sectionId:id};
+}
 function classicCavernRocks(world){
  if(!world||world.mode!=='classic')return [];
- let rocks=classicCavernCache.get(world);
- if(!rocks){rocks=SoloCavern.buildRocks(world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT);classicCavernCache.set(world,rocks);}
- return rocks;
+ const sub=world.submarine,w=world.width||WORLD_WIDTH,h=world.height||WORLD_HEIGHT,key=[w,h,sub?.x,sub?.y,...(sub?.sections||[]).map(s=>Number(s.hp)>0?1:0)].join(':');
+ let cached=classicCavernCache.get(world);
+ if(!cached||cached.key!==key){const rocks=SoloCavern.buildRocks(w,h);for(const section of sub?.sections||[]){if(Number(section.hp)>0){const rock=classicHullRock(world,section.id);if(rock)rocks.push(rock);}}cached={key,rocks};classicCavernCache.set(world,cached);}
+ return cached.rocks;
+}
+function classicRepairInReach(world,section,player){
+ const rock=classicHullRock(world,section.id);return Boolean(rock&&SoloCavern.isBlocked([rock],Number(player.x),Number(player.y),75/WORLD_ZOOM+(Number(player.r)||13/WORLD_ZOOM)));
+}
+function classicHullContact(world,enemy,now){
+ if(world.mode!=='classic'||!world.submarine)return false;
+ const sub=world.submarine,pad=(Number(enemy.r)||10)/WORLD_ZOOM+8/WORLD_ZOOM;
+ const touched=classicCavernRocks(world).filter(r=>r.submarineHull&&SoloCavern.isBlocked([r],enemy.x,enemy.y,pad)).sort((a,b)=>Math.hypot(a.x-enemy.x,a.y-enemy.y)-Math.hypot(b.x-enemy.x,b.y-enemy.y))[0];
+ if(!touched)return false;
+ if(now>=(Number(enemy.nextHullAttackAt)||0)){
+  const section=sub.sections.find(s=>s.id===touched.sectionId);
+  if(section&&Number(section.hp)>0){section.hp=Math.max(0,Number(section.hp)-Math.max(5,Math.round(Number(enemy.damage)||8)));enemy.nextHullAttackAt=now+1000;world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;}
+ }
+ return true;
 }
 function rebuildEcologySpatial(world){
  let cache=ecologySpatialCaches.get(world);
@@ -466,7 +491,7 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     const repair=world.submarine.repair;
     if(repair){
       const diver=validPlayers.find(p=>p.id===repair.playerId),section=(world.submarine.sections||[]).find(s=>s.id===repair.sectionId);
-      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||Math.hypot(Number(diver.x)-Number(section.x),Number(diver.y)-Number(section.y))>150/WORLD_ZOOM)world.submarine.repair=null;
+      if(!diver||!section||diver.alive===false||Math.hypot(Number(diver.x)-Number(repair.startX),Number(diver.y)-Number(repair.startY))>8/WORLD_ZOOM||!classicRepairInReach(world,section,diver))world.submarine.repair=null;
     }
   }
   if (validPlayers.length === 0) {
@@ -945,18 +970,10 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     // have a fresh heartbeat and uses a short velocity prediction to compensate for transit
     // time. This prevents hits against stale coordinates that no longer match the sprite.
     const target = movement.target;
+    classicHullContact(world,enemy,now);
+    if(target?.submarine)continue;
     if (riftMode && !actualTarget) continue;
     if (!target || target.alive === false || enemy.attackCd > 0 || (EnemyAI.isChargeAttack(enemy)&&(!enemy.sharkCharging||(enemy.kind==='whiteSharkBoss'&&enemy.sharkChargeHit)))) continue;
-    if(target.submarine&&target.section){
-      const radius=Math.max(28/WORLD_ZOOM,(Number(enemy.r)||10)/WORLD_ZOOM+34/WORLD_ZOOM);
-      if(Math.hypot(Number(target.x)-Number(enemy.x),Number(target.y)-Number(enemy.y))<=radius+78/WORLD_ZOOM){
-        enemy.attackCd=BOSS_KINDS.includes(enemy.kind)?1.15:.92;
-        const damage=Math.max(5,Math.round(Number(enemy.damage)||8));
-        target.section.hp=Math.max(0,(Number(target.section.hp)||ONLINE_SUBMARINE_SECTION_HP)-damage);
-        world.snapshotSeq=(Number(world.snapshotSeq)||0)+1;
-      }
-      continue;
-    }
     const lastPositionAt = Number(target.lastPositionAt) || 0;
     const positionAge = lastPositionAt > 0 ? Math.max(0, now - lastPositionAt) : Infinity;
     const resumeGraceUntil = Number(target.positionResumeGraceUntil) || 0;
@@ -1125,4 +1142,4 @@ function resetWorldState(world, now = Date.now()) {
   return world;
 }
 
-module.exports = { MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };
+module.exports = { classicCavernRocks, classicHullRock, classicRepairInReach, MAX_ENEMIES, MAX_BOSSES, MAX_COMMON_ENEMIES, ONLINE_SUBMARINE_SECTION_HP, ONLINE_SUBMARINE_REPAIR_SECONDS, createWorldState, initializeWorld, seedRiftEncounters, activateRiftEncounters, spawnEnemy, xpValueForEnemy, tickWorld, resetWorldState, countBosses, countCommons, forceAdvanceEnemy, contactGeometry, currentDepthEvent, startDepthEvent, mapLayoutFor, chooseDensitySpawnRoom, markOceanSpecimenDeath };

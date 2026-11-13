@@ -2323,7 +2323,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
   if(!enemy||enemy.hp<=0||!Number.isFinite(damage)||damage<=0)return;
  if(activeMapLayout&&enemy.spawnedAt&&Date.now()-enemy.spawnedAt<3000)return;
  if(onlineRoomMode!=='pvp'&&player&&!String(skillId||'').startsWith('rift-hazard-')&&skillId!=='skin-active-poison-dot'){const origin=options.origin||player;const ranged=options.projectile||options.submarineShot||['electric','pierce','photon','photonRay','nova','echoShot','prismShard','ricochet','skin-active-shot','skin-active-slowShot'].includes(skillId);if(!(ranged?pveProjectileTerrainClear:pveTerrainClear)(origin.x,origin.y,enemy.x,enemy.y,2))return;}
- if(onlineMode&&options.submarineShot&&onlineSubmarineControllerId&&window.AbyssalOnline?.getSocketId?.()!==onlineSubmarineControllerId){enemy.hit=.12;return;}
+ if(onlineMode&&options.submarineShot&&window.AbyssalOnline?.getSocketId?.()!==onlineSubmarineControllerId){enemy.hit=.12;return;}
  score += Math.round(damage);
  if(options.silentSound!==true&&!options.secondary)playWorldSound('enemy-hit',enemy,620,.62);
  if(skillId&&options.silentSound!==true)playSkillSound(skillId,'trigger');
@@ -2332,7 +2332,7 @@ function dealEnemyDamage(enemy, damage, skillId=null, options={}){
  if(onlineMode){
    const distance=Math.hypot(player.x-enemy.x,player.y-enemy.y),predatorMultiplier=predatorDamageMultiplier(enemy),closeMultiplier=distance<=175/GAME_WORLD_ZOOM?1+Math.min(.54,Math.max(0,Number(upgrades.closePressure)||0)*.18):1,queuedDamage=Number(damage)*predatorMultiplier*closeMultiplier;
    const actionId=String(options.actionId||nextCombatActionId(skillId));
-   onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(skillId||'').slice(0,32),actionId});
+   onlineDamageQueue.push({id:Number(enemy.id),damage:queuedDamage,skillId:String(options.submarineShot?'submarine-'+skillId:skillId||'').slice(0,32),actionId});
    // Predict only presentation. HP remains server-authoritative and is reconciled by actionId.
    if(options.visual!==false)predictCombatImpact(enemy,queuedDamage,skillId,actionId);
    else enemy.hit=.14;
@@ -5120,6 +5120,7 @@ window.AbyssalGameHooks={
  worldHeight:()=>H,
  worldZoom:()=>worldZoom,
  cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
+ classicParityInspect:()=>({classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
  developerInspect:()=>({online:onlineMode,mode:onlineMode?onlineRoomMode:requestedRunMode,state:gameState,fps:Number(window.__abyssalFps||0),elapsed:Number(elapsed)||0,hp:Number(hp)||0,maxHp:Number(maxHp)||0,x:Number(player?.x)||0,y:Number(player?.y)||0,enemies:enemies.filter(e=>e&&e.hp>0).length,bosses:enemies.filter(e=>e&&e.hp>0&&BOSS_KINDS.includes(e.kind)).length,orbs:orbs.length,submarine:isClassicCavernRun()?{powered:soloSubmarinePowered(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))}:null}),
  developerCommand:command=>{
   if(window.AbyssalDeveloperActive!==true)return {ok:false,message:'Conta GameMaster não validada.'};

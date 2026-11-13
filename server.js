@@ -12,6 +12,7 @@ const eventLoopDelay = monitorEventLoopDelay({ resolution: 20 });
 eventLoopDelay.enable();
 const EnemyAI = require('./public/enemy-ai');
 const WorldSimulation = require('./world-simulation');
+const ClassicCavern = require('./public/abyssal-solo-cavern.js');
 const {splitXp}=require('./xp-distribution');
 const SkinAbilities = require('./public/skin-abilities.js');
 const SkinStandard = require('./public/skin-standard.js');
@@ -999,7 +1000,7 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   // Enemies remain invulnerable for the entire emergence animation.
   if(room.mode==='rift'&&enemy.spawnedAt&&now-Number(enemy.spawnedAt)<3000)return reject('enemy-emerging');
   // Reject hits through solid cave walls on the authoritative server.
-  const hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:
+  let hitOrigin=skillId==='nova'&&player?.novaConeOrigin?player.novaConeOrigin:
    skillId==='skin-active-trail'&&player?.skinActiveServerResolving&&player.skinTrailDamageOrigin?player.skinTrailDamageOrigin:
    skillId==='skin-active-poison-dot'&&player?.skinActiveServerResolving&&player.weaponPoisonOrigin?player.weaponPoisonOrigin:player?.skinActiveServerResolving&&player.skinActiveDamageOrigin?player.skinActiveDamageOrigin:player;
   if(room.mode==='rift'&&hitOrigin&&AbyssalMap.segmentWalkable&&
@@ -1008,6 +1009,17 @@ function processWorldDamage(socket,id,damage,skillId=null,batch=null,actionId=''
   if(room.mode==='open-sea'&&hitOrigin&&!OceanGeography.segmentClear(Number(hitOrigin.x),Number(hitOrigin.y),Number(enemy.x),Number(enemy.y),Math.min(7,Number(enemy.r)||5)))
    return reject('ocean-rock-blocked');
   let requestedDamage=damage;
+ const subShot=String(skillId||'').startsWith('submarine-');
+ if(subShot){
+  const weapon=String(skillId).slice(10),mounts={photon:[-105,70],electric:[105,-80],pierce:[-188,-48],photonRay:[257,-24],nova:[-230,25],echoShot:[168,78]},mount=mounts[weapon],sub=w.submarine,owner=room.players.values().next().value;
+  if(room.mode!=='coop'||!mount||!sub||Number(sub.powerSeconds)<=0||owner!==player||!(Array.isArray(owner.submarineWeapons)?owner.submarineWeapons:['photon']).includes(weapon))return reject('submarine-inactive');
+  const section=sub.sections.find(s=>s.id===(mount[0]<-140?0:mount[0]>140?2:1));
+  if(!section||Number(section.hp)<=0)return reject('submarine-section-destroyed');
+  hitOrigin={x:sub.x+mount[0]/WORLD_ZOOM,y:sub.y+mount[1]/WORLD_ZOOM};
+  if(Math.hypot(enemy.x-hitOrigin.x,enemy.y-hitOrigin.y)>850/WORLD_ZOOM)return reject('submarine-out-of-range');
+  requestedDamage=Math.min(requestedDamage,weapon==='photonRay'?45:250);
+ }
+ if(room.mode==='coop'&&hitOrigin&&ClassicCavern.segmentBlocked(WorldSimulation.classicCavernRocks(w),hitOrigin.x,hitOrigin.y,enemy.x,enemy.y,2,true))return reject('classic-wall-blocked');
  if(String(skillId||'').startsWith('skin-active-')&&!player?.skinActiveServerResolving)return reject('skin-active-server-only');
  if(skillId==='photonRay'){
   if(!player)return reject('photon-no-player');
@@ -1839,14 +1851,14 @@ io.on('connection', socket => {
   const reply=result=>typeof ack==='function'&&ack(result),room=socketRoom(socket),p=room?.players.get(socket.id),sub=room?.world?.submarine,sectionId=Math.floor(Number(payload.sectionId));
   if(!room||room.mode!=='coop'||!p||p.alive===false||!sub)return reply({ok:false,message:'Reparo online indisponível.'});
   const section=(sub.sections||[]).find(s=>s.id===sectionId);if(!section||(Number(section.hp)||0)>=(Number(section.maxHp)||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP))return reply({ok:false,message:'Esta peça não precisa de reparo.'});
-  if(Math.hypot(p.x-section.x,p.y-section.y)>150/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se da peça danificada.'});
+  if(!WorldSimulation.classicRepairInReach(room.world,section,p))return reply({ok:false,message:'Aproxime-se da peça danificada.'});
   if(sub.repair&&Date.now()<Number(sub.repair.endsAt))return reply({ok:false,message:'Já existe um reparo em andamento.'});
   const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt,startX:Number(p.x),startY:Number(p.y)};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
   setTimeout(()=>{
    const liveRoom=rooms.get(room.id),liveSub=liveRoom?.world?.submarine,livePlayer=liveRoom?.players.get(socket.id),job=liveSub?.repair;
    if(!liveRoom||!liveSub||!livePlayer||!job||job.playerId!==socket.id||job.sectionId!==sectionId||job.endsAt!==endsAt)return;
    const liveSection=(liveSub.sections||[]).find(s=>s.id===sectionId);
-   if(livePlayer.alive!==false&&liveSection&&Math.hypot(livePlayer.x-liveSection.x,livePlayer.y-liveSection.y)<=150/EnemyAI.WORLD_ZOOM){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
+   if(livePlayer.alive!==false&&liveSection&&WorldSimulation.classicRepairInReach(liveRoom.world,liveSection,livePlayer)){liveSection.hp=liveSection.maxHp||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP;}
    liveSub.repair=null;broadcastWorld(liveRoom,{submarine:true});
   },WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000).unref?.();
  });
@@ -1887,11 +1899,11 @@ io.on('connection', socket => {
   const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
-  if(room.mode==='rift'||room.mode==='open-sea'){
+  if(room.mode==='rift'||room.mode==='open-sea'||room.mode==='coop'){
    const padding=Math.max(10,Number(p.r)||13/WORLD_ZOOM);
    const resolved=room.mode==='rift'
     ?AbyssalMap.resolveMove(WorldSimulation.mapLayoutFor(room.world),previousX,previousY,x,y,padding)
-    :OceanGeography.resolveMove(previousX,previousY,x,y,padding);
+    :room.mode==='coop'?ClassicCavern.resolve(WorldSimulation.classicCavernRocks(room.world),previousX,previousY,x,y,padding+6/WORLD_ZOOM):OceanGeography.resolveMove(previousX,previousY,x,y,padding);
    acceptedX=resolved.x;acceptedY=resolved.y;
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
@@ -2004,8 +2016,8 @@ io.on('connection', socket => {
   p.shellLevel = clamp(Math.floor(Number(payload.shellLevel) || 0), 0, 3);
   p.lastStandLevel = clamp(Math.floor(Number(payload.lastStandLevel) || 0), 0, 3);
   const allowedSubmarineWeapons=new Set(['photon','electric','pierce','photonRay','nova','echoShot']);
-  p.submarineWeapons=[...new Set((Array.isArray(payload.submarineWeapons)?payload.submarineWeapons:[]).map(String).filter(id=>allowedSubmarineWeapons.has(id)))].slice(0,6);
-  if(!Array.isArray(payload.submarineWeapons)&&!p.submarineWeapons.length)p.submarineWeapons=['photon'];
+  if(Array.isArray(payload.submarineWeapons))p.submarineWeapons=[...new Set(payload.submarineWeapons.map(String).filter(id=>allowedSubmarineWeapons.has(id)))].slice(0,6);
+  else if(!Array.isArray(p.submarineWeapons))p.submarineWeapons=['photon'];
  });
  socket.on('tutorial-preference',payload=>{
   const u=users[socket.data.userKey],mode=String(payload?.mode||'');
