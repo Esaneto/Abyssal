@@ -94,7 +94,7 @@ let bestScore=Number(localStorage.getItem('abyssalBestScore')||0),bestTime=Numbe
 let bossProgressionCycle=0,bossCycleStreak=0,bossCycleBosses=[],bossCycleIndex=0,progressionDistance=0,progressionPausedForBoss=false,activeBossEntity=null,bossVictoryPending=false;
 let pendingProgressionBossWarningKind=null,pendingProgressionBossWarningAt=0;
 let runResultPending=false;
-let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
+let snapshotClock=0,upgradeAutoTimer=null,upgradeCountdownInterval=null,upgradeDeadlineAt=0,upgradeOptions=[],sharedXpApplying=false,lastBossKind=null,lastRemoteBossId=null,metaUpgrades=JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}'),wheelBusy=false,wheelAngle=0,bossAlertTimer=null,alertedBossIds=new Set(),authoritativeElapsed=null,lastSnapshotAt=0,lastSnapshotTick=0,lastAuthoritativeWorldId=null,lastAuthoritativeSnapshotSeq=0,lastAuthoritativeMotionSeq=0,lastAuthoritativeSpawnSeq=0,lastAuthoritativeContactSeq=0,lastAuthoritativeServerTime=0,lastAuthoritativeMotionServerTime=0,lastAuthoritativeSpawnServerTime=0,lastAuthoritativeContactServerTime=0,pendingOnlineHitVitals=[],authoritativeSnapshotHistory=new Map();
 let cachedAbyssalCodex=null,cachedCodexMonsterIds=null,codexSavePending=false;
 function getAbyssalCodex(){
  if(!cachedAbyssalCodex){
@@ -2392,9 +2392,9 @@ function observeOnlineServerMotion(data){
 function applySharedSpawn(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const worldId=String(data.worldId||''),sequence=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),serverTime=Math.max(0,Number(data.serverTime)||0);
- if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSnapshotSeq)return;
- if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
- lastAuthoritativeSnapshotSeq=sequence;if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
+ if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSpawnSeq)return;
+ if(lastAuthoritativeSpawnServerTime&&serverTime&&serverTime<lastAuthoritativeSpawnServerTime)return;
+ lastAuthoritativeSpawnSeq=sequence;if(serverTime>0)lastAuthoritativeSpawnServerTime=Math.max(lastAuthoritativeSpawnServerTime,serverTime);
  const newBosses=[];
  for(const raw of data.enemies){
   if(!raw||raw.id==null||onlineEnemyById.has(String(raw.id)))continue;
@@ -2416,7 +2416,7 @@ function applySharedSnapshot(data){
  if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId===lastAuthoritativeWorldId&&incomingSeq>0&&incomingSeq<=lastAuthoritativeSnapshotSeq)return;
  if(incomingWorldId&&lastAuthoritativeWorldId&&incomingWorldId!==lastAuthoritativeWorldId){
   if(incomingServerTime&&lastAuthoritativeServerTime&&incomingServerTime<lastAuthoritativeServerTime)return;
-  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();lastAuthoritativeSnapshotSeq=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
+  enemies=[];orbs=[];onlineEnemyById.clear();onlineOrbById.clear();lastAuthoritativeSnapshotSeq=0;lastAuthoritativeMotionSeq=0;lastAuthoritativeSpawnSeq=0;lastAuthoritativeContactSeq=0;lastAuthoritativeMotionServerTime=0;lastAuthoritativeSpawnServerTime=0;lastAuthoritativeContactServerTime=0;authoritativeSnapshotHistory.clear();pendingOnlineHitVitals=pendingOnlineHitVitals.filter(item=>String(item.worldId||'')===incomingWorldId);
  }
  if(data.map)setActiveMapDescriptor(data.map);
  if(data.submarine&&onlineRoomMode==='coop'){
@@ -2484,8 +2484,8 @@ function applySharedSnapshot(data){
 function registerEnemyContactSnapshot(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const worldId=String(data.worldId||''),sequence=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),serverTime=Math.max(0,Number(data.serverTime)||0);
- if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSnapshotSeq)return;
- if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
+ if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeContactSeq)return;
+ if(lastAuthoritativeContactServerTime&&serverTime&&serverTime<lastAuthoritativeContactServerTime)return;
  const criticalIds=new Set((data.criticalEnemyIds||[]).map(String));
  const enemyRows=data.enemies.filter(enemy=>enemy&&enemy.id!=null);
  const frame={worldId,snapshotSeq:sequence,serverTime,criticalEnemyIds:criticalIds,enemies:new Map(enemyRows.map(enemy=>[String(enemy.id),{id:String(enemy.id),kind:String(enemy.kind||'drifter'),x:Number(enemy.x)||0,y:Number(enemy.y)||0,r:Number(enemy.r)||10,hp:Number(enemy.hp)||0,maxHp:Number(enemy.maxHp)||0}]))};
@@ -2505,17 +2505,18 @@ function registerEnemyContactSnapshot(data){
  }
  authoritativeSnapshotHistory.set(`${worldId}:${sequence}`,frame);
  while(authoritativeSnapshotHistory.size>18)authoritativeSnapshotHistory.delete(authoritativeSnapshotHistory.keys().next().value);
- lastAuthoritativeSnapshotSeq=sequence;
- if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
+ lastAuthoritativeContactSeq=sequence;
+ if(serverTime>0)lastAuthoritativeContactServerTime=Math.max(lastAuthoritativeContactServerTime,serverTime);
 }
 function applySharedMotion(data){
  if(!onlineMode||!data||!Array.isArray(data.enemies))return;
  const worldId=String(data.worldId||''),sequence=Math.max(0,Math.floor(Number(data.snapshotSeq)||0)),serverTime=Math.max(0,Number(data.serverTime)||0);
- // Compact motion packets update only entities already introduced by a reliable full snapshot.
- if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeSnapshotSeq)return;
- if(lastAuthoritativeServerTime&&serverTime&&serverTime<lastAuthoritativeServerTime)return;
- lastAuthoritativeSnapshotSeq=sequence;
- if(serverTime>0)lastAuthoritativeServerTime=Math.max(lastAuthoritativeServerTime,serverTime);
+ // Movement has its own ordering clock. A volatile 20 Hz packet must never make
+ // a reliable spawn/full-state packet look stale and disappear from the client.
+ if(!worldId||worldId!==lastAuthoritativeWorldId||!sequence||sequence<=lastAuthoritativeMotionSeq)return;
+ if(lastAuthoritativeMotionServerTime&&serverTime&&serverTime<lastAuthoritativeMotionServerTime)return;
+ lastAuthoritativeMotionSeq=sequence;
+ if(serverTime>0)lastAuthoritativeMotionServerTime=Math.max(lastAuthoritativeMotionServerTime,serverTime);
  const now=performance.now(),serverInterval=clamp(Number(data.intervalMs)||50,30,250),orbInterval=clamp(Number(data.orbIntervalMs)||250,120,650);
  if(Number.isFinite(Number(data.elapsed))){authoritativeElapsed=Math.max(0,Number(data.elapsed));lastSnapshotAt=now;lastSnapshotTick=Number(data.tickCount)||lastSnapshotTick;}
  let moved=0;
