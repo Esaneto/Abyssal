@@ -55,6 +55,6 @@ test('bridge has original moving water and separate cached structural render pas
  assert.match(smoke,/Cockpit hardware buttons are hidden or detached/);
  assert.match(smoke,/cockpit-tablet/);
  assert.match(smoke,/cockpit-wide/);
- assert.match(smoke,/cockpit-minerals/);
- assert.match(smoke,/cockpit-laboratory/);
+ assert.match(smoke,/cockpit-shop/);
+ assert.match(smoke,/cockpit-abyssario/);
 });
