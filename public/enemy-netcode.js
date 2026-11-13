@@ -63,6 +63,10 @@
     const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : (enemy.motionSamples = []);
     const last = samples[samples.length - 1];
     if (last && serverTime <= Number(last.serverTime)) return false;
+    // A late authoritative sample may replace a position we already extrapolated.
+    // Preserve the displayed point across that packet boundary and decay only the error.
+    const previousDisplay=last&&samples.length>=2&&enemy.motionRenderTime>=last.serverTime?renderedPosition(enemy,receivedAt):null;
+    if(!last)enemy.motionCorrection=null;
     samples.push({ x, y, serverTime, receivedAt });
     while (samples.length > MOTION_BUFFER_SAMPLES) samples.shift();
     if (last) {
@@ -72,8 +76,9 @@
       enemy.motionSampleMs = Number.isFinite(previous) ? previous * .82 + spacing * .18 : spacing;
       const jitter = Math.abs(arrivalSpacing - spacing);
       enemy.motionJitterMs = Number.isFinite(Number(enemy.motionJitterMs)) ? Number(enemy.motionJitterMs) * .82 + jitter * .18 : jitter;
-      enemy.motionBufferMs = clamp(Math.max(MOTION_BUFFER_MS,spacing*1.35) + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 180);
+      enemy.motionBufferMs = clamp(Math.max(MOTION_BUFFER_MS,enemy.motionSampleMs*1.35) + (Number(enemy.motionJitterMs) || 0) * 1.35, 70, 180);
     } else enemy.motionBufferMs = MOTION_BUFFER_MS;
+    if(previousDisplay)preserveMotionContinuity(enemy,previousDisplay,renderedPositionRaw(enemy,receivedAt),receivedAt);
     return true;
   }
 
@@ -84,7 +89,18 @@
     const next=Number.isFinite(before)&&Number.isFinite(at)?Math.max(before,Math.min(desired,before+Math.max(0,now-at)*1.35)):desired;
     entity.motionRenderAt=now;entity.motionRenderTime=Math.min(next,limit);return entity.motionRenderTime;
   }
-  function renderedPosition(enemy, now) {
+  function preserveMotionContinuity(entity,before,after,now){
+    const dx=before.x-after.x,dy=before.y-after.y,distance=Math.hypot(dx,dy);
+    entity.motionCorrection=distance>.05&&distance<180?{dx,dy,at:now}:null;
+  }
+  function applyMotionCorrection(entity,point,now){
+    const c=entity?.motionCorrection;if(!c)return point;
+    const remaining=1-clamp((now-c.at)/100,0,1);
+    if(remaining<=0){entity.motionCorrection=null;return point;}
+    return {...point,x:point.x+c.dx*remaining*remaining,y:point.y+c.dy*remaining*remaining};
+  }
+  function renderedPosition(enemy,now){return applyMotionCorrection(enemy,renderedPositionRaw(enemy,now),now);}
+  function renderedPositionRaw(enemy, now) {
     if (!enemy) return { x: 0, y: 0 };
     const samples = Array.isArray(enemy.motionSamples) ? enemy.motionSamples : null;
     if (samples && samples.length >= 2) {
@@ -194,5 +210,5 @@
       return next;
     });
   }
-  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample, monotonicRenderTime, MAX_EXTRAPOLATION_MS, MOTION_BUFFER_MS };
+  return { createMotionWatchdog, reconcileSnapshot, renderedPosition, pushMotionSample, monotonicRenderTime, preserveMotionContinuity, applyMotionCorrection, MAX_EXTRAPOLATION_MS, MOTION_BUFFER_MS };
 });

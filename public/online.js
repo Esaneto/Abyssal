@@ -753,6 +753,8 @@ function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
  if(!peer||![x,y,serverTime,receivedAt].every(Number.isFinite))return false;
  const samples=Array.isArray(peer.motionSamples)?peer.motionSamples:(peer.motionSamples=[]),last=samples[samples.length-1];
  if(last&&serverTime<=Number(last.serverTime))return false;
+ const before=last&&samples.length>=2&&peer.motionRenderTime>=last.serverTime?getInterpolatedPeer(peer,receivedAt):null;
+ if(!last)peer.motionCorrection=null;
  samples.push({x,y,serverTime,receivedAt});while(samples.length>10)samples.shift();
  if(last){
   const serverSpacing=Math.max(16,Math.min(250,serverTime-Number(last.serverTime))),arrivalSpacing=Math.max(0,Math.min(500,receivedAt-Number(last.receivedAt)));
@@ -761,12 +763,14 @@ function pushPeerMotionSample(peer,x,y,serverTime,receivedAt){
   const isPvp=window.AbyssalGameHooks?.roomMode?.()==='pvp';
   peer.motionBufferMs=Math.max(isPvp?45:42,Math.min(isPvp?90:85,(isPvp?50:45)+(Number(peer.motionJitterMs)||0)*1.1));
  }else peer.motionBufferMs=window.AbyssalGameHooks?.roomMode?.()==='pvp'?50:45;
+ if(before)window.AbyssalEnemyNetcode?.preserveMotionContinuity?.(peer,before,getInterpolatedPeerRaw(peer,receivedAt),receivedAt);
  return true;
 }
-function getInterpolatedPeer(p,now=performance.now()){
+function getInterpolatedPeer(p,now=performance.now()){const point=getInterpolatedPeerRaw(p,now);return window.AbyssalEnemyNetcode?.applyMotionCorrection?.(p,point,now)||point;}
+function getInterpolatedPeerRaw(p,now=performance.now()){
  const samples=Array.isArray(p.motionSamples)?p.motionSamples:null;
  if(samples&&samples.length>=2){
-  const latest=samples[samples.length-1],serverNow=Number(latest.serverTime)+Math.max(0,now-Number(latest.receivedAt)),desiredTime=serverNow-(Number(p.motionBufferMs)||45),renderTime=window.AbyssalEnemyNetcode?.monotonicRenderTime?.(p,desiredTime,now,latest.serverTime+90)??desiredTime;
+  const latest=samples[samples.length-1],bestOffset=samples.reduce((best,s)=>Math.max(best,Number(s.serverTime)-Number(s.receivedAt)),-Infinity),desiredTime=now+bestOffset-(Number(p.motionBufferMs)||45),renderTime=window.AbyssalEnemyNetcode?.monotonicRenderTime?.(p,desiredTime,now,latest.serverTime+90)??desiredTime;
   if(renderTime<=Number(samples[0].serverTime))return {...p,x:Number(samples[0].x),y:Number(samples[0].y)};
   let a=samples[0],b=samples[1];
   for(let i=1;i<samples.length;i++){b=samples[i];if(Number(b.serverTime)>=renderTime){a=samples[i-1];break;}a=b;}

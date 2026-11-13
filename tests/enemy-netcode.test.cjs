@@ -142,3 +142,14 @@ test('motion cadence preserves sub-tick remainder instead of skipping alternate 
  for(let i=0;i<100;i++)if(step(world,.049))count++;
  assert.ok(count>=97&&count<=100,`expected about 98 packets, got ${count}`);
 });
+
+test('late stop packet corrects extrapolation without a visible position jump',()=>{
+ const e={id:99,x:100,y:100,motionSamples:[]};
+ pushMotionSample(e,{x:100,y:100,serverTime:1000,receivedAt:0});
+ pushMotionSample(e,{x:100,y:110,serverTime:1050,receivedAt:50});
+ const before=renderedPosition(e,250);assert.ok(before.y>110);
+ pushMotionSample(e,{x:100,y:110,serverTime:1250,receivedAt:250});
+ const at=renderedPosition(e,250);assert.ok(Math.abs(at.y-before.y)<.001,'packet boundary is continuous');
+ const halfway=renderedPosition(e,300);assert.ok(halfway.y<at.y&&halfway.y>=110);
+ const settled=renderedPosition(e,351);assert.ok(Math.abs(settled.y-110)<.001);
+});
