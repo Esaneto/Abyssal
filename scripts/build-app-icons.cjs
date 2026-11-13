@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Generates platform-native icons from the single, versioned Abyssal SVG.
+ * Generates platform-native icons from the generated Abyssal kraken artwork
+ * embedded as local base64 chunks under public/assets/branding/icon/.
  * Requires sharp@0.34.4 (installed by the Android and Windows CI jobs).
  *
  * Android: legacy mdpi..xxxhdpi icons + round variants + adaptive foreground
@@ -16,14 +17,17 @@ const path=require('node:path');
 const sharp=require('sharp');
 
 const root=path.resolve(__dirname,'..');
-const svgPath=path.join(root,'public','abyssal-icon.svg');
-const source=fs.readFileSync(svgPath,'utf8');
-if(!source.includes('id="icon-background"')||!source.includes('id="abyssalIconTitle"')){
-  throw new Error('Abyssal icon master must contain a background group and an accessible title.');
+function readChunkedBase64(dir){
+  const files=fs.readdirSync(dir)
+    .filter(name=>/^\d+[.]b64$/.test(name))
+    .sort((a,b)=>Number(a.split('.')[0])-Number(b.split('.')[0]));
+  if(!files.length)throw new Error('Missing embedded Abyssal branding chunks: '+dir);
+  const joined=files.map(name=>fs.readFileSync(path.join(dir,name),'utf8').trim()).join('');
+  const bytes=Buffer.from(joined,'base64');
+  if(bytes.length<1024)throw new Error('Embedded Abyssal branding asset is unexpectedly small: '+dir);
+  return bytes;
 }
-const sourceBytes=Buffer.from(source);
-const foregroundSource=source.replace(/<g id="icon-background">[\s\S]*?<\/g>/,'');
-if(foregroundSource===source)throw new Error('Could not extract transparent anchor and tentacle artwork.');
+const sourceBytes=readChunkedBase64(path.join(root,'public','assets','branding','icon'));
 
 function write(file,bytes){
   fs.mkdirSync(path.dirname(file),{recursive:true});
@@ -31,7 +35,7 @@ function write(file,bytes){
   console.log('[icon]',path.relative(root,file));
 }
 async function png(source,size){
-  return sharp(Buffer.from(source)).resize(size,size,{fit:'fill'}).png().toBuffer();
+  return sharp(Buffer.from(source)).resize(size,size,{fit:'cover',position:'centre'}).png().toBuffer();
 }
 async function assertVisibleAbyssalIcon(buffer,label){
   // Validate the actual raster output, not just SVG source or ICO headers.
@@ -42,11 +46,11 @@ async function assertVisibleAbyssalIcon(buffer,label){
     const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
     if(a<96)continue;
     opaque++;
-    if(r>75&&b>95&&r>g*1.22&&b>g*1.25)violet++;
-    if(r>130&&g>135&&b>145&&Math.abs(r-g)<65)metallic++;
+    if(r>65&&b>95&&b>g*1.10)violet++;
+    if(b>125&&g>95&&b>r*1.04)metallic++;
   }
   if(violet<15||metallic<25||opaque<1000){
-    throw new Error(label+' is empty, too dark or missing recognizable anchor/tentacle colors: '+JSON.stringify({violet,metallic,opaque}));
+    throw new Error(label+' is empty, too dark or missing the cyan/violet Abyssal palette: '+JSON.stringify({violet,metallic,opaque}));
   }
   console.log('[icon] verified visible art',label,{violet,metallic,opaque});
 }
@@ -92,10 +96,12 @@ async function buildAndroid(){
   }
   const densities={mdpi:48,hdpi:72,xhdpi:96,xxhdpi:144,xxxhdpi:192};
   await assertVisibleAbyssalIcon(await png(sourceBytes,192),'Android legacy launcher');
-  const markBytes=await sharp(Buffer.from(foregroundSource)).resize(272,272,{fit:'fill'}).png().toBuffer();
+  // Adaptive Android icons need generous safe-zone padding so the kraken,
+  // ABYSSAL wordmark and neon ring survive every launcher mask.
+  const markBytes=await sharp(sourceBytes).resize(304,304,{fit:'contain'}).png().toBuffer();
   const adaptive=await sharp({create:{
-    width:432,height:432,channels:4,background:{r:0,g:0,b:0,alpha:0}
-  }}).composite([{input:markBytes,left:80,top:80}]).png().toBuffer();
+    width:432,height:432,channels:4,background:{r:6,g:10,b:24,alpha:255}
+  }}).composite([{input:markBytes,left:64,top:64}]).png().toBuffer();
 
   for(const [density,launcherSize] of Object.entries(densities)){
     const dir=path.join(res,'mipmap-'+density);
