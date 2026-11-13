@@ -31,7 +31,7 @@ function exercise({hostname='127.0.0.1',stage='sea',ci=false,kind='abyssal-start
  return {blocked,focus:window.AbyssalLaunchFocus};
 }
 
-test('unfinished game modes remain locked for regular local players, even with legacy query',()=>{
+test('unfinished Sea and Rift modes remain locked while classic Online is released',()=>{
  for(const [stage,kind] of [['sea','abyssal-start-open-sea'],['deep','abyssal-start-rift-solo'],['boss','abyssal-start-rift-solo']]){
   const result=exercise({stage,kind});
   assert.equal(result.blocked,1,stage+' may not bypass release lock on localhost');
@@ -42,14 +42,15 @@ test('unfinished game modes remain locked for regular local players, even with l
 test('legacy QA exception requires explicit smoke authorization and loopback hostname',()=>{
  const accepted=exercise({ci:true,stage:'deep',kind:'abyssal-start-rift-solo'});
  assert.equal(accepted.blocked,0);
- assert.equal(accepted.focus.soloOnly,true);
+ assert.equal(accepted.focus.soloOnly,false);
+ assert.equal(accepted.focus.isLocked('online'),false);
  for(const hostname of ['abyssal.example','localhost','192.168.1.9']){
   assert.equal(exercise({hostname,ci:true,stage:'deep',kind:'abyssal-start-rift-solo'}).blocked,1,hostname);
  }
  assert.equal(exercise({ci:true,stage:'unknown'}).blocked,1);
 });
 
-test('browser acceptance runs active Solo by default and opts into legacy-only probes',()=>{
+test('browser acceptance keeps Solo coverage while legacy-only probes remain explicit',()=>{
  assert.match(smoke,/const legacyModes=process\.argv\.includes\('--legacy-modes'\)/);
  assert.match(smoke,/if\(legacyModes\)for\(const biome/);
  assert.match(smoke,/if\(legacyModes\)await realGameplaySmoke/);
