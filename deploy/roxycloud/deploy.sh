@@ -47,5 +47,20 @@ as_app git checkout --detach "$target"
 as_app npm ci --omit=dev
 systemctl start abyssal
 health
+# Allow browsers to keep JS/CSS locally while still revalidating every launch.
+# Patch only the cache header so Certbot-managed TLS directives stay untouched.
+nginx_site=/etc/nginx/sites-available/abyssal
+if [[ -f "$nginx_site" ]] && grep -q 'Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"' "$nginx_site"; then
+ nginx_backup=$(mktemp)
+ cp "$nginx_site" "$nginx_backup"
+ sed -i 's/Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate"/Cache-Control "public, no-cache, must-revalidate"/' "$nginx_site"
+ if /usr/sbin/nginx -t; then
+  systemctl reload nginx
+ else
+  cp "$nginx_backup" "$nginx_site"
+  /usr/sbin/nginx -t || true
+ fi
+ rm -f "$nginx_backup"
+fi
 trap - ERR
 echo "Deploy concluído: $target"
