@@ -21,7 +21,7 @@ function harness({platform='windows',active=false,version='3.6.55',permission=fa
  const context={window,document:doc,navigator:{onLine:true,userAgent:platform==='windows'?'Windows':'Android'},sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},fetch:async url=>{requests.push(url);return {ok:true,json:async()=>({ok:true,platform,latestVersion:version,updatable,sha256:'a'.repeat(64),url:'https://github.com/Esaneto/Abyssal/releases/download/downloads-2/'+(platform==='windows'?'Abyssal-Setup.exe':'Abyssal-Android.apk')})};},URL,AbortSignal,console,setTimeout:()=>1,clearTimeout(){},setInterval(){}};
  vm.runInNewContext(source,context);
  const buttons=()=>nodes.get('abyssalUpdatePrompt')?.children[0]?.children.find(e=>e.className==='abyssal-update-actions')?.children||[];
- return {api:window.AbyssalUpdater,requests,installs,releases,buttons,nodes,unblock:()=>{blocked=false;}};
+ return {api:window.AbyssalUpdater,requests,installs,releases,buttons,nodes,unblock:()=>{blocked=false;},block:()=>{blocked=true;}};
 }
 test('Windows notifies, waits for consent and sends a verified package to native bridge',async()=>{
  const h=harness();await h.api.check(true);assert.equal(h.requests.length,1);assert.equal(h.installs.length,0);
@@ -42,4 +42,15 @@ test('Google Play checks its own channel and starts official update only on conf
 });
 test('non-updatable release is never offered as an installable package',async()=>{
  const h=harness({updatable:false});await h.api.check(true);assert.equal(h.buttons().length,0);assert.equal(h.installs.length,0);
+});
+
+test('native notification is deferred when a dive starts during the version request',async()=>{
+ const h=harness();const pending=h.api.check(true);h.block();await pending;
+ assert.equal(h.buttons().length,0);assert.equal(h.installs.length,0);
+ h.unblock();await h.api.check(true);assert.equal(h.buttons().length,2);
+});
+test('native install rechecks gameplay before invoking the installer',async()=>{
+ const h=harness();await h.api.check(true);h.block();
+ await h.buttons()[0].listeners.click();assert.equal(h.installs.length,0);assert.equal(h.buttons()[0].disabled,false);
+ h.unblock();await h.buttons()[0].listeners.click();assert.equal(h.installs.length,1);
 });

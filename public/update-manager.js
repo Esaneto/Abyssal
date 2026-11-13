@@ -77,9 +77,11 @@
    return data;
   }catch(error){console.warn('[Abyssal] Falha ao verificar atualização web:',error?.message||error);return null;}
  }
+ const gameplayBlocked=()=>Boolean(root.AbyssalGameHooks?.browserUpdateBlocked?.()??document.body?.classList.contains('game-active'));
  let installingNative=false;
  async function installNative(data,status,button){
   if(installingNative)return {ok:false,busy:true};
+  if(gameplayBlocked()){if(status)status.textContent='Encerre o mergulho antes de instalar a atualização.';return {ok:false,gameplayActive:true};}
   installingNative=true;
   const original=button?.textContent||'ATUALIZAR AGORA';
   root.AbyssalLoadingScreen?.beginUpdate(data.latestVersion||'');
@@ -130,6 +132,8 @@
   }
  }
  function modal(data){
+  // The player may have started diving while the asynchronous check was running.
+  if(gameplayBlocked()||installingNative)return false;
   const existing=document.getElementById('abyssalUpdatePrompt');
   if(existing){existing.remove();}
   const el=document.createElement('section');el.id='abyssalUpdatePrompt';el.className='abyssal-update-prompt';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
@@ -151,6 +155,7 @@
   card.append(kicker,title,version,notes,actions,help,status);el.appendChild(card);
   now.addEventListener('click',()=>installNative(data,status,now));
   document.body.appendChild(el);
+  return true;
  }
  let nativeCheckInFlight=null;
  let lastNativeCheckAt=0;
@@ -159,7 +164,7 @@
   if(nativeCheckInFlight)return nativeCheckInFlight;
   if(installingNative)return null;
   if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
-  if(root.AbyssalGameHooks?.browserUpdateBlocked?.()??document.body?.classList.contains('game-active'))return null;
+  if(gameplayBlocked())return null;
   if(!force&&Date.now()-lastNativeCheckAt<15000)return null;
   lastNativeCheckAt=Date.now();nativeCheckInFlight=checkInner(force);
   try{return await nativeCheckInFlight;}finally{nativeCheckInFlight=null;}
@@ -268,6 +273,7 @@
     if(!data)message.textContent=navigator.onLine===false?'Conecte-se à internet para verificar atualizações.':'Não foi possível verificar agora.';
     else if(data.platform==='play'&&String(data.latestVersion).startsWith('play-'))message.textContent='Nova versão encontrada na Google Play. Confira a janela de atualização.';
     else if(cmp(data.latestVersion,build.version)<=0)message.textContent='Você já está usando a versão mais recente do Abyssal.';
+    else if(data.updatable===false)message.textContent='O pacote estável ainda não está disponível para atualização.';
     else if(!data.sha256)message.textContent='A nova versão ainda está sendo preparada. Tente novamente em instantes.';
     else message.textContent='Nova versão encontrada. Confira a janela de atualização.';
    }
