@@ -27,7 +27,7 @@
    note(page,'As preferências são salvas neste dispositivo.');
   }else if(name==='volume'){
    page.append(slider('Efeitos','abyssalSfxVolume','80'),slider('Música','abyssalMusicVolume','45'));
-   note(page,'O áudio do jogo está desativado nesta versão; os ajustes ficam salvos.');
+   note(page,'Ajuste música e efeitos. As preferências também são usadas durante o mergulho.');
   }else if(name==='filter'){
    const quality=window.AbyssalAdaptivePerformance;
    page.append(field('Qualidade gráfica',[['0','Leve'],['1','Médio'],['2','Ultra']],String(quality?.snapshot().level??2),value=>quality?.setPreference(Number(value))));

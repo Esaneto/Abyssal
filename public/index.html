@@ -30,7 +30,7 @@
 <meta name="twitter:image:alt" content="Abyssal: Ecos das Profundezas. Mergulho Solo e Online cooperativo.">
 <meta name="google-adsense-account" content="ca-pub-2314281138409028">
 <title>Abyssal — Ecos das Profundezas</title>
-<link rel="stylesheet" href="style.css?v=4.3.16-exterior-profile">
+<link rel="stylesheet" href="style.css?v=4.3.17-dive-volume">
 <link rel="stylesheet" href="abyssal-inventory-ui.css?v=2026.11.10.7">
 <link rel="stylesheet" href="abyssal-rebuild.css?v=2">
 <link rel="manifest" href="manifest.webmanifest">
@@ -323,8 +323,15 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
     <section id="pauseScreen" class="screen modal-screen" hidden>
       <div class="modal-card compact-card">
-        <div class="eyebrow">SINAL SUSPENSO</div><h2>PAUSA NAS<br><em>PROFUNDEZAS</em></h2>
-        <p>Respire. O abismo pode esperar alguns segundos.</p>
+        <div id="diveSettingsKicker" class="eyebrow">SINAL SUSPENSO</div><h2 id="diveSettingsTitle">PAUSA NAS<br><em>PROFUNDEZAS</em></h2>
+        <p id="diveSettingsCopy">Ajuste o áudio ou retorne ao mergulho.</p>
+        <fieldset class="dive-volume-settings" aria-label="Volume da partida">
+          <legend>ÁUDIO</legend>
+          <label for="diveSfxVolume"><span>EFEITOS SONOROS</span><output id="diveSfxValue" for="diveSfxVolume">80%</output></label>
+          <input id="diveSfxVolume" type="range" min="0" max="100" step="1" value="80" aria-label="Volume dos efeitos sonoros">
+          <label for="diveMusicVolume"><span>MÚSICA</span><output id="diveMusicValue" for="diveMusicVolume">45%</output></label>
+          <input id="diveMusicVolume" type="range" min="0" max="100" step="1" value="45" aria-label="Volume da música">
+        </fieldset>
         <button id="resumeBtn" class="primary-btn">CONTINUAR <span>↗</span></button>
         <button id="quitBtn" class="secondary-btn">ENCERRAR MERGULHO</button>
       </div>
@@ -723,7 +730,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.39"></script>
+<script src="client-build.js?v=3.6.40"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -774,8 +781,8 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
- <script src="abyssal-sample-audio.js?v=2026.11.13.smooth-weapon-aim-v178"></script>
- <script src="game.js?v=2026.11.13.smooth-weapon-aim-v178"></script>
+ <script src="abyssal-sample-audio.js?v=2026.11.13.dive-volume-v179"></script>
+ <script src="game.js?v=2026.11.13.dive-volume-v179"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.13.exterior-profile"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
@@ -824,7 +831,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
 <script src="abyssal-menu-ocean.js?v=2026.11.13.exterior-cadence"></script>
-<script src="abyssal-submarine-cockpit.js?v=2026.11.13.smooth-weapon-aim-v178"></script>
+<script src="abyssal-submarine-cockpit.js?v=2026.11.13.dive-volume-v179"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
 <script src="abyssal-exploration-runtime.js?v=2026.11.13.exterior-cadence"></script>

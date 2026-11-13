@@ -1856,7 +1856,7 @@ function offerUpgrade(){
   b.innerHTML=`<span class="upgrade-icon">${u.icon}</span><strong>${u.name} · Nv. ${current+1}/3</strong><p>${u.desc}</p><small class="upgrade-progress">${'◆'.repeat(current)}${'◇'.repeat(3-current)} · ${current===0?'Desbloqueio':`Melhoria ${current} → ${current+1}`}</small>`;
   b.addEventListener('click',()=>chooseUpgrade(u));fragment.appendChild(b);
  });
- wrap.appendChild(fragment);$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
+ wrap.appendChild(fragment);if(!$('pauseScreen').hidden){closeDiveSettings();$('pauseBtn').hidden=false;}$('upgradeScreen').hidden=false;playWorldSound('level-up',player,850,.75);
  upgradeDeadlineAt=performance.now()+25000;updateUpgradeCountdown();
  upgradeCountdownInterval=setInterval(()=>{
   if(gameState!=='upgrade'){clearUpgradeCountdown();return}
@@ -3737,15 +3737,43 @@ function endGame(reason='death'){
  renderDiveReport(diveReport,true);
  const endBtn=document.getElementById('endDiveBtn');if(endBtn)endBtn.style.display='none';
  renderRunEndPresentation();
- gameState='over';document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
+ gameState='over';closeDiveSettings();document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('toggleHudBtn').hidden=true;setHudCollapsed(false);const mobileStick=$('mobileJoystick');if(mobileStick)mobileStick.hidden=true;$('gameOverScreen').hidden=false;const reviveButton=$('reviveWithAdBtn');if(reviveButton)reviveButton.disabled=false;setReviveMessage('');
  renderDiveReport(diveReport,authenticated);
  if(score>bestScore){bestScore=score;localStorage.setItem('abyssalBestScore',String(score));const el=$('bestScore');if(el)el.textContent=bestScore.toLocaleString('pt-BR')}
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
  $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();else if(onlineMode){const current=diveReport;window.AbyssalOnline?.previewRunReport?.(result=>{if(gameState!=='over'||diveReport!==current||diveSettling||diveSettled)return;diveReport={...diveReport,...result,survival:current.survival};renderDiveReport(diveReport,true);});}
 }
-function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';window.AbyssalAudio?.stopEffects();$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
+const DIVE_VOLUME_FIELDS=[['diveSfxVolume','diveSfxValue','abyssalSfxVolume',80],['diveMusicVolume','diveMusicValue','abyssalMusicVolume',45]];
+function syncDiveVolumeSettings(){
+ for(const [id,out,key,fallback] of DIVE_VOLUME_FIELDS){
+  let value=fallback;try{const stored=localStorage.getItem(key);if(stored!==null&&Number.isFinite(Number(stored)))value=clamp(Number(stored),0,100);}catch{}
+  $(id).value=String(value);$(out).textContent=value+'%';
+ }
+}
+for(const [id,out,key] of DIVE_VOLUME_FIELDS)$(id)?.addEventListener('input',()=>{
+ const value=clamp(Number($(id).value)||0,0,100);$(out).textContent=value+'%';
+ try{localStorage.setItem(key,String(value));}catch{}
+ window.dispatchEvent(new CustomEvent('abyssal-volume-change',{detail:{channel:key,value:value/100}}));
+});
+function closeDiveSettings(){ $('pauseScreen').hidden=true; }
+function pauseGame(){
+ if(gameState!=='playing')return;
+ if(!$('pauseScreen').hidden){resumeGame();return;}
+ pointer.down=false;mobileFireHeld=false;
+ for(const key of Object.keys(keys))keys[key]=false;
+ if(!onlineMode){gameState='paused';window.AbyssalAudio?.stopEffects();}
+ $('diveSettingsKicker').textContent=onlineMode?'MERGULHO COOPERATIVO':'SINAL SUSPENSO';
+ $('diveSettingsTitle').innerHTML=onlineMode?'AJUSTES DO<br><em>MERGULHO</em>':'PAUSA NAS<br><em>PROFUNDEZAS</em>';
+ $('diveSettingsCopy').textContent=onlineMode?'A partida continua enquanto você ajusta o áudio.':'Ajuste o áudio ou retorne ao mergulho.';
+ syncDiveVolumeSettings();$('pauseScreen').hidden=false;$('pauseBtn').hidden=true;
+}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
-function resumeGame(){if(gameState!=='paused')return;gameState='playing';$('pauseScreen').hidden=true;$('pauseBtn').hidden=false;last=performance.now()}
+function resumeGame(){
+ if($('pauseScreen').hidden)return;
+ closeDiveSettings();
+ if(gameState==='paused'){gameState='playing';last=performance.now();}
+ if(gameState==='playing')$('pauseBtn').hidden=false;
+}
 function drawEliteMarker(enemy,t){
  const elite=EXPEDITION_RULES?.eliteConfig?.(enemy?.eliteId);if(!elite||!enemy)return;
  const pulse=.84+.16*Math.sin(t*.004+(Number(enemy.id)||0));
@@ -5069,7 +5097,7 @@ if(mobileFireBtn){
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
-window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
+window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target)||!$('pauseScreen').hidden)return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 function prepareForH5Ad(){window.AbyssalAudio?.setMuted(true);}
@@ -5808,7 +5836,7 @@ window.addEventListener('abyssal-room-joined',ev=>{if(!activateOnlineEntry(ev.de
 window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classList.contains('game-active')&&gameState==='playing')return;activateOnlineEntry(ev.detail||{});});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
-window.addEventListener('abyssal-reconnect-failed',ev=>{window.AbyssalAudio?.stopEffects();onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;window.AbyssalCockpitNavigation?.showExterior?.();window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
+window.addEventListener('abyssal-reconnect-failed',ev=>{closeDiveSettings();window.AbyssalAudio?.stopEffects();onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;window.AbyssalCockpitNavigation?.showExterior?.();window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
 window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;W=defaultWidth();H=defaultHeight();createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 function handleRoomsClosed(){onlineMode=false;if(gameState==='menu'){setMobileGameActive(false);document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;}}
