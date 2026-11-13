@@ -32,7 +32,7 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/wheel-daily-limit-v169/);
+ assert.match(sw,/native-admob-updater-v170/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 
