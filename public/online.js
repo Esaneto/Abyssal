@@ -487,9 +487,10 @@ function openAgeTermsIfNeeded(){
  return true;
 }
 $('ageTermsContinue')?.addEventListener('click',()=>{
- const day=Number($('ageBirthDay')?.value),month=Number($('ageBirthMonth')?.value),year=Number($('ageBirthYear')?.value),message=$('ageTermsMessage');
- const age=calculateAge(year,month,day);
- if(age===null){if(message)message.textContent='Informe uma data de nascimento válida.';return}
+ const message=$('ageTermsMessage'),range=$('ageYearsRange');
+ const selected=window.AbyssalAgeSlider?.selected?.()||range?.dataset?.userSelected==='true';
+ const age=window.AbyssalAgeSlider?.value?.()??Number(range?.value);
+ if(!selected||!Number.isFinite(age)||age<0||age>100){if(message)message.textContent='Arraste o seletor e informe sua idade antes de continuar.';return}
  if(!$('ageTermsAccept')?.checked){if(message)message.textContent='Para continuar, leia e aceite os Termos de Uso e confirme a leitura da Política de Privacidade.';return}
  const band=age<16?'under16':age<18?'teen':'adult';
  localStorage.setItem('abyssalAgeProfile',JSON.stringify({band,termsVersion:AGE_TERMS_VERSION,acceptedAt:new Date().toISOString()}));

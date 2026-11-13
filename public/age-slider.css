@@ -1,0 +1,16 @@
+.age-slider-shell{margin-top:8px;padding:14px 12px 12px;border:1px solid rgba(96,215,255,.28);border-radius:14px;background:linear-gradient(180deg,rgba(7,26,40,.72),rgba(4,14,27,.88));box-shadow:inset 0 0 24px rgba(0,0,0,.28)}
+.age-slider-value{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:0 0 10px;color:#e8fbff;text-shadow:0 0 14px rgba(79,221,255,.45)}
+.age-slider-value strong{font:800 clamp(38px,10vw,58px)/.9 system-ui,sans-serif;letter-spacing:.02em}
+.age-slider-value span{padding-bottom:5px;font:800 12px/1 system-ui,sans-serif;letter-spacing:.14em;color:#9fc9d8}
+.age-years-range{width:100%;height:42px;margin:0;appearance:none;-webkit-appearance:none;background:transparent;touch-action:pan-x}
+.age-years-range:focus{outline:none}
+.age-years-range::-webkit-slider-runnable-track{height:10px;border-radius:999px;background:linear-gradient(90deg,#173b54,#1fb6d7 48%,#7f5cff);box-shadow:inset 0 0 0 1px rgba(180,240,255,.18)}
+.age-years-range::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:34px;height:34px;margin-top:-12px;border-radius:50%;border:2px solid #dffaff;background:radial-gradient(circle at 35% 30%,#e9ffff 0 15%,#55e7ff 38%,#6b50ff 72%,#25164c 100%);box-shadow:0 0 0 6px rgba(82,210,255,.12),0 0 18px rgba(91,223,255,.75)}
+.age-years-range::-moz-range-track{height:10px;border-radius:999px;background:linear-gradient(90deg,#173b54,#1fb6d7 48%,#7f5cff)}
+.age-years-range::-moz-range-thumb{width:30px;height:30px;border-radius:50%;border:2px solid #dffaff;background:#55e7ff;box-shadow:0 0 18px rgba(91,223,255,.75)}
+.age-slider-scale{display:flex;justify-content:space-between;margin-top:1px;padding:0 3px;font:700 9px/1 system-ui,sans-serif;color:#708d9d}
+.age-slider-hint{margin:9px 0 0!important;text-align:center;font:600 11px/1.35 system-ui,sans-serif;color:#93b4c2}
+.age-slider-shell[data-selected="false"] .age-slider-value strong{opacity:.58}
+.age-slider-shell[data-selected="false"] .age-slider-hint{color:#c6a8ff}
+.age-slider-shell[data-selected="true"]{border-color:rgba(91,232,255,.52);box-shadow:inset 0 0 24px rgba(0,0,0,.28),0 0 22px rgba(52,205,255,.08)}
+@media(max-width:700px){.age-slider-shell{padding:12px 10px 10px}.age-years-range{height:48px}.age-slider-hint{font-size:10px}}

@@ -43,6 +43,7 @@
 <link rel="stylesheet" href="offline-ui.css?v=1">
 <link rel="stylesheet" href="loading-screen.css?v=1">
 <link rel="stylesheet" href="mobile-portrait.css?v=1">
+<link rel="stylesheet" href="age-slider.css?v=1">
 <link rel="stylesheet" href="update-manager.css?v=1">
 <link rel="stylesheet" href="rift-treasure.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
@@ -347,12 +348,13 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="modal-card compact-card auth-flow-card" role="dialog" aria-modal="true" aria-labelledby="ageTermsTitle">
         <div class="eyebrow"><span class="pulse-dot"></span> PRIMEIRO ACESSO</div>
         <h2 id="ageTermsTitle">ANTES DE<br><em>MERGULHAR</em></h2>
-        <p>Informe sua data de nascimento. Usamos essa informação para aplicar uma experiência apropriada à sua faixa etária.</p>
-        <label class="field-label">DATA DE NASCIMENTO</label>
-        <div class="birth-date-fields" style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;">
-          <input id="ageBirthDay" class="text-field" type="number" inputmode="numeric" min="1" max="31" placeholder="Dia" aria-label="Dia de nascimento">
-          <input id="ageBirthMonth" class="text-field" type="number" inputmode="numeric" min="1" max="12" placeholder="Mês" aria-label="Mês de nascimento">
-          <input id="ageBirthYear" class="text-field" type="number" inputmode="numeric" min="1900" max="2100" placeholder="Ano" aria-label="Ano de nascimento">
+        <p>Informe sua idade. Usamos essa informação somente para aplicar uma experiência apropriada à sua faixa etária.</p>
+        <label class="field-label" for="ageYearsRange">SUA IDADE</label>
+        <div class="age-slider-shell" id="ageSliderShell" data-selected="false">
+          <div class="age-slider-value" aria-live="polite"><strong id="ageYearsValue">18</strong><span>ANOS</span></div>
+          <input id="ageYearsRange" class="age-years-range" type="range" min="0" max="100" step="1" value="18" aria-label="Selecione sua idade arrastando para o lado">
+          <div class="age-slider-scale" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100+</span></div>
+          <p class="age-slider-hint">Arraste para o lado até sua idade aparecer no centro.</p>
         </div>
         <label style="display:flex;align-items:flex-start;gap:10px;margin:16px 0;cursor:pointer;font-size:13px;line-height:1.45;">
           <input type="checkbox" id="ageTermsAccept" style="margin-top:2px;accent-color:#2ee88a;">
@@ -702,6 +704,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="client-build.js?v=3.6.2"></script>
 <script src="loading-screen.js?v=1"></script>
 <script src="mobile-portrait.js?v=1"></script>
+<script src="age-slider.js?v=1"></script>
 <script src="offline-ui.js?v=2026.11.12.12"></script>
 <script src="update-manager.js?v=1"></script>
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
