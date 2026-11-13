@@ -44,6 +44,9 @@
    c.fillStyle='#030c14';c.strokeStyle='#6d899d';c.lineWidth=1;
    c.beginPath();c.arc(knee[0],knee[1],3.4,0,TAU);c.fill();c.stroke();
    limb(knee,ankle,6,'#162532','#2b5b75');
+   // Angular pressure guards and subdued titanium trim, within the existing limbs.
+   c.save();c.translate(knee[0],knee[1]);c.fillStyle='#294a5b';c.strokeStyle='#769eab';c.lineWidth=.85;c.beginPath();c.roundRect(-4,-3,8,6,2);c.fill();c.stroke();c.restore();
+   line(hip[0]-5,hip[1],knee[0]+6,knee[1],'#416f86',1.2);
    const finSwing=swimming?Math.sin(phase-1.05+(side===1?0:Math.PI))*5:0;
    c.fillStyle='#101b29';c.strokeStyle='#79b9ce';c.lineWidth=1.4;
    c.beginPath();c.moveTo(ankle[0]+1,ankle[1]-3*side);
@@ -96,6 +99,10 @@
    c.lineTo(18,side*7);c.lineTo(9,side*4);c.closePath();c.fill();c.stroke();
   }
   c.fillStyle='#09141e';c.beginPath();c.roundRect(-11,-4,21,8,3);c.fill();
+  // Raised breastplate and pressure-harness fasteners, no changes to collision.
+  const chest=c.createLinearGradient(-10,-5,13,7);chest.addColorStop(0,'#456779');chest.addColorStop(.42,'#19384b');chest.addColorStop(1,'#0c2332');c.fillStyle=chest;c.strokeStyle='#719eac';c.lineWidth=.75;c.beginPath();c.moveTo(-9,-5);c.lineTo(11,-5);c.lineTo(16,1);c.lineTo(9,6);c.lineTo(-9,5);c.closePath();c.fill();c.stroke();
+  for(const xx of [-12,12]){c.fillStyle='#8da9ad';c.beginPath();c.arc(xx,0,1.2,0,TAU);c.fill();}
+  line(-6,-2,7,-2,'#4c8495',.8);
   c.strokeStyle='rgba(146,210,219,.67)';c.lineWidth=1.35;
   c.beginPath();c.moveTo(-13,-8);c.quadraticCurveTo(2,-15,16,-8);c.stroke();
   c.beginPath();c.moveTo(-14,9);c.quadraticCurveTo(3,15,17,8);c.stroke();
@@ -109,7 +116,7 @@
   c.save();c.translate(25,-2);c.rotate(.13);
   c.fillStyle='#111925';c.strokeStyle='#8aadb9';c.lineWidth=1.7;
   c.beginPath();c.ellipse(2,0,14.5,12.1,0,0,TAU);c.fill();c.stroke();
-  c.fillStyle='#142b3a';c.strokeStyle='#bfdbe0';c.lineWidth=.85;
+  c.fillStyle='#142b3a';c.strokeStyle='#bfdbe0';c.lineWidth=1.05;
   c.beginPath();c.ellipse(8.2,-.6,8.7,8.2,0,0,TAU);c.fill();c.stroke();
   // Curved optical glass with a distinct highlight, dark edge and focal depth.
   const visorGlass=c.createLinearGradient(0,-9,17,8);
@@ -120,6 +127,7 @@
   c.fillStyle=visorGlass;c.beginPath();c.ellipse(8.2,-.6,7.5,6.8,0,0,TAU);c.fill();
   c.fillStyle='rgba(220,251,247,.76)';c.beginPath();c.ellipse(6,-4.2,3.5,1.2,-.5,0,TAU);c.fill();
   c.fillStyle='#789eaa';c.beginPath();c.arc(12.6,-2.1,1.7,0,TAU);c.fill();
+  c.strokeStyle='#52869a';c.lineWidth=1.1;c.beginPath();c.ellipse(1,0,12.5,10.5,0,Math.PI*.75,Math.PI*1.47);c.stroke();
   c.strokeStyle='rgba(232,252,255,.92)';c.beginPath();c.arc(7,-.8,8,-.85,.95);c.stroke();
   // Thin curving glass glint. It follows the existing visor, never changes anatomy.
   c.strokeStyle='rgba(211,255,248,.75)';c.lineWidth=.85;c.beginPath();
