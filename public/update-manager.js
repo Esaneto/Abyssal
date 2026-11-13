@@ -142,7 +142,18 @@
   document.body.appendChild(el);
   if(autoStart)setTimeout(()=>{if(now.isConnected&&!now.disabled)now.click();},260);
  }
+ let nativeCheckInFlight=null;
+ let lastNativeCheckAt=0;
  async function check(force=false){
+  if(!native())return checkInner(force);
+  if(nativeCheckInFlight)return nativeCheckInFlight;
+  if(!force&&document.getElementById('abyssalUpdatePrompt'))return null;
+  if(!force&&document.body?.classList.contains('game-active'))return null;
+  if(!force&&Date.now()-lastNativeCheckAt<15000)return null;
+  lastNativeCheckAt=Date.now();nativeCheckInFlight=checkInner(force);
+  try{return await nativeCheckInFlight;}finally{nativeCheckInFlight=null;}
+ }
+ async function checkInner(force=false){
   if(!native()){
    const browserResult=await checkBrowser(force);
    root.AbyssalLoadingScreen?.resolveUpdateGate();
@@ -153,7 +164,8 @@
    root.AbyssalLoadingScreen?.resolveUpdateGate();
    return null;
   }
-  const p=platform();if(!p){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
+  const p=platform();if(p==='android'&&androidBridge()?.getUpdateChannel){try{const channel=await androidBridge().getUpdateChannel();if(channel?.channel==='play'){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}}catch(_){}}
+  if(!p){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
   const base=server();if(!/^https:\/\//i.test(base)){root.AbyssalLoadingScreen?.resolveUpdateGate();return null;}
   root.AbyssalLoadingScreen?.status('VERIFICANDO ATUALIZAÇÕES','Conexão disponível. Conferindo a versão mais recente…','boot',34);
   try{
@@ -169,7 +181,9 @@
     root.AbyssalLoadingScreen?.resolveUpdateGate();
     return data;
    }
-   if(data.metadataUrl){
+   if(data.platform==='android'&&data.updatable===false){root.AbyssalLoadingScreen?.status('APK AINDA NÃO ASSINADO','Abrindo a versão instalada.','boot',86);root.AbyssalLoadingScreen?.resolveUpdateGate();return data;}
+   if(/^[a-f0-9]{64}$/i.test(String(data.sha256||''))){data.sha256=String(data.sha256).toLowerCase();}
+   else if(data.metadataUrl){
     try{
      const publishedResponse=await fetch(data.metadataUrl+'?v='+encodeURIComponent(data.latestVersion),{cache:'no-store',signal:AbortSignal.timeout(6000)});
      if(!publishedResponse.ok){
@@ -234,12 +248,12 @@
  const schedule=()=>setTimeout(()=>check(false),900);
  let browserPoll=0;
  function startBrowserPolling(){
-  if(!browserMode()||browserPoll)return;
-  browserPoll=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false)checkBrowser(false);},30000);
+  if(browserPoll)return;
+  browserPoll=setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false){if(browserMode())checkBrowser(false);else if(native())check(false);}},30000);
  }
 
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{bindManualCheck();schedule();startBrowserPolling();},{once:true});else{bindManualCheck();schedule();startBrowserPolling();}
  root.addEventListener('online',()=>setTimeout(()=>check(false),1200));
- root.addEventListener('focus',()=>{if(browserMode()&&navigator.onLine!==false)checkBrowser(false);});
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&browserMode()&&navigator.onLine!==false)checkBrowser(false);});
+ root.addEventListener('focus',()=>{if(navigator.onLine!==false){if(browserMode())checkBrowser(false);else if(native())check(false);}});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&navigator.onLine!==false){if(browserMode())checkBrowser(false);else if(native())check(false);}});
 })(window);
