@@ -51,6 +51,9 @@
   const mobileQuery=window.matchMedia('(pointer: coarse)');
   let mobileScene=false,subScale=1;
   const hatch=()=>({x:w*.5,y:210*subScale});
+  // The hatch center is inside the model; spawn beyond its lower rim.
+  const hatchExit=()=>({x:w*.5,y:Math.min(h-38,226*subScale+28)});
+  const arrivalEnd=()=>Math.min(h-38,hatchExit().y+(mobileScene?82:110));
   const bubble=(x,y,burst=false)=>{
    const count=burst?5:1;
    for(let i=0;i<count;i++)bubbles.push({
@@ -63,7 +66,7 @@
   };
   function resetToHatch(){
    if(w<10||h<10)return;
-   const pos=hatch();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
+   const pos=hatchExit();px=pos.x;py=pos.y;vx=0;vy=0;heading=Math.PI/2;
    emergence=0;transition=null;waitingForModal=false;moveTarget=null;followPointer=null;
    stage.classList.add('abyss-menu-arrival');stage.classList.remove('abyss-cabin-ready');
    nearElapsed=0;nearStationId=null;
@@ -333,7 +336,7 @@
      // Keep this cinematic readable before enabling player input.
      if(emergence<1){
       const step=dt/(mobileScene?1.55:1.72),before=emergence;emergence=Math.min(1,emergence+step);
-      const starting=hatch(),drop=Math.min(h*.47,starting.y+(mobileScene?112:148));px=starting.x;
+      const starting=hatchExit(),drop=arrivalEnd();px=starting.x;
       py=lerp(starting.y,drop,ease(emergence));
       heading=Math.PI/2;vx=0;vy=(mobileScene?72:88)*(1-emergence);
       bubbleElapsed+=dt;
