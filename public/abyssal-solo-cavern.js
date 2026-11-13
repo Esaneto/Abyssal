@@ -142,6 +142,20 @@
   if(!isBlocked(rocks,x,y,padding))return {x,y};
   const g=gridFor(rocks,w,h,padding),id=nearestNode(g,rocks,x,y,false);return id<0?null:g.xy(id);
  }
+ // Place energy orbs in water with sufficient body clearance, preferring local offsets.
+ function orbWaterPoint(rocks,w,h,x,y,padding=16){
+  const pad=Math.max(1,Number(padding)||16),inside=(a,b)=>a>=pad+1&&b>=pad+1&&a<=w-pad-1&&b<=h-pad-1;
+  const valid=(a,b)=>inside(a,b)&&!isBlocked(rocks,a,b,pad);
+  if(valid(x,y))return {x,y};
+  const dry=isBlocked(rocks,x,y,0);
+  for(let distance=Math.max(2,pad*.25);distance<=Math.max(40,pad*4);distance+=Math.max(2,pad*.25)){
+   for(let i=0;i<24;i++){const a=i*TAU/24,xx=x+Math.cos(a)*distance,yy=y+Math.sin(a)*distance;if(valid(xx,yy)&&(dry||!segmentBlocked(rocks,x,y,xx,yy,0)))return {x:xx,y:yy};}
+  }
+  return nearestWater(rocks,w,h,x,y,pad);
+ }
+ function orbReachable(rocks,pet,orb,pickupPadding=12){
+  return Math.hypot(pet.x-orb.x,pet.y-orb.y)<=Math.max(0,Number(pet.r)||0)+pickupPadding&&!segmentBlocked(rocks,pet.x,pet.y,orb.x,orb.y,0);
+ }
  // Both client and authoritative server use the same collision-checked entry.
  function submarineSpawn(rocks,w,h,sub,zoom=1,slot=0){
   const z=Math.max(.1,Number(zoom)||1),index=Math.max(0,Math.floor(Number(slot)||0)),lane=index===0?0:(index%2?1:-1)*Math.ceil(index/2);
@@ -394,5 +408,5 @@
   }
   c.restore();
  }
- return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
+ return Object.freeze({buildRocks,submarineHull,isBlocked,resolve,segmentBlocked,rayDistance,visionFan,nearestWater,orbWaterPoint,orbReachable,submarineSpawn,navigationTarget,escapeTarget,pursuitTarget,paint,drawRocks,lampParameters,lighting});
 });

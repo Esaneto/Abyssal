@@ -139,10 +139,7 @@
   // Streamlined locks keep the female silhouette and avoid a radial hair halo.
   const hairLength=female?60:20; // 3:1 length ratio
   const locks=female?46:34;
-  const sway=Math.sin(phase*.22)*3;
-  c.fillStyle='rgba(5,8,14,.88)';c.beginPath();c.moveTo(14,-12);
-  c.bezierCurveTo(6,-24,-hairLength*.40,-21,-hairLength*.80,-15+sway);
-  c.quadraticCurveTo(-hairLength*.62,0,16,-5);c.closePath();c.fill();
+  // The animated strands provide the silhouette; no duplicate filled shadow beneath them.
   const step=female?4:5;
   for(let i=0;i<locks;i+=step){
    const f=i/(locks-1),originX=17+f*8,originY=-12.5-Math.sin(f*Math.PI)*4;

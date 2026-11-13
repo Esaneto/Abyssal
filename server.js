@@ -680,8 +680,9 @@ function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null,po
  w.orbs=Array.isArray(w.orbs)?w.orbs:[];
  const enemy=w.enemies.find(e=>String(e.id)===String(enemyId));
  const player=[...room.players.values()].find(p=>p.alive!==false);
- const x=Number(position?.x??enemy?.x??player?.x??WORLD_WIDTH/2);
- const y=Number(position?.y??enemy?.y??player?.y??roomWorldHeight(room)/2);
+ let x=Number(position?.x??enemy?.x??player?.x??WORLD_WIDTH/2);
+ let y=Number(position?.y??enemy?.y??player?.y??roomWorldHeight(room)/2);
+ if(room.mode==='coop'){const safe=ClassicCavern.orbWaterPoint(WorldSimulation.classicCavernRocks(w),roomWorldWidth(room),roomWorldHeight(room),x,y,17/WORLD_ZOOM);if(safe){x=safe.x;y=safe.y;}}
  const orb={id:(w.nextOrbId=(Number(w.nextOrbId)||0)+1),x,y,value:Math.max(1,Math.round(Number(total))),source,spawnedAt:Date.now()};
  w.orbs.push(orb);
  if(w.orbs.length>160)w.orbs.shift();
@@ -690,12 +691,13 @@ function grantSharedXp(room,total,_contributors={},source='kill',enemyId=null,po
 function tickSpecimenOrbs(room,players){
  const w=room.world,orbs=w?.orbs;
  if(!Array.isArray(orbs)||!orbs.length)return;
+ const rocks=room.mode==='coop'?WorldSimulation.classicCavernRocks(w):null;
  for(const member of players){
   if(member.alive===false||member.specimenAlive===false||member.runStats?.settled)continue;
   const position=specimenPositionFor(member);
   for(let i=orbs.length-1;i>=0;i--){
    const orb=orbs[i];
-   if(Math.hypot(position.x-orb.x,position.y-orb.y)>(position.r+7/WORLD_ZOOM))continue;
+   if(rocks?!ClassicCavern.orbReachable(rocks,position,orb,12/WORLD_ZOOM):Math.hypot(position.x-orb.x,position.y-orb.y)>(position.r+7/WORLD_ZOOM))continue;
    const range=294/WORLD_ZOOM*clamp(Number(member.rangeStrength)||1,1,2.5)*
     SkinAbilities.targetRangeMultiplier(member.skinId,member.specimenPoints,true);
    if(Math.hypot((Number(member.x)||0)-orb.x,(Number(member.y)||0)-orb.y)>range)continue;
@@ -1457,9 +1459,9 @@ function tickRoom(room, now) {
   if(specimenClassicRocks){
    const habit=PetTactics.normalize(peer.petHabit),threats=hostile.filter(e=>Math.hypot(e.x-pos.x,e.y-pos.y)<360/WORLD_ZOOM);
    const candidates=(room.world?.orbs||[]).filter(o=>Math.hypot(o.x-peer.x,o.y-peer.y)<=acquisitionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
-   const choice=PetTactics.choose({mode:habit,pet:pos,player:peer,enemies:threats,orbs:candidates,collectionRange:acquisitionRange,attackRange:350/WORLD_ZOOM,guardRange:265/WORLD_ZOOM,preferredOrbId:peer.specimenOrbId});
+   const choice=PetTactics.choose({mode:habit,pet:pos,player:peer,enemies:threats,orbs:candidates,collectionRange:acquisitionRange,attackRange:350/WORLD_ZOOM,guardRange:265/WORLD_ZOOM,preferredOrbId:peer.specimenOrbId,routeCost:o=>{const safe=ClassicCavern.orbWaterPoint(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),o.x,o.y,radius+1/WORLD_ZOOM);if(!safe)return Infinity;const nav=ClassicCavern.navigationTarget(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),pos.x,pos.y,safe.x,safe.y,radius+1/WORLD_ZOOM);return nav.blocked?Infinity:Math.hypot(safe.x-pos.x,safe.y-pos.y)*(nav.direct?1:1.65);}});
    peer.specimenOrbId=choice.type==='orb'?choice.orb.id:null;
-   if(choice.type==='orb')target=choice.orb;
+   if(choice.type==='orb')target=ClassicCavern.orbWaterPoint(specimenClassicRocks,roomWorldWidth(room),roomWorldHeight(room),choice.orb.x,choice.orb.y,radius+1/WORLD_ZOOM)||choice.orb;
    else if(choice.type==='enemy'){
     combatTarget=choice.enemy;const profile=PetTactics.attackProfile(peer.skinId,SpecimenSystem.familyFor(peer.skinId),CreatureScale.visualRadius(peer.skinId,radius)||radius),direct=Math.atan2(combatTarget.y-pos.y,combatTarget.x-pos.x);
     if(peer.specimenAttackId!==combatTarget.id||!Number.isFinite(peer.specimenApproachAngle))peer.specimenApproachAngle=direct;else peer.specimenApproachAngle+=clamp(Math.atan2(Math.sin(direct-peer.specimenApproachAngle),Math.cos(direct-peer.specimenApproachAngle)),-dt*2.6,dt*2.6);

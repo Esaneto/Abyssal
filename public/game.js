@@ -2594,7 +2594,7 @@ let soloOrbSequence=0;
 function spawnSoloOrb(x,y,value){
  if(onlineMode)return;
  if(orbs.length>=160)orbs.shift();
- if(isClassicShooterRun()&&SOLO_CAVERN){const water=SOLO_CAVERN.nearestWater(arenaRocks,W,H,x,y,9/GAME_WORLD_ZOOM);if(water){x=water.x;y=water.y;}}
+ if(isClassicShooterRun()&&SOLO_CAVERN){const water=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,x,y,17/GAME_WORLD_ZOOM);if(water){x=water.x;y=water.y;}}
  orbs.push({id:'solo-'+(++soloOrbSequence),x,y,value:Math.max(1,Math.round(Number(value)||1))});
 }
 function tickSoloSpecimenOrbs(){
@@ -2603,7 +2603,7 @@ function tickSoloSpecimenOrbs(){
  for(let i=orbs.length-1;i>=0;i--){
   const o=orbs[i],distance=Math.hypot(player.x-o.x,player.y-o.y);
   // Only the living equipped specimen can collect an energy orb.
-  const petContact=s?.alive&&distance<=range&&Math.hypot(s.x-o.x,s.y-o.y)<=s.r+7/GAME_WORLD_ZOOM&&pveTerrainClear(s.x,s.y,o.x,o.y,0);
+  const petContact=s?.alive&&distance<=range&&Math.hypot(s.x-o.x,s.y-o.y)<=s.r+12/GAME_WORLD_ZOOM&&pveTerrainClear(s.x,s.y,o.x,o.y,0);
   if(!petContact)continue;
   orbs.splice(i,1);playWorldSound('orb',o,900,.9,{owner:'local-pet',local:true,eventId:o.id});gainXp(o.value,'kill');
  }
@@ -3053,7 +3053,7 @@ function updateSpecimenRuntime(dt){
  const threats=specimenNearbyEnemies,collectionRange=294/GAME_WORLD_ZOOM*(Number(upgrades.range)||1)*specimenPassiveMultiplier('range'),now=performance.now();
  if(!s.tacticalChoice||now>=(s.nextTacticsAt||0)||s.tacticalChoice.type==='orb'&&!orbs.includes(s.tacticalChoice.orb)||s.tacticalChoice.type==='enemy'&&(s.tacticalChoice.enemy.hp<=0||!enemies.includes(s.tacticalChoice.enemy))){
   const candidates=orbs.filter(o=>Math.hypot(o.x-player.x,o.y-player.y)<=collectionRange).sort((a,b)=>Math.hypot(a.x-pos.x,a.y-pos.y)-Math.hypot(b.x-pos.x,b.y-pos.y)).slice(0,12);
-  s.tacticalChoice=(!onlineMode||isClassicCavernRun())?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies:threats,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,o.x,o.y,pad);return nav.blocked?Infinity:Math.hypot(o.x-pos.x,o.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
+  s.tacticalChoice=(!onlineMode||isClassicCavernRun())?PET_TACTICS?.choose?.({mode:petHabit,pet:pos,player,enemies:threats,orbs:candidates,collectionRange,attackRange:350/GAME_WORLD_ZOOM,guardRange:265/GAME_WORLD_ZOOM,preferredOrbId:s.tacticalChoice?.orb?.id,routeCost:o=>{if(o.id===s.unreachableOrbId&&now<(s.unreachableUntil||0))return Infinity;if(!soloCave)return Math.hypot(o.x-pos.x,o.y-pos.y);const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,o.x,o.y,pad);if(!safe)return Infinity;const nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,safe.x,safe.y,pad);return nav.blocked?Infinity:Math.hypot(safe.x-pos.x,safe.y-pos.y)*(nav.direct?1:1.65);}}):null;s.nextTacticsAt=now+220;
  }
  const tactics=s.tacticalChoice,combatTarget=tactics?.type==='enemy'&&tactics.enemy?.hp>0&&enemies.includes(tactics.enemy)?tactics.enemy:null;
  const orb=tactics?(tactics.type==='orb'?tactics.orb:null):SPECIMEN_EVASION?.bestOrb(pos,orbs,player,collectionRange,threats,radius,28/GAME_WORLD_ZOOM);
@@ -3087,6 +3087,7 @@ function updateSpecimenRuntime(dt){
  if(!attackHolding&&activeMapLayout&&ABYSSAL_MAP?.navigationTarget){const route=ABYSSAL_MAP.navigationTarget(activeMapLayout,pos.x,pos.y,target.x,target.y,{padding:5/GAME_WORLD_ZOOM});if(route&&!route.blocked)target={x:route.x,y:route.y};}
  if(!attackHolding&&soloCave){
   if(!orb&&!combatTarget&&SOLO_CAVERN.isBlocked(arenaRocks,target.x,target.y,pad))target={x:player.x,y:player.y};
+  if(orb){const safe=SOLO_CAVERN.orbWaterPoint(arenaRocks,W,H,orb.x,orb.y,pad);if(safe)target=safe;}
   const goal={...target},nav=SOLO_CAVERN.navigationTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad);if(!nav.blocked)target={x:nav.x,y:nav.y};else target=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle)||pos;
   if((s.stuckSeconds||0)>.8&&Math.hypot(goal.x-pos.x,goal.y-pos.y)>radius+5){const escape=SOLO_CAVERN.escapeTarget(arenaRocks,W,H,pos.x,pos.y,goal.x,goal.y,pad,s.facingAngle);if(escape){s.escapeWaypoint=escape;s.escapeUntil=now+650;}if(orb){s.unreachableOrbId=orb.id;s.unreachableUntil=now+1800;s.nextTacticsAt=0;}s.stuckSeconds=0;}
   if(s.escapeWaypoint&&now<s.escapeUntil&&Math.hypot(s.escapeWaypoint.x-pos.x,s.escapeWaypoint.y-pos.y)>5)target=s.escapeWaypoint;else s.escapeWaypoint=null;
