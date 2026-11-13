@@ -16,7 +16,7 @@ Environment=UV_THREADPOOL_SIZE=4
 Environment=HTTP_BACKLOG=4096
 Environment=DATABASE_POOL_MAX=5
 Environment=NODE_OPTIONS=--max-old-space-size=1536
-ExecStart=/usr/bin/node /opt/abyssal/server.js
+ExecStart=/usr/local/bin/node /opt/abyssal/server.js
 Restart=always
 RestartSec=2
 TimeoutStopSec=15
