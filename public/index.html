@@ -702,7 +702,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.18"></script>
+<script src="client-build.js?v=3.6.19"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -752,7 +752,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
- <script src="game.js?v=2026.11.13.specimen-sync"></script>
+ <script src="game.js?v=2026.11.13.exterior-cadence"></script>
 <script src="net-codec.js?v=4.3.0"></script>
 <script src="online.js?v=2026.11.13.specimen-sync"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
@@ -800,17 +800,17 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.13.specimen-sync"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.13.exterior-cadence"></script>
 <script src="abyssal-submarine-cockpit.js?v=2026.11.12.32"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.12.36"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.13.exterior-cadence"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>
 <script>
 // Recovery only if an essential script failed; never expose the legacy menu in normal boot.
-document.addEventListener("DOMContentLoaded",()=>{if(!document.documentElement.classList.contains("abyssal-startup"))return;const gate=document.getElementById("ageTermsScreen"),cockpit=document.getElementById("submarineWorkshop");if(gate&&!gate.hidden||cockpit&&!cockpit.hidden){window.AbyssalRevealStartup();return;}if(window.AbyssalCockpitNavigation){window.AbyssalCockpitNavigation.open();return;}document.body.classList.add("abyss-hatch-navigation");window.AbyssalRevealStartup();},{once:true});
+document.addEventListener("DOMContentLoaded",()=>{if(!document.documentElement.classList.contains("abyssal-startup"))return;const gate=document.getElementById("ageTermsScreen"),cockpit=document.getElementById("submarineWorkshop");if(gate&&!gate.hidden||cockpit&&!cockpit.hidden){window.AbyssalRevealStartup();return;}if(window.AbyssalCockpitNavigation?.showExterior){window.AbyssalCockpitNavigation.showExterior();return;}document.body.classList.add("abyss-hatch-navigation");window.AbyssalRevealStartup();},{once:true});
 </script>
 </body>
 </html>

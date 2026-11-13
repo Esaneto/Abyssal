@@ -9,7 +9,7 @@ const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 test('menu starts outside the hull; explicit cabin exits retain the hatch animation',()=>{
  const menu=read('public/abyssal-menu-ocean.js');
  assert.match(menu,/emergence<1/);
- assert.match(menu,/dt/\(mobileScene\?1\.55:1\.72\)/);
+ assert.match(menu,/dt\/\(mobileScene\?1\.55:1\.72\)/);
  assert.match(menu,/stage\.classList\.toggle\('abyss-menu-arrival',fromCabin\)/);
  assert.match(menu,/function resetToHatch\(fromCabin=false\)/);
  assert.match(menu,/py=fromCabin\?pos\.y:arrivalEnd\(\)/);
@@ -32,7 +32,7 @@ test('cabin entry is explicit and visually emphasized',()=>{
 test('menu release refreshes offline shell',()=>{
  const sw=read('public/offline-sw.js');
  const build=read('public/client-build.js');
- assert.match(sw,/specimen-sync-v158/);
+ assert.match(sw,/exterior-cadence-v159/);
  assert.match(build,new RegExp("version:'"+require('../package.json').version.replace(/\./g,'\\.')+"'"));
 });
 

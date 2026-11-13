@@ -333,19 +333,19 @@
  }
 
  const openWorkshop=()=>{if(!workshop)return;document.body.classList.remove('abyss-hatch-navigation');activeConsoleSection='solo';soloConsolePage='home';workshop.hidden=false;renderWorkshop();window.AbyssalSubmarineCockpit?.open?.();window.AbyssalRevealStartup?.();};
- const closeWorkshop=()=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop'}}));};
- window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
+ const closeWorkshop=(animateExit=false)=>{if(!workshop||workshop.hidden)return;restoreEmbeddedCatalog();workshop.hidden=true;window.AbyssalSubmarineCockpit?.close?.();window.dispatchEvent(new CustomEvent('abyssal-modal-closed',{detail:{screenId:'submarineWorkshop',animateExit:animateExit===true}}));};
+ const showExterior=()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(false);const menu=document.getElementById('menuScreen');if(menu&&!document.body.classList.contains('game-active'))menu.hidden=false;window.AbyssalRevealStartup?.();};
+ window.AbyssalCockpitNavigation=Object.freeze({open:openWorkshop,close:closeWorkshop,showExterior,routeScreen:navigateEmbedded,routeCommand:navigateCommand,isEmbedded:id=>embeddedCatalog?.screen.id===id,back:backEmbedded});
  window.addEventListener('abyssal-authenticated',()=>{if(!workshop.hidden&&activeConsoleSection==='login'){activeConsoleSection=loginReturn==='login'?'profile':loginReturn;renderWorkshop();}});
  document.getElementById('submarineWorkshopBtn')?.addEventListener('click',openWorkshop);
- document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop();});
+ document.getElementById('submarineWorkshopClose')?.addEventListener('click',()=>{document.body.classList.add('abyss-hatch-navigation');closeWorkshop(true);});
  // Use original account/community screens directly, bypassing hidden menu controls.
  $('cockpitRankingBtn')?.addEventListener('click',()=>navigateEmbedded('rankingsScreen'));
  $('cockpitWheelBtn')?.addEventListener('click',()=>{navigateEmbedded('wheelScreen');});
  $('cockpitProfileBtn')?.addEventListener('click',()=>{navigateEmbedded('profileScreen');});
  $('cockpitCardumesBtn')?.addEventListener('click',()=>{navigateEmbedded('cardumesScreen');});
 
- // The command bridge is now the primary menu presentation. Existing hatch
- // navigation remains available after a player explicitly closes the bridge.
+ // Start outside the submarine. Only an explicit cabin action opens the bridge.
  let openedPrimaryCockpit=false;
  function showPrimaryCockpit(){
   if(openedPrimaryCockpit||!workshop)return;
@@ -355,7 +355,7 @@
    const modal=document.getElementById(id);
    if(modal&&!modal.hidden)return;
   }
-  openedPrimaryCockpit=true;openWorkshop();
+  openedPrimaryCockpit=true;showExterior();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',showPrimaryCockpit,{once:true});else showPrimaryCockpit();
  for(const id of ['ageTermsScreen','loginScreen','menuScreen']){

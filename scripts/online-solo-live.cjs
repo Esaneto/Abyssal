@@ -26,7 +26,8 @@ async function browser(url,online){
   await cdp('Page.navigate',{url});
   await until(()=>evaluate("Boolean(window.AbyssalGameHooks&&window.AbyssalOnline&&document.getElementById('divePortalBtn')&&!document.documentElement.classList.contains('abyssal-startup'))"),'startup');
   await evaluate("(()=>{const e=document.getElementById('submarineWorkshopClose');if(e&&!document.getElementById('submarineWorkshop').hidden)e.click();})()");
-  await sleep(2600);
+  await until(()=>evaluate(`document.body.classList.contains('abyss-hatch-navigation')&&document.getElementById('submarineWorkshop').hidden`),'exterior starting menu');
+  await sleep(600);
   await evaluate("document.getElementById('divePortalBtn').click()");
   await until(()=>evaluate("!document.getElementById('abyssalDiveChoicePanel').hidden&&getComputedStyle(document.getElementById('abyssalDiveChoicePanel')).display!=='none'"),'dive chooser');
   const choice=await evaluate("(()=>{const e=document.getElementById('abyssDiveOnlineChoice');return {disabled:e.disabled,opacity:getComputedStyle(e).opacity,after:getComputedStyle(e,'::after').content,text:e.textContent}})()");
@@ -37,6 +38,8 @@ async function browser(url,online){
    await until(()=>evaluate("Boolean(window.AbyssalOnline.isConnected()&&!document.getElementById('loginScreen').hidden)"),'login screen');
    await evaluate("document.getElementById('emailInput').value='paritytest@example.test';document.getElementById('nicknameInput').value='ParityTest';document.getElementById('passwordInput').value='ParityTest2026!';document.getElementById('registerBtn').click()");
    await until(()=>evaluate("window.AbyssalOnline.isAuthenticated()"),'real authentication');
+   await until(()=>evaluate(`Boolean(!document.getElementById('roomsScreen').hidden&&document.querySelector('[data-room-id="MERGULHO-ONLINE"]:not([disabled])'))`),'cooperative room browser');
+   await evaluate(`document.querySelector('[data-room-id="MERGULHO-ONLINE"]').click()`);
   }
   const inspect=()=>evaluate("window.AbyssalGameHooks.classicParityInspect()");
   await until(async()=>{const d=await inspect();return d.classic&&d.online===online&&d.state==='playing'&&d.submarine.sections.length===3;},'real gameplay');

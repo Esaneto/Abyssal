@@ -33,7 +33,7 @@
   const stations=[...ROUTES,{id:'submarineWorkshopBtn',x:.5,y:0,tone:'#d4ad68',label:'CABINE',kind:'lab'}].map(p=>({...p,button:document.getElementById(p.id),wx:0,wy:0})).filter(p=>p.button);
   if(stations.length!==4)return;
   let w=0,h=0,px=0,py=0,vx=0,vy=0,heading=Math.PI/2,emergence=0;
-  let initialized=false,wasVisible=false,transition=null,waitingForModal=false;
+  let initialized=false,wasVisible=false,transition=null,waitingForModal=false,pendingCabinExit=false;
   let nearElapsed=0,nearStationId=null;
   let moveTarget=null,followPointer=null,near=null,last=performance.now(),bubbleElapsed=0;
   let joystickX=0,joystickY=0,joystickId=null;
@@ -199,7 +199,7 @@
    if(!menu.hidden&&!document.body.classList.contains('game-active')&&initialized)resetToHatch();
   }
   window.addEventListener('abyssal-modal-closed',event=>{
-   if(event.detail?.screenId==='submarineWorkshop'&&!menu.hidden&&initialized){resetToHatch(true);wasVisible=true;}else if(event.detail?.screenId==='roomsScreen')closeReturn();
+   if(event.detail?.screenId==='submarineWorkshop'&&!menu.hidden){pendingCabinExit=event.detail.animateExit===true;if(initialized&&wasVisible){resetToHatch(pendingCabinExit);pendingCabinExit=false;}}else if(event.detail?.screenId==='roomsScreen')closeReturn();
   });
   window.addEventListener('abyssal-descent-closed',closeReturn);
   window.addEventListener('abyssal-menu-portal-cancelled',event=>{
@@ -313,7 +313,7 @@
    menuFrame=0;
    const dt=Math.min(.05,Math.max(0,(now-last)/1000));last=now;
    const visible=hatchVisible();
-   if(visible&&!wasVisible){sizeScene();resetToHatch();}
+   if(visible&&!wasVisible){sizeScene();resetToHatch(pendingCabinExit);pendingCabinExit=false;}
    wasVisible=visible;
    // No menu paint, currents or particles while gameplay/other screens own the UI.
    if(!visible||document.hidden){syncMenu();return;}
@@ -398,7 +398,7 @@
   if(hatchVisible())sizeScene();
   // Only expose the menu after the active swimmer/currents have their geometry.
   menu.classList.add('menu-ready');
-  window.addEventListener('abyssal-menu-return',()=>{wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
+  window.addEventListener('abyssal-menu-return',()=>{pendingCabinExit=false;wasVisible=false;waitingForModal=false;requestAnimationFrame(()=>{if(!menu.hidden){sizeScene();resetToHatch();}});});
   window.addEventListener('resize',()=>{if(hatchVisible())sizeScene();});
   if(typeof ResizeObserver==='function'){
    const ro=new ResizeObserver(()=>{if(!menu.hidden&&stage.clientWidth>80&&(Math.abs(stage.clientWidth-w)>2||Math.abs(stage.clientHeight-h)>2))sizeScene();});

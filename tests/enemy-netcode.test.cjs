@@ -133,3 +133,12 @@ test('irregular packet arrivals do not repeatedly reverse the creature presentat
  for(let now=0;now<=620;now+=5){while(packet<arrivals.length&&arrivals[packet]<=now){pushMotionSample(e,{x:100,y:100+packet*8,serverTime:1000+packet*50,receivedAt:arrivals[packet]});packet++;}const p=renderedPosition(e,now);assert.ok(p.y>=previous-1e-6,`rewind at ${now}: ${p.y} < ${previous}`);previous=p.y;}
  assert.ok(previous>150);
 });
+
+test('motion cadence preserves sub-tick remainder instead of skipping alternate packets',()=>{
+ const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../world-simulation.js'),'utf8');
+ const body=source.slice(source.indexOf('  world.snapshotTimer -= dt;'),source.indexOf('  // Full-world recovery snapshots'));
+ const step=new Function('world','dt',body+';return sendSnapshot;');
+ const world={snapshotTimer:0,reliableSnapshotTimer:30,playerSnapshotTimer:1};let count=0;
+ for(let i=0;i<100;i++)if(step(world,.049))count++;
+ assert.ok(count>=97&&count<=100,`expected about 98 packets, got ${count}`);
+});
