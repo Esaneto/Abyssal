@@ -171,9 +171,14 @@ jobs:
           test -s android/app/src/main/assets/public/client-build.js
           test -s android/app/src/main/assets/public/update-manager.js
           test -s android/app/src/main/assets/public/update-manager.css
+          test -s android/app/src/main/assets/public/loading-screen.js
+          test -s android/app/src/main/assets/public/loading-screen.css
+          test -s android/app/src/main/assets/public/assets/branding/icon/0.b64
+          test -s android/app/src/main/assets/public/assets/branding/loading/0.b64
           test -s android/app/src/main/assets/public/abyssal-map.js
           cmp public/game.js android/app/src/main/assets/public/game.js
           cmp public/update-manager.js android/app/src/main/assets/public/update-manager.js
+          cmp public/loading-screen.js android/app/src/main/assets/public/loading-screen.js
           grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
