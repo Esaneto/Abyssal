@@ -266,7 +266,7 @@
     const combatLevels=research.migrateLegacy(signedIn?account?.researchLevels||{}:localLevels,signedIn?account?.metaUpgrades||{}:cachedMeta()).levels;
     const combatInfo=[
      {id:'pulse',name:'Q · Pulso de Maré',icon:'✺',description:'Causa dano em área ao redor do mergulhador. Dano base: 28; recarga: 14 segundos. Ativação automática no atalho Q após pesquisar.'},
-     {id:'dash',name:'E · Passo Fantasma',icon:'➤',description:'Impulso de movimento com invulnerabilidade por 1,5 segundo. Recarga: 18 segundos. Ativação automática no atalho E após pesquisar.'}
+     {id:'dash',name:'E · Propulsor Abissal',icon:'➤',description:'E alterna entre arma e turbina. Nado 2,35× por até 10 s de bateria. A bateria recarrega em 40 s ao parar ou guardar. Sem invulnerabilidade ou recarga de habilidade.'}
     ];
     const studyCombat=id=>{
      if(combatResearchPending)return;
