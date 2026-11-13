@@ -482,9 +482,10 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       <div class="modal-card wheel-modal"><button id="wheelTopCloseBtn" class="redeem-close-btn modal-top-close" type="button" aria-label="Fechar roleta">×</button>
         <div class="eyebrow"><span class="pulse-dot"></span> SORTE DO ABISMO</div>
         <h2>ROLETA<br><em>ABISSAL</em></h2>
-        <p>Opcional: assista ao anúncio premiado até a conclusão para receber 1 giro. O prêmio do giro é aleatório e fica na sua conta do Abyssal.</p><details class="wheel-odds" open><summary>CHANCES DOS PRÊMIOS</summary><p>2 energia: 40% · 5 energia: 30% · 10 energia: 18% · 30 energia: 8% · 60 energia: 3,9% · 100 energia: 0,1%</p></details>
+        <p>Opcional: assista ao anúncio premiado até a conclusão para receber 1 giro. O prêmio do giro é aleatório e fica na sua conta do Abyssal.</p><details class="wheel-odds" open><summary>CHANCES DOS PRÊMIOS</summary><p>20 energia: 40% · 50 energia: 30% · 100 energia: 18% · 300 energia: 8% · 600 energia: 3,9% · 1000 energia: 0,1%</p></details>
         <div class="wheel-stage"><canvas id="wheelCanvas" width="360" height="360" aria-label="Roleta de energia"></canvas>
     </div>
+        <p id="wheelDailyStatus" aria-live="polite" style="font-size:.78rem;opacity:.85;margin:.35rem 0;text-align:center">Até 10 giros por dia · renovação à 00h (Brasília)</p>
         <div id="wheelMessage" class="wheel-message" aria-live="polite">Gire para ganhar energia!</div>
         <div class="wheel-actions"><button id="spinWheelBtn" class="wheel-spin-btn">✦ ASSISTIR ANÚNCIO E GIRAR</button></div>
         <button id="wheelCloseBtn" class="secondary-btn" data-close-screen="wheelScreen">VOLTAR AO MENU</button>
@@ -702,7 +703,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.29"></script>
+<script src="client-build.js?v=3.6.30"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -752,9 +753,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
- <script src="game.js?v=2026.11.13.coop-continuous-motion-v168"></script>
+ <script src="game.js?v=2026.11.13.wheel-daily-limit-v169"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.13.coop-continuous-motion-v168"></script>
+<script src="online.js?v=2026.11.13.wheel-daily-limit-v169"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.12.2"></script>
 <script src="abyssal-rebuild.js?v=2026.11.12.10"></script>
