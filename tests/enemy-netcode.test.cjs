@@ -197,3 +197,15 @@ test('authoritative monster visuals keep converging even if interpolation stalls
  assert.match(game,/if\(serverGap>120\/GAME_WORLD_ZOOM\)\{e\.x=sx;e\.y=sy;\}/);
  assert.match(game,/Contact packets carry the exact attacker position used by server-side damage/);
 });
+
+
+test('online motion sequencing cannot suppress reliable enemy spawns',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ assert.match(game,/lastAuthoritativeMotionSeq=0/);
+ assert.match(game,/lastAuthoritativeSpawnSeq=0/);
+ assert.match(game,/sequence<=lastAuthoritativeMotionSeq/);
+ assert.match(game,/sequence<=lastAuthoritativeSpawnSeq/);
+ assert.match(game,/A volatile 20 Hz packet must never make/);
+ assert.doesNotMatch(game,/Compact motion packets update only entities already introduced by a reliable full snapshot\.\n if\(!worldId\|\|worldId!==lastAuthoritativeWorldId\|\|!sequence\|\|sequence<=lastAuthoritativeSnapshotSeq\)return;/);
+});
