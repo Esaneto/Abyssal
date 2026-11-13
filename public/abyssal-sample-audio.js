@@ -20,12 +20,12 @@
   destroyed:{file:'effects/submarino_destruido.ogg',gain:.90,group:'critical',priority:98},
   electric:{file:'effects/tempestade_eletrica.wav',gain:.79,group:'shot',priority:82,max:1.25}
  });
- const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','ability-nova':'nova','ability-beam':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair'});
+ const CUES=Object.freeze({'shot-electric':'electric','shot-photon':'photon','shot-pierce':'pierce','shot-echoShot':'echo','shot-nova':'nova','shot-photonRay':'beam','enemy-death':'kill','boss-defeated':'kill','orb':'orb','bite':'bite','boss-entrance':'boss','submarine-destroyed':'destroyed','submarine-repair':'repair'});
  function cueAsset(id){return CUES[id]||(/^boss-death-/.test(id)?'kill':/^enemy-attack-/.test(id)?'bite':null);}
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=false,started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
-  const buffers=new Map(),loading=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
+  const buffers=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
   const metrics={played:0,overlapped:0,stolen:0,deduplicated:0,inaudible:0,notReady:0,errors:0};
   const clock=()=>env.performance?.now?.()??Date.now();
   const read=(key,def)=>{try{const raw=env.localStorage?.getItem(key);return raw===null||raw===undefined?def:clamp(Number(raw)||0,0,100)/100;}catch{return def;}};
@@ -45,13 +45,13 @@
   function load(id){
    if(buffers.has(id))return Promise.resolve(buffers.get(id));
    if(loading.has(id))return loading.get(id);
-   if(!ctx||!ASSETS[id])return Promise.resolve(null);
+   if(!ctx||!ASSETS[id]||(failedUntil.get(id)||0)>clock())return Promise.resolve(null);
    const task=(async()=>{
     try{
      const url=new URL('audio/'+ASSETS[id].file,env.document?.baseURI||env.location?.href||'http://localhost/');
      const res=await env.fetch(url.href,{cache:'force-cache'});if(!res.ok)throw Error('audio HTTP '+res.status);
      const decoded=await ctx.decodeAudioData(await res.arrayBuffer());buffers.set(id,decoded);return decoded;
-    }catch(error){metrics.errors++;env.console?.warn?.('[AbyssalAudio]',id,error.message);return null;}
+    }catch(error){metrics.errors++;failedUntil.set(id,clock()+15000);env.console?.warn?.('[AbyssalAudio]',id,error.message);return null;}
     finally{loading.delete(id);}
    })();
    loading.set(id,task);return task;

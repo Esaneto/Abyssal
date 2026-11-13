@@ -1,6 +1,6 @@
 /* Abyssal offline shell. Do not cache account, API, payment or socket traffic. */
 'use strict';
-const VERSION = '2026-11-13-combat-interest-v171';
+const VERSION = '2026-11-13-sample-audio-v172';
 const CACHE_NAME = 'abyssal-game-shell-' + VERSION;
 const CACHE_PREFIX = 'abyssal-game-shell-';
 const GAME_FILES = [
@@ -88,6 +88,20 @@ const GAME_FILES = [
   'abyssal-tutorials.js',
   'abyssal-tutorials.css',
   'enemy-netcode.js',
+  'abyssal-sample-audio.js',
+  'audio/music/musica.mp3',
+  'audio/effects/bite.wav',
+  'audio/effects/boss_entrance.wav',
+  'audio/effects/collect_orb.wav',
+  'audio/effects/eco_da_mare.wav',
+  'audio/effects/kill.wav',
+  'audio/effects/lanca_de_fotons.wav',
+  'audio/effects/lanca_do_abismo.wav',
+  'audio/effects/nova_gravitacional.ogg',
+  'audio/effects/raio_de_fotons.wav',
+  'audio/effects/reparar_sub.wav',
+  'audio/effects/submarino_destruido.ogg',
+  'audio/effects/tempestade_eletrica.wav',
   'world-audio.js',
   'skill-audio.js',
   'photon-ray-config.js',

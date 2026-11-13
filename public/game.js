@@ -589,7 +589,7 @@ function soloHullShieldReady(){return soloSubmarinePowered()&&!soloSubmarine.shi
 function damageSoloHull(s,amount){
  if(!s||s.hp<=0||!(amount>0))return false;
  if(soloHullShieldReady()){soloSubmarine.shieldSpent=true;soloSubmarine.shieldFlashUntil=performance.now()+420;return false;}
- s.hp=Math.max(0,s.hp-amount);if(s.hp>0)return true;syncSoloHull();if(soloWeaponSection('photonRay')===s)clearSoloSubmarinePhotonRay();const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:s.x+(Math.cos(a)*55)*scale,y:s.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}return true;
+ s.hp=Math.max(0,s.hp-amount);if(s.hp>0)return true;playWorldSound('submarine-destroyed',s,1250,1,{owner:'hull:'+s.id});syncSoloHull();if(soloWeaponSection('photonRay')===s)clearSoloSubmarinePhotonRay();const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:s.x+(Math.cos(a)*55)*scale,y:s.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}return true;
 }
 function soloHullInReach(e,extra=0){
  if(!soloSubmarineActive())return null;
@@ -644,7 +644,7 @@ function soloRepairSurface(section,x,y){
  }
  return best||{x:section.x,y:section.rock.y};
 }
-function cancelSoloHullRepair(){if(!soloSubmarine.repair)return false;soloSubmarine.repair=null;return true;}
+function cancelSoloHullRepair(){if(!soloSubmarine.repair)return false;soloSubmarine.repair=null;stopAudioLoop('repair','submarine');return true;}
 function repairSoloHull(){
  if(soloSubmarine.repair){if(!onlineMode)cancelSoloHullRepair();else window.AbyssalOnline?.cancelSubmarineRepair?.();return false;}
  const section=soloRepairCandidate();if(!section)return false;
@@ -672,12 +672,12 @@ function updateSoloHullRepair(dt){
  if(!soloSubmarineActive()||!player||!soloSubmarine.sections.includes(job.section)||job.section.hp>=SOLO_HULL_HP||
     Math.hypot(player.x-job.startX,player.y-job.startY)>8/GAME_WORLD_ZOOM||
     !SOLO_CAVERN.isBlocked(job.section.collision,player.x,player.y,75/GAME_WORLD_ZOOM+(Number(player.r)||0))){cancelSoloHullRepair();return false;}
- const point=job.point;player.bodyAngle=player.angle=player.weaponAngle=Math.atan2(point.y-player.y,point.x-player.x);
+ const point=job.point;refreshAudioLoop('repair','submarine',point,850,.9,{owner:'submarine-repair',local:true,leaseMs:400});player.bodyAngle=player.angle=player.weaponAngle=Math.atan2(point.y-player.y,point.x-player.x);
  const repairSeconds=submarineRepairSeconds();
  if(onlineMode&&job.online){job.elapsed=Math.min(repairSeconds,Math.max(0,(Date.now()-(Number(job.startedAt)||Date.now()))/1000));return false;}
  job.elapsed=Math.min(repairSeconds,job.elapsed+Math.max(0,Number(dt)||0));
  if(job.elapsed+1e-8<repairSeconds)return false;
- soloSubmarine.repair=null;finishSoloHullRepair(job.section);return true;
+ soloSubmarine.repair=null;stopAudioLoop('repair','submarine');finishSoloHullRepair(job.section);return true;
 }
 function ensureSoloRepairButton(){let b=$('soloSubmarineRepairBtn');if(b)return b;b=document.createElement('button');b.id='soloSubmarineRepairBtn';b.type='button';b.hidden=true;b.innerHTML='<span aria-hidden="true">🔧</span><small>REPARAR</small>';b.addEventListener('click',repairSoloHull);$('petHabitBar')?.prepend(b);return b;}
 window.addEventListener('keydown',e=>{if(e.code==='KeyT'&&!e.repeat&&(soloSubmarine.repair||soloRepairCandidate())&&!e.target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]')){e.preventDefault();repairSoloHull();}});
@@ -744,7 +744,7 @@ function soloSubmarineTarget(id,candidates=soloSubmarineTargetCandidates){
  }
  return target;
 }
-function clearSoloSubmarinePhotonRay(){for(let i=effects.length-1;i>=0;i--)if(effects[i].submarinePhotonBeam)effects.splice(i,1);}
+function clearSoloSubmarinePhotonRay(){stopAudioLoop('beam','submarine');for(let i=effects.length-1;i>=0;i--)if(effects[i].submarinePhotonBeam)effects.splice(i,1);}
 function fireSoloSubmarineWeapon(id,target,a,dt=0){
  if(!soloWeaponOperational(id))return;const muzzle=submarineMuzzle(id,a),ox=muzzle.x,oy=muzzle.y;
  const damage=getShotDamageAtLevel(1,id);
@@ -752,6 +752,7 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
   const width=PHOTON_RAY_VISUAL.widths[1]/GAME_WORLD_ZOOM,interval=PHOTON_RAY_VISUAL.pulseInterval;
   const end=clipPrismaticPhotonRay(ox,oy,ox+Math.cos(a)*SOLO_SUB_RANGE,oy+Math.sin(a)*SOLO_SUB_RANGE,Math.max(1,width*.5));
   refreshPhotonBeam('submarinePhotonBeam',true,ox,oy,end.x2,end.y2,width);
+  refreshAudioLoop('beam','submarine',muzzle,900,.83,{owner:'submarine',leaseMs:350});
   if(soloSubmarine.weaponTimers[id]>0)return;
   soloSubmarine.weaponTimers[id]=interval;
   (soloSubmarine.weaponFlash||=Object.create(null))[id]=performance.now()+120;
@@ -770,11 +771,11 @@ function fireSoloSubmarineWeapon(id,target,a,dt=0){
    if(!e||e.hp<=0||!window.AbyssalGravityCone?.contains?.(ox,oy,a,e.x,e.y,e.r,SOLO_SUB_RANGE)||!pveProjectileTerrainClear(ox,oy,e.x,e.y,2))continue;
    dealEnemyDamage(e,novaDamage,'nova',{origin:muzzle,submarineShot:true});burst(e.x,e.y,'#72f5ff',3,70);
   }
-  spawnNovaVisual(ox,oy,SOLO_SUB_RANGE,'#72f5ff',false,a,false);playSkillSound('nova','trigger');return;
+  spawnNovaVisual(ox,oy,SOLO_SUB_RANGE,'#72f5ff',false,a,false);playWorldSound('shot-nova',muzzle,1000,.88,{owner:'submarine'});return;
  }
  const profile=baseShotProfile(id,1);
  for(const offset of profile.offsets){const angle=a+offset;projectiles.push({x:ox,y:oy,vx:Math.cos(angle)*profile.speed,vy:Math.sin(angle)*profile.speed,r:profile.radius,damage,color:profile.color,life:Math.max(1.33,SOLO_SUB_RANGE/Math.max(1,profile.speed)+.12),maxDistance:SOLO_SUB_RANGE,travelled:0,special:id,pierceRemaining:id==='pierce'?1:0,hitIds:[],submarineShot:true});}
- emitBaseShotMuzzle(muzzle,a,id,profile.color,profile.offsets.length);playWorldSound('shot-'+id,muzzle,850,.82);
+ emitBaseShotMuzzle(muzzle,a,id,profile.color,profile.offsets.length);playWorldSound('shot-'+id,muzzle,850,.82,{owner:'submarine'});
 }
 function updateSoloSubmarine(dt){
  if(!soloSubmarineActive())return;
@@ -1204,15 +1205,28 @@ function initNotifSystem() {
   updateNotifBadge();
 }
 
-// Sound synthesis and handlers removed. Legacy gameplay cue hooks are inert.
+// User-supplied audio only: events without a matching recording stay silent.
 let lastDamageWarningAt=0,lastContactNoticeAt=0;
 function audio(){}
-function playWorldSound(){return false;}
+function soundOptions(position,range=850,volume=1,extra={}){
+ const valid=position&&Number.isFinite(position.x)&&Number.isFinite(position.y)&&player;
+ const dx=valid?position.x-player.x:0,dy=valid?position.y-player.y:0;
+ return {distance:Math.hypot(dx,dy),pan:Math.max(-.85,Math.min(.85,dx/Math.max(100,range*.72))),range,volume,owner:position?.id!=null?String(position.id):'world',...extra};
+}
+function playWorldSound(cue,position=null,range=850,volume=1,extra={}){
+ if(gameState==='menu'||gameState==='over'||gameState==='paused')return false;
+ return window.AbyssalAudio?.play(cue,soundOptions(position,range,volume,extra))||false;
+}
 function playSkillSound(){}
-function playBossCry(){}
+function playBossCry(){playWorldSound('boss-entrance',null,1200,1,{owner:'boss-warning',local:true});}
 function playDevourerSuction(){}
-function startAmbientMusic(){}
+function startAmbientMusic(){window.AbyssalAudio?.startMusic();}
 function updateAbyssalMusic(){}
+function refreshAudioLoop(id,key,position,range=850,volume=1,extra={}){
+ if(gameState!=='playing'&&!(onlineMode&&gameState==='upgrade'))return;
+ window.AbyssalAudio?.loop(id,key,soundOptions(position,range,volume,extra));
+}
+function stopAudioLoop(id,key){window.AbyssalAudio?.stopLoop(id,key);}
 
 // === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade sólido) ===
 let abyssalAlertTimer = null;
@@ -1293,7 +1307,7 @@ function renderBossAbilityVisual(data){
   ctx.restore();return;
  }
  const bossKind=String(d.kind||activeBossEntity?.kind||'boss');
- const cue=window.AbyssalWorldAudio?.PATTERNS?.['boss-attack-'+bossKind]?'boss-attack-'+bossKind:'boss-attack-boss';
+ const cue='boss-attack-'+bossKind;
  playWorldSound(cue,{x,y},1000,.82);
  if(id==='toxic-cloud'||id==='monster-toxic-cloud'){
   spawnPoisonPlantCloudVisual(x,y,radius,color||'#7dff73');
@@ -1320,7 +1334,7 @@ function renderBossAbilityVisual(data){
 function renderHostileContactAbility(data){
  const d=data||{},kind=String(d.enemyKind||d.kind||''),skill=String(d.skillId||''),x=Number(d.enemyX??d.x),y=Number(d.enemyY??d.y),color=d.enemyColor||d.color||'#ff668d';
  if(!Number.isFinite(x)||!Number.isFinite(y))return;
- playWorldSound('enemy-attack-'+kind,{x,y},700,.73);
+ playWorldSound('bite',{x,y},700,.85,{owner:'enemy:'+String(d.enemyId||kind)});
  const px=Number.isFinite(Number(d.playerX))?Number(d.playerX):Number(player?.x)||x,py=Number.isFinite(Number(d.playerY))?Number(d.playerY):Number(player?.y)||y;
  if(skill!=='tentacle-strike'){
   const enemy=d.enemy||(d.enemyId!=null?enemies.find(e=>String(e.id)===String(d.enemyId)):null);
@@ -1637,6 +1651,7 @@ let soloRunIdentity=null;
 function diveEnergyCalculation(){const base=Math.floor(Math.min(50000,Math.max(5,Math.floor(score/35)+(Number(level)||0)*2))/10),specimenBonus=SkinAbilities?.endDiveEnergyBonus?.(diveEnergySkinId)||0,bonus=Math.floor(diveStats.energyCollected*specimenBonus);return {earned:base+bonus,energyBonus:bonus,energyBonusPercent:Math.round(specimenBonus*100),specimenEnergyBonusPercent:Math.round(specimenBonus*100),totalRunCoins:base+bonus+bossKillsThisRun*10};}
 let diveReport=null,diveStats={damageDealt:0,monstersKilled:0,energyCollected:0},diveSettling=false,diveSettled=false,diveEndReason='death';
 function startGame(resumingDeploy=false){
+ window.AbyssalAudio?.stopEffects();startAmbientMusic();
  soloRunIdentity=onlineMode?null:{id:'solo-'+(globalThis.crypto?.randomUUID?.()||Date.now()+'-'+Math.random().toString(36).slice(2)),key:adaptationAccountKey()};
  diveEnergySkinId=equippedSkin;soloAdaptationRun=globalThis.crypto?.randomUUID?.()||('solo-'+Date.now()+'-'+Math.random().toString(36).slice(2));diveReport=null;diveStats={damageDealt:0,monstersKilled:0,energyCollected:0};diveSettling=false;diveSettled=false;diveEndReason='death';
  // A previous PvP session cannot leak its arena rules into a new Solo dive.
@@ -2429,9 +2444,10 @@ function applySharedSnapshot(data){
  if(data.submarine&&onlineRoomMode==='coop'){
   if(!soloSubmarine.sections.length||Math.abs(soloSubmarine.x-(Number(data.submarine.x)||W*.5))>1||Math.abs(soloSubmarine.y-(Number(data.submarine.y)||H*.39))>1){soloSubmarine.x=Number(data.submarine.x)||W*.5;soloSubmarine.y=Number(data.submarine.y)||H*.39;soloSubmarine.sections=[];ensureSoloHull();}
   soloSubmarine.powerSeconds=Math.max(0,Number(data.submarine.powerSeconds)||0);onlineSubmarineControllerId=String(data.submarine.controllerId||'')||null;onlineSubmarineWeapons=Array.isArray(data.submarine.weapons)?[...data.submarine.weapons]:onlineSubmarineWeapons;
-  let hullChanged=false;for(const remote of data.submarine.sections||[]){const local=soloSubmarine.sections.find(s=>s.id===Number(remote.id));if(!local)continue;const next=clamp(Number(remote.hp)||0,0,SOLO_HULL_HP);if(local.hp!==next){if(local.hp>0&&next===0){const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:local.x+Math.cos(a)*55*scale,y:local.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}}if((local.hp>0)!==(next>0))hullChanged=true;local.hp=next;}}
+  let hullChanged=false;for(const remote of data.submarine.sections||[]){const local=soloSubmarine.sections.find(s=>s.id===Number(remote.id));if(!local)continue;const next=clamp(Number(remote.hp)||0,0,SOLO_HULL_HP);if(local.hp!==next){if(local.hp>0&&next===0){if(lastAuthoritativeWorldId===incomingWorldId)playWorldSound('submarine-destroyed',local,1250,1,{owner:'hull:'+local.id});const scale=1/GAME_WORLD_ZOOM;for(let i=0;i<12;i++){const a=i*2.399;soloSubmarine.debris.push({x:local.x+Math.cos(a)*55*scale,y:local.y+Math.sin(a)*45*scale,vx:Math.cos(a)*(15+i*3)*scale,vy:(20+i*5)*scale,angle:a,spin:(i%2?1:-1)*(.4+i*.09),size:(7+i%5*3)*scale,life:3});}}if((local.hp>0)!==(next>0))hullChanged=true;local.hp=next;}}
   if(hullChanged)syncSoloHull();
   const repair=data.submarine.repair,section=repair?soloSubmarine.sections.find(s=>s.id===Number(repair.sectionId)):null;
+  if(repair&&section&&String(repair.playerId)!==String(window.AbyssalOnline?.getSocketId?.()))refreshAudioLoop('repair','submarine',section,850,.85,{owner:'submarine-repair',leaseMs:1800});else if(!repair)stopAudioLoop('repair','submarine');
   if(repair&&section&&String(repair.playerId)===String(window.AbyssalOnline?.getSocketId?.())){const point=soloRepairSurface(section,player?.x||section.x,player?.y||section.y);soloSubmarine.repair={section,point,startX:player?.x||0,startY:player?.y||0,startedAt:Number(repair.startedAt)||Date.now(),endsAt:Number(repair.endsAt)||Date.now()+ONLINE_HULL_REPAIR_SECONDS*1000,elapsed:Math.max(0,(Date.now()-(Number(repair.startedAt)||Date.now()))/1000),online:true};}
   else if(soloSubmarine.repair?.online)soloSubmarine.repair=null;
  }
@@ -2565,6 +2581,8 @@ function spawnOnlineOrb(data){
 }
 function collectOnlineOrb(data){
  if(!onlineMode||!data)return;
+ const orb=onlineOrbById.get(String(data.id));const local=String(data.playerId||'')===String(window.AbyssalOnline?.getSocketId?.()||'');
+ if(orb||local)playWorldSound('orb',local?null:orb,850,local?.95:.65,{owner:String(data.playerId||'world'),local,eventId:String(data.id)});
  onlineOrbById.delete(String(data.id));orbs=orbs.filter(o=>String(o.id)!==String(data.id));
 }
 window.addEventListener('abyssal-orb-spawn',event=>spawnOnlineOrb(event.detail));
@@ -2584,7 +2602,7 @@ function tickSoloSpecimenOrbs(){
   // Only the living equipped specimen can collect an energy orb.
   const petContact=s?.alive&&distance<=range&&Math.hypot(s.x-o.x,s.y-o.y)<=s.r+7/GAME_WORLD_ZOOM&&pveTerrainClear(s.x,s.y,o.x,o.y,0);
   if(!petContact)continue;
-  orbs.splice(i,1);gainXp(o.value,'kill');
+  orbs.splice(i,1);playWorldSound('orb',o,900,.9,{owner:'local-pet',local:true,eventId:o.id});gainXp(o.value,'kill');
  }
 }
 function drawExperienceOrbs(t){
@@ -2733,7 +2751,7 @@ function fire(){
  const prismOffsets=Array.from({length:prismLevel*2},(_,i)=>{const rank=Math.floor(i/2)+1;return (i%2===0?-1:1)*(.095+.075*(rank-1));});
  const offsets=[...baseOffsets,...prismOffsets,...(upgrades.photonCascade?[-.36,.36]:[])];
  const angles=offsets.map(offset=>a+offset),volleyId=nextShotVolleyId();player.visualAttackUntil=performance.now()+140;
- for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);playWorldSound('shot-'+activeShot,null,850,.82);
+ for(const shotAngle of angles){const shotMuzzle=gunTip;const damage=shotDamage/(1+.4*prismLevel+(upgrades.photonCascade?.22:0)+(upgrades.tidalEcho?.16:0));const projectileRadius=profile.radius*GAME_WORLD_ZOOM;const special=activeShot==='photon'?'photon':activeShot==='pierce'?'pierce':activeShot==='electric'?'electric':activeShot==='echoShot'?'echoShot':null;const modifiers={abyssEye:Boolean(upgrades.abyssEye),ricochet:Math.max(0,Number(upgrades.ricochet)||0)};projectiles.push({x:shotMuzzle.x,y:shotMuzzle.y,barrelOrigin:!aimedMode&&target&&onlineRoomMode!=='pvp'?{x:player.x-Math.sin(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,y:player.y+Math.cos(a)*player.r*(DIVER_ART?.DRAW_SCALE||.60)*(DIVER_ART?.GUN_OFFSET_Y||12)/14,targetId:target.id}:null,vx:Math.cos(shotAngle)*shotSpeed,vy:Math.sin(shotAngle)*shotSpeed,r:projectileRadius/GAME_WORLD_ZOOM,life:upgrades.abyssEye?18:Math.max(1.33,maxRange/Math.max(1,shotSpeed)+.12),travelled:0,maxDistance:upgrades.abyssEye?Math.hypot(W,H):Math.max(0,maxRange-player.r*DIVER_ART.DRAW_SCALE*DIVER_ART.BARREL_TIP_X/14),damage,pierceRemaining:activeShot==='pierce'?(upgrades.pierce||shotLevel):0,hitIds:[], color:shotColor,special,modifiers});if(onlineMode&&window.AbyssalOnline?.sendShot)window.AbyssalOnline.sendShot({x:shotMuzzle.x/W,y:shotMuzzle.y/H,vx:Math.cos(shotAngle)*shotSpeed/W,vy:Math.sin(shotAngle)*shotSpeed/H,damage,color:shotColor,special,modifiers,volleyId});} player.angle=a;player.weaponAngle=a;emitBaseShotMuzzle(gunTip,a,activeShot,shotColor,angles.length);playWorldSound('shot-'+activeShot,null,850,1,{owner:'local-player',local:true,eventId:volleyId});
 }
 // Nova remains a radial pulse; Prism generates independent radial fragments
 // instead of pretending that a second invisible Nova dealt damage.
@@ -3029,7 +3047,7 @@ function updateSpecimenRuntime(dt){
   if(contact)s.attackHoldUntil=Math.max(Number(s.attackHoldUntil)||0,now+180);
   const distanceToTarget=Math.hypot(combatTarget.x-s.x,combatTarget.y-s.y),holdBand=Math.max(7/GAME_WORLD_ZOOM,profile.slack*1.8);
   attackHolding=now<(Number(s.attackHoldUntil)||0)&&Math.abs(distanceToTarget-strikeGoal.stop)<=holdBand*2.2;if(attackHolding)target=pos;
-  if(contact&&!profile.body&&now>=(s.nextTacticalAttack||0)){const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;s.nextTacticalAttack=now+1020;s.visualAttackUntil=now+390;s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};}
+  if(contact&&!profile.body&&now>=(s.nextTacticalAttack||0)){const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;s.nextTacticalAttack=now+1020;s.visualAttackUntil=now+390;s.biteAnimation={startedAt:now,duration:360,reach:profile.reach};playWorldSound('bite',s,750,.9,{owner:'local-pet',local:true});s.pendingBite={enemy:combatTarget,profile,damage,hitAt:now+230};}
   if(profile.body&&now>=(s.nextBodyAttackCheck||0)){
    s.nextBodyAttackCheck=now+90;s.bodyAttackCooldowns ||= new Map();const damage=SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).damage;
    collectEnemyCandidatesNear(s.x,s.y,profile.reach+220/GAME_WORLD_ZOOM,specimenBodyCandidates);
@@ -3212,7 +3230,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    if(nearest){aimAngle=aimAtEnemy(nearest);hasAim=true;}
   }
-  if(!hasAim){if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
+  if(!hasAim){stopAudioLoop('beam','local-player');if(player.photonRayActive&&onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();player.photonRayActive=false;player.photonRayTimer=Math.min(Number(player.photonRayTimer)||0,0);}
   const ux=Math.cos(aimAngle),uy=Math.sin(aimAngle);
   const gunOrigin=DIVER_ART?.muzzle?.(player.x,player.y,player.r,aimAngle)||{x:player.x,y:player.y};
   const rayX=gunOrigin.x,rayY=gunOrigin.y;
@@ -3246,6 +3264,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
   }
   if(hasAim){player.angle=aimAngle;player.weaponAngle=aimAngle;player.photonRayActive=true;
+   refreshAudioLoop('beam','local-player',null,1000,1,{owner:'local-player',local:true,leaseMs:350});
    // Keep the additional prismatic rays visually continuous instead of
    // recreating flashes every pulse. Exactly 2/4/6 side rays match the rank.
    for(let i=0;i<prismBeams.length;i++){
@@ -3272,7 +3291,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   }
   }
  }else if(player.photonRayActive){
-  if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
+  stopAudioLoop('beam','local-player');if(onlineMode)window.AbyssalOnline?.sendPhotonRayStop?.();
   player.photonRayActive=false;
  }
  // Nova is still the primary shot when gravitationalRupture is fused.
@@ -3313,7 +3332,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
    }
    spawnNovaVisual(muzzle.x,muzzle.y,novaRange,'#72f5ff',isPvpMode,novaAngle,combined);
    emitPrismaticNovaShards(novaDamage,volleyId);
-   playSkillSound('nova','trigger');
+   playWorldSound('shot-nova',null,1000,1,{owner:'local-player',local:true,eventId:volleyId});
   }
  }
  if(upgrades.gravitationalRupture>0){
@@ -3328,7 +3347,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
     burst(e.x,e.y,'#76f7ff',8,80);
     queueEffect({type:'beam',x1:e.x-5/worldZoom,y1:e.y-5/worldZoom,x2:e.x+5/worldZoom,y2:e.y+5/worldZoom,life:.16,maxLife:.16,color:'#9dfcff'});
    }
-   playSkillSound('nova','trigger');playWorldSound('ability-nova',player,920,.70);
+   playWorldSound('shot-nova',null,920,.60,{owner:'local-field',local:true});
   }
  }
  if(upgrades.arcChain>0){
@@ -3685,7 +3704,7 @@ function renderRunEndPresentation(){
  }
 }
 function endGame(reason='death'){
- cancelSoloHullRepair();
+ window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();
  if(gameState==='over'||gameState==='menu')return;
  diveEndReason=expeditionExtracted?'extracted':reason;
  wasOnlineModeOnDeath=Boolean(onlineMode);
@@ -3701,7 +3720,7 @@ function endGame(reason='death'){
  if(elapsed>bestTime){bestTime=elapsed;localStorage.setItem('abyssalBestTime',String(elapsed));const el=$('bestTime');if(el)el.textContent=fmtTime(bestTime)}
  $('saveStatus').textContent=expeditionMode?(expeditionExtracted?'EXTRAÇÃO CONCLUÍDA · RECOMPENSA GARANTIDA':'EXPEDIÇÃO ENCERRADA · SEM PENALIDADE DE SAQUE'):(runResultPending?'RESULTADO AGUARDANDO SUA ESCOLHA':'SINAL DE SOBREVIVÊNCIA REGISTRADO');if(player)burst(player.x,player.y,expeditionExtracted?'#72f5df':'#ff7796',35,210);audio(expeditionExtracted?320:95,.5,'sawtooth',.04);if(diveEndReason!=='death')settleDiveReport();else if(onlineMode){const current=diveReport;window.AbyssalOnline?.previewRunReport?.(result=>{if(gameState!=='over'||diveReport!==current||diveSettling||diveSettled)return;diveReport={...diveReport,...result,survival:current.survival};renderDiveReport(diveReport,true);});}
 }
-function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
+function pauseGame(){if(onlineMode){showToast('A partida cooperativa não pode ser pausada.');return}if(gameState!=='playing')return;gameState='paused';window.AbyssalAudio?.stopEffects();$('pauseScreen').hidden=false;$('pauseBtn').hidden=true}
 document.getElementById('mobilePauseBtn')?.addEventListener('click',pauseGame);
 function resumeGame(){if(gameState!=='paused')return;gameState='playing';$('pauseScreen').hidden=true;$('pauseBtn').hidden=false;last=performance.now()}
 function drawEliteMarker(enemy,t){
@@ -5030,8 +5049,8 @@ function isTextEntryTarget(target){return Boolean(target?.closest?.('input,texta
 window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target))return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
-function prepareForH5Ad(){}
-function resumeAfterH5Ad(){last=performance.now();}
+function prepareForH5Ad(){window.AbyssalAudio?.setMuted(true);}
+function resumeAfterH5Ad(){window.AbyssalAudio?.setMuted(false);last=performance.now();}
 async function resumeAfterRewardedRevive(ticket){
  if(onlineMode){window.AbyssalOnline?.revivePlayer?.(ticket);return;}
  if(ticket){const result=await window.AbyssalOnline?.adMobRequest?.('admob-solo-revive',{ticket});if(!result?.ok){setReviveMessage('Não foi possível confirmar a ressurreição.');return;}}
@@ -5076,7 +5095,7 @@ function settleDiveReport(onComplete){
  const calculation=diveEnergyCalculation(),earned=calculation.earned;
  energyWallet?.credit(earned,'offline-reward');saveCosmetics();if(!$('shopScreen')?.hidden)renderShop();finish({ok:true,...diveEnergyCalculation()});
 }
-function returnToMainMenu(){cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
+function returnToMainMenu(){window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
 window.addEventListener('abyssal-start-open-sea',()=>{requestedRunMode='open-sea';onlineMode=false;startGame()});
@@ -5091,8 +5110,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&gameState=
 window.addEventListener('resize',()=>{resize();if(gameState==='playing'||(onlineMode&&gameState==='upgrade')){setMobileGameActive(true);requestAnimationFrame(positionMobileRightStack);}});
 window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Number.isFinite(d.x)||!Number.isFinite(d.y))return;const remoteShooterId=String(d.fromId||d.from||'');if(remoteShooterId)remoteCreatureAttackUntil.set(remoteShooterId,performance.now()+140);
  const col=d.color||'#9bbcff',special=d.special||null,x=d.x*W,y=d.y*H,vx=(d.vx||0)*W,vy=(d.vy||0)*H;
- if(special==='nova'){const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,heading=Math.atan2(Number(d.vy)*H||0,Number(d.vx)*W||0);spawnNovaVisual(x,y,max,col,onlineRoomMode==='pvp',heading,d.combined===true);return;}
- if(special==='photonRay'){const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]*(d.hadalBeamActive?1.35:1)/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else queueEffect({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});
+ if(special==='nova'){playWorldSound('shot-nova',{x,y},1000,.85,{owner:remoteShooterId,eventId:d.volleyId||d.actionId});const max=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,heading=Math.atan2(Number(d.vy)*H||0,Number(d.vx)*W||0);spawnNovaVisual(x,y,max,col,onlineRoomMode==='pvp',heading,d.combined===true);return;}
+ if(special==='photonRay'){refreshAudioLoop('beam','remote:'+remoteShooterId,{x,y},1000,.85,{owner:remoteShooterId,leaseMs:Math.max(500,PHOTON_RAY_VISUAL.remoteHold*1000+180)});const length=Number(d.effectRadius)||294/GAME_WORLD_ZOOM,mag=Math.hypot(vx,vy)||1;const beamKey=String(d.fromId||d.from||'remote'),beamTargetId=d.beamTargetId==null?null:String(d.beamTargetId);const remoteEndValid=Number.isFinite(d.beamEndX)&&Number.isFinite(d.beamEndY);const beamX2=remoteEndValid?d.beamEndX*W:x+vx/mag*length,beamY2=remoteEndValid?d.beamEndY*H:y+vy/mag*length;const width=PHOTON_RAY_VISUAL.widths[Math.max(1,Math.min(3,Number(d.beamLevel)||1))]*(d.hadalBeamActive?1.35:1)/GAME_WORLD_ZOOM;const existing=effects.find(fx=>fx.type==='photon-ray'&&fx.remoteBeamKey===beamKey);if(existing){existing.targetX1=x;existing.targetY1=y;existing.targetX2=beamX2;existing.targetY2=beamY2;existing.remoteTargetId=beamTargetId;existing.width=width;existing.life=PHOTON_RAY_VISUAL.remoteHold;existing.maxLife=PHOTON_RAY_VISUAL.remoteHold;existing.color=PHOTON_RAY_VISUAL.color;}else queueEffect({type:'photon-ray',remoteBeamKey:beamKey,remoteTargetId:beamTargetId,x1:x,y1:y,x2:beamX2,y2:beamY2,targetX1:x,targetY1:y,targetX2:beamX2,targetY2:beamY2,width,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:PHOTON_RAY_VISUAL.color});
   // The server owns the secondary beam endpoints; peers render those exact
   // lines, not an independently guessed client-side collision shape.
   const prism=Array.isArray(d.prismBeams)?d.prismBeams.slice(0,6):[];
@@ -5105,12 +5124,13 @@ window.addEventListener('abyssal-remote-shot',ev=>{const d=ev.detail;if(!d||!Num
    else queueEffect({type:'photon-ray',remoteBeamKey:key,x1:x,y1:y,x2:ex,y2:ey,targetX1:x,targetY1:y,targetX2:ex,targetY2:ey,width:width*.58,life:PHOTON_RAY_VISUAL.remoteHold,maxLife:PHOTON_RAY_VISUAL.remoteHold,color:'#c8a5ff'});
   }
   return;}
+ playWorldSound('shot-'+String(special||'electric'),{x,y},850,.86,{owner:remoteShooterId,eventId:d.volleyId||d.actionId});
  projectiles.push({x,y,vx,vy,r:(special==='pierce'?6.5:special==='electric'?5.8:5.2)/GAME_WORLD_ZOOM,life:1.05,damage:0,color:col,special,allyShot:true,remoteVisual:true,trailLife:.16});
  burst(x,y,col,5,75);
  if(projectiles.length>projectileBudget())projectiles.splice(0,projectiles.length-projectileBudget());
 });
 window.addEventListener('abyssal-hit-synergy-visual',event=>{const d=event.detail||{},x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;if(![x1,y1,x2,y2].every(Number.isFinite))return;if(d.type==='ricochet-line')queueEffect({type:'ricochet-line',x1,y1,x2,y2,life:.18,maxLife:.18,color:'#f7ff19',width:3.4/GAME_WORLD_ZOOM});else if(d.type==='electric-arc')queueEffect({type:'electric-arc',x1,y1,x2,y2,seed:Number(d.seed)||performance.now(),life:.22,maxLife:.22,color:'#31eaff',width:4.2/GAME_WORLD_ZOOM});});
-window.addEventListener('abyssal-remote-photon-stop',event=>{const fromId=String(event.detail?.fromId||'');if(!fromId)return;for(const fx of effects)if(fx.type==='photon-ray'&&fx.remoteBeamKey===fromId)fx.life=Math.min(fx.life,.06);});
+window.addEventListener('abyssal-remote-photon-stop',event=>{const fromId=String(event.detail?.fromId||'');if(!fromId)return;stopAudioLoop('beam','remote:'+fromId);for(const fx of effects)if(fx.type==='photon-ray'&&fx.remoteBeamKey===fromId)fx.life=Math.min(fx.life,.06);});
 window.AbyssalGameHooks={
  browserUpdateBlocked:()=>gameState!=='menu',
  notifyBrowserUpdate:()=>showToast('NOVA VERSÃO · ATUALIZAÇÃO AO RETORNAR AO MENU'),
@@ -5708,7 +5728,7 @@ window.addEventListener('abyssal-peer-skin-ability',ev=>{
  else if(active==='shield'){/* A joint bubble is synchronized by skin-shield-bubble. */}
  else if(active==='shot'||active==='slowShot'){/* The authoritative shot event renders the beam for everyone. */}
 });
-window.addEventListener('abyssal-specimen-attack',ev=>{const d=ev.detail||{};if(!Number.isFinite(d.x)||!Number.isFinite(d.y))return;queueEffect({type:'ring',x:d.x,y:d.y,max:24/GAME_WORLD_ZOOM,life:.25,maxLife:.25,color:'#8ff4e8'});});
+window.addEventListener('abyssal-specimen-attack',ev=>{const d=ev.detail||{};if(!Number.isFinite(d.x)||!Number.isFinite(d.y))return;playWorldSound('bite',{x:d.x,y:d.y},750,.85,{owner:'pet:'+String(d.fromId||'remote'),local:String(d.fromId||'')===String(window.AbyssalOnline?.getSocketId?.()||'')});queueEffect({type:'ring',x:d.x,y:d.y,max:24/GAME_WORLD_ZOOM,life:.25,maxLife:.25,color:'#8ff4e8'});});
 window.addEventListener('abyssal-specimen-dash',ev=>{
  const d=ev.detail||{},id=String(d.fromId||''),durationMs=Math.max(100,Math.min(1200,Number(d.durationMs)||650));
  const x1=Number(d.x1)*W,y1=Number(d.y1)*H,x2=Number(d.x2)*W,y2=Number(d.y2)*H;
@@ -5762,7 +5782,7 @@ window.addEventListener('abyssal-room-joined',ev=>{if(!activateOnlineEntry(ev.de
 window.addEventListener('abyssal-room-entry-retry',ev=>{if(document.body.classList.contains('game-active')&&gameState==='playing')return;activateOnlineEntry(ev.detail||{});});
 window.addEventListener('abyssal-room-created',ev=>{const d=ev.detail||{};const m=$('roomsMessage');if(m)m.textContent=d.ok?`Sala criada! Código para convidar amigos: ${d.room?.id||''}. Você será conectado agora.`:(d.message||'Não foi possível criar a sala.');});
 window.addEventListener('abyssal-online-disconnected',()=>{onlineDamageQueue.length=0;});
-window.addEventListener('abyssal-reconnect-failed',ev=>{onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;window.AbyssalCockpitNavigation?.showExterior?.();window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
+window.addEventListener('abyssal-reconnect-failed',ev=>{window.AbyssalAudio?.stopEffects();onlineDamageQueue.length=0;onlineMode=false;setMobileGameActive(false);document.body.classList.remove('game-active');gameState='menu';$('hud').hidden=true;$('pauseBtn').hidden=true;$('menuScreen').hidden=false;window.AbyssalCockpitNavigation?.showExterior?.();window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));const m=$('roomsMessage');if(m)m.textContent=ev.detail?.message||'A expedição não pôde ser retomada automaticamente. Entre novamente quando o servidor estabilizar.';showToast('CONEXÃO RESTAURADA · REENTRE NA EXPEDIÇÃO');});
 window.addEventListener('abyssal-room-left',()=>{onlineDamageQueue.length=0;onlineRoomMode='coop';requestedRunMode='classic';activeMapLayout=null;W=defaultWidth();H=defaultHeight();createArenaRocks();const badge=$('roomBadge');if(badge){badge.hidden=true;badge.classList.remove('pvp-room-badge');}setMobileGameActive(false)});
 const roomBadge=$('roomBadge');if(roomBadge)roomBadge.addEventListener('click',async()=>{const code=roomBadge.dataset.roomCode||'';try{await navigator.clipboard.writeText(code);showToast(`CÓDIGO ${code} COPIADO`)}catch{showToast(`CÓDIGO DA SALA: ${code}`)}});
 function handleRoomsClosed(){onlineMode=false;if(gameState==='menu'){setMobileGameActive(false);document.body.classList.remove('game-active');$('hud').hidden=true;$('pauseBtn').hidden=true;$('gameOverScreen').hidden=true;$('menuScreen').hidden=false;}}
