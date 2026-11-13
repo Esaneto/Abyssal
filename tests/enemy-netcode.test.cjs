@@ -187,3 +187,13 @@ test('active online rooms suspend unrelated maintenance traffic and use a lightw
  assert.match(online,/\},80\);\n\}\nfunction stopPositionHeartbeat/);
  assert.match(online,/lastNetMetaAt>=2000/);
 });
+
+
+test('authoritative monster visuals keep converging even if interpolation stalls',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const game=fs.readFileSync(path.join(__dirname,'../public/game.js'),'utf8');
+ assert.match(game,/const stalledVisual=renderGap<\.015&&serverGap>\.35/);
+ assert.match(game,/const targetX=stalledVisual\?predictedX:renderX/);
+ assert.match(game,/if\(serverGap>120\/GAME_WORLD_ZOOM\)\{e\.x=sx;e\.y=sy;\}/);
+ assert.match(game,/Contact packets carry the exact attacker position used by server-side damage/);
+});
