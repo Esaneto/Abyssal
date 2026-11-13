@@ -87,6 +87,8 @@
   plateShine.addColorStop(.37,'rgba(86,186,206,.15)');
   plateShine.addColorStop(1,'rgba(10,31,56,0)');
   c.fillStyle=plateShine;c.beginPath();c.ellipse(1,-5,16,4.2,-.07,0,TAU);c.fill();
+  // Pressure suit detail: paired cyan seam lights improve silhouette at game scale.
+  c.save();c.strokeStyle='#67c8d6';c.lineWidth=1.15;c.beginPath();c.moveTo(-13,-9);c.lineTo(-5,-12);c.lineTo(7,-10);c.stroke();c.strokeStyle='#39596b';c.lineWidth=1.1;c.beginPath();c.moveTo(-12,8);c.lineTo(1,10);c.stroke();c.restore();
   // Anatomical shoulder guards frame the torso without changing its hitbox.
   for(const side of [-1,1]){
    c.fillStyle=side<0?'#1e4054':'#112a3c';c.strokeStyle='rgba(112,188,197,.49)';c.lineWidth=.9;
@@ -175,7 +177,18 @@
    limb([4,7],[16,11],5.2,'#192733','#698797');
    limb([16,11],[27,3],4.5,'#162c3b','#5d8191');
    c.translate(27,0);
-   if(held==='abyssPickaxe'){
+   if(held==='abyssPropulsor'||held==='abyssPropulsorIdle'){
+    const active=Boolean(options.propulsorActive),pulse=.5+.5*Math.sin((Number(t)||0)*.045);
+    const shell=c.createLinearGradient(0,-12,0,12);shell.addColorStop(0,'#a6c9cf');shell.addColorStop(.28,'#496a78');shell.addColorStop(.63,'#152b39');shell.addColorStop(1,'#0b1724');
+    c.fillStyle=shell;c.strokeStyle='#a3c8d0';c.lineWidth=1.35;c.beginPath();c.roundRect(-6,-10,38,20,8);c.fill();c.stroke();
+    c.fillStyle='#081925';c.strokeStyle='#547c8c';c.beginPath();c.roundRect(1,-12,12,24,4);c.fill();c.stroke();
+    c.fillStyle='#203e50';c.strokeStyle='#8bb3bf';c.beginPath();c.ellipse(29,0,7,10,0,0,TAU);c.fill();c.stroke();
+    c.fillStyle='#10232f';c.beginPath();c.ellipse(30,0,4.3,6.4,0,0,TAU);c.fill();
+    c.strokeStyle='#08131e';c.lineWidth=2;c.beginPath();c.ellipse(-6,0,5,8,0,0,TAU);c.stroke();
+    c.fillStyle=active?'#69f8e3':'#416c77';c.shadowColor='#45ffe4';c.shadowBlur=active?5:0;c.fillRect(5,-8,5,16);c.fillRect(15,-7,8,2);c.shadowBlur=0;
+    c.strokeStyle='#b9dbe0';c.lineWidth=1.4;for(let k=0;k<3;k++){c.beginPath();c.moveTo(17+k*3,3);c.lineTo(17+k*3,7);c.stroke();}
+    if(active){c.save();c.strokeStyle='#9ef7f4';c.lineWidth=.8;for(let i=0;i<13;i++){const f=((Number(t)||0)*.0017+i/13)%1;const bx=-9-f*64,by=Math.sin(i*2.3+f*4)*(2+f*8)-f*3;const br=1.15+f*2.3;c.globalAlpha=(1-f)*(.55+pulse*.25);c.beginPath();c.arc(bx,by,br,0,TAU);c.stroke();}c.restore();}
+   }else if(held==='abyssPickaxe'){
     // Original voxel-inspired miner tool, matching the backpack illustration.
     c.rotate(-.35+(Number(options.swing)||0)*.45);
     c.fillStyle='#513822';c.strokeStyle='#d3a46b';c.lineWidth=1.4;
