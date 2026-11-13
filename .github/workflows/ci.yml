@@ -92,6 +92,7 @@ jobs:
       - name: Check Android configurator syntax
         run: |
           node --check scripts/configure-android.cjs
+          node --check scripts/configure-android-direct-update.cjs
           node --check scripts/configure-android-signing.cjs
           node --check scripts/build-app-icons.cjs
       - name: Check JavaScript syntax and title definitions
@@ -175,6 +176,9 @@ jobs:
           cmp public/update-manager.js android/app/src/main/assets/public/update-manager.js
           grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          grep -q 'registerPlugin(AbyssalUpdaterPlugin.class)' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
+          test -s android/app/src/main/java/com/esaneto/abyssal/AbyssalUpdaterPlugin.java
+          test -s android/app/src/main/res/xml/abyssal_update_paths.xml
           if grep -q '"url"[[:space:]]*:[[:space:]]*"https://abyssal' capacitor.config.json; then
             echo "Android cannot use a remote-only server.url for offline solo" >&2
             exit 1
@@ -208,8 +212,11 @@ jobs:
           ABYSSAL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/abyssal-upload.jks
+          node scripts/configure-android-direct-update.cjs --enable
           cd android
           ./gradlew assembleRelease
+          cd ..
+          node scripts/configure-android-direct-update.cjs --disable
 
       - name: Validate unsigned release AAB
         if: env.ANDROID_KEYSTORE_BASE64 == ''
@@ -234,6 +241,14 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
         shell: bash
         run: echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/abyssal-upload.jks
+      - name: Verify Play manifest excludes sideload installer permission
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
+        shell: bash
+        run: |
+          if grep -q 'android.permission.REQUEST_INSTALL_PACKAGES' android/app/src/main/AndroidManifest.xml; then
+            echo "Play build must not request REQUEST_INSTALL_PACKAGES" >&2
+            exit 1
+          fi
       - name: Build signed Play release AAB
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.ANDROID_KEYSTORE_BASE64 != ''
         working-directory: android
