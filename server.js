@@ -26,6 +26,7 @@ const SpecimenSystem = require('./public/specimen-system.js');
 const DiverHitbox = require('./public/diver-hitbox.js');
 const DiverArt = require('./public/diver-art.js');
 const NetCodec = require('./public/net-codec');
+const MotionInterest = require('./motion-interest');
 const PhotonRay = require('./public/photon-ray-config');
 const PvpProjectiles = require('./pvp-projectiles');
 const ExpeditionRules = require('./public/abyssal-expedition-rules.js');
@@ -520,7 +521,7 @@ const WORLD_WIDTH = EnemyAI.WORLD_WIDTH;
 const WORLD_HEIGHT = EnemyAI.WORLD_HEIGHT;
 const WORLD_ZOOM = EnemyAI.WORLD_ZOOM; // Shared with the solo renderer.
 function roomWorldWidth(room){return room?.mode==='open-sea'?OceanStream.WIDTH:WORLD_WIDTH;}
-function roomAoiRadius(p){const zoom=clamp(Number(p?.worldZoom)||WORLD_ZOOM,.35,1.2);return clamp(Math.hypot(windowWidthSafe(p?.viewportWidth,1200)/zoom,windowWidthSafe(p?.viewportHeight,700)/zoom)*.5+850,2100,5000);}
+function roomAoiRadius(p){const zoom=clamp(Number(p?.worldZoom)||WORLD_ZOOM,.18,1.5);return clamp(Math.hypot(windowWidthSafe(p?.viewportWidth,1200)/zoom,windowWidthSafe(p?.viewportHeight,700)/zoom)*.5+850,2100,5000);}
 function roomWorldHeight(room){return room?.mode==='rift'?(Number(WorldSimulation.mapLayoutFor(room.world)?.height)||WORLD_HEIGHT):room?.mode==='open-sea'?OceanStream.HEIGHT:WORLD_HEIGHT;}
 function pvpArenaRocks(){
  const minDim=Math.min(WORLD_WIDTH,WORLD_HEIGHT),rocks=[];
@@ -871,7 +872,7 @@ function getRoomMotionSnapshot(room, options = {}){
  let bounds=null;
  if(recipient){
   const activeWorldHeight=roomWorldHeight(room);
-  const zoom=clamp(Number(recipient.worldZoom)||WORLD_ZOOM,.35,1.2);
+  const zoom=clamp(Number(recipient.worldZoom)||WORLD_ZOOM,.18,1.5);
   const viewWidth=windowWidthSafe(recipient.viewportWidth,1200)/zoom;
   const viewHeight=windowWidthSafe(recipient.viewportHeight,700)/zoom;
   const cameraX=clamp((Number(recipient.x)||0)-viewWidth*.5,0,Math.max(0,roomWorldWidth(room)-viewWidth));
@@ -883,7 +884,7 @@ function getRoomMotionSnapshot(room, options = {}){
  // off-screen creatures no longer create periodic bandwidth bursts. Bosses stay live for
  // direction indicators, and powered-submarine targets stay live inside turret reach.
  const motionNow=Number(world.lastTick)||Date.now(),submarine=room.mode==='coop'?world.submarine:null,submarineRadius=760/WORLD_ZOOM;
- const enemies=recipient&&room.mode==='open-sea'?world.enemies.filter(e=>{
+ const enemies=room.mode==='coop'&&options.priorityMotion?MotionInterest.selectMotionEnemies(world.enemies,[...room.players.values()].filter(p=>p.alive!==false),{width:roomWorldWidth(room),height:roomWorldHeight(room),includeFar:options.includeFar,bossKinds:BOSS_KINDS,submarine,submarineRange:submarineRadius}):recipient&&room.mode==='open-sea'?world.enemies.filter(e=>{
   if(BOSS_KINDS.has(e.kind))return true;
   if(e.x>=bounds.left&&e.x<=bounds.right&&e.y>=bounds.top&&e.y<=bounds.bottom)return true;
   return Boolean(submarine&&(Number(submarine.powerSeconds)||0)>0&&Math.hypot((Number(e.x)||0)-Number(submarine.x),(Number(e.y)||0)-Number(submarine.y))<=submarineRadius);
@@ -1591,7 +1592,9 @@ function tickRoom(room, now) {
   if(room.mode==='coop'){
    // The classic arena has a bounded enemy population. Serialize once, broadcast
    // the same ordered motion frame to everyone, and do not drop frames under load.
-   const motion=getRoomMotionSnapshot(room);
+   const includeFar=now-(Number(w.lastFarMotionAt)||0)>=MotionInterest.FAR_INTERVAL_MS;
+   if(includeFar)w.lastFarMotionAt=now;
+   const motion=getRoomMotionSnapshot(room,{priorityMotion:true,includeFar});
    if(motion)io.to(channelFor(room)).emit('enemy-motion',motion);
   }else for(const recipient of activePlayers){
    const motion=getRoomMotionSnapshot(room,{player:recipient});
@@ -2022,7 +2025,7 @@ io.on('connection', socket => {
   p.angle=Math.max(-Math.PI*2,Math.min(Math.PI*2,Number(payload.angle)||0));
   p.worldWidth=roomWorldWidth(room);p.worldHeight=activeWorldHeight;p.clientMotionAt=Date.now();
   if(!compact){
-   p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(payload.worldZoom)||p.worldZoom||WORLD_ZOOM,.35,1.2);
+   p.viewportWidth=windowWidthSafe(payload.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(payload.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(payload.worldZoom)||p.worldZoom||WORLD_ZOOM,.18,1.5);
    p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(payload.clientMovingEnemies)||0)));
    p.clientPredicting=Boolean(payload.clientPredicting);p.clientGameState=String(payload.clientGameState||'unknown').slice(0,24);
    const color=String(payload.color||p.color||'#bd91ff');p.color=/^#[0-9a-fA-F]{6}$/.test(color)?color:(p.color||'#bd91ff');
@@ -2098,7 +2101,8 @@ io.on('connection', socket => {
  });
  socket.on('player-net-meta',meta=>{
   const room=socketRoom(socket),p=room?.players.get(socket.id);if(!room||!p||!meta||typeof meta!=='object')return;
-  p.viewportWidth=windowWidthSafe(meta.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(meta.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(meta.worldZoom)||p.worldZoom||WORLD_ZOOM,.35,1.2);
+  p.viewportWidth=windowWidthSafe(meta.viewportWidth,p.viewportWidth||1200);p.viewportHeight=windowWidthSafe(meta.viewportHeight,p.viewportHeight||700);p.worldZoom=clamp(Number(meta.worldZoom)||p.worldZoom||WORLD_ZOOM,.18,1.5);
+  p.clientCombatRange=clamp(Number(meta.combatRange)||294/WORLD_ZOOM,294/WORLD_ZOOM,2000/WORLD_ZOOM);
   p.clientEnemyCount=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientEnemyCount)||0)));p.clientMovingEnemies=Math.max(0,Math.min(MAX_ENEMIES_PER_ROOM,Math.floor(Number(meta.clientMovingEnemies)||0)));
   p.petHabit=PetTactics.normalize(meta.petHabit);p.clientPredicting=Boolean(meta.clientPredicting);p.clientGameState=String(meta.clientGameState||'unknown').slice(0,24);p.clientHidden=Boolean(meta.clientHidden);p.clientMotionAt=Date.now();
  });
