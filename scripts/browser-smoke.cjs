@@ -153,8 +153,24 @@ const injected=`<script>
     const terms=document.getElementById('ageTermsAccept');if(terms)terms.checked=true;
     document.getElementById('ageTermsContinue')?.click();
    },300);
-   setTimeout(()=>{const stage=new URLSearchParams(location.search).get('stage');if(stage==='cockpit')return;if(!stage){const cockpit=document.getElementById('submarineWorkshop');const action=cockpit&&!cockpit.hidden?cockpit.querySelector('.abyss-visor-action'):null;if(action&&/INICIAR SHOOTER SOLO/.test(action.textContent))action.click();else document.getElementById('playBtn')?.click();}else window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));check()},950);
-   setTimeout(()=>{document.getElementById('abyssalGuideX')?.click();check()},2000);
+   const stage=new URLSearchParams(location.search).get('stage');
+   if(stage!=='cockpit'){
+    let attempts=0;
+    const enter=()=>{
+     if(document.body.classList.contains('game-active')){
+      const guide=document.getElementById('abyssalTutorialOverlay');if(guide&&!guide.hidden)document.getElementById('abyssalGuideStart')?.click();
+      check();return;
+     }
+     if(++attempts>30)return;
+     if(document.getElementById('ageTermsScreen')?.hidden===false||document.documentElement.classList.contains('abyssal-startup')){setTimeout(enter,200);return;}
+     if(stage){window.dispatchEvent(new CustomEvent(stage==='sea'?'abyssal-start-open-sea':'abyssal-start-rift-solo'));}
+     else if(document.getElementById('submarineWorkshop')?.hidden===false){document.getElementById('cockpitSoloDiveBtn')?.click();}
+     else if(document.getElementById('abyssalDiveChoicePanel')?.hidden===false){document.getElementById('abyssDiveSoloChoice')?.click();}
+     else document.getElementById('divePortalBtn')?.click();
+     setTimeout(enter,250);
+    };
+    setTimeout(enter,950);
+   }
    let inventoryAttempts=0;
    const openSeaInventory=()=>{const q=new URLSearchParams(location.search),stage=q.get('stage');if(stage!=='sea'||q.has('biome'))return;const toggle=document.getElementById('abyssInventoryToggle');const root=document.getElementById('abyssInventoryRoot');if(toggle&&root&&!root.hidden){toggle.click();check();return;}inventoryAttempts++;if(inventoryAttempts<24)setTimeout(openSeaInventory,150);else check();};
    setTimeout(openSeaInventory,2200);
@@ -171,61 +187,48 @@ const injected=`<script>
       if(!art?.rendered||!art.original||!art.liveOcean||art.bitmapBackdrop)throw Error('Original animated bridge did not render');
       document.body.dataset.cockpitArt=art.original+','+art.liveOcean+','+art.mode;
       const keys=[...box.querySelectorAll('.abyss-control-key')];
-      if(keys.length!==7)throw Error('Physical control keys: '+keys.length);
-      const mineral=keys.find(b=>b.textContent.includes('MINÉRIOS'));
-      mineral?.click();
-      const tiles=box.querySelectorAll('.abyss-mineral-tile').length;
-      const icons=box.querySelectorAll('.abyss-mineral-tile svg').length;
-      if(tiles!==6||icons!==6)throw Error('Mineral monitor missing art: '+tiles+'/'+icons);
-      const lab=[...box.querySelectorAll('.abyss-control-key')].find(b=>b.textContent.includes('LABORATÓRIO'));
-      lab?.click();
-      const cards=box.querySelectorAll('.submarine-console-card').length;
-      const req=box.querySelectorAll('.abyss-requirement svg').length;
-      if(cards<1||req<1)throw Error('Laboratory lost real research costs: '+cards+'/'+req);
-      if(!box.querySelector('.abyss-visor-scroll-hint'))throw Error('Cockpit missing scrolling guidance');
-      if([...box.querySelectorAll('.submarine-console-card button')].some(b=>!b.disabled))throw Error('Frozen research can still be purchased');
-      // Real-browser layout contract: compact keys must remain beneath the monitor.
-      const monitor=box.querySelector('.abyss-cockpit-visor');
-      const deck=box.querySelector('.abyss-control-deck');
-      const monitorRect=monitor?.getBoundingClientRect();
-      const deckRect=deck?.getBoundingClientRect();
-      // The Lab click replaces the console DOM. Inspect CURRENT buttons.
-      const currentKeys=[...box.querySelectorAll('.abyss-control-key')];
-      const keyRects=currentKeys.map(key=>key.getBoundingClientRect());
-      if(currentKeys.length!==7||keyRects.some(r=>r.width<25||r.height<25))
-       throw Error('Cockpit hardware buttons are hidden or detached');
+      if(keys.length!==4)throw Error('Physical control keys: '+keys.length);
+      for(const id of ['solo','research','shop','specimens'])if(!box.querySelector('.abyss-control-'+id))throw Error('Missing current cockpit control '+id);
+      box.querySelector('.abyss-control-research').click();
+      const research=box.querySelector('.abyss-tree-map'),nodes=research?.querySelectorAll('.abyss-tree-node')||[];
+      if(nodes.length<5||!research.textContent.includes('Pulso de Maré')||!research.textContent.includes('Propulsor Abissal'))throw Error('Diver research Q/E or lamp nodes missing');
+      const cards=nodes.length,icons=research.querySelectorAll('.abyss-tree-node-icon').length;
+      if(cards!==icons)throw Error('Missing research node symbols');
+      const monitor=box.querySelector('.abyss-cockpit-visor'),deck=box.querySelector('.abyss-control-deck');
+      const monitorRect=monitor?.getBoundingClientRect(),deckRect=deck?.getBoundingClientRect();
+      const currentKeys=[...box.querySelectorAll('.abyss-control-key')],keyRects=currentKeys.map(key=>key.getBoundingClientRect());
+      if(currentKeys.length!==4||keyRects.some(r=>r.width<25||r.height<25))throw Error('Cockpit hardware buttons are hidden or detached');
       if(!monitorRect||!deckRect)throw Error('Cockpit monitor/deck missing');
       if(deckRect.top<monitorRect.bottom-4)throw Error('Console deck overlaps monitor or sits alongside it');
-      if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)
-       throw Error('Console keys are not aligned with the main monitor');
-      if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))
-       throw Error('Oversized vertically stretched console key');
-      if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))
-       throw Error('Central cockpit display is too small: '+JSON.stringify({width:monitorRect.width,height:monitorRect.height,keys:deckRect.height}));
-      if(monitorRect.height<deckRect.height*1.5)
-       throw Error('The central monitor must dominate the physical key deck');
-      document.body.dataset.cockpitLayout=JSON.stringify({
-       visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],
-       keys:[Math.round(deckRect.width),Math.round(deckRect.height)],
-       keyHeight:Math.round(keyRects[0].height)
-      });
-      // Save the requested actual visor, not always the Lab scroll header.
+      if(Math.abs(deckRect.left-monitorRect.left)>8||Math.abs(deckRect.width-monitorRect.width)>18)throw Error('Console keys are not aligned with the main monitor');
+      if(keyRects.some(r=>r.height>(innerWidth>700?100:72)))throw Error('Oversized vertically stretched console key');
+      if(monitorRect.height<deckRect.height*1.5)throw Error('The central monitor must dominate the physical key deck');
+      if(monitorRect.width<210||monitorRect.height<(innerWidth>700?180:150))throw Error('Central cockpit display is too small');
+      document.body.dataset.cockpitLayout=JSON.stringify({visor:[Math.round(monitorRect.width),Math.round(monitorRect.height)],keys:[Math.round(deckRect.width),Math.round(deckRect.height)],keyHeight:Math.round(keyRects[0].height)});
       const view=new URLSearchParams(location.search).get('view')||'solo';
-      if(view!=='lab'){
-       const wanted=view==='minerals'?'MINÉRIOS':'SHOOTER SOLO';
-       [...box.querySelectorAll('.abyss-control-key')].find(key=>key.textContent.includes(wanted))?.click();
-       if(view==='minerals'&&box.querySelectorAll('.abyss-mineral-tile').length!==6)throw Error('Mineral capture lost tiles');
-       if(view==='solo'&&!box.querySelector('.abyss-visor-action')?.textContent.includes('INICIAR SHOOTER SOLO'))throw Error('Default cockpit launch action is missing');
-      }
-      if(view==='solo'||view==='upgrades'||view==='resonance'){
-       const upgrade=[...box.querySelectorAll('button')].find(b=>b.textContent.trim()==='PESQUISA');if(!upgrade)throw Error('Solo research missing');upgrade.click();
-       if(box.querySelectorAll('.solo-lamp-row:not(.solo-research-row)').length!==3)throw Error('Three lamp levels missing');if(box.querySelectorAll('.solo-research-row').length<10)throw Error('Solo research tree missing');
-       if(view!=='upgrades'){
-        [...box.querySelectorAll('button')].find(b=>b.textContent==='VOLTAR AO SHOOTER')?.click();
-        const resonance=[...box.querySelectorAll('button')].find(b=>b.textContent.includes('RESSONÂNCIA'));if(!resonance)throw Error('Resonance access missing');const rc=getComputedStyle(resonance);if(!resonance.classList.contains('abyss-resonance-action')||!rc.backgroundImage.includes('linear-gradient'))throw Error('Resonance purple action theme missing');
-        resonance.click();const panel=document.getElementById('resonanceScreen');if(!panel||panel.hidden)throw Error('Resonance action did not open its actual screen');
-        if(view!=='resonance')panel.querySelector('[data-close-screen="resonanceScreen"]')?.click();
-       }
+      if(view==='shop'){
+       box.querySelector('.abyss-control-shop').click();
+       const shop=document.getElementById('shopScreen'),grid=shop.querySelector('#skinGrid');
+       if(shop.hidden||!shop.classList.contains('abyss-cockpit-embedded')||grid.querySelectorAll('.skin-card[data-skin-id]').length<50)throw Error('Embedded specimen shop missing real cards');
+       if(shop.querySelectorAll('input[type=search]').length!==1||!shop.querySelector('#shopHabitatFilter'))throw Error('Duplicate shop search or habitat filter missing');
+       const search=shop.querySelector('#shopSearchInput');search.value='Carcereiro';search.dispatchEvent(new Event('input'));
+       if(grid.querySelectorAll('.skin-card').length!==1||grid.querySelector('.skin-card')?.dataset.skinId!=='deepwarden')throw Error('Shop search or stable ID mismatch');
+       search.value='';search.dispatchEvent(new Event('input'));
+       const filter=shop.querySelector('#shopFamilyFilter');filter.value='legendary';filter.dispatchEvent(new Event('change'));
+       if([...grid.querySelectorAll('.skin-card')].some(card=>card.dataset.rarity!=='legendary'))throw Error('Rarity filter did not match actual rarity');
+       filter.value='all';filter.dispatchEvent(new Event('change'));
+      }else if(view==='specimens'){
+       box.querySelector('.abyss-control-specimens').click();
+       if(document.getElementById('catalogScreen').hidden||document.querySelectorAll('#catalogGrid .specimen-journal-entry').length<50)throw Error('Embedded Abyssario missing entries');
+      }else if(view==='resonance'){
+       const btn=[...box.querySelectorAll('.solo-research-tabs button')].find(b=>b.textContent==='RESSONÂNCIA');if(!btn)throw Error('Resonance access missing');btn.click();
+       if(document.getElementById('resonanceScreen').hidden||!box.querySelector('#resonanceScreen'))throw Error('Resonance panel not integrated');
+      }else if(view==='upgrades'){
+       const btn=[...box.querySelectorAll('.solo-research-tabs button')].find(b=>b.textContent==='SUBMARINO');if(!btn)throw Error('Submarine research access missing');btn.click();
+       if(!box.querySelector('.abyss-tree-map')?.textContent.includes('Escudo do submarino'))throw Error('Submarine research missing');
+      }else{
+       box.querySelector('.abyss-control-solo').click();
+       if(!box.querySelector('#cockpitSoloDiveBtn')||!box.querySelector('#cockpitOnlineDiveBtn'))throw Error('Default cockpit launch action is missing');
       }
       document.body.dataset.cockpitStatus='ok';
       document.body.dataset.cockpitCards=cards;
@@ -477,7 +480,7 @@ async function main(){
   if(process.argv.includes('--journal-only'))return;
   // Test the actual hatch transition and physical console in a real browser,
   // including mobile; save screenshots for visual acceptance inspection.
-  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-minerals',1280,720,'minerals'],['cockpit-laboratory',1280,720,'lab'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
+  for(const [label,w,h,view] of [['cockpit-desktop',1280,720,'solo'],['cockpit-tablet',900,600,'solo'],['cockpit-wide',1600,900,'solo'],['cockpit-mobile',390,844,'solo'],['cockpit-shop',1280,720,'shop'],['cockpit-abyssario',1280,720,'specimens'],['cockpit-solo-upgrades',1280,720,'upgrades'],['cockpit-resonance',1280,720,'resonance']]){
    const flags=['--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars',
     '--no-first-run','--disable-background-networking','--window-size='+w+','+h,
     '--force-device-scale-factor=1','--virtual-time-budget=11000'];

@@ -36,6 +36,7 @@ const ABYSSAL_MAP=window.AbyssalMap;
 const RIFT_HARDCORE=window.AbyssalRiftHardcore;
 let activeRiftHazards=[],riftBossMarks=[],riftSoloHazardCooldowns=new Map(),soloRiftCheckpointRoomId='start';
 let W=4800,H=3000,viewW=800,viewH=500,worldZoom=.78,mapFactor=1.7,cameraX=0,cameraY=0,dpr=1,last=0,elapsed=0,score=0,level=1,xp=0,xpNeed=10,hp=100,maxHp=100,gameState='menu',nextBossAt=60,lastBossMaxHp=0,lastBossDamage=0,lastBossSpeed=0,bossKillsThisRun=0,runProgressTimer=0;
+window.addEventListener('abyssal-propulsor-state',event=>{if(player&&onlineMode){const state=event.detail||{};if(Number.isFinite(state.energy))player.propulsorEnergy=state.energy;if(typeof state.equipped==='boolean'){player.propulsorEquipped=state.equipped;if(!state.equipped)player.propulsorMoving=false;}updateAbilityButtons(true);}});
 let player=null,botBuddy=null,enemies=[],orbs=[],particles=[],projectiles=[],effects=[],damageNumbers=[],bloodPools=[],decor=[],arenaRocks=[],upgrades={},upgradeLevels={},chosen=[],spawnTimer=0,enemyId=0,shake=0,damageFlash=0,runSeed=0,bossIndex=0;
 let onlineRoomMode='coop';
 let requestedRunMode='classic';
@@ -1698,7 +1699,7 @@ if(isOpenSeaRun()){
  let soloSpawn=!onlineMode&&activeMapLayout&&ABYSSAL_MAP?ABYSSAL_MAP.startSpawn(activeMapLayout,0,1):{x:isOpenSeaRun()?180:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.x:W*.5),y:isOpenSeaRun()?260:onlineRoomMode==='pvp'?H*.5:(isClassicShooterRun()&&(!onlineMode||onlineRoomMode==='coop')?soloSubmarine.y+170/GAME_WORLD_ZOOM:H*.11)};
  if(isClassicCavernRun())soloSpawn=SOLO_CAVERN?.submarineSpawn?.(arenaRocks,W,H,soloSubmarine,GAME_WORLD_ZOOM)||soloSpawn;
  expandingSkinClouds.length=0;expandingSkinPulses.length=0;
- player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,dashCooldown:0,dashTime:0,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
+ player={x:soloSpawn.x,y:soloSpawn.y,r:13/GAME_WORLD_ZOOM,angle:Math.PI/2,bodyAngle:Math.PI/2,weaponAngle:Math.PI/2,diverGender,moveSpeed:150/GAME_WORLD_ZOOM,fireTimer:0,invuln:0,shieldTime:0,trail:[],pulseCooldown:0,propulsorEnergy:100,propulsorEquipped:false,propulsorMoving:false,skinActiveCooldown:0,skinTrailUntil:0,skinWeaponBuffUntil:0,skinWeaponBuffKind:null,skinShieldUntil:0};player.specimen={x:soloSpawn.x,y:soloSpawn.y-34/GAME_WORLD_ZOOM,r:11/GAME_WORLD_ZOOM,hp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,maxHp:SPECIMEN_SYSTEM.effectiveStats(equippedSkin,specimenPoints()).hp,alive:true,respawnTimer:0,respawnAt:0,invuln:1.5};updateCamera();
  for(const id of runResonanceIds){if(id===selectedOpeningShot)continue;const skill=upgradeList.find(item=>item.id===id);if(!skill)continue;skill.apply();upgradeLevels[id]=1;}
  if(isOpenSeaRun()){const rangeSkill=upgradeList.find(item=>item.id==='range'),regenSkill=upgradeList.find(item=>item.id==='regen');if(!upgradeLevels.range){rangeSkill?.apply();upgradeLevels.range=1;}if(!upgradeLevels.regen){regenSkill?.apply();upgradeLevels.regen=1;}}
  // Persistent/passive abilities have a distinct cue when their effects enter a run.
@@ -2057,7 +2058,7 @@ function respawnSoloRiftCheckpoint(){
  riftBossMarks=[];
  const safe=ABYSSAL_MAP.isWalkable(activeMapLayout,cp.x,cp.y,player.r)?cp:{x:room?.x??cp.x,y:(room?.y??cp.y)-Math.min(85,Number(room?.ry)||85)};
  player.x=safe.x;player.y=safe.y;player.trail.length=0;hp=maxHp;
- player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
+ player.propulsorEquipped=false;player.propulsorMoving=false;player.propulsorEnergy=100;player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
  burst(player.x,player.y,'#a3eaff',26,160);playWorldSound('checkpoint',player,850,.85);
  enqueueGameplayNotice('cave','CHECKPOINT · '+String(room?.name||cp.roomId).toUpperCase(),'As Fossas o devolveram ao início da sala. Sua expedição continua.',84);
  updateCamera();updateHud();
@@ -2740,7 +2741,7 @@ function automaticWeaponTarget(){
  return target;
 }
 function updateAutomaticWeaponAim(dt){
- if(!player||soloSubmarine.repair||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;
+ if(!player||player.propulsorEquipped||soloSubmarine.repair||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;
  const manual=isManualFiringMode(),cursorAvailable=updateMouseAimFromCursor();
  if(manual){if(cursorAvailable)setWeaponHeading(controlAimAngle);return;}
  const target=automaticWeaponTarget();
@@ -2755,7 +2756,7 @@ function updateAutomaticWeaponAim(dt){
 }
 
 function fire(){
- if(soloSubmarine.repair)return;
+ if(soloSubmarine.repair||player?.propulsorEquipped)return;
  if(isOpenSeaRun()&&explorationHeldItem!=='abyssWeapon')return;
  if(!player||Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0||Number(upgrades.photonRay)>0)return;let target=null,bd=Infinity;const maxRange=getFiringRange();
  if(onlineRoomMode==='pvp'){
@@ -3131,7 +3132,7 @@ function update(dt){
  // Movimento local responsivo: teclado e toque/arraste. No online, trocar de aba nunca pausa o estado local intencionalmente.
  if(gameState==='playing'){
    // Correntezas ambientais removidas: o movimento depende apenas dos comandos do jogador.
-   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);player.dashCooldown=Math.max(0,(player.dashCooldown||0)-dt);
+   player.pulseCooldown=Math.max(0,(player.pulseCooldown||0)-dt);
    if(Number(player.skinWeaponBuffUntil)>0){
     if(performance.now()>=player.skinWeaponBuffUntil){
      player.skinWeaponBuffUntil=0;player.skinWeaponBuffKind=null;
@@ -3141,7 +3142,7 @@ function update(dt){
     if(performance.now()>=player.skinTrailUntil){
      player.skinTrailUntil=0;player.skinActiveCooldown=Number(player.skinTrailCooldownSeconds)||10;
     }
-   }else player.skinActiveCooldown=Math.max(0,(player.skinActiveCooldown||0)-dt);player.dashTime=Math.max(0,(player.dashTime||0)-dt);updateAbilityButtons();
+   }else player.skinActiveCooldown=Math.max(0,(player.skinActiveCooldown||0)-dt);updateAbilityButtons();
    let mx=(keys['d']||keys['D']||keys['ArrowRight']?1:0)-(keys['a']||keys['A']||keys['ArrowLeft']?1:0);
    let my=(keys['s']||keys['S']||keys['ArrowDown']?1:0)-(keys['w']||keys['W']||keys['ArrowUp']?1:0);
    if(isMobileDevice()&&joystickVector.active){mx=joystickVector.x;my=joystickVector.y;}
@@ -3158,7 +3159,7 @@ function update(dt){
    if(!isMobileDevice())updateMouseAimFromCursor();
    if(isMobileDevice()&&controlSettings.mobile==='dual-stick'&&aimJoystickVector.active){controlAimAngle=Math.atan2(aimJoystickVector.y,aimJoystickVector.x);player.angle=controlAimAngle;player.weaponAngle=controlAimAngle;}
    if(soloSubmarine.repair){mx=0;my=0;}
-   const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const isGhostDash=Boolean(player.ghostDashUntil&&performance.now()<player.ghostDashUntil),toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=isGhostDash?Math.max(1,(500/GAME_WORLD_ZOOM)/Math.max(1,normalBaseSpeed)):(player.dashTime>0?2.05:1);const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}/* Body and lamp heading are independent of weapon aim. */updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
+   const prop=window.AbyssalPropulsor,propMoving=Boolean(mx||my),propPowered=Boolean(player.propulsorEquipped&&prop.charge(player.propulsorEnergy)>0&&propMoving);player.propulsorMoving=false;const mag=Math.hypot(mx,my)||1; if(mx||my){playWorldSound('swim-'+equippedMotionFamily(),player,500,.48);if(upgradeLevels.speed>0)playSkillSound('speed','trigger');const toxinMultiplier=performance.now()<(Number(player.neurotoxinUntil)||0)?.38:1;const skinSlowMultiplier=Date.now()<(Number(player.skinSlowedUntil)||0)?.62:1;const normalBaseSpeed=player.moveSpeed*upgrades.speed*specimenPassiveMultiplier('movement')*toxinMultiplier*skinSlowMultiplier;const dashMultiplier=propPowered?prop.SPEED:1;const nx=player.x+mx/mag*normalBaseSpeed*dashMultiplier*dt,ny=player.y+my/mag*normalBaseSpeed*dashMultiplier*dt;const wall=52/GAME_WORLD_ZOOM;let nextX=clamp(nx,wall+player.r,W-wall-player.r),nextY=clamp(ny,wall+player.r,H-wall-player.r);if(activeMapLayout&&onlineRoomMode!=='pvp'){const caveMove=mapResolveMove(player.x,player.y,nextX,nextY,player.r+8/GAME_WORLD_ZOOM);nextX=caveMove.x;nextY=caveMove.y;}else if(usesNaturalOceanTerrain()&&OCEAN_GEOGRAPHY){const seaMove=OCEAN_GEOGRAPHY.resolveMove(player.x,player.y,nextX,nextY,player.r+5/GAME_WORLD_ZOOM);nextX=seaMove.x;nextY=seaMove.y;}else if(isClassicCavernRun()&&SOLO_CAVERN){const rockMove=SOLO_CAVERN.resolve(arenaRocks,player.x,player.y,nextX,nextY,player.r+6/GAME_WORLD_ZOOM);nextX=rockMove.x;nextY=rockMove.y;}if(onlineRoomMode==='pvp'){for(const rock of arenaRocks){if(rock.visualOnly)continue;const a=-(rock.angle||0),ox=nextX-rock.x,oy=nextY-rock.y,lx=ox*Math.cos(a)-oy*Math.sin(a),ly=ox*Math.sin(a)+oy*Math.cos(a),rx=(rock.rx||rock.r)+player.r,ry=(rock.ry||rock.r)+player.r,nx=lx/Math.max(1,rx),ny=ly/Math.max(1,ry);if(nx*nx+ny*ny<1){const d=Math.hypot(nx,ny)||1;const pushX=nx/d*rx,pushY=ny/d*ry,ca=Math.cos(rock.angle||0),sa=Math.sin(rock.angle||0);nextX=rock.x+pushX*ca-pushY*sa;nextY=rock.y+pushX*sa+pushY*ca;}}}const traveledX=nextX-player.x,traveledY=nextY-player.y;player.x=nextX;player.y=nextY;const actualSwim=Math.hypot(traveledX,traveledY)>.01;player.propulsorMoving=propPowered&&actualSwim;player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,actualSwim);if(Math.hypot(traveledX,traveledY)>.01){const swimHeading=Math.atan2(traveledY,traveledX);const diff=Math.atan2(Math.sin(swimHeading-(player.bodyAngle||0)),Math.cos(swimHeading-(player.bodyAngle||0)));player.bodyAngle=(player.bodyAngle||0)+diff*(1-Math.exp(-dt*13));}/* Body and lamp heading are independent of weapon aim. */updateCamera();player.trail.push({x:player.x,y:player.y,life:.28});if(player.trail.length>12)player.trail.shift();
    // Tiny cosmetic bubbles disperse quickly. They do not deal damage or use networking.
    diverBubbleClock+=dt;
    if(diverBubbleClock>=.075){
@@ -3174,7 +3175,7 @@ function update(dt){
      p.r=(.8+Math.random()*.85)/GAME_WORLD_ZOOM;p.color='#d9faff';p.bubble=true;
      particles.push(p);
     }
-   }}
+   }}else{player.propulsorEnergy=prop.step(player.propulsorEnergy,dt,player.propulsorEquipped,false);}
    if(soloSubmarine.repair)updateSoloHullRepair(dt);else updateAutomaticWeaponAim(dt);
    // No pointer/touch event may reset this timer. Upgrades alone increase cadence.
    player.fireTimer=Math.max(0,(Number(player.fireTimer)||0)-dt);
@@ -3233,7 +3234,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
  if(gameState==='playing'&&upgrades.ward>0){const interval=Math.max(18,28-(upgrades.ward-1)*4);if(!Number.isFinite(player.wardTimer))player.wardTimer=interval;player.wardTimer-=dt;if(player.wardTimer<=0){player.wardTimer=interval;player.invuln=Math.max(player.invuln,.55);burst(player.x,player.y,'#9deaff',14,105);queueEffect({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.2,life:.55,maxLife:.55,color:'#8deaff'});playSkillSound('shield','trigger');}}
  if(gameState==='playing'&&upgrades.pressureCocoon>0){const cocoonInterval=[0,24,20,16][Math.min(3,upgrades.pressureCocoon)];if(upgrades.shield<=0){player.pressureCocoonTimer=(Number.isFinite(player.pressureCocoonTimer)?player.pressureCocoonTimer:cocoonInterval)-dt;if(player.pressureCocoonTimer<=0){player.pressureCocoonTimer=cocoonInterval;upgrades.shield=1;queueEffect({type:'ward-collapse',x:player.x,y:player.y,max:player.r*3.6,life:.7,maxLife:.7,color:'#58d6c4'});burst(player.x,player.y,'#76f5df',18,100);if(onlineMode)window.AbyssalOnline?.sendBuild?.({shieldCharges:upgrades.shield,regenLevel:upgrades.regen,magnetStrength:upgrades.magnet,rangeStrength:upgrades.range,speedStrength:upgrades.speed,arcChainActive:Boolean(upgrades.arcChain),hadalBeamActive:Boolean(upgrades.hadalBeam),ricochetLevel:upgrades.ricochet,prismaticLevel:upgrades.spread,predatorLevel:upgrades.predator,electricLevel:upgrades.electric,shellLevel:upgrades.shell,lastStandLevel:upgrades.lastStand,submarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||['photon']});}}else player.pressureCocoonTimer=cocoonInterval;}
  if(upgrades.burst>0){player.burstTimer=(player.burstTimer||0)-dt;if(player.burstTimer<=0){player.burstTimer=Math.max(3.5,7/upgrades.burst);for(let i=enemies.length-1;i>=0;i--){const e=enemies[i];if(dist(player,e)<210*upgrades.range/GAME_WORLD_ZOOM){dealEnemyDamage(e,12*upgrades.burst,'burst');burst(e.x,e.y,'#b4a1ff',8,100)}}burst(player.x,player.y,'#b3a0ff',60,260);queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:210*upgrades.range/GAME_WORLD_ZOOM,life:.62,maxLife:.62,color:'#c18cff'});queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:145*upgrades.range/GAME_WORLD_ZOOM,life:.4,maxLife:.4,color:'#f0d9ff'});playWorldSound('ability-nova',player,1000,.82)}}
- if(upgrades.photonRay>0&&(!isManualFiringMode()||manualFireDown())){
+ if(!player.propulsorEquipped&&upgrades.photonRay>0&&(!isManualFiringMode()||manualFireDown())){
   player.photonRayTimer=(Number(player.photonRayTimer)||0)-dt;
   const beamLevel=Math.max(1,Math.min(3,Number(upgrades.photonRay)||1));
   const beamInterval=PHOTON_RAY_VISUAL.pulseInterval,width=PHOTON_RAY_VISUAL.widths[beamLevel]*(upgrades.hadalBeam?1.35:1)/GAME_WORLD_ZOOM,beamRange=getFiringRange();
@@ -3326,7 +3327,7 @@ player.invuln=Math.max(0,player.invuln-dt);damageFlash=Math.max(0,damageFlash-dt
   player.photonRayActive=false;
  }
  // Nova is still the primary shot when gravitationalRupture is fused.
- if((Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0)&&(!isManualFiringMode()||manualFireDown())){
+ if(!player.propulsorEquipped&&(Number(upgrades.nova)>0||Number(upgrades.gravitationalRupture)>0)&&(!isManualFiringMode()||manualFireDown())){
   player.novaTimer=(Number.isFinite(player.novaTimer)?player.novaTimer:0)-dt;
   const novaTarget=isManualFiringMode()?null:automaticWeaponTarget();
   if(player.novaTimer<=0&&(isManualFiringMode()||(novaTarget&&weaponAligned(Number(player.weaponAngle)||0,aimAtEnemy(novaTarget))))){
@@ -3633,12 +3634,13 @@ const metaShopItems=[
  {id:'current',name:'Aletas de Corrente',type:'passive',price:1600,max:3,icon:'➤',desc:'+5% de movimento por nível.'},
  {id:'startShield',name:'Casulo de Pressão',type:'passive',price:3200,max:1,icon:'◉',desc:'Comece cada mergulho com 1 carga de escudo.'},
  {id:'pulse',name:'Pulso de Maré',type:'active',price:3500,max:1,icon:'✺',desc:'Ative Q ou o botão para causar dano em área. Recarga: 14 s.'},
- {id:'dash',name:'Passo Fantasma',type:'active',price:4200,max:1,icon:'〰',desc:'Ative E ou o botão para disparar em alta velocidade e ficar invulnerável por 1,25 s.'}
+ {id:'dash',name:'Propulsor Abissal',type:'active',price:4200,max:1,icon:'➤',desc:'E equipa ou guarda a turbina. Nado 2,35× enquanto houver bateria. A arma fica guardada; a bateria se recupera lentamente ao parar.'}
 ];
+const combatResearchUnlocked=id=>Boolean(window.AbyssalResearchSystem?.unlocked?.(id,explorationResearchLevels,metaUpgrades)||Number(metaUpgrades?.[id])>0);
 let equippedActiveSkillsCache=null;
 function loadEquippedActiveSkills(){
  // Q and E are fixed research slots, automatically equipped when studied.
- return ['pulse','dash'].filter(id=>Number(metaUpgrades?.[id])>0);
+ return ['pulse','dash'].filter(id=>combatResearchUnlocked(id));
 }
 window.addEventListener('storage',event=>{if(event.key==='abyssalEquippedActiveSkills'){equippedActiveSkillsCache=null;updateAbilityButtons(true);}});
 function toggleEquippedActiveSkill(id){
@@ -3662,7 +3664,7 @@ function activateAbility(id){
  if(soloSubmarine.repair)cancelSoloHullRepair();
  if(!player||gameState!=='playing')return;
  if(id==='pulse'){
-  if(!(Number(metaUpgrades.pulse)>0)){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
+  if(!(combatResearchUnlocked('pulse'))){showToast('ESTUDE PULSO DE MARÉ NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('pulse')){showToast('EQUIPE PULSO DE MARÉ NA LOJA');return;}
   if(player.pulseCooldown>0)return;
   player.pulseCooldown=14;const pulseCastId=(Number(player.pulseCastId)||0)+1;player.pulseCastId=pulseCastId;const pulseCaster=player;const radius=245*upgrades.range/GAME_WORLD_ZOOM;
   // Online damage is server-authoritative so Q cannot silently fail or disagree between clients.
@@ -3672,15 +3674,11 @@ function activateAbility(id){
   else queueEffect({type:'ring',x:player.x,y:player.y,r:0,max:radius,life:.7,maxLife:.7,color:'#78f8f3',pulseCastId});
   burst(player.x,player.y,'#9ffff8',lowPowerRendering?12:22,210);playSkillSound('pulse','trigger');playWorldSound('ability-nova',player,880,.64);
  }else if(id==='dash'){
-  if(!(Number(metaUpgrades.dash)>0)){showToast('ESTUDE PASSO FANTASMA NO SUBMARINO');return;}if(!loadEquippedActiveSkills().includes('dash')){showToast('EQUIPE PASSO FANTASMA NA LOJA');return;}
-  if(player.dashCooldown>0)return;
-  player.dashCooldown=18;
-  player.dashTime=1.5;
-  player.invuln=Math.max(player.invuln,1.5);
-  player.ghostDashUntil=performance.now()+1500;
-  if(onlineMode)window.AbyssalOnline?.sendProtection?.(1.5,'dash');
-  burst(player.x,player.y,'#d8c9ff',lowPowerRendering?8:14,130);
-  playSkillSound('dash','trigger');playWorldSound('ability-dash',player,750,.60);
+  if(!(combatResearchUnlocked('dash'))){showToast('ESTUDE O PROPULSOR NO SUBMARINO');return;}
+  if(player.propulsorPending)return;
+  const diver=player,next=!diver.propulsorEquipped;
+  const apply=result=>{if(player!==diver)return;diver.propulsorPending=false;if(result?.ok===false){updateAbilityButtons(true);return;}diver.propulsorEquipped=next;if(Number.isFinite(result?.energy))diver.propulsorEnergy=result.energy;if(!next)diver.propulsorMoving=false;updateAbilityButtons(true);};
+  if(onlineMode){diver.propulsorPending=true;if(!window.AbyssalOnline?.sendActiveAbility?.(next?'propulsor-on':'propulsor-off',apply))apply({ok:false});}else apply({ok:true});
  }
  updateAbilityButtons();
 }
@@ -3690,8 +3688,8 @@ function updateAbilityButtons(force=false){
  if(!force&&now-lastAbilityUiAt<100)return;
  lastAbilityUiAt=now;
  const pulse=$('skillPulseBtn'),dash=$('skillDashBtn'),skinBtn=$('skinActiveBtn'),equipped=loadEquippedActiveSkills();
- if(pulse){const hidden=!(Number(metaUpgrades.pulse)>0&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
- if(dash){const hidden=!(Number(metaUpgrades.dash)>0&&equipped.includes('dash')),disabled=!player||player.dashCooldown>0;if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=player&&player.dashCooldown>0?`PASSO ${player.dashCooldown.toFixed(1)}s`:(mobileViewport?'✧ PASSO FANTASMA':'E · PASSO FANTASMA');if(dash.textContent!==label)dash.textContent=label;}
+ if(pulse){const hidden=!(combatResearchUnlocked('pulse')&&equipped.includes('pulse')),disabled=!player||player.pulseCooldown>0;if(pulse.hidden!==hidden)pulse.hidden=hidden;if(pulse.disabled!==disabled)pulse.disabled=disabled;const label=player&&player.pulseCooldown>0?`PULSO ${player.pulseCooldown.toFixed(1)}s`:(mobileViewport?'✦ PULSO DE MARÉ':'Q · PULSO DE MARÉ');if(pulse.textContent!==label)pulse.textContent=label;}
+ if(dash){const hidden=!(combatResearchUnlocked('dash')&&equipped.includes('dash')),disabled=!player||Boolean(player.propulsorPending);if(dash.hidden!==hidden)dash.hidden=hidden;if(dash.disabled!==disabled)dash.disabled=disabled;const label=(mobileViewport?'':'E · ')+(player?.propulsorEquipped?'GUARDAR PROPULSOR':'PROPULSOR')+' · '+Math.round(window.AbyssalPropulsor.charge(player?.propulsorEnergy))+'%';if(dash.textContent!==label)dash.textContent=label;dash.setAttribute('aria-pressed',String(Boolean(player?.propulsorEquipped)));}
  if(skinBtn){const spec=currentSkinActiveSpec(),trailing=Boolean(player&&Number(player.skinTrailUntil)>performance.now()),infused=Boolean(player&&Number(player.skinWeaponBuffUntil)>performance.now()),disabled=!player||(isRiftRun()||onlineRoomMode==='pvp')&&!spec||!specimenAlive()||player.skinActiveCooldown>0||trailing||infused;skinBtn.hidden=!player;skinBtn.disabled=disabled;const label=player&&!specimenAlive()?(mobileViewport?`ESPÉCIME · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`:`R · ESPÉCIME ABATIDO · ${Number(player?.specimen?.respawnTimer||0).toFixed(1)}s`):infused?(mobileViewport?`ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`:`R · ARMA ${player.skinWeaponBuffKind==='paralysis'?'ELÉTRICA':'VENENOSA'} · ${((player.skinWeaponBuffUntil-performance.now())/1000).toFixed(1)}s`):trailing?(mobileViewport?`RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`:`R · RASTRO ATIVO · ${((player.skinTrailUntil-performance.now())/1000).toFixed(1)}s`):player&&player.skinActiveCooldown>0?(mobileViewport?`${spec?.name||'HABILIDADE'} · ${player.skinActiveCooldown.toFixed(1)}s`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'} · ${player.skinActiveCooldown.toFixed(1)}s`):(mobileViewport?`✦ ${spec?.name||'HABILIDADE'}`:`R · ${spec?.name||'HABILIDADE DO ESPÉCIME'}`);const displayLabel=isOpenSeaRun()?(player?.skinActiveCooldown>0?'SONAR · '+player.skinActiveCooldown.toFixed(1)+'s':(mobileViewport?'R · SONAR':'R · SONAR DO ESPÉCIME')):label;if(skinBtn.textContent!==displayLabel)skinBtn.textContent=displayLabel;skinBtn.style.borderColor=spec?.color||'';}
 }
 function setTextIfChanged(id,value){const node=$(id),text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
@@ -4607,9 +4605,9 @@ function drawSoloWelding(x,y,r,aim,job,t){
 }
 function drawDiver(x,y,r,angle=0,t=0,remote=false,aim=angle,gender=diverGender,heldItem='abyssWeapon'){
  const weld=!remote&&isClassicCavernRun()?soloSubmarine.repair:null;
- if(weld){angle=aim=Math.atan2(weld.point.y-y,weld.point.x-x);heldItem='abyssWelder';}
+ if(weld){angle=aim=Math.atan2(weld.point.y-y,weld.point.x-x);heldItem='abyssWelder';}else if(!remote&&player?.propulsorEquipped){heldItem='abyssPropulsor';aim=angle;}else if(heldItem==='abyssPropulsor'||heldItem==='abyssPropulsorIdle'){aim=angle;}
  if(DIVER_ART?.draw){
-  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:!weld,heldItem,helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
+  DIVER_ART.draw(ctx,x,y,r,angle,aim,t,{gender,remote,moving:!weld,heldItem,propulsorActive:heldItem==='abyssPropulsor'&&(remote||Boolean(player?.propulsorMoving)),helmetLamp:remote||isOpenSeaRun()||isClassicCavernRun(),swing:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.swing)||0):0,fillProgress:!remote&&isOpenSeaRun()?(Number(window.AbyssalExplorationToolState?.progress)||0):0,fillType:!remote&&isOpenSeaRun()?(window.AbyssalExplorationToolState?.node?.type||''):''});
   if(weld)drawSoloWelding(x,y,r,aim,weld,t);
   return;
  }
@@ -4833,7 +4831,7 @@ function draw(t){
  if(!(hudCollapsed&&isClassicCavernRun()))for(const number of damageNumbers){const q=clamp(number.life/number.maxLife,0,1),rise=(1-q)*62;const worldX=number.x+number.driftX*(1-q),worldY=number.y;const screenX=(worldX-cameraX)*worldZoom,screenY=(worldY-cameraY)*worldZoom-rise;ctx.save();/* Damage feedback is HUD-like: render in screen pixels so camera/world scaling can never shrink it. */ctx.setTransform(dpr,0,0,dpr,0,0);ctx.globalAlpha=Math.min(1,q*1.35)*(isClassicCavernRun()?.6:1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='900 18px Cinzel, Georgia, serif';ctx.fillStyle=number.tone==='received'?'#ff274a':number.tone==='skin'?'#52ff86':number.tone==='poison'?'#4bff7d':number.tone==='passive'?'#32cfff':'#ff174d';ctx.shadowBlur=3;ctx.shadowColor=ctx.fillStyle;ctx.strokeStyle='rgba(0,0,0,.86)';ctx.lineWidth=1;ctx.strokeText(String(number.value),screenX,screenY);ctx.fillText(String(number.value),screenX,screenY);ctx.restore();}
  const particleShadowBlur=0;let particleDrawIndex=0;for(const p of particles){if(adaptiveQualityLevel===0&&particleDrawIndex++%3!==0)continue;if(adaptiveQualityLevel===1&&particleDrawIndex++%3===2)continue;if(p.x<cameraX-20/worldZoom||p.x>cameraX+viewW/worldZoom+20/worldZoom||p.y<cameraY-20/worldZoom||p.y>cameraY+viewH/worldZoom+20/worldZoom)continue;ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=particleShadowBlur;ctx.beginPath();const pr=p.r*(.4+.6*p.life/p.max);ctx.arc(p.x,p.y,pr,0,Math.PI*2);if(p.bubble){ctx.fillStyle='rgba(215,250,255,.16)';ctx.fill();ctx.strokeStyle=p.color;ctx.lineWidth=.75/worldZoom;ctx.stroke();if(pr>1.2/worldZoom){ctx.fillStyle='rgba(255,255,255,.65)';ctx.beginPath();ctx.arc(p.x-pr*.32,p.y-pr*.32,pr*.25,0,Math.PI*2);ctx.fill();}}else ctx.fill()}ctx.globalAlpha=1;
  if(player){if((!isClassicCavernRun()||soloSubmarine.spawnFx<=1.25||player.y>=soloSubmarine.y+86/GAME_WORLD_ZOOM)&&(damageFlash<=0||Math.floor(t/60)%2===0)){drawDiver(player.x,player.y,player.r,player.bodyAngle||0,t,false,player.weaponAngle??player.angle??0,diverGender,isOpenSeaRun()?explorationHeldItem:'abyssWeapon');
-  if((!isOpenSeaRun()||explorationHeldItem==='abyssWeapon')&&performance.now()<Number(player.skinWeaponBuffUntil||0))drawWeaponInfusion(player.x,player.y,player.r,player.weaponAngle??player.angle??0,t,player.skinWeaponBuffKind);
+  if(!player.propulsorEquipped&&(!isOpenSeaRun()||explorationHeldItem==='abyssWeapon')&&performance.now()<Number(player.skinWeaponBuffUntil||0))drawWeaponInfusion(player.x,player.y,player.r,player.weaponAngle??player.angle??0,t,player.skinWeaponBuffKind);
   if(Date.now()<(Number(player.skinParalyzedUntil)||0)){ctx.save();ctx.strokeStyle='#8ceeff';ctx.lineWidth=2/GAME_WORLD_ZOOM;ctx.shadowColor='#42caff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;for(let j=0;j<5;j++){const a=j*Math.PI*2/5+t*.004,rr=player.r*1.7;ctx.beginPath();ctx.moveTo(player.x+Math.cos(a)*rr*.45,player.y+Math.sin(a)*rr*.45);ctx.lineTo(player.x+Math.cos(a+.26)*rr,player.y+Math.sin(a+.26)*rr);ctx.lineTo(player.x+Math.cos(a)*rr*1.35,player.y+Math.sin(a)*rr*1.35);ctx.stroke();}ctx.restore();}if(player.specimen?.alive!==false){const specimenSkin=skinData.find(s=>s.id===equippedSkin)||skinData[0],sa=player.specimen.facingAngle??player.bodyAngle??0;drawCreature(player.specimen.x,player.specimen.y,CREATURE_SCALE?.visualRadius?.(equippedSkin,player.specimen.r)||player.specimen.r,sa,specimenSkin.color,'player',t,true,0,ctx,specimenSkin,{visualId:onlineMode?'specimen:self':'specimen:solo',moveSpeed:player.moveSpeed,visualAttackUntil:Number(player.specimen.visualAttackUntil)||0,vx:Number(player.specimen.vx)||0,vy:Number(player.specimen.vy)||0,specimenCombatPhase:performance.now()*.0018});
   const bite=player.specimen.biteAnimation;if(bite){const q=clamp((performance.now()-bite.startedAt)/bite.duration,0,1);if(q>=1)player.specimen.biteAnimation=null;else drawSpecimenBite(player.specimen,sa,bite,q);}
   if(player.specimen.dash){const progress=clamp((performance.now()-player.specimen.dash.startedAt)/player.specimen.dash.durationMs,0,1);drawSpecimenDashArc(player.specimen.x,player.specimen.y,player.specimen.r,sa,t,progress);}
@@ -4880,19 +4878,19 @@ function draw(t){
       }
       remoteDiverMotion.set(peerVisualId,{x:px,y:py,angle:heading,sx,sy,lastAt:t});
       remoteDiveLights.push({x:px,y:py,active:true,radius:285,strength:.84,color:'#78dfff',diver:true,heading,r:12/GAME_WORLD_ZOOM,lampLevel:1});
-      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male');
+      drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon');
       const paralyzedUntil=remoteWeaponParalysis.get(peerVisualId);
       if(paralyzedUntil){if(Date.now()>=paralyzedUntil)remoteWeaponParalysis.delete(peerVisualId);
        else{ctx.save();ctx.translate(px,py);ctx.rotate(t*.005);ctx.strokeStyle='#72eaff';ctx.shadowColor='#62edff';ctx.shadowBlur=8/GAME_WORLD_ZOOM;ctx.lineWidth=2.5/GAME_WORLD_ZOOM;
         for(let j=0;j<4;j++){const a=j*Math.PI*.5,r=21/GAME_WORLD_ZOOM;ctx.beginPath();ctx.moveTo(Math.cos(a)*r*.55,Math.sin(a)*r*.55);ctx.lineTo(Math.cos(a+.35)*r,Math.sin(a+.35)*r);ctx.lineTo(Math.cos(a)*r*1.35,Math.sin(a)*r*1.35);ctx.stroke();}ctx.restore();}}
       const remoteBuff=remoteWeaponInfusions.get(peerVisualId);
       if(remoteBuff){if(Date.now()>=remoteBuff.until)remoteWeaponInfusions.delete(peerVisualId);
-       else drawWeaponInfusion(px,py,12/GAME_WORLD_ZOOM,peer.angle||heading,t,remoteBuff.kind);}
+       else if(!peer.propulsorEquipped)drawWeaponInfusion(px,py,12/GAME_WORLD_ZOOM,peer.angle||heading,t,remoteBuff.kind);}
       if(peer.specimenAlive!==false){
        const peerSkin=window.AbyssalGameHooks?.skinForId?.(peer.skinId),specimenHeading=sd>.1?Math.atan2(syDelta,sxDelta):heading;
        drawCreature(sx,sy,CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM,specimenHeading,peerSkin?.color||peer.color||'#b8a4ff','peer',t,true,0,ctx,peerSkin,{visualId:'peer-specimen:'+peerVisualId,visualAttackUntil:remoteCreatureAttackUntil.get(peerVisualId)||0,moveSpeed:followSpeed});
        if(Math.hypot(sx-px,sy-py)<32/GAME_WORLD_ZOOM+(CREATURE_SCALE?.visualRadius?.(peer.skinId,10/GAME_WORLD_ZOOM)||10/GAME_WORLD_ZOOM)*1.7)
-         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male');
+         drawDiver(px,py,12/GAME_WORLD_ZOOM,heading,t,true,peer.angle||heading,peer.diverGender||'male',peer.propulsorEquipped?(peer.propulsorMoving?'abyssPropulsor':'abyssPropulsorIdle'):'abyssWeapon');
        if(remoteDash)drawSpecimenDashArc(sx,sy,10/GAME_WORLD_ZOOM,remoteDash.angle,t,clamp((performance.now()-remoteDash.startedAt)/remoteDash.durationMs,0,1));
       }
       const title=PROFILE_TITLE_NAMES[peer.titleId]||'';
@@ -5102,7 +5100,7 @@ if(mobileFireBtn){
 }
 configureControlButtons();setupDualStickEvents();
 function isTextEntryTarget(target){return Boolean(target?.closest?.('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
-window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target)||!$('pauseScreen').hidden)return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&Number(metaUpgrades.pulse)>0)activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&Number(metaUpgrades.dash)>0)activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
+window.addEventListener('keydown',e=>{if(e.defaultPrevented||abyssalTutorialActive||isTextEntryTarget(e.target)||!$('pauseScreen').hidden)return;keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if((e.key==='t'||e.key==='T')&&!e.repeat&&!isMobileDevice()&&gameState==='playing'){autoFollowCursor=!autoFollowCursor;if(autoFollowCursor){pointer.down=false;showToast('MOVIMENTO AUTOMÁTICO PELO CURSOR · T PARA PARAR');}else showToast('MOVIMENTO AUTOMÁTICO DESATIVADO');}if(!e.repeat&&(e.key==='q'||e.key==='Q')&&combatResearchUnlocked('pulse'))activateAbility('pulse');if(!e.repeat&&(e.key==='e'||e.key==='E')&&combatResearchUnlocked('dash'))activateAbility('dash');if(!e.repeat&&(e.key==='r'||e.key==='R'))activateSkinAbility(e);if(!e.repeat&&(e.key==='f'||e.key==='F')&&mapInteractionType)activateMapInteraction();if(e.key==='Escape'||e.key==='p'||e.key==='P'){if(gameState==='playing')pauseGame();else if(gameState==='paused')resumeGame()}});
 window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e.key]=false;});
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 function prepareForH5Ad(){window.AbyssalAudio?.setMuted(true);}
@@ -5239,7 +5237,7 @@ window.AbyssalGameHooks={
  worldZoom:()=>worldZoom,
  combatRange:()=>getFiringRange(),
  cameraState:()=>({x:cameraX,y:cameraY,zoom:worldZoom,viewW,viewH}),
- classicParityInspect:()=>({classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
+ classicParityInspect:()=>({propulsor:{equipped:Boolean(player?.propulsorEquipped),energy:window.AbyssalPropulsor.charge(player?.propulsorEnergy),moving:Boolean(player?.propulsorMoving)},classic:isClassicCavernRun(),online:onlineMode,mode:onlineRoomMode,state:gameState,elapsed:Number(elapsed)||0,position:{x:Number(player?.x)||0,y:Number(player?.y)||0},world:{width:W,height:H,zoom:worldZoom},submarine:{x:soloSubmarine.x,y:soloSubmarine.y,repairSeconds:submarineRepairSeconds(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))},rocks:arenaRocks.filter(r=>r.cavernSolid&&!r.visualOnly).map(r=>[r.x,r.y,r.rx,r.ry,r.vertices?.length||0]),weapons:onlineMode?onlineSubmarineWeapons:window.AbyssalSoloBase?.installedWeapons?.()||[],petVisible:!document.getElementById('petHabitBar')?.hidden}),
  developerInspect:()=>({online:onlineMode,mode:onlineMode?onlineRoomMode:requestedRunMode,state:gameState,fps:Number(window.__abyssalFps||0),elapsed:Number(elapsed)||0,hp:Number(hp)||0,maxHp:Number(maxHp)||0,x:Number(player?.x)||0,y:Number(player?.y)||0,enemies:enemies.filter(e=>e&&e.hp>0).length,bosses:enemies.filter(e=>e&&e.hp>0&&BOSS_KINDS.includes(e.kind)).length,orbs:orbs.length,submarine:isClassicCavernRun()?{powered:soloSubmarinePowered(),sections:soloSubmarine.sections.map(s=>({name:s.name,hp:s.hp,maxHp:SOLO_HULL_HP}))}:null}),
  developerCommand:command=>{
   if(window.AbyssalDeveloperActive!==true)return {ok:false,message:'Conta GameMaster não validada.'};
@@ -5467,24 +5465,24 @@ function renderShop(){
  $('coinBalance').textContent=(energyWallet?.get().energy||0).toLocaleString(gameLanguage==='es'?'es-ES':gameLanguage==='en'?'en-US':'pt-BR');const grid=$('skinGrid');if(!grid)return;grid.innerHTML='';
  const currencySelect=$('shopCurrency');if(currencySelect){currencySelect.value=shopCurrency;currencySelect.hidden=false;}
  const english=gameLanguage==='en';
- const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'SPECIMEN<br><em>CATALOG</em>':'CATÁLOGO DE<br><em>ESPÉCIMES</em>';
+ const shopHeading=document.querySelector('.shop-heading h2');if(shopHeading)shopHeading.innerHTML=english?'SPECIMEN CATALOG':'CATÁLOGO DE ESPÉCIMES';
  const englishNames={violet:'Violet Wraith',leviathan:'Leviathan Echo',kraken:'Kraken Echo',aberration:'Aberration Husk',angler:'Lantern Core',maw:'Rift Fragment',devourer:'Devourer Core',reefshark:'Great White Shark',hammerhead:'Hammerhead Shark',abysscroc:'Estuarine Bull Shark',armoredgator:'Armored Horseshoe Crab'};
  const englishDescriptions={reefshark:'A great white shark with a gray back, pale belly and crescent fins.',hammerhead:'A hammerhead with a broad cephalofoil and wide-set eyes.',abysscroc:'A robust estuarine bull shark adapted to shallow channels, turbid water and sudden frontal bursts.',armoredgator:'A mineral-armored horseshoe crab with a broad carapace and a long defensive telson.'};
  const paidBrl=Object.freeze(Object.fromEntries(skinData.filter(skin=>skin.paid).map(skin=>[skin.id,skin.price])));
  const searchEl=$('shopSearchInput'),familyEl=$('shopFamilyFilter'),ownershipEl=$('shopOwnershipFilter');
- for(const el of [searchEl,familyEl,ownershipEl])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
- const query=String(searchEl?.value||'').trim().toLocaleLowerCase('pt-BR'),familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all';
+ for(const el of [searchEl,familyEl,ownershipEl,$('shopHabitatFilter')])if(el&&!el.dataset.shopFilterBound){el.dataset.shopFilterBound='1';el.addEventListener(el===searchEl?'input':'change',renderShop);}
+ const normalizeShop=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');const query=normalizeShop(searchEl?.value).trim(),familyFilter=familyEl?.value||'all',ownershipFilter=ownershipEl?.value||'all',habitatFilter=$('shopHabitatFilter')?.value||'all';
  const visibleSkins=skinData.filter(skin=>{
-  const owned=ownedSkins.includes(skin.id),rarityId=SPECIMEN_RARITY?.rarityFor(skin.id)||'common',known=specimenShopAvailable(skin),haystack=(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')):'Em desenvolvimento').toLocaleLowerCase('pt-BR');
-  return (!query||haystack.includes(query))&&(familyFilter==='all'||rarityId===familyFilter)&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
+  const owned=ownedSkins.includes(skin.id),rarityId=SPECIMEN_RARITY?.rarityFor(skin.id)||'common',known=specimenShopAvailable(skin),haystack=normalizeShop(known?(skin.name+' '+skin.desc+' '+(skin.ability||'')+' '+(SKIN_STANDARD?.activeSpec(skin.id)?.name||'')+' '+(SKIN_STANDARD?.activeSpec(skin.id)?.nameEn||'')):'Em desenvolvimento');
+  return (!query||haystack.includes(query))&&(habitatFilter==='all'||window.AbyssalShopHabitat?.(skin.id)===habitatFilter)&&(familyFilter==='all'||rarityId===familyFilter)&&(ownershipFilter==='all'||(ownershipFilter==='owned'?owned:!owned));
  }).sort((a,b)=>{const state=skin=>ownedSkins.includes(skin.id)?0:(specimenShopAvailable(skin)?1:2),sa=state(a),sb=state(b);if(sa!==sb)return sa-sb;const order={common:0,uncommon:1,rare:2,epic:3,legendary:4},ra=order[SPECIMEN_RARITY?.rarityFor(a.id)]??9,rb=order[SPECIMEN_RARITY?.rarityFor(b.id)]??9;if(ra!==rb)return ra-rb;return String(a.name).localeCompare(String(b.name),'pt-BR');});
- const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ESPÉCIMES`;
+ const summary=$('shopFilterSummary');if(summary)summary.textContent=`${visibleSkins.length} ${english?'SPECIMENS':'ESPÉCIMES'}`;if(!visibleSkins.length){const empty=document.createElement('p');empty.className='shop-empty';empty.textContent=english?'No specimens match these filters.':'Nenhum espécime corresponde aos filtros. Tente outra busca.';grid.appendChild(empty);}
  visibleSkins.forEach(skin=>{const owned=ownedSkins.includes(skin.id),equipped=equippedSkin===skin.id,currencySymbol=shopCurrency.toUpperCase(),brlAmount=Number(paidBrl[skin.id]??skin.price),amount=shopCurrency==='brl'?brlAmount:Math.round(brlAmount*Number(shopRates[shopCurrency]||0)),price=skin.paid?(shopCurrency==='brl'||Number.isFinite(shopRates[shopCurrency])?new Intl.NumberFormat(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR',{style:'currency',currency:shopCurrency.toUpperCase()}).format(amount/100):(english?'Rate unavailable':'Cotação indisponível')):`${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ⚡`,name=english?(englishNames[skin.id]||skin.name):skin.name;
     const isGreensnake = skin.id === 'greensnake';
     const isEel = skin.id === 'electriceel';
     const eelOwned = ownedSkins.includes('electriceel');
     const conquerorCompleted = ownedSkins.includes('greensnake');
-const card=document.createElement('div');const known=specimenShopAvailable(skin);card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=!known?'EM DESENVOLVIMENTO':equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'TAME':'DOMAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ⚡`;const profile=SKIN_STANDARD?.profile(skin.id);
+const card=document.createElement('div');const known=specimenShopAvailable(skin);card.dataset.skinId=skin.id;card.className='skin-card'+(!known?' unregistered':'')+(skin.paid?' paid-skin-card':'')+(owned?' owned':'')+(equipped?' equipped':'');const unlockType=SKIN_TAXONOMY[skin.id]?.unlockType||skin.unlockType||'shop';const purchaseLabel=!known?'EM DESENVOLVIMENTO':equipped?(english?'EQUIPPED':'EQUIPADA'):owned?(english?'EQUIP':'EQUIPAR'):unlockType==='mission'?(english?'MISSION REWARD':'RECOMPENSA DE MISSÃO'):unlockType==='promo'?(english?'PROMO CODE':'CÓDIGO PROMOCIONAL'):skin.paid?`${english?'BUY':'COMPRAR'} · ${price}`:`${english?'TAME':'DOMAR'} · ${skin.price.toLocaleString(gameLanguage==='es'?'es-ES':english?'en-US':'pt-BR')} ⚡`;const profile=SKIN_STANDARD?.profile(skin.id);
 const active=SKIN_STANDARD?.activeSpec(skin.id);
 const biological=SPECIMEN_SYSTEM.effectiveStats(skin.id,specimenPoints(skin.id));
 const rarity=SPECIMEN_RARITY?.rarityFor(skin.id);
@@ -5505,7 +5503,7 @@ card.innerHTML=`<div class="skin-preview specimen-vessel">
   ${known?`<div class="journal-stat-row"><span>VIDA <b>${Math.round(biological.hp)}</b></span><span>ATAQUE <b>${Math.round(biological.damage)}</b></span><span>VELOCIDADE <b>${Math.round(biological.speed)}</b></span></div><p class="specimen-card-description">${shortDescription}</p>`:''}
  </div>
  <button ${equipped||!known?'disabled':''}>${purchaseLabel}</button>`;
-const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
+card.dataset.rarity=rarity||'common';const preview=card.querySelector('canvas');if(known){preview.dataset.skinId=skin.id;if(shopPreviewObserver)shopPreviewObserver.observe(preview);else renderCreaturePreview(preview,'player',skin.color,skin);}else preview.hidden=true;
 const btn=card.querySelector('button');if(!equipped&&known)btn.addEventListener('click',()=>{if(unlockType==='mission'&&!owned){showToast('RECOMPENSA EXCLUSIVA · CONQUISTE O DESAFIO DAS FOSSAS');return;}if(isGreensnake&&!conquerorCompleted){showToast('BLOQUEADA · Conquiste o abismo em 100% para desbloquear esta skin!');return;}if(isEel&&!eelOwned){showToast('BLOQUEADA · Use o código promocional no menu para desbloquear!');return;}if(owned){equippedSkin=skin.id;saveCosmetics();renderShop();showToast(english?'SKIN EQUIPPED':'ESPÉCIME EQUIPADO');playWorldSound('ui-equip');}else if(skin.paid){openSkinPurchaseConfirm(skin.id,name,price,false);}else if(window.AbyssalOnline?.isAuthenticated()){window.AbyssalOnline.purchaseSkin(skin.id)}else if((energyWallet?.get().energy||0)>=skin.price){energyWallet?.debit(skin.price);ownedSkins.push(skin.id);equippedSkin=skin.id;saveCosmetics();renderShop();addNotification('🐚 ' + skin.name + ' desbloqueada! Adquirida com ' + skin.price.toLocaleString('pt-BR') + ' energia na Loja. Equipe-a pelo Catálogo.', 'NOVO ESPÉCIME · LOJA ABISSAL', 'skin');
         updateNotifBadge(); updateNotifBadge();showToast(english?'SKIN UNLOCKED':'ESPÉCIME DESBLOQUEADO');playWorldSound('ui-purchase',null,900,1)}else showToast(english?'NOT ENOUGH ENERGY':'ENERGIA INSUFICIENTE');});grid.appendChild(card);if(known)shopMotionObserver?.observe(preview)});
  const bundleIds=['leviathan','kraken','aberration','angler','maw','devourer'];

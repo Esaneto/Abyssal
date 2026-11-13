@@ -34,8 +34,6 @@ var SPECIMENS=[
   {id:'electriceel',tier:'surface',habitat:'Águas tropicais',classTag:'BIOELÉTRICA',name:'Enguia Elétrica',lore:'Descargas percorrem a linha lateral antes de qualquer movimento de ataque.'}
 ];
 
-var activeFilter='all';
-
 // Correntes desenhadas uma vez em SVG; a animação fica a cargo do compositor CSS.
 // Correntes de comprimentos e curvaturas irregulares: geometria estática e leve.
 // The old orbital SVG/vortex is retired. Fossas keeps its existing dialog.
@@ -88,103 +86,18 @@ function createGate(){
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden)close();});
 }
 
-function ensureShopChrome(){
-  var grid=$('skinGrid');
-  if(!grid)return;
-
-  if(!$('marineSearch')){
-    var search=document.createElement('input');search.id='marineSearch';search.type='search';search.placeholder='Buscar espécie ou habilidade';search.setAttribute('aria-label','Buscar espécie ou habilidade');search.className='text-field';
-    grid.before(search);search.addEventListener('input',function(){var term=search.value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();Array.from(grid.children).forEach(function(card){card.hidden=!card.textContent.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(term);});});
-  }
-
-  var heading=document.querySelector('#shopScreen .shop-heading h2');
-  if(heading)heading.innerHTML='CATÁLOGO<br><em>DE ESPÉCIMES</em>';
-
-  var eyebrow=document.querySelector('#shopScreen .eyebrow');
-  if(eyebrow)eyebrow.innerHTML='<span class="pulse-dot"></span> ARQUIVO BIOLÓGICO · SETORES MAPEADOS';
-
-  var section=document.querySelector('#shopScreen .shop-section-title');
-  if(section)section.textContent='✦ FORMAS REGISTRADAS · PRÉVIA EM COMBATE';
-
-  if(!document.querySelector('#shopScreen .abyss-skin-filters')){
-    var intro=document.createElement('p');
-    intro.className='abyss-specimen-intro';
-    intro.textContent='Formas costeiras sobrevivem perto da luz. As Relíquias carregam apenas vestígios dos horrores que continuam nas fossas. Chefes e elites verdadeiros não são domesticados.';
-
-    var filters=document.createElement('div');
-    filters.className='abyss-skin-filters';
-    filters.setAttribute('aria-label','Filtrar catálogo de espécies');
-
-    [['all','TODOS'],['surface','SUPERFÍCIE'],['deep','PROFUNDIDADE'],['abyssal','ABISSAIS'],['relic','RELÍQUIAS']].forEach(function(item){
-      var key=item[0],label=item[1];
-      var b=document.createElement('button');
-      b.type='button';
-      b.className='abyss-skin-filter'+(key==='all'?' active':'');
-      b.dataset.filter=key;
-      b.textContent=label;
-      b.addEventListener('click',function(){
-        activeFilter=key;
-        filters.querySelectorAll('button').forEach(function(x){x.classList.toggle('active',x===b);});
-        decorateCards();
-      });
-      filters.appendChild(b);
-    });
-
-    grid.parentNode.insertBefore(intro,grid);
-    grid.parentNode.insertBefore(filters,grid);
-  }
-}
-
+const shopHabitatById=new Map(SPECIMENS.map(spec=>[spec.id,spec]));
+window.AbyssalShopHabitat=id=>shopHabitatById.get(id)?.tier||'unclassified';
 function decorateCards(){
-  var grid=$('skinGrid');
-  if(!grid)return;
-  ensureShopChrome();
-
-  var cards=Array.from(grid.children).filter(function(el){
-    return el.classList.contains('skin-card')&&!el.classList.contains('boss-bundle-card');
-  });
-
-  cards.forEach(function(card,index){
-    var spec=SPECIMENS[index];
-    if(!spec)return;
-
-    card.dataset.skinId=spec.id;
-    card.dataset.abyssTier=spec.tier;
-    card.classList.toggle('abyss-filtered-out',activeFilter!=='all'&&spec.tier!==activeFilter);
-
-    var title=card.querySelector(':scope > strong');
-    // Canonical species names belong to the gameplay catalog, never the legacy lore table.
-
-    var meta=card.querySelector('.abyss-specimen-meta');
-    if(!meta){
-      meta=document.createElement('div');
-      meta.className='abyss-specimen-meta';
-      var ability=card.querySelector('.skin-ability');
-      card.insertBefore(meta,ability||card.querySelector('button'));
-    }
-    meta.innerHTML='<span class="abyss-specimen-badge '+spec.tier+'">CLASSE · '+spec.classTag+'</span><span class="abyss-specimen-badge">HABITAT · '+spec.habitat+'</span>';
-
-    var lore=card.querySelector('.abyss-specimen-lore');
-    if(!lore){
-      lore=document.createElement('p');
-      lore.className='abyss-specimen-lore';
-      var ability2=card.querySelector('.skin-ability');
-      card.insertBefore(lore,ability2||card.querySelector('button'));
-    }
-    lore.textContent='';
-  });
-
-  var bundle=grid.querySelector('.boss-bundle-card');
-  if(bundle){
-    var title2=bundle.querySelector('strong');
-    if(title2)title2.textContent='COLEÇÃO · RELÍQUIAS DO ABISMO';
-    var desc=bundle.querySelector(':scope > p:not(.boss-bundle-count)');
-    if(desc)desc.textContent='Vestígios dos seis grandes horrores. As criaturas verdadeiras continuam reservadas às profundezas.';
-    bundle.dataset.abyssTier='relic';
-    bundle.classList.toggle('abyss-filtered-out',activeFilter!=='all'&&activeFilter!=='relic');
-  }
+ const grid=$('skinGrid');if(!grid)return;
+ for(const card of grid.querySelectorAll('.skin-card[data-skin-id]')){
+  const spec=shopHabitatById.get(card.dataset.skinId);
+  if(!spec||card.classList.contains('unregistered')||card.querySelector('.abyss-specimen-meta'))continue;
+  const meta=document.createElement('div');meta.className='abyss-specimen-meta';
+  for(const value of ['Classe: '+spec.classTag,'Habitat: '+spec.habitat]){const tag=document.createElement('span');tag.className='abyss-specimen-badge';tag.textContent=value;meta.append(tag);}
+  card.querySelector('.specimen-card-information')?.append(meta);
+ }
 }
-
 function watchShop(){
   var grid=$('skinGrid');
   if(!grid)return;

@@ -96,7 +96,8 @@ async function capture(root,label){
    }
    if(label==='after'){await ev("document.querySelector('#submarineWorkshop .abyss-control-research').click()");assert.ok(await ev("document.querySelectorAll('#submarineWorkshop .abyss-control-deck button').length===4"),'Cabin must expose four main actions');}else await ev("document.querySelector('#submarineWorkshop .abyss-control-solo').click();document.querySelector('#submarineWorkshop .solo-research-tabs button').click();");
    await snap(device+'-pesquisa');
-   if(label==='after')assert.ok(await ev("document.querySelector('#submarineWorkshop .abyss-tree-map')?.textContent.includes('Pulso de Maré')&&document.querySelector('#submarineWorkshop .abyss-tree-map')?.textContent.includes('Passo Fantasma')"),'Q/E research nodes missing');
+   if(label==='after')assert.ok(await ev("document.querySelector('#submarineWorkshop .abyss-tree-map')?.textContent.includes('Pulso de Maré')&&document.querySelector('#submarineWorkshop .abyss-tree-map')?.textContent.includes('Propulsor Abissal')"),'Q/E research nodes missing');
+   if(label==='after'){await ev("document.querySelector('#submarineWorkshop .abyss-control-shop').click()");await wait("document.querySelectorAll('#skinGrid .skin-card').length>0");assert.ok(await ev("!document.getElementById('marineSearch')&&!!document.getElementById('shopHabitatFilter')&&document.querySelectorAll('#skinGrid .skin-card[data-skin-id]').length===document.querySelectorAll('#skinGrid .skin-card').length"),'Unified shop filters and stable specimen IDs missing');await snap(device+'-loja');}
   }
   fs.writeFileSync(path.join(OUT,'deep-ui-'+label+'-metrics.json'),JSON.stringify(reports,null,2));
   console.log('[deep-ui] metrics '+JSON.stringify(reports));

@@ -373,6 +373,7 @@ socket.on('code-redeem-result',result=>{clearTimeout(redeemTimeout);redeemTimeou
   socket.on('world-orb-spawned',data=>window.dispatchEvent(new CustomEvent('abyssal-orb-spawn',{detail:data})));
   socket.on('world-orb-collected',data=>window.dispatchEvent(new CustomEvent('abyssal-orb-collect',{detail:data})));
  socket.on('world-players',list=>applyPlayerList(list));
+ socket.on('propulsor-state',state=>window.dispatchEvent(new CustomEvent('abyssal-propulsor-state',{detail:state})));
  socket.on('player-motion',rows=>applyPlayerMotion(window.AbyssalNetCodec?.readPlayerMotion?.(rows)||rows));
  socket.on('run-energy-ranking',ranking=>window.dispatchEvent(new CustomEvent('abyssal-run-energy-ranking',{detail:Array.isArray(ranking)?ranking:[]})));
  socket.on('revive-result',result=>window.dispatchEvent(new CustomEvent('abyssal-revive-result',{detail:result||{ok:false,message:'Não foi possível ressuscitar agora.'}})));
@@ -662,7 +663,7 @@ function claimFirstProgressionBonus(progress,onResult){
  socket.timeout(12000).emit('claim-first-progression',{mode:'solo'},(err,result)=>{if(!err&&result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}onResult?.(err?{ok:false,message:'Sem confirmação do servidor. Tente novamente.'}:result);});return true;
 }
 function sendProtection(seconds,reason='gameplay'){if(socket?.connected&&authenticated)socket.emit('player-protection',{seconds:Number(seconds)||0,reason})}
-function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{if(!err&&result)onResult?.(result);});return true;}
+function sendActiveAbility(id,onResult){if(!socket?.connected||!authenticated||!currentRoom){onResult?.({ok:false,reason:'disconnected'});return false;}socket.timeout(3000).emit('active-ability',{id:String(id||'').slice(0,24)},(err,result)=>{onResult?.(result||{ok:false,reason:err?'timeout':'no-ack'});});return true;}
 function requestWorldSnapshot(reason='manual'){if(socket?.connected&&authenticated&&currentRoom)socket.emit('request-world-snapshot',{reason:String(reason||'manual')})}
 function requestPlayerState(reason='resync'){if(socket?.connected&&authenticated&&currentRoom){requestWorldSnapshot(reason);socket.emit('request-player-state');return true;}return false;}
 let lastResumeStateRequestAt=0;

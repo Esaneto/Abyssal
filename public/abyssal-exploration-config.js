@@ -58,7 +58,7 @@
   extractor:{id:'extractor',name:'Extrator cristalino',group:'equipment',max:1,requires:['salvageTool'],cost:{ferromanganeseCrust:3},effect:'extract'},
   sonar:{id:'sonar',name:'Sonar de exploração',group:'equipment',max:3,requires:['sampler'],cost:{ferromanganeseCrust:2,phosphorite:1},effect:'detection'},
   pulse:{id:'pulse',name:'Pulso de Maré',group:'active',slot:'Q',max:1,requires:['sonar'],cost:{hydrothermalSulfide:2,phosphorite:2},legacyMeta:'pulse'},
-  dash:{id:'dash',name:'Passo Fantasma',group:'active',slot:'E',max:1,requires:['pressureSuit'],cost:{hydrothermalSulfide:2,ferromanganeseCrust:3},legacyMeta:'dash'},
+  dash:{id:'dash',name:'Propulsor Abissal',group:'active',slot:'E',max:1,requires:['pressureSuit'],cost:{hydrothermalSulfide:2,ferromanganeseCrust:3},legacyMeta:'dash'},
   bulkhead:{id:'bulkhead',name:'Costelas de Basalto',group:'passive',max:3,requires:['pressureSuit'],cost:{seaMineral:4},legacyMeta:'bulkhead'},
   focuser:{id:'focuser',name:'Lente de Fótons',group:'passive',max:3,requires:['sonar'],cost:{hydrothermalSulfide:1,ferromanganeseCrust:2},legacyMeta:'focuser'},
   current:{id:'current',name:'Aletas de Corrente',group:'passive',max:3,requires:['oxygenTank'],cost:{phosphorite:4,seaMineral:2},legacyMeta:'current'},
