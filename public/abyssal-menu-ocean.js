@@ -182,7 +182,9 @@
   });
   divePanel.querySelector('#abyssDiveOnlineChoice')?.addEventListener('click',()=>{
    divePanel.hidden=true;
-   // Existing online button owns the room browser, authentication and PvP flow.
+   // Classic Online mirrors the Solo shooter; other room types remain accessible from the room browser.
+   window.AbyssalPreferredRoomMode='coop';
+   var mode=document.getElementById('roomModeInput');if(mode)mode.value='coop';
    document.getElementById('onlineBtn')?.click();
    if(!menu.hidden)closeReturn();
   });
