@@ -6,7 +6,7 @@ let xml=fs.readFileSync(manifest,'utf8');
 xml=xml.replace(/<uses-permission android:name="android.permission.INTERNET"\s*\/>/,'<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />');
 xml=xml.replace(/<activity([^>]*android:name="\.MainActivity"[^>]*)>/,(_,attrs)=>{
  let a=attrs;
- if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="landscape"');else a+=' android:screenOrientation="landscape"';
+ if(/android:screenOrientation=/.test(a))a=a.replace(/android:screenOrientation="[^"]*"/,'android:screenOrientation="portrait"');else a+=' android:screenOrientation="portrait"';
  return '<activity'+a+'>';
 });
 xml=xml.replace(/<application([^>]*)>/,(_,attrs)=>{
@@ -211,6 +211,7 @@ if(fs.existsSync(java)){
 
 import android.os.Bundle;
 import android.graphics.Color;
+import android.content.pm.ActivityInfo;
 import android.view.View;
 import android.view.Window;
 import androidx.core.graphics.Insets;
@@ -223,6 +224,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     registerPlugin(AbyssalUpdaterPlugin.class);
     super.onCreate(savedInstanceState);
     Window window = getWindow();
