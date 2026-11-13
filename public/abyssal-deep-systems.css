@@ -283,3 +283,30 @@ body:not(.game-active) :is(.topbar,.page-footer) :is(button,span,strong,small){f
  body:not(.game-active) :is(#menuScreen,#submarineWorkshop,#abyssalDiveChoicePanel) :is(.abyss-ocean-light,.abyss-ocean-particles,.ds-dive-card,.abyss-control-key,.abyss-destination)::before,
  body:not(.game-active) :is(#menuScreen,#submarineWorkshop,#abyssalDiveChoicePanel) :is(.abyss-ocean-light,.abyss-ocean-particles,.ds-dive-card,.abyss-control-key,.abyss-destination){animation:none!important;transition:none!important}
 }
+
+/* Deliberate motion: only the newly opened mode cards and selected navigation.
+   No continuous layout animations, no additional canvas loop. */
+@keyframes ds-expedition-reveal{from{opacity:.76;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:no-preference){
+ body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-dive-card,
+ body:not(.game-active) #abyssalDiveChoicePanel:not([hidden]) .abyss-dive-choice-actions>button{animation:ds-expedition-reveal .22s ease-out both}
+ body:not(.game-active) #submarineWorkshop .ds-dive-grid .ds-dive-card:nth-child(2),
+ body:not(.game-active) #abyssalDiveChoicePanel:not([hidden]) .abyss-dive-choice-actions>button:nth-child(2){animation-delay:.045s}
+}
+body:not(.game-active) #submarineWorkshop .abyss-visor-heading>span[data-ds-status="solo"]{color:var(--ds-muted)!important}
+body:not(.game-active) #submarineWorkshop .abyss-visor-heading>span[data-ds-status="online"]{color:var(--ds-ok)!important}
+body:not(.game-active) #submarineWorkshop .abyss-visor-heading>span[data-ds-status="online"]::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ds-ok);margin-right:7px;box-shadow:0 0 8px #53d6a055}
+body:not(.game-active) #submarineWorkshop .abyss-control-key[aria-pressed=true]::before{background:var(--ds-accent)!important;box-shadow:none!important}
+body:not(.game-active) #submarineWorkshop .abyss-visor-body .abyss-visor-action[aria-pressed=true]{border-color:var(--ds-accent)!important;color:var(--ds-accent)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-node{min-height:105px;border-color:var(--ds-border)!important;background:var(--ds-panel)!important;color:var(--ds-text)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-node.is-equipped{background:#173b49!important;border-color:var(--ds-ok)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-node.is-locked{border-style:dashed!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-node[aria-pressed=true]{outline-color:var(--ds-accent)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-action:not(.is-secondary):not(:disabled){background:var(--ds-accent)!important;color:var(--ds-bg)!important;border-color:var(--ds-accent)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-action.is-secondary{background:var(--ds-surface)!important;color:var(--ds-text)!important;border-color:var(--ds-border)!important}
+body:not(.game-active) #submarineWorkshop :is(.abyss-tree-state,.abyss-tree-cost){color:var(--ds-gold)!important}
+body:not(.game-active) #submarineWorkshop .abyss-tree-description{color:var(--ds-muted)!important}
+@media(max-width:700px){
+ body:not(.game-active) #submarineWorkshop .solo-research-tabs{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+ body:not(.game-active) #submarineWorkshop .solo-research-tabs button{min-width:0!important;padding:7px 3px!important;font-size:11px!important;overflow-wrap:anywhere}
+}
