@@ -331,6 +331,9 @@ socket.on('code-redeem-result',result=>{if(result.account){serverAccount=result.
   if(!result?.ok){authenticated=false;serverAccount=null;const explicitlyExpired=/expir|inválid|invalid/i.test(String(result?.message||''));if(explicitlyExpired){sessionToken='';account=null;resetSignedOutClient('Sua sessão expirou. Entre novamente para acessar o perfil.');return;}$('profileScreen').hidden=true;updateAccount();renderProfile({});if(account?.nickname)setMessage(explicitlyExpired?'Sua sessão expirou. Entre novamente para acessar o perfil.':'Não foi possível validar sua sessão agora. Tentaremos novamente na próxima conexão.',true);if(reconnectPending)failReconnect(explicitlyExpired?'Sua sessão expirou durante a atualização. Entre novamente para continuar.':'O servidor voltou, mas não conseguiu validar a sessão nesta tentativa.');else hideMaintenanceOverlay();return;}
   authenticated=true;account={nickname:result.nickname,isDeveloper:Boolean(result.isDeveloper)};serverAccount=result;
   localStorage.setItem('abyssalAccount',JSON.stringify(account));updateAccount();renderProfile(result);
+  // Session restoration must reactivate every privilege-gated client surface, including
+  // the GameMaster DEV panel. Login already emits this event; resume must behave identically.
+  window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result}));
   setMessage(`Sessão restaurada: ${result.nickname}.`);refreshKidGate();
   socket.emit('get-account');const restoring=restoreRoomAfterReconnect();window.dispatchEvent(new CustomEvent('abyssal-authenticated',{detail:{restoringRoom:Boolean(restoring)}}));
  });
