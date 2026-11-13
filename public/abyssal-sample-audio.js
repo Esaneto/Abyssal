@@ -47,6 +47,28 @@
   }
   return {peak,rms:count?Math.sqrt(sum/count):0};
  }
+ // Find the first sustained audible attack in decoded weapon PCM.
+ // Ignore isolated clicks, retain a small pre-roll, and never cut more than
+ // 350 ms so intentional attack textures survive. Music is untouched.
+ function weaponOnset(buffer){
+  const sr=buffer.sampleRate,windowSize=Math.max(1,Math.round(sr*.004));
+  const limit=Math.min(buffer.length,Math.round(sr*.40));
+  const analysisEnd=Math.min(buffer.length,Math.round(sr*.80));
+  let peak=0;
+  const channels=Array.from({length:buffer.numberOfChannels},(_,ch)=>buffer.getChannelData(ch));
+  for(const pcm of channels)for(let i=0;i<analysisEnd;i++)peak=Math.max(peak,Math.abs(pcm[i]));
+  if(peak<.0001)return 0;
+  const threshold=Math.max(.0001,peak*.025);
+  let consecutive=0;
+  for(let i=0;i+windowSize<=limit;i+=windowSize){
+   let sum=0;
+   for(const pcm of channels)for(let j=i;j<i+windowSize;j++)sum+=pcm[j]*pcm[j];
+   const rms=Math.sqrt(sum/(windowSize*channels.length));
+   consecutive=rms>=threshold?consecutive+1:0;
+   if(consecutive>=2)return clamp((i-windowSize)/sr-.003,0,.35);
+  }
+  return 0;
+ }
  function normalizedGain(id,buffer){
   if(id==='music')return ASSETS.music.gain;
   const {peak,rms}=measureSample(buffer,ASSETS[id]?.max);
@@ -80,7 +102,7 @@
  }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
-  const buffers=new Map(),normalizations=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
+  const buffers=new Map(),normalizations=new Map(),onsets=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
   const metrics={played:0,overlapped:0,stolen:0,deduplicated:0,inaudible:0,notReady:0,errors:0};
   const clock=()=>env.performance?.now?.()??Date.now();
   const read=(key,def)=>{try{const raw=env.localStorage?.getItem(key);return raw===null||raw===undefined?def:clamp(Number(raw)||0,0,100)/100;}catch{return def;}};
@@ -105,7 +127,7 @@
     try{
      const url=new URL('audio/'+ASSETS[id].file,env.document?.baseURI||env.location?.href||'http://localhost/');
      const res=await env.fetch(url.href,{cache:'force-cache'});if(!res.ok)throw Error('audio HTTP '+res.status);
-     const decoded=await ctx.decodeAudioData(await res.arrayBuffer());buffers.set(id,decoded);normalizations.set(id,normalizedGain(id,decoded));return decoded;
+     const decoded=await ctx.decodeAudioData(await res.arrayBuffer());normalizations.set(id,normalizedGain(id,decoded));onsets.set(id,WEAPONS.has(id)?weaponOnset(decoded):0);buffers.set(id,decoded);return decoded;
     }catch(error){metrics.errors++;failedUntil.set(id,clock()+15000);env.console?.warn?.('[AbyssalAudio]',id,error.message);return null;}
     finally{loading.delete(id);}
    })();
@@ -115,7 +137,7 @@
    if(warm)return;warm=true;
    // Short high-frequency samples and the selected music first; the large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['electric','music','damage','pulse','bite','orb','kill','photon','pierce','echo','dash','cloud','nova','boss','destroyed','repair','beam'];
+   const order=['electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','cloud','boss','destroyed','repair'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
@@ -151,8 +173,9 @@
    // A large same-tick burst cannot accumulate hundreds of fading sources.
    if(voices.size>=32){const oldest=[...voices].find(v=>v.stopping);if(oldest)cleanVoice(oldest);else{metrics.inaudible++;return null;}}
    const source=ctx.createBufferSource(),gain=ctx.createGain();let pan=null,filter=null,hrtf=false;
+   const offset=onsets.get(id)||0;
    source.buffer=buffer;source.loop=Boolean(loopKey);
-   if(loopKey){source.loopStart=0;source.loopEnd=buffer.duration;}
+   if(loopKey){source.loopStart=offset;source.loopEnd=buffer.duration;}
    source.connect(gain);
    let tail=gain;
    if(WEAPONS.has(id)&&typeof ctx.createBiquadFilter==='function'){
@@ -160,21 +183,22 @@
    }
    // HRTF is binaural stereo, not discrete 7.1. Keep the local weapon centered
    // and limit costly HRTF voices; stereo fallback retains all distance cues.
-   if(WEAPONS.has(id)&&typeof ctx.createPanner==='function'&&(space.directional||loopKey)&&[...voices].filter(v=>v.hrtf&&!v.stopping).length<6){
+   if(WEAPONS.has(id)&&typeof ctx.createPanner==='function'&&!options.local&&(space.directional||loopKey)&&[...voices].filter(v=>v.hrtf&&!v.stopping).length<6){
     try{pan=ctx.createPanner();pan.panningModel='HRTF';pan.distanceModel='inverse';pan.refDistance=1;pan.rolloffFactor=0;pan.maxDistance=10000;placePanner(pan,space.direction,true);hrtf=true;}
     catch{try{pan?.disconnect();}catch{}pan=null;hrtf=false;}
    }
    if(!pan&&typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;}
    if(pan){tail.connect(pan);tail=pan;}tail.connect(sfx);
    const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,filter,hrtf,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
-   source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+.008);
+   const attack=WEAPONS.has(id)?.0015:.006;
+   source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+attack);
    voices.add(voice);
-   try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now+.004);}
+   try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now,offset);}
    else{
-    const duration=Math.min(buffer.duration,cfg.max||buffer.duration);
+    const duration=Math.min(buffer.duration-offset,cfg.max||buffer.duration-offset);
     const release=Math.min(.12,Math.max(.025,duration*.18));
     gain.gain.setValueAtTime(amplitude,now+Math.max(.009,duration-release));gain.gain.linearRampToValueAtTime(0,now+duration);
-    source.start(now+.004,0,duration);if([...voices].some(v=>v!==voice&&v.id===id&&!v.stopping))metrics.overlapped++;
+    source.start(now,offset,duration);if([...voices].some(v=>v!==voice&&v.id===id&&!v.stopping))metrics.overlapped++;
    }
    }catch(error){metrics.errors++;cleanVoice(voice);return null;}
    metrics.played++;
@@ -203,7 +227,7 @@
    // The freshest event for each emitter may still play if decoding finishes promptly.
    const key=asset+':'+String(options.owner||'world'),token={at:clock(),epoch,options};
    pending.set(key,token);metrics.notReady++;
-   load(asset).then(buffer=>{if(pending.get(key)!==token)return;pending.delete(key);if(buffer&&token.epoch===epoch&&clock()-token.at<350)createVoice(asset,buffer,options);});
+   load(asset).then(buffer=>{if(pending.get(key)!==token)return;pending.delete(key);if(buffer&&token.epoch===epoch&&clock()-token.at<(WEAPONS.has(asset)?24:350))createVoice(asset,buffer,options);});
    return false;
   }
   function loop(id,key,options={}){
@@ -241,5 +265,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,spatialProfile,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,createMixer};
 });
