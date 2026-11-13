@@ -551,3 +551,11 @@ body:not(.game-active) #catalogScreen .abyss-journal>.eyebrow{padding-right:52px
 #shopScreen .boss-bundle-banner{min-width:0!important}
 @media(max-width:950px){#shopScreen #skinGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#shopScreen .shop-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}#shopScreen .shop-filter-search{grid-column:1/-1!important}}
 @media(max-width:520px){#shopScreen .shop-modal{width:calc(100vw - 12px)!important;padding:13px!important}#shopScreen #skinGrid{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}#shopScreen .shop-catalog-intro{grid-template-columns:1fr!important}#shopScreen .shop-heading{gap:8px!important}#shopScreen .shop-heading-copy{flex-basis:100%!important}#shopScreen .shop-title-actions{padding-right:34px!important}#shopScreen .shop-filter-bar{grid-template-columns:1fr 1fr!important}#shopScreen #shopHabitatFilter{grid-column:1/-1!important}}
+
+/* The catalog also lives inside the narrower cockpit visor. Size its contents to the visor, not the viewport. */
+#submarineWorkshop #shopScreen.abyss-cockpit-embedded .shop-modal{width:100%!important;max-width:100%!important;min-width:0!important;overflow:visible!important;padding:0!important}
+#submarineWorkshop #shopScreen #skinGrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))!important}
+#submarineWorkshop #shopScreen .shop-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#submarineWorkshop #shopScreen .shop-filter-search{grid-column:1/-1!important}
+#submarineWorkshop #shopScreen .shop-catalog-intro{grid-template-columns:repeat(auto-fit,minmax(min(100%,225px),1fr))!important}
+#submarineWorkshop #shopScreen .shop-title-actions{padding-right:0!important}
