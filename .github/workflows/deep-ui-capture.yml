@@ -1,0 +1,39 @@
+name: Deep Systems visual comparison
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'public/abyssal-deep-systems.css'
+      - 'public/abyssal-menu-ocean.js'
+      - 'public/abyssal-exploration-runtime.js'
+      - 'scripts/deep-ui-capture.cjs'
+      - '.github/workflows/deep-ui-capture.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'public/abyssal-deep-systems.css'
+      - 'public/abyssal-tutorials.js'
+      - 'public/abyssal-exploration-runtime.js'
+      - 'scripts/deep-ui-capture.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/deep-ui-capture.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: abyssal-deep-ui-before-after
+          path: test-artifacts/browser-smoke/deep-ui-*
+          if-no-files-found: error
+          retention-days: 14

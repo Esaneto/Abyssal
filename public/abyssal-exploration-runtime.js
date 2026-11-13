@@ -196,8 +196,8 @@
   visor.setAttribute('aria-label','Visor central de comandos');
   const heading=document.createElement('header');heading.className='abyss-visor-heading';
   const column=document.createElement('div'),small=document.createElement('small'),title=document.createElement('strong');
-  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
-  const status=document.createElement('span');status.textContent=localResearchMode()?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
+  small.textContent='ABYSSAL / CENTRAL DE COMANDOS';title.textContent=activeConsoleSection==='solo'&&soloConsolePage==='home'?'PREPARAR EXPEDIÇÃO':activeConsoleSection==='solo'&&soloConsolePage!=='home'?(soloConsolePage==='diver'?'PESQUISA · MERGULHADOR':'PESQUISA · SUBMARINO'):embeddedTitles[activeConsoleSection]||chosen.title;column.append(small,title);
+  const status=document.createElement('span');const localMode=localResearchMode();status.dataset.dsStatus=localMode?'solo':'online';status.textContent=localMode?'EXPEDIÇÃO SOLO':'CONTA ONLINE';
   heading.append(column,status);visor.append(heading);
   const body=document.createElement('div');body.className='abyss-visor-body';if(activeConsoleSection==='resonance')body.classList.add('abyss-visor-resonance');body.tabIndex=0;body.dataset.pageKey=activeConsoleSection+':'+(activeConsoleSection==='solo'?soloConsolePage:activeConsoleSection==='laboratory'?activeLabSection:'main');
   for(const node of old){
@@ -342,10 +342,26 @@
       closeWorkshop();if(target&&!target.disabled)target.click();
      }
     });
-    utility.append(heading,body,action);
     if(activeConsoleSection==='solo'){
-     const online=document.createElement('button');online.type='button';online.id='cockpitOnlineDiveBtn';online.className='abyss-visor-action abyss-online-dive-action';online.textContent='MERGULHAR ONLINE';online.addEventListener('click',()=>window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE'));utility.append(online,createSoloResearchNav());
-    }
+     body.textContent='Escolha como deseja explorar as profundezas.';
+     const modes=document.createElement('div');modes.className='ds-dive-grid';
+     modes.setAttribute('role','group');modes.setAttribute('aria-label','Modos de mergulho');
+     const configureMode=(button,kicker,title,description,cta)=>{
+      button.classList.add('ds-dive-card');button.replaceChildren();
+      for(const [tag,cls,copy] of [['small','ds-mode-kicker',kicker],['strong','ds-mode-title',title],['span','ds-mode-copy',description],['span','ds-mode-cta',cta]]){
+       const element=document.createElement(tag);element.className=cls;element.textContent=copy;button.append(element);
+      }
+     };
+     action.id='cockpitSoloDiveBtn';
+     configureMode(action,'01 / INDIVIDUAL','Mergulho solo','Sobreviva, evolua seus disparos e explore no seu ritmo.','Iniciar mergulho');
+     const online=document.createElement('button');online.type='button';online.id='cockpitOnlineDiveBtn';online.className='abyss-visor-action abyss-online-dive-action';
+     configureMode(online,'02 / COOPERATIVO','Mergulho online','O mesmo mergulho, compartilhado com outros jogadores.','Explorar salas');
+     online.addEventListener('click',()=>{
+      window.AbyssalPreferredRoomMode='coop';const mode=document.getElementById('roomModeInput');if(mode)mode.value='coop';
+      window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');
+     });
+     modes.append(action,online);utility.append(body,modes,createSoloResearchNav());
+    }else utility.append(heading,body,action);
    }
   }
   mountCockpitConsole(utility);
