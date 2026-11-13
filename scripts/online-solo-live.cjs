@@ -5,6 +5,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),net=
 const {spawn,spawnSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..'),out=path.join(root,'test-artifacts','online-solo-live');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const propulsorCheck=process.argv.includes('--propulsor');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'abyssal-parity-'));
 fs.mkdirSync(out,{recursive:true});
 async function until(fn,label,timeout=30000){const end=Date.now()+timeout;let last;while(Date.now()<end){try{last=await fn();if(last)return last;}catch(e){last=e.message;}await sleep(150);}throw Error('Timeout '+label+': '+JSON.stringify(last));}
@@ -22,7 +23,7 @@ async function browser(url,online){
   const evaluate=async expression=>{const r=await cdp('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.text+' '+(r.exceptionDetails.exception?.description||''));return r.result.value;};
   const shot=async name=>{const data=Buffer.from((await cdp('Page.captureScreenshot',{format:'png',fromSurface:true})).data,'base64');assert.ok(data.length>10000);assert.equal(data.readUInt32BE(16),1280);assert.equal(data.readUInt32BE(20),720);fs.writeFileSync(path.join(out,name+'.png'),data);};
   await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Emulation.setDeviceMetricsOverride',{width:1280,height:720,deviceScaleFactor:1,mobile:false});
-  await cdp('Page.addScriptToEvaluateOnNewDocument',{source:`try{localStorage.setItem('abyssalAgeProfile',JSON.stringify({band:'adult',termsVersion:'2026-11-03-v2',acceptedAt:new Date().toISOString()}));localStorage.setItem('abyssalControlsPc','wasd-aim');}catch(e){}`});
+  await cdp('Page.addScriptToEvaluateOnNewDocument',{source:`try{localStorage.setItem('abyssalAgeProfile',JSON.stringify({band:'adult',termsVersion:'2026-11-03-v2',acceptedAt:new Date().toISOString()}));localStorage.setItem('abyssalControlsPc','wasd-aim');if(${propulsorCheck&&!online})localStorage.setItem('abyssalMetaUpgrades',JSON.stringify({dash:1}));}catch(e){}`});
   await cdp('Page.navigate',{url});
   await until(()=>evaluate("Boolean(window.AbyssalGameHooks&&window.AbyssalOnline&&document.getElementById('divePortalBtn')&&!document.documentElement.classList.contains('abyssal-startup'))"),'startup');
   await evaluate("(()=>{const e=document.getElementById('submarineWorkshopClose');if(e&&!document.getElementById('submarineWorkshop').hidden)e.click();})()");
@@ -36,7 +37,8 @@ async function browser(url,online){
   await evaluate("document.getElementById('"+(online?'abyssDiveOnlineChoice':'abyssDiveSoloChoice')+"').click()");
   if(online){
    await until(()=>evaluate("Boolean(window.AbyssalOnline.isConnected()&&!document.getElementById('loginScreen').hidden)"),'login screen');
-   await evaluate("document.getElementById('emailInput').value='paritytest@example.test';document.getElementById('nicknameInput').value='ParityTest';document.getElementById('passwordInput').value='ParityTest2026!';document.getElementById('registerBtn').click()");
+   if(propulsorCheck)await evaluate("document.getElementById('nicknameInput').value='GoogleReviewer01';document.getElementById('passwordInput').value='PropulsorTest2026!';document.getElementById('loginSubmitBtn').click()");
+   else await evaluate("document.getElementById('emailInput').value='paritytest@example.test';document.getElementById('nicknameInput').value='ParityTest';document.getElementById('passwordInput').value='ParityTest2026!';document.getElementById('registerBtn').click()");
    await until(()=>evaluate("window.AbyssalOnline.isAuthenticated()"),'real authentication');
    await until(()=>evaluate(`Boolean(!document.getElementById('roomsScreen').hidden&&document.querySelector('[data-room-id="MERGULHO-ONLINE"]:not([disabled])'))`),'cooperative room browser');
    await evaluate(`document.querySelector('[data-room-id="MERGULHO-ONLINE"]').click()`);
@@ -52,13 +54,33 @@ async function browser(url,online){
   await sleep(300);const moved=await inspect();await shot(online?'online-moving':'solo-moving');
   assert.ok(moved.elapsed>initial.elapsed,'game clock advances in real time');
   assert.ok(Math.abs(moved.position.x-initial.position.x)>5,'real keyboard moves the diver');
-  return {choice,initial,moved,sample};
+  let propulsion=null;
+  if(propulsorCheck){
+   await until(()=>evaluate("!document.getElementById('skillDashBtn').hidden"),'unlocked propulsor');
+   const key=async(type,k,code,v)=>cdp('Input.dispatchKeyEvent',{type,key:k,code,windowsVirtualKeyCode:v,nativeVirtualKeyCode:v});
+   const toggle=async()=>{await key('keyDown','e','KeyE',69);await key('keyUp','e','KeyE',69);};
+   await toggle();await until(async()=>{const p=await inspect();return p.propulsor.equipped;},'E equips propulsor');
+   const before=await inspect();assert.equal(Math.round(before.propulsor.energy),100);
+   await key('keyDown','a','KeyA',65);await sleep(850);
+   const swimming=await inspect();await shot((online?'online':'solo')+'-propulsor');
+   await key('keyUp','a','KeyA',65);
+   assert.ok(Math.hypot(swimming.position.x-before.position.x,swimming.position.y-before.position.y)>5,'propulsor moves actual diver');
+   assert.ok(swimming.propulsor.energy<before.propulsor.energy-1,'propulsor consumes independent battery while moving');
+   await toggle();await until(async()=>!(await inspect()).propulsor.equipped,'E restores rifle');
+   const stored=await inspect();await sleep(1100);const recovered=await inspect();
+   assert.ok(recovered.propulsor.energy>stored.propulsor.energy,'battery recharges while stored');
+   await toggle();await until(async()=>{const p=await inspect();return p.propulsor.equipped;},'E re-equips without cooldown');
+   await toggle();await until(async()=>!(await inspect()).propulsor.equipped,'E can immediately store again');
+   propulsion={before:before.propulsor,swimming:swimming.propulsor,stored:stored.propulsor,recovered:recovered.propulsor};
+   console.log('LIVE PROPULSOR '+(online?'online':'solo')+' '+JSON.stringify(propulsion));
+  }
+  return {choice,initial,moved,sample,propulsion};
  }finally{if(ws)ws.close();chrome.kill('SIGKILL');}
 }
 async function main(){
  assert.ok(executable,'Chromium required');
  const port=await new Promise(r=>{const s=net.createServer();s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(()=>r(p));});});
- const server=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:path.join(temp,'data'),DATABASE_URL:'',ABYSSAL_GAMEMASTER_PASSWORD:''},stdio:['ignore','pipe','pipe']});
+ const server=spawn(process.execPath,['server.js'],{cwd:root,env:{...process.env,PORT:String(port),DATA_DIR:path.join(temp,'data'),DATABASE_URL:'',ABYSSAL_GAMEMASTER_PASSWORD:'',...(propulsorCheck?{ABYSSAL_REVIEW_PASSWORD_01:'PropulsorTest2026!'}:{})},stdio:['ignore','pipe','pipe']});
  server.stdout.on('data',d=>process.stdout.write(d));server.stderr.on('data',d=>process.stderr.write(d));
  try{
   const url='http://127.0.0.1:'+port;
@@ -68,6 +90,7 @@ async function main(){
   let error=0,similar=0;for(let i=0;i<a.length;i+=4){let d=0;for(let k=0;k<3;k++)d+=Math.abs(a[i+k]-b[i+k]);error+=d;if(d/3<=35)similar++;}
   const report={solo:soloReport,online:onlineReport,comparison:{meanRgbError:error/(a.length/4*3),similarPixelFraction:similar/(a.length/4)}};
   fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));console.log('LIVE PARITY REPORT '+JSON.stringify(report));
+  if(propulsorCheck){assert.ok(solo.propulsion&&online.propulsion);return;}
   assert.deepEqual(solo.initial.rocks,online.initial.rocks,'identical cavern and hull geometry');
   assert.deepEqual(solo.initial.world,online.initial.world,'identical world and zoom');
   assert.deepEqual(solo.initial.submarine.sections,online.initial.submarine.sections,'identical hull HP');
