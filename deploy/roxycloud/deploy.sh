@@ -21,7 +21,7 @@ as_app git worktree add --detach "$stage" "$target"
  as_app node --check server.js
  as_app node --check payments.js
  as_app node --check public/game.js
- as_app node --test tests/roxycloud-readiness.test.cjs tests/roxycloud-stripe-webhook.test.cjs tests/specimen-journal-biology.test.cjs tests/submarine-repair-performance.test.cjs
+ as_app node --test tests/roxycloud-readiness.test.cjs tests/roxycloud-stripe-webhook.test.cjs tests/specimen-journal-biology.test.cjs tests/submarine-repair-performance.test.cjs tests/native-update.test.cjs
 )
 # Never interrupt an occupied server on a timer. Retry at the next interval.
 if ! curl -fsS --max-time 5 http://127.0.0.1:3000/health | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{try{const h=JSON.parse(s);process.exit(h.ok&&h.persistence==="postgres"&&h.activePlayers===0&&h.online===0?0:1)}catch{process.exit(1)}})'; then

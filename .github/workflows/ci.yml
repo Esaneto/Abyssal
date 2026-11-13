@@ -167,8 +167,12 @@ jobs:
           test -s android/app/src/main/assets/public/index.html
           test -s android/app/src/main/assets/public/game.js
           test -s android/app/src/main/assets/public/offline-ui.js
+          test -s android/app/src/main/assets/public/client-build.js
+          test -s android/app/src/main/assets/public/update-manager.js
+          test -s android/app/src/main/assets/public/update-manager.css
           test -s android/app/src/main/assets/public/abyssal-map.js
           cmp public/game.js android/app/src/main/assets/public/game.js
+          cmp public/update-manager.js android/app/src/main/assets/public/update-manager.js
           grep -q 'Type.systemGestures()' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           grep -q 'controller.show(WindowInsetsCompat.Type.systemBars())' android/app/src/main/java/com/esaneto/abyssal/MainActivity.java
           if grep -q '"url"[[:space:]]*:[[:space:]]*"https://abyssal' capacitor.config.json; then
@@ -194,6 +198,19 @@ jobs:
           if [ -z "$ICON_PATH" ]; then echo "Missing native APK launcher PNG" >&2; exit 1; fi
           unzip -p "$APK" "$ICON_PATH" > /tmp/abyssal-apk-launcher.png
           node scripts/check-icon-pixels.cjs /tmp/abyssal-apk-launcher.png
+      - name: Build stable signed APK for in-app updates
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        shell: bash
+        env:
+          ABYSSAL_KEYSTORE_PATH: abyssal-upload.jks
+          ABYSSAL_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ABYSSAL_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ABYSSAL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/abyssal-upload.jks
+          cd android
+          ./gradlew assembleRelease
+
       - name: Validate unsigned release AAB
         if: env.ANDROID_KEYSTORE_BASE64 == ''
         working-directory: android
@@ -250,9 +267,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
+          CLIENT_VERSION=$(node -p "require('./package.json').version")
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -s android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk Abyssal-Android.apk
+            UPDATABLE=true
+            SIGNING=release
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk Abyssal-Android.apk
+            UPDATABLE=false
+            SIGNING=debug
+          fi
           APK_SHA=$(sha256sum Abyssal-Android.apk | cut -d ' ' -f1)
-          printf '{"commit":"%s","sha256":"%s","platform":"android"}\n' "$GITHUB_SHA" "$APK_SHA" > Abyssal-Android-build.json
+          printf '{"version":"%s","commit":"%s","sha256":"%s","platform":"android","updatable":%s,"signing":"%s"}\n' "$CLIENT_VERSION" "$GITHUB_SHA" "$APK_SHA" "$UPDATABLE" "$SIGNING" > Abyssal-Android-build.json
           gh release upload downloads-2 Abyssal-Android.apk Abyssal-Android-build.json --clobber
 
 

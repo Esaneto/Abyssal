@@ -41,6 +41,7 @@
 <link rel="stylesheet" href="abyssal-shop-blood-theme.css?v=2">
 <link rel="stylesheet" href="abyssal-interface-harmony.css?v=2">
 <link rel="stylesheet" href="offline-ui.css?v=1">
+<link rel="stylesheet" href="update-manager.css?v=1">
 <link rel="stylesheet" href="rift-treasure.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
 <link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.12.14">
@@ -606,13 +607,14 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
         <h2>LEVE O ABYSSAL<br><em>COM VOCÊ</em></h2>
         <p>Você já pode instalar o Abyssal como aplicativo web nos navegadores compatíveis. Os pacotes nativos e publicações nas lojas ainda exigem etapas de assinatura e cadastro.</p>
         <div class="download-options">
-          <a class="download-option download-option-link" data-platform="windows" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Setup.exe"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Baixar instalador Abyssal para Windows 64-bit</small></span><span class="download-status">BAIXAR .EXE ↓</span></a>
-          <a class="download-option download-option-link" data-platform="android" href="https://github.com/Esaneto/Abyssal/releases/latest/download/Abyssal-Android.apk" data-release-channel="stable"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Versão Android otimizada, canal estável</small></span><span class="download-status">BAIXAR APK ↓</span></a>
+          <a class="download-option download-option-link" data-platform="windows" href="https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Setup.exe"><span class="download-platform-icon">▣</span><span class="download-option-copy"><strong>PC · WINDOWS</strong><small>Baixar instalador Abyssal para Windows 64-bit</small></span><span class="download-status">BAIXAR .EXE ↓</span></a>
+          <a class="download-option download-option-link" data-platform="android" href="https://github.com/Esaneto/Abyssal/releases/download/downloads-2/Abyssal-Android.apk" data-release-channel="stable"><span class="download-platform-icon">▤</span><span class="download-option-copy"><strong>ANDROID · APK</strong><small>Versão Android otimizada, canal estável</small></span><span class="download-status">BAIXAR APK ↓</span></a>
           <button class="download-option download-option-button" type="button" data-platform="google-play"><span class="download-platform-icon">◉</span><span class="download-option-copy"><strong>GOOGLE PLAY</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
           <button class="download-option download-option-button" type="button" data-platform="ios"><span class="download-platform-icon">▧</span><span class="download-option-copy"><strong>iOS · IPHONE / IPAD</strong><small>Adicionar à tela inicial pelo Safari</small></span><span class="download-status">INSTRUÇÕES</span></button>
           <button class="download-option download-option-button" type="button" data-platform="app-store"><span class="download-platform-icon">◌</span><span class="download-option-copy"><strong>APPLE APP STORE</strong><small>Aplicativo ainda não publicado na loja</small></span><span class="download-status">DETALHES</span></button>
         </div>
         <p id="downloadInstallMessage" class="download-install-message" role="status" aria-live="polite">Selecione uma plataforma para baixar ou instalar.</p>
+        <button id="checkNativeUpdateBtn" class="secondary-btn" type="button" hidden>VERIFICAR ATUALIZAÇÕES</button>
         <button id="installPwaBtn" class="secondary-btn">INSTALAR COMO APLICATIVO WEB</button>
         <button id="playBrowserBtn" class="primary-btn">JOGAR NO NAVEGADOR <span>↗</span></button>
         <button id="downloadCloseBtn" class="secondary-btn" data-close-screen="downloadScreen">VOLTAR AO MENU</button>
@@ -695,7 +697,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
+<script src="client-build.js?v=3.6.0"></script>
 <script src="offline-ui.js?v=2026.11.12.12"></script>
+<script src="update-manager.js?v=1"></script>
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=8"></script>
 <script src="abyssal-curated-skins.js?v=2026.11.7.34"></script>

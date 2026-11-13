@@ -57,7 +57,7 @@ test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback'
  assert.match(deploy,/h\.activePlayers===0&&h\.online===0/);
  assert.match(deploy,/export PATH=.*\/usr\/sbin/);
  assert.match(deploy,/git worktree add --detach "\$stage" "\$target"/);
- for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology','submarine-repair-performance']){
+ for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology','submarine-repair-performance','native-update']){
   assert.ok(deploy.split('\n').some(line=>line.includes('node --test')&&line.includes('tests/'+file+'.test.cjs')));
  }
  const stageTests=deploy.indexOf('as_app node --test');
