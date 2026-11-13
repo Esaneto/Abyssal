@@ -1839,7 +1839,7 @@ io.on('connection', socket => {
   const section=(sub.sections||[]).find(s=>s.id===sectionId);if(!section||(Number(section.hp)||0)>=(Number(section.maxHp)||WorldSimulation.ONLINE_SUBMARINE_SECTION_HP))return reply({ok:false,message:'Esta peça não precisa de reparo.'});
   if(Math.hypot(p.x-section.x,p.y-section.y)>150/EnemyAI.WORLD_ZOOM)return reply({ok:false,message:'Aproxime-se da peça danificada.'});
   if(sub.repair&&Date.now()<Number(sub.repair.endsAt))return reply({ok:false,message:'Já existe um reparo em andamento.'});
-  const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
+  const startedAt=Date.now(),endsAt=startedAt+WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS*1000;sub.repair={sectionId,playerId:socket.id,startedAt,endsAt,startX:Number(p.x),startY:Number(p.y)};broadcastWorld(room,{submarine:true});reply({ok:true,sectionId,startedAt,endsAt,durationSeconds:WorldSimulation.ONLINE_SUBMARINE_REPAIR_SECONDS});
   setTimeout(()=>{
    const liveRoom=rooms.get(room.id),liveSub=liveRoom?.world?.submarine,livePlayer=liveRoom?.players.get(socket.id),job=liveSub?.repair;
    if(!liveRoom||!liveSub||!livePlayer||!job||job.playerId!==socket.id||job.sectionId!==sectionId||job.endsAt!==endsAt)return;
