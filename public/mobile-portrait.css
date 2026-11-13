@@ -1,0 +1,9 @@
+#abyssalPortraitGate{position:fixed;inset:0;z-index:2147483646;display:none;place-items:center;padding:max(22px,env(safe-area-inset-top)) max(22px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left));background:radial-gradient(circle at 50% 35%,rgba(20,74,112,.78),rgba(3,10,22,.98) 68%);color:#eefcff;text-align:center}
+#abyssalPortraitGate .portrait-gate-card{width:min(420px,88vw);padding:24px 20px;border:1px solid rgba(72,220,255,.45);border-radius:18px;background:rgba(2,10,22,.88);box-shadow:0 18px 60px #000b,0 0 32px rgba(117,66,255,.22);backdrop-filter:blur(10px)}
+#abyssalPortraitGate .portrait-gate-icon{display:block;margin:0 auto 14px;font-size:58px;line-height:1;filter:drop-shadow(0 0 14px rgba(85,228,255,.65))}
+#abyssalPortraitGate h2{margin:0 0 8px;font:800 22px/1.2 system-ui,sans-serif;letter-spacing:.08em;color:#f2fbff}
+#abyssalPortraitGate p{margin:0;font:600 14px/1.45 system-ui,sans-serif;color:#b7d7e4}
+html.abyssal-mobile-landscape,html.abyssal-mobile-landscape body{overflow:hidden!important;touch-action:none!important}
+html.abyssal-mobile-landscape #abyssalPortraitGate{display:grid}
+html.abyssal-mobile-landscape body>*:not(#abyssalPortraitGate){pointer-events:none!important;user-select:none!important}
+@media (orientation:portrait){#abyssalPortraitGate{display:none!important}}
