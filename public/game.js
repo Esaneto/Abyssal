@@ -2058,7 +2058,7 @@ function respawnSoloRiftCheckpoint(){
  riftBossMarks=[];
  const safe=ABYSSAL_MAP.isWalkable(activeMapLayout,cp.x,cp.y,player.r)?cp:{x:room?.x??cp.x,y:(room?.y??cp.y)-Math.min(85,Number(room?.ry)||85)};
  player.x=safe.x;player.y=safe.y;player.trail.length=0;hp=maxHp;
- player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
+ player.propulsorEquipped=false;player.propulsorMoving=false;player.propulsorEnergy=100;player.invuln=3.2;player.fireTimer=0;damageFlash=.35;shake=10;
  burst(player.x,player.y,'#a3eaff',26,160);playWorldSound('checkpoint',player,850,.85);
  enqueueGameplayNotice('cave','CHECKPOINT · '+String(room?.name||cp.roomId).toUpperCase(),'As Fossas o devolveram ao início da sala. Sua expedição continua.',84);
  updateCamera();updateHud();
@@ -2741,7 +2741,7 @@ function automaticWeaponTarget(){
  return target;
 }
 function updateAutomaticWeaponAim(dt){
- if(!player||soloSubmarine.repair||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;
+ if(!player||player.propulsorEquipped||soloSubmarine.repair||(isClassicCavernRun()&&soloSubmarine.spawnFx>1.25))return;
  const manual=isManualFiringMode(),cursorAvailable=updateMouseAimFromCursor();
  if(manual){if(cursorAvailable)setWeaponHeading(controlAimAngle);return;}
  const target=automaticWeaponTarget();
