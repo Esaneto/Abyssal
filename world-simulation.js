@@ -218,6 +218,11 @@ function spawnEnemy(world, options = {}) {
    if(!water)return null;
    point={...point,x:water.x,y:water.y};
   }
+  if(world.mode==='classic'&&!layout&&SoloCavern.isBlocked(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM)){
+   const water=SoloCavern.nearestWater(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM);
+   if(!water)return null;
+   point={...point,x:water.x,y:water.y};
+  }
   let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
