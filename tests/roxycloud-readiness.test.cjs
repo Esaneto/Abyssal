@@ -50,10 +50,20 @@ test('RoxyCloud preflight requires the purchased 2 vCPU and roughly 4 GB RAM',()
 
 test('RoxyCloud deployment rejects a wrong runtime profile and retains rollback',()=>{
  const deploy=read('deploy/roxycloud/deploy.sh');
- assert.match(deploy,/EXPECTED_PROFILE="roxycloud-ryzen4"/);
- assert.match(deploy,/resources\?\.profile/);
- assert.match(deploy,/rollback/);
- assert.match(deploy,/node --test tests\/roxycloud-readiness\.test\.cjs tests\/specimen-journal-biology\.test\.cjs/);
+ assert.match(deploy,/h\.resources\?\.profile==="roxycloud-ryzen4"/);
+ assert.match(deploy,/h\.persistence==="postgres"/);
+ assert.match(deploy,/h\.activePlayers===0&&h\.online===0/);
+ assert.match(deploy,/export PATH=.*\/usr\/sbin/);
+ assert.match(deploy,/git worktree add --detach "\$stage" "\$target"/);
+ for(const file of ['roxycloud-readiness','roxycloud-stripe-webhook','specimen-journal-biology']){
+  assert.ok(deploy.split('\n').some(line=>line.includes('node --test')&&line.includes('tests/'+file+'.test.cjs')));
+ }
+ const stageTests=deploy.indexOf('as_app node --test');
+ const stop=deploy.lastIndexOf('systemctl stop abyssal');
+ assert.ok(stageTests>=0&&stop>stageTests);
+ assert.match(deploy,/trap rollback ERR/);
+ assert.match(deploy,/git checkout --detach "\$previous" && as_app npm ci --omit=dev && systemctl start abyssal && health/);
+ assert.match(deploy,/systemctl start abyssal\nhealth\ntrap - ERR/);
 });
 
 test('RoxyCloud kernel profile limits swap pressure and preserves connection backlog',()=>{
