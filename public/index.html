@@ -29,6 +29,7 @@
     if(navigator.onLine===false||loading)return;
     loading=true;
     var font=document.createElement('link');font.rel='stylesheet';font.href='https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&display=swap';document.head.appendChild(font);
+    if(window.Capacitor?.isNativePlatform?.()||location.protocol==='abyssal:'||location.protocol==='file:'||(location.hostname==='localhost'&&location.protocol==='https:'))return;
     var script=document.createElement('script');script.async=true;script.crossOrigin='anonymous';script.dataset.adClient='ca-pub-2314281138409028';script.dataset.adFrequencyHint='120s';script.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2314281138409028';
     var queue=window.adsbygoogle=window.adsbygoogle||[];
     window.adConfig=window.adConfig||function(o){queue.push(o);};
@@ -555,6 +556,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
     <section id="profileScreen" class="screen modal-screen" hidden>
       <div class="modal-card profile-modal"><button class="redeem-close-btn modal-top-close" type="button" data-close-screen="profileScreen" aria-label="Fechar perfil">×</button>
         <div class="profile-account-toolbar"><div class="eyebrow"><span class="pulse-dot"></span> IDENTIDADE DO MERGULHADOR</div><button id="profileSessionBtn" type="button" class="secondary-btn profile-session-btn">ENTRAR / CRIAR CONTA</button></div>
+        <button id="adPrivacyOptionsBtn" type="button" class="secondary-btn" hidden>PRIVACIDADE DOS ANÚNCIOS</button>
         <div class="profile-hero">
           <div id="profileEmblem" class="profile-emblem" aria-hidden="true">✧</div>
           <div class="profile-identity"><h2 id="profileNickname">VISITANTE</h2><p id="profileEquippedLabel">Título equipado: Mergulhador das Fossas</p><span id="profileAccountNote" class="profile-account-note">Entre na sua conta para salvar seu título.</span></div><div id="publicProfileActions" class="public-profile-actions profile-top-actions" hidden><button id="likeProfileBtn" class="profile-action-btn profile-like-btn" type="button">♡ CURTIR</button><button id="reportProfileBtn" class="profile-action-btn profile-report-btn" type="button">⚑ DENUNCIAR</button><button id="blockProfileBtn" class="profile-action-btn" type="button">⊘ BLOQUEAR</button><span id="profileLikesCount" class="profile-progress">0 curtidas</span></div>
@@ -703,13 +705,14 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.30"></script>
+<script src="client-build.js?v=3.6.31"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
 <script src="developer-tools.js?v=1"></script>
 <script src="offline-ui.js?v=2026.11.13.deploy-resume"></script>
-<script src="update-manager.js?v=2026.11.13.verified-update"></script>
+<script src="update-manager.js?v=2026.11.13.native-release"></script>
+<script src="abyssal-admob.js?v=1"></script>
 <!-- Socket.IO loads on demand so an offline solo launch never waits for a CDN. -->
 <script src="i18n.js?v=8"></script>
 <script src="abyssal-curated-skins.js?v=2026.11.7.34"></script>
@@ -753,9 +756,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-solo-base.js?v=2026.11.12.18"></script>
 
  <script src="abyssal-feature-gates.js?v=2026.11.13.online-test"></script>
- <script src="game.js?v=2026.11.13.wheel-daily-limit-v169"></script>
+ <script src="game.js?v=2026.11.13.native-admob-updater-v170"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.13.wheel-daily-limit-v169"></script>
+<script src="online.js?v=2026.11.13.native-admob-updater-v170"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
 <script src="abyssal-tutorials.js?v=2026.11.12.2"></script>
 <script src="abyssal-rebuild.js?v=2026.11.12.10"></script>
