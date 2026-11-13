@@ -4835,7 +4835,7 @@ function draw(t){
 function drawSharkVisionCone(e,t){
  if(!e||!['whiteShark','whiteSharkBoss'].includes(e.kind))return;
  const vision=window.AbyssalEnemyAI?.SHARK_VISION;if(!vision)return;
- const range=Number(vision.range)||900/GAME_WORLD_ZOOM,half=Number(vision.halfAngle)||.55,a=Number(e.angle)||0;
+ const range=Number(window.AbyssalEnemyAI?.sharkVisionRange?.(e))||(Number(vision.range)||900/GAME_WORLD_ZOOM),half=Number(vision.halfAngle)||.55,a=Number(e.angle)||0;
  ctx.save();ctx.globalAlpha=.40;ctx.fillStyle='rgba(255,24,70,.26)';ctx.strokeStyle='#ff174d';
  ctx.shadowBlur=0;ctx.lineWidth=1/GAME_WORLD_ZOOM;
  ctx.beginPath();ctx.moveTo(e.x,e.y);
