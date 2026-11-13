@@ -5007,8 +5007,9 @@ window.addEventListener('keyup',e=>{if(isTextEntryTarget(e.target))return;keys[e
 function setReviveMessage(message){const node=$('reviveAdMessage');if(node)node.textContent=message||'';}
 function prepareForH5Ad(){}
 function resumeAfterH5Ad(){last=performance.now();}
-function resumeAfterRewardedRevive(){
- if(onlineMode){window.AbyssalOnline?.revivePlayer?.();return;}
+async function resumeAfterRewardedRevive(ticket){
+ if(onlineMode){window.AbyssalOnline?.revivePlayer?.(ticket);return;}
+ if(ticket){const result=await window.AbyssalOnline?.adMobRequest?.('admob-solo-revive',{ticket});if(!result?.ok){setReviveMessage('Não foi possível confirmar a ressurreição.');return;}}
  if(!player){setReviveMessage('Não foi possível recuperar este mergulho.');return;}
  hp=maxHp;player.invuln=3;gameState='playing';$('gameOverScreen').hidden=true;$('hud').hidden=false;$('pauseBtn').hidden=false;setMobileGameActive(true);setReviveMessage('Ressurreição concluída! Nível e habilidades preservados.');updateHud();last=performance.now();
 }
@@ -5016,7 +5017,7 @@ $('reviveWithAdBtn')?.addEventListener('click',()=>{
  const button=$('reviveWithAdBtn');if(!button)return;
  if(typeof window.adBreak!=='function'){setReviveMessage('Anúncio recompensado indisponível neste momento. Tente novamente mais tarde.');return;}
  button.disabled=true;setReviveMessage('Carregando anúncio recompensado…');let requested=false;
- try{window.adBreak({type:'reward',name:'abyssal-revive',beforeAd:prepareForH5Ad,afterAd:resumeAfterH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;resumeAfterRewardedRevive();},adDismissed:()=>{if(!requested)setReviveMessage('O anúncio foi fechado antes da recompensa.');button.disabled=false;},adBreakDone:()=>{button.disabled=false;if(!requested)setReviveMessage('Nenhuma recompensa foi confirmada pelo anúncio.');}});}
+ try{window.adBreak({type:'reward',name:'abyssal-revive',beforeAd:prepareForH5Ad,afterAd:resumeAfterH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:ticket=>{if(requested)return;requested=true;resumeAfterRewardedRevive(ticket);},adDismissed:()=>{if(!requested)setReviveMessage('O anúncio foi fechado antes da recompensa.');button.disabled=false;},adBreakDone:()=>{button.disabled=false;if(!requested)setReviveMessage('Nenhuma recompensa foi confirmada pelo anúncio.');}});}
  catch(error){console.warn('Falha ao iniciar anúncio de ressurreição:',error);button.disabled=false;setReviveMessage('Não foi possível abrir o anúncio agora.');}
 });
 window.addEventListener('abyssal-revive-result',event=>{
@@ -5277,7 +5278,7 @@ function requestWheelSpin(){
  if(!window.AbyssalOnline?.isAuthenticated()){$('wheelScreen').hidden=true;showToast('ENTRE NA CONTA PARA RECEBER RECOMPENSAS');window.AbyssalOnline?.openLogin();return;}
  if(typeof window.adBreak!=='function'){$('wheelMessage').textContent='Anúncios premiados ainda não estão ativos nesta versão. Use “Testar giro” para ver a animação sem ganhar energia.';showToast('ANÚNCIO PREMIADO AINDA NÃO CONFIGURADO');return;}
  let requested=false;wheelBusy=true;$('spinWheelBtn').disabled=true;if($('testWheelBtn'))$('testWheelBtn').disabled=true;
- try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:()=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel();},adDismissed:()=>{wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:()=>{resumeAfterH5Ad();if(!requested){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;}}});}catch(e){wheelBusy=false;$('spinWheelBtn').disabled=false;if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
+ try{window.adBreak({type:'reward',name:'abyssal-wheel',beforeAd:prepareForH5Ad,beforeReward:showAd=>{if(typeof showAd==='function')showAd();},adViewed:ticket=>{if(requested)return;requested=true;window.AbyssalOnline.spinWheel(ticket);},adDismissed:()=>{wheelBusy=false;refreshWheelDailyDisplay();if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='O anúncio foi fechado antes de concluir. Nenhuma recompensa foi entregue.';},afterAd:resumeAfterH5Ad,adBreakDone:info=>{if(!requested){wheelBusy=false;refreshWheelDailyDisplay();if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent=info?.breakStatus==='verificationPending'?'Anúncio concluído. A confirmação do Google ainda está pendente.':'Nenhum giro consumido. Anúncio indisponível ou não confirmado.';}}});}catch(e){wheelBusy=false;refreshWheelDailyDisplay();if($('testWheelBtn'))$('testWheelBtn').disabled=false;$('wheelMessage').textContent='Não foi possível abrir o anúncio. Verifique a integração do AdSense H5.';}
 }
 function weightedWheelPrize(){const n=Math.random()*100;if(n<40)return 20;if(n<70)return 50;if(n<88)return 100;if(n<96)return 300;if(n<99.9)return 600;return 1000;}
  function openOriginalWheel(){ $('wheelScreen').hidden=false;window.AbyssalOnline?.refreshAccount?.();refreshWheelDailyDisplay();drawWheel();if(!wheelBusy)$('wheelMessage').textContent='Gire para ganhar energia!'; }
