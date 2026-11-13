@@ -50,7 +50,8 @@ test('energized Online submarine is an authoritative enemy-priority target',()=>
  const server=read('server.js');
  assert.match(world,/poweredSubmarine=world\.mode==='classic'/);
  assert.match(world,/actualTarget=\{x:Number\(section\.x\).*submarine:true,section\}/);
- assert.match(world,/target\.section\.hp=Math\.max/);
+ assert.match(world,/section\.hp=Math\.max/);
+ assert.match(world,/classicHullContact\(world,enemy,now\)/);
  assert.match(server,/submarine-power/);
  assert.match(server,/powerSeconds/);
 });
@@ -61,6 +62,17 @@ test('submarine weapon damage has a single Online controller and shared loadout'
  assert.match(server,/controllerId:\[\.\.\.room\.players\.keys\(\)\]\[0\]/);
  assert.match(server,/submarineWeapons/);
  assert.match(game,/onlineSubmarineControllerId/);
- assert.match(game,/options\.submarineShot&&onlineSubmarineControllerId/);
+ assert.match(game,/options\.submarineShot&&window\.AbyssalOnline\?\.getSocketId\?\.\(\)!==onlineSubmarineControllerId/);
+ assert.match(server,/submarine-section-destroyed/);
  assert.match(game,/onlineSubmarineWeapons/);
+});
+
+test('authoritative cavern hull opens only the destroyed section',()=>{
+ const w=WorldSimulation.createWorldState(Date.now(),'classic');
+ const before=WorldSimulation.classicCavernRocks(w);
+ assert.equal(before.filter(r=>r.submarineHull).length,3);
+ w.submarine.sections[0].hp=0;
+ const after=WorldSimulation.classicCavernRocks(w);
+ assert.deepEqual(after.filter(r=>r.submarineHull).map(r=>r.sectionId),[1,2]);
+ assert.deepEqual(after.filter(r=>!r.submarineHull),before.filter(r=>!r.submarineHull));
 });
