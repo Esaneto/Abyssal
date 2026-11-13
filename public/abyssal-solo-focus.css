@@ -6,8 +6,8 @@
  border-radius:4px;background:#141e2a;color:#ffd894;letter-spacing:.08em;
  font:800 clamp(7px,.6vw,9px)/1.1 Inter,system-ui,sans-serif;box-shadow:0 3px 9px #0009
 }
-#abyssDiveOnlineChoice{opacity:.62;filter:saturate(.28)}
-#abyssDiveOnlineChoice::after{content:'EM DESENVOLVIMENTO';display:block;color:#ffc782;margin-top:6px;font:800 10px Inter,system-ui,sans-serif}
+#abyssDiveOnlineChoice{opacity:1;filter:none}
+#abyssDiveOnlineChoice::after{content:none}
 .abyss-development-notice{
  position:fixed;left:50%;top:max(85px,12vh);z-index:100000;transform:translate(-50%,-12px);
  width:max-content;max-width:calc(100vw - 30px);padding:13px 20px;pointer-events:none;

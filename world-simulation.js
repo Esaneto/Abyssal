@@ -221,17 +221,18 @@ function spawnEnemy(world, options = {}) {
    point={...point,x:water.x,y:water.y};
   }
   if(world.mode==='classic'&&!layout&&SoloCavern.isBlocked(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM)){
-   const water=SoloCavern.nearestWater(classicCavernRocks(world),point.x,point.y,35/WORLD_ZOOM);
+   const water=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,35/WORLD_ZOOM);
    if(!water)return null;
    point={...point,x:water.x,y:water.y};
   }
+  if(world.mode==='classic'&&!options.position){const corners=[{x:138,y:138},{x:world.width-138,y:138},{x:138,y:world.height-138},{x:world.width-138,y:world.height-138}];point=corners[Math.floor(random()*corners.length)];}
   let ecologyRoom = layout?.rooms?.find(room => room.id === point.roomId) || null;
 
   let kind;
   if (options.kindOverride) {
     kind = options.kindOverride;
   } else if (type === 'boss') {
-    kind = EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
+    kind = world.mode==='classic'?['boss','angler','maw','leviathan','whiteSharkBoss','kraken','devourer'].sort((a,b)=>EnemyAI.ENEMY_STATS[a].hp-EnemyAI.ENEMY_STATS[b].hp)[world.bossesDefeated%7]:EnemyAI.chooseBossKind(bosses.map(e => e.kind), random, world.bossSpawnCount);
     if (!kind) return null;
   } else {
     kind = layout && ExpeditionRules.chooseCommonKindForRoom
@@ -251,8 +252,9 @@ function spawnEnemy(world, options = {}) {
    kind=['reefshark','goblin','frilled'].includes(openSeaSkin)?'whiteShark':nature==='aggressive'?'lurker':nature==='smart'?'stinger':'drifter';
   }
   let stats = EnemyAI.statsForKind(kind);
+  if(world.mode==='classic'&&type!=='boss'){if(['drifter','stinger','brute','lurker'].includes(kind))stats={...stats,hp:stats.hp+50};if(kind==='whiteShark')stats={...stats,hp:600};}
   let eliteId = null;
-  if (type !== 'boss' && !initial) {
+  if (type !== 'boss' && !initial && !(world.mode==='classic'&&kind==='whiteShark')) {
     eliteId = layout ? null : ExpeditionRules.chooseElite(random, world.bossesDefeated, world.activeEventId, kind);
     if (options.forceElite && !eliteId) {
       const eliteIds = ['carapace','frenzy','spectral'];
@@ -263,12 +265,12 @@ function spawnEnemy(world, options = {}) {
   if(type!=='boss'){
     const physicalScale=eliteId?1.18:1.07,speedScale=eliteId?1.08:1.03,hpScale=eliteId?1.12:1;
     stats={...stats,damage:Math.max(1,Math.round(Number(stats.damage||1)*physicalScale)),speed:Number(stats.speed||0)*speedScale,hp:Math.max(1,Math.round(Number(stats.hp||1)*hpScale))};
-    if(world.mode!=='rift'&&world.mode!=='open-sea')stats=SeaProgression.strengthenCommon(stats,world.elapsed);
+    if(world.mode!=='rift'&&world.mode!=='open-sea'&&!(world.mode==='classic'&&kind==='whiteShark'))stats=SeaProgression.strengthenCommon(stats,world.elapsed);
     if(openSeaSkin==='leviathan'||openSeaSkin==='siphonophore'){stats.hp=Math.max(300,Number(stats.hp)*8);stats.speed=Math.max(22,Number(stats.speed)*.5);stats.damage=0;stats.value=Math.max(5,Number(stats.value)*5);}
     else if(openSeaSkin)stats.hp=SpecimenSystem.biologicalStats(openSeaSkin).hp; // Preserve species biology instead of escalating generic enemy HP.
   }
   if (type === 'boss') {
-    const completedCycles = Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7);
+    const completedCycles = Math.min(5,Math.floor(Math.max(0, Number(world.bossesDefeated) || 0) / 7));
     stats.hp = Math.round(stats.hp * (1 + completedCycles * 0.20));
     world.lastBossMaxHp = stats.hp;
     world.lastBossSpawnAt = Date.now();
@@ -291,6 +293,7 @@ function spawnEnemy(world, options = {}) {
   const specimenSkinId=type==='boss'?null:world.mode==='rift'?riftSpecimenSkin(random):openSeaSkin;
   if(world.mode==='rift'&&type!=='boss')stats.hp=RiftWildlife.health(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId));
   const collisionRadius=CreatureScale.creatureCollisionRadius(stats.r,specimenSkinId);
+  if(world.mode==='classic'){const safe=SoloCavern.nearestWater(classicCavernRocks(world),world.width||WORLD_WIDTH,world.height||WORLD_HEIGHT,point.x,point.y,Math.max(8,Math.min(110,stats.r/WORLD_ZOOM*.62)));if(!safe)return null;point={...point,...safe};}
   const enemy = {
     id, kind, x: point.x, y: point.y, r: collisionRadius, hp: stats.hp, maxHp: stats.hp,
     speed: stats.speed / WORLD_ZOOM, damage: stats.damage, color: stats.color,
@@ -298,7 +301,7 @@ function spawnEnemy(world, options = {}) {
     hit: 0, attackCd: 0.6, vx: 0, vy: 0, damageRevision: 0, threat: world.bossSpawnCount,
     suctionActive: false, suctionTimer: 0, suctionCooldown: kind === 'devourer' ? 20 : 0, suctionPulse: 0,
     spawnCorner: point.corner ?? null, spawnRoomId: point.roomId || null, spawnedAt: Date.now(), eliteId,
-    specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):world.mode==='open-sea'?OpenSeaEcology.temperament(specimenSkinId):'aggressive',wildlifeMode:world.mode==='open-sea'&&type!=='boss'?OpenSeaEcology.temperament(specimenSkinId):null,homeX:point.x,homeY:point.y,habitatId:world.mode==='open-sea'?OpenSeaEcology.habitatAt(point.x,point.y).id:null,
+    discoverySkinId:world.mode==='classic'?({drifter:'violet',stinger:'abyssaleye',brute:'deepwarden',lurker:'maw',whiteShark:'reefshark',whiteSharkBoss:'reefshark',boss:'aberration',angler:'angler',maw:'maw',leviathan:'leviathan',kraken:'kraken',devourer:'devourer'}[kind]||null):null,specimenSkinId,temperament:world.mode==='rift'?RiftWildlife.disposition(kind,specimenSkinId,SpecimenSystem.familyFor(specimenSkinId)):world.mode==='open-sea'?OpenSeaEcology.temperament(specimenSkinId):'aggressive',wildlifeMode:world.mode==='open-sea'&&type!=='boss'?OpenSeaEcology.temperament(specimenSkinId):null,homeX:point.x,homeY:point.y,habitatId:world.mode==='open-sea'?OpenSeaEcology.habitatAt(point.x,point.y).id:null,
     krakenSweepTimer: kind === 'kraken' ? 3.5 : 0, krakenSweepActive: false, krakenTelegraph: 0, krakenSweepCycle: 0
   };
   if(kind===RiftHardcore.FINAL_KIND&&layout){const bossRoom=layout.rooms.find(room=>room.id==='boss');if(bossRoom){enemy.x=bossRoom.x;enemy.y=bossRoom.y;enemy.angle=0;}}
@@ -328,6 +331,7 @@ function initializeWorld(world, now = Date.now(), random = Math.random) {
   world.mapSeed = Number(world.mapSeed) || AbyssalMap.seedValue(`${now}-${Math.random()}`); world.mapTier = Math.max(0, Math.floor(Number(world.mapTier) || 0));
   world.lastTick = now; world.snapshotTimer = 0; world.reliableSnapshotTimer = 0; world.playerSnapshotTimer = 0;
   if (world.mode === 'rift') return seedRiftEncounters(world, random);
+  if(world.mode==='classic'){world.commonSpawnTimer=0;const spawned=[];for(let i=0;i<3;i++){const e=spawnEnemy(world,{type:'common',initial:true,random});if(e)spawned.push(e);}return spawned;}
   return []; // Streaming spawns after players join; never spawn distant corners.
 }
 
@@ -551,8 +555,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
     }
     commonCount = countCommons(world);
     const spawnRamp = clamp(world.elapsed / 300, 0, 1);
-    const spawnInterval = 0.52 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
-    world.commonSpawnTimer = commonCount < commonLimitForWorld(world) ? Math.max(0.17, spawnInterval) : 0.35;
+    const spawnInterval = 0.55 * (1 - (2 / 3) * spawnRamp) * ExpeditionRules.eventSpawnIntervalMultiplier(world.activeEventId);
+    world.commonSpawnTimer = commonCount < commonLimitForWorld(world) ? Math.max(0.18, spawnInterval) : 0.35;
   }
 
   const spawnedBosses = [];
@@ -564,8 +568,8 @@ function tickWorld(world, players, now = Date.now(), random = Math.random) {
   // Progressão autoritativa do servidor: um chefe por ciclo e nunca outro enquanto estiver vivo.
   if (world.mode==='classic' && world.elapsed >= world.nextBossAt && countBossCount(world) === 0) {
     if (world.enemies.length < enemyLimitForWorld(world)) {
-      const anchorPlayer=validPlayers[Math.floor(random()*validPlayers.length)];const a=random()*Math.PI*2;
-       const boss = spawnEnemy(world, { type: 'boss', random, position:{x:clamp(anchorPlayer.x+Math.cos(a)*1050,100,world.width-100),y:clamp(anchorPlayer.y+Math.sin(a)*1050,100,world.height-100)} });
+      const anchorPlayer=validPlayers[0];const corners=[{x:138,y:138},{x:world.width-138,y:138},{x:138,y:world.height-138},{x:world.width-138,y:world.height-138}].sort((a,b)=>Math.hypot(b.x-anchorPlayer.x,b.y-anchorPlayer.y)-Math.hypot(a.x-anchorPlayer.x,a.y-anchorPlayer.y));
+       const boss = spawnEnemy(world, { type: 'boss', random, position:corners[0] });
       if (boss) {
         spawnedBosses.push(boss);
         spawnedEnemies.push(boss);
