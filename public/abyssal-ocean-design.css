@@ -65,3 +65,34 @@
 @media(min-width:900px){.abyss-research-tree{grid-template-columns:minmax(0,1fr) minmax(210px,.48fr);align-items:start}.abyss-tree-label,.abyss-tree-intro{grid-column:1/-1}.abyss-tree-detail{position:sticky;top:0;grid-column:2;grid-row:3}.abyss-tree-map{grid-column:1;grid-row:3}}
 @media(max-width:899px){.abyss-tree-detail{grid-row:3;position:sticky;top:0;z-index:4;box-shadow:0 4px 12px #0006}.abyss-tree-map{grid-row:4}.abyss-tree-nodes{grid-template-columns:repeat(2,minmax(0,1fr))}.abyss-tree-nodes.is-linear{gap:12px}.abyss-tree-nodes.is-linear .abyss-tree-node:not(:last-child):after{right:-13px;width:12px}}
 @media(prefers-reduced-motion:reduce){.abyss-research-tree *{transition:none!important;animation:none!important}}
+
+/* Exterior navigation shares bridge tokens; the moving world stays intact. */
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading{gap:4px!important}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading h1{font-family:Inter,system-ui,sans-serif!important;font-weight:850!important;letter-spacing:.19em!important;color:#e5f5f2!important;text-shadow:0 0 18px #31a7b044!important}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading .abyss-menu-kicker{color:#77d7b2!important;letter-spacing:.12em!important}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading p{color:#b9d5d3!important;font:500 12px/1.4 Inter,system-ui,sans-serif!important}
+#menuScreen #exteriorGuideBtn{position:relative;z-index:4;min-height:36px;max-width:100%;padding:6px 13px;border:1px solid #477d80;border-radius:6px;background:#092c2e;color:#e5f5f2;font:700 11px/1.4 Inter,system-ui,sans-serif;letter-spacing:.035em;cursor:pointer}
+#menuScreen #exteriorGuideBtn:focus-visible,#menuScreen #exteriorGuideBtn:hover{background:#124247;outline:2px solid #a7f0e7;outline-offset:2px}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry strong,#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry strong{font:750 clamp(12px,1.3vw,18px)/1.2 Inter,system-ui,sans-serif!important;letter-spacing:.03em!important;text-shadow:0 2px 5px #000!important}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry small,#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry small{font:600 10px/1.2 Inter,system-ui,sans-serif!important;letter-spacing:.015em!important;color:#b9d5d3!important}
+#menuScreen.ocean-menu-v2.submarine-menu #divePortalBtn.abyss-current-entry{background:linear-gradient(135deg,#124247ed,#041f1ff0)!important;border:1px solid #65c5c7!important;box-shadow:0 0 22px #31a7b044,inset 0 0 18px #31a7b022!important;border-radius:12px!important}
+#menuScreen.ocean-menu-v2.submarine-menu #divePortalBtn.abyss-current-entry strong{color:#e5f5f2!important}
+#menuScreen.ocean-menu-v2.submarine-menu #divePortalBtn.abyss-current-entry:focus-visible{outline:3px solid #a7f0e7!important;outline-offset:4px}
+#menuScreen.ocean-menu-v2.submarine-menu #openSeaPortalBtn.abyss-development-locked,#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-development-locked{opacity:.66!important;filter:saturate(.45)!important}
+#menuScreen.ocean-menu-v2.submarine-menu .abyss-development-locked .abyss-development-tag{display:none!important}
+#menuScreen.ocean-menu-v2.submarine-menu #submarineWorkshopBtn .abyss-hatch-label{font-family:Inter,system-ui,sans-serif!important;letter-spacing:.1em!important}
+.abyss-dive-choice-panel{padding:16px!important;background:#010908e8!important}
+.abyss-dive-choice-dialog{width:min(680px,100%)!important;max-height:92dvh;overflow:auto;padding:clamp(20px,4vw,32px)!important;background:linear-gradient(145deg,#092c2e,#041f1f)!important;border:1px solid #477d80!important;border-radius:14px!important;text-align:left!important;font-family:Inter,system-ui,sans-serif}
+.abyss-dive-choice-dialog>small{font:750 11px/1.3 Inter,system-ui,sans-serif!important;color:#77d7b2!important;letter-spacing:.09em!important}
+.abyss-dive-choice-dialog h2{font:750 clamp(23px,4vw,32px)/1.2 Inter,system-ui,sans-serif!important;letter-spacing:0!important;color:#e5f5f2!important;margin:10px 38px 22px 0!important}
+.abyss-dive-choice-actions{gap:12px!important}
+.abyss-dive-choice-actions button{align-items:flex-start!important;text-align:left!important;justify-content:flex-start!important;gap:10px!important;min-height:186px!important;padding:17px!important;background:#092c2e!important;border:1px solid #477d80!important;border-radius:10px!important}
+.abyss-dive-choice-actions button:hover,.abyss-dive-choice-actions button:focus-visible{background:#124247!important;border-color:#a7f0e7!important;outline:2px solid #a7f0e7;outline-offset:2px}
+.abyss-dive-choice-actions button small{font:700 10px/1.4 Inter,system-ui,sans-serif;color:#77d7b2;letter-spacing:.06em}
+.abyss-dive-choice-actions button strong{font:750 19px/1.25 Inter,system-ui,sans-serif!important;color:#e5f5f2!important}
+.abyss-dive-choice-actions button span{font:500 13px/1.45 Inter,system-ui,sans-serif!important;color:#b9d5d3!important}
+.abyss-dive-choice-actions button b{margin-top:auto;width:100%;padding:10px 8px;text-align:center;font:800 12px/1.3 Inter,system-ui,sans-serif;background:#31a7b0;color:#010908;border-radius:6px}
+.abyss-dive-choice-actions #abyssDiveOnlineChoice b{background:#124247;color:#e5f5f2;border:1px solid #65c5c7}
+@media(max-width:700px){#menuScreen.ocean-menu-v2.submarine-menu .abyss-menu-heading{min-height:76px!important;padding:4px 8px!important}#menuScreen #exteriorGuideBtn{min-height:44px;font-size:10px}#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry strong,#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry strong{font-size:10px!important}#menuScreen.ocean-menu-v2.submarine-menu .abyss-destination.abyss-current-entry small,#menuScreen.ocean-menu-v2.submarine-menu #riftPortalBtn.abyss-fissure-entry small{font-size:9px!important}}
+@media(max-width:470px){.abyss-dive-choice-actions button{min-height:145px!important}}
+@media(prefers-reduced-motion:reduce){#menuScreen #submarineWorkshopBtn,#menuScreen #submarineWorkshopBtn:after{animation:none!important}}

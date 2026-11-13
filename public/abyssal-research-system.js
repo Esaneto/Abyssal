@@ -9,6 +9,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(config){
  'use strict';
  const DEFINITIONS=config.RESEARCH;
+ const COMBAT_ENERGY=Object.freeze({pulse:3500,dash:4200});
  const toCount=v=>Number.isFinite(Number(v))?Math.max(0,Math.floor(Number(v))):0;
  function sanitizeLevels(raw={}){
   const result=Object.create(null);
@@ -48,6 +49,14 @@
    {...offshore,...Object.fromEntries(Object.entries(offshoreCost).map(([type,amount])=>[type,Math.max(0,Number(offshore[type])-amount)]))}:null;
   return {ok:true,levels:nextLevels,inventory:nextInventory,cost,offshoreCost,level:level+1,...(nextOffshore?{offshore:nextOffshore}:{})};
  }
+ // Energy alternative for the classic campaign; no unavailable Mar Aberto materials needed.
+ function studyCombatEnergy(id,levels={},legacy={},balance=0){
+  if(!Object.hasOwn(COMBAT_ENERGY,id))return {ok:false,reason:'unknown-research'};
+  const next=migrateLegacy(levels,legacy).levels,cost=COMBAT_ENERGY[id],energy=toCount(balance);
+  if(next[id]>=1)return {ok:false,reason:'owned'};
+  if(energy<cost)return {ok:false,reason:'energy',cost};
+  return {ok:true,levels:{...next,[id]:1},level:1,cost,energy:energy-cost};
+ }
  // Owners retain benefits already purchased with coins even when shop sales
  // are retired. Migration never spends resources or degrades owned levels.
  function migrateLegacy(levels={},legacy={}){
@@ -76,5 +85,5 @@
   }
   return valid;
  }
- return Object.freeze({VERSION:1,DEFINITIONS,sanitizeLevels,sanitizeInventory,costFor,offshoreCostFor,study,migrateLegacy,unlocked,equipActives});
+ return Object.freeze({VERSION:1,DEFINITIONS,COMBAT_ENERGY,studyCombatEnergy,sanitizeLevels,sanitizeInventory,costFor,offshoreCostFor,study,migrateLegacy,unlocked,equipActives});
 });

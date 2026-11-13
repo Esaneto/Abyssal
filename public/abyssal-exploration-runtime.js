@@ -24,6 +24,7 @@
  const workshop=document.getElementById('submarineWorkshop'),workshopGrid=document.getElementById('submarineWorkshopGrid');
  let activeLabSection='survival',activeConsoleSection='laboratory',soloConsolePage='home';
  const researchTreeSelection={diver:'lamp:1',submarine:'submarineShield'};
+ let combatResearchPending=false,combatResearchMessage='';
  // Move the original live screens, not copies: purchases, filters, canvases,
  // ownership and catalog discovery retain their existing IDs and listeners.
  let embeddedCatalog=null,skipEmbeddedOpen=false,loginReturn='profile',publicProfileReturn='cardumes';
@@ -262,6 +263,39 @@
     const items=[];for(let lv=1;lv<=3;lv++){const id='lamp:'+lv,owned=lv<=state.lamp,cost=progress?.costFor(lv)||0,locked=lv>state.lamp+1;
      items.push({id,name:'Lanterna '+['','I','II','III'][lv],icon:'☼',owned,locked,state:owned?'Instalada':locked?'Requer nível anterior':'Disponível',description:'Cone de luz com alcance de '+Math.round(window.AbyssalSoloCavern?.lampParameters(lv)?.range||570)+' unidades. '+(lv===1?'Equipamento inicial.':'+'+Math.round((Math.pow(1.22,lv-1)-1)*100)+'% de alcance em relação ao nível I.'),costText:owned?'Equipamento disponível':cost+' energia',actions:owned?[]:[{label:locked?'Nível anterior necessário':'Pesquisar · '+cost+' energia',disabled:locked||state.energy<cost,run:()=>purchase(id,()=>progress?.upgradeLamp())}]});
     }branches.push({name:'Iluminação pessoal',linear:true,items});
+    const cachedMeta=()=>{try{return JSON.parse(localStorage.getItem('abyssalMetaUpgrades')||'{}')||{};}catch{return {};}};
+    const signedIn=Boolean(account?.nickname||localStorage.getItem('abyssalSessionToken'));
+    const combatLevels=research.migrateLegacy(signedIn?account?.researchLevels||{}:localLevels,signedIn?account?.metaUpgrades||{}:cachedMeta()).levels;
+    const combatInfo=[
+     {id:'pulse',name:'Q · Pulso de Maré',icon:'✺',description:'Causa dano em área ao redor do mergulhador. Dano base: 28; recarga: 14 segundos. Ativação automática no atalho Q após pesquisar.'},
+     {id:'dash',name:'E · Passo Fantasma',icon:'➤',description:'Impulso de movimento com invulnerabilidade por 1,5 segundo. Recarga: 18 segundos. Ativação automática no atalho E após pesquisar.'}
+    ];
+    const studyCombat=id=>{
+     if(combatResearchPending)return;
+     combatResearchPending=true;combatResearchMessage='Confirmando pesquisa…';researchTreeSelection.diver=id;renderWorkshop();
+     const finish=result=>{
+      combatResearchPending=false;
+      if(result?.ok){
+       window.AbyssalGameHooks?.applyResearchUnlock?.(id,1);
+       combatResearchMessage='Pesquisa concluída. Habilidade disponível no próximo mergulho.';
+       window.dispatchEvent(new CustomEvent('abyssal-solo-research-change',{detail:{id}}));
+      }else combatResearchMessage=result?.reason==='energy'?'Energia insuficiente.':result?.reason==='owned'?'Habilidade já pesquisada.':result?.reason==='authentication'?'Conecte sua conta para pesquisar.':result?.reason==='return-to-base'?'Retorne à cabine antes de pesquisar.':'Pesquisa não confirmada. Tente novamente.';
+      renderWorkshop();
+     };
+     if(signedIn){
+      if(!window.AbyssalOnline?.isAuthenticated?.()||!window.AbyssalOnline?.isConnected?.()){finish({ok:false,reason:'authentication'});return;}
+      window.AbyssalOnline.explorationStudy(id,finish,'energy');return;
+     }
+     const result=research.studyCombatEnergy(id,localLevels,cachedMeta(),progress?.get().energy||0);
+     if(!result.ok){finish(result);return;}
+     if(!progress?.debit(result.cost)?.ok){finish({ok:false,reason:'energy'});return;}
+     localLevels=result.levels;saveLocal();finish(result);
+    };
+    branches.push({name:'Habilidades ativas · Q / E',items:combatInfo.map(item=>{
+     const owned=Number(combatLevels[item.id])>0,cost=research.COMBAT_ENERGY[item.id];
+     return {...item,owned,active:owned,state:owned?'Desbloqueada · ativa':'Disponível',costText:owned?'Já pesquisada · sem custo adicional':cost.toLocaleString('pt-BR')+' energia',actions:owned?[]:[{label:combatResearchPending?'Confirmando…':'Pesquisar · '+cost.toLocaleString('pt-BR')+' energia',disabled:combatResearchPending||state.energy<cost,run:()=>studyCombat(item.id)}]};
+    })});
+    const combatNote=document.createElement('p');combatNote.className='solo-research-copy';combatNote.textContent=combatResearchMessage||'Pesquise Q e E com energia. As duas habilidades ficam disponíveis automaticamente; no celular, use os botões de habilidade.';combatNote.setAttribute('role','status');utility.append(combatNote);
    }else{
     const installed=base?.installedWeapons?.()||[],max=base?.MAX_WEAPONS||6,shield=Boolean(base?.get?.().submarineShield),shieldCost=base?.cost?.('submarineShield')||100;
     branches.push({name:'Defesa',items:[{id:'submarineShield',name:'Escudo do submarino',icon:'⬡',owned:shield,state:shield?'Pesquisado':'Disponível',description:'Absorve o primeiro dano à base energizada, uma vez por mergulho. Não aumenta o consumo de energia.',costText:shield?'Pesquisa concluída':shieldCost+' energia',actions:shield?[]:[{label:'Pesquisar · '+shieldCost+' energia',disabled:state.energy<shieldCost,run:()=>purchase('submarineShield',()=>base?.research('submarineShield'))}]}]});

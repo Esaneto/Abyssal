@@ -5,14 +5,15 @@
    title:'O Mergulho Solitário',kicker:'MANUAL DO EXPLORADOR · SOLO',
    intro:'Sobreviva às criaturas e avance pela sequência de chefes. Suas escolhas de ressonância transformam cada mergulho.',
    tips:[
-    'Mova-se pelo mouse ou por WASD, conforme o controle escolhido. No celular, utilize o controle de movimento. A mira pode ser automática ou manual no Controle 2.',
+    'Use WASD ou o mouse, conforme o Controle escolhido. No celular, mova o joystick. No Controle 2, você controla a mira e os disparos.',
     'Derrote criaturas para coletar orbes de experiência. Ao subir de nível, escolha uma nova habilidade ou melhoria.',
     'A barra de progressão libera um boss por etapa e pausa até a sua derrota. Sete bosses completam o primeiro ciclo.',
     'Na primeira barra completa de uma conta, você recebe 5.000 de energia. Depois, pode retornar à superfície ou enfrentar ciclos cada vez mais fortes.',
     'Concluir toda a progressão em 100% concede a recompensa final: a Serpente Esmeralda.'
-    ,'O submarino oferece iluminação e armas de apoio. Recarregue sua energia no painel da base; a luz custa 20 de energia por 5 minutos.'
-    ,'Você mantém 100% da energia coletada. Sem bônus (0%), 1.000 de energia continuam 1.000; com um Espécime de +10%, passam a 1.100. O bônus é creditado ao encerrar o mergulho, sem alterar a experiência.'
-   ],end:'Q e E ativam habilidades equipadas. Use o menu de Controles para personalizar a navegação.'
+    ,'Energize o submarino próximo à base: 20 de energia por 5 minutos de luz, mais 10 por torre. Cada uma das três partes tem 1.000 de vida. Aproxime-se e use Reparar (T no PC) por 6 segundos.'
+    ,'Você mantém 100% da energia coletada. Sem bônus (0%), 1.000 de energia continuam 1.000; com um Espécime de +10%, passam a 1.100. O bônus é creditado ao encerrar o mergulho, sem alterar a experiência.',
+    'Na cabine, abra Pesquisa > Mergulhador. Desbloqueie Pulso de Maré (Q) e Passo Fantasma (E) com energia. Use R para a habilidade do Espécime; no celular, toque nos botões.'
+   ],end:'Dica: volte à cabine para pesquisar, trocar seu Espécime e preparar o próximo mergulho.'
   },
   coop:{
    title:'Mergulho Cooperativo Online',kicker:'MANUAL DO EXPLORADOR · COOPERATIVO',
@@ -22,9 +23,10 @@
     'Derrote monstros para coletar experiência e desbloquear ressonâncias. Ajude aliados a sobreviver aos ataques dos bosses.',
     'Cada boss da sequência vencido aproxima o grupo da conclusão da barra. Sua primeira barra pessoal completa dá 5.000 de energia, uma única vez por conta.',
     'Após receber o bônus, você escolhe voltar à superfície ou continuar pelos ciclos de fortalecimento, rumo à Serpente Esmeralda.',
-    'Use a identificação da sala para convidar amigos; os dados de energia e títulos pertencem à sua conta.',
+    'Escolha ou crie uma sala antes de entrar. Energize a base compartilhada: 20 de energia por ciclo de 5 minutos, mais 10 por torre. Cada seção tem 1.000 de vida; o reparo leva 15 segundos.',
     'Você mantém 100% da energia coletada. O bônus do Espécime é aplicado no encerramento: 0% = 1.000 de energia; +10% = 1.100. A experiência não recebe esse bônus.',
-    'No ranking por bosses derrotados, os 10 primeiros de cada período recebem energia: diário 100, semanal 1.000 e mensal 5.000.'
+    'No ranking por bosses derrotados, os 10 primeiros de cada período recebem energia: diário 100, semanal 1.000 e mensal 5.000.',
+    'Pesquise Q (Pulso de Maré) e E (Passo Fantasma) na cabine. R ativa a habilidade do Espécime. Use os botões correspondentes no celular.'
    ],end:'A partida continua acontecendo para os demais. Enquanto este manual estiver aberto, você fica protegido, mas não pode atacar.'
   },
   pvp:{
@@ -77,8 +79,8 @@
   }
  };
  const STEP_TOPICS=Object.freeze({
-  solo:['move','combat','progress','energy','crown','submarine','bonus'],
-  coop:['team','combat','progress','energy','team','bonus','ranking'],
+  solo:['move','combat','progress','energy','crown','submarine','bonus','skills'],
+  coop:['team','combat','progress','energy','submarine','bonus','ranking','skills'],
   pvp:['duel','cover','aim','skills','energy'],
   'open-sea':['map','oxygen','inventory','energy','submarine'],
   rift:['map','portals','chest','combat','volcano','checkpoint','final'],
@@ -99,7 +101,7 @@
   {topic:'tentacle',label:'AVISO DO TENTÁCULO'}
  ]);
  const $=id=>document.getElementById(id);
- let guide=null,reward=null,activeMode=null,returnFocus=null;
+ let guide=null,reward=null,activeMode=null,returnFocus=null,stepIndex=0,preview=false;
  function accountKey(){const nickname=root.AbyssalOnline?.getAccount?.()?.nickname;return String(nickname||'convidado').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,60);}
  function storageKey(mode){return 'abyssalTutorialHideV1:'+accountKey()+':'+mode;}
  function isDismissed(mode){
@@ -112,10 +114,19 @@
   guide=document.createElement('section');
   guide.id='abyssalTutorialOverlay';guide.className='abyssal-guide-overlay';guide.hidden=true;
   guide.setAttribute('role','presentation');
-  guide.innerHTML='<article class="abyssal-guide-card" role="dialog" aria-modal="true" aria-labelledby="abyssalGuideTitle" tabindex="-1"><button type="button" class="abyssal-guide-close" id="abyssalGuideX" aria-label="Fechar tutorial">×</button><div class="guide-kicker" id="abyssalGuideKicker"></div><h2 id="abyssalGuideTitle"></h2><p class="guide-intro" id="abyssalGuideIntro"></p><div id="abyssalGuideHazardGallery" class="abyssal-guide-hazard-gallery" hidden></div><ol id="abyssalGuideSteps"></ol><p class="guide-end" id="abyssalGuideEnd"></p><label class="abyssal-guide-choice"><input type="checkbox" id="abyssalGuideNever"><span>Não mostrar o tutorial novamente.</span></label><div class="abyssal-guide-actions"><button class="abyssal-guide-primary" type="button" id="abyssalGuideStart">COMEÇAR A JOGAR</button></div></article>';
+  guide.innerHTML='<article class="abyssal-guide-card" role="dialog" aria-modal="true" aria-labelledby="abyssalGuideTitle" tabindex="-1"><button type="button" class="abyssal-guide-close" id="abyssalGuideX" aria-label="Fechar tutorial">×</button><div class="guide-kicker" id="abyssalGuideKicker"></div><h2 id="abyssalGuideTitle"></h2><p class="guide-intro" id="abyssalGuideIntro"></p><div id="abyssalGuideHazardGallery" class="abyssal-guide-hazard-gallery" hidden></div><div class="guide-mode-switch" id="abyssalGuideModes" hidden><button type="button" data-guide-mode="solo">Solo</button><button type="button" data-guide-mode="coop">Online</button></div><div class="guide-progress"><span id="abyssalGuideCount" aria-live="polite"></span><progress id="abyssalGuideProgress" value="1" max="1"></progress></div><ol id="abyssalGuideSteps"></ol><p class="guide-end" id="abyssalGuideEnd"></p><label class="abyssal-guide-choice"><input type="checkbox" id="abyssalGuideNever"><span>Não mostrar o tutorial novamente.</span></label><div class="abyssal-guide-actions"><button class="abyssal-guide-secondary" type="button" id="abyssalGuidePrev">VOLTAR</button><button class="abyssal-guide-primary" type="button" id="abyssalGuideNext">PRÓXIMO</button><button class="abyssal-guide-secondary" type="button" id="abyssalGuideStart">PULAR / JOGAR</button></div></article>';
   document.body.appendChild(guide);
   $('abyssalGuideX').addEventListener('click',close);
   $('abyssalGuideStart').addEventListener('click',close);
+  $('abyssalGuidePrev').addEventListener('click',()=>showStep(stepIndex-1));
+  $('abyssalGuideNext').addEventListener('click',()=>{if(stepIndex>=MODES[activeMode].tips.length-1)close();else showStep(stepIndex+1);});
+  $('abyssalGuideModes').addEventListener('click',e=>{const mode=e.target.closest('[data-guide-mode]')?.dataset.guideMode;if(mode&&mode!==activeMode)enter(mode,true);});
+  guide.addEventListener('keydown',e=>{
+   if(e.key!=='Tab')return;
+   const nodes=[...guide.querySelectorAll('button:not(:disabled),input:not(:disabled)')].filter(n=>n.getClientRects().length);
+   if(!nodes.length)return;const first=nodes[0],last=nodes[nodes.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
   guide.addEventListener('pointerdown',e=>{if(e.target===guide)e.preventDefault();});
   return guide;
  }
@@ -123,10 +134,24 @@
   root.AbyssalGameHooks?.setTutorialActive?.(active);
   if(root.AbyssalOnline?.currentRoom?.())root.AbyssalOnline?.setTutorialOpen?.(active);
  }
- function enter(mode){
+ function showStep(index){
+  if(!activeMode)return;
+  const cards=[...$('abyssalGuideSteps').children],last=cards.length-1;
+  stepIndex=Math.max(0,Math.min(last,index));
+  cards.forEach((card,i)=>{card.hidden=i!==stepIndex;});
+  $('abyssalGuideCount').textContent='ETAPA '+(stepIndex+1)+' DE '+cards.length;
+  const bar=$('abyssalGuideProgress');bar.max=cards.length;bar.value=stepIndex+1;
+  $('abyssalGuidePrev').disabled=stepIndex===0;
+  $('abyssalGuideNext').textContent=stepIndex===last?(preview?'CONCLUIR':'COMEÇAR A JOGAR'):'PRÓXIMO';
+  $('abyssalGuideStart').hidden=stepIndex===last;
+  $('abyssalGuideHazardGallery').hidden=!['rift','rift-solo'].includes(activeMode)||!['volcano','poison'].includes(STEP_TOPICS[activeMode]?.[stepIndex]);
+  $('abyssalGuideEnd').hidden=stepIndex!==last;
+  $('abyssalGuideSteps').scrollIntoView?.({block:'nearest'});
+ }
+ function enter(mode,manual=false){
   mode=MODES[mode]?mode:'solo';
-  if(isDismissed(mode))return false;
-  if(activeMode)close();
+  if(!manual&&isDismissed(mode))return false;
+  if(activeMode)close();preview=manual;
   ensureGuide();
   const def=MODES[mode];
   activeMode=mode;returnFocus=document.activeElement;
@@ -135,6 +160,10 @@
   $('abyssalGuideIntro').textContent=def.intro;
   $('abyssalGuideEnd').textContent=def.end;
   $('abyssalGuideNever').checked=false;
+  $('abyssalGuideNever').closest('label').hidden=preview;
+  $('abyssalGuideModes').hidden=!preview;
+  $('abyssalGuideModes').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.guideMode===mode)));
+  $('abyssalGuideStart').textContent=preview?'FECHAR':'PULAR / JOGAR';
   const isRift=mode==='rift'||mode==='rift-solo';
   const gallery=$('abyssalGuideHazardGallery');gallery.hidden=!isRift;
   gallery.replaceChildren(...(isRift?GALLERY:[]).map(item=>{
@@ -157,20 +186,21 @@
    return li;
   }));
   guide.hidden=false;document.body.classList.add('abyssal-tutorial-open');
-  protect(true);
+  if(!preview)protect(true);
+  showStep(0);
   $('abyssalGuideX').focus({preventScroll:true});
   return true;
  }
  function close(){
   if(!activeMode)return;
   const mode=activeMode,never=Boolean($('abyssalGuideNever')?.checked);
-  if(never){
+  if(never&&!preview){
    try{localStorage.setItem(storageKey(mode),'1');}catch{}
    root.AbyssalOnline?.setTutorialPreference?.(mode);
   }
   activeMode=null;if(guide)guide.hidden=true;
   document.body.classList.remove('abyssal-tutorial-open');
-  protect(false);
+  if(!preview)protect(false);preview=false;
   const focus=returnFocus;returnFocus=null;
   if(focus?.isConnected&&focus!==document.body)try{focus.focus({preventScroll:true});}catch{}
  }
@@ -197,5 +227,5 @@
    if(activeMode)close();else $('abyssalProgressionContinue')?.click();
   }
  },true);
- root.AbyssalTutorials={enter,close,showProgressionChoice,isDismissed,MODES};
+ root.AbyssalTutorials={enter,close,showProgressionChoice,isDismissed,MODES,openManual:mode=>enter(mode,true)};
 })(window);

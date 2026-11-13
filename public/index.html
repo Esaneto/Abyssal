@@ -67,7 +67,7 @@
 <link rel="stylesheet" href="developer-tools.css?v=1">
 <link rel="stylesheet" href="update-manager.css?v=1">
 <link rel="stylesheet" href="rift-treasure.css?v=2026.11.6.2">
-<link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.6.2">
+<link rel="stylesheet" href="abyssal-tutorials.css?v=2026.11.13.guide-v186">
 <link rel="stylesheet" href="abyssal-menu-v2.css?v=2026.11.13.cabin">
 <link rel="stylesheet" href="abyssal-lab-menu.css?v=2026.11.8.15">
 <link rel="stylesheet" href="abyssal-specimen-themes.css?v=2026.11.8.1">
@@ -173,7 +173,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 #submarineWorkshop #rankingsScreen.abyss-cockpit-embedded .codex-modal{width:100%!important;max-width:100%!important;min-width:0!important;max-height:none!important;overflow:visible!important}
 @media(max-width:700px){#submarineWorkshop #cockpitRankingBtn{left:80.208333%!important;top:8%!important;width:25%!important;height:9%!important;border-radius:6px!important;border-bottom-width:3px!important;font-size:clamp(8px,2.5vw,12px)!important;gap:2px!important}#submarineWorkshop #cockpitRankingBtn svg{width:22px!important;max-height:45%!important}}
 </style>
-<link rel="stylesheet" href="abyssal-ocean-design.css?v=1">
+<link rel="stylesheet" href="abyssal-ocean-design.css?v=2026.11.13.guide-v186">
 </head>
 <body>
 <div id="app">
@@ -216,12 +216,12 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
     <section id="menuScreen" class="screen ocean-menu-v2 submarine-menu" style="visibility:hidden" aria-label="Oceano de navegação do Abyssal">
       <div class="abyss-ocean-background" aria-hidden="true"><div class="abyss-ocean-light"></div><div class="abyss-ocean-particles"></div><div class="abyss-ocean-floor"></div></div>
-      <div class="abyss-menu-heading"><span class="abyss-menu-kicker">EXPEDIÇÃO DISPONÍVEL</span><h1>ABYSSAL</h1><p>Descendo do submarino. Explore as correntes ou volte pela CABINE.</p></div>
+      <div class="abyss-menu-heading"><span class="abyss-menu-kicker">CENTRAL DE NAVEGAÇÃO</span><h1>ABYSSAL</h1><p>Escolha uma corrente ou retorne à cabine para se preparar.</p><button type="button" id="exteriorGuideBtn">GUIA DE MERGULHO</button></div>
       <div id="menuOceanStage" class="abyss-ocean-stage" role="group" aria-label="Navegação pelos portais">
         <div id="menuOceanPortalLayer" class="abyss-ocean-portal-layer">
           <canvas id="menuOceanScenery" class="abyss-ocean-scenery" aria-hidden="true"></canvas>
           <canvas id="menuOceanSubmarine" class="abyss-ocean-submarine" aria-hidden="true"></canvas>
-          <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO OU ONLINE</small></button>
+          <button id="divePortalBtn" class="abyss-destination" type="button" aria-label="Escolher mergulho solo ou online"><span class="abyss-destination-icon">⌁</span><strong>MERGULHAR</strong><small>SOLO / ONLINE</small></button>
           <button id="openSeaPortalBtn" class="abyss-destination" type="button" disabled aria-disabled="true" aria-label="Mar Aberto em desenvolvimento"><span class="abyss-destination-icon">◈</span><strong>MAR ABERTO</strong><small>EM DESENVOLVIMENTO</small></button><button id="submarineWorkshopBtn" class="abyss-laboratory-hatch" type="button" aria-label="Entrar na cabine do submarino"><span class="abyss-hatch-kicker">SUBMARINO</span><span class="abyss-hatch-label">CABINE</span><span class="abyss-hatch-action">ENTRAR</span></button>
           <button id="riftPortalBtn" class="abyss-destination abyss-destination-rift" type="button" disabled aria-disabled="true" aria-label="Fossas em desenvolvimento"><span class="abyss-destination-icon">◉</span><strong>FOSSAS</strong><small>EM DESENVOLVIMENTO</small></button>
         </div>
@@ -730,7 +730,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
       </div>
     </section>
 
-<script src="client-build.js?v=3.6.45"></script>
+<script src="client-build.js?v=2026.11.13.guide-v186"></script>
 <script src="loading-screen.js?v=2026.11.13.hq"></script>
 <script src="mobile-portrait.js?v=1"></script>
 <script src="age-slider.js?v=1"></script>
@@ -759,7 +759,7 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 <script src="abyssal-open-sea-lighting.js?v=2026.11.12.6"></script>
 <script src="abyssal-exploration-config.js?v=2026.11.10.62"></script>
 <script src="abyssal-offshore-system.js?v=2026.11.10.18"></script>
-<script src="abyssal-research-system.js?v=2026.11.10.25"></script>
+<script src="abyssal-research-system.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-resource-fields.js?v=2026.11.10.66"></script>
 <script src="sea-progression.js?v=2026.11.7.1"></script>
 <script src="abyssal-expedition-rules.js?v=2"></script>
@@ -785,9 +785,9 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
  <script src="abyssal-research-tree.js?v=1"></script>
  <script src="game.js?v=2026.11.13.ocean-design-v184"></script>
 <script src="net-codec.js?v=4.3.0"></script>
-<script src="online.js?v=2026.11.13.ocean-design-v184"></script>
+<script src="online.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-tutorial-art.js?v=2026.11.12.2"></script>
-<script src="abyssal-tutorials.js?v=2026.11.12.2"></script>
+<script src="abyssal-tutorials.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-rebuild.js?v=2026.11.12.10"></script>
 
 <script>
@@ -831,11 +831,11 @@ body:has(#submarineWorkshop:not([hidden])) .topbar .top-actions{visibility:hidde
 
 
 <script src="ocean-menu-scenery.js?v=2026.11.12.18"></script>
-<script src="abyssal-menu-ocean.js?v=2026.11.13.exterior-cadence"></script>
+<script src="abyssal-menu-ocean.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-submarine-cockpit.js?v=2026.11.13.ocean-design-v184"></script>
 <script src="abyssal-resource-icons.js?v=2026.11.10.31"></script>
 <script src="abyssal-inventory-ui.js?v=2026.11.10.55"></script>
-<script src="abyssal-exploration-runtime.js?v=2026.11.13.ocean-design-v184"></script>
+<script src="abyssal-exploration-runtime.js?v=2026.11.13.guide-v186"></script>
 <script src="abyssal-extraction-ui.js?v=2026.11.10.24"></script>
 <script src="abyssal-sonar-minimap.js?v=2026.11.11.1"></script>
 <script src="abyssal-navigation-chart.js?v=2026.11.9.20"></script>

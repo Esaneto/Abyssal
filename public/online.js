@@ -735,9 +735,9 @@ function explorationOffshoreAction(action,nodeId,callback){
   callback?.(result);
  });
 }
-function explorationStudy(id,callback){
+function explorationStudy(id,callback,currency){
  if(!socket?.connected||!authenticated){callback?.({ok:false,reason:'authentication'});return;}
- socket.timeout(7000).emit('exploration-study',{id},(error,data)=>{
+ socket.timeout(7000).emit('exploration-study',{id,...(currency==='energy'?{currency}: {})},(error,data)=>{
   const result=error?{ok:false,reason:'timeout'}:data;
   if(result?.account){serverAccount=result.account;window.dispatchEvent(new CustomEvent('abyssal-account-data',{detail:result.account}));}
   callback?.(result);

@@ -3082,6 +3082,15 @@ io.on('connection', socket => {
   if(p&&p.alive!==false)return respond({ok:false,reason:'return-to-base'});
   const id=String(payload.id||'');
   const levels=ResearchSystem.migrateLegacy(u.researchLevels||{},u.metaUpgrades||{}).levels;
+  if(payload.currency==='energy'){
+   migrateEnergy(u);
+   const result=ResearchSystem.studyCombatEnergy(id,levels,u.metaUpgrades||{},u.energy);
+   if(!result.ok)return respond(result);
+   u.energy=result.energy;u.researchLevels=result.levels;u.metaUpgrades||={};u.metaUpgrades[id]=1;
+   saveUsers();const account=publicUser(u);
+   respond({ok:true,id,level:1,cost:result.cost,account});
+   socket.emit('account-data',account);return;
+  }
   const offshoreBalance=OffshoreSystem.accrue(u.offshoreProduction||{},levels,Date.now());
   const result=ResearchSystem.study(id,levels,u.resourceInventory||{},offshoreBalance);
   if(!result.ok)return respond(result);

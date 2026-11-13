@@ -51,3 +51,26 @@ body.abyssal-tutorial-open #gameShell{touch-action:none}
  #abyssalTutorialOverlay .abyssal-guide-gallery-item figcaption{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){#abyssalTutorialOverlay .abyssal-guide-diagram-svg *{animation:none!important}}
+
+/* Quick field guide: one illustrated lesson at a time, matching the bridge. */
+#abyssalTutorialOverlay .abyssal-guide-card{width:min(100%,660px);border:1px solid #477d80;border-radius:16px;background:linear-gradient(145deg,#092c2e,#041f1f 70%,#010908);color:#e5f5f2;font-family:Inter,system-ui,sans-serif;padding:clamp(18px,4vw,32px);box-shadow:0 20px 70px #000b}
+#abyssalTutorialOverlay .abyssal-guide-card:before,#abyssalTutorialOverlay .abyssal-guide-card:after{display:none}
+#abyssalTutorialOverlay .guide-kicker{color:#77d7b2;letter-spacing:.11em}
+#abyssalTutorialOverlay h2{font:750 clamp(22px,4vw,30px)/1.2 Inter,system-ui,sans-serif;color:#e5f5f2;text-shadow:none;letter-spacing:0}
+#abyssalTutorialOverlay .guide-intro,#abyssalTutorialOverlay .guide-end,#abyssalTutorialOverlay .abyssal-guide-choice{color:#b9d5d3;font-size:14px}
+#abyssalTutorialOverlay [hidden]{display:none!important}
+#abyssalTutorialOverlay .guide-progress{display:grid;gap:7px;margin:16px 0;color:#a7f0e7;font:700 11px/1.4 Inter,system-ui,sans-serif;letter-spacing:.08em}
+#abyssalTutorialOverlay progress{width:100%;height:7px;accent-color:#31a7b0;border:0;border-radius:8px;overflow:hidden;background:#124247}
+#abyssalTutorialOverlay progress::-webkit-progress-bar{background:#124247}#abyssalTutorialOverlay progress::-webkit-progress-value{background:#31a7b0}
+#abyssalTutorialOverlay li.abyssal-guide-step-card{display:grid;grid-template-columns:minmax(125px,.8fr) minmax(0,1fr);gap:16px;padding:14px;min-height:180px;background:#092c2e;border:1px solid #37686a;animation:guide-step-enter .22s ease-out}
+#abyssalTutorialOverlay li .guide-picture{width:100%;min-width:0;box-shadow:none}
+#abyssalTutorialOverlay .guide-step-title{font-size:14px;line-height:1.3;color:#a7f0e7;letter-spacing:.035em;margin-bottom:9px}
+#abyssalTutorialOverlay .guide-step-text p{font-size:14px;line-height:1.55;color:#e5f5f2}
+#abyssalTutorialOverlay .abyssal-guide-primary{background:#31a7b0;border:1px solid #31a7b0;color:#010908}
+#abyssalTutorialOverlay .abyssal-guide-secondary,#abyssalTutorialOverlay .abyssal-guide-close,.guide-mode-switch button{background:#124247;border:1px solid #477d80;color:#e5f5f2}
+#abyssalTutorialOverlay button:focus-visible{outline:2px solid #a7f0e7;outline-offset:3px}
+#abyssalTutorialOverlay button:disabled{opacity:.45;cursor:not-allowed}
+.guide-mode-switch{display:flex;gap:8px}.guide-mode-switch button{min-height:42px;flex:1;border-radius:7px;font:700 13px Inter,system-ui,sans-serif;cursor:pointer}.guide-mode-switch button[aria-pressed=true]{background:#31a7b0;color:#010908}
+@keyframes guide-step-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(max-width:540px){#abyssalTutorialOverlay li.abyssal-guide-step-card{grid-template-columns:1fr;gap:12px;padding:12px;min-height:0}#abyssalTutorialOverlay li .guide-picture{max-width:210px;margin:auto}#abyssalTutorialOverlay .abyssal-guide-actions{display:grid;grid-template-columns:1fr 1fr}#abyssalTutorialOverlay #abyssalGuideStart{grid-column:1/-1}#abyssalTutorialOverlay .guide-step-text p{font-size:13px}}
+@media(prefers-reduced-motion:reduce){#abyssalTutorialOverlay li.abyssal-guide-step-card{animation:none}}

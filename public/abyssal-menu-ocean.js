@@ -41,7 +41,7 @@
   const hatchVisible=()=>document.body.classList.contains('abyss-hatch-navigation')&&!menu.hidden&&!document.body.classList.contains('game-active');
   const interactive=()=>{
    if(!hatchVisible()||menu.hidden||document.hidden||document.body.classList.contains('game-active')||transition||waitingForModal||emergence<1)return false;
-   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel')){
+   for(const panel of document.querySelectorAll('.modal-screen,.modal-overlay,#abyssDescentPanel,#abyssalDiveChoicePanel,#abyssalTutorialOverlay')){
     if(panel.hidden||!panel.isConnected)continue;
     if(panel.getClientRects().length&&getComputedStyle(panel).display!=='none'&&getComputedStyle(panel).visibility!=='hidden')return false;
    }
@@ -162,16 +162,17 @@
   divePanel.hidden=true;
   divePanel.innerHTML='<div class="abyss-dive-choice-dialog" role="dialog" aria-modal="true" aria-labelledby="abyssDiveChoiceTitle">'+
    '<button id="abyssDiveChoiceClose" class="abyss-dive-choice-close" type="button" aria-label="Fechar">×</button>'+
-   '<small>ESCOLHA SEU MERGULHO</small><h2 id="abyssDiveChoiceTitle">MERGULHAR</h2>'+
+   '<small>DESTINO OPERACIONAL</small><h2 id="abyssDiveChoiceTitle">Escolha sua expedição</h2>'+
    '<div class="abyss-dive-choice-actions">'+
-    '<button type="button" id="abyssDiveSoloChoice"><strong>MERGULHAR SOLO</strong><span>Jogar sozinho no modo clássico</span></button>'+
-    '<button type="button" id="abyssDiveOnlineChoice" class="online-test-ready"><strong>MERGULHAR ONLINE</strong><span>Mesmo mergulho Solo, com amigos</span></button>'+
+    '<button type="button" id="abyssDiveSoloChoice"><small>01 · INDIVIDUAL</small><strong>Mergulho solo</strong><span>Explore, evolua e enfrente os chefes no seu ritmo.</span><b>INICIAR SOLO ›</b></button>'+
+    '<button type="button" id="abyssDiveOnlineChoice" class="online-test-ready"><small>02 · COOPERATIVO</small><strong>Mergulho online</strong><span>A mesma campanha, com amigos em uma sala.</span><b>VER SALAS ›</b></button>'+
    '</div></div>';
   document.body.appendChild(divePanel);
+  document.getElementById('exteriorGuideBtn')?.addEventListener('click',()=>window.AbyssalTutorials?.openManual('solo'));
   const closeDive=()=>{
    if(divePanel.hidden)return;
    divePanel.hidden=true;
-   closeReturn();
+   closeReturn();document.getElementById('divePortalBtn')?.focus({preventScroll:true});
   };
   document.getElementById('divePortalBtn').addEventListener('click',()=>{
    divePanel.hidden=false;
@@ -194,7 +195,11 @@
    window.AbyssalOnline?.connectAndJoin?.('MERGULHO-ONLINE');
    if(!menu.hidden)closeReturn();
   });
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!divePanel.hidden){event.preventDefault();closeDive();}});
+  document.addEventListener('keydown',event=>{
+   if(divePanel.hidden)return;
+   if(event.key==='Escape'){event.preventDefault();closeDive();}
+   if(event.key==='Tab'){const items=[...divePanel.querySelectorAll('button:not(:disabled)')],first=items[0],last=items[items.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
+  });
   function closeReturn(){
    if(!menu.hidden&&!document.body.classList.contains('game-active')&&initialized)resetToHatch();
   }
