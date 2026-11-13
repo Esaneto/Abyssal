@@ -1230,6 +1230,38 @@ function refreshAudioLoop(id,key,position,range=850,volume=1,extra={}){
 }
 function stopAudioLoop(id,key){window.AbyssalAudio?.stopLoop(id,key);}
 
+// One start event per actual powered movement interval, then a leased loop.
+// Releasing movement, storing the turbine, battery depletion or leaving a
+// match stops the voice. Remote voices use existing replicated movement state.
+const propulsorAudioStates=new Map();
+let propulsorAudioLast=0;
+function syncPropulsorAudio(now,active){
+ if(active&&now-propulsorAudioLast<70)return;
+ propulsorAudioLast=now;
+ const mixer=window.AbyssalAudio,seen=new Set();
+ function sync(key,position,local){
+  seen.add(key);
+  let state=propulsorAudioStates.get(key);
+  const options=soundOptions(position,750,local?.85:.55,{owner:key,local,leaseMs:330});
+  if(!state){state={start:now};propulsorAudioStates.set(key,state);mixer?.play('propulsorStart',options);}
+  if(now-state.start>=280)mixer?.loop('propulsor',key,options);
+ }
+ if(active&&player&&gameState==='playing'&&!document.hidden){
+  if(player.propulsorEquipped&&player.propulsorMoving&&Number(player.propulsorEnergy)>0)sync('local-propulsor',player,true);
+  if(onlineMode){
+   const peers=window.AbyssalOnline?.getPlayers?.()||[];
+   for(const peer of peers){
+    if(peer.alive===false||!peer.propulsorEquipped||!peer.propulsorMoving)continue;
+    const x=Number(peer.x),y=Number(peer.y);
+    if(!Number.isFinite(x)||!Number.isFinite(y)||Math.hypot(x-player.x,y-player.y)>1000)continue;
+    sync('remote-propulsor:'+String(peer.id||peer.socketId||peer.nickname),{x,y},false);
+   }
+  }
+ }
+ for(const key of propulsorAudioStates.keys())if(!seen.has(key)){mixer?.stopLoop('propulsor',key);propulsorAudioStates.delete(key);}
+}
+
+
 // === SISTEMA DE ALERTAS ABISSAIS (vermelho, ameaçador, fade sólido) ===
 let abyssalAlertTimer = null;
 function getBossDisplayName(kind) {
@@ -5017,7 +5049,7 @@ function loop(t){
  if(document.hidden)return;
  // The swimmer menu owns its own renderer; don't run the gameplay pipeline there.
  // A low-rate wake-up is sufficient to resume gameplay after a mode selection.
- if(gameState==='menu'&&!onlineMode){last=t;return;}
+ if(gameState==='menu'&&!onlineMode){syncPropulsorAudio(t,false);last=t;return;}
  const active=!abyssalTutorialActive&&(gameState==='playing'||(onlineMode&&gameState==='upgrade'));
  // During active gameplay, trust requestAnimationFrame instead of manually skipping
  // frames. The old 60-FPS divisor produced 37-55 FPS on 75/90/144/165 Hz displays.
@@ -5028,12 +5060,13 @@ function loop(t){
  beginGameplayFrameBudget();
  try{
   if(active){const updateStarted=performance.now();const steps=Math.max(1,Math.ceil(dt/.020)),step=dt/steps;for(let i=0;i<steps;i++){if(abyssalTutorialActive||!(gameState==='playing'||(onlineMode&&gameState==='upgrade')))break;update(step);}flushGameplayNetworkFrame(dt);updateMs=performance.now()-updateStarted;}
+  syncPropulsorAudio(t,active);
   const drawStarted=performance.now();draw(t);const frameEnded=performance.now();drawMs=frameEnded-drawStarted;recordGameFrame(frameStarted,frameEnded,updateMs,drawMs);updateAdaptivePerformance(frameEnded);
  }catch(err){console.error('Abyssal frame error:',err);if(!loopErrorShown){loopErrorShown=true;showToast('A pressão distorce os instrumentos. Consulte o Console (F12) se persistir.')}}
  scheduleGameLoop();
 }
 document.addEventListener('visibilitychange',()=>{
- if(document.hidden){stopGameLoop();return;}
+ if(document.hidden){syncPropulsorAudio(performance.now(),false);stopGameLoop();return;}
  last=performance.now();scheduleGameLoop();
 });
 function coords(e){const r=canvas.getBoundingClientRect();return{x:cameraX+(e.clientX-r.left)/worldZoom,y:cameraY+(e.clientY-r.top)/worldZoom}}
@@ -5149,7 +5182,7 @@ function settleDiveReport(onComplete){
  const calculation=diveEnergyCalculation(),earned=calculation.earned;
  energyWallet?.credit(earned,'offline-reward');saveCosmetics();if(!$('shopScreen')?.hidden)renderShop();finish({ok:true,...diveEnergyCalculation()});
 }
-function returnToMainMenu(){window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
+function returnToMainMenu(){syncPropulsorAudio(performance.now(),false);window.AbyssalAudio?.stopEffects();cancelSoloHullRepair();mobileFireHeld=false;const manualBtn=$('mobileFireBtn');if(manualBtn)manualBtn.hidden=true;runResultPending=false;mapInteractionBusy=false;mapInteractionType=null;const mapButton=$('abyssMapInteractBtn');if(mapButton)mapButton.hidden=true;onlineMode=false;setMobileGameActive(false);setHudCollapsed(false);$('toggleHudBtn').hidden=true;document.body.classList.remove('game-active');gameState='menu';$('gameOverScreen').hidden=true;$('pauseScreen').hidden=true;$('upgradeScreen').hidden=true;$('hud').hidden=true;$('menuScreen').hidden=false;$('pauseBtn').hidden=true;const end=$('endDiveBtn');if(end)end.style.display='none';window.AbyssalCockpitNavigation?.showExterior?.();document.body.classList.add('abyss-hatch-navigation');window.dispatchEvent(new CustomEvent('abyssal-menu-return',{detail:{outside:true}}));}
 $('playBtn').addEventListener('click',()=>{requestedRunMode='classic';onlineMode=false;startGame()});
 // Separate route identifier for Mar Aberto. Existing classic/online handlers stay intact.
 window.addEventListener('abyssal-start-open-sea',()=>{});

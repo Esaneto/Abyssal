@@ -10,6 +10,8 @@
   damage:{file:'effects/dano.wav',gain:.66,group:'combat',priority:68,max:.85},
   pulse:{file:'effects/pulsos.wav',gain:.82,group:'shot',priority:84,max:1.6},
   dash:{file:'effects/investida.ogg',gain:.76,group:'shot',priority:80,max:1.5},
+  propulsorStart:{file:'effects/investida.ogg',gain:.76,group:'combat',priority:72,max:.85},
+  propulsor:{file:'effects/investida.ogg',gain:.55,group:'loop',priority:67},
   cloud:{file:'effects/nuvem_toxica.wav',gain:.70,group:'shot',priority:77,max:1.8},
   bite:{file:'effects/bite.wav',gain:.70,group:'combat',priority:55,max:1.1},
   boss:{file:'effects/boss_entrance.wav',gain:.92,group:'critical',priority:100},
@@ -100,6 +102,33 @@
   const cutoff=weapon?18000*Math.pow(1600/18000,t):18000;
   return {gain:attenuation*trim,attenuation,trim,pan,direction,directional,cutoff};
  }
+ // Build a seamless, sample-derived turbine bed once after decoding Investida.
+ // Four overlapping grains carry the motor; a deterministic band-limited
+ // bubble layer adds cavitation. No synthesis or allocations per gameplay tick.
+ function buildPropulsorBed(ctx,source){
+  const sr=source.sampleRate,period=Math.max(32,Math.round(sr*.42)),length=period*8;
+  const out=ctx.createBuffer(2,length,sr),grain=Math.round(period*1.8),offset=Math.min(Math.round(sr*.38),Math.floor(source.length*.26));
+  const rate=.94,alpha=1-Math.exp(-2*Math.PI*1450/sr);
+  let seed=24681357;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
+  for(let ch=0;ch<2;ch++){
+   const input=source.getChannelData(Math.min(ch,source.numberOfChannels-1)),dst=out.getChannelData(ch),weights=new Float32Array(length);
+   for(let start=0;start<length;start+=period){
+    for(let i=0;i<grain;i++){
+     const ix=(start+i)%length,pos=Math.min(input.length-1,offset+i*rate),j=Math.floor(pos),frac=pos-j;
+     const win=Math.sin(Math.PI*i/grain)**2;
+     dst[ix]+=((input[j]||0)*(1-frac)+(input[Math.min(j+1,input.length-1)]||0)*frac)*win;weights[ix]+=win;
+    }
+   }
+   for(let i=0;i<length;i++)dst[i]=dst[i]/Math.max(.0001,weights[i])*.72;
+   let low=0;for(let pass=0;pass<2;pass++)for(let i=0;i<length;i++){low+=alpha*(dst[i]-low);if(pass===1)dst[i]=low;}
+   for(let start=0;start<length;start+=Math.max(1,Math.round(sr*(.036+rand()*.045)))){
+    const hz=250+rand()*1050,dur=.025+rand()*.055,n=Math.max(1,Math.round(sr*dur)),amp=.035+rand()*.055;
+    for(let j=0;j<n;j++){const t=j/sr;dst[(start+j)%length]+=amp*Math.sin(Math.PI*j/n)**2*Math.sin(2*Math.PI*hz*(t+2*t*t));}
+   }
+   for(let i=0;i<length;i++)dst[i]=clamp(dst[i],-.9,.9);
+  }
+  return out;
+ }
  function createMixer(env){
   let ctx=null,master=null,sfx=null,musicBus=null,musicVoice=null,muted=false,hidden=Boolean(env.document?.hidden),started=false,warm=false,loopTimer=null,epoch=0,duckUntil=0;
   const buffers=new Map(),normalizations=new Map(),onsets=new Map(),loading=new Map(),failedUntil=new Map(),voices=new Set(),loops=new Map(),recent=new Map(),pending=new Map();
@@ -125,6 +154,11 @@
    if(!ctx||!ASSETS[id]||(failedUntil.get(id)||0)>clock())return Promise.resolve(null);
    const task=(async()=>{
     try{
+     if(id==='propulsor'||id==='propulsorStart'){
+      const original=await load('dash');if(!original)throw Error('Investida unavailable');
+      const decoded=id==='propulsor'?buildPropulsorBed(ctx,original):original;
+      normalizations.set(id,normalizedGain(id,decoded)*(id==='propulsor'?.66:.85));onsets.set(id,0);buffers.set(id,decoded);return decoded;
+     }
      const url=new URL('audio/'+ASSETS[id].file,env.document?.baseURI||env.location?.href||'http://localhost/');
      const res=await env.fetch(url.href,{cache:'force-cache'});if(!res.ok)throw Error('audio HTTP '+res.status);
      const decoded=await ctx.decodeAudioData(await res.arrayBuffer());normalizations.set(id,normalizedGain(id,decoded));onsets.set(id,WEAPONS.has(id)?weaponOnset(decoded):0);buffers.set(id,decoded);return decoded;
@@ -137,7 +171,7 @@
    if(warm)return;warm=true;
    // Short high-frequency samples and the selected music first; the large
    // continuous beam is last. No synchronous decode or wait in the game loop.
-   const order=['electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','cloud','boss','destroyed','repair'];
+   const order=['electric','photon','pierce','echo','nova','beam','damage','pulse','music','bite','orb','kill','dash','propulsorStart','propulsor','cloud','boss','destroyed','repair'];
    for(let i=0;i<order.length;i+=2)await Promise.all(order.slice(i,i+2).map(load));
   }
   function cleanVoice(v){if(v.done)return;v.done=true;voices.delete(v);if(v.key&&loops.get(v.key)===v)loops.delete(v.key);for(const n of [v.source,v.gain,v.pan,v.filter])try{n?.disconnect();}catch{}}
@@ -190,7 +224,7 @@
    if(!pan&&typeof ctx.createStereoPanner==='function'){pan=ctx.createStereoPanner();pan.pan.value=space.pan;}
    if(pan){tail.connect(pan);tail=pan;}tail.connect(sfx);
    const now=ctx.currentTime,amplitude=voiceGain(id,normalizations.get(id)??normalizedGain(id,buffer),space),voice={source,gain,pan,filter,hrtf,id,group:cfg.group,owner:String(options.owner||'world'),priority:priorityFor(id,options),protected:cfg.group==='critical'||Boolean(loopKey&&options.local),key:loopKey,started:clock(),expires:0,updated:0,done:false,stopping:false};
-   const attack=WEAPONS.has(id)?.0015:.006;
+   const attack=id==='propulsor'?.28:WEAPONS.has(id)?.0015:.006;
    source.onended=()=>cleanVoice(voice);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(amplitude,now+attack);
    voices.add(voice);
    try{if(loopKey){loops.set(loopKey,voice);voice.expires=clock()+Number(options.leaseMs||450);voice.updated=clock();source.start(now,offset);}
@@ -244,7 +278,7 @@
    if(!loopTimer)loopTimer=env.setInterval(()=>{const t=clock();for(const v of loops.values())if(v.expires<t)stopVoice(v);if(!loops.size){env.clearInterval(loopTimer);loopTimer=null;}},100);
    return true;
   }
-  function stopLoop(id,key){const v=loops.get(id+':'+String(key));if(v)stopVoice(v);}
+  function stopLoop(id,key){const v=loops.get(id+':'+String(key));if(v)stopVoice(v,id==='propulsor'?.28:.045);}
   function stopEffects(){epoch++;pending.clear();for(const v of voices)stopVoice(v);recent.clear();}
   async function startMusic(){
    if(!ctx||ctx.state!=='running'||musicVoice||hidden||muted)return;
@@ -265,5 +299,5 @@
   env.addEventListener?.('pagehide',()=>setHidden(true));env.addEventListener?.('pageshow',()=>setHidden(Boolean(env.document?.hidden)));
   return {unlock,play,loop,stopLoop,stopEffects,setMuted,setVolume,startMusic,inspect,abilityCue};
  }
- return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,createMixer};
+ return {ASSETS,CUES,MIX,cueAsset,abilityCue,measureSample,normalizedGain,weaponOnset,spatialProfile,buildPropulsorBed,createMixer};
 });
