@@ -2033,7 +2033,7 @@ io.on('connection', socket => {
   }
   if(room.mode==='pvp'&&(pvpRockAt(x,y,Number(p.r)||13/WORLD_ZOOM)||pvpSegmentHitsRock(previousX,previousY,x,y,Number(p.r)||13/WORLD_ZOOM))){p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'terrain',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   const skinDashActive=receivedAt<(Number(p.skinDashUntil)||0);
-  const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt);
+  const propulsorPowered=Boolean(p.propulsorEquipped&&Propulsor.charge(p.propulsorEnergy)>0);const movement=skinDashActive?{allowed:displacement<=230/WORLD_ZOOM}:consumeMovementBudget(p,displacement,receivedAt,propulsorPowered?{rate:900*Propulsor.SPEED,capacity:DEFAULT_CAPACITY}:undefined);
   if(!movement.allowed){movementGuardRejects++;p.movementRejects=(Number(p.movementRejects)||0)+1;p.velocityX=0;p.velocityY=0;return ack({ok:true,blocked:true,reason:'movement-envelope',seq:p.lastPositionSeq||0,receivedAt:p.lastPositionAt,positionUpdates:p.positionUpdates||0});}
   let acceptedX=x,acceptedY=y;
   if(room.mode==='rift'||room.mode==='open-sea'||room.mode==='coop'){
@@ -2045,7 +2045,7 @@ io.on('connection', socket => {
    if(resolved.blocked&&Math.hypot(acceptedX-x,acceptedY-y)>2){p.velocityX=0;p.velocityY=0;if(compact)io.to(socket.id).volatile.emit('player-reconcile',NetCodec.reconcile(Number(p.lastPositionSeq)||0,acceptedX,acceptedY,true));}
   }
   const acceptedDx=acceptedX-previousX,acceptedDy=acceptedY-previousY,acceptedDisplacement=Math.hypot(acceptedDx,acceptedDy);
-  const propDt=previousAt>0?Math.max(0,Math.min(.35,deltaSeconds)):0,propMoving=acceptedDisplacement>.05,wasPowered=Boolean(p.propulsorMoving);p.propulsorEnergy=Propulsor.step(p.propulsorEnergy,propDt,Boolean(p.propulsorEquipped),propMoving);p.propulsorMoving=Boolean(p.propulsorEquipped&&propMoving&&p.propulsorEnergy>0);
+  const propDt=previousAt>0?Math.max(0,Math.min(2,deltaSeconds)):0,propMoving=acceptedDisplacement>.05,wasPowered=Boolean(p.propulsorMoving);p.propulsorEnergy=Propulsor.step(p.propulsorEnergy,propDt,Boolean(p.propulsorEquipped),propMoving);p.propulsorMoving=Boolean(p.propulsorEquipped&&propMoving&&p.propulsorEnergy>0);
   if(p.propulsorEquipped&&((wasPowered!==p.propulsorMoving)||receivedAt-(p.propulsorSyncedAt||0)>2000)){p.propulsorSyncedAt=receivedAt;socket.emit('propulsor-state',{energy:p.propulsorEnergy,equipped:true});if(wasPowered!==p.propulsorMoving)io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));}
   if(acceptedDisplacement>.5){const nextAngle=Math.atan2(acceptedDy,acceptedDx),beforeAngle=Number(p.bodyAngle)||0;const diff=Math.atan2(Math.sin(nextAngle-beforeAngle),Math.cos(nextAngle-beforeAngle));p.bodyAngle=beforeAngle+diff*.55;}
   if(acceptedDisplacement<0.5){p.velocityX=0;p.velocityY=0;}
@@ -2761,7 +2761,7 @@ io.on('connection', socket => {
   const room=socketRoom(socket),player=room?.players.get(socket.id),u=users[socket.data.userKey],id=String(payload?.id||'');
   const ack=(ok,reason)=>{if(typeof acknowledge==='function')acknowledge({ok,reason,serverTime:Date.now()});};
   if(!room||!player||player.alive===false||player.tutorialActive)return ack(false,'invalid-ability');
-  if(id==='propulsor-on'||id==='propulsor-off'){if(!(Number(u?.metaUpgrades?.dash)>0))return ack(false,'invalid-ability');player.propulsorEquipped=id==='propulsor-on';player.propulsorMoving=false;player.propulsorEnergy=Propulsor.charge(player.propulsorEnergy);if(typeof acknowledge==='function')acknowledge({ok:true,energy:player.propulsorEnergy,equipped:player.propulsorEquipped});io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));return;}
+  if(id==='propulsor-on'||id==='propulsor-off'){if(!(Number(u?.metaUpgrades?.dash)>0))return ack(false,'invalid-ability');player.propulsorEquipped=id==='propulsor-on';player.propulsorMoving=false;player.propulsorEnergy=Propulsor.charge(player.propulsorEnergy);socket.emit('propulsor-state',{energy:player.propulsorEnergy,equipped:player.propulsorEquipped});if(typeof acknowledge==='function')acknowledge({ok:true,energy:player.propulsorEnergy,equipped:player.propulsorEquipped});io.to(channelFor(room)).emit('world-players',[...room.players.values()].map(({userKey,runStats,...peer})=>peer));return;}
   if(id!=='pulse'||!(Number(u?.metaUpgrades?.pulse)>0))return ack(false,'invalid-ability');
   const now=Date.now();if(now<(Number(player.pulseReadyAt)||0))return ack(false,'cooldown');player.pulseReadyAt=now+14000;ack(true,'accepted');
   const rangeStrength=clamp(Number(player.rangeStrength)||1,1,Math.pow(1.22,3)),radius=245*rangeStrength/WORLD_ZOOM,baseDamage=28*Math.pow(1.08,Math.max(0,Number(u?.metaUpgrades?.focuser)||0));
