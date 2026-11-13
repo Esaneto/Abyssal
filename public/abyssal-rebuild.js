@@ -34,8 +34,6 @@ var SPECIMENS=[
   {id:'electriceel',tier:'surface',habitat:'Águas tropicais',classTag:'BIOELÉTRICA',name:'Enguia Elétrica',lore:'Descargas percorrem a linha lateral antes de qualquer movimento de ataque.'}
 ];
 
-var activeFilter='all';
-
 // Correntes desenhadas uma vez em SVG; a animação fica a cargo do compositor CSS.
 // Correntes de comprimentos e curvaturas irregulares: geometria estática e leve.
 // The old orbital SVG/vortex is retired. Fossas keeps its existing dialog.
